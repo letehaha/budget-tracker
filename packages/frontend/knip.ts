@@ -1,7 +1,8 @@
-// eslint-disable-next-line import/no-self-import
 import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
+  // TODO: fix because it's wrong ignoring them
+  ignoreBinaries: ['knip', 'vue-tsc', 'vite', 'vitest', 'storybook', 'cypress'],
   ignore: [
     '.eslintrc.js',
     'index.d.ts',
@@ -11,22 +12,29 @@ const config: KnipConfig = {
     // keep it for now, delete when Playwright added
     'tests/**/**',
     'cypress/**/**',
+    'cypress.config.ts',
     // keep them all for now
     'src/components/lib/**/**',
     // for some reason it cannot resolve it
     'tsconfig.json',
   ],
   ignoreDependencies: [
+    // actually used
+    'sass',
     // Needed for Storybook
+    'react',
     'react-dom',
     // Storybook
+    'storybook',
     '@storybook/cli',
     '@storybook/theming',
     '@storybook/vue3',
     '@storybook/addon-docs',
     '@storybook/addon-actions',
-    // needed on CI
-    'shared-types',
+    // needed for build
+    'vue-tsc',
+    // eslint
+    '@eslint/js',
   ],
   // ignoreBinaries: ["eslint"],
   rules: {
@@ -43,10 +51,7 @@ const config: KnipConfig = {
    * We need them defined, so Knip won't report of unused dependencies and will
    * respect plugins configs.
    */
-  eslint: {
-    config: ['.eslintrc', '.eslintrc.cjs'],
-    entry: ['.eslintrc.cjs'],
-  },
+  eslint: ['eslint.config.js'],
   /**
    * PLUGINS END
    */

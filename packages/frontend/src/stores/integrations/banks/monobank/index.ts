@@ -128,7 +128,7 @@ export const useBanksMonobankStore = defineStore('banks-monobank', () => {
           .filter((acc) => acc.type === ACCOUNT_TYPES.monobank)
           .map((acc) => loadTransactionsFromLatest({ accountId: acc.id })),
       );
-    } catch (e) {
+    } catch {
       throw new UnexpectedError();
     }
   };
@@ -141,7 +141,7 @@ export const useBanksMonobankStore = defineStore('banks-monobank', () => {
       queryClient.invalidateQueries({
         queryKey: VUE_QUERY_CACHE_KEYS.allAccounts,
       });
-    } catch (e) {
+    } catch {
       throw new UnexpectedError();
     }
   };
@@ -151,7 +151,7 @@ export const useBanksMonobankStore = defineStore('banks-monobank', () => {
       const response = await updateMonoUser({ apiToken: token, name });
 
       user.value = response;
-    } catch (e) {
+    } catch {
       throw new UnexpectedError();
     }
   };

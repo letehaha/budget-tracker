@@ -222,7 +222,7 @@ const applyChanges = async () => {
     );
     addSuccessNotification('Successfully updated!');
     await categoriesStore.loadCategories();
-  } catch (err) {
+  } catch {
     addErrorNotification('Unexpected error!');
   }
 };

@@ -64,7 +64,10 @@ export const getSpendingsByCategories = async ({
   );
 
   Object.keys(history).forEach((id) => {
-    history[id].amount = fromSystemAmount(history[id].amount);
+    const record = history[+id];
+    if (record) {
+      record.amount = fromSystemAmount(record.amount);
+    }
   });
 
   return history;

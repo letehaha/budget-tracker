@@ -35,7 +35,7 @@ const deleteAccount = async () => {
     });
     addSuccessNotification(`Account ${accountName} removed successfully`);
     router.push({ name: ROUTES_NAMES.accounts });
-  } catch (e) {
+  } catch {
     addErrorNotification('An error occured while trying to delete account');
   }
 };

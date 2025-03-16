@@ -13,7 +13,7 @@ export const useUserStore = defineStore('user', () => {
 
       user.value = result;
     } catch (e) {
-      console.log();
+      console.log(e);
     }
   };
 

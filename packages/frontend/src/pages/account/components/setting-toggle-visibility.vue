@@ -25,7 +25,7 @@ const updateVisibility = async ({ id, isEnabled }: { id: number; isEnabled: bool
       text: 'Updated successfully',
       type: NotificationType.success,
     });
-  } catch (err) {
+  } catch {
     addNotification({
       text: 'Unexpected error',
       type: NotificationType.error,

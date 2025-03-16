@@ -85,7 +85,7 @@ export default defineComponent({
         if (!selectedCurrency.value) {
           selectedCurrency.value = currencies.value[0];
         }
-      } catch (e) {
+      } catch {
         addErrorNotification('Unexpected error. Cannot load currencies.');
       } finally {
         isCurrenciesLoading.value = false;

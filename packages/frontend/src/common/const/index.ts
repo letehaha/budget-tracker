@@ -24,7 +24,7 @@ export const VERBOSE_PAYMENT_TYPES: VerbosePaymentType[] = [
 const OUT_OF_WALLET_ACCOUNT_NAME = 'Out of wallet';
 type OutOfWalletAccountModel = AccountModel & {
   _isOutOfWallet?: boolean;
-  id: null;
+  id: number;
 };
 
 export const OUT_OF_WALLET_ACCOUNT_MOCK = {

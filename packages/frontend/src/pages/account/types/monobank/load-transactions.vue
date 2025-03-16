@@ -40,7 +40,7 @@ const loadTransactionsForPeriod = async () => {
 
     dateRange.value = INITIAL_FORM_VALUE;
     selectorVisible.value = false;
-  } catch (err) {
+  } catch {
     addNotification({
       text: 'Unexpected error',
       type: NotificationType.error,

@@ -59,7 +59,7 @@ const submit = async () => {
     });
 
     emit('created');
-  } catch (e) {
+  } catch {
     addNotification({
       text: 'Unexpected error.',
       type: NotificationType.error,

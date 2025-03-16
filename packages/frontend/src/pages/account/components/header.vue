@@ -48,7 +48,7 @@ const updateAccount = async () => {
 
     formEditingPopoverOpen.value = false;
     addSuccessNotification('Account data changed successfully');
-  } catch (e) {
+  } catch {
     addErrorNotification('An error occured while trying to update account');
   }
 };

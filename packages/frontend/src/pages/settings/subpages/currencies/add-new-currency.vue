@@ -56,13 +56,15 @@ const { currencies: userCurrencies, systemCurrencies } = storeToRefs(currenciesS
 const queryClient = useQueryClient();
 
 const isCurrenciesLoading = ref(false);
-const selectedCurrency = ref<CurrencyModel>(null);
+const selectedCurrency = ref<CurrencyModel | null>(null);
 const filteredCurrencies = computed(() =>
-  systemCurrencies.value.filter((item) => !userCurrencies.value.some((el) => el.currency.code === item.code)),
+  systemCurrencies.value.filter((item) => !userCurrencies.value.some((el) => el.currency?.code === item.code)),
 );
 
 const addCurrency = async () => {
   try {
+    if (!selectedCurrency.value) return;
+
     isCurrenciesLoading.value = true;
 
     await addUserCurrencies([{ currencyId: selectedCurrency.value.id }]);
@@ -71,7 +73,7 @@ const addCurrency = async () => {
       queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates,
     });
     await currenciesStore.loadCurrencies();
-  } catch (e) {
+  } catch {
     addErrorNotification('Unexpected error. Currency is not added.');
   } finally {
     isCurrenciesLoading.value = false;

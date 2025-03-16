@@ -1,6 +1,6 @@
 import { useFormatCurrency } from '@/composable';
-import * as Highcharts from '@/composable/libs/highcharts';
 import { format } from 'date-fns';
+import * as Highcharts from 'highcharts';
 import { cloneDeep, merge } from 'lodash-es';
 
 const defaultConfig: Highcharts.Options = {

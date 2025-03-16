@@ -43,7 +43,7 @@ const saveCurrency = async () => {
     isOpen.value = false;
 
     emit('added', currencyId);
-  } catch (e) {
+  } catch {
     addErrorNotification('Unexpected error. Currency is not added.');
     formStatus.value = 'error';
   }
