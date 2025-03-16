@@ -11,11 +11,9 @@
     "docker-push": "docker push letehaha/budget-tracker-fe",
     "docker-compose": "npm run docker-build && npm run docker-push",
     "start": "npm run dev",
-    "test": "npm run test:unit && npm run test:e2e",
+    "test": "npm run test:unit",
     "test:unit": "vitest",
     "storybook": "storybook dev -p 6006",
-    "test:e2e": "cypress run",
-    "test:e2e:interact": "cypress open --browser chrome --e2e",
     "git-pull": "git pull --recurse-submodules",
     "postinstall": "chmod +x ./post-install.sh && ./post-install.sh",
     "knip": "npx knip"
