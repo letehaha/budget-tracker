@@ -1,0 +1,48 @@
+@import 'global.css';
+
+.container {
+  max-width: calc(var(--container-width) + (var(--container-padding) * 2));
+  padding: 0 var(--container-padding);
+  width: 100%;
+  margin: 0 auto;
+}
+
+.button-style-reset {
+  @include button-style-reset();
+}
+
+.balance-trend-widget-tooltip {
+  padding: 4px;
+}
+.balance-trend-widget-tooltip__date {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.balance-trend-widget-tooltip__value {
+  font-size: 18px;
+
+  span {
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+}
+
+.spending-categories-widget-tooltip {
+  text-align: center;
+  font-size: 14px;
+}
+.spending-categories-widget-tooltip__name {
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.datetime-raw-input::-webkit-inner-spin-button,
+.datetime-raw-input::-webkit-calendar-picker-indicator,
+.date-raw-input::-webkit-inner-spin-button,
+.date-raw-input::-webkit-calendar-picker-indicator,
+.datetime-local-raw-input::-webkit-inner-spin-button,
+.datetime-local-raw-input::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}

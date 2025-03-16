@@ -1,0 +1,14 @@
+# ...
+# ... This file ignores commits that are just cleaning up the code, fixing prettier
+# ... or code-style-related eslint warnings
+# ...
+
+# eslint warnings cleanup
+597ed124c0170a2deb9c840a0fe884f74199aba2
+
+# prettier format of the whole project
+e29b83e463be79f1b8a548b8608c4aad9812be78
+
+# prettier format of the project after switch to max-len: 100
+1bd66a9b898bad9e01987da2ba1d1dfbd18bc537
+16ba277502c3b556bbdfca6e19ee731611b12f72

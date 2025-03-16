@@ -1,0 +1,104 @@
+name: Lint, Test and Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  prepare-dependencies:
+    name: Prepare local deps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # Important for forked repositories
+          # This is dangerous without the "check-permissions" job
+          ref: ${{ github.event.pull_request.head.sha }}
+      - id: prepare-env
+        uses: ./.github/actions/prepare-local-env
+      - name: Install dependencies
+        if: steps.prepare-env.outputs.cache-hit != 'true'
+        run: npm ci
+
+  lint:
+    name: Lint source code
+    needs: prepare-dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # Important for forked repositories
+          # This is dangerous without the "check-permissions" job
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: ./.github/actions/prepare-local-env
+      - name: Lint source code
+        run: npm run lint
+
+  unit-tests:
+    name: Unit testing
+    needs: prepare-dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # Important for forked repositories
+          # This is dangerous without the "check-permissions" job
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: ./.github/actions/prepare-local-env
+      - name: Unit testing
+        run: npm run test:unit
+
+  build:
+    name: Build source code
+    needs: prepare-dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # Important for forked repositories
+          # This is dangerous without the "check-permissions" job
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: ./.github/actions/prepare-local-env
+      - name: Build source code
+        run: npm run build
+
+  knip-checkup:
+    name: No unused files and exports
+    needs: prepare-dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/prepare-local-env
+      - name: Run knip
+        run: npm run knip
+
+  docker-build:
+    name: Build source code using Docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # Important for forked repositories
+          # This is dangerous without the "check-permissions" job
+          ref: ${{ github.event.pull_request.head.sha }}
+      - id: docker-build
+        uses: ./.github/actions/docker-build
+        with:
+          vps-host: ${{ secrets.VPS_HOST }}
+          vue-app-api-ver: ${{ secrets.VUE_APP_API_VER }}
+          docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Image digest
+        run: echo ${{ steps.docker-build.outputs.docker-build-digest }}

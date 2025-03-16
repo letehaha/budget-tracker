@@ -1,0 +1,37 @@
+services:
+  test-db:
+    image: postgres:16
+    restart: always
+    container_name: test-budget-tracker-db
+    volumes: ['test_db_data:/var/lib/postgresql/data']
+    environment:
+      - POSTGRES_USER=${APPLICATION_DB_USERNAME}
+      - POSTGRES_PASSWORD=${APPLICATION_DB_PASSWORD}
+      - POSTGRES_DB=${APPLICATION_DB_DATABASE}
+    env_file: ../../.env.test
+    labels:
+      - 'com.docker.compose.project=test'
+
+  test-redis:
+    image: redis:6
+    container_name: test-budget-tracker-redis
+    volumes: ['test_redis_data:/data']
+    labels:
+      - 'com.docker.compose.project=test'
+
+  test-runner:
+    build:
+      context: ../..
+      dockerfile: docker/test/Dockerfile
+    depends_on:
+      - test-db
+      - test-redis
+    environment:
+      - NODE_ENV=test
+    env_file: ../../.env.test
+    labels:
+      - 'com.docker.compose.project=test'
+
+volumes:
+  test_db_data:
+  test_redis_data:

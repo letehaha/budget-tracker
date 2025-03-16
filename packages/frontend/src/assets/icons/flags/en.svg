@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 21 15">
+  <defs>
+    <linearGradient id="b" x1="50%" x2="50%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#0A17A7"/>
+      <stop offset="100%" stop-color="#030E88"/>
+    </linearGradient>
+    <linearGradient id="d" x1="50%" x2="50%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFF"/>
+      <stop offset="100%" stop-color="#F0F0F0"/>
+    </linearGradient>
+    <linearGradient id="e" x1="50%" x2="50%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#E6273E"/>
+      <stop offset="100%" stop-color="#CF152B"/>
+    </linearGradient>
+    <rect id="a" width="21" height="15" x="0" y="0" rx="2"/>
+  </defs>
+  <g fill="none" fill-rule="evenodd">
+    <mask id="c" fill="#fff">
+      <use xlink:href="#a"/>
+    </mask>
+    <path fill="url(#b)" d="M-.002 0h21v15h-21z" mask="url(#c)"/>
+    <path fill="url(#d)" d="M5.003 10H-.002V5h5.005L-2.082.221l1.118-1.658 8.962 6.045V-1h5v5.608l8.962-6.045L23.078.221 15.993 5h5.005v5h-5.005l7.085 4.779-1.118 1.658-8.962-6.045V16h-5v-5.608l-8.962 6.045-1.118-1.658z" mask="url(#c)"/>
+    <path fill="#DB1F35" fill-rule="nonzero" d="M14.136 4.958l9.5-6.25c.115-.075.147-.23.071-.345-.076-.116-.23-.148-.346-.072l-9.5 6.25c-.115.075-.147.23-.07.346.075.115.23.147.345.071z" mask="url(#c)"/>
+    <g mask="url(#c)">
+      <path fill="#DB1F35" fill-rule="nonzero" d="M14.868 10.48l8.515 5.74c.115.077.27.047.347-.068.078-.114.047-.27-.067-.347l-8.516-5.74c-.114-.076-.27-.046-.347.068-.077.115-.046.27.068.347zM6.142 4.526L-2.74-1.461c-.115-.077-.27-.046-.347.068-.077.115-.047.27.067.347L5.863 4.94c.114.077.27.047.347-.067.077-.115.046-.27-.068-.347zm.685 5.469l-9.845 6.53c-.115.076-.147.23-.07.346.076.115.231.146.346.07l9.846-6.529c.115-.076.146-.231.07-.346-.076-.116-.231-.147-.347-.07z"/>
+      <path fill="url(#e)" d="M3.998 11h9v6h3v-6h9V8h-9V2h-3v6h-9z" transform="translate(-4 -2)"/>
+    </g>
+  </g>
+</svg>

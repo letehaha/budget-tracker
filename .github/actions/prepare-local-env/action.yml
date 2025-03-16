@@ -1,0 +1,36 @@
+name: Prepare local environment
+description: Prepare local environment for development by setup node, patch hosts file, and cache dependencies
+outputs:
+  cache-hit:
+    description: Whether the dependencies were cached
+    value: ${{ steps.npm-cache.outputs.cache-hit }}
+runs:
+  using: composite
+  steps:
+    - name: Read .nvmrc
+      shell: bash
+      run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
+      id: nvm
+    - name: Use Node.js (.nvmrc)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '${{ steps.nvm.outputs.NVMRC }}'
+    - name: Add hosts to /etc/hosts
+      shell: bash
+      run: |
+        sudo echo "127.0.0.1 budget-tracker.com" | sudo tee -a /etc/hosts
+    - name: Get npm cache directory
+      shell: bash
+      id: npm-cache-dir
+      run: |
+        echo "::set-output name=dir::$(npm config get cache)"
+    - uses: actions/cache@v3
+      id: npm-cache
+      with:
+        path: |
+          **/node_modules
+          ~/.cache/Cypress
+          ${{ steps.npm-cache-dir.outputs.dir }}
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-

@@ -1,0 +1,43 @@
+services:
+  app:
+    build:
+      context: ../../
+      dockerfile: docker/dev/backend/Dockerfile
+    container_name: dev-budget-tracker-app
+    volumes:
+      - ../../:/app
+      - /app/node_modules
+    ports: ['${APPLICATION_PORT}:${APPLICATION_PORT}']
+    depends_on: ['db', 'redis']
+    env_file: ../../.env.development
+
+  db:
+    image: postgres:16
+    restart: always
+    container_name: dev-budget-tracker-db
+    volumes: ['db_data:/var/lib/postgresql/data']
+    environment:
+      - POSTGRES_USER=${APPLICATION_DB_USERNAME}
+      - POSTGRES_PASSWORD=${APPLICATION_DB_PASSWORD}
+      - POSTGRES_DB=${APPLICATION_DB_DATABASE}
+    ports: ['${APPLICATION_DB_PORT}:5432']
+
+  redis:
+    image: redis:6
+    container_name: dev-budget-tracker-redis
+    volumes: ['redis_data:/data']
+    ports: ['6379:6379']
+
+  pgadmin:
+    image: dpage/pgadmin4:8.11
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+      - PGADMIN_LISTEN_PORT=${PGADMIN_LISTEN_PORT}
+    ports: ['8001:8001']
+    depends_on: ['db']
+    attach: false
+
+volumes:
+  db_data:
+  redis_data:

@@ -1,0 +1,47 @@
+@mixin respond-to-custom-height($media, $direction: max) {
+  @media only screen and (#{$direction}-height: #{$media}px) {
+    @content;
+  }
+}
+@mixin respond-to-custom-width($media, $direction: max) {
+  @media only screen and (#{$direction}-width: #{$media}px) {
+    @content;
+  }
+}
+@mixin below($size) {
+  @include respond-to-custom-width($size - 1, max) {
+    @content;
+  }
+}
+@mixin over($size) {
+  @include respond-to-custom-width($size, min) {
+    @content;
+  }
+}
+@mixin respond-to-retina() {
+  @media only screen and (-webkit-min-device-pixel-ratio: 2),
+    only screen and (min--moz-device-pixel-ratio: 2),
+    only screen and (-o-min-device-pixel-ratio: 2/1),
+    only screen and (min-device-pixel-ratio: 2),
+    only screen and (min-resolution: 192dpi),
+    only screen and (min-resolution: 2dppx) {
+    @content;
+  }
+}
+@mixin button-style-reset() {
+  border: none;
+  padding: 0;
+  background-color: transparent;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+  font-size: initial;
+}
+
+@mixin dropdown-shadow {
+  box-shadow: 0 3px 10px 2px rgba(0, 0, 0, 0.08);
+
+  body.dark & {
+    box-shadow: 0 0 10px 4px rgba(0, 0, 0, 0.2);
+  }
+}

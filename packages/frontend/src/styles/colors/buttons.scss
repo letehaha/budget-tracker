@@ -1,0 +1,21 @@
+body {
+  // ac => app-color
+
+  // primary button
+  --ac-button-primary-base: var(--abc-brand-light-500);
+  --ac-button-primary-hover: var(--abc-brand-light-600);
+  --ac-button-primary-focus: var(--abc-brand-light-700);
+  --ac-button-primary-text: var(--abc-text-white-base);
+
+  // danger button
+  --ac-button-danger-base: var(--abc-red-500);
+  --ac-button-danger-hover: var(--abc-red-600);
+  --ac-button-danger-focus: var(--abc-red-700);
+  --ac-button-danger-text: var(--abc-text-white-base);
+
+  &.dark {
+    --ac-button-primary-base: var(--abc-brand-dark-500);
+    --ac-button-primary-hover: var(--abc-brand-dark-400);
+    --ac-button-primary-focus: var(--abc-brand-dark-300);
+  }
+}
