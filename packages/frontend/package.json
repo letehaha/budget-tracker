@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "vue-tsc --noEmit && vite build",
-    "lint": "eslint -c ./.eslintrc.cjs --ignore-path ./.eslintignore .",
+    "lint": "eslint -c ./.eslintrc.cjs .",
     "dev": "vite --host",
     "prod": "vite --mode production",
     "docker-build": "docker build . -t letehaha/budget-tracker-fe",
@@ -69,6 +69,7 @@
     "cypress": "^13.13.2",
     "eslint-import-resolver-typescript": "^3.6.1",
     "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-prettier": "^5.2.3",
     "eslint-plugin-vue": "^9.27.0",
     "jsdom": "^24.1.1",
     "react": "^18.3.1",

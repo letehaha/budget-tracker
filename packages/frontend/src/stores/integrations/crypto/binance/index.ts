@@ -22,26 +22,18 @@ export const useCryptoBinanceStore = defineStore('crypto-binance', () => {
   );
 
   const loadAccountData = async () => {
-    try {
-      const result: RawAccountDataResponse = await api.get('/crypto/binance/account');
+    const result: RawAccountDataResponse = await api.get('/crypto/binance/account');
 
-      accountData.value = normalizeAccountData(result);
-    } catch (e) {
-      throw e;
-    }
+    accountData.value = normalizeAccountData(result);
   };
 
   const setSettings = async ({ publicKey, secretKey }: { publicKey: string; secretKey: string }) => {
-    try {
-      const result: AccountSettings = await api.post('/crypto/binance/set-settings', {
-        apiKey: publicKey,
-        secretKey,
-      });
+    const result: AccountSettings = await api.post('/crypto/binance/set-settings', {
+      apiKey: publicKey,
+      secretKey,
+    });
 
-      userSettings.value = result;
-    } catch (e) {
-      throw e;
-    }
+    userSettings.value = result;
   };
 
   return {

@@ -20,7 +20,7 @@ export default defineConfig({
     video: true,
     requestTimeout: 5000,
     defaultCommandTimeout: 5000,
-    setupNodeEvents(on, config) {
+    setupNodeEvents(on) {
       on('after:spec', (spec: Cypress.Spec, results: CypressCommandLine.RunResult) => {
         if (results && results.video) {
           // Do we have failures for any retry attempts?

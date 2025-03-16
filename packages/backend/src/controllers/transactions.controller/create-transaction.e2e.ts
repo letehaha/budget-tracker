@@ -5,8 +5,8 @@ import * as helpers from '@tests/helpers';
 
 describe('Create transaction controller', () => {
   it('should return validation error if no data passed', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const res = await helpers.createTransaction({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       payload: null as any,
       raw: false,
     });
