@@ -1,6 +1,6 @@
 import { ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
 import { faker } from '@faker-js/faker';
-import { describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { INVALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';

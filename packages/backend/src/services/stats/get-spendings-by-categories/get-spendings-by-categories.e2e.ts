@@ -1,5 +1,5 @@
 import { CategoryModel, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { expect } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
 describe('[Stats] Spendings by categories', () => {

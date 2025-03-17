@@ -2,6 +2,7 @@ const QueryTypes = require('sequelize').QueryTypes;
 const axios = require('axios');
 const fs = require('fs');
 const { subDays } = require('date-fns');
+const path = require('path');
 
 const isTest = process.env.NODE_ENV === 'test';
 
@@ -11,7 +12,9 @@ module.exports = {
 
     try {
       let data = {
-        data: JSON.parse(fs.readFileSync('./src/tests/test-exchange-rates.json')),
+        data: JSON.parse(
+          fs.readFileSync(path.join(__dirname, '..', 'tests', 'test-exchange-rates.json'))
+        ),
       };
 
       const currencies = await queryInterface.sequelize.query('SELECT * FROM "Currencies"', {

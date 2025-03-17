@@ -40,7 +40,7 @@ jobs:
     strategy:
       matrix:
         # TODO: `test`, `docker-build`
-        task: [lint]
+        task: [lint, 'test']
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/prepare-local-env

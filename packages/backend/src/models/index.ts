@@ -14,8 +14,6 @@ const connection: {
 
 const DBConfig: Record<string, unknown> = config.get('db');
 
-console.log('DBConfig', DBConfig);
-
 const sequelize = new Sequelize({
   ...DBConfig,
   database:

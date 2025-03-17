@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { beforeAll, describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { getApiLayerResposeMock } from '@tests/mocks/exchange-rates/data';
 import { createCallsCounter, createOverride } from '@tests/mocks/helpers';

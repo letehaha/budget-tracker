@@ -8,7 +8,7 @@ services:
       - POSTGRES_USER=${APPLICATION_DB_USERNAME}
       - POSTGRES_PASSWORD=${APPLICATION_DB_PASSWORD}
       - POSTGRES_DB=${APPLICATION_DB_DATABASE}
-    env_file: ../../.env.test
+    env_file: ../../../.env.test
     labels:
       - 'com.docker.compose.project=test'
 
@@ -21,14 +21,16 @@ services:
 
   test-runner:
     build:
-      context: ../..
-      dockerfile: docker/test/Dockerfile
+      context: ../../..
+      dockerfile: docker/test/backend/Dockerfile
     depends_on:
       - test-db
       - test-redis
     environment:
       - NODE_ENV=test
-    env_file: ../../.env.test
+      # so package `config` will look into the correct place
+      - NODE_CONFIG_DIR=./packages/backend/config
+    env_file: ../../../.env.test
     labels:
       - 'com.docker.compose.project=test'
 
