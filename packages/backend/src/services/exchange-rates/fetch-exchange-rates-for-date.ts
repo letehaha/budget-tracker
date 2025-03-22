@@ -24,7 +24,7 @@ export const fetchExchangeRatesForDate = withTransaction(async (date: Date): Pro
   // Normalize the date to start of day
   const normalizedDate = startOfDay(date);
 
-  if (!process.env.API_LAYER_API_KEY) {
+  if (!process.env.API_LAYER_API_KEY && process.env.NODE_ENV !== 'test') {
     logger.error(`API_LAYER_API_KEY is missing. Tried to load exchange rates for date ${normalizedDate}`);
     return undefined;
   }

@@ -5,7 +5,6 @@
     "esModuleInterop": true,
     "sourceMap": true,
     "allowJs": true,
-    // "strict": true,
     "noUncheckedIndexedAccess": true
   }
 }

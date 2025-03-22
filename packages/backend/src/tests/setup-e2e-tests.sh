@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Source environment variables from .env.test file
-if [ -f ../../.env.test ]; then
-    export $(cat ../../.env.test | grep -v '#' | awk '/=/ {print $1}')
+if [ -f .env.test ]; then
+    export $(cat .env.test | grep -v '#' | awk '/=/ {print $1}')
 else
-    echo "../../.env.test file not found"
+    echo ".env.test file not found"
     exit 1
 fi
 

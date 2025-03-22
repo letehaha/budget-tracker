@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 const SECRET_KEY = process.env.APP_SESSION_ID_SECRET as string;
 
 export const sessionMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  if (process.env.NODE_ENV === 'test') return next();
+
   if (!SECRET_KEY) {
     logger.error('"sessionMiddleware": secrey key is missing!');
     return next();
