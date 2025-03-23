@@ -59,10 +59,11 @@ jobs:
           envkey_APPLICATION_DB_DIALECT: postgres
           # docker/test/backend/docker-compose.yml redis' service name
           envkey_APPLICATION_REDIS_HOST: test-redis
-          envkey_JEST_WORKERS_AMOUNT: 10
-          envkey_SHOW_LOGS_IN_TESTS: true
+          # TODO: temporary set to 1 due to issues with migrations with +1 worker
+          envkey_JEST_WORKERS_AMOUNT: 1
+          envkey_SHOW_LOGS_IN_TESTS: false
           directory: ./packages/backend
           file_name: .env.test
-          fail_on_empty: true # fails if any env variable is empty
+          fail_on_empty: true # fail if any env variable is empty
       - name: Run ${{ matrix.task }}
         run: npm run ${{ matrix.task }} -w packages/backend
