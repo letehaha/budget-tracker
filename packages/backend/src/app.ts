@@ -43,22 +43,29 @@ app.set('port', config.get('port'));
 
 loadCurrencyRatesJob.start();
 
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
     origin(requestOrigin, callback) {
-      const ALLOWED_HOSTS = ['127.0.0.1:8100', '206.81.20.28:8081', 'gamanets.money', 'https://gamanets.money'];
-
-      if (process.env.NODE_ENV !== 'test') {
-        if (!requestOrigin || !ALLOWED_HOSTS.some((value) => requestOrigin.includes(value))) {
-          return callback(null, false);
-        }
+      if (process.env.NODE_ENV === 'test' || !requestOrigin) {
+        return callback(null, true);
       }
 
-      return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(requestOrigin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'), false);
     },
+    credentials: true,
     exposedHeaders: ['x-session-id', 'x-request-id'],
   }),
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 if (process.env.NODE_ENV !== 'test') {

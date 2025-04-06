@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 // https://vitejs.dev/config/
 export default ({ mode }) => {
-  process.env = { ...process.env, ...loadEnv(mode, process.cwd(), '') };
+  process.env = { ...process.env, ...loadEnv(mode, path.resolve(__dirname, '../../'), '') };
 
   return defineConfig({
     plugins: [vue(), svgLoader()],

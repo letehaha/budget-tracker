@@ -15,7 +15,7 @@
     "postinstall": "chmod +x ./post-install.sh && ./post-install.sh",
     "prettier": "npx prettier --write ."
   },
-  "author": "",
+  "author": "letehaha",
   "license": "ISC",
   "description": "",
   "dependencies": {
