@@ -13,17 +13,7 @@
     "test": "cross-env NODE_ENV=test npm run test:unit && npm run test:e2e",
     "test:unit": "cross-env NODE_ENV=test jest -c jest.config.unit.ts --passWithNoTests --forceExit --detectOpenHandles",
     "test:e2e": "cross-env NODE_ENV=test chmod +x ./src/tests/setup-e2e-tests.sh && ./src/tests/setup-e2e-tests.sh",
-    "lint": "eslint .",
-    "docker:dev": "docker compose --env-file .env.development -f ./docker/dev/docker-compose.yml up --build",
-    "docker:dev:ps": "docker compose --env-file .env.development -f ./docker/dev/docker-compose.yml ps",
-    "docker:dev:down": "docker compose --env-file .env.development -f ./docker/dev/docker-compose.yml down",
-    "docker:dev:destroy": "./docker/dev/docker-destroy.sh",
-    "docker:dev:run-in-container": "docker compose --env-file .env.development -f ./docker/dev/docker-compose.yml exec app",
-    "docker:prod:build": "docker buildx build --platform linux/amd64 -t letehaha/budget-tracker-be:latest -f ./docker/prod/Dockerfile .",
-    "docker:prod:push": "docker push letehaha/budget-tracker-be",
-    "docker:prod:preview": "docker compose -f ./docker/prod/docker-compose.yml up",
-    "docker:prod:preview:down": "docker compose -f ./docker/prod/docker-compose.yml down",
-    "docker:prod:build-push": "npm run docker:prod:build && npm run docker:prod:push"
+    "lint": "eslint ."
   },
   "author": "",
   "license": "ISC",

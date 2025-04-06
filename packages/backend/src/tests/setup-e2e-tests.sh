@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# Source environment variables from .env.test file
-if [ -f .env.test ]; then
-    export $(cat .env.test | grep -v '#' | awk '/=/ {print $1}')
+# Source environment variables from .env.test file in the root directory
+if [ -f ../../.env.test ]; then
+    export $(cat ../../.env.test | grep -v '#' | awk '/=/ {print $1}')
 else
-    echo ".env.test file not found"
+    echo ".env.test file not found in root directory"
     exit 1
 fi
+
 
 # Start the containers and run tests
 docker compose -f ../../docker/test/backend/docker-compose.yml up --build -d

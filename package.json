@@ -5,7 +5,8 @@
     "packages/*"
   ],
   "scripts": {
-    "lint": "cd packages/backend && npm run lint && cd ../frontend && npm run lint",
+    "lint": "npm --workspace=packages/backend run lint && npm --workspace=packages/frontend run lint",
+    "test": "cross-env NODE_ENV=test npm --workspace=packages/backend run test && npm --workspace=packages/frontend run test",
     "docker:dev": "docker compose -f ./docker/dev/docker-compose.yml --env-file .env.development up --build",
     "docker:dev:frontend": "docker compose -f ./docker/dev/docker-compose.frontend-only.yml --env-file .env.development up --build",
     "docker:dev:down": "docker compose -f ./docker/dev/docker-compose.yml down",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
     "eslint": "7.31.0",
     "eslint-config-prettier": "^9.1.0",
