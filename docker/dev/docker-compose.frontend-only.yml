@@ -1,0 +1,11 @@
+services:
+  frontend:
+    build:
+      context: ../../
+      dockerfile: docker/dev/frontend/Dockerfile
+    container_name: dev-budget-tracker-frontend
+    volumes:
+      - ../../packages/frontend:/app/packages/frontend
+    ports:
+      - '${PORT}:${PORT}'
+    env_file: ../../.env.development
