@@ -9,13 +9,10 @@
     "prod": "vite --mode production",
     "docker-build": "docker build . -t letehaha/budget-tracker-fe",
     "docker-push": "docker push letehaha/budget-tracker-fe",
-    "docker-compose": "npm run docker-build && npm run docker-push",
     "start": "npm run dev",
     "test": "npm run test:unit",
     "test:unit": "vitest",
     "storybook": "storybook dev -p 6006",
-    "git-pull": "git pull --recurse-submodules",
-    "postinstall": "chmod +x ./post-install.sh && ./post-install.sh",
     "knip": "npx knip"
   },
   "type": "module",
