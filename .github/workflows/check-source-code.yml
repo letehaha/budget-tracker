@@ -25,13 +25,28 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # TODO: `docker-build`
         task: [lint, test, build, knip]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/prepare-local-env
       - name: Run ${{ matrix.task }}
         run: npm run ${{ matrix.task }} -w packages/frontend
+
+  fontend-docker-build:
+    name: Build frontend Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - id: frontend-docker-build
+        uses: ./.github/actions/frontend-docker-build
+        with:
+          vps-host: ${{ secrets.VPS_HOST }}
+          vue-app-api-ver: ${{ secrets.VUE_APP_API_VER }}
+          docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Image digest
+        run: echo ${{ steps.frontend-docker-build.outputs.docker-build-digest }}
 
   backend:
     name: Backend tasks
