@@ -1,0 +1,110 @@
+name: Update images on VPS
+
+# on:
+#   workflow_run:
+#     workflows: ['Lint, Test and Build']
+#     types:
+#       - completed
+#     branches: [main]
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+
+      - id: frontend-docker-build
+        uses: ./.github/actions/frontend-docker-build
+        with:
+          vps-host: ${{ secrets.VPS_HOST }}
+          vue-app-api-ver: ${{ secrets.VUE_APP_API_VER }}
+          docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          push: 'false'
+
+      - id: backend-docker-build
+        uses: ./.github/actions/backend-docker-build
+        with:
+          docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          push: 'false'
+
+      - name: Image digest
+        run: echo ${{ steps.frontend-docker-build.outputs.docker-build-digest }}
+
+      - name: Backend image digest
+        run: echo ${{ steps.backend-docker-build.outputs.docker-build-digest }}
+
+      # 🚀 Run Frontend Container
+      - name: Run Frontend Container
+        run: |
+          docker run -d --name frontend-test -p 8080:80 ${{ secrets.DOCKER_HUB_USERNAME }}/budget-tracker-fe:latest
+          sleep 5
+          curl -I http://localhost:8080 || (echo "Frontend failed to respond" && exit 1)
+
+      # 🚀 Run Backend Container
+      - name: Run Backend Container
+        env:
+          APPLICATION_PORT: 3000
+          APPLICATION_HOST: 127.0.0.1
+          APPLICATION_JWT_SECRET: test-jwt
+          APPLICATION_DB_HOST: test-db
+          APPLICATION_DB_USERNAME: test
+          APPLICATION_DB_PASSWORD: test
+          APPLICATION_DB_DATABASE: budget-tracker_test
+          APPLICATION_DB_PORT: 5432
+          APPLICATION_DB_DIALECT: postgres
+          APPLICATION_REDIS_HOST: redis-test
+        run: |
+          docker network create test-net
+          docker run -d --name redis-test --network test-net redis:7
+          docker run -d --name backend-test -p 3000:3000 \
+            -e NODE_ENV=production \
+            -e APPLICATION_PORT=$APPLICATION_PORT \
+            -e APPLICATION_HOST=$APPLICATION_HOST \
+            -e APPLICATION_JWT_SECRET=$APPLICATION_JWT_SECRET \
+            -e APPLICATION_DB_HOST=$APPLICATION_DB_HOST \
+            -e APPLICATION_DB_USERNAME=$APPLICATION_DB_USERNAME \
+            -e APPLICATION_DB_PASSWORD=$APPLICATION_DB_PASSWORD \
+            -e APPLICATION_DB_DATABASE=$APPLICATION_DB_DATABASE \
+            -e APPLICATION_DB_PORT=$APPLICATION_DB_PORT \
+            -e APPLICATION_DB_DIALECT=$APPLICATION_DB_DIALECT \
+            -e APPLICATION_REDIS_HOST=$APPLICATION_REDIS_HOST \
+            ${{ secrets.DOCKER_HUB_USERNAME }}/budget-tracker-be:latest
+          sleep 5
+          echo "===== Backend Container Logs ====="
+          docker logs backend-test
+          curl -I http://localhost:3000 || (echo "Backend failed to respond" && exit 1)
+
+      # 🧹 Cleanup
+      - name: Stop and Remove Test Containers
+        if: always()
+        run: |
+          docker rm -f frontend-test || true
+          docker rm -f backend-test || true
+
+      # - name: Actualize docker images on VPS
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.VPS_HOST }}
+      #     username: ${{ secrets.VPS_USERNAME }}
+      #     key: ${{ secrets.VPS_SSH_KEY }}
+      #     passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+      #     script: |
+      #       set -e
+      #       cd ${{ secrets.VPS_PROJECT_PATH }}
+
+      #       # Pull the latest image
+      #       docker-compose pull
+
+      #       # Start the new containers without dependencies, so there will be almost
+      #       # no downtime
+      #       docker-compose up -d --no-deps

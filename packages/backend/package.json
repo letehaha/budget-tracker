@@ -5,7 +5,7 @@
   "scripts": {
     "start": "npm run dev",
     "dev": "cross-env NODE_ENV=development nodemon --exec 'ts-node -r tsconfig-paths/register' src/app.ts",
-    "prod": "cross-env NODE_ENV=production nodemon",
+    "prod": "cross-env NODE_ENV=production ts-node -r tsconfig-paths/register src/app.ts",
     "migrate:dev": "cross-env NODE_ENV=development npx sequelize-cli db:migrate",
     "migrate:dev:undo": "cross-env NODE_ENV=development npx sequelize-cli db:migrate:undo",
     "migrate": "cross-env NODE_ENV=production npx sequelize-cli db:migrate",
