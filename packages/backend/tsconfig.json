@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "target": "es6",
+    "module": "commonjs",
+    "outDir": "./build",
+    "baseUrl": "./src",
+    "paths": {
+      "@routes/*": ["routes/*"],
+      "@middlewares/*": ["middlewares/*"],
+      "@common/*": ["common/*"],
+      "@controllers/*": ["controllers/*"],
+      "@models/*": ["models/*"],
+      "@tests/*": ["tests/*"],
+      "@js/*": ["js/*"],
+      "@root/*": ["./*"],
+      "@bt/shared/*": ["../../shared/src/*"],
+      "@services/*": ["services/*"]
+    },
+    "noImplicitAny": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "typeRoots": ["./node_modules/@types", "./src/tests/global.d.ts", "./src/typings"]
+  },
+  "include": ["src/**/*", "src/tests/custom-matchers.d.ts"],
+  "exclude": ["config/**/*", "src/migrations/**/*"]
+}

@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 255, 255, 255;
+    --foreground: 8, 8, 10;
+
+    --card: 255, 255, 255;
+    --card-foreground: 8, 8, 10;
+
+    --popover: 255, 255, 255;
+    --popover-foreground: 8, 8, 10;
+
+    --primary: 144, 116, 219;
+    --primary-foreground: 254, 241, 242;
+
+    --secondary: 244, 244, 245;
+    --secondary-foreground: 23, 23, 27;
+
+    --muted: 244, 244, 245;
+    --muted-foreground: 113, 113, 122;
+
+    --accent: 244, 244, 245;
+    --accent-foreground: 23, 23, 27;
+
+    --destructive: 238, 68, 68;
+    --destructive-foreground: 249, 249, 249;
+
+    --border: 227, 227, 231;
+    --input: 227, 227, 231;
+    --ring: 144, 116, 219;
+    --radius: 0.5rem;
+
+    /* Custom colors */
+    --error-message: 223, 86, 67;
+  }
+
+  .dark {
+    --background: 11, 9, 8;
+    --foreground: 242, 242, 242;
+
+    --card: 27, 25, 23;
+    --card-foreground: 242, 242, 242;
+
+    --popover: 22, 22, 22;
+    --popover-foreground: 242, 242, 242;
+
+    --primary: 144, 116, 219;
+    --primary-foreground: 254, 241, 242;
+
+    --secondary: 39, 39, 42;
+    --secondary-foreground: 249, 249, 249;
+
+    --muted: 38, 38, 38;
+    --muted-foreground: 161, 161, 169;
+
+    --accent: 41, 37, 36;
+    --accent-foreground: 249, 249, 249;
+
+    --destructive: 147, 29, 29;
+    --destructive-foreground: 254, 242, 242;
+
+    --border: 39, 39, 42;
+    --input: 39, 39, 42;
+    --ring: 144, 116, 219;
+
+    /* Custom colors */
+    --error-message: 228, 105, 89;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

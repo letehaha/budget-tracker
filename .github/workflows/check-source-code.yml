@@ -1,0 +1,68 @@
+name: Lint, Test and Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  prepare-dependencies:
+    name: Prepare local deps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - id: prepare-env
+        uses: ./.github/actions/prepare-local-env
+      - name: Install dependencies
+        if: steps.prepare-env.outputs.cache-hit != 'true'
+        run: npm ci
+
+  frontend:
+    name: Frontend tasks
+    needs: prepare-dependencies
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # TODO: `docker-build`
+        task: [lint, test, build, knip]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/prepare-local-env
+      - name: Run ${{ matrix.task }}
+        run: npm run ${{ matrix.task }} -w packages/frontend
+
+  backend:
+    name: Backend tasks
+    needs: prepare-dependencies
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # TODO: `docker-build`
+        task: [lint, 'test']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/prepare-local-env
+      - name: Make backend env file
+        uses: SpicyPizza/create-envfile@v2
+        with:
+          envkey_APPLICATION_HOST: 127.0.0.1
+          envkey_APPLICATION_PORT: 8081
+          envkey_APPLICATION_JWT_SECRET: test-jwt
+          # docker/test/backend/docker-compose.yml DB's service name
+          envkey_APPLICATION_DB_HOST: test-db
+          envkey_APPLICATION_DB_USERNAME: test
+          envkey_APPLICATION_DB_PASSWORD: test
+          envkey_APPLICATION_DB_DATABASE: budget-tracker_test
+          envkey_APPLICATION_DB_PORT: 5432
+          envkey_APPLICATION_DB_DIALECT: postgres
+          # docker/test/backend/docker-compose.yml redis' service name
+          envkey_APPLICATION_REDIS_HOST: test-redis
+          # TODO: temporary set to 1 due to issues with migrations with +1 worker
+          envkey_JEST_WORKERS_AMOUNT: 1
+          envkey_SHOW_LOGS_IN_TESTS: false
+          file_name: .env.test
+          fail_on_empty: true # fail if any env variable is empty
+      - name: Run ${{ matrix.task }}
+        run: npm run ${{ matrix.task }} -w packages/backend

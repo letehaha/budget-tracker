@@ -1,0 +1,114 @@
+@import './colors';
+
+$primary-color: #2ecc71;
+$danger-color: #e1301c;
+
+body {
+  --app-color-primary: var(--abc-brand-light-500);
+
+  --app-border-default: #dfdfe3;
+  --app-border-disabled: #d0d1da;
+
+  --app-bg-page: #f4f5f7;
+  --app-bg-box: #ffffff;
+  --app-bg-box-hover: #f5f5f5;
+  --app-bg-field-disabled: #fafafa;
+
+  --app-buttons-light-bg: #f2ecfd;
+
+  @each $shade, $color in makeColorPalette($primary-color) {
+    --primary-#{$shade}: #{$color};
+    --primary-#{$shade}-rgb: #{hextorgb($color)};
+  }
+
+  @each $shade, $color in makeColorPalette($danger-color) {
+    --danger-#{$shade}: #{$color};
+    --danger-#{$shade}-rgb: #{hextorgb($color)};
+  }
+
+  // app elements color
+  --app-income-color: var(--primary-500);
+  --app-income-color-rgb: var(--primary-500-rgb);
+
+  @each $cssVar,
+    $value
+      in (
+        --app-primary: #7e56da,
+        --app-error: #e05744,
+        --app-success: #27ae60,
+        --app-expense-color: #e74c3c,
+        --app-transfer-color: #95a5a6,
+
+        --app-danger-color: $danger-color,
+        --app-danger-color-text: $danger-color,
+        --app-warning-color: #e5971c,
+        --app-success-color: #059134,
+
+        --app-bg-color: #fafafa,
+        --app-on-bg-color: #333,
+        --app-surface-color: #fff,
+        --app-surface-color-hover: #f5f5f5,
+        --app-on-surface-color: #222
+      )
+  {
+    #{$cssVar}: $value;
+    #{$cssVar}-rgb: #{hextorgb($value)};
+  }
+
+  &.dark {
+    --app-border-default: #616161;
+    --app-border-disabled: #383838;
+
+    --app-bg-page: #161616;
+    --app-bg-box: #333333;
+    --app-bg-box-hover: #444444;
+    --app-bg-field-disabled: #2c2c2c;
+
+    // TODO: add in design
+    --app-buttons-light-bg: #f2ecfd;
+
+    @each $cssVar,
+      $value
+        in (
+          --app-primary: #8e6bdf,
+          --app-error: #e46a5a,
+          --app-success: #2cc36b,
+
+          --app-danger-color: #532219,
+          --app-warning-color: #5d4d16,
+          --app-success-color: #103b31,
+
+          --app-bg-color: #121212,
+          --app-on-bg-color: #e1e1e1,
+          --app-surface-color: #1e1e1e,
+          --app-surface-color-hover: #252525,
+          --app-on-surface-color: #e3e3e3
+        )
+    {
+      #{$cssVar}: $value;
+      #{$cssVar}-rgb: #{hextorgb($value)};
+    }
+  }
+}
+body {
+  --system-border-radius: 6px;
+
+  // sizes
+  --container-width: 1200px;
+  --container-padding: 32px;
+  --header-height: 77px;
+  --footer-height: 280px;
+
+  --container-right-corner: calc(((100vw - var(--container-width)) / 2) + var(--container-width));
+  --container-left-corner: calc(((100vw - var(--container-width)) / 2));
+
+  // z-indexes
+  --z-select-field: 1;
+  --z-category-select-field: 1;
+  --z-modal: 10;
+  --z-notifications: 51;
+
+  @include respond-to-custom-width(840) {
+    --container-padding: 24px;
+  }
+}

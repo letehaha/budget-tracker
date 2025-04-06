@@ -1,0 +1,90 @@
+body {
+  // abc => app-base-color
+  --abc-brand-light-100: #f3effb;
+  --abc-brand-light-200: #e4dbf7;
+  --abc-brand-light-300: #c9b8ef;
+  --abc-brand-light-400: #9e80e3;
+  --abc-brand-light-500: #7e57d9;
+  --abc-brand-light-600: #6d4bba;
+  --abc-brand-light-700: #583d97;
+  --abc-brand-light-800: #3c2a67;
+  --abc-brand-light-900: #22173a;
+
+  --abc-brand-dark-900: #e3dcf6;
+  --abc-brand-dark-800: #c7b9ed;
+  --abc-brand-dark-700: #af9be5;
+  --abc-brand-dark-600: #9d85df;
+  --abc-brand-dark-500: #9074db;
+  --abc-brand-dark-400: #7860ba;
+  --abc-brand-dark-300: #574587;
+  --abc-brand-dark-200: #3d305e;
+  --abc-brand-dark-100: #261f3b;
+
+  --abc-brand-opacity-100: rgba(127, 88, 218, 0.05);
+  --abc-brand-opacity-200: rgba(127, 88, 218, 0.111);
+  --abc-brand-opacity-300: rgba(127, 88, 218, 0.222);
+  --abc-brand-opacity-400: rgba(127, 88, 218, 0.333);
+  --abc-brand-opacity-500: rgba(127, 88, 218, 0.444);
+  --abc-brand-opacity-600: rgba(127, 88, 218, 0.559);
+  --abc-brand-opacity-700: rgba(127, 88, 218, 0.667);
+  --abc-brand-opacity-800: rgba(127, 88, 218, 0.778);
+  --abc-brand-opacity-900: rgba(127, 88, 218, 0.889);
+
+  --abc-red-100: #f99687;
+  --abc-red-200: #f77864;
+  --abc-red-300: #f5583f;
+  --abc-red-400: #e35039;
+  --abc-red-500: #d04934;
+  --abc-red-600: #c54531;
+  --abc-red-700: #b6402d;
+  --abc-red-800: #a73b2a;
+  --abc-red-900: #983526;
+
+  --abc-green-light-100: #7fd0a3;
+  --abc-green-light-200: #54c184;
+  --abc-green-light-300: #27b063;
+  --abc-green-light-400: #1b9751;
+  --abc-green-light-500: #188749;
+  --abc-green-light-600: #167e43;
+  --abc-green-light-700: #15743e;
+  --abc-green-light-800: #136a39;
+  --abc-green-light-900: #116134;
+
+  --abc-green-dark-100: #04140b;
+  --abc-green-dark-200: #0a2b18;
+  --abc-green-dark-300: #145730;
+  --abc-green-dark-400: #1d8247;
+  --abc-green-dark-500: #27ad5f;
+  --abc-green-dark-600: #44ca7c;
+  --abc-green-dark-700: #72d79c;
+  --abc-green-dark-800: #a1e4bd;
+  --abc-green-dark-900: #d0f2de;
+
+  --abc-backgrond-light-100: #ffffff;
+  --abc-backgrond-light-200: #fafafa;
+  --abc-backgrond-light-300: #f5f5f5;
+  --abc-backgrond-light-400: #f0f0f0;
+  --abc-backgrond-light-500: #e5e5e5;
+  --abc-backgrond-light-600: #dbdbdb;
+  --abc-backgrond-light-700: #cccccc;
+  --abc-backgrond-light-800: #b3b3b3;
+  --abc-backgrond-light-900: #999999;
+
+  --abc-background-dark-100: #121212;
+  --abc-background-dark-200: #1e1e1e;
+  --abc-background-dark-300: #292929;
+  --abc-background-dark-400: #343434;
+  --abc-background-dark-500: #414141;
+  --abc-background-dark-600: #4e4e4e;
+  --abc-background-dark-700: #5b5b5b;
+  --abc-background-dark-800: #686868;
+  --abc-background-dark-900: #757575;
+
+  --abc-text-black-base: #0a121a;
+  --abc-text-black-secondary: #5c6068;
+  --abc-text-black-tertiary: #8d8f9f;
+
+  --abc-text-white-base: #fafafa;
+  --abc-text-white-secondary: #d9d9d9;
+  --abc-text-white-tertiary: #c7c6c6;
+}
