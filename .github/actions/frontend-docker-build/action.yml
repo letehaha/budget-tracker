@@ -1,5 +1,6 @@
-name: Prepare local environment
-description: Prepare local environment for development by setup node, patch hosts file, and cache dependencies
+name: Build frontend Docker image
+description: Build and optionally push the frontend Docker image
+
 inputs:
   vps-host:
     description: 'VPS_HOST'
@@ -48,4 +49,5 @@ runs:
         context: ./
         file: ./docker/prod/frontend/Dockerfile
         push: ${{ inputs.push == 'true' }}
+        load: ${{ inputs.push != 'true' }}
         tags: ${{ inputs.docker-hub-username }}/budget-tracker-fe:latest

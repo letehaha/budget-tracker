@@ -1,0 +1,54 @@
+name: Update images on VPS
+
+on:
+  workflow_run:
+    workflows: ['Lint, Test and Build']
+    types:
+      - completed
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - id: frontend-docker-build
+        uses: ./.github/actions/frontend-docker-build
+        with:
+          vps-host: ${{ secrets.VPS_HOST }}
+          vue-app-api-ver: ${{ secrets.VUE_APP_API_VER }}
+          docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          push: 'true'
+
+      - id: backend-docker-build
+        uses: ./.github/actions/backend-docker-build
+        with:
+          docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          push: 'true'
+
+      - name: Actualize docker images on VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+          script: |
+            set -e
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+
+            # Pull the latest image
+            docker-compose pull
+
+            # Remove old containers
+            docker container prune -f
+
+            # Start the new containers without dependencies, so there will be almost
+            # no downtime
+            docker-compose --env-file .env.production up -d --no-deps

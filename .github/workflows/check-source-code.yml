@@ -54,7 +54,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # TODO: `docker-build`
         task: [lint, 'test']
     steps:
       - uses: actions/checkout@v4
@@ -81,3 +80,18 @@ jobs:
           fail_on_empty: true # fail if any env variable is empty
       - name: Run ${{ matrix.task }}
         run: npm run ${{ matrix.task }} -w packages/backend
+
+  backend-docker-build:
+    name: Build backend Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - id: backend-docker-build
+        uses: ./.github/actions/backend-docker-build
+        with:
+          docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          push: 'false'
+      - name: Image digest
+        run: echo ${{ steps.backend-docker-build.outputs.docker-build-digest }}
