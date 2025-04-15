@@ -41,7 +41,7 @@ jobs:
       - id: frontend-docker-build
         uses: ./.github/actions/frontend-docker-build
         with:
-          vps-host: ${{ secrets.VPS_HOST }}
+          api-base-url: ${{ secrets.API_BASE_URL }}
           vue-app-api-ver: ${{ secrets.VUE_APP_API_VER }}
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}

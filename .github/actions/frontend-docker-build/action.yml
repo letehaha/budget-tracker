@@ -2,8 +2,8 @@ name: Build frontend Docker image
 description: Build and optionally push the frontend Docker image
 
 inputs:
-  vps-host:
-    description: 'VPS_HOST'
+  api-base-url:
+    description: 'API_BASE_URL'
     required: true
   vue-app-api-ver:
     description: 'VUE_APP_API_VER'
@@ -28,7 +28,7 @@ runs:
     - name: Make envfile
       uses: SpicyPizza/create-envfile@v1
       with:
-        envkey_VITE_APP_API_HTTP: https://${{ inputs.vps-host }}
+        envkey_VITE_APP_API_HTTP: ${{ inputs.api-base-url }}
         envkey_VITE_APP_API_VER: ${{ inputs.vue-app-api-ver }}
         directory: ./
         file_name: .env.production
