@@ -6,7 +6,6 @@ import { connection } from '@models/index';
 import * as categoriesService from '@services/categories.service';
 import * as userService from '@services/user.service';
 import bcrypt from 'bcryptjs';
-import config from 'config';
 import jwt from 'jsonwebtoken';
 
 import { withTransaction } from './common/with-transaction';
@@ -25,7 +24,7 @@ export const login = withTransaction(
               username: user.username,
               userId: user.id,
             },
-            config.get('jwtSecret') as string,
+            process.env.APPLICATION_JWT_SECRET as string,
             {
               expiresIn: '7d',
             },

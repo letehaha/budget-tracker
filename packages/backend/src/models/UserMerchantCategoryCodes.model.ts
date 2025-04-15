@@ -1,8 +1,8 @@
-import { Table, Column, Model, ForeignKey } from "sequelize-typescript";
+import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
 
-import Categories from "./Categories.model";
-import Users from "./Users.model";
-import MerchantCategoryCodes from "./MerchantCategoryCodes.model";
+import Categories from './Categories.model';
+import Users from './Users.model';
+import MerchantCategoryCodes from './MerchantCategoryCodes.model';
 
 @Table({
   timestamps: false,
@@ -14,7 +14,7 @@ export default class UserMerchantCategoryCodes extends Model {
     autoIncrement: true,
     primaryKey: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Categories)
   @Column({ allowNull: false })

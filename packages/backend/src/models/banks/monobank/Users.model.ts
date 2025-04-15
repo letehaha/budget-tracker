@@ -1,6 +1,6 @@
-import { Table, Column, Model, ForeignKey, Length } from "sequelize-typescript";
-import { endpointsTypes } from "@bt/shared/types";
-import Users from "../../Users.model";
+import { Table, Column, Model, ForeignKey, Length } from 'sequelize-typescript';
+import { endpointsTypes } from '@bt/shared/types';
+import Users from '../../Users.model';
 
 @Table({
   timestamps: true,
@@ -12,7 +12,7 @@ export default class MonobankUsers extends Model {
     autoIncrement: true,
     primaryKey: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({ allowNull: false })
   clientId!: string;
@@ -32,13 +32,7 @@ export default class MonobankUsers extends Model {
   systemUserId!: number;
 }
 
-export const getUserByToken = async ({
-  token,
-  userId,
-}: {
-  token: string;
-  userId: number;
-}) => {
+export const getUserByToken = async ({ token, userId }: { token: string; userId: number }) => {
   const user = await MonobankUsers.findOne({
     where: { apiToken: token, systemUserId: userId },
     raw: true,
@@ -47,38 +41,22 @@ export const getUserByToken = async ({
   return user;
 };
 
-export const getUserBySystemId = async ({
-  systemUserId,
-}: {
-  systemUserId: number;
-}) => {
+export const getUserBySystemId = async ({ systemUserId }: { systemUserId: number }) => {
   const user = await MonobankUsers.findOne({
     where: { systemUserId },
-    attributes: [
-      "id",
-      "clientId",
-      "name",
-      "webHookUrl",
-      "systemUserId",
-      "apiToken",
-    ],
+    attributes: ['id', 'clientId', 'name', 'webHookUrl', 'systemUserId', 'apiToken'],
   });
 
   return user;
 };
 
-export interface MonoUserUpdatePayload
-  extends endpointsTypes.UpdateMonobankUserBody {
+export interface MonoUserUpdatePayload extends endpointsTypes.UpdateMonobankUserBody {
   systemUserId: number;
 }
-export const updateUser = async ({
-  systemUserId,
-  clientId,
-  ...payload
-}: MonoUserUpdatePayload) => {
+export const updateUser = async ({ systemUserId, clientId, ...payload }: MonoUserUpdatePayload) => {
   const where: {
-    systemUserId: MonoUserUpdatePayload["systemUserId"];
-    clientId?: MonoUserUpdatePayload["clientId"];
+    systemUserId: MonoUserUpdatePayload['systemUserId'];
+    clientId?: MonoUserUpdatePayload['clientId'];
   } = { systemUserId };
 
   if (clientId) {
@@ -105,11 +83,7 @@ export interface MonoUserCreationPayload {
   clientId: string;
   webHookUrl?: string;
 }
-export const createUser = async ({
-  userId,
-  token,
-  ...payload
-}: MonoUserCreationPayload) => {
+export const createUser = async ({ userId, token, ...payload }: MonoUserCreationPayload) => {
   await MonobankUsers.create({
     apiToken: token,
     systemUserId: userId,

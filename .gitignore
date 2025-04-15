@@ -1,6 +1,9 @@
 .DS_Store
 node_modules
 /dist
+dist
+packages/backend/dist
+packages/frontend/dist
 
 # local env files
 .env
@@ -106,10 +109,6 @@ jspm_packages/
 
 # Next.js build output
 .next
-
-# Nuxt.js build / generate output
-.nuxt
-dist
 
 # Gatsby files
 .cache/

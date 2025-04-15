@@ -1,16 +1,9 @@
-import { CATEGORY_TYPES } from "@bt/shared/types";
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  DataType,
-  BelongsToMany,
-} from "sequelize-typescript";
-import Users from "./Users.model";
-import UserMerchantCategoryCodes from "./UserMerchantCategoryCodes.model";
-import MerchantCategoryCodes from "./MerchantCategoryCodes.model";
-import { NotFoundError, ValidationError } from "@js/errors";
+import { CATEGORY_TYPES } from '@bt/shared/types';
+import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
+import Users from './Users.model';
+import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
+import MerchantCategoryCodes from './MerchantCategoryCodes.model';
+import { NotFoundError, ValidationError } from '@js/errors';
 
 @Table({
   timestamps: false,
@@ -22,7 +15,7 @@ export default class Categories extends Model {
     autoIncrement: true,
     primaryKey: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({ allowNull: false })
   name!: string;
@@ -48,7 +41,7 @@ export default class Categories extends Model {
   userId!: number;
 
   @BelongsToMany(() => MerchantCategoryCodes, {
-    as: "merchantCodes",
+    as: 'merchantCodes',
     through: () => UserMerchantCategoryCodes,
   })
   categoryId!: number;
@@ -72,12 +65,7 @@ export interface CreateCategoryPayload {
   type?: CATEGORY_TYPES;
 }
 
-export const createCategory = async ({
-  parentId,
-  color,
-  userId,
-  ...params
-}: CreateCategoryPayload) => {
+export const createCategory = async ({ parentId, color, userId, ...params }: CreateCategoryPayload) => {
   if (parentId) {
     const parent = await Categories.findOne({
       where: { id: parentId, userId },
@@ -89,7 +77,7 @@ export const createCategory = async ({
       });
     }
 
-    if (!color) color = parent.get("color");
+    if (!color) color = parent.get('color');
   }
 
   const category = await Categories.create({
@@ -110,15 +98,11 @@ export interface EditCategoryPayload {
   color?: string;
 }
 
-export const editCategory = async ({
-  userId,
-  categoryId,
-  ...params
-}: EditCategoryPayload) => {
+export const editCategory = async ({ userId, categoryId, ...params }: EditCategoryPayload) => {
   const existingCategory = await Categories.findByPk(categoryId);
   if (!existingCategory) {
     throw new NotFoundError({
-      message: "Category with provided id does not exist!",
+      message: 'Category with provided id does not exist!',
     });
   }
   const [, categories] = await Categories.update(params, {
@@ -137,10 +121,7 @@ export interface DeleteCategoryPayload {
   categoryId: number;
 }
 
-export const deleteCategory = async ({
-  userId,
-  categoryId,
-}: DeleteCategoryPayload) => {
+export const deleteCategory = async ({ userId, categoryId }: DeleteCategoryPayload) => {
   return Categories.destroy({
     where: { userId, id: categoryId },
   });

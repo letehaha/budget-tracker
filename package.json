@@ -22,18 +22,18 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "dotenv": "^16.4.7",
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "cross-env": "^7.0.3",
-    "dotenv": "^16.4.7",
     "eslint": "7.31.0",
     "eslint-config-prettier": "^9.1.0",
     "husky": "9.1.7",
     "knip": "^5.46.0",
     "prettier": "3.5.3",
-    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.8.2"
   },
   "volta": {

@@ -1,12 +1,12 @@
-import { Table, Column, Model, ForeignKey } from "sequelize-typescript";
-import { Op } from "sequelize";
-import { UserExchangeRatesModel } from "@bt/shared/types";
-import * as Currencies from "./Currencies.model";
-import * as UsersCurrencies from "./UsersCurrencies.model";
-import Users from "./Users.model";
-import { NotFoundError, ValidationError } from "@js/errors";
+import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
+import { Op } from 'sequelize';
+import { UserExchangeRatesModel } from '@bt/shared/types';
+import * as Currencies from './Currencies.model';
+import * as UsersCurrencies from './UsersCurrencies.model';
+import Users from './Users.model';
+import { NotFoundError, ValidationError } from '@js/errors';
 
-type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, "custom">;
+type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>;
 
 @Table({ timestamps: true })
 export default class UserExchangeRates extends Model {
@@ -16,7 +16,7 @@ export default class UserExchangeRates extends Model {
     autoIncrement: true,
     primaryKey: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false })
@@ -50,23 +50,20 @@ export default class UserExchangeRates extends Model {
   // This approach will maintain the rate history for each user, allowing accurate historical calculations
 }
 
-export type ExchangeRatePair = Pick<
-  UserExchangeRatesAttributes,
-  "baseCode" | "quoteCode"
->;
+export type ExchangeRatePair = Pick<UserExchangeRatesAttributes, 'baseCode' | 'quoteCode'>;
 
 export async function getRates({
   userId,
   pair,
 }: {
-  userId: UserExchangeRatesAttributes["userId"];
+  userId: UserExchangeRatesAttributes['userId'];
   pair: ExchangeRatePair;
 });
 export async function getRates({
   userId,
   pairs,
 }: {
-  userId: UserExchangeRatesAttributes["userId"];
+  userId: UserExchangeRatesAttributes['userId'];
   pairs: ExchangeRatePair[];
 });
 export async function getRates({
@@ -74,7 +71,7 @@ export async function getRates({
   pair,
   pairs,
 }: {
-  userId: UserExchangeRatesAttributes["userId"];
+  userId: UserExchangeRatesAttributes['userId'];
   pair?: ExchangeRatePair;
   pairs?: ExchangeRatePair[];
 }) {
@@ -84,8 +81,7 @@ export async function getRates({
 
   if (pair && pairs) {
     throw new ValidationError({
-      message:
-        'Only a single parameter is allowed. Passed both "pair" and "pairs".',
+      message: 'Only a single parameter is allowed. Passed both "pair" and "pairs".',
     });
   }
   if (!pair && !pairs) {
@@ -109,27 +105,24 @@ export async function getRates({
   return UserExchangeRates.findAll({
     where,
     raw: true,
-    attributes: { exclude: ["userId"] },
+    attributes: { exclude: ['userId'] },
   });
 }
 
-export type UpdateExchangeRatePair = Pick<
-  UserExchangeRatesAttributes,
-  "baseCode" | "quoteCode" | "rate"
->;
+export type UpdateExchangeRatePair = Pick<UserExchangeRatesAttributes, 'baseCode' | 'quoteCode' | 'rate'>;
 
 export async function updateRates({
   userId,
   pair,
 }: {
-  userId: UserExchangeRatesAttributes["userId"];
+  userId: UserExchangeRatesAttributes['userId'];
   pair: UpdateExchangeRatePair;
 }): Promise<UserExchangeRates[]>;
 export async function updateRates({
   userId,
   pairs,
 }: {
-  userId: UserExchangeRatesAttributes["userId"];
+  userId: UserExchangeRatesAttributes['userId'];
   pairs: UpdateExchangeRatePair[];
 }): Promise<UserExchangeRates[]>;
 export async function updateRates({
@@ -137,7 +130,7 @@ export async function updateRates({
   pair,
   pairs,
 }: {
-  userId: UserExchangeRatesAttributes["userId"];
+  userId: UserExchangeRatesAttributes['userId'];
   pair?: UpdateExchangeRatePair;
   pairs?: UpdateExchangeRatePair[];
 }): Promise<UserExchangeRates[]> {
@@ -172,13 +165,10 @@ export async function updateRates({
       const currency = (await Currencies.default.findOne({
         where: { code: pairItem.baseCode },
         raw: true,
-        attributes: ["id"],
+        attributes: ['id'],
       }))!;
 
-      await UsersCurrencies.default.update(
-        { liveRateUpdate: false },
-        { where: { userId, currencyId: currency.id } },
-      );
+      await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyId: currency.id } });
 
       if (updatedItems[0]) returningValues.push(updatedItems[0]);
     } else {
@@ -192,17 +182,12 @@ export async function updateRates({
 
       if (currencies.length !== userCurrencies.length) {
         throw new NotFoundError({
-          message:
-            "Cannot find currencies to update rates for. Make sure wanted currencies are assigned to the user.",
+          message: 'Cannot find currencies to update rates for. Make sure wanted currencies are assigned to the user.',
         });
       }
 
-      const baseCurrency = currencies.find(
-        (item) => item.code === pairItem.baseCode,
-      );
-      const quoteCurrency = currencies.find(
-        (item) => item.code === pairItem.quoteCode,
-      );
+      const baseCurrency = currencies.find((item) => item.code === pairItem.baseCode);
+      const quoteCurrency = currencies.find((item) => item.code === pairItem.quoteCode);
 
       if (baseCurrency && quoteCurrency) {
         const res = await UserExchangeRates.create(
@@ -222,17 +207,14 @@ export async function updateRates({
         const currency = (await Currencies.default.findOne({
           where: { code: pairItem.baseCode },
           raw: true,
-          attributes: ["id"],
+          attributes: ['id'],
         }))!;
-        await UsersCurrencies.default.update(
-          { liveRateUpdate: false },
-          { where: { userId, currencyId: currency.id } },
-        );
+        await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyId: currency.id } });
 
         returningValues.push(res);
       } else {
         throw new NotFoundError({
-          message: "Cannot find currencies to update rates for.",
+          message: 'Cannot find currencies to update rates for.',
         });
       }
     }
@@ -245,7 +227,7 @@ export async function removeRates({
   userId,
   pairs,
 }: {
-  userId: UserExchangeRatesAttributes["userId"];
+  userId: UserExchangeRatesAttributes['userId'];
   pairs: ExchangeRatePair[];
 }): Promise<void> {
   await UserExchangeRates.destroy({

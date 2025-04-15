@@ -1,12 +1,11 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types';
 import Users from '@models/Users.model';
-import config from 'config';
 import passport from 'passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 const options = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: config.get('jwtSecret'),
+  secretOrKey: process.env.APPLICATION_JWT_SECRET,
 };
 
 export default (passport) => {

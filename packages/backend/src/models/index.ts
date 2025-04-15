@@ -1,5 +1,4 @@
 import cls from 'cls-hooked';
-import config from 'config';
 import { Sequelize } from 'sequelize-typescript';
 
 export const namespace = cls.createNamespace('budget-tracker-namespace');
@@ -12,7 +11,15 @@ const connection: {
   Sequelize?: any;
 } = {};
 
-const DBConfig: Record<string, unknown> = config.get('db');
+const DBConfig: Record<string, unknown> = {
+  host: process.env.APPLICATION_DB_HOST,
+  username: process.env.APPLICATION_DB_USERNAME,
+  password: process.env.APPLICATION_DB_PASSWORD,
+  database: process.env.APPLICATION_DB_DATABASE,
+  port: process.env.APPLICATION_DB_PORT,
+  dialect: process.env.APPLICATION_DB_DIALECT,
+  logging: true,
+};
 
 const sequelize = new Sequelize({
   ...DBConfig,

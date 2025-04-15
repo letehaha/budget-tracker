@@ -21,21 +21,21 @@ import * as MerchantCategoryCodes from '@models/MerchantCategoryCodes.model';
 import * as UserMerchantCategoryCodes from '@models/UserMerchantCategoryCodes.model';
 import * as Users from '@models/Users.model';
 import { connection } from '@models/index';
+import { API_PREFIX } from '@root/config';
 import { redisClient } from '@root/redis';
 import * as accountsService from '@services/accounts.service';
 import * as monobankUsersService from '@services/banks/monobank/users';
 import * as transactionsService from '@services/transactions';
 import * as usersService from '@services/user.service';
 import axios from 'axios';
-import config from 'config';
 import { addMonths, differenceInCalendarMonths, endOfMonth, startOfMonth } from 'date-fns';
 import PQueue from 'p-queue';
 
 export const usersQuery = new Map();
 
-const hostWebhooksCallback = config.get('hostWebhooksCallback');
-const apiPrefix = config.get('apiPrefix');
-const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
+// TODO: for now dumb value
+const hostWebhooksCallback = 'http://d8d75e719def.ngrok.io';
+const hostname = 'https://api.monobank.ua';
 
 function dateRange({ from, to }: { from: number; to: number }): { start: number; end: number }[] {
   const difference = differenceInCalendarMonths(new Date(to), new Date(from));
@@ -63,7 +63,7 @@ async function updateWebhookAxios({ userToken }: { userToken?: string } = {}) {
       'X-Token': userToken,
     },
     data: {
-      webHookUrl: `${hostWebhooksCallback}${apiPrefix}/banks/monobank/webhook`,
+      webHookUrl: `${hostWebhooksCallback}${API_PREFIX}/banks/monobank/webhook`,
     },
   });
 }
@@ -289,7 +289,7 @@ export const updateWebhook = async (req, res: CustomResponse) => {
       await monobankUsersService.updateUser({
         systemUserId: id,
         clientId,
-        webHookUrl: `${hostWebhooksCallback}${apiPrefix}/banks/monobank/webhook`,
+        webHookUrl: `${hostWebhooksCallback}${API_PREFIX}/banks/monobank/webhook`,
       });
 
       // TODO: why here we don't pass userToken?

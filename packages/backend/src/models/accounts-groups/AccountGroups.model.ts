@@ -1,17 +1,8 @@
 // AccountGroup.model.ts
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-  HasMany,
-  BelongsToMany,
-  DataType,
-} from "sequelize-typescript";
-import Users from "../Users.model";
-import Accounts from "../Accounts.model";
-import AccountGrouping from "./AccountGrouping.model";
+import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, BelongsToMany, DataType } from 'sequelize-typescript';
+import Users from '../Users.model';
+import Accounts from '../Accounts.model';
+import AccountGrouping from './AccountGrouping.model';
 
 /**
  * This model represents a group of accounts. It allows users to organize their accounts
@@ -26,7 +17,7 @@ import AccountGrouping from "./AccountGrouping.model";
  */
 
 @Table({
-  tableName: "AccountGroups",
+  tableName: 'AccountGroups',
   timestamps: true,
 })
 export default class AccountGroup extends Model {
@@ -35,7 +26,7 @@ export default class AccountGroup extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Column({
@@ -60,10 +51,10 @@ export default class AccountGroup extends Model {
   @BelongsTo(() => Users)
   user!: Users;
 
-  @BelongsTo(() => AccountGroup, "parentGroupId")
+  @BelongsTo(() => AccountGroup, 'parentGroupId')
   parentGroup!: AccountGroup;
 
-  @HasMany(() => AccountGroup, "parentGroupId")
+  @HasMany(() => AccountGroup, 'parentGroupId')
   childGroups!: AccountGroup[];
 
   @BelongsToMany(() => Accounts, () => AccountGrouping)

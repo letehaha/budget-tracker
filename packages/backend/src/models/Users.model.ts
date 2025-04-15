@@ -1,21 +1,13 @@
-import { UserModel } from "@bt/shared/types";
-import {
-  Table,
-  Column,
-  Model,
-  DefaultScope,
-  Scopes,
-  BelongsToMany,
-  Length,
-} from "sequelize-typescript";
+import { UserModel } from '@bt/shared/types';
+import { Table, Column, Model, DefaultScope, Scopes, BelongsToMany, Length } from 'sequelize-typescript';
 
-import UsersCurrencies from "./UsersCurrencies.model";
-import Currencies from "./Currencies.model";
+import UsersCurrencies from './UsersCurrencies.model';
+import Currencies from './Currencies.model';
 
 const DETAULT_TOTAL_BALANCE = 0;
 
 @DefaultScope(() => ({
-  attributes: { exclude: ["password"] },
+  attributes: { exclude: ['password'] },
 }))
 @Scopes(() => ({
   withPassword: {
@@ -27,7 +19,7 @@ const DETAULT_TOTAL_BALANCE = 0;
 })
 export default class Users extends Model {
   @BelongsToMany(() => Currencies, {
-    as: "currencies",
+    as: 'currencies',
     through: () => UsersCurrencies,
   })
   @Column({
@@ -36,7 +28,7 @@ export default class Users extends Model {
     allowNull: false,
     unique: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({
     unique: true,
@@ -82,11 +74,7 @@ export const getUsers = async () => {
   return users;
 };
 
-export const getUserById = async ({
-  id,
-}: {
-  id: number;
-}): Promise<UserModel | null> => {
+export const getUserById = async ({ id }: { id: number }): Promise<UserModel | null> => {
   const user = await Users.findOne({
     where: { id },
   });
@@ -97,7 +85,7 @@ export const getUserById = async ({
 export const getUserDefaultCategory = async ({ id }: { id: number }) => {
   const user = await Users.findOne({
     where: { id },
-    attributes: ["defaultCategoryId"],
+    attributes: ['defaultCategoryId'],
   });
 
   return user;
@@ -109,7 +97,7 @@ export const getUserCurrencies = async ({ userId }: { userId: number }) => {
     include: [
       {
         model: Currencies,
-        as: "currencies",
+        as: 'currencies',
         // to remove the rows from the join table (i.e. 'UsersCurrencies' table) in the result set
         through: { attributes: [] },
       },
@@ -131,7 +119,7 @@ export const getUserByCredentials = async ({
   if (username) where.username = username;
   if (email) where.email = email;
 
-  const user = await Users.scope("withPassword").findOne({
+  const user = await Users.scope('withPassword').findOne({
     where,
   });
 

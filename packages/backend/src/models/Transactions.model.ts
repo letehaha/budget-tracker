@@ -5,8 +5,8 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   SORT_DIRECTIONS,
   TransactionModel,
-} from "@bt/shared/types";
-import { Op, Includeable, WhereOptions } from "sequelize";
+} from '@bt/shared/types';
+import { Op, Includeable, WhereOptions } from 'sequelize';
 import {
   Table,
   BeforeCreate,
@@ -20,15 +20,15 @@ import {
   ForeignKey,
   DataType,
   BelongsTo,
-} from "sequelize-typescript";
-import { isExist, removeUndefinedKeys } from "@js/helpers";
-import { ValidationError } from "@js/errors";
-import { updateAccountBalanceForChangedTx } from "@services/accounts.service";
-import Users from "@models/Users.model";
-import Accounts from "@models/Accounts.model";
-import Categories from "@models/Categories.model";
-import Currencies from "@models/Currencies.model";
-import Balances from "@models/Balances.model";
+} from 'sequelize-typescript';
+import { isExist, removeUndefinedKeys } from '@js/helpers';
+import { ValidationError } from '@js/errors';
+import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
+import Users from '@models/Users.model';
+import Accounts from '@models/Accounts.model';
+import Categories from '@models/Categories.model';
+import Currencies from '@models/Currencies.model';
+import Balances from '@models/Balances.model';
 
 // TODO: replace with scopes
 const prepareTXInclude = ({
@@ -105,7 +105,7 @@ export default class Transactions extends Model {
     autoIncrement: true,
     primaryKey: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({ allowNull: false, defaultValue: 0 })
   amount!: number;
@@ -236,15 +236,7 @@ export default class Transactions extends Model {
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
-    const {
-      accountType,
-      accountId,
-      userId,
-      currencyId,
-      refAmount,
-      amount,
-      transactionType,
-    } = instance;
+    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
@@ -321,15 +313,7 @@ export default class Transactions extends Model {
 
   @BeforeDestroy
   static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
-    const {
-      accountType,
-      accountId,
-      userId,
-      currencyId,
-      refAmount,
-      amount,
-      transactionType,
-    } = instance;
+    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
@@ -400,9 +384,7 @@ export const findWithFilters = async ({
     ...removeUndefinedKeys({
       accountType,
       transactionType,
-      transferNature: excludeTransfer
-        ? TRANSACTION_TRANSFER_NATURE.not_transfer
-        : undefined,
+      transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
       refundLinked: excludeRefunds ? false : undefined,
     }),
   };
@@ -444,7 +426,7 @@ export const findWithFilters = async ({
     where: whereClause,
     offset: from,
     limit: limit,
-    order: [["time", order]],
+    order: [['time', order]],
     raw: isRaw,
   });
 
@@ -452,17 +434,12 @@ export const findWithFilters = async ({
 };
 
 export interface GetTransactionBySomeIdPayload {
-  userId: TransactionsAttributes["userId"];
-  id?: TransactionsAttributes["id"];
-  transferId?: TransactionsAttributes["transferId"];
-  originalId?: TransactionsAttributes["originalId"];
+  userId: TransactionsAttributes['userId'];
+  id?: TransactionsAttributes['id'];
+  transferId?: TransactionsAttributes['transferId'];
+  originalId?: TransactionsAttributes['originalId'];
 }
-export const getTransactionBySomeId = ({
-  userId,
-  id,
-  transferId,
-  originalId,
-}: GetTransactionBySomeIdPayload) => {
+export const getTransactionBySomeId = ({ userId, id, transferId, originalId }: GetTransactionBySomeIdPayload) => {
   return Transactions.findOne({
     where: {
       userId,
@@ -533,9 +510,7 @@ export const getTransactionsByTransferId = ({
   });
 };
 
-export const getTransactionsByArrayOfField = async <
-  T extends keyof TransactionModel,
->({
+export const getTransactionsByArrayOfField = async <T extends keyof TransactionModel>({
   fieldValues,
   fieldName,
   userId,
@@ -577,44 +552,40 @@ export const getTransactionsByArrayOfField = async <
 
 type CreateTxRequiredParams = Pick<
   TransactionsAttributes,
-  | "amount"
-  | "refAmount"
-  | "userId"
-  | "transactionType"
-  | "paymentType"
-  | "accountId"
-  | "currencyId"
-  | "currencyCode"
-  | "accountType"
-  | "transferNature"
+  | 'amount'
+  | 'refAmount'
+  | 'userId'
+  | 'transactionType'
+  | 'paymentType'
+  | 'accountId'
+  | 'currencyId'
+  | 'currencyCode'
+  | 'accountType'
+  | 'transferNature'
 >;
 type CreateTxOptionalParams = Partial<
   Pick<
     TransactionsAttributes,
-    | "note"
-    | "time"
-    | "categoryId"
-    | "refCurrencyCode"
-    | "transferId"
-    | "originalId"
-    | "externalData"
-    | "commissionRate"
-    | "refCommissionRate"
-    | "cashbackAmount"
+    | 'note'
+    | 'time'
+    | 'categoryId'
+    | 'refCurrencyCode'
+    | 'transferId'
+    | 'originalId'
+    | 'externalData'
+    | 'commissionRate'
+    | 'refCommissionRate'
+    | 'cashbackAmount'
   >
 >;
 
-export type CreateTransactionPayload = CreateTxRequiredParams &
-  CreateTxOptionalParams;
+export type CreateTransactionPayload = CreateTxRequiredParams & CreateTxOptionalParams;
 
-export const createTransaction = async ({
-  userId,
-  ...rest
-}: CreateTransactionPayload) => {
+export const createTransaction = async ({ userId, ...rest }: CreateTransactionPayload) => {
   const response = await Transactions.create({ userId, ...rest });
 
   return getTransactionById({
-    id: response.get("id"),
+    id: response.get('id'),
     userId,
   });
 };
@@ -684,13 +655,7 @@ export const updateTransactions = (
   });
 };
 
-export const deleteTransactionById = async ({
-  id,
-  userId,
-}: {
-  id: number;
-  userId: number;
-}) => {
+export const deleteTransactionById = async ({ id, userId }: { id: number; userId: number }) => {
   const tx = await getTransactionById({ id, userId });
 
   if (!tx) return true;

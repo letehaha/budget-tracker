@@ -1,28 +1,22 @@
-import { Op } from "sequelize";
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-} from "sequelize-typescript";
+import { Op } from 'sequelize';
+import { Table, Column, Model, ForeignKey, BelongsTo } from 'sequelize-typescript';
 
-import { removeUndefinedKeys } from "@js/helpers";
-import Users from "./Users.model";
-import Currencies from "./Currencies.model";
-import { NotFoundError } from "@js/errors";
+import { removeUndefinedKeys } from '@js/helpers';
+import Users from './Users.model';
+import Currencies from './Currencies.model';
+import { NotFoundError } from '@js/errors';
 
 @Table({
   timestamps: false,
 })
 export default class UsersCurrencies extends Model {
   @BelongsTo(() => Users, {
-    as: "user",
-    foreignKey: "userId",
+    as: 'user',
+    foreignKey: 'userId',
   })
   @BelongsTo(() => Currencies, {
-    as: "currency",
-    foreignKey: "currencyId",
+    as: 'currency',
+    foreignKey: 'currencyId',
   })
   @Column({
     unique: true,
@@ -30,7 +24,7 @@ export default class UsersCurrencies extends Model {
     autoIncrement: true,
     primaryKey: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false })
@@ -62,13 +56,7 @@ export default class UsersCurrencies extends Model {
   isDefaultCurrency!: boolean;
 }
 
-export async function getCurrencies({
-  userId,
-  ids,
-}: {
-  userId: number;
-  ids?: number[];
-}) {
+export async function getCurrencies({ userId, ids }: { userId: number; ids?: number[] }) {
   const where: Record<string, unknown> = {
     userId,
   };
@@ -93,13 +81,7 @@ export const getBaseCurrency = async ({ userId }: { userId: number }) => {
 };
 
 type getCurrencyOverload = {
-  ({
-    userId,
-    currencyId,
-  }: {
-    userId: number;
-    currencyId: number;
-  }): Promise<UsersCurrencies & { currency: Currencies }>;
+  ({ userId, currencyId }: { userId: number; currencyId: number }): Promise<UsersCurrencies & { currency: Currencies }>;
   ({
     userId,
     isDefaultCurrency,
@@ -141,7 +123,7 @@ export const addCurrency = async ({
   const currency = await Currencies.findByPk(currencyId);
   if (!currency) {
     throw new NotFoundError({
-      message: "Currency with provided id does not exist!",
+      message: 'Currency with provided id does not exist!',
     });
   }
 
@@ -197,13 +179,7 @@ export const updateCurrency = async ({
   return currency;
 };
 
-export const deleteCurrency = async ({
-  userId,
-  currencyId,
-}: {
-  userId: number;
-  currencyId: number;
-}) => {
+export const deleteCurrency = async ({ userId, currencyId }: { userId: number; currencyId: number }) => {
   const where = { userId, currencyId };
 
   return UsersCurrencies.destroy({

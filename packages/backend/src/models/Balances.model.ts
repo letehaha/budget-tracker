@@ -1,20 +1,9 @@
-import { Op } from "sequelize";
-import {
-  Model,
-  Column,
-  DataType,
-  ForeignKey,
-  BelongsTo,
-  Table,
-} from "sequelize-typescript";
-import {
-  TRANSACTION_TYPES,
-  BalanceModel,
-  ACCOUNT_TYPES,
-} from "@bt/shared/types";
-import { subDays, startOfMonth } from "date-fns";
-import Accounts from "./Accounts.model";
-import Transactions, { TransactionsAttributes } from "./Transactions.model";
+import { Op } from 'sequelize';
+import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
+import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES } from '@bt/shared/types';
+import { subDays, startOfMonth } from 'date-fns';
+import Accounts from './Accounts.model';
+import Transactions, { TransactionsAttributes } from './Transactions.model';
 
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
@@ -29,7 +18,7 @@ export default class Balances extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({
     allowNull: false,
@@ -58,15 +47,11 @@ export default class Balances extends Model {
   account!: Accounts;
 
   // Method to calculate the total balance across all accounts
-  static async getTotalBalance({
-    userId,
-  }: {
-    userId: number;
-  }): Promise<number> {
+  static async getTotalBalance({ userId }: { userId: number }): Promise<number> {
     const userAccounts = await Accounts.findAll({ where: { userId: userId } });
     const accountIds = userAccounts.map((account) => account.id);
 
-    const result = await Balances.sum("amount", {
+    const result = await Balances.sum('amount', {
       where: { accountId: accountIds },
     });
 
@@ -74,9 +59,7 @@ export default class Balances extends Model {
   }
 
   // Method to retrieve total balance history for specified dates and accounts
-  static async getTotalBalanceHistory(
-    payload: GetTotalBalanceHistoryPayload,
-  ): Promise<BalanceModel[]> {
+  static async getTotalBalanceHistory(payload: GetTotalBalanceHistoryPayload): Promise<BalanceModel[]> {
     const { startDate, endDate, accountIds } = payload;
     return Balances.findAll({
       where: {
@@ -85,7 +68,7 @@ export default class Balances extends Model {
         },
         accountId: accountIds,
       },
-      order: [["date", "ASC"]],
+      order: [['date', 'ASC']],
       include: [Accounts],
     });
   }
@@ -129,10 +112,7 @@ export default class Balances extends Model {
     isDelete?: boolean;
   }) {
     const { accountId, time } = data;
-    let amount =
-      data.transactionType === TRANSACTION_TYPES.income
-        ? data.refAmount
-        : data.refAmount * -1;
+    let amount = data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount * -1;
     const date = new Date(time);
     date.setHours(0, 0, 0, 0);
 
@@ -142,9 +122,7 @@ export default class Balances extends Model {
       } else if (prevData) {
         const originalDate = new Date(prevData.time);
         const originalAmount =
-          prevData.transactionType === TRANSACTION_TYPES.income
-            ? prevData.refAmount
-            : prevData.refAmount * -1;
+          prevData.transactionType === TRANSACTION_TYPES.income ? prevData.refAmount : prevData.refAmount * -1;
         originalDate.setHours(0, 0, 0, 0);
 
         if (
@@ -173,9 +151,7 @@ export default class Balances extends Model {
         amount,
       });
     } else if (data.accountType === ACCOUNT_TYPES.monobank) {
-      const balance = (
-        data.externalData as TransactionsAttributes["externalData"]
-      ).balance;
+      const balance = (data.externalData as TransactionsAttributes['externalData']).balance;
 
       // We don't need to calculate Monobank account balance based on tx since
       // Monobank already provides us with the actual balance.
@@ -189,9 +165,7 @@ export default class Balances extends Model {
       if (existingRecordForTheDate) {
         // Store the highest amount
         existingRecordForTheDate.amount =
-          existingRecordForTheDate.amount > (balance || 0)
-            ? existingRecordForTheDate.amount
-            : (balance as number);
+          existingRecordForTheDate.amount > (balance || 0) ? existingRecordForTheDate.amount : (balance as number);
 
         // existingRecordForTheDate.amount = balance
         // ? Math.max(existingRecordForTheDate.amount, balance)
@@ -202,23 +176,14 @@ export default class Balances extends Model {
         await this.create({
           accountId,
           date,
-          amount: (data.externalData as TransactionsAttributes["externalData"])
-            .balance,
+          amount: (data.externalData as TransactionsAttributes['externalData']).balance,
         });
       }
     }
   }
 
   // Update the balance for a specific system account and date
-  private static async updateRecord({
-    accountId,
-    date,
-    amount,
-  }: {
-    accountId: number;
-    date: Date;
-    amount: number;
-  }) {
+  private static async updateRecord({ accountId, date, amount }: { accountId: number; date: Date; amount: number }) {
     // If there's no record for the 1st of the month, create it based on the closest record prior it
     // so it's easier to calculate stats for the period
     const firstDayOfMonth = startOfMonth(new Date(date));
@@ -237,8 +202,8 @@ export default class Balances extends Model {
           },
           accountId,
         },
-        attributes: ["amount"],
-        order: [["date", "DESC"]],
+        attributes: ['amount'],
+        order: [['date', 'DESC']],
       });
 
       if (latestBalancePrior) {
@@ -271,7 +236,7 @@ export default class Balances extends Model {
           },
           accountId,
         },
-        order: [["date", "DESC"]],
+        order: [['date', 'DESC']],
       });
 
       // If there's no balance prior tx date, it means that we're adding
@@ -336,13 +301,7 @@ export default class Balances extends Model {
     // }
   }
 
-  static async handleAccountChange({
-    account,
-    prevAccount,
-  }: {
-    account: Accounts;
-    prevAccount?: Accounts;
-  }) {
+  static async handleAccountChange({ account, prevAccount }: { account: Accounts; prevAccount?: Accounts }) {
     const { id: accountId, refInitialBalance } = account;
 
     // Try to find an existing balance for the account

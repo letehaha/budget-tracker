@@ -1,26 +1,19 @@
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-  DataType,
-} from "sequelize-typescript";
-import Transactions from "./Transactions.model";
-import Users from "./Users.model";
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
+import Transactions from './Transactions.model';
+import Users from './Users.model';
 
 @Table({
-  tableName: "RefundTransactions",
+  tableName: 'RefundTransactions',
   timestamps: true,
   indexes: [
     {
-      fields: ["userId"],
+      fields: ['userId'],
     },
     {
-      fields: ["originalTxId"],
+      fields: ['originalTxId'],
     },
     {
-      fields: ["refundTxId"],
+      fields: ['refundTxId'],
       unique: true,
     },
   ],
@@ -31,7 +24,7 @@ export default class RefundTransactions extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Column({
@@ -59,10 +52,10 @@ export default class RefundTransactions extends Model {
   @BelongsTo(() => Users)
   user!: Users;
 
-  @BelongsTo(() => Transactions, "originalTxId")
+  @BelongsTo(() => Transactions, 'originalTxId')
   originalTransaction!: Transactions;
 
-  @BelongsTo(() => Transactions, "refundTxId")
+  @BelongsTo(() => Transactions, 'refundTxId')
   refundTransaction!: Transactions;
 }
 
@@ -78,16 +71,10 @@ export const createRefundTransaction = async ({
   return RefundTransactions.create({ userId, originalTxId, refundTxId });
 };
 
-export const getRefundsForTransaction = async ({
-  originalTxId,
-  userId,
-}: {
-  originalTxId: number;
-  userId: number;
-}) => {
+export const getRefundsForTransaction = async ({ originalTxId, userId }: { originalTxId: number; userId: number }) => {
   return RefundTransactions.findAll({
     where: { originalTxId: originalTxId, userId },
-    include: [{ model: Transactions, as: "refundTransaction" }],
+    include: [{ model: Transactions, as: 'refundTransaction' }],
   });
 };
 

@@ -1,13 +1,6 @@
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-  DataType,
-} from "sequelize-typescript";
-import Accounts from "../Accounts.model";
-import AccountGroup from "./AccountGroups.model";
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
+import Accounts from '../Accounts.model';
+import AccountGroup from './AccountGroups.model';
 
 /**
  * This model represents the many-to-many relationship between Accounts and AccountGroups.
@@ -19,11 +12,11 @@ import AccountGroup from "./AccountGroups.model";
  */
 
 @Table({
-  tableName: "AccountGroupings",
+  tableName: 'AccountGroupings',
   timestamps: true,
   indexes: [
     {
-      fields: ["accountId", "groupId"],
+      fields: ['accountId', 'groupId'],
       unique: true,
     },
   ],
@@ -34,7 +27,7 @@ export default class AccountGrouping extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Accounts)
   @Column({
