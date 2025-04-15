@@ -1,15 +1,16 @@
 name: Update images on VPS
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_run:
+    workflows: ['Lint, Test and Build']
+    types:
+      - completed
     branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout repository
@@ -45,9 +46,9 @@ jobs:
             # Pull the latest image
             docker compose pull
 
-            # Remove old containers
-            docker container prune -f
-
             # Start the new containers without dependencies, so there will be almost
             # no downtime
             docker compose --env-file .env.production up -d --no-deps
+
+            # Remove old containers
+            docker container prune -f
