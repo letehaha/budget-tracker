@@ -1,10 +1,10 @@
-import { Table, Column, Model, ForeignKey } from "sequelize-typescript";
-import { Op } from "sequelize";
-import Currencies from "./Currencies.model";
+import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
+import { Op } from 'sequelize';
+import Currencies from './Currencies.model';
 
 @Table({
   timestamps: true,
-  createdAt: "date",
+  createdAt: 'date',
   updatedAt: false,
 })
 export default class ExchangeRates extends Model {
@@ -14,7 +14,7 @@ export default class ExchangeRates extends Model {
     autoIncrement: true,
     primaryKey: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Currencies)
   @Column({ allowNull: false })

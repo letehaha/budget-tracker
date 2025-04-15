@@ -1,10 +1,8 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types/api';
 import { CustomResponse as ExpressCustomResponse } from '@common/types';
 import { app } from '@root/app';
-import config from 'config';
+import { API_PREFIX } from '@root/config';
 import request from 'supertest';
-
-const apiPrefix = config.get('apiPrefix');
 
 interface MakeRequestParams<T> {
   url: string;
@@ -55,7 +53,7 @@ export async function makeRequest<T = any, R extends boolean | undefined = false
     tempUrl = tempUrl + '?' + new URLSearchParams(payload as Record<string, string>).toString();
   }
 
-  const base = request(app)[method](`${apiPrefix}${tempUrl}`);
+  const base = request(app)[method](`${API_PREFIX}${tempUrl}`);
 
   if (global.APP_AUTH_TOKEN) base.set('Authorization', global.APP_AUTH_TOKEN);
   if (Object.keys(headers).length) base.set(headers);

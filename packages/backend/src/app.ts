@@ -3,7 +3,6 @@ import './bootstrap';
 import { logger } from '@js/utils/logger';
 import { requestIdMiddleware } from '@middlewares/request-id';
 import { sessionMiddleware } from '@middlewares/session-id';
-import config from 'config';
 import cors from 'cors';
 import express from 'express';
 import locale from 'locale';
@@ -30,16 +29,18 @@ import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
 import { supportedLocales } from './translations';
+import { API_PREFIX } from './config';
+
+console.log('Starting application initialization...');
 
 export const app = express();
-const apiPrefix = config.get('apiPrefix');
 
 app.use(passport.initialize());
 middlewarePassword(passport);
 
 app.use(requestIdMiddleware);
 
-app.set('port', config.get('port'));
+app.set('port', process.env.APPLICATION_PORT);
 
 loadCurrencyRatesJob.start();
 
@@ -66,6 +67,8 @@ app.use(
   }),
 );
 
+console.log('CORS configured with origins:', ALLOWED_ORIGINS);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 if (process.env.NODE_ENV !== 'test') {
@@ -77,24 +80,43 @@ app.use(sessionMiddleware);
 /**
  *  Routes include
  * */
-app.use(`${apiPrefix}/auth`, authRoutes);
-app.use(`${apiPrefix}/user`, userRoutes);
-app.use(`${apiPrefix}/users`, usersRoutes);
-app.use(`${apiPrefix}/accounts`, accountsRoutes);
-app.use(`${apiPrefix}/transactions`, transactionsRoutes);
-app.use(`${apiPrefix}/categories`, categoriesRoutes);
-app.use(`${apiPrefix}/models/currencies`, modelsCurrenciesRoutes);
-app.use(`${apiPrefix}/banks/monobank`, monobankRoutes);
-app.use(`${apiPrefix}/crypto/binance`, binanceRoutes);
-app.use(`${apiPrefix}/stats`, statsRoutes);
-app.use(`${apiPrefix}/account-group`, accountGroupsRoutes);
-app.use(`${apiPrefix}/currencies/rates`, exchangeRatesRoutes);
+app.use(`${API_PREFIX}/auth`, authRoutes);
+app.use(`${API_PREFIX}/user`, userRoutes);
+app.use(`${API_PREFIX}/users`, usersRoutes);
+app.use(`${API_PREFIX}/accounts`, accountsRoutes);
+app.use(`${API_PREFIX}/transactions`, transactionsRoutes);
+app.use(`${API_PREFIX}/categories`, categoriesRoutes);
+app.use(`${API_PREFIX}/models/currencies`, modelsCurrenciesRoutes);
+app.use(`${API_PREFIX}/banks/monobank`, monobankRoutes);
+app.use(`${API_PREFIX}/crypto/binance`, binanceRoutes);
+app.use(`${API_PREFIX}/stats`, statsRoutes);
+app.use(`${API_PREFIX}/account-group`, accountGroupsRoutes);
+app.use(`${API_PREFIX}/currencies/rates`, exchangeRatesRoutes);
 
 if (process.env.NODE_ENV === 'test') {
-  app.use(`${apiPrefix}/tests`, testsRoutes);
+  app.use(`${API_PREFIX}/tests`, testsRoutes);
 }
+
+console.log('Attempting to start server...');
 
 // Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
 export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
+  console.log('=================================');
   logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('API Prefix:', API_PREFIX);
+  console.log('=================================');
+});
+
+serverInstance.on('error', (error) => {
+  console.error('Server failed to start:', error);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });

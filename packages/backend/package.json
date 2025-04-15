@@ -5,7 +5,7 @@
   "scripts": {
     "start": "npm run dev",
     "dev": "cross-env NODE_ENV=development nodemon --exec 'ts-node -r tsconfig-paths/register' src/app.ts",
-    "prod": "cross-env NODE_ENV=production nodemon",
+    "prod": "cross-env NODE_ENV=production ts-node -r tsconfig-paths/register src/app.ts",
     "migrate:dev": "cross-env NODE_ENV=development npx sequelize-cli db:migrate",
     "migrate:dev:undo": "cross-env NODE_ENV=development npx sequelize-cli db:migrate:undo",
     "migrate": "cross-env NODE_ENV=production npx sequelize-cli db:migrate",
@@ -22,7 +22,6 @@
     "axios": "1.7.4",
     "bcryptjs": "3.0.2",
     "cls-hooked": "^4.2.2",
-    "config": "3.3.12",
     "connect-redis": "5.0.0",
     "cors": "2.8.5",
     "cron": "^3.2.1",
@@ -51,7 +50,6 @@
   },
   "devDependencies": {
     "@faker-js/faker": "8.4.1",
-    "@types/config": "3.3.4",
     "@types/cors": "2.8.17",
     "@types/express": "4.17.21",
     "@types/jest": "29.5.12",

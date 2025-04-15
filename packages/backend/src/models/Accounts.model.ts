@@ -8,13 +8,13 @@ import {
   AfterCreate,
   BeforeUpdate,
   HasMany,
-} from "sequelize-typescript";
-import { Op } from "sequelize";
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from "@bt/shared/types";
-import Users from "@models/Users.model";
-import Currencies from "@models/Currencies.model";
-import Balances from "@models/Balances.model";
-import Transactions from "@models/Transactions.model";
+} from 'sequelize-typescript';
+import { Op } from 'sequelize';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
+import Users from '@models/Users.model';
+import Currencies from '@models/Currencies.model';
+import Balances from '@models/Balances.model';
+import Transactions from '@models/Transactions.model';
 
 export interface AccountsAttributes {
   id: number;
@@ -43,8 +43,8 @@ export interface AccountsAttributes {
 })
 export default class Accounts extends Model {
   @BelongsTo(() => Currencies, {
-    as: "currency",
-    foreignKey: "currencyId",
+    as: 'currency',
+    foreignKey: 'currencyId',
   })
   @HasMany(() => Transactions)
   transactions!: Transactions[];
@@ -55,7 +55,7 @@ export default class Accounts extends Model {
     autoIncrement: true,
     primaryKey: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({ allowNull: false })
   name!: string;
@@ -156,20 +156,20 @@ export default class Accounts extends Model {
 
   @BeforeUpdate
   static async validateEditableFields(instance: Accounts) {
-    console.log("instance", instance);
+    console.log('instance', instance);
   }
 }
 
 export interface GetAccountsPayload {
-  userId: AccountsAttributes["userId"];
-  type?: AccountsAttributes["type"];
+  userId: AccountsAttributes['userId'];
+  type?: AccountsAttributes['type'];
 }
 
 export const getAccounts = async (payload: GetAccountsPayload) => {
   const { userId, type } = payload;
   const where: {
-    userId: AccountsAttributes["userId"];
-    type?: AccountsAttributes["type"];
+    userId: AccountsAttributes['userId'];
+    type?: AccountsAttributes['type'];
   } = { userId };
 
   if (type) where.type = type;
@@ -186,8 +186,8 @@ export const getAccountById = async ({
   userId,
   id,
 }: {
-  userId: AccountsAttributes["userId"];
-  id: AccountsAttributes["id"];
+  userId: AccountsAttributes['userId'];
+  id: AccountsAttributes['id'];
 }) => {
   const account = await Accounts.findOne({
     where: { userId, id },
@@ -197,13 +197,10 @@ export const getAccountById = async ({
 };
 
 export interface GetAccountsByExternalIdsPayload {
-  userId: AccountsAttributes["userId"];
+  userId: AccountsAttributes['userId'];
   externalIds: string[];
 }
-export const getAccountsByExternalIds = async ({
-  userId,
-  externalIds,
-}: GetAccountsByExternalIdsPayload) => {
+export const getAccountsByExternalIds = async ({ userId, externalIds }: GetAccountsByExternalIdsPayload) => {
   const account = await Accounts.findAll({
     where: {
       userId,
@@ -217,18 +214,18 @@ export const getAccountsByExternalIds = async ({
 };
 
 export interface CreateAccountPayload {
-  externalId?: AccountsAttributes["externalId"];
-  externalData?: AccountsAttributes["externalData"];
-  isEnabled?: AccountsAttributes["isEnabled"];
-  accountCategory: AccountsAttributes["accountCategory"];
-  currencyId: AccountsAttributes["currencyId"];
-  name: AccountsAttributes["name"];
-  initialBalance: AccountsAttributes["initialBalance"];
-  refInitialBalance: AccountsAttributes["refInitialBalance"];
-  creditLimit: AccountsAttributes["creditLimit"];
-  refCreditLimit: AccountsAttributes["refCreditLimit"];
-  userId: AccountsAttributes["userId"];
-  type: AccountsAttributes["type"];
+  externalId?: AccountsAttributes['externalId'];
+  externalData?: AccountsAttributes['externalData'];
+  isEnabled?: AccountsAttributes['isEnabled'];
+  accountCategory: AccountsAttributes['accountCategory'];
+  currencyId: AccountsAttributes['currencyId'];
+  name: AccountsAttributes['name'];
+  initialBalance: AccountsAttributes['initialBalance'];
+  refInitialBalance: AccountsAttributes['refInitialBalance'];
+  creditLimit: AccountsAttributes['creditLimit'];
+  refCreditLimit: AccountsAttributes['refCreditLimit'];
+  userId: AccountsAttributes['userId'];
+  type: AccountsAttributes['type'];
 }
 
 export const createAccount = async ({
@@ -247,7 +244,7 @@ export const createAccount = async ({
   });
 
   const account = await getAccountById({
-    id: response.get("id"),
+    id: response.get('id'),
     userId,
   });
 
@@ -255,27 +252,23 @@ export const createAccount = async ({
 };
 
 export interface UpdateAccountByIdPayload {
-  id: AccountsAttributes["id"];
-  userId: AccountsAttributes["userId"];
-  externalId?: AccountsAttributes["externalId"];
-  accountCategory?: AccountsAttributes["accountCategory"];
+  id: AccountsAttributes['id'];
+  userId: AccountsAttributes['userId'];
+  externalId?: AccountsAttributes['externalId'];
+  accountCategory?: AccountsAttributes['accountCategory'];
   // currency updating is disabled
   // currencyId?: AccountsAttributes['currencyId'];
-  name?: AccountsAttributes["name"];
-  initialBalance?: AccountsAttributes["initialBalance"];
-  refInitialBalance?: AccountsAttributes["refInitialBalance"];
-  currentBalance?: AccountsAttributes["currentBalance"];
-  refCurrentBalance?: AccountsAttributes["refCurrentBalance"];
-  creditLimit?: AccountsAttributes["creditLimit"];
-  refCreditLimit?: AccountsAttributes["refCreditLimit"];
-  isEnabled?: AccountsAttributes["isEnabled"];
+  name?: AccountsAttributes['name'];
+  initialBalance?: AccountsAttributes['initialBalance'];
+  refInitialBalance?: AccountsAttributes['refInitialBalance'];
+  currentBalance?: AccountsAttributes['currentBalance'];
+  refCurrentBalance?: AccountsAttributes['refCurrentBalance'];
+  creditLimit?: AccountsAttributes['creditLimit'];
+  refCreditLimit?: AccountsAttributes['refCreditLimit'];
+  isEnabled?: AccountsAttributes['isEnabled'];
 }
 
-export async function updateAccountById({
-  id,
-  userId,
-  ...payload
-}: UpdateAccountByIdPayload) {
+export async function updateAccountById({ id, userId, ...payload }: UpdateAccountByIdPayload) {
   const where = { id, userId };
 
   await Accounts.update(payload, { where });
@@ -289,13 +282,7 @@ export const deleteAccountById = ({ id }: { id: number }) => {
   return Accounts.destroy({ where: { id } });
 };
 
-export const getAccountCurrency = async ({
-  userId,
-  id,
-}: {
-  userId: number;
-  id: number;
-}) => {
+export const getAccountCurrency = async ({ userId, id }: { userId: number; id: number }) => {
   const account = (await Accounts.findOne({
     where: { userId, id },
     include: {
@@ -306,12 +293,6 @@ export const getAccountCurrency = async ({
   return account;
 };
 
-export const getAccountsByCurrency = ({
-  userId,
-  currencyId,
-}: {
-  userId: number;
-  currencyId: number;
-}) => {
+export const getAccountsByCurrency = ({ userId, currencyId }: { userId: number; currencyId: number }) => {
   return Accounts.findAll({ where: { userId, currencyId } });
 };

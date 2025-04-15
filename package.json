@@ -13,6 +13,7 @@
     "docker:dev:logs": "docker compose -f ./docker/dev/docker-compose.yml logs -f",
     "docker:dev:clean": "docker compose -f ./docker/dev/docker-compose.yml down -v --remove-orphans",
     "docker:dev:rebuild": "docker compose -f ./docker/dev/docker-compose.yml build --no-cache",
+    "docker:prod": "docker compose -f ./docker/prod/docker-compose.yml --env-file .env.production up --build",
     "prepare": "node -e \"if (process.env.NODE_ENV !== 'production'){process.exit(1)} \" || husky",
     "postinstall": "chmod +x ./post-install.sh && ./post-install.sh",
     "prettier": "npx prettier --write ."
@@ -21,18 +22,18 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "dotenv": "^16.4.7",
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "cross-env": "^7.0.3",
-    "dotenv": "^16.4.7",
     "eslint": "7.31.0",
     "eslint-config-prettier": "^9.1.0",
     "husky": "9.1.7",
     "knip": "^5.46.0",
     "prettier": "3.5.3",
-    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.8.2"
   },
   "volta": {

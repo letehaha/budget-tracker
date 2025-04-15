@@ -1,13 +1,7 @@
-import {
-  Table,
-  Column,
-  Model,
-  Length,
-  BelongsToMany,
-} from "sequelize-typescript";
+import { Table, Column, Model, Length, BelongsToMany } from 'sequelize-typescript';
 
-import UserMerchantCategoryCodes from "./UserMerchantCategoryCodes.model";
-import Categories from "./Categories.model";
+import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
+import Categories from './Categories.model';
 
 @Table({
   timestamps: false,
@@ -19,7 +13,7 @@ export default class MerchantCategoryCodes extends Model {
     autoIncrement: true,
     primaryKey: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({ allowNull: false })
   code!: number;
@@ -32,7 +26,7 @@ export default class MerchantCategoryCodes extends Model {
   description!: string;
 
   @BelongsToMany(() => Categories, {
-    as: "categories",
+    as: 'categories',
     through: () => UserMerchantCategoryCodes,
   })
   mccId!: number;
@@ -48,12 +42,12 @@ export const getByCode = async ({ code }) => {
 
 export const addCode = async ({
   code,
-  name = "Unknown",
+  name = 'Unknown',
   description,
 }: {
-  code: MerchantCategoryCodes["code"];
-  name?: MerchantCategoryCodes["name"];
-  description?: MerchantCategoryCodes["description"];
+  code: MerchantCategoryCodes['code'];
+  name?: MerchantCategoryCodes['name'];
+  description?: MerchantCategoryCodes['description'];
 }) => {
   const mcc = await MerchantCategoryCodes.create({
     code,

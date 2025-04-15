@@ -1,6 +1,6 @@
-import { Table, Column, Model, ForeignKey } from "sequelize-typescript";
-import Users from "../Users.model";
-import { UnwrapArray } from "@common/types";
+import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
+import Users from '../Users.model';
+import { UnwrapArray } from '@common/types';
 
 @Table({
   timestamps: false,
@@ -12,7 +12,7 @@ export default class BinanceUserSettings extends Model {
     autoIncrement: true,
     primaryKey: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({ allowNull: false })
   apiKey!: string;

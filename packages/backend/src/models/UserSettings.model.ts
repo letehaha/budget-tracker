@@ -1,13 +1,6 @@
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  DataType,
-  BelongsTo,
-} from "sequelize-typescript";
-import Users from "./Users.model";
-import { z } from "zod";
+import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
+import Users from './Users.model';
+import { z } from 'zod';
 
 export const ZodSettingsSchema = z.object({
   stats: z.object({
@@ -29,7 +22,7 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
 export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
 @Table({
-  tableName: "UserSettings",
+  tableName: 'UserSettings',
   timestamps: true, // To include `createdAt` and `updatedAt`
 })
 export default class UserSettings extends Model {
@@ -39,7 +32,7 @@ export default class UserSettings extends Model {
     allowNull: false,
     unique: true,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Column({
@@ -62,12 +55,12 @@ export default class UserSettings extends Model {
     type: DataType.DATE,
     defaultValue: DataType.NOW,
   })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({
     allowNull: false,
     type: DataType.DATE,
     defaultValue: DataType.NOW,
   })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 }

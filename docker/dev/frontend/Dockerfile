@@ -1,4 +1,4 @@
-FROM node:21.6.0 as build-stage
+FROM node:23.11.0
 WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./

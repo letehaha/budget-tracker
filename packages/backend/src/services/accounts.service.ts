@@ -18,7 +18,6 @@ import * as monobankUsersService from '@services/banks/monobank/users';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import axios from 'axios';
-import config from 'config';
 
 import { withTransaction } from './common/with-transaction';
 
@@ -34,7 +33,7 @@ export const getAccountById = withTransaction(
   async (payload: { id: number; userId: number }): Promise<AccountModel | null> => Accounts.getAccountById(payload),
 );
 
-const hostname = config.get('bankIntegrations.monobank.apiEndpoint');
+const hostname = 'https://api.monobank.ua';
 
 export const createSystemAccountsFromMonobankAccounts = withTransaction(
   async ({

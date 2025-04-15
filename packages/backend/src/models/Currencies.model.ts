@@ -1,5 +1,5 @@
-import cc from "currency-codes";
-import { Op } from "sequelize";
+import cc from 'currency-codes';
+import { Op } from 'sequelize';
 import {
   Table,
   Column,
@@ -9,18 +9,18 @@ import {
   AllowNull,
   PrimaryKey,
   BelongsToMany,
-} from "sequelize-typescript";
-import Users from "./Users.model";
-import UsersCurrencies from "./UsersCurrencies.model";
-import { ValidationError } from "@js/errors";
-import { removeUndefinedKeys } from "@js/helpers";
+} from 'sequelize-typescript';
+import Users from './Users.model';
+import UsersCurrencies from './UsersCurrencies.model';
+import { ValidationError } from '@js/errors';
+import { removeUndefinedKeys } from '@js/helpers';
 
 @Table({
   timestamps: false,
 })
 export default class Currencies extends Model {
   @BelongsToMany(() => Users, {
-    as: "users",
+    as: 'users',
     through: () => UsersCurrencies,
   })
   @Unique
@@ -28,7 +28,7 @@ export default class Currencies extends Model {
   @AutoIncrement
   @PrimaryKey
   @Column
-  id!: number;
+  declare id: number;
 
   @AllowNull(false)
   @Column
@@ -61,21 +61,9 @@ export const getAllCurrencies = async () => {
 };
 
 export async function getCurrency({ id }: { id: number }): Promise<Currencies>;
-export async function getCurrency({
-  currency,
-}: {
-  currency: string;
-}): Promise<Currencies>;
-export async function getCurrency({
-  number,
-}: {
-  number: number;
-}): Promise<Currencies>;
-export async function getCurrency({
-  code,
-}: {
-  code: string;
-}): Promise<Currencies>;
+export async function getCurrency({ currency }: { currency: string }): Promise<Currencies>;
+export async function getCurrency({ number }: { number: number }): Promise<Currencies>;
+export async function getCurrency({ code }: { code: string }): Promise<Currencies>;
 export async function getCurrency({
   id,
   currency,
@@ -104,12 +92,7 @@ export async function getCurrencies({
   currencies?: string[];
   codes?: string[];
 }) {
-  if (
-    ids === undefined &&
-    currencies === undefined &&
-    codes === undefined &&
-    numbers === undefined
-  ) {
+  if (ids === undefined && currencies === undefined && codes === undefined && numbers === undefined) {
     throw new ValidationError({
       message: 'Neither "ids", "currencies" or "codes" should be specified.',
     });

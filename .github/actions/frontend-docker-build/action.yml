@@ -1,8 +1,9 @@
-name: Prepare local environment
-description: Prepare local environment for development by setup node, patch hosts file, and cache dependencies
+name: Build frontend Docker image
+description: Build and optionally push the frontend Docker image
+
 inputs:
-  vps-host:
-    description: 'VPS_HOST'
+  api-base-url:
+    description: 'API_BASE_URL'
     required: true
   vue-app-api-ver:
     description: 'VUE_APP_API_VER'
@@ -27,10 +28,10 @@ runs:
     - name: Make envfile
       uses: SpicyPizza/create-envfile@v1
       with:
-        envkey_VITE_APP_API_HTTP: https://${{ inputs.vps-host }}
+        envkey_VITE_APP_API_HTTP: ${{ inputs.api-base-url }}
         envkey_VITE_APP_API_VER: ${{ inputs.vue-app-api-ver }}
         directory: ./
-        file_name: .env
+        file_name: .env.production
 
     - name: Login to Docker Hub
       uses: docker/login-action@v1
@@ -46,6 +47,7 @@ runs:
       uses: docker/build-push-action@v2
       with:
         context: ./
-        file: ./Dockerfile
+        file: ./docker/prod/frontend/Dockerfile
         push: ${{ inputs.push == 'true' }}
+        load: ${{ inputs.push != 'true' }}
         tags: ${{ inputs.docker-hub-username }}/budget-tracker-fe:latest
