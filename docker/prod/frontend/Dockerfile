@@ -1,4 +1,4 @@
-FROM node:21.6.0 as build-stage
+FROM node:23.11.0 as build-stage
 WORKDIR /app
 
 # Copy root-level package files and post-install script
@@ -6,16 +6,14 @@ COPY package*.json ./
 COPY post-install.sh ./
 RUN chmod +x ./post-install.sh
 
-ARG VITE_APP_API_HTTP
-ARG VITE_APP_API_VER
-ENV VITE_APP_API_HTTP=${VITE_APP_API_HTTP}
-ENV VITE_APP_API_VER=${VITE_APP_API_VER}
-
 # Copy frontend package files
 COPY packages/frontend/package*.json ./packages/frontend/
 
 # Install dependencies
 RUN npm ci
+
+# Copy env file that is created in CI
+COPY .env.production ./
 
 # Copy the rest of the code
 COPY tsconfig.json ./
