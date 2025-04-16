@@ -31,12 +31,14 @@ export default class UserSettings extends Model {
     autoIncrement: true,
     allowNull: false,
     unique: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
   @ForeignKey(() => Users)
   @Column({
     allowNull: false,
+    type: DataType.INTEGER,
   })
   userId!: number;
 

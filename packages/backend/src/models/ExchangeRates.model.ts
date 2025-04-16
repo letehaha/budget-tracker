@@ -1,4 +1,4 @@
-import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 import { Op } from 'sequelize';
 import Currencies from './Currencies.model';
 
@@ -13,27 +13,28 @@ export default class ExchangeRates extends Model {
     allowNull: false,
     autoIncrement: true,
     primaryKey: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
   @ForeignKey(() => Currencies)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   baseId!: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   baseCode!: string;
 
   @ForeignKey(() => Currencies)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   quoteId!: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   quoteCode!: string;
 
-  @Column({ allowNull: true, defaultValue: 1 })
+  @Column({ allowNull: true, defaultValue: 1, type: DataType.NUMBER })
   rate!: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.DATE })
   date!: Date;
 }
 

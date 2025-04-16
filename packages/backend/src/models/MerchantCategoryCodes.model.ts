@@ -1,4 +1,4 @@
-import { Table, Column, Model, Length, BelongsToMany } from 'sequelize-typescript';
+import { Table, Column, Model, Length, BelongsToMany, DataType } from 'sequelize-typescript';
 
 import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 import Categories from './Categories.model';
@@ -12,17 +12,18 @@ export default class MerchantCategoryCodes extends Model {
     allowNull: false,
     autoIncrement: true,
     primaryKey: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   code!: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   name!: string;
 
   @Length({ max: 1000 })
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.STRING })
   description!: string;
 
   @BelongsToMany(() => Categories, {

@@ -16,9 +16,6 @@ services:
     build:
       context: ../../
       dockerfile: docker/prod/frontend/Dockerfile
-      args:
-        - VITE_APP_API_HTTP=${VITE_APP_API_HTTP}
-        - VITE_APP_API_VER=${VITE_APP_API_VER}
     container_name: prod-budget-tracker-frontend
     volumes:
       - ../../packages/frontend:/app/packages/frontend

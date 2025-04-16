@@ -5,7 +5,8 @@
   "scripts": {
     "start": "npm run dev",
     "dev": "cross-env NODE_ENV=development nodemon --exec 'ts-node -r tsconfig-paths/register' src/app.ts",
-    "prod": "cross-env NODE_ENV=production ts-node -r tsconfig-paths/register src/app.ts",
+    "build": "vite build",
+    "prod": "cross-env NODE_ENV=production node dist/app.js",
     "migrate:dev": "cross-env NODE_ENV=development npx sequelize-cli db:migrate",
     "migrate:dev:undo": "cross-env NODE_ENV=development npx sequelize-cli db:migrate:undo",
     "migrate": "cross-env NODE_ENV=production npx sequelize-cli db:migrate",
@@ -70,6 +71,7 @@
     "nodemon": "3.1.0",
     "supertest": "6.3.4",
     "ts-jest": "29.1.2",
-    "tslint": "6.1.3"
+    "vite": "^6.3.0",
+    "vite-tsconfig-paths": "^5.1.4"
   }
 }

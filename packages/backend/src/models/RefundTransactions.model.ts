@@ -39,6 +39,7 @@ export default class RefundTransactions extends Model {
     // but in fact it's a refund for some tx_B in an "out of system" account. It is important to
     // consider that not all user real-life accounts will be present in the system
     allowNull: true,
+    type: DataType.INTEGER,
   })
   originalTxId!: number;
 
@@ -46,6 +47,7 @@ export default class RefundTransactions extends Model {
   @Column({
     allowNull: false,
     unique: true,
+    type: DataType.INTEGER,
   })
   refundTxId!: number;
 

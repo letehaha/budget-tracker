@@ -14,16 +14,17 @@ export default class Categories extends Model {
     allowNull: false,
     autoIncrement: true,
     primaryKey: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   name!: string;
 
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.STRING })
   imageUrl!: string;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   color!: string;
 
   @Column({
@@ -33,11 +34,11 @@ export default class Categories extends Model {
   })
   type!: CATEGORY_TYPES;
 
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.INTEGER })
   parentId!: number;
 
   @ForeignKey(() => Users)
-  @Column
+  @Column({ type: DataType.INTEGER })
   userId!: number;
 
   @BelongsToMany(() => MerchantCategoryCodes, {

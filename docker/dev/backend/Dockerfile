@@ -6,7 +6,6 @@ COPY package*.json ./
 COPY post-install.sh ./
 COPY packages/backend/package*.json ./packages/backend/
 COPY packages/shared/package*.json ./packages/shared/
-COPY docker/dev/backend/docker-destroy.sh ./docker/dev/backend/docker-destroy.sh
 
 # Copy TS configs
 COPY tsconfig*.json ./
