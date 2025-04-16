@@ -48,4 +48,4 @@ WORKDIR /app/packages/backend
 ENV NODE_ENV=production
 
 # Run the compiled app
-CMD ["node", "dist/app.js"]
+CMD ["node", "--enable-source-maps", "dist/app.js"]
