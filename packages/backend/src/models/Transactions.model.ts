@@ -104,58 +104,60 @@ export default class Transactions extends Model {
     allowNull: false,
     autoIncrement: true,
     primaryKey: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
-  @Column({ allowNull: false, defaultValue: 0 })
+  @Column({ allowNull: false, defaultValue: 0, type: DataType.NUMBER })
   amount!: number;
 
   // Amount in curreny of account
-  @Column({ allowNull: false, defaultValue: 0 })
+  @Column({ allowNull: false, defaultValue: 0, type: DataType.NUMBER })
   refAmount!: number;
 
   @Length({ max: 2000 })
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.STRING })
   note!: string;
 
   @Column({
     defaultValue: Date.now(),
     allowNull: false,
+    type: DataType.DATE,
   })
   time!: Date;
 
   @ForeignKey(() => Users)
-  @Column
+  @Column({ type: DataType.INTEGER })
   userId!: number;
 
-  @Column({ allowNull: false, defaultValue: TRANSACTION_TYPES.income })
+  @Column({ allowNull: false, defaultValue: TRANSACTION_TYPES.income, type: DataType.ENUM(...Object.values(TRANSACTION_TYPES)), })
   transactionType!: TRANSACTION_TYPES;
 
-  @Column({ allowNull: false, defaultValue: PAYMENT_TYPES.creditCard })
+  @Column({ allowNull: false, defaultValue: PAYMENT_TYPES.creditCard, type: DataType.ENUM(...Object.values(PAYMENT_TYPES)), })
   paymentType!: PAYMENT_TYPES;
 
   @ForeignKey(() => Accounts)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   accountId!: number;
 
   @BelongsTo(() => Accounts)
   account!: Accounts;
 
   @ForeignKey(() => Categories)
-  @Column
+  @Column({ allowNull: false, type: DataType.INTEGER })
   categoryId!: number;
 
   @ForeignKey(() => Currencies)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   currencyId!: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   currencyCode!: string;
 
-  @Column({ allowNull: false, defaultValue: ACCOUNT_TYPES.system })
+  @Column({ allowNull: false, defaultValue: ACCOUNT_TYPES.system, type: DataType.ENUM(...Object.values(ACCOUNT_TYPES)), })
   accountType!: ACCOUNT_TYPES;
 
-  @Column({ allowNull: true, defaultValue: null })
+  @Column({ allowNull: true, defaultValue: null, type: DataType.STRING })
   refCurrencyCode!: string;
 
   @Column({
@@ -166,7 +168,7 @@ export default class Transactions extends Model {
   transferNature!: TRANSACTION_TRANSFER_NATURE;
 
   // (hash, used to connect two transactions)
-  @Column({ allowNull: true, defaultValue: null })
+  @Column({ allowNull: true, defaultValue: null, type: DataType.INTEGER })
   transferId!: string;
 
   // Stores the original id from external source

@@ -1,4 +1,4 @@
-import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 
 import Categories from './Categories.model';
 import Users from './Users.model';
@@ -13,19 +13,20 @@ export default class UserMerchantCategoryCodes extends Model {
     allowNull: false,
     autoIncrement: true,
     primaryKey: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
   @ForeignKey(() => Categories)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   categoryId!: number;
 
   @ForeignKey(() => MerchantCategoryCodes)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   mccId!: number;
 
   @ForeignKey(() => Users)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   userId!: number;
 }
 

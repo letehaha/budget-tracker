@@ -1,4 +1,4 @@
-import { Table, Column, Model, ForeignKey, Length } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, Length, DataType } from 'sequelize-typescript';
 import { endpointsTypes } from '@bt/shared/types';
 import Users from '../../Users.model';
 
@@ -11,24 +11,25 @@ export default class MonobankUsers extends Model {
     allowNull: false,
     autoIncrement: true,
     primaryKey: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   clientId!: string;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   name!: string;
 
   @Length({ max: 1000 })
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.STRING })
   webHookUrl!: string;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   apiToken!: string;
 
   @ForeignKey(() => Users)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.NUMBER })
   systemUserId!: number;
 }
 

@@ -4,11 +4,8 @@ import {
   Table,
   Column,
   Model,
-  AutoIncrement,
-  Unique,
-  AllowNull,
-  PrimaryKey,
   BelongsToMany,
+  DataType,
 } from 'sequelize-typescript';
 import Users from './Users.model';
 import UsersCurrencies from './UsersCurrencies.model';
@@ -23,30 +20,40 @@ export default class Currencies extends Model {
     as: 'users',
     through: () => UsersCurrencies,
   })
-  @Unique
-  @AllowNull(false)
-  @AutoIncrement
-  @PrimaryKey
-  @Column
+  @Column({
+    unique: true,
+    allowNull: false,
+    autoIncrement: true,
+    primaryKey: true,
+    type: DataType.INTEGER,
+  })
   declare id: number;
 
-  @AllowNull(false)
-  @Column
+  @Column({
+    allowNull: false,
+    type: DataType.STRING,
+  })
   currency!: string;
 
-  @AllowNull(false)
-  @Column
+  @Column({
+    allowNull: false,
+    type: DataType.INTEGER,
+  })
   digits!: number;
 
-  @AllowNull(false)
-  @Column
+  @Column({
+    allowNull: false,
+    type: DataType.INTEGER,
+  })
   number!: number;
 
-  @AllowNull(false)
-  @Column
+  @Column({
+    allowNull: false,
+    type: DataType.STRING,
+  })
   code!: string;
 
-  @Column({ allowNull: false, defaultValue: false })
+  @Column({ allowNull: false, defaultValue: false, type: DataType.BOOLEAN })
   isDisabled!: boolean;
 }
 

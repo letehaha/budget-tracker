@@ -1,5 +1,5 @@
 import { UserModel } from '@bt/shared/types';
-import { Table, Column, Model, DefaultScope, Scopes, BelongsToMany, Length } from 'sequelize-typescript';
+import { Table, Column, Model, DefaultScope, Scopes, BelongsToMany, Length, DataType } from 'sequelize-typescript';
 
 import UsersCurrencies from './UsersCurrencies.model';
 import Currencies from './Currencies.model';
@@ -27,44 +27,48 @@ export default class Users extends Model {
     autoIncrement: true,
     allowNull: false,
     unique: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
   @Column({
     unique: true,
     allowNull: false,
+    type: DataType.STRING,
   })
   username!: string;
 
   @Column({
     unique: true,
     allowNull: true,
+    type: DataType.STRING,
   })
   email!: string;
 
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.STRING, })
   firstName!: string;
 
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.STRING, })
   lastName!: string;
 
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.STRING, })
   middleName!: string;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING, })
   password!: string;
 
   @Length({ max: 2000 })
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.STRING, })
   avatar!: string;
 
   @Column({
     defaultValue: DETAULT_TOTAL_BALANCE,
     allowNull: false,
+    type: DataType.NUMBER,
   })
   totalBalance!: number;
 
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.NUMBER, })
   defaultCategoryId!: number;
 }
 
