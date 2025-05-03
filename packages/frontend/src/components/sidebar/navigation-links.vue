@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { ROUTES_NAMES } from '@/routes';
-import { CreditCardIcon, LayersIcon, LayoutDashboardIcon } from 'lucide-vue-next';
+import { CreditCardIcon, LayersIcon, LayoutDashboardIcon, Wallet } from 'lucide-vue-next';
 </script>
 
 <template>
@@ -39,6 +39,18 @@ import { CreditCardIcon, LayersIcon, LayoutDashboardIcon } from 'lucide-vue-next
       >
         <CreditCardIcon />
         <span> Transactions </span>
+      </ui-button>
+    </router-link>
+
+    <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.budgets }">
+      <ui-button
+        :variant="isActive ? 'default' : 'ghost'"
+        as="span"
+        class="justify-start w-full px-3 gap-2"
+        size="default"
+      >
+        <Wallet />
+        <span> Budgets </span>
       </ui-button>
     </router-link>
   </nav>
