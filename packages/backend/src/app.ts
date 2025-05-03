@@ -9,6 +9,7 @@ import locale from 'locale';
 import morgan from 'morgan';
 import passport from 'passport';
 
+import { API_PREFIX } from './config';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import middlewarePassword from './middlewares/passport';
 import './redis';
@@ -29,7 +30,6 @@ import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
 import { supportedLocales } from './translations';
-import { API_PREFIX } from './config';
 
 console.log('Starting application initialization...');
 

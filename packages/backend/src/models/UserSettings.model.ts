@@ -23,6 +23,7 @@ export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
 @Table({
   tableName: 'UserSettings',
+  freezeTableName: true,
   timestamps: true, // To include `createdAt` and `updatedAt`
 })
 export default class UserSettings extends Model {
@@ -31,12 +32,14 @@ export default class UserSettings extends Model {
     autoIncrement: true,
     allowNull: false,
     unique: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
   @ForeignKey(() => Users)
   @Column({
     allowNull: false,
+    type: DataType.INTEGER,
   })
   userId!: number;
 

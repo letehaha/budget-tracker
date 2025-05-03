@@ -1,9 +1,11 @@
-import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 import Users from '../Users.model';
 import { UnwrapArray } from '@common/types';
 
 @Table({
   timestamps: false,
+  tableName: 'BinanceUserSettings',
+  freezeTableName: true,
 })
 export default class BinanceUserSettings extends Model {
   @Column({
@@ -11,17 +13,18 @@ export default class BinanceUserSettings extends Model {
     allowNull: false,
     autoIncrement: true,
     primaryKey: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   apiKey!: string;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   secretKey!: string;
 
   @ForeignKey(() => Users)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.NUMBER })
   userId!: number;
 }
 

@@ -11,12 +11,13 @@ interface GetTotalBalanceHistoryPayload {
   accountIds: number[];
 }
 
-@Table({ timestamps: true })
+@Table({ timestamps: true, tableName: 'Balances', freezeTableName: true })
 export default class Balances extends Model {
   @Column({
     allowNull: false,
     primaryKey: true,
     autoIncrement: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
@@ -40,7 +41,7 @@ export default class Balances extends Model {
   amount!: number;
 
   @ForeignKey(() => Accounts)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER, })
   accountId!: number;
 
   @BelongsTo(() => Accounts)

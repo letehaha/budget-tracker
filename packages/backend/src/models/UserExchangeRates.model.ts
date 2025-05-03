@@ -1,4 +1,4 @@
-import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 import { Op } from 'sequelize';
 import { UserExchangeRatesModel } from '@bt/shared/types';
 import * as Currencies from './Currencies.model';
@@ -8,35 +8,36 @@ import { NotFoundError, ValidationError } from '@js/errors';
 
 type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>;
 
-@Table({ timestamps: true })
+@Table({ timestamps: true, tableName: 'UserExchangeRates', freezeTableName: true, })
 export default class UserExchangeRates extends Model {
   @Column({
     unique: true,
     allowNull: false,
     autoIncrement: true,
     primaryKey: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
   @ForeignKey(() => Users)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   userId!: number;
 
   @ForeignKey(() => Currencies.default)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   baseId!: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   baseCode!: string;
 
   @ForeignKey(() => Currencies.default)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   quoteId!: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   quoteCode!: string;
 
-  @Column({ allowNull: true, defaultValue: 1 })
+  @Column({ allowNull: true, defaultValue: 1, type: DataType.NUMBER })
   rate!: number;
 
   // TODO:

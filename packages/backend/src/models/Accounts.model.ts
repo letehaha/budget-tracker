@@ -40,6 +40,8 @@ export interface AccountsAttributes {
 
 @Table({
   timestamps: false,
+  tableName: 'Accounts',
+  freezeTableName: true,
 })
 export default class Accounts extends Model {
   @BelongsTo(() => Currencies, {
@@ -54,10 +56,11 @@ export default class Accounts extends Model {
     allowNull: false,
     autoIncrement: true,
     primaryKey: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING })
   name!: string;
 
   @Column({
@@ -117,11 +120,11 @@ export default class Accounts extends Model {
   accountCategory!: ACCOUNT_CATEGORIES;
 
   @ForeignKey(() => Currencies)
-  @Column
+  @Column({ type: DataType.INTEGER })
   currencyId!: number;
 
   @ForeignKey(() => Users)
-  @Column
+  @Column({ type: DataType.INTEGER })
   userId!: number;
 
   // represents id from the original external system if exists

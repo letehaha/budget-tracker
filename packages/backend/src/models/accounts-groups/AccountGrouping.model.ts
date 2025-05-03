@@ -14,6 +14,7 @@ import AccountGroup from './AccountGroups.model';
 @Table({
   tableName: 'AccountGroupings',
   timestamps: true,
+  freezeTableName: true,
   indexes: [
     {
       fields: ['accountId', 'groupId'],
