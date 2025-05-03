@@ -131,3 +131,16 @@ export interface UserExchangeRatesModel extends ExchangeRatesModel {
   userId: number;
   custom?: boolean;
 }
+
+export interface BudgetModel {
+  id: number;
+  userId: number;
+  status: string;
+  name: string;
+  // categoryName: string;
+  startDate?: Date;
+  endDate?: Date;
+  limitAmount?: number;
+  // categoriesIds: number[]
+  autoInclude?: boolean;
+}
