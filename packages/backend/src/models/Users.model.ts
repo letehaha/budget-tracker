@@ -16,6 +16,8 @@ const DETAULT_TOTAL_BALANCE = 0;
 }))
 @Table({
   timestamps: false,
+  tableName: 'Users',
+  freezeTableName: true,
 })
 export default class Users extends Model {
   @BelongsToMany(() => Currencies, {

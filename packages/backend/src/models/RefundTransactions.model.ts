@@ -5,6 +5,7 @@ import Users from './Users.model';
 @Table({
   tableName: 'RefundTransactions',
   timestamps: true,
+  freezeTableName: true,
   indexes: [
     {
       fields: ['userId'],

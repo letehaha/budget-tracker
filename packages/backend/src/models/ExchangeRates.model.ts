@@ -6,6 +6,8 @@ import Currencies from './Currencies.model';
   timestamps: true,
   createdAt: 'date',
   updatedAt: false,
+  tableName: 'ExchangeRates',
+  freezeTableName: true,
 })
 export default class ExchangeRates extends Model {
   @Column({

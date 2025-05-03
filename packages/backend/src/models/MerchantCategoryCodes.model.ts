@@ -5,6 +5,8 @@ import Categories from './Categories.model';
 
 @Table({
   timestamps: false,
+  tableName: 'MerchantCategoryCodes',
+  freezeTableName: true,
 })
 export default class MerchantCategoryCodes extends Model {
   @Column({

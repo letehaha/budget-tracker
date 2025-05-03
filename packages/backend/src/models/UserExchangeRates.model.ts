@@ -8,7 +8,7 @@ import { NotFoundError, ValidationError } from '@js/errors';
 
 type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>;
 
-@Table({ timestamps: true })
+@Table({ timestamps: true, tableName: 'UserExchangeRates', freezeTableName: true, })
 export default class UserExchangeRates extends Model {
   @Column({
     unique: true,

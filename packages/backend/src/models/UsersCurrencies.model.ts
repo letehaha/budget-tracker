@@ -8,6 +8,8 @@ import { NotFoundError } from '@js/errors';
 
 @Table({
   timestamps: false,
+  tableName: 'UsersCurrencies',
+  freezeTableName: true,
 })
 export default class UsersCurrencies extends Model {
   @BelongsTo(() => Users, {

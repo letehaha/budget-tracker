@@ -6,6 +6,8 @@ import MerchantCategoryCodes from './MerchantCategoryCodes.model';
 
 @Table({
   timestamps: false,
+  tableName: 'UserMerchantCategoryCodes',
+  freezeTableName: true,
 })
 export default class UserMerchantCategoryCodes extends Model {
   @Column({

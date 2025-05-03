@@ -14,6 +14,8 @@ import { removeUndefinedKeys } from '@js/helpers';
 
 @Table({
   timestamps: false,
+  tableName: 'Currencies',
+  freezeTableName: true,
 })
 export default class Currencies extends Model {
   @BelongsToMany(() => Users, {

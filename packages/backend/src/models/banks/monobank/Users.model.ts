@@ -4,6 +4,8 @@ import Users from '../../Users.model';
 
 @Table({
   timestamps: true,
+  tableName: 'MonobankUsers',
+  freezeTableName: true,
 })
 export default class MonobankUsers extends Model {
   @Column({

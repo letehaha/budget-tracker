@@ -23,6 +23,7 @@ export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
 @Table({
   tableName: 'UserSettings',
+  freezeTableName: true,
   timestamps: true, // To include `createdAt` and `updatedAt`
 })
 export default class UserSettings extends Model {

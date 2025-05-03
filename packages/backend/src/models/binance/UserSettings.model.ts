@@ -4,6 +4,8 @@ import { UnwrapArray } from '@common/types';
 
 @Table({
   timestamps: false,
+  tableName: 'BinanceUserSettings',
+  freezeTableName: true,
 })
 export default class BinanceUserSettings extends Model {
   @Column({

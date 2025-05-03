@@ -40,6 +40,8 @@ export interface AccountsAttributes {
 
 @Table({
   timestamps: false,
+  tableName: 'Accounts',
+  freezeTableName: true,
 })
 export default class Accounts extends Model {
   @BelongsTo(() => Currencies, {

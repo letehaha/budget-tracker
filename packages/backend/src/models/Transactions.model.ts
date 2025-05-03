@@ -97,6 +97,8 @@ export interface TransactionsAttributes {
 
 @Table({
   timestamps: false,
+  tableName: 'Transactions',
+  freezeTableName: true,
 })
 export default class Transactions extends Model {
   @Column({

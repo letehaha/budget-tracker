@@ -7,6 +7,8 @@ import { NotFoundError, ValidationError } from '@js/errors';
 
 @Table({
   timestamps: false,
+  tableName: 'Categories',
+  freezeTableName: true
 })
 export default class Categories extends Model {
   @Column({

@@ -33,5 +33,8 @@ export default defineConfig({
     },
     sourcemap: true,
     emptyOutDir: true,
-  }
+    // Disable minifaction to keep logs readable and prevent Sequelize class-based
+    // relations being corrupted by obfuscation
+    minify: false,
+  },
 });

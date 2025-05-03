@@ -11,7 +11,7 @@ interface GetTotalBalanceHistoryPayload {
   accountIds: number[];
 }
 
-@Table({ timestamps: true })
+@Table({ timestamps: true, tableName: 'Balances', freezeTableName: true })
 export default class Balances extends Model {
   @Column({
     allowNull: false,
