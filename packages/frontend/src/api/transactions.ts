@@ -19,7 +19,7 @@ export const formatTransactionPayload = <
   transaction: T,
 ): T => {
   const params = { ...transaction };
-  const timeFieldsToPatch = ['time', 'startDate', 'endDate'];
+  const timeFieldsToPatch = ["time", "budgetId", "startDate", "endDate"];
 
   timeFieldsToPatch.forEach((field) => {
     if (params[field]) params[field] = new Date(params[field]).toISOString();
@@ -37,6 +37,8 @@ export const formatTransactionPayload = <
 export const loadTransactions = async (params: {
   from: number;
   limit?: number;
+  budgetIds?: number[];
+  excludedBudgetIds?: number[];
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
   accountIds?: number[];
@@ -93,8 +95,16 @@ export const deleteTransaction = async (txId: number): Promise<void> => {
   await api.delete(`/transactions/${txId}`);
 };
 
-export const linkTransactions = async (payload: endpointsTypes.LinkTransactionsBody): Promise<void> =>
+export const linkTransactions = async (payload: endpointsTypes.LinkTransactionsBody): Promise<void> => {
   api.put('/transactions/link', payload);
+}
 
-export const unlinkTransactions = async (payload: endpointsTypes.UnlinkTransferTransactionsBody): Promise<void> =>
+export const unlinkTransactions = async (payload: endpointsTypes.UnlinkTransferTransactionsBody): Promise<void> => {
   api.put('/transactions/unlink', payload);
+}
+
+export const getTransactionByBudgetId = async (budgetId: number): Promise<TransactionModel[]> => {
+  const result = await api.get(`/transactions/budget/${budgetId}`);
+
+  return result.map((item) => formatTransactionResponse(item));
+};
