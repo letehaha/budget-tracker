@@ -1,4 +1,4 @@
-# Stage 1: Build
+# 🏗️ Stage 1️⃣: Build
 FROM node:23.11.0-alpine AS build-stage
 
 WORKDIR /app
@@ -24,7 +24,7 @@ COPY docker/prod ./docker/prod
 WORKDIR /app/packages/backend
 RUN npm run build
 
-# Stage 2: Production
+# 🚀 Stage 2️⃣: Production
 FROM node:23.11.0-alpine AS production
 
 WORKDIR /app
@@ -40,6 +40,16 @@ RUN npm ci --omit=dev
 # Copy built backend code and shared files
 COPY --from=build-stage /app/packages/backend/dist ./packages/backend/dist
 COPY --from=build-stage /app/packages/backend/package.json ./packages/backend/package.json
+
+# Copy .sequelizerc and config folder
+COPY --from=build-stage /app/packages/backend/.sequelizerc ./packages/backend/.sequelizerc
+COPY --from=build-stage /app/packages/backend/config ./packages/backend/config
+COPY --from=build-stage /app/packages/backend/src/migrations ./packages/backend/src/migrations
+
+# Copy and prepare entrypoint script
+COPY docker/prod/backend/docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Set working directory to backend
 WORKDIR /app/packages/backend

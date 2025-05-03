@@ -24,11 +24,11 @@
   "dependencies": {
     "zod": "^3.24.2",
     "dotenv": "^16.4.7",
+    "cross-env": "^7.0.3",
     "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
-    "cross-env": "^7.0.3",
     "eslint": "7.31.0",
     "eslint-config-prettier": "^9.1.0",
     "husky": "9.1.7",

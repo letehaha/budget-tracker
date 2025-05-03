@@ -12,6 +12,14 @@ services:
     depends_on: ['db', 'redis']
     env_file: ../../.env.production
 
+  # ❗️ use if need to test image locally
+  # backend:
+  #   image: budget-tracker-test
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   env_file: ../../.env.production
+
   frontend:
     build:
       context: ../../
