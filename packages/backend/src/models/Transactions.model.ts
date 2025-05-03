@@ -20,6 +20,7 @@ import {
   ForeignKey,
   DataType,
   BelongsTo,
+  BelongsToMany,
 } from 'sequelize-typescript';
 import { isExist, removeUndefinedKeys } from '@js/helpers';
 import { ValidationError } from '@js/errors';
@@ -29,6 +30,8 @@ import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
+import Budgets from '@models/Budget.model';
+import BudgetTransactions from '@models/BudgetTransactions.model';
 
 // TODO: replace with scopes
 const prepareTXInclude = ({
@@ -127,6 +130,13 @@ export default class Transactions extends Model {
   @ForeignKey(() => Users)
   @Column
   userId!: number;
+
+  @BelongsToMany(() => Budgets, {
+    through: { model: () => BudgetTransactions, unique: false },
+    foreignKey: 'transactionId',
+    otherKey: 'budgetId',
+  })
+  budgets!: Budgets[];
 
   @Column({ allowNull: false, defaultValue: TRANSACTION_TYPES.income })
   transactionType!: TRANSACTION_TYPES;
@@ -335,6 +345,8 @@ export const findWithFilters = async ({
   limit = 20,
   accountType,
   accountIds,
+  budgetIds,
+  excludedBudgetIds,
   userId,
   order = SORT_DIRECTIONS.desc,
   includeUser,
@@ -350,12 +362,15 @@ export const findWithFilters = async ({
   endDate,
   amountGte,
   amountLte,
+  categoryId,
 }: {
   from: number;
   limit?: number;
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
   accountIds?: number[];
+  budgetIds?: number[];
+  excludedBudgetIds?: number[];
   userId: number;
   order?: SORT_DIRECTIONS;
   includeUser?: boolean;
@@ -370,14 +385,10 @@ export const findWithFilters = async ({
   endDate?: string;
   amountGte?: number;
   amountLte?: number;
+  categoryId?: number;
 }) => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  });
+  const include = prepareTXInclude({ includeUser, includeAccount, includeCategory, includeAll, nestedInclude });
+  const queryInclude: Includeable[] = Array.isArray(include) ? include : include ? [include] : [];
 
   const whereClause: WhereOptions<Transactions> = {
     userId,
@@ -386,6 +397,7 @@ export const findWithFilters = async ({
       transactionType,
       transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
       refundLinked: excludeRefunds ? false : undefined,
+      categoryId: categoryId || undefined,
     }),
   };
 
@@ -421,8 +433,36 @@ export const findWithFilters = async ({
     }
   }
 
+  if (budgetIds?.length) {
+    queryInclude.push({
+      model: Budgets,
+      through: { attributes: [], where: { budgetId: { [Op.in]: budgetIds } } },
+      attributes: [],
+      required: true,
+    });
+  }
+
+
+  if (excludedBudgetIds?.length) {
+    const excludedTransactionIds = await BudgetTransactions.findAll({
+      attributes: ["transactionId"],
+      where: {
+        budgetId: {
+          [Op.in]: excludedBudgetIds
+        }
+      },
+      raw: true,
+    }).then((results) => results.map((r) => r.transactionId));
+
+    if (excludedTransactionIds.length > 0) {
+      whereClause.id = {
+        [Op.notIn]: excludedTransactionIds
+      };
+    }
+  }
+
   const transactions = await Transactions.findAll({
-    include,
+    include: queryInclude,
     where: whereClause,
     offset: from,
     limit: limit,
