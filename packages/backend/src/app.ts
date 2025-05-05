@@ -28,6 +28,7 @@ import testsRoutes from './routes/tests.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
+import budgetsRoutes from './routes/budgets.route';
 import { supportedLocales } from './translations';
 import { API_PREFIX } from './config';
 
@@ -92,6 +93,7 @@ app.use(`${API_PREFIX}/crypto/binance`, binanceRoutes);
 app.use(`${API_PREFIX}/stats`, statsRoutes);
 app.use(`${API_PREFIX}/account-group`, accountGroupsRoutes);
 app.use(`${API_PREFIX}/currencies/rates`, exchangeRatesRoutes);
+app.use(`${API_PREFIX}/budgets`, budgetsRoutes);
 
 if (process.env.NODE_ENV === 'test') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);
