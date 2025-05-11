@@ -29,6 +29,12 @@ export default defineConfig({
       external: externalDeps,
       output: {
         entryFileNames: 'app.js',
+        // Fixes default import issues
+        // Initially was added to resolve issues with `p-queue` import
+        // Without this setting the "import PQueue from 'p-queue';" works incorrectly
+        // in the way that PQueue doesn't become a constructor, but an object that contains
+        // .default field. TS wasn't able to spot this, so it caused errors in production
+        interop: 'auto',
       },
     },
     sourcemap: true,

@@ -20,6 +20,8 @@
     },
     "sourceMap": true,
     "noImplicitAny": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "typeRoots": ["./node_modules/@types", "./src/tests/global.d.ts", "./src/typings"]
