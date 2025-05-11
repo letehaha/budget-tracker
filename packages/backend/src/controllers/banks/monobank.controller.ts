@@ -29,7 +29,12 @@ import * as transactionsService from '@services/transactions';
 import * as usersService from '@services/user.service';
 import axios from 'axios';
 import { addMonths, differenceInCalendarMonths, endOfMonth, startOfMonth } from 'date-fns';
-import PQueue from 'p-queue';
+import _PQueue from 'p-queue';
+
+// For some reason Vite messes things up that leads to "PQueue is not a constructor"
+// in production, if this fix won't be applied
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PQueue = process.env.NODE_ENV === 'production' ? ((_PQueue as any).default as typeof _PQueue) : _PQueue;
 
 export const usersQuery = new Map();
 
