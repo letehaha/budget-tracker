@@ -19,6 +19,7 @@ import AccountGrouping from './AccountGrouping.model';
 @Table({
   tableName: 'AccountGroups',
   timestamps: true,
+  freezeTableName: true,
 })
 export default class AccountGroup extends Model {
   @Column({

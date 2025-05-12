@@ -4,24 +4,23 @@ services:
       context: ../../
       dockerfile: docker/prod/backend/Dockerfile
     container_name: prod-budget-tracker-app
-    volumes:
-      - ../../packages/backend:/app/packages/backend
-      - ../../node_modules:/app/node_modules
-      - backend_node_modules:/app/packages/backend/node_modules
     ports: ['${APPLICATION_PORT}:${APPLICATION_PORT}']
     depends_on: ['db', 'redis']
     env_file: ../../.env.production
+
+  # ❗️ use if need to test image locally
+  # backend:
+  #   image: budget-tracker-test
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   env_file: ../../.env.production
 
   frontend:
     build:
       context: ../../
       dockerfile: docker/prod/frontend/Dockerfile
-      args:
-        - VITE_APP_API_HTTP=${VITE_APP_API_HTTP}
-        - VITE_APP_API_VER=${VITE_APP_API_VER}
     container_name: prod-budget-tracker-frontend
-    volumes:
-      - ../../packages/frontend:/app/packages/frontend
     ports: ['${PORT:-80}:80']
     depends_on: ['backend']
     env_file: ../../.env.production

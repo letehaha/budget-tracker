@@ -84,6 +84,8 @@ beforeEach(async () => {
       const result = await redisClient.hello();
       return !!result;
     });
+    // Not sure how exactly but fixes DB deadlock
+    await new Promise((resolve) => setTimeout(resolve, 500));
     await connection.sequelize.drop({ cascade: true });
     await dropAllEnums(connection.sequelize);
     const workerKeys = await redisClient.keys(`${process.env.JEST_WORKER_ID}*`);
