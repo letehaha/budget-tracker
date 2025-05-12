@@ -31,7 +31,7 @@ import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
 import { supportedLocales } from './translations';
 
-console.log('Starting application initialization...');
+logger.info('Starting application initialization...');
 
 export const app = express();
 
@@ -67,7 +67,7 @@ app.use(
   }),
 );
 
-console.log('CORS configured with origins:', ALLOWED_ORIGINS);
+logger.info(`CORS configured with origins: ${ALLOWED_ORIGINS}`);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -97,15 +97,12 @@ if (process.env.NODE_ENV === 'test') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);
 }
 
-console.log('Attempting to start server...');
+logger.info('Attempting to start server...');
 
 // Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
 export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
-  console.log('=================================');
   logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
-  console.log('Environment:', process.env.NODE_ENV);
-  console.log('API Prefix:', API_PREFIX);
-  console.log('=================================');
+  logger.info(`API Prefix: ${API_PREFIX}`);
 });
 
 serverInstance.on('error', (error) => {
