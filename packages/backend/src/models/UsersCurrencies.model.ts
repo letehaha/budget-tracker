@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Table, Column, Model, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
 
 import { removeUndefinedKeys } from '@js/helpers';
 import Users from './Users.model';
@@ -8,6 +8,8 @@ import { NotFoundError } from '@js/errors';
 
 @Table({
   timestamps: false,
+  tableName: 'UsersCurrencies',
+  freezeTableName: true,
 })
 export default class UsersCurrencies extends Model {
   @BelongsTo(() => Users, {
@@ -23,15 +25,16 @@ export default class UsersCurrencies extends Model {
     allowNull: false,
     autoIncrement: true,
     primaryKey: true,
+    type: DataType.INTEGER,
   })
   declare id: number;
 
   @ForeignKey(() => Users)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   userId!: number;
 
   @ForeignKey(() => Currencies)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   currencyId!: number;
 
   // Since base currency is always the same, here we're setting exchange rate
@@ -40,18 +43,21 @@ export default class UsersCurrencies extends Model {
   @Column({
     allowNull: true,
     defaultValue: null,
+    type: DataType.INTEGER
   })
   exchangeRate!: number;
 
   @Column({
     allowNull: false,
     defaultValue: false,
+    type: DataType.BOOLEAN
   })
   liveRateUpdate!: boolean;
 
   @Column({
     allowNull: false,
     defaultValue: false,
+    type: DataType.BOOLEAN
   })
   isDefaultCurrency!: boolean;
 }

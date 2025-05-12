@@ -1,6 +1,24 @@
 import cls from 'cls-hooked';
 import { Sequelize } from 'sequelize-typescript';
 
+import AccountsModel from './Accounts.model';
+import BalancesModel from './Balances.model';
+import CategoriesModel from './Categories.model';
+import CurrenciesModel from './Currencies.model';
+import ExchangeRatesModel from './ExchangeRates.model';
+import MerchantCategoryCodesModel from './MerchantCategoryCodes.model';
+import RefundTransactionsModel from './RefundTransactions.model';
+import TransactionsModel from './Transactions.model';
+import UserExchangeRatesModel from './UserExchangeRates.model';
+import UserMerchantCategoryCodesModel from './UserMerchantCategoryCodes.model';
+import UserSettingsModel from './UserSettings.model';
+import UsersModel from './Users.model';
+import UsersCurrenciesModel from './UsersCurrencies.model';
+import AccountGroupingModel from './accounts-groups/AccountGrouping.model';
+import AccountGroupsModel from './accounts-groups/AccountGroups.model';
+import MonobankUsersModel from './banks/monobank/Users.model';
+import BinanceUsersModel from './binance/UserSettings.model';
+
 export const namespace = cls.createNamespace('budget-tracker-namespace');
 Sequelize.useCLS(namespace);
 
@@ -21,13 +39,33 @@ const DBConfig: Record<string, unknown> = {
   logging: true,
 };
 
+const models = [
+  UsersModel,
+  AccountsModel,
+  BalancesModel,
+  CategoriesModel,
+  CurrenciesModel,
+  ExchangeRatesModel,
+  MerchantCategoryCodesModel,
+  RefundTransactionsModel,
+  TransactionsModel,
+  UserExchangeRatesModel,
+  UserMerchantCategoryCodesModel,
+  UserSettingsModel,
+  UsersCurrenciesModel,
+  AccountGroupingModel,
+  AccountGroupsModel,
+  MonobankUsersModel,
+  BinanceUsersModel,
+];
+
 const sequelize = new Sequelize({
   ...DBConfig,
   database:
     process.env.NODE_ENV === 'test'
       ? `${DBConfig.database}-${process.env.JEST_WORKER_ID}`
       : (DBConfig.database as string),
-  models: [__dirname + '/**/*.model.ts'],
+  models,
   pool: {
     max: 50,
     evict: 10000,
