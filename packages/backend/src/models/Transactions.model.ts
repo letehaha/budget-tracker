@@ -139,21 +139,21 @@ export default class Transactions extends Model {
   paymentType!: PAYMENT_TYPES;
 
   @ForeignKey(() => Accounts)
-  @Column({ allowNull: false, type: DataType.INTEGER })
+  @Column({ allowNull: true, type: DataType.INTEGER })
   accountId!: number;
 
   @BelongsTo(() => Accounts)
   account!: Accounts;
 
   @ForeignKey(() => Categories)
-  @Column({ allowNull: false, type: DataType.INTEGER })
+  @Column({ allowNull: true, type: DataType.INTEGER })
   categoryId!: number;
 
   @ForeignKey(() => Currencies)
-  @Column({ allowNull: false, type: DataType.INTEGER })
+  @Column({ allowNull: true, type: DataType.INTEGER })
   currencyId!: number;
 
-  @Column({ allowNull: false, type: DataType.STRING })
+  @Column({ allowNull: true, type: DataType.STRING })
   currencyCode!: string;
 
   @Column({ allowNull: false, defaultValue: ACCOUNT_TYPES.system, type: DataType.ENUM(...Object.values(ACCOUNT_TYPES)), })
