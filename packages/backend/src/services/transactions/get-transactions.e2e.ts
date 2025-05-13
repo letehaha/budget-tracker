@@ -80,66 +80,6 @@ describe('Retrieve transactions with filters', () => {
       raw: true,
     });
 
-    it('should retrieve transactions filtered by budgetIds correctly', async () => {
-      const userId = 1;
-      const account = await helpers.createAccount({ raw: true });
-
-      const transactions = await Promise.all([
-        helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-            time: '2025-03-02T10:00:00Z',
-            categoryId: 1,
-          }),
-          raw: true,
-        }),
-        helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 200,
-            transactionType: TRANSACTION_TYPES.expense,
-            time: '2025-03-03T10:00:00Z',
-            categoryId: 1,
-          }),
-          raw: true,
-        }),
-        helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 300,
-            transactionType: TRANSACTION_TYPES.expense,
-            time: '2025-04-01T10:00:00Z',
-            categoryId: 1,
-          }),
-          raw: true,
-        }),
-      ]);
-
-      const budget = await helpers.createCustomBudget({
-        name: 'Test Budget',
-        userId,
-        startDate: '2025-03-01T00:00:00Z',
-        endDate: '2025-03-04T23:59:59Z',
-        autoInclude: true,
-        limitAmount: 500,
-        raw: true,
-      });
-
-      const res = await helpers.getTransactions({
-        budgetIds: [budget.id],
-        limit: 30,
-        raw: true,
-      });
-
-      expect(res.length).toBe(2);
-      const transactionIds = res.map((t) => t.id);
-      expect(transactionIds).toContain(transactions[0][0].id);
-      expect(transactionIds).toContain(transactions[1][0].id);
-      expect(transactionIds).not.toContain(transactions[2][0].id);
-    });
-
     return {
       income,
       expense,
@@ -149,6 +89,66 @@ describe('Retrieve transactions with filters', () => {
       refundTx,
     };
   };
+
+  it('should retrieve transactions filtered by budgetIds correctly', async () => {
+    const userId = 1;
+    const account = await helpers.createAccount({ raw: true });
+
+    const transactions = await Promise.all([
+      helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-03-02T10:00:00Z',
+          categoryId: 1,
+        }),
+        raw: true,
+      }),
+      helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 200,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-03-03T10:00:00Z',
+          categoryId: 1,
+        }),
+        raw: true,
+      }),
+      helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 300,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-04-01T10:00:00Z',
+          categoryId: 1,
+        }),
+        raw: true,
+      }),
+    ]);
+
+    const budget = await helpers.createCustomBudget({
+      name: 'Test Budget',
+      userId,
+      startDate: '2025-03-01T00:00:00Z',
+      endDate: '2025-03-04T23:59:59Z',
+      autoInclude: true,
+      limitAmount: 500,
+      raw: true,
+    });
+
+    const res = await helpers.getTransactions({
+      budgetIds: [budget.id],
+      limit: 30,
+      raw: true,
+    });
+
+    expect(res.length).toBe(2);
+    const transactionIds = res.map((t) => t.id);
+    expect(transactionIds).toContain(transactions[0][0].id);
+    expect(transactionIds).toContain(transactions[1][0].id);
+    expect(transactionIds).not.toContain(transactions[2][0].id);
+  });
 
   describe('filtered by dates', () => {
     it('[success] for `startDate`', async () => {

@@ -1,17 +1,14 @@
-import { z } from "zod"
-import { CustomResponse } from "@common/types";
-import { API_RESPONSE_STATUS } from "@bt/shared/types";
-import { errorHandler } from "@controllers/helpers";
-import { recordId } from "@common/lib/zod/custom-types";
-import { addTransactionsToBudget as addTransactionsToBudgetService } from "@services/budgets/add-transactions-to-budget";
+import { API_RESPONSE_STATUS } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
+import { CustomResponse } from '@common/types';
+import { errorHandler } from '@controllers/helpers';
+import { addTransactionsToBudget as addTransactionsToBudgetService } from '@services/budgets/add-transactions-to-budget';
+import { z } from 'zod';
 
 export const addTransactionsToBudget = async (req, res: CustomResponse) => {
   const { id: userId } = req.user;
   const { id: budgetId }: z.infer<typeof paramsSchema> = req.validated.params;
   const { transactionIds }: z.infer<typeof bodySchema> = req.validated.body;
-
-  console.log(transactionIds)
-  console.log(budgetId)
 
   try {
     const result = await addTransactionsToBudgetService({

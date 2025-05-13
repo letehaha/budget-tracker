@@ -1,8 +1,9 @@
 // tests/helpers/budget-helpers.ts
-import { makeRequest } from './common';
-import * as budgetService from '@root/services/budgets/create-budget';
-import { addTransactionsToBudget } from '@controllers/budgets/add-transaction-to-budget';
 import { BudgetModel } from '@bt/shared/types';
+import { addTransactionsToBudget } from '@controllers/budgets/add-transaction-to-budget';
+import * as budgetService from '@root/services/budgets/create-budget';
+
+import { makeRequest } from './common';
 
 // type omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
@@ -27,7 +28,7 @@ interface EditBudgetPayload {
 }
 
 interface addingTransactionToBudgetPayload {
-  transactionIds: number[]
+  transactionIds: number[];
 }
 
 export async function createCustomBudget<R extends boolean | undefined = undefined>({
@@ -82,8 +83,24 @@ export async function deleteCustomBudget<R extends boolean | undefined = undefin
   });
 }
 
-export async function editCustomBudget({ id, params, raw }: { id: number; params: EditBudgetPayload; raw?: false }): Promise<Response>;
-export async function editCustomBudget({ id, params, raw }: { id: number; params: EditBudgetPayload; raw?: true }): Promise<{ status: string }>;
+export async function editCustomBudget({
+  id,
+  params,
+  raw,
+}: {
+  id: number;
+  params: EditBudgetPayload;
+  raw?: false;
+}): Promise<Response>;
+export async function editCustomBudget({
+  id,
+  params,
+  raw,
+}: {
+  id: number;
+  params: EditBudgetPayload;
+  raw?: true;
+}): Promise<{ status: string }>;
 export async function editCustomBudget({
   id,
   params,
@@ -113,11 +130,9 @@ export async function addTransactionToCustomBudget<R extends boolean | undefined
   raw,
 }: {
   id: number;
-  payload: addingTransactionToBudgetPayload,
+  payload: addingTransactionToBudgetPayload;
   raw?: R;
 }) {
-  console.log(payload, "PAYLOAD")
-  console.log(id, "ID")
   return makeRequest<Awaited<ReturnType<typeof addTransactionsToBudget>> | null, R>({
     method: 'post',
     url: `/budgets/${id}/transactions`,

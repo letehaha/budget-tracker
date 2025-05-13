@@ -3,6 +3,8 @@ import { Sequelize } from 'sequelize-typescript';
 
 import AccountsModel from './Accounts.model';
 import BalancesModel from './Balances.model';
+import BudgetModel from './Budget.model';
+import BudgetTransactionsModel from './BudgetTransactions.model';
 import CategoriesModel from './Categories.model';
 import CurrenciesModel from './Currencies.model';
 import ExchangeRatesModel from './ExchangeRates.model';
@@ -57,6 +59,8 @@ const models = [
   AccountGroupsModel,
   MonobankUsersModel,
   BinanceUsersModel,
+  BudgetModel,
+  BudgetTransactionsModel,
 ];
 
 const sequelize = new Sequelize({
