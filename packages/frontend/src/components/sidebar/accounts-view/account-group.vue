@@ -28,10 +28,10 @@ watch(
 <template>
   <Collapsible v-model:open="isOpen">
     <CollapsibleTrigger class="w-full">
-      <Button variant="ghost" as="div" size="default" class="w-full h-[56px]">
-        <div class="flex justify-between items-center w-full">
+      <Button variant="ghost" as="div" size="default" class="h-[56px] w-full">
+        <div class="flex w-full items-center justify-between">
           <span class="text-sm"> {{ group.name }} ({{ group.accounts.length }}) </span>
-          <ChevronDown :class="{ 'rotate-180': isOpen }" class="w-4 h-4 transition-transform" />
+          <ChevronDown :class="{ 'rotate-180': isOpen }" class="h-4 w-4 transition-transform" />
         </div>
       </Button>
     </CollapsibleTrigger>

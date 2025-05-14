@@ -58,7 +58,7 @@ const loadTransactionsForPeriod = async () => {
         <Button class="min-w-[100px]" size="sm"> Select period </Button>
       </Popover.PopoverTrigger>
 
-      <Popover.PopoverContent class="w-[600px] grid gap-3">
+      <Popover.PopoverContent class="grid w-[600px] gap-3">
         <div class="flex items-center justify-center gap-2">
           <CalendarIcon />
           <span>

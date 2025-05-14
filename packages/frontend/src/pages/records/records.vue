@@ -1,8 +1,8 @@
 <template>
   <div class="p-4">
-    <div class="flex flex-col w-min lg:w-auto lg:flex-row gap-4 xl:gap-20 max-w-full">
+    <div class="flex w-min max-w-full flex-col gap-4 lg:w-auto lg:flex-row xl:gap-20">
       <template v-if="!hideFilters">
-        <Card class="sticky h-min min-w-[350px] top-[var(--header-height)] p-4">
+        <Card class="sticky top-[var(--header-height)] h-min min-w-[350px] p-4">
           <div class="grid gap-4">
             <DateField
               v-model="filters.start"
@@ -23,15 +23,15 @@
               <p class="mb-2">Transaction type:</p>
 
               <RadioGroup v-model="filters.transactionType" :default-value="null" class="flex flex-wrap gap-2">
-                <label class="flex gap-2 items-center cursor-pointer">
+                <label class="flex cursor-pointer items-center gap-2">
                   <RadioGroupItem :value="null" />
                   <p class="text-sm">Both</p>
                 </label>
-                <label class="flex gap-2 items-center cursor-pointer">
+                <label class="flex cursor-pointer items-center gap-2">
                   <RadioGroupItem :value="TRANSACTION_TYPES.income" />
                   <p class="text-sm">Income</p>
                 </label>
-                <label class="flex gap-2 items-center cursor-pointer">
+                <label class="flex cursor-pointer items-center gap-2">
                   <RadioGroupItem :value="TRANSACTION_TYPES.expense" />
                   <p class="text-sm">Expense</p>
                 </label>
@@ -47,30 +47,58 @@
               <p class="mb-2">Exlude:</p>
 
               <div class="flex gap-2">
-                <label class="cursor-pointer flex gap-2 items-center">
+                <label class="flex cursor-pointer items-center gap-2">
                   <Checkbox :checked="filters.excludeRefunds" @update:checked="filters.excludeRefunds = $event" />
                   Refunds
                 </label>
-                <label class="cursor-pointer flex gap-2 items-center">
+                <label class="flex cursor-pointer items-center gap-2">
                   <Checkbox :checked="filters.excludeTransfer" @update:checked="filters.excludeTransfer = $event" />
                   Transfers
                 </label>
               </div>
             </div>
+
+            <Collapsible.Collapsible v-model:open="isOpen">
+              <Collapsible.CollapsibleTrigger class="flex w-full items-center gap-2 text-left">
+                <template v-if="isOpen">
+                  <ChevronUpIcon />
+                </template>
+                <template v-else>
+                  <ChevronDownIcon />
+                </template>
+                Accounts
+              </Collapsible.CollapsibleTrigger>
+
+              <Collapsible.CollapsibleContent>
+                <div class="grid gap-2 pl-4 pt-4">
+                  <Separator />
+
+                  <div class="flex items-center justify-between gap-2">
+                    <span> Exchange Rate: </span>
+                  </div>
+
+                  <Separator />
+
+                  <div class="flex items-center justify-between gap-2">
+                    <span> Exchange Rate Live Update: </span>
+                  </div>
+                </div>
+              </Collapsible.CollapsibleContent>
+            </Collapsible.Collapsible>
           </div>
 
           <div class="mt-8 flex gap-2">
             <UiButton
               variant="secondary"
               :disabled="isResetButtonDisabled"
-              class="flex-shrink w-full"
+              class="w-full flex-shrink"
               @click="resetFilters"
             >
               Reset
             </UiButton>
 
             <template v-if="isFiltersOutOfSync">
-              <UiButton variant="default" class="flex-shrink w-full" @click="applyFilters"> Apply </UiButton>
+              <UiButton variant="default" class="w-full flex-shrink" @click="applyFilters"> Apply </UiButton>
             </template>
           </div>
         </Card>
@@ -86,12 +114,12 @@
                   <ListFilterIcon />
 
                   <template v-if="isAnyFiltersApplied">
-                    <div class="size-3 rounded-full bg-primary absolute -top-1 -right-1" />
+                    <div class="bg-primary absolute -right-1 -top-1 size-3 rounded-full" />
                   </template>
                 </div>
               </UiButton>
             </Dialog.DialogTrigger>
-            <Dialog.DialogContent class="sm:max-w-md max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)_auto]">
+            <Dialog.DialogContent class="max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)_auto] sm:max-w-md">
               <Dialog.DialogHeader class="mb-6">
                 <Dialog.DialogTitle> Select filters </Dialog.DialogTitle>
               </Dialog.DialogHeader>
@@ -116,15 +144,15 @@
                   <p class="mb-2">Transaction type:</p>
 
                   <RadioGroup v-model="filters.transactionType" :default-value="null" class="flex flex-wrap gap-2">
-                    <label class="flex gap-2 items-center cursor-pointer">
+                    <label class="flex cursor-pointer items-center gap-2">
                       <RadioGroupItem :value="null" />
                       <p class="text-sm">Both</p>
                     </label>
-                    <label class="flex gap-2 items-center cursor-pointer">
+                    <label class="flex cursor-pointer items-center gap-2">
                       <RadioGroupItem :value="TRANSACTION_TYPES.income" />
                       <p class="text-sm">Income</p>
                     </label>
-                    <label class="flex gap-2 items-center cursor-pointer">
+                    <label class="flex cursor-pointer items-center gap-2">
                       <RadioGroupItem :value="TRANSACTION_TYPES.expense" />
                       <p class="text-sm">Expense</p>
                     </label>
@@ -140,11 +168,11 @@
                   <p class="mb-2">Exlude:</p>
 
                   <div class="flex gap-2">
-                    <label class="cursor-pointer flex gap-2 items-center">
+                    <label class="flex cursor-pointer items-center gap-2">
                       <Checkbox :checked="filters.excludeRefunds" @update:checked="filters.excludeRefunds = $event" />
                       Refunds
                     </label>
-                    <label class="cursor-pointer flex gap-2 items-center">
+                    <label class="flex cursor-pointer items-center gap-2">
                       <Checkbox :checked="filters.excludeTransfer" @update:checked="filters.excludeTransfer = $event" />
                       Transfers
                     </label>
@@ -156,14 +184,14 @@
                 <UiButton
                   variant="secondary"
                   :disabled="isResetButtonDisabled"
-                  class="flex-shrink w-full"
+                  class="w-full flex-shrink"
                   @click="resetFilters"
                 >
                   Reset
                 </UiButton>
 
                 <template v-if="isFiltersOutOfSync">
-                  <UiButton variant="default" class="flex-shrink w-full" @click="applyFilters"> Apply </UiButton>
+                  <UiButton variant="default" class="w-full flex-shrink" @click="applyFilters"> Apply </UiButton>
                 </template>
               </div>
             </Dialog.DialogContent>
@@ -171,14 +199,14 @@
         </div>
       </template>
 
-      <Card class="py-4 px-2 sm:p-6 rounded-md w-screen max-w-full sm:max-w-[450px]">
+      <Card class="w-screen max-w-full rounded-md px-2 py-4 sm:max-w-[450px] sm:p-6">
         <div>
           <template v-if="isFetched && transactionsPages">
             <TransactionsList :transactions="transactionsPages.pages.flat()" />
           </template>
         </div>
         <template v-if="hasNextPage">
-          <UiButton type="button" variant="secondary" class="w-full mt-8" @click="() => fetchNextPage()">
+          <UiButton type="button" variant="secondary" class="mt-8 w-full" @click="() => fetchNextPage()">
             Load more
           </UiButton>
         </template>
@@ -192,8 +220,8 @@
       size="icon"
       :class="
         cn(
-          'opacity-0 invisible translate-y-2 transition-transform duration-300 size-[50px] fixed right-7 bottom-7 rounded-full',
-          showScrollTopBtn && 'opacity-100 visible translate-y-0',
+          'invisible fixed bottom-7 right-7 size-[50px] translate-y-2 rounded-full opacity-0 transition-transform duration-300',
+          showScrollTopBtn && 'visible translate-y-0 opacity-100',
         )
       "
       @click="scrollTop"
@@ -212,6 +240,7 @@ import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card } from '@/components/lib/ui/card';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
+import * as Collapsible from '@/components/lib/ui/collapsible';
 import * as Dialog from '@/components/lib/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
@@ -222,7 +251,7 @@ import { useInfiniteQuery } from '@tanstack/vue-query';
 import { useWindowScroll } from '@vueuse/core';
 import isDate from 'date-fns/isDate';
 import { isEqual } from 'lodash-es';
-import { ListFilterIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, ChevronUpIcon, ListFilterIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const limit = 30;
@@ -251,6 +280,7 @@ const DEFAULT_FILTERS: {
 const isFiltersDialogOpen = ref(false);
 const filters = ref({ ...DEFAULT_FILTERS });
 const appliedFilters = ref({ ...DEFAULT_FILTERS });
+const isOpen = ref(false);
 
 const isResetButtonDisabled = computed(() => isEqual(filters.value, DEFAULT_FILTERS));
 const isAnyFiltersApplied = computed(() => !isEqual(appliedFilters.value, DEFAULT_FILTERS));

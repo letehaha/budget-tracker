@@ -16,9 +16,9 @@
           ref="buttonRef"
           :class="
             cn(
-              'flex items-center gap-2 h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background',
+              'border-input bg-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
               'placeholder:text-muted-foreground',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
               'disabled:cursor-not-allowed disabled:opacity-50',
               $attrs.class ?? '',
             )
@@ -39,7 +39,7 @@
         <div v-if="isDropdownOpened" class="category-select-field__dropdown">
           <div ref="DOMList" class="category-select-field__dropdown-values" role="listbox">
             <!-- Show top parent category at the top of list of child categories -->
-            <div class="p-1 px-2 category-select-field__search-field">
+            <div class="category-select-field__search-field p-1 px-2">
               <input-field v-model="searchQuery" name="search" placeholder="Search..." autofocus />
             </div>
             <template v-if="previousLevelsIndices.length">
@@ -108,7 +108,7 @@
                 buttonVariants({
                   size: 'sm',
                   variant: 'link',
-                  class: 'w-full gap-2 mt-4',
+                  class: 'mt-4 w-full gap-2',
                 })
               "
             >
@@ -398,7 +398,7 @@ onBeforeUnmount(() => {
 }
 .category-select-field__dropdown-back-level {
   @apply flex items-center gap-1 hover:no-underline;
-  @apply m-2 mt-0.5 p-2 border-none;
+  @apply m-2 mt-0.5 border-none p-2;
 
   &:hover {
     svg {

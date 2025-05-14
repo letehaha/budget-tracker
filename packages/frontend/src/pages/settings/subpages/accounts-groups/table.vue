@@ -123,11 +123,11 @@ const unlinkAccountFromGroup = (id: number) => {
 <template>
   <div>
     <template v-if="accountGroups.length">
-      <div class="grid gap-3 @container/accounts-groups">
+      <div class="@container/accounts-groups grid gap-3">
         <template v-for="(group, index) in accountGroups" :key="group.id">
           <div
             :class="[
-              'grid grid-cols-[minmax(0,1fr),max-content] gap-4 items-center rounded py-2 pr-4 hover:bg-accent hover:text-accent-foreground',
+              'hover:bg-accent hover:text-accent-foreground grid grid-cols-[minmax(0,1fr),max-content] items-center gap-4 rounded py-2 pr-4',
               group.accounts.length && 'cursor-pointer',
             ]"
             @click="onRowClick(group, index)"
@@ -135,7 +135,7 @@ const unlinkAccountFromGroup = (id: number) => {
             <div class="flex items-center gap-2">
               <div class="size-4">
                 <template v-if="group.accounts.length">
-                  <ChevronRight :class="['size-4 opacity-50 shrink-0', { 'rotate-90': activeItemIndex === index }]" />
+                  <ChevronRight :class="['size-4 shrink-0 opacity-50', { 'rotate-90': activeItemIndex === index }]" />
                 </template>
               </div>
 
@@ -143,7 +143,7 @@ const unlinkAccountFromGroup = (id: number) => {
                 <InputField v-model="activeEditName" autofocus placeholder="Account name" class="w-full" @click.stop />
               </template>
               <template v-else>
-                <span class="whitespace-nowrap text-ellipsis overflow-hidden w-min">
+                <span class="w-min overflow-hidden text-ellipsis whitespace-nowrap">
                   {{ group.name }}
                 </span>
                 <template v-if="group.accounts.length"> ({{ group.accounts.length }}) </template>
@@ -159,7 +159,7 @@ const unlinkAccountFromGroup = (id: number) => {
                   aria-label="Save"
                   @click.stop.prevent="updateGroup(group, index)"
                 >
-                  <span class="hidden @[360px]/accounts-groups:inline"> Save </span>
+                  <span class="@[360px]/accounts-groups:inline hidden"> Save </span>
                   <SaveIcon class="size-4" />
                 </Button>
               </template>
@@ -171,7 +171,7 @@ const unlinkAccountFromGroup = (id: number) => {
                   :aria-label="'Edit'"
                   @click.stop="toggleGroupNameEdit(index, group)"
                 >
-                  <span class="hidden @[360px]/accounts-groups:inline"> Edit </span>
+                  <span class="@[360px]/accounts-groups:inline hidden"> Edit </span>
                   <EditIcon class="size-4" />
                 </Button>
 
@@ -183,14 +183,14 @@ const unlinkAccountFromGroup = (id: number) => {
                 >
                   <template #trigger>
                     <Button variant="destructive" size="sm" class="w-min gap-1" @click.stop="toggleDelete(group)">
-                      <span class="hidden @[360px]/accounts-groups:inline"> Delete </span>
+                      <span class="@[360px]/accounts-groups:inline hidden"> Delete </span>
                       <Trash2Icon class="size-4" />
                     </Button>
                   </template>
                   <template #description>
                     <div v-if="deletedElements.length">
-                      <div class="text-sm mb-2">Before deletion please unlink accounts listed below</div>
-                      <div v-for="item in deletedElements" :key="item.id" class="text-sm px-4 py-2">
+                      <div class="mb-2 text-sm">Before deletion please unlink accounts listed below</div>
+                      <div v-for="item in deletedElements" :key="item.id" class="px-4 py-2 text-sm">
                         - {{ item.name }}
                       </div>
                     </div>
@@ -204,7 +204,7 @@ const unlinkAccountFromGroup = (id: number) => {
             <div class="border-b pb-2">
               <div class="ml-3">
                 <template v-for="account in group.accounts" :key="account.id">
-                  <div class="flex justify-between items-center gap-4 px-4 py-2 w-full">
+                  <div class="flex w-full items-center justify-between gap-4 px-4 py-2">
                     <div class="flex items-center gap-2">
                       <router-link
                         :to="{
@@ -227,7 +227,7 @@ const unlinkAccountFromGroup = (id: number) => {
                       variant="destructive"
                       @click="unlinkAccountFromGroup(account.id)"
                     >
-                      <span class="hidden @[360px]/accounts-groups:inline"> Unlink </span>
+                      <span class="@[360px]/accounts-groups:inline hidden"> Unlink </span>
                       <UngroupIcon class="size-4" />
                     </Button>
                   </div>
@@ -239,7 +239,7 @@ const unlinkAccountFromGroup = (id: number) => {
       </div>
     </template>
     <template v-else>
-      <div class="min-w-full w-full bg-card rounded-md px-6 py-4 text-center">No group account data</div>
+      <div class="bg-card w-full min-w-full rounded-md px-6 py-4 text-center">No group account data</div>
     </template>
   </div>
 </template>

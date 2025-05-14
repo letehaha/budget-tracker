@@ -1,14 +1,14 @@
 <template>
   <WidgetWrapper :is-fetching="isWidgetDataFetching">
     <template #title>
-      <div class="flex gap-2 items-center">
+      <div class="flex items-center gap-2">
         Expenses Structure
 
         <template v-if="hasExcludedStats">
           <Tooltip.TooltipProvider>
             <Tooltip.Tooltip>
               <Tooltip.TooltipTrigger class="px-1">
-                <CircleOffIcon class="size-4 text-warning" />
+                <CircleOffIcon class="text-warning size-4" />
               </Tooltip.TooltipTrigger>
               <Tooltip.TooltipContent class="max-w-[300px] p-4">
                 <div>
@@ -19,7 +19,7 @@
                     </router-link>
                     to change this behavior.
                   </p>
-                  <div class="grid gap-2 mt-3">
+                  <div class="mt-3 grid gap-2">
                     <template v-for="categoryId of excludedCategories" :key="categoryId">
                       <div class="flex items-center gap-2">
                         <CategoryCircle :category="categoriesMap[categoryId]" />
@@ -43,8 +43,8 @@
     </template>
     <template v-else>
       <div>
-        <div class="flex items-center justify-between mb-1 text-xs">
-          <div class="font-medium tracking-tight uppercase">Today</div>
+        <div class="mb-1 flex items-center justify-between text-xs">
+          <div class="font-medium uppercase tracking-tight">Today</div>
           <div class="tracking-tight">vs previous period</div>
         </div>
 

@@ -1,8 +1,8 @@
 <template>
-  <div class="flex items-center justify-center h-full">
-    <Card class="max-w-[450px] w-full" as="form" @submit.prevent="submit">
+  <div class="flex h-full items-center justify-center">
+    <Card class="w-full max-w-[450px]" as="form" @submit.prevent="submit">
       <card-header>
-        <h1 class="text-2xl font-semibold tracking-tight text-center">Log in to account</h1>
+        <h1 class="text-center text-2xl font-semibold tracking-tight">Log in to account</h1>
       </card-header>
       <card-content class="grid gap-7">
         <form-wrapper :error="formError" class="grid gap-7">
@@ -30,7 +30,7 @@
           </Button>
         </div>
       </card-content>
-      <card-footer class="text-sm text-center">
+      <card-footer class="text-center text-sm">
         Don't have an account?
 
         <router-link :to="{ name: ROUTES_NAMES.signUp }">

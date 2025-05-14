@@ -7,6 +7,6 @@ const props = defineProps<SeparatorProps & { class?: string | string[] }>();
 
 <template>
   <Separator
-    :class="[cn('shrink-0 bg-border', props.class), props.orientation === 'vertical' ? 'w-px h-full' : 'h-px w-full']"
+    :class="[cn('bg-border shrink-0', props.class), props.orientation === 'vertical' ? 'h-full w-px' : 'h-px w-full']"
   />
 </template>

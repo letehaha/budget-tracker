@@ -10,7 +10,7 @@ import { CreditCardIcon, LayersIcon, LayoutDashboardIcon } from 'lucide-vue-next
       <ui-button
         :variant="isActive ? 'default' : 'ghost'"
         as="span"
-        class="justify-start w-full px-3 gap-2"
+        class="w-full justify-start gap-2 px-3"
         size="default"
       >
         <LayoutDashboardIcon />
@@ -22,7 +22,7 @@ import { CreditCardIcon, LayersIcon, LayoutDashboardIcon } from 'lucide-vue-next
       <ui-button
         :variant="isActive ? 'default' : 'ghost'"
         as="span"
-        class="justify-start w-full px-3 gap-2"
+        class="w-full justify-start gap-2 px-3"
         size="default"
       >
         <LayersIcon />
@@ -34,7 +34,7 @@ import { CreditCardIcon, LayersIcon, LayoutDashboardIcon } from 'lucide-vue-next
       <ui-button
         :variant="isActive ? 'default' : 'ghost'"
         as="span"
-        class="justify-start w-full px-3 gap-2"
+        class="w-full justify-start gap-2 px-3"
         size="default"
       >
         <CreditCardIcon />

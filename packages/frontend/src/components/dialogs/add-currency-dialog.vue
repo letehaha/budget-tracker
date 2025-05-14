@@ -60,7 +60,7 @@ const saveCurrency = async () => {
 
     <template #description> Select one currency to add </template>
 
-    <form class="grid gap-6 mt-4" @submit.prevent="saveCurrency">
+    <form class="mt-4 grid gap-6" @submit.prevent="saveCurrency">
       <Select.Select v-model="form.currencyId" autocomplete="false">
         <Select.SelectTrigger>
           <Select.SelectValue placeholder="Select currency" />

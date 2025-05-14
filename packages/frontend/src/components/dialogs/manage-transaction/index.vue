@@ -12,7 +12,7 @@ const isOpen = ref(false);
     <Dialog.DialogTrigger as-child>
       <slot />
     </Dialog.DialogTrigger>
-    <Dialog.DialogContent custom-close class="max-h-[90dvh] w-full max-w-[900px] bg-card p-0">
+    <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-[900px] p-0">
       <DialogContent @close-modal="isOpen = false" />
     </Dialog.DialogContent>
   </Dialog.Dialog>

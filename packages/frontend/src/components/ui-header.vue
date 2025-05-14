@@ -11,7 +11,7 @@
           <Sheet.SheetContent
             side="left"
             :class="[
-              'w-full xs:w-3/4 overflow-y-auto px-0',
+              'xs:w-3/4 w-full overflow-y-auto px-0',
               'data-[state=closed]:duration-200 data-[state=open]:duration-300',
             ]"
           >
@@ -26,12 +26,12 @@
       <component :is="isMobileView ? ManageTransactionDrawer : ManageTransactionDialog">
         <Button variant="default" :size="isMobileView ? 'default' : 'lg'">
           <span class="hidden md:block"> New Transaction </span>
-          <span class="flex md:hidden items-center gap-1"> <PlusIcon class="size-5" /> Add </span>
+          <span class="flex items-center gap-1 md:hidden"> <PlusIcon class="size-5" /> Add </span>
         </Button>
       </component>
     </div>
 
-    <div class="flex items-center gap-2 ml-auto">
+    <div class="ml-auto flex items-center gap-2">
       <Button variant="ghost" size="icon" @click="toggleTheme">
         <template v-if="currentTheme === Themes.dark">
           <MoonStar :size="20" />
@@ -59,7 +59,7 @@
           </template>
           <template v-else>
             <CheckCircle :size="14" class="text-green-700" />
-            <span class="layout-header__sync-status-text hidden xs:block"> Synchronized </span>
+            <span class="layout-header__sync-status-text xs:block hidden"> Synchronized </span>
           </template>
         </Button>
       </ui-tooltip>

@@ -38,8 +38,8 @@ const refundTransactions = computed(() => {
 <template>
   <template v-if="refunds || refundedBy">
     <p class="text-sm">Linked refunds</p>
-    <div class="flex gap-2 items-start justify-between">
-      <div class="grid gap-1 w-full">
+    <div class="flex items-start justify-between gap-2">
+      <div class="grid w-full gap-1">
         <template v-for="tx of refundTransactions" :key="tx.id">
           <TransactionRecrod :tx="tx" />
         </template>

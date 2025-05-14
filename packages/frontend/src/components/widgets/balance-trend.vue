@@ -8,8 +8,8 @@
     </template>
     <template v-else>
       <div>
-        <div class="flex items-center justify-between mb-1 text-xs">
-          <div class="font-medium tracking-tight uppercase">Today</div>
+        <div class="mb-1 flex items-center justify-between text-xs">
+          <div class="font-medium uppercase tracking-tight">Today</div>
           <div class="tracking-tight">vs previous period</div>
         </div>
 

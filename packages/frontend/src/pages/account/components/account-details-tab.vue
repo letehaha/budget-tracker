@@ -74,7 +74,7 @@ const isOpen = ref(false);
         </Collapsible.CollapsibleTrigger>
 
         <Collapsible.CollapsibleContent>
-          <div class="grid gap-2 pt-4 pl-4">
+          <div class="grid gap-2 pl-4 pt-4">
             <Separator />
 
             <div class="flex items-center justify-between gap-2">

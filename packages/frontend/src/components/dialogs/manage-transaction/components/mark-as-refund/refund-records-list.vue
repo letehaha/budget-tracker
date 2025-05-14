@@ -99,7 +99,7 @@ const handlerRecordClick = (transaction: TransactionModel) => {
 </script>
 
 <template>
-  <div class="flex flex-col flex-grow min-h-0 gap-2">
+  <div class="flex min-h-0 flex-grow flex-col gap-2">
     <div class="flex">
       <Dialog.Dialog v-model:open="isFiltersDialogOpen">
         <Dialog.DialogTrigger as-child>
@@ -108,7 +108,7 @@ const handlerRecordClick = (transaction: TransactionModel) => {
               <ListFilterIcon />
 
               <template v-if="isAnyFiltersApplied">
-                <div class="size-3 rounded-full bg-primary absolute -top-1 -right-1" />
+                <div class="bg-primary absolute -right-1 -top-1 size-3 rounded-full" />
               </template>
             </div>
           </Button>
@@ -142,14 +142,14 @@ const handlerRecordClick = (transaction: TransactionModel) => {
               <Button
                 variant="secondary"
                 :disabled="isResetButtonDisabled"
-                class="flex-shrink w-full"
+                class="w-full flex-shrink"
                 @click="resetFilters"
               >
                 Reset
               </Button>
 
               <template v-if="isFiltersOutOfSync">
-                <Button variant="default" class="flex-shrink w-full" @click="applyFilters"> Apply </Button>
+                <Button variant="default" class="w-full flex-shrink" @click="applyFilters"> Apply </Button>
               </template>
             </div>
           </div>
@@ -160,7 +160,7 @@ const handlerRecordClick = (transaction: TransactionModel) => {
     <div class="overflow-y-auto">
       <template v-if="isFetched && transactionsPages">
         <template v-for="item in transactionsPages?.pages?.flat()" :key="item.id">
-          <div :class="cn('border border-transparent rounded-xl', selectedTxsIds.has(item.id) && 'border-primary/70')">
+          <div :class="cn('rounded-xl border border-transparent', selectedTxsIds.has(item.id) && 'border-primary/70')">
             <TransactionRecrod :tx="item" @record-click="(payload) => handlerRecordClick(payload[0])" />
           </div>
         </template>
@@ -174,7 +174,7 @@ const handlerRecordClick = (transaction: TransactionModel) => {
       <p class="mt-4 text-center text-sm">No more transactions to load</p>
     </template>
     <template v-else>
-      <p class="text-center text-sm text-white/80 max-w-[80%] mx-auto">
+      <p class="mx-auto max-w-[80%] text-center text-sm text-white/80">
         <CircleAlert :size="48" class="m-auto mb-4" />
         <template v-if="transactionType === TRANSACTION_TYPES.income">
           There's no income transactions in the system that are not already marked as refunds. Create some to proceed
