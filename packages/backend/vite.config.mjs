@@ -1,8 +1,8 @@
-import { defineConfig } from 'vite';
-import tsconfigPaths from 'vite-tsconfig-paths';
+import { builtinModules } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { builtinModules } from 'module';
+import { defineConfig } from 'vite';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 import pkg from './package.json';
 

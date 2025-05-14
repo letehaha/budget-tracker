@@ -1,7 +1,7 @@
 <template>
   <button
     :class="[
-      'py-1 px-2 rounded-md grid grid-cols-[minmax(0,1fr)_max-content] justify-between items-center cursor-pointer w-full gap-2 [content-visibility:auto]',
+      'grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_max-content] items-center justify-between gap-2 rounded-md px-2 py-1 [content-visibility:auto]',
     ]"
     type="button"
     aria-haspopup="true"
@@ -14,21 +14,21 @@
 
       <div class="text-left">
         <template v-if="isTransferTransaction">
-          <span class="text-sm tracking-wider whitespace-nowrap">
+          <span class="whitespace-nowrap text-sm tracking-wider">
             {{ accountMovement }}
           </span>
         </template>
         <template v-else>
-          <div class="flex gap-2 items-center">
-            <span class="text-sm tracking-wider whitespace-nowrap">
+          <div class="flex items-center gap-2">
+            <span class="whitespace-nowrap text-sm tracking-wider">
               {{ category.name || 'Other' }}
             </span>
             <template v-if="isRefund">
-              <div class="border rounded-sm border-primary text-xs text-white/80 px-1 py-0.5">Refund</div>
+              <div class="border-primary rounded-sm border px-1 py-0.5 text-xs text-white/80">Refund</div>
             </template>
           </div>
         </template>
-        <span class="text-sm tracking-wider line-clamp-2 opacity-40 [word-break:break-word]">
+        <span class="line-clamp-2 text-sm tracking-wider opacity-40 [word-break:break-word]">
           {{ transaction.note }}
         </span>
       </div>

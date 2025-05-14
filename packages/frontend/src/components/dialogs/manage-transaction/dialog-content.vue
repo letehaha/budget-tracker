@@ -355,13 +355,13 @@ onUnmounted(() => {
   <div class="rounded-t-xl">
     <div
       :class="[
-        'h-3 transition-[background-color] ease-out duration-200 rounded-t-xl',
+        'h-3 rounded-t-xl transition-[background-color] duration-200 ease-out',
         currentTxType === FORM_TYPES.income && 'bg-app-income-color',
         currentTxType === FORM_TYPES.expense && 'bg-app-expense-color',
         currentTxType === FORM_TYPES.transfer && 'bg-app-transfer-color',
       ]"
     />
-    <div class="flex items-center justify-between py-3 px-6 mb-4">
+    <div class="mb-4 flex items-center justify-between px-6 py-3">
       <DialogTitle>
         <span class="text-2xl">
           {{ isFormCreation ? 'Add Transaction' : 'Edit Transaction' }}
@@ -372,7 +372,7 @@ onUnmounted(() => {
         <Button variant="ghost"> Close </Button>
       </DialogClose>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-[450px,minmax(0,1fr)] relative">
+    <div class="relative grid grid-cols-1 md:grid-cols-[450px,minmax(0,1fr)]">
       <div class="px-6">
         <type-selector
           :is-form-creation="isFormCreation"
@@ -507,7 +507,7 @@ onUnmounted(() => {
 
             <Drawer.DrawerContent>
               <Drawer.DrawerTitle></Drawer.DrawerTitle>
-              <div class="px-6 pt-6 bg-black/20 shadow-black/40 shadow-[inset_2px_4px_12px]">
+              <div class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
                 <form-row>
                   <select-field
                     v-model="form.paymentType"
@@ -566,7 +566,7 @@ onUnmounted(() => {
       </div>
 
       <template v-if="!isMobileView">
-        <div class="px-6 pt-6 bg-black/20 shadow-black/40 shadow-[inset_2px_4px_12px]">
+        <div class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
           <form-row>
             <select-field
               v-model="form.paymentType"

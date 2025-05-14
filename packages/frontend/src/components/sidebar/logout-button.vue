@@ -15,7 +15,7 @@ const logOutHandler = () => {
 </script>
 
 <template>
-  <ui-button variant="secondary" class="justify-start w-full px-3 gap-2 mt-auto" @click="logOutHandler">
+  <ui-button variant="secondary" class="mt-auto w-full justify-start gap-2 px-3" @click="logOutHandler">
     <LogOutIcon />
     <span> Logout </span>
   </ui-button>

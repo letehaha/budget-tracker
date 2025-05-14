@@ -17,8 +17,8 @@ const { formatAmountByCurrencyId } = useFormatCurrency();
     :to="{ name: ROUTES_NAMES.account, params: { id: account.id } }"
     class="flex w-full"
   >
-    <Button :variant="isActive ? 'secondary' : 'ghost'" as="div" size="default" class="w-full h-[56px]">
-      <div class="flex justify-between items-center w-full">
+    <Button :variant="isActive ? 'secondary' : 'ghost'" as="div" size="default" class="h-[56px] w-full">
+      <div class="flex w-full items-center justify-between">
         <div class="flex flex-col gap-1">
           <span class="text-sm">{{ account.name }}</span>
           <span class="text-xs">

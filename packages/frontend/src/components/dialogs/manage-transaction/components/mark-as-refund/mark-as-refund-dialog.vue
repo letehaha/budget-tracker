@@ -76,7 +76,7 @@ const saveState = () => {
       <Dialog.DialogTrigger as-child>
         <Button class="w-full" :disabled="disabled" variant="secondary"> Link refund </Button>
       </Dialog.DialogTrigger>
-      <Dialog.DialogContent class="max-h-[90dvh] grid grid-rows-[auto_auto_minmax(0,1fr)_auto]">
+      <Dialog.DialogContent class="grid max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)_auto]">
         <Dialog.DialogHeader class="mb-4">
           <Dialog.DialogTitle>Select transaction</Dialog.DialogTitle>
           <Dialog.DialogDescription>
@@ -91,15 +91,15 @@ const saveState = () => {
           </Dialog.DialogDescription>
         </Dialog.DialogHeader>
 
-        <div class="grid gap-2 mb-4">
+        <div class="mb-4 grid gap-2">
           <div class="flex items-center justify-between">
             <RadioGroup v-model="selectedOption" default-value="refunds" class="flex gap-6">
-              <label class="flex gap-2 items-center cursor-pointer">
+              <label class="flex cursor-pointer items-center gap-2">
                 <RadioGroupItem value="refunds" />
                 <p class="text-sm">Refunds</p>
               </label>
               <label
-                :class="['flex gap-2 items-center cursor-pointer', isRecordCreation && 'opacity-70 cursor-not-allowed']"
+                :class="['flex cursor-pointer items-center gap-2', isRecordCreation && 'cursor-not-allowed opacity-70']"
               >
                 <RadioGroupItem :disabled="isRecordCreation" value="refunded" />
                 <p class="text-sm">Refunded by</p>

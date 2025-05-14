@@ -66,7 +66,7 @@ const handlerRecordClick = ([baseTx, oppositeTx]: [baseTx: TransactionModel, opp
 
 <template>
   <div>
-    <div v-bind="$attrs" class="grid gap-2 grid-cols-1">
+    <div v-bind="$attrs" class="grid grid-cols-1 gap-2">
       <template
         v-for="item in transactions"
         :key="`${item.id}-${item.categoryId}-${item.refAmount}-${item.note}-${item.time}`"
@@ -89,7 +89,7 @@ const handlerRecordClick = ([baseTx, oppositeTx]: [baseTx: TransactionModel, opp
     </template>
     <template v-else>
       <Dialog.Dialog v-model:open="isDialogVisible">
-        <Dialog.DialogContent custom-close class="max-h-[90dvh] w-full max-w-[900px] bg-card p-0">
+        <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-[900px] p-0">
           <Dialog.DialogDescription></Dialog.DialogDescription>
           <SlotContent />
         </Dialog.DialogContent>

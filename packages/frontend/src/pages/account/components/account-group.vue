@@ -36,7 +36,7 @@ watch(
       </template>
       <LinkAccountGroup :account="account">
         <UiButton size="icon" variant="secondary">
-          <span class="flex gap-3 items-center">
+          <span class="flex items-center gap-3">
             <EditIcon class="size-5" />
           </span>
         </UiButton>

@@ -1,19 +1,19 @@
 <template>
-  <div class="grid gap-4 grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
     <button v-for="(currency, index) in currenciesList" :key="currency.id" type="button">
       <Card
         :class="[
-          'p-4 flex flex-col gap-4 border rounded-lg shadow-sm transition-all duration-300',
+          'flex flex-col gap-4 rounded-lg border p-4 shadow-sm transition-all duration-300',
           currency.isDefaultCurrency && 'cursor-default',
           !currency.isDefaultCurrency && 'hover:border-green-500',
         ]"
         @click="!currency.isDefaultCurrency && toggleActiveItem(index)"
       >
         <div class="gap-4">
-          <div class="flex justify-between items-center">
+          <div class="flex items-center justify-between">
             <div class="flex items-center">
-              <img class="w-5 h-5" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
-              <div class="text-lg font-medium text-white ml-2">
+              <img class="h-5 w-5" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
+              <div class="ml-2 text-lg font-medium text-white">
                 {{ currency.currency.currency }}
               </div>
             </div>

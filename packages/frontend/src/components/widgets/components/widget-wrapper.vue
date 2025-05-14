@@ -1,13 +1,13 @@
 <template>
   <Card
-    class="max-h-[350px] flex flex-col"
+    class="flex max-h-[350px] flex-col"
     :class="{
       'max-h-[724px]': higher,
     }"
   >
     <CardHeader>
       <slot name="header">
-        <div class="grid grid-cols-[minmax(0,1fr),max-content,20px] gap-1 items-center justify-between">
+        <div class="grid grid-cols-[minmax(0,1fr),max-content,20px] items-center justify-between gap-1">
           <h3>
             <slot name="title" />
           </h3>
@@ -17,7 +17,7 @@
           </div>
 
           <template v-if="isFetching">
-            <Loader2Icon class="text-white opacity-50 size-5 animate-spin" />
+            <Loader2Icon class="size-5 animate-spin text-white opacity-50" />
           </template>
         </div>
       </slot>

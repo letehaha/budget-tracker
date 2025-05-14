@@ -84,20 +84,20 @@ const vCalendarSlots = computed(() =>
 
 <template>
   <div class="relative">
-    <div v-if="$attrs.mode !== 'time'" class="absolute flex justify-between w-full px-4 top-3 z-[1]">
+    <div v-if="$attrs.mode !== 'time'" class="absolute top-3 z-[1] flex w-full justify-between px-4">
       <button
         type="button"
         :class="cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100')"
         @click="handleNav('prev')"
       >
-        <ChevronLeft class="w-4 h-4" />
+        <ChevronLeft class="h-4 w-4" />
       </button>
       <button
         type="button"
         :class="cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100')"
         @click="handleNav('next')"
       >
-        <ChevronRight class="w-4 h-4" />
+        <ChevronRight class="h-4 w-4" />
       </button>
     </div>
 
@@ -126,7 +126,7 @@ const vCalendarSlots = computed(() =>
   @apply grid gap-4;
 }
 .calendar .vc-title {
-  @apply text-sm font-medium pointer-events-none;
+  @apply pointer-events-none text-sm font-medium;
 }
 .calendar .vc-pane-header-wrapper {
   @apply hidden;
@@ -138,13 +138,13 @@ const vCalendarSlots = computed(() =>
   @apply flex;
 }
 .calendar .vc-weekday {
-  @apply text-muted-foreground rounded-md w-9 font-normal text-[0.8rem];
+  @apply text-muted-foreground w-9 rounded-md text-[0.8rem] font-normal;
 }
 .calendar .vc-weeks {
-  @apply w-full space-y-2 flex flex-col [&>_div]:grid [&>_div]:grid-cols-7;
+  @apply flex w-full flex-col space-y-2 [&>_div]:grid [&>_div]:grid-cols-7;
 }
 .calendar .vc-day:has(.vc-highlights) {
-  @apply bg-accent first:rounded-l-md last:rounded-r-md overflow-hidden;
+  @apply bg-accent overflow-hidden first:rounded-l-md last:rounded-r-md;
 }
 .calendar .vc-day.is-today:not(:has(.vc-day-layer)) {
   @apply bg-secondary rounded-md;
@@ -159,7 +159,7 @@ const vCalendarSlots = computed(() =>
   @apply rounded-md;
 }
 .calendar .vc-day-content {
-  @apply text-center text-sm p-0 relative focus-within:relative focus-within:z-20 inline-flex items-center justify-center ring-offset-background hover:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent hover:text-accent-foreground h-9 w-9  font-normal aria-selected:opacity-100 select-none;
+  @apply ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring relative inline-flex h-9 w-9 select-none items-center justify-center p-0 text-center text-sm font-normal focus-within:relative focus-within:z-20 hover:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 aria-selected:opacity-100;
 }
 .calendar .vc-day-content:not(.vc-highlight-content-light) {
   @apply rounded-md;
@@ -169,7 +169,7 @@ const vCalendarSlots = computed(() =>
 }
 .calendar .vc-day-content.vc-disabled:hover {
   // prevent hover state for disabled item
-  @apply bg-transparent opacity-50 text-muted-foreground;
+  @apply text-muted-foreground bg-transparent opacity-50;
 }
 .calendar
   .is-not-in-month:not(:has(.vc-highlight-content-solid)):not(:has(.vc-highlight-content-light)):not(
@@ -189,7 +189,7 @@ const vCalendarSlots = computed(() =>
   @apply overflow-hidden;
 }
 .calendar .vc-pane-container {
-  @apply w-full relative;
+  @apply relative w-full;
 }
 :root {
   --vc-slide-translate: 22px;
@@ -285,22 +285,22 @@ const vCalendarSlots = computed(() =>
   @apply pointer-events-none opacity-50;
 }
 .vc-time-picker.vc-attached {
-  @apply border-t border-solid border-secondary mt-2;
+  @apply border-secondary mt-2 border-t border-solid;
 }
 .vc-time-picker > * + * {
   @apply mt-1;
 }
 .vc-time-header {
-  @apply flex items-center text-sm font-semibold uppercase mt-1 px-1 leading-6;
+  @apply mt-1 flex items-center px-1 text-sm font-semibold uppercase leading-6;
 }
 .vc-time-select-group {
-  @apply inline-flex items-center px-1 rounded-md bg-background border border-solid border-secondary;
+  @apply border-secondary bg-background inline-flex items-center rounded-md border border-solid px-1;
 }
 .vc-time-select-group .vc-base-icon {
-  @apply mr-1 text-primary stroke-primary;
+  @apply stroke-primary text-primary mr-1;
 }
 .vc-time-select-group select {
-  @apply bg-background p-1 appearance-none outline-none text-center;
+  @apply bg-background appearance-none p-1 text-center outline-none;
 }
 .vc-time-weekday {
   @apply text-muted-foreground tracking-wide;

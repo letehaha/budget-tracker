@@ -12,3 +12,6 @@ e29b83e463be79f1b8a548b8608c4aad9812be78
 # prettier format of the project after switch to max-len: 100
 1bd66a9b898bad9e01987da2ba1d1dfbd18bc537
 16ba277502c3b556bbdfca6e19ee731611b12f72
+
+# prettier format after adding tailwind-sort plugin
+d278b05e2dcde54b77dd4c1afa8f894774a663e4

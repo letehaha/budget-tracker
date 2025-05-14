@@ -4,7 +4,7 @@
       <div>
         <Button
           :class="[
-            'grid grid-cols-[1fr,min-content] gap-8 -ml-4 w-[calc(100%+32px)]',
+            '-ml-4 grid w-[calc(100%+32px)] grid-cols-[1fr,min-content] gap-8',
             { 'bg-accent': isActiveCategory(cat) },
           ]"
           variant="ghost"
@@ -14,7 +14,7 @@
             <CategoryCircle :category="cat" />
             {{ cat.name }}
           </div>
-          <span v-if="cat.subCategories.length" class="text-sm w-max opacity-70 flex gap-2">
+          <span v-if="cat.subCategories.length" class="flex w-max gap-2 text-sm opacity-70">
             <span>{{ props.expandedCategories.includes(cat.id) ? '↓' : '→' }}</span>
           </span>
         </Button>

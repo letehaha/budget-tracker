@@ -26,7 +26,7 @@ const emit = defineEmits(['update:open']);
       <Drawer.DrawerContent class="px-4 pb-4">
         <component
           :is="$slots.title || $slots.description ? Drawer.DrawerHeader : 'div'"
-          class="text-center px-0 pb-0 mb-2"
+          class="mb-2 px-0 pb-0 text-center"
         >
           <Drawer.DrawerTitle>
             <slot name="title" />

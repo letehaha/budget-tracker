@@ -1,6 +1,6 @@
 <template>
-  <div class="h-full flex flex-col items-center justify-center opacity-70 min-h-[250px]">
+  <div class="flex h-full min-h-[250px] flex-col items-center justify-center opacity-70">
     <slot></slot>
-    <p class="text-sm text-center mt-4">There are no data in selected time interval.</p>
+    <p class="mt-4 text-center text-sm">There are no data in selected time interval.</p>
   </div>
 </template>

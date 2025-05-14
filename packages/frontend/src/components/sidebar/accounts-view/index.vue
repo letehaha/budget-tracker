@@ -51,8 +51,8 @@ const isPopoverOpen = ref(false);
 </script>
 
 <template>
-  <div class="my-6 min-w-[300px] overflow-y-hidden md:-ml-3 grid gap-0.5">
-    <div class="ml-3 flex justify-between items-center">
+  <div class="my-6 grid min-w-[300px] gap-0.5 overflow-y-hidden md:-ml-3">
+    <div class="ml-3 flex items-center justify-between">
       <p class="text-xs uppercase">Accounts</p>
 
       <Popover.Popover :open="isPopoverOpen" @update:open="isPopoverOpen = $event">
@@ -75,7 +75,7 @@ const isPopoverOpen = ref(false);
       </Popover.Popover>
     </div>
 
-    <div class="grid overflow-auto gap-0.5 max-h-full">
+    <div class="grid max-h-full gap-0.5 overflow-auto">
       <template v-if="isLoading">
         <div>Loading</div>
       </template>

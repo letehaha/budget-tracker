@@ -5,7 +5,7 @@
     </template>
 
     <ScrollArea class="page__wrapper">
-      <ui-header class="sticky top-0 z-10 bg-background" />
+      <ui-header class="bg-background sticky top-0 z-10" />
 
       <template v-if="isAppInitialized">
         <router-view />

@@ -4,7 +4,7 @@
       'date-field--error': errorMessage,
       'date-field--disabled': disabled,
     }"
-    class="w-full date-field"
+    class="date-field w-full"
   >
     <Popover.Popover>
       <FieldLabel :label="label">
@@ -16,10 +16,10 @@
             :class="
               cn(
                 'datetime-local-raw-input',
-                'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background',
+                'border-input bg-background ring-offset-background flex h-10 w-full rounded-md border px-3 py-2 text-sm',
                 'file:border-0 file:bg-transparent file:text-sm file:font-medium',
                 'placeholder:text-muted-foreground',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                 'disabled:cursor-not-allowed disabled:opacity-50',
                 'appearance-none', // fixes Safari width issues
                 $attrs.class ?? '',
@@ -29,7 +29,7 @@
           />
           <template v-if="isSafariMobile">
             <Button
-              class="absolute top-0 right-0 flex items-center justify-center w-16 h-10"
+              class="absolute right-0 top-0 flex h-10 w-16 items-center justify-center"
               variant="ghost"
               size="icon"
               disabled
@@ -40,7 +40,7 @@
           <template v-else>
             <Popover.PopoverTrigger as-child>
               <Button
-                class="absolute top-0 right-0 flex items-center justify-center w-16 h-10"
+                class="absolute right-0 top-0 flex h-10 w-16 items-center justify-center"
                 variant="ghost"
                 size="icon"
                 :disabled="disabled"
