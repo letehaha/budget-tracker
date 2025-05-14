@@ -19,6 +19,7 @@ services:
     container_name: dev-budget-tracker-frontend
     volumes:
       - ../../packages/frontend:/app/packages/frontend
+      - frontend_node_modules:/app/packages/frontend/node_modules
     ports: ['${PORT}:${PORT}']
     depends_on: ['backend']
     env_file: ../../.env.development
