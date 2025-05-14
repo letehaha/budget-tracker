@@ -1,4 +1,4 @@
-require('dotenv').config({ path: `.env.${process.env.NODE_ENV}` });
+require('dotenv').config({ path: `../../.env.${process.env.NODE_ENV}` });
 
 // Used in Sequelize migrations
 module.exports = {
