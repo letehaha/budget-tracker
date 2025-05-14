@@ -2,13 +2,13 @@
   <div class="p-4">
     <div class="flex w-min max-w-full flex-col gap-4 lg:w-auto lg:flex-row xl:gap-20">
       <template v-if="!isMobileView">
-        <Card class="sticky top-[var(--header-height)] h-min min-w-[350px] p-4">
+        <Card
+          class="sticky top-[var(--header-height)] h-min max-h-[calc(100vh-var(--header-height)-32px)] min-w-[350px] overflow-auto p-4"
+        >
           <FiltersPanel
             v-model:filters="filters"
-            :applied-filters="appliedFilters"
             :is-reset-button-disabled="isResetButtonDisabled"
             :is-filters-out-of-sync="isFiltersOutOfSync"
-            :is-any-filters-applied="isAnyFiltersApplied"
             @reset-filters="resetFilters"
             @apply-filters="applyFilters"
           />
@@ -16,15 +16,15 @@
       </template>
       <template v-else>
         <FiltersDialog v-model:open="isFiltersDialogOpen" :isAnyFiltersApplied="isAnyFiltersApplied">
-          <FiltersPanel
-            v-model:filters="filters"
-            :applied-filters="appliedFilters"
-            :is-reset-button-disabled="isResetButtonDisabled"
-            :is-filters-out-of-sync="isFiltersOutOfSync"
-            :is-any-filters-applied="isAnyFiltersApplied"
-            @reset-filters="resetFilters"
-            @apply-filters="applyFilters"
-          />
+          <div class="relative max-h-[calc(100vh-var(--header-height)-32px)] overflow-auto">
+            <FiltersPanel
+              v-model:filters="filters"
+              :is-reset-button-disabled="isResetButtonDisabled"
+              :is-filters-out-of-sync="isFiltersOutOfSync"
+              @reset-filters="resetFilters"
+              @apply-filters="applyFilters"
+            />
+          </div>
         </FiltersDialog>
       </template>
 
@@ -66,6 +66,7 @@ const DEFAULT_FILTERS = {
   amountLte: null,
   excludeRefunds: false,
   excludeTransfer: false,
+  accounts: [],
 };
 
 const filters = ref({ ...DEFAULT_FILTERS });
@@ -105,6 +106,7 @@ const fetchTransactions = ({ pageParam, filter }) => {
       amountLte: filter.amountLte,
       excludeRefunds: filter.excludeRefunds,
       excludeTransfer: filter.excludeTransfer,
+      accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
     }),
   );
 };
