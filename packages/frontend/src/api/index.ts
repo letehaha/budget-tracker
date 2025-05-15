@@ -7,3 +7,4 @@ export * from './auth';
 export * from './transactions';
 export * from './stats';
 export * from './currencies';
+export * from "./budgets";
