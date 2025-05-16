@@ -1,5 +1,5 @@
 <template>
-  <main class="page">
+  <main class="bg-background h-screen">
     <router-view />
 
     <notifications-center />
@@ -50,10 +50,3 @@ watch(isAppInitialized, (value) => {
   }
 });
 </script>
-
-<style lang="scss" scoped>
-.page {
-  height: 100dvh;
-  background-color: var(--background);
-}
-</style>
