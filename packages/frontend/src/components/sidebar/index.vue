@@ -17,7 +17,9 @@ defineProps<{ mobileView?: boolean }>();
       </div>
     </CardHeader>
     <CardContent class="flex max-h-[calc(100%-52px)] flex-grow flex-col px-3 md:px-6">
-      <NavigationLinks />
+      <nav class="grid gap-2 md:-ml-3">
+        <NavigationLinks />
+      </nav>
 
       <AccountsView />
 

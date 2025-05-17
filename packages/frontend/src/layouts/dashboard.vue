@@ -1,10 +1,10 @@
 <template>
-  <div class="page">
+  <div class="bg-background flex h-screen max-md:flex-col">
     <template v-if="!isMobileView">
       <Sidebar />
     </template>
 
-    <ScrollArea class="page__wrapper">
+    <ScrollArea class="flex-1">
       <ui-header class="bg-background sticky top-0 z-10" />
 
       <template v-if="isAppInitialized">
@@ -13,10 +13,15 @@
 
       <ScrollBar />
     </ScrollArea>
+
+    <template v-if="isMobileView">
+      <BottomNavbar />
+    </template>
   </div>
 </template>
 
 <script lang="ts" setup>
+import BottomNavbar from '@/components/bottom-navbar.vue';
 import { ScrollArea, ScrollBar } from '@/components/lib/ui/scroll-area';
 import Sidebar from '@/components/sidebar/index.vue';
 import UiHeader from '@/components/ui-header.vue';
@@ -43,14 +48,3 @@ watch(isAppInitialized, (value) => {
   }
 });
 </script>
-
-<style lang="scss" scoped>
-.page {
-  display: flex;
-  background-color: var(--background);
-  height: 100dvh;
-}
-.page__wrapper {
-  flex: 1;
-}
-</style>
