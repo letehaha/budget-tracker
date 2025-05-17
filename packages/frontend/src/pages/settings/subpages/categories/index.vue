@@ -249,11 +249,8 @@ const deleteCategory = async () => {
 
 onMounted(() => {
   const selectedCategoryId = route.query.selectedCategory;
-  console.log(selectedCategoryId);
 
   if (selectedCategoryId) {
-    console.log(formattedCategories.value);
-    console.log(Number(selectedCategoryId));
     const categoryParents = getCategoryParents(formattedCategories.value, Number(selectedCategoryId));
 
     if (categoryParents.length > 0) {
