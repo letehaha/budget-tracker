@@ -1,5 +1,5 @@
 import { editTransaction } from '@/api';
-import { TRANSACTION_TRANSFER_NATURE, TransactionModel } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 
 import { getDestinationAccount, getDestinationAmount, getTxTypeFromFormType, isOutOfWalletAccount } from '../helpers';
 import { UI_FORM_STRUCT } from '../types';
@@ -74,7 +74,21 @@ export const prepareTxUpdationParams = ({
     });
 
     if (!linkedTransaction?.id) {
+      // For out_of_wallet transactions basic logic from `getTxTypeFromFormType` doesn't really work
+      // so we need to redefine it manually
       if (isOutOfWalletAccount(destinationAccount)) {
+        editionParams.transferNature = TRANSACTION_TRANSFER_NATURE.transfer_out_wallet;
+        editionParams.transactionType = TRANSACTION_TYPES.expense;
+      } else if (isOutOfWalletAccount(form.account)) {
+        editionParams.transactionType = TRANSACTION_TYPES.income;
+        editionParams.accountId = destinationAccount.id;
+        editionParams.amount = getDestinationAmount({
+          sourceTransaction: transaction,
+          isRecordExternal,
+          fromAmount: Number(form.amount),
+          toAmount: Number(form.targetAmount),
+          isCurrenciesDifferent,
+        });
         editionParams.transferNature = TRANSACTION_TRANSFER_NATURE.transfer_out_wallet;
       } else {
         editionParams.destinationAccountId = destinationAccount.id;
