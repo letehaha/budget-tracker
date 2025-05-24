@@ -1,5 +1,5 @@
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
-import { ValidationError } from '@js/errors';
+import { ACCOUNT_TYPES, API_ERROR_CODES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import RefundTransactions from '@models/RefundTransactions.model';
 import * as Transactions from '@models/Transactions.model';
@@ -30,7 +30,11 @@ export const deleteTransaction = withTransaction(
         await unlinkRefundTransaction(id);
       }
 
-      if (transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer) {
+      if (
+        transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer ||
+        // Out of wallet transaction shouldn't have transferId
+        (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet && !transferId)
+      ) {
         await Transactions.deleteTransactionById({ id, userId });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
         const transferTransactions = await Transactions.getTransactionsByArrayOfField({
@@ -51,7 +55,8 @@ export const deleteTransaction = withTransaction(
           ),
         );
       } else {
-        logger.info('No "transferId" exists for the transfer transaction type.');
+        logger.error(`Unexpected issue when tried to delete transaction with id ${id}`);
+        throw new UnexpectedError(API_ERROR_CODES.unexpected, 'Unexpected issue when tried to delete transaction');
       }
     } catch (e) {
       if (process.env.NODE_ENV !== 'test') {
