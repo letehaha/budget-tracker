@@ -4,25 +4,81 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+  # enable manual triggers
+  workflow_dispatch:
 
 jobs:
   prepare-dependencies:
     name: Prepare local deps
     runs-on: ubuntu-latest
+    outputs:
+      frontend-only: ${{ steps.set-outputs.outputs.frontend_only }}
+      backend-only: ${{ steps.set-outputs.outputs.backend_only }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for file changes
       - id: prepare-env
         uses: ./.github/actions/prepare-local-env
       - name: Install dependencies
         if: steps.prepare-env.outputs.cache-hit != 'true'
         run: npm ci
 
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          predicate-quantifier: 'every'
+          filters: |
+            frontend:
+              - 'packages/frontend/**'
+            backend:
+              - 'packages/backend/**'
+            common:
+              - '**'
+              - '!packages/frontend/**'
+              - '!packages/backend/**'
+
+      # Debug the outputs from paths-filter
+      - name: Debug paths-filter outputs
+        run: |
+          echo "Frontend changes detected: ${{ steps.filter.outputs.frontend }}"
+          echo "Backend changes detected: ${{ steps.filter.outputs.backend }}"
+          echo "Common changes detected: ${{ steps.filter.outputs.common }}"
+
+          # List all changed files for debugging
+          echo "Changed files:"
+          git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} || echo "Could not get diff"
+
+      # Set outputs for frontend-only and backend-only changes
+      - name: Set outputs
+        id: set-outputs
+        run: |
+          # Only frontend changes (no backend or common changes)
+          if [[ "${{ steps.filter.outputs.frontend }}" == "true" && "${{ steps.filter.outputs.backend }}" == "false" && "${{ steps.filter.outputs.common }}" == "false" ]]; then
+            echo "frontend_only=true" >> $GITHUB_OUTPUT
+          else
+            echo "frontend_only=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Only backend changes (no frontend or common changes)
+          if [[ "${{ steps.filter.outputs.backend }}" == "true" && "${{ steps.filter.outputs.frontend }}" == "false" && "${{ steps.filter.outputs.common }}" == "false" ]]; then
+            echo "backend_only=true" >> $GITHUB_OUTPUT
+          else
+            echo "backend_only=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Debug final outputs
+        run: |
+          echo "Frontend only: ${{ steps.set-outputs.outputs.frontend_only }}"
+          echo "Backend only: ${{ steps.set-outputs.outputs.backend_only }}"
+
   frontend:
     name: Frontend tasks
     needs: prepare-dependencies
     runs-on: ubuntu-latest
+    # Run if frontend files changed OR common files changed
+    if: needs.prepare-dependencies.outputs.backend-only != 'true'
     strategy:
       matrix:
         task: [lint, test, build, knip]
@@ -52,6 +108,8 @@ jobs:
     name: Backend tasks
     needs: prepare-dependencies
     runs-on: ubuntu-latest
+    # Run if backend files changed OR common files changed
+    if: needs.prepare-dependencies.outputs.frontend-only != 'true'
     strategy:
       matrix:
         task: [lint, 'test']
