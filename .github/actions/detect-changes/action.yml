@@ -1,0 +1,62 @@
+name: 'Detect Code Changes'
+description: 'Detects which parts of the codebase have changed to optimize CI execution'
+
+outputs:
+  frontend_only:
+    description: 'True if only frontend code changed'
+    value: ${{ steps.set-outputs.outputs.frontend_only }}
+  backend_only:
+    description: 'True if only backend code changed'
+    value: ${{ steps.set-outputs.outputs.backend_only }}
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        predicate-quantifier: 'every'
+        filters: |
+          frontend:
+            - 'packages/frontend/**'
+          backend:
+            - 'packages/backend/**'
+          common:
+            - '**'
+            - '!packages/frontend/**'
+            - '!packages/backend/**'
+
+    - name: Debug paths-filter outputs
+      shell: bash
+      run: |
+        echo "Frontend changes detected: ${{ steps.filter.outputs.frontend }}"
+        echo "Backend changes detected: ${{ steps.filter.outputs.backend }}"
+        echo "Common changes detected: ${{ steps.filter.outputs.common }}"
+
+        # List all changed files for debugging
+        echo "Changed files:"
+        git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} || echo "Could not get diff"
+
+    - name: Set outputs
+      id: set-outputs
+      shell: bash
+      run: |
+        # Only frontend changes (no backend or common changes)
+        if [[ "${{ steps.filter.outputs.frontend }}" == "true" && "${{ steps.filter.outputs.backend }}" == "false" && "${{ steps.filter.outputs.common }}" == "false" ]]; then
+          echo "frontend_only=true" >> $GITHUB_OUTPUT
+        else
+          echo "frontend_only=false" >> $GITHUB_OUTPUT
+        fi
+
+        # Only backend changes (no frontend or common changes)
+        if [[ "${{ steps.filter.outputs.backend }}" == "true" && "${{ steps.filter.outputs.frontend }}" == "false" && "${{ steps.filter.outputs.common }}" == "false" ]]; then
+          echo "backend_only=true" >> $GITHUB_OUTPUT
+        else
+          echo "backend_only=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Debug final outputs
+      shell: bash
+      run: |
+        echo "Frontend only: ${{ steps.set-outputs.outputs.frontend_only }}"
+        echo "Backend only: ${{ steps.set-outputs.outputs.backend_only }}"

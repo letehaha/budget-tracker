@@ -4,7 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+  # enable manual triggers
+  workflow_dispatch:
 
 jobs:
   prepare-dependencies:
@@ -19,10 +20,26 @@ jobs:
         if: steps.prepare-env.outputs.cache-hit != 'true'
         run: npm ci
 
+  detect-changes:
+    name: Detect code changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend-only: ${{ steps.detect.outputs.frontend_only }}
+      backend-only: ${{ steps.detect.outputs.backend_only }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for file changes
+      - id: detect
+        uses: ./.github/actions/detect-changes
+
   frontend:
     name: Frontend tasks
-    needs: prepare-dependencies
+    needs: [prepare-dependencies, detect-changes]
     runs-on: ubuntu-latest
+    # Run if frontend files changed OR common files changed
+    if: needs.detect-changes.outputs.backend-only != 'true'
     strategy:
       matrix:
         task: [lint, test, build, knip]
@@ -50,8 +67,10 @@ jobs:
 
   backend:
     name: Backend tasks
-    needs: prepare-dependencies
+    needs: [prepare-dependencies, detect-changes]
     runs-on: ubuntu-latest
+    # Run if backend files changed OR common files changed
+    if: needs.detect-changes.outputs.frontend-only != 'true'
     strategy:
       matrix:
         task: [lint, 'test']
