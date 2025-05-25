@@ -14,7 +14,7 @@
   "vueIndentScriptAndStyle": false,
   "endOfLine": "lf",
   "singleAttributePerLine": false,
-  "plugins": ["@trivago/prettier-plugin-sort-imports"],
+  "plugins": ["@trivago/prettier-plugin-sort-imports", "prettier-plugin-tailwindcss"],
   "importOrder": ["bootstrap", "<THIRD_PARTY_MODULES>", "^[^@src].*\\.css$", "^@src/(.*)$", "^[./]"],
   "importOrderSeparation": true,
   "importOrderSortSpecifiers": true

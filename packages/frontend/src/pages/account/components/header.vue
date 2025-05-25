@@ -82,7 +82,7 @@ const updateAccount = async () => {
           </Popover.PopoverContent>
         </Popover.Popover>
       </p>
-      <div class="flex flex-wrap items-end justify-start gap-2 ml-auto">
+      <div class="ml-auto flex flex-wrap items-end justify-start gap-2">
         <span v-if="account.currencyId !== baseCurrency.currencyId" class="text-white text-opacity-50">
           ~
           {{ toLocalNumber(account.refCurrentBalance) }}

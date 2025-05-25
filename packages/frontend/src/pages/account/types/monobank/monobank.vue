@@ -16,7 +16,7 @@ defineProps<{
 
 <template>
   <Tabs.Tabs default-value="details">
-    <Tabs.TabsList class="justify-start w-full mt-4">
+    <Tabs.TabsList class="mt-4 w-full justify-start">
       <Tabs.TabsTrigger value="details"> Details </Tabs.TabsTrigger>
       <Tabs.TabsTrigger value="settings"> Settings </Tabs.TabsTrigger>
     </Tabs.TabsList>

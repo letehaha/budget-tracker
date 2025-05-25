@@ -47,7 +47,7 @@ const createGroup = async () => {
     <form class="mt-4" @submit.prevent="createGroup">
       <InputField v-model="form.name" label="Group name" placeholder="Investments" />
 
-      <div class="flex mt-4">
+      <div class="mt-4 flex">
         <UiButton class="mt-3 w-full" :disabled="isSubmitDisabled"> Create </UiButton>
       </div>
     </form>

@@ -43,7 +43,7 @@ const deleteAccount = async () => {
 
 <template>
   <Tabs.Tabs default-value="details">
-    <Tabs.TabsList class="justify-start w-full mt-4">
+    <Tabs.TabsList class="mt-4 w-full justify-start">
       <Tabs.TabsTrigger value="details"> Details </Tabs.TabsTrigger>
       <Tabs.TabsTrigger value="settings"> Settings </Tabs.TabsTrigger>
     </Tabs.TabsList>
@@ -58,13 +58,13 @@ const deleteAccount = async () => {
 
         <SettingAccountGroup :account="account" />
 
-        <div class="grid gap-4 p-4 mt-4 sm:-mx-4 border border-destructive rounded-xl @container/danger-zone">
+        <div class="border-destructive @container/danger-zone mt-4 grid gap-4 rounded-xl border p-4 sm:-mx-4">
           <p class="text-xl font-medium">Danger zone</p>
 
           <Separator />
 
           <div
-            class="flex flex-col @[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center justify-between gap-2"
+            class="@[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center flex flex-col justify-between gap-2"
           >
             <div>
               <p class="mb-2 font-bold">Delete this account</p>

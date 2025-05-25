@@ -1,8 +1,8 @@
 <template>
-  <div class="flex items-center justify-center h-full">
-    <Card class="max-w-[450px] w-full" as="form" @submit.prevent="submit">
+  <div class="flex h-full items-center justify-center">
+    <Card class="w-full max-w-[450px]" as="form" @submit.prevent="submit">
       <CardHeader>
-        <h1 class="text-2xl font-semibold tracking-tight text-center">Create an account</h1>
+        <h1 class="text-center text-2xl font-semibold tracking-tight">Create an account</h1>
       </CardHeader>
       <CardContent class="grid gap-7">
         <input-field
@@ -36,7 +36,7 @@
         </div>
       </CardContent>
 
-      <CardFooter class="text-sm text-center">
+      <CardFooter class="text-center text-sm">
         Don't have an account?
 
         <router-link :to="{ name: ROUTES_NAMES.signIn }">

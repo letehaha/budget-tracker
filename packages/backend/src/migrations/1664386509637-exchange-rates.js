@@ -12,9 +12,7 @@ module.exports = {
 
     try {
       let data = {
-        data: JSON.parse(
-          fs.readFileSync(path.join(__dirname, '..', 'tests', 'test-exchange-rates.json'))
-        ),
+        data: JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'tests', 'test-exchange-rates.json'))),
       };
 
       const currencies = await queryInterface.sequelize.query('SELECT * FROM "Currencies"', {

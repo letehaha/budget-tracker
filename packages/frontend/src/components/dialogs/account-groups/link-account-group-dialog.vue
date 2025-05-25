@@ -110,7 +110,7 @@ const isGroupChanged = computed(() => currentSelection.value?.name !== selectedG
           {{ group.name }}
 
           <template v-if="group.id === selectedGroup?.id">
-            <CheckIcon class="size-5 text-primary" />
+            <CheckIcon class="text-primary size-5" />
           </template>
         </UiButton>
       </template>

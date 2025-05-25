@@ -7,7 +7,7 @@ const props = withDefaults(defineProps<{ class?: string | string[] }>(), {
 </script>
 
 <template>
-  <div :class="cn('flex flex-col space-y-1.5 py-2 px-6 sm:py-6', props.class)">
+  <div :class="cn('flex flex-col space-y-1.5 px-6 py-2 sm:py-6', props.class)">
     <slot />
   </div>
 </template>

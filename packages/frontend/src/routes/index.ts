@@ -57,7 +57,7 @@ const routes = [
       {
         path: '/transactions',
         name: ROUTES_NAMES.transactions,
-        component: () => import('@/pages/records/records.vue'),
+        component: () => import('@/pages/records/root.vue'),
       },
       {
         path: '/settings',

@@ -2,7 +2,7 @@
   <Card class="@container/accounts-groups-card max-w-[700px]">
     <CardHeader
       :class="[
-        'border-b flex justify-between gap-4',
+        'flex justify-between gap-4 border-b',
         '@[450px]/accounts-groups-card:flex-row @[450px]/accounts-groups-card:items-center',
       ]"
     >

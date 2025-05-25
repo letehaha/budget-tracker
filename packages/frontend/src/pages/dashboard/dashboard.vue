@@ -1,6 +1,6 @@
 <template>
   <section class="p-6">
-    <div class="flex items-center justify-center gap-1 mb-6">
+    <div class="mb-6 flex items-center justify-center gap-1">
       <ui-button size="icon" variant="ghost" @click="selectPrevPeriod">
         <ChevronLeft :size="20" />
       </ui-button>

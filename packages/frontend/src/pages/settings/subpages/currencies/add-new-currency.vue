@@ -1,7 +1,7 @@
 <template>
   <Card class="mb-8">
-    <CardContent class="!pt-6 flex flex-wrap md:flex-nowrap md:flex-center gap-4">
-      <div class="flex-shrink-0 w-full max-w-[300px]">
+    <CardContent class="md:flex-center flex flex-wrap gap-4 !pt-6 md:flex-nowrap">
+      <div class="w-full max-w-[300px] flex-shrink-0">
         <select-field
           v-model="selectedCurrency"
           :values="filteredCurrencies"
@@ -23,7 +23,7 @@
             How it works?
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent class="max-w-[400px] p-4">
-            <span class="text-sm opacity-90 leading-6">
+            <span class="text-sm leading-6 opacity-90">
               By adding custom currencies, you can create and manage accounts and transactions in those currencies.
               You’ll also be able to adjust and update their exchange rates relative to your base currency. Linked
               accounts will automatically create required currencies.

@@ -2,19 +2,21 @@
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { ROUTES_NAMES } from '@/routes';
 import { CreditCardIcon, LayersIcon, LayoutDashboardIcon, Wallet } from 'lucide-vue-next';
+
+withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
 </script>
 
 <template>
-  <nav class="grid gap-2 md:-ml-3">
+  <nav>
     <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.home }">
       <ui-button
         :variant="isActive ? 'default' : 'ghost'"
         as="span"
-        class="justify-start w-full px-3 gap-2"
+        :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
         size="default"
       >
         <LayoutDashboardIcon />
-        <span> Dashboard </span>
+        <span :class="{ 'max-sm:hidden': bottomNav }"> Dashboard </span>
       </ui-button>
     </router-link>
 
@@ -22,11 +24,11 @@ import { CreditCardIcon, LayersIcon, LayoutDashboardIcon, Wallet } from 'lucide-
       <ui-button
         :variant="isActive ? 'default' : 'ghost'"
         as="span"
-        class="justify-start w-full px-3 gap-2"
+        :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
         size="default"
       >
         <LayersIcon />
-        <span> Accounts </span>
+        <span :class="{ 'max-sm:hidden': bottomNav }"> Accounts </span>
       </ui-button>
     </router-link>
 
@@ -34,7 +36,7 @@ import { CreditCardIcon, LayersIcon, LayoutDashboardIcon, Wallet } from 'lucide-
       <ui-button
         :variant="isActive ? 'default' : 'ghost'"
         as="span"
-        class="justify-start w-full px-3 gap-2"
+        :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
         size="default"
       >
         <CreditCardIcon />
@@ -46,7 +48,7 @@ import { CreditCardIcon, LayersIcon, LayoutDashboardIcon, Wallet } from 'lucide-
       <ui-button
         :variant="isActive ? 'default' : 'ghost'"
         as="span"
-        class="justify-start w-full px-3 gap-2"
+        :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
         size="default"
       >
         <Wallet />

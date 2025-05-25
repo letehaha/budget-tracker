@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="grid grid-cols-2 gap-4 w-full">
+    <div class="grid w-full grid-cols-2 gap-4">
       <input-field
         v-model="form.baseRate"
         :label="`1 ${currency.currency.code} =`"
@@ -15,26 +15,26 @@
       />
     </div>
 
-    <div class="my-4 w-full h-px bg-white/20" />
+    <div class="my-4 h-px w-full bg-white/20" />
 
-    <div class="flex gap-4 justify-between items-center">
+    <div class="flex items-center justify-between gap-4">
       <p class="text-sm opacity-90">
         Disable live updation to be able to set custom exchange rate.
         <br />
         <span class="inline-flex items-center gap-1">
-          <InfoIcon class="size-4 text-primary inline" /> When enabled, custom rate is ignored.
+          <InfoIcon class="text-primary inline size-4" /> When enabled, custom rate is ignored.
         </span>
       </p>
 
-      <label class="flex items-center cursor-pointer w-max">
+      <label class="flex w-max cursor-pointer items-center">
         <span class="mr-2.5 w-max">Live update</span>
         <Checkbox :checked="isLiveRateEnabled" @update:checked="toggleChange($event)" />
       </label>
     </div>
 
-    <div class="my-4 w-full h-px bg-white/20" />
+    <div class="my-4 h-px w-full bg-white/20" />
 
-    <div class="flex gap-4 justify-between items-center">
+    <div class="flex items-center justify-between gap-4">
       <p class="text-sm opacity-90">
         Currency can only be deleted/disconnected if there's no accounts and/or transactions associated with it.
       </p>
@@ -44,7 +44,7 @@
       </ui-tooltip>
     </div>
 
-    <div class="my-4 w-full h-px bg-white/20" />
+    <div class="my-4 h-px w-full bg-white/20" />
 
     <div class="mt-8">
       <Button class="w-full" @click="onSubmitHandler"> Save </Button>

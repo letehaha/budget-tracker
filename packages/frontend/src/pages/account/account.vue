@@ -1,7 +1,7 @@
 <template>
   <div class="@container/settings">
-    <div class="flex flex-col @[800px]/settings:flex-row justify-start gap-4 p-6">
-      <Card.Card class="max-w-[600px] w-full">
+    <div class="@[800px]/settings:flex-row flex flex-col justify-start gap-4 p-6">
+      <Card.Card class="w-full max-w-[600px]">
         <Header :account="account" />
 
         <Separator />
@@ -15,10 +15,10 @@
         </Card.CardContent>
       </Card.Card>
 
-      <Card.Card class="max-w-[600px] w-full pt-6">
+      <Card.Card class="w-full max-w-[600px] pt-6">
         <Card.CardContent>
           <Tabs.Tabs default-value="records">
-            <Tabs.TabsList class="justify-start w-full">
+            <Tabs.TabsList class="w-full justify-start">
               <Tabs.TabsTrigger value="records"> Transactions </Tabs.TabsTrigger>
               <Tabs.TabsTrigger disabled value="analytics"> Analytics (soon) </Tabs.TabsTrigger>
             </Tabs.TabsList>
