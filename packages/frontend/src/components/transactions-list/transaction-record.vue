@@ -1,9 +1,10 @@
 <template>
-  <button
+  <template
+    :is="asButton ? 'button' : 'div'"
     :class="[
       'grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_max-content] items-center justify-between gap-2 rounded-md px-2 py-1 [content-visibility:auto]',
     ]"
-    type="button"
+    :type="asButton ? 'button' : undefined"
     aria-haspopup="true"
     @click="transactionEmit"
   >
@@ -47,7 +48,7 @@
         {{ formateDate(transaction.time) }}
       </div>
     </div>
-  </button>
+  </template>
 </template>
 
 <script lang="ts" setup>
@@ -60,9 +61,13 @@ import { format } from 'date-fns';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
 
-const props = defineProps<{
-  tx: TransactionModel;
-}>();
+const props = withDefaults(
+  defineProps<{
+    tx: TransactionModel;
+    asButton?: boolean;
+  }>(),
+  { asButton: true },
+);
 
 const { categoriesMap } = storeToRefs(useCategoriesStore());
 const accountsStore = useAccountsStore();

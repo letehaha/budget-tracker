@@ -1,9 +1,9 @@
-import { Ref, ref } from "vue";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/vue-query";
-import { loadTransactions } from "@/api/transactions";
-import { removeValuesFromObject } from "@/common/utils/remove-values-from-object";
-import { TRANSACTION_TYPES, TransactionModel } from "@bt/shared/types";
-import isDate from "date-fns/isDate";
+import { loadTransactions } from '@/api/transactions';
+import { removeValuesFromObject } from '@/common/utils/remove-values-from-object';
+import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/vue-query';
+import isDate from 'date-fns/isDate';
+import { Ref, ref } from 'vue';
 
 interface TransactionFilters {
   transactionType?: TRANSACTION_TYPES | null;

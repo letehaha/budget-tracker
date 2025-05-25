@@ -1,10 +1,10 @@
 <script lang="ts" setup>
+import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { createReusableTemplate } from '@vueuse/core';
-import Checkbox from "@/components/lib/ui/checkbox/Checkbox.vue";
 import { defineAsyncComponent, ref, watch } from 'vue';
 
 import TransactionRecord from './transaction-record.vue';
@@ -28,7 +28,7 @@ const [UseDialogTemplate, SlotContent] = createReusableTemplate();
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 const pickedTransactions = ref<number[]>([]);
 const emits = defineEmits<{
-  (e: "update:pickedTransactions", value: number[]): void;
+  (e: 'update:pickedTransactions', value: number[]): void;
 }>();
 
 const isDialogVisible = ref(false);
@@ -81,7 +81,7 @@ const toggleChecked = (value: boolean, item: TransactionModel) => {
   } else {
     pickedTransactions.value = pickedTransactions.value.filter((id) => id !== transactionId);
   }
-  emits("update:pickedTransactions", pickedTransactions.value);
+  emits('update:pickedTransactions', pickedTransactions.value);
 };
 </script>
 

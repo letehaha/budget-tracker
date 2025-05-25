@@ -19,7 +19,7 @@ export const formatTransactionPayload = <
   transaction: T,
 ): T => {
   const params = { ...transaction };
-  const timeFieldsToPatch = ["time", "budgetId", "startDate", "endDate"];
+  const timeFieldsToPatch = ['time', 'budgetId', 'startDate', 'endDate'];
 
   timeFieldsToPatch.forEach((field) => {
     if (params[field]) params[field] = new Date(params[field]).toISOString();
@@ -97,11 +97,11 @@ export const deleteTransaction = async (txId: number): Promise<void> => {
 
 export const linkTransactions = async (payload: endpointsTypes.LinkTransactionsBody): Promise<void> => {
   api.put('/transactions/link', payload);
-}
+};
 
 export const unlinkTransactions = async (payload: endpointsTypes.UnlinkTransferTransactionsBody): Promise<void> => {
   api.put('/transactions/unlink', payload);
-}
+};
 
 export const getTransactionByBudgetId = async (budgetId: number): Promise<TransactionModel[]> => {
   const result = await api.get(`/transactions/budget/${budgetId}`);
