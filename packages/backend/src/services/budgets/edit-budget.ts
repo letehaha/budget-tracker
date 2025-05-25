@@ -2,10 +2,6 @@ import { NotFoundError } from '@js/errors';
 import Budgets from '@models/Budget.model';
 import { withTransaction } from '@services/common/index';
 
-export const editBudgetService = withTransaction(async (payload: EditBudgetPayload) => {
-  await editBudgetModel(payload);
-});
-
 export interface EditBudgetPayload {
   id: number;
   userId: number;
@@ -16,7 +12,7 @@ export interface EditBudgetPayload {
   autoInclude?: boolean;
 }
 
-export const editBudgetModel = async ({ id, userId, ...params }: EditBudgetPayload) => {
+export const editBudget = withTransaction(async ({ id, userId, ...params }: EditBudgetPayload) => {
   const budget = await Budgets.findOne({
     where: { id, userId },
   });
@@ -25,13 +21,15 @@ export const editBudgetModel = async ({ id, userId, ...params }: EditBudgetPaylo
     throw new NotFoundError({ message: 'Budget not found' });
   }
 
-  const [, budgets] = await Budgets.update(params, {
-    where: {
-      id: id,
-      userId,
+  await budget.update(params);
+
+  const updatedBudget = await Budgets.findOne({
+    where: { id, userId },
+    attributes: {
+      exclude: ['userId', 'categoryName'],
     },
-    returning: true,
+    raw: true,
   });
 
-  return budgets;
-};
+  return updatedBudget;
+});

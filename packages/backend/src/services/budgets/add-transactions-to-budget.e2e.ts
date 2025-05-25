@@ -1,22 +1,16 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { beforeAll, describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
 describe('Add Transactions to Budget', () => {
-  let userId: number;
   const goodResponse = {
     message: 'Transactions added successfully',
   };
-
-  beforeAll(async () => {
-    userId = 1;
-  });
 
   it('successfully adds transactions to a budget', async () => {
     const [baseTx] = await helpers.createTransaction({ raw: true });
     const budget = await helpers.createCustomBudget({
       name: 'Budget With Transactions',
-      userId,
       startDate: '2025-03-01T00:00:00Z',
       endDate: '2025-03-04T23:59:59Z',
       autoInclude: true,
@@ -55,7 +49,6 @@ describe('Add Transactions to Budget', () => {
 
     const budget = await helpers.createCustomBudget({
       name: 'Duplicate Test Budget',
-      userId,
       startDate: '2025-03-01T00:00:00Z',
       endDate: '2025-03-31T23:59:59Z',
       autoInclude: false,

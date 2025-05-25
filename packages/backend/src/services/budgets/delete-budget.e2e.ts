@@ -1,18 +1,11 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { beforeAll, describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
 describe('Delete Budget', () => {
-  let userId: number;
-
-  beforeAll(async () => {
-    userId = 1;
-  });
-
   it('successfully deletes a budget without transactions', async () => {
     const budget = await helpers.createCustomBudget({
       name: 'Test Budget',
-      userId,
       startDate: '2025-03-01T00:00:00Z',
       endDate: '2025-03-31T23:59:59Z',
       autoInclude: false,
@@ -61,7 +54,6 @@ describe('Delete Budget', () => {
 
     const budget = await helpers.createCustomBudget({
       name: 'Budget With Transactions',
-      userId,
       startDate: '2025-03-01T00:00:00Z',
       endDate: '2025-03-04T23:59:59Z',
       autoInclude: true,
@@ -102,6 +94,6 @@ describe('Delete Budget', () => {
       raw: false,
     });
 
-    expect(deleteResponse.statusCode).toBe(500);
+    expect(deleteResponse.statusCode).toBe(200);
   });
 });

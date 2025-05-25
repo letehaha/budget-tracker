@@ -1,12 +1,13 @@
 import { BudgetModel } from '@bt/shared/types';
 import { addTransactionsToBudget } from '@controllers/budgets/add-transaction-to-budget';
-import * as budgetService from '@root/services/budgets/create-budget';
+import * as getBudgetService from '@root/services/budget.service';
+import * as createBudgetService from '@root/services/budgets/create-budget';
+import { Response } from 'express';
 
 import { makeRequest } from './common';
 
 interface TestCreateBudgetPayload {
   id?: number;
-  userId: number;
   name: string;
   status?: string;
   startDate?: string | Date | null;
@@ -31,7 +32,7 @@ export async function createCustomBudget<R extends boolean | undefined = undefin
   raw,
   ...payload
 }: TestCreateBudgetPayload & { raw?: R }) {
-  return makeRequest<Awaited<ReturnType<typeof budgetService.createBudget>>, R>({
+  return makeRequest<Awaited<ReturnType<typeof createBudgetService.createBudget>>, R>({
     method: 'post',
     url: '/budgets',
     payload,
@@ -58,7 +59,7 @@ export async function getCustomBudgetById<R extends boolean | undefined = undefi
   id: number;
   raw?: R;
 }) {
-  return makeRequest<Awaited<ReturnType<typeof getCustomBudgetById>> | null, R>({
+  return makeRequest<Awaited<ReturnType<typeof getBudgetService.getBudgetById>>, R>({
     method: 'get',
     url: `/budgets/${id}`,
     raw,
@@ -96,7 +97,7 @@ export async function editCustomBudget({
   id: number;
   params: EditBudgetPayload;
   raw?: true;
-}): Promise<{ status: string }>;
+}): Promise<BudgetModel>;
 export async function editCustomBudget({
   id,
   params,
@@ -105,17 +106,13 @@ export async function editCustomBudget({
   id: number;
   params: EditBudgetPayload;
   raw?: boolean;
-}): Promise<Response | { status: string }> {
+}): Promise<Response | BudgetModel> {
   const result = await makeRequest({
     method: 'put',
     url: `/budgets/${id}`,
     payload: params,
     raw,
   });
-
-  if (raw && !result) {
-    return { status: 'success' } as { status: string };
-  }
 
   return result;
 }

@@ -5,7 +5,6 @@ WORKDIR /app
 # Copy only what's needed to install dependencies
 COPY package*.json ./
 COPY tsconfig.json ./
-COPY bun.lockb ./
 COPY post-install.sh ./
 
 # Install shared and frontend package.json files separately to leverage Docker cache

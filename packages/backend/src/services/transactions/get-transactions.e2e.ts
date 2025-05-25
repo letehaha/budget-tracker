@@ -91,7 +91,6 @@ describe('Retrieve transactions with filters', () => {
   };
 
   it('should retrieve transactions filtered by budgetIds correctly', async () => {
-    const userId = 1;
     const account = await helpers.createAccount({ raw: true });
 
     const transactions = await Promise.all([
@@ -129,7 +128,6 @@ describe('Retrieve transactions with filters', () => {
 
     const budget = await helpers.createCustomBudget({
       name: 'Test Budget',
-      userId,
       startDate: '2025-03-01T00:00:00Z',
       endDate: '2025-03-04T23:59:59Z',
       autoInclude: true,
