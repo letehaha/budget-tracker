@@ -39,7 +39,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       size="default"
     >
       <CreditCardIcon />
-      <span> Transactions </span>
+      <span :class="{ 'max-sm:hidden': bottomNav }"> Transactions </span>
     </ui-button>
   </router-link>
 
@@ -51,7 +51,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       size="default"
     >
       <Wallet />
-      <span> Budgets </span>
+      <span :class="{ 'max-sm:hidden': bottomNav }"> Budgets </span>
     </ui-button>
   </router-link>
 </template>

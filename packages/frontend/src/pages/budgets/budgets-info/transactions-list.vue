@@ -28,6 +28,10 @@ const {
 
 <template>
   <Card class="w-screen max-w-full rounded-md px-2 py-4 sm:max-w-[450px] sm:p-6">
+    <template v-if="$slots['header']">
+      <slot name="header" />
+    </template>
+
     <div>
       <template v-if="isFetched && budgetTransactionsList">
         <TransactionsList :transactions="budgetTransactionsList.pages.flat()" />

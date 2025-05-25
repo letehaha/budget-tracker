@@ -59,8 +59,8 @@ watchEffect(() => {
 </script>
 
 <template>
-  <div v-if="budgetData" class="flex w-min max-w-full flex-col gap-4 p-4 lg:w-auto lg:flex-row xl:gap-20">
-    <div class="@[360px]/budget-item-info:w-full lg:w-[450px] lg:max-w-[450px]">
+  <div v-if="budgetData" class="relative flex w-min max-w-full flex-col gap-4 p-4 lg:w-auto lg:flex-row xl:gap-20">
+    <div class="@[360px]/budget-item-info:w-full sticky top-[var(--header-height)] h-max lg:w-[450px] lg:max-w-[450px]">
       <div class="mb-4 flex items-center gap-4">
         <router-link
           to="/budgets"
@@ -102,18 +102,22 @@ watchEffect(() => {
         </div>
 
         <div class="flex gap-2">
-          <Button variant="secondary" class="w-full" @click="toggleBudgetChanges" :disabled="isBudgetDataUpdating">
+          <Button variant="default" class="w-full" @click="toggleBudgetChanges" :disabled="isBudgetDataUpdating">
             <template v-if="isBudgetDataUpdating"> Changing... </template>
-            <template v-else> Change </template>
+            <template v-else> Update </template>
           </Button>
-
-          <AddTransactionsDialog>
-            <Button :disabled="isBudgetDataUpdating" class="w-full">Add Transactions</Button>
-          </AddTransactionsDialog>
         </div>
       </Card>
     </div>
 
-    <TransactionsList />
+    <TransactionsList>
+      <template #header>
+        <div class="mb-4 flex">
+          <AddTransactionsDialog>
+            <Button :disabled="isBudgetDataUpdating" variant="secondary" class="ml-auto">Add More Transactions</Button>
+          </AddTransactionsDialog>
+        </div>
+      </template>
+    </TransactionsList>
   </div>
 </template>
