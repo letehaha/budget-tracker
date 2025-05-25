@@ -1,6 +1,6 @@
-import { withTransaction } from '@services/common/index';
 import Budgets from '@models/Budget.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
+import { withTransaction } from '@services/common/index';
 
 export interface DeleteBudgetPayload {
   id: number;
@@ -18,7 +18,7 @@ export const deleteBudgetModel = async ({ id, userId }: DeleteBudgetPayload) => 
   });
 
   if (!budget) {
-    throw new Error('Budget not found');
+    return { success: true };
   }
 
   await BudgetTransactions.destroy({

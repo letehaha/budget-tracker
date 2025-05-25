@@ -1,5 +1,4 @@
-// tests/e2e/edit-budgets.e2e.ts
-import { describe, expect, it, beforeAll } from '@jest/globals';
+import { beforeAll, describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { Response } from 'superagent';
 
@@ -37,11 +36,11 @@ describe('Edit Budget', () => {
 
   it('returns error when budget is not found', async () => {
     const params = { name: 'Some name' };
-    const response = await helpers.editCustomBudget({
+    const response = (await helpers.editCustomBudget({
       id: 999999,
       params,
       raw: false,
-    }) as Response;
+    })) as Response;
 
     expect(response.body?.status).toBe('error');
     expect(response.body?.response.message).toBe('Unexpected error.');
@@ -65,7 +64,6 @@ describe('Edit Budget', () => {
       raw: true,
       params,
     });
-
 
     expect(editedBudget).toEqual({ status: 'success' });
 

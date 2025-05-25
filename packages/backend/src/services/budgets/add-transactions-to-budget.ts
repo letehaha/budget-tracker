@@ -1,7 +1,9 @@
-import { withTransaction } from '@services/common/index';
+import { NotFoundError, ValidationError } from '@js/errors';
 import Budgets from '@models/Budget.model';
-import Transactions from '@models/Transactions.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
+import Transactions from '@models/Transactions.model';
+import { withTransaction } from '@services/common/index';
+import { Op } from 'sequelize';
 
 interface AddTransactionsPayload {
   budgetId: number;
@@ -16,18 +18,18 @@ export const addTransactionsToBudget = withTransaction(async (payload: AddTransa
     where: { id: budgetId, userId },
   });
   if (!budget) {
-    throw new Error('Budget not found or you do not have access');
+    throw new NotFoundError({ message: 'Budget not found' });
   }
 
   const transactions = await Transactions.findAll({
     where: {
-      id: transactionIds,
+      id: { [Op.in]: transactionIds },
       userId,
     },
   });
 
   if (transactions.length !== transactionIds.length) {
-    throw new Error('Some transaction IDs are invalid or do not belong to you');
+    throw new ValidationError({ message: 'Some transactions IDs are invalid' });
   }
 
   const budgetTransactions = transactionIds.map((transactionId) => ({

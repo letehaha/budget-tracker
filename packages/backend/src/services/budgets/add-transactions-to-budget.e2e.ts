@@ -1,15 +1,12 @@
-// import { CustomResponse } from '@common/types';
-import { describe, expect, it, beforeAll } from '@jest/globals';
-import * as helpers from '@tests/helpers';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-
-// import { TRANSACTION_TYPES } from 'shared-types';
+import { beforeAll, describe, expect, it } from '@jest/globals';
+import * as helpers from '@tests/helpers';
 
 describe('Add Transactions to Budget', () => {
   let userId: number;
   const goodResponse = {
-    message: 'Transactions added successfully'
-  }
+    message: 'Transactions added successfully',
+  };
 
   beforeAll(async () => {
     userId = 1;
@@ -42,7 +39,7 @@ describe('Add Transactions to Budget', () => {
     expect(response).toEqual(goodResponse);
   });
 
-it('fails when adding duplicate transaction to the same budget if unique constraint exists', async () => {
+  it('fails when adding duplicate transaction to the same budget if unique constraint exists', async () => {
     const account = await helpers.createAccount({ raw: true });
 
     const [transaction] = await helpers.createTransaction({

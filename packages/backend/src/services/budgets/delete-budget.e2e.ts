@@ -1,7 +1,6 @@
-// tests/e2e/delete-budgets.e2e.ts
-import { describe, expect, it, beforeAll } from '@jest/globals';
-import * as helpers from '@tests/helpers';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { beforeAll, describe, expect, it } from '@jest/globals';
+import * as helpers from '@tests/helpers';
 
 describe('Delete Budget', () => {
   let userId: number;
@@ -14,7 +13,6 @@ describe('Delete Budget', () => {
     const budget = await helpers.createCustomBudget({
       name: 'Test Budget',
       userId,
-      // categoryName: 'Food',
       startDate: '2025-03-01T00:00:00Z',
       endDate: '2025-03-31T23:59:59Z',
       autoInclude: false,
@@ -64,7 +62,6 @@ describe('Delete Budget', () => {
     const budget = await helpers.createCustomBudget({
       name: 'Budget With Transactions',
       userId,
-      // categoryName: 'Food',
       startDate: '2025-03-01T00:00:00Z',
       endDate: '2025-03-04T23:59:59Z',
       autoInclude: true,

@@ -1,8 +1,8 @@
-
-import { withTransaction } from '@services/common/index';
+import { BUDGET_STATUSES } from '@bt/shared/types';
 import Budgets from '@models/Budget.model';
-import Transactions from '@models/Transactions.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
+import Transactions from '@models/Transactions.model';
+import { withTransaction } from '@services/common/index';
 import { Op } from 'sequelize';
 
 export interface CreateBudgetPayload {
@@ -15,7 +15,6 @@ export interface CreateBudgetPayload {
   endDate?: Date | null;
   autoInclude?: boolean;
   limitAmount?: number | null;
-  // categoriesIds?: number | null;
 }
 
 const prepareTransactionFilters = (payload: CreateBudgetPayload) => ({
@@ -23,28 +22,17 @@ const prepareTransactionFilters = (payload: CreateBudgetPayload) => ({
   startDate: payload.startDate,
   endDate: payload.endDate,
   autoInclude: payload.autoInclude,
-  // categoriesIds: payload.categoriesIds || undefined,
 });
 
 export const createBudget = withTransaction(async (payload: CreateBudgetPayload) => {
-  if (!payload.name || !payload.userId) {
-    throw new Error('Name and userId are required fields');
-  }
-
-  if (payload.startDate && payload.endDate && payload.startDate > payload.endDate) {
-    throw new Error('Start date cannot be later than end date');
-  }
-
   const budgetData: CreateBudgetPayload = {
     name: payload.name,
     userId: payload.userId,
-    status: payload.status || 'active',
-    // categoryName: payload.categoryName || '',
+    status: payload.status || BUDGET_STATUSES.active,
     startDate: payload.startDate ?? null,
     endDate: payload.endDate ?? null,
     autoInclude: payload.autoInclude ?? false,
     limitAmount: payload.limitAmount ?? null,
-    // categoriesIds: payload.categoriesIds ?? null,
   };
 
   const budget = await createBudgetModel(budgetData);
@@ -62,29 +50,27 @@ export const createBudget = withTransaction(async (payload: CreateBudgetPayload)
     });
 
     if (transactions.length) {
-      transactionIds = transactions.map(t => t.id);
+      transactionIds = transactions.map((t) => t.id);
       await BudgetTransactions.bulkCreate(
-        transactionIds.map(transactionId => ({
+        transactionIds.map((transactionId) => ({
           budgetId: budget.id,
           transactionId: transactionId,
-        }))
+        })),
       );
     }
   }
 
-  return budget
+  return budget;
 });
 
 const createBudgetModel = async ({
   name,
   status,
-  // categoryName,
   userId,
   startDate,
   endDate,
   autoInclude,
   limitAmount,
-  // categoriesIds,
 }: CreateBudgetPayload) => {
   if (!name || !userId) {
     throw new Error('Name and userId are required fields');
@@ -93,13 +79,11 @@ const createBudgetModel = async ({
   const budgetData = {
     name,
     userId,
-    status: status || 'active',
-    // categoryName: categoryName || '',
+    status: status || BUDGET_STATUSES.active,
     startDate: startDate || null,
     endDate: endDate || null,
     autoInclude: autoInclude ?? false,
     limitAmount: limitAmount ?? null,
-    // categoriesIds: categoriesIds ?? null,
   };
 
   if (startDate && endDate && startDate > endDate) {

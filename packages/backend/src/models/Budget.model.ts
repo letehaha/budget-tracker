@@ -1,8 +1,8 @@
 import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
 import Users from '@models/Users.model';
-// import Categories from '@models/Categories.model';
 import Transactions from '@models/Transactions.model';
 import BudgetTransactions from './BudgetTransactions.model';
+import { BUDGET_STATUSES } from '@bt/shared/types';
 
 @Table({
   timestamps: false,
@@ -15,7 +15,7 @@ export default class Budgets extends Model {
   name!: string;
 
   @Column({ allowNull: false })
-  status!: string;
+  status!: BUDGET_STATUSES;
 
   @Column({ allowNull: true })
   categoryName!: string;
@@ -35,10 +35,6 @@ export default class Budgets extends Model {
   @ForeignKey(() => Users)
   @Column({ allowNull: false })
   userId!: number;
-
-  // @ForeignKey(() => Categories)
-  // @Column({ allowNull: true })
-  // categoriesIds: number;
 
   @BelongsToMany(() => Transactions, {
     through: { model: () => BudgetTransactions, unique: false },

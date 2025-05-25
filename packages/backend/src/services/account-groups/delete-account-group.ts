@@ -17,12 +17,10 @@ export const deleteAccountGroup = withTransaction(
         const accountIds = groupAccountMappings.map((mapping) => mapping.accountId);
         await removeAccountFromGroup({ accountIds, groupId });
       }
-      const deletedRows = await AccountGroup.destroy({
+
+      await AccountGroup.destroy({
         where: { id: groupId, userId },
       });
-      if (deletedRows === 0) {
-        throw new Error('Failed to delete group');
-      }
     } catch (err) {
       logger.error(err as Error);
     }

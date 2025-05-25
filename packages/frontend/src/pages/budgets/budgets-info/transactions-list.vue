@@ -18,9 +18,11 @@ const {
   fetchNextPage,
   hasNextPage,
   isFetched,
-} = useTransactions<number[]>({
+} = useTransactions({
   filters: budgetFilters,
-  queryKey: [...VUE_QUERY_CACHE_KEYS.budgetAddingTransactionList, ref([currentBudgetId.value])],
+  queryOptions: {
+    queryKey: [...VUE_QUERY_CACHE_KEYS.budgetAddingTransactionList, currentBudgetId],
+  },
 });
 </script>
 

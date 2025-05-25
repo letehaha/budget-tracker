@@ -137,10 +137,8 @@ export interface BudgetModel {
   userId: number;
   status: string;
   name: string;
-  // categoryName: string;
   startDate?: Date;
   endDate?: Date;
   limitAmount?: number;
-  // categoriesIds: number[]
   autoInclude?: boolean;
 }

@@ -1,4 +1,3 @@
-// useVirtualizedInfiniteScroll.ts
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { Ref, computed, ref, watchEffect } from 'vue';
 
@@ -27,7 +26,6 @@ export function useVirtualizedInfiniteScroll<T>({
   overscan = 10,
   enabled = ref(true),
 }: UseVirtualizedInfiniteScrollOptions<T>) {
-  // Create virtualizer
   const virtualizer = useVirtualizer(
     computed(() => ({
       count: items.value.length + (hasNextPage.value ? 1 : 0),
@@ -38,7 +36,6 @@ export function useVirtualizedInfiniteScroll<T>({
     })),
   );
 
-  // Compute virtual rows for easier access
   const virtualRows = computed(() => virtualizer.value.getVirtualItems());
 
   // Auto-fetch next page when scrolling to the bottom

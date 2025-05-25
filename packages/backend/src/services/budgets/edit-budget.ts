@@ -1,6 +1,6 @@
-import { withTransaction } from '@services/common/index';
+import { NotFoundError } from '@js/errors';
 import Budgets from '@models/Budget.model';
-// import Transactions from '@models/Transactions.model';
+import { withTransaction } from '@services/common/index';
 
 export const editBudgetService = withTransaction(async (payload: EditBudgetPayload) => {
   await editBudgetModel(payload);
@@ -13,17 +13,16 @@ export interface EditBudgetPayload {
   startDate?: string;
   endDate?: string;
   limitAmount?: number;
-  autoInclude?: boolean
+  autoInclude?: boolean;
 }
 
 export const editBudgetModel = async ({ id, userId, ...params }: EditBudgetPayload) => {
-
   const budget = await Budgets.findOne({
     where: { id, userId },
   });
 
   if (!budget) {
-    throw new Error('Budget not found');
+    throw new NotFoundError({ message: 'Budget not found' });
   }
 
   const [, budgets] = await Budgets.update(params, {

@@ -3,7 +3,7 @@ import { removeValuesFromObject } from '@/common/utils/remove-values-from-object
 import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/vue-query';
 import isDate from 'date-fns/isDate';
-import { Ref, ref } from 'vue';
+import { MaybeRef, ref, unref } from 'vue';
 
 interface TransactionFilters {
   transactionType?: TRANSACTION_TYPES | null;
@@ -18,38 +18,42 @@ interface TransactionFilters {
   [key: string]: unknown;
 }
 
-export function useTransactions<T = TransactionFilters>({
-  filters = ref<TransactionFilters>({ transactionType: null }),
-  queryKey,
+type TransactionsQueryOptions = Partial<Parameters<typeof useInfiniteQuery<TransactionModel[]>>[0]>;
+
+export function useTransactions({
+  filters = { transactionType: null },
   limit = 30,
   queryOptions = {},
 }: {
-  filters?: Ref<TransactionFilters>;
-  queryKey: Array<string | Ref<T>>;
+  filters?: MaybeRef<TransactionFilters>;
   limit?: number;
-  queryOptions?: Partial<Parameters<typeof useInfiniteQuery<TransactionModel[]>>[0]>;
+  queryOptions?: TransactionsQueryOptions & { queryKey?: unknown[] };
 }) {
   const queryClient = useQueryClient();
+  const filtersRef = ref(filters);
 
   const fetchTransactions = ({ pageParam }: { pageParam: number }) => {
     const from = pageParam * limit;
+    const currentFilters = unref(filtersRef.value);
 
     return loadTransactions(
       removeValuesFromObject<Parameters<typeof loadTransactions>[0]>({
         limit,
         from,
-        transactionType: filters.value.transactionType,
-        endDate: isDate(filters.value.end) ? filters.value.end.toISOString() : undefined,
-        startDate: isDate(filters.value.start) ? filters.value.start.toISOString() : undefined,
-        amountGte: filters.value.amountGte,
-        amountLte: filters.value.amountLte,
-        excludeRefunds: filters.value.excludeRefunds,
-        excludeTransfer: filters.value.excludeTransfer,
-        budgetIds: filters.value.budgetIds,
-        excludedBudgetIds: filters.value.excludedBudgetIds,
+        transactionType: currentFilters.transactionType,
+        endDate: isDate(currentFilters.end) ? currentFilters.end.toISOString() : undefined,
+        startDate: isDate(currentFilters.start) ? currentFilters.start.toISOString() : undefined,
+        amountGte: currentFilters.amountGte,
+        amountLte: currentFilters.amountLte,
+        excludeRefunds: currentFilters.excludeRefunds,
+        excludeTransfer: currentFilters.excludeTransfer,
+        budgetIds: currentFilters.budgetIds,
+        excludedBudgetIds: currentFilters.excludedBudgetIds,
       }),
     );
   };
+
+  const { queryKey = ['transactions', filtersRef] } = queryOptions;
 
   const query = useInfiniteQuery<TransactionModel[]>({
     queryKey,

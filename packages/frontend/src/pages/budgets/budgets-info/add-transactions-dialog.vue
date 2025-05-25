@@ -35,10 +35,10 @@ const {
   hasNextPage: hasNextTransactionsPage,
   isFetched: isLoadingTransactionsPick,
   isFetchingNextPage: isFetchingNextTransactionsPage,
-} = useTransactions<number[]>({
+} = useTransactions({
   filters: pickedTransactionsListFilter,
-  queryKey: [...VUE_QUERY_CACHE_KEYS.budgetTransactionList, ref([currentBudgetId.value])],
   queryOptions: {
+    queryKey: [...VUE_QUERY_CACHE_KEYS.budgetTransactionList, currentBudgetId],
     enabled: isAddingTransactionModalVisible,
   },
 });

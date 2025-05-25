@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import UiButton from "@/components/common/ui-button.vue";
-import DateField from "@/components/fields/date-field.vue";
-import InputField from "@/components/fields/input-field.vue";
-import Checkbox from "@/components/lib/ui/checkbox/Checkbox.vue";
-import { createBudget } from "@/api/budgets";
-import { VUE_QUERY_CACHE_KEYS } from "@/common/const";
-import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { createBudget } from '@/api/budgets';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import UiButton from '@/components/common/ui-button.vue';
+import DateField from '@/components/fields/date-field.vue';
+import InputField from '@/components/fields/input-field.vue';
+import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
+import { useMutation, useQueryClient } from '@tanstack/vue-query';
+import { computed, ref } from 'vue';
 
 const BUDGET_DEFAULT_VALUES: {
   id: number | null;
   name: string | null;
   status: string | null;
-  // categoryName: string | null;
   startDate?: Date | null;
   endDate?: Date | null;
   limitAmount?: number | null;
@@ -21,14 +20,13 @@ const BUDGET_DEFAULT_VALUES: {
   id: null,
   name: null,
   status: null,
-  // categoryName: null,
   startDate: null,
   endDate: null,
   limitAmount: 0,
   autoInclude: false,
 } as const;
 
-const emits = defineEmits(["create-budget"]);
+const emits = defineEmits(['create-budget']);
 
 const queryClient = useQueryClient();
 const form = ref({ ...BUDGET_DEFAULT_VALUES });
@@ -40,15 +38,12 @@ const { isPending: isMutating, mutate } = useMutation({
   },
 });
 
-
 const isDateExist = computed(() => !!form.value.startDate && !!form.value.endDate);
-const isSubmitDisabled = computed(
-  () => isMutating.value || !form.value.name || !form.value.limitAmount,
-);
+const isSubmitDisabled = computed(() => isMutating.value || !form.value.name || !form.value.limitAmount);
 
 const createBudgetItem = async () => {
   await mutate(form.value);
-  emits("create-budget");
+  emits('create-budget');
 };
 </script>
 
@@ -73,22 +68,14 @@ const createBudgetItem = async () => {
     </div>
 
     <div class="flex gap-2">
-      <label class="cursor-pointer flex gap-2 items-center">
-        <Checkbox
-          :checked="form.autoInclude"
-          :disabled="!isDateExist"
-          @update:checked="form.autoInclude = $event"
-        />
+      <label class="flex cursor-pointer items-center gap-2">
+        <Checkbox :checked="form.autoInclude" :disabled="!isDateExist" @update:checked="form.autoInclude = $event" />
         Auto include transactions
       </label>
     </div>
 
     <div>
-      <InputField
-        v-model.number="form.limitAmount"
-        label="Budget limit"
-        placeholder="Enter the limit"
-      />
+      <InputField v-model.number="form.limitAmount" label="Budget limit" placeholder="Enter the limit" />
     </div>
 
     <div class="mt-4">

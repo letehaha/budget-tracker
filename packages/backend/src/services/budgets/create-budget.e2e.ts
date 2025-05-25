@@ -1,7 +1,6 @@
-// tests/e2e/create-budgets.e2e.ts
-import { describe, expect, it, beforeAll } from '@jest/globals';
-import * as helpers from '@tests/helpers';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { beforeAll, describe, expect, it } from '@jest/globals';
+import * as helpers from '@tests/helpers';
 
 describe('Create Budget', () => {
   const budgetName = 'Test Budget';
@@ -15,7 +14,6 @@ describe('Create Budget', () => {
     const budget = await helpers.createCustomBudget({
       name: budgetName,
       userId,
-      // categoryName: 'Food',
       startDate: '2025-03-01T00:00:00Z',
       endDate: '2025-03-31T23:59:59Z',
       autoInclude: false,
@@ -35,7 +33,6 @@ describe('Create Budget', () => {
     await helpers.createCustomBudget({
       name: budgetName,
       userId,
-      // categoryName: 'Food',
       startDate: '2025-03-01T00:00:00Z',
       endDate: '2025-03-31T23:59:59Z',
       raw: true,
@@ -44,7 +41,6 @@ describe('Create Budget', () => {
     await helpers.createCustomBudget({
       name: budgetName,
       userId,
-      // categoryName: 'Travel',
       startDate: '2025-04-01T00:00:00Z',
       endDate: '2025-04-30T23:59:59Z',
       raw: true,
@@ -84,7 +80,6 @@ describe('Create Budget', () => {
     const budget = await helpers.createCustomBudget({
       name: 'Budget With Transactions',
       userId,
-      // categoryName: 'Food',
       startDate: '2025-03-01T00:00:00Z',
       endDate: '2025-03-04T23:59:59Z',
       autoInclude: true,

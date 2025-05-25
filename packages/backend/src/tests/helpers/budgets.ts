@@ -1,18 +1,14 @@
-// tests/helpers/budget-helpers.ts
 import { BudgetModel } from '@bt/shared/types';
 import { addTransactionsToBudget } from '@controllers/budgets/add-transaction-to-budget';
 import * as budgetService from '@root/services/budgets/create-budget';
 
 import { makeRequest } from './common';
 
-// type omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
-
 interface TestCreateBudgetPayload {
   id?: number;
   userId: number;
   name: string;
   status?: string;
-  // categoryName?: string;
   startDate?: string | Date | null;
   endDate?: string | Date | null;
   autoInclude?: boolean;

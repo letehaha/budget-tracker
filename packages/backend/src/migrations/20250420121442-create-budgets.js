@@ -55,16 +55,6 @@ module.exports = {
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
-          // categoriesIds: {
-          //   type: Sequelize.INTEGER,
-          //   allowNull: true,
-          //   references: {
-          //     model: 'Categories',
-          //     key: 'id',
-          //   },
-          //   onUpdate: 'CASCADE',
-          //   onDelete: 'SET NULL',
-          // },
         },
         { transaction },
       );
