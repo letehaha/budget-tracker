@@ -8,3 +8,5 @@ if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
 else
     echo "Not in a git repository, skipping git commands."
 fi
+
+# test
