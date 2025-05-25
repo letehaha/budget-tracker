@@ -37,7 +37,7 @@ const { data: budgetItem, isLoading } = useQuery({
   staleTime: Infinity,
 });
 
-const { mutate } = useMutation({
+const { mutate, isPending: isBudgetDataUpdating } = useMutation({
   mutationFn: editBudget,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
@@ -84,6 +84,7 @@ watchEffect(() => {
           placeholder="Name"
           class="w-full"
           @click.stop
+          :disabled="isBudgetDataUpdating"
         />
 
         <InputField
@@ -92,6 +93,7 @@ watchEffect(() => {
           placeholder="Budget category"
           class="w-full"
           @click.stop
+          :disabled="isBudgetDataUpdating"
         />
 
         <div class="@[450px]/budget-item-info:flex-col flex justify-between gap-4">
@@ -100,10 +102,13 @@ watchEffect(() => {
         </div>
 
         <div class="flex gap-2">
-          <Button variant="secondary" class="w-full" @click="toggleBudgetChanges">Change</Button>
+          <Button variant="secondary" class="w-full" @click="toggleBudgetChanges" :disabled="isBudgetDataUpdating">
+            <template v-if="isBudgetDataUpdating"> Changing... </template>
+            <template v-else> Change </template>
+          </Button>
 
           <AddTransactionsDialog>
-            <Button class="w-full">Add Transactions</Button>
+            <Button :disabled="isBudgetDataUpdating" class="w-full">Add Transactions</Button>
           </AddTransactionsDialog>
         </div>
       </Card>
