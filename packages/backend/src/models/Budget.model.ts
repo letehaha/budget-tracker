@@ -8,16 +8,16 @@ import { BUDGET_STATUSES } from '@bt/shared/types';
   timestamps: false,
 })
 export default class Budgets extends Model {
-  @Column({ primaryKey: true, autoIncrement: true, allowNull: false })
+  @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
   id!: number;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.STRING(200) })
   name!: string;
 
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.ENUM({ values: Object.values(BUDGET_STATUSES) }) })
   status!: BUDGET_STATUSES;
 
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.STRING })
   categoryName!: string;
 
   @Column({ type: DataType.DATE, allowNull: true })
@@ -26,14 +26,14 @@ export default class Budgets extends Model {
   @Column({ type: DataType.DATE, allowNull: true })
   endDate!: Date;
 
-  @Column({ defaultValue: false })
+  @Column({ defaultValue: false, type: DataType.BOOLEAN })
   autoInclude!: boolean;
 
-  @Column({ allowNull: true })
+  @Column({ allowNull: true, type: DataType.NUMBER })
   limitAmount!: number;
 
   @ForeignKey(() => Users)
-  @Column({ allowNull: false })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   userId!: number;
 
   @BelongsToMany(() => Transactions, {
