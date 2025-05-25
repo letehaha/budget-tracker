@@ -50,3 +50,8 @@ export enum TRANSACTION_TRANSFER_NATURE {
   common_transfer = 'transfer_between_user_accounts',
   transfer_out_wallet = 'transfer_out_wallet',
 }
+
+export enum BUDGET_STATUSES {
+  active = 'active',
+  closed = 'closed',
+}

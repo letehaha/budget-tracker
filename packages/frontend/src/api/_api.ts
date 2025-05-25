@@ -140,7 +140,7 @@ class ApiCaller {
       method: opts.method,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: this.authToken || '',
+        Authorization: this.authToken || window.localStorage.getItem('user-token'),
         'X-Session-ID': window.sessionStorage?.getItem(SESSION_ID_KEY) || '',
       },
     };

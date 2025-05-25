@@ -1,6 +1,6 @@
 <template>
   <div class="bg-background sticky bottom-0 left-0 right-0 py-2">
-    <nav class="grid grid-cols-3 gap-1">
+    <nav class="grid grid-cols-4 gap-1">
       <NavigationLinks bottom-nav />
     </nav>
   </div>

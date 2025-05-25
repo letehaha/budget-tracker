@@ -45,6 +45,16 @@ const routes = [
         component: () => import('@/pages/analytics/index.vue'),
       },
       {
+        path: "/budgets",
+        name: ROUTES_NAMES.budgets,
+        component: () => import("@/pages/budgets/budgets.vue"),
+      },
+      {
+        path: "/budgets/:id",
+        name: ROUTES_NAMES.budgetsInfo,
+        component: () => import("@/pages/budgets/budgets-info/index.vue"),
+      },
+      {
         path: '/transactions',
         name: ROUTES_NAMES.transactions,
         component: () => import('@/pages/records/root.vue'),

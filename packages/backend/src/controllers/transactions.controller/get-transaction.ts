@@ -48,6 +48,18 @@ export const getTransactionsSchema = z.object({
           z.array(z.number().int().positive()),
         )
         .optional(),
+      budgetIds: z
+        .preprocess(
+          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
+          z.array(z.number().int().positive()),
+        )
+        .optional(),
+      excludedBudgetIds: z
+        .preprocess(
+          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
+          z.array(z.number().int().positive()),
+        )
+        .optional(),
       includeUser: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       includeAccount: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       includeCategory: z.preprocess((val) => val === 'true', z.boolean()).optional(),
