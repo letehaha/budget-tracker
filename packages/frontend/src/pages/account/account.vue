@@ -24,15 +24,13 @@
             </Tabs.TabsList>
             <Tabs.TabsContent value="records">
               <template v-if="isFetched">
-                <TransactionsList class="account-page__records-list" :transactions="rawTransactionsList" />
-              </template>
-              <template v-if="hasNextPage">
-                <button class="account-page__load-more" type="button" @click="() => fetchNextPage()">Load more</button>
-              </template>
-              <template v-else>
-                <p class="account-page__no-more-data">
-                  {{ rawTransactionsList.length ? 'No more data to load' : 'No data' }}
-                </p>
+                <TransactionsList
+                  :hasNextPage="hasNextPage"
+                  class="account-page__records-list"
+                  :transactions="rawTransactionsList"
+                  :isFetchingNextPage="isFetchingNextPage"
+                  @fetch-next-page="fetchNextPage"
+                />
               </template>
             </Tabs.TabsContent>
           </Tabs.Tabs>
@@ -78,6 +76,7 @@ const {
   data: transactionsPages,
   fetchNextPage,
   hasNextPage,
+  isFetchingNextPage,
   isFetched,
 } = useInfiniteQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.accountSpecificTransactions, account],

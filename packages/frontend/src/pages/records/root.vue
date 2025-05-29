@@ -28,12 +28,18 @@
         </FiltersDialog>
       </template>
 
-      <TransactionsList
-        :transactions-pages="transactionsPages"
-        :is-fetched="isFetched"
-        :has-next-page="hasNextPage"
-        @fetch-next-page="fetchNextPage"
-      />
+      <Card class="w-screen max-w-full rounded-md px-2 py-4 sm:max-w-[450px] sm:p-6">
+        <template v-if="isFetched && transactionsPages">
+          <TransactionsList
+            ref="transactionsListRef"
+            class="max-h-[calc(100vh-var(--header-height)-120px)]"
+            @fetch-next-page="fetchNextPage"
+            :hasNextPage="hasNextPage"
+            :isFetchingNextPage="isFetchingNextPage"
+            :transactions="transactionsPages.pages.flat()"
+          />
+        </template>
+      </Card>
     </div>
 
     <ScrollTopButton />
@@ -45,6 +51,7 @@ import { loadTransactions } from '@/api/transactions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { removeValuesFromObject } from '@/common/utils/remove-values-from-object';
 import { Card } from '@/components/lib/ui/card';
+import TransactionsList from '@/components/transactions-list/transactions-list.vue';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useInfiniteQuery } from '@tanstack/vue-query';
 import isDate from 'date-fns/isDate';
@@ -54,7 +61,6 @@ import { computed, ref, watch } from 'vue';
 import FiltersDialog from './components/filters-dialog.vue';
 import FiltersPanel from './components/filters-panel.vue';
 import ScrollTopButton from './components/scroll-to-top.vue';
-import TransactionsList from './components/transactions-list.vue';
 
 const limit = 30;
 
@@ -72,6 +78,8 @@ const DEFAULT_FILTERS = {
 const filters = ref({ ...DEFAULT_FILTERS });
 const appliedFilters = ref({ ...DEFAULT_FILTERS });
 
+const transactionsListRef = ref(null);
+
 const isFiltersDialogOpen = ref(false);
 const isResetButtonDisabled = computed(() => isEqual(filters.value, DEFAULT_FILTERS));
 const isAnyFiltersApplied = computed(() => !isEqual(appliedFilters.value, DEFAULT_FILTERS));
@@ -84,6 +92,8 @@ const resetFilters = () => {
 
 const applyFilters = () => {
   appliedFilters.value = { ...filters.value };
+
+  transactionsListRef.value.scrollToIndex(0);
 };
 
 watch(appliedFilters, () => {
@@ -115,6 +125,7 @@ const {
   data: transactionsPages,
   fetchNextPage,
   hasNextPage,
+  isFetchingNextPage,
   isFetched,
 } = useInfiniteQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.recordsPageRecordsList, appliedFilters],

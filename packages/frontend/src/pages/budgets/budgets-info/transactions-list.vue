@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import UiButton from '@/components/common/ui-button.vue';
 import Card from '@/components/lib/ui/card/Card.vue';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
 import { useTransactions } from '@/composable/data-queries/get-transactions';
@@ -17,6 +16,7 @@ const {
   transactionsPages: budgetTransactionsList,
   fetchNextPage,
   hasNextPage,
+  isFetchingNextPage,
   isFetched,
 } = useTransactions({
   filters: budgetFilters,
@@ -32,18 +32,14 @@ const {
       <slot name="header" />
     </template>
 
-    <div>
-      <template v-if="isFetched && budgetTransactionsList">
-        <TransactionsList :transactions="budgetTransactionsList.pages.flat()" />
-      </template>
-    </div>
-    <template v-if="hasNextPage">
-      <UiButton type="button" variant="secondary" class="mt-8 w-full" @click="() => fetchNextPage()">
-        Load more
-      </UiButton>
-    </template>
-    <template v-else>
-      <p>No more data to load</p>
+    <template v-if="isFetched && budgetTransactionsList">
+      <TransactionsList
+        :hasNextPage="hasNextPage"
+        :isFetchingNextPage="isFetchingNextPage"
+        :transactions="budgetTransactionsList.pages.flat()"
+        class="max-h-[70vh]"
+        @fetch-next-page="fetchNextPage"
+      />
     </template>
   </Card>
 </template>
