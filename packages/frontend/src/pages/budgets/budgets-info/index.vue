@@ -60,7 +60,9 @@ watchEffect(() => {
 
 <template>
   <div v-if="budgetData" class="relative flex w-min max-w-full flex-col gap-4 p-4 lg:w-auto lg:flex-row xl:gap-20">
-    <div class="@[360px]/budget-item-info:w-full h-max lg:w-[450px] lg:max-w-[450px]">
+    <div
+      class="@[360px]/budget-item-info:w-full h-max lg:sticky lg:top-[var(--header-height)] lg:w-[450px] lg:max-w-[450px]"
+    >
       <div class="mb-4 flex items-center gap-4">
         <router-link
           to="/budgets"

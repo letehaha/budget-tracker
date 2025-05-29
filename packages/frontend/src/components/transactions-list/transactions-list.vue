@@ -1,12 +1,14 @@
 <script lang="ts" setup>
 import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
+import { useScrollAreaContainer } from '@/composable/scroll-area-container';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { createReusableTemplate } from '@vueuse/core';
 import { computed, defineAsyncComponent, ref, watch, watchEffect } from 'vue';
 
+import { SCROLL_AREA_IDS } from '../lib/ui/scroll-area/types';
 import TransactionRecord from './transaction-record.vue';
 
 const ManageTransactionDoalogContent = defineAsyncComponent(
@@ -20,12 +22,14 @@ const props = withDefaults(
     hasNextPage?: boolean;
     isFetchingNextPage?: boolean;
     paginate?: boolean;
+    scrollAreaId?: SCROLL_AREA_IDS;
   }>(),
   {
     isTransactionRecord: false,
     hasNextPage: false,
     isFetchingNextPage: false,
     paginate: true,
+    scrollAreaId: SCROLL_AREA_IDS.dashboard,
   },
 );
 const emits = defineEmits(['fetch-next-page']);
@@ -71,14 +75,15 @@ const handlerRecordClick = ([baseTx, oppositeTx]: [baseTx: TransactionModel, opp
   dialogProps.value = modalOptions;
 };
 
-const parentRef = ref(null);
+const scrollContainer = useScrollAreaContainer(props.scrollAreaId);
+
 const virtualizer = useVirtualizer(
   computed(() => ({
     count: props.transactions.length + (props.hasNextPage ? 1 : 0),
-    getScrollElement: () => parentRef.value,
+    getScrollElement: () => scrollContainer?.value?.viewportElement,
     estimateSize: () => 52 + 8,
     overscan: 10,
-    enabled: props.paginate,
+    enabled: props.paginate && !!scrollContainer?.value?.viewportElement,
   })),
 );
 
@@ -106,7 +111,7 @@ watchEffect(() => {
   <div>
     <template v-if="paginate">
       <div class="relative">
-        <div v-bind="$attrs" v-if="transactions" ref="parentRef" class="w-full overflow-y-auto">
+        <div v-bind="$attrs" v-if="transactions" class="w-full">
           <div :style="{ height: `${totalSize}px` }" class="relative">
             <div
               v-for="virtualRow in virtualRows"

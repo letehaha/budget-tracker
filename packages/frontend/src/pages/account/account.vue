@@ -24,13 +24,15 @@
             </Tabs.TabsList>
             <Tabs.TabsContent value="records">
               <template v-if="isFetched">
-                <TransactionsList
-                  :hasNextPage="hasNextPage"
-                  class="account-page__records-list"
-                  :transactions="rawTransactionsList"
-                  :isFetchingNextPage="isFetchingNextPage"
-                  @fetch-next-page="fetchNextPage"
-                />
+                <ScrollArea :scroll-area-id="SCROLL_AREA_IDS.accountTransactions" class="h-screen max-h-[600px]">
+                  <TransactionsList
+                    :hasNextPage="hasNextPage"
+                    :transactions="rawTransactionsList"
+                    :isFetchingNextPage="isFetchingNextPage"
+                    :scroll-area-id="SCROLL_AREA_IDS.accountTransactions"
+                    @fetch-next-page="fetchNextPage"
+                  />
+                </ScrollArea>
               </template>
             </Tabs.TabsContent>
           </Tabs.Tabs>
@@ -44,6 +46,8 @@
 import { loadTransactions } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import * as Card from '@/components/lib/ui/card';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
@@ -94,35 +98,3 @@ const {
 
 const rawTransactionsList = computed(() => transactionsPages.value?.pages?.flat() || []);
 </script>
-
-<style lang="scss">
-.account-page__block-title {
-  margin-bottom: 24px;
-}
-.account-page__block-no-data {
-  margin-top: 24px;
-}
-.account-page__records-list {
-  max-height: 600px;
-  overflow: auto;
-  padding: 4px;
-}
-.account-page__load-more {
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-
-  color: var(--app-primary);
-
-  display: block;
-  margin: auto;
-
-  font-size: 16px;
-
-  margin-top: 32px;
-}
-.account-page__no-more-data {
-  margin-top: 32px;
-  text-align: center;
-}
-</style>

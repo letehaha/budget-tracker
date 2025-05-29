@@ -32,7 +32,6 @@
         <template v-if="isFetched && transactionsPages">
           <TransactionsList
             ref="transactionsListRef"
-            class="max-h-[calc(100vh-var(--header-height)-120px)]"
             @fetch-next-page="fetchNextPage"
             :hasNextPage="hasNextPage"
             :isFetchingNextPage="isFetchingNextPage"

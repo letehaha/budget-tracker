@@ -4,7 +4,7 @@
       <Sidebar />
     </template>
 
-    <ScrollArea ref="scrollAreaRef" class="flex-1">
+    <ScrollArea ref="scrollAreaRef" class="flex-1" :scroll-area-id="SCROLL_AREA_IDS.dashboard">
       <ui-header class="bg-background sticky top-0 z-10" />
 
       <template v-if="isAppInitialized">
@@ -23,6 +23,7 @@
 <script lang="ts" setup>
 import BottomNavbar from '@/components/bottom-navbar.vue';
 import { ScrollArea, ScrollBar } from '@/components/lib/ui/scroll-area';
+import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import Sidebar from '@/components/sidebar/index.vue';
 import UiHeader from '@/components/ui-header.vue';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';

@@ -37,7 +37,6 @@ const {
         :hasNextPage="hasNextPage"
         :isFetchingNextPage="isFetchingNextPage"
         :transactions="budgetTransactionsList.pages.flat()"
-        class="max-h-[70vh]"
         @fetch-next-page="fetchNextPage"
       />
     </template>
