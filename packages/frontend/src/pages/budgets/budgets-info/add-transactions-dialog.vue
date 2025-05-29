@@ -7,6 +7,7 @@ import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { useTransactions } from '@/composable/data-queries/get-transactions';
+import { useShiftMultiSelect } from '@/composable/shift-multi-select';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { useQuery } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
@@ -16,7 +17,10 @@ import { useRoute } from 'vue-router';
 const route = useRoute();
 const { addErrorNotification } = useNotificationCenter();
 const budgetData = ref();
+
 const pickedTransactionsIds = reactive<Set<number>>(new Set());
+const { handleSelection, resetSelection } = useShiftMultiSelect(pickedTransactionsIds);
+
 const isAddingTransactionModalVisible = ref<boolean>(false);
 const currentBudgetId = ref<number>(Number(route.params.id));
 const pickedTransactionsListFilter = ref({
@@ -53,7 +57,7 @@ const addTransactions = async () => {
     addErrorNotification(err.data.message);
   }
   isAddingTransactionModalVisible.value = false;
-  pickedTransactionsIds.clear();
+  resetSelection();
 };
 
 watchEffect(() => {
@@ -76,14 +80,6 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   parentRef,
   enabled: isAddingTransactionModalVisible,
 });
-
-const pickTransaction = (value: boolean, id: number) => {
-  if (value) {
-    pickedTransactionsIds.add(id);
-  } else {
-    pickedTransactionsIds.delete(id);
-  }
-};
 </script>
 
 <template>
@@ -119,7 +115,15 @@ const pickTransaction = (value: boolean, id: number) => {
           >
             <Checkbox
               :checked="pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)"
-              @update:checked="pickTransaction($event, flatTransactions[virtualRow.index].id)"
+              @update:checked="
+                handleSelection(
+                  $event,
+                  flatTransactions[virtualRow.index].id,
+                  virtualRow.index,
+                  flatTransactions,
+                  (v) => v.id,
+                )
+              "
             />
             <TransactionRecord :tx="flatTransactions[virtualRow.index]" />
           </label>
