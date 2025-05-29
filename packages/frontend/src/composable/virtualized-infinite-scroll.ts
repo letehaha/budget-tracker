@@ -14,6 +14,8 @@ interface UseVirtualizedInfiniteScrollOptions<T> {
   estimateSize?: () => number;
   overscan?: number;
   enabled?: Ref<boolean>;
+
+  getItemKey?: (index: number) => string | number;
 }
 
 export function useVirtualizedInfiniteScroll<T>({
@@ -25,6 +27,10 @@ export function useVirtualizedInfiniteScroll<T>({
   estimateSize = () => 52,
   overscan = 10,
   enabled = ref(true),
+  getItemKey = (index: number) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (items?.value?.[index] as any)?.id ?? index;
+  },
 }: UseVirtualizedInfiniteScrollOptions<T>) {
   const virtualizer = useVirtualizer(
     computed(() => ({
@@ -33,6 +39,13 @@ export function useVirtualizedInfiniteScroll<T>({
       estimateSize,
       overscan,
       enabled: enabled.value,
+      getItemKey: (index) => {
+        try {
+          return getItemKey(index);
+        } catch {
+          return index;
+        }
+      },
     })),
   );
 

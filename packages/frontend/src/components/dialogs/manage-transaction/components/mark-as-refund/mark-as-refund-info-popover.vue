@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import * as Popover from '@/components/lib/ui/popover';
 import * as ScrollArea from '@/components/lib/ui/scroll-area';
+import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { InfoIcon } from 'lucide-vue-next';
 </script>
 
@@ -12,7 +13,10 @@ import { InfoIcon } from 'lucide-vue-next';
       </div>
     </Popover.PopoverTrigger>
     <Popover.PopoverContent class="w-[500px] overflow-y-auto" side="right">
-      <ScrollArea.ScrollArea class="[&>[data-radix-scroll-area-viewport]]:max-h-[90dvh]">
+      <ScrollArea.ScrollArea
+        class="[&>[data-radix-scroll-area-viewport]]:max-h-[90dvh]"
+        :scroll-area-id="SCROLL_AREA_IDS.txRefundInfo"
+      >
         <h3 class="mb-2 text-lg font-bold">About Refund Transactions</h3>
 
         <p class="text-sm text-white/60">

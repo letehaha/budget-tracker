@@ -5,6 +5,8 @@ import UiButton from '@/components/common/ui-button.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
+import { useNotificationCenter } from '@/components/notification-center';
+import { ApiErrorResponseError } from '@/js/errors';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 
@@ -22,33 +24,38 @@ const BUDGET_DEFAULT_VALUES: {
   status: null,
   startDate: null,
   endDate: null,
-  limitAmount: 0,
+  limitAmount: null,
   autoInclude: false,
 } as const;
 
 const emits = defineEmits(['create-budget']);
+const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 
 const queryClient = useQueryClient();
 const form = ref({ ...BUDGET_DEFAULT_VALUES });
 
-const { isPending: isMutating, mutate } = useMutation({
+const { isPending: isMutating, mutate: createBudgetItem } = useMutation({
   mutationFn: createBudget,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
+    emits('create-budget');
+    addSuccessNotification('Budget created');
+  },
+  onError(error) {
+    if (error instanceof ApiErrorResponseError) {
+      addErrorNotification(error.data.message);
+    } else {
+      addErrorNotification('Unexpected error!');
+    }
   },
 });
 
 const isDateExist = computed(() => !!form.value.startDate && !!form.value.endDate);
-const isSubmitDisabled = computed(() => isMutating.value || !form.value.name || !form.value.limitAmount);
-
-const createBudgetItem = async () => {
-  await mutate(form.value);
-  emits('create-budget');
-};
+const isSubmitDisabled = computed(() => isMutating.value || !form.value.name);
 </script>
 
 <template>
-  <form class="grid gap-4">
+  <form class="grid gap-4" @submit.prevent="() => createBudgetItem(form)">
     <InputField v-model="form.name" label="Budget name" placeholder="Enter the name" />
     <div class="flex justify-between gap-4">
       <DateField
@@ -79,7 +86,7 @@ const createBudgetItem = async () => {
     </div>
 
     <div class="mt-4">
-      <UiButton :disabled="isSubmitDisabled" @click="createBudgetItem">Add budget</UiButton>
+      <UiButton :disabled="isSubmitDisabled" type="submit">Add budget</UiButton>
     </div>
   </form>
 </template>

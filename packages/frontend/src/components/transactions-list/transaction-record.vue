@@ -29,7 +29,7 @@
             </template>
           </div>
         </template>
-        <span class="line-clamp-2 text-sm tracking-wider opacity-40 [word-break:break-word]">
+        <span class="line-clamp-1 text-sm tracking-wider opacity-40 [word-break:break-word]">
           {{ transaction.note }}
         </span>
       </div>

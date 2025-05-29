@@ -14,7 +14,7 @@
       </EmptyState>
     </template>
     <template v-else>
-      <TransactionsList class="gap-1" :transactions="transactions || []" />
+      <TransactionsList :paginate="false" class="gap-1" :transactions="transactions || []" />
     </template>
   </WidgetWrapper>
 </template>

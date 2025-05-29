@@ -43,14 +43,17 @@ const deleteBudget = async (budgetId: number) => {
 <template>
   <div>
     <template v-if="budgetsList.length">
-      <div v-for="budget in budgetsList" :key="budget.id" class="flex items-center justify-between p-2 rounded-md">
+      <div v-for="budget in budgetsList" :key="budget.id" class="flex items-center justify-between rounded-md p-2">
         <div class="flex flex-col gap-1">
-          <div class="whitespace-nowrap text-ellipsis overflow-hidden w-min">Name: {{ budget.name }}</div>
-          <div class="whitespace-nowrap text-ellipsis overflow-hidden w-min text-sm">
-            Limit Amount: {{ budget.limitAmount }} {{ baseCurrency.currency.code }}
+          <div class="w-min overflow-hidden text-ellipsis whitespace-nowrap">Name: {{ budget.name }}</div>
+          <div class="w-min overflow-hidden text-ellipsis whitespace-nowrap text-sm">
+            Limit Amount:
+
+            <template v-if="budget.limitAmount"> {{ budget.limitAmount }} {{ baseCurrency.currency.code }} </template>
+            <template v-else> N/A </template>
           </div>
         </div>
-        <div class="flex justify-between items-center gap-2">
+        <div class="flex items-center justify-between gap-2">
           <Button size="sm" @click="toggleBudgetNameEdit(budget.id)">
             <span class="@[360px]/budgets-list:inline"> Edit </span>
             <EditIcon class="size-4" />
@@ -72,7 +75,7 @@ const deleteBudget = async (budgetId: number) => {
       </div>
     </template>
     <template v-else>
-      <div class="min-w-full w-full bg-card rounded-md px-6 py-4 text-center">No budgets available</div>
+      <div class="bg-card w-full min-w-full rounded-md px-6 py-4 text-center">No budgets available</div>
     </template>
   </div>
 </template>

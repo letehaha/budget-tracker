@@ -7,7 +7,7 @@ import { createReusableTemplate } from '@vueuse/core';
 const [UseTemplate, SlotContent] = createReusableTemplate();
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
-const props = defineProps<{ open?: boolean }>();
+const props = defineProps<{ open?: boolean; dialogContentClass?: string }>();
 
 const emit = defineEmits(['update:open']);
 </script>
@@ -46,7 +46,7 @@ const emit = defineEmits(['update:open']);
         <slot name="trigger" />
       </Dialog.DialogTrigger>
 
-      <Dialog.DialogContent>
+      <Dialog.DialogContent :class="dialogContentClass">
         <template v-if="$slots.title || $slots.description">
           <Dialog.DialogHeader class="mb-4 text-left">
             <Dialog.DialogTitle>
