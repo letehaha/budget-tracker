@@ -46,94 +46,37 @@
 </template>
 
 <script lang="ts" setup>
-import { loadTransactions } from '@/api/transactions';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { removeValuesFromObject } from '@/common/utils/remove-values-from-object';
 import { Card } from '@/components/lib/ui/card';
+import FiltersDialog from '@/components/records-filters/filters-dialog.vue';
+import FiltersPanel from '@/components/records-filters/index.vue';
+import { useTransactionsWithFilters } from '@/components/records-filters/transactions-with-filters';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { useInfiniteQuery } from '@tanstack/vue-query';
-import isDate from 'date-fns/isDate';
-import { isEqual } from 'lodash-es';
-import { computed, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 
-import FiltersDialog from './components/filters-dialog.vue';
-import FiltersPanel from './components/filters-panel.vue';
 import ScrollTopButton from './components/scroll-to-top.vue';
 
-const limit = 30;
-
-const DEFAULT_FILTERS = {
-  start: null,
-  end: null,
-  transactionType: null,
-  amountGte: null,
-  amountLte: null,
-  excludeRefunds: false,
-  excludeTransfer: false,
-  accounts: [],
-};
-
-const filters = ref({ ...DEFAULT_FILTERS });
-const appliedFilters = ref({ ...DEFAULT_FILTERS });
-
-const transactionsListRef = ref(null);
+const {
+  isResetButtonDisabled,
+  isAnyFiltersApplied,
+  isFiltersOutOfSync,
+  resetFilters,
+  applyFilters,
+  filters,
+  appliedFilters,
+  transactionsPages,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  isFetched,
+  transactionsListRef,
+} = useTransactionsWithFilters();
 
 const isFiltersDialogOpen = ref(false);
-const isResetButtonDisabled = computed(() => isEqual(filters.value, DEFAULT_FILTERS));
-const isAnyFiltersApplied = computed(() => !isEqual(appliedFilters.value, DEFAULT_FILTERS));
-const isFiltersOutOfSync = computed(() => !isEqual(filters.value, appliedFilters.value));
-
-const resetFilters = () => {
-  filters.value = { ...DEFAULT_FILTERS };
-  appliedFilters.value = { ...DEFAULT_FILTERS };
-};
-
-const applyFilters = () => {
-  appliedFilters.value = { ...filters.value };
-
-  transactionsListRef.value.scrollToIndex(0);
-};
 
 watch(appliedFilters, () => {
   isFiltersDialogOpen.value = false;
 });
 
 const isMobileView = useWindowBreakpoints(1024);
-
-const fetchTransactions = ({ pageParam, filter }) => {
-  const from = pageParam * limit;
-
-  return loadTransactions(
-    removeValuesFromObject({
-      limit,
-      from,
-      transactionType: filter.transactionType,
-      endDate: isDate(filter.end) ? filter.end.toISOString() : undefined,
-      startDate: isDate(filter.start) ? filter.start.toISOString() : undefined,
-      amountGte: filter.amountGte,
-      amountLte: filter.amountLte,
-      excludeRefunds: filter.excludeRefunds,
-      excludeTransfer: filter.excludeTransfer,
-      accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
-    }),
-  );
-};
-
-const {
-  data: transactionsPages,
-  fetchNextPage,
-  hasNextPage,
-  isFetchingNextPage,
-  isFetched,
-} = useInfiniteQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.recordsPageRecordsList, appliedFilters],
-  queryFn: ({ pageParam }) => fetchTransactions({ pageParam, filter: appliedFilters.value }),
-  initialPageParam: 0,
-  getNextPageParam: (lastPage, pages) => {
-    if (lastPage.length < limit) return undefined;
-    return pages.length;
-  },
-  staleTime: 1_000 * 60,
-});
 </script>
