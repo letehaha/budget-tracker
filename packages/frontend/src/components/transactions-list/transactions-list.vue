@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
@@ -13,23 +12,17 @@ const ManageTransactionDoalogContent = defineAsyncComponent(
   () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
 );
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     transactions: TransactionModel[];
     isTransactionRecord?: boolean;
-    isTransactionPicking?: boolean;
   }>(),
   {
     isTransactionRecord: false,
-    isTransactionPicking: false,
   },
 );
 const [UseDialogTemplate, SlotContent] = createReusableTemplate();
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
-const pickedTransactions = ref<number[]>([]);
-const emits = defineEmits<{
-  (e: 'update:pickedTransactions', value: number[]): void;
-}>();
 
 const isDialogVisible = ref(false);
 const defaultDialogProps = {
@@ -65,23 +58,6 @@ const handlerRecordClick = ([baseTx, oppositeTx]: [baseTx: TransactionModel, opp
     modalOptions.transaction = isValid ? baseTx : oppositeTx;
     modalOptions.oppositeTransaction = isValid ? oppositeTx : baseTx;
   }
-
-  if (!props.isTransactionPicking) {
-    isDialogVisible.value = true;
-    dialogProps.value = modalOptions;
-  }
-};
-
-const toggleChecked = (value: boolean, item: TransactionModel) => {
-  const transactionId = item.id;
-  if (value) {
-    if (!pickedTransactions.value.includes(transactionId)) {
-      pickedTransactions.value.push(transactionId);
-    }
-  } else {
-    pickedTransactions.value = pickedTransactions.value.filter((id) => id !== transactionId);
-  }
-  emits('update:pickedTransactions', pickedTransactions.value);
 };
 </script>
 
@@ -92,14 +68,7 @@ const toggleChecked = (value: boolean, item: TransactionModel) => {
         v-for="item in transactions"
         :key="`${item.id}-${item.categoryId}-${item.refAmount}-${item.note}-${item.time}`"
       >
-        <div class="flex items-center">
-          <Checkbox
-            v-if="isTransactionPicking"
-            :checked="pickedTransactions.includes(item.id)"
-            @update:checked="toggleChecked($event, item)"
-          />
-          <TransactionRecord :tx="item" @record-click="handlerRecordClick" />
-        </div>
+        <TransactionRecord :tx="item" @record-click="handlerRecordClick" />
       </template>
     </div>
 
