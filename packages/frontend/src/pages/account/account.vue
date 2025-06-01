@@ -24,13 +24,13 @@
             </Tabs.TabsList>
             <Tabs.TabsContent value="records">
               <template v-if="isFetched">
-                <TransactionsList class="account-page__records-list" :transactions="rawTransactionsList" />
+                <TransactionsList class="max-h-[600px] overflow-auto p-1" :transactions="rawTransactionsList" />
               </template>
               <template v-if="hasNextPage">
-                <button class="account-page__load-more" type="button" @click="() => fetchNextPage()">Load more</button>
+                <Button class="mt-8 w-full" type="button" @click="() => fetchNextPage()">Load more</Button>
               </template>
               <template v-else>
-                <p class="account-page__no-more-data">
+                <p class="mt-8 text-center">
                   {{ rawTransactionsList.length ? 'No more data to load' : 'No data' }}
                 </p>
               </template>
@@ -45,6 +45,7 @@
 <script setup lang="ts">
 import { loadTransactions } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import Button from '@/components/lib/ui/button/Button.vue';
 import * as Card from '@/components/lib/ui/card';
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
@@ -95,35 +96,3 @@ const {
 
 const rawTransactionsList = computed(() => transactionsPages.value?.pages?.flat() || []);
 </script>
-
-<style lang="scss">
-.account-page__block-title {
-  margin-bottom: 24px;
-}
-.account-page__block-no-data {
-  margin-top: 24px;
-}
-.account-page__records-list {
-  max-height: 600px;
-  overflow: auto;
-  padding: 4px;
-}
-.account-page__load-more {
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-
-  color: var(--app-primary);
-
-  display: block;
-  margin: auto;
-
-  font-size: 16px;
-
-  margin-top: 32px;
-}
-.account-page__no-more-data {
-  margin-top: 32px;
-  text-align: center;
-}
-</style>

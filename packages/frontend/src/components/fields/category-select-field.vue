@@ -5,12 +5,12 @@
       'category-select-field--disabled': disabled,
       'category-select-field--active': isDropdownOpened,
     }"
-    class="category-select-field"
+    class="relative w-full flex-1"
     data-test="category-select-field"
     role="select"
   >
     <FieldLabel :label="label" only-template>
-      <div class="category-select-field__wrapper">
+      <div class="relative">
         <button
           v-bind="$attrs"
           ref="buttonRef"
@@ -34,10 +34,20 @@
           </template>
 
           {{ selectedValue?.name || placeholder }}
+
           <div class="category-select-field__arrow" />
         </button>
-        <div v-if="isDropdownOpened" class="category-select-field__dropdown">
-          <div ref="DOMList" class="category-select-field__dropdown-values" role="listbox">
+
+        <div
+          v-if="isDropdownOpened"
+          :class="
+            cn(
+              'bg-popover z-over-default invisible absolute left-0 top-full w-full rounded px-2 opacity-0 transition-all',
+              isDropdownOpened && 'visible opacity-100',
+            )
+          "
+        >
+          <div ref="DOMList" class="max-h-[350px] overflow-auto" role="listbox">
             <!-- Show top parent category at the top of list of child categories -->
             <div class="category-select-field__search-field p-1 px-2">
               <input-field v-model="searchQuery" name="search" placeholder="Search..." autofocus />
@@ -48,12 +58,13 @@
                 type="button"
                 variant="link"
                 size="sm"
-                class="category-select-field__dropdown-back-level"
+                class="group m-2 mt-0.5 flex items-center gap-1 border-none p-2 hover:no-underline"
                 @click="backLevelUp"
               >
-                <ChevronLeftIcon />
+                <ChevronLeftIcon class="size-3 transition-transform group-hover:-translate-x-1" />
                 Previous level
               </Button>
+
               <button
                 v-if="!searchQuery.length"
                 type="button"
@@ -72,7 +83,7 @@
                 </span>
               </button>
 
-              <h3 v-if="!searchQuery.length" class="category-select-field__dropdown-subcategories-title">
+              <h3 v-if="!searchQuery.length" class="text-popover-foreground mb-2 ml-4 mt-4 text-base font-medium">
                 Subcategories
               </h3>
             </template>
@@ -94,9 +105,9 @@
                 <span>{{ item.name }}</span>
 
                 <template v-if="item.subCategories.length && !searchQuery.length">
-                  <div class="category-select-field__dropdown-child-amount">
+                  <div class="text-popover-foreground flex items-center gap-2">
                     <span>({{ item.subCategories.length }})</span>
-                    <ChevronRightIcon />
+                    <ChevronRightIcon class="size-3" />
                   </div>
                 </template>
               </button>
@@ -108,7 +119,7 @@
                 buttonVariants({
                   size: 'sm',
                   variant: 'link',
-                  class: 'mt-4 w-full gap-2',
+                  class: 'my-4 w-full gap-2',
                 })
               "
             >
@@ -301,54 +312,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style lang="scss">
-.category-select-field {
-  position: relative;
-  width: 100%;
-  flex: 1;
-}
-.category-select-field__input {
-  font-size: 16px;
-  line-height: 1;
-  padding: 16px 20px;
-  color: var(--app-on-surface-color);
-  background-color: var(--app-surface-color);
-  border: 1px solid var(--app-on-surface-color);
-  box-sizing: border-box;
-  border-radius: 4px;
-  width: 100%;
-  cursor: pointer;
-
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.category-select-field__wrapper {
-  position: relative;
-}
-.category-select-field__dropdown {
-  position: absolute;
-  top: 100%;
-  width: 100%;
-  left: 0;
-  visibility: hidden;
-  opacity: 0;
-  padding: 8px 0;
-  transition: 0.2s ease-out;
-  background-color: var(--app-surface-color);
-  box-shadow: 0 3px 10px 2px rgba(0, 0, 0, 0.08);
-  z-index: var(--z-category-select-field);
-  border-radius: 4px;
-
-  .category-select-field--active & {
-    visibility: visible;
-    opacity: 1;
-  }
-}
-.category-select-field__dropdown-values {
-  overflow: auto;
-  max-height: 350px;
-}
+<style lang="scss" scoped>
 .category-select-field__dropdown-item {
   display: flex;
   align-items: center;
@@ -356,10 +320,10 @@ onBeforeUnmount(() => {
 
   transition: background-color 0.3s ease-out;
   border: none;
-  background-color: var(--app-surface-color);
+  background-color: rgb(var(--popover));
   font-size: 14px;
   line-height: 1.2;
-  color: var(--app-on-surface-color);
+  color: rgb(var(--popover-foreground));
   padding: 8px 16px;
   width: 100%;
   text-align: left;
@@ -373,43 +337,11 @@ onBeforeUnmount(() => {
   }
 
   &--highlighed {
-    background-color: rgba(var(--app-on-surface-color-rgb), 0.05);
+    background-color: rgba(var(--popover-foreground), 0.05);
   }
 
   &:hover {
-    background-color: rgba(var(--app-on-surface-color-rgb), 0.05);
-  }
-}
-.category-select-field__dropdown-subcategories-title {
-  font-weight: 500;
-  font-size: 16px;
-  color: var(--app-on-surface-color);
-  margin: 16px 0 8px 16px;
-}
-.category-select-field__dropdown-child-amount {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--app-on-surface-color);
-
-  svg {
-    width: 12px;
-  }
-}
-.category-select-field__dropdown-back-level {
-  @apply flex items-center gap-1 hover:no-underline;
-  @apply m-2 mt-0.5 border-none p-2;
-
-  &:hover {
-    svg {
-      transform: translateX(-5px);
-    }
-  }
-
-  svg {
-    transition: 0.3s ease-out;
-
-    width: 12px;
+    background-color: rgba(var(--popover-foreground), 0.05);
   }
 }
 .category-select-field__arrow {
@@ -425,7 +357,7 @@ onBeforeUnmount(() => {
     position: absolute;
     width: 8px;
     height: 2px;
-    background-color: var(--app-on-surface-color);
+    background-color: rgb(var(--popover-foreground));
     border-radius: 2px;
     transform: rotate(-45deg);
     top: 10px;

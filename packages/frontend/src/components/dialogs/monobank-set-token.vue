@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { MONOBANK_API_TOKEN_LENGTH } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
-import Button from '@/components/common/ui-button.vue';
 import InputField from '@/components/fields/input-field.vue';
+import Button from '@/components/lib/ui/button/Button.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
 import { ApiErrorResponseError } from '@/js/errors';

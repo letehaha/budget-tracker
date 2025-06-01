@@ -1,12 +1,12 @@
 <template>
-  <div class="record-list" data-cy="record-list-modal">
+  <div class="max-h-full w-full max-w-[420px] p-4" data-cy="record-list-modal">
     <template v-if="isFetched && transactionsPages">
       <div v-for="item in transactionsPages?.pages?.flat()" :key="item.id">
         <TransactionRecrod :tx="item" @record-click="(payload) => handlerRecordClick(payload[0])" />
       </div>
     </template>
     <template v-if="hasNextPage">
-      <button class="record-list__load-more" type="button" @click="() => fetchNextPage()">Load more</button>
+      <Button variant="secondary" class="mt-8 w-full" type="button" @click="() => fetchNextPage()">Load more</Button>
     </template>
     <template v-else>
       <p>No more data to load</p>
@@ -17,6 +17,7 @@
 <script setup lang="ts">
 import { loadTransactions } from '@/api/transactions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import Button from '@/components/lib/ui/button/Button.vue';
 import TransactionRecrod from '@/components/transactions-list/transaction-record.vue';
 import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { useInfiniteQuery } from '@tanstack/vue-query';
@@ -62,27 +63,3 @@ const handlerRecordClick = (transaction: TransactionModel) => {
   emit('select', transaction);
 };
 </script>
-
-<style lang="scss" scoped>
-.record-list {
-  max-width: 420px;
-  width: 100%;
-  max-height: 100%;
-  padding: 16px;
-  background-color: var(--app-surface-color);
-}
-.record-list__load-more {
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-
-  color: var(--app-primary);
-
-  display: block;
-  margin: auto;
-
-  font-size: 16px;
-
-  margin-top: 32px;
-}
-</style>

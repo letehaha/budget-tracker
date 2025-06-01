@@ -45,11 +45,6 @@ export default ({ mode }) => {
       postcss: {
         plugins: [tailwind(), autoprefixer()],
       },
-      preprocessorOptions: {
-        scss: {
-          additionalData: '@import "./src/styles/resources/index.scss";',
-        },
-      },
     },
   });
 };

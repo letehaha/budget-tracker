@@ -191,27 +191,3 @@ const handlerRecordClick = (transaction: TransactionModel) => {
     </template>
   </div>
 </template>
-
-<style lang="scss" scoped>
-.record-list {
-  max-width: 420px;
-  width: 100%;
-  max-height: 100%;
-  padding: 16px;
-  background-color: var(--app-surface-color);
-}
-.record-list__load-more {
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-
-  color: var(--app-primary);
-
-  display: block;
-  margin: auto;
-
-  font-size: 16px;
-
-  margin-top: 32px;
-}
-</style>
