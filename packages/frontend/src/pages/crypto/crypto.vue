@@ -73,7 +73,6 @@ export default defineComponent({
 <style lang="scss">
 .crypto {
   padding: 24px;
-  color: var(--app-on-bg-color);
 }
 .crypto__balance {
   display: grid;

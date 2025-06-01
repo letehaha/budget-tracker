@@ -27,6 +27,7 @@ module.exports = {
         ring: 'rgba(var(--ring), <alpha-value>)',
         background: 'rgba(var(--background), <alpha-value>)',
         foreground: 'rgba(var(--foreground), <alpha-value>)',
+        'base-text': 'rgba(var(--base-text), <alpha-value>)',
         'error-message': 'rgba(var(--error-message), <alpha-value>)',
         primary: {
           DEFAULT: 'rgba(var(--primary), <alpha-value>)',
@@ -55,6 +56,14 @@ module.exports = {
         card: {
           DEFAULT: 'rgba(var(--card), <alpha-value>)',
           foreground: 'rgba(var(--card-foreground), <alpha-value>)',
+        },
+        'card-tooltip': {
+          DEFAULT: 'rgba(var(--card-tooltip), <alpha-value>)',
+          foreground: 'rgba(var(--card-tooltip-foreground), <alpha-value>)',
+        },
+        success: {
+          DEFAULT: 'rgba(var(--success), <alpha-value>)',
+          foreground: 'rgba(var(--base-text), <alpha-value>)',
         },
         warning: 'rgba(230, 126, 34, <alpha-value>)',
         'app-income-color': '#2ecc71',
@@ -94,6 +103,14 @@ module.exports = {
         'collapsible-down': 'collapsible-down 0.2s ease-in-out',
         'collapsible-up': 'collapsible-up 0.2s ease-in-out',
       },
+      boxShadow: {
+        header: '0 0 10px 2px rgba(0, 0, 0, 0.1)',
+      },
+      zIndex: {
+        'over-default': 1,
+        modal: 10,
+        notifications: 51,
+      }
     },
   },
   plugins: [animate, require('@tailwindcss/container-queries')],

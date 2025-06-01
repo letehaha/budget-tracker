@@ -1,5 +1,5 @@
 <template>
-  <p v-if="errorMessage" class="field-error">
+  <p v-if="errorMessage" class="text-destructive ml-2 mt-1 text-sm">
     {{ errorMessage }}
   </p>
 </template>
@@ -13,12 +13,3 @@ export default defineComponent({
   },
 });
 </script>
-
-<style lang="scss">
-.field-error {
-  color: var(--app-error);
-  font-size: 14px;
-  margin-top: 4px;
-  margin-left: 8px;
-}
-</style>

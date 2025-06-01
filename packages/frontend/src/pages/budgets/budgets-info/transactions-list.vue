@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import UiButton from '@/components/common/ui-button.vue';
+import Button from '@/components/lib/ui/button/Button.vue';
 import Card from '@/components/lib/ui/card/Card.vue';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
 import { useTransactions } from '@/composable/data-queries/get-transactions';
@@ -38,9 +38,7 @@ const {
       </template>
     </div>
     <template v-if="hasNextPage">
-      <UiButton type="button" variant="secondary" class="mt-8 w-full" @click="() => fetchNextPage()">
-        Load more
-      </UiButton>
+      <Button type="button" variant="secondary" class="mt-8 w-full" @click="() => fetchNextPage()"> Load more </Button>
     </template>
     <template v-else>
       <p>No more data to load</p>

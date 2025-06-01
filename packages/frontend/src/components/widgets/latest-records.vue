@@ -1,24 +1,3 @@
-<template>
-  <WidgetWrapper class="latest-records-widget" higher>
-    <template #title> Latest Transactions </template>
-    <template #action>
-      <template v-if="!isDataEmpty">
-        <router-link class="latest-records-widget__show-all" :to="{ name: ROUTES_NAMES.transactions }">
-          <ui-button variant="link" as="span" size="sm"> Show all </ui-button>
-        </router-link>
-      </template>
-    </template>
-    <template v-if="isDataEmpty">
-      <EmptyState>
-        <ListIcon class="size-32" />
-      </EmptyState>
-    </template>
-    <template v-else>
-      <TransactionsList class="gap-1" :transactions="transactions || []" />
-    </template>
-  </WidgetWrapper>
-</template>
-
 <script lang="ts" setup>
 import { loadTransactions as apiLoadTransactions } from '@/api/transactions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
@@ -47,10 +26,23 @@ const { data: transactions } = useQuery({
 const isDataEmpty = computed(() => transactions.value.length === 0);
 </script>
 
-<style lang="scss">
-.latest-records-widget__show-all {
-  display: block;
-  color: var(--ac-link-primary-base);
-  text-align: center;
-}
-</style>
+<template>
+  <WidgetWrapper higher>
+    <template #title> Latest Transactions </template>
+    <template #action>
+      <template v-if="!isDataEmpty">
+        <router-link class="text-primary block text-center" :to="{ name: ROUTES_NAMES.transactions }">
+          <ui-button variant="link" as="span" size="sm"> Show all </ui-button>
+        </router-link>
+      </template>
+    </template>
+    <template v-if="isDataEmpty">
+      <EmptyState>
+        <ListIcon class="size-32" />
+      </EmptyState>
+    </template>
+    <template v-else>
+      <TransactionsList class="gap-1" :transactions="transactions || []" />
+    </template>
+  </WidgetWrapper>
+</template>

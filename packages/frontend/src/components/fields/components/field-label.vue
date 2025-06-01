@@ -34,7 +34,6 @@ export default defineComponent({
   font-weight: 400;
   letter-spacing: 0.5px;
   line-height: 1;
-  color: var(--app-on-surface-color);
   margin-bottom: 5px;
   display: flex;
   align-items: center;

@@ -7,12 +7,13 @@
         <button type="button" @click="isDropdownVisible = !isDropdownVisible">
           {{ currentTimePeriod.label }}
         </button>
-        <dropdown
+
+        <!-- <dropdown
           :is-visible="isDropdownVisible"
           :values="timePeriods"
           :selected-value="currentTimePeriod"
           @select="selectPeriod"
-        />
+        /> -->
       </div>
 
       <highcharts
@@ -31,13 +32,13 @@ import { loadBalanceTrendData } from '@/services';
 import { useQuery } from '@tanstack/vue-query';
 import { subDays } from 'date-fns';
 import { Chart as Highcharts } from 'highcharts-vue';
-import { computed, defineAsyncComponent, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 defineOptions({
   name: 'analytics-root',
 });
 
-const Dropdown = defineAsyncComponent(() => import('@/components/common/dropdown.vue'));
+// const Dropdown = defineAsyncComponent(() => import('@/components/common/dropdown.vue'));
 
 const { buildAreaChartConfig } = useHighcharts();
 const currentChartWidth = ref(null);
@@ -77,10 +78,10 @@ const onChartResize = (entries: ResizeObserverEntry[]) => {
   currentChartWidth.value = entry.contentRect.width;
 };
 
-const selectPeriod = ({ item }) => {
-  currentTimePeriod.value = item;
-  isDropdownVisible.value = false;
-};
+// const selectPeriod = ({ item }) => {
+//   currentTimePeriod.value = item;
+//   isDropdownVisible.value = false;
+// };
 </script>
 
 <style lang="scss">
@@ -88,7 +89,6 @@ const selectPeriod = ({ item }) => {
   padding: 24px;
 }
 .analytics__block {
-  background-color: var(--app-surface-color);
   padding: 24px;
   border-radius: 12px;
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="accounts">
+  <div class="p-6">
     <div class="mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
       <h1 class="text-2xl tracking-wider">Accounts</h1>
 
@@ -42,7 +42,7 @@
                 >
                   Hidden
                 </div>
-                <div class="accounts__item-name">
+                <div class="mb-2.5 max-w-[calc(100%-60px)] overflow-hidden text-ellipsis text-lg tracking-wide">
                   {{ account.name || 'No name set...' }}
                 </div>
               </CardHeader>
@@ -58,7 +58,7 @@
     </template>
 
     <template v-else>
-      <p class="accounts__no-data">System accounts do not exist.</p>
+      <p class="mb-6">System accounts do not exist.</p>
     </template>
   </div>
 </template>
@@ -90,58 +90,3 @@ const formattedAccounts = computed(() => [...accounts.value].sort((a, b) => +b.i
 const formatBalance = (account: AccountModel) =>
   formatAmountByCurrencyId(account.currentBalance - account.creditLimit, account.currencyId);
 </script>
-
-<style lang="scss" scoped>
-.accounts {
-  padding: 24px;
-}
-.accounts__list {
-  display: grid;
-  grid-gap: 12px;
-  grid-template-columns: repeat(auto-fit, 240px);
-  margin-bottom: 24px;
-}
-.accounts__item {
-  padding: 16px;
-  background-color: var(--app-surface-color);
-  color: var(--app-on-surface-color);
-  border-radius: 6px;
-  box-shadow: 0 0 24px 0px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.2s ease-out;
-  cursor: pointer;
-  position: relative;
-
-  &:hover {
-    box-shadow: 0 0 24px 0px rgba(0, 0, 0, 0.15);
-  }
-}
-.accounts__item--disabled {
-  opacity: 0.5;
-}
-.accounts__item-name {
-  font-size: 18px;
-  letter-spacing: 0.5px;
-  margin-bottom: 10px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  max-width: calc(100% - 60px);
-}
-.accounts__item-code {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  margin-bottom: 10px;
-}
-.accounts__state {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background-color: var(--app-bg-color);
-  padding: 2px 4px;
-  font-size: 12px;
-  border-radius: 4px;
-}
-.accounts__no-data {
-  color: var(--app-on-surface-color);
-  margin: 0 0 24px;
-}
-</style>

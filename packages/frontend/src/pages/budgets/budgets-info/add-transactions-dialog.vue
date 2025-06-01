@@ -2,7 +2,7 @@
 import { addTransactionsToBudget, loadBudgetById } from '@/api/budgets';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
-import UiButton from '@/components/common/ui-button.vue';
+import Button from '@/components/lib/ui/button/Button.vue';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
@@ -129,16 +129,15 @@ const pickTransaction = (value: boolean, id: number) => {
     </div>
 
     <div class="flex gap-2">
-      <UiButton
+      <Button
         type="button"
-        variant="outline"
-        theme="light-dark"
+        variant="secondary"
         class="mt-8 w-full"
         :disabled="!isTransactionsPicked"
         @click="addTransactions"
       >
         Add Selected
-      </UiButton>
+      </Button>
 
       <template v-if="!hasNextTransactionsPage">
         <p>No more data to load</p>
