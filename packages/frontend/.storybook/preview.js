@@ -1,10 +1,7 @@
 import { addons } from '@storybook/addons';
 import { themes } from '@storybook/theming';
 
-// In case we will put these .scss improts to `main.js` sass-loader options,
-// they will be applied inside the SFC <style> tag, and in case SFC uses scoped
-// styles, global styles and css-variables will be broken
-import '../src/styles/index.scss';
+import '../src/styles/global.css';
 
 export const parameters = {
   actions: { argTypesRegex: '^on[A-Z].*' },

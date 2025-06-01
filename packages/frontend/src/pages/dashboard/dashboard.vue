@@ -14,7 +14,14 @@
       </ui-button>
     </div>
 
-    <div class="dashboard-page__info">
+    <div
+      :class="[
+        `grid gap-6`,
+        `xl:grid-cols-[minmax(0,1fr)_420px] xl:[grid-template-areas:'balance-trend_latest-records'_'spending-categories_latest-records']`,
+        `md:grid-cols-[repeat(2,_minmax(0,1fr))] md:[grid-template-areas:'balance-trend_balance-trend'_'spending-categories_latest-records']`,
+        `grid-cols-1 [grid-template-areas:'balance-trend'_'spending-categories'_'latest-records']`,
+      ]"
+    >
       <BalanceTrendWidget :selected-period="currentPeriod" class="[grid-area:balance-trend]" />
 
       <SpendingCategoriesWidget :selected-period="currentPeriod" class="[grid-area:spending-categories]" />
@@ -69,21 +76,3 @@ const selectNextPeriod = () => {
   currentPeriod.value = { from, to };
 };
 </script>
-
-<style lang="scss">
-.dashboard-page__info {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
-  grid-template-areas: 'balance-trend latest-records' 'spending-categories latest-records';
-  grid-gap: 24px;
-
-  @include below(1200) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas: 'balance-trend balance-trend' 'spending-categories latest-records';
-  }
-  @include below(900) {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'balance-trend' 'spending-categories' 'latest-records';
-  }
-}
-</style>

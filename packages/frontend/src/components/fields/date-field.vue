@@ -140,7 +140,6 @@ watch(localValue, () => {
   top: 0;
   font-size: 16px;
   font-weight: 400;
-  color: rgba(var(--app-on-surface-color-rgb), 0.95);
 
   a {
     color: #ffffff;

@@ -2,7 +2,7 @@
   <div class="type-selector">
     <button
       type="button"
-      class="button-style-reset type-selector__item"
+      class="type-selector__item"
       :disabled="disabled || isExpenseDisabled"
       :class="{
         'type-selector__item--active': selectedTransactionType === FORM_TYPES.expense,
@@ -15,7 +15,7 @@
     </button>
     <button
       type="button"
-      class="button-style-reset type-selector__item"
+      class="type-selector__item"
       :disabled="disabled || isIncomeDisabled"
       :class="{
         'type-selector__item--active': selectedTransactionType === FORM_TYPES.income,
@@ -28,7 +28,7 @@
     </button>
     <button
       type="button"
-      class="button-style-reset type-selector__item"
+      class="type-selector__item"
       :disabled="disabled"
       :class="{
         'type-selector__item--active': selectedTransactionType === FORM_TYPES.transfer,

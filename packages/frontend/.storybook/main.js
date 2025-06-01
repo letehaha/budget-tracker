@@ -10,11 +10,6 @@ module.exports = {
         'css-loader',
         {
           loader: 'sass-loader',
-          options: {
-            additionalData: `
-              @import "@/styles/resources/index.scss";
-            `,
-          },
         },
       ],
     });

@@ -355,7 +355,7 @@ onUnmounted(() => {
   <div class="rounded-t-xl">
     <div
       :class="[
-        'h-3 rounded-t-xl transition-[background-color] duration-200 ease-out',
+        'h-3 rounded-t-lg transition-[background-color] duration-200 ease-out',
         currentTxType === FORM_TYPES.income && 'bg-app-income-color',
         currentTxType === FORM_TYPES.expense && 'bg-app-expense-color',
         currentTxType === FORM_TYPES.transfer && 'bg-app-transfer-color',

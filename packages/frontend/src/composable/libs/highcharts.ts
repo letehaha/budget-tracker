@@ -43,7 +43,7 @@ export const useHighcharts = () => {
           gridLineWidth: 0,
           labels: {
             style: {
-              color: 'var(--app-text-base)',
+              color: 'rgb(var(--base-text))',
             },
           },
         },
@@ -51,15 +51,15 @@ export const useHighcharts = () => {
           title: null,
           labels: {
             style: {
-              color: 'var(--app-text-base)',
+              color: 'rgb(var(--base-text))',
             },
           },
-          gridLineColor: 'rgba(var(--app-primary-rgb), 0.1)',
+          gridLineColor: 'rgba(var(--primary), 0.1)',
         },
         plotOptions: {
           area: {
             fillOpacity: 0.5,
-            lineColor: 'var(--app-primary)',
+            lineColor: 'rgb(var(--primary))',
             lineWidth: 2,
             states: {
               hover: {
@@ -75,8 +75,8 @@ export const useHighcharts = () => {
                 y2: 1,
               },
               stops: [
-                [0, 'rgba(var(--app-primary-rgb), 0.3)'],
-                [1, 'rgba(var(--app-primary-rgb), 0)'],
+                [0, 'rgba(var(--primary), 0.3)'],
+                [1, 'rgba(var(--primary), 0)'],
               ],
             },
             marker: {
@@ -85,8 +85,8 @@ export const useHighcharts = () => {
               states: {
                 hover: {
                   enabled: true,
-                  fillColor: 'var(--app-primary)',
-                  lineColor: 'var(--app-primary)',
+                  fillColor: 'rgb(var(--primary))',
+                  lineColor: 'rgb(var(--primary))',
                   lineWidth: 0,
                 },
               },
@@ -95,16 +95,16 @@ export const useHighcharts = () => {
         },
         tooltip: {
           useHTML: true,
-          backgroundColor: 'var(--app-bg-box)',
+          backgroundColor: 'rgba(var(--card-tooltip), 1)',
           borderColor: 'transparent',
           formatter() {
             return `
-          <div class="balance-trend-widget-tooltip">
-            <div class="balance-trend-widget-tooltip__date">
+          <div class="p-1">
+            <div class="text-sm mb-2">
               ${format(Number(this.x), 'MMMM d, yyyy')}
             </div>
-            <div class="balance-trend-widget-tooltip__value">
-              Balance: <span>${formatBaseCurrency(this.y)}</span>
+            <div class="text-lg">
+              Balance: <span class="text-base font-medium tracking-wide">${formatBaseCurrency(this.y)}</span>
             </div>
           </div>
         `;
@@ -112,7 +112,7 @@ export const useHighcharts = () => {
           shadow: false,
           borderRadius: 8,
           style: {
-            color: 'var(--app-text-base)',
+            color: 'var(--base-text)',
           },
         },
       } as Highcharts.Options,
@@ -166,8 +166,8 @@ export const useHighcharts = () => {
                     chart.hoverLabel = chart.renderer
                       .text(
                         `
-                    <div class="spending-categories-widget-tooltip">
-                      <div class="spending-categories-widget-tooltip__name">
+                    <div class="text-center text-sm">
+                      <div class="mb-1 text-xs">
                         ${this.name}
                       </div>
                       <div class="spending-categories-widget-tooltip__value">

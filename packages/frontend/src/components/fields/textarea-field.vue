@@ -1,13 +1,5 @@
 <template>
-  <div
-    class="text-field"
-    :class="{
-      'text-field--error': errorMessage,
-      'text-field--disabled': disabled,
-      'text-field--readonly': readonly,
-      'text-field--dirty': hasValue,
-    }"
-  >
+  <div class="relative w-full flex-1">
     <FieldLabel :label="label">
       <template #label-right>
         <template v-if="$slots['label-right']">
@@ -48,7 +40,7 @@
 <script lang="ts" setup>
 import { FieldError, FieldLabel } from '@/components/fields';
 import { cn } from '@/lib/utils';
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 interface InputChangeEvent extends InputEvent {
   target: HTMLInputElement;
@@ -97,7 +89,6 @@ const props = withDefaults(
 );
 
 const currentLength = ref(0);
-const hasValue = computed(() => props.modelValue);
 
 onMounted(() => {
   if (props.modelValue) currentLength.value = String(props.modelValue).length;
@@ -108,32 +99,3 @@ const onInput = (event: InputChangeEvent) => {
   emit(MODEL_EVENTS.input, event.target.value);
 };
 </script>
-
-<style lang="scss">
-.text-field {
-  position: relative;
-  width: 100%;
-  flex: 1;
-
-  &--disabled,
-  &--readonly {
-    filter: grayscale(100%);
-    border-style: dashed;
-  }
-}
-
-.text-field__input {
-  width: 100%;
-  position: relative;
-  padding: 16px 16px 24px;
-  caret-color: var(--app-on-surface-color);
-  background-color: var(--app-surface-color);
-  border: 1px solid var(--app-on-surface-color);
-  border-radius: 4px;
-  transition:
-    all 0s,
-    border-color 0.2s ease-out;
-  resize: none;
-  color: var(--app-on-surface-color);
-}
-</style>

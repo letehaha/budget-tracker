@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { createBudget } from '@/api/budgets';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import UiButton from '@/components/common/ui-button.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
+import Button from '@/components/lib/ui/button/Button.vue';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
@@ -86,7 +86,7 @@ const isSubmitDisabled = computed(() => isMutating.value || !form.value.name);
     </div>
 
     <div class="mt-4">
-      <UiButton :disabled="isSubmitDisabled" type="submit">Add budget</UiButton>
+      <Button :disabled="isSubmitDisabled" type="submit">Add budget</Button>
     </div>
   </form>
 </template>

@@ -2,7 +2,7 @@ import { identifyCurrentTheme, patchMetaViewportMaxScaleForiOS } from '@/common/
 import { clickOutside, nodeResizeObserver } from '@/directives';
 import { router } from '@/routes';
 import { store } from '@/stores/setup';
-import '@/styles/index.scss';
+import '@/styles/global.css';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { createApp } from 'vue';
 

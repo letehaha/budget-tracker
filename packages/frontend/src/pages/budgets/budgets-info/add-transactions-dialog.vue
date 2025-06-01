@@ -2,7 +2,7 @@
 import { addTransactionsToBudget, loadBudgetById } from '@/api/budgets';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
-import UiButton from '@/components/common/ui-button.vue';
+import Button from '@/components/lib/ui/button/Button.vue';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import RecordsFiltersDialog from '@/components/records-filters/filters-dialog.vue';
@@ -172,9 +172,7 @@ const isMobileView = useWindowBreakpoints(1024);
           <p class="flex justify-center">No more data to load</p>
         </template>
         <div v-if="isTransactionsPicked" class="sticky -bottom-px flex gap-2">
-          <UiButton type="button" variant="outline" theme="light-dark" class="mt-8 w-full" @click="addTransactions">
-            Add Selected
-          </UiButton>
+          <Button type="button" variant="secondary" class="mt-8 w-full" @click="addTransactions"> Add Selected </Button>
         </div>
       </div>
     </div>

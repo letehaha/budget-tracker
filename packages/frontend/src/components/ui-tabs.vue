@@ -1,11 +1,16 @@
 <template>
   <div class="ui-tabs">
-    <div class="ui-tabs__header">
+    <div
+      class="flex h-12 items-center gap-2"
+      :style="{
+        justifyContent: tabsAlignment,
+      }"
+    >
       <component
         :is="isTabsLink ? 'router-link' : 'button'"
         v-for="item in options"
         :key="item.name"
-        class="ui-tabs__header-item"
+        class="text-base-text [&.router-link-exact-active]:text-primary cursor-pointer p-2 text-sm"
         v-bind="
           isTabsLink
             ? {
@@ -14,9 +19,8 @@
             : {
                 type: 'button',
                 class: [
-                  'button-style-reset',
                   {
-                    'ui-tabs__header-item--active': activeTab?.name === item.name,
+                    'text-primary': activeTab?.name === item.name,
                   },
                 ],
               }
@@ -29,7 +33,7 @@
               }
         "
       >
-        <span class="ui-tabs__header-item-text">
+        <span>
           {{ item.label }}
         </span>
       </component>
@@ -103,29 +107,3 @@ const selectTab = (item: Tab) => {
   emit('change', item);
 };
 </script>
-
-<style lang="scss">
-.ui-tabs__header {
-  display: flex;
-  justify-content: v-bind(tabsAlignment);
-  align-items: center;
-  gap: 8px;
-  height: 50px;
-}
-
-.ui-tabs__header-item {
-  font-size: 14px;
-  line-height: 1.21;
-  cursor: pointer;
-  color: var(--app-text-base);
-  padding: 8px;
-
-  &.router-link-exact-active {
-    color: var(--app-primary);
-  }
-}
-
-.ui-tabs__header-item--active {
-  color: var(--app-primary);
-}
-</style>

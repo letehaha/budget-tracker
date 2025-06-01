@@ -1,5 +1,7 @@
 <template>
-  <div class="layout-header">
+  <div
+    class="shadow-header border-border flex max-h-[var(--header-height)] items-center justify-between border-b px-6 py-3"
+  >
     <div class="flex items-center gap-4">
       <template v-if="isMobileView">
         <Sheet.Sheet :open="isMobileSheetOpen" @update:open="isMobileSheetOpen = $event">
@@ -44,7 +46,6 @@
       <ui-tooltip
         :content="!isAllowedToSyncFinancialData ? 'You can sync data only once in 30 mins' : ''"
         position="bottom"
-        class="layout-header__sync-status-wrapper"
       >
         <Button
           variant="ghost"
@@ -55,11 +56,11 @@
         >
           <template v-if="isSyncing">
             <RefreshCcw />
-            <span class="layout-header__sync-status-text">Synchronizing...</span>
+            <span class="font-medium">Synchronizing...</span>
           </template>
           <template v-else>
             <CheckCircle :size="14" class="text-green-700" />
-            <span class="layout-header__sync-status-text xs:block hidden"> Synchronized </span>
+            <span class="xs:block hidden font-medium"> Synchronized </span>
           </template>
         </Button>
       </ui-tooltip>
@@ -108,35 +109,3 @@ watch(route, () => {
   isMobileSheetOpen.value = false;
 });
 </script>
-
-<style lang="scss">
-.layout-header {
-  padding: 12px 24px;
-  box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--app-border-default);
-  max-height: var(--header-height);
-}
-.layout-header__to-left {
-  margin-left: auto;
-  display: flex;
-}
-.layout-header__sync-status-wrapper {
-  .ui-tooltip__content-wrapper {
-    left: 30%;
-  }
-}
-.layout-header__sync-status--syncing {
-  svg {
-    animation-name: keyframes-rotate;
-    animation-iteration-count: infinite;
-    animation-duration: 1s;
-    animation-timing-function: linear;
-  }
-}
-.layout-header__sync-status-text {
-  font-weight: 500;
-}
-</style>
