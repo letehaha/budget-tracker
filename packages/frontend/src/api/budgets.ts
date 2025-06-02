@@ -57,3 +57,11 @@ export const editBudget = async ({ budgetId, payload }: { budgetId: number; payl
 
 export const addTransactionsToBudget = async (budgetId: number, params: unknown) =>
   api.post(`/budgets/${budgetId}/transactions`, params);
+
+export const removeTransactionsFromBudget = async ({
+  budgetId,
+  payload,
+}: {
+  budgetId: number;
+  payload: { transactionIds: number[] };
+}) => api.delete(`/budgets/${budgetId}/transactions`, payload);

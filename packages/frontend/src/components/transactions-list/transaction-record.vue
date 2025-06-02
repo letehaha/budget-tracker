@@ -44,7 +44,7 @@
       >
         {{ formattedAmount }}
       </div>
-      <div class="text-sm">
+      <div class="text-right text-sm">
         {{ formateDate(transaction.time) }}
       </div>
     </div>

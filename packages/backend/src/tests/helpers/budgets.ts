@@ -1,5 +1,6 @@
 import { BudgetModel } from '@bt/shared/types';
 import { addTransactionsToBudget } from '@controllers/budgets/add-transaction-to-budget';
+import removeTransactionsFromBudget from '@controllers/budgets/remove-transaction-from-budget';
 import * as getBudgetService from '@root/services/budget.service';
 import * as createBudgetService from '@root/services/budgets/create-budget';
 import { Response } from 'express';
@@ -24,7 +25,7 @@ interface EditBudgetPayload {
   autoInclude?: boolean;
 }
 
-interface addingTransactionToBudgetPayload {
+interface linkTransactionToBudgetPayload {
   transactionIds: number[];
 }
 
@@ -123,11 +124,28 @@ export async function addTransactionToCustomBudget<R extends boolean | undefined
   raw,
 }: {
   id: number;
-  payload: addingTransactionToBudgetPayload;
+  payload: linkTransactionToBudgetPayload;
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof addTransactionsToBudget>> | null, R>({
     method: 'post',
+    url: `/budgets/${id}/transactions`,
+    payload,
+    raw,
+  });
+}
+
+export async function removeTransactionFromCustomBudget<R extends boolean | undefined = undefined>({
+  id,
+  payload,
+  raw,
+}: {
+  id: number;
+  payload: linkTransactionToBudgetPayload;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof removeTransactionsFromBudget.handler>> | null, R>({
+    method: 'delete',
     url: `/budgets/${id}/transactions`,
     payload,
     raw,

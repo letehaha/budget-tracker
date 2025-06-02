@@ -3,6 +3,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { removeValuesFromObject } from '@/common/utils/remove-values-from-object';
 import { DEFAULT_FILTERS, FiltersStruct } from '@/components/records-filters/const';
 import { useInfiniteQuery } from '@tanstack/vue-query';
+import { useQueryClient } from '@tanstack/vue-query';
 import isDate from 'date-fns/isDate';
 import { isEqual } from 'lodash-es';
 import { MaybeRef, computed, ref } from 'vue';
@@ -18,6 +19,7 @@ export const useTransactionsWithFilters = ({
   queryEnabled?: MaybeRef<boolean>;
   staticFilters?: Partial<FiltersStruct>;
 } = {}) => {
+  const queryClient = useQueryClient();
   const filters = ref<FiltersStruct>({ ...DEFAULT_FILTERS });
   const appliedFilters = ref<FiltersStruct>({ ...DEFAULT_FILTERS });
 
@@ -60,6 +62,8 @@ export const useTransactionsWithFilters = ({
     );
   };
 
+  const queryKey = [...VUE_QUERY_CACHE_KEYS.recordsPageRecordsList, appliedFilters, ...appendQueryKey];
+
   const {
     data: transactionsPages,
     fetchNextPage,
@@ -67,7 +71,7 @@ export const useTransactionsWithFilters = ({
     isFetchingNextPage,
     isFetched,
   } = useInfiniteQuery({
-    queryKey: [...VUE_QUERY_CACHE_KEYS.recordsPageRecordsList, appliedFilters, ...appendQueryKey],
+    queryKey,
     queryFn: ({ pageParam }) => fetchTransactions({ pageParam, filter: appliedFilters.value }),
     initialPageParam: 0,
     getNextPageParam: (lastPage, pages) => {
@@ -77,6 +81,8 @@ export const useTransactionsWithFilters = ({
     staleTime: 1_000 * 60,
     enabled: queryEnabled,
   });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey });
 
   return {
     isResetButtonDisabled,
@@ -92,5 +98,6 @@ export const useTransactionsWithFilters = ({
     isFetchingNextPage,
     isFetched,
     transactionsListRef,
+    invalidate,
   };
 };

@@ -45,6 +45,7 @@ const {
   fetchNextPage: fetchNextTransactionPage,
   hasNextPage: hasNextTransactionsPage,
   isFetchingNextPage: isFetchingNextTransactionsPage,
+  invalidate,
 } = useTransactionsWithFilters({
   appendQueryKey: [currentBudgetId],
   queryEnabled: isAddingTransactionModalVisible,
@@ -57,6 +58,7 @@ const addTransactions = async () => {
   };
   try {
     await addTransactionsToBudget(currentBudgetId.value, data);
+    invalidate();
   } catch (err) {
     addErrorNotification(err.data.message);
   }
@@ -172,7 +174,9 @@ const isMobileView = useWindowBreakpoints(1024);
           <p class="flex justify-center">No more data to load</p>
         </template>
         <div v-if="isTransactionsPicked" class="sticky -bottom-px flex gap-2">
-          <Button type="button" variant="secondary" class="mt-8 w-full" @click="addTransactions"> Add Selected </Button>
+          <Button type="button" variant="secondary" class="hover:bg-initial mt-8 w-full" @click="addTransactions">
+            Add Selected
+          </Button>
         </div>
       </div>
     </div>

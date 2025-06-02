@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { loadTransactions as apiLoadTransactions } from '@/api/transactions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { buttonVariants } from '@/components/lib/ui/button';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
@@ -30,8 +31,11 @@ const isDataEmpty = computed(() => transactions.value.length === 0);
     <template #title> Latest Transactions </template>
     <template #action>
       <template v-if="!isDataEmpty">
-        <router-link class="text-primary block text-center" :to="{ name: ROUTES_NAMES.transactions }">
-          <ui-button variant="link" as="span" size="sm"> Show all </ui-button>
+        <router-link
+          :class="buttonVariants({ variant: 'link', size: 'sm', class: 'text-primary block text-center' })"
+          :to="{ name: ROUTES_NAMES.transactions }"
+        >
+          <span>Show all</span>
         </router-link>
       </template>
     </template>
