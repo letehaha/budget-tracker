@@ -64,6 +64,10 @@ const deleteBudget = async (budgetId: number) => {
             accept-variant="destructive"
             @accept="deleteBudget(budget.id)"
           >
+            <template #description>
+              By clicking "Accept," all associated transactions will be unlinked from the budget but will remain in the
+              system.
+            </template>
             <template #trigger>
               <Button variant="destructive" size="sm" class="w-min" @click.stop="toggleDeleteModal">
                 <span class="@[360px]/budgets-list:inline"> Delete </span>
