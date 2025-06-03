@@ -6,7 +6,7 @@ import { ZodIssue, z } from 'zod';
 
 // Enforce res.json(object) to always have `status` field and optional `response`
 // with ability to pass `response` type using res.json<Type>()
-type Send<T = Response> = {
+export type ResponseSend<T = Response> = {
   <ResBody>(body: { response?: ResBody; validationErrors?: ZodIssue[]; status: API_RESPONSE_STATUS }): T;
 };
 export interface CustomRequest<T extends z.ZodType> extends Express.Request {
@@ -14,7 +14,7 @@ export interface CustomRequest<T extends z.ZodType> extends Express.Request {
   user: InferAttributes<Users, { omit: keyof Model }>;
 }
 export interface CustomResponse extends Express.Response {
-  json: Send<this>;
+  json: ResponseSend<this>;
 }
 
 // export type ValidatedRequestHandler<T extends z.ZodType> = (

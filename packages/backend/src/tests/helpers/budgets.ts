@@ -1,5 +1,5 @@
 import { BudgetModel } from '@bt/shared/types';
-import { addTransactionsToBudget } from '@controllers/budgets/add-transaction-to-budget';
+import addTransactionsToBudget from '@controllers/budgets/add-transaction-to-budget';
 import removeTransactionsFromBudget from '@controllers/budgets/remove-transaction-from-budget';
 import * as getBudgetService from '@root/services/budget.service';
 import * as createBudgetService from '@root/services/budgets/create-budget';
@@ -127,7 +127,7 @@ export async function addTransactionToCustomBudget<R extends boolean | undefined
   payload: linkTransactionToBudgetPayload;
   raw?: R;
 }) {
-  return makeRequest<Awaited<ReturnType<typeof addTransactionsToBudget>> | null, R>({
+  return makeRequest<Awaited<ReturnType<typeof addTransactionsToBudget.handler>> | null, R>({
     method: 'post',
     url: `/budgets/${id}/transactions`,
     payload,
