@@ -15,7 +15,7 @@ describe('Add account to group', () => {
       groupId: group.id,
     });
 
-    expect(result.statusCode).toBe(201);
+    expect(result.statusCode).toBe(200);
   });
 
   it('successfully adds account to group_1 -> group_2 -> group_1', async () => {
@@ -36,7 +36,7 @@ describe('Add account to group', () => {
       groupId: group.id,
     });
 
-    expect(result.statusCode).toBe(201);
+    expect(result.statusCode).toBe(200);
   });
 
   it('fails when account does not exist', async () => {

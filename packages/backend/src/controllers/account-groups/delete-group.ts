@@ -1,30 +1,16 @@
-import { API_RESPONSE_STATUS } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
-import type { CustomResponse } from '@common/types';
-import { errorHandler } from '@controllers/helpers';
+import { createController } from '@controllers/helpers/controller-factory';
 import * as accountGroupService from '@services/account-groups';
 import { z } from 'zod';
 
-export const deleteAccountGroup = async (req, res: CustomResponse) => {
-  try {
-    const { id: userId } = req.user;
-    const { groupId }: DeleteAccountGroupParams['params'] = req.validated.params;
-
+export default createController(
+  z.object({
+    params: z.object({ groupId: recordId() }),
+  }),
+  async ({ user, params }) => {
     await accountGroupService.deleteAccountGroup({
-      groupId,
-      userId,
+      groupId: params.groupId,
+      userId: user.id,
     });
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const deleteAccountGroupSchema = z.object({
-  params: z.object({ groupId: recordId() }),
-});
-
-type DeleteAccountGroupParams = z.infer<typeof deleteAccountGroupSchema>;
+  },
+);

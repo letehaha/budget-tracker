@@ -18,11 +18,11 @@ const schema = z.object({
 });
 
 export default createController(schema, async ({ user, params, body }) => {
-  const result = await addTransactionsToBudgetService({
+  const data = await addTransactionsToBudgetService({
     budgetId: Number(params.id),
     userId: user.id,
     transactionIds: body.transactionIds,
   });
 
-  return result;
+  return { data };
 });

@@ -10,10 +10,10 @@ const schema = z.object({
 });
 
 export default createController(schema, async ({ user, params }) => {
-  const result = await deleteBudgetService.deleteBudget({
+  const data = await deleteBudgetService.deleteBudget({
     id: params.id,
     userId: user.id,
   });
 
-  return result;
+  return { data };
 });

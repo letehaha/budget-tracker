@@ -4,7 +4,6 @@ import { errorHandler } from '@controllers/helpers';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 
-// Define a more explicit type extraction approach
 type ValidatedData<T extends z.ZodType> = z.infer<T>;
 
 type HandlerParams<T extends z.ZodType> = {
@@ -16,17 +15,17 @@ type HandlerParams<T extends z.ZodType> = {
   res: Response;
 };
 
-type HandlerFunction<T extends z.ZodType> = (
-  params: HandlerParams<T>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-) => Promise<any>;
+type ControllerResponse<T = unknown> = {
+  data?: T;
+  statusCode?: number;
+};
+
+type HandlerFunction<T extends z.ZodType> = (params: HandlerParams<T>) => Promise<ControllerResponse | void>;
 
 export function createController<T extends z.ZodType>(schema: T, handler: HandlerFunction<T>) {
   return {
     schema,
     handler: async (_req: Request, res: CustomResponse): Promise<CustomResponse> => {
-      // Since we've extended Express.Request, TypeScript knows req might have validated
-      // We just need to cast it to the specific schema type
       const req = _req as CustomRequest<T>;
 
       try {
@@ -39,9 +38,17 @@ export function createController<T extends z.ZodType>(schema: T, handler: Handle
           body: req.validated.body || {},
         });
 
-        return res.status(result?.statusCode || 200).json({
+        const statusCode = result?.statusCode || 200;
+
+        if (!result || result.data === undefined) {
+          return res.status(statusCode).json({
+            status: API_RESPONSE_STATUS.success,
+          });
+        }
+
+        return res.status(statusCode).json({
           status: API_RESPONSE_STATUS.success,
-          response: result,
+          response: result.data,
         });
       } catch (err) {
         return errorHandler(res, err as Error);

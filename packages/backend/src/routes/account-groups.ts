@@ -8,57 +8,57 @@ const router = Router();
 router.post(
   '/',
   authenticateJwt,
-  validateEndpoint(accountGroupController.createAccountGroupSchema),
-  accountGroupController.createAccountGroup,
+  validateEndpoint(accountGroupController.createAccountGroup.schema),
+  accountGroupController.createAccountGroup.handler,
 );
 
 router.get(
   '/',
   authenticateJwt,
-  validateEndpoint(accountGroupController.getAccountGroupsSchema),
-  accountGroupController.getAccountGroups,
+  validateEndpoint(accountGroupController.getGroups.schema),
+  accountGroupController.getGroups.handler,
 );
 
 router.put(
   '/:groupId',
   authenticateJwt,
-  validateEndpoint(accountGroupController.updateAccountGroupSchema),
-  accountGroupController.updateAccountGroup,
+  validateEndpoint(accountGroupController.updateGroup.schema),
+  accountGroupController.updateGroup.handler,
 );
 
 router.delete(
   '/:groupId',
   authenticateJwt,
-  validateEndpoint(accountGroupController.deleteAccountGroupSchema),
-  accountGroupController.deleteAccountGroup,
+  validateEndpoint(accountGroupController.deleteGroup.schema),
+  accountGroupController.deleteGroup.handler,
 );
 
 router.post(
   '/:groupId/add-account/:accountId',
   authenticateJwt,
-  validateEndpoint(accountGroupController.addAccountToGroupSchema),
-  accountGroupController.addAccountToGroup,
+  validateEndpoint(accountGroupController.addAccountToGroup.schema),
+  accountGroupController.addAccountToGroup.handler,
 );
 
 router.delete(
   '/:groupId/accounts',
   authenticateJwt,
-  validateEndpoint(accountGroupController.removeAccountFromGroupSchema),
-  accountGroupController.removeAccountFromGroup,
+  validateEndpoint(accountGroupController.removeAccountFromGroup.schema),
+  accountGroupController.removeAccountFromGroup.handler,
 );
 
 router.put(
   '/:groupId/move',
   authenticateJwt,
-  validateEndpoint(accountGroupController.moveAccountGroupSchema),
-  accountGroupController.moveAccountGroup,
+  validateEndpoint(accountGroupController.moveAccountToGroup.schema),
+  accountGroupController.moveAccountToGroup.handler,
 );
 
 router.get(
   '/:groupId/accounts',
   authenticateJwt,
-  validateEndpoint(accountGroupController.getAccountsInGroupSchema),
-  accountGroupController.getAccountsInGroup,
+  validateEndpoint(accountGroupController.getAccountsInGroup.schema),
+  accountGroupController.getAccountsInGroup.handler,
 );
 
 export default router;

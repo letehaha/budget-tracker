@@ -24,7 +24,7 @@ const schema = z.object({
 export default createController(schema, async ({ user, params, body }) => {
   const { name, startDate, endDate, limitAmount, autoInclude } = body;
 
-  return editBudgetService.editBudget({
+  const data = await editBudgetService.editBudget({
     id: params.id,
     userId: user.id,
     name,
@@ -33,4 +33,6 @@ export default createController(schema, async ({ user, params, body }) => {
     limitAmount,
     autoInclude,
   });
+
+  return { data };
 });

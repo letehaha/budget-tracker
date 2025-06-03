@@ -32,5 +32,5 @@ export default createController(schema, async ({ user, body }) => {
     limitAmount,
   });
 
-  return data;
+  return { data };
 });
