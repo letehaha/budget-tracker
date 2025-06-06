@@ -29,7 +29,7 @@
             </template>
           </div>
         </template>
-        <span class="line-clamp-2 text-sm tracking-wider opacity-40 [word-break:break-word]">
+        <span class="line-clamp-1 text-sm tracking-wider opacity-40 [word-break:break-word]">
           {{ transaction.note }}
         </span>
       </div>
@@ -44,7 +44,7 @@
       >
         {{ formattedAmount }}
       </div>
-      <div class="text-sm">
+      <div class="text-right text-sm">
         {{ formateDate(transaction.time) }}
       </div>
     </div>

@@ -1,28 +1,30 @@
-import { API_RESPONSE_STATUS } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
-import { errorHandler } from '@controllers/helpers';
-import { NotFoundError } from '@js/errors';
+import { createController } from '@controllers/helpers/controller-factory';
 import * as service from '@services/tx-refunds/get-refund-for-transaction-by-id.service';
+import { z } from 'zod';
 
-export const getRefundsForTransactionById = async (req, res: CustomResponse) => {
-  try {
-    const { id: userId } = req.user;
-    const transactionId = parseInt(req.query.transactionId as string);
+const schema = z.object({
+  query: z.object({
+    transactionId: z
+      .string()
+      .refine(
+        (val) => {
+          const id = parseInt(val);
+          return !isNaN(id) && id > 0;
+        },
+        { message: 'Invalid transaction ID' },
+      )
+      .transform((val) => parseInt(val)),
+  }),
+});
 
-    if (!transactionId || transactionId <= 0 || Number.isNaN(transactionId)) {
-      throw new NotFoundError({ message: 'Invalid transaction ID' });
-    }
+export default createController(schema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { transactionId } = query;
 
-    const data = await service.getRefundsForTransactionById({
-      transactionId,
-      userId,
-    });
+  const data = await service.getRefundsForTransactionById({
+    transactionId,
+    userId,
+  });
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+  return { data };
+});

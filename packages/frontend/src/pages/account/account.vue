@@ -24,15 +24,15 @@
             </Tabs.TabsList>
             <Tabs.TabsContent value="records">
               <template v-if="isFetched">
-                <TransactionsList class="max-h-[600px] overflow-auto p-1" :transactions="rawTransactionsList" />
-              </template>
-              <template v-if="hasNextPage">
-                <Button class="mt-8 w-full" type="button" @click="() => fetchNextPage()">Load more</Button>
-              </template>
-              <template v-else>
-                <p class="mt-8 text-center">
-                  {{ rawTransactionsList.length ? 'No more data to load' : 'No data' }}
-                </p>
+                <ScrollArea :scroll-area-id="SCROLL_AREA_IDS.accountTransactions" class="h-screen max-h-[600px]">
+                  <TransactionsList
+                    :hasNextPage="hasNextPage"
+                    :transactions="rawTransactionsList"
+                    :isFetchingNextPage="isFetchingNextPage"
+                    :scroll-area-id="SCROLL_AREA_IDS.accountTransactions"
+                    @fetch-next-page="fetchNextPage"
+                  />
+                </ScrollArea>
               </template>
             </Tabs.TabsContent>
           </Tabs.Tabs>
@@ -45,8 +45,9 @@
 <script setup lang="ts">
 import { loadTransactions } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import Button from '@/components/lib/ui/button/Button.vue';
 import * as Card from '@/components/lib/ui/card';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
@@ -79,6 +80,7 @@ const {
   data: transactionsPages,
   fetchNextPage,
   hasNextPage,
+  isFetchingNextPage,
   isFetched,
 } = useInfiniteQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.accountSpecificTransactions, account],

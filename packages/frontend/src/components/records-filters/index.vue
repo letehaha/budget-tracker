@@ -32,7 +32,7 @@
     />
   </div>
 
-  <div class="lg:bg-card max-lg:bg-background sticky -bottom-px mt-4 flex gap-2 lg:-bottom-4">
+  <div class="lg:bg-card max-lg:bg-background sticky -bottom-px mt-4 flex gap-2">
     <UiButton
       variant="secondary"
       :disabled="isResetButtonDisabled"
@@ -51,26 +51,18 @@
 <script lang="ts" setup>
 import UiButton from '@/components/lib/ui/button/Button.vue';
 
+import { FiltersStruct } from './const';
 import AccountsFilter from './filters/accounts.vue';
 import AmountRangeFilter from './filters/amount-range-filter.vue';
 import DateRangeFilter from './filters/date-range-filter.vue';
 import ExclusionsFilter from './filters/exclusions.vue';
 import TransactionTypeFilter from './filters/transaction-type-filter.vue';
 
-defineProps({
-  filters: {
-    type: Object,
-    required: true,
-  },
-  isResetButtonDisabled: {
-    type: Boolean,
-    required: true,
-  },
-  isFiltersOutOfSync: {
-    type: Boolean,
-    required: true,
-  },
-});
+defineProps<{
+  filters: FiltersStruct;
+  isResetButtonDisabled: boolean;
+  isFiltersOutOfSync: boolean;
+}>();
 
 defineEmits(['update:filters', 'reset-filters', 'apply-filters']);
 </script>

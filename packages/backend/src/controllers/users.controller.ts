@@ -1,23 +1,11 @@
-import { API_ERROR_CODES, API_RESPONSE_STATUS, UserModel } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
-
+import { UserModel } from '@bt/shared/types';
+import { createController } from '@controllers/helpers/controller-factory';
 import { getUsers as getUsersModel } from '../models/Users.model';
+import { z } from 'zod';
 
-export const getUsers = async (req, res: CustomResponse) => {
-  try {
-    const users: UserModel[] = await getUsersModel();
+const schema = z.object({});
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: users,
-    });
-  } catch (err) {
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
-  }
-};
+export default createController(schema, async () => {
+  const users: UserModel[] = await getUsersModel();
+  return { data: users };
+});

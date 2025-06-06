@@ -1,55 +1,48 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_RESPONSE_STATUS, endpointsTypes } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
 import { NotFoundError, Unauthorized, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
 import * as accountsService from '@services/accounts.service';
+import { z } from 'zod';
 
-import { errorHandler } from './helpers';
+import { createController } from './helpers/controller-factory';
 
-export const getAccounts = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
+export const getAccounts = createController(z.object({}), async ({ user }) => {
+  const { id: userId } = user;
+  const accounts = await accountsService.getAccounts({ userId });
+  return { data: accounts };
+});
 
-  try {
-    const accounts = await accountsService.getAccounts({ userId });
+export const getAccountById = createController(
+  z.object({
+    params: z.object({
+      id: z.coerce.number(),
+    }),
+  }),
+  async ({ user, params }) => {
+    const { id } = params;
+    const { id: userId } = user;
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: accounts,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const getAccountById = async (req, res: CustomResponse) => {
-  const { id } = req.params;
-  const { id: userId } = req.user;
-
-  try {
     const account = await accountsService.getAccountById({ userId, id });
+    return { data: account };
+  },
+);
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: account,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+export const createAccount = createController(
+  z.object({
+    body: z.object({
+      accountCategory: z.nativeEnum(ACCOUNT_CATEGORIES).default(ACCOUNT_CATEGORIES.general),
+      currencyId: z.number(),
+      name: z.string(),
+      type: z.nativeEnum(ACCOUNT_TYPES).default(ACCOUNT_TYPES.system),
+      initialBalance: z.number().optional().default(0),
+      creditLimit: z.number().optional().default(0),
+    }),
+  }),
+  async ({ user, body }) => {
+    const { accountCategory, currencyId, name, type, initialBalance, creditLimit } = body;
+    const { id: userId } = user;
 
-export const createAccount = async (req, res) => {
-  const {
-    accountCategory = ACCOUNT_CATEGORIES.general,
-    currencyId,
-    name,
-    type = ACCOUNT_TYPES.system,
-    initialBalance,
-    creditLimit,
-  }: endpointsTypes.CreateAccountBody = req.body;
-  const { id: userId } = req.user;
-
-  try {
     if (type !== ACCOUNT_TYPES.system && process.env.NODE_ENV === 'production') {
       throw new Unauthorized({
         message: `Only "type: ${ACCOUNT_TYPES.system}" is allowed.`,
@@ -66,20 +59,28 @@ export const createAccount = async (req, res) => {
       userId,
     });
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: account,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+    return { data: account };
+  },
+);
 
-export const updateAccount = async (req, res) => {
-  const { id } = req.params;
-  const { id: userId } = req.user;
-  const { accountCategory, name, creditLimit, isEnabled, currentBalance }: endpointsTypes.UpdateAccountBody = req.body;
-  try {
+export const updateAccount = createController(
+  z.object({
+    params: z.object({
+      id: z.coerce.number(),
+    }),
+    body: z.object({
+      accountCategory: z.nativeEnum(ACCOUNT_CATEGORIES).optional(),
+      name: z.string().optional(),
+      creditLimit: z.number().optional(),
+      isEnabled: z.boolean().optional(),
+      currentBalance: z.number().optional(),
+    }),
+  }),
+  async ({ user, params, body }) => {
+    const { id } = params;
+    const { id: userId } = user;
+    const { accountCategory, name, creditLimit, isEnabled, currentBalance } = body;
+
     const account = await Accounts.findByPk(id);
 
     if (!account) {
@@ -96,38 +97,30 @@ export const updateAccount = async (req, res) => {
       }
     }
 
-    // If user wants to change currentBalance, he can do it in two ways:
-    // 1. Create an adjustment transaction
-    // 2. Update `currentBalance` field, which will automatically edit initialBalance and balance history
     const result = await accountsService.updateAccount({
       id,
       userId,
       ...removeUndefinedKeys({
         isEnabled,
         accountCategory,
-        currentBalance: Number(currentBalance),
+        currentBalance: currentBalance !== undefined ? Number(currentBalance) : undefined,
         name,
-        creditLimit: Number(creditLimit),
+        creditLimit: creditLimit !== undefined ? Number(creditLimit) : undefined,
       }),
     });
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+    return { data: result };
+  },
+);
 
-export const deleteAccount = async (req, res) => {
-  const { id } = req.params;
-
-  try {
+export const deleteAccount = createController(
+  z.object({
+    params: z.object({
+      id: z.coerce.number(),
+    }),
+  }),
+  async ({ params }) => {
+    const { id } = params;
     await accountsService.deleteAccountById({ id });
-
-    return res.status(200).json({ status: API_RESPONSE_STATUS.success });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+  },
+);

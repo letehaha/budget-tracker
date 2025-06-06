@@ -1,6 +1,7 @@
-import { BudgetModel } from "@bt/shared/types";
-import { api } from "@/api/_api";
-import { toSystemAmount, fromSystemAmount } from "./helpers";
+import { api } from '@/api/_api';
+import { BudgetModel } from '@bt/shared/types';
+
+import { fromSystemAmount, toSystemAmount } from './helpers';
 
 interface editBudgetParamsParams {
   name?: string;
@@ -8,7 +9,7 @@ interface editBudgetParamsParams {
 }
 
 export const loadSystemBudgets = async (): Promise<BudgetModel[]> => {
-  const result = await api.get("/budgets");
+  const result = await api.get('/budgets');
 
   const updatedResult = result.map((budget: BudgetModel) => {
     if (budget.limitAmount) {
@@ -31,28 +32,22 @@ export const loadBudgetById = async (id: number): Promise<BudgetModel> => {
   return result;
 };
 
-export const createBudget = async (
-  payload: Omit<BudgetModel, "id" | "userId">,
-): Promise<BudgetModel> => {
+export const createBudget = async (payload: Omit<BudgetModel, 'id' | 'userId'>): Promise<BudgetModel> => {
   const params = payload;
 
-  if (params.limitAmount) params.limitAmount = toSystemAmount(Number(params.limitAmount));
-  const result = await api.post("/budgets", params);
+  if (params.limitAmount > 0) {
+    params.limitAmount = toSystemAmount(Number(params.limitAmount));
+  } else {
+    params.limitAmount = null;
+  }
+  const result = await api.post('/budgets', params);
 
   return result;
 };
 
-export const deleteBudget = async (budgetId: number) => {
-  await api.delete(`/budgets/${budgetId}`);
-};
+export const deleteBudget = async (budgetId: number) => api.delete(`/budgets/${budgetId}`);
 
-export const editBudget = async ({
-  budgetId,
-  payload,
-}: {
-  budgetId: number;
-  payload: editBudgetParamsParams;
-}) => {
+export const editBudget = async ({ budgetId, payload }: { budgetId: number; payload: editBudgetParamsParams }) => {
   const params = payload;
 
   if (params.limitAmount) params.limitAmount = toSystemAmount(Number(params.limitAmount));
@@ -60,6 +55,13 @@ export const editBudget = async ({
   await api.put(`/budgets/${budgetId}`, params);
 };
 
-export const addTransactionsToBudget = async (budgetId: number, params: unknown) => {
-  await api.post(`/budgets/${budgetId}/transactions`, params);
-};
+export const addTransactionsToBudget = async (budgetId: number, params: unknown) =>
+  api.post(`/budgets/${budgetId}/transactions`, params);
+
+export const removeTransactionsFromBudget = async ({
+  budgetId,
+  payload,
+}: {
+  budgetId: number;
+  payload: { transactionIds: number[] };
+}) => api.delete(`/budgets/${budgetId}/transactions`, payload);

@@ -1,12 +1,14 @@
 <script lang="ts" setup>
-import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
+import { useScrollAreaContainer } from '@/composable/scroll-area-container';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { useVirtualizer } from '@tanstack/vue-virtual';
 import { createReusableTemplate } from '@vueuse/core';
-import { defineAsyncComponent, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, ref, watch, watchEffect } from 'vue';
 
+import { SCROLL_AREA_IDS } from '../lib/ui/scroll-area/types';
 import TransactionRecord from './transaction-record.vue';
 
 const ManageTransactionDoalogContent = defineAsyncComponent(
@@ -17,19 +19,22 @@ const props = withDefaults(
   defineProps<{
     transactions: TransactionModel[];
     isTransactionRecord?: boolean;
-    isTransactionPicking?: boolean;
+    hasNextPage?: boolean;
+    isFetchingNextPage?: boolean;
+    paginate?: boolean;
+    scrollAreaId?: SCROLL_AREA_IDS;
   }>(),
   {
     isTransactionRecord: false,
-    isTransactionPicking: false,
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    paginate: true,
+    scrollAreaId: SCROLL_AREA_IDS.dashboard,
   },
 );
+const emits = defineEmits(['fetch-next-page']);
 const [UseDialogTemplate, SlotContent] = createReusableTemplate();
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
-const pickedTransactions = ref<number[]>([]);
-const emits = defineEmits<{
-  (e: 'update:pickedTransactions', value: number[]): void;
-}>();
 
 const isDialogVisible = ref(false);
 const defaultDialogProps = {
@@ -66,42 +71,85 @@ const handlerRecordClick = ([baseTx, oppositeTx]: [baseTx: TransactionModel, opp
     modalOptions.oppositeTransaction = isValid ? oppositeTx : baseTx;
   }
 
-  if (!props.isTransactionPicking) {
-    isDialogVisible.value = true;
-    dialogProps.value = modalOptions;
-  }
+  isDialogVisible.value = true;
+  dialogProps.value = modalOptions;
 };
 
-const toggleChecked = (value: boolean, item: TransactionModel) => {
-  const transactionId = item.id;
-  if (value) {
-    if (!pickedTransactions.value.includes(transactionId)) {
-      pickedTransactions.value.push(transactionId);
-    }
-  } else {
-    pickedTransactions.value = pickedTransactions.value.filter((id) => id !== transactionId);
+const scrollContainer = useScrollAreaContainer(props.scrollAreaId);
+
+const virtualizer = useVirtualizer(
+  computed(() => ({
+    count: props.transactions.length + (props.hasNextPage ? 1 : 0),
+    getScrollElement: () => scrollContainer?.value?.viewportElement,
+    estimateSize: () => 52 + 8,
+    overscan: 10,
+    enabled: props.paginate && !!scrollContainer?.value?.viewportElement,
+  })),
+);
+
+defineExpose({
+  virtualizer,
+  scrollToIndex: (index) => virtualizer.value.scrollToIndex(index),
+  scrollToOffset: (offset) => virtualizer.value.scrollToOffset(offset),
+});
+
+const virtualRows = computed(() => virtualizer.value.getVirtualItems());
+const totalSize = computed(() => virtualizer.value.getTotalSize());
+
+watchEffect(() => {
+  const [lastItem] = [...virtualRows.value].reverse();
+
+  if (!lastItem) return;
+
+  if (lastItem.index >= props.transactions.length - 1 && props.hasNextPage && !props.isFetchingNextPage) {
+    emits('fetch-next-page');
   }
-  emits('update:pickedTransactions', pickedTransactions.value);
-};
+});
 </script>
 
 <template>
   <div>
-    <div v-bind="$attrs" class="grid grid-cols-1 gap-2">
-      <template
-        v-for="item in transactions"
-        :key="`${item.id}-${item.categoryId}-${item.refAmount}-${item.note}-${item.time}`"
-      >
-        <div class="flex items-center">
-          <Checkbox
-            v-if="isTransactionPicking"
-            :checked="pickedTransactions.includes(item.id)"
-            @update:checked="toggleChecked($event, item)"
-          />
-          <TransactionRecord :tx="item" @record-click="handlerRecordClick" />
+    <template v-if="paginate">
+      <div class="relative">
+        <div v-bind="$attrs" v-if="transactions" class="w-full">
+          <div :style="{ height: `${totalSize}px` }" class="relative">
+            <div
+              v-for="virtualRow in virtualRows"
+              :key="`${transactions[virtualRow.index].id}-${transactions[virtualRow.index].categoryId}-${transactions[virtualRow.index].refAmount}-${transactions[virtualRow.index].note}-${transactions[virtualRow.index].time}`"
+              :style="{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start}px)`,
+              }"
+            >
+              <template v-if="transactions[virtualRow.index]">
+                <TransactionRecord :tx="transactions[virtualRow.index]" @record-click="handlerRecordClick" />
+              </template>
+            </div>
+          </div>
+
+          <div class="flex h-10 items-center justify-center">
+            <template v-if="!hasNextPage"> No more data to load </template>
+          </div>
         </div>
-      </template>
-    </div>
+
+        <div class="absolute bottom-0 left-0 right-0 flex h-10 items-center justify-center bg-white/5 empty:hidden">
+          <template v-if="isFetchingNextPage">Loading more...</template>
+        </div>
+      </div>
+    </template>
+    <template v-else>
+      <div v-bind="$attrs" class="grid grid-cols-1 gap-2">
+        <template
+          v-for="item in transactions"
+          :key="`${item.id}-${item.categoryId}-${item.refAmount}-${item.note}-${item.time}`"
+        >
+          <TransactionRecord :tx="item" @record-click="handlerRecordClick" />
+        </template>
+      </div>
+    </template>
 
     <UseDialogTemplate>
       <ManageTransactionDoalogContent v-bind="dialogProps" @close-modal="isDialogVisible = false" />

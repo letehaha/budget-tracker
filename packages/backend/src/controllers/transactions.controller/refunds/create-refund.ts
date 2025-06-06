@@ -1,26 +1,24 @@
-import { API_RESPONSE_STATUS } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
-import { errorHandler } from '@controllers/helpers';
+import { recordId } from '@common/lib/zod/custom-types';
+import { createController } from '@controllers/helpers/controller-factory';
 import { createSingleRefund } from '@services/tx-refunds/create-single-refund.service';
+import { z } from 'zod';
 
-export const createRefund = async (req, res: CustomResponse) => {
-  try {
-    const { originalTxId, refundTxId } = req.body;
-    const { id: userId } = req.user;
+const schema = z.object({
+  body: z.object({
+    originalTxId: recordId().nullable(),
+    refundTxId: recordId(),
+  }),
+});
 
-    const params = {
-      originalTxId,
-      refundTxId,
-      userId,
-    };
+export default createController(schema, async ({ user, body }) => {
+  const { id: userId } = user;
+  const { originalTxId, refundTxId } = body;
 
-    const data = await createSingleRefund(params);
+  const data = await createSingleRefund({
+    originalTxId,
+    refundTxId,
+    userId,
+  });
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+  return { data };
+});

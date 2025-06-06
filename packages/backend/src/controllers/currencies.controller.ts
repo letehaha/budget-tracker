@@ -1,17 +1,11 @@
-import { API_RESPONSE_STATUS } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
-import { errorHandler } from '@controllers/helpers';
+import { createController } from '@controllers/helpers/controller-factory';
 import { getAllSystemCurrencies } from '@services/system-currencies';
+import { z } from 'zod';
 
-export const getAllCurrencies = async (req, res: CustomResponse) => {
-  try {
-    const data = await getAllSystemCurrencies();
+const schema = z.object({});
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+export default createController(schema, async () => {
+  const data = await getAllSystemCurrencies();
+  
+  return { data };
+});

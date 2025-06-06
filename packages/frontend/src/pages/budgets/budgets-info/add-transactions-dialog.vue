@@ -5,42 +5,51 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { useNotificationCenter } from '@/components/notification-center';
+import RecordsFiltersDialog from '@/components/records-filters/filters-dialog.vue';
+import RecordsFilters from '@/components/records-filters/index.vue';
+import { useTransactionsWithFilters } from '@/components/records-filters/transactions-with-filters';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
-import { useTransactions } from '@/composable/data-queries/get-transactions';
+import { useShiftMultiSelect } from '@/composable/shift-multi-select';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
+import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useQuery } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
-import { computed, reactive, ref, watchEffect } from 'vue';
+import { computed, reactive, ref, watch, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
 const { addErrorNotification } = useNotificationCenter();
 const budgetData = ref();
+
 const pickedTransactionsIds = reactive<Set<number>>(new Set());
+const { handleSelection, resetSelection, isShiftKeyPressed } = useShiftMultiSelect(pickedTransactionsIds);
+
 const isAddingTransactionModalVisible = ref<boolean>(false);
 const currentBudgetId = ref<number>(Number(route.params.id));
-const pickedTransactionsListFilter = ref({
-  transactionType: null,
-  excludedBudgetIds: [currentBudgetId.value],
-});
 const isTransactionsPicked = computed(() => !!pickedTransactionsIds.size);
 const { data: budgetItem, isLoading } = useQuery({
   queryFn: () => loadBudgetById(currentBudgetId.value),
   queryKey: [VUE_QUERY_CACHE_KEYS.budgetsListItem, currentBudgetId.value],
   staleTime: Infinity,
 });
+
 const {
-  transactionsPages: transactionsList,
+  isResetButtonDisabled,
+  isFiltersOutOfSync,
+  resetFilters,
+  applyFilters,
+  appliedFilters,
+  isAnyFiltersApplied,
+  filters,
+  transactionsPages,
   fetchNextPage: fetchNextTransactionPage,
   hasNextPage: hasNextTransactionsPage,
-  isFetched: isLoadingTransactionsPick,
   isFetchingNextPage: isFetchingNextTransactionsPage,
-} = useTransactions({
-  filters: pickedTransactionsListFilter,
-  queryOptions: {
-    queryKey: [...VUE_QUERY_CACHE_KEYS.budgetTransactionList, currentBudgetId],
-    enabled: isAddingTransactionModalVisible,
-  },
+  invalidate,
+} = useTransactionsWithFilters({
+  appendQueryKey: [currentBudgetId],
+  queryEnabled: isAddingTransactionModalVisible,
+  staticFilters: { excludedBudgetIds: [currentBudgetId.value] },
 });
 
 const addTransactions = async () => {
@@ -49,11 +58,12 @@ const addTransactions = async () => {
   };
   try {
     await addTransactionsToBudget(currentBudgetId.value, data);
+    invalidate();
   } catch (err) {
     addErrorNotification(err.data.message);
   }
   isAddingTransactionModalVisible.value = false;
-  pickedTransactionsIds.clear();
+  resetSelection();
 };
 
 watchEffect(() => {
@@ -66,7 +76,7 @@ watchEffect(() => {
 
 const parentRef = ref(null);
 
-const flatTransactions = computed(() => transactionsList.value?.pages?.flat() ?? []);
+const flatTransactions = computed(() => transactionsPages.value?.pages?.flat() ?? []);
 
 const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   items: flatTransactions,
@@ -75,19 +85,20 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   isFetchingNextPage: isFetchingNextTransactionsPage,
   parentRef,
   enabled: isAddingTransactionModalVisible,
+  getItemKey: (index) => flatTransactions.value[index].id,
 });
 
-const pickTransaction = (value: boolean, id: number) => {
-  if (value) {
-    pickedTransactionsIds.add(id);
-  } else {
-    pickedTransactionsIds.delete(id);
-  }
-};
+const isFiltersDialogOpen = ref(false);
+
+watch(appliedFilters, () => {
+  isFiltersDialogOpen.value = false;
+});
+
+const isMobileView = useWindowBreakpoints(1024);
 </script>
 
 <template>
-  <ResponsiveDialog v-model:open="isAddingTransactionModalVisible">
+  <ResponsiveDialog v-model:open="isAddingTransactionModalVisible" dialogContentClass="max-w-[900px]">
     <template #trigger>
       <slot />
     </template>
@@ -96,52 +107,78 @@ const pickTransaction = (value: boolean, id: number) => {
       <span> Add transactions </span>
     </template>
 
-    <div
-      v-if="isLoadingTransactionsPick && transactionsList"
-      ref="parentRef"
-      class="relative max-h-[70vh] w-full overflow-y-auto"
-    >
-      <div :style="{ height: `${totalSize}px`, position: 'relative' }">
-        <div
-          v-for="virtualRow in virtualRows"
-          :key="String(virtualRow.key)"
-          :style="{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            transform: `translateY(${virtualRow.start}px)`,
-          }"
-        >
-          <label
-            v-if="flatTransactions[virtualRow.index]"
-            class="grid grid-cols-[min-content,minmax(0,1fr)] items-center gap-2"
+    <div class="grid max-h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[max-content,minmax(0,1fr)]">
+      <div class="relative overflow-y-auto">
+        <template v-if="isMobileView">
+          <RecordsFiltersDialog v-model:open="isFiltersDialogOpen" :isAnyFiltersApplied="isAnyFiltersApplied">
+            <div class="relative max-h-[calc(100vh-var(--header-height)-32px)] overflow-auto">
+              <RecordsFilters
+                v-model:filters="filters"
+                :is-reset-button-disabled="isResetButtonDisabled"
+                :is-filters-out-of-sync="isFiltersOutOfSync"
+                @reset-filters="resetFilters"
+                @apply-filters="applyFilters"
+              />
+            </div>
+          </RecordsFiltersDialog>
+        </template>
+        <template v-else>
+          <RecordsFilters
+            v-model:filters="filters"
+            :is-reset-button-disabled="isResetButtonDisabled"
+            :is-filters-out-of-sync="isFiltersOutOfSync"
+            @reset-filters="resetFilters"
+            @apply-filters="applyFilters"
+          />
+        </template>
+      </div>
+
+      <div v-if="transactionsPages" ref="parentRef" class="relative max-h-[60vh] w-full overflow-y-auto md:max-h-full">
+        <div :style="{ height: `${totalSize}px`, position: 'relative' }">
+          <div
+            v-for="virtualRow in virtualRows"
+            :key="String(virtualRow.key)"
+            :style="{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualRow.start}px)`,
+            }"
           >
-            <Checkbox
-              :checked="pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)"
-              @update:checked="pickTransaction($event, flatTransactions[virtualRow.index].id)"
-            />
-            <TransactionRecord :tx="flatTransactions[virtualRow.index]" />
-          </label>
-          <div v-else class="flex h-[52px] items-center justify-center">Loading more...</div>
+            <label
+              v-if="flatTransactions[virtualRow.index]"
+              :class="[
+                'grid grid-cols-[min-content,minmax(0,1fr)] items-center gap-2',
+                { 'select-none': isShiftKeyPressed },
+              ]"
+            >
+              <Checkbox
+                :checked="pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)"
+                @update:checked="
+                  handleSelection(
+                    $event,
+                    flatTransactions[virtualRow.index].id,
+                    virtualRow.index,
+                    flatTransactions,
+                    (v) => v.id,
+                  )
+                "
+              />
+              <TransactionRecord :tx="flatTransactions[virtualRow.index]" />
+            </label>
+            <div v-else class="flex h-[52px] items-center justify-center">Loading more...</div>
+          </div>
+        </div>
+        <template v-if="!hasNextTransactionsPage">
+          <p class="flex justify-center">No more data to load</p>
+        </template>
+        <div v-if="isTransactionsPicked" class="sticky -bottom-px flex gap-2">
+          <Button type="button" variant="secondary" class="hover:bg-initial mt-8 w-full" @click="addTransactions">
+            Add Selected
+          </Button>
         </div>
       </div>
-    </div>
-
-    <div class="flex gap-2">
-      <Button
-        type="button"
-        variant="secondary"
-        class="mt-8 w-full"
-        :disabled="!isTransactionsPicked"
-        @click="addTransactions"
-      >
-        Add Selected
-      </Button>
-
-      <template v-if="!hasNextTransactionsPage">
-        <p>No more data to load</p>
-      </template>
     </div>
   </ResponsiveDialog>
 </template>

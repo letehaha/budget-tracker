@@ -1,43 +1,34 @@
-import { API_RESPONSE_STATUS, endpointsTypes } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
+import { createController } from '@controllers/helpers/controller-factory';
 import * as authService from '@services/auth.service';
+import { z } from 'zod';
 
-import { errorHandler } from './helpers';
-
-export const login = async (req, res: CustomResponse) => {
-  const { username, password }: endpointsTypes.AuthLoginBody = req.body;
-
-  try {
+export const login = createController(
+  z.object({
+    body: z.object({
+      username: z.string(),
+      password: z.string(),
+    }),
+  }),
+  async ({ body }) => {
+    const { username, password } = body;
     const token = await authService.login({ username, password });
+    return { data: token };
+  },
+);
 
-    return res.status(200).json<endpointsTypes.AuthLoginResponse>({
-      status: API_RESPONSE_STATUS.success,
-      response: token,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const register = async (req, res: CustomResponse) => {
-  const { username, password }: endpointsTypes.AuthRegisterBody = req.body;
-
-  try {
+export const register = createController(
+  z.object({
+    body: z.object({
+      username: z.string(),
+      password: z.string(),
+    }),
+  }),
+  async ({ body }) => {
+    const { username, password } = body;
     const user = await authService.register({ username, password });
+    return { data: { user }, statusCode: 201 };
+  },
+);
 
-    return res.status(201).json<endpointsTypes.AuthRegisterResponse>({
-      status: API_RESPONSE_STATUS.success,
-      response: { user },
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const validateToken = async (req, res: CustomResponse) => {
-  try {
-    return res.status(200).json({ status: API_RESPONSE_STATUS.success });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+// Noop, token validation happens in middlewares
+export const validateToken = createController(z.object({}), async () => {});

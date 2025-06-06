@@ -72,10 +72,6 @@ const createBudgetModel = async ({
   autoInclude,
   limitAmount,
 }: CreateBudgetPayload) => {
-  if (!name || !userId) {
-    throw new Error('Name and userId are required fields');
-  }
-
   const budgetData = {
     name,
     userId,
@@ -85,10 +81,6 @@ const createBudgetModel = async ({
     autoInclude: autoInclude ?? false,
     limitAmount: limitAmount ?? null,
   };
-
-  if (startDate && endDate && startDate > endDate) {
-    throw new Error('Start date cannot be later than end date');
-  }
 
   const budget = await Budgets.create(budgetData);
   return budget;

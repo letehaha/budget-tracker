@@ -1,60 +1,10 @@
-import { API_RESPONSE_STATUS, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { CustomRequest, CustomResponse } from '@common/types';
-import { errorHandler } from '@controllers/helpers';
+import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
+import { createController } from '@controllers/helpers/controller-factory';
 import { removeUndefinedKeys } from '@js/helpers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
-export const updateTransaction = async (req, res: CustomResponse) => {
-  try {
-    const { id } = req.validated.params;
-    const {
-      amount,
-      destinationAmount,
-      note,
-      time,
-      transactionType,
-      paymentType,
-      accountId,
-      destinationAccountId,
-      destinationTransactionId,
-      categoryId,
-      transferNature,
-      refundedByTxIds,
-      refundsTxId,
-    } = (req as CustomRequest<typeof updateTransactionSchema>).validated.body;
-    const { id: userId } = (req as CustomRequest<typeof updateTransactionSchema>).user;
-
-    const data = await transactionsService.updateTransaction({
-      id: parseInt(id),
-      ...removeUndefinedKeys({
-        amount,
-        destinationAmount,
-        destinationTransactionId,
-        note,
-        time: time ? new Date(time) : undefined,
-        userId,
-        transactionType,
-        paymentType,
-        accountId,
-        destinationAccountId,
-        categoryId,
-        transferNature,
-        refundedByTxIds,
-        refundsTxId,
-      }),
-    });
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-const recordId = () => z.number().int().positive().finite();
 const bodyZodSchema = z
   .object({
     amount: z.number().int().positive('Amount must be greater than 0').finite().optional(),
@@ -105,7 +55,49 @@ const paramsZodSchema = z.object({
   }),
 });
 
-export const updateTransactionSchema = z.object({
+const schema = z.object({
   params: paramsZodSchema,
   body: bodyZodSchema,
+});
+
+export default createController(schema, async ({ user, params, body }) => {
+  const { id } = params;
+  const {
+    amount,
+    destinationAmount,
+    note,
+    time,
+    transactionType,
+    paymentType,
+    accountId,
+    destinationAccountId,
+    destinationTransactionId,
+    categoryId,
+    transferNature,
+    refundedByTxIds,
+    refundsTxId,
+  } = body;
+  const { id: userId } = user;
+
+  const data = await transactionsService.updateTransaction({
+    id: parseInt(id),
+    ...removeUndefinedKeys({
+      amount,
+      destinationAmount,
+      destinationTransactionId,
+      note,
+      time: time ? new Date(time) : undefined,
+      userId,
+      transactionType,
+      paymentType,
+      accountId,
+      destinationAccountId,
+      categoryId,
+      transferNature,
+      refundedByTxIds,
+      refundsTxId,
+    }),
+  });
+
+  return { data };
 });

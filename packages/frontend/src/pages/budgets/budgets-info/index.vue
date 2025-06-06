@@ -13,7 +13,6 @@ import { ChevronLeftIcon } from 'lucide-vue-next';
 import { ref, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 
-import AddTransactionsDialog from './add-transactions-dialog.vue';
 import TransactionsList from './transactions-list.vue';
 
 const route = useRoute();
@@ -60,7 +59,9 @@ watchEffect(() => {
 
 <template>
   <div v-if="budgetData" class="relative flex w-min max-w-full flex-col gap-4 p-4 lg:w-auto lg:flex-row xl:gap-20">
-    <div class="@[360px]/budget-item-info:w-full sticky top-[var(--header-height)] h-max lg:w-[450px] lg:max-w-[450px]">
+    <div
+      class="@[360px]/budget-item-info:w-full h-max lg:sticky lg:top-[var(--header-height)] lg:w-[450px] lg:max-w-[450px]"
+    >
       <div class="mb-4 flex items-center gap-4">
         <router-link
           to="/budgets"
@@ -110,14 +111,6 @@ watchEffect(() => {
       </Card>
     </div>
 
-    <TransactionsList>
-      <template #header>
-        <div class="mb-4 flex">
-          <AddTransactionsDialog>
-            <Button :disabled="isBudgetDataUpdating" variant="secondary" class="ml-auto">Add More Transactions</Button>
-          </AddTransactionsDialog>
-        </div>
-      </template>
-    </TransactionsList>
+    <TransactionsList :budgetId="currentBudgetId" :isBudgetDataUpdating="isBudgetDataUpdating" />
   </div>
 </template>

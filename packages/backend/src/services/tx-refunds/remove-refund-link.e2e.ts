@@ -147,7 +147,7 @@ describe('removeRefundLink', () => {
         url: '/transactions/refund',
       });
 
-      expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
 
@@ -184,7 +184,7 @@ describe('removeRefundLink', () => {
           refundTxId: refundTx.id,
         });
 
-        expect(getResponse.statusCode).toBe(404);
+        expect(getResponse.statusCode).toBe(ERROR_CODES.ValidationError);
 
         const transactions = await helpers.getTransactions({ raw: true });
 

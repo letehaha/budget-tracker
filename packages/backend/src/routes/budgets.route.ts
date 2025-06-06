@@ -1,19 +1,32 @@
-import { Router } from 'express';
+import addTransactionsToBudget from '@controllers/budgets/add-transaction-to-budget';
+import createBudget from '@controllers/budgets/create-budget';
+import deleteBudget from '@controllers/budgets/delete-budgets';
+import editBudget from '@controllers/budgets/edit-budget';
+import { getBudgetById, getBudgets } from '@controllers/budgets/get-budgets';
+import removeTransactionsFromBudget from '@controllers/budgets/remove-transaction-from-budget';
 import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';
-import { getBudgets, getBudgetById } from '@controllers/budgets/get-budgets';
-import { createBudget, createBudgetSchema } from '@controllers/budgets/create-budget';
-import { deleteBudget, deleteBudgetSchema } from '@controllers/budgets/delete-budgets';
-import { editBudget, editBudgetSchema } from '@controllers/budgets/edit-budget';
-import { addTransactionsToBudget, addTransactionsToBudgetSchema } from '@controllers/budgets/add-transaction-to-budget';
+import { Router } from 'express';
 
 const router = Router({});
 
-router.get('/', authenticateJwt, getBudgets);
-router.get('/:id', authenticateJwt, getBudgetById)
-router.post('/', authenticateJwt, validateEndpoint(createBudgetSchema), createBudget);
-router.post('/:id/transactions', authenticateJwt, validateEndpoint(addTransactionsToBudgetSchema), addTransactionsToBudget)
-router.put('/:id', authenticateJwt, validateEndpoint(editBudgetSchema), editBudget);
-router.delete('/:id', authenticateJwt, validateEndpoint(deleteBudgetSchema), deleteBudget);
+router.get('/', authenticateJwt, validateEndpoint(getBudgets.schema), getBudgets.handler);
+router.get('/:id', authenticateJwt, validateEndpoint(getBudgetById.schema), getBudgetById.handler);
+router.post('/', authenticateJwt, validateEndpoint(createBudget.schema), createBudget.handler);
+router.put('/:id', authenticateJwt, validateEndpoint(editBudget.schema), editBudget.handler);
+router.delete('/:id', authenticateJwt, validateEndpoint(deleteBudget.schema), deleteBudget.handler);
+
+router.post(
+  '/:id/transactions',
+  authenticateJwt,
+  validateEndpoint(addTransactionsToBudget.schema),
+  addTransactionsToBudget.handler,
+);
+router.delete(
+  '/:id/transactions',
+  authenticateJwt,
+  validateEndpoint(removeTransactionsFromBudget.schema),
+  removeTransactionsFromBudget.handler,
+);
 
 export default router;
