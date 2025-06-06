@@ -6,14 +6,15 @@ import {
   updateAccount,
 } from '@controllers/accounts.controller';
 import { authenticateJwt } from '@middlewares/passport';
+import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
 const router = Router({});
 
-router.get('/', authenticateJwt, getAccounts);
-router.get('/:id', authenticateJwt, getAccountById);
-router.post('/', authenticateJwt, createAccount);
-router.put('/:id', authenticateJwt, updateAccount);
-router.delete('/:id', authenticateJwt, deleteAccount);
+router.get('/', authenticateJwt, validateEndpoint(getAccounts.schema), getAccounts.handler);
+router.get('/:id', authenticateJwt, validateEndpoint(getAccountById.schema), getAccountById.handler);
+router.post('/', authenticateJwt, validateEndpoint(createAccount.schema), createAccount.handler);
+router.put('/:id', authenticateJwt, validateEndpoint(updateAccount.schema), updateAccount.handler);
+router.delete('/:id', authenticateJwt, validateEndpoint(deleteAccount.schema), deleteAccount.handler);
 
 export default router;

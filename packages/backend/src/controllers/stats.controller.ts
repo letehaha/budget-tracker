@@ -1,11 +1,12 @@
-import { API_RESPONSE_STATUS, BalanceModel, endpointsTypes } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
+import { BalanceModel } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import * as statsService from '@services/stats';
 import { isBefore, isEqual, isValid } from 'date-fns';
+import { z } from 'zod';
 
-import { errorHandler } from './helpers';
+import { createController } from './helpers/controller-factory';
 
 const tryBasicDateValidation = ({ from, to }) => {
   if (from && !isValid(new Date(from))) {
@@ -21,132 +22,135 @@ const tryBasicDateValidation = ({ from, to }) => {
   }
 };
 
-export const getBalanceHistory = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-  const { from, to, accountId }: endpointsTypes.GetBalanceHistoryPayload = req.query;
+const balanceHistorySchema = z.object({
+  query: z.object({
+    from: z.string().optional(),
+    to: z.string().optional(),
+    accountId: recordId().optional(),
+  }),
+});
 
-  try {
-    tryBasicDateValidation({ from, to });
+export const getBalanceHistory = createController(balanceHistorySchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { from, to, accountId } = query;
 
-    let balanceHistory: BalanceModel[];
-    if (accountId) {
-      balanceHistory = await statsService.getBalanceHistoryForAccount({
-        userId,
-        from,
-        to,
-        accountId,
-      });
-    } else {
-      balanceHistory = await statsService.getBalanceHistory({
-        userId,
-        from,
-        to,
-      });
-    }
+  tryBasicDateValidation({ from, to });
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: balanceHistory,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const getTotalBalance = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-  const { date }: endpointsTypes.GetTotalBalancePayload = req.query;
-
-  try {
-    if (!isValid(new Date(date))) {
-      throw new ValidationError({ message: '"date" is invalid date.' });
-    }
-
-    const totalBalance = await statsService.getTotalBalance({
+  let balanceHistory: BalanceModel[];
+  if (accountId) {
+    balanceHistory = await statsService.getBalanceHistoryForAccount({
       userId,
-      date,
+      from,
+      to,
+      accountId,
     });
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: totalBalance,
+  } else {
+    balanceHistory = await statsService.getBalanceHistory({
+      userId,
+      from,
+      to,
     });
-  } catch (err) {
-    errorHandler(res, err as Error);
   }
-};
 
-export const getExpensesHistory = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-  const { from, to, accountId }: endpointsTypes.GetSpendingCategoriesPayload = req.query;
+  return { data: balanceHistory };
+});
 
-  try {
-    tryBasicDateValidation({ from, to });
+const totalBalanceSchema = z.object({
+  query: z.object({
+    date: z.string(),
+  }),
+});
 
-    const result = await statsService.getExpensesHistory(
-      removeUndefinedKeys({
-        userId,
-        from,
-        to,
-        accountId,
-      }),
-    );
+export const getTotalBalance = createController(totalBalanceSchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { date } = query;
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
+  if (!isValid(new Date(date))) {
+    throw new ValidationError({ message: '"date" is invalid date.' });
   }
-};
 
-export const getSpendingsByCategories = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-  const { from, to, accountId }: endpointsTypes.GetSpendingCategoriesPayload = req.query;
+  const totalBalance = await statsService.getTotalBalance({
+    userId,
+    date,
+  });
 
-  try {
-    tryBasicDateValidation({ from, to });
+  return { data: totalBalance };
+});
 
-    const result = await statsService.getSpendingsByCategories(
-      removeUndefinedKeys({
-        userId,
-        from,
-        to,
-        accountId,
-      }),
-    );
+const expensesHistorySchema = z.object({
+  query: z.object({
+    from: z.string().optional(),
+    to: z.string().optional(),
+    accountId: z.string().optional(),
+  }),
+});
 
-    return res.status(200).json<endpointsTypes.GetSpendingsByCategoriesReturnType>({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+export const getExpensesHistory = createController(expensesHistorySchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { from, to, accountId } = query;
 
-export const getExpensesAmountForPeriod = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-  const { from, to, accountId }: endpointsTypes.GetSpendingCategoriesPayload = req.query;
+  tryBasicDateValidation({ from, to });
 
-  try {
-    tryBasicDateValidation({ from, to });
+  const result = await statsService.getExpensesHistory(
+    removeUndefinedKeys({
+      userId,
+      from,
+      to,
+      accountId: Number(accountId),
+    }),
+  );
 
-    const result = await statsService.getExpensesAmountForPeriod(
-      removeUndefinedKeys({
-        userId,
-        from,
-        to,
-        accountId,
-      }),
-    );
+  return { data: result };
+});
 
-    return res.status(200).json<number>({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+const spendingsByCategoriesSchema = z.object({
+  query: z.object({
+    from: z.string().optional(),
+    to: z.string().optional(),
+    accountId: z.string().optional(),
+  }),
+});
+
+export const getSpendingsByCategories = createController(spendingsByCategoriesSchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { from, to, accountId } = query;
+
+  tryBasicDateValidation({ from, to });
+
+  const result = await statsService.getSpendingsByCategories(
+    removeUndefinedKeys({
+      userId,
+      from,
+      to,
+      accountId: Number(accountId),
+    }),
+  );
+
+  return { data: result };
+});
+
+const expensesAmountSchema = z.object({
+  query: z.object({
+    from: z.string().optional(),
+    to: z.string().optional(),
+    accountId: z.string().optional(),
+  }),
+});
+
+export const getExpensesAmountForPeriod = createController(expensesAmountSchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { from, to, accountId } = query;
+
+  tryBasicDateValidation({ from, to });
+
+  const result = await statsService.getExpensesAmountForPeriod(
+    removeUndefinedKeys({
+      userId,
+      from,
+      to,
+      accountId: Number(accountId),
+    }),
+  );
+
+  return { data: result };
+});

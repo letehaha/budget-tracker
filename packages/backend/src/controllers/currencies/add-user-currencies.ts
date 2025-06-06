@@ -1,27 +1,8 @@
-import { API_RESPONSE_STATUS } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
+import { recordId } from '@common/lib/zod/custom-types';
+import { createController } from '@controllers/helpers/controller-factory';
 import * as userCurrenciesService from '@services/currencies/add-user-currency';
 import { z } from 'zod';
 
-import { errorHandler } from '../helpers';
-
-export const addUserCurrencies = async (req, res: CustomResponse) => {
-  try {
-    const { id: userId } = req.user;
-    const { currencies }: AddUserCurrenciesParams = req.validated.body;
-
-    const result = await userCurrenciesService.addUserCurrencies(currencies.map((item) => ({ userId, ...item })));
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-const recordId = () => z.number().int().positive().finite();
 const UserCurrencySchema = z
   .object({
     currencyId: recordId(),
@@ -30,14 +11,19 @@ const UserCurrencySchema = z
   })
   .strict();
 
-const bodyZodSchema = z
-  .object({
-    currencies: z.array(UserCurrencySchema).nonempty(),
-  })
-  .strict();
+const schema = z.object({
+  body: z
+    .object({
+      currencies: z.array(UserCurrencySchema).nonempty(),
+    })
+    .strict(),
+});
 
-type AddUserCurrenciesParams = z.infer<typeof bodyZodSchema>;
+export default createController(schema, async ({ user, body }) => {
+  const { id: userId } = user;
+  const { currencies } = body;
 
-export const addUserCurrenciesSchema = z.object({
-  body: bodyZodSchema,
+  const data = await userCurrenciesService.addUserCurrencies(currencies.map((item) => ({ userId, ...item })));
+
+  return { data };
 });

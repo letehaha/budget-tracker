@@ -1,19 +1,12 @@
-import { API_RESPONSE_STATUS } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
-import * as useSettingsService from '@services/user-settings/get-user-settings';
+import { createController } from '@controllers/helpers/controller-factory';
+import * as userSettingsService from '@services/user-settings/get-user-settings';
+import { z } from 'zod';
 
-import { errorHandler } from '../helpers';
+const schema = z.object({});
 
-export const getUserSettings = async (req, res: CustomResponse) => {
-  try {
-    const { id: userId } = req.user;
-    const result = await useSettingsService.getUserSettings({ userId });
+export default createController(schema, async ({ user }) => {
+  const { id: userId } = user;
+  const data = await userSettingsService.getUserSettings({ userId });
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+  return { data };
+});

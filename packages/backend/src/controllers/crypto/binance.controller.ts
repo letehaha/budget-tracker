@@ -1,7 +1,8 @@
-import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
+import { API_ERROR_CODES } from '@bt/shared/types';
+import { createController } from '@controllers/helpers/controller-factory';
 import axios from 'axios';
 import crypto from 'crypto';
+import { z } from 'zod';
 
 import * as BinanceUserSettings from '../../models/binance/UserSettings.model';
 
@@ -18,80 +19,74 @@ const createSignedGETRequestURL = ({ url, params, secretKey }) => {
   return localUrl;
 };
 
-export const setSettings = async (req, res: CustomResponse) => {
-  const { id } = req.user;
-  const { apiKey, secretKey } = req.body;
+const setSettingsSchema = z.object({
+  body: z.object({
+    apiKey: z.string(),
+    secretKey: z.string(),
+  }),
+});
 
-  try {
-    let settings = await BinanceUserSettings.addSettings({
-      userId: id,
-      apiKey,
-      secretKey,
-    });
+export const setSettings = createController(setSettingsSchema, async ({ user, body }) => {
+  const { id } = user;
+  const { apiKey, secretKey } = body;
 
-    if (Array.isArray(settings)) {
-      // eslint-disable-next-line prefer-destructuring
-      settings = settings[0];
-    }
+  let settings = await BinanceUserSettings.addSettings({
+    userId: id,
+    apiKey,
+    secretKey,
+  });
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: settings,
-    });
-  } catch (err) {
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Unexpected error.',
-        code: API_ERROR_CODES.unexpected,
-      },
-    });
+  if (Array.isArray(settings)) {
+    // eslint-disable-next-line prefer-destructuring
+    settings = settings[0];
   }
-};
 
-export const getAccountData = async (req, res: CustomResponse) => {
-  const { id } = req.user;
-  const { timestamp = new Date().getTime() } = req.query;
+  return { data: settings };
+});
+
+const getAccountDataSchema = z.object({
+  query: z.object({
+    timestamp: z.string().optional(),
+  }),
+});
+
+export const getAccountData = createController(getAccountDataSchema, async ({ user, query }) => {
+  const { id } = user;
+  const timestamp = query.timestamp || new Date().getTime().toString();
+
+  const userSettings = await BinanceUserSettings.getByUserId({
+    userId: id,
+  });
+
+  if (!userSettings || (!userSettings.apiKey && !userSettings.secretKey)) {
+    throw {
+      statusCode: 403,
+      message: 'Secret and public keys do not exist!',
+      code: API_ERROR_CODES.cryptoBinanceBothAPIKeysDoesNotexist,
+    };
+  }
+  if (!userSettings.apiKey) {
+    throw {
+      statusCode: 403,
+      message: 'Api key does not exist!',
+      code: API_ERROR_CODES.cryptoBinancePublicAPIKeyNotDefined,
+    };
+  }
+  if (!userSettings.secretKey) {
+    throw {
+      statusCode: 403,
+      message: 'Secret key does not exist!',
+      code: API_ERROR_CODES.cryptoBinanceSecretAPIKeyNotDefined,
+    };
+  }
+
+  const url = createSignedGETRequestURL({
+    url: 'https://api.binance.com/api/v3/account',
+    params: { timestamp },
+    secretKey: userSettings.secretKey,
+  });
 
   try {
-    const userSettings = await BinanceUserSettings.getByUserId({
-      userId: id,
-    });
-
-    if (!userSettings || (!userSettings.apiKey && !userSettings.secretKey)) {
-      return res.status(403).json({
-        status: API_RESPONSE_STATUS.error,
-        response: {
-          message: 'Secret and public keys do not exist!',
-          code: API_ERROR_CODES.cryptoBinanceBothAPIKeysDoesNotexist,
-        },
-      });
-    }
-    if (!userSettings.apiKey) {
-      return res.status(403).json({
-        status: API_RESPONSE_STATUS.error,
-        response: {
-          message: 'Api key does not exist!',
-          code: API_ERROR_CODES.cryptoBinancePublicAPIKeyNotDefined,
-        },
-      });
-    }
-    if (!userSettings.secretKey) {
-      return res.status(403).json({
-        status: API_RESPONSE_STATUS.error,
-        response: {
-          message: 'Secret key does not exist!',
-          code: API_ERROR_CODES.cryptoBinanceSecretAPIKeyNotDefined,
-        },
-      });
-    }
-
-    const url = createSignedGETRequestURL({
-      url: 'https://api.binance.com/api/v3/account',
-      params: { timestamp },
-      secretKey: userSettings.secretKey,
-    });
-
     const response = await axios({
       url: url.href,
       headers: {
@@ -136,27 +131,20 @@ export const getAccountData = async (req, res: CustomResponse) => {
       response.data.balances[index].usdPrice = 0;
     });
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: response.data,
-    });
+    return { data: response.data };
   } catch (err) {
     // @ts-expect-error TODO: add proper `err` interface
-    if (err.response.data.code === -2014) {
-      return res.status(400).json({
-        status: API_RESPONSE_STATUS.error,
-        response: {
-          // @ts-expect-error TODO: add proper `err` interface
-          message: err.response.data.msg,
-        },
-      });
+    if (err.response?.data?.code === -2014) {
+      throw {
+        statusCode: 400,
+        // @ts-expect-error TODO: add proper `err` interface
+        message: err.response.data.msg,
+      };
     }
-    return res.status(500).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        code: 1,
-        message: 'Unexpected server error!',
-      },
-    });
+    throw {
+      statusCode: 500,
+      code: 1,
+      message: 'Unexpected server error!',
+    };
   }
-};
+});

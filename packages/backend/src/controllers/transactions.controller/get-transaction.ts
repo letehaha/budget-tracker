@@ -1,29 +1,7 @@
-import { ACCOUNT_TYPES, API_RESPONSE_STATUS, SORT_DIRECTIONS, TRANSACTION_TYPES } from '@bt/shared/types';
-import { CustomRequest, CustomResponse } from '@common/types';
+import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TYPES } from '@bt/shared/types';
+import { createController } from '@controllers/helpers/controller-factory';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
-
-import { errorHandler } from '../helpers';
-
-export const getTransactions = async (req, res: CustomResponse) => {
-  try {
-    const { id: userId } = (req as CustomRequest<typeof getTransactionsSchema>).user;
-    const { ...restParams } = (req as CustomRequest<typeof getTransactionsSchema>).validated.query;
-
-    const data = await transactionsService.getTransactions({
-      ...restParams,
-      userId,
-    });
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    console.log('err', err);
-    errorHandler(res, err as Error);
-  }
-};
 
 const parseCommaSeparatedNumbers = (value: string) =>
   value
@@ -31,7 +9,7 @@ const parseCommaSeparatedNumbers = (value: string) =>
     .map(Number)
     .filter((n) => !isNaN(n));
 
-export const getTransactionsSchema = z.object({
+const schema = z.object({
   query: z
     .object({
       order: z.nativeEnum(SORT_DIRECTIONS).optional().default(SORT_DIRECTIONS.desc),
@@ -84,4 +62,15 @@ export const getTransactionsSchema = z.object({
         path: ['amountGte'],
       },
     ),
+});
+
+export default createController(schema, async ({ user, query }) => {
+  const { id: userId } = user;
+
+  const data = await transactionsService.getTransactions({
+    ...query,
+    userId,
+  });
+
+  return { data };
 });

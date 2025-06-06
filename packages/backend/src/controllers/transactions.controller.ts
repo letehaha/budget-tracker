@@ -1,17 +1,25 @@
-import { API_RESPONSE_STATUS } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
-import { ValidationError } from '@js/errors';
+import { recordId } from '@common/lib/zod/custom-types';
+import { createController } from '@controllers/helpers/controller-factory';
 import * as transactionsService from '@services/transactions';
+import { z } from 'zod';
 
-import { errorHandler } from './helpers';
-
-export const getTransactionById = async (req, res: CustomResponse) => {
-  try {
-    const { id } = req.params;
-    const { id: userId } = req.user;
-    const { includeUser, includeAccount, includeCategory, includeAll, nestedInclude } = req.query;
-
-    if (id === undefined) throw new ValidationError({ message: 'id should exist.' });
+export const getTransactionById = createController(
+  z.object({
+    params: z.object({
+      id: recordId(),
+    }),
+    query: z.object({
+      includeUser: z.boolean().optional(),
+      includeAccount: z.boolean().optional(),
+      includeCategory: z.boolean().optional(),
+      includeAll: z.boolean().optional(),
+      nestedInclude: z.boolean().optional(),
+    }),
+  }),
+  async ({ user, params, query }) => {
+    const { id } = params;
+    const { id: userId } = user;
+    const { includeUser, includeAccount, includeCategory, includeAll, nestedInclude } = query;
 
     const data = await transactionsService.getTransactionById({
       id,
@@ -23,22 +31,27 @@ export const getTransactionById = async (req, res: CustomResponse) => {
       nestedInclude,
     });
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+    return { data };
+  },
+);
 
-export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
-  try {
-    const { transferId } = req.params;
-    const { id: userId } = req.user;
-    const { includeUser, includeAccount, includeCategory, includeAll, nestedInclude } = req.query;
-
-    if (transferId === undefined) throw new ValidationError({ message: '"transferId" is required.' });
+export const getTransactionsByTransferId = createController(
+  z.object({
+    params: z.object({
+      transferId: z.number(),
+    }),
+    query: z.object({
+      includeUser: z.boolean().optional(),
+      includeAccount: z.boolean().optional(),
+      includeCategory: z.boolean().optional(),
+      includeAll: z.boolean().optional(),
+      nestedInclude: z.boolean().optional(),
+    }),
+  }),
+  async ({ user, params, query }) => {
+    const { transferId } = params;
+    const { id: userId } = user;
+    const { includeUser, includeAccount, includeCategory, includeAll, nestedInclude } = query;
 
     const data = await transactionsService.getTransactionsByTransferId({
       transferId,
@@ -50,15 +63,8 @@ export const getTransactionsByTransferId = async (req, res: CustomResponse) => {
       nestedInclude,
     });
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-// TODO:
+    return { data };
+  },
+);
 
 export * from './transactions.controller/index';

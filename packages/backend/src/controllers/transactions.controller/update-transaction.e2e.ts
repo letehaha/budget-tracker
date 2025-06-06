@@ -229,12 +229,11 @@ describe('Update transaction controller', () => {
         const transferId = baseTx.transferId;
 
         const checkBalanceIsCorrect = async (expected) => {
-          const balanceHistory = helpers.extractResponse(
-            await helpers.makeRequest({
-              method: 'get',
-              url: '/stats/balance-history',
-            }),
-          );
+          const balanceHistory = await helpers.makeRequest({
+            method: 'get',
+            url: '/stats/balance-history',
+            raw: true,
+          });
           // Find opposite tx that should be created at the same date as the base tx
           const externalTxBalanceRecord = balanceHistory.find(
             (item) =>

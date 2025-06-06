@@ -1,33 +1,9 @@
-import { API_RESPONSE_STATUS, CATEGORY_TYPES } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
+import { CATEGORY_TYPES } from '@bt/shared/types';
+import { createController } from '@controllers/helpers/controller-factory';
 import * as categoriesService from '@root/services/categories/create-category';
 import { z } from 'zod';
 
-import { errorHandler } from '../helpers';
-
-export const createCategory = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-  const { name, imageUrl, color, parentId }: CreateCategoryParams = req.validated.body;
-
-  try {
-    const data = await categoriesService.createCategory({
-      name,
-      imageUrl,
-      color,
-      parentId,
-      userId,
-    });
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const CreateCategoryPayloadSchema = z
+const CreateCategoryPayloadSchema = z
   .object({
     name: z.string().min(1).max(200, 'The name must not exceed 200 characters'),
     imageUrl: z.string().url().max(500, 'The URL must not exceed 500 characters').optional(),
@@ -49,8 +25,21 @@ export const CreateCategoryPayloadSchema = z
     ]),
   );
 
-export const createCategorySchema = z.object({
+const schema = z.object({
   body: CreateCategoryPayloadSchema,
 });
 
-type CreateCategoryParams = z.infer<typeof CreateCategoryPayloadSchema>;
+export default createController(schema, async ({ user, body }) => {
+  const { id: userId } = user;
+  const { name, imageUrl, color, parentId } = body;
+
+  const data = await categoriesService.createCategory({
+    name,
+    imageUrl,
+    color,
+    parentId,
+    userId,
+  });
+
+  return { data };
+});

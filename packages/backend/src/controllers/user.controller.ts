@@ -1,238 +1,138 @@
-import { API_RESPONSE_STATUS } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
+import { recordId } from '@common/lib/zod/custom-types';
+import { createController } from '@controllers/helpers/controller-factory';
 import { ValidationError } from '@js/errors';
 import { ExchangeRatePair, UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';
+import { z } from 'zod';
 
-import { errorHandler } from './helpers';
+export const getUser = createController(z.object({}), async ({ user }) => {
+  const userData = await userService.getUser(user.id);
+  return { data: userData };
+});
 
-export const getUser = async (req, res: CustomResponse) => {
-  const { id } = req.user;
-
-  try {
-    const user = await userService.getUser(Number(id));
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: user,
+export const updateUser = createController(
+  z.object({
+    body: z.object({
+      username: z.string().optional(),
+      email: z.string().optional(),
+      firstName: z.string().optional(),
+      lastName: z.string().optional(),
+      middleName: z.string().optional(),
+      password: z.string().optional(),
+      avatar: z.string().optional(),
+      totalBalance: z.number().optional(),
+    }),
+  }),
+  async ({ user, body }) => {
+    const userData = await userService.updateUser({
+      id: user.id,
+      ...body,
     });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+    return { data: userData };
+  },
+);
 
-export const updateUser = async (req, res: CustomResponse) => {
-  const { id } = req.user;
-  const {
-    username,
-    email,
-    firstName,
-    lastName,
-    middleName,
-    password,
-    avatar,
-    totalBalance,
-  }: {
-    username: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    middleName: string;
-    password: string;
-    avatar: string;
-    totalBalance: number;
-  } = req.body;
+export const deleteUser = createController(z.object({}), async ({ user }) => {
+  await userService.deleteUser(user.id);
+});
 
-  try {
-    const user = await userService.updateUser({
-      id: Number(id),
-      username,
-      email,
-      firstName,
-      lastName,
-      middleName,
-      password,
-      avatar,
-      totalBalance,
-    });
+export const getUserCurrencies = createController(z.object({}), async ({ user }) => {
+  const result = await userService.getUserCurrencies({
+    userId: user.id,
+  });
+  return { data: result };
+});
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: user,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+export const getUserBaseCurrency = createController(z.object({}), async ({ user }) => {
+  const result = await userService.getUserBaseCurrency({
+    userId: user.id,
+  });
+  return { data: result };
+});
 
-export const deleteUser = async (req, res: CustomResponse) => {
-  const { id } = req.user;
-
-  try {
-    await userService.deleteUser(Number(id));
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: {},
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const getUserCurrencies = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-
-  try {
-    const result = await userService.getUserCurrencies({
-      userId: Number(userId),
-    });
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const getUserBaseCurrency = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-
-  try {
-    const result = await userService.getUserBaseCurrency({
-      userId: Number(userId),
-    });
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const setBaseUserCurrency = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-  const { currencyId } = req.body;
-
-  try {
+export const setBaseUserCurrency = createController(
+  z.object({
+    body: z.object({
+      currencyId: recordId(),
+    }),
+  }),
+  async ({ user, body }) => {
     const result = await userService.setBaseUserCurrency({
-      userId: Number(userId),
-      currencyId: Number(currencyId),
+      userId: user.id,
+      currencyId: body.currencyId,
     });
+    return { data: result };
+  },
+);
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const editUserCurrency = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-
-  const {
-    currencyId,
-    exchangeRate,
-    liveRateUpdate,
-  }: {
-    currencyId: number;
-    exchangeRate?: number;
-    liveRateUpdate?: boolean;
-  } = req.body;
-
-  // TODO: types validation
-
-  try {
+export const editUserCurrency = createController(
+  z.object({
+    body: z.object({
+      currencyId: recordId(),
+      exchangeRate: z.number().optional(),
+      liveRateUpdate: z.boolean().optional(),
+    }),
+  }),
+  async ({ user, body }) => {
     const result = await userService.editUserCurrency({
-      userId,
-      currencyId,
-      exchangeRate,
-      liveRateUpdate,
+      userId: user.id,
+      currencyId: body.currencyId,
+      exchangeRate: body.exchangeRate,
+      liveRateUpdate: body.liveRateUpdate,
     });
+    return { data: result };
+  },
+);
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const setDefaultUserCurrency = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-  const { currencyId }: { currencyId: number } = req.body;
-
-  // TODO: types validation
-
-  try {
+export const setDefaultUserCurrency = createController(
+  z.object({
+    body: z.object({
+      currencyId: recordId(),
+    }),
+  }),
+  async ({ user, body }) => {
     const result = await userService.setDefaultUserCurrency({
-      userId,
-      currencyId,
+      userId: user.id,
+      currencyId: body.currencyId,
     });
+    return { data: result };
+  },
+);
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: result,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const deleteUserCurrency = async (req, res: CustomResponse) => {
-  const { id: userId } = req.user;
-
-  const { currencyId }: { currencyId: number } = req.body;
-
-  try {
+export const deleteUserCurrency = createController(
+  z.object({
+    body: z.object({
+      currencyId: recordId(),
+    }),
+  }),
+  async ({ user, body }) => {
     await userService.deleteUserCurrency({
-      userId,
-      currencyId,
+      userId: user.id,
+      currencyId: body.currencyId,
     });
+  },
+);
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+export const getCurrenciesExchangeRates = createController(z.object({}), async ({ user }) => {
+  const data = await userExchangeRates.getUserExchangeRates({ userId: user.id });
+  return { data };
+});
 
-export const getCurrenciesExchangeRates = async (req, res: CustomResponse) => {
-  try {
-    const { id: userId } = req.user;
+const exchangeRatePairSchema = z.object({
+  baseCode: z.string(),
+  quoteCode: z.string(),
+  rate: z.number().optional(),
+});
 
-    const data = await userExchangeRates.getUserExchangeRates({ userId });
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
-
-export const editUserCurrencyExchangeRate = async (req, res: CustomResponse) => {
-  try {
-    const { id: userId } = req.user;
-    const { pairs }: { pairs: UpdateExchangeRatePair[] } = req.body;
-
-    if (!pairs) {
-      throw new ValidationError({ message: '"pairs" is required.' });
-    }
-
-    if (!Array.isArray(pairs)) {
-      throw new ValidationError({ message: '"pairs" should be an array.' });
-    }
+export const editUserCurrencyExchangeRate = createController(
+  z.object({
+    body: z.object({
+      pairs: z.array(exchangeRatePairSchema),
+    }),
+  }),
+  async ({ user, body }) => {
+    const { pairs } = body;
 
     if (pairs.some((item) => item.baseCode === item.quoteCode)) {
       throw new ValidationError({
@@ -249,31 +149,22 @@ export const editUserCurrencyExchangeRate = async (req, res: CustomResponse) => 
     });
 
     const data = await userExchangeRates.editUserExchangeRates({
-      userId,
-      pairs,
+      userId: user.id,
+      pairs: pairs as UpdateExchangeRatePair[],
     });
 
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
-      response: data,
-    });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+    return { data };
+  },
+);
 
-export const removeUserCurrencyExchangeRate = async (req, res: CustomResponse) => {
-  try {
-    const { id: userId } = req.user;
-    const { pairs }: { pairs: ExchangeRatePair[] } = req.body;
-
-    if (!pairs) {
-      throw new ValidationError({ message: '"pairs" is required.' });
-    }
-
-    if (!Array.isArray(pairs)) {
-      throw new ValidationError({ message: '"pairs" should be an array.' });
-    }
+export const removeUserCurrencyExchangeRate = createController(
+  z.object({
+    body: z.object({
+      pairs: z.array(exchangeRatePairSchema),
+    }),
+  }),
+  async ({ user, body }) => {
+    const { pairs } = body;
 
     pairs.forEach((pair) => {
       if (!pairs.some((item) => item.baseCode === pair.quoteCode)) {
@@ -283,12 +174,11 @@ export const removeUserCurrencyExchangeRate = async (req, res: CustomResponse) =
       }
     });
 
-    await userExchangeRates.removeUserExchangeRates({ userId, pairs });
-
-    return res.status(200).json({
-      status: API_RESPONSE_STATUS.success,
+    await userExchangeRates.removeUserExchangeRates({
+      userId: user.id,
+      pairs: pairs as ExchangeRatePair[],
     });
-  } catch (err) {
-    errorHandler(res, err as Error);
-  }
-};
+
+    return {};
+  },
+);
