@@ -61,6 +61,7 @@ const addTransactions = async () => {
     await addTransactionsToBudget(currentBudgetId.value, data);
     invalidate();
     queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.budgetStats, currentBudgetId] });
+    queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.budgetAddingTransactionList, currentBudgetId] });
   } catch (err) {
     addErrorNotification(err.data.message);
   }
