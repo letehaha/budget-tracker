@@ -5,7 +5,7 @@ import * as Transactions from '@models/Transactions.model';
 
 import { withTransaction } from '../common/with-transaction';
 
-export interface StatsResponse {
+interface StatsResponse {
   summary: {
     actualIncome: number;
     actualExpense: number;
