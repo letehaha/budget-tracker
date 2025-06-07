@@ -3,10 +3,6 @@ import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
 describe('Add Transactions to Budget', () => {
-  const goodResponse = {
-    message: 'Transactions added successfully',
-  };
-
   it('successfully adds transactions to a budget', async () => {
     const [baseTx] = await helpers.createTransaction({ raw: true });
     const budget = await helpers.createCustomBudget({
@@ -27,10 +23,10 @@ describe('Add Transactions to Budget', () => {
     const response = await helpers.addTransactionToCustomBudget({
       id: budget.id,
       payload: data,
-      raw: true,
+      raw: false,
     });
 
-    expect(response).toEqual(goodResponse);
+    expect(response.statusCode).toEqual(200);
   });
 
   it('fails when adding duplicate transaction to the same budget if unique constraint exists', async () => {

@@ -115,7 +115,11 @@ watchEffect(() => {
           <div :style="{ height: `${totalSize}px` }" class="relative">
             <div
               v-for="virtualRow in virtualRows"
-              :key="`${transactions[virtualRow.index].id}-${transactions[virtualRow.index].categoryId}-${transactions[virtualRow.index].refAmount}-${transactions[virtualRow.index].note}-${transactions[virtualRow.index].time}`"
+              :key="
+                transactions[virtualRow.index]
+                  ? `${transactions[virtualRow.index].id}-${transactions[virtualRow.index].categoryId}-${transactions[virtualRow.index].refAmount}-${transactions[virtualRow.index].note}-${transactions[virtualRow.index].time}`
+                  : virtualRow.index
+              "
               :style="{
                 position: 'absolute',
                 top: 0,

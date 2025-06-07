@@ -1,6 +1,7 @@
 import { api } from '@/api/_api';
 import { BudgetModel } from '@bt/shared/types';
 
+import type { StatsResponse } from '../../../backend/src/services/budgets/stats';
 import { fromSystemAmount, toSystemAmount } from './helpers';
 
 interface editBudgetParamsParams {
@@ -65,3 +66,13 @@ export const removeTransactionsFromBudget = async ({
   budgetId: number;
   payload: { transactionIds: number[] };
 }) => api.delete(`/budgets/${budgetId}/transactions`, payload);
+
+export const loadBudgetStats = async ({ budgetId }: { budgetId: number }): Promise<StatsResponse> => {
+  const data: StatsResponse = await api.get(`/budgets/${budgetId}/stats`);
+
+  data.summary.actualExpense = fromSystemAmount(data.summary.actualExpense);
+  data.summary.actualIncome = fromSystemAmount(data.summary.actualIncome);
+  data.summary.balance = fromSystemAmount(data.summary.balance);
+
+  return data;
+};
