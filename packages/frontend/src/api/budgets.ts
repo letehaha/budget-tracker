@@ -65,3 +65,22 @@ export const removeTransactionsFromBudget = async ({
   budgetId: number;
   payload: { transactionIds: number[] };
 }) => api.delete(`/budgets/${budgetId}/transactions`, payload);
+
+interface StatsResponse {
+  summary: {
+    actualIncome: number;
+    actualExpense: number;
+    balance: number; // Net difference
+    utilizationRate: null | number; // Percentage used (0-100)
+  };
+}
+
+export const loadBudgetStats = async ({ budgetId }: { budgetId: number }): Promise<StatsResponse> => {
+  const data = await api.get(`/budgets/${budgetId}/stats`);
+
+  data.summary.actualExpense = fromSystemAmount(data.summary.actualExpense);
+  data.summary.actualIncome = fromSystemAmount(data.summary.actualIncome);
+  data.summary.balance = fromSystemAmount(data.summary.balance);
+
+  return data;
+};

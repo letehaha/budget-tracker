@@ -3,6 +3,7 @@ import addTransactionsToBudget from '@controllers/budgets/add-transaction-to-bud
 import removeTransactionsFromBudget from '@controllers/budgets/remove-transaction-from-budget';
 import * as getBudgetService from '@root/services/budget.service';
 import * as createBudgetService from '@root/services/budgets/create-budget';
+import type { getBudgetStats } from '@root/services/budgets/stats';
 import { Response } from 'express';
 
 import { makeRequest } from './common';
@@ -148,6 +149,14 @@ export async function removeTransactionFromCustomBudget<R extends boolean | unde
     method: 'delete',
     url: `/budgets/${id}/transactions`,
     payload,
+    raw,
+  });
+}
+
+export async function getStats<R extends boolean | undefined = undefined>({ id, raw }: { id: number; raw?: R }) {
+  return makeRequest<Awaited<ReturnType<typeof getBudgetStats>> | null, R>({
+    method: 'get',
+    url: `/budgets/${id}/stats`,
     raw,
   });
 }

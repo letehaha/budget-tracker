@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { editBudget, loadBudgetById } from '@/api/budgets';
+import { editBudget, loadBudgetById, loadBudgetStats } from '@/api/budgets';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -7,16 +7,19 @@ import { buttonVariants } from '@/components/lib/ui/button';
 import Button from '@/components/lib/ui/button/Button.vue';
 import Card from '@/components/lib/ui/card/Card.vue';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useFormatCurrency } from '@/composable';
+import { toLocalNumber } from '@/js/helpers';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
 import { ChevronLeftIcon } from 'lucide-vue-next';
-import { ref, watchEffect } from 'vue';
+import { computed, ref, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 
 import TransactionsList from './transactions-list.vue';
 
 const route = useRoute();
 const queryClient = useQueryClient();
+const { formatBaseCurrency } = useFormatCurrency();
 const { addSuccessNotification } = useNotificationCenter();
 const budgetData = ref();
 const currentBudgetId = ref<number>(Number(route.params.id));
@@ -30,6 +33,19 @@ const DEFAULT_CHANGE_DATA: {
 
 const changeForm = ref({ ...DEFAULT_CHANGE_DATA });
 
+const { data: budgetStats } = useQuery({
+  queryFn: () => loadBudgetStats({ budgetId: currentBudgetId.value }),
+  queryKey: [...VUE_QUERY_CACHE_KEYS.budgetStats, currentBudgetId],
+  staleTime: 30_000,
+});
+
+const stats = computed(() => ({
+  expenses: budgetStats.value?.summary.actualExpense || 0,
+  income: budgetStats.value?.summary.actualIncome || 0,
+  diff: budgetStats.value?.summary.balance || 0,
+  limitUsed: budgetStats.value?.summary.utilizationRate,
+}));
+
 const { data: budgetItem, isLoading } = useQuery({
   queryFn: () => loadBudgetById(currentBudgetId.value),
   queryKey: [VUE_QUERY_CACHE_KEYS.budgetsListItem, currentBudgetId.value],
@@ -40,6 +56,7 @@ const { mutate, isPending: isBudgetDataUpdating } = useMutation({
   mutationFn: editBudget,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetStats });
   },
 });
 
@@ -60,9 +77,9 @@ watchEffect(() => {
 <template>
   <div v-if="budgetData" class="relative flex w-min max-w-full flex-col gap-4 p-4 lg:w-auto lg:flex-row xl:gap-20">
     <div
-      class="@[360px]/budget-item-info:w-full h-max lg:sticky lg:top-[var(--header-height)] lg:w-[450px] lg:max-w-[450px]"
+      class="@[360px]/budget-item-info:w-full grid h-max gap-4 lg:sticky lg:top-[var(--header-height)] lg:w-[450px] lg:max-w-[450px]"
     >
-      <div class="mb-4 flex items-center gap-4">
+      <div class="flex items-center gap-4">
         <router-link
           to="/budgets"
           :class="
@@ -107,6 +124,22 @@ watchEffect(() => {
             <template v-if="isBudgetDataUpdating"> Changing... </template>
             <template v-else> Update </template>
           </Button>
+        </div>
+      </Card>
+
+      <Card class="p-4">
+        <h3 class="mb-4 text-xl">Cash flow</h3>
+
+        <div class="grid gap-2">
+          <p>Total expenses: {{ formatBaseCurrency(stats.expenses) }}</p>
+          <p>Total income: {{ formatBaseCurrency(stats.income) }}</p>
+          <p>
+            Total balance diff:
+            <span :class="[{ 'text-app-expense-color': stats.diff < 0, 'text-app-income-color': stats.diff > 0 }]">
+              {{ formatBaseCurrency(stats.diff) }}</span
+            >
+          </p>
+          <p>Budget limit used: {{ stats.limitUsed ? `${toLocalNumber(stats.limitUsed)}%` : 'N/A' }}</p>
         </div>
       </Card>
     </div>

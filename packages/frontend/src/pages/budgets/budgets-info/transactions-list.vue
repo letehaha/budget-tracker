@@ -10,7 +10,7 @@ import TransactionsList from '@/components/transactions-list/transactions-list.v
 import { useTransactions } from '@/composable/data-queries/get-transactions';
 import { useShiftMultiSelect } from '@/composable/shift-multi-select';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
-import { useMutation } from '@tanstack/vue-query';
+import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -21,6 +21,7 @@ defineProps<{ isBudgetDataUpdating: boolean; budgetId: number }>();
 const { addSuccessNotification } = useNotificationCenter();
 
 const route = useRoute();
+const queryClient = useQueryClient();
 const currentBudgetId = ref<number>(Number(route.params.id));
 
 const isUnlinkingSelectionEnabled = ref(false);
@@ -66,6 +67,7 @@ const { isPending: isMutating, mutate } = useMutation({
     invalidate();
     isUnlinkingSelectionEnabled.value = false;
     pickedTransactionsIds.clear();
+    queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.budgetStats, currentBudgetId] });
     resetSelection();
   },
 });

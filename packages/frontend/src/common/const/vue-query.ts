@@ -30,10 +30,11 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   exchangeRates: ['exchange-rates'],
   accountGroups: [TX_CHANGE_QUERY, 'account-groups'],
 
-  budgetsList: ["budgets-list"],
-  budgetsListItem: ["budgets-list-item"],
-  budgetTransactionList: ["budget-transaction-list"],
-  budgetAddingTransactionList: ["budget-adding-transaction-list"],
+  budgetsList: ['budgets-list'],
+  budgetsListItem: ['budgets-list-item'],
+  budgetTransactionList: [TX_CHANGE_QUERY, 'budget-transaction-list'],
+  budgetAddingTransactionList: [TX_CHANGE_QUERY, 'budget-adding-transaction-list'],
+  budgetStats: [TX_CHANGE_QUERY, 'budget-stats'],
 });
 
 export { TX_CHANGE_QUERY as VUE_QUERY_TX_CHANGE_QUERY };

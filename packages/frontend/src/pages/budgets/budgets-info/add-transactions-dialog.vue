@@ -12,7 +12,7 @@ import TransactionRecord from '@/components/transactions-list/transaction-record
 import { useShiftMultiSelect } from '@/composable/shift-multi-select';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { useQuery } from '@tanstack/vue-query';
+import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
 import { computed, reactive, ref, watch, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
@@ -20,6 +20,7 @@ import { useRoute } from 'vue-router';
 const route = useRoute();
 const { addErrorNotification } = useNotificationCenter();
 const budgetData = ref();
+const queryClient = useQueryClient();
 
 const pickedTransactionsIds = reactive<Set<number>>(new Set());
 const { handleSelection, resetSelection, isShiftKeyPressed } = useShiftMultiSelect(pickedTransactionsIds);
@@ -59,6 +60,8 @@ const addTransactions = async () => {
   try {
     await addTransactionsToBudget(currentBudgetId.value, data);
     invalidate();
+    queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.budgetStats, currentBudgetId] });
+    queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.budgetAddingTransactionList, currentBudgetId] });
   } catch (err) {
     addErrorNotification(err.data.message);
   }

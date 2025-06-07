@@ -367,6 +367,7 @@ export const findWithFilters = async ({
   amountGte,
   amountLte,
   categoryId,
+  attributes,
 }: {
   from: number;
   limit?: number;
@@ -390,6 +391,7 @@ export const findWithFilters = async ({
   amountGte?: number;
   amountLte?: number;
   categoryId?: number;
+  attributes?: (keyof Transactions)[];
 }) => {
   const include = prepareTXInclude({ includeUser, includeAccount, includeCategory, includeAll, nestedInclude });
   const queryInclude: Includeable[] = Array.isArray(include) ? include : include ? [include] : [];
@@ -469,9 +471,10 @@ export const findWithFilters = async ({
     include: queryInclude,
     where: whereClause,
     offset: from,
-    limit: limit,
+    limit: Number.isFinite(limit) ? limit : undefined,
     order: [['time', order]],
     raw: isRaw,
+    attributes,
   });
 
   return transactions;
