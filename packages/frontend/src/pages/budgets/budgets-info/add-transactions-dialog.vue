@@ -111,7 +111,7 @@ const isMobileView = useWindowBreakpoints(1024);
     </template>
 
     <div class="grid max-h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[max-content,minmax(0,1fr)]">
-      <div class="relative overflow-y-auto">
+      <div class="relative overflow-y-auto px-1">
         <template v-if="isMobileView">
           <RecordsFiltersDialog v-model:open="isFiltersDialogOpen" :isAnyFiltersApplied="isAnyFiltersApplied">
             <div class="relative max-h-[calc(100vh-var(--header-height)-32px)] overflow-auto">
