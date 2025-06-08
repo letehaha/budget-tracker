@@ -45,7 +45,7 @@ const isDataEmpty = computed(() => transactions.value.length === 0);
       </EmptyState>
     </template>
     <template v-else>
-      <TransactionsList class="gap-1" :transactions="transactions || []" />
+      <TransactionsList raw-list class="gap-1" :transactions="transactions || []" />
     </template>
   </WidgetWrapper>
 </template>
