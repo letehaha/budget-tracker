@@ -367,6 +367,7 @@ export const findWithFilters = async ({
   amountGte,
   amountLte,
   categoryId,
+  noteSearch,
   attributes,
 }: {
   from: number;
@@ -391,6 +392,7 @@ export const findWithFilters = async ({
   amountGte?: number;
   amountLte?: number;
   categoryId?: number;
+  noteSearch?: string[]; // array of keywords
   attributes?: (keyof Transactions)[];
 }) => {
   const include = prepareTXInclude({ includeUser, includeAccount, includeCategory, includeAll, nestedInclude });
@@ -465,6 +467,15 @@ export const findWithFilters = async ({
         [Op.notIn]: excludedTransactionIds
       };
     }
+  }
+
+  // Add note search condition if provided
+  if (noteSearch && noteSearch.length > 0) {
+    whereClause.note = {
+      [Op.or]: noteSearch.map(term => ({
+        [Op.iLike]: `%${term}%`
+      }))
+    };
   }
 
   const transactions = await Transactions.findAll({

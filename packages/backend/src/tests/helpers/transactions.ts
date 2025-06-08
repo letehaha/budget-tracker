@@ -93,7 +93,10 @@ export function deleteTransaction({ id }: { id?: number } = {}): Promise<Respons
 export function getTransactions<R extends boolean | undefined = undefined>({
   raw,
   ...rest
-}: { raw?: R } & Partial<Omit<Parameters<typeof apiGetTransactions>[0], 'userId'>> = {}) {
+}: Partial<Omit<Parameters<typeof apiGetTransactions>[0], 'userId' | 'noteSearch'>> & {
+  raw?: R;
+  noteSearch?: string; // comma-separated string
+} = {}) {
   return makeRequest<Awaited<ReturnType<typeof apiGetTransactions>>, R>({
     method: 'get',
     url: '/transactions',

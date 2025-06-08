@@ -10,6 +10,7 @@ export interface FiltersStruct {
   excludeTransfer: boolean;
   accounts: AccountModel[];
   excludedBudgetIds?: number[] | null;
+  noteIncludes: string;
 }
 
 export const DEFAULT_FILTERS: FiltersStruct = {
@@ -22,4 +23,5 @@ export const DEFAULT_FILTERS: FiltersStruct = {
   excludeTransfer: false,
   accounts: [],
   excludedBudgetIds: null,
+  noteIncludes: '',
 };

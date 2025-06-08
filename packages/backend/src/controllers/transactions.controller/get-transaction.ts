@@ -9,6 +9,12 @@ const parseCommaSeparatedNumbers = (value: string) =>
     .map(Number)
     .filter((n) => !isNaN(n));
 
+const parseCommaSeparatedStrings = (value: string) =>
+  value
+    .split(',')
+    .map((term) => term.trim())
+    .filter(Boolean);
+
 const schema = z.object({
   query: z
     .object({
@@ -49,6 +55,16 @@ const schema = z.object({
       endDate: z.string().datetime({ message: 'Invalid ISO date string for endDate' }).optional(),
       amountLte: z.preprocess((val) => Number(val), z.number().positive()).optional(),
       amountGte: z.preprocess((val) => Number(val), z.number().positive()).optional(),
+      noteSearch: z
+        .string()
+        .optional()
+        .refine((val) => val !== '[object Object]', {
+          message: 'Invalid noteSearch value: received object instead of string',
+        })
+        .transform((val) => {
+          if (!val || val === '') return undefined;
+          return parseCommaSeparatedStrings(val);
+        }),
     })
     .refine(
       (data) => {
