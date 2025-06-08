@@ -54,6 +54,7 @@ export const useTransactionsWithFilters = ({
         startDate: isDate(filter.start) ? filter.start.toISOString() : undefined,
         amountGte: filter.amountGte,
         amountLte: filter.amountLte,
+        noteSearch: filter.noteIncludes,
         excludeRefunds: filter.excludeRefunds,
         excludeTransfer: filter.excludeTransfer,
         accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,

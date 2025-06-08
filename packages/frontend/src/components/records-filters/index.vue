@@ -26,6 +26,11 @@
       @update:exclude-transfer="$emit('update:filters', { ...filters, excludeTransfer: $event })"
     />
 
+    <NoteIncludesFilter
+      :note-includes="filters.noteIncludes"
+      @update:note-includes="$emit('update:filters', { ...filters, noteIncludes: $event })"
+    />
+
     <AccountsFilter
       :accounts="filters.accounts"
       @update:accounts="$emit('update:filters', { ...filters, accounts: $event })"
@@ -56,6 +61,7 @@ import AccountsFilter from './filters/accounts.vue';
 import AmountRangeFilter from './filters/amount-range-filter.vue';
 import DateRangeFilter from './filters/date-range-filter.vue';
 import ExclusionsFilter from './filters/exclusions.vue';
+import NoteIncludesFilter from './filters/note-includes.vue';
 import TransactionTypeFilter from './filters/transaction-type-filter.vue';
 
 defineProps<{

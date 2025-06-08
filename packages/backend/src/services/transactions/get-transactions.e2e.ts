@@ -322,4 +322,105 @@ describe('Retrieve transactions with filters', () => {
       expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
+
+  describe('filter by note', () => {
+    it('works correctly', async () => {
+      const accountA = await helpers.createAccount({ raw: true });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          amount: 2000,
+          transactionType: TRANSACTION_TYPES.income,
+          note: 'test something test',
+        }),
+      });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          amount: 2000,
+          transactionType: TRANSACTION_TYPES.income,
+          note: 'test something test twice',
+        }),
+      });
+
+      const res = (
+        await Promise.all(
+          ['something', 'SoMeThInG', 'test,twice', 'twice', 'random-text'].map((t) =>
+            helpers.getTransactions({
+              noteSearch: t,
+              raw: true,
+            }),
+          ),
+        )
+      ).map((items) => items.length);
+
+      expect(res).toEqual([
+        2, // both transactions contain it
+        2, // case-insinsitive
+        2, // comma-separated, both have at aleast one value
+        1, // only one contains it
+        0, // none contain random one
+      ]);
+    });
+
+    it('fails when incorrect param ', async () => {
+      const accountA = await helpers.createAccount({ raw: true });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          amount: 2000,
+          transactionType: TRANSACTION_TYPES.income,
+          note: 'test something test',
+        }),
+      });
+
+      const res = await helpers.getTransactions({
+        noteSearch: {} as unknown as string,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('works fine with empty param', async () => {
+      const accountA = await helpers.createAccount({ raw: true });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          amount: 2000,
+          transactionType: TRANSACTION_TYPES.income,
+          note: 'test something test',
+        }),
+      });
+
+      const res = await helpers.getTransactions({
+        noteSearch: '',
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(helpers.extractResponse(res).length).toBe(1);
+    });
+
+    it('works fine with incorrect format', async () => {
+      const accountA = await helpers.createAccount({ raw: true });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          amount: 2000,
+          transactionType: TRANSACTION_TYPES.income,
+          note: 'test something test',
+        }),
+      });
+
+      const res = await helpers.getTransactions({
+        noteSearch: ',,some,,',
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(helpers.extractResponse(res).length).toBe(1);
+    });
+  });
 });
