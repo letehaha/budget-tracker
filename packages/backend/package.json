@@ -44,7 +44,9 @@
     "sequelize": "6.37.3",
     "sequelize-cli": "6.6.2",
     "sequelize-typescript": "2.1.6",
-    "ts-node": "10.9.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.3",
     "uuid": "9.0.1",
     "winston": "3.13.0",
     "winston-loki": "^6.1.3"

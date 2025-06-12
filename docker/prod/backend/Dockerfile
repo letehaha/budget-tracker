@@ -35,7 +35,9 @@ COPY post-install.sh ./
 RUN chmod +x ./post-install.sh
 
 COPY packages/backend/package*.json ./packages/backend/
-RUN npm ci --omit=dev
+RUN npm ci
+
+COPY --from=build-stage /app/tsconfig.json ./
 
 # Copy built backend code and shared files
 COPY --from=build-stage /app/packages/backend/dist ./packages/backend/dist
