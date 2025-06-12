@@ -130,3 +130,6 @@ jspm_packages/
 
 # TernJS port file
 .tern-port
+
+# File that contains project's context details for LLM models
+ai-context.md

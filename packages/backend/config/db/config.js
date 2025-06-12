@@ -1,14 +1,6 @@
-require('dotenv').config({ path: `../../.env.${process.env.NODE_ENV}` });
+require('ts-node/register');
+require('tsconfig-paths/register');
 
-// Used in Sequelize migrations
-module.exports = {
-  [process.env.NODE_ENV]: {
-    username: process.env.APPLICATION_DB_USERNAME,
-    password: process.env.APPLICATION_DB_PASSWORD,
-    database: process.env.APPLICATION_DB_DATABASE,
-    host: process.env.APPLICATION_DB_HOST,
-    port: process.env.APPLICATION_DB_PORT,
-    dialect: process.env.APPLICATION_DB_DIALECT || 'postgres',
-    logging: false,
-  },
-};
+// We cannot directly feed `config.ts` to `.sequelizerc` since Sequelize just
+// cannot accept it. But we can let `ts-node` pre-compile it like this
+module.exports = require('./config.ts');
