@@ -18,12 +18,12 @@ interface Config {
 }
 
 const databaseConfig: Config = {
-  [process.env.NODE_ENV]: {
-    username: process.env.APPLICATION_DB_USERNAME,
-    password: process.env.APPLICATION_DB_PASSWORD,
-    database: process.env.APPLICATION_DB_DATABASE,
-    host: process.env.APPLICATION_DB_HOST,
-    port: parseInt(process.env.APPLICATION_DB_PORT, 10),
+  [process.env.NODE_ENV as string]: {
+    username: process.env.APPLICATION_DB_USERNAME as string,
+    password: process.env.APPLICATION_DB_PASSWORD as string,
+    database: process.env.APPLICATION_DB_DATABASE as string,
+    host: process.env.APPLICATION_DB_HOST as string,
+    port: parseInt(process.env.APPLICATION_DB_PORT as string, 10),
     dialect: (process.env.APPLICATION_DB_DIALECT as Dialect) || 'postgres',
     logging: false,
   },
