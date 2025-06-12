@@ -38,7 +38,7 @@ export const getTransactionById = createController(
 export const getTransactionsByTransferId = createController(
   z.object({
     params: z.object({
-      transferId: z.number(),
+      transferId: z.string(),
     }),
     query: z.object({
       includeUser: z.boolean().optional(),

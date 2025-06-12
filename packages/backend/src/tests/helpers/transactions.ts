@@ -1,6 +1,7 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
 import Transactions from '@models/Transactions.model';
 import * as transactionsService from '@services/transactions';
+import type { getTransactionsByTransferId as apiGetTransactionsByTransferId } from '@services/transactions/get-by-transfer-id';
 import type { getTransactions as apiGetTransactions } from '@services/transactions/get-transactions';
 import { startOfDay } from 'date-fns';
 import { Response } from 'express';
@@ -101,6 +102,20 @@ export function getTransactions<R extends boolean | undefined = undefined>({
     method: 'get',
     url: '/transactions',
     payload: rest,
+    raw,
+  });
+}
+
+export function getTransactionsByTransferId<R extends boolean | undefined = undefined>({
+  raw,
+  transferId,
+}: {
+  raw?: R;
+  transferId: string;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiGetTransactionsByTransferId>>, R>({
+    method: 'get',
+    url: `/transactions/transfer/${transferId}`,
     raw,
   });
 }

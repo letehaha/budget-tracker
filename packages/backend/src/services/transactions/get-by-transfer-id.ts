@@ -12,7 +12,7 @@ export const getTransactionsByTransferId = withTransaction(
     includeAll,
     nestedInclude,
   }: {
-    transferId: number;
+    transferId: string;
     userId: number;
     includeUser?: boolean;
     includeAccount?: boolean;
