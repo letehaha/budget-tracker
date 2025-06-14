@@ -11,6 +11,7 @@ import passport from 'passport';
 
 import { API_PREFIX } from './config';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
+import { securitiesSyncCron } from './crons/sync-securitites';
 import middlewarePassword from './middlewares/passport';
 import './redis';
 import accountGroupsRoutes from './routes/account-groups';
@@ -20,16 +21,17 @@ import accountsRoutes from './routes/accounts.route';
  * */
 import authRoutes from './routes/auth.route';
 import monobankRoutes from './routes/banks/monobank.route';
+import budgetsRoutes from './routes/budgets.route';
 import categoriesRoutes from './routes/categories.route';
 import binanceRoutes from './routes/crypto/binance.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
+import investmentsRoutes from './routes/investments.route';
 import statsRoutes from './routes/stats.route';
 import testsRoutes from './routes/tests.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
-import budgetsRoutes from './routes/budgets.route';
 import { supportedLocales } from './translations';
 
 logger.info('Starting application initialization...');
@@ -42,8 +44,6 @@ middlewarePassword(passport);
 app.use(requestIdMiddleware);
 
 app.set('port', process.env.APPLICATION_PORT);
-
-loadCurrencyRatesJob.start();
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
@@ -94,6 +94,7 @@ app.use(`${API_PREFIX}/stats`, statsRoutes);
 app.use(`${API_PREFIX}/account-group`, accountGroupsRoutes);
 app.use(`${API_PREFIX}/currencies/rates`, exchangeRatesRoutes);
 app.use(`${API_PREFIX}/budgets`, budgetsRoutes);
+app.use(`${API_PREFIX}/investments`, investmentsRoutes);
 
 if (process.env.NODE_ENV === 'test') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);
@@ -105,6 +106,12 @@ logger.info('Attempting to start server...');
 export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
   logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
   logger.info(`API Prefix: ${API_PREFIX}`);
+
+  loadCurrencyRatesJob.start();
+
+  if (process.env.NODE_ENV === 'production') {
+    securitiesSyncCron.startCron();
+  }
 });
 
 serverInstance.on('error', (error) => {
@@ -118,4 +125,18 @@ process.on('uncaughtException', (error) => {
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, stopping cron jobs...');
+  securitiesSyncCron.stopCron();
+  loadCurrencyRatesJob.stop();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, stopping cron jobs...');
+  securitiesSyncCron.stopCron();
+  loadCurrencyRatesJob.stop();
+  process.exit(0);
 });

@@ -34,7 +34,7 @@ export default class UserSettings extends Model {
     unique: true,
     type: DataType.INTEGER,
   })
-  declare id: number;
+  id!: number;
 
   @ForeignKey(() => Users)
   @Column({
@@ -49,7 +49,7 @@ export default class UserSettings extends Model {
   @Column({
     type: DataType.JSONB,
     allowNull: false,
-    defaultValue: {},
+    defaultValue: DEFAULT_SETTINGS,
   })
   settings!: SettingsSchema;
 
@@ -58,12 +58,12 @@ export default class UserSettings extends Model {
     type: DataType.DATE,
     defaultValue: DataType.NOW,
   })
-  declare createdAt: Date;
+  createdAt!: Date;
 
   @Column({
     allowNull: false,
     type: DataType.DATE,
     defaultValue: DataType.NOW,
   })
-  declare updatedAt: Date;
+  updatedAt!: Date;
 }

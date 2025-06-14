@@ -1,6 +1,6 @@
 import { until } from '@common/helpers';
 import { usersQuery } from '@controllers/banks/monobank.controller';
-import { afterAll, afterEach, beforeAll, beforeEach, expect } from '@jest/globals';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
@@ -12,6 +12,16 @@ import Umzug from 'umzug';
 import { setupMswServer } from './mocks/setup-mock-server';
 
 const mswMockServer = setupMswServer();
+
+// Mock the entire module globally. Mocked implementation will be per-test
+jest.mock('@polygon.io/client-js', () => ({
+  restClient: jest.fn().mockReturnValue({
+    reference: {
+      tickers: jest.fn(),
+      exchanges: jest.fn(),
+    },
+  }),
+}));
 
 beforeAll(() => mswMockServer.listen({ onUnhandledRequest: 'bypass' }));
 afterEach(() => mswMockServer.resetHandlers());
@@ -25,8 +35,12 @@ const umzug = new Umzug({
     params: [connection.sequelize.getQueryInterface(), connection.sequelize.constructor],
     // The path to the migrations directory
     path: path.join(__dirname, '../migrations'),
-    // The pattern that determines whether files are migrations
-    pattern: /\.js$/,
+    pattern: /\.(js|ts)$/,
+    // Add a custom resolver to handle .ts files.
+    // This tells Umzug to use Node's `require` for any matched file.
+    // Because your tests are run with ts-jest, `ts-node` is already
+    // registered and will automatically transpile the .ts file when required.
+    customResolver: (path) => require(path),
   },
   storage: 'sequelize',
   storageOptions: {
