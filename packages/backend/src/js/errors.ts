@@ -8,6 +8,7 @@ export enum ERROR_CODES {
   NotAllowed = 405,
   ConflictError = 409,
   ValidationError = 422,
+  Locked = 423,
   TooManyRequests = 429,
   UnexpectedError = 500,
   BadGateway = 502,
@@ -124,5 +125,23 @@ export class BadGateway extends CustomError {
     details?: Record<string, unknown>;
   }) {
     super(ERROR_CODES.BadGateway, code, message, details);
+  }
+}
+
+/**
+ * Represents an error when a resource is locked and cannot be processed.
+ * Corresponds to HTTP status 423 Locked.
+ */
+export class LockedError extends CustomError {
+  constructor({
+    code = API_ERROR_CODES.locked,
+    message,
+    details,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+    details?: Record<string, unknown>;
+  }) {
+    super(ERROR_CODES.Locked, code, message, details);
   }
 }

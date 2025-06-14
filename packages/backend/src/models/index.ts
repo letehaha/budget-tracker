@@ -20,6 +20,10 @@ import AccountGroupingModel from './accounts-groups/AccountGrouping.model';
 import AccountGroupsModel from './accounts-groups/AccountGroups.model';
 import MonobankUsersModel from './banks/monobank/Users.model';
 import BinanceUsersModel from './binance/UserSettings.model';
+import HoldingsModel from './investments/Holdings.model';
+import InvestmentTransactionModel from './investments/InvestmentTransaction.model';
+import SecuritiesModel from './investments/Securities.model';
+import SecurityPricingModel from './investments/SecurityPricing.model';
 
 export const namespace = cls.createNamespace('budget-tracker-namespace');
 Sequelize.useCLS(namespace);
@@ -61,6 +65,10 @@ const models = [
   BinanceUsersModel,
   BudgetModel,
   BudgetTransactionsModel,
+  HoldingsModel,
+  InvestmentTransactionModel,
+  SecuritiesModel,
+  SecurityPricingModel,
 ];
 
 const sequelize = new Sequelize({
