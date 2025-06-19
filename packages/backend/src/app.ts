@@ -11,7 +11,8 @@ import passport from 'passport';
 
 import { API_PREFIX } from './config';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
-import { securitiesSyncCron } from './crons/sync-securitites';
+import { securitiesSyncCron } from './crons/sync-securities';
+import { securitiesPricesSyncCron } from './crons/sync-securities-prices';
 import middlewarePassword from './middlewares/passport';
 import './redis';
 import accountGroupsRoutes from './routes/account-groups';
@@ -111,6 +112,7 @@ export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : a
 
   if (process.env.NODE_ENV === 'production') {
     securitiesSyncCron.startCron();
+    securitiesPricesSyncCron.startCron();
   }
 });
 
@@ -127,16 +129,19 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-process.on('SIGINT', () => {
-  console.log('Received SIGINT, stopping cron jobs...');
+const processUnexpectedExit = () => {
   securitiesSyncCron.stopCron();
+  securitiesPricesSyncCron.stopCron();
   loadCurrencyRatesJob.stop();
   process.exit(0);
+};
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, stopping cron jobs...');
+  processUnexpectedExit();
 });
 
 process.on('SIGTERM', () => {
   console.log('Received SIGTERM, stopping cron jobs...');
-  securitiesSyncCron.stopCron();
-  loadCurrencyRatesJob.stop();
-  process.exit(0);
+  processUnexpectedExit();
 });

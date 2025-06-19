@@ -7,8 +7,7 @@ export const getQueryBooleanValue = (value: string): boolean => {
 // To wait until `fn` returns true
 export const until = async <T>(
   fn: () => Promise<T> | T,
-  timeout: number = 30_000,
-  interval: number = 500,
+  { timeout = 30_000, interval = 500 }: { timeout?: number; interval?: number } = {},
 ): Promise<void> => {
   const startTime = Date.now();
 

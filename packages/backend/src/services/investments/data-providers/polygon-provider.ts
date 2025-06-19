@@ -1,41 +1,22 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecurityModel } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import * as requestsUtils from '@js/utils/requests-calling.utils';
 import {
   type IAggs,
   type IAggsGroupedDaily,
   type IRestClient,
-  type ITickers,
   type ITickersQuery,
   restClient,
 } from '@polygon.io/client-js';
-import { format } from 'date-fns';
+import { isAxiosError } from 'axios';
+import { formatDate } from 'date-fns';
 import { promises as fs } from 'fs';
 import path from 'path';
 
-import { BaseSecurityDataProvider, PriceData, SecurityDetails, SecuritySearchResult } from './base-provider';
+import { BaseSecurityDataProvider, PriceData, SecuritySearchResult } from './base-provider';
 
 // Since the library doesn't export these types directly, we derive them.
-type ITickersResults = NonNullable<ITickers['results']>[number];
-type IAggsResults = NonNullable<IAggs['results']>[number];
 type TickerTypes = ITickersQuery['type'];
-
-// Helper to format tickers correctly based on asset class
-function getPolygonTicker(security: Pick<SecurityModel, 'assetClass' | 'currencyCode' | 'symbol'>): string | null {
-  if (!security.symbol) return null;
-
-  switch (security.assetClass) {
-    case ASSET_CLASS.options:
-      return `O:${security.symbol}`;
-    case ASSET_CLASS.crypto:
-      return `X:${security.symbol}${security.currencyCode}`;
-    case ASSET_CLASS.cash:
-      return security.symbol === security.currencyCode ? null : `C:${security.symbol}${security.currencyCode}`;
-    case ASSET_CLASS.stocks:
-    default:
-      return security.symbol;
-  }
-}
 
 export class PolygonDataProvider extends BaseSecurityDataProvider {
   readonly providerName = SECURITY_PROVIDER.polygon;
@@ -58,7 +39,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
     return rawTickers;
   }
 
-  async syncAllUSTickers(): Promise<SecuritySearchResult[]> {
+  private async syncAllUSTickers(): Promise<SecuritySearchResult[]> {
     logger.info('Started fetching exchanges');
     const exchanges = (
       await this.client.reference.exchanges({
@@ -149,86 +130,56 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
     return allTickers;
   }
 
-  async searchSecurities(query: string, limit = 10): Promise<SecuritySearchResult[]> {
-    const response: ITickers = await this.client.reference.tickers({
-      search: query,
-      limit,
-      active: 'true',
-    });
-
-    return (
-      response.results?.map((ticker: ITickersResults) => ({
-        symbol: ticker.ticker,
-        name: ticker.name,
-        providerName: SECURITY_PROVIDER.polygon,
-        assetClass: this.mapAssetClass(ticker.type as TickerTypes),
-        currencyCode: ticker.currency_name || 'USD',
-        exchangeAcronym: ticker.primary_exchange,
-      })) || []
-    );
-  }
-
-  async getSecurityDetails(symbol: string): Promise<SecurityDetails | null> {
-    const response = await this.client.reference.tickerDetails(symbol);
-    const ticker = response.results;
-
-    if (!ticker) return null;
-
-    return {
-      symbol: ticker.ticker!,
-      name: ticker.name!,
-      providerName: SECURITY_PROVIDER.polygon,
-      assetClass: this.mapAssetClass(ticker.type as TickerTypes),
-      currencyCode: ticker.currency_name || 'USD',
-      exchangeAcronym: ticker.primary_exchange,
-      sharesPerContract: ticker.share_class_shares_outstanding?.toString(),
-    };
-  }
-
-  async getDailyPrices(
-    securities: Pick<SecurityModel, 'symbol' | 'assetClass' | 'currencyCode'>[],
-    date: Date,
-  ): Promise<PriceData[]> {
-    const dateStr = format(date, 'yyyy-MM-dd');
+  // https://polygon.io/docs/rest/stocks/aggregates/daily-market-summary
+  public async getDailyPrices(date: Date): Promise<PriceData[]> {
+    const dateStr = formatDate(date, 'yyyy-MM-dd');
     logger.info(`Fetching all daily pricing for ${dateStr} from Polygon.`);
 
-    const allPricing: IAggsGroupedDaily = await requestsUtils.withRetry(() =>
-      this.client.stocks.aggregatesGroupedDaily(dateStr, { adjusted: 'true' }),
+    const allPricing: IAggsGroupedDaily = await requestsUtils.withRetry(
+      () =>
+        this.client.stocks.aggregatesGroupedDaily(dateStr, {
+          adjusted: 'true',
+        }),
+      {
+        delay: this.reateLimitDelay,
+        maxRetries: 3,
+        onError(error, attempt) {
+          if (isAxiosError(error)) {
+            // Only retry on rate limit errors
+            if (error.response?.status === 429) {
+              logger.warn(`Rate limit hit on Polygon daily prices (attempt ${attempt}), retrying...`);
+              return true;
+            }
+            logger.error({ message: `Non-retryable error on Polygon daily prices (attempt ${attempt}).`, error });
+            return false; // stop retrying
+          } else {
+            logger.error({ message: 'Unexpected error', error: error as Error });
+          }
+        },
+      },
     );
 
-    if (!allPricing.results) return [];
-
-    const pricesMap = new Map<string, IAggsResults>();
-    for (const price of allPricing.results) {
-      if (price.T) {
-        pricesMap.set(price.T, price);
-      }
+    if (!allPricing.results) {
+      logger.warn(`No daily prices found for ${dateStr}.`);
+      return [];
     }
 
-    const results: PriceData[] = [];
-    for (const security of securities) {
-      const ticker = getPolygonTicker(security);
-      if (ticker && pricesMap.has(ticker)) {
-        const priceInfo = pricesMap.get(ticker)!;
-        if (priceInfo.c && priceInfo.t) {
-          results.push({
-            symbol: security.symbol!,
-            date: new Date(priceInfo.t),
-            priceClose: priceInfo.c,
-          });
-        }
-      }
-    }
-    return results;
+    return allPricing.results
+      .filter((price) => price.T && price.c && price.t)
+      .map((price) => ({
+        symbol: price.T!,
+        date: new Date(price.t!),
+        priceClose: price.c!,
+      }));
   }
 
-  async getHistoricalPrices(symbol: string, startDate: Date, endDate: Date): Promise<PriceData[]> {
+  public async getHistoricalPrices(symbol: string, startDate: Date, endDate: Date): Promise<PriceData[]> {
     const response: IAggs = await this.client.stocks.aggregates(
       symbol,
       1,
       'day',
-      format(startDate, 'yyyy-MM-dd'),
-      format(endDate, 'yyyy-MM-dd'),
+      formatDate(startDate, 'yyyy-MM-dd'),
+      formatDate(endDate, 'yyyy-MM-dd'),
     );
 
     return (

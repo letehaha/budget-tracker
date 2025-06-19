@@ -14,3 +14,4 @@ export * from './user-settings';
 export * from './budgets';
 
 export * from './investments/securities';
+export * from './investments/prices';

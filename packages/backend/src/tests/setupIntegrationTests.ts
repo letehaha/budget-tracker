@@ -20,6 +20,9 @@ jest.mock('@polygon.io/client-js', () => ({
       tickers: jest.fn(),
       exchanges: jest.fn(),
     },
+    stocks: {
+      aggregatesGroupedDaily: jest.fn(),
+    },
   }),
 }));
 

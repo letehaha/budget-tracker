@@ -83,7 +83,7 @@ export async function withRetry<TResult>(
   {
     maxRetries = 10,
     onError,
-    delay,
+    delay = 1_000,
   }: {
     maxRetries?: number;
     onError?(error: unknown, attempt: number): boolean | undefined; // true = retry, false = stop

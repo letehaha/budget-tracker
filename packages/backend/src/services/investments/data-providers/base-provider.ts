@@ -1,5 +1,8 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecurityModel } from '@bt/shared/types/investments';
+import type { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 
+/**
+ * Represents the normalized result of a security search from a data provider.
+ */
 export interface SecuritySearchResult {
   symbol: string;
   name: string;
@@ -13,6 +16,9 @@ export interface SecuritySearchResult {
   isin?: string;
 }
 
+/**
+ * Represents normalized price data for a single security on a specific date.
+ */
 export interface PriceData {
   symbol: string;
   date: Date;
@@ -35,18 +41,21 @@ export abstract class BaseSecurityDataProvider {
    */
   abstract getAllSecurities(): Promise<SecuritySearchResult[]>;
 
-  abstract searchSecurities(query: string, limit?: number): Promise<SecuritySearchResult[]>;
-
-  abstract getSecurityDetails(symbol: string): Promise<SecurityDetails | null>;
-
-  abstract getHistoricalPrices(symbol: string, startDate: Date, endDate: Date): Promise<PriceData[]>;
+  /**
+   * Fetches the daily closing prices for all available tickers for a single, specific date.
+   * This is the primary method for the daily price sync cron job.
+   * @param date The target date for which to fetch prices.
+   * @returns A promise that resolves to an array of price data for all securities.
+   */
+  abstract getDailyPrices(date: Date): Promise<PriceData[]>;
 
   /**
-   * Efficiently gets daily prices for a list of securities.
-   * This is the primary method for daily price sync jobs.
+   * Fetches the historical price data (OHLC) for a single security over a specified date range.
+   * This is used for backfilling missing data or displaying charts.
+   * @param symbol The ticker symbol of the security.
+   * @param startDate The beginning of the date range.
+   * @param endDate The end of the date range.
+   * @returns A promise that resolves to an array of historical price data.
    */
-  abstract getDailyPrices(
-    securities: Pick<SecurityModel, 'symbol' | 'assetClass' | 'currencyCode'>[],
-    date: Date,
-  ): Promise<PriceData[]>;
+  // abstract getHistoricalPrices(symbol: string, startDate: Date, endDate: Date): Promise<PriceData[]>;
 }
