@@ -1,0 +1,33 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Route Layer
+
+## Template
+```typescript
+import { Router } from 'express';
+import { authenticateJwt } from '@middlewares/passport';
+import { validateEndpoint } from '@middlewares/validations';
+import { featureController } from '@controllers/feature.controller';
+
+const router = Router();
+
+router.get(
+  '/',
+  authenticateJwt,  // Authentication middleware if needed
+  validateEndpoint(featureController.schema),
+  featureController.handler
+);
+
+export default router;
+```
+
+## Rules
+1. Always use Express Router
+2. Include authentication middleware when required
+3. Always use validateEndpoint middleware for validation
+4. Keep routes clean and minimal - no business logic
+5. Group related routes in subdirectories
+6. Use proper route parameter naming: `:id`, `:userId`, etc.

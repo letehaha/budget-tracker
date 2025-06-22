@@ -1,0 +1,57 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Backend Rules Index
+
+This file serves as an index to all backend development rules and standards. Each section is maintained in a separate file for easier maintenance.
+
+## Table of Contents
+
+1. [Architecture Overview](mdc:architecture.mdc)
+   - File Structure
+   - Naming Conventions
+
+2. [Code Modification Practices](mdc:code-modification.mdc)
+   - Rules for modifying existing code
+
+3. [Route Layer](mdc:route-layer.mdc)
+   - Templates
+   - Rules
+
+4. [Controller Layer](mdc:controller-layer.mdc)
+   - Templates
+   - Rules
+
+5. [Service Layer](mdc:service-layer.mdc)
+   - Templates
+   - Rules
+   - Object-based parameters
+
+6. [Error Handling](mdc:error-handling.mdc)
+   - Custom Error Classes
+   - Error Response Format
+
+7. [Type Definitions](mdc:type-definitions.mdc)
+   - Common Types Location
+   - Type Usage Rules
+
+8. [Testing](mdc:testing.mdc)
+   - File Structure
+   - Running Tests
+   - Testing Rules
+   - Unit Tests
+   - E2E Tests
+
+9. [General Rules](mdc:general-rules.mdc)
+    - Documentation
+    - Middleware
+    - Database Operations
+    - API Response Format
+    - Security Rules
+    - Performance Rules
+
+10. [Path Aliases](mdc:path-aliases.mdc)
+    - Configuration
+    - Available Aliases

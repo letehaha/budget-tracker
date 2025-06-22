@@ -1,0 +1,27 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Error Handling
+
+## Custom Error Classes
+- Use appropriate error class from @js/errors:
+  - NotFoundError
+  - ValidationError
+  - ConflictError
+  - NotAllowedError
+  - Unauthorized
+  - etc.
+
+## Error Response Format
+```typescript
+{
+  status: API_RESPONSE_STATUS.error,
+  error: {
+    message: string,
+    code?: string,
+    details?: unknown
+  }
+}
+```

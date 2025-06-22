@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+      "rule": "backend",
+      "context": {
+        "path": "packages/backend"
+      },
+      "activation": "always"
+    }
+  ]
+}

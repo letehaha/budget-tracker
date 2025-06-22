@@ -1,0 +1,43 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Controller Layer
+
+## Template
+```typescript
+import { createController } from '@controllers/helpers/controller-factory';
+import * as featureService from '@services/feature.service';
+import { z } from 'zod';
+
+const schema = z.object({
+  params: z.object({
+    id: recordId(),  // Use custom Zod types from @common/lib/zod/custom-types
+  }).optional(),
+  query: z.object({}).optional(),
+  body: z.object({}).optional(),
+});
+
+export default createController(schema, async ({ user, params, query, body }) => {
+  const data = await featureService.doSomething({
+    userId: user.id,
+    ...params,
+    ...query,
+    ...body,
+  });
+
+  return { data };
+});
+```
+
+## Rules
+1. Always use createController factory
+2. Define comprehensive Zod schemas for validation
+3. Use custom Zod types from @common/lib/zod/custom-types
+4. Keep controllers thin - delegate to services
+5. Return { data, statusCode? } object
+6. Use proper error handling through factory
+7. One controller per action unless tightly coupled
+8. Controllers should not contain business logic
+9. Use proper typing for request/response objects
