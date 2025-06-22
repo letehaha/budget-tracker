@@ -8,7 +8,8 @@ import syncDailyPricesController from '@controllers/investments/prices/sync-dail
 import getAllSecurities from '@controllers/investments/securities/get-all.controller';
 import searchSecuritiesController from '@controllers/investments/securities/search.controller';
 import triggerSecuritiesSync from '@controllers/investments/securities/sync.controller';
-import { createInvestmentTransactionController } from '@controllers/investments/transactions';
+import createInvestmentTransactionController from '@controllers/investments/transactions/create-tx.controller';
+import getTransactionsController from '@controllers/investments/transactions/get-transactions.controller';
 import { authenticateJwt } from '@middlewares/passport';
 import { testOnly } from '@middlewares/test-only';
 import { validateEndpoint } from '@middlewares/validations';
@@ -59,6 +60,13 @@ router.delete(
   authenticateJwt,
   validateEndpoint(deleteHoldingController.schema),
   deleteHoldingController.handler,
+);
+
+router.get(
+  '/transactions',
+  authenticateJwt,
+  validateEndpoint(getTransactionsController.schema),
+  getTransactionsController.handler,
 );
 
 router.post(

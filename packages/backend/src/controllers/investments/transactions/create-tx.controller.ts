@@ -4,7 +4,7 @@ import { createController } from '@controllers/helpers/controller-factory';
 import { createInvestmentTransaction } from '@services/investments/transactions/create.service';
 import { z } from 'zod';
 
-export const createInvestmentTransactionController = createController(
+export default createController(
   z.object({
     body: z.object({
       accountId: recordId(),
