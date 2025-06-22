@@ -19,7 +19,16 @@ __tests__/
 ### Environment Setup
 Tests run in a Docker environment to ensure consistent test conditions. The setup script creates temporary databases and containers for testing.
 
+### Node Version Requirements
+Tests require Node.js v14.13.0 or higher. If using nvm:
+```bash
+nvm use
+```
+
 ### Test Commands
+Before running tests, use `nvm` to setup the correct node version. Without `nvm` there's a high risk of using outdated Node version.
+When asking about unit tests, strictly run `npm run test:unit`. When asking about e2e tests, strictly `npm run test:e2e`. Run `npm run test` only when asking about tests in general or specifically about both. Detailed instructions to run tests specified below.
+
 1. **Run all unit tests:**
    ```bash
    cd packages/backend && npm run test:unit
@@ -49,12 +58,6 @@ Tests run in a Docker environment to ensure consistent test conditions. The setu
    ```bash
    cd packages/backend && npm run test:unit -- --watch
    ```
-
-### Node Version Requirements
-Tests require Node.js v14.13.0 or higher. If using nvm:
-```bash
-cd .. && . ~/.nvm/nvm.sh && nvm use && cd packages/backend
-```
 
 ### Troubleshooting Tests
 1. If tests fail with connection errors, ensure Docker is running
