@@ -22,6 +22,7 @@ jest.mock('@polygon.io/client-js', () => ({
     },
     stocks: {
       aggregatesGroupedDaily: jest.fn(),
+      aggregates: jest.fn(),
     },
   }),
 }));
@@ -91,6 +92,20 @@ expect.extend({
       pass,
       message: () => `expected ${received} to be within ${range} of ${target}`,
     };
+  },
+  toBeNumericEqual(received, expected) {
+    const pass = Number(received) === Number(expected);
+    if (pass) {
+      return {
+        message: () => `expected ${received} not to be numerically equal to ${expected}`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: () => `expected ${received} to be numerically equal to ${expected}`,
+        pass: false,
+      };
+    }
   },
 });
 

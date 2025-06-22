@@ -91,28 +91,27 @@ describe('POST /investing/sync/securities', () => {
       results: [{ mic: 'XNYS', type: 'exchange' }],
     } as IExchanges);
 
-    mockedTickers.mockResolvedValue({
-      status: 'OK',
-      request_id: 'mock-ticker-id',
-      count: 2,
-      results: [{ ticker: 'AAPL', name: 'Apple Inc.', currency_name: 'USD' }],
-    } as ITickers);
+    mockedTickers
+      .mockResolvedValueOnce({
+        status: 'OK',
+        request_id: 'mock-ticker-id',
+        count: 1,
+        results: [{ ticker: 'AAPL', name: 'Apple Inc.', currency_name: 'USD' }],
+      } as ITickers)
+      .mockResolvedValueOnce({
+        status: 'OK',
+        request_id: 'mock-ticker-id',
+        count: 2,
+        results: [
+          { ticker: 'AAPL', name: 'Apple Inc.', currency_name: 'USD' },
+          { ticker: 'GOOG', name: 'Alphabet Inc.', currency_name: 'USD' },
+        ],
+      } as ITickers);
 
     await helpers.triggerSecuritiesSync();
-
-    await helpers.sleep(1_000);
-
-    mockedTickers.mockResolvedValue({
-      status: 'OK',
-      request_id: 'mock-ticker-id',
-      count: 2,
-      results: [
-        { ticker: 'AAPL', name: 'Apple Inc.', currency_name: 'USD' },
-        { ticker: 'GOOG', name: 'Alphabet Inc.', currency_name: 'USD' },
-      ],
-    } as ITickers);
-
+    await helpers.sleep(300); // wait after sync for data to settle
     await helpers.triggerSecuritiesSync();
+    await helpers.sleep(300); // wait after sync for data to settle
 
     const securitiesInDb = await helpers.getAllSecurities({ raw: true });
     expect(securitiesInDb).toHaveLength(2);

@@ -3,6 +3,7 @@ import { jest } from '@jest/globals';
 import { type IExchanges, type ITickers, restClient } from '@polygon.io/client-js';
 import { syncDailyPrices } from '@root/services/investments/securities-price/price-sync.service';
 import * as getSecuritiesService from '@root/services/investments/securities/get-all';
+import { searchSecurities as _searchSecurities } from '@root/services/investments/securities/search.service';
 
 import { type MakeRequestReturn, makeRequest } from '../common';
 
@@ -68,7 +69,7 @@ export async function seedSecuritiesViaSync(securitiesToSeed: SeedSecurityPayloa
   // Mock the API responses for the sync process
   mockedExchanges.mockResolvedValue({
     status: 'OK',
-    results: [{ mic: 'XNYS', name: 'New York Stock Exchange', type: 'exchange' }],
+    results: [{ mic: 'XNYS', name: '(Test) New York Stock Exchange', type: 'exchange' }],
   } as IExchanges);
 
   mockedTickers.mockResolvedValue({
@@ -96,4 +97,19 @@ export async function seedSecuritiesViaSync(securitiesToSeed: SeedSecurityPayloa
 
   // Return the newly created securities from the DB
   return getAllSecurities({ raw: true });
+}
+
+export async function searchSecurities<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: { query: string; limit?: number };
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof _searchSecurities>>, R>({
+    method: 'get',
+    url: '/investments/securities/search',
+    payload,
+    raw,
+  });
 }

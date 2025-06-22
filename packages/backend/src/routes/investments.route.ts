@@ -1,7 +1,14 @@
+import {
+  createHoldingController,
+  deleteHoldingController,
+  getHoldingsController,
+} from '@controllers/investments/holdings';
 import getPricesController from '@controllers/investments/prices/get-prices.controller';
 import syncDailyPricesController from '@controllers/investments/prices/sync-daily.controller';
 import getAllSecurities from '@controllers/investments/securities/get-all.controller';
+import searchSecuritiesController from '@controllers/investments/securities/search.controller';
 import triggerSecuritiesSync from '@controllers/investments/securities/sync.controller';
+import { createInvestmentTransactionController } from '@controllers/investments/transactions';
 import { authenticateJwt } from '@middlewares/passport';
 import { testOnly } from '@middlewares/test-only';
 import { validateEndpoint } from '@middlewares/validations';
@@ -27,5 +34,38 @@ router.post(
 
 router.get('/prices', authenticateJwt, validateEndpoint(getPricesController.schema), getPricesController.handler);
 router.get('/securities', authenticateJwt, validateEndpoint(getAllSecurities.schema), getAllSecurities.handler);
+
+router.get(
+  '/securities/search',
+  authenticateJwt,
+  validateEndpoint(searchSecuritiesController.schema),
+  searchSecuritiesController.handler,
+);
+
+router.get(
+  '/accounts/:accountId/holdings',
+  authenticateJwt,
+  validateEndpoint(getHoldingsController.schema),
+  getHoldingsController.handler,
+);
+router.post(
+  '/holding',
+  authenticateJwt,
+  validateEndpoint(createHoldingController.schema),
+  createHoldingController.handler,
+);
+router.delete(
+  '/holding',
+  authenticateJwt,
+  validateEndpoint(deleteHoldingController.schema),
+  deleteHoldingController.handler,
+);
+
+router.post(
+  '/transaction',
+  authenticateJwt,
+  validateEndpoint(createInvestmentTransactionController.schema),
+  createInvestmentTransactionController.handler,
+);
 
 export default router;

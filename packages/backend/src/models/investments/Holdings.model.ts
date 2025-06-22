@@ -6,6 +6,7 @@ import {
   ForeignKey,
   BelongsTo,
   Index,
+  PrimaryKey,
 } from 'sequelize-typescript';
 import Accounts from '../Accounts.model';
 import Securities from './Securities.model';
@@ -48,11 +49,13 @@ import { HoldingModel } from "@bt/shared/types/investments"
   tableName: 'Holdings',
 })
 export default class Holdings extends Model implements HoldingModel {
+  @PrimaryKey
   @ForeignKey(() => Accounts)
   @Index
   @Column({ type: DataType.INTEGER, allowNull: false })
   accountId!: number;
 
+  @PrimaryKey
   @ForeignKey(() => Securities)
   @Index
   @Column({ type: DataType.INTEGER, allowNull: false })

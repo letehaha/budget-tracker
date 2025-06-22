@@ -57,5 +57,5 @@ export abstract class BaseSecurityDataProvider {
    * @param endDate The end of the date range.
    * @returns A promise that resolves to an array of historical price data.
    */
-  // abstract getHistoricalPrices(symbol: string, startDate: Date, endDate: Date): Promise<PriceData[]>;
+  abstract getHistoricalPrices(symbol: string, startDate: Date, endDate: Date): Promise<PriceData[]>;
 }
