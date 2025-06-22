@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import _ from 'lodash';
 
 import { paginate, paginateWithNextUrl, withRetry } from './requests-calling.utils';
@@ -68,6 +68,14 @@ describe('paginate', () => {
 });
 
 describe('withRetry', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it.each<{ failAttempts: number; maxRetries: number }>`
     failAttempts | maxRetries
     ${0}         | ${5}
@@ -81,7 +89,15 @@ describe('withRetry', () => {
         return 'Success';
       });
 
-      const result = await withRetry(mockFn, { maxRetries });
+      const resultPromise = withRetry(mockFn, { maxRetries, delay: 1000 });
+
+      // Fast-forward through all pending timeouts
+      for (let i = 0; i < failAttempts; i++) {
+        await Promise.resolve(); // Allow any pending microtasks to run
+        jest.advanceTimersByTime(1000);
+      }
+
+      const result = await resultPromise;
 
       expect(result).toBe('Success');
       expect(mockFn).toHaveBeenCalledTimes(failAttempts + 1);
@@ -95,8 +111,15 @@ describe('withRetry', () => {
     });
     const mockOnError = jest.fn((_err: unknown, attempt: number) => attempt < exitAfterAttempts);
 
-    await expect(withRetry(mockFn, { maxRetries: 5, onError: mockOnError })).rejects.toThrow('Failure');
+    const resultPromise = withRetry(mockFn, { maxRetries: 5, onError: mockOnError, delay: 1000 });
 
+    // Fast-forward through the timeouts until we hit our exit condition
+    for (let i = 0; i <= exitAfterAttempts; i++) {
+      await Promise.resolve(); // Allow any pending microtasks to run
+      jest.advanceTimersByTime(1000);
+    }
+
+    await expect(resultPromise).rejects.toThrow('Failure');
     expect(mockFn).toHaveBeenCalledTimes(exitAfterAttempts + 1);
   });
 });
