@@ -136,3 +136,11 @@ ai-context.md
 
 # Different kinds of data
 packages/backend/data
+
+dev-debug.log
+# Environment variables
+# OS specific
+
+# Task files
+# tasks.json
+# tasks/ 

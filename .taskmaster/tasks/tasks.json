@@ -1,0 +1,204 @@
+{
+  "meta": {
+    "version": "1.0",
+    "lastUpdated": "2024-12-20T00:00:00.000Z",
+    "tasksCount": 17
+  },
+  "tags": {
+    "master": {
+      "name": "master",
+      "description": "Main development tasks for budget tracker",
+      "createdAt": "2024-12-20T00:00:00.000Z",
+      "tasks": [
+        {
+          "id": 1,
+          "title": "Data Provider Foundation",
+          "description": "Create base data provider interface, implement Polygon provider with search/pricing methods, and add provider factory and configuration",
+          "status": "done",
+          "priority": "high",
+          "dependencies": [],
+          "details": "✅ COMPLETED: BaseSecurityDataProvider interface exists, PolygonDataProvider fully implemented with search/pricing methods, DataProviderFactory with configuration management is complete.",
+          "testStrategy": "Verify provider factory can instantiate Polygon provider, test search and pricing methods with mock data",
+          "subtasks": []
+        },
+        {
+          "id": 2,
+          "title": "Security Management Services",
+          "description": "Create security CRUD service, implement security search functionality, and add security validation and duplicate detection",
+          "status": "done",
+          "priority": "high",
+          "dependencies": [1],
+          "details": "✅ COMPLETED: Securities model exists with full CRUD operations, search functionality implemented via search.service.ts, securities-manage.ts handles validation and duplicate detection.",
+          "testStrategy": "Test CRUD operations, search functionality, and duplicate detection logic",
+          "subtasks": []
+        },
+        {
+          "id": 3,
+          "title": "Price Syncing System",
+          "description": "Create price syncing service using data providers, implement batch price updates, and add price history management",
+          "status": "done",
+          "priority": "high",
+          "dependencies": [1, 2],
+          "details": "✅ COMPLETED: price-sync.service.ts implements price syncing, SecurityPricing model handles price history, batch updates implemented for daily price sync.",
+          "testStrategy": "Test price sync service with mock provider data, verify batch updates and price history storage",
+          "subtasks": []
+        },
+        {
+          "id": 4,
+          "title": "Security API Endpoints",
+          "description": "Implement POST /investing/securities/search, POST /investing/securities, GET /investing/securities/:id, and GET /investing/securities/:id/prices endpoints",
+          "status": "in-progress",
+          "priority": "medium",
+          "dependencies": [2, 3],
+          "details": "🟡 PARTIALLY COMPLETED: \n✅ GET /securities (all securities) - implemented\n✅ GET /securities/search - implemented\n✅ POST /securities (add individual security) - NOT NEEDED (securities added only via sync process)\n❌ GET /securities/:id - missing\n❌ GET /securities/:id/prices - missing (GET /prices exists but different endpoint)",
+          "testStrategy": "Test all security endpoints with various payloads and edge cases",
+          "subtasks": []
+        },
+        {
+          "id": 5,
+          "title": "Holdings Management",
+          "description": "Create holdings calculation service, implement portfolio value calculations, and add holdings CRUD operations",
+          "status": "done",
+          "priority": "high",
+          "dependencies": [2, 3],
+          "details": "✅ COMPLETED: Holdings model and service implemented, get-holdings.service.ts provides portfolio calculations, CRUD operations available via holdings controllers.",
+          "testStrategy": "Test holdings calculations, portfolio value computations, and CRUD operations",
+          "subtasks": []
+        },
+        {
+          "id": 6,
+          "title": "Investment Transactions",
+          "description": "Create investment transaction service, implement buy/sell/dividend transaction logic, and add transaction validation and holdings updates",
+          "status": "done",
+          "priority": "high",
+          "dependencies": [5],
+          "details": "✅ COMPLETED: InvestmentTransaction model implemented with full transaction logic, buy/sell/dividend transaction support, validation and holdings updates integrated.",
+          "testStrategy": "Test transaction creation, validation, and automatic holdings updates",
+          "subtasks": []
+        },
+        {
+          "id": 7,
+          "title": "Investment Transaction API",
+          "description": "Implement POST /investing/transactions, GET /investing/transactions, PUT /investing/transactions/:id, and DELETE /investing/transactions/:id endpoints",
+          "status": "done",
+          "priority": "medium",
+          "dependencies": [6],
+          "details": "✅ COMPLETED: All transaction API endpoints implemented:\n✅ POST /transaction - create investment transaction\n✅ GET /transactions - list transactions with filters\n✅ PUT /transaction/:transactionId - update transaction\n✅ DELETE /transaction/:transactionId - delete transaction",
+          "testStrategy": "Test all transaction API endpoints with various scenarios",
+          "subtasks": []
+        },
+        {
+          "id": 8,
+          "title": "Portfolio API Endpoints",
+          "description": "Implement GET /investing/accounts/:id/holdings, GET /investing/accounts/:id/performance, and GET /investing/portfolio/overview endpoints",
+          "status": "in-progress",
+          "priority": "medium",
+          "dependencies": [5, 6],
+          "details": "🟡 PARTIALLY COMPLETED:\n✅ GET /accounts/:accountId/holdings - implemented\n❌ GET /accounts/:id/performance - missing\n❌ GET /portfolio/overview - missing",
+          "testStrategy": "Test portfolio endpoints with various account scenarios and performance calculations",
+          "subtasks": []
+        },
+        {
+          "id": 9,
+          "title": "Price Sync Jobs",
+          "description": "Create scheduled job for daily price updates, add error handling and retry logic, and implement rate limiting for API calls",
+          "status": "done",
+          "priority": "medium",
+          "dependencies": [3],
+          "details": "✅ COMPLETED: sync-securities-prices.ts cron job implemented for daily price updates, error handling and retry logic in place, rate limiting implemented in Polygon provider.",
+          "testStrategy": "Test scheduled job execution, error handling scenarios, and rate limiting behavior",
+          "subtasks": []
+        },
+        {
+          "id": 10,
+          "title": "Testing & Validation",
+          "description": "Create unit tests for core services, integration tests for API endpoints, and end-to-end transaction flow tests",
+          "status": "done",
+          "priority": "low",
+          "dependencies": [4, 7, 8],
+          "details": "✅ COMPLETED: Comprehensive test suite exists with unit tests (.e2e.ts files), integration tests for API endpoints, end-to-end transaction flow tests, and test helpers for securities, prices, and transactions.",
+          "testStrategy": "Run full test suite to verify all functionality works correctly",
+          "subtasks": []
+        },
+        {
+          "id": 11,
+          "title": "Frontend: Main Investments Page Setup",
+          "description": "Create /investments route in Vue Router, set up basic page layout with navigation, and create investment accounts listing component",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [5],
+          "details": "Create the main investments page that displays all user's investment accounts in a clean list/card format. Should integrate with existing account filtering to show only investment account types.",
+          "testStrategy": "Test page loads correctly, shows only investment accounts, navigation works properly",
+          "subtasks": []
+        },
+        {
+          "id": 12,
+          "title": "Frontend: Investment Account API Integration",
+          "description": "Create Vue composables and API calls for fetching investment accounts, holdings, and account-specific data",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [11],
+          "details": "Set up data fetching layer for investments using existing API endpoints. Create reactive state management for investment accounts and holdings data.",
+          "testStrategy": "Test API calls work correctly, data is properly cached and reactive",
+          "subtasks": []
+        },
+        {
+          "id": 13,
+          "title": "Frontend: Account Detail Page Route",
+          "description": "Create /investments/:accountId route and basic layout for individual investment account details page",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [11, 12],
+          "details": "Set up the account detail page with proper route parameters, breadcrumb navigation, account header with basic info, and container for holdings table.",
+          "testStrategy": "Test route navigation, parameter handling, and page layout rendering",
+          "subtasks": []
+        },
+        {
+          "id": 14,
+          "title": "Frontend: Holdings Table Component",
+          "description": "Create comprehensive holdings table with columns: Symbol, Quantity, Last Price, AC/Share, Total Cost, Market Value, with expandable rows",
+          "status": "pending",
+          "priority": "high",
+          "dependencies": [13],
+          "details": "Build the core holdings table component with sortable columns, expandable rows for actions, proper data formatting for currency and percentages. Table should be responsive and use existing UI components.",
+          "testStrategy": "Test table rendering, sorting, expanding rows, data formatting, responsiveness",
+          "subtasks": []
+        },
+        {
+          "id": 15,
+          "title": "Frontend: Add Symbol Functionality",
+          "description": "Implement 'Add Symbol' button and modal/dialog for searching and adding new securities to holdings",
+          "status": "pending",
+          "priority": "medium",
+          "dependencies": [14],
+          "details": "Create search interface using existing /securities/search API endpoint. Allow users to search for securities and add them to holdings with initial quantity of 0. Should integrate with existing dialog components.",
+          "testStrategy": "Test security search, selection, and adding to holdings workflow",
+          "subtasks": []
+        },
+        {
+          "id": 16,
+          "title": "Frontend: Transaction Management in Expanded Rows",
+          "description": "Implement expandable row actions for adding and editing investment transactions (buy/sell/dividend)",
+          "status": "pending",
+          "priority": "medium",
+          "dependencies": [14],
+          "details": "Create transaction forms within expanded table rows. Support buy/sell/dividend transaction types with proper validation. Should integrate with existing transaction API endpoints and update holdings automatically.",
+          "testStrategy": "Test transaction creation, editing, validation, and holdings updates",
+          "subtasks": []
+        },
+        {
+          "id": 17,
+          "title": "Frontend: Holdings Calculations and Real-time Updates",
+          "description": "Implement real-time calculations for market value, total cost, AC/Share, and automatic updates when transactions change",
+          "status": "pending",
+          "priority": "medium",
+          "dependencies": [15, 16],
+          "details": "Add reactive calculations for all financial metrics in the holdings table. Ensure data updates properly when transactions are added/edited/deleted. Use existing price data for market value calculations.",
+          "testStrategy": "Test calculations accuracy, real-time updates, and data consistency",
+          "subtasks": []
+        }
+      ]
+    }
+  },
+  "currentTag": "master"
+}
