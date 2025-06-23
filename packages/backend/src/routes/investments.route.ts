@@ -9,6 +9,7 @@ import getAllSecurities from '@controllers/investments/securities/get-all.contro
 import searchSecuritiesController from '@controllers/investments/securities/search.controller';
 import triggerSecuritiesSync from '@controllers/investments/securities/sync.controller';
 import createInvestmentTransactionController from '@controllers/investments/transactions/create-tx.controller';
+import deleteInvestmentTransactionController from '@controllers/investments/transactions/delete-tx.controller';
 import getTransactionsController from '@controllers/investments/transactions/get-transactions.controller';
 import { authenticateJwt } from '@middlewares/passport';
 import { testOnly } from '@middlewares/test-only';
@@ -74,6 +75,13 @@ router.post(
   authenticateJwt,
   validateEndpoint(createInvestmentTransactionController.schema),
   createInvestmentTransactionController.handler,
+);
+
+router.delete(
+  '/transaction/:transactionId',
+  authenticateJwt,
+  validateEndpoint(deleteInvestmentTransactionController.schema),
+  deleteInvestmentTransactionController.handler,
 );
 
 export default router;

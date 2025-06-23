@@ -1,5 +1,6 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { createInvestmentTransaction as _createInvestmentTransaction } from '@services/investments/transactions/create.service';
+import { deleteInvestmentTransaction as _deleteInvestmentTransaction } from '@services/investments/transactions/delete.service';
 import { getTransactions as _getTransactions } from '@services/investments/transactions/get.service';
 
 import { makeRequest } from '../common';
@@ -78,6 +79,20 @@ export async function getInvestmentTransactions<R extends boolean | undefined = 
   return makeRequest<Awaited<ReturnType<typeof _getTransactions>>, R>({
     method: 'get',
     url: `/investments/transactions${params.toString() ? `?${params.toString()}` : ''}`,
+    raw,
+  });
+}
+
+export async function deleteInvestmentTransaction<R extends boolean | undefined = false>({
+  transactionId,
+  raw,
+}: {
+  transactionId: number;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof _deleteInvestmentTransaction>>, R>({
+    method: 'delete',
+    url: `/investments/transaction/${transactionId}`,
     raw,
   });
 }
