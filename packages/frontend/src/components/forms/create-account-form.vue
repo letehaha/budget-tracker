@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { ACCOUNT_CATEGORIES_VERBOSE } from '@/common/const/account-categories-verbose';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
+import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { computed, defineAsyncComponent, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 
 const AddCurrencyDialog = defineAsyncComponent(() => import('@/components/dialogs/add-currency-dialog.vue'));
 
 const emit = defineEmits(['created']);
 
+const route = useRoute();
 const queryClient = useQueryClient();
 const accountsStore = useAccountsStore();
 const currenciesStore = useCurrenciesStore();
@@ -24,14 +28,20 @@ const { baseCurrency, systemCurrenciesVerbose } = storeToRefs(currenciesStore);
 const defaultCurrency = computed(
   () => systemCurrenciesVerbose.value.linked.find((i) => i.id === baseCurrency.value.currencyId).id || 0,
 );
+
+// Get account category from query params or default to general
+const defaultAccountCategory = (route.query.category as ACCOUNT_CATEGORIES) || ACCOUNT_CATEGORIES.general;
+
 const form = reactive<{
   name: string;
   currencyId: string;
+  accountCategory: ACCOUNT_CATEGORIES;
   initialBalance: number;
   creditLimit: number;
 }>({
   name: '',
   currencyId: String(defaultCurrency.value),
+  accountCategory: defaultAccountCategory,
   initialBalance: 0,
   creditLimit: 0,
 });
@@ -43,8 +53,9 @@ const submit = async () => {
     isLoading.value = true;
 
     await accountsStore.createAccount({
-      currencyId: form.currencyId,
+      currencyId: Number(form.currencyId),
       name: form.name,
+      accountCategory: form.accountCategory,
       creditLimit: form.creditLimit,
       initialBalance: form.initialBalance,
     });
@@ -94,6 +105,21 @@ const submit = async () => {
     </div>
 
     <input-field v-model="form.initialBalance" label="Initial balance" placeholder="Initial balance" />
+
+    <FieldLabel label="Account Category">
+      <Select.Select v-model="form.accountCategory">
+        <Select.SelectTrigger>
+          <Select.SelectValue placeholder="Select account category" />
+        </Select.SelectTrigger>
+        <Select.SelectContent>
+          <template v-for="[category, label] in Object.entries(ACCOUNT_CATEGORIES_VERBOSE)" :key="category">
+            <Select.SelectItem :value="category">
+              {{ label }}
+            </Select.SelectItem>
+          </template>
+        </Select.SelectContent>
+      </Select.Select>
+    </FieldLabel>
 
     <input-field v-model="form.creditLimit" label="Credit limit" placeholder="Credit limit" />
 
