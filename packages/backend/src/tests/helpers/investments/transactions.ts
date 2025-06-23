@@ -2,6 +2,7 @@ import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { createInvestmentTransaction as _createInvestmentTransaction } from '@services/investments/transactions/create.service';
 import { deleteInvestmentTransaction as _deleteInvestmentTransaction } from '@services/investments/transactions/delete.service';
 import { getTransactions as _getTransactions } from '@services/investments/transactions/get.service';
+import { updateInvestmentTransaction as _updateInvestmentTransaction } from '@services/investments/transactions/update.service';
 
 import { makeRequest } from '../common';
 
@@ -93,6 +94,23 @@ export async function deleteInvestmentTransaction<R extends boolean | undefined 
   return makeRequest<Awaited<ReturnType<typeof _deleteInvestmentTransaction>>, R>({
     method: 'delete',
     url: `/investments/transaction/${transactionId}`,
+    raw,
+  });
+}
+
+export async function updateInvestmentTransaction<R extends boolean | undefined = false>({
+  transactionId,
+  payload,
+  raw,
+}: {
+  transactionId: number;
+  payload: Partial<Omit<Parameters<typeof _updateInvestmentTransaction>[0], 'userId' | 'transactionId'>>;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof _updateInvestmentTransaction>>, R>({
+    method: 'put',
+    url: `/investments/transaction/${transactionId}`,
+    payload,
     raw,
   });
 }

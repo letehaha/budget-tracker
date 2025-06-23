@@ -11,6 +11,7 @@ import triggerSecuritiesSync from '@controllers/investments/securities/sync.cont
 import createInvestmentTransactionController from '@controllers/investments/transactions/create-tx.controller';
 import deleteInvestmentTransactionController from '@controllers/investments/transactions/delete-tx.controller';
 import getTransactionsController from '@controllers/investments/transactions/get-transactions.controller';
+import updateInvestmentTransactionController from '@controllers/investments/transactions/update-tx.controller';
 import { authenticateJwt } from '@middlewares/passport';
 import { testOnly } from '@middlewares/test-only';
 import { validateEndpoint } from '@middlewares/validations';
@@ -82,6 +83,13 @@ router.delete(
   authenticateJwt,
   validateEndpoint(deleteInvestmentTransactionController.schema),
   deleteInvestmentTransactionController.handler,
+);
+
+router.put(
+  '/transaction/:transactionId',
+  authenticateJwt,
+  validateEndpoint(updateInvestmentTransactionController.schema),
+  updateInvestmentTransactionController.handler,
 );
 
 export default router;
