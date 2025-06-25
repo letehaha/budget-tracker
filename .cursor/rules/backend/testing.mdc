@@ -1,7 +1,7 @@
 ---
 description:
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 # Testing
 
@@ -16,53 +16,7 @@ __tests__/
 
 ## Running Tests
 
-### Environment Setup
-Tests run in a Docker environment to ensure consistent test conditions. The setup script creates temporary databases and containers for testing.
-
-### Node Version Requirements
-Tests require Node.js v14.13.0 or higher. If using nvm:
-```bash
-nvm use
-```
-
-### Test Commands
-Before running tests, use `nvm` to setup the correct node version. Without `nvm` there's a high risk of using outdated Node version.
-When asking about unit tests, strictly run `npm run test:unit`. When asking about e2e tests, strictly `npm run test:e2e`. Run `npm run test` only when asking about tests in general or specifically about both. Detailed instructions to run tests specified below.
-
-1. **Run all unit tests:**
-   ```bash
-   cd packages/backend && npm run test:unit
-   ```
-
-2. **Run all e2e tests:**
-   ```bash
-   cd packages/backend && npm run test:e2e
-   ```
-
-3. **Run specific unit test file:**
-   ```bash
-   cd packages/backend && npm run test:unit -- path/to/file.unit.ts
-   ```
-
-4. **Run specific e2e test file:**
-   ```bash
-   cd packages/backend && npm run test:e2e -- path/to/file.e2e.ts
-   ```
-
-5. **Run tests with specific pattern:**
-   ```bash
-   cd packages/backend && npm run test:unit -- -t "test pattern"
-   ```
-
-6. **Run tests with watch mode:**
-   ```bash
-   cd packages/backend && npm run test:unit -- --watch
-   ```
-
-### Troubleshooting Tests
-1. If tests fail with connection errors, ensure Docker is running
-2. For database errors, the setup script should recreate test databases automatically
-3. For "Cannot find module 'node:path'" errors, ensure you're using a compatible Node.js version
+*Do not* try to run tests. I'll run them manually myself
 
 ## Testing Rules
 

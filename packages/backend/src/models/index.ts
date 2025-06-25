@@ -22,6 +22,9 @@ import MonobankUsersModel from './banks/monobank/Users.model';
 import BinanceUsersModel from './binance/UserSettings.model';
 import HoldingsModel from './investments/Holdings.model';
 import InvestmentTransactionModel from './investments/InvestmentTransaction.model';
+import PortfolioBalancesModel from './investments/PortfolioBalances.model';
+import PortfolioTransfersModel from './investments/PortfolioTransfers.model';
+import PortfoliosModel from './investments/Portfolios.model';
 import SecuritiesModel from './investments/Securities.model';
 import SecurityPricingModel from './investments/SecurityPricing.model';
 
@@ -69,6 +72,9 @@ const models = [
   InvestmentTransactionModel,
   SecuritiesModel,
   SecurityPricingModel,
+  PortfoliosModel,
+  PortfolioBalancesModel,
+  PortfolioTransfersModel,
 ];
 
 const sequelize = new Sequelize({

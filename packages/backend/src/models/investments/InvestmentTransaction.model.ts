@@ -4,6 +4,7 @@ import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
 import Accounts from '@models/Accounts.model';
 import Securities from './Securities.model';
+import Portfolios from './Portfolios.model';
 
 @Table({
   timestamps: true,
@@ -32,6 +33,12 @@ export default class InvestmentTransaction extends Model implements InvestmentTr
   @Index
   @Column({ type: DataType.INTEGER, allowNull: false })
   securityId!: number;
+
+  // New portfolioId field for portfolio migration
+  @ForeignKey(() => Portfolios)
+  @Index
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  portfolioId!: number;
 
   @Column({
     type: DataType.ENUM(...Object.values(TRANSACTION_TYPES)),
@@ -127,4 +134,7 @@ export default class InvestmentTransaction extends Model implements InvestmentTr
 
   @BelongsTo(() => Securities)
   security!: Securities;
+
+  @BelongsTo(() => Portfolios)
+  portfolio?: Portfolios;
 }

@@ -11,6 +11,12 @@ export interface InvestmentTransactionModel {
    */
   accountId: number;
   securityId: number;
+
+  /**
+   * The identifier of the portfolio associated with this transaction.
+   * Used for portfolio-based investment management.
+   */
+  portfolioId: number;
   transactionType: TRANSACTION_TYPES;
   date: string;
   /**

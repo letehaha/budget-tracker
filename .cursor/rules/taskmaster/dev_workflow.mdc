@@ -33,7 +33,7 @@ All your standard command executions should operate on the user's current task c
 For new projects or when users are getting started, operate within the `master` tag context:
 
 -   Start new projects by running `initialize_project` tool / `task-master init` or `parse_prd` / `task-master parse-prd --input='<prd-file.txt>'` (see @`taskmaster.mdc`) to generate initial tasks.json with tagged structure
--   Configure rule sets during initialization with `--rules` flag (e.g., `task-master init --rules cursor,windsurf`) or manage them later with `task-master rules add/remove` commands  
+-   Configure rule sets during initialization with `--rules` flag (e.g., `task-master init --rules cursor,windsurf`) or manage them later with `task-master rules add/remove` commands
 -   Begin coding sessions with `get_tasks` / `task-master list` (see @`taskmaster.mdc`) to see current tasks, status, and IDs
 -   Determine the next task to work on using `next_task` / `task-master next` (see @`taskmaster.mdc`)
 -   Analyze task complexity with `analyze_project_complexity` / `task-master analyze-complexity --research` (see @`taskmaster.mdc`) before breaking down tasks
@@ -136,7 +136,7 @@ Once you transition to tag-based workflows, the `master` tag should ideally cont
 1. **Identify the Initiative**: When user describes a significant feature
 2. **Create Dedicated Tag**: `add_tag feature-[name] --description="[Feature description]"`
 3. **Collaborative PRD Creation**: Work with user to create comprehensive PRD in `.taskmaster/docs/feature-[name]-prd.txt`
-4. **Parse & Prepare**: 
+4. **Parse & Prepare**:
    - `parse_prd .taskmaster/docs/feature-[name]-prd.txt --tag=feature-[name]`
    - `analyze_project_complexity --tag=feature-[name] --research`
    - `expand_all --tag=feature-[name] --research`
@@ -168,7 +168,7 @@ Action: add_tag my-api-work --copy-from-current --description="My API tasks whil
 ```
 User: "I want to add a complete user dashboard with analytics, user management, and reporting"
 Your Response: "This sounds like a major feature that would benefit from detailed planning. Let me create a dedicated context for this work and we can draft a PRD together to ensure we capture all requirements."
-Actions: 
+Actions:
 1. add_tag feature-dashboard --description="User dashboard with analytics and management"
 2. Collaborate on PRD creation
 3. parse_prd dashboard-prd.txt --tag=feature-dashboard
@@ -263,9 +263,9 @@ Taskmaster offers two primary ways to interact:
     - Dependencies are displayed with status indicators (✅ for completed, ⏱️ for pending)
     - This helps quickly identify which prerequisite tasks are blocking work
 - **priority**: Importance level (Example: `"high"`, `"medium"`, `"low"`)
-- **details**: In-depth implementation instructions (Example: `"Use GitHub client ID/secret, handle callback, set session token."`) 
-- **testStrategy**: Verification approach (Example: `"Deploy and call endpoint to confirm 'Hello World' response."`) 
-- **subtasks**: List of smaller, more specific tasks (Example: `[{"id": 1, "title": "Configure OAuth", ...}]`) 
+- **details**: In-depth implementation instructions (Example: `"Use GitHub client ID/secret, handle callback, set session token."`)
+- **testStrategy**: Verification approach (Example: `"Deploy and call endpoint to confirm 'Hello World' response."`)
+- **subtasks**: List of smaller, more specific tasks (Example: `[{"id": 1, "title": "Configure OAuth", ...}]`)
 - Refer to task structure details (previously linked to `tasks.mdc`).
 
 ## Configuration Management (Updated)
@@ -345,7 +345,7 @@ Taskmaster supports multiple AI coding assistant rule sets that can be configure
 - Use `move_task` / `task-master move --from=<id> --to=<id>` to move tasks or subtasks within the hierarchy
 - This command supports several use cases:
   - Moving a standalone task to become a subtask (e.g., `--from=5 --to=7`)
-  - Moving a subtask to become a standalone task (e.g., `--from=5.2 --to=7`) 
+  - Moving a subtask to become a standalone task (e.g., `--from=5.2 --to=7`)
   - Moving a subtask to a different parent (e.g., `--from=5.2 --to=7.3`)
   - Reordering subtasks within the same parent (e.g., `--from=5.2 --to=5.4`)
   - Moving a task to a new, non-existent ID position (e.g., `--from=5 --to=25`)

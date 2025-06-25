@@ -22,3 +22,10 @@ export enum INVESTMENT_TRANSACTION_CATEGORY {
   cancel = 'cancel',
   other = 'other',
 }
+
+export enum PORTFOLIO_TYPE {
+  investment = 'investment',
+  retirement = 'retirement',
+  savings = 'savings',
+  other = 'other',
+}

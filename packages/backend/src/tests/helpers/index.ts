@@ -17,3 +17,4 @@ export * from './investments/securities';
 export * from './investments/prices';
 export * from './investments/holdings';
 export * from './investments/transactions';
+export * from './investments/portfolios';

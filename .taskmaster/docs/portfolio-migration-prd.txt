@@ -1,0 +1,241 @@
+# Portfolio Architecture Migration PRD
+
+## Executive Summary
+Migrate the current Account-based investment system to a Portfolio-based architecture to support multi-currency cash balances, real-world investment workflows, and future extensibility. This addresses the fundamental limitation where investment accounts can only hold a single currency balance, which doesn't reflect how real brokers like Interactive Brokers operate.
+
+## Problem Statement
+The current system uses generic Account entities for investment accounts with a single currency balance. This creates several limitations:
+
+1. **Multi-currency cash limitation**: Cannot hold USD, EUR, GBP cash simultaneously
+2. **Cash flow complexity**: Dividends, fees, taxes in different currencies have no clear balance interaction
+3. **Real-world mismatch**: Doesn't reflect how actual investment platforms work
+4. **Transfer limitations**: No clear way to transfer money from bank accounts to investment accounts
+5. **Extensibility issues**: Cannot support margin, options, or advanced investment features
+
+## Solution Overview
+Implement a Portfolio architecture with the following components:
+
+### Core Models
+1. **Portfolio**: Replaces investment accounts, represents an investment container
+2. **PortfolioBalance**: Multi-currency cash balances within a portfolio
+3. **Portfolio Transfers**: Money movement between bank accounts and portfolios
+
+### Key Features
+- Multi-currency cash balances per portfolio
+- Money transfers from bank accounts to portfolios
+- Proper cash flow handling for investment transactions
+- Backward compatibility during migration
+- Enhanced reporting and analytics
+
+## Technical Requirements
+
+### Database Schema
+
+#### Portfolio Model
+```sql
+CREATE TABLE Portfolios (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  userId INTEGER NOT NULL REFERENCES Users(id),
+  portfolioType VARCHAR(50) NOT NULL DEFAULT 'investment',
+  description TEXT,
+  isEnabled BOOLEAN NOT NULL DEFAULT true,
+  createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+  updatedAt TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE(userId, name)
+);
+```
+
+#### PortfolioBalance Model
+```sql
+CREATE TABLE PortfolioBalances (
+  portfolioId INTEGER NOT NULL REFERENCES Portfolios(id) ON DELETE CASCADE,
+  currencyCode VARCHAR(3) NOT NULL,
+  availableCash DECIMAL(20,10) NOT NULL DEFAULT 0,
+  totalCash DECIMAL(20,10) NOT NULL DEFAULT 0,
+  refAvailableCash DECIMAL(20,10) NOT NULL DEFAULT 0,
+  refTotalCash DECIMAL(20,10) NOT NULL DEFAULT 0,
+  createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+  updatedAt TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (portfolioId, currencyCode)
+);
+```
+
+#### Portfolio Transfers
+```sql
+CREATE TABLE PortfolioTransfers (
+  id SERIAL PRIMARY KEY,
+  userId INTEGER NOT NULL REFERENCES Users(id),
+  fromAccountId INTEGER REFERENCES Accounts(id),
+  toPortfolioId INTEGER REFERENCES Portfolios(id),
+  fromPortfolioId INTEGER REFERENCES Portfolios(id),
+  toAccountId INTEGER REFERENCES Accounts(id),
+  amount DECIMAL(20,10) NOT NULL,
+  refAmount DECIMAL(20,10) NOT NULL,
+  currencyCode VARCHAR(3) NOT NULL,
+  date DATE NOT NULL,
+  description TEXT,
+  createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+  updatedAt TIMESTAMP NOT NULL DEFAULT NOW(),
+  CONSTRAINT valid_transfer_direction CHECK (
+    (fromAccountId IS NOT NULL AND toPortfolioId IS NOT NULL) OR
+    (fromPortfolioId IS NOT NULL AND toAccountId IS NOT NULL) OR
+    (fromPortfolioId IS NOT NULL AND toPortfolioId IS NOT NULL)
+  )
+);
+```
+
+### Model Updates
+- Update Holdings model to reference portfolioId instead of accountId
+- Update InvestmentTransactions model to reference portfolioId instead of accountId
+- Add portfolio reference fields to existing models
+
+### Services Required
+
+#### Portfolio Management
+- Create portfolio
+- Update portfolio details
+- Delete portfolio (with validation)
+- List user portfolios
+
+#### Portfolio Balance Management
+- Get portfolio balances
+- Update balance (internal use)
+- Balance history tracking
+- Multi-currency balance calculations
+
+#### Portfolio Transfer Services
+- Transfer money from account to portfolio
+- Transfer money from portfolio to account
+- Transfer money between portfolios
+- Transfer validation and limits
+
+#### Investment Transaction Updates
+- Update all investment services to work with portfolios
+- Handle cash balance updates for investment transactions
+- Proper currency handling for dividends, fees, taxes
+
+### API Endpoints
+
+#### Portfolio Management
+- GET /portfolios - List user portfolios
+- POST /portfolios - Create new portfolio
+- GET /portfolios/:id - Get portfolio details
+- PUT /portfolios/:id - Update portfolio
+- DELETE /portfolios/:id - Delete portfolio
+
+#### Portfolio Balances
+- GET /portfolios/:id/balances - Get portfolio balances
+- GET /portfolios/:id/balance-history - Get balance history
+
+#### Portfolio Transfers
+- POST /portfolios/transfers - Create transfer
+- GET /portfolios/transfers - List transfers
+- GET /portfolios/:id/transfers - Get portfolio transfers
+
+### Frontend Requirements
+
+#### Portfolio Management UI
+- Portfolio list page (replace investment accounts section)
+- Portfolio creation form
+- Portfolio details/settings page
+
+#### Portfolio Balance Display
+- Multi-currency balance display
+- Balance history charts
+- Currency conversion display
+
+#### Transfer Interface
+- Transfer form (account to portfolio)
+- Transfer history
+- Transfer validation feedback
+
+#### Investment Pages Updates
+- Update investment pages to work with portfolios
+- Portfolio selection in investment forms
+- Multi-currency cash display
+
+### Migration Strategy
+
+#### Phase 1: Infrastructure
+- Create new database models and migrations
+- Implement core portfolio services
+- Create basic API endpoints
+
+#### Phase 2: Data Migration
+- Migrate existing investment accounts to portfolios
+- Convert account balances to portfolio balances
+- Update existing holdings and transactions
+
+#### Phase 3: Feature Implementation
+- Implement transfer functionality
+- Update investment transaction handling
+- Add cash balance management
+
+#### Phase 4: Frontend Migration
+- Update frontend to use portfolio APIs
+- Implement new UI components
+- Update existing investment pages
+
+#### Phase 5: Cleanup
+- Remove investment account support
+- Clean up deprecated code
+- Performance optimization
+
+### Validation Rules
+- Portfolio names must be unique per user
+- Currency codes must be valid
+- Transfers must have sufficient balance
+- Cannot delete portfolio with active holdings
+- Portfolio balances cannot go negative (configurable)
+
+### Performance Considerations
+- Index on (userId, portfolioType) for portfolio queries
+- Index on (portfolioId, currencyCode) for balance queries
+- Efficient balance calculation queries
+- Caching for frequently accessed data
+
+### Security Requirements
+- Portfolio access restricted to owner
+- Transfer validation and limits
+- Audit trail for all balance changes
+- Rate limiting on transfer operations
+
+### Testing Requirements
+- Unit tests for all new services
+- Integration tests for API endpoints
+- Migration tests with sample data
+- Performance tests for balance calculations
+- End-to-end tests for transfer workflows
+
+## Success Criteria
+1. Users can create and manage multiple portfolios
+2. Each portfolio supports multiple currency balances
+3. Money can be transferred between accounts and portfolios
+4. Investment transactions properly update cash balances
+5. All existing investment functionality continues to work
+6. No data loss during migration
+7. Performance remains acceptable with new architecture
+
+## Risk Mitigation
+- Comprehensive testing before migration
+- Backup and rollback procedures
+- Gradual rollout with feature flags
+- Monitoring and alerting for issues
+- Clear documentation and training
+
+## Timeline Estimate
+- Phase 1 (Infrastructure): 2-3 weeks
+- Phase 2 (Data Migration): 1-2 weeks
+- Phase 3 (Feature Implementation): 2-3 weeks
+- Phase 4 (Frontend Migration): 2-3 weeks
+- Phase 5 (Cleanup): 1 week
+
+Total: 8-12 weeks
+
+## Dependencies
+- Database migration capabilities
+- User authentication system
+- Existing investment transaction system
+- Currency conversion services
+- Frontend framework and components

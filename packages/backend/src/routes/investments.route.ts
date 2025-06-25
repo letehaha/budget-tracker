@@ -3,6 +3,13 @@ import {
   deleteHoldingController,
   getHoldingsController,
 } from '@controllers/investments/holdings';
+import createPortfolioController from '@controllers/investments/portfolios/create-portfolio';
+import deletePortfolioController from '@controllers/investments/portfolios/delete-portfolio';
+import getPortfolioController from '@controllers/investments/portfolios/get-portfolio';
+import getPortfolioBalanceController from '@controllers/investments/portfolios/get-portfolio-balance';
+import listPortfoliosController from '@controllers/investments/portfolios/list-portfolios';
+import updatePortfolioController from '@controllers/investments/portfolios/update-portfolio';
+import updatePortfolioBalanceController from '@controllers/investments/portfolios/update-portfolio-balance';
 import getPricesController from '@controllers/investments/prices/get-prices.controller';
 import syncDailyPricesController from '@controllers/investments/prices/sync-daily.controller';
 import getAllSecurities from '@controllers/investments/securities/get-all.controller';
@@ -18,6 +25,56 @@ import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
 const router = Router({});
+
+// Portfolio routes
+router.get(
+  '/portfolios',
+  authenticateJwt,
+  validateEndpoint(listPortfoliosController.schema),
+  listPortfoliosController.handler,
+);
+
+router.get(
+  '/portfolios/:id',
+  authenticateJwt,
+  validateEndpoint(getPortfolioController.schema),
+  getPortfolioController.handler,
+);
+
+router.get(
+  '/portfolios/:id/balance',
+  authenticateJwt,
+  validateEndpoint(getPortfolioBalanceController.schema),
+  getPortfolioBalanceController.handler,
+);
+
+router.put(
+  '/portfolios/:id/balance',
+  authenticateJwt,
+  validateEndpoint(updatePortfolioBalanceController.schema),
+  updatePortfolioBalanceController.handler,
+);
+
+router.put(
+  '/portfolios/:id',
+  authenticateJwt,
+  validateEndpoint(updatePortfolioController.schema),
+  updatePortfolioController.handler,
+);
+
+router.delete(
+  '/portfolios/:id',
+  authenticateJwt,
+  validateEndpoint(deletePortfolioController.schema),
+  deletePortfolioController.handler,
+);
+
+router.post(
+  '/portfolios',
+  authenticateJwt,
+  validateEndpoint(createPortfolioController.schema),
+  createPortfolioController.handler,
+);
 
 router.post(
   '/sync/securities',
