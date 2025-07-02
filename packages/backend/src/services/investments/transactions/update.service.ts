@@ -1,9 +1,9 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { NotFoundError } from '@js/errors';
-import Accounts from '@models/Accounts.model';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
+import Portfolios from '@models/investments/Portfolios.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
@@ -23,18 +23,18 @@ interface UpdateTransactionParams {
 const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) => {
   const { userId, transactionId, ...updateFields } = params;
 
-  // Find the transaction and verify ownership through account
+  // Find the transaction and verify ownership through portfolio
   const transaction = await InvestmentTransaction.findOne({
     where: { id: transactionId },
-    include: [{ model: Accounts, as: 'account', where: { userId }, required: true }],
+    include: [{ model: Portfolios, as: 'portfolio', where: { userId }, required: true }],
   });
 
   if (!transaction) {
     throw new NotFoundError({ message: 'Investment transaction not found' });
   }
 
-  // Store the accountId and securityId for recalculation
-  const { accountId, securityId } = transaction;
+  // Store the portfolioId and securityId for recalculation
+  const { portfolioId, securityId } = transaction;
 
   // Prepare update data with only provided fields
   const updateData: Partial<InvestmentTransaction> = {};
@@ -87,7 +87,7 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
   if (needsRefAmountRecalc) {
     // Get the holding to get currency code
     const holding = await Holdings.findOne({
-      where: { accountId, securityId },
+      where: { portfolioId, securityId },
     });
 
     if (holding) {
@@ -122,7 +122,7 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
   await transaction.update(updateData);
 
   // After updating the transaction, trigger a full recalculation of the holding
-  await recalculateHolding({ accountId, securityId });
+  await recalculateHolding({ portfolioId, securityId });
 
   // Return the updated transaction
   await transaction.reload();

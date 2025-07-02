@@ -1,5 +1,5 @@
-import Accounts from '@models/Accounts.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
+import Portfolios from '@models/investments/Portfolios.model';
 import { withTransaction } from '@services/common';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
 
@@ -9,24 +9,24 @@ interface DeleteTransactionParams {
 }
 
 const deleteInvestmentTransactionImpl = async ({ userId, transactionId }: DeleteTransactionParams) => {
-  // Find the transaction and verify ownership through account
+  // Find the transaction and verify ownership through portfolio
   const transaction = await InvestmentTransaction.findOne({
     where: { id: transactionId },
-    include: [{ model: Accounts, as: 'account', where: { userId }, required: true }],
+    include: [{ model: Portfolios, as: 'portfolio', where: { userId }, required: true }],
   });
 
   if (!transaction) {
     return { success: true };
   }
 
-  // Store the accountId and securityId for recalculation before deletion
-  const { accountId, securityId } = transaction;
+  // Store the portfolioId and securityId for recalculation before deletion
+  const { portfolioId, securityId } = transaction;
 
   // Delete the transaction
   await transaction.destroy();
 
   // After deleting the transaction, trigger a full recalculation of the holding
-  await recalculateHolding({ accountId, securityId });
+  await recalculateHolding({ portfolioId, securityId });
 
   return { success: true };
 };

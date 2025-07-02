@@ -65,8 +65,8 @@ export default class Holdings extends Model implements HoldingModel {
   // New portfolioId field for portfolio migration
   @ForeignKey(() => Portfolios)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  portfolioId!: number;
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  portfolioId!: number | null;
 
   /**
    * The `value` and `refValue` fields represent the current market value of the
@@ -84,10 +84,10 @@ export default class Holdings extends Model implements HoldingModel {
    */
   // string because of how Sequelize works with Decimal type. It's still Numeric
   // in the DB
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
+  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
   value!: string;
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
+  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
   refValue!: string;
 
   /**

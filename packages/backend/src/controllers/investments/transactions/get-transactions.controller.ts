@@ -7,7 +7,7 @@ import { z } from 'zod';
 const schema = z.object({
   params: z.object({}).optional(),
   query: z.object({
-    accountId: recordId().optional(),
+    portfolioId: recordId().optional(),
     securityId: recordId().optional(),
     category: z.nativeEnum(INVESTMENT_TRANSACTION_CATEGORY).optional(),
     startDate: z.string().datetime().optional(),

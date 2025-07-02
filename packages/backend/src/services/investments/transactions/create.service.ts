@@ -1,9 +1,9 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { NotFoundError } from '@js/errors';
-import Accounts from '@models/Accounts.model';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
+import Portfolios from '@models/investments/Portfolios.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
@@ -11,7 +11,7 @@ import { Big } from 'big.js';
 
 interface CreateTxParams {
   userId: number;
-  accountId: number;
+  portfolioId: number;
   securityId: number;
   category: INVESTMENT_TRANSACTION_CATEGORY;
   date: string;
@@ -22,15 +22,24 @@ interface CreateTxParams {
 }
 
 const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
-  const { accountId, securityId, userId, category, quantity, price, fees, date } = params;
+  const { portfolioId, securityId, userId, category, quantity, price, fees, date } = params;
+
+  // Verify portfolio exists and user owns it
+  const portfolio = await Portfolios.findOne({
+    where: { id: portfolioId, userId },
+  });
+
+  if (!portfolio) {
+    throw new NotFoundError({ message: 'Portfolio not found' });
+  }
 
   const holding = await Holdings.findOne({
-    where: { accountId, securityId },
-    include: [{ model: Accounts, as: 'account', where: { userId }, required: true }],
+    where: { portfolioId, securityId },
+    include: [{ model: Portfolios, as: 'portfolio', where: { userId }, required: true }],
   });
 
   if (!holding) {
-    throw new NotFoundError({ message: 'Holding not found. Please add the security to the account first.' });
+    throw new NotFoundError({ message: 'Holding not found. Please add the security to the portfolio first.' });
   }
 
   const amount = new Big(quantity).times(new Big(price)).toFixed(10);
@@ -58,6 +67,9 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
 
   const newTx = await InvestmentTransaction.create({
     ...params,
+    // For backward compatibility, we'll need to set accountId from the holding
+    // This can be removed once the migration is complete
+    accountId: holding.accountId,
     amount,
     refAmount: refAmount.toString(),
     refPrice: refPrice.toString(),
@@ -67,7 +79,7 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
   });
 
   // After creating the transaction, trigger a full recalculation of the holding
-  await recalculateHolding({ accountId, securityId });
+  await recalculateHolding({ portfolioId, securityId });
 
   return newTx;
 };

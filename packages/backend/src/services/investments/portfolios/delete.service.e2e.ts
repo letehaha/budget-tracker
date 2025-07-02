@@ -2,6 +2,7 @@ import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Holdings from '@models/investments/Holdings.model';
 import * as helpers from '@tests/helpers';
 
 describe('Delete Portfolio Service E2E', () => {
@@ -87,11 +88,15 @@ describe('Delete Portfolio Service E2E', () => {
       it('should force delete portfolio with all related data', async () => {
         const createdPortfolio = await helpers.createPortfolio({ raw: true });
 
-        // Create an investment account for holdings and transactions
+        // Create a temporary account for the holding (needed for backward compatibility)
+        // Use USD currency if available, otherwise use the base currency
+        const usdCurrency = global.MODELS_CURRENCIES.find((c: { code: string }) => c.code === 'USD');
+        const currencyToUse = usdCurrency || global.BASE_CURRENCY;
+
         const investmentAccount = await helpers.createAccount({
           payload: helpers.buildAccountPayload({
             accountCategory: ACCOUNT_CATEGORIES.investment,
-            name: 'Investment Account',
+            currencyId: currencyToUse.id,
           }),
           raw: true,
         });
@@ -104,24 +109,34 @@ describe('Delete Portfolio Service E2E', () => {
         const vooSecurity = seededSecurities.find((s) => s.symbol === 'VOO')!;
         const aaplSecurity = seededSecurities.find((s) => s.symbol === 'AAPL')!;
 
-        // Create holdings
-        await helpers.createHolding({
-          payload: {
-            accountId: investmentAccount.id,
-            securityId: vooSecurity.id,
-          },
+        // Create holdings directly in the database with portfolioId since the service is still account-based
+        await Holdings.create({
+          portfolioId: createdPortfolio.id,
+          accountId: investmentAccount.id, // Required during transition period
+          securityId: vooSecurity.id,
+          quantity: '0',
+          costBasis: '0',
+          refCostBasis: '0',
+          value: '0',
+          refValue: '0',
+          currencyCode: 'USD',
         });
-        await helpers.createHolding({
-          payload: {
-            accountId: investmentAccount.id,
-            securityId: aaplSecurity.id,
-          },
+        await Holdings.create({
+          portfolioId: createdPortfolio.id,
+          accountId: investmentAccount.id, // Required during transition period
+          securityId: aaplSecurity.id,
+          quantity: '0',
+          costBasis: '0',
+          refCostBasis: '0',
+          value: '0',
+          refValue: '0',
+          currencyCode: 'USD',
         });
 
         // Create investment transactions
         await helpers.createInvestmentTransaction({
           payload: {
-            accountId: investmentAccount.id,
+            portfolioId: createdPortfolio.id,
             securityId: vooSecurity.id,
             category: INVESTMENT_TRANSACTION_CATEGORY.buy,
             quantity: '10',
@@ -131,7 +146,7 @@ describe('Delete Portfolio Service E2E', () => {
         });
         await helpers.createInvestmentTransaction({
           payload: {
-            accountId: investmentAccount.id,
+            portfolioId: createdPortfolio.id,
             securityId: aaplSecurity.id,
             category: INVESTMENT_TRANSACTION_CATEGORY.buy,
             quantity: '5',
@@ -166,11 +181,15 @@ describe('Delete Portfolio Service E2E', () => {
       it('should handle force delete with force=false query parameter', async () => {
         const createdPortfolio = await helpers.createPortfolio({ raw: true });
 
-        // Create an investment account for holdings and transactions
+        // Create a temporary account for the holding (needed for backward compatibility)
+        // Use USD currency if available, otherwise use the base currency
+        const usdCurrency = global.MODELS_CURRENCIES.find((c: { code: string }) => c.code === 'USD');
+        const currencyToUse = usdCurrency || global.BASE_CURRENCY;
+
         const investmentAccount = await helpers.createAccount({
           payload: helpers.buildAccountPayload({
             accountCategory: ACCOUNT_CATEGORIES.investment,
-            name: 'Investment Account',
+            currencyId: currencyToUse.id,
           }),
           raw: true,
         });
@@ -179,16 +198,21 @@ describe('Delete Portfolio Service E2E', () => {
         const seededSecurities = await helpers.seedSecuritiesViaSync([{ symbol: 'TSLA', name: 'Tesla Inc.' }]);
         const teslaSecurity = seededSecurities.find((s) => s.symbol === 'TSLA')!;
 
-        // Create holding and transaction
-        await helpers.createHolding({
-          payload: {
-            accountId: investmentAccount.id,
-            securityId: teslaSecurity.id,
-          },
+        // Create holding directly in the database with portfolioId since the service is still account-based
+        await Holdings.create({
+          portfolioId: createdPortfolio.id,
+          accountId: investmentAccount.id, // Required during transition period
+          securityId: teslaSecurity.id,
+          quantity: '0',
+          costBasis: '0',
+          refCostBasis: '0',
+          value: '0',
+          refValue: '0',
+          currencyCode: 'USD',
         });
         await helpers.createInvestmentTransaction({
           payload: {
-            accountId: investmentAccount.id,
+            portfolioId: createdPortfolio.id,
             securityId: teslaSecurity.id,
             category: INVESTMENT_TRANSACTION_CATEGORY.buy,
             quantity: '3',

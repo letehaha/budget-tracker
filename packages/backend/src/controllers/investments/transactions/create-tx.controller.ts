@@ -7,7 +7,7 @@ import { z } from 'zod';
 export default createController(
   z.object({
     body: z.object({
-      accountId: recordId(),
+      portfolioId: recordId(),
       securityId: recordId(),
       category: z.nativeEnum(INVESTMENT_TRANSACTION_CATEGORY),
       date: z.string().date(),

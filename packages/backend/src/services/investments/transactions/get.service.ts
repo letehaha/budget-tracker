@@ -1,14 +1,14 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { NotFoundError } from '@js/errors';
-import * as AccountModel from '@models/Accounts.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
+import Portfolios from '@models/investments/Portfolios.model';
 import { withTransaction } from '@services/common';
 import { format, parseISO } from 'date-fns';
 import { Op, WhereOptions } from 'sequelize';
 
 interface GetTransactionsParams {
   userId: number;
-  accountId?: number;
+  portfolioId?: number;
   securityId?: number;
   category?: INVESTMENT_TRANSACTION_CATEGORY;
   startDate?: string;
@@ -19,7 +19,7 @@ interface GetTransactionsParams {
 
 const serviceImpl = async ({
   userId,
-  accountId,
+  portfolioId,
   securityId,
   category,
   startDate,
@@ -27,25 +27,30 @@ const serviceImpl = async ({
   limit = 20,
   offset = 0,
 }: GetTransactionsParams) => {
-  // If accountId is provided, verify it belongs to the user
-  if (accountId) {
-    const account = await AccountModel.getAccountById({ id: accountId, userId });
-    if (!account) {
-      throw new NotFoundError({ message: 'Account not found' });
+  // If portfolioId is provided, verify it belongs to the user
+  if (portfolioId) {
+    const portfolio = await Portfolios.findOne({
+      where: { id: portfolioId, userId },
+    });
+    if (!portfolio) {
+      throw new NotFoundError({ message: 'Portfolio not found' });
     }
   }
 
   // Build where clause
   const where: WhereOptions = {};
 
-  // Add account filter
-  if (accountId) {
-    where.accountId = accountId;
+  // Add portfolio filter
+  if (portfolioId) {
+    where.portfolioId = portfolioId;
   } else {
-    // If no specific account is requested, get all accounts for the user
-    const userAccounts = await AccountModel.getAccounts({ userId });
-    where.accountId = {
-      [Op.in]: userAccounts.map((account) => account.id),
+    // If no specific portfolio is requested, get all portfolios for the user
+    const userPortfolios = await Portfolios.findAll({
+      where: { userId },
+      attributes: ['id'],
+    });
+    where.portfolioId = {
+      [Op.in]: userPortfolios.map((portfolio) => portfolio.id),
     };
   }
 
@@ -82,8 +87,8 @@ const serviceImpl = async ({
     offset,
     include: [
       {
-        model: AccountModel.default,
-        as: 'account',
+        model: Portfolios,
+        as: 'portfolio',
         attributes: ['id', 'name'],
       },
     ],

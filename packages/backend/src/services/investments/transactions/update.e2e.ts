@@ -5,46 +5,65 @@ import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
+import Portfolios from '@models/investments/Portfolios.model';
 import Securities from '@models/investments/Securities.model';
 import * as helpers from '@tests/helpers';
 
 describe('PUT /investments/transaction/:transactionId (update investment transaction)', () => {
+  let portfolio: Portfolios;
   let investmentAccount: Accounts;
   let vooSecurity: Securities;
   let transaction: InvestmentTransaction;
 
   beforeEach(async () => {
-    investmentAccount = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({
-        accountCategory: ACCOUNT_CATEGORIES.investment,
-        name: 'Investments',
+    portfolio = await helpers.createPortfolio({
+      payload: helpers.buildPortfolioPayload({
+        name: 'Test Investment Portfolio',
       }),
       raw: true,
     });
+
+    // Create a temporary account for the holding (needed for backward compatibility)
+    // Use USD currency if available, otherwise use the base currency
+    const usdCurrency = global.MODELS_CURRENCIES.find((c: { code: string }) => c.code === 'USD');
+    const currencyToUse = usdCurrency || global.BASE_CURRENCY;
+
+    investmentAccount = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({
+        accountCategory: ACCOUNT_CATEGORIES.investment,
+        currencyId: currencyToUse.id,
+      }),
+      raw: true,
+    });
+
     const seededSecurities: Securities[] = await helpers.seedSecuritiesViaSync([
       { symbol: 'VOO', name: 'Vanguard S&P 500 ETF' },
     ]);
     vooSecurity = seededSecurities.find((s) => s.symbol === 'VOO')!;
     if (!vooSecurity) throw new Error('VOO security not found after seeding');
 
-    // Create holding for the account/security
-    await helpers.createHolding({
-      payload: {
-        accountId: investmentAccount.id,
-        securityId: vooSecurity.id,
-      },
+    // Create holding directly in the database with portfolioId since the service is still account-based
+    await Holdings.create({
+      portfolioId: portfolio.id,
+      accountId: investmentAccount.id, // Required during transition period
+      securityId: vooSecurity.id,
+      quantity: '0',
+      costBasis: '0',
+      refCostBasis: '0',
+      value: '0',
+      refValue: '0',
+      currencyCode: 'USD',
     });
 
     // Create a transaction to update
     transaction = await helpers.createInvestmentTransaction({
       payload: {
-        accountId: investmentAccount.id,
+        portfolioId: portfolio.id,
         securityId: vooSecurity.id,
         category: INVESTMENT_TRANSACTION_CATEGORY.buy,
         quantity: '2',
         price: '50',
         fees: '5',
-        name: 'Initial buy',
       },
       raw: true,
     });
@@ -189,18 +208,19 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
     expect(response.quantity).toBeNumericEqual(2);
     expect(response.price).toBeNumericEqual(50);
     expect(response.fees).toBeNumericEqual(5);
-    expect(response.name).toBe('Initial buy');
+    expect(response.name).toBe(''); // Empty string since no name was provided during creation
   });
 
   it('should handle complex scenario with multiple transactions', async () => {
     // Create another buy transaction
     await helpers.createInvestmentTransaction({
       payload: {
-        accountId: investmentAccount.id,
+        portfolioId: portfolio.id,
         securityId: vooSecurity.id,
         category: INVESTMENT_TRANSACTION_CATEGORY.buy,
         quantity: '3',
         price: '60',
+        fees: '0',
       },
       raw: true,
     });

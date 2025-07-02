@@ -8,8 +8,9 @@ export interface HoldingModel {
   /**
    * The identifier of the portfolio associated with this holding.
    * Used for portfolio-based investment management.
+   * Nullable during transition period from account-based to portfolio-based system.
    */
-  portfolioId: number;
+  portfolioId: number | null;
   value: string;
   refValue: string;
   quantity: string;

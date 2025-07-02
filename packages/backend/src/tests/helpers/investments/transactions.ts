@@ -7,7 +7,7 @@ import { updateInvestmentTransaction as _updateInvestmentTransaction } from '@se
 import { makeRequest } from '../common';
 
 export function buildInvestmentTransactionPayload({
-  accountId,
+  portfolioId,
   securityId,
   category = INVESTMENT_TRANSACTION_CATEGORY.buy,
   date = new Date().toISOString().slice(0, 10),
@@ -17,7 +17,7 @@ export function buildInvestmentTransactionPayload({
   name = '',
 }): Omit<Parameters<typeof _createInvestmentTransaction>[0], 'userId'> {
   return {
-    accountId,
+    portfolioId,
     securityId,
     category,
     date,
@@ -32,7 +32,7 @@ export async function createInvestmentTransaction<R extends boolean | undefined 
   payload,
   raw,
 }: {
-  payload: Partial<ReturnType<typeof buildInvestmentTransactionPayload>> & { accountId: number; securityId: number };
+  payload: Partial<ReturnType<typeof buildInvestmentTransactionPayload>> & { portfolioId: number; securityId: number };
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _createInvestmentTransaction>>, R>({
@@ -44,7 +44,7 @@ export async function createInvestmentTransaction<R extends boolean | undefined 
 }
 
 export async function getInvestmentTransactions<R extends boolean | undefined = false>({
-  accountId,
+  portfolioId,
   securityId,
   category,
   startDate,
@@ -55,8 +55,8 @@ export async function getInvestmentTransactions<R extends boolean | undefined = 
 }: Omit<Parameters<typeof _getTransactions>[0], 'userId'> & { raw?: R }) {
   const params = new URLSearchParams();
 
-  if (accountId) {
-    params.append('accountId', accountId.toString());
+  if (portfolioId) {
+    params.append('portfolioId', portfolioId.toString());
   }
   if (securityId) {
     params.append('securityId', securityId.toString());

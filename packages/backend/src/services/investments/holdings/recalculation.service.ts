@@ -5,7 +5,7 @@ import InvestmentTransaction from '@models/investments/InvestmentTransaction.mod
 import { withTransaction } from '@services/common';
 import { Big } from 'big.js';
 
-const recalculateHoldingImpl = async (holdingId: { accountId: number; securityId: number }) => {
+const recalculateHoldingImpl = async (holdingId: { portfolioId: number; securityId: number }) => {
   const holding = await Holdings.findOne({ where: holdingId });
   if (!holding) {
     throw new NotFoundError({ message: 'Holding not found for recalculation.' });
@@ -13,7 +13,7 @@ const recalculateHoldingImpl = async (holdingId: { accountId: number; securityId
 
   const transactions = await InvestmentTransaction.findAll({
     where: {
-      accountId: holding.accountId,
+      portfolioId: holding.portfolioId,
       securityId: holding.securityId,
     },
     order: [['date', 'ASC']],
