@@ -135,6 +135,20 @@ expect.extend({
       };
     }
   },
+  toBeAfter(received: Date, expected: Date) {
+    const pass = received > expected;
+    return {
+      pass,
+      message: () => `expected ${received} to be after ${expected}`,
+    };
+  },
+  toBeBefore(received: Date, expected: Date) {
+    const pass = received < expected;
+    return {
+      pass,
+      message: () => `expected ${received} to be before ${expected}`,
+    };
+  },
 });
 
 beforeEach(async () => {

@@ -8,6 +8,7 @@ import createPortfolioTransferController from '@controllers/investments/portfoli
 import deletePortfolioController from '@controllers/investments/portfolios/delete-portfolio';
 import getPortfolioController from '@controllers/investments/portfolios/get-portfolio';
 import getPortfolioBalanceController from '@controllers/investments/portfolios/get-portfolio-balance';
+import listPortfolioTransfersController from '@controllers/investments/portfolios/list-portfolio-transfers';
 import listPortfoliosController from '@controllers/investments/portfolios/list-portfolios';
 import updatePortfolioController from '@controllers/investments/portfolios/update-portfolio';
 import updatePortfolioBalanceController from '@controllers/investments/portfolios/update-portfolio-balance';
@@ -61,6 +62,13 @@ router.post(
   authenticateJwt,
   validateEndpoint(createPortfolioTransferController.schema),
   createPortfolioTransferController.handler,
+);
+
+router.get(
+  '/portfolios/:id/transfers',
+  authenticateJwt,
+  validateEndpoint(listPortfolioTransfersController.schema),
+  listPortfolioTransfersController.handler,
 );
 
 router.put(

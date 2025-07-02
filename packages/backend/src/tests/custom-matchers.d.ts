@@ -4,11 +4,15 @@ declare global {
       toBeAnythingOrNull(): R;
       toBeWithinRange(target: number, range: number): R;
       toBeNumericEqual(expected: number | string): R;
+      toBeAfter(date: Date): R;
+      toBeBefore(date: Date): R;
     }
     interface JestMatchers<T = unknown> {
       toBeAnythingOrNull(): T;
       toBeWithinRange(target: number, range: number): T;
       toBeNumericEqual(expected: number | string): T;
+      toBeAfter(date: Date): T;
+      toBeBefore(date: Date): T;
     }
   }
 }
@@ -23,6 +27,8 @@ declare module '@jest/expect' {
     toBeAnythingOrNull(): R;
     toBeWithinRange(target: number, range: number): R;
     toBeNumericEqual(expected: number | string): R;
+    toBeAfter(date: Date): R;
+    toBeBefore(date: Date): R;
   }
 }
 
