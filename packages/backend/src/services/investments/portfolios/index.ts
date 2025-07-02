@@ -7,3 +7,6 @@ export { listPortfolios } from './list.service';
 
 // Portfolio balance services
 export * from './balances';
+
+// Portfolio transfer services
+export * from './transfers';
