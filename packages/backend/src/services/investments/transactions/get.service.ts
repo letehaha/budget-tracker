@@ -27,30 +27,27 @@ const serviceImpl = async ({
   limit = 20,
   offset = 0,
 }: GetTransactionsParams) => {
-  // If portfolioId is provided, verify it belongs to the user
-  if (portfolioId) {
-    const portfolio = await Portfolios.findOne({
-      where: { id: portfolioId, userId },
-    });
-    if (!portfolio) {
-      throw new NotFoundError({ message: 'Portfolio not found' });
-    }
-  }
-
   // Build where clause
   const where: WhereOptions = {};
 
   // Add portfolio filter
   if (portfolioId) {
+    // Check if portfolio belongs to the user and add it to the where clause in one query
+    const portfolio = await Portfolios.findOne({
+      where: { id: portfolioId, userId },
+      attributes: ['id'], // Only fetch the ID to minimize data transfer
+    });
+
+    if (!portfolio) {
+      throw new NotFoundError({ message: 'Portfolio not found' });
+    }
+
     where.portfolioId = portfolioId;
   } else {
-    // If no specific portfolio is requested, get all portfolios for the user
-    const userPortfolios = await Portfolios.findAll({
-      where: { userId },
-      attributes: ['id'],
-    });
+    // If no specific portfolio is requested, use a subquery to get all portfolios for the user
+    // This avoids fetching all portfolios into memory
     where.portfolioId = {
-      [Op.in]: userPortfolios.map((portfolio) => portfolio.id),
+      [Op.in]: Portfolios.sequelize!.literal(`(SELECT id FROM "Portfolios" WHERE "userId" = ${userId})`),
     };
   }
 
@@ -79,24 +76,39 @@ const serviceImpl = async ({
     }
   }
 
-  // Get transactions with pagination
-  const transactions = await InvestmentTransaction.findAndCountAll({
-    where,
-    order: [['date', 'DESC']],
-    limit,
-    offset,
-    include: [
-      {
-        model: Portfolios,
-        as: 'portfolio',
-        attributes: ['id', 'name'],
-      },
-    ],
-  });
+  // Use a more efficient query with separate count query to improve performance
+  const [transactions, total] = await Promise.all([
+    InvestmentTransaction.findAll({
+      where,
+      order: [['date', 'DESC']],
+      limit,
+      offset,
+      include: [
+        {
+          model: Portfolios,
+          as: 'portfolio',
+          attributes: ['id', 'name'], // Only fetch needed fields
+          where: { userId }, // Ensure user can only see their own portfolios
+        },
+      ],
+    }),
+    InvestmentTransaction.count({
+      where,
+      include: [
+        {
+          model: Portfolios,
+          as: 'portfolio',
+          attributes: [],
+          where: { userId },
+        },
+      ],
+      distinct: true, // Important for accurate count with associations
+    }),
+  ]);
 
   return {
-    transactions: transactions.rows,
-    total: transactions.count,
+    transactions,
+    total,
     limit,
     offset,
   };

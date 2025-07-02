@@ -30,3 +30,20 @@ export async function deleteHolding<R extends boolean | undefined = false>({
     raw,
   });
 }
+
+export async function getHoldings<R extends boolean | undefined = false>({
+  portfolioId,
+  payload,
+  raw,
+}: {
+  portfolioId: number;
+  payload: Omit<Parameters<typeof holdingsService.getHoldings>[0], 'userId' | 'portfolioId'>;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof holdingsService.getHoldings>>, R>({
+    method: 'get',
+    url: `/investments/portfolios/${portfolioId}/holdings`,
+    payload,
+    raw,
+  });
+}

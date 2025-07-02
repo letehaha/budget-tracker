@@ -1,6 +1,6 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
-import { NotFoundError } from '@js/errors';
+import { NotFoundError, ValidationError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Portfolios from '@models/investments/Portfolios.model';
@@ -35,6 +35,41 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
 
   // Store the portfolioId and securityId for recalculation
   const { portfolioId, securityId } = transaction;
+
+  // Get the holding for validation
+  const holding = await Holdings.findOne({
+    where: { portfolioId, securityId },
+  });
+
+  if (!holding) {
+    throw new NotFoundError({ message: 'Holding not found' });
+  }
+
+  // Business rule: Check for sufficient shares when updating to a sell transaction
+  const finalCategory = updateFields.category ?? transaction.category;
+  const finalQuantity = updateFields.quantity ?? transaction.quantity;
+
+  if (finalCategory === INVESTMENT_TRANSACTION_CATEGORY.sell) {
+    // Calculate what the quantity would be after removing this transaction's effect
+    // then check if we have enough for the new quantity
+    let adjustedHoldingQuantity = new Big(holding.quantity);
+
+    // If this transaction was originally a buy, we need to subtract its quantity
+    // If it was originally a sell, we need to add its quantity back
+    if (transaction.category === INVESTMENT_TRANSACTION_CATEGORY.buy) {
+      adjustedHoldingQuantity = adjustedHoldingQuantity.minus(new Big(transaction.quantity));
+    } else if (transaction.category === INVESTMENT_TRANSACTION_CATEGORY.sell) {
+      adjustedHoldingQuantity = adjustedHoldingQuantity.plus(new Big(transaction.quantity));
+    }
+
+    const sellQuantity = new Big(finalQuantity);
+
+    if (sellQuantity.gt(adjustedHoldingQuantity)) {
+      throw new ValidationError({
+        message: `Insufficient shares to sell. After this update, you would have ${adjustedHoldingQuantity.toFixed()} shares but are trying to sell ${sellQuantity.toFixed()} shares.`,
+      });
+    }
+  }
 
   // Prepare update data with only provided fields
   const updateData: Partial<InvestmentTransaction> = {};
@@ -85,11 +120,6 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
     updateFields.date !== undefined;
 
   if (needsRefAmountRecalc) {
-    // Get the holding to get currency code
-    const holding = await Holdings.findOne({
-      where: { portfolioId, securityId },
-    });
-
     if (holding) {
       const [refAmount, refPrice, refFees] = await Promise.all([
         calculateRefAmount({

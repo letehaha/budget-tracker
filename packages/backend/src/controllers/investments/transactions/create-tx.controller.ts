@@ -11,9 +11,19 @@ export default createController(
       securityId: recordId(),
       category: z.nativeEnum(INVESTMENT_TRANSACTION_CATEGORY),
       date: z.string().date(),
-      quantity: z.string(),
-      price: z.string(),
-      fees: z.string().optional().default('0'),
+      quantity: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+        message: 'Quantity must be a positive number',
+      }),
+      price: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+        message: 'Price must be a positive number',
+      }),
+      fees: z
+        .string()
+        .optional()
+        .default('0')
+        .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+          message: 'Fees must be a non-negative number',
+        }),
       name: z.string().optional(),
     }),
   }),

@@ -1,21 +1,11 @@
-import { AccountModel } from '../db-models';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '../enums';
 import { INVESTMENT_TRANSACTION_CATEGORY } from './enums';
+import { PortfolioModel } from './portfolio-models';
 import { SecurityModel } from './security.model';
 
 export interface InvestmentTransactionModel {
   id: number;
-  /**
-   * The identifier of the account associated with this transaction.
-   * It links the transaction to a specific investment account.
-   */
-  accountId: number;
   securityId: number;
-
-  /**
-   * The identifier of the portfolio associated with this transaction.
-   * Used for portfolio-based investment management.
-   */
   portfolioId: number;
   transactionType: TRANSACTION_TYPES;
   date: string;
@@ -24,43 +14,49 @@ export interface InvestmentTransactionModel {
    * quick overview of the transaction's nature. Same as `note` in `Transactions`
    */
   name: string | null;
-  /**
-   * The monetary value involved in the transaction. Depending on the context,
-   * this could represent the cost, sale proceeds, or other financial values
-   * associated with the transaction. Basically quantity * price
-   */
-  amount: string;
-  refAmount: string;
-
-  fees: string;
-  refFees: string;
 
   /**
-   * * The quantity of the security involved in the transaction. This is crucial
-   * for tracking the changes in holdings as a result of the transaction.
-   */
-  quantity: string;
-
-  /**
-   * The price per unit of the security at the time of the transaction.
-   * This is used to calculate the total transaction amount and update the cost
-   * basis of the holding.
-   */
-  price: string;
-  refPrice: string;
-
-  /**
-   * The ISO currency code or standard cryptocurrency code representing the currency
-   * in which the transaction was conducted. For cryptocurrencies, this code refers to
-   * the specific cryptocurrency involved (e.g., BTC for Bitcoin, ETH for Ethereum).
-   */
-  currencyCode: string;
-  /**
-   * A category that classifies the nature of the investment transaction.
-   * This could include types like 'buy', 'sell', 'dividend', 'interest', etc.,
-   * providing a clear context for the transaction's purpose and impact on the investment portfolio.
+   * The category field specifies the type of investment transaction, such as buy, sell,
+   * dividend, interest, etc. This categorization helps in organizing and analyzing
+   * investment activities.
    */
   category: INVESTMENT_TRANSACTION_CATEGORY;
+
+  /**
+   * The quantity field represents the number of units or shares involved in the transaction.
+   * For buy/sell transactions, it indicates how many shares were purchased or sold.
+   * For dividend/interest transactions, it may be null or represent the number of shares
+   * that generated the income.
+   */
+  quantity: string | null;
+
+  /**
+   * The price field represents the per-unit price of the security at the time of the transaction.
+   * For buy/sell transactions, it's the price per share paid or received.
+   * For dividend/interest transactions, it may be null or represent the price per share
+   * at the time the income was generated.
+   */
+  price: string | null;
+
+  /**
+   * The fees field represents any transaction costs or fees associated with the investment activity.
+   * This could include brokerage commissions, SEC fees, exchange fees, etc.
+   */
+  fees: string | null;
+
+  /**
+   * The amount field represents the total monetary value of the transaction.
+   * For buy transactions: (quantity * price) + fees
+   * For sell transactions: (quantity * price) - fees
+   * For dividend/interest: the total amount received
+   */
+  amount: string;
+
+  /**
+   * The refAmount field represents the amount converted to the user's base currency.
+   */
+  refAmount: string;
+
   /**
    * "transferNature" and "transferId" are used to move funds between different
    * accounts and don't affect income/expense stats.
@@ -71,6 +67,21 @@ export interface InvestmentTransactionModel {
   updatedAt: Date;
   createdAt: Date;
 
+  /**
+   * The refFees field represents the fees converted to the user's base currency.
+   */
+  refFees: string;
+
+  /**
+   * The refPrice field represents the price converted to the user's base currency.
+   */
+  refPrice: string | null;
+
+  /**
+   * The currency code for this transaction (e.g., 'USD', 'EUR').
+   */
+  currencyCode: string;
+
   security?: SecurityModel;
-  account?: AccountModel;
+  portfolio?: PortfolioModel;
 }

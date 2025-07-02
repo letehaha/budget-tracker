@@ -1,9 +1,6 @@
-import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import Accounts from '@models/Accounts.model';
-import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Portfolios from '@models/investments/Portfolios.model';
 import Securities from '@models/investments/Securities.model';
@@ -11,7 +8,6 @@ import * as helpers from '@tests/helpers';
 
 describe('DELETE /investments/transaction/:transactionId (delete investment transaction)', () => {
   let portfolio: Portfolios;
-  let investmentAccount: Accounts;
   let vooSecurity: Securities;
   let transaction: InvestmentTransaction;
 
@@ -23,36 +19,17 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
       raw: true,
     });
 
-    // Create a temporary account for the holding (needed for backward compatibility)
-    // Use USD currency if available, otherwise use the base currency
-    const usdCurrency = global.MODELS_CURRENCIES.find((c: { code: string }) => c.code === 'USD');
-    const currencyToUse = usdCurrency || global.BASE_CURRENCY;
-
-    investmentAccount = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({
-        accountCategory: ACCOUNT_CATEGORIES.investment,
-        currencyId: currencyToUse.id,
-      }),
-      raw: true,
-    });
-
     const seededSecurities: Securities[] = await helpers.seedSecuritiesViaSync([
       { symbol: 'VOO', name: 'Vanguard S&P 500 ETF' },
     ]);
     vooSecurity = seededSecurities.find((s) => s.symbol === 'VOO')!;
     if (!vooSecurity) throw new Error('VOO security not found after seeding');
 
-    // Create holding directly in the database with portfolioId since the service is still account-based
-    await Holdings.create({
-      portfolioId: portfolio.id,
-      accountId: investmentAccount.id, // Required during transition period
-      securityId: vooSecurity.id,
-      quantity: '0',
-      costBasis: '0',
-      refCostBasis: '0',
-      value: '0',
-      refValue: '0',
-      currencyCode: 'USD',
+    await helpers.createHolding({
+      payload: {
+        portfolioId: portfolio.id,
+        securityId: vooSecurity.id,
+      },
     });
 
     // Create a transaction to delete
@@ -83,8 +60,10 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
 
   it('should recalculate holding after transaction deletion', async () => {
     // Get holding before deletion
-    const holdingBefore = await Holdings.findOne({
-      where: { portfolioId: portfolio.id, securityId: vooSecurity.id },
+    const [holdingBefore] = await helpers.getHoldings({
+      portfolioId: portfolio.id,
+      payload: { securityId: vooSecurity.id },
+      raw: true,
     });
     expect(holdingBefore).not.toBeNull();
     expect(holdingBefore!.quantity).toBeNumericEqual(2); // From the buy transaction
@@ -97,8 +76,10 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
     });
 
     // Get holding after deletion
-    const holdingAfter = await Holdings.findOne({
-      where: { portfolioId: portfolio.id, securityId: vooSecurity.id },
+    const [holdingAfter] = await helpers.getHoldings({
+      portfolioId: portfolio.id,
+      payload: { securityId: vooSecurity.id },
+      raw: true,
     });
     expect(holdingAfter).not.toBeNull();
     expect(holdingAfter!.quantity).toBeNumericEqual(0); // Should be 0 after deletion
@@ -131,8 +112,10 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
     });
 
     // Verify holding before deletion
-    const holdingBefore = await Holdings.findOne({
-      where: { portfolioId: portfolio.id, securityId: vooSecurity.id },
+    const [holdingBefore] = await helpers.getHoldings({
+      portfolioId: portfolio.id,
+      payload: { securityId: vooSecurity.id },
+      raw: true,
     });
     expect(holdingBefore!.quantity).toBeNumericEqual(4); // 2 + 3 - 1
 
@@ -143,8 +126,10 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
     });
 
     // Verify holding after deletion - should be recalculated properly
-    const holdingAfter = await Holdings.findOne({
-      where: { portfolioId: portfolio.id, securityId: vooSecurity.id },
+    const [holdingAfter] = await helpers.getHoldings({
+      portfolioId: portfolio.id,
+      payload: { securityId: vooSecurity.id },
+      raw: true,
     });
     expect(holdingAfter!.quantity).toBeNumericEqual(2); // 3 - 1 (first buy deleted)
   });

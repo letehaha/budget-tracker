@@ -8,7 +8,7 @@ import {
   Index,
   PrimaryKey,
 } from 'sequelize-typescript';
-import Accounts from '../Accounts.model';
+
 import Securities from './Securities.model';
 import Portfolios from './Portfolios.model';
 import { HoldingModel } from "@bt/shared/types/investments"
@@ -51,22 +51,16 @@ import { HoldingModel } from "@bt/shared/types/investments"
 })
 export default class Holdings extends Model implements HoldingModel {
   @PrimaryKey
-  @ForeignKey(() => Accounts)
+  @ForeignKey(() => Portfolios)
   @Index
   @Column({ type: DataType.INTEGER, allowNull: false })
-  accountId!: number;
+  portfolioId!: number;
 
   @PrimaryKey
   @ForeignKey(() => Securities)
   @Index
   @Column({ type: DataType.INTEGER, allowNull: false })
   securityId!: number;
-
-  // New portfolioId field for portfolio migration
-  @ForeignKey(() => Portfolios)
-  @Index
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  portfolioId!: number | null;
 
   /**
    * The `value` and `refValue` fields represent the current market value of the
@@ -146,8 +140,7 @@ export default class Holdings extends Model implements HoldingModel {
   @Column({ type: DataType.DATE, allowNull: false })
   updatedAt!: Date;
 
-  @BelongsTo(() => Accounts)
-  account?: Accounts;
+
 
   @BelongsTo(() => Securities)
   security?: Securities;

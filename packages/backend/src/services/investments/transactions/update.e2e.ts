@@ -1,9 +1,7 @@
-import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import Accounts from '@models/Accounts.model';
-import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Portfolios from '@models/investments/Portfolios.model';
 import Securities from '@models/investments/Securities.model';
@@ -11,7 +9,6 @@ import * as helpers from '@tests/helpers';
 
 describe('PUT /investments/transaction/:transactionId (update investment transaction)', () => {
   let portfolio: Portfolios;
-  let investmentAccount: Accounts;
   let vooSecurity: Securities;
   let transaction: InvestmentTransaction;
 
@@ -23,36 +20,17 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
       raw: true,
     });
 
-    // Create a temporary account for the holding (needed for backward compatibility)
-    // Use USD currency if available, otherwise use the base currency
-    const usdCurrency = global.MODELS_CURRENCIES.find((c: { code: string }) => c.code === 'USD');
-    const currencyToUse = usdCurrency || global.BASE_CURRENCY;
-
-    investmentAccount = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({
-        accountCategory: ACCOUNT_CATEGORIES.investment,
-        currencyId: currencyToUse.id,
-      }),
-      raw: true,
-    });
-
     const seededSecurities: Securities[] = await helpers.seedSecuritiesViaSync([
       { symbol: 'VOO', name: 'Vanguard S&P 500 ETF' },
     ]);
     vooSecurity = seededSecurities.find((s) => s.symbol === 'VOO')!;
     if (!vooSecurity) throw new Error('VOO security not found after seeding');
 
-    // Create holding directly in the database with portfolioId since the service is still account-based
-    await Holdings.create({
-      portfolioId: portfolio.id,
-      accountId: investmentAccount.id, // Required during transition period
-      securityId: vooSecurity.id,
-      quantity: '0',
-      costBasis: '0',
-      refCostBasis: '0',
-      value: '0',
-      refValue: '0',
-      currencyCode: 'USD',
+    await helpers.createHolding({
+      payload: {
+        portfolioId: portfolio.id,
+        securityId: vooSecurity.id,
+      },
     });
 
     // Create a transaction to update
@@ -100,8 +78,20 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
   });
 
   it('should update transaction category successfully', async () => {
+    const newTransaction = await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: portfolio.id,
+        securityId: vooSecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        quantity: '2',
+        price: '50',
+        fees: '5',
+      },
+      raw: true,
+    });
+
     const response = await helpers.updateInvestmentTransaction({
-      transactionId: transaction.id,
+      transactionId: newTransaction.id,
       payload: {
         category: INVESTMENT_TRANSACTION_CATEGORY.sell,
       },
@@ -109,7 +99,9 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
     });
 
     expect(response.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.sell);
-    expect(response.transactionType).toBe('income'); // Should change from expense to income
+    // Should change from expense to income, because `transactionType` is about
+    // cash flow, and when stocks are `selled`, it means we got income for `cash`
+    expect(response.transactionType).toBe(TRANSACTION_TYPES.income);
   });
 
   it('should update multiple fields successfully', async () => {
@@ -120,7 +112,6 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
         price: '75',
         fees: '10',
         name: 'Updated transaction',
-        category: INVESTMENT_TRANSACTION_CATEGORY.sell,
       },
       raw: true,
     });
@@ -130,13 +121,14 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
     expect(response.fees).toBeNumericEqual(10);
     expect(response.amount).toBeNumericEqual(300); // 4 * 75
     expect(response.name).toBe('Updated transaction');
-    expect(response.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.sell);
   });
 
   it('should recalculate holding after transaction update', async () => {
     // Get holding before update
-    const holdingBefore = await Holdings.findOne({
-      where: { accountId: investmentAccount.id, securityId: vooSecurity.id },
+    const [holdingBefore] = await helpers.getHoldings({
+      portfolioId: portfolio.id,
+      payload: { securityId: vooSecurity.id },
+      raw: true,
     });
     expect(holdingBefore).not.toBeNull();
     expect(holdingBefore!.quantity).toBeNumericEqual(2); // From the buy transaction
@@ -152,8 +144,10 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
     });
 
     // Get holding after update
-    const holdingAfter = await Holdings.findOne({
-      where: { accountId: investmentAccount.id, securityId: vooSecurity.id },
+    const [holdingAfter] = await helpers.getHoldings({
+      portfolioId: portfolio.id,
+      payload: { securityId: vooSecurity.id },
+      raw: true,
     });
     expect(holdingAfter).not.toBeNull();
     expect(holdingAfter!.quantity).toBeNumericEqual(5); // Should be updated to 5
@@ -226,8 +220,10 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
     });
 
     // Verify holding before update
-    const holdingBefore = await Holdings.findOne({
-      where: { accountId: investmentAccount.id, securityId: vooSecurity.id },
+    const [holdingBefore] = await helpers.getHoldings({
+      portfolioId: portfolio.id,
+      payload: { securityId: vooSecurity.id },
+      raw: true,
     });
     expect(holdingBefore!.quantity).toBeNumericEqual(5); // 2 + 3
 
@@ -240,10 +236,208 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
       raw: true,
     });
 
-    // Verify holding after update - should be recalculated properly
-    const holdingAfter = await Holdings.findOne({
-      where: { accountId: investmentAccount.id, securityId: vooSecurity.id },
+    // Verify holding after update
+    const [holdingAfter] = await helpers.getHoldings({
+      portfolioId: portfolio.id,
+      payload: { securityId: vooSecurity.id },
+      raw: true,
     });
-    expect(holdingAfter!.quantity).toBeNumericEqual(4); // 1 + 3 (after first tx update)
+    expect(holdingAfter!.quantity).toBeNumericEqual(4); // 1 + 3
+  });
+
+  describe('Validation Tests', () => {
+    it('should fail to update buy transaction to sell with insufficient shares', async () => {
+      // We have only 1 buy transaction (2 shares), so converting it to sell should fail
+      const response = await helpers.updateInvestmentTransaction({
+        transactionId: transaction.id,
+        payload: {
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+        },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should fail to update sell transaction quantity beyond available shares', async () => {
+      // First, create additional shares so we can have a sell transaction
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: vooSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          quantity: '10',
+          price: '50',
+        },
+      });
+
+      // Create a sell transaction
+      const sellTransaction = await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: vooSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          quantity: '2',
+          price: '55',
+        },
+        raw: true,
+      });
+
+      // Now try to update the sell transaction to sell more than we have
+      // We have 12 total shares, selling 2, so 10 remaining. Trying to sell 15 should fail.
+      const response = await helpers.updateInvestmentTransaction({
+        transactionId: sellTransaction.id,
+        payload: {
+          quantity: '15',
+        },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should fail to update quantity of buy transaction if changed to sell category simultaneously', async () => {
+      // Create another buy transaction so we have more shares
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: vooSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          quantity: '3',
+          price: '50',
+        },
+      });
+
+      // Total shares: 5 (2 + 3)
+      // Try to update the first transaction (2 shares) to be a sell of 10 shares
+      // After removing the original buy effect, we'd have 3 shares, but trying to sell 10
+      const response = await helpers.updateInvestmentTransaction({
+        transactionId: transaction.id,
+        payload: {
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          quantity: '10',
+        },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should successfully update buy transaction to smaller sell when sufficient shares exist', async () => {
+      // Create additional shares
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: vooSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          quantity: '10',
+          price: '50',
+        },
+      });
+
+      // Total shares: 12 (2 + 10)
+      // Update the first transaction (2 shares buy) to be a sell of 1 share
+      // After removing original buy effect: 10 shares remaining, selling 1 should work
+      const response = await helpers.updateInvestmentTransaction({
+        transactionId: transaction.id,
+        payload: {
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          quantity: '1',
+        },
+        raw: true,
+      });
+
+      expect(response.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.sell);
+      expect(response.quantity).toBeNumericEqual(1);
+
+      // Verify holding calculation is correct
+      const [holding] = await helpers.getHoldings({
+        portfolioId: portfolio.id,
+        payload: { securityId: vooSecurity.id },
+        raw: true,
+      });
+      expect(holding!.quantity).toBeNumericEqual(9); // 10 (from second buy) - 1 (from updated sell)
+    });
+
+    it('should fail with negative quantity in update', async () => {
+      const response = await helpers.updateInvestmentTransaction({
+        transactionId: transaction.id,
+        payload: {
+          quantity: '-5',
+        },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should fail with negative price in update', async () => {
+      const response = await helpers.updateInvestmentTransaction({
+        transactionId: transaction.id,
+        payload: {
+          price: '-100',
+        },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should fail with negative fees in update', async () => {
+      const response = await helpers.updateInvestmentTransaction({
+        transactionId: transaction.id,
+        payload: {
+          fees: '-10',
+        },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should handle edge case: updating sell transaction back to buy with same quantity', async () => {
+      // Create more shares first
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: vooSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          quantity: '10',
+          price: '50',
+        },
+      });
+
+      // Create a sell transaction
+      const sellTransaction = await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: vooSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          quantity: '3',
+          price: '60',
+        },
+        raw: true,
+      });
+
+      // Update sell back to buy - should work fine
+      const response = await helpers.updateInvestmentTransaction({
+        transactionId: sellTransaction.id,
+        payload: {
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        },
+        raw: true,
+      });
+
+      expect(response.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.buy);
+      expect(response.transactionType).toBe('expense');
+
+      // Verify holding is recalculated correctly
+      const [holding] = await helpers.getHoldings({
+        portfolioId: portfolio.id,
+        payload: { securityId: vooSecurity.id },
+        raw: true,
+      });
+      expect(holding!.quantity).toBeNumericEqual(15); // 2 + 10 + 3 (all buys now)
+    });
   });
 });

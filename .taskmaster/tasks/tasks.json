@@ -1,250 +1,5 @@
 {
-  "meta": {
-    "version": "1.0",
-    "lastUpdated": "2024-12-20T00:00:00.000Z",
-    "tasksCount": 17
-  },
-  "global": {
-    "defaultTag": "master"
-  },
-  "tags": {
-    "master": {
-      "name": "master",
-      "description": "Main development tasks for budget tracker",
-      "createdAt": "2024-12-20T00:00:00.000Z",
-      "tasks": [
-        {
-          "id": 1,
-          "title": "Data Provider Foundation",
-          "description": "Create base data provider interface, implement Polygon provider with search/pricing methods, and add provider factory and configuration",
-          "status": "done",
-          "priority": "high",
-          "dependencies": [],
-          "details": "✅ COMPLETED: BaseSecurityDataProvider interface exists, PolygonDataProvider fully implemented with search/pricing methods, DataProviderFactory with configuration management is complete.",
-          "testStrategy": "Verify provider factory can instantiate Polygon provider, test search and pricing methods with mock data",
-          "subtasks": []
-        },
-        {
-          "id": 2,
-          "title": "Security Management Services",
-          "description": "Create security CRUD service, implement security search functionality, and add security validation and duplicate detection",
-          "status": "done",
-          "priority": "high",
-          "dependencies": [
-            1
-          ],
-          "details": "✅ COMPLETED: Securities model exists with full CRUD operations, search functionality implemented via search.service.ts, securities-manage.ts handles validation and duplicate detection.",
-          "testStrategy": "Test CRUD operations, search functionality, and duplicate detection logic",
-          "subtasks": []
-        },
-        {
-          "id": 3,
-          "title": "Price Syncing System",
-          "description": "Create price syncing service using data providers, implement batch price updates, and add price history management",
-          "status": "done",
-          "priority": "high",
-          "dependencies": [
-            1,
-            2
-          ],
-          "details": "✅ COMPLETED: price-sync.service.ts implements price syncing, SecurityPricing model handles price history, batch updates implemented for daily price sync.",
-          "testStrategy": "Test price sync service with mock provider data, verify batch updates and price history storage",
-          "subtasks": []
-        },
-        {
-          "id": 4,
-          "title": "Security API Endpoints",
-          "description": "Implement POST /investing/securities/search, POST /investing/securities, GET /investing/securities/:id, and GET /investing/securities/:id/prices endpoints",
-          "status": "in-progress",
-          "priority": "medium",
-          "dependencies": [
-            2,
-            3
-          ],
-          "details": "🟡 PARTIALLY COMPLETED: \n✅ GET /securities (all securities) - implemented\n✅ GET /securities/search - implemented\n✅ POST /securities (add individual security) - NOT NEEDED (securities added only via sync process)\n❌ GET /securities/:id - missing\n❌ GET /securities/:id/prices - missing (GET /prices exists but different endpoint)",
-          "testStrategy": "Test all security endpoints with various payloads and edge cases",
-          "subtasks": []
-        },
-        {
-          "id": 5,
-          "title": "Holdings Management",
-          "description": "Create holdings calculation service, implement portfolio value calculations, and add holdings CRUD operations",
-          "status": "done",
-          "priority": "high",
-          "dependencies": [
-            2,
-            3
-          ],
-          "details": "✅ COMPLETED: Holdings model and service implemented, get-holdings.service.ts provides portfolio calculations, CRUD operations available via holdings controllers.",
-          "testStrategy": "Test holdings calculations, portfolio value computations, and CRUD operations",
-          "subtasks": []
-        },
-        {
-          "id": 6,
-          "title": "Investment Transactions",
-          "description": "Create investment transaction service, implement buy/sell/dividend transaction logic, and add transaction validation and holdings updates",
-          "status": "done",
-          "priority": "high",
-          "dependencies": [
-            5
-          ],
-          "details": "✅ COMPLETED: InvestmentTransaction model implemented with full transaction logic, buy/sell/dividend transaction support, validation and holdings updates integrated.",
-          "testStrategy": "Test transaction creation, validation, and automatic holdings updates",
-          "subtasks": []
-        },
-        {
-          "id": 7,
-          "title": "Investment Transaction API",
-          "description": "Implement POST /investing/transactions, GET /investing/transactions, PUT /investing/transactions/:id, and DELETE /investing/transactions/:id endpoints",
-          "status": "done",
-          "priority": "medium",
-          "dependencies": [
-            6
-          ],
-          "details": "✅ COMPLETED: All transaction API endpoints implemented:\n✅ POST /transaction - create investment transaction\n✅ GET /transactions - list transactions with filters\n✅ PUT /transaction/:transactionId - update transaction\n✅ DELETE /transaction/:transactionId - delete transaction",
-          "testStrategy": "Test all transaction API endpoints with various scenarios",
-          "subtasks": []
-        },
-        {
-          "id": 8,
-          "title": "Portfolio API Endpoints",
-          "description": "Implement GET /investing/accounts/:id/holdings, GET /investing/accounts/:id/performance, and GET /investing/portfolio/overview endpoints",
-          "status": "in-progress",
-          "priority": "medium",
-          "dependencies": [
-            5,
-            6
-          ],
-          "details": "🟡 PARTIALLY COMPLETED:\n✅ GET /accounts/:accountId/holdings - implemented\n❌ GET /accounts/:id/performance - missing\n❌ GET /portfolio/overview - missing",
-          "testStrategy": "Test portfolio endpoints with various account scenarios and performance calculations",
-          "subtasks": []
-        },
-        {
-          "id": 9,
-          "title": "Price Sync Jobs",
-          "description": "Create scheduled job for daily price updates, add error handling and retry logic, and implement rate limiting for API calls",
-          "status": "done",
-          "priority": "medium",
-          "dependencies": [
-            3
-          ],
-          "details": "✅ COMPLETED: sync-securities-prices.ts cron job implemented for daily price updates, error handling and retry logic in place, rate limiting implemented in Polygon provider.",
-          "testStrategy": "Test scheduled job execution, error handling scenarios, and rate limiting behavior",
-          "subtasks": []
-        },
-        {
-          "id": 10,
-          "title": "Testing & Validation",
-          "description": "Create unit tests for core services, integration tests for API endpoints, and end-to-end transaction flow tests",
-          "status": "done",
-          "priority": "low",
-          "dependencies": [
-            4,
-            7,
-            8
-          ],
-          "details": "✅ COMPLETED: Comprehensive test suite exists with unit tests (.e2e.ts files), integration tests for API endpoints, end-to-end transaction flow tests, and test helpers for securities, prices, and transactions.",
-          "testStrategy": "Run full test suite to verify all functionality works correctly",
-          "subtasks": []
-        },
-        {
-          "id": 11,
-          "title": "Frontend: Main Investments Page Setup",
-          "description": "Create /investments route in Vue Router, set up basic page layout with navigation, and create investment accounts listing component",
-          "status": "pending",
-          "priority": "high",
-          "dependencies": [
-            5
-          ],
-          "details": "Create the main investments page that displays all user's investment accounts in a clean list/card format. Should integrate with existing account filtering to show only investment account types.",
-          "testStrategy": "Test page loads correctly, shows only investment accounts, navigation works properly",
-          "subtasks": []
-        },
-        {
-          "id": 12,
-          "title": "Frontend: Investment Account API Integration",
-          "description": "Create Vue composables and API calls for fetching investment accounts, holdings, and account-specific data",
-          "status": "pending",
-          "priority": "high",
-          "dependencies": [
-            11
-          ],
-          "details": "Set up data fetching layer for investments using existing API endpoints. Create reactive state management for investment accounts and holdings data.",
-          "testStrategy": "Test API calls work correctly, data is properly cached and reactive",
-          "subtasks": []
-        },
-        {
-          "id": 13,
-          "title": "Frontend: Account Detail Page Route",
-          "description": "Create /investments/:accountId route and basic layout for individual investment account details page",
-          "status": "pending",
-          "priority": "high",
-          "dependencies": [
-            11,
-            12
-          ],
-          "details": "Set up the account detail page with proper route parameters, breadcrumb navigation, account header with basic info, and container for holdings table.",
-          "testStrategy": "Test route navigation, parameter handling, and page layout rendering",
-          "subtasks": []
-        },
-        {
-          "id": 14,
-          "title": "Frontend: Holdings Table Component",
-          "description": "Create comprehensive holdings table with columns: Symbol, Quantity, Last Price, AC/Share, Total Cost, Market Value, with expandable rows",
-          "status": "pending",
-          "priority": "high",
-          "dependencies": [
-            13
-          ],
-          "details": "Build the core holdings table component with sortable columns, expandable rows for actions, proper data formatting for currency and percentages. Table should be responsive and use existing UI components.",
-          "testStrategy": "Test table rendering, sorting, expanding rows, data formatting, responsiveness",
-          "subtasks": []
-        },
-        {
-          "id": 15,
-          "title": "Frontend: Add Symbol Functionality",
-          "description": "Implement 'Add Symbol' button and modal/dialog for searching and adding new securities to holdings",
-          "status": "pending",
-          "priority": "medium",
-          "dependencies": [
-            14
-          ],
-          "details": "Create search interface using existing /securities/search API endpoint. Allow users to search for securities and add them to holdings with initial quantity of 0. Should integrate with existing dialog components.",
-          "testStrategy": "Test security search, selection, and adding to holdings workflow",
-          "subtasks": []
-        },
-        {
-          "id": 16,
-          "title": "Frontend: Transaction Management in Expanded Rows",
-          "description": "Implement expandable row actions for adding and editing investment transactions (buy/sell/dividend)",
-          "status": "pending",
-          "priority": "medium",
-          "dependencies": [
-            14
-          ],
-          "details": "Create transaction forms within expanded table rows. Support buy/sell/dividend transaction types with proper validation. Should integrate with existing transaction API endpoints and update holdings automatically.",
-          "testStrategy": "Test transaction creation, editing, validation, and holdings updates",
-          "subtasks": []
-        },
-        {
-          "id": 17,
-          "title": "Frontend: Holdings Calculations and Real-time Updates",
-          "description": "Implement real-time calculations for market value, total cost, AC/Share, and automatic updates when transactions change",
-          "status": "pending",
-          "priority": "medium",
-          "dependencies": [
-            15,
-            16
-          ],
-          "details": "Add reactive calculations for all financial metrics in the holdings table. Ensure data updates properly when transactions are added/edited/deleted. Use existing price data for market value calculations.",
-          "testStrategy": "Test calculations accuracy, real-time updates, and data consistency",
-          "subtasks": []
-        }
-      ]
-    }
-  },
-  "currentTag": "master",
-  "portfolio-migration": {
+  "master": {
     "tasks": [
       {
         "id": 1,
@@ -269,9 +24,7 @@
             "id": 2,
             "title": "Update Existing Models",
             "description": "Modify the Holdings and InvestmentTransactions models to reference portfolioId instead of accountId.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Update the model files for Holdings and InvestmentTransactions. Replace the accountId foreign key with portfolioId. Ensure that all related queries and relationships are updated accordingly.\n<info added on 2025-06-23T21:18:49.205Z>\nCOMPLETED: Successfully updated existing investment models to support portfolios while maintaining backward compatibility.\n\nImplementation Details:\n- Added portfolioId fields to Holdings and InvestmentTransaction models as nullable foreign keys\n- Created comprehensive migration (20250130000001-update-investment-models-for-portfolios.ts) that safely adds new columns with proper constraints and indexes\n- Maintained accountId fields during transition period to ensure existing functionality continues working\n- Added proper TypeScript type definitions and model associations\n- Implemented transaction-safe migration with rollback capability\n\nTechnical Approach:\n- Used nullable portfolioId fields to allow gradual data migration from account-based to portfolio-based structure\n- Added foreign key constraints linking to Portfolios table\n- Created database indexes on new portfolioId columns for query performance\n- Ensured all model relationships and associations are properly configured\n\nMigration Safety:\n- Both accountId and portfolioId will coexist during transition\n- Existing queries and functionality remain unaffected\n- Data integrity maintained through proper foreign key constraints\n- Rollback mechanism available if needed\n\nStatus: Ready to proceed with subtask 1.3 (Implement New Model Classes) as the foundational model updates are complete.\n</info added on 2025-06-23T21:18:49.205Z>",
             "status": "done",
             "testStrategy": "Run unit tests to confirm that the models correctly reference portfolioId and that existing functionality is not broken."
@@ -280,9 +33,7 @@
             "id": 3,
             "title": "Implement New Model Classes",
             "description": "Create new model classes for Portfolio, PortfolioBalance, and PortfolioTransfers.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Develop new model classes that correspond to the newly created database tables. Include all necessary properties, relationships, and methods as specified in the PRD.",
             "status": "done",
             "testStrategy": "Write and execute unit tests for each new model class to verify correct implementation of properties and methods."
@@ -291,10 +42,7 @@
             "id": 4,
             "title": "Set Up Database Indexing",
             "description": "Implement proper indexing for the new and updated tables as mentioned in the Performance Considerations section.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Add appropriate indexes to the migration files for Portfolios, PortfolioBalances, and PortfolioTransfers tables. Update existing indexes for Holdings and InvestmentTransactions if necessary.",
             "status": "done",
             "testStrategy": "Use database query analysis tools to confirm that the indexes are properly created and improve query performance."
@@ -303,10 +51,7 @@
             "id": 5,
             "title": "Perform Database Migration",
             "description": "Execute the migration files to update the database schema with the new tables and modifications.",
-            "dependencies": [
-              1,
-              2
-            ],
+            "dependencies": [1, 2],
             "details": "Run the database migration tool to apply all new migrations. This will create the new tables, update existing tables, and set up the required indexes.",
             "status": "done",
             "testStrategy": "Verify that the migration completes successfully. Inspect the database schema to ensure all changes are applied correctly."
@@ -320,9 +65,7 @@
         "details": "Create services for: creating a portfolio, updating portfolio details, deleting a portfolio (with validation), and listing user portfolios. Implement the Portfolio Balance Management services including get portfolio balances, update balance (internal use), balance history tracking, and multi-currency balance calculations.",
         "testStrategy": "Write unit tests for each service method. Include edge cases such as attempting to delete a portfolio with active holdings. Test multi-currency calculations for accuracy.",
         "priority": "high",
-        "dependencies": [
-          1
-        ],
+        "dependencies": [1],
         "status": "done",
         "subtasks": [
           {
@@ -338,9 +81,7 @@
             "id": 2,
             "title": "Develop Portfolio Listing Service",
             "description": "Create a service to list all portfolios for a given user",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Implement a GET /portfolios endpoint that returns a list of all portfolios associated with the authenticated user. Include pagination and sorting options.",
             "status": "done",
             "testStrategy": "Test with various user scenarios, including users with no portfolios, many portfolios, and edge cases. Verify pagination and sorting functionality."
@@ -349,9 +90,7 @@
             "id": 3,
             "title": "Implement Portfolio Balance Retrieval Service",
             "description": "Develop a service to fetch current portfolio balances",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Create a GET /portfolios/{id}/balance endpoint that returns the current balance for a specific portfolio. Include multi-currency support and real-time exchange rate integration.\n<info added on 2025-06-23T22:12:14.823Z>\n✅ COMPLETED: Portfolio Balance Retrieval Service\n\n**Implementation Summary:**\n- Created comprehensive balance retrieval functionality\n- Supports filtering by specific currency or retrieving all portfolio balances\n- Includes proper portfolio ownership validation and currency associations\n- Returns structured data with currency information (id, code, currency name)\n- Uses proper TypeScript interfaces and follows backend architecture patterns\n\n**Key Features:**\n- Multi-currency balance support\n- Portfolio ownership validation\n- Currency filtering capability\n- Proper error handling with NotFoundError\n- Sequelize associations with Currencies model\n- Ordered results by currency code\n\n**Implementation Status:**\nService layer completed and ready for controller implementation. All core functionality implemented including currency filtering, portfolio validation, and proper data structure returns.\n</info added on 2025-06-23T22:12:14.823Z>",
             "status": "done",
             "testStrategy": "Test balance retrieval for various portfolio types, currencies, and market conditions. Mock exchange rate services for consistent testing."
@@ -383,10 +122,7 @@
         "details": "1. Service (portfolio.service.ts in @services/investments/portfolios/):\n   - Implement input validation for name, description, and accountId\n   - Add logic to check account ownership and type (must be investment account)\n   - Create portfolio record with proper validation\n   - Use withTransaction for data integrity\n\n2. Controller (create-portfolio.ts in @controllers/investments/portfolios/):\n   - Use createController factory with Zod schema validation\n   - Validate request body (name required, description optional, accountId required)\n   - Call portfolio service\n   - Return structured response\n\n3. Route (in @routes/investments/portfolios.route.ts):\n   - Add POST /portfolios route\n   - Apply authenticateJwt middleware\n   - Apply validateEndpoint middleware\n   - Connect to create-portfolio controller\n\n4. Follow backend architecture rules and patterns throughout implementation\n\n5. Error handling:\n   - Implement proper error handling for invalid inputs, unauthorized access, and database errors\n   - Use custom error classes if applicable\n\n6. Logging:\n   - Add appropriate logging for debugging and monitoring\n\n7. Documentation:\n   - Update API documentation to include the new endpoint\n<info added on 2025-06-24T15:23:38.786Z>\nImplementation Progress Update:\n\nCompleted:\n1. Controller (create-portfolio.ts):\n   - Created using createController factory with Zod validation\n   - Validates name, portfolioType, description, and isEnabled\n   - Returns 201 status code on success\n   - Follows investment transaction controller patterns\n\n2. Route:\n   - Added POST /portfolios route to investments.route.ts\n   - Applied authenticateJwt and validateEndpoint middlewares\n   - Integrated with create-portfolio controller\n\n3. Service:\n   - Reviewed existing create.service.ts, confirmed proper implementation\n   - Uses withTransaction, validates duplicate names, trims input data\n   - Throws ConflictError for duplicates\n\n4. Test Helper:\n   - Created portfolios test helper with buildPortfolioPayload and createPortfolio functions\n   - Exported from helpers index\n\nIn Progress:\n5. E2E Tests:\n   - Started comprehensive test suite\n   - Encountering TypeScript/Jest configuration issues (import paths and custom matcher problems)\n   - Tests cover success cases, validation errors, duplicate names, and authentication\n\nNext Steps:\n- Resolve test configuration issues and complete E2E test implementation\n- Run tests to validate end-to-end functionality\n- Verify proper handling of all error cases\n</info added on 2025-06-24T15:23:38.786Z>",
         "testStrategy": "1. Unit tests:\n   - Test service validation logic\n   - Mock database calls and test service methods\n   - Test controller with mocked service responses\n   - Verify error handling in both service and controller\n\n2. Integration tests:\n   - Test the interaction between controller and service\n   - Verify database operations using a test database\n\n3. E2E tests:\n   - Use actual API endpoints to test the complete flow\n   - Test successful portfolio creation\n   - Test error cases:\n     a. Invalid accountId\n     b. Duplicate portfolio names\n     c. Unauthorized access (missing or invalid JWT)\n     d. Invalid input data\n\n4. Performance tests:\n   - Verify response times are within acceptable limits\n   - Test concurrent portfolio creation requests\n\n5. Use test helpers for data setup and teardown\n\n6. Implement test coverage reporting and aim for high coverage",
         "status": "done",
-        "dependencies": [
-          1,
-          2
-        ],
+        "dependencies": [1, 2],
         "priority": "high",
         "subtasks": []
       },
@@ -397,10 +133,7 @@
         "details": "1. Service (list-portfolios.service.ts in @services/investments/portfolios/):\n   - Implement fetchPortfoliosForUser(userId, filters, sort, pagination) method\n   - Apply filters: by account type, creation date, balance range\n   - Implement sorting: by name, creation date, total balance\n   - Use proper SQL queries with JOIN to fetch basic account information\n   - Calculate and include portfolio statistics (total balance, performance)\n   - Implement efficient pagination using OFFSET and LIMIT\n   - Return structured portfolio objects with balance information\n\n2. Controller (list-portfolios.ts in @controllers/investments/portfolios/):\n   - Use createController factory with Zod schema for query parameters\n   - Define Zod schema for pagination (page, limit), filters, and sort options\n   - Implement controller logic to call list-portfolios service\n   - Handle potential errors (e.g., invalid filter parameters)\n   - Structure the response with portfolios array and metadata (total count, page info)\n\n3. Route (in @routes/investments/portfolios.route.ts):\n   - Add GET /portfolios route\n   - Apply authenticateJwt middleware to ensure user authentication\n   - Use validateEndpoint middleware with the Zod schema from the controller\n   - Connect the route to the list-portfolios controller\n\n4. Follow backend architecture patterns:\n   - Use dependency injection for service in the controller\n   - Implement proper error handling and logging\n   - Use constants for magic strings (e.g., sort fields, filter names)\n\n5. Optimize for performance:\n   - Use appropriate database indexes for filtered and sorted fields\n   - Implement caching strategy for frequently accessed portfolio lists\n   - Consider using database-level pagination for large datasets",
         "testStrategy": "1. Unit Tests:\n   - Test list-portfolios.service.ts:\n     - Verify correct application of filters, sorting, and pagination\n     - Test edge cases: empty result set, maximum pagination limits\n     - Mock database calls and verify correct query construction\n   - Test list-portfolios.ts controller:\n     - Verify correct handling of various query parameters\n     - Test error scenarios (e.g., invalid sort field, out-of-range pagination)\n\n2. Integration Tests:\n   - Test interaction between controller and service\n   - Verify correct application of middleware (authentication, validation)\n\n3. E2E Tests:\n   - Set up test database with sample portfolio data\n   - Test complete flow with multiple portfolios:\n     - Verify correct number of portfolios returned\n     - Check pagination works correctly (next page, previous page)\n     - Validate sorting order for different sort options\n     - Confirm filtering narrows down results correctly\n   - Test with various query parameter combinations\n   - Verify response structure and included portfolio information\n   - Test performance with a large number of portfolios\n\n4. Security Tests:\n   - Ensure users can only access their own portfolios\n   - Verify proper handling of unauthorized access attempts\n\n5. Use test helpers:\n   - Create helper functions for portfolio creation in test environment\n   - Implement data seeders for generating diverse test datasets",
         "status": "done",
-        "dependencies": [
-          1,
-          2
-        ],
+        "dependencies": [1, 2],
         "priority": "high",
         "subtasks": []
       },
@@ -411,10 +144,7 @@
         "details": "1. Service (get-portfolio.service.ts in @services/investments/portfolios/):\n   - Implement getPortfolioById(portfolioId, userId) method\n   - Fetch portfolio by ID with user ownership validation\n   - Include detailed account information and current balances\n   - Include portfolio statistics (total value, currency breakdown)\n   - Handle portfolio not found and unauthorized access errors\n   - Use proper SQL queries with JOINs to fetch related data efficiently\n\n2. Controller (get-portfolio.ts in @controllers/investments/portfolios/):\n   - Use createController factory with Zod schema for params validation\n   - Implement validatePortfolioId(portfolioId) function\n   - Call getPortfolioById service method\n   - Structure response with detailed portfolio data\n   - Handle and return appropriate error responses\n\n3. Route (in @routes/investments/portfolios.route.ts):\n   - Add GET /portfolios/:id route\n   - Apply authenticateJwt middleware\n   - Apply validateEndpoint middleware\n   - Connect to get-portfolio controller\n\n4. Error Handling:\n   - Implement custom error classes for PortfolioNotFoundError and UnauthorizedAccessError\n   - Ensure proper error mapping in the controller\n\n5. Data Structure:\n   - Define a comprehensive PortfolioDetails interface including all required fields\n   - Implement data transformation logic to map database results to the PortfolioDetails structure\n\n6. Performance Considerations:\n   - Use appropriate indexing on the portfolios table for efficient ID lookups\n   - Implement caching strategy for frequently accessed portfolios\n\n7. Security:\n   - Ensure proper user authentication and authorization checks\n   - Implement rate limiting on the endpoint to prevent abuse\n\n8. Logging:\n   - Add appropriate logging for successful retrievals and error cases\n\nFollow all backend architecture rules and patterns, including separation of concerns, dependency injection, and adherence to the established coding style.",
         "testStrategy": "1. Unit Tests:\n   - Test get-portfolio.service.ts:\n     - Verify correct portfolio retrieval for valid user and portfolio ID\n     - Test error handling for non-existent portfolio and unauthorized access\n     - Mock database calls and verify correct query construction\n     - Test portfolio statistics calculations\n   - Test get-portfolio.ts controller:\n     - Verify correct handling of valid and invalid input parameters\n     - Test response structure and error handling\n   - Test validatePortfolioId function with various input types\n\n2. Integration Tests:\n   - Test the interaction between controller and service\n   - Verify correct data flow and transformation\n\n3. E2E Tests:\n   - Set up test database with sample portfolios and accounts\n   - Test successful portfolio retrieval with valid authentication\n   - Verify all required data is present in the response\n   - Test error cases: non-existent portfolio, unauthorized access, invalid ID format\n   - Verify correct HTTP status codes and response formats\n\n4. Performance Tests:\n   - Measure response times for portfolio retrieval\n   - Test caching mechanism effectiveness\n\n5. Security Tests:\n   - Verify that unauthenticated requests are rejected\n   - Test that users cannot access portfolios they don't own\n   - Verify rate limiting functionality\n\n6. Use test helpers for efficient portfolio and account creation in the test environment\n\n7. Implement comprehensive assertion checks for all aspects of the portfolio details, including account information, balances, and statistics",
         "status": "done",
-        "dependencies": [
-          1,
-          2
-        ],
+        "dependencies": [1, 2],
         "priority": "high",
         "subtasks": []
       },
@@ -425,11 +155,7 @@
         "details": "1. Service (update-portfolio.service.ts in @services/investments/portfolios/):\n   - Implement updatePortfolio(portfolioId, userId, updateData) method\n   - Validate portfolio ownership and existence\n   - Update portfolio name, description, and other editable fields\n   - Validate that name doesn't conflict with other user portfolios\n   - Use withTransaction for data integrity\n   - Return updated portfolio data\n\n2. Controller (update-portfolio.ts in @controllers/investments/portfolios/):\n   - Use createController factory with Zod schema for params and body validation\n   - Validate portfolioId parameter and update fields\n   - Support partial updates (PATCH behavior)\n   - Call update portfolio service\n   - Return structured response with updated portfolio\n\n3. Route:\n   - Add PUT /portfolios/:id route in @routes/investments/portfolios.route.ts\n   - Apply authenticateJwt middleware\n   - Apply validateEndpoint middleware\n   - Connect to update-portfolio controller\n\n4. Error Handling:\n   - Implement proper error handling for not found, unauthorized access, and validation errors\n   - Use custom error classes (e.g., PortfolioNotFoundError, UnauthorizedAccessError)\n\n5. Logging:\n   - Add appropriate logging for tracking update operations and errors\n\n6. Performance Considerations:\n   - Optimize database queries in the service layer\n   - Use proper indexing for efficient updates\n\n7. Security:\n   - Ensure proper input sanitization to prevent SQL injection\n   - Implement rate limiting for the update endpoint",
         "testStrategy": "1. Unit Tests:\n   - Test update-portfolio.service.ts:\n     - Verify successful portfolio updates with valid data\n     - Test partial updates (PATCH behavior)\n     - Verify error handling for non-existent portfolios and unauthorized access\n     - Test name conflict validation\n     - Mock database calls and verify correct query construction\n   - Test update-portfolio.ts controller:\n     - Verify proper Zod schema validation\n     - Test controller response structure\n     - Verify error handling and status codes\n\n2. Integration Tests:\n   - Test the interaction between controller and service\n   - Verify database updates are performed correctly\n   - Test with actual database connections (using test database)\n\n3. E2E Tests:\n   - Test successful portfolio updates through the API\n   - Verify partial updates work correctly\n   - Test various error scenarios (not found, unauthorized, validation errors, name conflicts)\n   - Verify response structure and status codes\n\n4. Performance Tests:\n   - Measure response times for update operations\n   - Test concurrent update requests\n\n5. Security Tests:\n   - Attempt SQL injection attacks\n   - Verify rate limiting functionality\n\n6. Use test helpers for portfolio creation and updates to streamline testing process",
         "status": "done",
-        "dependencies": [
-          1,
-          2,
-          3
-        ],
+        "dependencies": [1, 2, 3],
         "priority": "medium",
         "subtasks": []
       },
@@ -440,11 +166,7 @@
         "details": "1. Service (delete-portfolio.service.ts in @services/investments/portfolios/):\n   - Implement deletePortfolio(portfolioId, userId) method\n   - Validate portfolio ownership and existence\n   - Check for dependent data (holdings, transactions) and handle appropriately\n   - Implement soft delete or cascade delete based on business rules\n   - Use withTransaction for data integrity\n   - Return deletion confirmation\n\n2. Controller (delete-portfolio.ts in @controllers/investments/portfolios/):\n   - Use createController factory with Zod schema for params validation\n   - Validate portfolioId parameter\n   - Call delete portfolio service\n   - Return structured response confirming deletion\n\n3. Route:\n   - Add DELETE /portfolios/:id route in @routes/investments/portfolios.route.ts\n   - Apply authenticateJwt middleware\n   - Apply validateEndpoint middleware\n   - Connect to delete-portfolio controller\n\n4. Error Handling:\n   - Implement proper error handling for not found, unauthorized access, and dependency conflicts\n   - Use custom error classes (e.g., PortfolioNotFoundError, UnauthorizedAccessError)\n\n5. Logging:\n   - Add appropriate logging for successful deletions and errors\n\n6. Performance Considerations:\n   - Optimize database queries for checking dependencies\n   - Consider using database triggers for cascade operations if applicable\n\n7. Security:\n   - Ensure proper user authentication and authorization checks\n   - Validate and sanitize input parameters\n\n8. Documentation:\n   - Update API documentation with the new DELETE endpoint\n   - Document any cascade delete behavior or restrictions",
         "testStrategy": "1. Unit Tests:\n   - Test delete-portfolio.service.ts:\n     - Verify successful portfolio deletion for valid user and portfolio ID\n     - Test error handling for non-existent portfolio and unauthorized access\n     - Mock database calls and verify correct query construction\n     - Test dependency checking logic (holdings, transactions)\n     - Verify soft delete or cascade delete behavior\n   - Test delete-portfolio.ts controller:\n     - Verify correct handling of valid and invalid input\n     - Test error responses for various scenarios\n\n2. Integration Tests:\n   - Test the interaction between controller, service, and database\n   - Verify proper application of middleware (authentication, validation)\n\n3. E2E Tests:\n   - Test successful portfolio deletion via API endpoint\n   - Verify correct HTTP status codes and response structure\n   - Test deletion with existing holdings or transactions\n   - Verify cascade delete behavior if applicable\n\n4. Performance Tests:\n   - Measure response time for deletion operations\n   - Test deletion of portfolios with large amounts of associated data\n\n5. Security Tests:\n   - Attempt unauthorized deletions and verify proper error responses\n   - Test SQL injection prevention in route parameters\n\n6. Database Tests:\n   - Verify correct application of soft delete or physical delete\n   - Check integrity constraints and cascading effects on related tables\n\n7. Regression Tests:\n   - Ensure deletion doesn't affect other portfolio operations (list, get, update)\n\n8. Edge Case Tests:\n   - Test deletion of already deleted portfolios\n   - Verify behavior when deleting portfolios with ongoing transactions",
         "status": "done",
-        "dependencies": [
-          1,
-          2,
-          3
-        ],
+        "dependencies": [1, 2, 3],
         "priority": "medium",
         "subtasks": []
       },
@@ -455,11 +177,7 @@
         "details": "1. Service (get-portfolio-balance.service.ts in @services/investments/portfolios/balances/):\n   - Implement getPortfolioBalance(portfolioId, userId, baseCurrency?) method\n   - Calculate current portfolio balance across all currencies\n   - Include individual currency breakdowns\n   - Apply current exchange rates for total value calculation\n   - Include performance metrics (gains/losses)\n   - Handle portfolios with no holdings gracefully\n   - Use efficient SQL queries with JOINs to fetch related data\n   - Implement error handling for non-existent portfolios and unauthorized access\n\n2. Controller (get-portfolio-balance.ts in @controllers/investments/portfolios/):\n   - Use createController factory with Zod schema for params validation\n   - Validate portfolioId parameter and ownership\n   - Support optional currency parameter for base calculation\n   - Call portfolio balance service\n   - Return structured response with balance data\n   - Implement proper error handling and status codes\n\n3. Route:\n   - Add GET /portfolios/:id/balance route in @routes/investments/portfolios.route.ts\n   - Apply authenticateJwt middleware\n   - Apply validateEndpoint middleware\n   - Connect to get-portfolio-balance controller\n\n4. Error Handling:\n   - Implement custom error classes for specific scenarios (e.g., PortfolioNotFoundError, UnauthorizedAccessError)\n   - Use global error handler to format error responses consistently\n\n5. Performance Considerations:\n   - Optimize database queries for large portfolios\n   - Consider caching strategies for frequently accessed portfolio balances\n   - Implement pagination for portfolios with a large number of holdings\n\n6. Security:\n   - Ensure proper user authentication and authorization checks\n   - Sanitize and validate all input parameters\n   - Implement rate limiting for the endpoint",
         "testStrategy": "1. Unit Tests:\n   - Test get-portfolio-balance.service.ts:\n     - Verify correct balance calculation for portfolios with single and multiple currencies\n     - Test performance metrics calculation (gains/losses)\n     - Test error handling for non-existent portfolios and unauthorized access\n     - Mock database calls and verify correct query construction\n     - Test empty portfolio balance calculation\n   - Test get-portfolio-balance.ts controller:\n     - Verify correct parameter validation and error responses\n     - Test optional currency parameter handling\n     - Mock service calls and test response structure\n\n2. Integration Tests:\n   - Test the interaction between controller, service, and database\n   - Verify correct balance calculation with real database queries\n   - Test with various portfolio sizes and currency combinations\n\n3. E2E Tests:\n   - Set up test portfolios with multiple currencies and holdings\n   - Test GET /portfolios/:id/balance endpoint with valid and invalid requests\n   - Verify response structure, status codes, and data accuracy\n   - Test error cases (portfolio not found, unauthorized)\n   - Test performance with large portfolios\n\n4. Security Tests:\n   - Verify that unauthenticated users cannot access the endpoint\n   - Test that users cannot access balance information for portfolios they don't own\n   - Verify input validation prevents SQL injection and other attacks\n\n5. Performance Tests:\n   - Benchmark response times for portfolios of varying sizes\n   - Test concurrent requests to ensure scalability\n   - Verify caching mechanisms if implemented\n\n6. Use test helpers for portfolio, holdings, and exchange rate setup to ensure consistent test data across all test types.",
         "status": "done",
-        "dependencies": [
-          1,
-          2,
-          5
-        ],
+        "dependencies": [1, 2, 5],
         "priority": "high",
         "subtasks": []
       },
@@ -470,12 +188,7 @@
         "details": "1. Service (get-portfolio-balance-history.service.ts in @services/investments/portfolios/balances/):\n   - Implement getPortfolioBalanceHistory(portfolioId, userId, dateRange, period) method\n   - Fetch historical balance records for specified date range\n   - Calculate balance evolution over time (daily, weekly, monthly)\n   - Include performance metrics and percentage changes\n   - Handle date range validation and limits\n   - Use efficient SQL queries with proper indexing for performance\n   - Implement data aggregation for different time periods\n\n2. Controller (get-portfolio-balance-history.ts in @controllers/investments/portfolios/):\n   - Use createController factory with Zod schema for params and query validation\n   - Validate portfolioId, date range, and period parameters\n   - Implement pagination for large datasets (use cursor-based pagination for efficiency)\n   - Call portfolio balance history service\n   - Structure response with historical data, including metadata (total count, next cursor)\n\n3. Route:\n   - Add GET /portfolios/:id/balance/history route in @routes/investments/portfolios.route.ts\n   - Apply authenticateJwt middleware\n   - Apply validateEndpoint middleware\n   - Connect to get-portfolio-balance-history controller\n\n4. Error Handling:\n   - Implement proper error handling for invalid date ranges, non-existent portfolios, and unauthorized access\n   - Use custom error classes for specific error scenarios\n\n5. Performance Considerations:\n   - Implement caching strategy for frequently accessed historical data\n   - Use database indexing on date and portfolioId columns\n   - Implement data aggregation at the database level for improved performance\n\n6. Follow all backend architecture rules and patterns, ensuring consistency with existing codebase.\n\n<info added on 2025-06-24T16:45:23.786Z>\nTask cancelled as per user request. This feature is not needed at the current development stage and will be revisited later if necessary.\n</info added on 2025-06-24T16:45:23.786Z>",
         "testStrategy": "1. Unit Tests:\n   - Test get-portfolio-balance-history.service.ts:\n     - Verify correct historical data retrieval for various date ranges and periods\n     - Test date range validation and error handling\n     - Test performance metrics and percentage change calculations\n     - Mock database calls and verify correct query construction\n   - Test get-portfolio-balance-history.ts controller:\n     - Verify proper parameter validation and error responses\n     - Test pagination logic and response structure\n     - Mock service calls and test different scenarios (empty result, partial data, full data)\n\n2. Integration Tests:\n   - Test the interaction between controller, service, and database\n   - Verify correct data flow and transformation\n\n3. E2E Tests:\n   - Set up test database with historical balance records\n   - Test API endpoint with various query parameters (date ranges, periods, pagination)\n   - Verify response format, data accuracy, and performance metrics\n   - Test error scenarios (invalid dates, portfolio not found, unauthorized access)\n\n4. Performance Tests:\n   - Benchmark response times for different date ranges and data volumes\n   - Verify caching effectiveness\n   - Test system behavior under high concurrency\n\n5. Test Helpers:\n   - Create helper functions for generating historical balance records\n   - Implement utilities for date manipulation and comparison in tests\n\n6. Continuous Integration:\n   - Ensure all tests are included in the CI pipeline\n   - Set up automated performance benchmarks to catch regressions",
         "status": "cancelled",
-        "dependencies": [
-          1,
-          2,
-          5,
-          8
-        ],
+        "dependencies": [1, 2, 5, 8],
         "priority": "medium",
         "subtasks": []
       },
@@ -486,13 +199,7 @@
         "details": "1. Service (create-portfolio-transfer.service.ts in @services/investments/portfolios/transfers/):\n   - Implement createPortfolioTransfer(userId, sourcePortfolioId, destinationPortfolioId, amount, currency, transferType) method\n   - Validate source and destination portfolios ownership and existence\n   - Validate transfer amount and currency (ensure sufficient balance)\n   - Handle different transfer types (cash, securities)\n   - Implement logic for updating portfolio balances\n   - Use withTransaction for data integrity\n   - Create audit trail entry for the transfer\n   - Handle error cases (insufficient funds, invalid portfolios)\n\n2. Controller (create-portfolio-transfer.ts in @controllers/investments/portfolios/):\n   - Use createController factory with Zod schema for body validation\n   - Define Zod schema for transfer data (amount, currency, portfolios, type)\n   - Validate transfer data in the request body\n   - Call portfolio transfer service method\n   - Handle and transform service errors into appropriate HTTP responses\n   - Return structured response with transfer details and confirmation\n\n3. Route:\n   - Add POST /portfolios/:id/transfers route in @routes/investments/portfolios.route.ts\n   - Apply authenticateJwt middleware for user authentication\n   - Apply validateEndpoint middleware with appropriate schema\n   - Connect route to create-portfolio-transfer controller\n\n4. Error Handling:\n   - Implement custom error types for transfer-specific errors\n   - Ensure proper error messages and codes are returned for various scenarios\n\n5. Logging and Monitoring:\n   - Add appropriate logging for transfer operations\n   - Implement metrics collection for transfer amounts and frequencies\n\n6. Performance Considerations:\n   - Optimize database queries in the service layer\n   - Consider using database locks to prevent race conditions during transfers",
         "testStrategy": "1. Unit Tests:\n   - Test create-portfolio-transfer.service.ts:\n     - Verify successful transfers for valid inputs\n     - Test error handling for insufficient funds, invalid portfolios, and unauthorized access\n     - Mock database calls and verify correct query construction\n     - Test different transfer types (cash, securities)\n     - Verify audit trail creation\n   - Test create-portfolio-transfer.ts controller:\n     - Test input validation using Zod schema\n     - Verify correct service method calls\n     - Test error handling and response structure\n\n2. Integration Tests:\n   - Test the interaction between controller, service, and database\n   - Verify correct balance updates in source and destination portfolios\n   - Test transaction rollback scenarios\n\n3. E2E Tests:\n   - Create test scenarios for different transfer types and amounts\n   - Test transfers between portfolios with different currencies\n   - Verify API responses and database state after transfers\n   - Test error cases with invalid inputs or insufficient funds\n\n4. Performance Tests:\n   - Measure response times for transfer operations\n   - Test concurrent transfer requests to ensure data integrity\n\n5. Security Tests:\n   - Verify that users can only transfer between their own portfolios\n   - Test authentication and authorization mechanisms\n\n6. Use test helpers for setting up test portfolios and balances",
         "status": "done",
-        "dependencies": [
-          1,
-          2,
-          3,
-          5,
-          8
-        ],
+        "dependencies": [1, 2, 3, 5, 8],
         "priority": "medium",
         "subtasks": []
       },
@@ -503,12 +210,7 @@
         "details": "1. Service (list-portfolio-transfers.service.ts in @services/investments/portfolios/transfers/):\n   - Implement listPortfolioTransfers(portfolioId, userId, filters, sort, pagination) method\n   - Fetch all transfers (incoming and outgoing) for the specified portfolio\n   - Apply filters: date range, transfer type, status\n   - Implement sorting: by date, amount, type\n   - Use efficient SQL queries with JOINs to fetch related portfolio information\n   - Implement pagination using OFFSET and LIMIT\n   - Handle multi-currency transfers and conversions\n\n2. Controller (list-portfolio-transfers.ts in @controllers/investments/portfolios/):\n   - Use createController factory with Zod schema for params and query validation\n   - Validate portfolioId and query parameters (filters, sort, pagination)\n   - Call listPortfolioTransfers service method\n   - Structure response with transfers array and metadata (total count, pagination info)\n\n3. Route: Add GET /portfolios/:id/transfers route in @routes/investments/portfolios.route.ts\n   - Apply authenticateJwt middleware\n   - Apply validateEndpoint middleware\n   - Connect to list-portfolio-transfers controller\n\n4. Error Handling:\n   - Implement proper error handling for invalid portfolio ID, unauthorized access\n   - Handle and log any unexpected errors during data fetching or processing\n\n5. Performance Considerations:\n   - Ensure proper indexing on transfer_date, transfer_type, and status columns\n   - Implement caching strategy for frequently accessed transfer data\n   - Use query optimization techniques for large datasets\n\n6. Security:\n   - Ensure that users can only access transfers for portfolios they own\n   - Implement rate limiting to prevent abuse of the API endpoint",
         "testStrategy": "1. Unit Tests:\n   - Test list-portfolio-transfers.service.ts:\n     - Verify correct application of filters, sorting, and pagination\n     - Test edge cases: empty result set, maximum pagination limits\n     - Mock database calls and verify correct query construction\n   - Test list-portfolio-transfers.ts controller:\n     - Verify proper parameter validation and error responses\n     - Test response structure and pagination metadata\n\n2. Integration Tests:\n   - Test the interaction between controller, service, and database\n   - Verify correct data retrieval and formatting\n\n3. E2E Tests:\n   - Set up test database with multiple portfolios and transfer records\n   - Test different filter combinations (date range, transfer type, status)\n   - Verify pagination works correctly for large datasets\n   - Test sorting functionality for all sortable fields\n   - Ensure proper error responses for invalid input or unauthorized access\n\n4. Performance Tests:\n   - Benchmark response times for various dataset sizes\n   - Verify efficient query execution using EXPLAIN ANALYZE\n   - Test caching mechanism effectiveness\n\n5. Security Tests:\n   - Verify that users cannot access transfers from portfolios they don't own\n   - Test rate limiting functionality\n   - Ensure proper handling of malformed input data\n\n6. Regression Tests:\n   - Verify that implementing this endpoint doesn't break existing functionality\n   - Test interaction with other portfolio-related endpoints",
         "status": "done",
-        "dependencies": [
-          1,
-          2,
-          3,
-          10
-        ],
+        "dependencies": [1, 2, 3, 10],
         "priority": "low",
         "subtasks": []
       },
@@ -519,12 +221,7 @@
         "details": "1. Services (@services/investments/transactions/):\n   - Update create, update, delete, and list transaction services\n   - Replace accountId references with portfolioId\n   - Modify validation logic to check portfolio ownership\n   - Ensure transaction balance calculations work with portfolio system\n   - Update service method signatures and internal logic\n   - Implement portfolio balance updates on transaction changes\n   - Use withTransaction for data integrity\n   - Update all service unit tests\n\n2. Controllers (@controllers/investments/transactions/):\n   - Modify request validation schemas to use portfolioId\n   - Update error handling for portfolio-related validation\n   - Ensure backward compatibility where needed (e.g., handle both accountId and portfolioId)\n   - Update controller method signatures\n   - Implement proper error responses for portfolio-specific scenarios\n   - Update all controller unit tests\n\n3. Routes (@routes/investments/transactions.route.ts):\n   - Update route parameters to use portfolioId instead of accountId\n   - Modify any middleware that depends on account validation\n   - Ensure routing works with portfolio-based structure\n   - Update route handlers to use updated controller methods\n   - Implement proper error handling for portfolio-specific scenarios\n   - Update all route integration tests\n\n4. Database Queries:\n   - Modify existing queries to join with Portfolios table instead of Accounts\n   - Update WHERE clauses to filter by portfolioId\n   - Ensure efficient indexing for portfolio-based queries\n\n5. Data Migration:\n   - Implement a data migration script to update existing transactions with correct portfolioId\n   - Ensure data integrity during migration process\n\n6. Documentation:\n   - Update API documentation to reflect changes in endpoints and request/response structures\n   - Document any breaking changes and provide migration guides for API consumers\n\n7. Performance Optimization:\n   - Review and optimize queries for portfolio-based transaction operations\n   - Implement caching strategies where appropriate\n\nFollow all backend architecture rules and patterns, maintaining consistent error handling, logging, and security practices.",
         "testStrategy": "1. Unit Tests:\n   - Update all existing unit tests for services, controllers, and routes\n   - Add new tests for portfolio-specific validation and error handling\n   - Test backward compatibility handling (if implemented)\n   - Verify correct portfolio balance updates on transaction changes\n   - Test edge cases such as transactions across different portfolios\n\n2. Integration Tests:\n   - Update existing API tests to use portfolioId instead of accountId\n   - Test full flow of transaction operations (create, read, update, delete) with portfolios\n   - Verify correct error responses for invalid portfolio scenarios\n\n3. Performance Tests:\n   - Benchmark transaction operations with varying portfolio sizes\n   - Ensure response times remain within acceptable limits\n\n4. Data Migration Tests:\n   - Test migration script on a copy of production data\n   - Verify data integrity and correctness after migration\n\n5. Backward Compatibility Tests:\n   - If maintaining backward compatibility, test endpoints with both accountId and portfolioId\n\n6. Security Tests:\n   - Verify that users can only access transactions within their own portfolios\n   - Test for potential security vulnerabilities related to portfolio access\n\n7. End-to-End Tests:\n   - Update E2E test scenarios to reflect portfolio-based transaction flow\n   - Test interaction between transaction services and portfolio balance services\n\n8. Regression Tests:\n   - Run full regression test suite to ensure no unintended side effects in other parts of the system\n\nUse updated test helpers and fixtures for portfolio-based data setup in all test scenarios.",
         "status": "done",
-        "dependencies": [
-          1,
-          2,
-          6,
-          8
-        ],
+        "dependencies": [1, 2, 6, 8],
         "priority": "high",
         "subtasks": []
       },
@@ -534,18 +231,8 @@
         "description": "Create a complete data migration system to transition from account-based to portfolio-based investment tracking, including migration service, controller, route, and comprehensive tests.",
         "details": "1. Migration Service (data-migration.service.ts in @services/investments/portfolios/):\n   - Implement convertAccountsToPortfolios(userId) method\n   - Create logic to map investment accounts to new portfolios\n   - Migrate existing holdings to portfolio structure (update holdings table)\n   - Update investment transactions to reference portfolios (update transactions table)\n   - Implement validateDataIntegrity() to check data consistency pre and post-migration\n   - Create rollbackMigration(userId) method for reverting changes if needed\n   - Use withTransaction for ensuring data integrity during migration\n   - Implement detailed logging for each step of the migration process\n\n2. Migration Controller (data-migration.ts in @controllers/investments/portfolios/):\n   - Use createController factory for input validation\n   - Implement executeMigration(userId, dryRun: boolean) method\n   - Support dry-run mode for testing migration without committing changes\n   - Provide progress tracking and status updates during migration\n   - Implement error handling and graceful failure mechanisms\n   - Return detailed migration results including statistics and any warnings\n\n3. Migration Route (in @routes/investments/portfolios.route.ts):\n   - Add POST /portfolios/migrate route\n   - Apply adminAuth middleware to restrict access to admin users only\n   - Apply validateEndpoint middleware with appropriate Zod schema\n   - Connect route to data-migration controller\n   - Implement safety checks (e.g., confirmation token) to prevent accidental migration\n\n4. Test Helpers:\n   - Create setupTestAccounts(userId) helper to generate test accounts, holdings, and transactions\n   - Implement verifyMigrationResult(userId) to check the correctness of migrated data\n\n5. Error Handling and Logging:\n   - Implement comprehensive error handling in service and controller\n   - Use logger.error for critical issues and logger.info for migration progress\n   - Create detailed migration report including any inconsistencies or warnings\n\n6. Performance Considerations:\n   - Implement batched processing for large datasets to manage memory usage\n   - Use database transactions to ensure atomicity of migration operations\n   - Consider adding temporary indexes to improve migration query performance",
         "testStrategy": "1. Unit Tests:\n   - Test data-migration.service.ts:\n     - Verify account to portfolio conversion logic\n     - Test holdings and transaction migration accuracy\n     - Validate rollback functionality\n     - Test error handling and edge cases (e.g., partially migrated data)\n   - Test data-migration.ts controller:\n     - Verify dry-run mode functionality\n     - Test progress tracking and status update mechanisms\n     - Validate error handling and response formats\n\n2. Integration Tests:\n   - Test the entire migration flow from route to service\n   - Verify admin authentication and authorization\n   - Test with various account structures and investment types\n\n3. E2E Tests:\n   - Perform complete migration scenario with realistic dataset\n   - Verify data integrity and consistency post-migration\n   - Test rollback functionality in real database environment\n\n4. Performance Tests:\n   - Measure migration time for different dataset sizes\n   - Verify memory usage during migration process\n   - Test concurrent user access during migration\n\n5. Data Integrity Tests:\n   - Compare account balances pre and post-migration\n   - Verify all holdings are correctly associated with new portfolios\n   - Ensure no orphaned data or broken relationships after migration\n\n6. Backward Compatibility Tests:\n   - Verify existing API endpoints still function correctly with migrated data\n   - Test any implemented backward compatibility layers\n\n7. Manual Testing:\n   - Perform manual verification of migrated data in admin interface\n   - Test migration process with extreme edge cases and complex account structures",
-        "status": "deferred",
-        "dependencies": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          12
-        ],
+        "status": "done",
+        "dependencies": [1, 2, 3, 4, 5, 6, 7, 8, 12],
         "priority": "high",
         "subtasks": []
       },
@@ -555,17 +242,8 @@
         "description": "Enhance security measures for the new portfolio system with comprehensive validation and protection, including role-based access control, audit logging, rate limiting, data validation, and fraud detection.",
         "details": "1. Security Services (portfolio-security.service.ts in @services/investments/portfolios/):\n   - Implement role-based access control (RBAC) for portfolios\n     - Create methods to check user roles and permissions\n     - Define granular permissions for different portfolio operations\n   - Add audit logging for all portfolio operations\n     - Log create, read, update, delete actions with user info and timestamps\n     - Implement a method to retrieve audit logs for compliance\n   - Create rate limiting for sensitive operations\n     - Use a rate limiting library (e.g., express-rate-limit)\n     - Define limits for operations like portfolio creation and transfers\n   - Implement data validation and sanitization\n     - Use Zod schemas for input validation\n     - Sanitize inputs to prevent XSS and injection attacks\n   - Add fraud detection for unusual portfolio activities\n     - Implement rules to detect suspicious patterns (e.g., frequent large transfers)\n     - Create alerts for potentially fraudulent activities\n\n2. Security Middleware (portfolio-security.middleware.ts in @middlewares/):\n   - Validate portfolio ownership on all operations\n     - Create middleware to check if the user owns the portfolio being accessed\n   - Implement operation-specific authorization\n     - Create middleware to check permissions for each type of portfolio operation\n   - Add request logging and monitoring\n     - Log incoming requests with relevant details (IP, user agent, etc.)\n   - Create IP-based restrictions if needed\n     - Implement middleware to block or allow specific IP ranges\n   - Handle security errors gracefully\n     - Create custom error handlers for different security violations\n\n3. Security Routes (Update @routes/investments/portfolios.route.ts):\n   - Apply new security middleware to all endpoints\n     - Add ownership validation and authorization checks to each route\n   - Add additional validation layers\n     - Use Zod schemas for request body and parameter validation\n   - Implement rate limiting middleware\n     - Apply rate limits to sensitive routes (e.g., create, transfer)\n   - Add security headers and CORS configuration\n     - Set up helmet for secure headers\n     - Configure CORS to restrict access to trusted domains\n\n4. Update existing services and controllers:\n   - Integrate RBAC checks in all portfolio-related services\n   - Add audit logging calls in appropriate places\n   - Ensure all input data is validated and sanitized\n\n5. Error Handling:\n   - Create custom error classes for different security violations\n   - Implement centralized error handling to manage security-related errors\n\n6. Configuration:\n   - Create a security configuration file to manage settings\n   - Use environment variables for sensitive configuration options\n\nFollow all backend architecture rules and adhere to security best practices throughout the implementation.",
         "testStrategy": "1. Unit Tests:\n   - Test portfolio-security.service.ts:\n     - Verify RBAC functionality for different user roles and operations\n     - Test audit logging for accuracy and completeness\n     - Validate rate limiting logic\n     - Check data validation and sanitization methods\n     - Test fraud detection rules with various scenarios\n   - Test portfolio-security.middleware.ts:\n     - Verify portfolio ownership validation\n     - Test operation-specific authorization\n     - Check request logging and monitoring functionality\n     - Test IP-based restriction logic\n     - Validate error handling for different security scenarios\n\n2. Integration Tests:\n   - Test the interaction between security middleware and routes\n   - Verify that all routes have appropriate security measures applied\n   - Test rate limiting across multiple requests\n   - Validate CORS and security headers configuration\n\n3. E2E Tests:\n   - Create test scenarios for unauthorized access attempts\n   - Test rate limiting in a real environment\n   - Verify audit logging in end-to-end scenarios\n   - Test fraud detection with complex user behavior patterns\n\n4. Security Penetration Tests:\n   - Conduct automated security scans (e.g., using OWASP ZAP)\n   - Perform manual penetration testing to identify vulnerabilities\n   - Test for common web vulnerabilities (XSS, CSRF, SQL Injection, etc.)\n\n5. Performance Tests:\n   - Measure the impact of security measures on API response times\n   - Test system performance under high load with security features enabled\n\n6. Compliance Tests:\n   - Verify that the implementation meets required security standards (e.g., GDPR, PCI-DSS)\n   - Test audit log retrieval and formatting for compliance reporting\n\n7. Use test helpers and fixtures:\n   - Create helpers for setting up different user roles and permissions\n   - Develop fixtures for generating test data for various security scenarios\n\nEnsure all tests are automated and integrated into the CI/CD pipeline for continuous security validation.",
-        "status": "pending",
-        "dependencies": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8
-        ],
+        "status": "done",
+        "dependencies": [1, 2, 3, 4, 5, 6, 7, 8],
         "priority": "high",
         "subtasks": []
       },
@@ -576,29 +254,33 @@
         "details": "1. Code Cleanup:\n   - Remove deprecated account-based investment code\n   - Delete unused services, controllers, and routes related to the old account system\n   - Update imports and references throughout the codebase to use new portfolio-based system\n   - Remove old migration files and temporary code\n   - Clean up test files and update test helpers to work with portfolio system\n\n2. Documentation:\n   - Create comprehensive API documentation for all portfolio endpoints using OpenAPI/Swagger\n   - Document database schema with relationships, including new tables (Portfolios, PortfolioBalances, PortfolioTransfers)\n   - Write a detailed migration guide for users and developers explaining the transition from accounts to portfolios\n   - Develop performance and security guidelines for the new portfolio system\n\n3. Final Testing:\n   - Implement end-to-end testing of complete portfolio workflows\n   - Conduct performance testing under realistic load conditions\n   - Perform security testing and penetration testing on the new portfolio endpoints\n   - Create and execute user acceptance testing scenarios\n\n4. Deployment Preparation:\n   - Create deployment scripts and configuration for the new portfolio system\n   - Set up monitoring and alerting for portfolio-related metrics and errors\n   - Prepare rollback procedures in case of deployment issues\n   - Create operational runbooks for common portfolio system maintenance tasks\n\n5. Code Optimization:\n   - Review and optimize database queries in portfolio services\n   - Implement caching strategies for frequently accessed portfolio data\n   - Optimize API response times for portfolio endpoints\n   - Ensure proper indexing on new portfolio-related tables\n\n6. Final Code Review:\n   - Conduct a thorough code review of all new and modified files\n   - Ensure adherence to coding standards and best practices\n   - Verify proper error handling and logging throughout the portfolio system\n\n7. Update CI/CD Pipeline:\n   - Modify CI/CD scripts to include new portfolio-specific tests\n   - Update deployment scripts to handle new portfolio system requirements\n\nFollow all backend architecture rules and documentation standards throughout the implementation.",
         "testStrategy": "1. Code Cleanup Verification:\n   - Run static code analysis tools to ensure all deprecated code is removed\n   - Verify that all references to the old account system have been updated or removed\n   - Check that the codebase compiles without errors after cleanup\n\n2. Documentation Testing:\n   - Review API documentation for completeness and accuracy\n   - Validate database schema documentation against actual database structure\n   - Have a developer unfamiliar with the project follow the migration guide to ensure clarity\n\n3. Comprehensive System Testing:\n   - Execute all end-to-end tests for portfolio workflows\n   - Conduct load testing to verify system performance under expected and peak loads\n   - Perform security scans and penetration testing on all new portfolio endpoints\n   - Execute user acceptance testing scenarios and gather feedback\n\n4. Deployment Readiness:\n   - Conduct a dry run of the deployment process in a staging environment\n   - Test rollback procedures to ensure they work as expected\n   - Verify that monitoring and alerting systems are correctly set up for the portfolio system\n\n5. Optimization Verification:\n   - Measure and compare API response times before and after optimization\n   - Use database query analysis tools to verify query performance improvements\n   - Test caching mechanisms to ensure they're working as expected\n\n6. Final Review:\n   - Conduct pair programming sessions to review critical parts of the portfolio system\n   - Use code review checklists to ensure all aspects of the implementation are covered\n\n7. CI/CD Pipeline:\n   - Run the updated CI/CD pipeline and verify that all new tests pass\n   - Perform a test deployment to staging using the updated deployment scripts\n\n8. Documentation Accuracy:\n   - Cross-reference the final implementation with the documentation to ensure accuracy\n   - Have QA team verify that the documentation matches the actual system behavior",
         "status": "pending",
-        "dependencies": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10,
-          11,
-          12,
-          13,
-          14
-        ],
+        "dependencies": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
         "priority": "low",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Remove Deprecated Code and Update References",
+            "description": "Clean up the codebase by removing deprecated account-based investment code and updating references to use the new portfolio-based system.",
+            "dependencies": [],
+            "details": "1. Delete unused services, controllers, and routes related to the old account system.\n2. Remove old migration files and temporary code.\n3. Update imports and references throughout the codebase to use the new portfolio-based system.\n4. Clean up test files and update test helpers to work with the portfolio system.\n5. Run linter and fix any remaining issues.",
+            "status": "pending",
+            "testStrategy": "Create a checklist of files and components to be removed or updated. After cleanup, run the full test suite to ensure no regressions."
+          },
+          {
+            "id": 4,
+            "title": "Optimize Portfolio-Related Database Queries",
+            "description": "Review and optimize database queries in portfolio services to improve performance.",
+            "dependencies": [],
+            "details": "1. Identify frequently used and potentially slow queries in portfolio services.\n2. Analyze query execution plans and add necessary indexes to portfolio-related tables.\n3. Optimize complex queries by rewriting or using database-specific features.\n4. Implement caching strategies for frequently accessed portfolio data.\n5. Benchmark query performance before and after optimization.",
+            "status": "pending",
+            "testStrategy": "Create a set of performance tests for portfolio-related queries. Compare execution times before and after optimization. Ensure that optimizations don't negatively impact other parts of the system."
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-06-23T20:23:31.389Z",
-      "updated": "2025-07-02T13:12:16.899Z",
+      "updated": "2025-07-02T14:45:37.781Z",
       "description": "Tasks for portfolio-migration context"
     }
   }

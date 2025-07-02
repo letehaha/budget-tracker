@@ -12,9 +12,24 @@ export default createController(
     body: z.object({
       category: z.nativeEnum(INVESTMENT_TRANSACTION_CATEGORY).optional(),
       date: z.string().date().optional(),
-      quantity: z.string().optional(),
-      price: z.string().optional(),
-      fees: z.string().optional(),
+      quantity: z
+        .string()
+        .optional()
+        .refine((val) => val === undefined || (!isNaN(parseFloat(val)) && parseFloat(val) > 0), {
+          message: 'Quantity must be a positive number',
+        }),
+      price: z
+        .string()
+        .optional()
+        .refine((val) => val === undefined || (!isNaN(parseFloat(val)) && parseFloat(val) > 0), {
+          message: 'Price must be a positive number',
+        }),
+      fees: z
+        .string()
+        .optional()
+        .refine((val) => val === undefined || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0), {
+          message: 'Fees must be a non-negative number',
+        }),
       name: z.string().optional(),
     }),
   }),

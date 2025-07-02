@@ -119,7 +119,7 @@ router.get(
 );
 
 router.get(
-  '/accounts/:accountId/holdings',
+  '/portfolios/:portfolioId/holdings',
   authenticateJwt,
   validateEndpoint(getHoldingsController.schema),
   getHoldingsController.handler,

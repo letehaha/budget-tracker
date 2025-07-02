@@ -1,6 +1,6 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
-import { NotFoundError } from '@js/errors';
+import { NotFoundError, ValidationError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Portfolios from '@models/investments/Portfolios.model';
@@ -42,6 +42,18 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
     throw new NotFoundError({ message: 'Holding not found. Please add the security to the portfolio first.' });
   }
 
+  // Business rule: Check for sufficient shares when selling
+  if (category === INVESTMENT_TRANSACTION_CATEGORY.sell) {
+    const currentQuantity = new Big(holding.quantity);
+    const sellQuantity = new Big(quantity);
+
+    if (sellQuantity.gt(currentQuantity)) {
+      throw new ValidationError({
+        message: `Insufficient shares to sell. You have ${currentQuantity.toFixed()} shares but are trying to sell ${sellQuantity.toFixed()} shares.`,
+      });
+    }
+  }
+
   const amount = new Big(quantity).times(new Big(price)).toFixed(10);
 
   const [refAmount, refPrice, refFees] = await Promise.all([
@@ -67,9 +79,6 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
 
   const newTx = await InvestmentTransaction.create({
     ...params,
-    // For backward compatibility, we'll need to set accountId from the holding
-    // This can be removed once the migration is complete
-    accountId: holding.accountId,
     amount,
     refAmount: refAmount.toString(),
     refPrice: refPrice.toString(),

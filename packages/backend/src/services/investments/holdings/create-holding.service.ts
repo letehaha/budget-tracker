@@ -1,9 +1,8 @@
-import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
-import { ConflictError, NotAllowedError, NotFoundError } from '@js/errors';
+import { ConflictError, NotFoundError } from '@js/errors';
 import { logger } from '@js/utils';
-import Accounts from '@models/Accounts.model';
 import { getCurrency } from '@models/Currencies.model';
 import Holdings from '@models/investments/Holdings.model';
+import Portfolios from '@models/investments/Portfolios.model';
 import Securities from '@models/investments/Securities.model';
 import { withTransaction } from '@services/common';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
@@ -11,18 +10,14 @@ import { syncHistoricalPrices } from '@services/investments/securities-price/his
 
 interface CreateHoldingParams {
   userId: number;
-  accountId: number;
+  portfolioId: number;
   securityId: number;
 }
 
-const createHoldingImpl = async ({ userId, accountId, securityId }: CreateHoldingParams) => {
-  const account = await Accounts.findOne({ where: { id: accountId, userId } });
-  if (!account) {
-    throw new NotFoundError({ message: 'Account not found.' });
-  }
-
-  if (account.accountCategory !== ACCOUNT_CATEGORIES.investment) {
-    throw new NotAllowedError({ message: 'Holdings can only be added to investment accounts.' });
+const createHoldingImpl = async ({ userId, portfolioId, securityId }: CreateHoldingParams) => {
+  const portfolio = await Portfolios.findOne({ where: { id: portfolioId, userId } });
+  if (!portfolio) {
+    throw new NotFoundError({ message: 'Portfolio not found.' });
   }
 
   const security = await Securities.findByPk(securityId);
@@ -37,13 +32,13 @@ const createHoldingImpl = async ({ userId, accountId, securityId }: CreateHoldin
   }
   await addUserCurrencies([{ userId, currencyId: currency.id }]);
 
-  const existingHolding = await Holdings.findOne({ where: { accountId, securityId } });
+  const existingHolding = await Holdings.findOne({ where: { portfolioId, securityId } });
   if (existingHolding) {
-    throw new ConflictError({ message: 'This security is already in the account.' });
+    throw new ConflictError({ message: 'This security is already in the portfolio.' });
   }
 
   const newHolding = await Holdings.create({
-    accountId,
+    portfolioId,
     securityId,
     currencyCode: security.currencyCode,
     quantity: '0',

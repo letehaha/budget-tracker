@@ -1,16 +1,9 @@
-import { AccountModel } from '../db-models';
+import { PortfolioModel } from './portfolio-models';
 import { SecurityModel } from './security.model';
 
 export interface HoldingModel {
-  accountId: number;
+  portfolioId: number;
   securityId: number;
-
-  /**
-   * The identifier of the portfolio associated with this holding.
-   * Used for portfolio-based investment management.
-   * Nullable during transition period from account-based to portfolio-based system.
-   */
-  portfolioId: number | null;
   value: string;
   refValue: string;
   quantity: string;
@@ -18,8 +11,8 @@ export interface HoldingModel {
   refCostBasis: string;
   currencyCode: string;
   excluded: boolean;
-  account?: AccountModel;
   security?: SecurityModel;
+  portfolio?: PortfolioModel;
   createdAt: Date;
   updatedAt: Date;
 }

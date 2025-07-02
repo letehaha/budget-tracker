@@ -7,22 +7,27 @@ import { z } from 'zod';
 
 export const createHoldingController = createController(
   z.object({
-    body: z.object({ accountId: recordId(), securityId: recordId() }),
+    body: z.object({ portfolioId: recordId(), securityId: recordId() }),
   }),
   async ({ user, body }) => {
     const { id: userId } = user;
-    const { securityId, accountId } = body;
-    const holding = await createHolding({ userId, accountId, securityId });
+    const { securityId, portfolioId } = body;
+    const holding = await createHolding({ userId, portfolioId, securityId });
     return { data: holding, statusCode: 201 };
   },
 );
 
 export const getHoldingsController = createController(
   z.object({
-    params: z.object({ accountId: recordId() }),
+    params: z.object({ portfolioId: recordId() }),
+    query: z.object({ securityId: recordId() }),
   }),
-  async ({ user, params }) => {
-    const holdings = await getHoldings(params.accountId, user.id);
+  async ({ user, params, query }) => {
+    const holdings = await getHoldings({
+      userId: user.id,
+      portfolioId: params.portfolioId,
+      securityId: query.securityId,
+    });
 
     return { data: holdings };
   },
@@ -30,12 +35,12 @@ export const getHoldingsController = createController(
 
 export const deleteHoldingController = createController(
   z.object({
-    body: z.object({ accountId: recordId(), securityId: recordId() }),
+    body: z.object({ portfolioId: recordId(), securityId: recordId() }),
   }),
   async ({ user, body }) => {
     const { id: userId } = user;
-    const { accountId, securityId } = body;
-    await deleteHolding({ userId, accountId, securityId });
+    const { portfolioId, securityId } = body;
+    await deleteHolding({ userId, portfolioId, securityId });
     return { statusCode: 200 };
   },
 );

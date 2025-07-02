@@ -5,6 +5,7 @@ import { Op, QueryInterface, Transaction } from 'sequelize';
 const ENUM_SECURITY_PROVIDER = 'enum_security_provider';
 const ENUM_ASSET_CLASS = 'enum_asset_class';
 const ENUM_INVESTMENT_TRANSACTION_CATEGORY = 'enum_investment_transaction_category';
+const ENUM_PORTFOLIO_TYPE = 'enum_portfolio_type';
 
 // reuse existing enum
 const ENUM_TRANSACTION_TYPE = 'enum_transactions_transaction_type'; // exactly fully lowercase to avoid any case-sensitivity issues
@@ -27,6 +28,323 @@ module.exports = {
         `CREATE TYPE "${ENUM_INVESTMENT_TRANSACTION_CATEGORY}" AS ENUM ('buy', 'sell', 'dividend', 'transfer', 'tax', 'fee', 'cancel', 'other');`,
         { transaction: t },
       );
+      await queryInterface.sequelize.query(
+        `CREATE TYPE "${ENUM_PORTFOLIO_TYPE}" AS ENUM ('investment', 'retirement', 'savings', 'other');`,
+        { transaction: t },
+      );
+
+      // Create Portfolios table first since other tables depend on it
+      await queryInterface.createTable(
+        'Portfolios',
+        {
+          id: {
+            type: Sequelize.INTEGER,
+            primaryKey: true,
+            autoIncrement: true,
+            allowNull: false,
+          },
+          name: {
+            type: Sequelize.STRING,
+            allowNull: false,
+          },
+          userId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: {
+              model: 'Users',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+          },
+          portfolioType: {
+            type: ENUM_PORTFOLIO_TYPE,
+            allowNull: false,
+            defaultValue: 'investment',
+          },
+          description: {
+            type: Sequelize.TEXT,
+            allowNull: true,
+          },
+          isEnabled: {
+            type: Sequelize.BOOLEAN,
+            allowNull: false,
+            defaultValue: true,
+          },
+          createdAt: {
+            type: Sequelize.DATE,
+            allowNull: false,
+          },
+          updatedAt: {
+            type: Sequelize.DATE,
+            allowNull: false,
+          },
+        },
+        { transaction: t },
+      );
+
+      // Add unique constraint for user + name combination
+      await queryInterface.addConstraint('Portfolios', {
+        fields: ['userId', 'name'],
+        type: 'unique',
+        name: 'portfolios_user_name_unique',
+        transaction: t,
+      });
+
+      // Add indexes for Portfolios
+      await queryInterface.addIndex('Portfolios', ['userId'], {
+        name: 'portfolios_user_id_idx',
+        transaction: t,
+      });
+      await queryInterface.addIndex('Portfolios', ['portfolioType'], {
+        name: 'portfolios_type_idx',
+        transaction: t,
+      });
+      await queryInterface.addIndex('Portfolios', ['userId', 'portfolioType'], {
+        name: 'portfolios_user_type_idx',
+        transaction: t,
+      });
+
+      // Create PortfolioBalances table
+      await queryInterface.createTable(
+        'PortfolioBalances',
+        {
+          portfolioId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: {
+              model: 'Portfolios',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+          },
+          currencyId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: {
+              model: 'Currencies',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'RESTRICT',
+          },
+          availableCash: {
+            type: Sequelize.DECIMAL(20, 10),
+            allowNull: false,
+            defaultValue: '0',
+          },
+          totalCash: {
+            type: Sequelize.DECIMAL(20, 10),
+            allowNull: false,
+            defaultValue: '0',
+          },
+          refAvailableCash: {
+            type: Sequelize.DECIMAL(20, 10),
+            allowNull: false,
+            defaultValue: '0',
+          },
+          refTotalCash: {
+            type: Sequelize.DECIMAL(20, 10),
+            allowNull: false,
+            defaultValue: '0',
+          },
+          createdAt: {
+            type: Sequelize.DATE,
+            allowNull: false,
+          },
+          updatedAt: {
+            type: Sequelize.DATE,
+            allowNull: false,
+          },
+        },
+        { transaction: t },
+      );
+
+      // Add composite primary key for PortfolioBalances
+      await queryInterface.addConstraint('PortfolioBalances', {
+        fields: ['portfolioId', 'currencyId'],
+        type: 'primary key',
+        name: 'portfolio_balances_pkey',
+        transaction: t,
+      });
+
+      // Add indexes for PortfolioBalances
+      await queryInterface.addIndex('PortfolioBalances', ['portfolioId'], {
+        name: 'portfolio_balances_portfolio_id_idx',
+        transaction: t,
+      });
+      await queryInterface.addIndex('PortfolioBalances', ['currencyId'], {
+        name: 'portfolio_balances_currency_id_idx',
+        transaction: t,
+      });
+
+      // Create PortfolioTransfers table
+      await queryInterface.createTable(
+        'PortfolioTransfers',
+        {
+          id: {
+            type: Sequelize.INTEGER,
+            primaryKey: true,
+            autoIncrement: true,
+            allowNull: false,
+          },
+          userId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: {
+              model: 'Users',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+          },
+          fromAccountId: {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+            references: {
+              model: 'Accounts',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'SET NULL',
+          },
+          toPortfolioId: {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+            references: {
+              model: 'Portfolios',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'SET NULL',
+          },
+          fromPortfolioId: {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+            references: {
+              model: 'Portfolios',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'SET NULL',
+          },
+          toAccountId: {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+            references: {
+              model: 'Accounts',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'SET NULL',
+          },
+          amount: {
+            type: Sequelize.DECIMAL(20, 10),
+            allowNull: false,
+          },
+          refAmount: {
+            type: Sequelize.DECIMAL(20, 10),
+            allowNull: false,
+          },
+          currencyId: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            references: {
+              model: 'Currencies',
+              key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'RESTRICT',
+          },
+          date: {
+            type: Sequelize.DATEONLY,
+            allowNull: false,
+          },
+          description: {
+            type: Sequelize.TEXT,
+            allowNull: true,
+          },
+          createdAt: {
+            type: Sequelize.DATE,
+            allowNull: false,
+          },
+          updatedAt: {
+            type: Sequelize.DATE,
+            allowNull: false,
+          },
+        },
+        { transaction: t },
+      );
+
+      // Add check constraint for valid transfer direction
+      await queryInterface.addConstraint('PortfolioTransfers', {
+        fields: ['fromAccountId', 'toPortfolioId', 'fromPortfolioId', 'toAccountId'],
+        type: 'check',
+        name: 'portfolio_transfers_valid_direction_check',
+        where: {
+          [Sequelize.Op.or]: [
+            // Account to Portfolio
+            {
+              [Sequelize.Op.and]: [
+                { fromAccountId: { [Sequelize.Op.ne]: null } },
+                { toPortfolioId: { [Sequelize.Op.ne]: null } },
+                { fromPortfolioId: { [Sequelize.Op.eq]: null } },
+                { toAccountId: { [Sequelize.Op.eq]: null } },
+              ],
+            },
+            // Portfolio to Account
+            {
+              [Sequelize.Op.and]: [
+                { fromPortfolioId: { [Sequelize.Op.ne]: null } },
+                { toAccountId: { [Sequelize.Op.ne]: null } },
+                { fromAccountId: { [Sequelize.Op.eq]: null } },
+                { toPortfolioId: { [Sequelize.Op.eq]: null } },
+              ],
+            },
+            // Portfolio to Portfolio
+            {
+              [Sequelize.Op.and]: [
+                { fromPortfolioId: { [Sequelize.Op.ne]: null } },
+                { toPortfolioId: { [Sequelize.Op.ne]: null } },
+                { fromAccountId: { [Sequelize.Op.eq]: null } },
+                { toAccountId: { [Sequelize.Op.eq]: null } },
+              ],
+            },
+          ],
+        },
+        transaction: t,
+      });
+
+      // Add indexes for PortfolioTransfers
+      await queryInterface.addIndex('PortfolioTransfers', ['userId'], {
+        name: 'portfolio_transfers_user_id_idx',
+        transaction: t,
+      });
+      await queryInterface.addIndex('PortfolioTransfers', ['fromAccountId'], {
+        name: 'portfolio_transfers_from_account_id_idx',
+        transaction: t,
+      });
+      await queryInterface.addIndex('PortfolioTransfers', ['toPortfolioId'], {
+        name: 'portfolio_transfers_to_portfolio_id_idx',
+        transaction: t,
+      });
+      await queryInterface.addIndex('PortfolioTransfers', ['fromPortfolioId'], {
+        name: 'portfolio_transfers_from_portfolio_id_idx',
+        transaction: t,
+      });
+      await queryInterface.addIndex('PortfolioTransfers', ['toAccountId'], {
+        name: 'portfolio_transfers_to_account_id_idx',
+        transaction: t,
+      });
+      await queryInterface.addIndex('PortfolioTransfers', ['date'], {
+        name: 'portfolio_transfers_date_idx',
+        transaction: t,
+      });
+      await queryInterface.addIndex('PortfolioTransfers', ['currencyId'], {
+        name: 'portfolio_transfers_currency_id_idx',
+        transaction: t,
+      });
 
       // Create Securities table
       await queryInterface.createTable(
@@ -132,11 +450,11 @@ module.exports = {
       await queryInterface.createTable(
         'Holdings',
         {
-          accountId: {
+          portfolioId: {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Accounts',
+              model: 'Portfolios',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -197,14 +515,17 @@ module.exports = {
         { transaction: t },
       );
 
+      // Add composite primary key for Holdings
       await queryInterface.addConstraint('Holdings', {
-        fields: ['accountId', 'securityId'],
+        fields: ['portfolioId', 'securityId'],
         type: 'primary key',
         name: 'holdings_pkey',
         transaction: t,
       });
-      await queryInterface.addIndex('Holdings', ['accountId'], {
-        name: 'holdings_account_id_idx',
+
+      // Add indexes for Holdings
+      await queryInterface.addIndex('Holdings', ['portfolioId'], {
+        name: 'holdings_portfolio_id_idx',
         transaction: t,
       });
       await queryInterface.addIndex('Holdings', ['securityId'], {
@@ -222,11 +543,11 @@ module.exports = {
             autoIncrement: true,
             allowNull: false,
           },
-          accountId: {
+          portfolioId: {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Accounts',
+              model: 'Portfolios',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -314,22 +635,24 @@ module.exports = {
         { transaction: t },
       );
 
-      await queryInterface.addIndex('InvestmentTransactions', ['accountId'], {
-        name: 'investment_transactions_account_id_idx',
+      // Add indexes for InvestmentTransactions
+      await queryInterface.addIndex('InvestmentTransactions', ['portfolioId'], {
+        name: 'investment_transactions_portfolio_id_idx',
         transaction: t,
       });
       await queryInterface.addIndex('InvestmentTransactions', ['securityId'], {
         name: 'investment_transactions_security_id_idx',
         transaction: t,
       });
-      await queryInterface.addIndex('InvestmentTransactions', ['date'], {
-        name: 'investment_transactions_date_idx',
-        transaction: t,
-      });
       await queryInterface.addIndex('InvestmentTransactions', ['category'], {
         name: 'investment_transactions_category_idx',
         transaction: t,
       });
+      await queryInterface.addIndex('InvestmentTransactions', ['date'], {
+        name: 'investment_transactions_date_idx',
+        transaction: t,
+      });
+
       await queryInterface.addIndex('InvestmentTransactions', ['transferId'], {
         name: 'investment_transactions_transfer_id_idx',
         transaction: t,
@@ -418,13 +741,14 @@ module.exports = {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
-      // Drop tables in reverse order of creation (due to foreign key constraints)
+      // Drop tables in reverse order
       await queryInterface.dropTable('SecurityPricings', { transaction: t });
-      await queryInterface.dropTable('InvestmentTransactions', {
-        transaction: t,
-      });
+      await queryInterface.dropTable('InvestmentTransactions', { transaction: t });
       await queryInterface.dropTable('Holdings', { transaction: t });
       await queryInterface.dropTable('Securities', { transaction: t });
+      await queryInterface.dropTable('PortfolioTransfers', { transaction: t });
+      await queryInterface.dropTable('PortfolioBalances', { transaction: t });
+      await queryInterface.dropTable('Portfolios', { transaction: t });
 
       // Drop custom ENUM types
       await queryInterface.sequelize.query(`DROP TYPE IF EXISTS "${ENUM_INVESTMENT_TRANSACTION_CATEGORY}";`, {
@@ -432,6 +756,7 @@ module.exports = {
       });
       await queryInterface.sequelize.query(`DROP TYPE IF EXISTS "${ENUM_ASSET_CLASS}";`, { transaction: t });
       await queryInterface.sequelize.query(`DROP TYPE IF EXISTS "${ENUM_SECURITY_PROVIDER}";`, { transaction: t });
+      await queryInterface.sequelize.query(`DROP TYPE IF EXISTS "${ENUM_PORTFOLIO_TYPE}";`, { transaction: t });
 
       await t.commit();
     } catch (error) {

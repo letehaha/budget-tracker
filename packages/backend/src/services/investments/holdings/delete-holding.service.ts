@@ -1,18 +1,22 @@
-import { NotAllowedError } from '@js/errors';
-import Accounts from '@models/Accounts.model';
+import { NotAllowedError, NotFoundError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
+import Portfolios from '@models/investments/Portfolios.model';
 import { withTransaction } from '@services/common';
 
 interface DeleteParams {
   userId: number;
-  accountId: number;
+  portfolioId: number;
   securityId: number;
 }
 
-const deleteHoldingImpl = async ({ userId, accountId, securityId }: DeleteParams) => {
+const deleteHoldingImpl = async ({ userId, portfolioId, securityId }: DeleteParams) => {
+  const portfolio = await Portfolios.findOne({ where: { id: portfolioId, userId } });
+  if (!portfolio) {
+    throw new NotFoundError({ message: 'Portfolio not found.' });
+  }
+
   const holding = await Holdings.findOne({
-    where: { accountId, securityId },
-    include: [{ model: Accounts, as: 'account', where: { userId }, required: true }],
+    where: { portfolioId, securityId },
   });
 
   if (!holding) return;

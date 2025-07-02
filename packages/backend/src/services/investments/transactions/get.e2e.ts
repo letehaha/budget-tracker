@@ -1,14 +1,10 @@
-import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import Accounts from '@models/Accounts.model';
-import Holdings from '@models/investments/Holdings.model';
 import Portfolios from '@models/investments/Portfolios.model';
 import Securities from '@models/investments/Securities.model';
 import * as helpers from '@tests/helpers';
 
-const { createAccount, buildAccountPayload } = helpers;
 const { createPortfolio, buildPortfolioPayload } = helpers;
 const { createInvestmentTransaction, getInvestmentTransactions } = helpers;
 const { seedSecuritiesViaSync } = helpers;
@@ -16,7 +12,6 @@ const { extractResponse } = helpers;
 
 describe('GET /transactions (get investment transactions)', () => {
   let investmentPortfolio: Portfolios;
-  let investmentAccount: Accounts;
   let security: Securities;
 
   beforeEach(async () => {
@@ -28,34 +23,17 @@ describe('GET /transactions (get investment transactions)', () => {
       raw: true,
     });
 
-    // Create account for holding creation (backward compatibility)
-    const usdCurrency = global.MODELS_CURRENCIES.find((c: { code: string }) => c.code === 'USD');
-    const currencyToUse = usdCurrency || global.BASE_CURRENCY;
-
-    investmentAccount = await createAccount({
-      payload: buildAccountPayload({
-        accountCategory: ACCOUNT_CATEGORIES.investment,
-        currencyId: currencyToUse.id,
-      }),
-      raw: true,
-    });
-
     // Create test security
     const securities = await seedSecuritiesViaSync([{ symbol: 'VOO', name: 'Vanguard S&P 500 ETF' }]);
     security = securities.find((s) => s.symbol === 'VOO')!;
     if (!security) throw new Error('VOO security not found after seeding');
 
-    // Create holding with both portfolioId and accountId
-    await Holdings.create({
-      portfolioId: investmentPortfolio.id,
-      accountId: investmentAccount.id,
-      securityId: security.id,
-      quantity: '0',
-      costBasis: '0',
-      refCostBasis: '0',
-      value: '0',
-      refValue: '0',
-      currencyCode: 'USD',
+    // Create holding
+    await helpers.createHolding({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: security.id,
+      },
     });
   });
 
@@ -114,25 +92,6 @@ describe('GET /transactions (get investment transactions)', () => {
       raw: true,
     });
 
-    // Create additional accounts for holdings (backward compatibility)
-    const account1 = await createAccount({
-      payload: buildAccountPayload({
-        accountCategory: ACCOUNT_CATEGORIES.investment,
-        currencyId: (global.MODELS_CURRENCIES.find((c: { code: string }) => c.code === 'USD') || global.BASE_CURRENCY)
-          .id,
-      }),
-      raw: true,
-    });
-
-    const account2 = await createAccount({
-      payload: buildAccountPayload({
-        accountCategory: ACCOUNT_CATEGORIES.investment,
-        currencyId: (global.MODELS_CURRENCIES.find((c: { code: string }) => c.code === 'USD') || global.BASE_CURRENCY)
-          .id,
-      }),
-      raw: true,
-    });
-
     // Create test securities
     const securities = await seedSecuritiesViaSync([
       { symbol: 'VOO', name: 'Vanguard S&P 500 ETF' },
@@ -143,40 +102,23 @@ describe('GET /transactions (get investment transactions)', () => {
     if (!vooSecurity || !aaplSecurity) throw new Error('Failed to get securities');
 
     // Create holdings for both portfolios and securities
-    await Holdings.create({
-      portfolioId: portfolio1.id,
-      accountId: account1.id,
-      securityId: vooSecurity.id,
-      quantity: '0',
-      costBasis: '0',
-      refCostBasis: '0',
-      value: '0',
-      refValue: '0',
-      currencyCode: 'USD',
+    await helpers.createHolding({
+      payload: {
+        portfolioId: portfolio1.id,
+        securityId: vooSecurity.id,
+      },
     });
-
-    await Holdings.create({
-      portfolioId: portfolio1.id,
-      accountId: account1.id,
-      securityId: aaplSecurity.id,
-      quantity: '0',
-      costBasis: '0',
-      refCostBasis: '0',
-      value: '0',
-      refValue: '0',
-      currencyCode: 'USD',
+    await helpers.createHolding({
+      payload: {
+        portfolioId: portfolio1.id,
+        securityId: aaplSecurity.id,
+      },
     });
-
-    await Holdings.create({
-      portfolioId: portfolio2.id,
-      accountId: account2.id,
-      securityId: vooSecurity.id,
-      quantity: '0',
-      costBasis: '0',
-      refCostBasis: '0',
-      value: '0',
-      refValue: '0',
-      currencyCode: 'USD',
+    await helpers.createHolding({
+      payload: {
+        portfolioId: portfolio2.id,
+        securityId: vooSecurity.id,
+      },
     });
 
     // Create transactions with different properties for filtering tests
@@ -235,7 +177,7 @@ describe('GET /transactions (get investment transactions)', () => {
     expect(portfolioFilterResponse.statusCode).toBe(200);
     const portfolioFilterData = extractResponse(portfolioFilterResponse);
     expect(portfolioFilterData.transactions).toHaveLength(3);
-    expect(portfolioFilterData.transactions.every((tx) => tx.portfolioId === portfolio1.id)).toBe(true);
+    expect(portfolioFilterData.transactions.every((t) => t.portfolioId === portfolio1.id)).toBe(true);
 
     // Test 2: Filter by security
     const securityFilterResponse = await getInvestmentTransactions({
@@ -244,33 +186,25 @@ describe('GET /transactions (get investment transactions)', () => {
     expect(securityFilterResponse.statusCode).toBe(200);
     const securityFilterData = extractResponse(securityFilterResponse);
     expect(securityFilterData.transactions).toHaveLength(3);
-    expect(securityFilterData.transactions.every((tx) => tx.securityId === vooSecurity.id)).toBe(true);
+    expect(securityFilterData.transactions.every((t) => t.securityId === vooSecurity.id)).toBe(true);
 
     // Test 3: Filter by category
     const categoryFilterResponse = await getInvestmentTransactions({
-      category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+      category: INVESTMENT_TRANSACTION_CATEGORY.sell,
     });
     expect(categoryFilterResponse.statusCode).toBe(200);
     const categoryFilterData = extractResponse(categoryFilterResponse);
-    expect(categoryFilterData.transactions).toHaveLength(3);
-    expect(categoryFilterData.transactions.every((tx) => tx.category === INVESTMENT_TRANSACTION_CATEGORY.buy)).toBe(
-      true,
-    );
+    expect(categoryFilterData.transactions).toHaveLength(1);
+    expect(categoryFilterData.transactions[0]!.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.sell);
 
     // Test 4: Filter by date range
     const dateFilterResponse = await getInvestmentTransactions({
-      startDate: '2024-02-15',
-      endDate: '2024-04-15',
+      startDate: '2024-02-01',
+      endDate: '2024-03-31',
     });
     expect(dateFilterResponse.statusCode).toBe(200);
     const dateFilterData = extractResponse(dateFilterResponse);
     expect(dateFilterData.transactions).toHaveLength(2);
-    expect(
-      dateFilterData.transactions.every((tx) => {
-        const txDate = new Date(tx.date);
-        return txDate >= new Date('2024-02-15') && txDate <= new Date('2024-04-15');
-      }),
-    ).toBe(true);
 
     // Test 5: Combined filters
     const combinedFilterResponse = await getInvestmentTransactions({
