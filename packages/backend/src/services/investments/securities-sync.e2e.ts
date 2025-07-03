@@ -51,7 +51,7 @@ describe('POST /investing/sync/securities', () => {
 
     const securitiesInDb = await helpers.getAllSecurities({ raw: true });
     expect(securitiesInDb).toHaveLength(2);
-    expect(securitiesInDb.map((s) => s.symbol)).toEqual(['AAPL', 'GOOG']);
+    expect(securitiesInDb.map((s) => s.symbol)).toEqual(expect.arrayContaining(['AAPL', 'GOOG']));
 
     expect(setSpy).toHaveBeenCalledTimes(1);
     expect(delSpy).toHaveBeenCalledWith(redisKeyFormatter(SECURITIES_SYNC_LOCK_KEY));
@@ -115,7 +115,7 @@ describe('POST /investing/sync/securities', () => {
 
     const securitiesInDb = await helpers.getAllSecurities({ raw: true });
     expect(securitiesInDb).toHaveLength(2);
-    expect(securitiesInDb.map((s) => s.symbol)).toEqual(['AAPL', 'GOOG']);
+    expect(securitiesInDb.map((s) => s.symbol)).toEqual(expect.arrayContaining(['AAPL', 'GOOG']));
   });
 
   it('should complete successfully when the provider returns no tickers', async () => {
@@ -136,5 +136,50 @@ describe('POST /investing/sync/securities', () => {
 
     const securitiesInDb = await helpers.getAllSecurities({ raw: true });
     expect(securitiesInDb).toHaveLength(0);
+  });
+
+  it('updates existing securities metadata when provider data changes', async () => {
+    // First sync: exchange without acronym, basic name
+    mockedExchanges.mockResolvedValueOnce({
+      status: 'OK',
+      request_id: 'mock-exchange-id1',
+      results: [{ mic: 'XABC', type: 'exchange' }],
+    } as IExchanges);
+
+    mockedTickers.mockResolvedValueOnce({
+      status: 'OK',
+      request_id: 'mock-ticker-id1',
+      count: 1,
+      results: [{ ticker: 'XYZ', name: 'XYZ Corp', currency_name: 'USD' }],
+    } as ITickers);
+
+    await helpers.triggerSecuritiesSync();
+    await helpers.sleep(300);
+
+    // Second sync: same symbol but exchange acronym/name now provided and updated company name
+    mockedExchanges.mockResolvedValueOnce({
+      status: 'OK',
+      request_id: 'mock-exchange-id2',
+      results: [{ mic: 'XABC', type: 'exchange', acronymstring: 'ABCEX', name: 'ABC Exchange' }],
+    } as IExchanges);
+
+    mockedTickers.mockResolvedValueOnce({
+      status: 'OK',
+      request_id: 'mock-ticker-id2',
+      count: 1,
+      results: [{ ticker: 'XYZ', name: 'XYZ Corporation', currency_name: 'USD' }],
+    } as ITickers);
+
+    await helpers.triggerSecuritiesSync();
+    await helpers.sleep(300);
+
+    const securities = await helpers.getAllSecurities({ raw: true });
+    const xyz = securities.find((s) => s.symbol === 'XYZ');
+
+    expect(xyz).toBeDefined();
+    expect(xyz!.exchangeAcronym).toBe('ABCEX');
+    expect(xyz!.exchangeMic).toBe('XABC');
+    expect(xyz!.exchangeName).toBe('ABC Exchange');
+    expect(xyz!.name).toBe('XYZ Corporation');
   });
 });

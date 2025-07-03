@@ -20,17 +20,21 @@ const addOrUpdateFromProviderImpl = async (
   const existingSymbols = new Set(existingSecurities.map((s) => s.symbol));
   logger.info(`Found ${existingSymbols.size} existing securities in the database.`);
 
-  // Filter out securities that already exist in our DB
-  // TODO: do not filter out and do updation instead, so we always have fresh data
-  const newSecurities = securitiesFromProvider.filter((s) => s.symbol && !existingSymbols.has(s.symbol));
-  logger.info(`Found ${newSecurities.length} new securities to be added.`);
+  // Partition incoming securities into new inserts vs updates in a single pass
+  const [newSecurities, existingToUpdate] = securitiesFromProvider.reduce<
+    [SecuritySearchResult[], SecuritySearchResult[]]
+  >(
+    (acc, sec) => {
+      (sec.symbol && existingSymbols.has(sec.symbol) ? acc[1] : acc[0]).push(sec);
+      return acc;
+    },
+    [[], []],
+  );
 
-  if (newSecurities.length === 0) {
-    logger.info('Database is already up-to-date. No new securities to add.');
-    return { newCount: 0 };
-  }
+  const newCount = newSecurities.length;
+  logger.info(`New securities to add: ${newCount}. Records to update: ${existingToUpdate.length}.`);
 
-  // Prepare the new securities for bulk insertion
+  // Prepare bulk insert payload for new securities
   const securitiesToCreate = newSecurities.map((security) => ({
     symbol: security.symbol,
     name: security.name,
@@ -38,16 +42,37 @@ const addOrUpdateFromProviderImpl = async (
     providerName: security.providerName,
     currencyCode: security.currencyCode,
     exchangeMic: security.exchangeMic,
+    exchangeAcronym: security.exchangeAcronym || null,
+    exchangeName: security.exchangeName || null,
     isBrokerageCash: false,
   }));
 
-  // Bulk create the new securities in the database
-  await Securities.bulkCreate(securitiesToCreate, {
-    ignoreDuplicates: true, // As a safeguard
-  });
-  logger.info(`Successfully added ${newSecurities.length} new securities.`);
+  if (securitiesToCreate.length) {
+    await Securities.bulkCreate(securitiesToCreate);
+  }
 
-  return { newCount: newSecurities.length };
+  // Update existing securities metadata where necessary
+  if (existingToUpdate.length) {
+    const updatePromises = existingToUpdate.map((sec) =>
+      Securities.update(
+        {
+          name: sec.name,
+          assetClass: sec.assetClass,
+          providerName: sec.providerName,
+          currencyCode: sec.currencyCode,
+          exchangeMic: sec.exchangeMic,
+          exchangeAcronym: sec.exchangeAcronym || null,
+          exchangeName: sec.exchangeName || null,
+        },
+        { where: { symbol: sec.symbol } },
+      ),
+    );
+    await Promise.all(updatePromises);
+  }
+
+  logger.info(`Securities sync completed. New: ${newCount}, updated: ${existingToUpdate.length}.`);
+
+  return { newCount };
 };
 
 /**

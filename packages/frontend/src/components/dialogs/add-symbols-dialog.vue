@@ -59,23 +59,33 @@ async function addSymbol(sec: SecurityModel) {
 
     <template #default>
       <div class="grid gap-4">
-        <InputField v-model="searchTerm" label="Search symbol or name" placeholder="AAPL" />
+        <InputField
+          v-model="searchTerm"
+          label="Search symbol or name"
+          placeholder="AAPL"
+          class="max-w-[calc(100%-50px)]"
+        />
 
-        <div v-if="query.isLoading.value" class="text-muted-foreground text-sm">Searching…</div>
-        <div v-else-if="query.error.value" class="text-destructive-text text-sm">Failed to search securities.</div>
+        <div v-if="query.isLoading.value" class="text-sm text-muted-foreground">Searching…</div>
+        <div v-else-if="query.error.value" class="text-sm text-destructive-text">Failed to search securities.</div>
         <div v-else>
-          <ul class="max-h-60 overflow-y-auto">
+          <ul class="overflow-y-auto max-h-60">
             <li
               v-for="sec in query.data.value || []"
               :key="sec.id"
-              class="hover:bg-muted/40 flex cursor-pointer items-center justify-between px-2 py-1"
+              class="hover:bg-muted/40 grid cursor-pointer grid-cols-[auto,1fr,auto,auto] items-center gap-2 px-2 py-1"
               @click="addSymbol(sec)"
             >
               <span class="font-medium">{{ sec.symbol }}</span>
-              <span class="text-muted-foreground max-w-[150px] truncate text-xs">{{ sec.name }}</span>
+
+              <span class="text-xs truncate text-muted-foreground">{{ sec.name }}</span>
+
+              <span class="text-xs text-right text-muted-foreground">{{ sec.exchangeName }}</span>
+
+              <span class="text-xs text-right text-muted-foreground">{{ sec.currencyCode.toUpperCase() }}</span>
             </li>
           </ul>
-          <div v-if="debounced && (query.data.value?.length ?? 0) === 0" class="text-muted-foreground text-sm">
+          <div v-if="debounced && (query.data.value?.length ?? 0) === 0" class="text-sm text-muted-foreground">
             No results.
           </div>
         </div>
