@@ -20,7 +20,7 @@ export const createHoldingController = createController(
 export const getHoldingsController = createController(
   z.object({
     params: z.object({ portfolioId: recordId() }),
-    query: z.object({ securityId: recordId() }),
+    query: z.object({ securityId: recordId().optional() }),
   }),
   async ({ user, params, query }) => {
     const holdings = await getHoldings({

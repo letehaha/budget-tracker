@@ -27,7 +27,7 @@
       <div class="lg:col-span-2">
         <div class="grid gap-6">
           <PortfolioBalance />
-          <HoldingsSummary />
+          <HoldingsSummary :portfolio-id="portfolioId" />
         </div>
       </div>
       <div>
@@ -56,9 +56,9 @@ import { ChevronLeftIcon, Trash2Icon } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import HoldingsSummary from './components/HoldingsSummary.vue';
-import PortfolioBalance from './components/PortfolioBalance.vue';
-import PortfolioOverview from './components/PortfolioOverview.vue';
+import HoldingsSummary from './components/holdings-summary.vue';
+import PortfolioBalance from './components/portfolio-balance.vue';
+import PortfolioOverview from './components/portfolio-overview.vue';
 
 const route = useRoute();
 const router = useRouter();

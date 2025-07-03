@@ -448,11 +448,68 @@
         "dependencies": [],
         "priority": "low",
         "subtasks": []
+      },
+      {
+        "id": 24,
+        "title": "Holdings Management UI and 'Add Symbols' Flow",
+        "description": "Build a comprehensive Yahoo-Finance-style holdings table in the portfolio detail page with top-right 'Add Symbols' dialog, supporting holdings creation and quick transaction features with full API integration.",
+        "status": "done",
+        "dependencies": [5, 19, 2, 14],
+        "priority": "high",
+        "details": "1. Holdings Table Component:\n   - Create HoldingsTable component with sortable columns (Symbol, Name, Shares, Price, Market Value, Day Change, Total Return)\n   - Implement responsive design with mobile-friendly layout\n   - Add accessibility features (ARIA labels, keyboard navigation, screen reader support)\n   - Include loading states and empty state handling\n   - Support row actions (edit, delete, add transaction)\n\n2. Add Symbols Dialog:\n   - Create AddSymbolsDialog component with search functionality\n   - Integrate with securities search API (Task 2) for symbol lookup\n   - Support bulk symbol addition with validation\n   - Implement autocomplete with debounced search\n   - Add form validation and error handling\n\n3. Holdings Management Integration:\n   - Extend usePortfolioHoldings composable to support CRUD operations\n   - Implement createHolding, updateHolding, deleteHolding functions\n   - Add optimistic updates for better UX\n   - Handle real-time portfolio value recalculation\n\n4. Quick Transaction Flow:\n   - Add 'Add Transaction' action to each holdings row\n   - Create QuickTransactionForm component\n   - Pre-populate transaction form with holding details\n   - Support buy/sell transactions with validation\n\n5. Page Integration:\n   - Integrate holdings table into portfolio detail page\n   - Position 'Add Symbols' button in top-right corner\n   - Ensure proper state management between components\n   - Implement proper error boundaries and loading states",
+        "testStrategy": "",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create HoldingsTable Component",
+            "description": "Develop a responsive and accessible HoldingsTable component with sortable columns, row actions, and various states.",
+            "dependencies": [],
+            "details": "1. Create a new Vue component named HoldingsTable.\n2. Implement table structure with columns: Symbol, Name, Shares, Price, Market Value, Day Change, Total Return.\n3. Add sorting functionality for all columns.\n4. Implement responsive design using CSS Grid or Flexbox for mobile-friendly layout.\n5. Add accessibility features: ARIA labels, keyboard navigation, and screen reader support.\n6. Implement loading, empty, and error states.\n7. Add row actions: edit, delete, and add transaction.\n8. Use v-for to iterate over holdings data.\n9. Implement computed properties for calculated values (e.g., Market Value, Total Return).",
+            "status": "done",
+            "testStrategy": "Write unit tests for sorting logic, responsive breakpoints, and accessibility. Use Vue Test Utils for component testing."
+          },
+          {
+            "id": 2,
+            "title": "Implement useHoldings Composable and API Integration",
+            "description": "Create a useHoldings composable for managing holdings data and integrate it with the backend API.",
+            "dependencies": [],
+            "details": "1. Create useHoldings.js composable.\n2. Implement state management for holdings using ref or reactive.\n3. Add functions for CRUD operations: fetchHoldings, createHolding, updateHolding, deleteHolding.\n4. Integrate with Axios or Fetch for API calls.\n5. Implement error handling and loading states.\n6. Add optimistic updates for better UX.\n7. Implement real-time portfolio value recalculation on holdings changes.\n8. Use Vue's provide/inject to make holdings data available to child components.",
+            "status": "done",
+            "testStrategy": "Write unit tests for CRUD operations and error handling. Mock API calls for testing."
+          },
+          {
+            "id": 3,
+            "title": "Develop AddSymbolsDialog for Creating Holdings",
+            "description": "Create an AddSymbolsDialog component with search functionality and integration with the securities search API.",
+            "dependencies": [],
+            "details": "1. Create a new Vue component named AddSymbolsDialog.\n2. Implement a search input with autocomplete functionality.\n3. Integrate with the securities search API (from Task 2) for symbol lookup.\n4. Implement debounced search to minimize API calls.\n5. Add support for bulk symbol addition.\n6. Implement form validation for symbol input.\n7. Add error handling for API failures and invalid inputs.\n8. Use v-model for two-way data binding on form inputs.\n9. Emit events for successful symbol additions.",
+            "status": "done",
+            "testStrategy": "Test search debounce logic, API integration, and form validation. Use Vue Test Utils for component testing and mock the API responses."
+          },
+          {
+            "id": 4,
+            "title": "Implement QuickTransaction Integration",
+            "description": "Add a QuickTransaction feature to each holdings row for quick buy/sell transactions.",
+            "dependencies": [],
+            "details": "1. Create a QuickTransactionForm component.\n2. Add an 'Add Transaction' action to each row in the HoldingsTable component.\n3. Implement a modal or inline form for the QuickTransactionForm.\n4. Pre-populate the form with holding details when opened.\n5. Support both buy and sell transactions.\n6. Implement form validation for transaction inputs.\n7. Integrate with the useHoldings composable to update holdings data.\n8. Add optimistic updates for instant feedback.\n9. Handle errors and display appropriate messages.",
+            "status": "deferred",
+            "testStrategy": "Test form validation, integration with useHoldings, and error handling. Use Vue Test Utils for component testing."
+          },
+          {
+            "id": 5,
+            "title": "Integrate Components and Manage State",
+            "description": "Integrate all components into the portfolio detail page and implement proper state management.",
+            "dependencies": [],
+            "details": "1. Import and place the HoldingsTable component in the portfolio detail page.\n2. Position the 'Add Symbols' button in the top-right corner of the page.\n3. Implement the AddSymbolsDialog component and link it to the 'Add Symbols' button.\n4. Use the useHoldings composable in the parent component to manage overall state.\n5. Implement proper error boundaries for each component.\n6. Add loading states for asynchronous operations.\n7. Ensure reactive updates between components using props and events.\n8. Implement final responsive design adjustments.\n9. Add any remaining accessibility features like skip links or aria-live regions.",
+            "status": "done",
+            "testStrategy": "Perform integration testing to ensure all components work together. Test responsive design across different screen sizes. Conduct accessibility audit using tools like axe-core."
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-07-03T10:58:49.572Z",
-      "updated": "2025-07-03T11:46:20.431Z",
+      "updated": "2025-07-03T15:53:51.746Z",
       "description": "Tasks related to investment tracking feature"
     }
   }

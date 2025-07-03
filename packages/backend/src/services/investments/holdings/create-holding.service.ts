@@ -26,7 +26,8 @@ const createHoldingImpl = async ({ userId, portfolioId, securityId }: CreateHold
   }
 
   // Ensure user has the currency for this security
-  const currency = await getCurrency({ code: security.currencyCode });
+  console.log('security.currencyCode', security.currencyCode.toUpperCase());
+  const currency = await getCurrency({ code: security.currencyCode.toUpperCase() });
   if (!currency) {
     throw new NotFoundError({ message: 'Currency for security not found.' });
   }
