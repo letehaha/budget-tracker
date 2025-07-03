@@ -262,56 +262,56 @@
         "id": 15,
         "title": "Portfolio Edit & Settings Feature Implementation",
         "description": "Implement complete portfolio modification functionality, including API integration, composables, UI components, and validation for updating portfolio details.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "details": "1. API Integration:\n   - Implement PUT /portfolios/:id endpoint in the backend for updating portfolio details\n   - Create an API service in the frontend to handle portfolio updates\n\n2. Composables:\n   - Develop a `useEditPortfolio` composable for form handling and validation\n   - Include error handling and loading states in the composable\n\n3. UI Components:\n   - Create a PortfolioSettingsForm component with fields for name, description, and type\n   - Implement form validation with error messages for each field\n   - Add a submit button and cancel option\n\n4. Validation:\n   - Implement client-side validation for all form fields\n   - Ensure proper error handling and display of validation messages\n\n5. Integration:\n   - Connect the PortfolioSettingsForm component to the useEditPortfolio composable\n   - Integrate the edit functionality into the portfolio detail page (from Task 14)\n   - Implement success and error notifications for update attempts\n\n6. State Management:\n   - Update the portfolio state after successful edits\n   - Ensure the UI reflects the latest portfolio data after modifications\n\n7. Navigation:\n   - Add a \"Edit Portfolio\" button or link on the portfolio detail page\n   - Implement navigation back to the detail page after successful updates\n\n8. Accessibility:\n   - Ensure all form fields and buttons are properly labeled for screen readers\n   - Implement keyboard navigation for the edit form\n\n9. Responsive Design:\n   - Make sure the edit form is usable on both desktop and mobile devices\n\n10. Internationalization:\n    - Prepare all UI text for easy translation in the future",
+        "details": "1. API Integration:\n   - Implement PUT /portfolios/:id endpoint in the backend for updating portfolio details\n   - Create an API service in the frontend to handle portfolio updates\n\n2. Composables:\n   - Develop a `useEditPortfolio` composable for form handling and validation\n   - Include error handling and loading states in the composable\n\n3. UI Components:\n   - Create a PortfolioSettingsForm component with fields for name, description, and type\n   - Implement form validation with error messages for each field\n   - Add a submit button and cancel option\n\n4. Validation:\n   - Implement client-side validation for all form fields\n   - Ensure proper error handling and display of validation messages\n\n5. Integration:\n   - Connect the PortfolioSettingsForm component to the useEditPortfolio composable\n   - Integrate the edit functionality into the portfolio detail page (from Task 14)\n   - Implement success and error notifications for update attempts\n\n6. State Management:\n   - Update the portfolio state after successful edits\n   - Ensure the UI reflects the latest portfolio data after modifications\n\n7. Navigation:\n   - Add a \"Edit Portfolio\" button or link on the portfolio detail page\n   - Implement navigation back to the detail page after successful updates\n\n8. Accessibility:\n   - Ensure all form fields and buttons are properly labeled for screen readers\n   - Implement keyboard navigation for the edit form\n\n9. Responsive Design:\n   - Make sure the edit form is usable on both desktop and mobile devices",
         "testStrategy": "",
         "subtasks": [
           {
+            "id": 3,
+            "title": "Build PortfolioSettingsForm Component",
+            "description": "Create a reusable form component for editing portfolio details with validation. [Updated: 7/3/2025]",
+            "status": "done",
+            "dependencies": [],
+            "details": "1. Create PortfolioSettingsForm with fields for name, description, and type\n2. Implement form validation with error messages\n3. Add submit and cancel buttons\n4. Ensure responsive design and accessibility\n<info added on 2025-07-03T11:44:28.399Z>\nThis subtask does not contain any references to testStrategy or frontend tests, so no changes or additions are necessary based on the user's request.\n</info added on 2025-07-03T11:44:28.399Z>",
+            "testStrategy": "Write component tests for form rendering, validation, and submission"
+          },
+          {
+            "id": 5,
+            "title": "Perform Final Checks and Testing",
+            "description": "Conduct final checks and thorough testing of the edit functionality. [Updated: 7/3/2025]",
+            "status": "done",
+            "dependencies": [],
+            "details": "1. Perform final accessibility checks\n2. Ensure consistent responsive design across devices\n3. Conduct thorough testing of the entire edit workflow\n<info added on 2025-07-03T11:41:00.668Z>\n1. Perform comprehensive accessibility checks, including keyboard navigation and screen reader compatibility\n2. Verify responsive design consistency across various devices and screen sizes\n3. Conduct thorough testing of the entire portfolio edit workflow, including edge cases\n4. Test integration with other components and the backend API\n5. Validate form submissions and error handling\n6. Ensure proper state management throughout the editing process\n7. Check for any performance issues, especially with large portfolios\n8. Verify that all UI elements are functioning as expected\n9. Document any remaining issues or potential improvements for future iterations\n</info added on 2025-07-03T11:41:00.668Z>\n<info added on 2025-07-03T11:44:47.240Z>\n1. Perform comprehensive accessibility checks, including keyboard navigation and screen reader compatibility\n2. Verify responsive design consistency across various devices and screen sizes\n3. Conduct thorough review of the entire portfolio edit workflow, including edge cases\n4. Check integration with other components and the backend API\n5. Validate form submissions and error handling\n6. Ensure proper state management throughout the editing process\n7. Check for any performance issues, especially with large portfolios\n8. Verify that all UI elements are functioning as expected\n9. Document any remaining issues or potential improvements for future iterations\n</info added on 2025-07-03T11:44:47.240Z>",
+            "testStrategy": "Conduct accessibility audits and cross-browser/device testing"
+          },
+          {
             "id": 1,
             "title": "Implement Backend API for Portfolio Updates",
-            "description": "Create a PUT /portfolios/:id endpoint in the backend to handle portfolio updates.",
+            "description": "Create a PUT /portfolios/:id endpoint in the backend to handle portfolio updates. [Updated: 7/3/2025]",
             "dependencies": [],
-            "details": "1. Define the route for PUT /portfolios/:id\n2. Implement input validation for portfolio fields\n3. Update the portfolio in the database\n4. Return appropriate success/error responses",
-            "status": "pending",
+            "details": "1. Define the route for PUT /portfolios/:id\n2. Implement input validation for portfolio fields\n3. Update the portfolio in the database\n4. Return appropriate success/error responses\n<info added on 2025-07-03T11:44:15.244Z>\n1. Define the route for PUT /portfolios/:id\n2. Implement input validation for portfolio fields\n3. Update the portfolio in the database\n4. Return appropriate success/error responses\n</info added on 2025-07-03T11:44:15.244Z>",
+            "status": "done",
             "testStrategy": "Write unit tests for input validation and integration tests for successful and failed update scenarios"
           },
           {
             "id": 2,
             "title": "Create Frontend API Service and Composable",
-            "description": "Develop a frontend API service for portfolio updates and a useEditPortfolio composable for form handling.",
+            "description": "Develop a frontend API service for portfolio updates and a useEditPortfolio composable for form handling. [Updated: 7/3/2025]",
             "dependencies": [],
-            "details": "1. Create an API service function for updating portfolios\n2. Implement useEditPortfolio composable with form state, validation, and API call\n3. Include error handling and loading states in the composable",
-            "status": "pending",
+            "details": "1. Create an API service function for updating portfolios\n2. Implement useEditPortfolio composable with form state, validation, and API call\n3. Include error handling and loading states in the composable\n<info added on 2025-07-03T11:44:22.410Z>\n1. Create an API service function for updating portfolios\n2. Implement useEditPortfolio composable with form state, validation, and API call\n3. Include error handling and loading states in the composable\n</info added on 2025-07-03T11:44:22.410Z>",
+            "status": "done",
             "testStrategy": "Write unit tests for the composable, mocking API calls"
-          },
-          {
-            "id": 3,
-            "title": "Build PortfolioSettingsForm Component",
-            "description": "Create a reusable form component for editing portfolio details with validation.",
-            "dependencies": [],
-            "details": "1. Create PortfolioSettingsForm with fields for name, description, and type\n2. Implement form validation with error messages\n3. Add submit and cancel buttons\n4. Ensure responsive design and accessibility",
-            "status": "pending",
-            "testStrategy": "Write component tests for form rendering, validation, and submission"
           },
           {
             "id": 4,
             "title": "Integrate Edit Functionality into Portfolio Detail Page",
-            "description": "Connect the PortfolioSettingsForm to the useEditPortfolio composable and integrate it into the portfolio detail page.",
+            "description": "Connect the PortfolioSettingsForm to the useEditPortfolio composable and integrate it into the portfolio detail page. [Updated: 7/3/2025]",
             "dependencies": [],
-            "details": "1. Add an 'Edit Portfolio' button on the portfolio detail page\n2. Implement navigation to the edit form\n3. Connect PortfolioSettingsForm to useEditPortfolio\n4. Handle form submission and show success/error notifications\n5. Update portfolio state after successful edits",
-            "status": "pending",
+            "details": "1. Add an 'Edit Portfolio' button on the portfolio detail page\n2. Implement navigation to the edit form\n3. Connect PortfolioSettingsForm to useEditPortfolio\n4. Handle form submission and show success/error notifications\n5. Update portfolio state after successful edits\n<info added on 2025-07-03T11:44:41.247Z>\nThe subtask details do not contain any references to testStrategy or frontend tests, so no changes or additions are necessary based on the user's request.\n</info added on 2025-07-03T11:44:41.247Z>",
+            "status": "done",
             "testStrategy": "Perform end-to-end tests for the edit workflow"
-          },
-          {
-            "id": 5,
-            "title": "Implement Internationalization and Final Touches",
-            "description": "Prepare the feature for internationalization and perform final checks.",
-            "dependencies": [],
-            "details": "1. Extract all UI text to translation keys\n2. Set up i18n structure for easy future translations\n3. Perform final accessibility checks\n4. Ensure consistent responsive design across devices\n5. Conduct thorough testing of the entire edit workflow",
-            "status": "pending",
-            "testStrategy": "Conduct accessibility audits and cross-browser/device testing"
           }
         ]
       },
@@ -452,7 +452,7 @@
     ],
     "metadata": {
       "created": "2025-07-03T10:58:49.572Z",
-      "updated": "2025-07-03T10:58:49.572Z",
+      "updated": "2025-07-03T11:46:20.431Z",
       "description": "Tasks related to investment tracking feature"
     }
   }

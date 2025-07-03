@@ -8,7 +8,12 @@
         <h1 v-if="portfolio" class="text-2xl tracking-wider">{{ portfolio.name }}</h1>
         <h1 v-else-if="isLoading" class="text-2xl tracking-wider">Loading...</h1>
       </div>
-      <div v-if="portfolio">
+
+      <div v-if="portfolio" class="flex gap-3">
+        <EditPortfolioDialog :portfolio="portfolio" @updated="refetch">
+          <UiButton variant="outline"> Edit </UiButton>
+        </EditPortfolioDialog>
+
         <DeletePortfolioDialog :portfolio-id="portfolio.id" @deleted="handleDeletion">
           <UiButton variant="destructive">
             <Trash2Icon class="mr-2 size-4" />
@@ -43,6 +48,7 @@
 
 <script setup lang="ts">
 import DeletePortfolioDialog from '@/components/dialogs/delete-portfolio-dialog.vue';
+import EditPortfolioDialog from '@/components/dialogs/edit-portfolio-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { usePortfolio } from '@/composable/data-queries/portfolios';
 import { ROUTES_NAMES } from '@/routes/constants';

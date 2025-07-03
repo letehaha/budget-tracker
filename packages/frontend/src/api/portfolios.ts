@@ -1,7 +1,7 @@
 import { api } from '@/api/_api';
 import { PORTFOLIO_TYPE, PortfolioModel } from '@bt/shared/types/investments';
 
-export interface CreatePortfolioRequest {
+interface CreatePortfolioRequest {
   name: string;
   portfolioType?: PORTFOLIO_TYPE;
   description?: string;
