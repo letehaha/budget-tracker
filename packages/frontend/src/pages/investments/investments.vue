@@ -3,39 +3,61 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
       <h1 class="text-2xl tracking-wider">Investments</h1>
 
-      <router-link :to="{ name: ROUTES_NAMES.createAccount, query: { category: ACCOUNT_CATEGORIES.investment } }">
-        <UiButton>Create Investment Account</UiButton>
-      </router-link>
+      <CreatePortfolioDialog>
+        <UiButton>
+          <PlusIcon class="mr-2 size-4" />
+          Create Portfolio
+        </UiButton>
+      </CreatePortfolioDialog>
     </div>
 
-    <template v-if="investmentAccounts.length">
+    <template v-if="portfoliosQuery.isLoading.value">
+      <div class="py-12 text-center">
+        <div class="text-muted-foreground">Loading portfolios...</div>
+      </div>
+    </template>
+
+    <template v-else-if="portfoliosQuery.error.value">
+      <div class="py-12 text-center">
+        <div class="text-destructive mb-4">Failed to load portfolios</div>
+        <UiButton @click="portfoliosQuery.refetch()">Try Again</UiButton>
+      </div>
+    </template>
+
+    <template v-else-if="portfolios.length">
       <div class="mb-6 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
-        <template v-for="account in investmentAccounts" :key="account.id">
-          <Card :class="cn('relative', !account.isEnabled && 'opacity-40')">
+        <template v-for="portfolio in portfolios" :key="portfolio.id">
+          <Card :class="cn('relative', !portfolio.isEnabled && 'opacity-40')">
             <router-link
               :to="{
-                name: ROUTES_NAMES.investmentAccount,
-                params: { accountId: account.id },
+                name: ROUTES_NAMES.portfolioDetail,
+                params: { portfolioId: portfolio.id },
               }"
               class="block h-full"
             >
               <CardHeader class="p-3">
                 <div
-                  v-if="!account.isEnabled"
+                  v-if="!portfolio.isEnabled"
                   :class="['bg-background absolute right-0 top-0 rounded-tr-md p-1 text-xs leading-none']"
                 >
                   Hidden
                 </div>
                 <div class="mb-2.5 max-w-[calc(100%-60px)] overflow-hidden text-ellipsis text-lg tracking-wide">
-                  {{ account.name || 'Investment Account' }}
+                  {{ portfolio.name }}
                 </div>
               </CardHeader>
               <CardContent class="px-3 pb-3">
                 <div class="flex flex-col gap-1">
                   <div class="investments__item-balance">
-                    {{ formatBalance(account) }}
+                    <!-- TODO: Portfolio balance formatting -->
+                    Portfolio Balance
                   </div>
-                  <div class="text-muted-foreground text-sm">Investment Account</div>
+                  <div class="text-muted-foreground text-sm capitalize">
+                    {{ portfolio.portfolioType.replace('_', ' ') }} Portfolio
+                  </div>
+                  <div v-if="portfolio.description" class="text-muted-foreground truncate text-xs">
+                    {{ portfolio.description }}
+                  </div>
                 </div>
               </CardContent>
             </router-link>
@@ -47,49 +69,35 @@
     <template v-else>
       <div class="py-12 text-center">
         <div class="mb-4">
-          <svg class="text-muted-foreground mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
+          <WalletIcon class="text-muted-foreground mx-auto size-12" />
         </div>
-        <h3 class="text-foreground mb-2 text-lg font-medium">No Investment Accounts</h3>
+        <h3 class="text-foreground mb-2 text-lg font-medium">No Portfolios Yet</h3>
         <p class="text-muted-foreground mb-4">
-          You don't have any investment accounts yet. Create an investment account from the accounts page to start
-          tracking your portfolio.
+          Create your first investment portfolio to start tracking your holdings, transactions, and performance.
         </p>
-        <router-link :to="{ name: ROUTES_NAMES.accounts }">
-          <UiButton>Go to Accounts</UiButton>
-        </router-link>
+        <CreatePortfolioDialog>
+          <UiButton>
+            <PlusIcon class="size-4" />
+            Create Your First Portfolio
+          </UiButton>
+        </CreatePortfolioDialog>
       </div>
     </template>
   </div>
 </template>
 
 <script lang="ts" setup>
+import CreatePortfolioDialog from '@/components/dialogs/create-portfolio-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
-import { useFormatCurrency } from '@/composable';
+import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { useAccountsStore } from '@/stores';
-import { ACCOUNT_CATEGORIES, AccountModel } from '@bt/shared/types';
-import { storeToRefs } from 'pinia';
+import { PlusIcon, WalletIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 
-const { accounts } = storeToRefs(useAccountsStore());
-const { formatAmountByCurrencyId } = useFormatCurrency();
+const portfoliosQuery = usePortfolios();
 
-// Filter for investment accounts only
-const investmentAccounts = computed(() =>
-  accounts.value
-    .filter((account) => account.accountCategory === ACCOUNT_CATEGORIES.investment)
-    .sort((a, b) => +b.isEnabled - +a.isEnabled),
-);
-
-const formatBalance = (account: AccountModel) =>
-  formatAmountByCurrencyId(account.currentBalance - account.creditLimit, account.currencyId);
+// Extract portfolios data and sort by enabled status
+const portfolios = computed(() => portfoliosQuery.data.value?.sort((a, b) => +b.isEnabled - +a.isEnabled) || []);
 </script>

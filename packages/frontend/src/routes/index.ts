@@ -49,6 +49,11 @@ const routes = [
         component: () => import('@/pages/investments/account.vue'),
       },
       {
+        path: '/portfolios/:portfolioId',
+        name: ROUTES_NAMES.portfolioDetail,
+        component: () => import('@/pages/portfolios/portfolio-detail.vue'),
+      },
+      {
         path: '/analytics',
         name: ROUTES_NAMES.analytics,
         beforeEnter: [devOnly],

@@ -15,6 +15,7 @@ export const ROUTES_NAMES = Object.freeze({
   analytics: `${ROUTER_LAYOUTS.dashboard}.analytics`,
   investments: `${ROUTER_LAYOUTS.dashboard}.investments`,
   investmentAccount: `${ROUTER_LAYOUTS.dashboard}.investment-account`,
+  portfolioDetail: `${ROUTER_LAYOUTS.dashboard}.portfolio-detail`,
   transactions: `${ROUTER_LAYOUTS.dashboard}.transactions`,
   settings: `${ROUTER_LAYOUTS.dashboard}.settings`,
   settingsCurrencies: `${ROUTER_LAYOUTS.dashboard}.settings.currencies`,
