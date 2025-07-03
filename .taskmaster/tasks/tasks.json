@@ -152,48 +152,48 @@
         "id": 12,
         "title": "Frontend: Portfolio API Integration",
         "description": "Implement complete end-to-end portfolio creation functionality",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           11
         ],
         "priority": "high",
         "details": "Create a vertical slice for the portfolio creation feature, including API integration, composables, UI components, and full integration. This task covers the entire workflow from user input to API submission and UI update.",
-        "testStrategy": "Test the complete portfolio creation flow: form validation, API call success/failure scenarios, UI updates post-creation, and integration between all layers.",
+        "testStrategy": "",
         "subtasks": [
           {
             "id": 1,
             "title": "API Layer: Integrate POST /portfolios endpoint",
             "description": "Implement API call to create a new portfolio using the POST /portfolios endpoint.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
-            "details": "",
+            "details": "Set up the API call structure, handle request payload formatting, and manage response parsing for successful portfolio creation.\n<info added on 2025-07-03T07:12:06.110Z>\nCreated portfolios.ts API integration file with comprehensive CRUD operations:\n- createPortfolio() for POST /investments/portfolios\n- getPortfolios() for listing portfolios\n- getPortfolio() for individual portfolio fetching\n- updatePortfolio() for PUT operations\n- deletePortfolio() for DELETE operations\nImplemented proper TypeScript types, including CreatePortfolioRequest interface. All API calls utilize the existing api instance pattern for consistency and maintainability.\n</info added on 2025-07-03T07:12:06.110Z>",
             "testStrategy": ""
           },
           {
             "id": 2,
             "title": "Composables: Create useCreatePortfolio",
             "description": "Develop a useCreatePortfolio composable to handle form state, validation, and submission logic for creating a new portfolio.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
-            "details": "",
+            "details": "Implement form state management, input validation rules, and submission handling within the composable. Ensure proper error handling and success state management.\n<info added on 2025-07-03T07:17:31.454Z>\nRefactored to a cleaner, simpler composables approach:\n\n1. Mutation composables:\n   - useCreatePortfolio(): Raw useMutation() with auto-invalidation\n   - useUpdatePortfolio(): Raw useMutation() with optimistic updates\n   - useDeletePortfolio(): Raw useMutation() with cache cleanup\n\n2. Query composables:\n   - usePortfolios(): Spreads all query properties and includes invalidate() function\n   - usePortfolio(): Spreads all query properties and includes invalidate() function\n\nThis new approach provides maximum flexibility, reduces maintenance overhead, and simplifies the codebase while adhering to Vue Query best practices. The refactoring improves the overall structure of the portfolio API integration, making it easier to manage state, handle mutations, and perform queries efficiently.\n</info added on 2025-07-03T07:17:31.454Z>",
             "testStrategy": ""
           },
           {
             "id": 3,
             "title": "UI: Design and implement portfolio creation form/modal",
             "description": "Create a user-friendly form or modal for portfolio creation with proper validation and error handling.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
-            "details": "",
+            "details": "Design and implement the UI components for portfolio creation, including input fields, validation feedback, and submission button. Ensure responsive design and accessibility considerations.",
             "testStrategy": ""
           },
           {
             "id": 4,
             "title": "Integration: Connect API, composables, and UI",
             "description": "Integrate all layers to ensure smooth data flow from user input to API submission and UI update upon successful creation.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
-            "details": "",
+            "details": "Connect the UI components with the useCreatePortfolio composable, and ensure proper API integration. Implement loading states, error handling, and success feedback in the UI based on API responses.",
             "testStrategy": ""
           }
         ]
@@ -202,7 +202,7 @@
         "id": 13,
         "title": "Portfolio Listing and Viewing Feature Implementation",
         "description": "Implement end-to-end functionality for displaying portfolios, including API integration, composables, UI components, navigation, and complete functionality for viewing portfolios.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           8,
           11,
@@ -338,11 +338,40 @@
         "details": "1. API Integration:\n   - Utilize existing POST/PUT/DELETE /investing/transactions endpoints (from Task 7)\n   - Ensure proper error handling and response formatting for all transaction types\n\n2. Composables:\n   - Develop a `useInvestmentTransactions` composable for transaction form handling and validation\n   - Implement logic for different transaction types (buy, sell, dividend)\n   - Include balance checks, quantity calculations, and transaction validation\n   - Manage state for transaction status, errors, and form data\n\n3. UI Components:\n   - Create TransactionForm component with dynamic fields based on transaction type\n   - Implement expandable rows in the HoldingsTable component to show transaction forms\n   - Add validation feedback and error messages to the form\n   - Create a TransactionConfirmationModal for final review before submission\n\n4. Validation:\n   - Implement client-side validation for all transaction fields\n   - Add server-side validation checks in the API endpoints\n   - Ensure proper balance checks and quantity calculations for buy/sell transactions\n   - Validate dividend amounts and dates\n\n5. Integration:\n   - Connect the TransactionForm component with the `useInvestmentTransactions` composable\n   - Integrate transaction functionality into the HoldingsTable component\n   - Update portfolio balances and holdings after successful transactions\n   - Implement real-time updates of the UI after transaction completion\n\n6. Error Handling:\n   - Display user-friendly error messages for failed transactions\n   - Implement retry logic for failed API calls\n   - Handle edge cases such as insufficient funds or invalid quantities\n\n7. Performance Optimization:\n   - Implement lazy loading for transaction history\n   - Use caching strategies to minimize API calls for frequently accessed data\n\n8. Accessibility:\n   - Ensure all new UI components are keyboard accessible\n   - Add proper ARIA labels and roles to new elements",
         "testStrategy": "",
         "subtasks": []
+      },
+      {
+        "id": 22,
+        "title": "Implement Portfolio List Sorting Functionality",
+        "description": "Add sorting functionality to the portfolio list on the investments page, including updating the usePortfolios composable and adding UI controls for users to select sort order.",
+        "details": "1. Update usePortfolios composable:\n   - Add a 'sortBy' parameter to the composable function\n   - Implement sorting logic for common fields (e.g., name, balance, performance)\n   - Modify the API call to include sorting parameters\n   - Update state management to handle sorting changes\n\n2. Modify PortfolioList component:\n   - Add a dropdown or buttons for sort options (e.g., \"Name A-Z\", \"Name Z-A\", \"Balance High-Low\", \"Balance Low-High\", \"Performance\")\n   - Implement event handlers for sort option changes\n   - Pass sorting parameters to usePortfolios composable\n\n3. Update API endpoint:\n   - Modify GET /portfolios endpoint to accept sorting parameters\n   - Implement server-side sorting logic\n\n4. Implement client-side sorting as a fallback:\n   - Add a utility function for sorting portfolios based on different criteria\n   - Use this function when server-side sorting is not available or fails\n\n5. Add sorting indicators:\n   - Display arrows or icons next to the sorted column header\n   - Implement smooth transitions when changing sort order\n\n6. Preserve sort order:\n   - Store the current sort preference in local storage or Vuex store\n   - Apply the saved sort order when the user returns to the page\n\n7. Error handling:\n   - Implement proper error handling for sorting failures\n   - Provide user feedback if sorting cannot be applied\n\n8. Performance optimization:\n   - Implement lazy loading or pagination if not already present\n   - Ensure sorting works efficiently with large datasets",
+        "testStrategy": "1. Unit tests:\n   - Test usePortfolios composable with various sorting parameters\n   - Verify correct sorting logic for different fields (name, balance, performance)\n   - Test error handling and fallback to client-side sorting\n\n2. Integration tests:\n   - Verify API endpoint correctly applies sorting parameters\n   - Test interaction between PortfolioList component and usePortfolios composable\n\n3. UI tests:\n   - Ensure sort options are correctly displayed and interactive\n   - Verify sorting indicators (arrows/icons) update correctly\n   - Test accessibility of sorting controls\n\n4. End-to-end tests:\n   - Simulate user selecting different sort options\n   - Verify portfolio list updates correctly with each sort change\n   - Test sort order persistence across page reloads\n\n5. Performance tests:\n   - Measure sorting speed with large datasets\n   - Verify lazy loading or pagination works correctly with sorting\n\n6. Edge case testing:\n   - Test sorting with empty portfolios list\n   - Verify behavior with portfolios having identical sort field values\n\n7. Cross-browser testing:\n   - Ensure sorting functionality works consistently across different browsers and devices",
+        "status": "pending",
+        "dependencies": [
+          13,
+          8
+        ],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Implement Portfolio List Filtering",
+        "description": "Add filtering functionality to the portfolio list on the investments page, including updating the usePortfolios composable to handle filtering parameters and adding UI controls for users to apply filters.",
+        "details": "1. Update usePortfolios composable:\n   - Add 'filterParams' parameter to the composable function\n   - Implement filtering logic for common fields (e.g., portfolio type, name)\n   - Modify the API call to include filtering parameters\n   - Update state management to handle filter changes\n\n2. Modify PortfolioList component:\n   - Add filter controls (e.g., dropdown for portfolio type, text input for name search)\n   - Implement event handlers for filter changes\n   - Update the component to use the modified usePortfolios composable with filter parameters\n\n3. API Integration:\n   - Update the GET /portfolios endpoint in the backend to support filtering\n   - Modify the frontend API service to include filter parameters in the request\n\n4. UI Enhancements:\n   - Create a FilterBar component for the portfolio list\n   - Include clear filters option\n   - Add visual indicators for active filters\n\n5. State Management:\n   - Implement local storage or Vuex store to persist filter preferences\n   - Ensure filter state is maintained during navigation\n\n6. Performance Optimization:\n   - Implement debounce for text-based filters to reduce API calls\n   - Consider implementing client-side filtering for small datasets\n\n7. Accessibility:\n   - Ensure all filter controls are keyboard accessible\n   - Add proper ARIA labels and roles for screen readers",
+        "testStrategy": "1. Unit tests:\n   - Test usePortfolios composable with various filter combinations\n   - Verify correct filtering logic for different fields (type, name)\n   - Test error handling and edge cases (e.g., no results)\n\n2. Integration tests:\n   - Verify API endpoint correctly applies filters and returns expected results\n   - Test interaction between filter controls and portfolio list updates\n\n3. E2E tests:\n   - Simulate user applying different filters and verify correct results\n   - Test filter persistence across page reloads and navigation\n\n4. Performance tests:\n   - Measure response times with various filter combinations\n   - Verify debounce functionality for text-based filters\n\n5. Accessibility tests:\n   - Use automated tools (e.g., axe-core) to check filter controls accessibility\n   - Perform manual keyboard navigation tests\n\n6. Cross-browser testing:\n   - Verify filter functionality and UI rendering across different browsers and devices\n\n7. Error handling:\n   - Test behavior with invalid filter inputs\n   - Verify appropriate error messages are displayed for filter-related issues",
+        "status": "pending",
+        "dependencies": [
+          13,
+          8,
+          22
+        ],
+        "priority": "low",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-07-02T23:14:52.190Z",
-      "updated": "2025-07-03T06:47:57.380Z",
+      "updated": "2025-07-03T09:08:35.681Z",
       "description": "Tasks related to investment tracking functionality including portfolio management, holdings, transactions, and UI components"
     }
   },
@@ -549,7 +578,7 @@
         "id": 13,
         "title": "Portfolio Listing and Viewing Feature Implementation",
         "description": "Implement end-to-end functionality for displaying portfolios, including API integration, composables, UI components, navigation, and complete functionality for viewing portfolios.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           8,
           11,
@@ -564,7 +593,7 @@
         "id": 14,
         "title": "Implement Portfolio Detail Page",
         "description": "Complete the portfolio detail page implementation, including API integration, composables, UI components, navigation, and full integration for viewing detailed portfolio information.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           13,
           8
@@ -572,7 +601,53 @@
         "priority": "high",
         "details": "1. API Integration:\n   - Utilize the existing GET /investing/accounts/:id/holdings endpoint (from Task 8)\n   - Implement GET /portfolios/:id endpoint in the backend to fetch individual portfolio data including balances\n   - Create an API service in the frontend to fetch detailed portfolio data\n\n2. Composables:\n   - Develop a `usePortfolioDetail` composable for fetching and managing individual portfolio data\n   - Include error handling and loading states in the composable\n\n3. UI Components:\n   - Create a PortfolioDetailPage component as the main container for the detail view\n   - Implement subcomponents:\n     - PortfolioOverview: Display general portfolio information (name, description, total value)\n     - PortfolioBalance: Show multi-currency balances\n     - HoldingsSummary: Display a summary of portfolio holdings\n\n4. Navigation:\n   - Add a new route in Vue Router: /portfolios/:portfolioId\n   - Update the PortfolioList component (from Task 13) to link each portfolio to its detail page\n\n5. Integration:\n   - Connect the PortfolioDetailPage component with the `usePortfolioDetail` composable\n   - Ensure proper data flow from API to UI components\n   - Implement error handling and loading states in the UI\n\n6. Responsive Design:\n   - Ensure the detail page is fully responsive and works well on mobile devices\n\n7. Performance Optimization:\n   - Implement lazy loading for the detail page component\n   - Consider implementing virtual scrolling for large lists of holdings",
         "testStrategy": "",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement API Integration for Portfolio Detail",
+            "description": "Set up the backend endpoint and frontend service for fetching detailed portfolio data",
+            "dependencies": [],
+            "details": "1. Implement GET /portfolios/:id endpoint in the backend to fetch individual portfolio data including balances. 2. Create an API service in the frontend to fetch detailed portfolio data using the new endpoint and the existing GET /investing/accounts/:id/holdings endpoint.",
+            "status": "done",
+            "testStrategy": "Write unit tests for the backend endpoint and integration tests for the frontend API service"
+          },
+          {
+            "id": 2,
+            "title": "Develop usePortfolioDetail Composable",
+            "description": "Create a composable for managing individual portfolio data, including error handling and loading states",
+            "dependencies": [],
+            "details": "1. Implement usePortfolioDetail composable with functions to fetch and manage portfolio data. 2. Include error handling logic and loading state management. 3. Ensure the composable integrates with the API service created in the previous subtask.",
+            "status": "done",
+            "testStrategy": "Write unit tests for the composable, mocking API calls and testing different scenarios (success, error, loading)"
+          },
+          {
+            "id": 3,
+            "title": "Create UI Components for Portfolio Detail Page",
+            "description": "Implement the main PortfolioDetailPage component and its subcomponents",
+            "dependencies": [],
+            "details": "1. Create PortfolioDetailPage as the main container component. 2. Implement PortfolioOverview, PortfolioBalance, and HoldingsSummary subcomponents. 3. Ensure components are responsive and work well on mobile devices. 4. Implement lazy loading for the detail page component.",
+            "status": "done",
+            "testStrategy": "Write unit tests for each component and conduct visual regression testing"
+          },
+          {
+            "id": 4,
+            "title": "Set Up Navigation for Portfolio Detail",
+            "description": "Configure routing and update existing components to enable navigation to the detail page",
+            "dependencies": [],
+            "details": "1. Add a new route in Vue Router: /portfolios/:portfolioId. 2. Update the PortfolioList component to link each portfolio to its detail page. 3. Implement proper navigation guards and error handling for invalid portfolio IDs.",
+            "status": "done",
+            "testStrategy": "Write end-to-end tests to verify correct navigation behavior"
+          },
+          {
+            "id": 5,
+            "title": "Integrate Components and Optimize Performance",
+            "description": "Connect all components, implement error handling, and optimize performance",
+            "dependencies": [],
+            "details": "1. Connect the PortfolioDetailPage component with the usePortfolioDetail composable. 2. Implement error handling and loading states in the UI. 3. Optimize performance by implementing virtual scrolling for large lists of holdings. 4. Conduct final integration testing and performance profiling.",
+            "status": "done",
+            "testStrategy": "Perform end-to-end testing of the entire feature and conduct performance benchmarking"
+          }
+        ]
       },
       {
         "id": 15,
@@ -685,11 +760,40 @@
         "details": "1. API Integration:\n   - Utilize existing POST/PUT/DELETE /investing/transactions endpoints (from Task 7)\n   - Ensure proper error handling and response formatting for all transaction types\n\n2. Composables:\n   - Develop a `useInvestmentTransactions` composable for transaction form handling and validation\n   - Implement logic for different transaction types (buy, sell, dividend)\n   - Include balance checks, quantity calculations, and transaction validation\n   - Manage state for transaction status, errors, and form data\n\n3. UI Components:\n   - Create TransactionForm component with dynamic fields based on transaction type\n   - Implement expandable rows in the HoldingsTable component to show transaction forms\n   - Add validation feedback and error messages to the form\n   - Create a TransactionConfirmationModal for final review before submission\n\n4. Validation:\n   - Implement client-side validation for all transaction fields\n   - Add server-side validation checks in the API endpoints\n   - Ensure proper balance checks and quantity calculations for buy/sell transactions\n   - Validate dividend amounts and dates\n\n5. Integration:\n   - Connect the TransactionForm component with the `useInvestmentTransactions` composable\n   - Integrate transaction functionality into the HoldingsTable component\n   - Update portfolio balances and holdings after successful transactions\n   - Implement real-time updates of the UI after transaction completion\n\n6. Error Handling:\n   - Display user-friendly error messages for failed transactions\n   - Implement retry logic for failed API calls\n   - Handle edge cases such as insufficient funds or invalid quantities\n\n7. Performance Optimization:\n   - Implement lazy loading for transaction history\n   - Use caching strategies to minimize API calls for frequently accessed data\n\n8. Accessibility:\n   - Ensure all new UI components are keyboard accessible\n   - Add proper ARIA labels and roles to new elements",
         "testStrategy": "",
         "subtasks": []
+      },
+      {
+        "id": 22,
+        "title": "Implement Portfolio List Sorting Functionality",
+        "description": "Add sorting functionality to the portfolio list on the investments page, including updating the usePortfolios composable and adding UI controls for users to select sort order.",
+        "details": "1. Update usePortfolios composable:\n   - Add a 'sortBy' parameter to the composable function\n   - Implement sorting logic for common fields (e.g., name, balance, performance)\n   - Modify the API call to include sorting parameters\n   - Update state management to handle sorting changes\n\n2. Modify PortfolioList component:\n   - Add a dropdown or buttons for sort options (e.g., \"Name A-Z\", \"Name Z-A\", \"Balance High-Low\", \"Balance Low-High\", \"Performance\")\n   - Implement event handlers for sort option changes\n   - Pass sorting parameters to usePortfolios composable\n\n3. Update API endpoint:\n   - Modify GET /portfolios endpoint to accept sorting parameters\n   - Implement server-side sorting logic\n\n4. Implement client-side sorting as a fallback:\n   - Add a utility function for sorting portfolios based on different criteria\n   - Use this function when server-side sorting is not available or fails\n\n5. Add sorting indicators:\n   - Display arrows or icons next to the sorted column header\n   - Implement smooth transitions when changing sort order\n\n6. Preserve sort order:\n   - Store the current sort preference in local storage or Vuex store\n   - Apply the saved sort order when the user returns to the page\n\n7. Error handling:\n   - Implement proper error handling for sorting failures\n   - Provide user feedback if sorting cannot be applied\n\n8. Performance optimization:\n   - Implement lazy loading or pagination if not already present\n   - Ensure sorting works efficiently with large datasets",
+        "testStrategy": "1. Unit tests:\n   - Test usePortfolios composable with various sorting parameters\n   - Verify correct sorting logic for different fields (name, balance, performance)\n   - Test error handling and fallback to client-side sorting\n\n2. Integration tests:\n   - Verify API endpoint correctly applies sorting parameters\n   - Test interaction between PortfolioList component and usePortfolios composable\n\n3. UI tests:\n   - Ensure sort options are correctly displayed and interactive\n   - Verify sorting indicators (arrows/icons) update correctly\n   - Test accessibility of sorting controls\n\n4. End-to-end tests:\n   - Simulate user selecting different sort options\n   - Verify portfolio list updates correctly with each sort change\n   - Test sort order persistence across page reloads\n\n5. Performance tests:\n   - Measure sorting speed with large datasets\n   - Verify lazy loading or pagination works correctly with sorting\n\n6. Edge case testing:\n   - Test sorting with empty portfolios list\n   - Verify behavior with portfolios having identical sort field values\n\n7. Cross-browser testing:\n   - Ensure sorting functionality works consistently across different browsers and devices",
+        "status": "pending",
+        "dependencies": [
+          13,
+          8
+        ],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Implement Portfolio List Filtering",
+        "description": "Add filtering functionality to the portfolio list on the investments page, including updating the usePortfolios composable to handle filtering parameters and adding UI controls for users to apply filters.",
+        "details": "1. Update usePortfolios composable:\n   - Add 'filterParams' parameter to the composable function\n   - Implement filtering logic for common fields (e.g., portfolio type, name)\n   - Modify the API call to include filtering parameters\n   - Update state management to handle filter changes\n\n2. Modify PortfolioList component:\n   - Add filter controls (e.g., dropdown for portfolio type, text input for name search)\n   - Implement event handlers for filter changes\n   - Update the component to use the modified usePortfolios composable with filter parameters\n\n3. API Integration:\n   - Update the GET /portfolios endpoint in the backend to support filtering\n   - Modify the frontend API service to include filter parameters in the request\n\n4. UI Enhancements:\n   - Create a FilterBar component for the portfolio list\n   - Include clear filters option\n   - Add visual indicators for active filters\n\n5. State Management:\n   - Implement local storage or Vuex store to persist filter preferences\n   - Ensure filter state is maintained during navigation\n\n6. Performance Optimization:\n   - Implement debounce for text-based filters to reduce API calls\n   - Consider implementing client-side filtering for small datasets\n\n7. Accessibility:\n   - Ensure all filter controls are keyboard accessible\n   - Add proper ARIA labels and roles for screen readers",
+        "testStrategy": "1. Unit tests:\n   - Test usePortfolios composable with various filter combinations\n   - Verify correct filtering logic for different fields (type, name)\n   - Test error handling and edge cases (e.g., no results)\n\n2. Integration tests:\n   - Verify API endpoint correctly applies filters and returns expected results\n   - Test interaction between filter controls and portfolio list updates\n\n3. E2E tests:\n   - Simulate user applying different filters and verify correct results\n   - Test filter persistence across page reloads and navigation\n\n4. Performance tests:\n   - Measure response times with various filter combinations\n   - Verify debounce functionality for text-based filters\n\n5. Accessibility tests:\n   - Use automated tools (e.g., axe-core) to check filter controls accessibility\n   - Perform manual keyboard navigation tests\n\n6. Cross-browser testing:\n   - Verify filter functionality and UI rendering across different browsers and devices\n\n7. Error handling:\n   - Test behavior with invalid filter inputs\n   - Verify appropriate error messages are displayed for filter-related issues",
+        "status": "pending",
+        "dependencies": [
+          13,
+          8,
+          22
+        ],
+        "priority": "low",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-07-02T23:14:52.190Z",
-      "updated": "2025-07-03T08:45:42.882Z",
+      "updated": "2025-07-03T09:21:20.544Z",
       "description": "Tasks related to investment tracking functionality including portfolio management, holdings, transactions, and UI components"
     }
   }
