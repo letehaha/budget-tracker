@@ -10,6 +10,13 @@
       </div>
 
       <div v-if="portfolio" class="flex gap-3">
+        <PortfolioTransferDialog :portfolio="portfolio" context="portfolio" @success="refetch">
+          <UiButton variant="outline">
+            <ArrowRightLeftIcon class="mr-2 size-4" />
+            Transfer
+          </UiButton>
+        </PortfolioTransferDialog>
+
         <EditPortfolioDialog :portfolio="portfolio" @updated="refetch">
           <UiButton variant="outline"> Edit </UiButton>
         </EditPortfolioDialog>
@@ -49,10 +56,11 @@
 <script setup lang="ts">
 import DeletePortfolioDialog from '@/components/dialogs/delete-portfolio-dialog.vue';
 import EditPortfolioDialog from '@/components/dialogs/edit-portfolio-dialog.vue';
+import PortfolioTransferDialog from '@/components/dialogs/portfolio-transfer-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { usePortfolio } from '@/composable/data-queries/portfolios';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { ChevronLeftIcon, Trash2Icon } from 'lucide-vue-next';
+import { ArrowRightLeftIcon, ChevronLeftIcon, Trash2Icon } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 

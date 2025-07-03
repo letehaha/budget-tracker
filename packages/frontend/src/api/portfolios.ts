@@ -1,5 +1,5 @@
 import { api } from '@/api/_api';
-import { PORTFOLIO_TYPE, PortfolioModel } from '@bt/shared/types/investments';
+import { PORTFOLIO_TYPE, PortfolioModel, PortfolioTransferModel } from '@bt/shared/types/investments';
 
 interface CreatePortfolioRequest {
   name: string;
@@ -33,4 +33,25 @@ export const updatePortfolio = async (
 
 export const deletePortfolio = async (portfolioId: number, force?: boolean): Promise<void> => {
   return api.delete(`/investments/portfolios/${portfolioId}`, { force });
+};
+
+interface CreatePortfolioTransferRequest {
+  toPortfolioId: number;
+  currencyId: number;
+  amount: string;
+  date: string;
+  description?: string;
+}
+
+export const createPortfolioTransfer = async (
+  fromPortfolioId: number,
+  params: CreatePortfolioTransferRequest,
+): Promise<PortfolioTransferModel> => {
+  const result = await api.post(`/investments/portfolios/${fromPortfolioId}/transfer`, params);
+  return result;
+};
+
+export const getPortfolioTransfers = async (portfolioId: number): Promise<PortfolioTransferModel[]> => {
+  const result = await api.get(`/investments/portfolios/${portfolioId}/transfers`);
+  return result.data;
 };
