@@ -8,6 +8,14 @@
         <h1 v-if="portfolio" class="text-2xl tracking-wider">{{ portfolio.name }}</h1>
         <h1 v-else-if="isLoading" class="text-2xl tracking-wider">Loading...</h1>
       </div>
+      <div v-if="portfolio">
+        <DeletePortfolioDialog :portfolio-id="portfolio.id" @deleted="handleDeletion">
+          <UiButton variant="destructive">
+            <Trash2Icon class="mr-2 size-4" />
+            Delete
+          </UiButton>
+        </DeletePortfolioDialog>
+      </div>
     </div>
 
     <div v-if="portfolio" class="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -34,19 +42,25 @@
 </template>
 
 <script setup lang="ts">
+import DeletePortfolioDialog from '@/components/dialogs/delete-portfolio-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { usePortfolio } from '@/composable/data-queries/portfolios';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { ChevronLeftIcon } from 'lucide-vue-next';
+import { ChevronLeftIcon, Trash2Icon } from 'lucide-vue-next';
 import { computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 import HoldingsSummary from './components/HoldingsSummary.vue';
 import PortfolioBalance from './components/PortfolioBalance.vue';
 import PortfolioOverview from './components/PortfolioOverview.vue';
 
 const route = useRoute();
+const router = useRouter();
 const portfolioId = computed(() => Number(route.params.portfolioId));
 
 const { data: portfolio, isLoading, error, refetch } = usePortfolio(portfolioId);
+
+const handleDeletion = () => {
+  router.push({ name: ROUTES_NAMES.investments });
+};
 </script>

@@ -28,6 +28,39 @@
       <div class="mb-6 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
         <template v-for="portfolio in portfolios" :key="portfolio.id">
           <Card :class="cn('relative', !portfolio.isEnabled && 'opacity-40')">
+            <div class="absolute right-2 top-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                  <UiButton variant="ghost" size="icon" class="h-8 w-8">
+                    <MoreVerticalIcon class="size-4" />
+                  </UiButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <RouterLink
+                      :to="{
+                        name: ROUTES_NAMES.portfolioDetail,
+                        params: { portfolioId: portfolio.id },
+                      }"
+                      class="flex w-full items-center"
+                    >
+                      <EyeIcon class="mr-2 size-4" />
+                      View
+                    </RouterLink>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DeletePortfolioDialog :portfolio-id="portfolio.id">
+                    <DropdownMenuItem
+                      class="text-destructive-text focus:bg-destructive-text/10 focus:text-destructive-text"
+                      @select.prevent
+                    >
+                      <Trash2Icon class="mr-2 size-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DeletePortfolioDialog>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             <router-link
               :to="{
                 name: ROUTES_NAMES.portfolioDetail,
@@ -87,13 +120,21 @@
 </template>
 
 <script lang="ts" setup>
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/common/dropdown-menu';
 import CreatePortfolioDialog from '@/components/dialogs/create-portfolio-dialog.vue';
+import DeletePortfolioDialog from '@/components/dialogs/delete-portfolio-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { PlusIcon, WalletIcon } from 'lucide-vue-next';
+import { EyeIcon, MoreVerticalIcon, PlusIcon, Trash2Icon, WalletIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const portfoliosQuery = usePortfolios();

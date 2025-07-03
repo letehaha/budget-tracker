@@ -217,7 +217,7 @@
         "id": 14,
         "title": "Implement Portfolio Detail Page",
         "description": "Complete the portfolio detail page implementation, including API integration, composables, UI components, navigation, and full integration for viewing detailed portfolio information.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           13,
           8
@@ -225,7 +225,53 @@
         "priority": "high",
         "details": "1. API Integration:\n   - Utilize the existing GET /investing/accounts/:id/holdings endpoint (from Task 8)\n   - Implement GET /portfolios/:id endpoint in the backend to fetch individual portfolio data including balances\n   - Create an API service in the frontend to fetch detailed portfolio data\n\n2. Composables:\n   - Develop a `usePortfolioDetail` composable for fetching and managing individual portfolio data\n   - Include error handling and loading states in the composable\n\n3. UI Components:\n   - Create a PortfolioDetailPage component as the main container for the detail view\n   - Implement subcomponents:\n     - PortfolioOverview: Display general portfolio information (name, description, total value)\n     - PortfolioBalance: Show multi-currency balances\n     - HoldingsSummary: Display a summary of portfolio holdings\n\n4. Navigation:\n   - Add a new route in Vue Router: /portfolios/:portfolioId\n   - Update the PortfolioList component (from Task 13) to link each portfolio to its detail page\n\n5. Integration:\n   - Connect the PortfolioDetailPage component with the `usePortfolioDetail` composable\n   - Ensure proper data flow from API to UI components\n   - Implement error handling and loading states in the UI\n\n6. Responsive Design:\n   - Ensure the detail page is fully responsive and works well on mobile devices\n\n7. Performance Optimization:\n   - Implement lazy loading for the detail page component\n   - Consider implementing virtual scrolling for large lists of holdings",
         "testStrategy": "",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement API Integration for Portfolio Detail",
+            "description": "Set up the backend endpoint and frontend service for fetching detailed portfolio data",
+            "dependencies": [],
+            "details": "1. Implement GET /portfolios/:id endpoint in the backend to fetch individual portfolio data including balances. 2. Create an API service in the frontend to fetch detailed portfolio data using the new endpoint and the existing GET /investing/accounts/:id/holdings endpoint.",
+            "status": "done",
+            "testStrategy": "Write unit tests for the backend endpoint and integration tests for the frontend API service"
+          },
+          {
+            "id": 2,
+            "title": "Develop usePortfolioDetail Composable",
+            "description": "Create a composable for managing individual portfolio data, including error handling and loading states",
+            "dependencies": [],
+            "details": "1. Implement usePortfolioDetail composable with functions to fetch and manage portfolio data. 2. Include error handling logic and loading state management. 3. Ensure the composable integrates with the API service created in the previous subtask.",
+            "status": "done",
+            "testStrategy": "Write unit tests for the composable, mocking API calls and testing different scenarios (success, error, loading)"
+          },
+          {
+            "id": 3,
+            "title": "Create UI Components for Portfolio Detail Page",
+            "description": "Implement the main PortfolioDetailPage component and its subcomponents",
+            "dependencies": [],
+            "details": "1. Create PortfolioDetailPage as the main container component. 2. Implement PortfolioOverview, PortfolioBalance, and HoldingsSummary subcomponents. 3. Ensure components are responsive and work well on mobile devices. 4. Implement lazy loading for the detail page component.",
+            "status": "done",
+            "testStrategy": "Write unit tests for each component and conduct visual regression testing"
+          },
+          {
+            "id": 4,
+            "title": "Set Up Navigation for Portfolio Detail",
+            "description": "Configure routing and update existing components to enable navigation to the detail page",
+            "dependencies": [],
+            "details": "1. Add a new route in Vue Router: /portfolios/:portfolioId. 2. Update the PortfolioList component to link each portfolio to its detail page. 3. Implement proper navigation guards and error handling for invalid portfolio IDs.",
+            "status": "done",
+            "testStrategy": "Write end-to-end tests to verify correct navigation behavior"
+          },
+          {
+            "id": 5,
+            "title": "Integrate Components and Optimize Performance",
+            "description": "Connect all components, implement error handling, and optimize performance",
+            "dependencies": [],
+            "details": "1. Connect the PortfolioDetailPage component with the usePortfolioDetail composable. 2. Implement error handling and loading states in the UI. 3. Optimize performance by implementing virtual scrolling for large lists of holdings. 4. Conduct final integration testing and performance profiling.",
+            "status": "done",
+            "testStrategy": "Perform end-to-end testing of the entire feature and conduct performance benchmarking"
+          }
+        ]
       },
       {
         "id": 15,
@@ -371,7 +417,7 @@
     ],
     "metadata": {
       "created": "2025-07-02T23:14:52.190Z",
-      "updated": "2025-07-03T09:08:35.681Z",
+      "updated": "2025-07-03T09:21:20.544Z",
       "description": "Tasks related to investment tracking functionality including portfolio management, holdings, transactions, and UI components"
     }
   },
@@ -678,7 +724,53 @@
         "priority": "medium",
         "details": "1. API Integration:\n   - Implement DELETE /portfolios/:id endpoint in the backend\n   - Add validation to ensure the portfolio can be deleted (no active holdings or balances)\n   - Create an API service in the frontend to handle portfolio deletion requests\n\n2. Composables:\n   - Develop a `useDeletePortfolio` composable for handling the deletion process\n   - Include confirmation handling and error management in the composable\n   - Implement proper state management for deletion status\n\n3. UI Components:\n   - Create a DeletePortfolioDialog component for the confirmation process\n   - Include clear warnings about the implications of deleting a portfolio\n   - Display information about any active holdings or balances preventing deletion\n\n4. Validation:\n   - Implement server-side validation to prevent deletion of portfolios with active holdings or balances\n   - Add client-side validation to disable the delete option for portfolios with active holdings or balances\n   - Create error messages and user feedback for failed deletion attempts\n\n5. Integration:\n   - Connect the DeletePortfolioDialog to the PortfolioDetail and PortfolioList components\n   - Ensure proper navigation after successful deletion (e.g., redirect to portfolio list)\n   - Implement proper error handling and user feedback throughout the deletion process\n\n6. Cleanup:\n   - Implement a cleanup process to remove all associated data (e.g., historical performance data, settings) when a portfolio is deleted\n   - Ensure this cleanup process is atomic and can be rolled back in case of failure\n\n7. Permissions:\n   - Implement permission checks to ensure only authorized users can delete a portfolio\n   - Add appropriate error handling for unauthorized deletion attempts",
         "testStrategy": "",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement API Endpoint for Portfolio Deletion",
+            "description": "Create the DELETE /portfolios/:id endpoint in the backend with proper validation and error handling.",
+            "dependencies": [],
+            "details": "1. Add a new route for DELETE /portfolios/:id in the API router.\n2. Implement the controller function to handle the deletion request.\n3. Add validation to check for active holdings or balances.\n4. Implement the database query to delete the portfolio if validation passes.\n5. Return appropriate success or error responses.",
+            "status": "done",
+            "testStrategy": "Write unit tests for the controller function, including cases for successful deletion, portfolios with active holdings, and non-existent portfolios."
+          },
+          {
+            "id": 2,
+            "title": "Create useDeletePortfolio Composable",
+            "description": "Develop a composable function to handle the portfolio deletion process in the frontend.",
+            "dependencies": [],
+            "details": "1. Create a new file useDeletePortfolio.js in the composables directory.\n2. Implement the composable with functions for initiating deletion, handling confirmation, and managing deletion status.\n3. Integrate with the API service to send the deletion request.\n4. Implement error handling and success feedback.\n5. Use Vue's reactive properties to manage the deletion state.",
+            "status": "done",
+            "testStrategy": "Write unit tests for the composable, mocking API calls and testing different scenarios (success, failure, cancellation)."
+          },
+          {
+            "id": 3,
+            "title": "Develop DeletePortfolioDialog Component",
+            "description": "Create a reusable dialog component for confirming portfolio deletion and displaying relevant information.",
+            "dependencies": [],
+            "details": "1. Create a new Vue component file DeletePortfolioDialog.vue.\n2. Implement the dialog UI with warning messages and confirmation buttons.\n3. Display information about active holdings or balances if present.\n4. Use the useDeletePortfolio composable for handling the deletion process.\n5. Emit events for successful deletion or cancellation.",
+            "status": "pending",
+            "testStrategy": "Write component tests to ensure proper rendering of dialog content and correct emission of events."
+          },
+          {
+            "id": 4,
+            "title": "Integrate Deletion Feature in Portfolio Components",
+            "description": "Add deletion functionality to PortfolioDetail and PortfolioList components, including proper navigation and error handling.",
+            "dependencies": [],
+            "details": "1. Add a delete button or option in both PortfolioDetail and PortfolioList components.\n2. Implement logic to show/hide delete option based on portfolio status (active holdings/balances).\n3. Use the DeletePortfolioDialog component when delete is initiated.\n4. Handle successful deletion by updating the UI and navigating (to portfolio list from detail view).\n5. Implement error handling and display appropriate user feedback.",
+            "status": "pending",
+            "testStrategy": "Perform integration tests to ensure proper interaction between components and correct navigation after deletion."
+          },
+          {
+            "id": 5,
+            "title": "Implement Cleanup Process and Permission Checks",
+            "description": "Create a cleanup process for associated data and add permission checks for portfolio deletion.",
+            "dependencies": [],
+            "details": "1. Implement a database transaction for atomically deleting the portfolio and all associated data (historical performance, settings).\n2. Add a rollback mechanism in case of failure during the cleanup process.\n3. Implement permission checks in the backend to ensure only authorized users can delete a portfolio.\n4. Update the API endpoint to include these permission checks.\n5. Modify the frontend composable to handle permission-related errors.",
+            "status": "pending",
+            "testStrategy": "Write integration tests for the cleanup process, ensuring all associated data is properly removed. Test permission checks with different user roles."
+          }
+        ]
       },
       {
         "id": 17,
@@ -793,7 +885,7 @@
     ],
     "metadata": {
       "created": "2025-07-02T23:14:52.190Z",
-      "updated": "2025-07-03T09:21:20.544Z",
+      "updated": "2025-07-03T09:27:50.232Z",
       "description": "Tasks related to investment tracking functionality including portfolio management, holdings, transactions, and UI components"
     }
   }

@@ -40,6 +40,7 @@ module.exports = {
         destructive: {
           DEFAULT: 'rgba(var(--destructive), <alpha-value>)',
           foreground: 'rgba(var(--destructive-foreground), <alpha-value>)',
+          text: 'rgba(var(--destructive-text), <alpha-value>)',
         },
         muted: {
           DEFAULT: 'rgba(var(--muted), <alpha-value>)',

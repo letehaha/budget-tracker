@@ -111,7 +111,7 @@ const createPortfolio = async () => {
       <div class="flex">
         <UiButton type="submit" class="ml-auto min-w-[120px]" :disabled="isSubmitDisabled">
           <CheckIcon class="size-4" />
-          {{ createPortfolioMutation.isPending ? 'Creating...' : 'Create Portfolio' }}
+          {{ createPortfolioMutation.isPending.value ? 'Creating...' : 'Create Portfolio' }}
         </UiButton>
       </div>
     </form>

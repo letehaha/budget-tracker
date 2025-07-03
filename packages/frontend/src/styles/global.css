@@ -34,6 +34,7 @@
 
     --destructive: 238, 68, 68;
     --destructive-foreground: 249, 249, 249;
+    --destructive-text: 185, 28, 28;
 
     --border: 227, 227, 231;
     --input: 227, 227, 231;
@@ -75,6 +76,7 @@
 
     --destructive: 147, 29, 29;
     --destructive-foreground: 254, 242, 242;
+    --destructive-text: 239, 68, 68;
 
     --border: 39, 39, 42;
     --input: 39, 39, 42;

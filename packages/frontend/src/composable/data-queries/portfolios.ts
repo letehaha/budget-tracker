@@ -1,14 +1,6 @@
-import {
-  CreatePortfolioRequest,
-  createPortfolio,
-  deletePortfolio,
-  getPortfolio,
-  getPortfolios,
-  updatePortfolio,
-} from '@/api/portfolios';
-import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { createPortfolio, deletePortfolio, getPortfolio, getPortfolios, updatePortfolio } from '@/api/portfolios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { MaybeRef, unref } from 'vue';
+import { type MaybeRef, unref } from 'vue';
 
 // Portfolio creation composable
 export const useCreatePortfolio = () => {
@@ -62,15 +54,9 @@ export const useUpdatePortfolio = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      portfolioId,
-      params,
-    }: {
-      portfolioId: number;
-      params: Partial<Omit<CreatePortfolioRequest, 'portfolioType'> & { portfolioType: PORTFOLIO_TYPE }>;
-    }) => updatePortfolio(portfolioId, params),
-    onSuccess: (data) => {
-      queryClient.setQueryData(['portfolio', data.id], data);
+    mutationFn: ({ portfolioId, ...rest }: { portfolioId: number } & Parameters<typeof updatePortfolio>[1]) =>
+      updatePortfolio(portfolioId, rest),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] });
     },
   });
@@ -81,10 +67,8 @@ export const useDeletePortfolio = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ portfolioId, force }: { portfolioId: number; force?: boolean }) =>
-      deletePortfolio(portfolioId, force),
-    onSuccess: (_, { portfolioId }) => {
-      queryClient.removeQueries({ queryKey: ['portfolio', portfolioId] });
+    mutationFn: (portfolioId: number) => deletePortfolio(portfolioId),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] });
     },
   });
