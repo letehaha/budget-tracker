@@ -146,15 +146,26 @@ gemini --timeout 120 -p "@large-codebase/ Analyze architecture"
 
 ## When to Use Gemini CLI
 
-Use `gemini -p` when:
+**PRIMARY REASON: TOKEN EFFICIENCY**
 
-- Analyzing entire codebases or large directories
+Use `gemini -p` to save Claude tokens and reduce costs when:
+
+- **Any multi-file analysis** - Even if files are small, use Gemini to analyze multiple files together instead of reading them individually in Claude
+- **Code exploration tasks** - When searching for implementations, patterns, or understanding how features work across the codebase
+- **Architecture understanding** - When you need to understand how components interact or where functionality is implemented
+- **Feature verification** - Checking if specific features, patterns, or security measures are implemented
+- **Token conservation** - When the task involves reading multiple files that would consume significant Claude tokens
+
+**SECONDARY REASONS: Context limitations**
+
+- Analyzing entire codebases or large directories that exceed Claude's context window
 - Comparing multiple large files
-- Need to understand project-wide patterns or architecture
-- Current context window is insufficient for the task
 - Working with files totaling more than 100KB
-- Verifying if specific features, patterns, or security measures are implemented
-- Checking for the presence of certain coding patterns across the entire codebase
+- Current context window is insufficient for the task
+
+**RULE OF THUMB: If you're about to read 2+ files to understand something, use Gemini first**
+
+This saves tokens regardless of file size and often provides better comprehensive analysis due to Gemini's 2M token context window.
 
 ## Important Notes
 

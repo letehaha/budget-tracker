@@ -432,9 +432,10 @@ Claude Code should also follow the project's Cursor rules for consistency across
 
 Claude Code should also follow project-specific instructions from:
 
-- **Gemini CLI Guidelines:** [.claude/gemini.md](mdc:.claude/gemini.md) - Instructions for using Gemini CLI for large codebase analysis
-  - Use `gemini -p "@path/to/files"` for analyzing large codebases that exceed context limits
+- **Gemini CLI Guidelines:** [.claude/gemini.md](mdc:.claude/gemini.md) - Instructions for using Gemini CLI for token-efficient codebase analysis
+  - **PRIMARY RULE: Use `gemini -p "@path/to/files"` for ANY multi-file analysis to save Claude tokens**
+  - **RULE OF THUMB: If you're about to read 2+ files to understand something, use Gemini first**
   - Leverage Gemini's 2M token context window for comprehensive project analysis
   - Follow the file inclusion syntax and best practices outlined in the guide
 
-**Note:** When analyzing large codebases or multiple files that might exceed context limits, refer to the Gemini CLI guidelines in `.claude/gemini.md` for proper usage patterns.
+**Critical Note:** Token efficiency is the primary reason to use Gemini CLI. Use it for code exploration, architecture understanding, feature verification, and any task involving multiple files - regardless of file size. This significantly reduces Claude token usage and costs.
