@@ -189,8 +189,8 @@ const onSubmit = async () => {
       <UiButton
         type="button"
         variant="secondary"
-        @click="emit('cancel')"
         :disabled="createTransactionMutation.isPending.value"
+        @click="emit('cancel')"
       >
         Cancel
       </UiButton>

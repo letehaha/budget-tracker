@@ -155,8 +155,8 @@ const toggleExpand = (securityId: number) => {
                   @add-transaction="openTransactionModal(h)"
                 />
                 <div v-else class="p-4 text-center text-muted-foreground">
-                  No transactions found.
-                  <Button variant="secondary" @click="openTransactionModal(h)"> Add first Tx </Button>
+                  <p class="mb-4">No transactions found.</p>
+                  <Button variant="secondary" @click="openTransactionModal(h)"> Add first Transaction </Button>
                 </div>
               </td>
             </tr>
@@ -182,6 +182,7 @@ const toggleExpand = (securityId: number) => {
           "
           :security-id="selectedHolding?.securityId ? String(selectedHolding.securityId) : undefined"
           @success="isTransactionModalOpen = false"
+          @cancel="isTransactionModalOpen = false"
         />
       </Dialog.DialogContent>
     </Dialog.Dialog>
