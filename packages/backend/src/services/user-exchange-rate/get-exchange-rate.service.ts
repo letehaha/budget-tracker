@@ -42,6 +42,9 @@ export async function getExchangeRate({
     };
   }
 
+  pair.baseCode = pair.baseCode.toUpperCase();
+  pair.quoteCode = pair.quoteCode.toUpperCase();
+
   // When currencies are different, make sure that base_code currency is linked
   // to user's currencies, since usually quite is always a user_default_currency
   const userCurrency = await UsersCurrencies.findOne({

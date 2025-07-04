@@ -79,7 +79,7 @@ export default class InvestmentTransaction extends Model implements InvestmentTr
   /**
    * The monetary value involved in the transaction. Depending on the context,
    * this could represent the cost, sale proceeds, or other financial values
-   * associated with the transaction. Basically quantity * price
+   * associated with the transaction. Calculated as quantity * price + fees
    */
   @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
   amount!: string;

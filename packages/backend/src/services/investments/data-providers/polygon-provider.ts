@@ -98,7 +98,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
                 name: ticker.name,
                 providerName: SECURITY_PROVIDER.polygon,
                 assetClass: this.mapAssetClass(ticker.type as TickerTypes),
-                currencyCode: ticker.currency_name || 'USD',
+                currencyCode: ticker.currency_name ? ticker.currency_name.toUpperCase() : 'USD',
                 exchangeMic: exchange.mic,
                 exchangeAcronym: exchange.acronymstring ?? '',
                 exchangeName: exchange.name,

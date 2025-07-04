@@ -1,6 +1,6 @@
 <template>
   <Card>
-    <CardHeader class="flex flex-row items-center justify-between">
+    <CardHeader class="flex flex-row justify-between items-center">
       <CardTitle>Holdings</CardTitle>
 
       <AddSymbolsDialog :portfolio-id="portfolioId" @updated="invalidate">
@@ -8,7 +8,7 @@
       </AddSymbolsDialog>
     </CardHeader>
     <CardContent>
-      <HoldingsTable :holdings="holdings || []" :loading="isLoading" :error="!!error" @addTx="onAddTx" />
+      <HoldingsTable :holdings="holdings || []" :loading="isLoading" :error="!!error" :portfolio-id="portfolioId" />
     </CardContent>
   </Card>
 </template>
@@ -25,8 +25,4 @@ const props = defineProps<{ portfolioId: number }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { data: holdings, isLoading, error, invalidate } = useHoldings(portfolioId);
-
-function onAddTx() {
-  // Placeholder – quick transaction feature deferred
-}
 </script>

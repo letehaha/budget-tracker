@@ -54,7 +54,7 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
     }
   }
 
-  const amount = new Big(quantity).times(new Big(price)).toFixed(10);
+  const amount = new Big(quantity).times(new Big(price)).plus(new Big(fees)).toFixed(10);
 
   const [refAmount, refPrice, refFees] = await Promise.all([
     calculateRefAmount({

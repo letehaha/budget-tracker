@@ -57,7 +57,7 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
     });
 
     expect(response.quantity).toBeNumericEqual(3);
-    expect(response.amount).toBeNumericEqual(150); // 3 * 50
+    expect(response.amount).toBeNumericEqual(155); // (3 * 50) + 5 fees
     expect(response.price).toBeNumericEqual(50); // Should remain the same
     expect(response.fees).toBeNumericEqual(5); // Should remain the same
   });
@@ -72,7 +72,7 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
     });
 
     expect(response.price).toBeNumericEqual(60);
-    expect(response.amount).toBeNumericEqual(120); // 2 * 60
+    expect(response.amount).toBeNumericEqual(125); // (2 * 60) + 5 fees
     expect(response.quantity).toBeNumericEqual(2); // Should remain the same
     expect(response.fees).toBeNumericEqual(5); // Should remain the same
   });
@@ -119,7 +119,7 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
     expect(response.quantity).toBeNumericEqual(4);
     expect(response.price).toBeNumericEqual(75);
     expect(response.fees).toBeNumericEqual(10);
-    expect(response.amount).toBeNumericEqual(300); // 4 * 75
+    expect(response.amount).toBeNumericEqual(310); // (4 * 75) + 10 fees
     expect(response.name).toBe('Updated transaction');
   });
 

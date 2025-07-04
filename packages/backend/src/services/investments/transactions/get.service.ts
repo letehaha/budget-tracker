@@ -2,6 +2,7 @@ import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { NotFoundError } from '@js/errors';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Portfolios from '@models/investments/Portfolios.model';
+import Securities from '@models/investments/Securities.model';
 import { withTransaction } from '@services/common';
 import { format, parseISO } from 'date-fns';
 import { Op, WhereOptions } from 'sequelize';
@@ -89,6 +90,10 @@ const serviceImpl = async ({
           as: 'portfolio',
           attributes: ['id', 'name'], // Only fetch needed fields
           where: { userId }, // Ensure user can only see their own portfolios
+        },
+        {
+          model: Securities,
+          as: 'security',
         },
       ],
     }),

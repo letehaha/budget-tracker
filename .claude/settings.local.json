@@ -8,7 +8,8 @@
       "Bash(task-master update-subtask:*)",
       "mcp__ide__getDiagnostics",
       "Bash(task-master:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(gemini:*)"
     ],
     "deny": []
   }

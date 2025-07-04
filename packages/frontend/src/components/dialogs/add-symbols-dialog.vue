@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{ portfolioId: number }>();
+const emit = defineEmits(['updated']);
 
 const isOpen = ref(false);
 const searchTerm = ref('');
@@ -45,6 +46,7 @@ async function addSymbol(sec: SecurityModel) {
     addNotification({ text: 'Holding added.', type: NotificationType.success });
     isOpen.value = false;
     searchTerm.value = '';
+    emit('updated');
   } catch {
     addNotification({ text: 'Failed to add holding.', type: NotificationType.error });
   }
@@ -52,10 +54,12 @@ async function addSymbol(sec: SecurityModel) {
 </script>
 
 <template>
-  <ResponsiveDialog v-model:open="isOpen" :title="'Add Symbols'">
+  <ResponsiveDialog v-model:open="isOpen">
     <template #trigger>
       <slot />
     </template>
+
+    <template #title> Add Symbols </template>
 
     <template #default>
       <div class="grid gap-4">

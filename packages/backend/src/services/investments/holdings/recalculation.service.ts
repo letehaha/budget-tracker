@@ -26,15 +26,13 @@ const recalculateHoldingImpl = async (holdingId: { portfolioId: number; security
   for (const tx of transactions) {
     const quantity = new Big(tx.quantity);
     const amount = new Big(tx.amount);
-    const fees = new Big(tx.fees);
     const refAmount = new Big(tx.refAmount);
-    const refFees = new Big(tx.refFees);
 
     switch (tx.category) {
       case INVESTMENT_TRANSACTION_CATEGORY.buy:
         totalQuantity = totalQuantity.plus(quantity);
-        totalCostBasis = totalCostBasis.plus(amount).plus(fees);
-        totalRefCostBasis = totalRefCostBasis.plus(refAmount).plus(refFees);
+        totalCostBasis = totalCostBasis.plus(amount);
+        totalRefCostBasis = totalRefCostBasis.plus(refAmount);
         break;
 
       case INVESTMENT_TRANSACTION_CATEGORY.sell: {

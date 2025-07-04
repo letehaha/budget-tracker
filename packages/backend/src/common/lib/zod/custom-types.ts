@@ -49,3 +49,20 @@ export const booleanQuery = () =>
     });
     return z.NEVER;
   });
+
+export const numericString = (options?: { allowNegative?: boolean; allowZero?: boolean }) =>
+  z
+    .union([z.string(), z.number()])
+    .refine(
+      (val) => {
+        const num = typeof val === 'string' ? parseFloat(val) : val;
+        if (isNaN(num)) return false;
+        if (!options?.allowZero && num === 0) return false;
+        if (!options?.allowNegative && num < 0) return false;
+        return true;
+      },
+      {
+        message: 'Invalid number format',
+      },
+    )
+    .transform((val) => String(val));

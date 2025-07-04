@@ -415,3 +415,26 @@ These commands make AI calls and may take up to a minute:
 ---
 
 _This guide ensures Claude Code has immediate access to Task Master's essential functionality for agentic development workflows._
+
+## Cursor Rules Integration
+
+Claude Code should also follow the project's Cursor rules for consistency across AI tools:
+
+- **Rule Files Location:** `.cursor/rules/` directory
+- **Active Rules:** Read and follow all `.mdc` files in the rules directory
+- **Key Rules to Follow:**
+  - [cursor_rules.mdc](mdc:.cursor/rules/cursor_rules.mdc) - Rule structure and formatting guidelines
+  - [self_improve.mdc](mdc:.cursor/rules/self_improve.mdc) - Pattern recognition and rule improvement guidelines
+
+**Note:** When working on code, always check `.cursor/rules/` directory for project-specific conventions and follow them alongside the Task Master workflow.
+
+## Additional Claude Code Instructions
+
+Claude Code should also follow project-specific instructions from:
+
+- **Gemini CLI Guidelines:** [.claude/gemini.md](mdc:.claude/gemini.md) - Instructions for using Gemini CLI for large codebase analysis
+  - Use `gemini -p "@path/to/files"` for analyzing large codebases that exceed context limits
+  - Leverage Gemini's 2M token context window for comprehensive project analysis
+  - Follow the file inclusion syntax and best practices outlined in the guide
+
+**Note:** When analyzing large codebases or multiple files that might exceed context limits, refer to the Gemini CLI guidelines in `.claude/gemini.md` for proper usage patterns.

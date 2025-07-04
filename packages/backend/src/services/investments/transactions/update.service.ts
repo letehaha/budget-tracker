@@ -109,7 +109,7 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
   const newFees = updateFields.fees ?? transaction.fees;
   const newDate = updateFields.date ?? transaction.date;
 
-  const amount = new Big(newQuantity).times(new Big(newPrice)).toFixed(10);
+  const amount = new Big(newQuantity).times(new Big(newPrice)).plus(new Big(newFees)).toFixed(10);
   updateData.amount = amount;
 
   // Recalculate reference amounts if relevant fields changed
