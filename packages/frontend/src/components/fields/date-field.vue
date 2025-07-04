@@ -26,6 +26,7 @@
               )
             "
             @input="handleLocalInputUpdate"
+            @blur="handleBlur"
           />
           <template v-if="isSafariMobile">
             <Button
@@ -74,6 +75,10 @@ interface InputChangeEvent extends InputEvent {
   target: HTMLInputElement;
 }
 
+interface InputFocusEvent extends FocusEvent {
+  target: HTMLInputElement;
+}
+
 const props = withDefaults(
   defineProps<{
     label?: string;
@@ -112,7 +117,31 @@ const emit = defineEmits<{
 const localValue = ref<Date>(props.modelValue);
 
 const handleLocalInputUpdate = (event: InputChangeEvent) => {
-  emit('update:modelValue', new Date(event.target.value));
+  const inputVal = event.target.value;
+  
+  // Always update the displayed input value so user can see what they're typing
+  inputValue.value = inputVal;
+  
+  // Only emit the date if it's a valid date string
+  if (inputVal && !isNaN(new Date(inputVal).getTime())) {
+    emit('update:modelValue', new Date(inputVal));
+  }
+  // For invalid intermediate states, don't emit anything
+  // This prevents validation errors during typing
+};
+
+const handleBlur = (event: InputFocusEvent) => {
+  const inputVal = event.target.value;
+  
+  // On blur, validate the final input value
+  if (inputVal && !isNaN(new Date(inputVal).getTime())) {
+    // Valid date - emit it
+    emit('update:modelValue', new Date(inputVal));
+  } else if (inputVal) {
+    // Invalid date - revert to last valid value
+    inputValue.value = props.modelValue ? formatToInput(props.modelValue) : '';
+  }
+  // If empty, keep it empty
 };
 
 watch(
