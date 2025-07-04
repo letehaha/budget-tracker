@@ -699,11 +699,26 @@
         ],
         "priority": "medium",
         "subtasks": []
+      },
+      {
+        "id": 32,
+        "title": "Remove Deprecated 'value' and 'refValue' Fields from Holdings",
+        "description": "Remove deprecated 'value' and 'refValue' fields from the Holdings model and all related code to complete the transition to pure calculate-on-demand market values. This technical debt cleanup should be completed at the end of the MVP phase.",
+        "status": "pending",
+        "dependencies": [
+          5,
+          19,
+          24
+        ],
+        "priority": "high",
+        "details": "1. Database Migration:\n   - Create a new migration file to drop the 'value' and 'refValue' columns from the holdings table\n   - Use appropriate ORM commands or raw SQL to remove these columns\n   - Ensure the migration is reversible for safety\n\n2. Update Holdings Model:\n   - Remove 'value' and 'refValue' fields from the Holdings model class\n   - Update any related methods or properties that referenced these fields\n   - Adjust any validation rules or constraints related to these fields\n\n3. Update HoldingModel Interface:\n   - Remove 'value' and 'refValue' from the HoldingModel interface definition\n   - Update any related type definitions or utility functions\n\n4. Update Backend Code:\n   - Remove any references to 'value' and 'refValue' in services, controllers, and other backend components\n   - Update any calculations or business logic that relied on these fields to use the calculate-on-demand approach\n\n5. Update Tests:\n   - Modify unit tests for the Holdings model to remove assertions related to 'value' and 'refValue'\n   - Update integration tests that may have been using these fields\n   - Ensure all affected test cases now use the calculate-on-demand approach\n\n6. Frontend Updates:\n   - Remove any references to 'value' and 'refValue' in frontend components, particularly in the holdings table\n   - Update any calculations or displays that were using these fields\n   - Ensure all market value calculations now use the on-demand approach\n\n7. Documentation:\n   - Update API documentation to remove mentions of 'value' and 'refValue'\n   - Update any developer guides or README files to reflect the changes\n\n8. Code Cleanup:\n   - Perform a thorough search across the entire codebase for any remaining references to 'value' and 'refValue'\n   - Remove any fallback logic or compatibility layers that were in place for these fields\n\n9. Performance Check:\n   - Verify that removing these fields and relying solely on calculate-on-demand doesn't negatively impact performance\n   - If needed, implement caching strategies for frequently accessed market values\n\nThis cleanup task should be prioritized for completion at the end of the MVP to ensure a clean, maintainable codebase without deprecated fields.",
+        "testStrategy": "1. Database Testing:\n   - Verify that the migration successfully removes 'value' and 'refValue' columns\n   - Check that existing data is not affected by the migration\n\n2. Model and Interface Testing:\n   - Ensure Holdings model no longer contains 'value' and 'refValue' properties\n   - Verify that the HoldingModel interface is updated correctly\n\n3. Backend Integration Tests:\n   - Run comprehensive tests on all endpoints that previously used 'value' and 'refValue'\n   - Verify that market values are correctly calculated on-demand\n\n4. Frontend Integration Tests:\n   - Test all components that display holdings information\n   - Ensure market values are correctly displayed and updated\n\n5. End-to-End Testing:\n   - Perform full user flow tests, including portfolio creation, adding holdings, and viewing market values\n   - Verify that all calculations and displays are correct without 'value' and 'refValue'\n\n6. Performance Testing:\n   - Conduct load tests to ensure the calculate-on-demand approach doesn't introduce performance issues\n   - Compare response times before and after the changes\n\n7. Error Handling:\n   - Test error scenarios to ensure proper handling without 'value' and 'refValue'\n\n8. Regression Testing:\n   - Run full test suite to catch any unintended side effects\n   - Pay special attention to features that might have indirectly depended on these fields\n\n9. Code Review:\n   - Conduct a thorough code review to ensure all instances of 'value' and 'refValue' have been removed\n   - Verify that no deprecated code or comments referencing these fields remain\n\n10. MVP Completion Validation:\n    - Ensure this cleanup is completed before MVP release\n    - Validate that all MVP features work correctly without deprecated fields",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-07-03T10:58:49.572Z",
-      "updated": "2025-07-04T17:45:01.432Z",
+      "updated": "2025-07-04T20:31:15.377Z",
       "description": "Tasks related to investment tracking feature"
     }
   }
