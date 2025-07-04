@@ -11,7 +11,10 @@ export const useCreatePortfolioTransfer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ fromPortfolioId, ...params }: { fromPortfolioId: number } & Parameters<typeof createPortfolioTransfer>[1]) =>
+    mutationFn: ({
+      fromPortfolioId,
+      ...params
+    }: { fromPortfolioId: number } & Parameters<typeof createPortfolioTransfer>[1]) =>
       createPortfolioTransfer(fromPortfolioId, params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolio-transfers'] });

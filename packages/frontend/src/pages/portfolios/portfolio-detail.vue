@@ -30,13 +30,9 @@
       </div>
     </div>
 
-    <div v-if="portfolio" class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div class="lg:col-span-2">
-        <div class="grid gap-6">
-          <PortfolioBalance />
-          <HoldingsSummary :portfolio-id="portfolioId" />
-        </div>
-      </div>
+    <div v-if="portfolio" class="grid gap-6">
+      <PortfolioBalance />
+      <HoldingsSummary :portfolio-id="portfolioId" />
       <!-- <div>
         <PortfolioOverview :portfolio="portfolio" />
       </div> -->

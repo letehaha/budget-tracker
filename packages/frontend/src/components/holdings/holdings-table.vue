@@ -18,10 +18,10 @@ const openTransactionModal = (holding: HoldingModel | null = null) => {
   isTransactionModalOpen.value = true;
 };
 
-const sortKey = ref<'symbol' | 'quantity' | 'value'>('value');
-const sortDir = ref<'asc' | 'desc'>('asc');
+const sortKey = ref<'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost'>('totalCost');
+const sortDir = ref<'asc' | 'desc'>('desc');
 
-const toggleSort = (key: 'symbol' | 'quantity' | 'value') => {
+const toggleSort = (key: 'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost') => {
   if (sortKey.value === key) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
   } else {
@@ -49,6 +49,14 @@ const sortedHoldings = computed(() => {
         av = Number(a.value);
         bv = Number(b.value);
         break;
+      case 'avgCost':
+        av = getAverageCost(a);
+        bv = getAverageCost(b);
+        break;
+      case 'totalCost':
+        av = getTotalCost(a);
+        bv = getTotalCost(b);
+        break;
     }
     if (typeof av === 'string') av = av.toLocaleLowerCase();
     if (typeof bv === 'string') bv = bv.toLocaleLowerCase();
@@ -60,6 +68,16 @@ const getPrice = (holding: HoldingModel) => {
   const quantity = Number(holding.quantity);
   const value = Number(holding.value);
   return quantity > 0 && value > 0 ? value / quantity : 0;
+};
+
+const getAverageCost = (holding: HoldingModel) => {
+  const quantity = Number(holding.quantity);
+  const costBasis = Number(holding.costBasis);
+  return quantity > 0 && costBasis > 0 ? costBasis / quantity : 0;
+};
+
+const getTotalCost = (holding: HoldingModel) => {
+  return Number(holding.costBasis);
 };
 
 const expandedHoldingId = ref<number | null>(null);
@@ -114,6 +132,20 @@ const toggleExpand = (securityId: number) => {
             </th>
             <th class="px-4 py-2 text-right">Price</th>
             <th class="px-4 py-2 text-right">
+              <button class="flex gap-1 justify-end items-center" @click="toggleSort('avgCost')">
+                AC/Share
+                <ArrowUpIcon v-if="sortKey === 'avgCost' && sortDir === 'asc'" class="size-3" />
+                <ArrowDownIcon v-if="sortKey === 'avgCost' && sortDir === 'desc'" class="size-3" />
+              </button>
+            </th>
+            <th class="px-4 py-2 text-right">
+              <button class="flex gap-1 justify-end items-center" @click="toggleSort('totalCost')">
+                Total Cost
+                <ArrowUpIcon v-if="sortKey === 'totalCost' && sortDir === 'asc'" class="size-3" />
+                <ArrowDownIcon v-if="sortKey === 'totalCost' && sortDir === 'desc'" class="size-3" />
+              </button>
+            </th>
+            <th class="px-4 py-2 text-right">
               <button class="flex gap-1 justify-end items-center" @click="toggleSort('value')">
                 Market Value
                 <ArrowUpIcon v-if="sortKey === 'value' && sortDir === 'asc'" class="size-3" />
@@ -135,10 +167,12 @@ const toggleExpand = (securityId: number) => {
               <td class="max-w-[150px] truncate px-4 py-2">{{ h.security?.name }}</td>
               <td class="px-4 py-2 text-right">{{ Number(h.quantity).toLocaleString() }}</td>
               <td class="px-4 py-2 text-right">{{ getPrice(h).toFixed(2) }}</td>
+              <td class="px-4 py-2 text-right">{{ getAverageCost(h).toFixed(2) }}</td>
+              <td class="px-4 py-2 text-right">{{ getTotalCost(h).toLocaleString() }}</td>
               <td class="px-4 py-2 text-right">{{ Number(h.value).toLocaleString() }}</td>
             </tr>
             <tr v-if="expandedHoldingId === h.securityId">
-              <td colspan="6">
+              <td colspan="8">
                 <div
                   v-if="isLoadingTransactions && !transactionsResponse"
                   class="p-4 text-center text-muted-foreground"
