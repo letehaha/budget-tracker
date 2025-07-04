@@ -4,15 +4,21 @@ import { SecurityModel } from './security.model';
 export interface HoldingModel {
   portfolioId: number;
   securityId: number;
-  value: string;
-  refValue: string;
   quantity: string;
   costBasis: string;
   refCostBasis: string;
   currencyCode: string;
   excluded: boolean;
+  // Deprecated: Use calculated marketValue instead
+  value: string;
+  refValue: string;
   security?: SecurityModel;
   portfolio?: PortfolioModel;
-  createdAt: Date;
-  updatedAt: Date;
+  // Dynamic calculated fields (only present when fetched with price data)
+  latestPrice?: string;
+  priceDate?: Date;
+  marketValue?: string;
+  refMarketValue?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }

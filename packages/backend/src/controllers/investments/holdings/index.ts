@@ -20,13 +20,17 @@ export const createHoldingController = createController(
 export const getHoldingsController = createController(
   z.object({
     params: z.object({ portfolioId: recordId() }),
-    query: z.object({ securityId: recordId().optional() }),
+    query: z.object({ 
+      securityId: recordId().optional(),
+      date: z.string().optional().transform(val => val ? new Date(val) : undefined),
+    }),
   }),
   async ({ user, params, query }) => {
     const holdings = await getHoldings({
       userId: user.id,
       portfolioId: params.portfolioId,
       securityId: query.securityId,
+      date: query.date,
     });
 
     return { data: holdings };

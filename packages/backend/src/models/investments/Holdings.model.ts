@@ -63,21 +63,10 @@ export default class Holdings extends Model implements HoldingModel {
   securityId!: number;
 
   /**
-   * The `value` and `refValue` fields represent the current market value of the
-   * specific holding.
-   * This value is calculated based on the latest available market price of the
-   * `security` multiplied by the quantity of the security held in the holding.
-   * It reflects the present worth of the investment in the market. This field
-   * is crucial for understanding the real-time monetary worth of the
-   * investment and plays a key role in portfolio valuation, performance tracking,
-   * and making informed investment decisions. The value is dynamic and can
-   * fluctuate based on market conditions, requiring regular updates to ensure accuracy.
-   *
-   * Important:
-   * It needs to be recalculated every n-time to reflect real value.
+   * DEPRECATED: These fields will be removed in favor of dynamic calculation.
+   * Market value should be calculated as quantity × latest price.
+   * Kept temporarily for backward compatibility during migration.
    */
-  // string because of how Sequelize works with Decimal type. It's still Numeric
-  // in the DB
   @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
   value!: string;
 

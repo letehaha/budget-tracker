@@ -44,8 +44,8 @@ const createHoldingImpl = async ({ userId, portfolioId, securityId }: CreateHold
     quantity: '0',
     costBasis: '0',
     refCostBasis: '0',
-    value: '0',
-    refValue: '0',
+    value: '0', // Deprecated - will be removed
+    refValue: '0', // Deprecated - will be removed
   });
 
   return { newHolding, securityId };

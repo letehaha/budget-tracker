@@ -4,8 +4,11 @@ import InvestmentTransactionsList from '@/components/investments/investment-tran
 import { Button } from '@/components/lib/ui/button';
 import * as Dialog from '@/components/lib/ui/dialog';
 import { useGetHoldingTransactions } from '@/composable/data-queries/investment-transactions';
+import { useFormatCurrency } from '@/composable/formatters';
+import { useCurrenciesStore } from '@/stores/currencies';
 import type { HoldingModel } from '@bt/shared/types/investments';
 import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon, ChevronRightIcon } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{ holdings: HoldingModel[]; loading?: boolean; error?: boolean; portfolioId: number }>();
@@ -20,6 +23,33 @@ const openTransactionModal = (holding: HoldingModel | null = null) => {
 
 const sortKey = ref<'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost'>('totalCost');
 const sortDir = ref<'asc' | 'desc'>('desc');
+
+const { formatAmountByCurrencyId } = useFormatCurrency();
+const { currencies } = storeToRefs(useCurrenciesStore());
+const currencyCodeToIdMap = computed(() => {
+  if (!currencies.value) return {};
+  return currencies.value.reduce(
+    (acc, currency) => {
+      acc[currency.currency.code] = currency.currencyId;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+});
+
+const getCurrencyIdByCode = (code: string) => currencyCodeToIdMap.value[code];
+
+const formatCurrency = (amount: number, currencyCode: string) => {
+  const currencyId = getCurrencyIdByCode(currencyCode.toUpperCase());
+  if (currencyId === undefined) {
+    // Fallback or default formatting if currency not found
+    return amount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  return formatAmountByCurrencyId(amount, currencyId);
+};
 
 const toggleSort = (key: 'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost') => {
   if (sortKey.value === key) {
@@ -46,8 +76,8 @@ const sortedHoldings = computed(() => {
         bv = Number(b.quantity);
         break;
       case 'value':
-        av = Number(a.value);
-        bv = Number(b.value);
+        av = Number(a.marketValue || a.value || 0);
+        bv = Number(b.marketValue || b.value || 0);
         break;
       case 'avgCost':
         av = getAverageCost(a);
@@ -65,9 +95,15 @@ const sortedHoldings = computed(() => {
 });
 
 const getPrice = (holding: HoldingModel) => {
+  // Use the directly calculated latestPrice if available
+  if (holding.latestPrice) {
+    return Number(holding.latestPrice);
+  }
+
+  // Fallback: calculate from marketValue (preferred) or value and quantity
   const quantity = Number(holding.quantity);
-  const value = Number(holding.value);
-  return quantity > 0 && value > 0 ? value / quantity : 0;
+  const marketValue = Number(holding.marketValue || holding.value || 0);
+  return quantity > 0 && marketValue > 0 ? marketValue / quantity : 0;
 };
 
 const getAverageCost = (holding: HoldingModel) => {
@@ -166,10 +202,12 @@ const toggleExpand = (securityId: number) => {
               <td class="px-4 py-2 font-medium">{{ h.security?.symbol }}</td>
               <td class="max-w-[150px] truncate px-4 py-2">{{ h.security?.name }}</td>
               <td class="px-4 py-2 text-right">{{ Number(h.quantity).toLocaleString() }}</td>
-              <td class="px-4 py-2 text-right">{{ getPrice(h).toFixed(2) }}</td>
-              <td class="px-4 py-2 text-right">{{ getAverageCost(h).toFixed(2) }}</td>
-              <td class="px-4 py-2 text-right">{{ getTotalCost(h).toLocaleString() }}</td>
-              <td class="px-4 py-2 text-right">{{ Number(h.value).toLocaleString() }}</td>
+              <td class="px-4 py-2 text-right">{{ formatCurrency(getPrice(h), h.currencyCode) }}</td>
+              <td class="px-4 py-2 text-right">{{ formatCurrency(getAverageCost(h), h.currencyCode) }}</td>
+              <td class="px-4 py-2 text-right">{{ formatCurrency(getTotalCost(h), h.currencyCode) }}</td>
+              <td class="px-4 py-2 text-right">
+                {{ formatCurrency(Number(h.marketValue || h.value || 0), h.currencyCode) }}
+              </td>
             </tr>
             <tr v-if="expandedHoldingId === h.securityId">
               <td colspan="8">
