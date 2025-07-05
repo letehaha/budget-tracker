@@ -160,7 +160,7 @@ const toggleExpand = (securityId: number) => {
             </th>
             <th class="px-4 py-2 text-left">Name</th>
             <th class="px-4 py-2 text-right">
-              <button class="flex gap-1 justify-end items-center" @click="toggleSort('quantity')">
+              <button class="flex gap-1 justify-end items-center w-full" @click="toggleSort('quantity')">
                 Shares
                 <ArrowUpIcon v-if="sortKey === 'quantity' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'quantity' && sortDir === 'desc'" class="size-3" />
@@ -168,21 +168,21 @@ const toggleExpand = (securityId: number) => {
             </th>
             <th class="px-4 py-2 text-right">Price</th>
             <th class="px-4 py-2 text-right">
-              <button class="flex gap-1 justify-end items-center" @click="toggleSort('avgCost')">
+              <button class="flex gap-1 justify-end items-center w-full" @click="toggleSort('avgCost')">
                 AC/Share
                 <ArrowUpIcon v-if="sortKey === 'avgCost' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'avgCost' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
             <th class="px-4 py-2 text-right">
-              <button class="flex gap-1 justify-end items-center" @click="toggleSort('totalCost')">
+              <button class="flex gap-1 justify-end items-center w-full" @click="toggleSort('totalCost')">
                 Total Cost
                 <ArrowUpIcon v-if="sortKey === 'totalCost' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'totalCost' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
             <th class="px-4 py-2 text-right">
-              <button class="flex gap-1 justify-end items-center" @click="toggleSort('value')">
+              <button class="flex gap-1 justify-end items-center w-full" @click="toggleSort('value')">
                 Market Value
                 <ArrowUpIcon v-if="sortKey === 'value' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'value' && sortDir === 'desc'" class="size-3" />

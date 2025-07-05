@@ -42,7 +42,7 @@ const formatDate = (date: string) => format(new Date(date), 'dd/MM/yyyy');
       <h4 class="text-lg font-semibold">Transactions</h4>
       <Button variant="secondary" @click="emit('add-transaction')"> Add transaction </Button>
     </div>
-    <div class="overflow-y-auto max-h-60">
+    <div>
       <table class="min-w-full text-sm">
         <thead class="sticky top-0 bg-muted/50 text-muted-foreground">
           <tr>
