@@ -38,6 +38,7 @@ const props = defineProps<{
 const emit = defineEmits<Emit>();
 
 const { addNotification } = useNotificationCenter();
+const accountsStore = useAccountsStore();
 const { systemAccounts } = storeToRefs(useAccountsStore());
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { data: portfolios } = usePortfolios();
@@ -307,6 +308,7 @@ const confirmTransfer = async () => {
     });
 
     resetForm();
+    accountsStore.refetchAccounts();
     emit('success');
   } catch (error) {
     addNotification({
@@ -328,8 +330,7 @@ const isSubmitDisabled = computed(
 </script>
 
 <template>
-  <form class="grid gap-6" @submit.prevent="onSubmit">
-    <!-- Transfer Type Selection -->
+  <form class="grid w-full max-w-[600px] gap-6" @submit.prevent="onSubmit">
     <SelectField
       v-model="form.transferTypeOption"
       label="Transfer Type"
@@ -339,13 +340,12 @@ const isSubmitDisabled = computed(
       :disabled="createTransferMutation.isPending.value || disabled"
       :error-message="getFieldErrorMessage('form.transferTypeOption')"
     />
-    
+
     <!-- Coming Soon Notice for Account Context -->
-    <div v-if="props.context === 'account'" class="text-sm text-muted-foreground italic">
+    <div v-if="props.context === 'account'" class="text-muted-foreground text-sm italic">
       💡 Account-to-portfolio transfers are coming in a future update!
     </div>
 
-    <!-- From Portfolio Field -->
     <SelectField
       v-if="showFromPortfolio"
       v-model="form.fromPortfolio"
@@ -357,7 +357,6 @@ const isSubmitDisabled = computed(
       :disabled="createTransferMutation.isPending.value || disabled || props.context === 'portfolio'"
     />
 
-    <!-- From Account Field -->
     <SelectField
       v-if="showFromAccount"
       v-model="form.fromAccount"
@@ -369,7 +368,6 @@ const isSubmitDisabled = computed(
       :disabled="createTransferMutation.isPending.value || disabled || props.context === 'account'"
     />
 
-    <!-- To Portfolio Field -->
     <SelectField
       v-if="showToPortfolio"
       v-model="form.toPortfolio"
@@ -381,7 +379,6 @@ const isSubmitDisabled = computed(
       :disabled="createTransferMutation.isPending.value || disabled"
     />
 
-    <!-- To Account Field -->
     <SelectField
       v-if="showToAccount"
       v-model="form.toAccount"
@@ -393,7 +390,6 @@ const isSubmitDisabled = computed(
       :disabled="createTransferMutation.isPending.value || disabled"
     />
 
-    <!-- Currency Selection -->
     <SelectField
       v-model="form.selectedCurrency"
       label="Currency"
@@ -405,7 +401,6 @@ const isSubmitDisabled = computed(
       :error-message="getFieldErrorMessage('form.selectedCurrency')"
     />
 
-    <!-- Amount Input -->
     <InputField
       v-model="form.amount"
       :label="amountLabel"
@@ -418,7 +413,6 @@ const isSubmitDisabled = computed(
       @blur="touchField('form.amount')"
     />
 
-    <!-- Date Field -->
     <DateField
       v-model="form.date"
       label="Date"
@@ -427,7 +421,6 @@ const isSubmitDisabled = computed(
       @blur="touchField('form.date')"
     />
 
-    <!-- Description Field -->
     <TextareaField
       v-model="form.description"
       label="Description (optional)"
@@ -435,8 +428,7 @@ const isSubmitDisabled = computed(
       :disabled="createTransferMutation.isPending.value || disabled"
     />
 
-    <!-- Action Buttons -->
-    <div class="flex gap-4 justify-end">
+    <div class="flex justify-end gap-4">
       <UiButton
         type="button"
         variant="secondary"
@@ -450,7 +442,6 @@ const isSubmitDisabled = computed(
       </UiButton>
     </div>
 
-    <!-- Confirmation Dialog -->
     <AlertDialog.AlertDialog v-model:open="showConfirmDialog">
       <AlertDialog.AlertDialogContent>
         <AlertDialog.AlertDialogHeader>
@@ -473,10 +464,3 @@ const isSubmitDisabled = computed(
     </AlertDialog.AlertDialog>
   </form>
 </template>
-
-<style scoped>
-form {
-  max-width: 600px;
-  width: 100%;
-}
-</style>

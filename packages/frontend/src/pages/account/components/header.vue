@@ -53,23 +53,18 @@ const updateAccount = async () => {
     addErrorNotification('An error occured while trying to update account');
   }
 };
-
-const handleTransferSuccess = () => {
-  // Refresh account data after successful transfer
-  accountsStore.refetchAccounts();
-};
 </script>
 
 <template>
   <CardHeader>
-    <div class="flex flex-wrap items-start justify-between">
-      <p class="flex items-center gap-2">
+    <div class="flex flex-wrap justify-between items-start">
+      <p class="flex gap-2 items-center">
         <span class="text-xl">
           {{ account.name }}
         </span>
 
-        <div class="flex items-center gap-1">
-          <PortfolioTransferDialog :account="account" context="account" @success="handleTransferSuccess">
+        <div class="flex gap-1 items-center">
+          <PortfolioTransferDialog :account="account" context="account">
             <Button variant="ghost" size="icon" title="Transfer to Portfolio">
               <ArrowRightLeftIcon :size="20" />
             </Button>
@@ -96,7 +91,7 @@ const handleTransferSuccess = () => {
           </Popover.Popover>
         </div>
       </p>
-      <div class="ml-auto flex flex-wrap items-end justify-start gap-2">
+      <div class="flex flex-wrap gap-2 justify-start items-end ml-auto">
         <span v-if="account.currencyId !== baseCurrency.currencyId" class="text-white text-opacity-50">
           ~
           {{ toLocalNumber(account.refCurrentBalance) }}

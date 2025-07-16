@@ -33,9 +33,10 @@ const handleCancel = () => {
 
 // Dynamic title and description based on context
 const dialogTitle = props.context === 'portfolio' ? 'Transfer from Portfolio' : 'Transfer from Account';
-const dialogDescription = props.context === 'portfolio' 
-  ? 'Transfer funds from this portfolio to another portfolio or account.'
-  : 'Transfer funds from this account to a portfolio.';
+const dialogDescription =
+  props.context === 'portfolio'
+    ? 'Transfer funds from this portfolio to another portfolio or account.'
+    : 'Transfer funds from this account to a portfolio.';
 </script>
 
 <template>
@@ -47,7 +48,7 @@ const dialogDescription = props.context === 'portfolio'
     <template #title>{{ dialogTitle }}</template>
     <template #description>{{ dialogDescription }}</template>
 
-    <PortfolioTransferForm 
+    <PortfolioTransferForm
       :context="context"
       :initial-portfolio="portfolio"
       :initial-account="account"

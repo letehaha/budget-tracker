@@ -81,6 +81,8 @@ export const useAccountsStore = defineStore('accounts', () => {
     systemAccounts,
     accountsCurrencyIds,
 
+    refetchAccounts,
+
     createAccount,
     editAccount,
     deleteAccount,
