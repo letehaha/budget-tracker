@@ -39,20 +39,35 @@ const routes = [
         component: () => import('@/pages/crypto/crypto.vue'),
       },
       {
+        path: '/investments',
+        name: ROUTES_NAMES.investments,
+        component: () => import('@/pages/investments/investments.vue'),
+      },
+      {
+        path: '/investments/:accountId',
+        name: ROUTES_NAMES.investmentAccount,
+        component: () => import('@/pages/investments/account.vue'),
+      },
+      {
+        path: '/portfolios/:portfolioId',
+        name: ROUTES_NAMES.portfolioDetail,
+        component: () => import('@/pages/portfolios/portfolio-detail.vue'),
+      },
+      {
         path: '/analytics',
         name: ROUTES_NAMES.analytics,
         beforeEnter: [devOnly],
         component: () => import('@/pages/analytics/index.vue'),
       },
       {
-        path: "/budgets",
+        path: '/budgets',
         name: ROUTES_NAMES.budgets,
-        component: () => import("@/pages/budgets/budgets.vue"),
+        component: () => import('@/pages/budgets/budgets.vue'),
       },
       {
-        path: "/budgets/:id",
+        path: '/budgets/:id',
         name: ROUTES_NAMES.budgetsInfo,
-        component: () => import("@/pages/budgets/budgets-info/index.vue"),
+        component: () => import('@/pages/budgets/budgets-info/index.vue'),
       },
       {
         path: '/transactions',

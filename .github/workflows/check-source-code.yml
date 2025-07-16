@@ -95,6 +95,7 @@ jobs:
           # TODO: temporary set to 1 due to issues with migrations with +1 worker
           envkey_JEST_WORKERS_AMOUNT: 1
           envkey_SHOW_LOGS_IN_TESTS: false
+          envkey_POLYGON_API_KEY: random-key
           file_name: .env.test
           fail_on_empty: true # fail if any env variable is empty
       - name: Run ${{ matrix.task }}

@@ -1,0 +1,18 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Type Definitions
+
+## Common Types Location
+- API types: @bt/shared/types/api.ts
+- DB models: @bt/shared/types/db-models.ts
+- Endpoints: @bt/shared/types/endpoints.ts
+
+## Type Usage Rules
+1. Always define interfaces for service parameters
+2. Use shared types from @bt/shared/types
+3. Export types when they're used across modules
+4. Use proper typing for async operations
+5. Define enum types in shared location

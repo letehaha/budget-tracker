@@ -1,6 +1,6 @@
 import { until } from '@common/helpers';
 import { usersQuery } from '@controllers/banks/monobank.controller';
-import { afterAll, afterEach, beforeAll, beforeEach, expect } from '@jest/globals';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
@@ -12,6 +12,20 @@ import Umzug from 'umzug';
 import { setupMswServer } from './mocks/setup-mock-server';
 
 const mswMockServer = setupMswServer();
+
+// Mock the entire module globally. Mocked implementation will be per-test
+jest.mock('@polygon.io/client-js', () => ({
+  restClient: jest.fn().mockReturnValue({
+    reference: {
+      tickers: jest.fn(),
+      exchanges: jest.fn(),
+    },
+    stocks: {
+      aggregatesGroupedDaily: jest.fn(),
+      aggregates: jest.fn(),
+    },
+  }),
+}));
 
 beforeAll(() => mswMockServer.listen({ onUnhandledRequest: 'bypass' }));
 afterEach(() => mswMockServer.resetHandlers());
@@ -25,8 +39,12 @@ const umzug = new Umzug({
     params: [connection.sequelize.getQueryInterface(), connection.sequelize.constructor],
     // The path to the migrations directory
     path: path.join(__dirname, '../migrations'),
-    // The pattern that determines whether files are migrations
-    pattern: /\.js$/,
+    pattern: /\.(js|ts)$/,
+    // Add a custom resolver to handle .ts files.
+    // This tells Umzug to use Node's `require` for any matched file.
+    // Because your tests are run with ts-jest, `ts-node` is already
+    // registered and will automatically transpile the .ts file when required.
+    customResolver: (path) => require(path),
   },
   storage: 'sequelize',
   storageOptions: {
@@ -55,6 +73,34 @@ async function dropAllEnums(sequelize) {
   }
 }
 
+async function waitForDatabaseConnection() {
+  await until(
+    async () => {
+      try {
+        await connection.sequelize.authenticate();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { timeout: 10000, interval: 100 },
+  );
+}
+
+async function waitForRedisConnection() {
+  await until(
+    async () => {
+      try {
+        const result = await redisClient.hello();
+        return !!result;
+      } catch {
+        return false;
+      }
+    },
+    { timeout: 10000, interval: 100 },
+  );
+}
+
 expect.extend({
   toBeAnythingOrNull(received) {
     if (received !== undefined) {
@@ -75,26 +121,63 @@ expect.extend({
       message: () => `expected ${received} to be within ${range} of ${target}`,
     };
   },
+  toBeNumericEqual(received, expected) {
+    const pass = Number(received) === Number(expected);
+    if (pass) {
+      return {
+        message: () => `expected ${received} not to be numerically equal to ${expected}`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: () => `expected ${received} to be numerically equal to ${expected}`,
+        pass: false,
+      };
+    }
+  },
+  toBeAfter(received: Date, expected: Date) {
+    const pass = received > expected;
+    return {
+      pass,
+      message: () => `expected ${received} to be after ${expected}`,
+    };
+  },
+  toBeBefore(received: Date, expected: Date) {
+    const pass = received < expected;
+    return {
+      pass,
+      message: () => `expected ${received} to be before ${expected}`,
+    };
+  },
 });
 
 beforeEach(async () => {
   try {
-    await until(async () => {
-      // Wait until connection is established
-      const result = await redisClient.hello();
-      return !!result;
-    });
-    // Not sure how exactly but fixes DB deadlock
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Wait for both database and Redis connections with better error handling
+    await Promise.all([waitForDatabaseConnection(), waitForRedisConnection()]);
+
+    // Dynamic delay based on worker ID to reduce database contention
+    const workerId = parseInt(process.env.JEST_WORKER_ID || '1', 10);
+    const staggerDelay = workerId * 200; // 200ms per worker
+    await new Promise((resolve) => setTimeout(resolve, staggerDelay));
+
+    // Clean up database schema
     await connection.sequelize.drop({ cascade: true });
     await dropAllEnums(connection.sequelize);
+
+    // Clean up Redis keys for this worker
     const workerKeys = await redisClient.keys(`${process.env.JEST_WORKER_ID}*`);
     if (workerKeys.length) {
       await redisClient.del(workerKeys);
     }
-    await umzug.up();
+
+    // Clear query cache
     usersQuery.clear();
 
+    // Run migrations (this can be slow with TypeScript)
+    await umzug.up();
+
+    // Set up test user
     await makeRequest({
       method: 'post',
       url: '/auth/register',
@@ -134,9 +217,10 @@ beforeEach(async () => {
       payload: { currencyId: global.BASE_CURRENCY.id },
     });
   } catch (err) {
-    console.log(err);
+    console.error('Setup failed:', err);
+    throw err;
   }
-}, 10_000);
+}, 30_000); // Increased timeout due to TypeScript migrations and other stuff
 
 afterAll(async () => {
   try {

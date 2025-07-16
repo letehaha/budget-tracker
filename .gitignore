@@ -133,3 +133,14 @@ jspm_packages/
 
 # File that contains project's context details for LLM models
 ai-context.md
+
+# Different kinds of data
+packages/backend/data
+
+dev-debug.log
+# Environment variables
+# OS specific
+
+# Task files
+# tasks.json
+# tasks/ 

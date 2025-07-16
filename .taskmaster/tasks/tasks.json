@@ -1,0 +1,848 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 24,
+        "title": "Coordinate Investment-Tracking Feature Release",
+        "description": "Oversee the completion of detailed tasks in the 'investment-tracking' tag and coordinate release readiness for the investment-tracking feature.",
+        "details": "1. Task Coordination:\n   - Review and prioritize all pending tasks with the 'investment-tracking' tag\n   - Ensure all dependencies are correctly identified and managed\n   - Coordinate with team leads to assign resources and set deadlines\n\n2. Feature Completeness Check:\n   - Verify that all core investment-tracking functionalities are implemented:\n     a. Investment Transactions (Task 6, 7, 21)\n     b. Portfolio Management (Task 16, 17, 22, 23)\n     c. Holdings Display (Task 19)\n     d. Security Search and Addition (Task 20)\n   - Conduct a gap analysis to identify any missing features or improvements needed\n\n3. Integration Testing:\n   - Develop a comprehensive test plan covering all investment-tracking features\n   - Coordinate with QA team to execute integration tests\n   - Ensure all components work together seamlessly (frontend, backend, API)\n\n4. Performance Optimization:\n   - Review API response times for investment-related endpoints\n   - Optimize database queries for portfolio and transaction data\n   - Implement caching strategies where appropriate\n\n5. User Experience Review:\n   - Conduct usability testing sessions with sample users\n   - Gather feedback on the investment tracking workflow\n   - Implement necessary UI/UX improvements based on feedback\n\n6. Documentation and Training:\n   - Ensure all API endpoints are properly documented\n   - Create user guides for the investment-tracking features\n   - Prepare training materials for customer support team\n\n7. Security Audit:\n   - Conduct a security review of all investment-related features\n   - Verify proper implementation of authentication and authorization\n   - Ensure sensitive financial data is properly encrypted and protected\n\n8. Release Preparation:\n   - Create a detailed release plan and timeline\n   - Coordinate with DevOps for deployment strategy\n   - Prepare rollback plans in case of unforeseen issues\n\n9. Stakeholder Communication:\n   - Provide regular updates to product owners and management\n   - Prepare demo sessions for stakeholders\n   - Create release notes highlighting new features and improvements",
+        "testStrategy": "1. Comprehensive Feature Testing:\n   - Verify all investment-tracking features are functional:\n     a. Create, update, and delete investment transactions\n     b. Manage portfolios (create, edit, delete, transfer)\n     c. View and interact with holdings table\n     d. Search and add new securities\n   - Test edge cases and error handling for each feature\n\n2. Integration Test Suite:\n   - Develop and run automated integration tests covering the entire investment-tracking workflow\n   - Verify data consistency across different components (e.g., transaction creation reflects in holdings)\n\n3. Performance Testing:\n   - Conduct load tests on investment-related API endpoints\n   - Measure and optimize response times for data-heavy operations (e.g., portfolio valuation)\n\n4. User Acceptance Testing (UAT):\n   - Organize UAT sessions with stakeholders and sample users\n   - Collect and address feedback from UAT participants\n\n5. Security Testing:\n   - Perform penetration testing on investment-related features\n   - Verify data encryption for sensitive financial information\n   - Test authentication and authorization mechanisms\n\n6. Cross-browser and Cross-device Testing:\n   - Ensure investment-tracking features work correctly on different browsers and devices\n\n7. Regression Testing:\n   - Run regression tests to ensure new features haven't broken existing functionality\n\n8. Documentation Review:\n   - Verify accuracy and completeness of API documentation\n   - Review user guides and training materials for clarity and correctness\n\n9. Deployment Dry Run:\n   - Perform a mock deployment in a staging environment\n   - Test the rollback procedure\n\n10. Post-deployment Smoke Tests:\n    - Prepare a set of critical path tests to run immediately after deployment\n    - Verify core investment-tracking features are operational in the production environment",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-02T23:14:52.190Z",
+      "updated": "2025-07-03T11:13:24.011Z",
+      "description": "Tasks related to investment tracking functionality including portfolio management, holdings, transactions, and UI components"
+    }
+  },
+  "investment-tracking": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Data Provider Foundation",
+        "description": "Create base data provider interface, implement Polygon provider with search/pricing methods, and add provider factory and configuration",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [],
+        "details": "✅ COMPLETED: BaseSecurityDataProvider interface exists, PolygonDataProvider fully implemented with search/pricing methods, DataProviderFactory with configuration management is complete.",
+        "testStrategy": "Verify provider factory can instantiate Polygon provider, test search and pricing methods with mock data",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Security Management Services",
+        "description": "Create security CRUD service, implement security search functionality, and add security validation and duplicate detection",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [],
+        "details": "✅ COMPLETED: Securities model exists with full CRUD operations, search functionality implemented via search.service.ts, securities-manage.ts handles validation and duplicate detection.",
+        "testStrategy": "Test CRUD operations, search functionality, and duplicate detection logic",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Price Syncing System",
+        "description": "Create price syncing service using data providers, implement batch price updates, and add price history management",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [],
+        "details": "✅ COMPLETED: price-sync.service.ts implements price syncing, SecurityPricing model handles price history, batch updates implemented for daily price sync.",
+        "testStrategy": "Test price sync service with mock provider data, verify batch updates and price history storage",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Security API Endpoints",
+        "description": "Implement POST /investing/securities/search, POST /investing/securities, GET /investing/securities/:id, and GET /investing/securities/:id/prices endpoints",
+        "status": "in-progress",
+        "priority": "medium",
+        "dependencies": [],
+        "details": "🟡 PARTIALLY COMPLETED: \n✅ GET /securities (all securities) - implemented\n✅ GET /securities/search - implemented\n✅ POST /securities (add individual security) - NOT NEEDED (securities added only via sync process)\n❌ GET /securities/:id - missing\n❌ GET /securities/:id/prices - missing (GET /prices exists but different endpoint)",
+        "testStrategy": "Test all security endpoints with various payloads and edge cases",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Holdings Management",
+        "description": "Create holdings calculation service, implement portfolio value calculations, and add holdings CRUD operations",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [],
+        "details": "✅ COMPLETED: Holdings model and service implemented, get-holdings.service.ts provides portfolio calculations, CRUD operations available via holdings controllers.",
+        "testStrategy": "Test holdings calculations, portfolio value computations, and CRUD operations",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Investment Transactions",
+        "description": "Create investment transaction service, implement buy/sell/dividend transaction logic, and add transaction validation and holdings updates",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [],
+        "details": "✅ COMPLETED: InvestmentTransaction model implemented with full transaction logic, buy/sell/dividend transaction support, validation and holdings updates integrated.",
+        "testStrategy": "Test transaction creation, validation, and automatic holdings updates",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Investment Transaction API",
+        "description": "Implement POST /investing/transactions, GET /investing/transactions, PUT /investing/transactions/:id, and DELETE /investing/transactions/:id endpoints",
+        "status": "done",
+        "priority": "medium",
+        "dependencies": [],
+        "details": "✅ COMPLETED: All transaction API endpoints implemented:\n✅ POST /transaction - create investment transaction\n✅ GET /transactions - list transactions with filters\n✅ PUT /transaction/:transactionId - update transaction\n✅ DELETE /transaction/:transactionId - delete transaction",
+        "testStrategy": "Test all transaction API endpoints with various scenarios",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Portfolio API Endpoints",
+        "description": "Implement GET /investing/accounts/:id/holdings, GET /investing/accounts/:id/performance, and GET /investing/portfolio/overview endpoints",
+        "status": "in-progress",
+        "priority": "medium",
+        "dependencies": [],
+        "details": "🟡 PARTIALLY COMPLETED:\n✅ GET /accounts/:accountId/holdings - implemented\n❌ GET /accounts/:id/performance - missing\n❌ GET /portfolio/overview - missing",
+        "testStrategy": "Test portfolio endpoints with various account scenarios and performance calculations",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Price Sync Jobs",
+        "description": "Create scheduled job for daily price updates, add error handling and retry logic, and implement rate limiting for API calls",
+        "status": "done",
+        "priority": "medium",
+        "dependencies": [],
+        "details": "✅ COMPLETED: sync-securities-prices.ts cron job implemented for daily price updates, error handling and retry logic in place, rate limiting implemented in Polygon provider.",
+        "testStrategy": "Test scheduled job execution, error handling scenarios, and rate limiting behavior",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Testing & Validation",
+        "description": "Create unit tests for core services, integration tests for API endpoints, and end-to-end transaction flow tests",
+        "status": "done",
+        "priority": "low",
+        "dependencies": [],
+        "details": "✅ COMPLETED: Comprehensive test suite exists with unit tests (.e2e.ts files), integration tests for API endpoints, end-to-end transaction flow tests, and test helpers for securities, prices, and transactions.",
+        "testStrategy": "Run full test suite to verify all functionality works correctly",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Frontend: Main Portfolios Page Setup",
+        "description": "Create /portfolios route in Vue Router, set up basic page layout with navigation, and create portfolios listing component",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "Create the main portfolios page that displays all user's portfolios in a clean list/card format. Should integrate with existing filtering to show only portfolio types. Include multi-currency balance display for each portfolio.",
+        "testStrategy": "Test page loads correctly, shows portfolios with multi-currency balances, navigation works properly",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Frontend: Portfolio API Integration",
+        "description": "Implement complete end-to-end portfolio creation functionality",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "Create a vertical slice for the portfolio creation feature, including API integration, composables, UI components, and full integration. This task covers the entire workflow from user input to API submission and UI update.",
+        "testStrategy": "",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "API Layer: Integrate POST /portfolios endpoint",
+            "description": "Implement API call to create a new portfolio using the POST /portfolios endpoint.",
+            "status": "done",
+            "dependencies": [],
+            "details": "Set up the API call structure, handle request payload formatting, and manage response parsing for successful portfolio creation.\n<info added on 2025-07-03T07:12:06.110Z>\nCreated portfolios.ts API integration file with comprehensive CRUD operations:\n- createPortfolio() for POST /investments/portfolios\n- getPortfolios() for listing portfolios\n- getPortfolio() for individual portfolio fetching\n- updatePortfolio() for PUT operations\n- deletePortfolio() for DELETE operations\nImplemented proper TypeScript types, including CreatePortfolioRequest interface. All API calls utilize the existing api instance pattern for consistency and maintainability.\n</info added on 2025-07-03T07:12:06.110Z>",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Composables: Create useCreatePortfolio",
+            "description": "Develop a useCreatePortfolio composable to handle form state, validation, and submission logic for creating a new portfolio.",
+            "status": "done",
+            "dependencies": [],
+            "details": "Implement form state management, input validation rules, and submission handling within the composable. Ensure proper error handling and success state management.\n<info added on 2025-07-03T07:17:31.454Z>\nRefactored to a cleaner, simpler composables approach:\n\n1. Mutation composables:\n   - useCreatePortfolio(): Raw useMutation() with auto-invalidation\n   - useUpdatePortfolio(): Raw useMutation() with optimistic updates\n   - useDeletePortfolio(): Raw useMutation() with cache cleanup\n\n2. Query composables:\n   - usePortfolios(): Spreads all query properties and includes invalidate() function\n   - usePortfolio(): Spreads all query properties and includes invalidate() function\n\nThis new approach provides maximum flexibility, reduces maintenance overhead, and simplifies the codebase while adhering to Vue Query best practices. The refactoring improves the overall structure of the portfolio API integration, making it easier to manage state, handle mutations, and perform queries efficiently.\n</info added on 2025-07-03T07:17:31.454Z>",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "UI: Design and implement portfolio creation form/modal",
+            "description": "Create a user-friendly form or modal for portfolio creation with proper validation and error handling.",
+            "status": "done",
+            "dependencies": [],
+            "details": "Design and implement the UI components for portfolio creation, including input fields, validation feedback, and submission button. Ensure responsive design and accessibility considerations.",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Integration: Connect API, composables, and UI",
+            "description": "Integrate all layers to ensure smooth data flow from user input to API submission and UI update upon successful creation.",
+            "status": "done",
+            "dependencies": [],
+            "details": "Connect the UI components with the useCreatePortfolio composable, and ensure proper API integration. Implement loading states, error handling, and success feedback in the UI based on API responses.",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Portfolio Listing and Viewing Feature Implementation",
+        "description": "Implement end-to-end functionality for displaying portfolios, including API integration, composables, UI components, navigation, and complete functionality for viewing portfolios.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "1. API Integration:\n   - Implement GET /portfolios endpoint in the backend if not already done\n   - Create an API service in the frontend to fetch portfolio data\n\n2. Composables:\n   - Develop a `usePortfolios` composable for fetching and managing the portfolio list\n   - Include pagination, sorting, and filtering capabilities in the composable\n\n3. UI Components:\n   - Create a PortfolioList component to display portfolios as cards or in a list format\n   - Implement a PortfolioCard component for individual portfolio display\n   - Ensure responsive design for various screen sizes\n\n4. Main Investments Page:\n   - Integrate PortfolioList component into the main investments page\n   - Implement sorting and filtering options for portfolios\n\n5. Navigation:\n   - Set up a route for individual portfolio detail pages (e.g., /portfolios/:id)\n   - Implement navigation from portfolio list/cards to individual portfolio pages\n\n6. Portfolio Detail Page:\n   - Create a PortfolioDetail component to display comprehensive information about a single portfolio\n   - Fetch and display portfolio holdings, performance, and other relevant data\n\n7. State Management:\n   - Integrate with Vuex or Pinia for efficient state management of portfolio data\n\n8. Error Handling:\n   - Implement proper error handling for API calls and data processing\n   - Display user-friendly error messages\n\n9. Loading States:\n   - Add loading indicators for asynchronous operations\n\n10. Optimization:\n    - Implement lazy loading for portfolio images or heavy content\n    - Use virtual scrolling for long lists of portfolios if necessary\n\n11. Accessibility:\n    - Ensure all new components and pages are accessible (ARIA attributes, keyboard navigation)\n\n12. Integration:\n    - Ensure seamless integration with the portfolio creation feature from Task 12",
+        "testStrategy": "Implementation-focused task. Testing requirements have been removed as per the new context.",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Implement Portfolio Detail Page",
+        "description": "Complete the portfolio detail page implementation, including API integration, composables, UI components, navigation, and full integration for viewing detailed portfolio information.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "1. API Integration:\n   - Utilize the existing GET /investing/accounts/:id/holdings endpoint (from Task 8)\n   - Implement GET /portfolios/:id endpoint in the backend to fetch individual portfolio data including balances\n   - Create an API service in the frontend to fetch detailed portfolio data\n\n2. Composables:\n   - Develop a `usePortfolioDetail` composable for fetching and managing individual portfolio data\n   - Include error handling and loading states in the composable\n\n3. UI Components:\n   - Create a PortfolioDetailPage component as the main container for the detail view\n   - Implement subcomponents:\n     - PortfolioOverview: Display general portfolio information (name, description, total value)\n     - PortfolioBalance: Show multi-currency balances\n     - HoldingsSummary: Display a summary of portfolio holdings\n\n4. Navigation:\n   - Add a new route in Vue Router: /portfolios/:portfolioId\n   - Update the PortfolioList component (from Task 13) to link each portfolio to its detail page\n\n5. Integration:\n   - Connect the PortfolioDetailPage component with the `usePortfolioDetail` composable\n   - Ensure proper data flow from API to UI components\n   - Implement error handling and loading states in the UI\n\n6. Responsive Design:\n   - Ensure the detail page is fully responsive and works well on mobile devices\n\n7. Performance Optimization:\n   - Implement lazy loading for the detail page component\n   - Consider implementing virtual scrolling for large lists of holdings",
+        "testStrategy": "",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement API Integration for Portfolio Detail",
+            "description": "Set up the backend endpoint and frontend service for fetching detailed portfolio data",
+            "dependencies": [],
+            "details": "1. Implement GET /portfolios/:id endpoint in the backend to fetch individual portfolio data including balances. 2. Create an API service in the frontend to fetch detailed portfolio data using the new endpoint and the existing GET /investing/accounts/:id/holdings endpoint.",
+            "status": "done",
+            "testStrategy": "Write unit tests for the backend endpoint and integration tests for the frontend API service"
+          },
+          {
+            "id": 2,
+            "title": "Develop usePortfolioDetail Composable",
+            "description": "Create a composable for managing individual portfolio data, including error handling and loading states",
+            "dependencies": [],
+            "details": "1. Implement usePortfolioDetail composable with functions to fetch and manage portfolio data. 2. Include error handling logic and loading state management. 3. Ensure the composable integrates with the API service created in the previous subtask.",
+            "status": "done",
+            "testStrategy": "Write unit tests for the composable, mocking API calls and testing different scenarios (success, error, loading)"
+          },
+          {
+            "id": 3,
+            "title": "Create UI Components for Portfolio Detail Page",
+            "description": "Implement the main PortfolioDetailPage component and its subcomponents",
+            "dependencies": [],
+            "details": "1. Create PortfolioDetailPage as the main container component. 2. Implement PortfolioOverview, PortfolioBalance, and HoldingsSummary subcomponents. 3. Ensure components are responsive and work well on mobile devices. 4. Implement lazy loading for the detail page component.",
+            "status": "done",
+            "testStrategy": "Write unit tests for each component and conduct visual regression testing"
+          },
+          {
+            "id": 4,
+            "title": "Set Up Navigation for Portfolio Detail",
+            "description": "Configure routing and update existing components to enable navigation to the detail page",
+            "dependencies": [],
+            "details": "1. Add a new route in Vue Router: /portfolios/:portfolioId. 2. Update the PortfolioList component to link each portfolio to its detail page. 3. Implement proper navigation guards and error handling for invalid portfolio IDs.",
+            "status": "done",
+            "testStrategy": "Write end-to-end tests to verify correct navigation behavior"
+          },
+          {
+            "id": 5,
+            "title": "Integrate Components and Optimize Performance",
+            "description": "Connect all components, implement error handling, and optimize performance",
+            "dependencies": [],
+            "details": "1. Connect the PortfolioDetailPage component with the usePortfolioDetail composable. 2. Implement error handling and loading states in the UI. 3. Optimize performance by implementing virtual scrolling for large lists of holdings. 4. Conduct final integration testing and performance profiling.",
+            "status": "done",
+            "testStrategy": "Perform end-to-end testing of the entire feature and conduct performance benchmarking"
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Portfolio Edit & Settings Feature Implementation",
+        "description": "Implement complete portfolio modification functionality, including API integration, composables, UI components, and validation for updating portfolio details.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "details": "1. API Integration:\n   - Implement PUT /portfolios/:id endpoint in the backend for updating portfolio details\n   - Create an API service in the frontend to handle portfolio updates\n\n2. Composables:\n   - Develop a `useEditPortfolio` composable for form handling and validation\n   - Include error handling and loading states in the composable\n\n3. UI Components:\n   - Create a PortfolioSettingsForm component with fields for name, description, and type\n   - Implement form validation with error messages for each field\n   - Add a submit button and cancel option\n\n4. Validation:\n   - Implement client-side validation for all form fields\n   - Ensure proper error handling and display of validation messages\n\n5. Integration:\n   - Connect the PortfolioSettingsForm component to the useEditPortfolio composable\n   - Integrate the edit functionality into the portfolio detail page (from Task 14)\n   - Implement success and error notifications for update attempts\n\n6. State Management:\n   - Update the portfolio state after successful edits\n   - Ensure the UI reflects the latest portfolio data after modifications\n\n7. Navigation:\n   - Add a \"Edit Portfolio\" button or link on the portfolio detail page\n   - Implement navigation back to the detail page after successful updates\n\n8. Accessibility:\n   - Ensure all form fields and buttons are properly labeled for screen readers\n   - Implement keyboard navigation for the edit form\n\n9. Responsive Design:\n   - Make sure the edit form is usable on both desktop and mobile devices",
+        "testStrategy": "",
+        "subtasks": [
+          {
+            "id": 3,
+            "title": "Build PortfolioSettingsForm Component",
+            "description": "Create a reusable form component for editing portfolio details with validation. [Updated: 7/3/2025]",
+            "status": "done",
+            "dependencies": [],
+            "details": "1. Create PortfolioSettingsForm with fields for name, description, and type\n2. Implement form validation with error messages\n3. Add submit and cancel buttons\n4. Ensure responsive design and accessibility\n<info added on 2025-07-03T11:44:28.399Z>\nThis subtask does not contain any references to testStrategy or frontend tests, so no changes or additions are necessary based on the user's request.\n</info added on 2025-07-03T11:44:28.399Z>",
+            "testStrategy": "Write component tests for form rendering, validation, and submission"
+          },
+          {
+            "id": 5,
+            "title": "Perform Final Checks and Testing",
+            "description": "Conduct final checks and thorough testing of the edit functionality. [Updated: 7/3/2025]",
+            "status": "done",
+            "dependencies": [],
+            "details": "1. Perform final accessibility checks\n2. Ensure consistent responsive design across devices\n3. Conduct thorough testing of the entire edit workflow\n<info added on 2025-07-03T11:41:00.668Z>\n1. Perform comprehensive accessibility checks, including keyboard navigation and screen reader compatibility\n2. Verify responsive design consistency across various devices and screen sizes\n3. Conduct thorough testing of the entire portfolio edit workflow, including edge cases\n4. Test integration with other components and the backend API\n5. Validate form submissions and error handling\n6. Ensure proper state management throughout the editing process\n7. Check for any performance issues, especially with large portfolios\n8. Verify that all UI elements are functioning as expected\n9. Document any remaining issues or potential improvements for future iterations\n</info added on 2025-07-03T11:41:00.668Z>\n<info added on 2025-07-03T11:44:47.240Z>\n1. Perform comprehensive accessibility checks, including keyboard navigation and screen reader compatibility\n2. Verify responsive design consistency across various devices and screen sizes\n3. Conduct thorough review of the entire portfolio edit workflow, including edge cases\n4. Check integration with other components and the backend API\n5. Validate form submissions and error handling\n6. Ensure proper state management throughout the editing process\n7. Check for any performance issues, especially with large portfolios\n8. Verify that all UI elements are functioning as expected\n9. Document any remaining issues or potential improvements for future iterations\n</info added on 2025-07-03T11:44:47.240Z>",
+            "testStrategy": "Conduct accessibility audits and cross-browser/device testing"
+          },
+          {
+            "id": 1,
+            "title": "Implement Backend API for Portfolio Updates",
+            "description": "Create a PUT /portfolios/:id endpoint in the backend to handle portfolio updates. [Updated: 7/3/2025]",
+            "dependencies": [],
+            "details": "1. Define the route for PUT /portfolios/:id\n2. Implement input validation for portfolio fields\n3. Update the portfolio in the database\n4. Return appropriate success/error responses\n<info added on 2025-07-03T11:44:15.244Z>\n1. Define the route for PUT /portfolios/:id\n2. Implement input validation for portfolio fields\n3. Update the portfolio in the database\n4. Return appropriate success/error responses\n</info added on 2025-07-03T11:44:15.244Z>",
+            "status": "done",
+            "testStrategy": "Write unit tests for input validation and integration tests for successful and failed update scenarios"
+          },
+          {
+            "id": 2,
+            "title": "Create Frontend API Service and Composable",
+            "description": "Develop a frontend API service for portfolio updates and a useEditPortfolio composable for form handling. [Updated: 7/3/2025]",
+            "dependencies": [],
+            "details": "1. Create an API service function for updating portfolios\n2. Implement useEditPortfolio composable with form state, validation, and API call\n3. Include error handling and loading states in the composable\n<info added on 2025-07-03T11:44:22.410Z>\n1. Create an API service function for updating portfolios\n2. Implement useEditPortfolio composable with form state, validation, and API call\n3. Include error handling and loading states in the composable\n</info added on 2025-07-03T11:44:22.410Z>",
+            "status": "done",
+            "testStrategy": "Write unit tests for the composable, mocking API calls"
+          },
+          {
+            "id": 4,
+            "title": "Integrate Edit Functionality into Portfolio Detail Page",
+            "description": "Connect the PortfolioSettingsForm to the useEditPortfolio composable and integrate it into the portfolio detail page. [Updated: 7/3/2025]",
+            "dependencies": [],
+            "details": "1. Add an 'Edit Portfolio' button on the portfolio detail page\n2. Implement navigation to the edit form\n3. Connect PortfolioSettingsForm to useEditPortfolio\n4. Handle form submission and show success/error notifications\n5. Update portfolio state after successful edits\n<info added on 2025-07-03T11:44:41.247Z>\nThe subtask details do not contain any references to testStrategy or frontend tests, so no changes or additions are necessary based on the user's request.\n</info added on 2025-07-03T11:44:41.247Z>",
+            "status": "done",
+            "testStrategy": "Perform end-to-end tests for the edit workflow"
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "title": "Implement Portfolio Deletion Feature",
+        "description": "Complete the portfolio deletion functionality, including API integration, composables, UI components, validation, and full integration for safely deleting portfolios with appropriate safeguards.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "details": "1. API Integration:\n   - Implement DELETE /portfolios/:id endpoint in the backend\n   - Add validation to ensure the portfolio can be deleted (no active holdings or balances)\n   - Create an API service in the frontend to handle portfolio deletion requests\n\n2. Composables:\n   - Develop a `useDeletePortfolio` composable for handling the deletion process\n   - Include confirmation handling and error management in the composable\n   - Implement proper state management for deletion status\n\n3. UI Components:\n   - Create a DeletePortfolioDialog component for the confirmation process\n   - Include clear warnings about the implications of deleting a portfolio\n   - Display information about any active holdings or balances preventing deletion\n\n4. Validation:\n   - Implement server-side validation to prevent deletion of portfolios with active holdings or balances\n   - Add client-side validation to disable the delete option for portfolios with active holdings or balances\n   - Create error messages and user feedback for failed deletion attempts\n\n5. Integration:\n   - Connect the DeletePortfolioDialog to the PortfolioDetail and PortfolioList components\n   - Ensure proper navigation after successful deletion (e.g., redirect to portfolio list)\n   - Implement proper error handling and user feedback throughout the deletion process\n\n6. Cleanup:\n   - Implement a cleanup process to remove all associated data (e.g., historical performance data, settings) when a portfolio is deleted\n   - Ensure this cleanup process is atomic and can be rolled back in case of failure\n\n7. Permissions:\n   - Implement permission checks to ensure only authorized users can delete a portfolio\n   - Add appropriate error handling for unauthorized deletion attempts",
+        "testStrategy": "",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement API Endpoint for Portfolio Deletion",
+            "description": "Create the DELETE /portfolios/:id endpoint in the backend with proper validation and error handling.",
+            "dependencies": [],
+            "details": "1. Add a new route for DELETE /portfolios/:id in the API router.\n2. Implement the controller function to handle the deletion request.\n3. Add validation to check for active holdings or balances.\n4. Implement the database query to delete the portfolio if validation passes.\n5. Return appropriate success or error responses.",
+            "status": "done",
+            "testStrategy": "Write unit tests for the controller function, including cases for successful deletion, portfolios with active holdings, and non-existent portfolios."
+          },
+          {
+            "id": 2,
+            "title": "Create useDeletePortfolio Composable",
+            "description": "Develop a composable function to handle the portfolio deletion process in the frontend.",
+            "dependencies": [],
+            "details": "1. Create a new file useDeletePortfolio.js in the composables directory.\n2. Implement the composable with functions for initiating deletion, handling confirmation, and managing deletion status.\n3. Integrate with the API service to send the deletion request.\n4. Implement error handling and success feedback.\n5. Use Vue's reactive properties to manage the deletion state.",
+            "status": "done",
+            "testStrategy": "Write unit tests for the composable, mocking API calls and testing different scenarios (success, failure, cancellation)."
+          },
+          {
+            "id": 3,
+            "title": "Develop DeletePortfolioDialog Component",
+            "description": "Create a reusable dialog component for confirming portfolio deletion and displaying relevant information.",
+            "dependencies": [],
+            "details": "1. Create a new Vue component file DeletePortfolioDialog.vue.\n2. Implement the dialog UI with warning messages and confirmation buttons.\n3. Display information about active holdings or balances if present.\n4. Use the useDeletePortfolio composable for handling the deletion process.\n5. Emit events for successful deletion or cancellation.",
+            "status": "done",
+            "testStrategy": "Write component tests to ensure proper rendering of dialog content and correct emission of events."
+          },
+          {
+            "id": 4,
+            "title": "Integrate Deletion Feature in Portfolio Components",
+            "description": "Add deletion functionality to PortfolioDetail and PortfolioList components, including proper navigation and error handling.",
+            "dependencies": [],
+            "details": "1. Add a delete button or option in both PortfolioDetail and PortfolioList components.\n2. Implement logic to show/hide delete option based on portfolio status (active holdings/balances).\n3. Use the DeletePortfolioDialog component when delete is initiated.\n4. Handle successful deletion by updating the UI and navigating (to portfolio list from detail view).\n5. Implement error handling and display appropriate user feedback.",
+            "status": "done",
+            "testStrategy": "Perform integration tests to ensure proper interaction between components and correct navigation after deletion."
+          },
+          {
+            "id": 5,
+            "title": "Implement Cleanup Process and Permission Checks",
+            "description": "Create a cleanup process for associated data and add permission checks for portfolio deletion.",
+            "dependencies": [],
+            "details": "1. Implement a database transaction for atomically deleting the portfolio and all associated data (historical performance, settings).\n2. Add a rollback mechanism in case of failure during the cleanup process.\n3. Implement permission checks in the backend to ensure only authorized users can delete a portfolio.\n4. Update the API endpoint to include these permission checks.\n5. Modify the frontend composable to handle permission-related errors.",
+            "status": "done",
+            "testStrategy": "Write integration tests for the cleanup process, ensuring all associated data is properly removed. Test permission checks with different user roles."
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Implement Portfolio Transfer Feature",
+        "description": "Complete money transfer functionality between accounts and portfolios, including API integration, composables, UI components, validation, and full integration for a transfer workflow.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "1. API Integration:\n   - Implement POST /portfolios/transfers endpoint in the backend\n   - Create an API service in the frontend to handle transfer requests\n   - Ensure proper error handling and response formatting\n\n2. Composables:\n   - Develop a `usePortfolioTransfer` composable for transfer form handling and validation\n   - Include balance checking, currency conversion (if needed), and transfer limit validation\n   - Implement proper state management for transfer status and errors\n\n3. UI Components:\n   - Create a PortfolioTransferForm component with the following fields:\n     * Source account selection (dropdown)\n     * Destination portfolio selection (dropdown)\n     * Amount input (with currency display)\n     * Transfer button\n   - Implement real-time validation feedback\n   - Add a confirmation dialog for transfers\n\n4. Validation:\n   - Implement balance validation to ensure sufficient funds in the source account\n   - Handle currency conversions if transferring between accounts with different currencies\n   - Enforce transfer limits (daily, per-transaction) as per business rules\n   - Validate that the selected portfolio is eligible for transfers\n\n5. Integration:\n   - Connect the PortfolioTransferForm component with the `usePortfolioTransfer` composable\n   - Integrate the transfer functionality into the main portfolio management flow\n   - Ensure real-time balance updates after successful transfers\n   - Implement proper error handling and user feedback throughout the transfer process\n\n6. Security Considerations:\n   - Implement proper authentication and authorization checks for transfer operations\n   - Ensure all transfer data is properly encrypted in transit and at rest\n   - Add audit logging for all transfer operations\n\n7. Performance Optimization:\n   - Implement caching for frequently accessed account and portfolio data\n   - Consider using WebSockets for real-time balance updates after transfers",
+        "testStrategy": "",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Backend API Endpoint for Portfolio Transfers",
+            "description": "Create the POST /portfolios/transfers endpoint in the backend with proper request validation, authentication, and response handling.",
+            "dependencies": [],
+            "details": "Create controller, service, and route handlers for portfolio transfers. Implement request validation schema, authentication middleware, balance checking logic, and proper error response formatting. Include audit logging for transfer operations and ensure all transfer data is encrypted.",
+            "status": "done",
+            "testStrategy": "Unit tests for transfer validation logic, integration tests for API endpoints, and security tests for authentication and authorization"
+          },
+          {
+            "id": 2,
+            "title": "Create Frontend API Service for Transfer Requests",
+            "description": "Develop the frontend API service to handle transfer requests with proper error handling and response formatting.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create API service methods for transfer operations including request/response type definitions, error handling, and integration with the backend endpoint. Implement proper HTTP client configuration and response parsing.",
+            "status": "done",
+            "testStrategy": "Unit tests for API service methods and mock API response handling"
+          },
+          {
+            "id": 3,
+            "title": "Develop usePortfolioTransfer Composable",
+            "description": "Create a composable for transfer form handling, validation, and state management including balance checking and currency conversion.",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement form state management, validation logic for balances and transfer limits, currency conversion handling, and reactive state for transfer status and errors. Include methods for form submission and reset.\n<info added on 2025-07-03T18:50:28.456Z>\nExpanded scope to support multi-context transfers: Portfolio-to-Portfolio, Portfolio-to-Account, and Account-to-Portfolio transfers. The composable must be flexible to work from both portfolio detail pages and account pages, requiring context-aware initialization that detects the current page type and pre-populates appropriate source/destination options. Add support for cross-context validation rules and dynamic field visibility based on transfer type selection.\n</info added on 2025-07-03T18:50:28.456Z>",
+            "status": "done",
+            "testStrategy": "Unit tests for validation logic, state management, and composable methods"
+          },
+          {
+            "id": 4,
+            "title": "Build PortfolioTransferForm UI Component",
+            "description": "Create the transfer form component with source account selection, destination portfolio selection, amount input, and confirmation dialog.",
+            "dependencies": [
+              3
+            ],
+            "details": "Implement form UI with dropdown selections for accounts and portfolios, amount input with currency display, real-time validation feedback, transfer button, and confirmation dialog. Include proper form styling and accessibility features.\n<info added on 2025-07-03T18:50:49.301Z>\nAdded dual-context support for usage on both portfolio and account pages. Implemented dynamic field labels and options based on page context - when on portfolio page, displays \"Transfer TO\" account/portfolio selection; when on account page, displays \"Transfer FROM\" account and \"Transfer TO\" portfolio selection. Enhanced form to support all transfer types: Portfolio-to-Portfolio, Portfolio-to-Account, and Account-to-Portfolio. Added context detection logic to determine current page type and adjust form behavior accordingly. Implemented conditional rendering for source/destination fields based on transfer context and type selection.\n</info added on 2025-07-03T18:50:49.301Z>",
+            "status": "done",
+            "testStrategy": "Component tests for form interactions, validation display, and user flow testing"
+          },
+          {
+            "id": 5,
+            "title": "Integrate Transfer Feature into Portfolio Management Flow",
+            "description": "Connect all components and ensure full integration with real-time balance updates, error handling, and user feedback throughout the transfer process.",
+            "dependencies": [
+              4
+            ],
+            "details": "Integrate PortfolioTransferForm with usePortfolioTransfer composable, implement real-time balance updates after successful transfers, add proper error handling and user notifications, and ensure seamless integration with existing portfolio management pages.",
+            "status": "done",
+            "testStrategy": "End-to-end tests for complete transfer workflow, integration tests for balance updates, and user acceptance testing"
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Implement Multi-Currency Portfolio Balance Display Feature",
+        "description": "Complete multi-currency balance management and display functionality, including API integration, composables, UI components, and real-time updates for portfolio balances.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "details": "1. API Integration:\n   - Implement GET /portfolios/:id/balances endpoint in the backend\n   - Ensure the endpoint returns currency balances for each portfolio\n   - Create an API service in the frontend to fetch portfolio balance data\n\n2. Composables:\n   - Develop a `usePortfolioBalances` composable for fetching and managing portfolio balance data\n   - Include error handling, loading states, and real-time update functionality\n   - Implement proper state management for balance data across components\n\n3. UI Components:\n   - Create a BalanceCard component to display available and total cash per currency\n   - Implement a CurrencyConversion component for displaying converted values\n   - Develop a BalanceHistoryChart component with date range selection\n   - Integrate these components into the PortfolioDetailPage\n\n4. Real-time Updates:\n   - Implement WebSocket or polling mechanism for real-time balance updates\n   - Update the `usePortfolioBalances` composable to handle incoming real-time data\n   - Ensure UI components react to balance changes after transfers and transactions\n\n5. Currency Management:\n   - Implement a currency selection mechanism for user preference\n   - Create a CurrencyManager service to handle conversions and formatting\n\n6. Integration:\n   - Update the PortfolioDetailPage to include the new balance display components\n   - Ensure proper layout and responsiveness of the new UI elements\n   - Integrate with existing portfolio management features (Tasks 13, 14, 15)\n\n7. Performance Optimization:\n   - Implement lazy loading for balance history data\n   - Use efficient data structures for storing and updating balance information\n   - Optimize API calls to minimize data transfer and improve load times",
+        "testStrategy": "",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Implement Portfolio Holdings Table Feature",
+        "description": "Complete the holdings display and management functionality, including API integration, composables, UI components, and real-time calculations for a comprehensive portfolio holdings table.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "1. API Integration:\n   - Utilize the existing GET /investing/accounts/:id/holdings endpoint (from Task 8)\n   - Create an API service in the frontend to fetch portfolio holdings data\n\n2. Composables:\n   - Develop a `usePortfolioHoldings` composable for fetching and managing holdings data\n   - Implement real-time P&L calculations and total portfolio value computation\n   - Include error handling and loading states in the composable\n\n3. UI Components:\n   - Create a HoldingsTable component with columns for Symbol, Quantity, Last Price, Average Cost, and Market Value\n   - Implement expandable rows to display individual transactions for each holding\n   - Add sorting and filtering capabilities to the table\n   - Implement a TotalPortfolioValue component to display the sum of all holdings\n\n4. Real-time Updates:\n   - Integrate with a WebSocket or polling mechanism to update last prices in real-time\n   - Implement auto-updating P&L calculations based on price changes\n\n5. Integration:\n   - Integrate the HoldingsTable component into the PortfolioDetailPage (from Task 14)\n   - Ensure proper state management between the holdings table and other portfolio components\n\n6. Error Handling and Edge Cases:\n   - Implement proper error handling for API failures or data inconsistencies\n   - Handle edge cases such as zero quantity holdings or delisted securities\n\n7. Performance Optimization:\n   - Implement lazy loading or pagination for large portfolios\n   - Optimize calculations to minimize re-renders and improve performance",
+        "testStrategy": "",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Implement Security Search and Addition Feature",
+        "description": "Complete the security search and addition functionality, including API integration, composables, UI components, and validation for adding new securities to track in the portfolio.",
+        "status": "deferred",
+        "dependencies": [],
+        "priority": "medium",
+        "details": "1. API Integration:\n   - Utilize the existing POST /investing/securities/search endpoint (from Task 4)\n   - Implement POST /investing/securities endpoint in the backend if not already done\n   - Create an API service in the frontend to handle security searches and additions\n\n2. Composables:\n   - Develop a `useSecuritySearch` composable for handling security searches\n   - Create a `useSecurityAddition` composable for managing the process of adding a new security\n   - Include error handling, loading states, and proper state management in both composables\n\n3. UI Components:\n   - Implement an \"Add Symbol\" button in the portfolio view\n   - Create a SearchSecurityModal component with input field and search results display\n   - Develop a SecurityAdditionForm component for confirming and adding the selected security\n\n4. Validation:\n   - Implement client-side symbol validation (format, length, etc.)\n   - Add server-side validation to prevent adding duplicate securities\n   - Verify security data returned from the search before allowing addition\n\n5. Integration:\n   - Connect the \"Add Symbol\" button to open the SearchSecurityModal\n   - Integrate the search results with the SecurityAdditionForm\n   - Implement the full workflow from search to addition in the portfolio view\n\n6. State Management:\n   - Update the portfolio state after successfully adding a new security\n   - Reflect the newly added security in the portfolio holdings list\n\n7. Error Handling:\n   - Display appropriate error messages for failed searches or additions\n   - Implement retry mechanisms for transient failures\n\n8. Performance Optimization:\n   - Implement debounce on the search input to prevent excessive API calls\n   - Consider caching recent search results to improve responsiveness",
+        "testStrategy": "",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Implement Investment Transaction Management Feature",
+        "description": "Complete the investment transaction functionality, including API integration, composables, UI components, validation, and full integration for buy/sell/dividend operations.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "1. API Integration:\n   - Utilize existing POST/PUT/DELETE /investing/transactions endpoints (from Task 7)\n   - Ensure proper error handling and response formatting for all transaction types\n\n2. Composables:\n   - Develop a `useInvestmentTransactions` composable for transaction form handling and validation\n   - Implement logic for different transaction types (buy, sell, dividend)\n   - Include balance checks, quantity calculations, and transaction validation\n   - Manage state for transaction status, errors, and form data\n\n3. UI Components:\n   - Create TransactionForm component with dynamic fields based on transaction type\n   - Implement expandable rows in the HoldingsTable component to show transaction forms\n   - Add validation feedback and error messages to the form\n   - Create a TransactionConfirmationModal for final review before submission\n\n4. Validation:\n   - Implement client-side validation for all transaction fields\n   - Add server-side validation checks in the API endpoints\n   - Ensure proper balance checks and quantity calculations for buy/sell transactions\n   - Validate dividend amounts and dates\n\n5. Integration:\n   - Connect the TransactionForm component with the `useInvestmentTransactions` composable\n   - Integrate transaction functionality into the HoldingsTable component\n   - Update portfolio balances and holdings after successful transactions\n   - Implement real-time updates of the UI after transaction completion\n\n6. Error Handling:\n   - Display user-friendly error messages for failed transactions\n   - Implement retry logic for failed API calls\n   - Handle edge cases such as insufficient funds or invalid quantities\n\n7. Performance Optimization:\n   - Implement lazy loading for transaction history\n   - Use caching strategies to minimize API calls for frequently accessed data\n\n8. Accessibility:\n   - Ensure all new UI components are keyboard accessible\n   - Add proper ARIA labels and roles to new elements",
+        "testStrategy": "",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Transaction",
+            "description": "Implement the full flow for creating a new investment transaction",
+            "dependencies": [],
+            "details": "1. Implement POST API call to /investing/transactions endpoint\n2. Develop 'useInvestmentTransactions' composable with logic for transaction creation\n3. Create 'TransactionForm' UI component with dynamic fields based on transaction type\n4. Implement client-side and server-side validation for all transaction fields\n5. Add error handling and display user-friendly error messages\n6. Integrate transaction creation functionality into the HoldingsTable component\n7. Implement real-time updates of the UI after transaction completion\n8. Ensure proper balance checks and quantity calculations for buy/sell transactions\n9. Create TransactionConfirmationModal for final review before submission",
+            "status": "done",
+            "testStrategy": "1. Unit test the API integration\n2. Test the composable with various transaction scenarios\n3. Conduct UI tests for form submission and validation\n4. Perform integration tests to ensure proper updates to portfolio balances and holdings"
+          },
+          {
+            "id": 2,
+            "title": "Delete Transaction",
+            "description": "Implement the functionality to delete an existing transaction",
+            "dependencies": [
+              1
+            ],
+            "details": "1. Implement DELETE API call to /investing/transactions endpoint\n2. Extend 'useInvestmentTransactions' composable with logic for transaction deletion\n3. Add a delete button or icon to the transaction list in the UI\n4. Implement confirmation dialog before deletion\n5. Handle API errors and display user-friendly error messages\n6. Update the UI in real-time after successful deletion\n7. Ensure proper updates to portfolio balances and holdings after deletion",
+            "status": "done",
+            "testStrategy": "1. Unit test the DELETE API integration\n2. Test the composable's deletion logic\n3. Conduct UI tests for the delete functionality and confirmation dialog\n4. Perform integration tests to verify proper updates to portfolio data after deletion"
+          },
+          {
+            "id": 3,
+            "title": "Update Transaction",
+            "description": "Implement the ability to edit and update an existing transaction",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "1. Implement PUT API call to /investing/transactions endpoint\n2. Extend 'useInvestmentTransactions' composable with logic for updating existing transactions\n3. Modify 'TransactionForm' to handle editing of existing transaction data\n4. Implement edit button or icon in the transaction list\n5. Pre-fill form with existing transaction data when editing\n6. Implement client-side and server-side validation for updated fields\n7. Handle API errors and display user-friendly error messages\n8. Update the UI in real-time after successful transaction update\n9. Ensure proper updates to portfolio balances and holdings after update",
+            "status": "done",
+            "testStrategy": "1. Unit test the PUT API integration\n2. Test the composable's update logic with various scenarios\n3. Conduct UI tests for the edit functionality and form pre-filling\n4. Perform integration tests to verify proper updates to portfolio data after transaction updates"
+          }
+        ]
+      },
+      {
+        "id": 22,
+        "title": "Implement Portfolio List Sorting Functionality",
+        "description": "Add sorting functionality to the portfolio list on the investments page, including updating the usePortfolios composable and adding UI controls for users to select sort order.",
+        "details": "1. Update usePortfolios composable:\n   - Add a 'sortBy' parameter to the composable function\n   - Implement sorting logic for common fields (e.g., name, balance, performance)\n   - Modify the API call to include sorting parameters\n   - Update state management to handle sorting changes\n\n2. Modify PortfolioList component:\n   - Add a dropdown or buttons for sort options (e.g., \"Name A-Z\", \"Name Z-A\", \"Balance High-Low\", \"Balance Low-High\", \"Performance\")\n   - Implement event handlers for sort option changes\n   - Pass sorting parameters to usePortfolios composable\n\n3. Update API endpoint:\n   - Modify GET /portfolios endpoint to accept sorting parameters\n   - Implement server-side sorting logic\n\n4. Implement client-side sorting as a fallback:\n   - Add a utility function for sorting portfolios based on different criteria\n   - Use this function when server-side sorting is not available or fails\n\n5. Add sorting indicators:\n   - Display arrows or icons next to the sorted column header\n   - Implement smooth transitions when changing sort order\n\n6. Preserve sort order:\n   - Store the current sort preference in local storage or Vuex store\n   - Apply the saved sort order when the user returns to the page\n\n7. Error handling:\n   - Implement proper error handling for sorting failures\n   - Provide user feedback if sorting cannot be applied\n\n8. Performance optimization:\n   - Implement lazy loading or pagination if not already present\n   - Ensure sorting works efficiently with large datasets",
+        "testStrategy": "1. Unit tests:\n   - Test usePortfolios composable with various sorting parameters\n   - Verify correct sorting logic for different fields (name, balance, performance)\n   - Test error handling and fallback to client-side sorting\n\n2. Integration tests:\n   - Verify API endpoint correctly applies sorting parameters\n   - Test interaction between PortfolioList component and usePortfolios composable\n\n3. UI tests:\n   - Ensure sort options are correctly displayed and interactive\n   - Verify sorting indicators (arrows/icons) update correctly\n   - Test accessibility of sorting controls\n\n4. End-to-end tests:\n   - Simulate user selecting different sort options\n   - Verify portfolio list updates correctly with each sort change\n   - Test sort order persistence across page reloads\n\n5. Performance tests:\n   - Measure sorting speed with large datasets\n   - Verify lazy loading or pagination works correctly with sorting\n\n6. Edge case testing:\n   - Test sorting with empty portfolios list\n   - Verify behavior with portfolios having identical sort field values\n\n7. Cross-browser testing:\n   - Ensure sorting functionality works consistently across different browsers and devices",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Implement Portfolio List Filtering",
+        "description": "Add filtering functionality to the portfolio list on the investments page, including updating the usePortfolios composable to handle filtering parameters and adding UI controls for users to apply filters.",
+        "details": "1. Update usePortfolios composable:\n   - Add 'filterParams' parameter to the composable function\n   - Implement filtering logic for common fields (e.g., portfolio type, name)\n   - Modify the API call to include filtering parameters\n   - Update state management to handle filter changes\n\n2. Modify PortfolioList component:\n   - Add filter controls (e.g., dropdown for portfolio type, text input for name search)\n   - Implement event handlers for filter changes\n   - Update the component to use the modified usePortfolios composable with filter parameters\n\n3. API Integration:\n   - Update the GET /portfolios endpoint in the backend to support filtering\n   - Modify the frontend API service to include filter parameters in the request\n\n4. UI Enhancements:\n   - Create a FilterBar component for the portfolio list\n   - Include clear filters option\n   - Add visual indicators for active filters\n\n5. State Management:\n   - Implement local storage or Vuex store to persist filter preferences\n   - Ensure filter state is maintained during navigation\n\n6. Performance Optimization:\n   - Implement debounce for text-based filters to reduce API calls\n   - Consider implementing client-side filtering for small datasets\n\n7. Accessibility:\n   - Ensure all filter controls are keyboard accessible\n   - Add proper ARIA labels and roles for screen readers",
+        "testStrategy": "1. Unit tests:\n   - Test usePortfolios composable with various filter combinations\n   - Verify correct filtering logic for different fields (type, name)\n   - Test error handling and edge cases (e.g., no results)\n\n2. Integration tests:\n   - Verify API endpoint correctly applies filters and returns expected results\n   - Test interaction between filter controls and portfolio list updates\n\n3. E2E tests:\n   - Simulate user applying different filters and verify correct results\n   - Test filter persistence across page reloads and navigation\n\n4. Performance tests:\n   - Measure response times with various filter combinations\n   - Verify debounce functionality for text-based filters\n\n5. Accessibility tests:\n   - Use automated tools (e.g., axe-core) to check filter controls accessibility\n   - Perform manual keyboard navigation tests\n\n6. Cross-browser testing:\n   - Verify filter functionality and UI rendering across different browsers and devices\n\n7. Error handling:\n   - Test behavior with invalid filter inputs\n   - Verify appropriate error messages are displayed for filter-related issues",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": 24,
+        "title": "Holdings Management UI and 'Add Symbols' Flow",
+        "description": "Build a comprehensive Yahoo-Finance-style holdings table in the portfolio detail page with top-right 'Add Symbols' dialog, supporting holdings creation and quick transaction features with full API integration.",
+        "status": "done",
+        "dependencies": [
+          5,
+          19,
+          2,
+          14
+        ],
+        "priority": "high",
+        "details": "1. Holdings Table Component:\n   - Create HoldingsTable component with sortable columns (Symbol, Name, Shares, Price, Market Value, Day Change, Total Return)\n   - Implement responsive design with mobile-friendly layout\n   - Add accessibility features (ARIA labels, keyboard navigation, screen reader support)\n   - Include loading states and empty state handling\n   - Support row actions (edit, delete, add transaction)\n\n2. Add Symbols Dialog:\n   - Create AddSymbolsDialog component with search functionality\n   - Integrate with securities search API (Task 2) for symbol lookup\n   - Support bulk symbol addition with validation\n   - Implement autocomplete with debounced search\n   - Add form validation and error handling\n\n3. Holdings Management Integration:\n   - Extend usePortfolioHoldings composable to support CRUD operations\n   - Implement createHolding, updateHolding, deleteHolding functions\n   - Add optimistic updates for better UX\n   - Handle real-time portfolio value recalculation\n\n4. Quick Transaction Flow:\n   - Add 'Add Transaction' action to each holdings row\n   - Create QuickTransactionForm component\n   - Pre-populate transaction form with holding details\n   - Support buy/sell transactions with validation\n\n5. Page Integration:\n   - Integrate holdings table into portfolio detail page\n   - Position 'Add Symbols' button in top-right corner\n   - Ensure proper state management between components\n   - Implement proper error boundaries and loading states",
+        "testStrategy": "",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create HoldingsTable Component",
+            "description": "Develop a responsive and accessible HoldingsTable component with sortable columns, row actions, and various states.",
+            "dependencies": [],
+            "details": "1. Create a new Vue component named HoldingsTable.\n2. Implement table structure with columns: Symbol, Name, Shares, Price, Market Value, Day Change, Total Return.\n3. Add sorting functionality for all columns.\n4. Implement responsive design using CSS Grid or Flexbox for mobile-friendly layout.\n5. Add accessibility features: ARIA labels, keyboard navigation, and screen reader support.\n6. Implement loading, empty, and error states.\n7. Add row actions: edit, delete, and add transaction.\n8. Use v-for to iterate over holdings data.\n9. Implement computed properties for calculated values (e.g., Market Value, Total Return).",
+            "status": "done",
+            "testStrategy": "Write unit tests for sorting logic, responsive breakpoints, and accessibility. Use Vue Test Utils for component testing."
+          },
+          {
+            "id": 2,
+            "title": "Implement useHoldings Composable and API Integration",
+            "description": "Create a useHoldings composable for managing holdings data and integrate it with the backend API.",
+            "dependencies": [],
+            "details": "1. Create useHoldings.js composable.\n2. Implement state management for holdings using ref or reactive.\n3. Add functions for CRUD operations: fetchHoldings, createHolding, updateHolding, deleteHolding.\n4. Integrate with Axios or Fetch for API calls.\n5. Implement error handling and loading states.\n6. Add optimistic updates for better UX.\n7. Implement real-time portfolio value recalculation on holdings changes.\n8. Use Vue's provide/inject to make holdings data available to child components.",
+            "status": "done",
+            "testStrategy": "Write unit tests for CRUD operations and error handling. Mock API calls for testing."
+          },
+          {
+            "id": 3,
+            "title": "Develop AddSymbolsDialog for Creating Holdings",
+            "description": "Create an AddSymbolsDialog component with search functionality and integration with the securities search API.",
+            "dependencies": [],
+            "details": "1. Create a new Vue component named AddSymbolsDialog.\n2. Implement a search input with autocomplete functionality.\n3. Integrate with the securities search API (from Task 2) for symbol lookup.\n4. Implement debounced search to minimize API calls.\n5. Add support for bulk symbol addition.\n6. Implement form validation for symbol input.\n7. Add error handling for API failures and invalid inputs.\n8. Use v-model for two-way data binding on form inputs.\n9. Emit events for successful symbol additions.",
+            "status": "done",
+            "testStrategy": "Test search debounce logic, API integration, and form validation. Use Vue Test Utils for component testing and mock the API responses."
+          },
+          {
+            "id": 4,
+            "title": "Implement QuickTransaction Integration",
+            "description": "Add a QuickTransaction feature to each holdings row for quick buy/sell transactions.",
+            "dependencies": [],
+            "details": "1. Create a QuickTransactionForm component.\n2. Add an 'Add Transaction' action to each row in the HoldingsTable component.\n3. Implement a modal or inline form for the QuickTransactionForm.\n4. Pre-populate the form with holding details when opened.\n5. Support both buy and sell transactions.\n6. Implement form validation for transaction inputs.\n7. Integrate with the useHoldings composable to update holdings data.\n8. Add optimistic updates for instant feedback.\n9. Handle errors and display appropriate messages.",
+            "status": "deferred",
+            "testStrategy": "Test form validation, integration with useHoldings, and error handling. Use Vue Test Utils for component testing."
+          },
+          {
+            "id": 5,
+            "title": "Integrate Components and Manage State",
+            "description": "Integrate all components into the portfolio detail page and implement proper state management.",
+            "dependencies": [],
+            "details": "1. Import and place the HoldingsTable component in the portfolio detail page.\n2. Position the 'Add Symbols' button in the top-right corner of the page.\n3. Implement the AddSymbolsDialog component and link it to the 'Add Symbols' button.\n4. Use the useHoldings composable in the parent component to manage overall state.\n5. Implement proper error boundaries for each component.\n6. Add loading states for asynchronous operations.\n7. Ensure reactive updates between components using props and events.\n8. Implement final responsive design adjustments.\n9. Add any remaining accessibility features like skip links or aria-live regions.",
+            "status": "done",
+            "testStrategy": "Perform integration testing to ensure all components work together. Test responsive design across different screen sizes. Conduct accessibility audit using tools like axe-core."
+          }
+        ]
+      },
+      {
+        "id": 25,
+        "title": "Complete Account-Portfolio Transfer System",
+        "description": "**POST-MVP ENHANCEMENT** - Implement bidirectional transfers between accounts and portfolios with proper API endpoints, database integration, and frontend display. This is NOT required for core investment tracking functionality and can be implemented after the main investment system is in production use.",
+        "status": "pending",
+        "dependencies": [
+          17,
+          8
+        ],
+        "priority": "medium",
+        "details": "**IMPORTANT: This is a POST-MVP ENHANCEMENT that is NOT required for core investment tracking functionality.**\n\nThe core investment tracking system (portfolios, holdings, transactions, performance) can go to production without account-portfolio transfers. This feature is purely about account management and moving money between user's own accounts/portfolios, which is separate from the main goal of replacing Yahoo Finance for investment tracking.\n\n**Existing UI Components Available:**\n- The portfolio-transfer-form.vue component already exists with all necessary fields and validation logic\n- This form can be reused for future implementation - only backend API endpoints need to be added\n- Form already handles user input validation and error display\n\n**Implementation Details (for future development):**\n\n1. Backend API Extensions:\n   - Create POST /accounts/:accountId/transfer-to-portfolio endpoint with validation and balance checks\n   - Create POST /portfolios/:portfolioId/transfer-to-account endpoint for reverse transfers\n   - Integrate with existing transaction system for account balance updates\n   - Add proper error handling and rollback mechanisms\n\n2. Database Integration:\n   - Utilize existing fromAccountId and toAccountId fields in PortfolioTransfers table\n   - Create corresponding transaction records in Transactions table for audit trail\n   - Add new 'portfolio_transfer' type to TRANSACTION_TRANSFER_NATURE enum\n   - Ensure referential integrity between portfolio transfers and transaction records\n\n3. Frontend Display Integration:\n   - Update transaction-record.vue component to detect and display portfolio transfers\n   - Show transfers in account transaction lists with format 'Account => Portfolio Name'\n   - Ensure portfolio transfer lists include account-initiated transfers\n   - Update transaction categorization and filtering to handle portfolio transfers\n   - Connect existing portfolio-transfer-form.vue to new backend endpoints\n\n4. Data Flow Consistency:\n   - Account balances must reflect outgoing/incoming portfolio transfers in real-time\n   - Portfolio balances must be updated correctly through existing mechanisms\n   - Maintain complete audit trail through transaction records\n   - Ensure UI balance updates are synchronized across account and portfolio views\n\n5. Error Handling & Validation:\n   - Validate transfer amounts against available account balances\n   - Handle currency conversion if accounts and portfolios use different currencies\n   - Implement proper transaction rollback on failures\n   - Add comprehensive error messages for user feedback",
+        "testStrategy": "**Note: Testing can be deferred until post-MVP development phase.**\n\n1. API Testing:\n   - Test POST /accounts/:accountId/transfer-to-portfolio with valid and invalid amounts\n   - Test POST /portfolios/:portfolioId/transfer-to-account with various scenarios\n   - Verify proper error responses for insufficient balances and invalid IDs\n   - Test transaction rollback on database failures\n\n2. Database Integration Testing:\n   - Verify PortfolioTransfers records are created with correct fromAccountId/toAccountId\n   - Confirm corresponding Transaction records are created in Transactions table\n   - Test that account and portfolio balances are updated atomically\n   - Verify audit trail completeness and data consistency\n\n3. Frontend Display Testing:\n   - Test transaction-record.vue displays portfolio transfers correctly\n   - Verify account transaction lists show portfolio transfers with proper formatting\n   - Test that portfolio transfer lists include account-initiated transfers\n   - Confirm real-time balance updates in both account and portfolio views\n   - Test integration between existing portfolio-transfer-form.vue and new backend endpoints\n\n4. End-to-End Testing:\n   - Test complete transfer workflow from account to portfolio and vice versa\n   - Verify data consistency across all related views and components\n   - Test error handling and user feedback for failed transfers\n   - Confirm proper currency handling if applicable",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Backend API Endpoints for Account-Portfolio Transfers",
+            "description": "Implement POST endpoints for transferring funds between accounts and portfolios with proper validation and balance checks",
+            "dependencies": [],
+            "details": "Create POST /accounts/:accountId/transfer-to-portfolio and POST /portfolios/:portfolioId/transfer-to-account endpoints. Include validation for transfer amounts against available balances, currency conversion handling, and proper error responses. Implement transaction rollback mechanisms for failed transfers.",
+            "status": "pending",
+            "testStrategy": "Unit tests for endpoint validation, integration tests for successful transfers, error handling tests for insufficient funds and invalid amounts"
+          },
+          {
+            "id": 2,
+            "title": "Integrate Database Operations for Portfolio Transfers",
+            "description": "Implement database operations to record portfolio transfers and create corresponding transaction records for audit trail",
+            "dependencies": [
+              1
+            ],
+            "details": "Utilize existing fromAccountId and toAccountId fields in PortfolioTransfers table. Create corresponding transaction records in Transactions table with new 'portfolio_transfer' type in TRANSACTION_TRANSFER_NATURE enum. Ensure referential integrity and implement proper database transaction handling with rollback capabilities.",
+            "status": "pending",
+            "testStrategy": "Database integration tests for transfer record creation, transaction audit trail verification, and referential integrity checks"
+          },
+          {
+            "id": 3,
+            "title": "Update Account Balance Management System",
+            "description": "Modify account balance tracking to properly reflect outgoing and incoming portfolio transfers in real-time",
+            "dependencies": [
+              2
+            ],
+            "details": "Update account balance calculation logic to include portfolio transfers. Ensure account balances are updated immediately when transfers occur and reflect both outgoing transfers to portfolios and incoming transfers from portfolios. Maintain consistency with existing transaction-based balance calculations.",
+            "status": "pending",
+            "testStrategy": "Integration tests for real-time balance updates, consistency checks between account and portfolio balance calculations"
+          },
+          {
+            "id": 4,
+            "title": "Enhance Frontend Transaction Display Components",
+            "description": "Update transaction-record.vue component to detect and properly display portfolio transfers in account transaction lists",
+            "dependencies": [
+              3
+            ],
+            "details": "Modify transaction-record.vue to identify portfolio transfer transactions and display them with format 'Account => Portfolio Name' or 'Portfolio Name => Account'. Update transaction categorization and filtering logic to handle portfolio transfers. Ensure transfers appear in both account transaction lists and portfolio transfer lists.",
+            "status": "pending",
+            "testStrategy": "Component unit tests for portfolio transfer display, integration tests for transaction list filtering and categorization"
+          },
+          {
+            "id": 5,
+            "title": "Connect Frontend Form to Backend API",
+            "description": "Integrate existing portfolio-transfer-form.vue component with new backend endpoints and ensure synchronized UI balance updates",
+            "dependencies": [
+              4
+            ],
+            "details": "Connect portfolio-transfer-form.vue to new backend endpoints. Implement proper error handling and user feedback. Ensure UI balance updates are synchronized across account and portfolio views after successful transfers. Add loading states and success/error notifications.",
+            "status": "pending",
+            "testStrategy": "End-to-end tests for complete transfer workflow, UI state management tests for balance synchronization, error handling tests for user feedback"
+          }
+        ]
+      },
+      {
+        "id": 26,
+        "title": "Update Symbol Search to Filter Out Existing Holdings",
+        "description": "Modify the security search functionality to exclude securities already held in the portfolio when adding new holdings, improving user experience and preventing duplicate entries.",
+        "details": "1. API Integration:\n   - Update the existing POST /investing/securities/search endpoint (from Task 4) to accept an optional parameter for portfolio ID\n   - Modify the backend logic to filter out securities already present in the specified portfolio\n\n2. Backend Implementation:\n   - In the search.service.ts, add a new method to fetch existing holdings for a given portfolio\n   - Modify the security search logic to exclude the fetched holdings from the search results\n\n3. Frontend Updates:\n   - Update the `useSecuritySearch` composable (from Task 20) to include an optional portfolio ID parameter\n   - Modify the security search API call in the frontend to pass the current portfolio ID\n\n4. UI Component Updates:\n   - Update the SecuritySearchForm component to reflect the filtered results\n   - Add a clear visual indication (e.g., disabled state or informative tooltip) for securities that are already in the portfolio\n\n5. Error Handling:\n   - Implement proper error handling for cases where the portfolio ID is invalid or the holdings cannot be fetched\n   - Display user-friendly error messages in the UI\n\n6. Performance Considerations:\n   - Implement caching for the list of existing holdings to reduce unnecessary API calls\n   - Consider pagination or lazy loading for large portfolios to ensure smooth performance\n\n7. Documentation:\n   - Update API documentation to reflect the changes in the search endpoint\n   - Add comments in the code explaining the filtering logic and any performance optimizations",
+        "testStrategy": "1. Unit Tests:\n   - Test the modified search function in the backend to ensure it correctly filters out existing holdings\n   - Verify that the `useSecuritySearch` composable correctly handles the new portfolio ID parameter\n\n2. Integration Tests:\n   - Test the entire flow from UI to backend, ensuring that search results exclude existing holdings\n   - Verify that the API correctly handles different scenarios (empty portfolio, large number of holdings, etc.)\n\n3. UI Tests:\n   - Confirm that the SecuritySearchForm component correctly displays filtered results\n   - Verify that already held securities are visually indicated or disabled in the search results\n\n4. Edge Case Testing:\n   - Test with a portfolio containing a large number of holdings to ensure performance\n   - Verify behavior when all searched securities are already in the portfolio\n\n5. Error Handling Tests:\n   - Test with invalid portfolio IDs and verify appropriate error messages are displayed\n   - Simulate network errors and ensure the UI gracefully handles failures\n\n6. Regression Testing:\n   - Ensure that existing security search functionality still works correctly for scenarios not involving portfolios\n   - Verify that adding new holdings still functions as expected with the updated search\n\n7. User Acceptance Testing:\n   - Have users test the new search functionality in different portfolio scenarios\n   - Gather feedback on the usability and effectiveness of the filtering feature",
+        "status": "pending",
+        "dependencies": [
+          20,
+          14
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 27,
+        "title": "Enhance Symbol Search Sorting",
+        "description": "Improve the symbol search functionality by implementing a prioritized sorting algorithm that considers full symbol match, partial symbol match, full name match, and partial name match in that order.",
+        "details": "1. Update Backend Search Logic:\n   - Modify the existing search function in search.service.ts\n   - Implement a custom sorting algorithm with the following priority:\n     a. Full symbol match\n     b. Partial symbol match\n     c. Full name match\n     d. Partial name match\n   - Use regular expressions or string matching functions to determine match types\n   - Assign weighted scores to each match type for precise sorting\n\n2. API Endpoint Modification:\n   - Update the POST /investing/securities/search endpoint to use the new sorting logic\n   - Ensure the endpoint still respects any existing query parameters (e.g., limit, offset)\n\n3. Frontend Updates:\n   - Modify the useSecuritySearch composable to handle the new sorting order\n   - Update any UI components that display search results to reflect the new prioritization\n\n4. Performance Optimization:\n   - Implement caching for frequently searched symbols to reduce API calls\n   - Consider using indexing in the database for faster symbol and name searches\n\n5. Error Handling:\n   - Implement proper error handling for cases where the sorting algorithm might fail\n   - Provide fallback sorting (e.g., alphabetical) if the custom sorting encounters issues\n\n6. Documentation:\n   - Update API documentation to reflect the new sorting behavior\n   - Add comments in the code explaining the sorting algorithm and its priority order",
+        "testStrategy": "1. Unit Tests:\n   - Create test cases for the sorting algorithm with various input scenarios:\n     - Exact symbol matches\n     - Partial symbol matches\n     - Full name matches\n     - Partial name matches\n     - Mixed match types\n   - Verify that the sorting order is correct for each scenario\n   - Test edge cases (e.g., empty search string, all symbols matching equally)\n\n2. Integration Tests:\n   - Test the updated POST /investing/securities/search endpoint\n   - Verify that the API returns results in the correct order for different search queries\n   - Check that existing query parameters still work as expected\n\n3. Frontend Tests:\n   - Update or create new tests for the useSecuritySearch composable\n   - Ensure that the UI components correctly display the sorted results\n\n4. Performance Tests:\n   - Conduct load testing on the search endpoint to ensure it can handle multiple concurrent requests\n   - Measure and compare response times before and after the enhancement\n\n5. User Acceptance Testing:\n   - Create a test plan for manual testing of the search functionality\n   - Verify that the search results align with user expectations for various search terms\n\n6. Regression Testing:\n   - Run existing test suites to ensure that the changes haven't broken any other functionality\n   - Pay special attention to any features that interact with the security search (e.g., adding new holdings)",
+        "status": "pending",
+        "dependencies": [
+          20,
+          26
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 28,
+        "title": "Add Support for Non-US Securities Data Loading",
+        "description": "Extend the portfolio management system to support loading and managing non-US securities data, including international stocks, bonds, and other financial instruments.",
+        "details": "1. Update Security Model:\n   - Extend the existing security model to include fields for country, currency, and any other relevant international data.\n   - Add validation for these new fields in the security-manage.ts file.\n\n2. Modify Security Data Loading Process:\n   - Update the existing data loading service to handle non-US security data sources.\n   - Implement currency conversion functionality for standardizing financial data to a base currency (e.g., USD).\n   - Add error handling for country-specific data inconsistencies.\n\n3. Enhance Security Search Functionality:\n   - Modify the search.service.ts to include filters for country and currency.\n   - Update the search API endpoint to support these new filters.\n\n4. Update Security API Endpoints:\n   - Modify GET /investing/securities/:id endpoint to include the new international fields.\n   - Update GET /investing/securities/:id/prices endpoint to handle multiple currencies and provide conversion rates.\n\n5. Adjust Holdings Calculations:\n   - Update the holdings calculation service to account for multiple currencies.\n   - Implement real-time or daily currency conversion for accurate portfolio valuation.\n\n6. Update Frontend Components:\n   - Modify PortfolioCard and other relevant components to display multi-currency information.\n   - Add country and currency filters to the security search interface.\n\n7. Data Synchronization:\n   - Implement a process to regularly update exchange rates for accurate valuation.\n   - Set up a task to sync international market data, considering different market hours and holidays.\n\n8. Documentation and Training:\n   - Update API documentation to reflect changes in endpoints and data structures.\n   - Provide guidance for users on how to interact with international securities data.",
+        "testStrategy": "1. Unit Tests:\n   - Test the updated security model with various international securities data.\n   - Verify currency conversion functions with multiple currency pairs.\n   - Test search functionality with international filters.\n\n2. Integration Tests:\n   - Test the entire data loading process with a sample of international securities.\n   - Verify that holdings calculations correctly handle multi-currency portfolios.\n   - Test API endpoints with international security data and ensure correct responses.\n\n3. Frontend Tests:\n   - Verify that PortfolioCard and other components correctly display multi-currency information.\n   - Test the security search interface with international filters.\n\n4. Performance Tests:\n   - Benchmark the system with a large dataset of international securities to ensure acceptable performance.\n   - Test currency conversion operations under high load.\n\n5. Edge Cases:\n   - Test with securities from countries with unique market rules or currency restrictions.\n   - Verify system behavior during international market holidays.\n\n6. User Acceptance Testing:\n   - Have a group of users test the new international securities features and provide feedback.\n   - Ensure that the user interface is intuitive for managing multi-currency portfolios.\n\n7. Regression Testing:\n   - Run existing test suite to ensure that adding international support hasn't broken any existing functionality.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          4,
+          5,
+          8
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "Implement Sticky Symbol Search Input",
+        "description": "Enhance the symbol search UI by making the search input position sticky (top on desktop, bottom on mobile) to prevent input movement during list height changes, reducing jumpiness when the query changes.",
+        "details": "1. Update Symbol Search Component:\n   - Modify the existing symbol search component (likely in `SymbolSearch.vue` or similar)\n   - Implement sticky positioning using CSS:\n     ```css\n     .search-input {\n       position: sticky;\n       z-index: 10;\n     }\n     \n     @media (min-width: 768px) {\n       .search-input {\n         top: 0;\n       }\n     }\n     \n     @media (max-width: 767px) {\n       .search-input {\n         bottom: 0;\n       }\n     }\n     ```\n   - Ensure the input remains visible and accessible when scrolling\n\n2. Adjust List Container:\n   - Update the list container to accommodate the sticky input:\n     ```css\n     .search-results {\n       max-height: calc(100vh - 60px); /* Adjust based on input height */\n       overflow-y: auto;\n     }\n     ```\n   - Implement smooth scrolling for better user experience:\n     ```css\n     .search-results {\n       scroll-behavior: smooth;\n     }\n     ```\n\n3. Handle Dynamic Content:\n   - Modify the existing search logic to update results without affecting input position\n   - Implement a loading state that doesn't cause layout shifts\n   - Use CSS transitions for smooth height changes:\n     ```css\n     .search-results {\n       transition: height 0.3s ease-in-out;\n     }\n     ```\n\n4. Accessibility Considerations:\n   - Ensure keyboard navigation works correctly with the sticky input\n   - Add appropriate ARIA attributes for screen readers\n   - Test and adjust focus management when results update\n\n5. Performance Optimization:\n   - Use CSS will-change property to optimize for changes:\n     ```css\n     .search-input {\n       will-change: transform;\n     }\n     ```\n   - Implement debounce on search input to reduce unnecessary API calls and updates\n\n6. Cross-browser Testing:\n   - Verify sticky behavior works consistently across major browsers (Chrome, Firefox, Safari, Edge)\n   - Test on various devices and screen sizes to ensure responsive design works as expected",
+        "testStrategy": "1. Unit Tests:\n   - Write tests for the updated SymbolSearch component to verify sticky behavior\n   - Test responsive CSS changes using vue-test-utils and jest\n\n2. Integration Tests:\n   - Verify that the sticky input works correctly when integrated with the full symbol search flow\n   - Test the interaction between the sticky input and the dynamic list of results\n\n3. End-to-End Tests:\n   - Use Cypress or a similar tool to test the full user flow:\n     - Enter search query\n     - Scroll through results\n     - Verify input remains visible and in the correct position\n   - Test on both desktop and mobile viewports\n\n4. Accessibility Testing:\n   - Use aXe or a similar tool to check for any introduced accessibility issues\n   - Manually test keyboard navigation and screen reader compatibility\n\n5. Performance Testing:\n   - Measure and compare render times before and after implementation\n   - Use Chrome DevTools to check for any layout shifts or performance regressions\n\n6. Cross-browser Testing:\n   - Manually verify the feature works as expected in Chrome, Firefox, Safari, and Edge\n   - Use BrowserStack or a similar service to test on various mobile devices and operating systems\n\n7. User Acceptance Testing:\n   - Have team members or beta users test the new sticky search input\n   - Collect feedback on usability and any potential issues encountered",
+        "status": "pending",
+        "dependencies": [
+          20,
+          24,
+          27
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 30,
+        "title": "Enhance Symbol Search Results Display",
+        "description": "Improve the symbol search results display by showing exchange ticker and currency alongside each security, and adjust the layout to ensure the full security name is visible by expanding the name area instead of truncating it.",
+        "details": "1. Update SymbolSearch Component:\n   - Modify the existing SymbolSearch.vue component\n   - Extend the data structure to include exchange ticker and currency information\n   - Update the v-for loop that renders search results to include new fields\n\n2. API Integration:\n   - Modify the POST /investing/securities/search endpoint to include exchange ticker and currency in the response\n   - Update the useSecuritySearch composable to handle the new data fields\n\n3. UI Layout Adjustments:\n   - Implement a grid or flexbox layout for search results:\n     ```html\n     <div class=\"search-result-item\">\n       <div class=\"symbol\">{{item.symbol}}</div>\n       <div class=\"name\">{{item.name}}</div>\n       <div class=\"exchange\">{{item.exchangeTicker}}</div>\n       <div class=\"currency\">{{item.currency}}</div>\n     </div>\n     ```\n   - Use CSS to ensure the name doesn't truncate:\n     ```css\n     .search-result-item {\n       display: grid;\n       grid-template-columns: auto 1fr auto auto;\n       gap: 10px;\n     }\n     .name {\n       white-space: normal;\n       word-break: break-word;\n     }\n     ```\n\n4. Responsive Design:\n   - Implement media queries to adjust layout on smaller screens\n   - Consider using a collapsible/expandable design for mobile views\n\n5. Performance Optimization:\n   - Implement lazy loading or virtualization for large result sets\n   - Use Vue's v-memo directive to optimize re-renders of unchanged items\n\n6. Accessibility Improvements:\n   - Add ARIA labels to new elements\n   - Ensure proper keyboard navigation through search results\n\n7. Error Handling:\n   - Add fallback displays for missing exchange or currency data\n   - Implement error boundaries to gracefully handle rendering issues",
+        "testStrategy": "1. Unit Tests:\n   - Test the updated SymbolSearch component with mock data including new fields\n   - Verify that all new fields (exchange ticker, currency) are correctly rendered\n   - Test responsive layout changes using vue-test-utils and jest\n   - Ensure accessibility features are properly implemented\n\n2. Integration Tests:\n   - Verify that the API returns the correct data structure with new fields\n   - Test the entire search flow from user input to results display\n   - Ensure that the layout adjusts correctly for different screen sizes\n\n3. Performance Tests:\n   - Measure render times for large result sets\n   - Verify that lazy loading or virtualization works as expected\n\n4. Accessibility Tests:\n   - Use automated tools (e.g., axe-core) to check for accessibility issues\n   - Perform manual keyboard navigation tests\n\n5. Cross-browser Testing:\n   - Verify layout and functionality in multiple browsers (Chrome, Firefox, Safari, Edge)\n\n6. User Acceptance Testing:\n   - Have team members or beta users test the new display\n   - Gather feedback on readability and usability of the enhanced search results\n\n7. Error Handling Tests:\n   - Test with incomplete data to ensure fallback displays work correctly\n   - Verify that error boundaries catch and display issues gracefully",
+        "status": "done",
+        "dependencies": [
+          20,
+          27,
+          29
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 31,
+        "title": "Fix Symbol Search Modal UI Close Button",
+        "description": "Reposition the close (\"X\") button in the symbol search modal so it no longer overlaps the input field, improving usability and visual clarity.",
+        "details": "1. Locate the Symbol Search Modal Component:\n   - Identify the Vue component responsible for the symbol search modal (likely SymbolSearchModal.vue or similar).\n\n2. Analyze Current Layout:\n   - Review the existing HTML structure and CSS styles for the modal, input field, and close button.\n   - Determine the cause of the overlap (e.g., absolute positioning, inadequate spacing).\n\n3. Update HTML Structure:\n   - Modify the template section of the component to ensure proper nesting of elements.\n   - Example structure:\n     ```html\n     <div class=\"symbol-search-modal\">\n       <div class=\"modal-header\">\n         <input type=\"text\" class=\"search-input\" v-model=\"searchQuery\" />\n         <button class=\"close-button\" @click=\"closeModal\">X</button>\n       </div>\n       <!-- Rest of the modal content -->\n     </div>\n     ```\n\n4. Adjust CSS Styles:\n   - Update the CSS to position the close button correctly:\n     ```css\n     .symbol-search-modal {\n       position: relative;\n     }\n     .modal-header {\n       display: flex;\n       justify-content: space-between;\n       align-items: center;\n     }\n     .search-input {\n       flex-grow: 1;\n       margin-right: 10px; /* Add space between input and button */\n     }\n     .close-button {\n       flex-shrink: 0;\n     }\n     ```\n\n5. Ensure Responsiveness:\n   - Test the layout on various screen sizes and adjust styles as needed using media queries.\n   - Consider using Flexbox or Grid for more robust layouts.\n\n6. Accessibility Improvements:\n   - Add appropriate ARIA labels to the close button:\n     ```html\n     <button class=\"close-button\" @click=\"closeModal\" aria-label=\"Close symbol search\">X</button>\n     ```\n\n7. Update Related Components:\n   - If the symbol search modal is used in multiple places, ensure changes are consistently applied.\n\n8. Refactor for Reusability:\n   - Consider extracting the modal header into a separate component for better maintainability.\n\n9. Update Documentation:\n   - Add comments to the code explaining the new layout structure.\n   - Update any relevant component or UI documentation to reflect the changes.",
+        "testStrategy": "1. Visual Inspection:\n   - Open the symbol search modal on various devices and screen sizes.\n   - Verify that the close button is correctly positioned and does not overlap the input field.\n   - Check that the layout remains consistent across different browsers (Chrome, Firefox, Safari, Edge).\n\n2. Functionality Testing:\n   - Ensure the close button still functions correctly after repositioning.\n   - Test that clicking the close button properly closes the modal.\n\n3. Responsive Design Testing:\n   - Use browser developer tools to test the layout at different viewport sizes.\n   - Verify that the close button remains properly positioned on mobile, tablet, and desktop views.\n\n4. Accessibility Testing:\n   - Use a screen reader to navigate the modal and ensure the close button is properly announced.\n   - Verify that the close button can be accessed and activated using keyboard navigation.\n\n5. Unit Tests:\n   - Update or create unit tests for the SymbolSearchModal component to verify the new structure.\n   - Test that the close button element is rendered in the correct position relative to the input field.\n\n6. Integration Tests:\n   - Test the symbol search modal in the context of the larger application to ensure the changes haven't affected other components or functionality.\n\n7. Cross-browser Testing:\n   - Verify the layout and functionality in different browsers (Chrome, Firefox, Safari, Edge) and versions.\n\n8. Performance Testing:\n   - Ensure that the UI changes haven't introduced any performance regressions, particularly in rendering time.\n\n9. Code Review:\n   - Conduct a thorough code review to ensure the changes follow best practices and coding standards.\n\n10. User Acceptance Testing:\n    - If possible, gather feedback from users or stakeholders to confirm the new layout improves usability.",
+        "status": "done",
+        "dependencies": [
+          20,
+          29
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 32,
+        "title": "Remove Deprecated 'value' and 'refValue' Fields from Holdings",
+        "description": "Remove deprecated 'value' and 'refValue' fields from the Holdings model and all related code to complete the transition to pure calculate-on-demand market values. This technical debt cleanup should be completed at the end of the MVP phase.",
+        "status": "pending",
+        "dependencies": [
+          5,
+          19,
+          24
+        ],
+        "priority": "high",
+        "details": "1. Database Migration:\n   - Create a new migration file to drop the 'value' and 'refValue' columns from the holdings table\n   - Use appropriate ORM commands or raw SQL to remove these columns\n   - Ensure the migration is reversible for safety\n\n2. Update Holdings Model:\n   - Remove 'value' and 'refValue' fields from the Holdings model class\n   - Update any related methods or properties that referenced these fields\n   - Adjust any validation rules or constraints related to these fields\n\n3. Update HoldingModel Interface:\n   - Remove 'value' and 'refValue' from the HoldingModel interface definition\n   - Update any related type definitions or utility functions\n\n4. Update Backend Code:\n   - Remove any references to 'value' and 'refValue' in services, controllers, and other backend components\n   - Update any calculations or business logic that relied on these fields to use the calculate-on-demand approach\n\n5. Update Tests:\n   - Modify unit tests for the Holdings model to remove assertions related to 'value' and 'refValue'\n   - Update integration tests that may have been using these fields\n   - Ensure all affected test cases now use the calculate-on-demand approach\n\n6. Frontend Updates:\n   - Remove any references to 'value' and 'refValue' in frontend components, particularly in the holdings table\n   - Update any calculations or displays that were using these fields\n   - Ensure all market value calculations now use the on-demand approach\n\n7. Documentation:\n   - Update API documentation to remove mentions of 'value' and 'refValue'\n   - Update any developer guides or README files to reflect the changes\n\n8. Code Cleanup:\n   - Perform a thorough search across the entire codebase for any remaining references to 'value' and 'refValue'\n   - Remove any fallback logic or compatibility layers that were in place for these fields\n\n9. Performance Check:\n   - Verify that removing these fields and relying solely on calculate-on-demand doesn't negatively impact performance\n   - If needed, implement caching strategies for frequently accessed market values\n\nThis cleanup task should be prioritized for completion at the end of the MVP to ensure a clean, maintainable codebase without deprecated fields.",
+        "testStrategy": "1. Database Testing:\n   - Verify that the migration successfully removes 'value' and 'refValue' columns\n   - Check that existing data is not affected by the migration\n\n2. Model and Interface Testing:\n   - Ensure Holdings model no longer contains 'value' and 'refValue' properties\n   - Verify that the HoldingModel interface is updated correctly\n\n3. Backend Integration Tests:\n   - Run comprehensive tests on all endpoints that previously used 'value' and 'refValue'\n   - Verify that market values are correctly calculated on-demand\n\n4. Frontend Integration Tests:\n   - Test all components that display holdings information\n   - Ensure market values are correctly displayed and updated\n\n5. End-to-End Testing:\n   - Perform full user flow tests, including portfolio creation, adding holdings, and viewing market values\n   - Verify that all calculations and displays are correct without 'value' and 'refValue'\n\n6. Performance Testing:\n   - Conduct load tests to ensure the calculate-on-demand approach doesn't introduce performance issues\n   - Compare response times before and after the changes\n\n7. Error Handling:\n   - Test error scenarios to ensure proper handling without 'value' and 'refValue'\n\n8. Regression Testing:\n   - Run full test suite to catch any unintended side effects\n   - Pay special attention to features that might have indirectly depended on these fields\n\n9. Code Review:\n   - Conduct a thorough code review to ensure all instances of 'value' and 'refValue' have been removed\n   - Verify that no deprecated code or comments referencing these fields remain\n\n10. MVP Completion Validation:\n    - Ensure this cleanup is completed before MVP release\n    - Validate that all MVP features work correctly without deprecated fields",
+        "subtasks": []
+      },
+      {
+        "id": 33,
+        "title": "Add Support for EU Stocks Data Provider Integration",
+        "description": "Extend the data provider system to support European stock exchanges by adding Alpha Vantage provider for EU stocks and extending Polygon provider for crypto markets, implementing smart routing based on asset type and region.",
+        "status": "in-progress",
+        "dependencies": [
+          1,
+          28
+        ],
+        "priority": "medium",
+        "details": "1. Extend Polygon Provider for Crypto Markets:\n   - Add crypto market support to existing Polygon provider using Currencies API subscription\n   - Implement crypto search functionality with exchange filtering (Coinbase, Binance, Kraken)\n   - Add price fetching for major cryptocurrencies (Bitcoin, Ethereum, etc.)\n   - Handle crypto-specific data formats and identifiers\n\n2. Implement Alpha Vantage Provider for EU Stocks:\n   - Create new Alpha Vantage provider specifically for European stock exchanges\n   - Support LSE, Euronext, XETRA and other European exchanges\n   - Implement currency handling for EUR, GBP, CHF and other European currencies\n   - Add timezone support for European market hours\n   - Handle European market-specific data formats and identifiers (ISIN, SEDOL)\n\n3. Update Data Provider Factory with Smart Routing:\n   - Implement intelligent provider selection: US Stocks → Polygon, Crypto → Polygon, EU Stocks → Alpha Vantage\n   - Add configuration options for Alpha Vantage API keys and Polygon Currencies subscription\n   - Extend provider selection logic based on security type and exchange/region\n\n4. Enhanced Security Model:\n   - Update security model to include crypto and European asset types\n   - Add support for European currency codes and crypto identifiers\n   - Implement validation for EU-specific security formats and crypto symbols\n\n5. Price Sync Integration:\n   - Extend existing price sync service to handle EU stocks and crypto assets\n   - Add scheduling for European market hours and 24/7 crypto markets\n   - Implement currency conversion for EU prices and crypto to base currency\n   - Add error handling for provider-specific API limitations\n\n6. Configuration Updates:\n   - Add Alpha Vantage provider configuration options to settings\n   - Update environment variables for Alpha Vantage API keys\n   - Add Polygon Currencies subscription configuration\n   - Add feature flags for EU market and crypto support",
+        "testStrategy": "1. Unit Tests:\n   - Test Alpha Vantage provider implementation with mock European securities data\n   - Test extended Polygon provider with crypto market data\n   - Verify smart routing logic in provider factory\n   - Test currency conversion functionality for European currencies and crypto\n   - Validate security identifier parsing for EU stocks and crypto symbols\n\n2. Integration Tests:\n   - Test complete data flow from Alpha Vantage to database storage for EU stocks\n   - Test complete data flow from Polygon to database storage for crypto\n   - Verify price sync service works with mixed asset types (US stocks, EU stocks, crypto)\n   - Test provider factory correctly routes based on asset type and region\n   - Ensure existing US stock functionality remains unaffected\n\n3. End-to-End Tests:\n   - Test security search with mixed US stocks, EU stocks, and crypto results\n   - Verify EU stock and crypto price display in portfolio views\n   - Test adding EU stocks and crypto to holdings with proper price updates\n   - Validate proper currency display and conversion in UI for all asset types\n\n4. Performance Tests:\n   - Test API rate limiting with both Alpha Vantage and Polygon providers\n   - Verify sync performance with large numbers of mixed asset types\n   - Test concurrent price fetching for portfolios with US stocks, EU stocks, and crypto",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Extend Polygon Provider for Crypto Markets Support",
+            "description": "Extend the existing Polygon provider to support crypto markets using Currencies API subscription, implementing crypto search and price fetching capabilities",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Analyze existing Polygon provider implementation and extend it to support crypto markets using Polygon's Currencies API subscription. Implement crypto search functionality with exchange filtering (Coinbase, Binance, Kraken), add price fetching for major cryptocurrencies (Bitcoin, Ethereum, etc.), and handle crypto-specific data formats and identifiers. Include proper error handling and rate limiting for crypto API calls.",
+            "testStrategy": "Unit tests for crypto-specific methods, integration tests with actual Polygon Currencies API calls, and validation of crypto data format conversions from Polygon to internal format"
+          },
+          {
+            "id": 2,
+            "title": "Implement Alpha Vantage Provider for EU Stocks",
+            "description": "Create new Alpha Vantage provider specifically for European stock exchanges with full EU market support",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Create new Alpha Vantage provider class implementing the base data provider interface. Focus specifically on European stock exchanges (LSE, Euronext, XETRA, etc.). Implement search functionality for EU securities with exchange filtering, add price fetching capabilities for real-time and historical data, handle European market-specific data formats and identifiers (ISIN, SEDOL), and implement currency handling for EUR, GBP, CHF and other European currencies with timezone support.",
+            "testStrategy": "Integration tests with actual Alpha Vantage API calls for EU stocks, mock tests for error scenarios, validation of European currency and timezone handling, and data format conversion tests"
+          },
+          {
+            "id": 3,
+            "title": "Update Data Provider Factory with Smart Routing Logic",
+            "description": "Implement intelligent provider selection in DataProviderFactory: US Stocks → Polygon, Crypto → Polygon, EU Stocks → Alpha Vantage",
+            "status": "pending",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Modify DataProviderFactory to implement smart routing logic based on asset type and region. Configure routing rules: US Stocks → Polygon, Crypto → Polygon (with Currencies subscription), EU Stocks → Alpha Vantage. Add configuration options for Alpha Vantage API keys and Polygon Currencies subscription settings. Update environment variables handling and add feature flags for EU market and crypto support.",
+            "testStrategy": "Unit tests for smart routing logic with different asset types, configuration validation tests, and integration tests for provider selection based on security type and exchange"
+          },
+          {
+            "id": 4,
+            "title": "Enhanced Security Model for Crypto and European Assets",
+            "description": "Update the security model to support crypto assets and European stocks with proper validation and identifiers",
+            "status": "pending",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Extend existing security model/entity to include crypto asset types and European stock identifiers. Add support for crypto symbols and European market identifiers, implement validation for EU-specific security formats (ISIN, SEDOL) and crypto symbols. Update database schema if needed to accommodate new asset types and fields. Ensure backward compatibility with existing US securities.",
+            "testStrategy": "Database migration tests, validation tests for EU security formats and crypto symbols, and integration tests to ensure existing US securities continue to work with new asset types"
+          },
+          {
+            "id": 5,
+            "title": "Price Sync Integration for Mixed Asset Types",
+            "description": "Extend existing price sync service to handle US stocks, EU stocks, and crypto assets with proper scheduling and currency conversion",
+            "status": "pending",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Modify existing price sync service to handle mixed portfolios with US stocks, EU stocks, and crypto assets. Add scheduling logic for European market hours and 24/7 crypto markets. Implement currency conversion for EU prices and crypto to base currency. Add error handling for provider-specific API limitations and rate limits. Ensure sync service can intelligently route requests to appropriate providers based on asset type.",
+            "testStrategy": "Integration tests for price sync across different asset types and time zones, currency conversion accuracy tests for EU and crypto assets, and error handling tests for API failures and rate limiting scenarios across multiple providers"
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-03T10:58:49.572Z",
+      "updated": "2025-07-16T20:03:41.751Z",
+      "description": "Tasks related to investment tracking feature"
+    }
+  }
+}

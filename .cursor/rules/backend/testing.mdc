@@ -1,0 +1,75 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Testing
+
+## File Structure
+```
+__tests__/
+├── unit/
+│   └── {feature}.test.ts
+└── e2e/
+    └── {feature}.e2e.ts
+```
+
+## Running Tests
+
+*Do not* try to run tests. I'll run them manually myself
+
+## Testing Rules
+
+### Unit Tests
+1. Write unit tests ONLY for pure functions that don't involve database or external services
+2. Place unit tests next to the tested file with `.unit.ts` extension
+3. Unit tests can use mocks for dependencies
+
+### E2E Tests
+1. Write e2e tests for complete business flows
+2. Place e2e tests next to the service that implements the flow with `.e2e.ts` extension
+3. NEVER mock models directly
+4. Always use actual API endpoints to set up test data via test helpers
+5. Example flow for investment transaction e2e test:
+   ```typescript
+   // create-investment-transaction.e2e.ts
+   import { createAccount } from '@tests/helpers/create-account';
+   import { createHolding } from '@tests/helpers/create-holding';
+   import { addUserCurrency } from '@tests/helpers/add-user-currency';
+
+   describe('Create Investment Transaction', () => {
+     it('should create transaction with all required relations', async () => {
+       // setupIntegrationTests.ts already provides basic data and custom matchers
+
+       // Use test helpers to create required data via API endpoints
+       const account = await createAccount({ userId: user.id });
+       const holding = await createHolding({ userId: user.id, accountId: account.id });
+       await addUserCurrency({ userId: user.id, currencyId: holding.security.currencyId });
+
+       // Test the actual flow
+     });
+   });
+   ```
+6. Create reusable test helpers in `packages/backend/src/tests/helpers` for API endpoint calls
+7. Use `setupIntegrationTests.ts` for basic data setup and custom Jest matchers
+8. If data cannot be created via existing endpoints, consult with team on how to handle it
+9. Use test factories only for generating valid input data, not for database operations
+10. When adding helper for the test, use not only `return makeRequest`, but also specify returned type, so overall helper will look like that like that:
+```typescript
+import { createInvestmentTransaction as _createInvestmentTransaction } from '@services/investments/transactions/create.service';
+
+export async function createInvestmentTransaction<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: ReturnType<typeof buildInvestmentTransactionPayload>;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof _createInvestmentTransaction>>, R>({
+    method: 'post',
+    url: '/investments/transaction',
+    payload,
+    raw,
+  });
+}
+```

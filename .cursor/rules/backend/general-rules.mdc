@@ -1,0 +1,78 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# General Rules
+
+## Documentation
+
+### Code Documentation Rules
+1. Document complex business logic
+2. Document non-obvious validations
+3. Document error conditions
+4. Use JSDoc for public APIs
+5. Keep documentation up to date
+
+## Middleware
+
+### Common Middleware
+1. authenticateJwt - Authentication
+2. validateEndpoint - Request validation
+3. requestId - Request tracking
+4. sessionId - Session management
+
+### Custom Middleware Rules
+1. Keep middleware focused and simple
+2. Use proper typing
+3. Follow Express middleware pattern
+4. Handle errors properly
+
+## Database Operations
+
+### Rules
+1. Use Sequelize for database operations
+2. Always use transactions for multi-step operations
+3. Define proper indexes
+4. Use proper connection pooling
+5. Handle database errors properly
+
+## API Response Format
+
+### Success Response
+```typescript
+{
+  status: API_RESPONSE_STATUS.success,
+  response: unknown
+}
+```
+
+### Error Response
+```typescript
+{
+  status: API_RESPONSE_STATUS.error,
+  error: {
+    message: string,
+    code?: string,
+    details?: unknown
+  }
+}
+```
+
+## Security Rules
+
+1. Always validate user permissions
+2. Use proper authentication
+3. Sanitize user input
+4. Use proper CORS settings
+5. Follow security best practices
+6. Handle sensitive data properly
+
+## Performance Rules
+
+1. Use proper indexing
+2. Implement caching when needed
+3. Optimize database queries
+4. Use pagination for large datasets
+5. Handle rate limiting
+6. Monitor performance metrics

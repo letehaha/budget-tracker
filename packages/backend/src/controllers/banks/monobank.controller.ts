@@ -32,7 +32,6 @@ import { z } from 'zod';
 
 export const usersQuery = new Map();
 
-// TODO: for now dumb value
 const hostWebhooksCallback = 'http://d8d75e719def.ngrok.io';
 const hostname = 'https://api.monobank.ua';
 

@@ -40,6 +40,7 @@ module.exports = {
         destructive: {
           DEFAULT: 'rgba(var(--destructive), <alpha-value>)',
           foreground: 'rgba(var(--destructive-foreground), <alpha-value>)',
+          text: 'rgba(var(--destructive-text), <alpha-value>)',
         },
         muted: {
           DEFAULT: 'rgba(var(--muted), <alpha-value>)',
@@ -64,6 +65,7 @@ module.exports = {
         success: {
           DEFAULT: 'rgba(var(--success), <alpha-value>)',
           foreground: 'rgba(var(--base-text), <alpha-value>)',
+          text: 'rgba(var(--success-text), <alpha-value>)',
         },
         warning: 'rgba(230, 126, 34, <alpha-value>)',
         'app-income-color': '#2ecc71',

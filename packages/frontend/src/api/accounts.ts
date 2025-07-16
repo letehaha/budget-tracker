@@ -18,9 +18,7 @@ export const loadAccounts = async (): Promise<AccountModel[]> => {
   return result.map((item) => formatAccount(item));
 };
 
-export const createAccount = async (
-  payload: Omit<endpointsTypes.CreateAccountBody, 'accountCategory'>,
-): Promise<AccountModel> => {
+export const createAccount = async (payload: endpointsTypes.CreateAccountBody): Promise<AccountModel> => {
   const params = payload;
 
   if (params.creditLimit) params.creditLimit = toSystemAmount(Number(params.creditLimit));
@@ -28,8 +26,7 @@ export const createAccount = async (
 
   const result = await api.post('/accounts', {
     ...params,
-    // For now we just doesn't allow users to select account category on UI
-    accountCategory: ACCOUNT_CATEGORIES.general,
+    accountCategory: params.accountCategory || ACCOUNT_CATEGORIES.general,
   });
 
   return result;

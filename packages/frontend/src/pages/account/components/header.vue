@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { InputField } from '@/components/fields';
+import PortfolioTransferDialog from '@/components/dialogs/portfolio-transfer-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
 import { CardHeader } from '@/components/lib/ui/card';
 import * as Popover from '@/components/lib/ui/popover';
@@ -9,7 +10,7 @@ import { toLocalNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
-import { Edit2Icon } from 'lucide-vue-next';
+import { ArrowRightLeftIcon, Edit2Icon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 
@@ -56,33 +57,41 @@ const updateAccount = async () => {
 
 <template>
   <CardHeader>
-    <div class="flex flex-wrap items-start justify-between">
-      <p class="flex items-center gap-2">
+    <div class="flex flex-wrap justify-between items-start">
+      <p class="flex gap-2 items-center">
         <span class="text-xl">
           {{ account.name }}
         </span>
 
-        <Popover.Popover :open="formEditingPopoverOpen" @update:open="formEditingPopoverOpen = $event">
-          <Popover.PopoverTrigger>
-            <Button variant="ghost" size="icon">
-              <Edit2Icon :size="20" />
+        <div class="flex gap-1 items-center">
+          <PortfolioTransferDialog :account="account" context="account">
+            <Button variant="ghost" size="icon" title="Transfer to Portfolio">
+              <ArrowRightLeftIcon :size="20" />
             </Button>
-          </Popover.PopoverTrigger>
-          <Popover.PopoverContent>
-            <form class="grid gap-6" @submit.prevent="updateAccount">
-              <InputField
-                v-model="accountNameForm.name"
-                label="Account name"
-                placeholder="Account name"
-                :error-message="getFieldErrorMessage('form.name')"
-              />
+          </PortfolioTransferDialog>
 
-              <Button type="submit" :disabled="accountNameForm.name === account.name"> Save </Button>
-            </form>
-          </Popover.PopoverContent>
-        </Popover.Popover>
+          <Popover.Popover :open="formEditingPopoverOpen" @update:open="formEditingPopoverOpen = $event">
+            <Popover.PopoverTrigger>
+              <Button variant="ghost" size="icon" title="Edit Account Name">
+                <Edit2Icon :size="20" />
+              </Button>
+            </Popover.PopoverTrigger>
+            <Popover.PopoverContent>
+              <form class="grid gap-6" @submit.prevent="updateAccount">
+                <InputField
+                  v-model="accountNameForm.name"
+                  label="Account name"
+                  placeholder="Account name"
+                  :error-message="getFieldErrorMessage('form.name')"
+                />
+
+                <Button type="submit" :disabled="accountNameForm.name === account.name"> Save </Button>
+              </form>
+            </Popover.PopoverContent>
+          </Popover.Popover>
+        </div>
       </p>
-      <div class="ml-auto flex flex-wrap items-end justify-start gap-2">
+      <div class="flex flex-wrap gap-2 justify-start items-end ml-auto">
         <span v-if="account.currencyId !== baseCurrency.currencyId" class="text-white text-opacity-50">
           ~
           {{ toLocalNumber(account.refCurrentBalance) }}

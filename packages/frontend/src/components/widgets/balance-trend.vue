@@ -20,7 +20,7 @@
           <div
             :class="{
               'text-app-expense-color': balancesDiff < 0,
-              'text-success': balancesDiff > 0,
+              'text-success-text': balancesDiff > 0,
             }"
           >
             {{ `${balancesDiff}%` }}

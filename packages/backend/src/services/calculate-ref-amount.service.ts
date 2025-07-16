@@ -48,6 +48,7 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
         userId,
         isDefaultCurrency: true,
       });
+
       if (!result) {
         throw new ValidationError({
           message: 'Cannot find currency to calculate ref amount!',

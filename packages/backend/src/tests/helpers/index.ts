@@ -11,4 +11,11 @@ export * from './transactions';
 export * from './exchange-rates';
 export * from './account-groups';
 export * from './user-settings';
-export * from './budgets'
+export * from './budgets';
+
+export * from './investments/securities';
+export * from './investments/prices';
+export * from './investments/holdings';
+export * from './investments/transactions';
+export * from './investments/portfolios';
+export * from './investments/portfolio-transfers';

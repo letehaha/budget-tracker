@@ -11,6 +11,7 @@
     "migrate:dev:undo": "cross-env NODE_ENV=development npx sequelize-cli db:migrate:undo",
     "migrate": "cross-env NODE_ENV=production npx sequelize-cli db:migrate",
     "migrate:undo": "cross-env NODE_ENV=production npx sequelize-cli db:migrate:undo",
+    "migrate:generate": "cross-env NODE_ENV=development npx sequelize-cli migration:generate",
     "test": "cross-env NODE_ENV=test npm run test:unit && npm run test:e2e",
     "test:unit": "cross-env NODE_ENV=test jest -c jest.config.unit.ts --passWithNoTests --forceExit --detectOpenHandles",
     "test:e2e": "cross-env NODE_ENV=test chmod +x ./src/tests/setup-e2e-tests.sh && ./src/tests/setup-e2e-tests.sh",
@@ -19,9 +20,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@polygon.io/client-js": "^7.4.0",
     "@types/cls-hooked": "^4.3.9",
     "axios": "1.7.4",
     "bcryptjs": "3.0.2",
+    "big.js": "^7.0.1",
     "cls-hooked": "^4.2.2",
     "connect-redis": "5.0.0",
     "cors": "2.8.5",
@@ -53,6 +56,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "8.4.1",
+    "@types/big.js": "^6.2.2",
     "@types/cors": "2.8.17",
     "@types/express": "4.17.21",
     "@types/jest": "29.5.12",

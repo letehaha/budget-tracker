@@ -23,3 +23,46 @@ export const commaSeparatedRecordIds = z.string().transform((str, ctx) => {
   }
   return ids as number[];
 });
+
+/**
+ * Properly handles boolean query parameters from URL strings.
+ * Converts "true", "1" to true and "false", "0" to false.
+ * Rejects other string values.
+ */
+export const booleanQuery = () =>
+  z.union([z.boolean(), z.string()]).transform((val, ctx) => {
+    if (typeof val === 'boolean') {
+      return val;
+    }
+
+    const lowerVal = val.toLowerCase();
+    if (lowerVal === 'true' || lowerVal === '1') {
+      return true;
+    }
+    if (lowerVal === 'false' || lowerVal === '0') {
+      return false;
+    }
+
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Boolean value must be "true", "false", "1", or "0"',
+    });
+    return z.NEVER;
+  });
+
+export const numericString = (options?: { allowNegative?: boolean; allowZero?: boolean }) =>
+  z
+    .union([z.string(), z.number()])
+    .refine(
+      (val) => {
+        const num = typeof val === 'string' ? parseFloat(val) : val;
+        if (isNaN(num)) return false;
+        if (!options?.allowZero && num === 0) return false;
+        if (!options?.allowNegative && num < 0) return false;
+        return true;
+      },
+      {
+        message: 'Invalid number format',
+      },
+    )
+    .transform((val) => String(val));

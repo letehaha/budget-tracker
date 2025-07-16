@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(task-master list:*)",
+      "Bash(task-master show:*)",
+      "Bash(task-master expand:*)",
+      "Bash(task-master set-status:*)",
+      "Bash(task-master update-subtask:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(task-master:*)",
+      "Bash(find:*)",
+      "Bash(gemini:*)",
+      "WebFetch(domain:polygon.io)"
+    ],
+    "deny": []
+  }
+}
