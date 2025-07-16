@@ -6,6 +6,7 @@ export const loadHoldings = async (accountId: number): Promise<HoldingModel[]> =
   return result;
 };
 
+/** @public */
 export const createHolding = async (payload: { accountId: number; securityId: number }): Promise<HoldingModel> => {
   const result: HoldingModel = await api.post('/investments/holding', payload);
   return result;

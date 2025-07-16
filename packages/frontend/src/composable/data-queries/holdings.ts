@@ -30,6 +30,7 @@ export const useCreateHolding = () => {
   });
 };
 
+/** @public */
 export const useDeleteHolding = () => {
   const queryClient = useQueryClient();
 

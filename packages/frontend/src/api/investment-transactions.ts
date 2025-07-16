@@ -12,6 +12,7 @@ export const createInvestmentTransaction = (payload: unknown): Promise<Investmen
   return api.post('/investments/transaction', payload);
 };
 
+/** @public */
 export const updateInvestmentTransaction = (
   transactionId: number,
   payload: unknown,
@@ -23,6 +24,7 @@ export const deleteInvestmentTransaction = (transactionId: number): Promise<void
   return api.delete(`/investments/transaction/${transactionId}`);
 };
 
+/** @public */
 export const getInvestmentTransactions = (portfolioId: number): Promise<InvestmentTransactionModel[]> => {
   return api.get(`/investments/accounts/${portfolioId}/transactions`);
 };

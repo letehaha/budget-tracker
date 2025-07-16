@@ -25,6 +25,7 @@ export const useCreatePortfolioTransfer = () => {
 };
 
 // Portfolio transfers listing composable - focused on data fetching only
+/** @public */
 export const usePortfolioTransfers = (portfolioId: MaybeRef<number | undefined>, queryOptions = {}) => {
   const queryClient = useQueryClient();
 
