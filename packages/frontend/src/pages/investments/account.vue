@@ -38,7 +38,7 @@
                 </tr>
               </thead>
               <tbody>
-                <template v-for="holding in holdings" :key="`${holding.accountId}-${holding.securityId}`">
+                <template v-for="holding in holdings" :key="`${holding.portfolioId}-${holding.securityId}`">
                   <tr class="hover:bg-muted/30 border-b transition-colors">
                     <td class="px-4 py-3">
                       <div>
@@ -200,7 +200,7 @@ onMounted(fetchHoldings);
 watch(accountId, fetchHoldings);
 
 // Utility functions
-const getHoldingKey = (holding: HoldingModel) => `${holding.accountId}-${holding.securityId}`;
+const getHoldingKey = (holding: HoldingModel) => `${holding.portfolioId}-${holding.securityId}`;
 
 const toggleExpandedHolding = (holding: HoldingModel) => {
   const key = getHoldingKey(holding);
@@ -255,7 +255,7 @@ const formatDate = (date: string | Date) => {
 const removeHolding = async (holding: HoldingModel) => {
   if (confirm(`Are you sure you want to remove ${holding.security?.symbol} from this account?`)) {
     try {
-      await deleteHolding({ accountId: holding.accountId, securityId: holding.securityId });
+      await deleteHolding({ portfolioId: holding.portfolioId, securityId: holding.securityId });
       await fetchHoldings(); // Refresh holdings
     } catch (error) {
       console.error('Failed to remove holding:', error);

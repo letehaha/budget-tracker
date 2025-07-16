@@ -7,11 +7,11 @@ export const loadHoldings = async (accountId: number): Promise<HoldingModel[]> =
 };
 
 /** @public */
-export const createHolding = async (payload: { accountId: number; securityId: number }): Promise<HoldingModel> => {
+export const createHolding = async (payload: { portfolioId: number; securityId: number }): Promise<HoldingModel> => {
   const result: HoldingModel = await api.post('/investments/holding', payload);
   return result;
 };
 
-export const deleteHolding = async (payload: { accountId: number; securityId: number }): Promise<void> => {
+export const deleteHolding = async (payload: { portfolioId: number; securityId: number }): Promise<void> => {
   await api.delete('/investments/holding', { data: payload });
 };
