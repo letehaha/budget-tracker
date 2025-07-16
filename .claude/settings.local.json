@@ -9,7 +9,8 @@
       "mcp__ide__getDiagnostics",
       "Bash(task-master:*)",
       "Bash(find:*)",
-      "Bash(gemini:*)"
+      "Bash(gemini:*)",
+      "WebFetch(domain:polygon.io)"
     ],
     "deny": []
   }
