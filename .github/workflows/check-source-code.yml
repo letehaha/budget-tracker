@@ -53,6 +53,15 @@ jobs:
     name: Build frontend Docker image
     runs-on: ubuntu-latest
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
       - name: Checkout repository
         uses: actions/checkout@v4
       - id: frontend-docker-build
@@ -105,6 +114,20 @@ jobs:
     name: Build backend Docker image
     runs-on: ubuntu-latest
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+
+          # all of these default to true, but feel free to set to
+          # "false" if necessary
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
       - name: Checkout repository
         uses: actions/checkout@v4
       - id: backend-docker-build
