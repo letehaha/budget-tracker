@@ -20,7 +20,7 @@ import * as UserMerchantCategoryCodes from '@models/UserMerchantCategoryCodes.mo
 import * as Users from '@models/Users.model';
 import { connection } from '@models/index';
 import { API_PREFIX } from '@root/config';
-import { redisClient } from '@root/redis';
+import { redisClient } from '@root/redis-client';
 import * as accountsService from '@services/accounts.service';
 import * as monobankUsersService from '@services/banks/monobank/users';
 import * as transactionsService from '@services/transactions';
@@ -269,8 +269,7 @@ export const updateWebhook = createController(
       // TODO: why here we don't pass userToken?
       await updateWebhookAxios();
 
-      await redisClient.set(token, 'true');
-      await redisClient.expire(token, 60);
+      await redisClient.set(token, 'true', { EX: 60 });
 
       return {};
     }
@@ -392,8 +391,7 @@ export const loadTransactions = createController(
         } catch (err) {
           // @ts-expect-error TODO: add proper `err` interface
           if (err?.response?.status === ERROR_CODES.TooManyRequests) {
-            await redisClient.set(redisToken, 'true');
-            await redisClient.expire(redisToken, 60);
+            await redisClient.set(redisToken, 'true', { EX: 60 });
           } else {
             logger.error(err as Error);
           }
@@ -491,8 +489,7 @@ export const refreshAccounts = createController(z.object({}), async ({ user }) =
         };
       }
 
-      await redisClient.set(token, 'true');
-      await redisClient.expire(token, 60);
+      await redisClient.set(token, 'true', { EX: 60 });
 
       const existingAccounts = await accountsService.getAccountsByExternalIds({
         userId: monoUser.systemUserId,

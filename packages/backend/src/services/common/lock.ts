@@ -1,7 +1,7 @@
 import { redisKeyFormatter } from '@common/lib/redis';
 import { LockedError } from '@js/errors';
 import { logger } from '@js/utils';
-import { redisClient } from '@root/redis';
+import { redisClient } from '@root/redis-client';
 
 const LOCK_TTL_SECONDS = 60 * 30; // 30 minutes
 

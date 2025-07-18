@@ -4,7 +4,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
-import { redisClient } from '@root/redis';
+import { redisClient } from '@root/redis-client';
 import { extractResponse, makeRequest } from '@tests/helpers';
 import path from 'path';
 import Umzug from 'umzug';
@@ -224,7 +224,7 @@ beforeEach(async () => {
 
 afterAll(async () => {
   try {
-    await redisClient.quit();
+    await redisClient.close();
     await serverInstance.close();
     await loadCurrencyRatesJob.stop();
   } catch (err) {

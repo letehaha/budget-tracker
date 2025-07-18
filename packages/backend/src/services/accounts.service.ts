@@ -13,7 +13,7 @@ import * as Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
 import * as Currencies from '@models/Currencies.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
-import { redisClient } from '@root/redis';
+import { redisClient } from '@root/redis-client';
 import * as monobankUsersService from '@services/banks/monobank/users';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
@@ -122,7 +122,7 @@ export const pairMonobankAccount = withTransaction(async (payload: { token: stri
 
       clientInfo = result.data;
 
-      await redisClient.multi().set(redisToken, JSON.stringify(response)).expire(redisToken, 60).exec();
+      await redisClient.set(redisToken, JSON.stringify(response), { EX: 60 });
     } catch (err) {
       // @ts-expect-error TODO: add proper `err` interface
       if (err?.response?.data?.errorDescription === "Unknown 'X-Token'") {
