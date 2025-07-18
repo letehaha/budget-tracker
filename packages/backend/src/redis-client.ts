@@ -1,7 +1,7 @@
 import './bootstrap';
 
 import { logger } from '@js/utils/logger';
-import { createClient } from '@redis/client';
+import { createClient } from 'redis';
 
 logger.info('Initializing Redis client...');
 console.time('connect-to-redis');

@@ -1,7 +1,7 @@
 import { redisKeyFormatter } from '@common/lib/redis';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { type IExchanges, type ITickers, restClient } from '@polygon.io/client-js';
-import { redisClient } from '@root/redis';
+import { redisClient } from '@root/redis-client';
 import { SECURITIES_SYNC_LOCK_KEY } from '@services/investments/securities-sync.service';
 import * as helpers from '@tests/helpers';
 

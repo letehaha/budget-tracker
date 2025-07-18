@@ -45,7 +45,7 @@ services:
       - 'com.docker.compose.project=test'
 
   test-redis:
-    image: redis:6
+    image: redis:7
     container_name: test-budget-tracker-redis
     volumes: ['test_redis_data:/data']
     labels:

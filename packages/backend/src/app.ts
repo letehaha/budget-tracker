@@ -14,7 +14,7 @@ import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import { securitiesSyncCron } from './crons/sync-securities';
 import { securitiesPricesSyncCron } from './crons/sync-securities-prices';
 import middlewarePassword from './middlewares/passport';
-import './redis';
+import './redis-client';
 import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
 /**
