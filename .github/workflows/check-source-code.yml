@@ -92,8 +92,7 @@ jobs:
           envkey_APPLICATION_DB_DIALECT: postgres
           # docker/test/backend/docker-compose.yml redis' service name
           envkey_APPLICATION_REDIS_HOST: test-redis
-          # TODO: temporary set to 1 due to issues with migrations with +1 worker
-          envkey_JEST_WORKERS_AMOUNT: 1
+          envkey_JEST_WORKERS_AMOUNT: 10
           envkey_SHOW_LOGS_IN_TESTS: false
           envkey_POLYGON_API_KEY: random-key
           file_name: .env.test
