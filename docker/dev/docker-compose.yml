@@ -36,7 +36,7 @@ services:
     ports: ['${APPLICATION_DB_PORT}:5432']
 
   redis:
-    image: redis:6
+    image: redis:7
     container_name: dev-budget-tracker-redis
     volumes: ['redis_data:/data']
     ports: ['6379:6379']
