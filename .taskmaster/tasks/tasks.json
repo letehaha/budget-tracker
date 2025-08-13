@@ -844,5 +844,148 @@
       "updated": "2025-07-16T20:03:41.751Z",
       "description": "Tasks related to investment tracking feature"
     }
+  },
+  "test-optimization": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Separate data seeding from migrations",
+        "description": "Move seeding logic out of migrations into dedicated seed files to avoid heavy operations during test setup and improve migration performance.",
+        "details": "1. Create src/seeds/ directory structure with index.js as main entry point\n2. Extract currency seeding logic from existing migrations into src/seeds/currencies.js\n3. Extract any other data seeding logic (countries, categories, etc.) into separate seed files\n4. Create seedDatabase() function that orchestrates all seeding operations\n5. Update existing migrations to remove seeding logic, keeping only schema changes\n6. Add seeding commands to package.json scripts (npm run seed, npm run seed:dev)\n7. Update test setup to use dedicated seeding instead of running migrations with embedded data\n8. Ensure seeds are idempotent - can be run multiple times safely\n9. Add environment-specific seeding (development vs production data sets)\n10. Document seeding process in README or dedicated docs",
+        "testStrategy": "1. Verify migrations run cleanly without seeding operations\n2. Test that npm run seed successfully populates database with expected data\n3. Confirm seeds are idempotent by running multiple times\n4. Test that test suite runs faster without heavy seeding in migrations\n5. Verify all existing functionality works with new seeding approach\n6. Test seeding in both development and test environments\n7. Ensure seed files handle missing dependencies gracefully",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create seed directory structure",
+            "description": "Set up the src/seeds/ directory and create an index.js file as the main entry point for seeding operations.",
+            "dependencies": [],
+            "details": "1. Create src/seeds/ directory\n2. Create src/seeds/index.js file\n3. Set up basic structure in index.js to import and export seed functions",
+            "status": "done",
+            "testStrategy": "Verify the existence and structure of the src/seeds/ directory and index.js file"
+          },
+          {
+            "id": 2,
+            "title": "Extract seeding logic from migrations",
+            "description": "Move existing seeding logic from migrations into dedicated seed files for currencies, countries, categories, and other data types.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. Create separate seed files (e.g., currencies.js, countries.js, categories.js)\n2. Extract seeding logic from migrations into these files\n3. Ensure each seed file exports a function for seeding its respective data\n<info added on 2025-08-01T12:17:57.642Z>\nCreated currencies.seed.ts with seedCurrencies function that handles all currency seeding. The function is idempotent and checks for existing currencies before inserting. Also created unseedCurrencies for cleanup during testing.\n</info added on 2025-08-01T12:17:57.642Z>",
+            "status": "done",
+            "testStrategy": "Unit test each seed file to ensure it correctly inserts data into the database"
+          },
+          {
+            "id": 3,
+            "title": "Implement seedDatabase() function",
+            "description": "Create a main seedDatabase() function in index.js that orchestrates all seeding operations.",
+            "dependencies": [
+              2
+            ],
+            "details": "1. Import all individual seed functions\n2. Implement seedDatabase() to call each seed function in the correct order\n3. Add error handling and logging\n4. Ensure the function is idempotent",
+            "status": "done",
+            "testStrategy": "Integration test to verify all seed functions are called and data is correctly inserted"
+          },
+          {
+            "id": 4,
+            "title": "Update migrations and add seeding commands",
+            "description": "Remove seeding logic from existing migrations, update package.json with new seeding commands, and modify test setup.",
+            "dependencies": [
+              3
+            ],
+            "details": "1. Remove seeding logic from all migration files\n2. Add 'npm run seed' and 'npm run seed:dev' scripts to package.json\n3. Update test setup to use new seeding function instead of migrations\n4. Verify migrations only contain schema changes\n<info added on 2025-08-01T12:52:59.690Z>\nTest setup successfully updated to implement proper separation of concerns. The setupIntegrationTests.ts file now calls seedDatabase() after umzug.up(), ensuring migrations handle only schema changes while seeding is done separately. Removed all seeding logic from currency and MCC migration files, leaving them focused purely on table creation and schema modifications. This change improves test performance by running fast schema-only migrations followed by optimized seed operations, creating a cleaner architecture where data concerns are properly separated from schema concerns.\n</info added on 2025-08-01T12:52:59.690Z>",
+            "status": "done",
+            "testStrategy": "Run migrations and seeds separately, ensuring correct database state after each step"
+          },
+          {
+            "id": 5,
+            "title": "Implement environment-specific seeding and documentation",
+            "description": "Add support for different data sets based on the environment and document the new seeding process.",
+            "dependencies": [
+              4
+            ],
+            "details": "1. Implement logic to seed different data for development and production environments\n2. Update seedDatabase() to use environment-specific data sets\n3. Document the seeding process in README.md or a dedicated documentation file\n4. Include instructions for running seeds and explanations of environment-specific behavior\n<info added on 2025-08-01T14:31:01.257Z>\nTest failure identified: exchange rate service failing due to user-currency relationship issues after seeding changes. The addUserCurrencyByCode function works with USD but subsequent exchange rate lookups fail with 'Asked currency is not connected' error. Root cause appears to be either changed currency IDs in seed data or broken user-currency relationship setup in seeds. Priority fix needed: ensure seeding maintains consistent currency IDs and properly establishes user-currency relationships that tests expect. Consider adding test-specific seed data or fixing production seed data to match test assumptions.\n</info added on 2025-08-01T14:31:01.257Z>",
+            "status": "done",
+            "testStrategy": "Test seeding in different environments to ensure correct data sets are used"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Implement PostgreSQL template database approach",
+        "description": "Create a template database with migrations and seeds, then clone it for each test worker to eliminate redundant migration runs and improve test performance.",
+        "details": "1. Create database template creation script that:\n   - Creates a clean template database (e.g., 'budget_tracker_template')\n   - Runs all migrations against the template\n   - Executes all seed operations to populate with test data\n   - Sets template database as a PostgreSQL template (UPDATE pg_database SET datistemplate = true)\n\n2. Modify test setup to use template cloning:\n   - Update test configuration to create unique database names per worker/test run\n   - Replace migration execution with CREATE DATABASE new_db WITH TEMPLATE template_db\n   - Ensure proper cleanup of cloned databases after tests\n\n3. Update CI/CD pipeline:\n   - Add template database creation step before running tests\n   - Configure parallel test execution to use different database names\n   - Add cleanup step to remove template and test databases\n\n4. Create npm scripts:\n   - 'npm run db:create-template' - Creates and prepares template database\n   - 'npm run db:clone-template' - Clones template for development use\n   - 'npm run test:setup' - Prepares template database before test execution\n\n5. Add environment variable support:\n   - TEMPLATE_DB_NAME for template database name\n   - TEST_DB_PREFIX for test database naming convention\n   - Support for multiple database connections in test environment",
+        "testStrategy": "1. Verify template database creation script successfully creates template with all migrations and seeds\n2. Test that database cloning creates identical copies with all expected data\n3. Measure test execution time improvement compared to migration-based approach\n4. Run parallel tests to ensure no database conflicts between workers\n5. Verify template database remains unchanged after cloning operations\n6. Test cleanup procedures properly remove cloned databases\n7. Confirm CI/CD pipeline successfully creates template and runs tests in parallel\n8. Validate that development workflow still works with template approach\n9. Test error handling when template database is unavailable or corrupted",
+        "status": "pending",
+        "dependencies": [
+          1
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Optimize test setup by caching common test data",
+        "description": "Cache frequently used test data (base user, auth token, currencies) globally per worker instead of recreating for each test to improve test performance and reduce database operations.",
+        "details": "1. Create test/helpers/testDataCache.js module that:\n   - Implements singleton pattern for per-worker data caching\n   - Provides getOrCreateUser(), getOrCreateAuthToken(), getOrCreateCurrencies() methods\n   - Uses WeakMap or process-level variables to store cached data per worker\n   - Includes cache invalidation methods for test isolation when needed\n\n2. Implement lazy loading strategy:\n   - Cache data only when first requested, not at worker startup\n   - Use database transactions or queries to check if cached data still exists\n   - Implement fallback recreation if cached entities are missing\n\n3. Update existing test files to use cached data:\n   - Replace direct database operations for common entities with cache methods\n   - Modify test utilities in test/helpers/ to leverage cached data\n   - Ensure cached auth tokens have sufficient expiration time for test duration\n\n4. Add cache warming option:\n   - Create optional setupTestDataCache() function for test suites that heavily use common data\n   - Implement cache preloading in test setup hooks where beneficial\n\n5. Implement cache isolation controls:\n   - Add resetCache() method for tests that modify shared data\n   - Provide cache scoping options for test suites requiring fresh data",
+        "testStrategy": "1. Measure test execution time before and after caching implementation across different test suites\n2. Verify cached data persists correctly across multiple tests within same worker\n3. Test cache isolation by ensuring data modifications in one test don't affect others\n4. Validate cache fallback behavior when cached entities are deleted or expired\n5. Run parallel test execution to ensure no race conditions in cache access\n6. Test cache invalidation methods work correctly and don't cause test failures\n7. Verify memory usage remains stable with cached data over extended test runs\n8. Confirm all existing tests pass without modification when using cached data\n9. Test edge cases like database connection failures with cached data present",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Replace full schema recreation with table truncation",
+        "description": "Replace database schema recreation with efficient table truncation using RESTART IDENTITY CASCADE to speed up test cleanup while maintaining data integrity.",
+        "details": "1. Create truncateAllTables() function in test/helpers/database.js that:\n   - Queries pg_tables to get all user-defined tables (excluding system tables)\n   - Generates TRUNCATE statements with RESTART IDENTITY CASCADE for each table\n   - Executes truncation in correct dependency order to avoid foreign key conflicts\n   - Handles edge cases like empty databases or tables with circular references\n\n2. Replace existing schema recreation logic:\n   - Update afterEach/afterAll hooks to use truncateAllTables() instead of DROP SCHEMA\n   - Maintain table structure and constraints while clearing all data\n   - Preserve auto-increment sequences by resetting them to 1\n   - Keep indexes, triggers, and other database objects intact\n\n3. Implement error handling and fallback:\n   - Add try-catch blocks around truncation operations\n   - Fallback to full schema recreation if truncation fails\n   - Log performance metrics to measure cleanup time improvement\n   - Add configuration option to toggle between truncation and recreation methods\n\n4. Optimize truncation order:\n   - Query foreign key relationships to determine safe truncation sequence\n   - Group tables without dependencies for parallel truncation\n   - Handle self-referencing tables and circular dependencies appropriately",
+        "testStrategy": "1. Measure test cleanup performance before and after implementation to verify speed improvement\n2. Test truncation with various database states: empty tables, tables with data, tables with foreign keys\n3. Verify that auto-increment sequences are properly reset after truncation\n4. Run parallel tests to ensure truncation doesn't cause race conditions or locking issues\n5. Test fallback mechanism by simulating truncation failures\n6. Validate that all test data is completely removed while preserving database schema\n7. Compare memory usage between truncation and schema recreation approaches\n8. Test with tables containing various constraint types (foreign keys, unique constraints, check constraints)",
+        "status": "pending",
+        "dependencies": [
+          2
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Update CI test setup script for optimized performance",
+        "description": "Modify setup-e2e-tests.sh to use template database approach and reduce Docker container overhead for improved CI test performance.",
+        "details": "1. Update setup-e2e-tests.sh script to implement template database workflow:\n   - Add environment variable configuration for template database name\n   - Integrate template database creation using the established approach from Task 2\n   - Modify database initialization to clone from template instead of running migrations\n   - Add cleanup logic to remove template database after test completion\n\n2. Optimize Docker container configuration:\n   - Review and optimize Docker Compose configuration for test services\n   - Implement container reuse strategies to avoid repeated container creation\n   - Add health checks to ensure services are ready before test execution\n   - Configure shared volumes for faster data access between containers\n\n3. Integrate performance optimizations:\n   - Incorporate table truncation approach from Task 4 into cleanup procedures\n   - Ensure test data caching from Task 3 is properly configured in CI environment\n   - Add parallel test execution configuration with proper worker isolation\n\n4. Add monitoring and validation:\n   - Include timing measurements to track performance improvements\n   - Add validation steps to ensure database template integrity\n   - Implement fallback mechanisms if template approach fails",
+        "testStrategy": "1. Run CI pipeline with updated script and measure total test execution time compared to previous baseline\n2. Verify template database is created correctly with all migrations and seeds applied\n3. Test that each test worker gets a clean database clone with proper isolation\n4. Validate that Docker containers start efficiently and don't conflict between parallel runs\n5. Run full e2e test suite multiple times to ensure consistency and stability\n6. Monitor resource usage (CPU, memory, disk) to confirm reduced overhead\n7. Test failure scenarios to ensure proper cleanup and error handling\n8. Verify that test results remain identical to previous implementation while achieving performance gains",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement transaction-based test isolation as alternative approach",
+        "description": "Create alternative test setup using database transactions for instant rollback instead of table truncation for maximum speed and isolation.",
+        "details": "1. Create transaction-based test wrapper in test/helpers/transactionTest.js that:\n   - Starts a database transaction before each test\n   - Provides test context with transactional database connection\n   - Automatically rolls back transaction after test completion regardless of success/failure\n   - Handles nested transactions using savepoints for complex test scenarios\n\n2. Implement TransactionTestRunner class:\n   - Wraps existing test functions with transaction management\n   - Provides beforeEach/afterEach hooks that manage transaction lifecycle\n   - Ensures all database operations within test use the same transaction connection\n   - Includes timeout handling to prevent hanging transactions\n\n3. Create utility functions for transaction management:\n   - withTransaction(testFn) wrapper for individual test functions\n   - createTransactionalConnection() for obtaining transaction-scoped connections\n   - rollbackToSavepoint() for partial rollbacks within complex tests\n   - getTransactionStatus() for debugging transaction state\n\n4. Update test configuration:\n   - Add transaction isolation mode configuration options\n   - Provide fallback mechanism to table truncation approach\n   - Add environment variables to toggle between isolation strategies\n   - Configure connection pooling to handle transactional connections efficiently\n\n5. Handle edge cases:\n   - DDL operations that cannot be rolled back (document limitations)\n   - Long-running tests that may cause transaction timeouts\n   - Tests that require multiple database connections\n   - Cleanup of abandoned transactions on test process termination",
+        "testStrategy": "1. Measure test execution speed comparing transaction rollback vs table truncation approaches across different test suite sizes\n2. Verify complete isolation by running tests that modify same data concurrently and ensuring no interference\n3. Test transaction rollback behavior with various database operations: INSERT, UPDATE, DELETE, and schema changes\n4. Validate that nested transactions and savepoints work correctly for complex test scenarios\n5. Test error handling by intentionally causing database errors and verifying proper transaction rollback\n6. Run stress tests with high concurrency to ensure transaction management doesn't cause deadlocks or connection pool exhaustion\n7. Verify that all database changes are properly rolled back even when tests throw exceptions or timeout\n8. Test compatibility with existing test helpers and ensure seamless integration with current test patterns\n9. Benchmark memory usage and connection pool impact compared to truncation approach\n10. Validate that transaction-based approach works correctly with both unit and integration tests",
+        "status": "pending",
+        "dependencies": [
+          1
+        ],
+        "priority": "low",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-08-01T11:30:52.057Z",
+      "updated": "2025-08-01T12:53:55.081Z",
+      "description": "=Backend test setup optimization and performance improvements"
+    }
   }
 }

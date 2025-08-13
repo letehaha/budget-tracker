@@ -6,6 +6,7 @@ import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
 import { redisClient } from '@root/redis-client';
+import { seedDatabase } from '@root/seeds';
 import { extractResponse, makeRequest } from '@tests/helpers';
 import path from 'path';
 import Umzug from 'umzug';
@@ -229,6 +230,16 @@ beforeEach(async () => {
       15,
       200,
     ); // More retries for migrations
+
+    // Run database seeding after migrations
+    await retryWithBackoff(
+      async () => {
+        const queryInterface = connection.sequelize.getQueryInterface();
+        await seedDatabase(queryInterface, 'test');
+      },
+      10,
+      150,
+    ); // Retry seeding with deadlock protection
 
     // Set up test user
     await makeRequest({

@@ -39,7 +39,7 @@ describe('List Portfolio Transfers', () => {
         fromPortfolioId: sourcePortfolio.id,
         payload: {
           toPortfolioId: destPortfolio.id,
-          currencyId: usdCurrency!.id,
+          currencyId: usdCurrency!.currencyId,
           amount: '100',
           date,
           description: `Transfer on ${date}`,
@@ -140,7 +140,7 @@ describe('List Portfolio Transfers', () => {
       fromPortfolioId: sourcePortfolio.id,
       payload: {
         toPortfolioId: destPortfolio.id,
-        currencyId: usdCurrency!.id,
+        currencyId: usdCurrency!.currencyId,
         amount: '200',
         date: '2023-04-01',
         description: 'Test transfer to destination',

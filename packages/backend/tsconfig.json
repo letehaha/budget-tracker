@@ -21,6 +21,7 @@
     "sourceMap": true,
     "noImplicitAny": false,
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
