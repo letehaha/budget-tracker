@@ -2,6 +2,7 @@ import { QueryInterface } from 'sequelize';
 
 import { seedCurrencies } from './currencies.seed';
 import { seedMerchantCategoryCodes } from './mcc.seed';
+import { seedExchangeRates } from './exchange-rates.seed';
 
 /**
  * Main seeding function that orchestrates all seeding operations
@@ -21,6 +22,7 @@ export const seedDatabase = async (
     }
     await seedCurrencies(queryInterface);
     await seedMerchantCategoryCodes(queryInterface);
+    await seedExchangeRates(queryInterface);
 
     if (environment !== 'test') {
       console.log('✅ Database seeding completed successfully');
@@ -34,3 +36,4 @@ export const seedDatabase = async (
 // Export individual seed functions for granular control
 export { seedCurrencies } from './currencies.seed';
 export { seedMerchantCategoryCodes } from './mcc.seed';
+export { seedExchangeRates } from './exchange-rates.seed';

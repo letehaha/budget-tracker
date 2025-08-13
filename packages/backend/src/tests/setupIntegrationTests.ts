@@ -11,6 +11,7 @@ import { extractResponse, makeRequest } from '@tests/helpers';
 import path from 'path';
 import Umzug from 'umzug';
 
+import { truncateAllTables } from './helpers/database-cleanup';
 import { setupMswServer } from './mocks/setup-mock-server';
 
 const mswMockServer = setupMswServer();
@@ -59,21 +60,6 @@ global.BASE_CURRENCY = null;
 global.BASE_CURRENCY_CODE = 'AED';
 global.MODELS_CURRENCIES = null;
 global.APP_AUTH_TOKEN = null;
-
-async function dropAllEnums(sequelize) {
-  // Get all ENUM types
-  const enums = await sequelize.query(`
-    SELECT t.typname as enumtype
-    FROM pg_type t
-    JOIN pg_enum e ON t.oid = e.enumtypid
-    GROUP BY t.typname;
-  `);
-
-  // Drop each ENUM
-  for (const enumType of enums[0]) {
-    await sequelize.query(`DROP TYPE "${enumType.enumtype}" CASCADE`);
-  }
-}
 
 async function waitForDatabaseConnection() {
   await until(
@@ -197,19 +183,13 @@ beforeEach(async () => {
     // Wait for both database and Redis connections with better error handling
     await Promise.all([waitForDatabaseConnection(), waitForRedisConnection()]);
 
-    // Dynamic delay based on worker ID to reduce database contention
-    const workerId = parseInt(process.env.JEST_WORKER_ID || '1', 10);
-    const staggerDelay = (workerId - 1) * 1000; // 1000ms per worker for better CI stability
-    await new Promise((resolve) => setTimeout(resolve, staggerDelay));
-
-    // Clean up database schema with retry logic for deadlock handling
-    await retryWithBackoff(async () => {
-      await connection.sequelize.drop({ cascade: true });
-    });
-
-    await retryWithBackoff(async () => {
-      await dropAllEnums(connection.sequelize);
-    });
+    await retryWithBackoff(
+      async () => {
+        await truncateAllTables();
+      },
+      15,
+      200,
+    );
 
     // Clean up Redis keys for this worker
     const workerPrefix = process.env.JEST_WORKER_ID || '1';
@@ -221,8 +201,7 @@ beforeEach(async () => {
     // Clear query cache
     usersQuery.clear();
 
-    // Run migrations with additional delay to avoid race conditions
-    await new Promise((resolve) => setTimeout(resolve, workerId * 100)); // Extra stagger for migrations
+    // Run migrations
     await retryWithBackoff(
       async () => {
         await umzug.up();
