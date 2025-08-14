@@ -1,15 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { until } from '@common/helpers';
 import { usersQuery } from '@controllers/banks/monobank.controller';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
-import { redisClient } from '@root/redis-client';
+import { seedDatabase } from '@root/seeds';
 import { extractResponse, makeRequest } from '@tests/helpers';
 import path from 'path';
 import Umzug from 'umzug';
 
+import { truncateAllTables } from './helpers/database-cleanup';
 import { setupMswServer } from './mocks/setup-mock-server';
+import { TestRedisClient } from './redis-client-test';
 
 const mswMockServer = setupMswServer();
 
@@ -58,21 +61,6 @@ global.BASE_CURRENCY_CODE = 'AED';
 global.MODELS_CURRENCIES = null;
 global.APP_AUTH_TOKEN = null;
 
-async function dropAllEnums(sequelize) {
-  // Get all ENUM types
-  const enums = await sequelize.query(`
-    SELECT t.typname as enumtype
-    FROM pg_type t
-    JOIN pg_enum e ON t.oid = e.enumtypid
-    GROUP BY t.typname;
-  `);
-
-  // Drop each ENUM
-  for (const enumType of enums[0]) {
-    await sequelize.query(`DROP TYPE "${enumType.enumtype}" CASCADE`);
-  }
-}
-
 async function waitForDatabaseConnection() {
   await until(
     async () => {
@@ -87,18 +75,91 @@ async function waitForDatabaseConnection() {
   );
 }
 
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 10,
+  baseDelay: number = 100,
+): Promise<T> {
+  let lastError: Error;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+
+      // Check if it's a deadlock error
+      const isDeadlock = error?.original?.code === '40P01' || error?.message?.includes('deadlock detected');
+
+      if (isDeadlock && attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 100;
+        console.log(
+          `Database deadlock detected (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay.toFixed(0)}ms...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+
+      // Log detailed error for non-deadlock errors or final retry
+      if (!isDeadlock) {
+        console.error('Non-deadlock database error:', error.message);
+      } else {
+        console.error('Database deadlock persisted after all retries:', error.message);
+      }
+
+      throw error;
+    }
+  }
+
+  throw lastError!;
+}
+
 async function waitForRedisConnection() {
   await until(
     async () => {
       try {
-        const result = await redisClient.hello();
-        return !!result;
+        const pool = await TestRedisClient.getClient();
+        const result = await pool.ping();
+        return result === 'PONG';
       } catch {
         return false;
       }
     },
-    { timeout: 10000, interval: 100 },
+    { timeout: 10000, interval: 100 }, // Reduced timeout since we have faster connection
   );
+}
+
+async function cleanupWorkerRedisKeys() {
+  const pool = await TestRedisClient.getClient();
+  const workerPrefix = process.env.JEST_WORKER_ID || '1';
+
+  // Use Lua script for atomic bulk deletion - much faster than individual operations
+  const luaScript = `
+    local keys = redis.call('KEYS', ARGV[1])
+    if #keys > 0 then
+      return redis.call('DEL', unpack(keys))
+    end
+    return 0
+  `;
+
+  try {
+    const deletedCount = (await pool.eval(luaScript, {
+      keys: [],
+      arguments: [`${workerPrefix}-*`],
+    })) as number;
+
+    if (deletedCount && deletedCount > 0) {
+      console.log(`Cleaned up ${deletedCount} Redis keys for worker ${workerPrefix}`);
+    }
+  } catch (error) {
+    // Fallback to traditional method if Lua script fails
+    console.warn('Lua script cleanup failed, falling back to traditional method:', error);
+    const workerKeys = await pool.keys(`${workerPrefix}-*`);
+    if (workerKeys.length) {
+      await pool.del(workerKeys);
+      console.log(`Cleaned up ${workerKeys.length} Redis keys for worker ${workerPrefix} (fallback)`);
+    }
+  }
 }
 
 expect.extend({
@@ -156,26 +217,37 @@ beforeEach(async () => {
     // Wait for both database and Redis connections with better error handling
     await Promise.all([waitForDatabaseConnection(), waitForRedisConnection()]);
 
-    // Dynamic delay based on worker ID to reduce database contention
-    const workerId = parseInt(process.env.JEST_WORKER_ID || '1', 10);
-    const staggerDelay = workerId * 200; // 200ms per worker
-    await new Promise((resolve) => setTimeout(resolve, staggerDelay));
+    await retryWithBackoff(
+      async () => {
+        await truncateAllTables();
+      },
+      15,
+      200,
+    );
 
-    // Clean up database schema
-    await connection.sequelize.drop({ cascade: true });
-    await dropAllEnums(connection.sequelize);
-
-    // Clean up Redis keys for this worker
-    const workerKeys = await redisClient.keys(`${process.env.JEST_WORKER_ID}*`);
-    if (workerKeys.length) {
-      await redisClient.del(workerKeys);
-    }
+    // Clean up Redis keys for this worker using optimized bulk cleanup
+    await cleanupWorkerRedisKeys();
 
     // Clear query cache
     usersQuery.clear();
 
-    // Run migrations (this can be slow with TypeScript)
-    await umzug.up();
+    await retryWithBackoff(
+      async () => {
+        await umzug.up();
+      },
+      15,
+      200,
+    ); // More retries for migrations
+
+    // Run database seeding after migrations
+    await retryWithBackoff(
+      async () => {
+        const queryInterface = connection.sequelize.getQueryInterface();
+        await seedDatabase(queryInterface, 'test');
+      },
+      10,
+      150,
+    ); // Retry seeding with deadlock protection
 
     // Set up test user
     await makeRequest({
@@ -208,7 +280,7 @@ beforeEach(async () => {
       });
 
       global.MODELS_CURRENCIES = currencies;
-      global.BASE_CURRENCY = currencies.find((item) => item.code === global.BASE_CURRENCY_CODE);
+      global.BASE_CURRENCY = currencies.find((item: any) => item.code === global.BASE_CURRENCY_CODE);
     }
 
     await makeRequest({
@@ -220,13 +292,13 @@ beforeEach(async () => {
     console.error('Setup failed:', err);
     throw err;
   }
-}, 30_000); // Increased timeout due to TypeScript migrations and other stuff
+}, 120_000); // Increased timeout for CI stability with longer stagger delays
 
 afterAll(async () => {
   try {
-    await redisClient.close();
-    await serverInstance.close();
-    await loadCurrencyRatesJob.stop();
+    await TestRedisClient.closeConnection();
+    serverInstance.close();
+    loadCurrencyRatesJob.stop();
   } catch (err) {
     console.log('afterAll', err);
   }

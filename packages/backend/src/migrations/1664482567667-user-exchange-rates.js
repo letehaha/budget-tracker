@@ -1,6 +1,3 @@
-const QueryTypes = require('sequelize').QueryTypes;
-const axios = require('axios');
-
 const TABLE_NAME = 'UserExchangeRates';
 
 module.exports = {
@@ -108,7 +105,7 @@ module.exports = {
       throw err;
     }
   },
-  down: async (queryInterface) => {
+  down: async (queryInterface, Sequelize) => {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {

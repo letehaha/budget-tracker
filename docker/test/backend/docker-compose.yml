@@ -3,7 +3,10 @@ services:
     image: postgres:16
     restart: always
     container_name: test-budget-tracker-db
-    volumes: ['test_db_data:/var/lib/postgresql/data']
+    # Use tmpfs for ultra-fast test database operations (data stored in RAM)
+    # Increased size to accommodate multiple test databases and WAL files
+    tmpfs:
+      - /var/lib/postgresql/data:noexec,nosuid,size=4g
     environment:
       - POSTGRES_USER=${APPLICATION_DB_USERNAME}
       - POSTGRES_PASSWORD=${APPLICATION_DB_PASSWORD}
@@ -47,7 +50,9 @@ services:
   test-redis:
     image: redis:7
     container_name: test-budget-tracker-redis
-    volumes: ['test_redis_data:/data']
+    # Use tmpfs for ultra-fast Redis operations (data stored in RAM)
+    tmpfs:
+      - /data:noexec,nosuid,size=1g
     labels:
       - 'com.docker.compose.project=test'
 
@@ -66,6 +71,4 @@ services:
     labels:
       - 'com.docker.compose.project=test'
 
-volumes:
-  test_db_data:
-  test_redis_data:
+# volumes section removed - using tmpfs for test performance
