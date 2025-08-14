@@ -26,6 +26,11 @@ export function withLock<T extends unknown[], R>(
     const lockValue = Date.now().toString();
     const ttl = options.ttl || LOCK_TTL_SECONDS;
 
+    // Ensure Redis client is connected (handles lazy connection)
+    if (!redisClient.isReady) {
+      await redisClient.connect();
+    }
+
     // Try to acquire the lock atomically.
     // 'NX' means only set the key if it does not already exist.
     // 'EX' sets the expiration time in seconds.
@@ -50,6 +55,9 @@ export function withLock<T extends unknown[], R>(
       // Always release the lock, even if the function throws an error.
       // We check if the lock is still ours before deleting to avoid deleting
       // a lock acquired by another process after ours expired.
+      if (!redisClient.isReady) {
+        await redisClient.connect();
+      }
       const currentValue = await redisClient.get(redisKeyFormatter(lockKey));
       if (currentValue === lockValue) {
         await redisClient.del(redisKeyFormatter(lockKey));

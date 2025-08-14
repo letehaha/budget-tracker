@@ -5,7 +5,6 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
-import { redisClient } from '@root/redis-client';
 import { seedDatabase } from '@root/seeds';
 import { extractResponse, makeRequest } from '@tests/helpers';
 import path from 'path';
@@ -13,6 +12,7 @@ import Umzug from 'umzug';
 
 import { truncateAllTables } from './helpers/database-cleanup';
 import { setupMswServer } from './mocks/setup-mock-server';
+import { TestRedisClient } from './redis-client-test';
 
 const mswMockServer = setupMswServer();
 
@@ -118,14 +118,48 @@ async function waitForRedisConnection() {
   await until(
     async () => {
       try {
-        const result = await redisClient.hello();
-        return !!result;
+        const pool = await TestRedisClient.getClient();
+        const result = await pool.ping();
+        return result === 'PONG';
       } catch {
         return false;
       }
     },
-    { timeout: 20000, interval: 200 }, // Increased timeout and interval for CI stability
+    { timeout: 10000, interval: 100 }, // Reduced timeout since we have faster connection
   );
+}
+
+async function cleanupWorkerRedisKeys() {
+  const pool = await TestRedisClient.getClient();
+  const workerPrefix = process.env.JEST_WORKER_ID || '1';
+
+  // Use Lua script for atomic bulk deletion - much faster than individual operations
+  const luaScript = `
+    local keys = redis.call('KEYS', ARGV[1])
+    if #keys > 0 then
+      return redis.call('DEL', unpack(keys))
+    end
+    return 0
+  `;
+
+  try {
+    const deletedCount = (await pool.eval(luaScript, {
+      keys: [],
+      arguments: [`${workerPrefix}-*`],
+    })) as number;
+
+    if (deletedCount && deletedCount > 0) {
+      console.log(`Cleaned up ${deletedCount} Redis keys for worker ${workerPrefix}`);
+    }
+  } catch (error) {
+    // Fallback to traditional method if Lua script fails
+    console.warn('Lua script cleanup failed, falling back to traditional method:', error);
+    const workerKeys = await pool.keys(`${workerPrefix}-*`);
+    if (workerKeys.length) {
+      await pool.del(workerKeys);
+      console.log(`Cleaned up ${workerKeys.length} Redis keys for worker ${workerPrefix} (fallback)`);
+    }
+  }
 }
 
 expect.extend({
@@ -191,17 +225,12 @@ beforeEach(async () => {
       200,
     );
 
-    // Clean up Redis keys for this worker
-    const workerPrefix = process.env.JEST_WORKER_ID || '1';
-    const workerKeys = await redisClient.keys(`${workerPrefix}-*`);
-    if (workerKeys.length) {
-      await redisClient.del(workerKeys);
-    }
+    // Clean up Redis keys for this worker using optimized bulk cleanup
+    await cleanupWorkerRedisKeys();
 
     // Clear query cache
     usersQuery.clear();
 
-    // Run migrations
     await retryWithBackoff(
       async () => {
         await umzug.up();
@@ -251,7 +280,7 @@ beforeEach(async () => {
       });
 
       global.MODELS_CURRENCIES = currencies;
-      global.BASE_CURRENCY = currencies.find((item) => item.code === global.BASE_CURRENCY_CODE);
+      global.BASE_CURRENCY = currencies.find((item: any) => item.code === global.BASE_CURRENCY_CODE);
     }
 
     await makeRequest({
@@ -267,7 +296,7 @@ beforeEach(async () => {
 
 afterAll(async () => {
   try {
-    await redisClient.close();
+    await TestRedisClient.closeConnection();
     serverInstance.close();
     loadCurrencyRatesJob.stop();
   } catch (err) {

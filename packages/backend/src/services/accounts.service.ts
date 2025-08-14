@@ -96,6 +96,11 @@ export const pairMonobankAccount = withTransaction(async (payload: { token: stri
 
   const redisToken = redisKeyFormatter(token);
 
+  // Ensure Redis client is connected (handles lazy connection)
+  if (!redisClient.isReady) {
+    await redisClient.connect();
+  }
+
   // Otherwise begin user connection
   const response = await redisClient.get(redisToken);
   let clientInfo: ExternalMonobankClientInfoResponse;
@@ -122,6 +127,9 @@ export const pairMonobankAccount = withTransaction(async (payload: { token: stri
 
       clientInfo = result.data;
 
+      if (!redisClient.isReady) {
+        await redisClient.connect();
+      }
       await redisClient.set(redisToken, JSON.stringify(response), { EX: 60 });
     } catch (err) {
       // @ts-expect-error TODO: add proper `err` interface
