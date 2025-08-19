@@ -19,10 +19,7 @@ const searchSecuritiesImpl = async ({ query, limit = 20 }: SearchOptions): Promi
   }
 
   try {
-    // Get Alpha Vantage provider (our default provider)
     const provider = dataProviderFactory.getProvider();
-
-    // Call the provider search directly
     const searchResults = await provider.searchSecurities(query);
 
     // Apply limit if specified

@@ -47,8 +47,6 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
   public async searchSecurities(query: string): Promise<SecuritySearchResult[]> {
     const preference = getSearchProviderPreference();
 
-    console.log('preference', preference);
-
     return this.executeWithFallback(
       preference.primary,
       preference.fallbacks,

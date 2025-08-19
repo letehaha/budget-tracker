@@ -24,7 +24,7 @@ describe('POST /holdings (create holding)', () => {
       raw: true,
     });
 
-    const seededSecurities = await helpers.seedSecuritiesViaSync([{ symbol: 'VOO', name: 'Vanguard S&P 500 ETF' }]);
+    const seededSecurities = await helpers.seedSecurities([{ symbol: 'VOO', name: 'Vanguard S&P 500 ETF' }]);
     const firstSecurity = seededSecurities[0];
     if (!firstSecurity) throw new Error('VOO security not found after seeding');
     vooSecurity = firstSecurity;

@@ -6,7 +6,7 @@ export class FmpClient {
 
   constructor(options: FmpClientOptions) {
     this.apiKey = options.apiKey;
-    this.baseUrl = options.baseUrl || 'https://financialmodelingprep.com';
+    this.baseUrl = 'https://financialmodelingprep.com';
   }
 
   /**
@@ -67,22 +67,22 @@ export class FmpClient {
     return this.makeRequest<FmpHistoricalResponse>(url);
   }
 
-  /**
-   * Get quote for multiple symbols (comma-separated)
-   */
-  public async getMultipleQuotes(symbols: string[]): Promise<FmpQuote[]> {
-    const symbolsStr = symbols.join(',');
-    const url = this.buildUrl('/quote', { symbol: symbolsStr });
-    return this.makeRequest<FmpQuote[]>(url);
-  }
+  // /**
+  //  * Get quote for multiple symbols (comma-separated)
+  //  */
+  // public async getMultipleQuotes(symbols: string[]): Promise<FmpQuote[]> {
+  //   const symbolsStr = symbols.join(',');
+  //   const url = this.buildUrl('/quote', { symbol: symbolsStr });
+  //   return this.makeRequest<FmpQuote[]>(url);
+  // }
 
-  /**
-   * Search for securities by company name
-   */
-  public async searchByName(query: string, limit: number = 10): Promise<FmpSearchResult[]> {
-    const url = this.buildUrl('/search-name', { query, limit });
-    return this.makeRequest<FmpSearchResult[]>(url);
-  }
+  // /**
+  //  * Search for securities by company name
+  //  */
+  // public async searchByName(query: string, limit: number = 10): Promise<FmpSearchResult[]> {
+  //   const url = this.buildUrl('/search-name', { query, limit });
+  //   return this.makeRequest<FmpSearchResult[]>(url);
+  // }
 
   /**
    * Build complete URL with base URL and API key
@@ -192,5 +192,4 @@ export interface FmpHistoricalLightResponse {
 
 export interface FmpClientOptions {
   apiKey: string;
-  baseUrl?: string;
 }

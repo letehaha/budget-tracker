@@ -7,7 +7,7 @@ import * as helpers from '@tests/helpers';
 
 const { createPortfolio, buildPortfolioPayload } = helpers;
 const { createInvestmentTransaction, getInvestmentTransactions } = helpers;
-const { seedSecuritiesViaSync } = helpers;
+const { seedSecurities } = helpers;
 const { extractResponse } = helpers;
 
 describe('GET /transactions (get investment transactions)', () => {
@@ -24,7 +24,7 @@ describe('GET /transactions (get investment transactions)', () => {
     });
 
     // Create test security
-    const securities = await seedSecuritiesViaSync([{ symbol: 'VOO', name: 'Vanguard S&P 500 ETF' }]);
+    const securities = await seedSecurities([{ symbol: 'VOO', name: 'Vanguard S&P 500 ETF' }]);
     security = securities.find((s) => s.symbol === 'VOO')!;
     if (!security) throw new Error('VOO security not found after seeding');
 
@@ -93,7 +93,7 @@ describe('GET /transactions (get investment transactions)', () => {
     });
 
     // Create test securities
-    const securities = await seedSecuritiesViaSync([
+    const securities = await seedSecurities([
       { symbol: 'VOO', name: 'Vanguard S&P 500 ETF' },
       { symbol: 'AAPL', name: 'Apple Inc.' },
     ]);

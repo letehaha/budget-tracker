@@ -54,6 +54,13 @@ class DataProviderFactory {
         throw new Error(`Unsupported data provider: ${providerName}`);
     }
   }
+
+  /**
+   * Used in tests to clear cached providers to avoid mocking issues
+   */
+  public clearCache() {
+    return this.providers.clear();
+  }
 }
 
 export const dataProviderFactory = new DataProviderFactory();

@@ -20,7 +20,7 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
       raw: true,
     });
 
-    const seededSecurities: Securities[] = await helpers.seedSecuritiesViaSync([
+    const seededSecurities: Securities[] = await helpers.seedSecurities([
       { symbol: 'VOO', name: 'Vanguard S&P 500 ETF' },
     ]);
     vooSecurity = seededSecurities.find((s) => s.symbol === 'VOO')!;
