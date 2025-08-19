@@ -1,7 +1,7 @@
 import { api } from '@/api/_api';
-import type { SecurityModel } from '@bt/shared/types/investments';
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
 
-export const searchSecurities = async (query: string): Promise<SecurityModel[]> => {
-  const res: SecurityModel[] = await api.get('/investments/securities/search', { query });
+export const searchSecurities = async (query: string): Promise<SecuritySearchResult[]> => {
+  const res: SecuritySearchResult[] = await api.get('/investments/securities/search', { query });
   return res;
 };

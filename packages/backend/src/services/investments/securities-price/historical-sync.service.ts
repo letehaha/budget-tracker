@@ -15,10 +15,24 @@ const syncHistoricalPricesImpl = async (securityId: number): Promise<{ count: nu
     return { count: 0 };
   }
 
-  const provider = dataProviderFactory.getProvider(security.providerName);
-  const endDate = new Date();
-  const startDate = subYears(endDate, 5); // Fetch up to 5 years of data
+  // Check if we already have any price data for this security
+  const existingPriceCount = await SecurityPricing.count({
+    where: {
+      securityId: security.id,
+    },
+  });
 
+  if (existingPriceCount > 0) {
+    logger.info(
+      `Security ${security.symbol} already has ${existingPriceCount} price records. Skipping historical sync.`,
+    );
+    return { count: 0 };
+  }
+
+  const endDate = new Date();
+  const startDate = subYears(endDate, 5);
+
+  const provider = dataProviderFactory.getProvider();
   const prices = await provider.getHistoricalPrices(security.symbol, startDate, endDate);
 
   if (prices.length === 0) {

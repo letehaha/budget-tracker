@@ -1,4 +1,6 @@
+import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
+import Holdings from '@models/investments/Holdings.model';
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
 import { withTransaction } from '@services/common';
@@ -8,89 +10,147 @@ import { Op } from 'sequelize';
 import { dataProviderFactory } from '../data-providers';
 
 interface SyncResult {
-  fetchedCount: number;
-  createdCount: number;
-  updatedCount: number;
-  ignoredCount: number;
+  totalHeldSecurities: number;
+  processedByProvider: Record<string, number>;
+  totalPricesFetched: number;
+  errors: Array<{ securityId: number; symbol: string | null; provider: string; error: string }>;
 }
 
 /**
- * Fetches daily prices for a given date from the data provider and saves them to the database.
+ * Fetches latest prices for securities that are linked to any holding record.
+ * Uses each security's original provider to ensure correct symbol format and pricing data.
+ * Handles database storage after fetching prices from providers.
  *
  * @param forDate - The specific date to sync prices for. Defaults to yesterday.
  * @returns A summary of the sync operation.
  */
 const syncDailyPricesImpl = async (forDate: Date = subDays(new Date(), 1)): Promise<SyncResult> => {
-  logger.info(`Starting daily price sync for date: ${forDate.toISOString()}`);
+  logger.info(`Starting holdings-based daily price sync for date: ${forDate.toISOString()}`);
 
-  const provider = dataProviderFactory.getProvider();
-
-  const pricesFromProvider = await provider.getDailyPrices(forDate);
-
-  if (pricesFromProvider.length === 0) {
-    logger.warn('Provider returned no prices. Aborting sync.');
-    return {
-      fetchedCount: 0,
-      createdCount: 0,
-      updatedCount: 0,
-      ignoredCount: 0,
-    };
-  }
-
-  // Get all symbols from the fetched data to look up their IDs efficiently
-  const symbols = [...new Set(pricesFromProvider.map((p) => p.symbol))];
-  const securitiesInDb = await Securities.findAll({
-    where: { symbol: { [Op.in]: symbols } },
-    attributes: ['id', 'symbol'],
+  // Step 1: Fetch all securities that are linked to any holding record
+  const linkedSecurities = await Securities.findAll({
+    include: [
+      {
+        model: Holdings,
+        required: true,
+        attributes: [],
+        // No quantity filter - include all securities with holding records
+      },
+    ],
+    where: {
+      symbol: { [Op.ne]: null }, // Only securities with symbols
+      providerName: { [Op.ne]: null }, // Only securities with provider
+    },
+    group: ['Securities.id'], // Deduplicate securities held by multiple users
     raw: true,
   });
 
-  // Create a map for quick symbol-to-ID lookup
-  const symbolToIdMap = new Map(securitiesInDb.map((s) => [s.symbol, s.id]));
-
-  // Prepare data for bulk insertion, filtering out prices for symbols not in our DB
-  let ignoredCount = 0;
-  const pricesToCreate = pricesFromProvider
-    .map((price) => {
-      const securityId = symbolToIdMap.get(price.symbol);
-      if (!securityId) {
-        ignoredCount++;
-        return null;
-      }
-      return {
-        securityId,
-        date: price.date,
-        priceClose: price.priceClose.toString(), // Ensure it's a string for DECIMAL type
-        source: provider.providerName,
-      };
-    })
-    .filter((p): p is NonNullable<typeof p> => p !== null);
-
-  if (pricesToCreate.length === 0) {
-    logger.warn('No valid prices to sync after filtering. Aborting.');
+  if (linkedSecurities.length === 0) {
+    logger.info('No securities with holdings found to sync prices for.');
     return {
-      fetchedCount: pricesFromProvider.length,
-      createdCount: 0,
-      updatedCount: 0,
-      ignoredCount,
+      totalHeldSecurities: 0,
+      processedByProvider: {},
+      totalPricesFetched: 0,
+      errors: [],
     };
   }
 
-  // Use bulkCreate with updateOnDuplicate to efficiently insert/update records
-  const result = await SecurityPricing.bulkCreate(pricesToCreate, {
-    updateOnDuplicate: ['priceClose', 'updatedAt'], // Fields to update if a record for that securityId/date exists
-  });
+  // Step 2: Create a map of securities grouped by provider
+  const securitiesByProvider = linkedSecurities.reduce<Record<SECURITY_PROVIDER, Securities[]>>(
+    (acc, security) => {
+      if (!acc[security.providerName]) {
+        acc[security.providerName] = [];
+      }
+      acc[security.providerName].push(security);
+      return acc;
+    },
+    {} as Record<SECURITY_PROVIDER, Securities[]>,
+  );
 
-  logger.info(`Price sync complete. Created/Updated: ${result.length}`);
+  logger.info(
+    `Found ${linkedSecurities.length} securities with holdings across ${Object.keys(securitiesByProvider).length} providers`,
+  );
 
-  return {
-    fetchedCount: pricesFromProvider.length,
-    // Note: bulkCreate with updateOnDuplicate doesn't easily distinguish between created/updated.
-    // This count represents the total number of records successfully processed.
-    createdCount: result.length,
-    updatedCount: 0, // This is a simplification for now.
-    ignoredCount,
+  const result: SyncResult = {
+    totalHeldSecurities: linkedSecurities.length,
+    processedByProvider: {},
+    totalPricesFetched: 0,
+    errors: [],
   };
+
+  // Step 3: Process each provider's securities using dedicated provider logic
+  for (const [providerName, providerSecurities] of Object.entries(securitiesByProvider)) {
+    try {
+      const provider = dataProviderFactory.getProvider(providerName as SECURITY_PROVIDER);
+
+      logger.info(`Processing ${providerSecurities.length} securities for provider: ${providerName}`);
+      result.processedByProvider[providerName] = providerSecurities.length;
+
+      // Step 4: Fetch prices from provider and store in database
+      const symbols = providerSecurities.filter((s) => !!s.symbol).map((s) => s.symbol!);
+      const securityIdMap = new Map(providerSecurities.map((s) => [s.symbol!, s.id]));
+
+      const fetchedPrices = await provider.fetchPricesForSecurities(symbols, forDate);
+
+      // Step 5: Store fetched prices in database
+      let storedCount = 0;
+      for (const priceData of fetchedPrices) {
+        try {
+          const securityId = securityIdMap.get(priceData.symbol);
+          if (!securityId) {
+            logger.warn(`No security ID found for symbol: ${priceData.symbol}`);
+            continue;
+          }
+
+          const [, created] = await SecurityPricing.upsert({
+            securityId,
+            date: forDate,
+            priceClose: priceData.priceClose.toString(),
+            source: providerName,
+          });
+
+          storedCount++;
+          logger.info(`${created ? 'Created' : 'Updated'} price for ${priceData.symbol}: ${priceData.priceClose}`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          logger.error(`Failed to store price for ${priceData.symbol}: ${errorMessage}`);
+
+          // Find the security for error reporting
+          const security = providerSecurities.find((s) => s.symbol === priceData.symbol);
+          if (security) {
+            result.errors.push({
+              securityId: security.id,
+              symbol: security.symbol,
+              provider: providerName,
+              error: errorMessage,
+            });
+          }
+        }
+      }
+
+      result.totalPricesFetched += storedCount;
+      logger.info(`Successfully fetched ${fetchedPrices.length} prices and stored ${storedCount} for ${providerName}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(`Failed to sync prices for provider ${providerName}: ${errorMessage}`);
+
+      // Add errors for all securities in this provider
+      for (const security of providerSecurities) {
+        result.errors.push({
+          securityId: security.id,
+          symbol: security.symbol,
+          provider: providerName,
+          error: errorMessage,
+        });
+      }
+    }
+  }
+
+  logger.info(
+    `Price sync complete. Processed ${result.totalHeldSecurities} securities with holdings, fetched ${result.totalPricesFetched} prices, ${result.errors.length} errors`,
+  );
+
+  return result;
 };
 
 export const syncDailyPrices = withTransaction(syncDailyPricesImpl);

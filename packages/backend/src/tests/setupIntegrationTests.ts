@@ -27,6 +27,16 @@ jest.mock('@polygon.io/client-js', () => ({
   }),
 }));
 
+jest.mock('alphavantage', () =>
+  jest.fn().mockReturnValue({
+    data: {
+      search: jest.fn(),
+      quote: jest.fn(),
+      daily: jest.fn(),
+    },
+  }),
+);
+
 beforeAll(() => mswMockServer.listen({ onUnhandledRequest: 'bypass' }));
 afterEach(() => mswMockServer.resetHandlers());
 afterAll(() => mswMockServer.close());

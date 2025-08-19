@@ -1,13 +1,12 @@
 import { api } from '@/api/_api';
-import type { HoldingModel } from '@bt/shared/types/investments';
+import type { HoldingModel, SecuritySearchResult } from '@bt/shared/types/investments';
 
-export interface CreateHoldingRequest {
+export type CreateHoldingRequest = {
   portfolioId: number;
-  securityId: number;
   quantity: number;
   costBasis: number;
   accountId?: number;
-}
+} & ({ securityId: number } | { searchResult: SecuritySearchResult });
 
 export const getHoldings = async (portfolioId: number): Promise<HoldingModel[]> => {
   const res = await api.get(`/investments/portfolios/${portfolioId}/holdings`);

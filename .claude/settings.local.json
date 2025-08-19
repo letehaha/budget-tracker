@@ -10,7 +10,8 @@
       "Bash(task-master:*)",
       "Bash(find:*)",
       "Bash(gemini:*)",
-      "WebFetch(domain:polygon.io)"
+      "WebFetch(domain:polygon.io)",
+      "Bash(npm run lint)"
     ],
     "deny": []
   }

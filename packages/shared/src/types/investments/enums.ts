@@ -1,6 +1,10 @@
 export enum SECURITY_PROVIDER {
   polygon = 'polygon',
-  other = 'other',
+  alphavantage = 'alphavantage',
+  fmp = 'fmp',
+  // custom provider that uses others for different operations because each provider
+  // has limitations on a free plan
+  composite = 'composite',
 }
 
 export enum ASSET_CLASS {

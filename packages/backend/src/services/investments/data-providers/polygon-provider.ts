@@ -1,4 +1,5 @@
 import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import { SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import * as requestsUtils from '@js/utils/requests-calling.utils';
 import {
@@ -10,10 +11,8 @@ import {
 } from '@polygon.io/client-js';
 import { isAxiosError } from 'axios';
 import { formatDate } from 'date-fns';
-import { promises as fs } from 'fs';
-import path from 'path';
 
-import { BaseSecurityDataProvider, PriceData, SecuritySearchResult } from './base-provider';
+import { BaseSecurityDataProvider, PriceData } from './base-provider';
 
 // Since the library doesn't export these types directly, we derive them.
 type TickerTypes = ITickersQuery['type'];
@@ -28,110 +27,8 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
     this.client = restClient(apiKey);
   }
 
-  /**
-   * Implements the generic interface method for fetching all securities.
-   * Internally, it calls the Polygon-specific logic for US tickers.
-   */
-  public async getAllSecurities(): Promise<SecuritySearchResult[]> {
-    const rawTickers = await this.syncAllUSTickers();
-    logger.info(`Fetched ${rawTickers.length} raw tickers from Polygon.`);
-
-    return rawTickers;
-  }
-
-  private async syncAllUSTickers(): Promise<SecuritySearchResult[]> {
-    logger.info('Started fetching exchanges');
-    const exchanges = (
-      await this.client.reference.exchanges({
-        locale: 'us',
-        asset_class: 'stocks',
-      })
-    ).results?.filter((ex) => ex.type === 'exchange');
-
-    logger.info(`Exchanges loaded. Amount: ${exchanges.length}`);
-
-    if (!exchanges) return [];
-
-    try {
-      const dataDir = path.join(process.cwd(), 'data');
-      const exchangesPath = path.join(dataDir, 'exchanges.json');
-      await fs.mkdir(dataDir, { recursive: true });
-      await fs.writeFile(exchangesPath, JSON.stringify(exchanges, null, 2));
-      logger.info(`Successfully wrote ${exchanges.length} exchanges to data/exchanges.json`);
-    } catch (error) {
-      logger.error({ message: 'Failed to write exchanges.json', error: error as Error });
-      // Continue even if file writing fails
-    }
-
-    let allTickers: SecuritySearchResult[] = [];
-
-    for (const exchange of exchanges) {
-      if (!exchange.mic) continue;
-
-      try {
-        const exchangeTickers = await requestsUtils.paginateWithNextUrl({
-          pageSize: 1000,
-          delay: {
-            onDelay: (msg: string) => logger.info(msg),
-            milliseconds: this.reateLimitDelay,
-          },
-          fetchData: async (limit, nextCursor) => {
-            try {
-              console.log(`loop over: ${exchange.name}, ${exchange.mic}`);
-              const { results, next_url } = await requestsUtils.withRetry(
-                () =>
-                  this.client.reference.tickers({
-                    market: 'stocks',
-                    exchange: exchange.mic,
-                    cursor: nextCursor,
-                    limit: limit,
-                  }),
-                {
-                  maxRetries: 5,
-                  delay: this.reateLimitDelay,
-                },
-              );
-
-              // Normalize the raw, provider-specific data into our generic format here.
-              const tickersWithExchange = results.map((ticker) => ({
-                symbol: ticker.ticker,
-                name: ticker.name,
-                providerName: SECURITY_PROVIDER.polygon,
-                assetClass: this.mapAssetClass(ticker.type as TickerTypes),
-                currencyCode: ticker.currency_name ? ticker.currency_name.toUpperCase() : 'USD',
-                exchangeMic: exchange.mic,
-                exchangeAcronym: exchange.acronymstring ?? '',
-                exchangeName: exchange.name,
-              }));
-              return { data: tickersWithExchange, nextUrl: next_url };
-            } catch (err) {
-              logger.error({ message: 'Error while fetching tickers', error: err as Error });
-
-              return { data: [], nextUrl: undefined };
-            }
-          },
-        });
-        allTickers = allTickers.concat(exchangeTickers);
-      } catch (err) {
-        logger.error(err as Error);
-        throw err;
-      }
-    }
-
-    try {
-      const tickersPath = path.join(process.cwd(), 'data', 'tickers.json');
-      await fs.writeFile(tickersPath, JSON.stringify(allTickers, null, 2));
-      logger.info(`Successfully wrote ${allTickers.length} tickers to data/tickers.json`);
-    } catch (error) {
-      logger.error({ message: 'Failed to write tickers.json', error: error as Error });
-      // Continue even if file writing fails
-    }
-
-    return allTickers;
-  }
-
   // https://polygon.io/docs/rest/stocks/aggregates/daily-market-summary
-  public async getDailyPrices(date: Date): Promise<PriceData[]> {
+  private async getDailyPrices(date: Date): Promise<PriceData[]> {
     const dateStr = formatDate(date, 'yyyy-MM-dd');
     logger.info(`Fetching all daily pricing for ${dateStr} from Polygon.`);
 
@@ -191,6 +88,127 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
           priceClose: bar.c!,
         })) || []
     );
+  }
+
+  /**
+   * Search for securities using Polygon search endpoint
+   * Note: This method is implemented for interface compliance but may have limited functionality
+   * compared to dedicated search providers like Alpha Vantage
+   */
+  public async searchSecurities(query: string): Promise<SecuritySearchResult[]> {
+    try {
+      logger.info(`Searching Polygon for: ${query}`);
+
+      // Polygon doesn't have a dedicated search endpoint, so we'll use the ticker details
+      // This is a simplified implementation - in practice, we might want to use a more robust search
+      const tickerDetails = await this.client.reference.tickerDetails(query);
+
+      if (!tickerDetails.results) {
+        logger.warn(`No search results found for query: ${query}`);
+        return [];
+      }
+
+      const result: SecuritySearchResult = {
+        symbol: tickerDetails.results.ticker || query,
+        name: tickerDetails.results.name || 'Unknown',
+        assetClass: this.mapAssetClass(tickerDetails.results.type as TickerTypes),
+        providerName: this.providerName,
+        exchangeName: tickerDetails.results.primary_exchange,
+        currencyCode: tickerDetails.results.currency_name || 'USD',
+        exchangeAcronym: tickerDetails.results.primary_exchange,
+        exchangeMic: tickerDetails.results.market,
+        cusip: undefined, // Polygon ticker details may not include CUSIP
+        // Note: Polygon doesn't provide ISIN in ticker details
+        isin: undefined,
+      };
+
+      logger.info(`Found security for query: ${query}`);
+      return [result];
+    } catch (error) {
+      logger.error({ message: 'Polygon search failed', error: error as Error });
+      // Return empty array instead of throwing - search failures should be non-blocking
+      return [];
+    }
+  }
+
+  /**
+   * Get latest price for a security using Polygon
+   */
+  public async getLatestPrice(symbol: string): Promise<PriceData> {
+    try {
+      logger.info(`Fetching latest price for: ${symbol}`);
+
+      // Use previous close endpoint for latest price
+      const response = await this.client.stocks.previousClose(symbol);
+
+      if (!response.results || response.results.length === 0) {
+        throw new Error(`No quote data found for symbol: ${symbol}`);
+      }
+
+      const quote = response.results[0];
+      if (!quote) {
+        throw new Error(`No quote data found for symbol: ${symbol}`);
+      }
+
+      const result: PriceData = {
+        symbol: quote.T || symbol,
+        date: new Date(quote.t || Date.now()),
+        priceClose: quote.c || 0,
+        priceAsOf: new Date(), // Current timestamp
+      };
+
+      logger.info(`Latest price for ${symbol}: ${result.priceClose} on ${result.date.toISOString()}`);
+      return result;
+    } catch (error) {
+      logger.error({ message: `Failed to fetch latest price for ${symbol}`, error: error as Error });
+      throw new Error(
+        `Failed to fetch latest price for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Fetch prices for multiple securities efficiently using batch daily prices API.
+   * Makes a single API call to get all daily prices, then filters for requested symbols.
+   */
+  public async fetchPricesForSecurities(symbols: string[], forDate: Date): Promise<PriceData[]> {
+    if (symbols.length === 0) {
+      return [];
+    }
+
+    logger.info(`Polygon: Starting batch fetch for ${symbols.length} securities using getDailyPrices`);
+
+    // Fetch all daily prices in a single API call
+    const allDailyPrices = await this.getDailyPrices(forDate);
+
+    if (allDailyPrices.length === 0) {
+      logger.warn(`No daily prices available for date: ${forDate.toISOString().split('T')[0]}`);
+      return [];
+    }
+
+    // Create a map for quick lookup of prices by symbol
+    const priceMap = new Map<string, PriceData>();
+    allDailyPrices.forEach((price) => {
+      priceMap.set(price.symbol, price);
+    });
+
+    const fetchedPrices: PriceData[] = [];
+
+    // Process each requested symbol
+    for (const symbol of symbols) {
+      const priceData = priceMap.get(symbol);
+
+      if (!priceData) {
+        logger.info(`No price data found for symbol: ${symbol} on ${forDate.toISOString().split('T')[0]}`);
+        continue;
+      }
+
+      fetchedPrices.push(priceData);
+      logger.info(`Fetched price for ${symbol}: ${priceData.priceClose}`);
+    }
+
+    logger.info(`Polygon batch fetch complete: ${fetchedPrices.length}/${symbols.length} securities fetched`);
+    return fetchedPrices;
   }
 
   private mapAssetClass(polygonType?: TickerTypes): ASSET_CLASS {

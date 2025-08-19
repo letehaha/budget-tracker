@@ -772,76 +772,115 @@
       {
         "id": 33,
         "title": "Add Support for EU Stocks Data Provider Integration",
-        "description": "Extend the data provider system to support European stock exchanges by adding Alpha Vantage provider for EU stocks and extending Polygon provider for crypto markets, implementing smart routing based on asset type and region.",
+        "description": "Migrate from Polygon to Alpha Vantage as the single data provider for all global stock markets (US, EU, and others), implementing a search-based approach for on-demand data fetching instead of bulk synchronization.",
         "status": "in-progress",
         "dependencies": [
           1,
           28
         ],
         "priority": "medium",
-        "details": "1. Extend Polygon Provider for Crypto Markets:\n   - Add crypto market support to existing Polygon provider using Currencies API subscription\n   - Implement crypto search functionality with exchange filtering (Coinbase, Binance, Kraken)\n   - Add price fetching for major cryptocurrencies (Bitcoin, Ethereum, etc.)\n   - Handle crypto-specific data formats and identifiers\n\n2. Implement Alpha Vantage Provider for EU Stocks:\n   - Create new Alpha Vantage provider specifically for European stock exchanges\n   - Support LSE, Euronext, XETRA and other European exchanges\n   - Implement currency handling for EUR, GBP, CHF and other European currencies\n   - Add timezone support for European market hours\n   - Handle European market-specific data formats and identifiers (ISIN, SEDOL)\n\n3. Update Data Provider Factory with Smart Routing:\n   - Implement intelligent provider selection: US Stocks → Polygon, Crypto → Polygon, EU Stocks → Alpha Vantage\n   - Add configuration options for Alpha Vantage API keys and Polygon Currencies subscription\n   - Extend provider selection logic based on security type and exchange/region\n\n4. Enhanced Security Model:\n   - Update security model to include crypto and European asset types\n   - Add support for European currency codes and crypto identifiers\n   - Implement validation for EU-specific security formats and crypto symbols\n\n5. Price Sync Integration:\n   - Extend existing price sync service to handle EU stocks and crypto assets\n   - Add scheduling for European market hours and 24/7 crypto markets\n   - Implement currency conversion for EU prices and crypto to base currency\n   - Add error handling for provider-specific API limitations\n\n6. Configuration Updates:\n   - Add Alpha Vantage provider configuration options to settings\n   - Update environment variables for Alpha Vantage API keys\n   - Add Polygon Currencies subscription configuration\n   - Add feature flags for EU market and crypto support",
-        "testStrategy": "1. Unit Tests:\n   - Test Alpha Vantage provider implementation with mock European securities data\n   - Test extended Polygon provider with crypto market data\n   - Verify smart routing logic in provider factory\n   - Test currency conversion functionality for European currencies and crypto\n   - Validate security identifier parsing for EU stocks and crypto symbols\n\n2. Integration Tests:\n   - Test complete data flow from Alpha Vantage to database storage for EU stocks\n   - Test complete data flow from Polygon to database storage for crypto\n   - Verify price sync service works with mixed asset types (US stocks, EU stocks, crypto)\n   - Test provider factory correctly routes based on asset type and region\n   - Ensure existing US stock functionality remains unaffected\n\n3. End-to-End Tests:\n   - Test security search with mixed US stocks, EU stocks, and crypto results\n   - Verify EU stock and crypto price display in portfolio views\n   - Test adding EU stocks and crypto to holdings with proper price updates\n   - Validate proper currency display and conversion in UI for all asset types\n\n4. Performance Tests:\n   - Test API rate limiting with both Alpha Vantage and Polygon providers\n   - Verify sync performance with large numbers of mixed asset types\n   - Test concurrent price fetching for portfolios with US stocks, EU stocks, and crypto",
+        "details": "1. Implement Alpha Vantage Provider for Global Markets:\n   - Create comprehensive Alpha Vantage provider supporting all global stock exchanges\n   - Support US exchanges (NYSE, NASDAQ), European exchanges (LSE, Euronext, XETRA), and other international markets\n   - Implement currency handling for USD, EUR, GBP, CHF and other global currencies\n   - Add timezone support for different market hours globally\n   - Handle market-specific data formats and identifiers (CUSIP, ISIN, SEDOL)\n\n2. Replace Polygon Provider Completely:\n   - Remove existing Polygon provider implementation\n   - Migrate all US stock data fetching to Alpha Vantage\n   - Update all references to Polygon provider in codebase\n   - Remove Polygon API configuration and dependencies\n\n3. Implement Search-Based Data Fetching:\n   - Replace bulk sync approach with on-demand search-based fetching\n   - Implement real-time search functionality across all supported exchanges\n   - Add intelligent caching to minimize API calls for repeated searches\n   - Implement rate limiting and error handling for search requests\n\n4. Single Provider Architecture:\n   - Simplify data provider factory to use only Alpha Vantage\n   - Remove smart routing logic - all requests go to Alpha Vantage\n   - Update configuration to only require Alpha Vantage API keys\n   - Streamline provider interface for single-provider architecture\n\n5. Enhanced Security Model for Global Markets:\n   - Update security model to support global stock markets\n   - Add support for international currency codes and security identifiers\n   - Implement validation for various market-specific security formats\n   - Ensure proper handling of different exchange formats\n\n6. Configuration Updates:\n   - Remove Polygon-related configuration options\n   - Add comprehensive Alpha Vantage provider configuration\n   - Update environment variables to only include Alpha Vantage API keys\n   - Add feature flags for different market regions (US, EU, Asia, etc.)",
+        "testStrategy": "1. Unit Tests:\n   - Test Alpha Vantage provider implementation with mock data from different global exchanges\n   - Verify search-based data fetching functionality\n   - Test currency conversion for different global currencies\n   - Validate security identifier parsing for various international formats\n   - Test caching mechanisms for search results\n\n2. Integration Tests:\n   - Test complete data flow from Alpha Vantage search to database storage\n   - Verify search functionality works across different market regions\n   - Test rate limiting and error handling with Alpha Vantage API\n   - Ensure migration from Polygon doesn't break existing portfolios\n\n3. End-to-End Tests:\n   - Test security search with mixed results from US, EU, and other international markets\n   - Verify international stock price display in portfolio views\n   - Test adding international stocks to holdings with proper price updates\n   - Validate proper currency display and conversion in UI for all markets\n\n4. Performance Tests:\n   - Test API rate limiting with Alpha Vantage across different endpoints\n   - Verify search performance with large result sets from international markets\n   - Test caching effectiveness for reducing API calls",
         "subtasks": [
           {
             "id": 1,
-            "title": "Extend Polygon Provider for Crypto Markets Support",
-            "description": "Extend the existing Polygon provider to support crypto markets using Currencies API subscription, implementing crypto search and price fetching capabilities",
-            "status": "pending",
+            "title": "Remove Polygon Provider and Dependencies",
+            "description": "Completely remove Polygon provider implementation and all related dependencies from the codebase",
+            "status": "done",
             "dependencies": [],
-            "details": "Analyze existing Polygon provider implementation and extend it to support crypto markets using Polygon's Currencies API subscription. Implement crypto search functionality with exchange filtering (Coinbase, Binance, Kraken), add price fetching for major cryptocurrencies (Bitcoin, Ethereum, etc.), and handle crypto-specific data formats and identifiers. Include proper error handling and rate limiting for crypto API calls.",
-            "testStrategy": "Unit tests for crypto-specific methods, integration tests with actual Polygon Currencies API calls, and validation of crypto data format conversions from Polygon to internal format"
+            "details": "Identify and remove all Polygon provider code, configuration, and dependencies. Remove Polygon API configuration from environment variables and settings. Update any existing portfolios or holdings that reference Polygon data to prepare for Alpha Vantage migration. Clean up any Polygon-specific database fields or references.\n<info added on 2025-08-15T15:27:19.230Z>\nKeep all existing Polygon provider code and infrastructure intact for potential future use. Instead of removal, focus on switching the default provider configuration: Update the provider factory to use Alpha Vantage as the default provider instead of Polygon. Modify service references to point to Alpha Vantage by default while maintaining Polygon code availability. Disable or comment out Polygon bulk synchronization jobs but preserve the underlying code structure. Update configuration to make Alpha Vantage the primary data source without destroying existing Polygon implementation. This approach maintains backward compatibility and allows for easy provider switching in the future.\n</info added on 2025-08-15T15:27:19.230Z>",
+            "testStrategy": "Verify complete removal of Polygon references through code search, ensure existing portfolios continue to function without Polygon dependency, and validate clean build without Polygon packages"
           },
           {
             "id": 2,
-            "title": "Implement Alpha Vantage Provider for EU Stocks",
-            "description": "Create new Alpha Vantage provider specifically for European stock exchanges with full EU market support",
-            "status": "pending",
-            "dependencies": [],
-            "details": "Create new Alpha Vantage provider class implementing the base data provider interface. Focus specifically on European stock exchanges (LSE, Euronext, XETRA, etc.). Implement search functionality for EU securities with exchange filtering, add price fetching capabilities for real-time and historical data, handle European market-specific data formats and identifiers (ISIN, SEDOL), and implement currency handling for EUR, GBP, CHF and other European currencies with timezone support.",
-            "testStrategy": "Integration tests with actual Alpha Vantage API calls for EU stocks, mock tests for error scenarios, validation of European currency and timezone handling, and data format conversion tests"
+            "title": "Implement Alpha Vantage Provider for Global Markets",
+            "description": "Create comprehensive Alpha Vantage provider supporting US, EU, and other international stock exchanges",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "Create new Alpha Vantage provider class implementing the base data provider interface for all global markets. Implement search functionality for international securities with exchange and region filtering. Add price fetching capabilities for real-time and historical data across different time zones. Handle market-specific data formats and identifiers (CUSIP, ISIN, SEDOL). Implement currency handling for USD, EUR, GBP, CHF and other international currencies with proper timezone support.",
+            "testStrategy": "Integration tests with actual Alpha Vantage API calls for securities from different global exchanges, mock tests for error scenarios, validation of international currency and timezone handling, and data format conversion tests"
           },
           {
             "id": 3,
-            "title": "Update Data Provider Factory with Smart Routing Logic",
-            "description": "Implement intelligent provider selection in DataProviderFactory: US Stocks → Polygon, Crypto → Polygon, EU Stocks → Alpha Vantage",
-            "status": "pending",
+            "title": "Implement Search-Based Data Fetching Architecture",
+            "description": "Replace bulk sync approach with on-demand search-based data fetching system",
+            "status": "done",
             "dependencies": [
-              1,
               2
             ],
-            "details": "Modify DataProviderFactory to implement smart routing logic based on asset type and region. Configure routing rules: US Stocks → Polygon, Crypto → Polygon (with Currencies subscription), EU Stocks → Alpha Vantage. Add configuration options for Alpha Vantage API keys and Polygon Currencies subscription settings. Update environment variables handling and add feature flags for EU market and crypto support.",
-            "testStrategy": "Unit tests for smart routing logic with different asset types, configuration validation tests, and integration tests for provider selection based on security type and exchange"
+            "details": "Implement search-based architecture where securities data is fetched on-demand rather than through bulk synchronization. Add intelligent caching mechanism to store search results and reduce API calls. Implement rate limiting to respect Alpha Vantage API limits. Add error handling for search failures and fallback mechanisms. Update UI components to work with search-based data loading.",
+            "testStrategy": "Performance tests for search response times, caching effectiveness tests, rate limiting validation, and integration tests for search-to-display data flow"
           },
           {
             "id": 4,
-            "title": "Enhanced Security Model for Crypto and European Assets",
-            "description": "Update the security model to support crypto assets and European stocks with proper validation and identifiers",
-            "status": "pending",
+            "title": "Simplify Data Provider Factory for Single Provider",
+            "description": "Update DataProviderFactory to use only Alpha Vantage, removing smart routing logic",
+            "status": "done",
             "dependencies": [
-              1,
               2
             ],
-            "details": "Extend existing security model/entity to include crypto asset types and European stock identifiers. Add support for crypto symbols and European market identifiers, implement validation for EU-specific security formats (ISIN, SEDOL) and crypto symbols. Update database schema if needed to accommodate new asset types and fields. Ensure backward compatibility with existing US securities.",
-            "testStrategy": "Database migration tests, validation tests for EU security formats and crypto symbols, and integration tests to ensure existing US securities continue to work with new asset types"
+            "details": "Simplify DataProviderFactory to eliminate smart routing logic and use only Alpha Vantage for all requests. Remove provider selection logic and configuration for multiple providers. Update factory to instantiate only Alpha Vantage provider. Simplify provider interface since only one provider will be used. Update all factory usage throughout the application to work with single provider approach.",
+            "testStrategy": "Unit tests for simplified factory instantiation, integration tests to ensure all data requests route to Alpha Vantage, and validation that factory changes don't break existing functionality"
           },
           {
             "id": 5,
-            "title": "Price Sync Integration for Mixed Asset Types",
-            "description": "Extend existing price sync service to handle US stocks, EU stocks, and crypto assets with proper scheduling and currency conversion",
+            "title": "Validate Composite Provider Integration",
+            "description": "Ensure composite provider is properly integrated into the application",
+            "status": "in-progress",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Test search functionality across all providers (FMP global search, Polygon US, AlphaVantage fallback). Verify symbol classification logic works correctly for different market symbols. Ensure proper routing of requests to appropriate providers based on symbol type and market. Validate error handling and fallback mechanisms in the composite provider setup.",
+            "testStrategy": "Integration tests for search across multiple providers, unit tests for symbol classification logic, end-to-end tests for different market symbols, and error scenario testing for provider fallbacks"
+          },
+          {
+            "id": 6,
+            "title": "Implement Holdings-Based Price Sync Logic",
+            "description": "Update price sync to only fetch prices for securities that exist in user holdings",
             "status": "pending",
             "dependencies": [
               3,
               4
             ],
-            "details": "Modify existing price sync service to handle mixed portfolios with US stocks, EU stocks, and crypto assets. Add scheduling logic for European market hours and 24/7 crypto markets. Implement currency conversion for EU prices and crypto to base currency. Add error handling for provider-specific API limitations and rate limits. Ensure sync service can intelligently route requests to appropriate providers based on asset type.",
-            "testStrategy": "Integration tests for price sync across different asset types and time zones, currency conversion accuracy tests for EU and crypto assets, and error handling tests for API failures and rate limiting scenarios across multiple providers"
+            "details": "Implement logic to identify which securities are 'active' (connected to portfolios). Ensure sync works even for holdings with 0 quantity (for historical tracking). Optimize price sync to reduce unnecessary API calls for unused securities. Implement efficient database queries to fetch only relevant holdings for price updates.",
+            "testStrategy": "Unit tests for active security identification, integration tests for price sync with various holding scenarios, performance tests to verify reduced API calls, and validation of historical tracking for zero-quantity holdings"
+          },
+          {
+            "id": 7,
+            "title": "Historical Price Loading for New Securities",
+            "description": "Design the process for loading historical prices when a security is first added",
+            "status": "pending",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Determine how far back to load historical data for newly added securities. Implement efficient bulk historical data loading process. Handle rate limiting and API constraints for bulk historical requests. Design caching mechanism for historical data to minimize repeated API calls.",
+            "testStrategy": "Integration tests for historical data loading process, performance tests for bulk loading scenarios, validation of data accuracy for different time ranges, and tests for proper handling of API rate limits during bulk requests"
+          },
+          {
+            "id": 8,
+            "title": "Security Addition Workflow Optimization",
+            "description": "Streamline the flow from search → add to portfolio → price data loading",
+            "status": "pending",
+            "dependencies": [
+              3,
+              5,
+              6,
+              7
+            ],
+            "details": "Optimize the user experience when adding new securities to portfolios. Ensure proper error handling when adding international securities. Validate currency handling for different market securities during the addition process. Implement smooth transition from search results to portfolio addition with appropriate loading states.",
+            "testStrategy": "End-to-end tests for the complete security addition workflow, usability tests for the optimized flow, error handling tests for various international security scenarios, and integration tests for currency handling during security addition"
           }
         ]
       }
     ],
     "metadata": {
       "created": "2025-07-03T10:58:49.572Z",
-      "updated": "2025-07-16T20:03:41.751Z",
+      "updated": "2025-08-19T17:58:30.455Z",
       "description": "Tasks related to investment tracking feature"
     }
   }

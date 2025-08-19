@@ -16,7 +16,6 @@ import getPricesController from '@controllers/investments/prices/get-prices.cont
 import syncDailyPricesController from '@controllers/investments/prices/sync-daily.controller';
 import getAllSecurities from '@controllers/investments/securities/get-all.controller';
 import searchSecuritiesController from '@controllers/investments/securities/search.controller';
-import triggerSecuritiesSync from '@controllers/investments/securities/sync.controller';
 import createInvestmentTransactionController from '@controllers/investments/transactions/create-tx.controller';
 import deleteInvestmentTransactionController from '@controllers/investments/transactions/delete-tx.controller';
 import getTransactionsController from '@controllers/investments/transactions/get-transactions.controller';
@@ -90,14 +89,6 @@ router.post(
   authenticateJwt,
   validateEndpoint(createPortfolioController.schema),
   createPortfolioController.handler,
-);
-
-router.post(
-  '/sync/securities',
-  authenticateJwt,
-  testOnly,
-  validateEndpoint(triggerSecuritiesSync.schema),
-  triggerSecuritiesSync.handler,
 );
 
 router.post(

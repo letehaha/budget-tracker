@@ -108,3 +108,20 @@ export interface SecurityModel {
   investmentTransactions?: InvestmentTransactionModel[];
   pricing?: SecurityPricingModel[];
 }
+
+/**
+ * Represents the normalized result of a security search from a data provider.
+ * This is the format returned by provider search APIs before being stored in the database.
+ */
+export interface SecuritySearchResult {
+  symbol: string;
+  name: string;
+  assetClass: ASSET_CLASS;
+  providerName: SECURITY_PROVIDER; // The provider that sourced this security data.
+  exchangeAcronym?: string;
+  exchangeMic?: string;
+  exchangeName?: string;
+  currencyCode: string;
+  cusip?: string;
+  isin?: string;
+}

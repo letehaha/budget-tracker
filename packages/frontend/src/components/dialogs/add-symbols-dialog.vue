@@ -4,7 +4,7 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InputField from '@/components/fields/input-field.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useCreateHolding } from '@/composable/data-queries/holdings';
-import type { SecurityModel } from '@bt/shared/types/investments';
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 
@@ -35,11 +35,11 @@ const query = useQuery({
 const createHolding = useCreateHolding();
 const { addNotification } = useNotificationCenter();
 
-async function addSymbol(sec: SecurityModel) {
+async function addSymbol(sec: SecuritySearchResult) {
   try {
     await createHolding.mutateAsync({
       portfolioId: props.portfolioId,
-      securityId: sec.id as unknown as number,
+      searchResult: sec,
       quantity: 0,
       costBasis: 0,
     });
@@ -70,26 +70,26 @@ async function addSymbol(sec: SecurityModel) {
           class="max-w-[calc(100%-50px)]"
         />
 
-        <div v-if="query.isLoading.value" class="text-sm text-muted-foreground">Searching…</div>
-        <div v-else-if="query.error.value" class="text-sm text-destructive-text">Failed to search securities.</div>
+        <div v-if="query.isLoading.value" class="text-muted-foreground text-sm">Searching…</div>
+        <div v-else-if="query.error.value" class="text-destructive-text text-sm">Failed to search securities.</div>
         <div v-else>
-          <ul class="overflow-y-auto max-h-60">
+          <ul class="max-h-60 overflow-y-auto">
             <li
               v-for="sec in query.data.value || []"
-              :key="sec.id"
+              :key="sec.symbol"
               class="hover:bg-muted/40 grid cursor-pointer grid-cols-[auto,1fr,auto,auto] items-center gap-2 px-2 py-1"
               @click="addSymbol(sec)"
             >
               <span class="font-medium">{{ sec.symbol }}</span>
 
-              <span class="text-xs truncate text-muted-foreground">{{ sec.name }}</span>
+              <span class="text-muted-foreground truncate text-xs">{{ sec.name }}</span>
 
-              <span class="text-xs text-right text-muted-foreground">{{ sec.exchangeName }}</span>
+              <span class="text-muted-foreground text-right text-xs">{{ sec.exchangeName }}</span>
 
-              <span class="text-xs text-right text-muted-foreground">{{ sec.currencyCode.toUpperCase() }}</span>
+              <span class="text-muted-foreground text-right text-xs">{{ sec.currencyCode.toUpperCase() }}</span>
             </li>
           </ul>
-          <div v-if="debounced && (query.data.value?.length ?? 0) === 0" class="text-sm text-muted-foreground">
+          <div v-if="debounced && (query.data.value?.length ?? 0) === 0" class="text-muted-foreground text-sm">
             No results.
           </div>
         </div>
