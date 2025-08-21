@@ -10,9 +10,9 @@ import {
   restClient,
 } from '@polygon.io/client-js';
 import { isAxiosError } from 'axios';
-import { formatDate } from 'date-fns';
+import { formatDate, subYears } from 'date-fns';
 
-import { BaseSecurityDataProvider, PriceData } from './base-provider';
+import { BaseSecurityDataProvider, PriceData, HistoricalPriceOptions } from './base-provider';
 
 // Since the library doesn't export these types directly, we derive them.
 type TickerTypes = ITickersQuery['type'];
@@ -70,13 +70,17 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
       }));
   }
 
-  public async getHistoricalPrices(symbol: string, startDate: Date, endDate: Date): Promise<PriceData[]> {
+  public async getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]> {
+    // Default to getting full available data (up to 5 years) if no options provided
+    const defaultEndDate = options?.endDate || new Date();
+    const defaultStartDate = options?.startDate || subYears(defaultEndDate, 5);
+    
     const response: IAggs = await this.client.stocks.aggregates(
       symbol,
       1,
       'day',
-      formatDate(startDate, 'yyyy-MM-dd'),
-      formatDate(endDate, 'yyyy-MM-dd'),
+      formatDate(defaultStartDate, 'yyyy-MM-dd'),
+      formatDate(defaultEndDate, 'yyyy-MM-dd'),
     );
 
     return (

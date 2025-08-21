@@ -1,7 +1,7 @@
 import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 
-import { BaseSecurityDataProvider, PriceData } from './base-provider';
+import { BaseSecurityDataProvider, PriceData, HistoricalPriceOptions } from './base-provider';
 import { FmpClient, FmpSearchResult } from './clients';
 
 export class FmpDataProvider extends BaseSecurityDataProvider {
@@ -101,14 +101,18 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
   /**
    * Get historical prices for a security within a date range
    */
-  public async getHistoricalPrices(symbol: string, startDate: Date, endDate: Date): Promise<PriceData[]> {
+  public async getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]> {
     try {
+      const startDate = options?.startDate;
+      const endDate = options?.endDate;
+      
       logger.info(
-        `Fetching historical prices for: ${symbol} from ${startDate.toISOString()} to ${endDate.toISOString()}`,
+        `Fetching historical prices for: ${symbol}${startDate && endDate ? ` from ${startDate.toISOString()} to ${endDate.toISOString()}` : ' (full dataset)'}`,
       );
 
-      const fromDate = startDate.toISOString().split('T')[0];
-      const toDate = endDate.toISOString().split('T')[0];
+      // If no date range specified, FMP typically returns recent data by default
+      const fromDate = startDate?.toISOString().split('T')[0];
+      const toDate = endDate?.toISOString().split('T')[0];
 
       const historicalResponse = await this.client.getHistoricalPrices(symbol, fromDate, toDate);
 
@@ -189,7 +193,7 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
         lastRequestTime = Date.now();
         requestsThisMinute++;
 
-        const historicalPrices = await this.getHistoricalPrices(symbol, forDate, forDate);
+        const historicalPrices = await this.getHistoricalPrices(symbol, { startDate: forDate, endDate: forDate });
         if (historicalPrices[0]) {
           const priceData = historicalPrices[0];
           fetchedPrices.push(priceData);

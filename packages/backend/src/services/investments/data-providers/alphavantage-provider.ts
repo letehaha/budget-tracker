@@ -2,7 +2,7 @@ import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared
 import { logger } from '@js/utils';
 import alpha from 'alphavantage';
 
-import { BaseSecurityDataProvider, PriceData } from './base-provider';
+import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
 
 export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
   readonly providerName = SECURITY_PROVIDER.alphavantage;
@@ -86,10 +86,13 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
   /**
    * Get historical prices for a security within a date range
    */
-  public async getHistoricalPrices(symbol: string, startDate: Date, endDate: Date): Promise<PriceData[]> {
+  public async getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]> {
     try {
+      const startDate = options?.startDate;
+      const endDate = options?.endDate;
+
       logger.info(
-        `Fetching historical prices for: ${symbol} from ${startDate.toISOString()} to ${endDate.toISOString()}`,
+        `Fetching historical prices for: ${symbol}${startDate && endDate ? ` from ${startDate.toISOString()} to ${endDate.toISOString()}` : ' (full dataset)'}`,
       );
 
       // Alpha Vantage TIME_SERIES_DAILY gives us historical data
@@ -102,12 +105,13 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
       const timeSeries = timeSeriesResponse['Time Series (Daily)'];
       const results: PriceData[] = [];
 
-      // Filter dates within the specified range
+      // Process all dates, filter if date range is specified
       for (const [dateStr, dailyData] of Object.entries(timeSeries)) {
         const date = new Date(dateStr);
 
-        // Check if date is within our range
-        if (date >= startDate && date <= endDate) {
+        // If no date range specified, include all data
+        // If date range specified, check if date is within range
+        if (!startDate || !endDate || (date >= startDate && date <= endDate)) {
           results.push({
             symbol,
             date,
@@ -120,7 +124,9 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
       // Sort by date ascending
       results.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-      logger.info(`Found ${results.length} historical prices for ${symbol} in date range`);
+      logger.info(
+        `Found ${results.length} historical prices for ${symbol}${startDate && endDate ? ' in date range' : ''}`,
+      );
       return results;
     } catch (error) {
       logger.error({ message: `Failed to fetch historical prices for ${symbol}:`, error: error as Error });
@@ -185,7 +191,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
         lastRequestTime = Date.now();
         requestsThisMinute++;
 
-        const historicalPrices = await this.getHistoricalPrices(symbol, forDate, forDate);
+        const historicalPrices = await this.getHistoricalPrices(symbol, { startDate: forDate, endDate: forDate });
         if (historicalPrices[0]) {
           const priceData = historicalPrices[0];
           fetchedPrices.push(priceData);

@@ -2,7 +2,7 @@ import { SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/invest
 import { logger } from '@js/utils';
 
 import { AlphaVantageDataProvider } from './alphavantage-provider';
-import { BaseSecurityDataProvider, PriceData } from './base-provider';
+import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
 import { FmpDataProvider } from './fmp-provider';
 import { PolygonDataProvider } from './polygon-provider';
 import {
@@ -72,15 +72,24 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
   /**
    * Routes historical price requests based on symbol classification
    */
-  public async getHistoricalPrices(symbol: string, startDate: Date, endDate: Date): Promise<PriceData[]> {
+  public async getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]> {
     const preference = getHistoricalPriceProviderPreference(symbol);
 
-    return this.executeWithFallback(
+    const result = await this.executeWithFallback(
       preference.primary,
       preference.fallbacks,
-      (provider) => provider.getHistoricalPrices(symbol, startDate, endDate),
+      async (provider): Promise<PriceData[]> => {
+        const prices = await provider.getHistoricalPrices(symbol, options);
+        // Add the actual provider information to each price data point
+        return prices.map((price) => ({
+          ...price,
+          providerName: provider.providerName,
+        }));
+      },
       `historical prices for ${symbol}`,
     );
+
+    return result;
   }
 
   /**

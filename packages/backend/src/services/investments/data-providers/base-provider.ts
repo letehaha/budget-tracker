@@ -8,6 +8,12 @@ export interface PriceData {
   date: Date;
   priceClose: number;
   priceAsOf?: Date;
+  providerName?: SECURITY_PROVIDER; // Provider that fetched this data (useful for composite providers)
+}
+
+export interface HistoricalPriceOptions {
+  startDate?: Date;
+  endDate?: Date;
 }
 
 export interface SecurityDetails extends SecuritySearchResult {
@@ -19,16 +25,14 @@ export abstract class BaseSecurityDataProvider {
   abstract readonly providerName: SECURITY_PROVIDER;
 
   /**
-   * Fetches the historical price data (OHLC) for a single security over a specified date range.
+   * Fetches the historical price data (OHLC) for a single security.
    * This is used for backfilling missing data or displaying charts.
+   * Most providers return full available data by default.
    * @param symbol The ticker symbol of the security.
-   * @param startDate The beginning of the date range.
-   * @param endDate The end of the date range.
+   * @param options Optional date range parameters. If not provided, returns all available data.
    * @returns A promise that resolves to an array of historical price data.
    */
-  // TODO: most of providers just return full available data, so most of time
-  // we don't need to pass startDate and endDate
-  abstract getHistoricalPrices(symbol: string, startDate: Date, endDate: Date): Promise<PriceData[]>;
+  abstract getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]>;
 
   /**
    * Searches for securities based on a query string (symbol or name).

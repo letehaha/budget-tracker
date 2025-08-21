@@ -50,7 +50,7 @@ export async function triggerDailyPriceSync<R extends boolean | undefined = fals
 type SeedSecurityPayload = {
   symbol: string;
   name: string;
-  currency_name?: string;
+  currencyCode?: string;
   type?: string;
 };
 
@@ -81,7 +81,7 @@ export async function seedSecurities(securitiesToSeed: SeedSecurityPayload[]) {
       {
         symbol: security.symbol,
         name: security.name,
-        currency: security.currency_name || 'USD',
+        currency: security.currencyCode || 'USD',
         stockExchange: 'NASDAQ Global Select', // Default exchange
         exchangeShortName: 'NASDAQ',
       },

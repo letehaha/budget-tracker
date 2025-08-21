@@ -439,3 +439,15 @@ Claude Code should also follow project-specific instructions from:
   - Follow the file inclusion syntax and best practices outlined in the guide
 
 **Critical Note:** Token efficiency is the primary reason to use Gemini CLI. Use it for code exploration, architecture understanding, feature verification, and any task involving multiple files - regardless of file size. This significantly reduces Claude token usage and costs.
+
+## Testing Patterns
+
+**CRITICAL**: E2E tests in this project NEVER call services directly. They ONLY make HTTP endpoint calls through the test helpers. 
+
+Examples:
+- ❌ WRONG: `await syncHistoricalPrices(securityId)`  
+- ✅ CORRECT: `await helpers.createHolding({ payload: { portfolioId, securityId } })` (which triggers sync internally)
+- ❌ WRONG: `await someService.doSomething()`
+- ✅ CORRECT: `await helpers.makeRequestToEndpoint()`
+
+Always test through the actual API endpoints to ensure full integration testing.

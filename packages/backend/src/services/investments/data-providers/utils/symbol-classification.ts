@@ -67,8 +67,8 @@ export function isETFSymbol(symbol: string): boolean {
  * Gets provider preference for search operations
  */
 export function getSearchProviderPreference(): {
-  primary: string;
-  fallbacks: string[];
+  primary: SECURITY_PROVIDER;
+  fallbacks: SECURITY_PROVIDER[];
 } {
   // FMP has excellent global coverage for search
   return {
@@ -82,8 +82,8 @@ export function getSearchProviderPreference(): {
  * Gets provider preference for historical price operations
  */
 export function getHistoricalPriceProviderPreference(symbol: string): {
-  primary: string;
-  fallbacks: string[];
+  primary: SECURITY_PROVIDER;
+  fallbacks: SECURITY_PROVIDER[];
 } {
   const region = getExchangeRegion(symbol);
 
@@ -91,14 +91,14 @@ export function getHistoricalPriceProviderPreference(symbol: string): {
     // Polygon is excellent for US stocks with good rate limits
     return {
       primary: SECURITY_PROVIDER.polygon,
-      fallbacks: [SECURITY_PROVIDER.alphavantage, SECURITY_PROVIDER.fmp],
+      fallbacks: [SECURITY_PROVIDER.alphavantage],
     };
   }
 
   // For non-US stocks, AlphaVantage has broader coverage
   return {
     primary: SECURITY_PROVIDER.alphavantage,
-    fallbacks: [SECURITY_PROVIDER.fmp, SECURITY_PROVIDER.polygon],
+    fallbacks: [],
   };
 }
 
@@ -106,8 +106,8 @@ export function getHistoricalPriceProviderPreference(symbol: string): {
  * Gets provider preference for latest price operations
  */
 export function getLatestPriceProviderPreference(symbol: string): {
-  primary: string;
-  fallbacks: string[];
+  primary: SECURITY_PROVIDER;
+  fallbacks: SECURITY_PROVIDER[];
 } {
   const region = getExchangeRegion(symbol);
 

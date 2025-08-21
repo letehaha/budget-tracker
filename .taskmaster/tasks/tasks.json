@@ -841,12 +841,12 @@
             "id": 6,
             "title": "Implement Holdings-Based Price Sync Logic",
             "description": "Update price sync to only fetch prices for securities that exist in user holdings",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               3,
               4
             ],
-            "details": "Implement logic to identify which securities are 'active' (connected to portfolios). Ensure sync works even for holdings with 0 quantity (for historical tracking). Optimize price sync to reduce unnecessary API calls for unused securities. Implement efficient database queries to fetch only relevant holdings for price updates.",
+            "details": "Implement logic to identify which securities are 'active' (connected to portfolios). Ensure sync works even for holdings with 0 quantity (for historical tracking). Optimize price sync to reduce unnecessary API calls for unused securities. Implement efficient database queries to fetch only relevant holdings for price updates.\n<info added on 2025-08-20T15:20:01.596Z>\nImplementation completed with provider routing logic. Modified historical-sync.service.ts to automatically select data provider based on security classification: US stocks (symbols like AAPL, MSFT) route to Polygon provider, while non-US stocks (with suffixes .L, .PA, .DE) route to Alpha Vantage provider. Added fallback mechanism when primary provider fails. Integration leverages existing create-holding.service.ts trigger that calls syncHistoricalPrices() when securities are added to portfolios. System now fetches 5 years of historical data automatically for new securities. Provider selection works seamlessly with existing active holdings detection and zero-quantity tracking requirements.\n</info added on 2025-08-20T15:20:01.596Z>",
             "testStrategy": "Unit tests for active security identification, integration tests for price sync with various holding scenarios, performance tests to verify reduced API calls, and validation of historical tracking for zero-quantity holdings"
           },
           {
@@ -876,11 +876,22 @@
             "testStrategy": "End-to-end tests for the complete security addition workflow, usability tests for the optimized flow, error handling tests for various international security scenarios, and integration tests for currency handling during security addition"
           }
         ]
+      },
+      {
+        "id": 34,
+        "title": "Implement Intelligent Daily Price Sync with Historical Gap Filling",
+        "description": "Implement a smart price synchronization system that prioritizes securities by oldest sync date and fetches historical price ranges to fill data gaps, optimizing Alpha Vantage API usage.",
+        "details": "1. Database Layer:\n   - Create a `last_price_sync` timestamp field in the securities table\n   - Add indexes on `last_price_sync` for efficient querying\n   - Implement database constraints to prevent duplicate price entries\n\n2. Priority Queue System:\n   - Query securities ordered by `last_price_sync ASC` to identify oldest unsynced securities\n   - Calculate the number of missing days between last sync and current date\n   - Implement rate limiting tracking to respect Alpha Vantage's 5 calls/minute limit\n\n3. Historical Data Fetching:\n   - Modify existing Alpha Vantage integration to support historical date ranges\n   - Implement batch fetching logic: if security hasn't been updated for N days, fetch N days of historical data in one API call\n   - Use Alpha Vantage's TIME_SERIES_DAILY function with outputsize=compact for recent data\n   - Parse and store multiple days of price data from single API response\n\n4. Sync Orchestration:\n   - Create a daily cron job or scheduled task to run the intelligent sync\n   - Implement exponential backoff for API rate limit handling\n   - Track sync progress and update `last_price_sync` timestamps upon successful data storage\n   - Add logging for sync operations, API usage, and error tracking\n\n5. Gap Detection Logic:\n   - Calculate missing trading days (excluding weekends and holidays)\n   - Prioritize securities with larger gaps to maximize data coverage\n   - Implement fallback to individual day fetching if batch requests fail\n\n6. Error Handling:\n   - Handle Alpha Vantage API errors gracefully with retry logic\n   - Skip securities with persistent errors to avoid blocking the entire sync\n   - Implement circuit breaker pattern for API reliability",
+        "testStrategy": "1. Unit Tests:\n   - Test priority queue logic with various last_sync_date scenarios\n   - Verify gap calculation for different time periods (weekends, holidays)\n   - Test Alpha Vantage API response parsing for multi-day data\n   - Verify database constraint behavior for duplicate price prevention\n\n2. Integration Tests:\n   - Test complete sync workflow with mock Alpha Vantage responses\n   - Verify rate limiting compliance (5 calls/minute)\n   - Test error handling for API failures and network issues\n   - Validate that `last_price_sync` timestamps are updated correctly\n\n3. Load Tests:\n   - Test sync performance with large numbers of securities (1000+ symbols)\n   - Verify memory usage and processing time for batch operations\n   - Test concurrent sync operations if applicable\n\n4. End-to-End Tests:\n   - Run sync process with real Alpha Vantage API (using test account)\n   - Verify historical data accuracy by comparing with known price data\n   - Test complete workflow from oldest securities identification to price storage\n   - Validate that portfolio holdings reflect updated price data",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-07-03T10:58:49.572Z",
-      "updated": "2025-08-19T19:34:55.152Z",
+      "updated": "2025-08-20T15:19:45.778Z",
       "description": "Tasks related to investment tracking feature"
     }
   }
