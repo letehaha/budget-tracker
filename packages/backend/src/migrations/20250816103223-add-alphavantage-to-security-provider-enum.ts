@@ -6,24 +6,14 @@ const ENUM_SECURITY_PROVIDER = 'enum_security_provider';
 
 module.exports = {
   up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    // Add enum values without transaction as PostgreSQL doesn't allow enum changes in transactions
+    await queryInterface.sequelize.query(
+      `ALTER TYPE "${ENUM_SECURITY_PROVIDER}" ADD VALUE IF NOT EXISTS 'alphavantage';`,
+    );
 
-    try {
-      // Add 'alphavantage' and 'fmp' to the existing enum_security_provider enum
-      await queryInterface.sequelize.query(
-        `ALTER TYPE "${ENUM_SECURITY_PROVIDER}" ADD VALUE IF NOT EXISTS 'alphavantage';`,
-        { transaction: t },
-      );
-
-      await queryInterface.sequelize.query(`ALTER TYPE "${ENUM_SECURITY_PROVIDER}" ADD VALUE IF NOT EXISTS 'fmp';`, {
-        transaction: t,
-      });
-
-      await t.commit();
-    } catch (error) {
-      await t.rollback();
-      throw error;
-    }
+    await queryInterface.sequelize.query(
+      `ALTER TYPE "${ENUM_SECURITY_PROVIDER}" ADD VALUE IF NOT EXISTS 'fmp';`,
+    );
   },
 
   down: async (queryInterface: QueryInterface): Promise<void> => {
