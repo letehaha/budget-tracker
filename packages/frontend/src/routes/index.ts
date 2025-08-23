@@ -94,6 +94,11 @@ const routes = [
             name: ROUTES_NAMES.settingsAccounts,
             component: () => import('@/pages/settings/subpages/accounts-groups/index.vue'),
           },
+          {
+            path: 'admin',
+            name: ROUTES_NAMES.settingsAdmin,
+            component: () => import('@/pages/settings/subpages/admin/index.vue'),
+          },
         ],
       },
     ],

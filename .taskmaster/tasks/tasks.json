@@ -853,7 +853,7 @@
             "id": 7,
             "title": "Historical Price Loading for New Securities",
             "description": "Design the process for loading historical prices when a security is first added",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               2,
               3
@@ -880,18 +880,72 @@
       {
         "id": 34,
         "title": "Implement Intelligent Daily Price Sync with Historical Gap Filling",
-        "description": "Implement a smart price synchronization system that prioritizes securities by oldest sync date and fetches historical price ranges to fill data gaps, optimizing Alpha Vantage API usage.",
-        "details": "1. Database Layer:\n   - Create a `last_price_sync` timestamp field in the securities table\n   - Add indexes on `last_price_sync` for efficient querying\n   - Implement database constraints to prevent duplicate price entries\n\n2. Priority Queue System:\n   - Query securities ordered by `last_price_sync ASC` to identify oldest unsynced securities\n   - Calculate the number of missing days between last sync and current date\n   - Implement rate limiting tracking to respect Alpha Vantage's 5 calls/minute limit\n\n3. Historical Data Fetching:\n   - Modify existing Alpha Vantage integration to support historical date ranges\n   - Implement batch fetching logic: if security hasn't been updated for N days, fetch N days of historical data in one API call\n   - Use Alpha Vantage's TIME_SERIES_DAILY function with outputsize=compact for recent data\n   - Parse and store multiple days of price data from single API response\n\n4. Sync Orchestration:\n   - Create a daily cron job or scheduled task to run the intelligent sync\n   - Implement exponential backoff for API rate limit handling\n   - Track sync progress and update `last_price_sync` timestamps upon successful data storage\n   - Add logging for sync operations, API usage, and error tracking\n\n5. Gap Detection Logic:\n   - Calculate missing trading days (excluding weekends and holidays)\n   - Prioritize securities with larger gaps to maximize data coverage\n   - Implement fallback to individual day fetching if batch requests fail\n\n6. Error Handling:\n   - Handle Alpha Vantage API errors gracefully with retry logic\n   - Skip securities with persistent errors to avoid blocking the entire sync\n   - Implement circuit breaker pattern for API reliability",
-        "testStrategy": "1. Unit Tests:\n   - Test priority queue logic with various last_sync_date scenarios\n   - Verify gap calculation for different time periods (weekends, holidays)\n   - Test Alpha Vantage API response parsing for multi-day data\n   - Verify database constraint behavior for duplicate price prevention\n\n2. Integration Tests:\n   - Test complete sync workflow with mock Alpha Vantage responses\n   - Verify rate limiting compliance (5 calls/minute)\n   - Test error handling for API failures and network issues\n   - Validate that `last_price_sync` timestamps are updated correctly\n\n3. Load Tests:\n   - Test sync performance with large numbers of securities (1000+ symbols)\n   - Verify memory usage and processing time for batch operations\n   - Test concurrent sync operations if applicable\n\n4. End-to-End Tests:\n   - Run sync process with real Alpha Vantage API (using test account)\n   - Verify historical data accuracy by comparing with known price data\n   - Test complete workflow from oldest securities identification to price storage\n   - Validate that portfolio holdings reflect updated price data",
+        "description": "Implement a scheduled cron job for daily price synchronization of securities currently connected to active holdings, using existing pricingLastSyncedAt field and composite data provider to fill historical gaps efficiently.",
         "status": "pending",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "details": "1. Active Holdings Query:\n   - Query securities that are currently connected to active holdings/positions\n   - Filter out securities not associated with any user holdings\n   - Ensure only actively tracked securities are included in sync operations\n\n2. Priority Queue System:\n   - Use existing `pricingLastSyncedAt` field to determine sync priority\n   - Query securities ordered by `pricingLastSyncedAt ASC NULLS FIRST` to prioritize oldest/never-synced securities\n   - Calculate the number of missing trading days between last sync and current date\n   - Focus on securities with the stalest pricing data first\n\n3. Composite Data Provider Integration:\n   - Utilize existing composite data provider system for price fetching\n   - Leverage the provider's built-in rate limiting and fallback mechanisms\n   - Support historical date range fetching through the composite provider\n   - Handle provider-specific error responses and retry logic\n\n4. Daily Scheduled Sync Job:\n   - Implement a daily cron job (e.g., runs at 6 AM after markets close globally)\n   - Process a limited number of securities per run to respect rate limits\n   - Update `pricingLastSyncedAt` timestamp upon successful price data storage\n   - Maintain sync state between runs for large portfolios\n\n5. Historical Gap Filling:\n   - For securities with gaps > 7 days, fetch historical price ranges in batches\n   - Calculate missing trading days (excluding weekends and market holidays)\n   - Implement intelligent batching to minimize API calls while filling gaps\n   - Prioritize securities with larger gaps to maximize data coverage\n\n6. Rate Limiting and Error Handling:\n   - Respect composite data provider's rate limits and quotas\n   - Implement exponential backoff for temporary failures\n   - Skip securities with persistent errors to avoid blocking entire sync\n   - Log sync operations, API usage, and error details for monitoring\n   - Implement circuit breaker pattern for provider reliability",
+        "testStrategy": "1. Unit Tests:\n   - Test active holdings query to ensure only relevant securities are synced\n   - Verify priority queue logic using various `pricingLastSyncedAt` scenarios\n   - Test gap calculation for different time periods and market holidays\n   - Validate composite data provider integration and error handling\n\n2. Integration Tests:\n   - Test complete sync workflow with mock composite provider responses\n   - Verify rate limiting compliance with the composite provider\n   - Test error handling for API failures and network issues\n   - Validate that `pricingLastSyncedAt` timestamps are updated correctly\n   - Test sync job scheduling and state management\n\n3. End-to-End Tests:\n   - Run scheduled sync process with real composite data provider\n   - Verify historical data accuracy and gap filling effectiveness\n   - Test complete workflow from holdings query to price storage\n   - Validate that portfolio holdings reflect updated price data\n   - Test sync job performance with realistic portfolio sizes",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Active Holdings Securities Query",
+            "description": "Create a query system to identify securities that are currently connected to active user holdings and need price synchronization.",
+            "status": "done",
+            "dependencies": [],
+            "details": "Query securities table joined with holdings to identify actively tracked securities. Filter out securities not associated with any user positions. Optimize query performance for large portfolios with proper indexing.",
+            "testStrategy": "Write unit tests with mock holding data to verify correct security identification. Test query performance with various portfolio sizes."
+          },
+          {
+            "id": 2,
+            "title": "Implement Priority Queue Using pricingLastSyncedAt",
+            "description": "Develop a priority system that orders securities for syncing based on their existing pricingLastSyncedAt field, prioritizing oldest/never-synced securities first.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "Query securities ordered by pricingLastSyncedAt ASC NULLS FIRST. Calculate missing trading days between last sync and current date. Implement logic to handle securities that have never been synced (NULL values).",
+            "testStrategy": "Create test scenarios with various sync timestamps and verify correct prioritization. Test handling of NULL pricingLastSyncedAt values."
+          },
+          {
+            "id": 3,
+            "title": "Integrate with Composite Data Provider for Historical Ranges",
+            "description": "Enhance the existing composite data provider integration to support efficient historical price range fetching and gap filling.",
+            "status": "done",
+            "dependencies": [],
+            "details": "Extend composite provider interface to support date range queries. Implement batch fetching logic for historical price gaps. Leverage provider's existing rate limiting and error handling. Parse and store multiple days of price data from provider responses.",
+            "testStrategy": "Write integration tests with mock provider responses for historical data. Verify correct parsing and storage of multi-day price ranges."
+          },
+          {
+            "id": 4,
+            "title": "Create Daily Scheduled Sync Job",
+            "description": "Implement a scheduled cron job that runs daily to synchronize price data for securities in active holdings.",
+            "status": "done",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Create a daily cron job scheduled for optimal time (after global markets close). Process limited batch sizes per run to respect rate limits. Maintain sync state and progress tracking. Update pricingLastSyncedAt timestamps upon successful completion. Add comprehensive logging for monitoring.",
+            "testStrategy": "Test job scheduling and execution with mock data. Verify batch processing limits and state management. Test timestamp updates and logging functionality."
+          },
+          {
+            "id": 5,
+            "title": "Implement Gap Detection and Intelligent Filling",
+            "description": "Develop logic to detect pricing gaps and intelligently fill them using historical data from the composite provider.",
+            "status": "in-progress",
+            "dependencies": [
+              4
+            ],
+            "details": "Calculate missing trading days excluding weekends and market holidays. Implement intelligent batching for gap filling (e.g., gaps > 7 days get historical ranges). Prioritize securities with larger gaps for maximum coverage. Add fallback mechanisms for failed historical fetches.",
+            "testStrategy": "Create test scenarios with various gap patterns and verify detection logic. Test batching strategies and fallback mechanisms. Validate trading day calculations with market calendars."
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-07-03T10:58:49.572Z",
-      "updated": "2025-08-20T15:19:45.778Z",
+      "updated": "2025-08-21T18:32:51.641Z",
       "description": "Tasks related to investment tracking feature"
     }
   }

@@ -8,7 +8,10 @@ import { z } from 'zod';
 
 export const getUser = createController(z.object({}), async ({ user }) => {
   const userData = await userService.getUser(user.id);
-  return { data: userData };
+
+  const isAdmin = (process.env.ADMIN_USERS as string).split(',').some((i) => i === user.username);
+
+  return { data: { ...userData, isAdmin } };
 });
 
 export const updateUser = createController(

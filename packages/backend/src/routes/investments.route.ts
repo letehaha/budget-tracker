@@ -13,15 +13,16 @@ import listPortfoliosController from '@controllers/investments/portfolios/list-p
 import updatePortfolioController from '@controllers/investments/portfolios/update-portfolio';
 import updatePortfolioBalanceController from '@controllers/investments/portfolios/update-portfolio-balance';
 import getPricesController from '@controllers/investments/prices/get-prices.controller';
-import syncDailyPricesController from '@controllers/investments/prices/sync-daily.controller';
+import securitiesSyncController from '@controllers/investments/prices/securities-sync.controller';
 import getAllSecurities from '@controllers/investments/securities/get-all.controller';
 import searchSecuritiesController from '@controllers/investments/securities/search.controller';
 import createInvestmentTransactionController from '@controllers/investments/transactions/create-tx.controller';
 import deleteInvestmentTransactionController from '@controllers/investments/transactions/delete-tx.controller';
 import getTransactionsController from '@controllers/investments/transactions/get-transactions.controller';
 import updateInvestmentTransactionController from '@controllers/investments/transactions/update-tx.controller';
+import { adminOnly } from '@middlewares/admin-only';
 import { authenticateJwt } from '@middlewares/passport';
-import { testOnly } from '@middlewares/test-only';
+import { priceSyncRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -92,11 +93,12 @@ router.post(
 );
 
 router.post(
-  '/sync/prices/daily',
+  '/sync/securities-prices',
   authenticateJwt,
-  testOnly,
-  validateEndpoint(syncDailyPricesController.schema),
-  syncDailyPricesController.handler,
+  adminOnly,
+  priceSyncRateLimit,
+  validateEndpoint(securitiesSyncController.schema),
+  securitiesSyncController.handler,
 );
 
 router.get('/prices', authenticateJwt, validateEndpoint(getPricesController.schema), getPricesController.handler);

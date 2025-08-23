@@ -8,7 +8,7 @@ export interface PriceData {
   date: Date;
   priceClose: number;
   priceAsOf?: Date;
-  providerName?: SECURITY_PROVIDER; // Provider that fetched this data (useful for composite providers)
+  providerName: SECURITY_PROVIDER | undefined; // Provider that fetched this data (useful for composite providers)
 }
 
 export interface HistoricalPriceOptions {

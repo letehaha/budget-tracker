@@ -2,7 +2,6 @@ import { until } from '@common/helpers';
 import { jest } from '@jest/globals';
 import type Securities from '@models/investments/Securities.model';
 import { FmpClient, type FmpSearchResult } from '@root/services/investments/data-providers/clients/fmp-client';
-import { syncDailyPrices } from '@root/services/investments/securities-price/price-sync.service';
 import { addSecurityFromSearch } from '@root/services/investments/securities/add-from-search.service';
 import * as getSecuritiesService from '@root/services/investments/securities/get-all';
 import { searchSecurities as _searchSecurities } from '@root/services/investments/securities/search.service';
@@ -16,7 +15,7 @@ export async function triggerSecuritiesSync<R extends boolean | undefined = fals
 } = {}): Promise<MakeRequestReturn<{ message: string }, R>> {
   return makeRequest({
     method: 'post',
-    url: '/investments/sync/securities',
+    url: '/investments/sync/securities-prices',
     raw,
   });
 }
@@ -28,21 +27,6 @@ export async function getAllSecurities<R extends boolean | undefined = false>({
   return makeRequest<Awaited<ReturnType<typeof getSecuritiesService.getSecurities>>, R>({
     method: 'get',
     url: '/investments/securities',
-    raw,
-  });
-}
-
-export async function triggerDailyPriceSync<R extends boolean | undefined = false>({
-  payload,
-  raw,
-}: {
-  payload?: { date: string };
-  raw?: R;
-} = {}) {
-  return makeRequest<Awaited<ReturnType<typeof syncDailyPrices>>, R>({
-    method: 'post',
-    url: '/investments/sync/prices/daily',
-    payload,
     raw,
   });
 }

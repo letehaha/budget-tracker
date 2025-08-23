@@ -9,6 +9,7 @@
     "paths": {
       "@routes/*": ["routes/*"],
       "@middlewares/*": ["middlewares/*"],
+      "@crons/*": ["crons/*"],
       "@common/*": ["common/*"],
       "@controllers/*": ["controllers/*"],
       "@models/*": ["models/*"],

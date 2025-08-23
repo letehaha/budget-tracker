@@ -1,6 +1,7 @@
 import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import alpha from 'alphavantage';
+import { endOfDay, isWithinInterval, startOfDay } from 'date-fns';
 
 import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
 
@@ -71,6 +72,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
         date: latestTradingDay,
         priceClose,
         priceAsOf: new Date(), // Current timestamp
+        providerName: SECURITY_PROVIDER.alphavantage,
       };
 
       logger.info(`Latest price for ${symbol}: ${priceClose} on ${latestTradingDay.toISOString()}`);
@@ -111,12 +113,13 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
 
         // If no date range specified, include all data
         // If date range specified, check if date is within range
-        if (!startDate || !endDate || (date >= startDate && date <= endDate)) {
+        if (!startDate || !endDate || isWithinInterval(date, { start: startDate, end: endDate })) {
           results.push({
             symbol,
             date,
             priceClose: parseFloat((dailyData as Record<string, string>)['4. close']!),
             priceAsOf: new Date(), // Current timestamp
+            providerName: SECURITY_PROVIDER.alphavantage,
           });
         }
       }
@@ -187,11 +190,14 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
           }
         }
 
-        // Fetch price for specific date using historical data
         lastRequestTime = Date.now();
         requestsThisMinute++;
 
-        const historicalPrices = await this.getHistoricalPrices(symbol, { startDate: forDate, endDate: forDate });
+        const historicalPrices = await this.getHistoricalPrices(symbol, {
+          startDate: startOfDay(forDate),
+          endDate: endOfDay(forDate),
+        });
+
         if (historicalPrices[0]) {
           const priceData = historicalPrices[0];
           fetchedPrices.push(priceData);

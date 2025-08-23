@@ -3,13 +3,15 @@ description:
 globs:
 alwaysApply: true
 ---
+
 # Service Layer
 
 ## Template
+
 ```typescript
-import { withTransaction } from '@services/common';
-import * as FeatureModel from '@models/Feature.model';
 import { NotFoundError, ValidationError } from '@js/errors';
+import * as FeatureModel from '@models/Feature.model';
+import { withTransaction } from '@services/common';
 
 interface ServiceParams {
   userId: number;
@@ -42,8 +44,10 @@ export const serviceName = withTransaction(serviceImpl);
 ```
 
 ## Rules
+
 1. Use withTransaction for data modifications
 2. Always use object-based parameters with interfaces:
+
    ```typescript
    // ❌ Bad
    const getUser = (id: number, includeDeleted: boolean) => { ... }
@@ -55,6 +59,7 @@ export const serviceName = withTransaction(serviceImpl);
    }
    const getUser = ({ id, includeDeleted = false }: GetUserParams) => { ... }
    ```
+
 3. Define clear TypeScript interfaces for parameters
 4. Use default values in destructured parameters when appropriate
 5. Implement core business logic
@@ -65,3 +70,4 @@ export const serviceName = withTransaction(serviceImpl);
 10. Document complex business logic
 11. Use transactions for multi-step operations
 12. Validate business rules before data operations
+13. Don't use classes, always use functions, same as other services in the codebase do

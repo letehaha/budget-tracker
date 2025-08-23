@@ -3,6 +3,7 @@ description:
 globs:
 alwaysApply: true
 ---
+
 # Path Aliases
 
 This document outlines the path aliases used in the backend for easy module resolution.
@@ -13,15 +14,16 @@ Path aliases are defined in `packages/backend/tsconfig.json` under the `compiler
 
 ## Available Aliases
 
--   `@routes/*`: `src/routes/*`
--   `@middlewares/*`: `src/middlewares/*`
--   `@common/*`: `src/common/*`
--   `@controllers/*`: `src/controllers/*`
--   `@models/*`: `src/models/*`
--   `@tests/*`: `src/tests/*`
--   `@js/*`: `src/js/*`
--   `@root/*`: `src/*`
--   `@bt/shared/*`: `../../shared/src/*`
--   `@services/*`: `src/services/*`
+- `@routes/*`: `src/routes/*`
+- `@middlewares/*`: `src/middlewares/*`
+- `@crons/*`: `src/crons/*`
+- `@common/*`: `src/common/*`
+- `@controllers/*`: `src/controllers/*`
+- `@models/*`: `src/models/*`
+- `@tests/*`: `src/tests/*`
+- `@js/*`: `src/js/*`
+- `@root/*`: `src/*`
+- `@bt/shared/*`: `../../shared/src/*`
+- `@services/*`: `src/services/*`
 
 Always use these aliases when importing modules from these directories to maintain consistency and readability.

@@ -109,9 +109,16 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
         return [];
       }
 
+      // TODO:
+      // 1. Use not only a single provider, but primary + fallbacks
+      // 2. Define `getLatestPriceProviderPreference` alternative for `fetchPricesForSecurities`
+      // to define fallbacks.
+      // 3. If all primary+fallbacks fail - then return nothing and it will be logged out
+
       try {
         logger.info(`Fetching prices for ${symbolList.length} symbols from ${providerName}`);
-        return await provider.fetchPricesForSecurities(symbolList, forDate);
+        const res = await provider.fetchPricesForSecurities(symbolList, forDate);
+        return res;
       } catch (error) {
         logger.error({ message: `Provider ${providerName} failed for bulk fetch:`, error: error as Error });
         return [];

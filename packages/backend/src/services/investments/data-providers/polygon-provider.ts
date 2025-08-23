@@ -12,7 +12,7 @@ import {
 import { isAxiosError } from 'axios';
 import { formatDate, subYears } from 'date-fns';
 
-import { BaseSecurityDataProvider, PriceData, HistoricalPriceOptions } from './base-provider';
+import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
 
 // Since the library doesn't export these types directly, we derive them.
 type TickerTypes = ITickersQuery['type'];
@@ -56,25 +56,24 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
       },
     );
 
-    if (!allPricing.results) {
+    if (!allPricing.results || !allPricing.results.length) {
       logger.warn(`No daily prices found for ${dateStr}.`);
       return [];
     }
 
-    return allPricing.results
-      .filter((price) => price.T && price.c && price.t)
-      .map((price) => ({
-        symbol: price.T!,
-        date: new Date(price.t!),
-        priceClose: price.c!,
-      }));
+    return allPricing.results.map((price) => ({
+      symbol: price.T!,
+      date: new Date(price.t!),
+      priceClose: price.c!,
+      providerName: SECURITY_PROVIDER.polygon,
+    }));
   }
 
   public async getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]> {
     // Default to getting full available data (up to 5 years) if no options provided
     const defaultEndDate = options?.endDate || new Date();
     const defaultStartDate = options?.startDate || subYears(defaultEndDate, 5);
-    
+
     const response: IAggs = await this.client.stocks.aggregates(
       symbol,
       1,
@@ -90,6 +89,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
           symbol,
           date: new Date(bar.t!),
           priceClose: bar.c!,
+          providerName: SECURITY_PROVIDER.polygon,
         })) || []
     );
   }
@@ -159,6 +159,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
         date: new Date(quote.t || Date.now()),
         priceClose: quote.c || 0,
         priceAsOf: new Date(), // Current timestamp
+        providerName: SECURITY_PROVIDER.polygon,
       };
 
       logger.info(`Latest price for ${symbol}: ${result.priceClose} on ${result.date.toISOString()}`);

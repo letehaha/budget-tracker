@@ -1,8 +1,9 @@
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
 import { withTransaction } from '@services/common';
-import type { SecuritySearchResult } from '@bt/shared/types/investments';
+
 import { dataProviderFactory } from '../data-providers';
 import { addOrUpdateFromProvider } from '../securities-manage';
 
@@ -37,11 +38,12 @@ const addSecurityFromSearchImpl = async ({
 
   // Step 3: Fetch and store the latest price immediately
   let latestPrice: AddSecurityFromSearchResult['latestPrice'];
-  
+
   try {
     const provider = dataProviderFactory.getProvider(searchResult.providerName);
+    // TODO: conside using composite provider here
     const priceData = await provider.getLatestPrice(searchResult.symbol);
-    
+
     // Store the price in SecurityPricing table
     await SecurityPricing.create({
       securityId: security.id,
@@ -60,7 +62,6 @@ const addSecurityFromSearchImpl = async ({
     await security.save();
 
     logger.info(`Successfully fetched latest price for ${searchResult.symbol}: ${priceData.priceClose}`);
-    
   } catch (error) {
     logger.error({
       message: `Failed to fetch latest price for ${searchResult.symbol}`,
@@ -80,7 +81,7 @@ const addSecurityFromSearchImpl = async ({
 /**
  * Adds a security to the database from search results and fetches its latest price.
  * This is used when a user selects a security from search results to add to their portfolio.
- * 
+ *
  * @param params - The search result selected by the user
  * @returns The created/updated security with latest price info
  */

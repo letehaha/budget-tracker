@@ -115,7 +115,7 @@ export function getLatestPriceProviderPreference(symbol: string): {
     // Polygon has good real-time data for US stocks
     return {
       primary: SECURITY_PROVIDER.polygon,
-      fallbacks: [SECURITY_PROVIDER.alphavantage, SECURITY_PROVIDER.fmp],
+      fallbacks: [SECURITY_PROVIDER.fmp, SECURITY_PROVIDER.alphavantage],
     };
   }
 

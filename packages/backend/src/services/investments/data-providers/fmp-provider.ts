@@ -1,7 +1,7 @@
 import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 
-import { BaseSecurityDataProvider, PriceData, HistoricalPriceOptions } from './base-provider';
+import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
 import { FmpClient, FmpSearchResult } from './clients';
 
 export class FmpDataProvider extends BaseSecurityDataProvider {
@@ -86,6 +86,7 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
         date: latestTradingDay,
         priceClose,
         priceAsOf: latestTradingDay, // Price is as of the previous close date
+        providerName: SECURITY_PROVIDER.fmp,
       };
 
       logger.info(`Latest price for ${symbol}: ${priceClose} on ${latestTradingDay.toISOString()}`);
@@ -105,7 +106,7 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
     try {
       const startDate = options?.startDate;
       const endDate = options?.endDate;
-      
+
       logger.info(
         `Fetching historical prices for: ${symbol}${startDate && endDate ? ` from ${startDate.toISOString()} to ${endDate.toISOString()}` : ' (full dataset)'}`,
       );
@@ -125,6 +126,7 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
         date: new Date(dailyData.date),
         priceClose: dailyData.price,
         priceAsOf: new Date(dailyData.date),
+        providerName: SECURITY_PROVIDER.fmp,
       }));
 
       // Sort by date ascending

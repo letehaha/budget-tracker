@@ -18,6 +18,7 @@ export interface UserModel {
   avatar: string;
   totalBalance: number;
   defaultCategoryId: number;
+  isAdmin?: boolean;
 }
 
 export interface CategoryModel {
