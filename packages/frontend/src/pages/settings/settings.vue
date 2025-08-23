@@ -9,11 +9,18 @@
 <script setup lang="ts">
 import UiTabs, { type Tab } from '@/components/ui-tabs.vue';
 import { ROUTES_NAMES } from '@/routes';
+import { useUserStore } from '@/stores';
+import { storeToRefs } from 'pinia';
+import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
 
-const tabs: Tab[] = [
+const { user } = storeToRefs(useUserStore());
+
+const showAdminTab = ref(user.value.isAdmin);
+
+const baseTabs: Tab[] = [
   {
     name: 'currencies',
     label: 'Currencies',
@@ -30,7 +37,22 @@ const tabs: Tab[] = [
     to: { name: ROUTES_NAMES.settingsAccounts },
   },
 ];
-const initialTab = tabs.find((i) => i.name === route.path.split('/').at(-1));
+
+const adminTab: Tab = {
+  name: 'admin',
+  label: 'Admin',
+  to: { name: ROUTES_NAMES.settingsAdmin },
+};
+
+const tabs = computed(() => {
+  const allTabs = [...baseTabs];
+  if (showAdminTab.value) {
+    allTabs.push(adminTab);
+  }
+  return allTabs;
+});
+
+const initialTab = computed(() => tabs.value.find((i) => i.name === route.path.split('/').at(-1)));
 </script>
 
 <style lang="scss" scoped>

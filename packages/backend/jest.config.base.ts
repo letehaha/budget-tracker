@@ -17,6 +17,7 @@ export default {
     '@bt/shared/(.*)': '<rootDir>/../shared/src/$1',
     '@routes/(.*)': '<rootDir>/src/routes/$1',
     '@middlewares/(.*)': '<rootDir>/src/middlewares/$1',
+    '@crons/(.*)': '<rootDir>/src/crons/$1',
     '@common/(.*)': '<rootDir>/src/common/$1',
     '@controllers/(.*)': '<rootDir>/src/controllers/$1',
     '@migrations/(.*)': '<rootDir>/src/migrations/$1',

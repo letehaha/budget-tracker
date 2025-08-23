@@ -15,3 +15,9 @@ export const createHolding = async (payload: { portfolioId: number; securityId: 
 export const deleteHolding = async (payload: { portfolioId: number; securityId: number }): Promise<void> => {
   await api.delete('/investments/holding', { data: payload });
 };
+
+export const triggerSecuritiesPriceSync = async (): Promise<{ message: string }> => {
+  const result = await api.post('/investments/sync/securities-prices');
+  return result || { message: 'Price sync completed successfully' };
+};
+

@@ -11,8 +11,7 @@ import passport from 'passport';
 
 import { API_PREFIX } from './config';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
-import { securitiesSyncCron } from './crons/sync-securities';
-import { securitiesPricesSyncCron } from './crons/sync-securities-prices';
+import { securitiesDailySyncCron } from './crons/securities-daily-sync';
 import middlewarePassword from './middlewares/passport';
 import './redis-client';
 import accountGroupsRoutes from './routes/account-groups';
@@ -111,8 +110,7 @@ export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : a
   loadCurrencyRatesJob.start();
 
   if (process.env.NODE_ENV === 'production') {
-    securitiesSyncCron.startCron();
-    securitiesPricesSyncCron.startCron();
+    securitiesDailySyncCron.startCron();
   }
 });
 
@@ -130,8 +128,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 const processUnexpectedExit = () => {
-  securitiesSyncCron.stopCron();
-  securitiesPricesSyncCron.stopCron();
+  securitiesDailySyncCron.stopCron();
   loadCurrencyRatesJob.stop();
   process.exit(0);
 };

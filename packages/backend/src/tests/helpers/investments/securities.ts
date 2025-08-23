@@ -1,7 +1,8 @@
 import { until } from '@common/helpers';
 import { jest } from '@jest/globals';
-import { type IExchanges, type ITickers, restClient } from '@polygon.io/client-js';
-import { syncDailyPrices } from '@root/services/investments/securities-price/price-sync.service';
+import type Securities from '@models/investments/Securities.model';
+import { FmpClient, type FmpSearchResult } from '@root/services/investments/data-providers/clients/fmp-client';
+import { addSecurityFromSearch } from '@root/services/investments/securities/add-from-search.service';
 import * as getSecuritiesService from '@root/services/investments/securities/get-all';
 import { searchSecurities as _searchSecurities } from '@root/services/investments/securities/search.service';
 
@@ -14,7 +15,7 @@ export async function triggerSecuritiesSync<R extends boolean | undefined = fals
 } = {}): Promise<MakeRequestReturn<{ message: string }, R>> {
   return makeRequest({
     method: 'post',
-    url: '/investments/sync/securities',
+    url: '/investments/sync/securities-prices',
     raw,
   });
 }
@@ -30,73 +31,75 @@ export async function getAllSecurities<R extends boolean | undefined = false>({
   });
 }
 
-export async function triggerDailyPriceSync<R extends boolean | undefined = false>({
-  payload,
-  raw,
-}: {
-  payload?: { date: string };
-  raw?: R;
-} = {}) {
-  return makeRequest<Awaited<ReturnType<typeof syncDailyPrices>>, R>({
-    method: 'post',
-    url: '/investments/sync/prices/daily',
-    payload,
-    raw,
-  });
-}
-
 type SeedSecurityPayload = {
   symbol: string;
   name: string;
-  currency_name?: string;
+  currencyCode?: string;
   type?: string;
 };
 
 /**
- * Seeds the database with securities by mocking and running the actual sync process.
+ * Seeds the database with securities using the new search-based approach.
  * This is the preferred way to create securities in tests.
  *
- * @param securitiesToSeed - An array of security objects to be "returned" by the mock API.
+ * @param securitiesToSeed - An array of security objects to be "created" via search.
  * @returns A promise that resolves to the array of created Sequelize security models.
  */
-export async function seedSecuritiesViaSync(securitiesToSeed: SeedSecurityPayload[]) {
-  // Get the mock instances that were set up globally in setupIntegrationTests.ts
-  const mockedRestClient = jest.mocked(restClient);
-  const mockApi = mockedRestClient.getMockImplementation()!('test');
-  const mockedExchanges = jest.mocked(mockApi.reference.exchanges);
-  const mockedTickers = jest.mocked(mockApi.reference.tickers);
+export async function seedSecurities(securitiesToSeed: SeedSecurityPayload[]) {
+  const { dataProviderFactory } = await import('@root/services/investments/data-providers/provider-factory');
+  // Access private property to clear cache
+  dataProviderFactory.clearCache();
+  // Get the global FMP client mock
+  const mockedFmpClient = jest.mocked(FmpClient);
+  mockedFmpClient.mockReset();
+  const mockFmpSearch = jest.fn<() => Promise<FmpSearchResult[]>>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mockedFmpClient.mockImplementation(() => ({ search: mockFmpSearch }) as any);
 
-  // Mock the API responses for the sync process
-  mockedExchanges.mockResolvedValue({
-    status: 'OK',
-    results: [{ mic: 'XNYS', name: '(Test) New York Stock Exchange', type: 'exchange' }],
-  } as IExchanges);
+  // For each security, mock the search and add it to database
+  const createdSecurities: Securities[] = [];
 
-  mockedTickers.mockResolvedValue({
-    status: 'OK',
-    count: securitiesToSeed.length,
-    results: securitiesToSeed.map((s) => ({
-      ticker: s.symbol,
-      name: s.name,
-      currency_name: s.currency_name || 'USD',
-      type: s.type || 'CS', // Default to Common Stock
-    })),
-  } as ITickers);
+  for (const security of securitiesToSeed) {
+    // Mock FMP search to return this security
+    mockFmpSearch.mockResolvedValue([
+      {
+        symbol: security.symbol,
+        name: security.name,
+        currency: security.currencyCode || 'USD',
+        stockExchange: 'NASDAQ Global Select', // Default exchange
+        exchangeShortName: 'NASDAQ',
+      },
+    ]);
 
-  // Trigger the actual sync endpoint
-  await triggerSecuritiesSync();
+    // Search for the security (which will use our mock)
+    const searchResults = await searchSecurities({
+      payload: { query: security.symbol },
+      raw: true,
+    });
 
-  // Wait until the database reflects the change. This is more reliable than a fixed sleep.
+    if (searchResults.length === 0) {
+      throw new Error(`Failed to get search result for ${security.symbol}`);
+    }
+
+    // Add the security to database using the search result
+    const { security: createdSecurity } = await addSecurityFromSearch({
+      searchResult: searchResults[0]!,
+    });
+
+    createdSecurities.push(createdSecurity);
+    mockFmpSearch.mockReset();
+  }
+
+  // Wait until the database reflects all changes
   await until(
     async () => {
       const securities = await getAllSecurities({ raw: true });
-      return securities.length === securitiesToSeed.length;
+      return securities.length >= securitiesToSeed.length;
     },
     { timeout: 5000, interval: 100 },
   );
 
-  // Return the newly created securities from the DB
-  return getAllSecurities({ raw: true });
+  return createdSecurities;
 }
 
 export async function searchSecurities<R extends boolean | undefined = false>({

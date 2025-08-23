@@ -27,6 +27,26 @@ jest.mock('@polygon.io/client-js', () => ({
   }),
 }));
 
+jest.mock('alphavantage', () =>
+  jest.fn().mockReturnValue({
+    data: {
+      search: jest.fn(),
+      quote: jest.fn(),
+      daily: jest.fn(),
+    },
+  }),
+);
+
+// Mock the FMP client globally
+jest.mock('../services/investments/data-providers/clients/fmp-client', () => ({
+  FmpClient: jest.fn().mockImplementation(() => ({
+    search: jest.fn(),
+    getQuote: jest.fn(),
+    getHistoricalPrices: jest.fn(),
+    getHistoricalPricesFull: jest.fn(),
+  })),
+}));
+
 beforeAll(() => mswMockServer.listen({ onUnhandledRequest: 'bypass' }));
 afterEach(() => mswMockServer.resetHandlers());
 afterAll(() => mswMockServer.close());

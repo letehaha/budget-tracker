@@ -4,6 +4,7 @@ import SecurityPricing from '@models/investments/SecurityPricing.model';
 import { withTransaction } from '@services/common';
 import { withLock } from '@services/common/lock';
 import { dataProviderFactory } from '@services/investments/data-providers';
+import { PriceData } from '@services/investments/data-providers/base-provider';
 import { subYears } from 'date-fns';
 
 const syncHistoricalPricesImpl = async (securityId: number): Promise<{ count: number }> => {
@@ -15,11 +16,18 @@ const syncHistoricalPricesImpl = async (securityId: number): Promise<{ count: nu
     return { count: 0 };
   }
 
-  const provider = dataProviderFactory.getProvider(security.providerName);
   const endDate = new Date();
-  const startDate = subYears(endDate, 5); // Fetch up to 5 years of data
+  const startDate = subYears(endDate, 5);
 
-  const prices = await provider.getHistoricalPrices(security.symbol, startDate, endDate);
+  // Use composite provider which automatically handles US vs non-US routing and fallbacks
+  const compositeProvider = dataProviderFactory.getProvider();
+
+  logger.info(`Fetching historical prices for ${security.symbol} using composite provider with intelligent routing`);
+
+  const prices: PriceData[] = await compositeProvider.getHistoricalPrices(security.symbol, {
+    startDate,
+    endDate,
+  });
 
   if (prices.length === 0) {
     logger.warn(`No historical prices found for symbol ${security.symbol}.`);
@@ -30,7 +38,7 @@ const syncHistoricalPricesImpl = async (securityId: number): Promise<{ count: nu
     securityId: security.id,
     date: price.date,
     priceClose: price.priceClose.toString(),
-    source: provider.providerName,
+    source: price.providerName,
   }));
 
   await SecurityPricing.bulkCreate(pricesToCreate, {

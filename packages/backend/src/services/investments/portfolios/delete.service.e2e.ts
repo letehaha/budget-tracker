@@ -102,7 +102,7 @@ describe('Delete Portfolio Service E2E', () => {
         });
 
         // Seed securities
-        const seededSecurities = await helpers.seedSecuritiesViaSync([
+        const seededSecurities = await helpers.seedSecurities([
           { symbol: 'VOO', name: 'Vanguard S&P 500 ETF' },
           { symbol: 'AAPL', name: 'Apple Inc.' },
         ]);
@@ -195,7 +195,7 @@ describe('Delete Portfolio Service E2E', () => {
         });
 
         // Seed securities
-        const seededSecurities = await helpers.seedSecuritiesViaSync([{ symbol: 'TSLA', name: 'Tesla Inc.' }]);
+        const seededSecurities = await helpers.seedSecurities([{ symbol: 'TSLA', name: 'Tesla Inc.' }]);
         const teslaSecurity = seededSecurities.find((s) => s.symbol === 'TSLA')!;
 
         // Create holding directly in the database with portfolioId since the service is still account-based

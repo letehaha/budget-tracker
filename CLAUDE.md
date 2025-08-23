@@ -416,17 +416,27 @@ These commands make AI calls and may take up to a minute:
 
 _This guide ensures Claude Code has immediate access to Task Master's essential functionality for agentic development workflows._
 
-## Cursor Rules Integration
+## Project Rules & Conventions
 
-Claude Code should also follow the project's Cursor rules for consistency across AI tools:
+**CRITICAL**: Claude Code MUST follow all project rules defined in `.cursor/rules/*` files:
 
 - **Rule Files Location:** `.cursor/rules/` directory
-- **Active Rules:** Read and follow all `.mdc` files in the rules directory
-- **Key Rules to Follow:**
-  - [cursor_rules.mdc](mdc:.cursor/rules/cursor_rules.mdc) - Rule structure and formatting guidelines
-  - [self_improve.mdc](mdc:.cursor/rules/self_improve.mdc) - Pattern recognition and rule improvement guidelines
+- **Rule Format:** All `.mdc` files in this directory contain mandatory project rules
+- **Priority:** These rules take precedence over default Claude Code behavior
+- **Scope:** Apply to ALL code-related work including Task Master workflows
 
-**Note:** When working on code, always check `.cursor/rules/` directory for project-specific conventions and follow them alongside the Task Master workflow.
+**Key Rule Files:**
+- `cursor_rules.mdc` - Core project conventions and coding standards
+- `self_improve.mdc` - Pattern recognition and improvement guidelines
+- Any additional `.mdc` files in the rules directory
+
+**Implementation:**
+1. **Before any code work:** Read ALL `.mdc` files in `.cursor/rules/`
+2. **During development:** Follow these rules alongside Task Master workflows  
+3. **Code review:** Ensure all changes comply with project rules
+4. **Consistency:** Apply rules across all files and features uniformly
+
+**Note:** Project rules in `.cursor/rules/*` are not suggestions - they are mandatory coding standards for this codebase.
 
 ## Additional Claude Code Instructions
 
@@ -439,3 +449,15 @@ Claude Code should also follow project-specific instructions from:
   - Follow the file inclusion syntax and best practices outlined in the guide
 
 **Critical Note:** Token efficiency is the primary reason to use Gemini CLI. Use it for code exploration, architecture understanding, feature verification, and any task involving multiple files - regardless of file size. This significantly reduces Claude token usage and costs.
+
+## Testing Patterns
+
+**CRITICAL**: E2E tests in this project NEVER call services directly. They ONLY make HTTP endpoint calls through the test helpers. 
+
+Examples:
+- ❌ WRONG: `await syncHistoricalPrices(securityId)`  
+- ✅ CORRECT: `await helpers.createHolding({ payload: { portfolioId, securityId } })` (which triggers sync internally)
+- ❌ WRONG: `await someService.doSomething()`
+- ✅ CORRECT: `await helpers.makeRequestToEndpoint()`
+
+Always test through the actual API endpoints to ensure full integration testing.
