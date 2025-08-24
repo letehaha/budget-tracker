@@ -21,7 +21,7 @@ const openTransactionModal = (holding: HoldingModel | null = null) => {
   isTransactionModalOpen.value = true;
 };
 
-const sortKey = ref<'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost'>('totalCost');
+const sortKey = ref<'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost' | 'unrealizedGain' | 'realizedGain'>('totalCost');
 const sortDir = ref<'asc' | 'desc'>('desc');
 
 const { formatAmountByCurrencyId } = useFormatCurrency();
@@ -51,7 +51,7 @@ const formatCurrency = (amount: number, currencyCode: string) => {
   return formatAmountByCurrencyId(amount, currencyId);
 };
 
-const toggleSort = (key: 'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost') => {
+const toggleSort = (key: 'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost' | 'unrealizedGain' | 'realizedGain') => {
   if (sortKey.value === key) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
   } else {
@@ -87,6 +87,14 @@ const sortedHoldings = computed(() => {
         av = getTotalCost(a);
         bv = getTotalCost(b);
         break;
+      case 'unrealizedGain':
+        av = Number(a.unrealizedGainValue || 0);
+        bv = Number(b.unrealizedGainValue || 0);
+        break;
+      case 'realizedGain':
+        av = Number(a.realizedGainValue || 0);
+        bv = Number(b.realizedGainValue || 0);
+        break;
     }
     if (typeof av === 'string') av = av.toLocaleLowerCase();
     if (typeof bv === 'string') bv = bv.toLocaleLowerCase();
@@ -114,6 +122,26 @@ const getAverageCost = (holding: HoldingModel) => {
 
 const getTotalCost = (holding: HoldingModel) => {
   return Number(holding.costBasis);
+};
+
+const getUnrealizedGain = (holding: HoldingModel) => {
+  return {
+    value: Number(holding.unrealizedGainValue || 0),
+    percent: Number(holding.unrealizedGainPercent || 0),
+  };
+};
+
+const getRealizedGain = (holding: HoldingModel) => {
+  return {
+    value: Number(holding.realizedGainValue || 0),
+    percent: Number(holding.realizedGainPercent || 0),
+  };
+};
+
+const getGainColorClass = (gainPercent: number) => {
+  if (gainPercent > 0) return 'text-green-600';
+  if (gainPercent < 0) return 'text-red-600';
+  return 'text-gray-600';
 };
 
 const expandedHoldingId = ref<number | null>(null);
@@ -188,6 +216,20 @@ const toggleExpand = (securityId: number) => {
                 <ArrowDownIcon v-if="sortKey === 'value' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
+            <th class="px-4 py-2 text-right">
+              <button class="flex gap-1 justify-end items-center w-full" @click="toggleSort('unrealizedGain')">
+                Unrealized Gain
+                <ArrowUpIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'asc'" class="size-3" />
+                <ArrowDownIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'desc'" class="size-3" />
+              </button>
+            </th>
+            <th class="px-4 py-2 text-right">
+              <button class="flex gap-1 justify-end items-center w-full" @click="toggleSort('realizedGain')">
+                Realized Gain
+                <ArrowUpIcon v-if="sortKey === 'realizedGain' && sortDir === 'asc'" class="size-3" />
+                <ArrowDownIcon v-if="sortKey === 'realizedGain' && sortDir === 'desc'" class="size-3" />
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
@@ -208,9 +250,21 @@ const toggleExpand = (securityId: number) => {
               <td class="px-4 py-2 text-right">
                 {{ formatCurrency(Number(h.marketValue || h.value || 0), h.currencyCode) }}
               </td>
+              <td class="px-4 py-2 text-right">
+                <div :class="getGainColorClass(getUnrealizedGain(h).percent)">
+                  <div class="font-medium">{{ formatCurrency(getUnrealizedGain(h).value, h.currencyCode) }}</div>
+                  <div class="text-sm">{{ getUnrealizedGain(h).percent.toFixed(2) }}%</div>
+                </div>
+              </td>
+              <td class="px-4 py-2 text-right">
+                <div :class="getGainColorClass(getRealizedGain(h).percent)">
+                  <div class="font-medium">{{ formatCurrency(getRealizedGain(h).value, h.currencyCode) }}</div>
+                  <div class="text-sm">{{ getRealizedGain(h).percent.toFixed(2) }}%</div>
+                </div>
+              </td>
             </tr>
             <tr v-if="expandedHoldingId === h.securityId">
-              <td colspan="8">
+              <td colspan="10">
                 <div
                   v-if="isLoadingTransactions && !transactionsResponse"
                   class="p-4 text-center text-muted-foreground"

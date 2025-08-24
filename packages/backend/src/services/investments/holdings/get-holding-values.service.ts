@@ -1,8 +1,10 @@
 import Holdings from '@models/investments/Holdings.model';
+import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
 import { withTransaction } from '@services/common';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
 import { Big } from 'big.js';
 import { Op, WhereOptions } from 'sequelize';
 
@@ -26,6 +28,11 @@ interface HoldingValue {
   priceDate?: Date;
   marketValue?: string;
   refMarketValue?: string;
+  // Gain/Loss fields
+  unrealizedGainValue?: string;
+  unrealizedGainPercent?: string;
+  realizedGainValue?: string;
+  realizedGainPercent?: string;
 }
 
 /**
@@ -50,6 +57,24 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
   }
 
   const securityIds = holdings.map(h => h.securityId);
+
+  // Get all investment transactions for these securities in this portfolio
+  const transactions = await InvestmentTransaction.findAll({
+    where: {
+      portfolioId,
+      securityId: { [Op.in]: securityIds },
+    },
+    order: [['date', 'ASC']], // Chronological order for FIFO calculations
+  });
+
+  // Group transactions by securityId
+  const transactionsBySecurityId = transactions.reduce((acc, transaction) => {
+    if (!acc[transaction.securityId]) {
+      acc[transaction.securityId] = [];
+    }
+    acc[transaction.securityId]!.push(transaction);
+    return acc;
+  }, {} as Record<number, InvestmentTransaction[]>);
 
   // Build price query
   const priceWhere: WhereOptions = {
@@ -113,6 +138,20 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       }
     }
 
+    // Calculate gains/losses
+    const securityTransactions = transactionsBySecurityId[holding.securityId] || [];
+    const gains = calculateAllGains(
+      parseFloat(marketValue),
+      parseFloat(holding.costBasis),
+      securityTransactions.map(tx => ({
+        date: tx.date,
+        category: tx.category,
+        quantity: tx.quantity || '0',
+        price: tx.price || '0',
+        fees: tx.fees || '0',
+      }))
+    );
+
     holdingValues.push({
       portfolioId: holding.portfolioId,
       securityId: holding.securityId,
@@ -126,6 +165,10 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       priceDate,
       marketValue,
       refMarketValue,
+      unrealizedGainValue: gains.unrealizedGainValue.toFixed(2),
+      unrealizedGainPercent: gains.unrealizedGainPercent.toFixed(2),
+      realizedGainValue: gains.realizedGainValue.toFixed(2),
+      realizedGainPercent: gains.realizedGainPercent.toFixed(2),
     });
   }
 

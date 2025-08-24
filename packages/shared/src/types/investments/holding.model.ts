@@ -19,6 +19,11 @@ export interface HoldingModel {
   priceDate?: Date;
   marketValue?: string;
   refMarketValue?: string;
+  // Gain/Loss fields (calculated in real-time)
+  unrealizedGainValue?: string;
+  unrealizedGainPercent?: string;
+  realizedGainValue?: string;
+  realizedGainPercent?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
