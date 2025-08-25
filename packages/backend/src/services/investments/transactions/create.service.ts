@@ -1,6 +1,6 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { NotFoundError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Portfolios from '@models/investments/Portfolios.model';
@@ -42,17 +42,8 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
     throw new NotFoundError({ message: 'Holding not found. Please add the security to the portfolio first.' });
   }
 
-  // Business rule: Check for sufficient shares when selling
-  if (category === INVESTMENT_TRANSACTION_CATEGORY.sell) {
-    const currentQuantity = new Big(holding.quantity);
-    const sellQuantity = new Big(quantity);
-
-    if (sellQuantity.gt(currentQuantity)) {
-      throw new ValidationError({
-        message: `Insufficient shares to sell. You have ${currentQuantity.toFixed()} shares but are trying to sell ${sellQuantity.toFixed()} shares.`,
-      });
-    }
-  }
+  // Business rule: Allow selling more than owned (phantom shares treated as zero cost basis)
+  // The gains calculation and recalculation services will handle this scenario
 
   const amount = new Big(quantity).times(new Big(price)).plus(new Big(fees)).toFixed(10);
 

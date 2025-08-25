@@ -1,5 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments/enums';
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 
 import {
   type TransactionForGains,
@@ -263,9 +263,7 @@ describe('Gains Calculator Utils', () => {
       expect(result.realizedGainPercent).toBeCloseTo(48.58, 2);
     });
 
-    it('should handle attempting to sell more than owned', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
+    it('should handle selling more than owned (phantom shares)', () => {
       const transactions: TransactionForGains[] = [
         {
           date: '2023-01-01',
@@ -285,11 +283,59 @@ describe('Gains Calculator Utils', () => {
 
       const result = calculateRealizedGains(transactions);
 
-      // Should only process the 100 shares that were owned
-      expect(result.realizedGainValue).toBeCloseTo(500, 2);
-      expect(consoleSpy).toHaveBeenCalledWith('Attempted to sell 50 more shares than available');
+      // 100 owned shares: (15-10) * 100 = $500 gain
+      // 50 phantom shares: 15 * 50 = $750 gain (zero cost basis)
+      // Total: $1,250 gain
+      expect(result.realizedGainValue).toBeCloseTo(1250, 2);
+    });
 
-      consoleSpy.mockRestore();
+    it('should handle user example: sell 15 shares when owning 10, last 5 sold for $250', () => {
+      const transactions: TransactionForGains[] = [
+        {
+          date: '2023-01-01',
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          quantity: 10,
+          price: 100, // Bought 10 shares at $100 each
+          fees: 0,
+        },
+        {
+          date: '2023-06-01',
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          quantity: 15, // Selling 15 shares (5 more than owned)
+          price: 250, // At $250 each
+          fees: 0,
+        },
+      ];
+
+      const result = calculateRealizedGains(transactions);
+
+      // 10 owned shares: (250-100) * 10 = $1,500 gain
+      // 5 phantom shares: 250 * 5 = $1,250 gain (zero cost basis)
+      // Total: $2,750 gain
+      expect(result.realizedGainValue).toBeCloseTo(2750, 2);
+
+      // Percentage based on cost basis of real shares: $2,750 / $1,000 = 275%
+      expect(result.realizedGainPercent).toBeCloseTo(275, 2);
+    });
+
+    it('should handle pure phantom shares scenario', () => {
+      const transactions: TransactionForGains[] = [
+        {
+          date: '2023-06-01',
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          quantity: 5, // Selling without any purchases
+          price: 250,
+          fees: 0,
+        },
+      ];
+
+      const result = calculateRealizedGains(transactions);
+
+      // Pure phantom shares: 250 * 5 = $1,250 gain
+      expect(result.realizedGainValue).toBeCloseTo(1250, 2);
+
+      // Pure phantom shares should return 100% (pure profit with no investment)
+      expect(result.realizedGainPercent).toBe(100);
     });
   });
 

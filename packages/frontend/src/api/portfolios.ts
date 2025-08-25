@@ -60,9 +60,7 @@ export const getPortfolioTransfers = async (portfolioId: number): Promise<Portfo
 export const getPortfolioSummary = async (portfolioId: number, date?: string): Promise<PortfolioSummaryModel> => {
   try {
     const params = date ? { date } : {};
-    console.log('API call:', `/investments/portfolios/${portfolioId}/summary`, params);
     const result = await api.get(`/investments/portfolios/${portfolioId}/summary`, params);
-    console.log('API result:', result);
     return result;
   } catch (error) {
     console.error('Portfolio summary API error:', error);
