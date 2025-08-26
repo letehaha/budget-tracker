@@ -60,9 +60,10 @@ const recalculateHoldingImpl = async (holdingId: { portfolioId: number; security
     }
   }
 
-  holding.quantity = totalQuantity.toFixed(10);
-  holding.costBasis = totalCostBasis.toFixed(10);
-  holding.refCostBasis = totalRefCostBasis.toFixed(10);
+  // Cap quantity at 0 (no negative holdings) but preserve cost basis calculations
+  holding.quantity = totalQuantity.lt(0) ? '0' : totalQuantity.toFixed(10);
+  holding.costBasis = totalCostBasis.lt(0) ? '0' : totalCostBasis.toFixed(10);
+  holding.refCostBasis = totalRefCostBasis.lt(0) ? '0' : totalRefCostBasis.toFixed(10);
   await holding.save();
 
   return holding;

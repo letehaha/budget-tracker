@@ -31,7 +31,7 @@
     </div>
 
     <div v-if="portfolio" class="grid gap-6">
-      <PortfolioBalance />
+      <PortfolioBalance :portfolio-id="portfolioId" />
       <HoldingsSummary :portfolio-id="portfolioId" />
       <!-- <div>
         <PortfolioOverview :portfolio="portfolio" />

@@ -1,5 +1,6 @@
 import { api } from '@/api/_api';
 import { PORTFOLIO_TYPE, PortfolioModel, PortfolioTransferModel } from '@bt/shared/types/investments';
+import type { PortfolioSummaryModel } from '@bt/shared/types/investments/portfolio-summary.model';
 
 interface CreatePortfolioRequest {
   name: string;
@@ -54,4 +55,15 @@ export const createPortfolioTransfer = async (
 export const getPortfolioTransfers = async (portfolioId: number): Promise<PortfolioTransferModel[]> => {
   const result = await api.get(`/investments/portfolios/${portfolioId}/transfers`);
   return result.data;
+};
+
+export const getPortfolioSummary = async (portfolioId: number, date?: string): Promise<PortfolioSummaryModel> => {
+  try {
+    const params = date ? { date } : {};
+    const result = await api.get(`/investments/portfolios/${portfolioId}/summary`, params);
+    return result;
+  } catch (error) {
+    console.error('Portfolio summary API error:', error);
+    throw error;
+  }
 };

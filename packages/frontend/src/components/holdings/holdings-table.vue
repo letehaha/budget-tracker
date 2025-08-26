@@ -21,7 +21,9 @@ const openTransactionModal = (holding: HoldingModel | null = null) => {
   isTransactionModalOpen.value = true;
 };
 
-const sortKey = ref<'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost'>('totalCost');
+const sortKey = ref<'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost' | 'unrealizedGain' | 'realizedGain'>(
+  'totalCost',
+);
 const sortDir = ref<'asc' | 'desc'>('desc');
 
 const { formatAmountByCurrencyId } = useFormatCurrency();
@@ -51,7 +53,9 @@ const formatCurrency = (amount: number, currencyCode: string) => {
   return formatAmountByCurrencyId(amount, currencyId);
 };
 
-const toggleSort = (key: 'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost') => {
+const toggleSort = (
+  key: 'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost' | 'unrealizedGain' | 'realizedGain',
+) => {
   if (sortKey.value === key) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
   } else {
@@ -87,6 +91,14 @@ const sortedHoldings = computed(() => {
         av = getTotalCost(a);
         bv = getTotalCost(b);
         break;
+      case 'unrealizedGain':
+        av = Number(a.unrealizedGainValue || 0);
+        bv = Number(b.unrealizedGainValue || 0);
+        break;
+      case 'realizedGain':
+        av = Number(a.realizedGainValue || 0);
+        bv = Number(b.realizedGainValue || 0);
+        break;
     }
     if (typeof av === 'string') av = av.toLocaleLowerCase();
     if (typeof bv === 'string') bv = bv.toLocaleLowerCase();
@@ -114,6 +126,26 @@ const getAverageCost = (holding: HoldingModel) => {
 
 const getTotalCost = (holding: HoldingModel) => {
   return Number(holding.costBasis);
+};
+
+const getUnrealizedGain = (holding: HoldingModel) => {
+  return {
+    value: Number(holding.unrealizedGainValue || 0),
+    percent: Number(holding.unrealizedGainPercent || 0),
+  };
+};
+
+const getRealizedGain = (holding: HoldingModel) => {
+  return {
+    value: Number(holding.realizedGainValue || 0),
+    percent: Number(holding.realizedGainPercent || 0),
+  };
+};
+
+const getGainColorClass = (gainPercent: number) => {
+  if (gainPercent > 0) return 'text-green-600';
+  if (gainPercent < 0) return 'text-red-600';
+  return 'text-gray-600';
 };
 
 const expandedHoldingId = ref<number | null>(null);
@@ -150,9 +182,9 @@ const toggleExpand = (securityId: number) => {
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-muted/50 text-muted-foreground">
           <tr>
-            <th class="px-4 py-2 w-12 text-left"></th>
+            <th class="w-12 px-4 py-2 text-left"></th>
             <th class="px-4 py-2 text-left">
-              <button class="flex gap-1 items-center" @click="toggleSort('symbol')">
+              <button class="flex items-center gap-1" @click="toggleSort('symbol')">
                 Symbol
                 <ArrowUpIcon v-if="sortKey === 'symbol' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'symbol' && sortDir === 'desc'" class="size-3" />
@@ -160,7 +192,7 @@ const toggleExpand = (securityId: number) => {
             </th>
             <th class="px-4 py-2 text-left">Name</th>
             <th class="px-4 py-2 text-right">
-              <button class="flex gap-1 justify-end items-center w-full" @click="toggleSort('quantity')">
+              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('quantity')">
                 Shares
                 <ArrowUpIcon v-if="sortKey === 'quantity' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'quantity' && sortDir === 'desc'" class="size-3" />
@@ -168,29 +200,43 @@ const toggleExpand = (securityId: number) => {
             </th>
             <th class="px-4 py-2 text-right">Price</th>
             <th class="px-4 py-2 text-right">
-              <button class="flex gap-1 justify-end items-center w-full" @click="toggleSort('avgCost')">
+              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('avgCost')">
                 AC/Share
                 <ArrowUpIcon v-if="sortKey === 'avgCost' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'avgCost' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
             <th class="px-4 py-2 text-right">
-              <button class="flex gap-1 justify-end items-center w-full" @click="toggleSort('totalCost')">
+              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('totalCost')">
                 Total Cost
                 <ArrowUpIcon v-if="sortKey === 'totalCost' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'totalCost' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
             <th class="px-4 py-2 text-right">
-              <button class="flex gap-1 justify-end items-center w-full" @click="toggleSort('value')">
+              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('value')">
                 Market Value
                 <ArrowUpIcon v-if="sortKey === 'value' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'value' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
+            <th class="px-4 py-2 text-right">
+              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('unrealizedGain')">
+                Unrealized Gain
+                <ArrowUpIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'asc'" class="size-3" />
+                <ArrowDownIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'desc'" class="size-3" />
+              </button>
+            </th>
+            <th class="px-4 py-2 text-right">
+              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('realizedGain')">
+                Realized Gain
+                <ArrowUpIcon v-if="sortKey === 'realizedGain' && sortDir === 'asc'" class="size-3" />
+                <ArrowDownIcon v-if="sortKey === 'realizedGain' && sortDir === 'desc'" class="size-3" />
+              </button>
+            </th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-border">
+        <tbody class="divide-border divide-y">
           <template v-for="h in sortedHoldings" :key="h.securityId">
             <tr class="hover:bg-muted/20">
               <td class="px-4 py-2">
@@ -208,12 +254,24 @@ const toggleExpand = (securityId: number) => {
               <td class="px-4 py-2 text-right">
                 {{ formatCurrency(Number(h.marketValue || h.value || 0), h.currencyCode) }}
               </td>
+              <td class="px-4 py-2 text-right">
+                <div :class="getGainColorClass(getUnrealizedGain(h).percent)">
+                  <div class="font-medium">{{ formatCurrency(getUnrealizedGain(h).value, h.currencyCode) }}</div>
+                  <div class="text-sm">{{ getUnrealizedGain(h).percent.toFixed(2) }}%</div>
+                </div>
+              </td>
+              <td class="px-4 py-2 text-right">
+                <div :class="getGainColorClass(getRealizedGain(h).percent)">
+                  <div class="font-medium">{{ formatCurrency(getRealizedGain(h).value, h.currencyCode) }}</div>
+                  <div class="text-sm">{{ getRealizedGain(h).percent.toFixed(2) }}%</div>
+                </div>
+              </td>
             </tr>
             <tr v-if="expandedHoldingId === h.securityId">
-              <td colspan="8">
+              <td colspan="10">
                 <div
                   v-if="isLoadingTransactions && !transactionsResponse"
-                  class="p-4 text-center text-muted-foreground"
+                  class="text-muted-foreground p-4 text-center"
                 >
                   Loading transactions…
                 </div>
@@ -226,7 +284,7 @@ const toggleExpand = (securityId: number) => {
                   @page-change="handlePageChange"
                   @add-transaction="openTransactionModal(h)"
                 />
-                <div v-else class="p-4 text-center text-muted-foreground">
+                <div v-else class="text-muted-foreground p-4 text-center">
                   <p class="mb-4">No transactions found.</p>
                   <Button variant="secondary" @click="openTransactionModal(h)"> Add first Transaction </Button>
                 </div>
