@@ -13,7 +13,7 @@ const searchSecuritiesImpl = async ({ query, limit = 20 }: SearchOptions): Promi
   logger.info(`Searching securities for: ${query}`);
 
   // Validate input
-  if (!query || query.length < 2) {
+  if (!query) {
     logger.warn('Search query too short or empty');
     return [];
   }
