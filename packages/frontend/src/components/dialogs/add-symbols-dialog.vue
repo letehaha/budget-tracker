@@ -29,7 +29,7 @@ const key = computed(() => ['sec-search', debounced.value] as const);
 const query = useQuery({
   queryKey: key,
   queryFn: () => searchSecurities(debounced.value),
-  enabled: () => debounced.value.length > 1,
+  enabled: () => debounced.value.length >= 1,
 });
 
 const createHolding = useCreateHolding();
