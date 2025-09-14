@@ -24,9 +24,20 @@ export const fetchExchangeRatesForDate = withTransaction(async (date: Date): Pro
   // Normalize the date to start of day
   const normalizedDate = startOfDay(date);
 
-  if (!process.env.API_LAYER_API_KEYS && process.env.NODE_ENV !== 'test') {
+  if (!process.env.API_LAYER_API_KEYS) {
     logger.error(`API_LAYER_API_KEYS is missing. Tried to load exchange rates for date ${normalizedDate}`);
-    return undefined;
+    throw new BadGateway({ message: 'Unexpected error with currency rates provider.' });
+  }
+
+  // Parse API keys from comma-separated string
+  const apiKeys =
+    process.env.API_LAYER_API_KEYS?.split(',')
+      .map((key) => key.trim())
+      .filter((key) => key) || [];
+
+  if (apiKeys.length === 0) {
+    logger.error('No valid API keys found in API_LAYER_API_KEYS');
+    throw new BadGateway({ message: 'Unexpected error with currency rates provider.' });
   }
 
   // Check if rates already exist for this date
@@ -41,17 +52,6 @@ export const fetchExchangeRatesForDate = withTransaction(async (date: Date): Pro
 
   const formattedDate = format(normalizedDate, API_LAYER_DATE_FORMAT);
   const API_URL = `https://api.apilayer.com/fixer/${formattedDate}?base=${API_LAYER_BASE_CURRENCY_CODE}`;
-
-  // Parse API keys from comma-separated string
-  const apiKeys =
-    process.env.API_LAYER_API_KEYS?.split(',')
-      .map((key) => key.trim())
-      .filter((key) => key) || [];
-
-  if (apiKeys.length === 0 && process.env.NODE_ENV !== 'test') {
-    logger.error('No valid API keys found in API_LAYER_API_KEYS');
-    return undefined;
-  }
 
   // Fetch new rates from an API with retry logic for different API keys
   try {

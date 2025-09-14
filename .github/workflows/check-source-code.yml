@@ -106,6 +106,7 @@ jobs:
           envkey_SHOW_LOGS_IN_TESTS: false
           envkey_POLYGON_API_KEY: test
           envkey_ALPHA_VANTAGE_API_KEY: test
+          envkey_API_LAYER_API_KEYS: test,test
           envkey_FMP_API_KEY: test
           envkey_ADMIN_USERS: test1
           file_name: .env.test

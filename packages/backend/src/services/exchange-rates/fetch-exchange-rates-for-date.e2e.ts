@@ -71,8 +71,18 @@ describe('Exchange Rates Functionality', () => {
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(502);
   });
 
-  it('should handle 429 Too Many Requests error', async () => {
+  it('should handle 429 Too Many Requests error for one of keys', async () => {
+    // Use one-time override to simulate 429 for first call, and 200 for the next one
     apiOverride.setOneTimeOverride({ status: 429 });
+    // Since retry happens inside the request, it means that we need to check exactly for
+    // status code 200, because 429 won't ever be exposed
+    await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(200);
+  });
+
+  it('should handle 429 Too Many Requests error', async () => {
+    // Use full override to ensure all API key retries return 429
+    // This tests the scenario where all API keys are exhausted due to rate limiting
+    apiOverride.setOverride({ status: 429 });
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(429);
   });
 
