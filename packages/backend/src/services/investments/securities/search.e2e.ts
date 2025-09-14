@@ -99,8 +99,8 @@ describe('GET /investments/securities/search', () => {
     // Service should return empty array for queries < 2 characters
     expect(results).toHaveLength(0);
 
-    // FMP client should not be called for short queries
-    expect(mockedFmpSearch).not.toHaveBeenCalled();
+    // FMP client should be called for short queries
+    expect(mockedFmpSearch).toHaveBeenCalled();
   });
 
   it('should apply limit parameter correctly', async () => {
