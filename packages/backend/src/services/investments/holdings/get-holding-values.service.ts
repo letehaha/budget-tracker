@@ -2,8 +2,8 @@ import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
-import { withTransaction } from '@services/common';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { withTransaction } from '@services/common';
 import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
 import { Big } from 'big.js';
 import { Op, WhereOptions } from 'sequelize';
@@ -56,7 +56,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     return [];
   }
 
-  const securityIds = holdings.map(h => h.securityId);
+  const securityIds = holdings.map((h) => h.securityId);
 
   // Get all investment transactions for these securities in this portfolio
   const transactions = await InvestmentTransaction.findAll({
@@ -68,13 +68,16 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
   });
 
   // Group transactions by securityId
-  const transactionsBySecurityId = transactions.reduce((acc, transaction) => {
-    if (!acc[transaction.securityId]) {
-      acc[transaction.securityId] = [];
-    }
-    acc[transaction.securityId]!.push(transaction);
-    return acc;
-  }, {} as Record<number, InvestmentTransaction[]>);
+  const transactionsBySecurityId = transactions.reduce(
+    (acc, transaction) => {
+      if (!acc[transaction.securityId]) {
+        acc[transaction.securityId] = [];
+      }
+      acc[transaction.securityId]!.push(transaction);
+      return acc;
+    },
+    {} as Record<number, InvestmentTransaction[]>,
+  );
 
   // Build price query
   const priceWhere: WhereOptions = {
@@ -96,12 +99,15 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
   });
 
   // Group prices by securityId (latest/closest first due to ordering)
-  const pricesBySecurityId = prices.reduce((acc, price) => {
-    if (!acc[price.securityId]) {
-      acc[price.securityId] = price;
-    }
-    return acc;
-  }, {} as Record<number, SecurityPricing>);
+  const pricesBySecurityId = prices.reduce(
+    (acc, price) => {
+      if (!acc[price.securityId]) {
+        acc[price.securityId] = price;
+      }
+      return acc;
+    },
+    {} as Record<number, SecurityPricing>,
+  );
 
   // Calculate market values for each holding
   const holdingValues: HoldingValue[] = [];
@@ -109,7 +115,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
   for (const holding of holdings) {
     const price = pricesBySecurityId[holding.securityId];
     const quantity = new Big(holding.quantity);
-    
+
     let marketValue = '0';
     let refMarketValue = '0';
     let latestPrice: string | undefined;
@@ -143,13 +149,13 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     const gains = calculateAllGains(
       parseFloat(marketValue),
       parseFloat(holding.costBasis),
-      securityTransactions.map(tx => ({
+      securityTransactions.map((tx) => ({
         date: tx.date,
         category: tx.category,
         quantity: tx.quantity || '0',
         price: tx.price || '0',
         fees: tx.fees || '0',
-      }))
+      })),
     );
 
     holdingValues.push({
