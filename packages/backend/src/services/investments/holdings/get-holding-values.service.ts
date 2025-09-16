@@ -3,7 +3,7 @@ import InvestmentTransaction from '@models/investments/InvestmentTransaction.mod
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
-import { withTransaction } from '@services/common';
+import { withDeduplication } from '@services/common';
 import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
 import { Big } from 'big.js';
 import { Op, WhereOptions } from 'sequelize';
@@ -181,4 +181,20 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
   return holdingValues;
 };
 
-export const getHoldingValues = withTransaction(getHoldingValuesImpl);
+// Do not call `withTransaction` here because it's fundamentally not compatible
+// with `withDeduplication`. Also on 99.99% `withTransaction` will already be
+// defined on the level above, since this service is not really callable alone
+// It also doesn't really update anything in the DB, so even if it will be called without
+// `withTransaction` and something fails, we don't really need to undo anything, since there's nothing to undo
+
+export const getHoldingValues = withDeduplication(getHoldingValuesImpl, {
+  keyGenerator: ({ portfolioId, date, userId }) =>
+    `holdings-${portfolioId}-${userId || 'no-user'}-${date?.toISOString() || 'latest'}`,
+  ttl:
+    process.env.NODE_ENV === 'test'
+      ? // Avoid any TTL since we don't need cache on the test environment
+        0
+      : // 1 second cache to handle concurrent requests, yet not that much to be stale
+        1000,
+  maxCacheSize: 5, // Reasonable limit for portfolio operations. It's not expected to have huge amount of calls
+});
