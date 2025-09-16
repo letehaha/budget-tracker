@@ -1,4 +1,5 @@
 import { NotFoundError } from '@js/errors';
+import { CacheClient } from '@js/utils/cache';
 import * as Currencies from '@models/Currencies.model';
 import * as ExchangeRates from '@models/ExchangeRates.model';
 import * as UserExchangeRates from '@models/UserExchangeRates.model';
@@ -13,11 +14,30 @@ import { Op } from 'sequelize';
 // Round to 5 precision
 const formatRate = (rate: number) => Math.trunc(rate * 100000) / 100000;
 
+const exchangeRateCache = new CacheClient<ExchangeRateReturnType>({
+  logPrefix: 'ExchangeRate',
+  ttl: 3600 * 4, // 4 hours
+  parseJson: true,
+});
+
 export async function getExchangeRate({
   userId,
   date,
   ...params
 }: ExchangeRateParams): Promise<ExchangeRateReturnType> {
+  // **REDIS CACHE CHECK - FIRST THING, before any expensive operations**
+  exchangeRateCache.setCacheKey(`exchange_rate:${JSON.stringify({ userId, date, ...params })}`);
+
+  const cachedResult = await exchangeRateCache.read();
+
+  if (cachedResult) {
+    return {
+      ...cachedResult,
+      date: new Date(cachedResult.date),
+    };
+  }
+
+  // Now do the expensive operations only on cache miss
   let pair: { baseCode: string; quoteCode: string };
 
   if ('baseId' in params && 'quoteId' in params) {
@@ -34,12 +54,16 @@ export async function getExchangeRate({
 
   // If base and qoute are the same currency, early return with `1`
   if (pair.baseCode === pair.quoteCode) {
-    return {
+    const result = {
       baseCode: pair.baseCode,
       quoteCode: pair.quoteCode,
       rate: 1,
       date,
     };
+
+    // Cache this simple result too
+    await exchangeRateCache.write({ value: result });
+    return result;
   }
 
   pair.baseCode = pair.baseCode.toUpperCase();
@@ -86,33 +110,16 @@ export async function getExchangeRate({
   let baseRate: ExchangeRates.default | null = null;
   let quoteRate: ExchangeRates.default | null = null;
 
-  const loadRate = (code: string, rateDate = date) => {
-    if (code === API_LAYER_BASE_CURRENCY_CODE) {
-      return null; // No need to fetch if it's the API's default base currency
-    }
-    const liveRateWhereCondition = {
-      date: { [Op.between]: [startOfDay(rateDate), endOfDay(rateDate)] },
-    };
-    return ExchangeRates.default.findOne({
-      where: {
-        ...liveRateWhereCondition,
-        baseCode: API_LAYER_BASE_CURRENCY_CODE,
-        quoteCode: code,
-      },
-      raw: true,
-    });
-  };
-
-  baseRate = await loadRate(pair.baseCode);
-  quoteRate = await loadRate(pair.quoteCode);
+  baseRate = await loadRate(pair.baseCode, date);
+  quoteRate = await loadRate(pair.quoteCode, date);
 
   // If none rates found in the DB, it means we need to sync data manually
   if (!baseRate || !quoteRate) {
     await fetchExchangeRatesForDate(date);
 
     // Retry fetching the missing rates after the API call
-    if (!baseRate) baseRate = await loadRate(pair.baseCode);
-    if (!quoteRate) quoteRate = await loadRate(pair.quoteCode);
+    if (!baseRate) baseRate = await loadRate(pair.baseCode, date);
+    if (!quoteRate) quoteRate = await loadRate(pair.quoteCode, date);
   }
 
   // If still no rates found in the DB, it means something happened in the
@@ -123,27 +130,50 @@ export async function getExchangeRate({
     // is loaded
   }
 
+  let result: ExchangeRateReturnType;
+
   if (pair.baseCode === API_LAYER_BASE_CURRENCY_CODE) {
-    return {
+    result = {
       ...pair,
       rate: formatRate(quoteRate!.rate), // Directly use the base rate
       date: quoteRate!.date,
     };
   } else if (pair.quoteCode === API_LAYER_BASE_CURRENCY_CODE) {
-    return {
+    result = {
       ...pair,
       rate: formatRate(1 / baseRate!.rate), // Invert the quote rate
       date: baseRate!.date,
     };
   } else {
     const crossRate = quoteRate!.rate / baseRate!.rate;
-    return {
+    result = {
       ...pair,
       rate: formatRate(crossRate),
       date: quoteRate!.date,
     };
   }
+
+  await exchangeRateCache.write({ value: result });
+
+  return result;
 }
+
+const loadRate = (code: string, rateDate: Date) => {
+  if (code === API_LAYER_BASE_CURRENCY_CODE) {
+    return null; // No need to fetch if it's the API's default base currency
+  }
+  const liveRateWhereCondition = {
+    date: { [Op.between]: [startOfDay(rateDate), endOfDay(rateDate)] },
+  };
+  return ExchangeRates.default.findOne({
+    where: {
+      ...liveRateWhereCondition,
+      baseCode: API_LAYER_BASE_CURRENCY_CODE,
+      quoteCode: code,
+    },
+    raw: true,
+  });
+};
 
 type ExchangeRateParams = {
   userId: number;

@@ -2,8 +2,8 @@ import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
-import { withTransaction } from '@services/common';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { withDeduplication } from '@services/common';
 import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
 import { Big } from 'big.js';
 import { Op, WhereOptions } from 'sequelize';
@@ -56,7 +56,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     return [];
   }
 
-  const securityIds = holdings.map(h => h.securityId);
+  const securityIds = holdings.map((h) => h.securityId);
 
   // Get all investment transactions for these securities in this portfolio
   const transactions = await InvestmentTransaction.findAll({
@@ -68,13 +68,16 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
   });
 
   // Group transactions by securityId
-  const transactionsBySecurityId = transactions.reduce((acc, transaction) => {
-    if (!acc[transaction.securityId]) {
-      acc[transaction.securityId] = [];
-    }
-    acc[transaction.securityId]!.push(transaction);
-    return acc;
-  }, {} as Record<number, InvestmentTransaction[]>);
+  const transactionsBySecurityId = transactions.reduce(
+    (acc, transaction) => {
+      if (!acc[transaction.securityId]) {
+        acc[transaction.securityId] = [];
+      }
+      acc[transaction.securityId]!.push(transaction);
+      return acc;
+    },
+    {} as Record<number, InvestmentTransaction[]>,
+  );
 
   // Build price query
   const priceWhere: WhereOptions = {
@@ -96,12 +99,15 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
   });
 
   // Group prices by securityId (latest/closest first due to ordering)
-  const pricesBySecurityId = prices.reduce((acc, price) => {
-    if (!acc[price.securityId]) {
-      acc[price.securityId] = price;
-    }
-    return acc;
-  }, {} as Record<number, SecurityPricing>);
+  const pricesBySecurityId = prices.reduce(
+    (acc, price) => {
+      if (!acc[price.securityId]) {
+        acc[price.securityId] = price;
+      }
+      return acc;
+    },
+    {} as Record<number, SecurityPricing>,
+  );
 
   // Calculate market values for each holding
   const holdingValues: HoldingValue[] = [];
@@ -109,7 +115,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
   for (const holding of holdings) {
     const price = pricesBySecurityId[holding.securityId];
     const quantity = new Big(holding.quantity);
-    
+
     let marketValue = '0';
     let refMarketValue = '0';
     let latestPrice: string | undefined;
@@ -143,13 +149,13 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     const gains = calculateAllGains(
       parseFloat(marketValue),
       parseFloat(holding.costBasis),
-      securityTransactions.map(tx => ({
+      securityTransactions.map((tx) => ({
         date: tx.date,
         category: tx.category,
         quantity: tx.quantity || '0',
         price: tx.price || '0',
         fees: tx.fees || '0',
-      }))
+      })),
     );
 
     holdingValues.push({
@@ -175,4 +181,20 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
   return holdingValues;
 };
 
-export const getHoldingValues = withTransaction(getHoldingValuesImpl);
+// Do not call `withTransaction` here because it's fundamentally not compatible
+// with `withDeduplication`. Also on 99.99% `withTransaction` will already be
+// defined on the level above, since this service is not really callable alone
+// It also doesn't really update anything in the DB, so even if it will be called without
+// `withTransaction` and something fails, we don't really need to undo anything, since there's nothing to undo
+
+export const getHoldingValues = withDeduplication(getHoldingValuesImpl, {
+  keyGenerator: ({ portfolioId, date, userId }) =>
+    `holdings-${portfolioId}-${userId || 'no-user'}-${date?.toISOString() || 'latest'}`,
+  ttl:
+    process.env.NODE_ENV === 'test'
+      ? // Avoid any TTL since we don't need cache on the test environment
+        0
+      : // 1 second cache to handle concurrent requests, yet not that much to be stale
+        1000,
+  maxCacheSize: 5, // Reasonable limit for portfolio operations. It's not expected to have huge amount of calls
+});
