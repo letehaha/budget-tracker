@@ -82,3 +82,28 @@ export const getTotalBalance = async ({ date }: { date: Date }) => {
 
   return fromSystemAmount(balance);
 };
+
+export interface CombinedBalanceHistoryEntity {
+  date: string;
+  accountsBalance: number;
+  portfoliosBalance: number;
+  totalBalance: number;
+}
+
+export const getCombinedBalanceHistory = async ({ from, to }: { from?: Date; to?: Date } = {}): Promise<
+  CombinedBalanceHistoryEntity[]
+> => {
+  const params: { from?: string; to?: string } = {};
+
+  if (from) params.from = formatDate(from);
+  if (to) params.to = formatDate(to);
+
+  const history: CombinedBalanceHistoryEntity[] = await api.get('/stats/combined-balance-history', params);
+
+  return history.map((item) => ({
+    ...item,
+    accountsBalance: fromSystemAmount(item.accountsBalance),
+    portfoliosBalance: fromSystemAmount(item.portfoliosBalance),
+    totalBalance: fromSystemAmount(item.totalBalance),
+  }));
+};
