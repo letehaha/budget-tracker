@@ -1,7 +1,22 @@
 <template>
   <WidgetWrapper :is-fetching="isWidgetDataFetching">
-    <template #title> Balance trend </template>
-    <template v-if="isDataEmpty">
+    <template #title>
+      <div class="flex w-full items-center gap-4">
+        <span>Balance trend</span>
+        <SelectField
+          v-model="selectedBalanceType"
+          :values="balanceTypeOptions"
+          value-key="value"
+          label-key="label"
+          class="w-[140px] text-xs"
+          :disabled="isWidgetDataFetching"
+        />
+      </div>
+    </template>
+    <template v-if="isWidgetDataFetching">
+      <LoadingState />
+    </template>
+    <template v-else-if="isDataEmpty">
       <EmptyState>
         <ChartLineIcon class="size-32" />
       </EmptyState>
@@ -15,7 +30,7 @@
 
         <div class="flex items-center justify-between">
           <div class="text-lg font-bold tracking-wider">
-            {{ formatBaseCurrency(todayBalance) }}
+            {{ formatBaseCurrency(displayBalance.current) }}
           </div>
           <div
             :class="{
@@ -34,20 +49,21 @@
 </template>
 
 <script lang="ts" setup>
-import { getTotalBalance } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import SelectField from '@/components/fields/select-field.vue';
 import { useFormatCurrency, useHighcharts } from '@/composable';
 import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
-import { loadBalanceTrendData } from '@/services';
+import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
-import { addDays, endOfMonth, getDaysInMonth, startOfDay, startOfMonth, subMonths } from 'date-fns';
+import { addDays, endOfMonth, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
 import { Chart as Highcharts } from 'highcharts-vue';
 import { ChartLineIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 
 import EmptyState from './components/empty-state.vue';
+import LoadingState from './components/loading-state.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
 // Calculate it manually so shart will always have first and last ticks (dates)
@@ -75,7 +91,13 @@ const props = defineProps<{
   selectedPeriod: { from: Date; to: Date };
 }>();
 
+const balanceTypeOptions = [
+  { value: 'total' as const, label: 'Total' },
+  { value: 'accounts' as const, label: 'Accounts' },
+  { value: 'portfolios' as const, label: 'Portfolios' },
+];
 const currentChartWidth = ref(0);
+const selectedBalanceType = ref(balanceTypeOptions[0]);
 const { formatBaseCurrency } = useFormatCurrency();
 const { baseCurrency } = storeToRefs(useCurrenciesStore());
 const { buildAreaChartConfig } = useHighcharts();
@@ -88,29 +110,12 @@ const periodQueryKey = computed(() => props.selectedPeriod.from.getTime());
 
 const { data: balanceHistory, isFetching: isBalanceHistoryFetching } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.widgetBalanceTrend, periodQueryKey],
-  queryFn: () => loadBalanceTrendData(props.selectedPeriod),
+  queryFn: () => loadCombinedBalanceTrendData(props.selectedPeriod),
   staleTime: Infinity,
   placeholderData: (prevData) => prevData,
 });
-const { data: todayBalance, isFetching: isTodayBalanceFetching } = useQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetBalanceTotalBalance, periodQueryKey],
-  queryFn: () => getTotalBalance({ date: props.selectedPeriod.to }),
-  placeholderData: (prevData) => prevData || 0,
-  staleTime: Infinity,
-});
-const { data: previousBalance, isFetching: isPreviousBalanceFetching } = useQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetBalancePreviousBalance, periodQueryKey],
-  queryFn: () =>
-    getTotalBalance({
-      date: endOfMonth(subMonths(props.selectedPeriod.to, 1)),
-    }),
-  placeholderData: (prevData) => prevData || 0,
-  staleTime: Infinity,
-});
 
-const isWidgetDataFetching = computed(
-  () => isBalanceHistoryFetching.value || isTodayBalanceFetching.value || isPreviousBalanceFetching.value,
-);
+const isWidgetDataFetching = computed(() => isBalanceHistoryFetching.value);
 
 // On each "selectedPeriod" change we immediately set it as "actualDataPeriod"
 // but if "isWidgetDataFetching" is also triggered, means we started loading new
@@ -136,7 +141,7 @@ watch(
   { immediate: true },
 );
 
-const isDataEmpty = computed(() => !balanceHistory.value || balanceHistory.value.every((i) => i.amount === 0));
+const isDataEmpty = computed(() => !balanceHistory.value || balanceHistory.value.every((i) => i.totalBalance === 0));
 
 const chartOptions = computed(() => {
   const pixelsPerTick = 120;
@@ -149,13 +154,52 @@ const chartOptions = computed(() => {
 
   const config = buildAreaChartConfig({
     chart: {
-      height: 220,
+      height: 200,
       marginTop: 20,
       animation: false,
     },
+    legend: {
+      itemStyle: {
+        color: 'rgba(255,255,255,.9)',
+      },
+    },
     plotOptions: {
+      area: {
+        animation: false,
+      },
       series: {
         animation: false,
+      },
+    },
+    tooltip: {
+      formatter() {
+        const date = new Date(this.x).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
+
+        // Find the corresponding data point to get accounts and portfolios breakdown
+        const dataPoint = balanceHistory.value?.find((point) => new Date(point.date).getTime() === this.x);
+
+        if (!dataPoint) return '';
+
+        let tooltipHtml = `<strong>${date}</strong><br/>`;
+
+        tooltipHtml += `Accounts: ${formatLargeNumber(dataPoint.accountsBalance, {
+          isFiat: true,
+          currency: baseCurrency.value?.currency?.code,
+        })}<br/>`;
+        tooltipHtml += `Portfolios: ${formatLargeNumber(dataPoint.portfoliosBalance, {
+          isFiat: true,
+          currency: baseCurrency.value?.currency?.code,
+        })}<br/>`;
+        tooltipHtml += `<strong>Total: ${formatLargeNumber(dataPoint.totalBalance, {
+          isFiat: true,
+          currency: baseCurrency.value?.currency?.code,
+        })}</strong>`;
+
+        return `<div class="text-sm">${tooltipHtml}</div>`;
       },
     },
     xAxis: {
@@ -188,9 +232,18 @@ const chartOptions = computed(() => {
       {
         type: 'area',
         showInLegend: false,
+        fillOpacity: 0.6,
         animation: false,
         data: [
-          ...(balanceHistory.value || []).map((point) => [new Date(point.date).getTime(), point.amount]),
+          ...(balanceHistory.value || []).map((point) => {
+            const value =
+              selectedBalanceType.value.value === 'total'
+                ? point.totalBalance
+                : selectedBalanceType.value.value === 'accounts'
+                  ? point.accountsBalance
+                  : point.portfoliosBalance;
+            return [new Date(point.date).getTime(), value];
+          }),
           // fill remaining days with `null` so chart will be rendered for all
           // days in the month
           ...Array(getDaysInMonth(toDate) - toDate.getDate())
@@ -203,10 +256,31 @@ const chartOptions = computed(() => {
 
   return config;
 });
-const balancesDiff = computed<number>(() => {
-  if (!todayBalance.value || !previousBalance.value) return 0;
 
-  const percentage = Number(calculatePercentageDifference(todayBalance.value, previousBalance.value)).toFixed(2);
+const displayBalance = computed(() => {
+  if (!balanceHistory.value || balanceHistory.value.length === 0) return { current: 0, previous: 0 };
+
+  // Get the latest balance entry
+  const latestEntry = balanceHistory.value[balanceHistory.value.length - 1];
+  const firstEntry = balanceHistory.value[0];
+
+  switch (selectedBalanceType.value.value) {
+    case 'accounts':
+      return { current: latestEntry.accountsBalance || 0, previous: firstEntry.accountsBalance || 0 };
+    case 'portfolios':
+      return { current: latestEntry.portfoliosBalance || 0, previous: firstEntry.portfoliosBalance || 0 };
+    case 'total':
+    default:
+      return { current: latestEntry.totalBalance || 0, previous: firstEntry.totalBalance || 0 };
+  }
+});
+
+const balancesDiff = computed<number>(() => {
+  if (!displayBalance.value.current || !displayBalance.value.previous) return 0;
+
+  const percentage = Number(
+    calculatePercentageDifference(displayBalance.value.current, displayBalance.value.previous),
+  ).toFixed(2);
   return Number(percentage);
 });
 

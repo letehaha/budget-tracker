@@ -1,9 +1,9 @@
-import { BalanceHistoryEntity, getBalanceHistory } from '@/api';
+import { BalanceHistoryEntity, getBalanceHistory, getCombinedBalanceHistory, CombinedBalanceHistoryEntity } from '@/api';
 import { format } from 'date-fns';
 
 // TODO: optimize implementation
 export function aggregateBalanceTrendData(data: BalanceHistoryEntity[]) {
-  const formatDate = (date) => format(new Date(date), 'yyyy-MM-dd');
+  const formatDate = (date: string | Date) => format(new Date(date), 'yyyy-MM-dd');
 
   // Extract unique account IDs and dates from the data.
   const accountIds = new Set(data.map((item) => item.accountId));
@@ -84,4 +84,12 @@ export const loadBalanceTrendData = async ({ from, to }: { from: Date; to?: Date
   if (!result?.length) return [];
 
   return aggregateBalanceTrendData(result);
+};
+
+export const loadCombinedBalanceTrendData = async ({ from, to }: { from: Date; to?: Date }): Promise<CombinedBalanceHistoryEntity[]> => {
+  const result = await getCombinedBalanceHistory({ from, to });
+
+  if (!result?.length) return [];
+
+  return result;
 };

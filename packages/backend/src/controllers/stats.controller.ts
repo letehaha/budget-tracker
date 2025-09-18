@@ -154,3 +154,25 @@ export const getExpensesAmountForPeriod = createController(expensesAmountSchema,
 
   return { data: result };
 });
+
+const combinedBalanceHistorySchema = z.object({
+  query: z.object({
+    from: z.string().optional(),
+    to: z.string().optional(),
+  }),
+});
+
+export const getCombinedBalanceHistory = createController(combinedBalanceHistorySchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { from, to } = query;
+
+  tryBasicDateValidation({ from, to });
+
+  const combinedBalanceHistory = await statsService.getCombinedBalanceHistory({
+    userId,
+    from,
+    to,
+  });
+
+  return { data: combinedBalanceHistory };
+});

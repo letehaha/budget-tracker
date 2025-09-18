@@ -11,7 +11,8 @@
       "Bash(find:*)",
       "Bash(gemini:*)",
       "WebFetch(domain:polygon.io)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(npm run test:e2e:*)"
     ],
     "deny": []
   }

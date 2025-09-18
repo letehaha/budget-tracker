@@ -35,5 +35,11 @@ router.get(
   validateEndpoint(statsController.getSpendingsByCategories.schema),
   statsController.getSpendingsByCategories.handler,
 );
+router.get(
+  '/combined-balance-history',
+  authenticateJwt,
+  validateEndpoint(statsController.getCombinedBalanceHistory.schema),
+  statsController.getCombinedBalanceHistory.handler,
+);
 
 export default router;
