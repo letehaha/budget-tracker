@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { until } from '@common/helpers';
 import { usersQuery } from '@controllers/banks/monobank.controller';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
@@ -10,6 +11,7 @@ import path from 'path';
 import Umzug from 'umzug';
 
 import { setupMswServer } from './mocks/setup-mock-server';
+import { retryWithBackoff } from './utils/retry-db-operation-with-backoff';
 
 const mswMockServer = setupMswServer();
 
@@ -181,9 +183,15 @@ beforeEach(async () => {
     const staggerDelay = workerId * 200; // 200ms per worker
     await new Promise((resolve) => setTimeout(resolve, staggerDelay));
 
-    // Clean up database schema
-    await connection.sequelize.drop({ cascade: true });
-    await dropAllEnums(connection.sequelize);
+    // Clean up database schema with deadlock retry
+    await retryWithBackoff(
+      async () => {
+        await connection.sequelize.drop({ cascade: true });
+        await dropAllEnums(connection.sequelize);
+      },
+      15,
+      200,
+    );
 
     // Clean up Redis keys for this worker
     const workerKeys = await redisClient.keys(`${process.env.JEST_WORKER_ID}*`);
@@ -194,8 +202,14 @@ beforeEach(async () => {
     // Clear query cache
     usersQuery.clear();
 
-    // Run migrations (this can be slow with TypeScript)
-    await umzug.up();
+    // Run migrations with deadlock retry (this can be slow with TypeScript)
+    await retryWithBackoff(
+      async () => {
+        await umzug.up();
+      },
+      15,
+      200,
+    );
 
     // Set up test user
     await makeRequest({
@@ -228,7 +242,7 @@ beforeEach(async () => {
       });
 
       global.MODELS_CURRENCIES = currencies;
-      global.BASE_CURRENCY = currencies.find((item) => item.code === global.BASE_CURRENCY_CODE);
+      global.BASE_CURRENCY = currencies.find((item: any) => item.code === global.BASE_CURRENCY_CODE);
     }
 
     await makeRequest({
@@ -245,8 +259,8 @@ beforeEach(async () => {
 afterAll(async () => {
   try {
     await redisClient.close();
-    await serverInstance.close();
-    await loadCurrencyRatesJob.stop();
+    serverInstance.close();
+    loadCurrencyRatesJob.stop();
   } catch (err) {
     console.log('afterAll', err);
   }
