@@ -2,7 +2,7 @@ import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
   // TODO: fix because it's wrong ignoring them
-  ignoreBinaries: ['knip', 'vue-tsc', 'vite', 'vitest', 'storybook', 'cypress'],
+  ignoreBinaries: ['knip', 'vue-tsc', 'vitest', 'storybook'],
   ignore: [
     '.eslintrc.js',
     'index.d.ts',
@@ -19,8 +19,6 @@ const config: KnipConfig = {
     'tsconfig.json',
   ],
   ignoreDependencies: [
-    // actually used
-    'sass',
     // Needed for Storybook
     'react',
     'react-dom',
@@ -35,6 +33,10 @@ const config: KnipConfig = {
     'vue-tsc',
     // eslint
     '@eslint/js',
+
+    // used in global.css file
+    'tailwindcss',
+    'tw-animate-css',
   ],
   // ignoreBinaries: ["eslint"],
   rules: {
