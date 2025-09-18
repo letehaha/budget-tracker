@@ -12,7 +12,7 @@ export const getSpendingsByCategories = async ({ raw = false }: { raw?: boolean 
 export const getCombinedBalanceHistory = async ({
   from,
   to,
-  raw = false
+  raw = false,
 }: {
   from?: string;
   to?: string;

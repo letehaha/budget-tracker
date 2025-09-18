@@ -1,5 +1,5 @@
 <template>
-  <p v-if="errorMessage" class="text-destructive ml-2 mt-1 text-sm">
+  <p v-if="errorMessage" class="text-destructive mt-1 ml-2 text-sm">
     {{ errorMessage }}
   </p>
 </template>

@@ -99,7 +99,7 @@ const handlerRecordClick = (transaction: TransactionModel) => {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-grow flex-col gap-2">
+  <div class="flex min-h-0 grow flex-col gap-2">
     <div class="flex">
       <Dialog.Dialog v-model:open="isFiltersDialogOpen">
         <Dialog.DialogTrigger as-child>
@@ -108,7 +108,7 @@ const handlerRecordClick = (transaction: TransactionModel) => {
               <ListFilterIcon />
 
               <template v-if="isAnyFiltersApplied">
-                <div class="bg-primary absolute -right-1 -top-1 size-3 rounded-full" />
+                <div class="bg-primary absolute -top-1 -right-1 size-3 rounded-full" />
               </template>
             </div>
           </Button>
@@ -139,17 +139,12 @@ const handlerRecordClick = (transaction: TransactionModel) => {
             </div>
 
             <div class="flex gap-2">
-              <Button
-                variant="secondary"
-                :disabled="isResetButtonDisabled"
-                class="w-full flex-shrink"
-                @click="resetFilters"
-              >
+              <Button variant="secondary" :disabled="isResetButtonDisabled" class="w-full shrink" @click="resetFilters">
                 Reset
               </Button>
 
               <template v-if="isFiltersOutOfSync">
-                <Button variant="default" class="w-full flex-shrink" @click="applyFilters"> Apply </Button>
+                <Button variant="default" class="w-full shrink" @click="applyFilters"> Apply </Button>
               </template>
             </div>
           </div>

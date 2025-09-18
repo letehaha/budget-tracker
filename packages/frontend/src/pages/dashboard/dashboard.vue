@@ -18,7 +18,7 @@
       :class="[
         `grid gap-6`,
         `xl:grid-cols-[minmax(0,1fr)_420px] xl:[grid-template-areas:'balance-trend_latest-records'_'spending-categories_latest-records']`,
-        `md:grid-cols-[repeat(2,_minmax(0,1fr))] md:[grid-template-areas:'balance-trend_balance-trend'_'spending-categories_latest-records']`,
+        `md:grid-cols-2 md:[grid-template-areas:'balance-trend_balance-trend'_'spending-categories_latest-records']`,
         `grid-cols-1 [grid-template-areas:'balance-trend'_'spending-categories'_'latest-records']`,
       ]"
     >

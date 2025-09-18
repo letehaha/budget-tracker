@@ -3,14 +3,14 @@
     <p>Total: {{ fiatTotalBalance }}</p>
     <template v-if="balances">
       <div class="crypto__balances">
-        <div class="crypto__balance">
+        <div class="grid grid-cols-5">
           <p>Asset</p>
           <p>Total</p>
           <p>Price</p>
           <p>Holdings</p>
         </div>
         <template v-for="balance in balances" :key="balance.asset">
-          <div class="crypto__balance">
+          <div class="grid grid-cols-5">
             <p>{{ balance.asset }}</p>
             <p>{{ balance.total }}</p>
             <p>{{ formatFiat(balance.price ?? balance.total) }}</p>

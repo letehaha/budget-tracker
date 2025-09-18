@@ -45,7 +45,7 @@ const refundTransactions = computed(() => {
         </template>
       </div>
 
-      <Button variant="default" size="icon" :disabled="disabled" class="flex-shrink-0" @click="emptyField">
+      <Button variant="default" size="icon" :disabled="disabled" class="shrink-0" @click="emptyField">
         <XIcon />
       </Button>
     </div>

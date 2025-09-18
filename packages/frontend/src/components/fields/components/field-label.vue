@@ -1,7 +1,7 @@
 <template>
   <component :is="onlyTemplate ? 'div' : 'label'" class="field-label">
     <template v-if="label">
-      <div class="field-label__label">
+      <div class="mb-[5px] flex items-center justify-between text-base leading-none font-normal tracking-wide">
         <span>{{ label }}</span>
 
         <template v-if="$slots['label-right']">
@@ -9,7 +9,7 @@
         </template>
       </div>
     </template>
-    <div class="field-label__field-wrapper">
+    <div class="relative">
       <slot />
     </div>
   </component>
@@ -27,19 +27,3 @@ export default defineComponent({
   },
 });
 </script>
-
-<style lang="scss">
-.field-label__label {
-  font-size: 16px;
-  font-weight: 400;
-  letter-spacing: 0.5px;
-  line-height: 1;
-  margin-bottom: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.field-label__field-wrapper {
-  position: relative;
-}
-</style>

@@ -37,14 +37,14 @@ const formatDate = (date: string) => format(new Date(date), 'dd/MM/yyyy');
 </script>
 
 <template>
-  <div class="p-4 bg-muted/20">
-    <div class="flex justify-between items-center mb-2">
+  <div class="bg-muted/20 p-4">
+    <div class="mb-2 flex items-center justify-between">
       <h4 class="text-lg font-semibold">Transactions</h4>
       <Button variant="secondary" @click="emit('add-transaction')"> Add transaction </Button>
     </div>
     <div>
       <table class="min-w-full text-sm">
-        <thead class="sticky top-0 bg-muted/50 text-muted-foreground">
+        <thead class="bg-muted/50 text-muted-foreground sticky top-0">
           <tr>
             <th class="px-3 py-2 text-left">Date</th>
             <th class="px-3 py-2 text-left">Type</th>
@@ -55,7 +55,7 @@ const formatDate = (date: string) => format(new Date(date), 'dd/MM/yyyy');
             <th class="px-3 py-2 text-center">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-border">
+        <tbody class="divide-border divide-y">
           <tr v-for="tx in props.transactions" :key="tx.id">
             <td class="px-3 py-2">{{ formatDate(tx.date) }}</td>
             <td class="px-3 py-2 capitalize">{{ tx.category }}</td>

@@ -1,6 +1,6 @@
 <template>
-  <div class="crypto">
-    <h1 class="crypto__title">Crypto</h1>
+  <div class="p-6">
+    <h1>Crypto</h1>
 
     <template v-if="isDataLoading"> LOADING... </template>
 
@@ -69,13 +69,3 @@ export default defineComponent({
   },
 });
 </script>
-
-<style lang="scss">
-.crypto {
-  padding: 24px;
-}
-.crypto__balance {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-}
-</style>

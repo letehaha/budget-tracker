@@ -21,7 +21,7 @@
         </label>
 
         <template v-for="account in sortedAccounts" :key="account.id">
-          <label class="flex cursor-pointer items-center gap-2 overflow-hidden text-ellipsis py-1">
+          <label class="flex cursor-pointer items-center gap-2 overflow-hidden py-1 text-ellipsis">
             <Checkbox :checked="isAccountSelected(account)" @update:checked="toggleAccount(account, $event)" />
 
             <span class="text-ellipsis">

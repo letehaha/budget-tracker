@@ -11,9 +11,7 @@ module.exports = {
       `ALTER TYPE "${ENUM_SECURITY_PROVIDER}" ADD VALUE IF NOT EXISTS 'alphavantage';`,
     );
 
-    await queryInterface.sequelize.query(
-      `ALTER TYPE "${ENUM_SECURITY_PROVIDER}" ADD VALUE IF NOT EXISTS 'fmp';`,
-    );
+    await queryInterface.sequelize.query(`ALTER TYPE "${ENUM_SECURITY_PROVIDER}" ADD VALUE IF NOT EXISTS 'fmp';`);
   },
 
   down: async (queryInterface: QueryInterface): Promise<void> => {

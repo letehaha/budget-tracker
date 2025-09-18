@@ -1,6 +1,6 @@
 <template>
   <Card>
-    <CardHeader class="flex flex-row justify-between items-center">
+    <CardHeader class="flex flex-row items-center justify-between">
       <CardTitle>Holdings</CardTitle>
 
       <AddSymbolsDialog :portfolio-id="portfolioId" @updated="invalidate">

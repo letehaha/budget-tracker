@@ -24,7 +24,7 @@ const isModalClosed = () => {
     <Card class="@container/budgets-card max-w-[700px]">
       <CardHeader
         :class="[
-          'border-b flex justify-between gap-4',
+          'flex justify-between gap-4 border-b',
           '@[450px]/budgets-card:flex-row @[450px]/budgets-card:items-center',
         ]"
       >
@@ -35,7 +35,7 @@ const isModalClosed = () => {
           <PlusIcon class="size-4" />
         </Button>
       </CardHeader>
-      <CardContent class="!pt-4">
+      <CardContent class="pt-4!">
         <BudgetList />
       </CardContent>
     </Card>

@@ -372,7 +372,7 @@ onUnmounted(() => {
         <Button variant="ghost"> Close </Button>
       </DialogClose>
     </div>
-    <div class="relative grid grid-cols-1 md:grid-cols-[450px,minmax(0,1fr)]">
+    <div class="relative grid grid-cols-1 md:grid-cols-[450px_minmax(0,1fr)]">
       <div class="px-6">
         <type-selector
           :is-form-creation="isFormCreation"

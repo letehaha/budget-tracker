@@ -79,7 +79,7 @@ const onSubmit = async () => {
 </script>
 
 <template>
-  <form class="grid gap-6" @submit.prevent="onSubmit">
+  <form class="grid w-full max-w-[600px] gap-6" @submit.prevent="onSubmit">
     <InputField
       v-model="form.name"
       label="Portfolio Name"
@@ -125,11 +125,3 @@ const onSubmit = async () => {
     </div>
   </form>
 </template>
-
-<style scoped>
-/* Simple responsive tweaks */
-form {
-  max-width: 600px;
-  width: 100%;
-}
-</style>

@@ -1,10 +1,10 @@
-import { calculatePortfolioGains, type HoldingForPortfolioGains } from './portfolio-gains-calculator.utils';
+import { type HoldingForPortfolioGains, calculatePortfolioGains } from './portfolio-gains-calculator.utils';
 
 describe('Portfolio Gains Calculator Utils', () => {
   describe('calculatePortfolioGains', () => {
     it('should return zero values for empty portfolio', () => {
       const result = calculatePortfolioGains([]);
-      
+
       expect(result.totalCurrentValue).toBe(0);
       expect(result.totalCostBasis).toBe(0);
       expect(result.unrealizedGainValue).toBe(0);
@@ -26,7 +26,7 @@ describe('Portfolio Gains Calculator Utils', () => {
       ];
 
       const result = calculatePortfolioGains(holdings);
-      
+
       expect(result.totalCurrentValue).toBe(1200);
       expect(result.totalCostBasis).toBe(1000);
       expect(result.unrealizedGainValue).toBe(200);
@@ -64,13 +64,13 @@ describe('Portfolio Gains Calculator Utils', () => {
       ];
 
       const result = calculatePortfolioGains(holdings);
-      
+
       // Portfolio totals
       expect(result.totalCurrentValue).toBe(3500); // 1200 + 800 + 1500
       expect(result.totalCostBasis).toBe(3200); // 1000 + 1000 + 1200
       expect(result.unrealizedGainValue).toBe(300); // 200 + (-200) + 300
       expect(result.realizedGainValue).toBe(150); // 100 + 50 + 0
-      
+
       // Portfolio percentages
       expect(result.unrealizedGainPercent).toBeCloseTo(9.38, 2); // (300 / 3200) * 100
       expect(result.realizedGainPercent).toBeCloseTo(16.67, 2); // (150 / 900) * 100, where 900 is total realized cost basis
@@ -97,7 +97,7 @@ describe('Portfolio Gains Calculator Utils', () => {
       ];
 
       const result = calculatePortfolioGains(holdings);
-      
+
       expect(result.totalCurrentValue).toBe(2300);
       expect(result.totalCostBasis).toBe(2000);
       expect(result.unrealizedGainValue).toBe(300); // -500 + 800
@@ -119,7 +119,7 @@ describe('Portfolio Gains Calculator Utils', () => {
       ];
 
       const result = calculatePortfolioGains(holdings);
-      
+
       expect(result.totalCurrentValue).toBe(1000);
       expect(result.totalCostBasis).toBe(0);
       expect(result.unrealizedGainValue).toBe(1000);
@@ -149,7 +149,7 @@ describe('Portfolio Gains Calculator Utils', () => {
       ];
 
       const result = calculatePortfolioGains(holdings);
-      
+
       expect(result.totalCurrentValue).toBe(2000);
       expect(result.totalCostBasis).toBe(1600);
       expect(result.unrealizedGainValue).toBe(400);
@@ -179,15 +179,15 @@ describe('Portfolio Gains Calculator Utils', () => {
       ];
 
       const result = calculatePortfolioGains(holdings);
-      
+
       expect(result.totalCurrentValue).toBe(3000);
       expect(result.totalCostBasis).toBe(2500);
       expect(result.unrealizedGainValue).toBe(500);
       expect(result.realizedGainValue).toBe(300);
-      
+
       // Portfolio unrealized percentage: (500 / 2500) * 100 = 20%
       expect(result.unrealizedGainPercent).toBe(20);
-      
+
       // Portfolio realized percentage: (300 / total_realized_cost_basis) * 100
       // Where total_realized_cost_basis = 400 + 1000 = 1400
       // So (300 / 1400) * 100 = ~21.43%

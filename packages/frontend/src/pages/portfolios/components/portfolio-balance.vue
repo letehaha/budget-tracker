@@ -20,16 +20,16 @@
       </CardHeader>
 
       <!-- Key Metrics Row -->
-      <CardContent class="flex gap-6 border-t !pt-6">
+      <CardContent class="flex gap-6 border-t pt-6!">
         <div class="text-center">
-          <p class="text-muted-foreground text-xs uppercase tracking-wide">COST BASIS</p>
+          <p class="text-muted-foreground text-xs tracking-wide uppercase">COST BASIS</p>
           <p class="mt-1 text-sm font-medium">
             {{ formatCurrency(Number(summary.totalCostBasis), summary.currencyCode) }}
           </p>
         </div>
 
         <div class="text-center">
-          <p class="text-muted-foreground text-xs uppercase tracking-wide">UNREALIZED</p>
+          <p class="text-muted-foreground text-xs tracking-wide uppercase">UNREALIZED</p>
           <div :class="getGainColorClass(Number(summary.unrealizedGainPercent))" class="mt-1">
             <p class="text-sm font-medium">
               {{ Number(summary.unrealizedGainValue) >= 0 ? '+' : ''
@@ -43,7 +43,7 @@
         </div>
 
         <div class="text-center">
-          <p class="text-muted-foreground text-xs uppercase tracking-wide">REALIZED</p>
+          <p class="text-muted-foreground text-xs tracking-wide uppercase">REALIZED</p>
           <div :class="getGainColorClass(Number(summary.realizedGainPercent))" class="mt-1">
             <p class="text-sm font-medium">
               {{ Number(summary.realizedGainValue) >= 0 ? '+' : ''
@@ -57,7 +57,7 @@
         </div>
 
         <div class="text-center">
-          <p class="text-muted-foreground text-xs uppercase tracking-wide">TOTAL RETURN</p>
+          <p class="text-muted-foreground text-xs tracking-wide uppercase">TOTAL RETURN</p>
           <div :class="getGainColorClass(getTotalGainPercent())" class="mt-1">
             <p class="text-sm font-medium">
               {{ getTotalGainValue() >= 0 ? '+' : '' }}{{ formatCurrency(getTotalGainValue(), summary.currencyCode) }}

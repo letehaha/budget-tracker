@@ -143,7 +143,7 @@ const { isPending: isMutating, mutate } = useMutation({
             <label
               v-if="flatTransactions[virtualRow.index]"
               :class="[
-                'grid grid-cols-[min-content,minmax(0,1fr)] items-center gap-2',
+                'grid grid-cols-[min-content_minmax(0,1fr)] items-center gap-2',
                 { 'select-none': isShiftKeyPressed },
               ]"
             >

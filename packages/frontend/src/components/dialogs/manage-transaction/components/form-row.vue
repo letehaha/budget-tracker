@@ -1,11 +1,5 @@
 <template>
-  <div class="form-row">
+  <div class="mb-5">
     <slot />
   </div>
 </template>
-
-<style lang="scss" scoped>
-.form-row {
-  margin-bottom: 20px;
-}
-</style>

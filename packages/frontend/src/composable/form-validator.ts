@@ -110,7 +110,7 @@ export const useFormValidation = <Vargs extends ValidationArgs, T extends Extrac
    * getFieldErrorMessage decides if the validation error is present
    * for the field. To be invalid the vuelidate $touch method should
    * be called on it. You have to call $touch on the level of your component,
-   * the good time to do this is `input`, `change` or `blur` events:
+   * the good time to do this is `input`, `change` or `blur-sm` events:
    *
    *   <input-field
    *     v-model="form.email"

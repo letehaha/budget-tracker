@@ -18,7 +18,7 @@
             cn(
               'border-input bg-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
               'placeholder:text-muted-foreground',
-              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+              'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
               'disabled:cursor-not-allowed disabled:opacity-50',
               $attrs.class ?? '',
             )
@@ -35,14 +35,17 @@
 
           {{ selectedValue?.name || placeholder }}
 
-          <div class="category-select-field__arrow" />
+          <ChevronDownIcon
+            class="text-popover-foreground absolute top-1/2 right-2.5 h-5 w-5 -translate-y-1/2 transition-transform duration-150 ease-out"
+            :class="{ 'rotate-180': isDropdownOpened }"
+          />
         </button>
 
         <div
           v-if="isDropdownOpened"
           :class="
             cn(
-              'bg-popover z-over-default invisible absolute left-0 top-full w-full rounded px-2 opacity-0 transition-all',
+              'bg-popover z-over-default invisible absolute top-full left-0 w-full rounded px-2 opacity-0 transition-all',
               isDropdownOpened && 'visible opacity-100',
             )
           "
@@ -68,9 +71,9 @@
               <button
                 v-if="!searchQuery.length"
                 type="button"
-                class="category-select-field__dropdown-item"
+                class="bg-popover text-popover-foreground hover:bg-popover-foreground/5 relative flex w-full cursor-pointer items-center gap-2 overflow-hidden border-none p-2 px-4 text-left text-sm leading-tight text-ellipsis transition-colors duration-300 ease-out"
                 :class="{
-                  'category-select-field__dropdown-item--highlighed': selectedValue.id === topLevelCategory.id,
+                  'bg-popover-foreground/5': selectedValue.id === topLevelCategory.id,
                 }"
                 role="option"
                 :aria-selected="selectedValue.id === topLevelCategory.id"
@@ -78,12 +81,12 @@
               >
                 <CategoryCircle :category="topLevelCategory" />
 
-                <span>
+                <span class="flex-grow">
                   {{ topLevelCategory.name }}
                 </span>
               </button>
 
-              <h3 v-if="!searchQuery.length" class="text-popover-foreground mb-2 ml-4 mt-4 text-base font-medium">
+              <h3 v-if="!searchQuery.length" class="text-popover-foreground mt-4 mb-2 ml-4 text-base font-medium">
                 Subcategories
               </h3>
             </template>
@@ -91,10 +94,10 @@
             <!-- Show list of categories -->
             <template v-for="item in filteredItems" :key="item.id">
               <button
-                class="category-select-field__dropdown-item"
+                class="bg-popover text-popover-foreground hover:bg-popover-foreground/5 relative flex w-full cursor-pointer items-center gap-2 overflow-hidden border-none p-2 px-4 text-left text-sm leading-tight text-ellipsis transition-colors duration-300 ease-out"
                 type="button"
                 :class="{
-                  'category-select-field__dropdown-item--highlighed': selectedValue.id === item.id,
+                  'bg-popover-foreground/5': selectedValue.id === item.id,
                 }"
                 role="option"
                 :aria-selected="selectedValue.id === item.id"
@@ -102,7 +105,7 @@
               >
                 <CategoryCircle :category="item" />
 
-                <span>{{ item.name }}</span>
+                <span class="flex-grow">{{ item.name }}</span>
 
                 <template v-if="item.subCategories.length && !searchQuery.length">
                   <div class="text-popover-foreground flex items-center gap-2">
@@ -143,7 +146,7 @@ import { FieldError, FieldLabel, InputField } from '@/components/fields';
 import { Button, buttonVariants } from '@/components/lib/ui/button';
 import { cn } from '@/lib/utils';
 import { CategoryModel } from '@bt/shared/types';
-import { ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon } from 'lucide-vue-next';
 import { Ref, computed, onBeforeUnmount, ref, watch } from 'vue';
 
 const props = withDefaults(
@@ -311,72 +314,3 @@ onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleEscPress, true);
 });
 </script>
-
-<style lang="scss" scoped>
-.category-select-field__dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  transition: background-color 0.3s ease-out;
-  border: none;
-  background-color: rgb(var(--popover));
-  font-size: 14px;
-  line-height: 1.2;
-  color: rgb(var(--popover-foreground));
-  padding: 8px 16px;
-  width: 100%;
-  text-align: left;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-  position: relative;
-
-  span {
-    flex-grow: 1;
-  }
-
-  &--highlighed {
-    background-color: rgba(var(--popover-foreground), 0.05);
-  }
-
-  &:hover {
-    background-color: rgba(var(--popover-foreground), 0.05);
-  }
-}
-.category-select-field__arrow {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  top: calc(50% - 11px);
-  right: 10px;
-
-  &:after,
-  &:before {
-    content: '';
-    position: absolute;
-    width: 8px;
-    height: 2px;
-    background-color: rgb(var(--popover-foreground));
-    border-radius: 2px;
-    transform: rotate(-45deg);
-    top: 10px;
-    left: inherit;
-    transition: transform 0.15s ease-out;
-  }
-
-  &:before {
-    left: 5px;
-    transform: rotate(45deg);
-  }
-
-  .category-select-field--active & {
-    &:before {
-      transform: rotate(-45deg);
-    }
-    &:after {
-      transform: rotate(45deg);
-    }
-  }
-}
-</style>

@@ -171,24 +171,28 @@ This document outlines user stories for the search-based investment data system 
 ### Simple Direct Migration (Single User System)
 
 #### Implementation Approach
+
 - Implement Alpha Vantage provider with required interface methods
 - Update search functionality to use Alpha Vantage directly
 - Replace bulk sync jobs with on-demand price fetching
 - Deploy complete solution when ready (no gradual rollout needed)
 
 #### Code Changes Required
+
 1. **Implement Alpha Vantage provider**: `searchSecurities()`, `getLatestPrice()`, `getHistoricalPrices()`
 2. **Update search service**: Replace DB-only search with Alpha Vantage API calls
 3. **Update price sync logic**: Replace bulk `syncDailyPrices()` with individual security price fetching
 4. **Disable Polygon jobs**: Stop `syncAllSecurities()` and `syncDailyPrices()` scheduled jobs
 
 #### Data Handling
+
 - **Existing Securities table**: Leave all data as-is, system continues working
 - **Existing SecurityPricing table**: Leave all historical data as-is
 - **No data cleanup needed**: Historical Polygon data remains valid for portfolio calculations
 - **Future data source**: New securities and prices come from Alpha Vantage
 
 #### Simple Rollback (if needed)
+
 - Re-enable Polygon bulk sync jobs
 - Revert search service to use local DB
 - Alpha Vantage data remains in system (no conflicts with Polygon data)

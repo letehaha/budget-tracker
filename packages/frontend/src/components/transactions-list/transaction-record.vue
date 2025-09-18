@@ -15,13 +15,13 @@
 
       <div class="text-left">
         <template v-if="isTransferTransaction">
-          <span class="whitespace-nowrap text-sm tracking-wider">
+          <span class="text-sm tracking-wider whitespace-nowrap">
             {{ accountMovement }}
           </span>
         </template>
         <template v-else>
           <div class="flex items-center gap-2">
-            <span class="whitespace-nowrap text-sm tracking-wider">
+            <span class="text-sm tracking-wider whitespace-nowrap">
               {{ category.name || 'Other' }}
             </span>
             <template v-if="isRefund">
@@ -29,7 +29,7 @@
             </template>
           </div>
         </template>
-        <span class="line-clamp-1 text-sm tracking-wider opacity-40 [word-break:break-word]">
+        <span class="line-clamp-1 text-sm tracking-wider [word-break:break-word] opacity-40">
           {{ transaction.note }}
         </span>
       </div>

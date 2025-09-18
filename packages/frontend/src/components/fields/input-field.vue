@@ -15,7 +15,7 @@
 
       <div class="relative">
         <template v-if="isLeadingIconExist">
-          <div :class="['absolute left-0 top-0 flex h-full items-center px-6', leadingIconCssClass]">
+          <div :class="['absolute top-0 left-0 flex h-full items-center px-6', leadingIconCssClass]">
             <slot name="iconLeading" />
           </div>
         </template>
@@ -38,14 +38,14 @@
           spellcheck="false"
           :class="
             cn(
-              'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+              'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
               computedAttrs.class ?? '',
             )
           "
         />
 
         <template v-if="isTrailIconExist">
-          <div :class="['absolute right-0 top-0 flex h-full items-center px-6', trailingIconCssClass]">
+          <div :class="['absolute top-0 right-0 flex h-full items-center px-6', trailingIconCssClass]">
             <slot name="iconTrailing" />
           </div>
         </template>
@@ -53,7 +53,7 @@
     </FieldLabel>
 
     <template v-if="isSubLabelExist">
-      <div class="input-fields__sublabel">
+      <div class="absolute top-0 right-0 text-base font-normal [&_a]:text-white [&_a]:no-underline">
         <slot name="subLabel" />
       </div>
     </template>
@@ -155,18 +155,3 @@ onMounted(() => {
   }
 });
 </script>
-
-<style lang="scss">
-.input-fields__sublabel {
-  position: absolute;
-  right: 0;
-  top: 0;
-  font-size: 16px;
-  font-weight: 400;
-
-  a {
-    color: #ffffff;
-    text-decoration: none;
-  }
-}
-</style>

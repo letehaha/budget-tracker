@@ -45,7 +45,7 @@ export function calculatePortfolioGains(holdings: HoldingForPortfolioGains[]): P
     totalCostBasis += holding.costBasis;
     totalUnrealizedGainValue += holding.unrealizedGainValue;
     totalRealizedGainValue += holding.realizedGainValue;
-    
+
     // For realized percentage, we need the cost basis of shares that were sold
     // We can estimate this from the realized gain and percentage
     if (holding.realizedGainPercent !== 0) {
@@ -55,13 +55,9 @@ export function calculatePortfolioGains(holdings: HoldingForPortfolioGains[]): P
   }
 
   // Calculate portfolio-wide percentages
-  const unrealizedGainPercent = totalCostBasis > 0 
-    ? (totalUnrealizedGainValue / totalCostBasis) * 100 
-    : 0;
+  const unrealizedGainPercent = totalCostBasis > 0 ? (totalUnrealizedGainValue / totalCostBasis) * 100 : 0;
 
-  const realizedGainPercent = totalRealizedCostBasis > 0 
-    ? (totalRealizedGainValue / totalRealizedCostBasis) * 100 
-    : 0;
+  const realizedGainPercent = totalRealizedCostBasis > 0 ? (totalRealizedGainValue / totalRealizedCostBasis) * 100 : 0;
 
   return {
     totalCurrentValue,

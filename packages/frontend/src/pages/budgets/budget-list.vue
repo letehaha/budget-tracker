@@ -46,7 +46,7 @@ const deleteBudget = async (budgetId: number) => {
       <div v-for="budget in budgetsList" :key="budget.id" class="flex items-center justify-between rounded-md p-2">
         <div class="flex flex-col gap-1">
           <div class="w-min overflow-hidden text-ellipsis whitespace-nowrap">Name: {{ budget.name }}</div>
-          <div class="w-min overflow-hidden text-ellipsis whitespace-nowrap text-sm">
+          <div class="w-min overflow-hidden text-sm text-ellipsis whitespace-nowrap">
             Limit Amount:
 
             <template v-if="budget.limitAmount"> {{ budget.limitAmount }} {{ baseCurrency.currency.code }} </template>

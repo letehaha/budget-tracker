@@ -1,6 +1,7 @@
 import { NotFoundError } from '@js/errors';
 import Portfolios from '@models/investments/Portfolios.model';
 import { withTransaction } from '@services/common';
+
 import { getHoldingValues } from './get-holding-values.service';
 
 const getHoldingsImpl = async ({
@@ -28,7 +29,7 @@ const getHoldingsImpl = async ({
 
   // Filter by securityId if provided
   if (securityId) {
-    return holdingValues.filter(h => h.securityId === securityId);
+    return holdingValues.filter((h) => h.securityId === securityId);
   }
 
   return holdingValues;

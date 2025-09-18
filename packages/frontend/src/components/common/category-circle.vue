@@ -1,7 +1,7 @@
 <template>
   <template v-if="categoryColor">
     <div
-      class="category-circle"
+      class="size-5 flex-shrink-0 rounded-full"
       :style="{
         backgroundColor: category.color,
       }"
@@ -28,12 +28,3 @@ const categoryColor = computed(() => {
   return null;
 });
 </script>
-
-<style lang="scss">
-.category-circle {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-</style>

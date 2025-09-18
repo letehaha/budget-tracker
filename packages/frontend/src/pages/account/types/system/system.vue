@@ -64,7 +64,7 @@ const deleteAccount = async () => {
           <Separator />
 
           <div
-            class="@[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center flex flex-col justify-between gap-2"
+            class="flex flex-col justify-between gap-2 @[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center"
           >
             <div>
               <p class="mb-2 font-bold">Delete this account</p>

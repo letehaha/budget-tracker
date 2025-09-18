@@ -15,12 +15,12 @@ This middleware provides Redis-based rate limiting for API endpoints.
 ### Pre-configured Middleware
 
 ```typescript
-import { priceSyncRateLimit, apiRateLimit, authRateLimit } from '@middlewares/rate-limit';
+import { apiRateLimit, authRateLimit, priceSyncRateLimit } from '@middlewares/rate-limit';
 
 // 5-minute window, 1 attempt per user
 router.post('/expensive-operation', authenticateJwt, priceSyncRateLimit, handler);
 
-// 1-minute window, 60 attempts per user  
+// 1-minute window, 60 attempts per user
 router.get('/api-data', authenticateJwt, apiRateLimit, handler);
 
 // 15-minute window, 5 attempts per IP
@@ -77,6 +77,7 @@ When rate limited (429 status), the middleware sets:
 Keys are automatically formatted as: `rate_limit:{custom-key}`
 
 Examples:
+
 - `rate_limit:price-sync:user:123`
 - `rate_limit:api:user:456`
 - `rate_limit:auth:ip:192.168.1.1`

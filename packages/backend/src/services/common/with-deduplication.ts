@@ -44,13 +44,9 @@ interface DeduplicationOptions<T extends unknown[]> {
  */
 export function withDeduplication<T extends unknown[], R>(
   fn: AsyncFunction<T, R>,
-  options: DeduplicationOptions<T> = {}
+  options: DeduplicationOptions<T> = {},
 ): AsyncFunction<T, R> {
-  const {
-    keyGenerator = (...args: T) => JSON.stringify(args),
-    ttl = 1000,
-    maxCacheSize = 100
-  } = options;
+  const { keyGenerator = (...args: T) => JSON.stringify(args), ttl = 1000, maxCacheSize = 100 } = options;
 
   const cache = new Map<string, Promise<R>>();
   const insertionOrder: string[] = [];

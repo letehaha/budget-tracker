@@ -1,7 +1,7 @@
+import tailwind from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import autoprefixer from 'autoprefixer';
 import path from 'path';
-import tailwind from 'tailwindcss';
 import { fileURLToPath } from 'url';
 import { defineConfig, loadEnv } from 'vite';
 import svgLoader from 'vite-svg-loader';
@@ -14,7 +14,7 @@ export default ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, path.resolve(__dirname, '../../'), '') };
 
   return defineConfig({
-    plugins: [vue(), svgLoader()],
+    plugins: [vue(), tailwind(), svgLoader()],
     server: {
       port: process.env.PORT,
       host: process.env.HOST,
@@ -43,7 +43,7 @@ export default ({ mode }) => {
     },
     css: {
       postcss: {
-        plugins: [tailwind(), autoprefixer()],
+        plugins: [autoprefixer()],
       },
     },
   });

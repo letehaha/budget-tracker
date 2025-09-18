@@ -7,7 +7,7 @@ describe('[Stats] Combined balance history', () => {
   it('Returns correct combined balance data for accounts only', async () => {
     const account = await helpers.createAccount({
       payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
-      raw: true
+      raw: true,
     });
 
     // Create transactions to generate balance history
@@ -34,7 +34,7 @@ describe('[Stats] Combined balance history', () => {
   it('Returns correct combined balance data with date filtering', async () => {
     const account = await helpers.createAccount({
       payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
-      raw: true
+      raw: true,
     });
 
     // Create transactions spanning multiple days
@@ -77,11 +77,11 @@ describe('[Stats] Combined balance history', () => {
   it('Returns correct combined balance data for multiple accounts', async () => {
     const account1 = await helpers.createAccount({
       payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
-      raw: true
+      raw: true,
     });
     const account2 = await helpers.createAccount({
       payload: helpers.buildAccountPayload({ initialBalance: 2000 }),
-      raw: true
+      raw: true,
     });
 
     // Create transactions for both accounts
@@ -128,5 +128,4 @@ describe('[Stats] Combined balance history', () => {
 
     expect(response.statusCode).toBe(422);
   });
-
 });

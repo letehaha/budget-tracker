@@ -4,7 +4,7 @@
       'date-field--error': errorMessage,
       'date-field--disabled': disabled,
     }"
-    class="date-field w-full"
+    class="relative w-full flex-1"
   >
     <Popover.Popover>
       <FieldLabel :label="label">
@@ -19,7 +19,7 @@
                 'border-input bg-background ring-offset-background flex h-10 w-full rounded-md border px-3 py-2 text-sm',
                 'file:border-0 file:bg-transparent file:text-sm file:font-medium',
                 'placeholder:text-muted-foreground',
-                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
                 'disabled:cursor-not-allowed disabled:opacity-50',
                 'appearance-none', // fixes Safari width issues
                 $attrs.class ?? '',
@@ -30,7 +30,7 @@
           />
           <template v-if="isSafariMobile">
             <Button
-              class="absolute right-0 top-0 flex h-10 w-16 items-center justify-center"
+              class="absolute top-0 right-0 flex h-10 w-16 items-center justify-center"
               variant="ghost"
               size="icon"
               disabled
@@ -41,7 +41,7 @@
           <template v-else>
             <Popover.PopoverTrigger as-child>
               <Button
-                class="absolute right-0 top-0 flex h-10 w-16 items-center justify-center"
+                class="absolute top-0 right-0 flex h-10 w-16 items-center justify-center"
                 variant="ghost"
                 size="icon"
                 :disabled="disabled"
@@ -118,10 +118,10 @@ const localValue = ref<Date>(props.modelValue);
 
 const handleLocalInputUpdate = (event: InputChangeEvent) => {
   const inputVal = event.target.value;
-  
+
   // Always update the displayed input value so user can see what they're typing
   inputValue.value = inputVal;
-  
+
   // Only emit the date if it's a valid date string
   if (inputVal && !isNaN(new Date(inputVal).getTime())) {
     emit('update:modelValue', new Date(inputVal));
@@ -132,7 +132,7 @@ const handleLocalInputUpdate = (event: InputChangeEvent) => {
 
 const handleBlur = (event: InputFocusEvent) => {
   const inputVal = event.target.value;
-  
+
   // On blur, validate the final input value
   if (inputVal && !isNaN(new Date(inputVal).getTime())) {
     // Valid date - emit it
@@ -156,23 +156,3 @@ watch(localValue, () => {
   emit('update:modelValue', localValue.value);
 });
 </script>
-
-<style lang="scss">
-.date-field {
-  position: relative;
-  width: 100%;
-  flex: 1;
-}
-.date-fields__sublabel {
-  position: absolute;
-  right: 0;
-  top: 0;
-  font-size: 16px;
-  font-weight: 400;
-
-  a {
-    color: #ffffff;
-    text-decoration: none;
-  }
-}
-</style>

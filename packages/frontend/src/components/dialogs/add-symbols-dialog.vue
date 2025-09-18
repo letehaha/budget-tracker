@@ -77,7 +77,7 @@ async function addSymbol(sec: SecuritySearchResult) {
             <li
               v-for="sec in query.data.value || []"
               :key="sec.symbol"
-              class="hover:bg-muted/40 grid cursor-pointer grid-cols-[auto,1fr,auto,auto] items-center gap-2 px-2 py-1"
+              class="hover:bg-muted/40 grid cursor-pointer grid-cols-[auto_1fr_auto_auto] items-center gap-2 px-2 py-1"
               @click="addSymbol(sec)"
             >
               <span class="font-medium">{{ sec.symbol }}</span>

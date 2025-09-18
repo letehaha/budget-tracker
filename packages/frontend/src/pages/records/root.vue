@@ -3,7 +3,7 @@
     <div class="flex w-min max-w-full flex-col gap-4 lg:w-auto lg:flex-row xl:gap-20">
       <template v-if="!isMobileView">
         <Card
-          class="sticky top-[var(--header-height)] h-min max-h-[calc(100vh-var(--header-height)-32px)] min-w-[350px] overflow-auto p-4"
+          class="sticky top-(--header-height) h-min max-h-[calc(100vh-var(--header-height)-32px)] min-w-[350px] overflow-auto p-4"
         >
           <FiltersPanel
             v-model:filters="filters"

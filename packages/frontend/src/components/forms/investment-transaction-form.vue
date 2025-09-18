@@ -185,7 +185,7 @@ const onSubmit = async () => {
       @blur="touchField('form.date')"
     />
 
-    <div class="flex gap-4 justify-end">
+    <div class="flex justify-end gap-4">
       <UiButton
         type="button"
         variant="secondary"
