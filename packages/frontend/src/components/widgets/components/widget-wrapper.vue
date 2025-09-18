@@ -7,7 +7,7 @@
   >
     <CardHeader>
       <slot name="header">
-        <div class="grid grid-cols-[minmax(0,1fr),max-content,20px] items-center justify-between gap-1">
+        <div class="grid grid-cols-[minmax(0,1fr)_max-content_20px] items-center justify-between gap-1">
           <h3>
             <slot name="title" />
           </h3>

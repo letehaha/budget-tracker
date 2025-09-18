@@ -41,14 +41,14 @@
     <UiButton
       variant="secondary"
       :disabled="isResetButtonDisabled"
-      class="w-full flex-shrink"
+      class="w-full shrink"
       @click="$emit('reset-filters')"
     >
       Reset
     </UiButton>
 
     <template v-if="isFiltersOutOfSync">
-      <UiButton variant="default" class="w-full flex-shrink" @click="$emit('apply-filters')"> Apply </UiButton>
+      <UiButton variant="default" class="w-full shrink" @click="$emit('apply-filters')"> Apply </UiButton>
     </template>
   </div>
 </template>

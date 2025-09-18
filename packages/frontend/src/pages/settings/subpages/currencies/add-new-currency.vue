@@ -1,7 +1,7 @@
 <template>
   <Card class="mb-8">
-    <CardContent class="md:flex-center flex flex-wrap gap-4 !pt-6 md:flex-nowrap">
-      <div class="w-full max-w-[300px] flex-shrink-0">
+    <CardContent class="md:flex-center flex flex-wrap gap-4 pt-6! md:flex-nowrap">
+      <div class="w-full max-w-[300px] shrink-0">
         <select-field
           v-model="selectedCurrency"
           :values="filteredCurrencies"

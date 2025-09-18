@@ -3,7 +3,7 @@
     <button v-for="(currency, index) in currenciesList" :key="currency.id" type="button">
       <Card
         :class="[
-          'flex flex-col gap-4 rounded-lg border p-4 shadow-sm transition-all duration-300',
+          'flex flex-col gap-4 rounded-lg border p-4 shadow-xs transition-all duration-300',
           currency.isDefaultCurrency && 'cursor-default',
           !currency.isDefaultCurrency && 'hover:border-green-500',
         ]"

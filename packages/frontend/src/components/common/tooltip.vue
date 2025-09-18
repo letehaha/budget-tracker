@@ -1,11 +1,14 @@
 <template>
-  <div class="ui-tooltip" :class="[`ui-tooltip--${position}`]">
+  <div class="group relative">
     <slot />
 
     <template v-if="content || $refs['tooltip-content'] || $refs['tooltip-message']">
-      <div class="ui-tooltip__content-wrapper">
+      <div
+        class="invisible absolute left-1/2 -translate-x-1/2 opacity-0 transition-all duration-200 ease-out group-hover:visible group-hover:opacity-100"
+        :class="position === 'top' ? 'bottom-full mb-[5px]' : 'top-full mt-[5px]'"
+      >
         <slot name="tooltip-content">
-          <div class="ui-tooltip__content">
+          <div class="w-max max-w-[200px] rounded-lg bg-black/[0.98] p-2 text-center text-xs text-white">
             <slot name="tooltip-message">
               {{ content }}
             </slot>
@@ -32,42 +35,3 @@ withDefaults(
   },
 );
 </script>
-
-<style lang="scss">
-.ui-tooltip {
-  position: relative;
-}
-.ui-tooltip__content-wrapper {
-  position: absolute;
-
-  opacity: 0;
-  visibility: hidden;
-  transition: 0.2s ease-out;
-
-  .ui-tooltip:hover & {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .ui-tooltip--top & {
-    bottom: calc(100% + 5px);
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  .ui-tooltip--bottom & {
-    top: calc(100% + 5px);
-    left: 50%;
-    transform: translateX(-50%);
-  }
-}
-.ui-tooltip__content {
-  background-color: rgba(11, 11, 11, 0.98);
-  color: #fff;
-  padding: 8px;
-  border-radius: 8px;
-  font-size: 12px;
-  max-width: 200px;
-  width: max-content;
-  text-align: center;
-}
-</style>

@@ -1,92 +1,240 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import './calendar.css';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+@reference;
+
+@theme {
+  /* Dark mode configuration */
+  --default-dark-mode: class;
+
+  /* Container configuration */
+  --container-center: true;
+  --container-padding: 2rem;
+  --container-screens-2xl: 1400px;
+
+  /* Extended breakpoints */
+  --breakpoint-xxs: 390px;
+  --breakpoint-xs: 550px;
+
+  /* Colors using CSS custom properties */
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-base-text: var(--base-text);
+  --color-error-message: var(--error-message);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-text: var(--destructive-text);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-card-tooltip: var(--card-tooltip);
+  --color-card-tooltip-foreground: var(--card-tooltip-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-text: var(--success-text);
+
+  --color-warning: rgb(230 126 34);
+  --color-app-income-color: #2ecc71;
+  --color-app-expense-color: #e74c3c;
+  --color-app-transfer-color: #95a5a6;
+
+  /* Border radius */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Box shadows */
+  --shadow-header: 0 0 10px 2px rgba(0, 0, 0, 0.1);
+
+  /* Z-index */
+  --z-over-default: 1;
+  --z-modal: 10;
+  --z-notifications: 51;
+
+  /* Keyframes and animations */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-collapsible-down: collapsible-down 0.2s ease-in-out;
+  --animate-collapsible-up: collapsible-up 0.2s ease-in-out;
+}
+
+/* Define keyframes */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@keyframes collapsible-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+  }
+}
+
+@keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/*
+  Buttons in tailwind v4 use `cursor: default` instead of `cursor: pointer` to
+  match the default browser behavior. We revert it back.
+*/
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
 
 @layer base {
   :root {
     --header-height: 77px;
 
-    --background: 255, 255, 255;
-    --foreground: 8, 8, 10;
+    --background: rgb(255, 255, 255);
+    --foreground: rgb(8, 8, 10);
 
-    --base-text: 10, 18, 26;
+    --base-text: rgb(10, 18, 26);
 
-    --card: 255, 255, 255;
-    --card-foreground: 8, 8, 10;
+    --card: rgb(255, 255, 255);
+    --card-foreground: rgb(8, 8, 10);
 
-    --card-tooltip: 250, 250, 250;
-    --card-foreground: 8, 8, 10;
+    --card-tooltip: rgb(250, 250, 250);
+    --card-tooltip-foreground: rgb(8, 8, 10);
 
-    --popover: 255, 255, 255;
-    --popover-foreground: 8, 8, 10;
+    --popover: rgb(255, 255, 255);
+    --popover-foreground: rgb(8, 8, 10);
 
-    --primary: 144, 116, 219;
-    --primary-foreground: 254, 241, 242;
+    --primary: rgb(144, 116, 219);
+    --primary-foreground: rgb(254, 241, 242);
 
-    --secondary: 244, 244, 245;
-    --secondary-foreground: 23, 23, 27;
+    --secondary: rgb(244, 244, 245);
+    --secondary-foreground: rgb(23, 23, 27);
 
-    --muted: 244, 244, 245;
-    --muted-foreground: 113, 113, 122;
+    --muted: rgb(244, 244, 245);
+    --muted-foreground: rgb(113, 113, 122);
 
-    --accent: 244, 244, 245;
-    --accent-foreground: 23, 23, 27;
+    --accent: rgb(244, 244, 245);
+    --accent-foreground: rgb(23, 23, 27);
 
-    --destructive: 238, 68, 68;
-    --destructive-foreground: 249, 249, 249;
-    --destructive-text: 185, 28, 28;
+    --destructive: rgb(238, 68, 68);
+    --destructive-foreground: rgb(249, 249, 249);
+    --destructive-text: rgb(185, 28, 28);
 
-    --border: 227, 227, 231;
-    --input: 227, 227, 231;
-    --ring: 144, 116, 219;
+    --border: rgb(227, 227, 231);
+    --input: rgb(227, 227, 231);
+    --ring: rgb(144, 116, 219);
     --radius: 0.5rem;
 
-    --success: 5, 145, 52;
+    --success: rgb(5, 145, 52);
+    --success-foreground: rgb(10, 18, 26);
+    --success-text: rgb(5, 145, 52);
 
     /* Custom colors */
-    --error-message: 223, 86, 67;
+    --error-message: rgb(223, 86, 67);
   }
 
-  .dark {
-    --background: 11, 9, 8;
-    --foreground: 242, 242, 242;
+  :root.dark {
+    --background: rgb(11, 9, 8);
+    --foreground: rgb(242, 242, 242);
 
-    --base-text: 250, 250, 250;
+    --base-text: rgb(250, 250, 250);
 
-    --card: 27, 25, 23;
-    --card-foreground: 242, 242, 242;
+    --card: rgb(27, 25, 23);
+    --card-foreground: rgb(242, 242, 242);
 
-    --card-tooltip: 50, 50, 50;
-    --card-foreground: 242, 242, 242;
+    --card-tooltip: rgb(50, 50, 50);
+    --card-tooltip-foreground: rgb(242, 242, 242);
 
-    --popover: 22, 22, 22;
-    --popover-foreground: 242, 242, 242;
+    --popover: rgb(22, 22, 22);
+    --popover-foreground: rgb(242, 242, 242);
 
-    --primary: 144, 116, 219;
-    --primary-foreground: 254, 241, 242;
+    --primary: rgb(144, 116, 219);
+    --primary-foreground: rgb(254, 241, 242);
 
-    --secondary: 39, 39, 42;
-    --secondary-foreground: 249, 249, 249;
+    --secondary: rgb(39, 39, 42);
+    --secondary-foreground: rgb(249, 249, 249);
 
-    --muted: 38, 38, 38;
-    --muted-foreground: 161, 161, 169;
+    --muted: rgb(38, 38, 38);
+    --muted-foreground: rgb(161, 161, 169);
 
-    --accent: 41, 37, 36;
-    --accent-foreground: 249, 249, 249;
+    --accent: rgb(41, 37, 36);
+    --accent-foreground: rgb(249, 249, 249);
 
-    --destructive: 147, 29, 29;
-    --destructive-foreground: 254, 242, 242;
-    --destructive-text: 239, 68, 68;
+    --destructive: rgb(147, 29, 29);
+    --destructive-foreground: rgb(254, 242, 242);
+    --destructive-text: rgb(239, 68, 68);
 
-    --border: 39, 39, 42;
-    --input: 39, 39, 42;
-    --ring: 144, 116, 219;
+    --border: rgb(39, 39, 42);
+    --input: rgb(39, 39, 42);
+    --ring: rgb(144, 116, 219);
 
-    --success: 16, 59, 49;
-    --success-text: 46, 204, 113;
+    --success: rgb(16, 59, 49);
+    --success-foreground: rgb(250, 250, 250);
+    --success-text: rgb(46, 204, 113);
 
     /* Custom colors */
-    --error-message: 228, 105, 89;
+    --error-message: rgb(228, 105, 89);
   }
 }
 

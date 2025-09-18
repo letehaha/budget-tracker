@@ -20,7 +20,7 @@
       </CardHeader>
 
       <!-- Key Metrics Row -->
-      <CardContent class="flex gap-6 border-t !pt-6">
+      <CardContent class="flex gap-6 border-t pt-6!">
         <div class="text-center">
           <p class="text-muted-foreground text-xs uppercase tracking-wide">COST BASIS</p>
           <p class="mt-1 text-sm font-medium">

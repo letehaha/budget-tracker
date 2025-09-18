@@ -16,7 +16,7 @@ defineProps<{ mobileView?: boolean }>();
         <span class="md:hidden"> BT </span>
       </div>
     </CardHeader>
-    <CardContent class="flex max-h-[calc(100%-52px)] flex-grow flex-col px-3 md:px-6">
+    <CardContent class="flex max-h-[calc(100%-52px)] grow flex-col px-3 md:px-6">
       <nav class="grid gap-2 md:-ml-3">
         <NavigationLinks />
       </nav>

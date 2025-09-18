@@ -1,9 +1,9 @@
 <template>
-  <div class="analytics">
+  <div class="p-6">
     Analytics
 
-    <div class="analytics__block">
-      <div class="analytics__block-dropdown">
+    <div class="rounded-xl p-4">
+      <div class="relative">
         <button type="button" @click="isDropdownVisible = !isDropdownVisible">
           {{ currentTimePeriod.label }}
         </button>
@@ -83,16 +83,3 @@ const onChartResize = (entries: ResizeObserverEntry[]) => {
 //   isDropdownVisible.value = false;
 // };
 </script>
-
-<style lang="scss">
-.analytics {
-  padding: 24px;
-}
-.analytics__block {
-  padding: 24px;
-  border-radius: 12px;
-}
-.analytics__block-dropdown {
-  position: relative;
-}
-</style>

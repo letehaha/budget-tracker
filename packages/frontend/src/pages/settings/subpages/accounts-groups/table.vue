@@ -127,7 +127,7 @@ const unlinkAccountFromGroup = (id: number) => {
         <template v-for="(group, index) in accountGroups" :key="group.id">
           <div
             :class="[
-              'hover:bg-accent hover:text-accent-foreground grid grid-cols-[minmax(0,1fr),max-content] items-center gap-4 rounded py-2 pr-4',
+              'hover:bg-accent hover:text-accent-foreground grid grid-cols-[minmax(0,1fr)_max-content] items-center gap-4 rounded py-2 pr-4',
               group.accounts.length && 'cursor-pointer',
             ]"
             @click="onRowClick(group, index)"

@@ -4,7 +4,7 @@
       <div>
         <Button
           :class="[
-            '-ml-4 grid w-[calc(100%+32px)] grid-cols-[1fr,min-content] gap-8',
+            '-ml-4 grid w-[calc(100%+32px)] grid-cols-[1fr_min-content] gap-8',
             { 'bg-accent': isActiveCategory(cat) },
           ]"
           variant="ghost"

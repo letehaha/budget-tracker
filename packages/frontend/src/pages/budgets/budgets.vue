@@ -35,7 +35,7 @@ const isModalClosed = () => {
           <PlusIcon class="size-4" />
         </Button>
       </CardHeader>
-      <CardContent class="!pt-4">
+      <CardContent class="pt-4!">
         <BudgetList />
       </CardContent>
     </Card>

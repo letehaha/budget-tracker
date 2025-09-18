@@ -1,5 +1,5 @@
 <template>
-  <div class="settings-page">
+  <div class="p-6">
     <UiTabs :initial-tab="initialTab" :options="tabs" tabs-alignment="flex-start" />
 
     <router-view />
@@ -54,9 +54,3 @@ const tabs = computed(() => {
 
 const initialTab = computed(() => tabs.value.find((i) => i.name === route.path.split('/').at(-1)));
 </script>
-
-<style lang="scss" scoped>
-.settings-page {
-  padding: 24px;
-}
-</style>

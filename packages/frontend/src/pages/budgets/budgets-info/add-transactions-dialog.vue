@@ -110,7 +110,7 @@ const isMobileView = useWindowBreakpoints(1024);
       <span> Add transactions </span>
     </template>
 
-    <div class="grid max-h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[max-content,minmax(0,1fr)]">
+    <div class="grid max-h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)]">
       <div class="relative overflow-y-auto px-1">
         <template v-if="isMobileView">
           <RecordsFiltersDialog v-model:open="isFiltersDialogOpen" :isAnyFiltersApplied="isAnyFiltersApplied">
@@ -152,7 +152,7 @@ const isMobileView = useWindowBreakpoints(1024);
             <label
               v-if="flatTransactions[virtualRow.index]"
               :class="[
-                'grid grid-cols-[min-content,minmax(0,1fr)] items-center gap-2',
+                'grid grid-cols-[min-content_minmax(0,1fr)] items-center gap-2',
                 { 'select-none': isShiftKeyPressed },
               ]"
             >

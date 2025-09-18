@@ -1,12 +1,12 @@
 <template>
-  <div class="type-selector">
+  <div class="grid grid-cols-3 rounded-xl bg-black/40">
     <button
       type="button"
-      class="type-selector__item"
-      :disabled="disabled || isExpenseDisabled"
+      class="cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50"
       :class="{
-        'type-selector__item--active': selectedTransactionType === FORM_TYPES.expense,
+        'rounded-[10px] bg-white text-black': selectedTransactionType === FORM_TYPES.expense,
       }"
+      :disabled="disabled || isExpenseDisabled"
       aria-label="Select expense"
       :aria-selected="selectedTransactionType === FORM_TYPES.expense"
       @click="selectTransactionType(FORM_TYPES.expense)"
@@ -15,11 +15,11 @@
     </button>
     <button
       type="button"
-      class="type-selector__item"
-      :disabled="disabled || isIncomeDisabled"
+      class="cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50"
       :class="{
-        'type-selector__item--active': selectedTransactionType === FORM_TYPES.income,
+        'rounded-[10px] bg-white text-black': selectedTransactionType === FORM_TYPES.income,
       }"
+      :disabled="disabled || isIncomeDisabled"
       aria-label="Select income"
       :aria-selected="selectedTransactionType === FORM_TYPES.income"
       @click="selectTransactionType(FORM_TYPES.income)"
@@ -28,11 +28,11 @@
     </button>
     <button
       type="button"
-      class="type-selector__item"
-      :disabled="disabled"
+      class="cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50"
       :class="{
-        'type-selector__item--active': selectedTransactionType === FORM_TYPES.transfer,
+        'rounded-[10px] bg-white text-black': selectedTransactionType === FORM_TYPES.transfer,
       }"
+      :disabled="disabled"
       aria-label="Select transfer"
       :aria-selected="selectedTransactionType === FORM_TYPES.transfer"
       @click="selectTransactionType(FORM_TYPES.transfer)"
@@ -74,33 +74,3 @@ const selectTransactionType = (type: FORM_TYPES) => {
   emit('change-tx-type', type);
 };
 </script>
-
-<style lang="scss">
-.type-selector {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-
-  background-color: rgba(#000, 0.4);
-  border-radius: 12px;
-}
-.type-selector__item {
-  padding: 6px;
-
-  font-size: 16px;
-  text-align: center;
-  cursor: pointer;
-
-  transition: 0.1s ease-out;
-  color: #fff;
-
-  &[disabled] {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-.type-selector__item--active {
-  background-color: #fff;
-  border-radius: 10px;
-  color: #000;
-}
-</style>

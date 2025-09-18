@@ -43,7 +43,7 @@ export const useHighcharts = () => {
           gridLineWidth: 0,
           labels: {
             style: {
-              color: 'rgb(var(--base-text))',
+              color: 'var(--base-text)',
             },
           },
         },
@@ -51,15 +51,15 @@ export const useHighcharts = () => {
           title: null,
           labels: {
             style: {
-              color: 'rgb(var(--base-text))',
+              color: 'var(--base-text)',
             },
           },
-          gridLineColor: 'rgba(var(--primary), 0.1)',
+          gridLineColor: 'color-mix(in srgb, var(--primary) 10%, transparent)',
         },
         plotOptions: {
           area: {
             fillOpacity: 0.5,
-            lineColor: 'rgb(var(--primary))',
+            lineColor: 'var(--primary)',
             lineWidth: 2,
             states: {
               hover: {
@@ -75,8 +75,8 @@ export const useHighcharts = () => {
                 y2: 1,
               },
               stops: [
-                [0, 'rgba(var(--primary), 0.3)'],
-                [1, 'rgba(var(--primary), 0)'],
+                [0, 'color-mix(in srgb, var(--primary) 30%, transparent)'],
+                [1, 'color-mix(in srgb, var(--primary) 0%, transparent)'],
               ],
             },
             marker: {
@@ -85,8 +85,8 @@ export const useHighcharts = () => {
               states: {
                 hover: {
                   enabled: true,
-                  fillColor: 'rgb(var(--primary))',
-                  lineColor: 'rgb(var(--primary))',
+                  fillColor: 'var(--primary)',
+                  lineColor: 'var(--primary)',
                   lineWidth: 0,
                 },
               },
@@ -95,12 +95,12 @@ export const useHighcharts = () => {
         },
         tooltip: {
           useHTML: true,
-          backgroundColor: 'rgba(var(--card-tooltip), 1)',
+          backgroundColor: 'var(--card-tooltip)',
           borderColor: 'transparent',
           formatter() {
             return `
           <div class="p-1">
-            <div class="text-sm mb-2">
+            <div class="mb-2 text-sm">
               ${format(Number(this.x), 'MMMM d, yyyy')}
             </div>
             <div class="text-lg">
@@ -166,7 +166,7 @@ export const useHighcharts = () => {
                     chart.hoverLabel = chart.renderer
                       .text(
                         `
-                    <div class="text-center text-sm">
+                    <div class="text-sm text-center">
                       <div class="mb-1 text-xs">
                         ${this.name}
                       </div>
