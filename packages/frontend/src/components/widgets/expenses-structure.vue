@@ -36,7 +36,10 @@
       </div>
     </template>
 
-    <template v-if="isDataEmpty">
+    <template v-if="isWidgetDataFetching">
+      <LoadingState />
+    </template>
+    <template v-else-if="isDataEmpty">
       <EmptyState>
         <ChartPieIcon class="size-32" />
       </EmptyState>
@@ -86,6 +89,7 @@ import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 
 import EmptyState from './components/empty-state.vue';
+import LoadingState from './components/loading-state.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
 defineOptions({

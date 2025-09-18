@@ -13,7 +13,10 @@
         />
       </div>
     </template>
-    <template v-if="isDataEmpty">
+    <template v-if="isWidgetDataFetching">
+      <LoadingState />
+    </template>
+    <template v-else-if="isDataEmpty">
       <EmptyState>
         <ChartLineIcon class="size-32" />
       </EmptyState>
@@ -60,6 +63,7 @@ import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 
 import EmptyState from './components/empty-state.vue';
+import LoadingState from './components/loading-state.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
 // Calculate it manually so shart will always have first and last ticks (dates)
@@ -150,7 +154,7 @@ const chartOptions = computed(() => {
 
   const config = buildAreaChartConfig({
     chart: {
-      height: 220,
+      height: 200,
       marginTop: 20,
       animation: false,
     },
@@ -227,12 +231,7 @@ const chartOptions = computed(() => {
     series: [
       {
         type: 'area',
-        name:
-          selectedBalanceType.value.value === 'total'
-            ? 'Total Balance'
-            : selectedBalanceType.value.value === 'accounts'
-              ? 'Accounts Balance'
-              : 'Portfolios Balance',
+        showInLegend: false,
         fillOpacity: 0.6,
         animation: false,
         data: [
