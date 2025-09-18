@@ -111,7 +111,7 @@ loadCurrencies();
               :label-key="(item) => `${item.code} - ${item.currency}`"
             />
           </div>
-          <p class="mb-14 mt-3 text-sm">
+          <p class="mt-3 mb-14 text-sm">
             Your base currency should ideally be the one you use most often. All transactions in other currencies will
             be calculated based on this one. You won't be able to change your base currency later (for now).
           </p>

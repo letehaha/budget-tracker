@@ -77,7 +77,7 @@ watchEffect(() => {
 <template>
   <div v-if="budgetData" class="relative flex w-min max-w-full flex-col gap-4 p-4 lg:w-auto lg:flex-row xl:gap-20">
     <div
-      class="@[360px]/budget-item-info:w-full grid h-max gap-4 lg:sticky lg:top-(--header-height) lg:w-[450px] lg:max-w-[450px]"
+      class="grid h-max gap-4 lg:sticky lg:top-(--header-height) lg:w-[450px] lg:max-w-[450px] @[360px]/budget-item-info:w-full"
     >
       <div class="flex items-center gap-4">
         <router-link
@@ -114,7 +114,7 @@ watchEffect(() => {
           :disabled="isBudgetDataUpdating"
         />
 
-        <div class="@[450px]/budget-item-info:flex-col flex justify-between gap-4">
+        <div class="flex justify-between gap-4 @[450px]/budget-item-info:flex-col">
           <DateField :model-value="budgetData.startDate" disabled :calendar-mode="'date'" label="From date" />
           <DateField :model-value="budgetData.endDate" disabled label="To date" />
         </div>

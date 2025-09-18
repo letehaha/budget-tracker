@@ -26,7 +26,7 @@
     <Card as="form" class="max-h-[300px] max-w-[450px] px-2 py-4" @submit.prevent="applyChanges">
       <div class="relative mb-4 flex justify-center px-4 py-2">
         <h3 class="text-lg font-semibold">Edit Category</h3>
-        <Button type="submit" class="absolute right-2 top-0">Save</Button>
+        <Button type="submit" class="absolute top-0 right-2">Save</Button>
       </div>
       <div class="mt-12 px-4">
         <InputField v-model="form.name" label="Category name" placeholder="Category name" />

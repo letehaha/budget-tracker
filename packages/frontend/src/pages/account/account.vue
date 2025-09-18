@@ -1,6 +1,6 @@
 <template>
   <div class="@container/settings">
-    <div class="@[800px]/settings:flex-row flex flex-col justify-start gap-4 p-6">
+    <div class="flex flex-col justify-start gap-4 p-6 @[800px]/settings:flex-row">
       <Card.Card class="w-full max-w-[600px]">
         <Header :account="account" />
 

@@ -426,13 +426,15 @@ _This guide ensures Claude Code has immediate access to Task Master's essential 
 - **Scope:** Apply to ALL code-related work including Task Master workflows
 
 **Key Rule Files:**
+
 - `cursor_rules.mdc` - Core project conventions and coding standards
 - `self_improve.mdc` - Pattern recognition and improvement guidelines
 - Any additional `.mdc` files in the rules directory
 
 **Implementation:**
+
 1. **Before any code work:** Read ALL `.mdc` files in `.cursor/rules/`
-2. **During development:** Follow these rules alongside Task Master workflows  
+2. **During development:** Follow these rules alongside Task Master workflows
 3. **Code review:** Ensure all changes comply with project rules
 4. **Consistency:** Apply rules across all files and features uniformly
 
@@ -452,10 +454,11 @@ Claude Code should also follow project-specific instructions from:
 
 ## Testing Patterns
 
-**CRITICAL**: E2E tests in this project NEVER call services directly. They ONLY make HTTP endpoint calls through the test helpers. 
+**CRITICAL**: E2E tests in this project NEVER call services directly. They ONLY make HTTP endpoint calls through the test helpers.
 
 Examples:
-- ❌ WRONG: `await syncHistoricalPrices(securityId)`  
+
+- ❌ WRONG: `await syncHistoricalPrices(securityId)`
 - ✅ CORRECT: `await helpers.createHolding({ payload: { portfolioId, securityId } })` (which triggers sync internally)
 - ❌ WRONG: `await someService.doSomething()`
 - ✅ CORRECT: `await helpers.makeRequestToEndpoint()`

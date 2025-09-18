@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<ScrollAreaScrollbarProps>(), {
     v-bind="props"
     :class="
       cn(
-        'flex touch-none select-none transition-colors',
+        'flex touch-none transition-colors select-none',
         orientation === 'vertical' && 'h-full w-2.5 border-l border-l-transparent p-px',
         orientation === 'horizontal' && 'h-2.5 border-t border-t-transparent p-px',
         $attrs.class ?? '',

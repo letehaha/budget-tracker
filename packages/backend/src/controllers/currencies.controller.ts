@@ -6,6 +6,6 @@ const schema = z.object({});
 
 export default createController(schema, async () => {
   const data = await getAllSystemCurrencies();
-  
+
   return { data };
 });

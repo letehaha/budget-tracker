@@ -108,7 +108,7 @@ const handlerRecordClick = (transaction: TransactionModel) => {
               <ListFilterIcon />
 
               <template v-if="isAnyFiltersApplied">
-                <div class="bg-primary absolute -right-1 -top-1 size-3 rounded-full" />
+                <div class="bg-primary absolute -top-1 -right-1 size-3 rounded-full" />
               </template>
             </div>
           </Button>
@@ -139,12 +139,7 @@ const handlerRecordClick = (transaction: TransactionModel) => {
             </div>
 
             <div class="flex gap-2">
-              <Button
-                variant="secondary"
-                :disabled="isResetButtonDisabled"
-                class="w-full shrink"
-                @click="resetFilters"
-              >
+              <Button variant="secondary" :disabled="isResetButtonDisabled" class="w-full shrink" @click="resetFilters">
                 Reset
               </Button>
 

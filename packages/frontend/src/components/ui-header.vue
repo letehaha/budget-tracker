@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="shadow-header border-border flex max-h-(--header-height) items-center justify-between border-b px-6 py-3"
-  >
+  <div class="shadow-header border-border flex max-h-(--header-height) items-center justify-between border-b px-6 py-3">
     <div class="flex items-center gap-4">
       <template v-if="isMobileView">
         <Sheet.Sheet :open="isMobileSheetOpen" @update:open="isMobileSheetOpen = $event">

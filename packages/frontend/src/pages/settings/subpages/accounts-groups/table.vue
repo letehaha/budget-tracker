@@ -155,11 +155,11 @@ const unlinkAccountFromGroup = (id: number) => {
                 <Button
                   variant="default"
                   size="sm"
-                  class="@[360px]/accounts-groups:min-w-[130px] gap-1"
+                  class="gap-1 @[360px]/accounts-groups:min-w-[130px]"
                   aria-label="Save"
                   @click.stop.prevent="updateGroup(group, index)"
                 >
-                  <span class="@[360px]/accounts-groups:inline hidden"> Save </span>
+                  <span class="hidden @[360px]/accounts-groups:inline"> Save </span>
                   <SaveIcon class="size-4" />
                 </Button>
               </template>
@@ -171,7 +171,7 @@ const unlinkAccountFromGroup = (id: number) => {
                   :aria-label="'Edit'"
                   @click.stop="toggleGroupNameEdit(index, group)"
                 >
-                  <span class="@[360px]/accounts-groups:inline hidden"> Edit </span>
+                  <span class="hidden @[360px]/accounts-groups:inline"> Edit </span>
                   <EditIcon class="size-4" />
                 </Button>
 
@@ -183,7 +183,7 @@ const unlinkAccountFromGroup = (id: number) => {
                 >
                   <template #trigger>
                     <Button variant="destructive" size="sm" class="w-min gap-1" @click.stop="toggleDelete(group)">
-                      <span class="@[360px]/accounts-groups:inline hidden"> Delete </span>
+                      <span class="hidden @[360px]/accounts-groups:inline"> Delete </span>
                       <Trash2Icon class="size-4" />
                     </Button>
                   </template>
@@ -227,7 +227,7 @@ const unlinkAccountFromGroup = (id: number) => {
                       variant="destructive"
                       @click="unlinkAccountFromGroup(account.id)"
                     >
-                      <span class="@[360px]/accounts-groups:inline hidden"> Unlink </span>
+                      <span class="hidden @[360px]/accounts-groups:inline"> Unlink </span>
                       <UngroupIcon class="size-4" />
                     </Button>
                   </div>

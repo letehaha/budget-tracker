@@ -38,11 +38,11 @@
               <CardHeader class="p-3">
                 <div
                   v-if="!account.isEnabled"
-                  :class="['bg-background absolute right-0 top-0 rounded-tr-md p-1 text-xs leading-none']"
+                  :class="['bg-background absolute top-0 right-0 rounded-tr-md p-1 text-xs leading-none']"
                 >
                   Hidden
                 </div>
-                <div class="mb-2.5 max-w-[calc(100%-60px)] overflow-hidden text-ellipsis text-lg tracking-wide">
+                <div class="mb-2.5 max-w-[calc(100%-60px)] overflow-hidden text-lg tracking-wide text-ellipsis">
                   {{ account.name || 'No name set...' }}
                 </div>
               </CardHeader>

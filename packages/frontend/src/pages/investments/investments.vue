@@ -28,7 +28,7 @@
       <div class="mb-6 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
         <template v-for="portfolio in portfolios" :key="portfolio.id">
           <Card :class="cn('relative', !portfolio.isEnabled && 'opacity-40')">
-            <div class="absolute right-2 top-2">
+            <div class="absolute top-2 right-2">
               <DropdownMenu>
                 <DropdownMenuTrigger as-child>
                   <UiButton variant="ghost" size="icon" class="h-8 w-8">
@@ -71,11 +71,11 @@
               <CardHeader class="p-3">
                 <div
                   v-if="!portfolio.isEnabled"
-                  :class="['bg-background absolute right-0 top-0 rounded-tr-md p-1 text-xs leading-none']"
+                  :class="['bg-background absolute top-0 right-0 rounded-tr-md p-1 text-xs leading-none']"
                 >
                   Hidden
                 </div>
-                <div class="mb-2.5 max-w-[calc(100%-60px)] overflow-hidden text-ellipsis text-lg tracking-wide">
+                <div class="mb-2.5 max-w-[calc(100%-60px)] overflow-hidden text-lg tracking-wide text-ellipsis">
                   {{ portfolio.name }}
                 </div>
               </CardHeader>

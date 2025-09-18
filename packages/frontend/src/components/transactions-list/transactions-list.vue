@@ -142,7 +142,7 @@ watchEffect(() => {
 
         <div
           v-if="!rawList"
-          class="absolute bottom-0 left-0 right-0 flex h-10 items-center justify-center bg-white/5 empty:hidden"
+          class="absolute right-0 bottom-0 left-0 flex h-10 items-center justify-center bg-white/5 empty:hidden"
         >
           <template v-if="isFetchingNextPage">Loading more...</template>
         </div>

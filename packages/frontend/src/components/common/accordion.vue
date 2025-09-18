@@ -21,7 +21,7 @@
 
         <div
           v-if="props.expandedCategories.includes(cat.id) && cat.subCategories && cat.subCategories.length"
-          class="ml-6 mt-2 border-l pl-4"
+          class="mt-2 ml-6 border-l pl-4"
         >
           <Accordion
             v-if="cat.subCategories.length"
