@@ -15,3 +15,6 @@ e29b83e463be79f1b8a548b8608c4aad9812be78
 
 # prettier format after adding tailwind-sort plugin
 d278b05e2dcde54b77dd4c1afa8f894774a663e4
+
+# prettier format after migration to tailwind v4
+aeaf4320a3ab1acb7208b5009bb7286f8862dca8
