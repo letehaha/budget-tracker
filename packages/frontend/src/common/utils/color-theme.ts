@@ -11,9 +11,9 @@ export const currentTheme = ref<Themes>(Themes.dark);
 
 const setTheme = (theme: Themes, save = false) => {
   currentTheme.value = theme;
-  document.body.classList.remove(Themes.dark);
-  document.body.classList.remove(Themes.light);
-  document.body.classList.add(theme);
+  document.documentElement.classList.remove(Themes.dark);
+  document.documentElement.classList.remove(Themes.light);
+  document.documentElement.classList.add(theme);
 
   if (save) localStorage.setItem(THEME_LS_KEY, theme);
 };
