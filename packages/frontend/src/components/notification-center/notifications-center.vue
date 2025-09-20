@@ -1,5 +1,9 @@
 <template>
-  <transition-group class="z-notifications fixed top-[85px] right-1 grid gap-2" name="notifications-center" tag="div">
+  <transition-group
+    class="fixed top-[85px] right-1 z-(--z-notifications) grid gap-2"
+    name="notifications-center"
+    tag="div"
+  >
     <template v-for="item in notifications" :key="item.id">
       <div
         class="font-base flex w-[370px] items-start gap-4 rounded-lg px-4 py-3 text-white"
