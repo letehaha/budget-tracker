@@ -2,10 +2,12 @@
   <div class="grid grid-cols-3 rounded-xl bg-black/40">
     <button
       type="button"
-      class="cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50"
-      :class="{
-        'rounded-[10px] bg-white text-black': selectedTransactionType === FORM_TYPES.expense,
-      }"
+      :class="
+        cn(
+          'cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50',
+          selectedTransactionType === FORM_TYPES.expense && 'rounded-[10px] bg-white text-black',
+        )
+      "
       :disabled="disabled || isExpenseDisabled"
       aria-label="Select expense"
       :aria-selected="selectedTransactionType === FORM_TYPES.expense"
@@ -15,10 +17,12 @@
     </button>
     <button
       type="button"
-      class="cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50"
-      :class="{
-        'rounded-[10px] bg-white text-black': selectedTransactionType === FORM_TYPES.income,
-      }"
+      :class="
+        cn(
+          'cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50',
+          selectedTransactionType === FORM_TYPES.income && 'rounded-[10px] bg-white text-black',
+        )
+      "
       :disabled="disabled || isIncomeDisabled"
       aria-label="Select income"
       :aria-selected="selectedTransactionType === FORM_TYPES.income"
@@ -28,10 +32,12 @@
     </button>
     <button
       type="button"
-      class="cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50"
-      :class="{
-        'rounded-[10px] bg-white text-black': selectedTransactionType === FORM_TYPES.transfer,
-      }"
+      :class="
+        cn(
+          'cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50',
+          selectedTransactionType === FORM_TYPES.transfer && 'rounded-[10px] bg-white text-black',
+        )
+      "
       :disabled="disabled"
       aria-label="Select transfer"
       :aria-selected="selectedTransactionType === FORM_TYPES.transfer"
@@ -43,6 +49,7 @@
 </template>
 
 <script setup lang="ts">
+import { cn } from '@/lib/utils';
 import { ACCOUNT_TYPES, TRANSACTION_TYPES, type TransactionModel } from '@bt/shared/types';
 import { computed } from 'vue';
 
