@@ -145,7 +145,7 @@
     </template>
 
     <!-- Add Symbol Dialog Placeholder -->
-    <div v-if="showAddSymbolDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div v-if="showAddSymbolDialog" class="fixed inset-0 z-(--z-dialog) flex items-center justify-center bg-black/50">
       <Card class="mx-4 w-full max-w-md">
         <CardHeader>
           <CardTitle>Add Symbol</CardTitle>

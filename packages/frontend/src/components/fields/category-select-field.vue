@@ -45,7 +45,7 @@
           v-if="isDropdownOpened"
           :class="
             cn(
-              'bg-popover z-over-default invisible absolute top-full left-0 w-full rounded px-2 opacity-0 transition-all',
+              'bg-popover invisible absolute top-full left-0 z-(--z-over-default) w-full rounded px-2 opacity-0 transition-all',
               isDropdownOpened && 'visible opacity-100',
             )
           "
