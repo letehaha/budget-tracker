@@ -71,7 +71,8 @@
 
   /* Z-index */
   --z-over-default: 1;
-  --z-modal: 10;
+  --z-dialog: 50;
+  --z-over-dialog: 51;
   --z-notifications: 51;
 
   /* Keyframes and animations */
