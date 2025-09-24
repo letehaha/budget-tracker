@@ -33,7 +33,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     }
   });
 
-  const accountsCurrencyIds = computed(() => [...new Set(accounts.value.map((item) => item.currencyId))]);
+  const accountsCurrencyCodes = computed(() => [...new Set(accounts.value.map((item) => item.currencyCode))]);
 
   const systemAccounts = computed(() => accounts.value.filter((item) => item.type === ACCOUNT_TYPES.system));
   const enabledAccounts = computed(() => accounts.value.filter((item) => item.isEnabled));
@@ -79,7 +79,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     accountsRecord,
     enabledAccounts,
     systemAccounts,
-    accountsCurrencyIds,
+    accountsCurrencyCodes,
 
     refetchAccounts,
 

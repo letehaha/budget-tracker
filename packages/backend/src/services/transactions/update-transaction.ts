@@ -108,7 +108,6 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
       id: Number(newData.accountId),
     });
 
-    baseTransactionUpdateParams.currencyId = baseTxCurrency.id;
     baseTransactionUpdateParams.currencyCode = baseTxCurrency.code;
   }
 
@@ -243,7 +242,6 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     time,
     paymentType,
     categoryId,
-    currencyId: oppositeTx.currencyId,
     currencyCode: oppositeTx.currencyCode,
   });
 
@@ -257,7 +255,6 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 
     updateOppositeTxParams = {
       ...updateOppositeTxParams,
-      currencyId: oppositeTxCurrency.id,
       currencyCode: oppositeTxCurrency.code,
     };
   }

@@ -10,7 +10,7 @@ export type QueryPayload = {
 
 export interface CreateAccountBody extends BodyPayload {
   accountCategory: AccountModel['accountCategory'];
-  currencyId: AccountModel['currencyId'];
+  currencyCode: AccountModel['currencyCode'];
   name: AccountModel['name'];
   initialBalance: AccountModel['initialBalance'];
   creditLimit: AccountModel['creditLimit'];

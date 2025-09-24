@@ -26,7 +26,7 @@ const { addNotification } = useNotificationCenter();
 const { baseCurrency, systemCurrenciesVerbose } = storeToRefs(currenciesStore);
 
 const defaultCurrency = computed(
-  () => systemCurrenciesVerbose.value.linked.find((i) => i.id === baseCurrency.value.currencyId).id || 0,
+  () => systemCurrenciesVerbose.value.linked.find((i) => i.code === baseCurrency.value.currencyCode).code || '',
 );
 
 // Get account category from query params or default to general
@@ -34,13 +34,13 @@ const defaultAccountCategory = (route.query.category as ACCOUNT_CATEGORIES) || A
 
 const form = reactive<{
   name: string;
-  currencyId: string;
+  currencyCode: string;
   accountCategory: ACCOUNT_CATEGORIES;
   initialBalance: number;
   creditLimit: number;
 }>({
   name: '',
-  currencyId: String(defaultCurrency.value),
+  currencyCode: String(defaultCurrency.value),
   accountCategory: defaultAccountCategory,
   initialBalance: 0,
   creditLimit: 0,
@@ -53,7 +53,7 @@ const submit = async () => {
     isLoading.value = true;
 
     await accountsStore.createAccount({
-      currencyId: Number(form.currencyId),
+      currencyCode: form.currencyCode,
       name: form.name,
       accountCategory: form.accountCategory,
       creditLimit: form.creditLimit,
@@ -87,16 +87,16 @@ const submit = async () => {
 
     <div>
       <FieldLabel label="Currency">
-        <Select.Select v-model="form.currencyId">
+        <Select.Select v-model="form.currencyCode">
           <Select.SelectTrigger>
             <Select.SelectValue placeholder="Select currency" />
           </Select.SelectTrigger>
           <Select.SelectContent>
             <template v-for="item of systemCurrenciesVerbose.linked" :key="item.id">
-              <Select.SelectItem :value="String(item.id)"> {{ item.code }} - {{ item.currency }} </Select.SelectItem>
+              <Select.SelectItem :value="String(item.code)"> {{ item.code }} - {{ item.currency }} </Select.SelectItem>
             </template>
 
-            <AddCurrencyDialog @added="form.currencyId = String($event)">
+            <AddCurrencyDialog @added="form.currencyCode = String($event)">
               <ui-button type="button" class="mt-4 w-full" variant="link"> Add new currency + </ui-button>
             </AddCurrencyDialog>
           </Select.SelectContent>

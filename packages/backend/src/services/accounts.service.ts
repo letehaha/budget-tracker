@@ -9,6 +9,7 @@ import {
 import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
 import { redisKeyFormatter } from '@common/lib/redis';
 import { ForbiddenError, NotFoundError, UnexpectedError } from '@js/errors';
+import { logger } from '@js/utils';
 import * as Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
 import * as Currencies from '@models/Currencies.model';
@@ -18,6 +19,7 @@ import * as monobankUsersService from '@services/banks/monobank/users';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import axios from 'axios';
+import cc from 'currency-codes';
 
 import { withTransaction } from './common/with-transaction';
 
@@ -43,29 +45,42 @@ export const createSystemAccountsFromMonobankAccounts = withTransaction(
     userId: number;
     monoAccounts: ExternalMonobankClientInfoResponse['accounts'];
   }) => {
-    const currencyCodes = [...new Set(monoAccounts.map((i) => i.currencyCode))];
-
-    const currencies = (await Promise.all(currencyCodes.map((code) => Currencies.createCurrency({ code })))).filter(
-      Boolean,
-    ) as Currencies.default[];
-
-    const accountCurrencyCodes = {};
-    currencies.forEach((item) => {
-      accountCurrencyCodes[item.number] = item.id;
+    // Convert numeric currency codes to string codes using currency-codes package
+    const numericCurrencyCodes = [...new Set(monoAccounts.map((i) => i.currencyCode))];
+    const stringCurrencyCodes = numericCurrencyCodes.map((numericCode) => {
+      const currencyInfo = cc.number(numericCode.toString());
+      if (!currencyInfo) {
+        throw new Error(`Unknown currency code: ${numericCode}`);
+      }
+      return currencyInfo.code;
     });
+
+    const currencies = (
+      await Promise.all(stringCurrencyCodes.map((code) => Currencies.createCurrency({ code })))
+    ).filter(Boolean) as Currencies.default[];
 
     await addUserCurrencies(
       currencies.map((item) => ({
         userId,
-        currencyId: item.id,
+        currencyCode: item.code,
       })),
     );
 
     await Promise.all(
-      monoAccounts.map((account) =>
-        createAccount({
+      monoAccounts.map((account) => {
+        // Convert numeric currency code to string code for this account
+        const currencyInfo = cc.number(account.currencyCode.toString());
+        if (!currencyInfo) {
+          logger.error(
+            { error: new Error(`Unknown currency code when tried to create account: ${account.currencyCode}`) },
+            account,
+          );
+          return;
+        }
+
+        return createAccount({
           userId,
-          currencyId: accountCurrencyCodes[account.currencyCode],
+          currencyCode: currencyInfo.code,
           accountCategory: ACCOUNT_CATEGORIES.creditCard,
           name: account.maskedPan[0] || account.iban,
           externalId: account.id,
@@ -79,8 +94,8 @@ export const createSystemAccountsFromMonobankAccounts = withTransaction(
           },
           type: ACCOUNT_TYPES.monobank,
           isEnabled: false,
-        }),
-      ),
+        });
+      }),
     );
   },
 );
@@ -167,29 +182,34 @@ export const createAccount = withTransaction(
   async (
     payload: Omit<Accounts.CreateAccountPayload, 'refCreditLimit' | 'refInitialBalance'>,
   ): Promise<AccountModel | null> => {
-    const { userId, creditLimit, currencyId, initialBalance } = payload;
+    try {
+      const { userId, creditLimit, currencyCode, initialBalance } = payload;
 
-    await UsersCurrencies.addCurrency({ userId, currencyId });
+      await UsersCurrencies.addCurrency({ userId, currencyCode });
 
-    const refCreditLimit = await calculateRefAmount({
-      userId: userId,
-      amount: creditLimit,
-      baseId: currencyId,
-      date: new Date(),
-    });
+      const refCreditLimit = await calculateRefAmount({
+        userId: userId,
+        amount: creditLimit,
+        baseCode: currencyCode,
+        date: new Date(),
+      });
 
-    const refInitialBalance = await calculateRefAmount({
-      userId,
-      amount: initialBalance,
-      baseId: currencyId,
-      date: new Date(),
-    });
+      const refInitialBalance = await calculateRefAmount({
+        userId,
+        amount: initialBalance,
+        baseCode: currencyCode,
+        date: new Date(),
+      });
 
-    return Accounts.createAccount({
-      ...payload,
-      refCreditLimit,
-      refInitialBalance,
-    });
+      return Accounts.createAccount({
+        ...payload,
+        refCreditLimit,
+        refInitialBalance,
+      });
+    } catch (e) {
+      console.log('account error', e);
+      throw e;
+    }
   },
 );
 
@@ -222,7 +242,7 @@ export const updateAccount = withTransaction(
       const refDiff = await calculateRefAmount({
         userId: accountData.userId,
         amount: diff,
-        baseId: accountData.currencyId,
+        baseCode: accountData.currencyCode,
         date: new Date(),
       });
 
@@ -274,13 +294,6 @@ const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACT
   return transactionType === TRANSACTION_TYPES.income ? amount : amount * -1;
 };
 
-// interface updateAccountBalanceRequiredFields {
-//   accountId: number;
-//   userId: number;
-//   transactionType: TRANSACTION_TYPES;
-//   currencyId: number;
-// }
-
 // At least one of pair (amount + refAmount) OR (prevAmount + prefRefAmount) should be passed
 // It is NOT allowed to pass 1 or 3 amount-related arguments
 
@@ -292,7 +305,7 @@ const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACT
 //     transactionType,
 //     amount,
 //     refAmount,
-//     currencyId,
+//     currencyCode,
 //   }: updateAccountBalanceRequiredFields & { amount: number; refAmount: number },
 // ): Promise<void>;
 
@@ -303,7 +316,7 @@ const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACT
 //   transactionType,
 //   prevAmount,
 //   prevRefAmount,
-//   currencyId,
+//   currencyCode,
 // }: updateAccountBalanceRequiredFields & {
 //   prevAmount: number;
 //   prevRefAmount: number;
@@ -318,7 +331,7 @@ const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACT
 //   prevAmount,
 //   refAmount,
 //   prevRefAmount,
-//   currencyId,
+//   currencyCode,
 //   prevTransactionType,
 // }: updateAccountBalanceRequiredFields & {
 //   amount: number;
@@ -337,8 +350,17 @@ export async function updateAccountBalanceForChangedTxImpl({
   refAmount = 0,
   prevRefAmount = 0,
   prevTransactionType = transactionType,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-}: any): Promise<void> {
+}: {
+  accountId: number;
+  userId: number;
+  transactionType: TRANSACTION_TYPES;
+  amount?: number;
+  prevAmount?: number;
+  refAmount?: number;
+  prevRefAmount?: number;
+  prevTransactionType?: TRANSACTION_TYPES;
+  currencyCode?: string;
+}): Promise<void> {
   const account = await getAccountById({ id: accountId, userId });
 
   if (!account) return undefined;
@@ -351,11 +373,11 @@ export async function updateAccountBalanceForChangedTxImpl({
   const oldRefAmount = defineCorrectAmountFromTxType(prevRefAmount, prevTransactionType);
 
   // TODO: for now keep that deadcode, cause it doesn't really work. But when have time, recheck it past neednes
-  // if (currencyId !== accountCurrencyId) {
+  // if (currencyCode !== accountCurrencyCode) {
   //   const { rate } = await userExchangeRateService.getExchangeRate({
   //     userId,
-  //     baseId: currencyId,
-  //     quoteId: accountCurrencyId,
+  //     baseCode: currencyCode,
+  //     quoteCode: accountCurrencyCode,
   //   }, { transaction });
 
   //   newAmount = defineCorrectAmountFromTxType(amount * rate, transactionType)

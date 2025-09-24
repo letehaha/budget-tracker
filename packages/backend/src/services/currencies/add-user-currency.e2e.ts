@@ -9,8 +9,8 @@ describe('Add user currencies', () => {
     const eur = allCurrencies.find((i) => i.code === 'EUR')!;
 
     const currencies = [
-      { currencyId: uah.id, exchangeRate: 37, liveRateUpdate: true },
-      { currencyId: eur.id, exchangeRate: 0.85, liveRateUpdate: false },
+      { currencyCode: uah.code, exchangeRate: 37, liveRateUpdate: true },
+      { currencyCode: eur.code, exchangeRate: 0.85, liveRateUpdate: false },
     ];
 
     const res = await helpers.addUserCurrenciesWithRates({
@@ -23,10 +23,10 @@ describe('Add user currencies', () => {
     // Verify that addition request returned added currencies
     const returnedValues = helpers.extractResponse(res).currencies;
     expect(returnedValues.length).toBe(2);
-    expect(currencies.every((c) => returnedValues.some((i) => i.currencyId === c.currencyId))).toBe(true);
+    expect(currencies.every((c) => returnedValues.some((i) => i.currencyCode === c.currencyCode))).toBe(true);
 
-    const returnedUah = returnedValues.find((c) => c.currencyId === uah.id)!;
-    const returnedEur = returnedValues.find((c) => c.currencyId === eur.id)!;
+    const returnedUah = returnedValues.find((c) => c.currencyCode === uah.code)!;
+    const returnedEur = returnedValues.find((c) => c.currencyCode === eur.code)!;
 
     expect(returnedUah.exchangeRate).toBe(37);
     expect(returnedUah.liveRateUpdate).toBe(true);
@@ -34,8 +34,8 @@ describe('Add user currencies', () => {
     expect(returnedEur.liveRateUpdate).toBe(false);
   });
 
-  it('should return validation error if invalid currency code is provided', async () => {
-    const res = await helpers.addUserCurrencies({ currencyIds: [1111111999] });
+  it('should return validation error if non-existent currency code is provided', async () => {
+    const res = await helpers.addUserCurrencies({ currencyCodes: ['ZZZ'] });
 
     expect(res.statusCode).toEqual(ERROR_CODES.NotFoundError);
   });
@@ -45,7 +45,7 @@ describe('Add user currencies', () => {
     const uah = allCurrencies.find((i) => i.code === 'UAH')!;
 
     const res = await helpers.addUserCurrenciesWithRates({
-      currencies: [{ currencyId: uah.id, exchangeRate: -1 }],
+      currencies: [{ currencyCode: uah.code, exchangeRate: -1 }],
       raw: false,
     });
 
@@ -57,14 +57,14 @@ describe('Add user currencies', () => {
     const uah = allCurrencies.find((i) => i.code === 'UAH')!;
 
     const res = await helpers.addUserCurrenciesWithRates({
-      currencies: [{ currencyId: uah.id }],
+      currencies: [{ currencyCode: uah.code }],
       raw: false,
     });
 
     expect(res.statusCode).toEqual(200);
     const returnedValues = helpers.extractResponse(res).currencies;
     expect(returnedValues.length).toBe(1);
-    expect(returnedValues[0]!.currencyId).toBe(uah.id);
+    expect(returnedValues[0]!.currencyCode).toBe(uah.code);
     expect(returnedValues[0]!.exchangeRate).toBeNull();
     expect(returnedValues[0]!.liveRateUpdate).toBe(true);
   });
@@ -73,7 +73,7 @@ describe('Add user currencies', () => {
     // First, add a currency
     const allCurrencies = await helpers.getAllCurrencies();
     const uah = allCurrencies.find((i) => i.code === 'UAH')!;
-    const currencies = [{ currencyId: uah.id }];
+    const currencies = [{ currencyCode: uah.code }];
 
     await helpers.addUserCurrenciesWithRates({
       currencies,
@@ -87,11 +87,11 @@ describe('Add user currencies', () => {
     });
 
     expect(res.statusCode).toEqual(200);
-    expect(helpers.extractResponse(res).alreadyExistingIds).toEqual(currencies.map((i) => i.currencyId));
+    expect(helpers.extractResponse(res).alreadyExistingCodes).toEqual(currencies.map((i) => i.currencyCode));
   });
 
   it('should successfully resolve when trying to add a currency same as base currency', async () => {
-    const currencies = [{ currencyId: global.BASE_CURRENCY.id }];
+    const currencies = [{ currencyCode: global.BASE_CURRENCY.code }];
 
     const res = await helpers.addUserCurrenciesWithRates({
       currencies,

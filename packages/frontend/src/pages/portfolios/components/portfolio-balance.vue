@@ -76,36 +76,25 @@ import { usePortfolioSummary } from '@/composable/data-queries/portfolio-summary
 import { useFormatCurrency } from '@/composable/formatters';
 import { useCurrenciesStore } from '@/stores/currencies';
 import { storeToRefs } from 'pinia';
-import { computed, toRef } from 'vue';
+import { toRef } from 'vue';
 
 const props = defineProps<{ portfolioId: number }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { data: summary, isLoading, error } = usePortfolioSummary(portfolioId);
 
-const { formatAmountByCurrencyId } = useFormatCurrency();
+const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { currencies } = storeToRefs(useCurrenciesStore());
 
-const currencyCodeToIdMap = computed(() => {
-  if (!currencies.value) return {};
-  return currencies.value.reduce(
-    (acc, currency) => {
-      acc[currency.currency.code] = currency.currencyId;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-});
-
 const formatCurrency = (amount: number, currencyCode: string) => {
-  const currencyId = currencyCodeToIdMap.value[currencyCode.toUpperCase()];
-  if (currencyId === undefined) {
+  const userCurrency = currencies.value.find((c) => c.currency.code === currencyCode.toUpperCase());
+  if (!userCurrency) {
     return amount.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
   }
-  return formatAmountByCurrencyId(amount, currencyId);
+  return formatAmountByCurrencyCode(amount, userCurrency.currencyCode);
 };
 
 const getGainColorClass = (gainPercent: number) => {

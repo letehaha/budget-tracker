@@ -1,4 +1,4 @@
-import { recordId } from '@common/lib/zod/custom-types';
+import { currencyCode } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { ValidationError } from '@js/errors';
 import { ExchangeRatePair, UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
@@ -57,13 +57,13 @@ export const getUserBaseCurrency = createController(z.object({}), async ({ user 
 export const setBaseUserCurrency = createController(
   z.object({
     body: z.object({
-      currencyId: recordId(),
+      currencyCode: currencyCode(),
     }),
   }),
   async ({ user, body }) => {
     const result = await userService.setBaseUserCurrency({
       userId: user.id,
-      currencyId: body.currencyId,
+      currencyCode: body.currencyCode,
     });
     return { data: result };
   },
@@ -72,7 +72,7 @@ export const setBaseUserCurrency = createController(
 export const editUserCurrency = createController(
   z.object({
     body: z.object({
-      currencyId: recordId(),
+      currencyCode: currencyCode(),
       exchangeRate: z.number().optional(),
       liveRateUpdate: z.boolean().optional(),
     }),
@@ -80,7 +80,7 @@ export const editUserCurrency = createController(
   async ({ user, body }) => {
     const result = await userService.editUserCurrency({
       userId: user.id,
-      currencyId: body.currencyId,
+      currencyCode: body.currencyCode,
       exchangeRate: body.exchangeRate,
       liveRateUpdate: body.liveRateUpdate,
     });
@@ -91,13 +91,13 @@ export const editUserCurrency = createController(
 export const setDefaultUserCurrency = createController(
   z.object({
     body: z.object({
-      currencyId: recordId(),
+      currencyCode: currencyCode(),
     }),
   }),
   async ({ user, body }) => {
     const result = await userService.setDefaultUserCurrency({
       userId: user.id,
-      currencyId: body.currencyId,
+      currencyCode: body.currencyCode,
     });
     return { data: result };
   },
@@ -106,13 +106,13 @@ export const setDefaultUserCurrency = createController(
 export const deleteUserCurrency = createController(
   z.object({
     body: z.object({
-      currencyId: recordId(),
+      currencyCode: currencyCode(),
     }),
   }),
   async ({ user, body }) => {
     await userService.deleteUserCurrency({
       userId: user.id,
-      currencyId: body.currencyId,
+      currencyCode: body.currencyCode,
     });
   },
 );

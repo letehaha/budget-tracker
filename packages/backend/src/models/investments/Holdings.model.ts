@@ -129,8 +129,6 @@ export default class Holdings extends Model implements HoldingModel {
   @Column({ type: DataType.DATE, allowNull: false })
   updatedAt!: Date;
 
-
-
   @BelongsTo(() => Securities)
   security?: Securities;
 

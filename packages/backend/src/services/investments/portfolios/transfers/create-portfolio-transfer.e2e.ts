@@ -31,7 +31,7 @@ describe('Portfolio Transfer', () => {
     // Add funds to source portfolio
     await helpers.updatePortfolioBalance({
       portfolioId: sourcePortfolio.id,
-      currencyId: usdCurrency!.currencyId,
+      currencyCode: usdCurrency!.currencyCode,
       setAvailableCash: '1000',
       setTotalCash: '1000',
     });
@@ -42,7 +42,7 @@ describe('Portfolio Transfer', () => {
       fromPortfolioId: sourcePortfolio.id,
       payload: helpers.buildPortfolioTransferPayload({
         toPortfolioId: destPortfolio.id,
-        currencyId: usdCurrency!.currencyId,
+        currencyCode: usdCurrency!.currencyCode,
         amount: transferAmount,
         description: 'Test transfer',
       }),
@@ -57,7 +57,7 @@ describe('Portfolio Transfer', () => {
       toPortfolioId: destPortfolio.id,
       amount: expect.toBeNumericEqual(transferAmount),
       refAmount: expect.any(String),
-      currencyId: usdCurrency!.currencyId,
+      currencyCode: usdCurrency!.currencyCode,
       date: expect.any(String),
       description: 'Test transfer',
     });
@@ -65,7 +65,7 @@ describe('Portfolio Transfer', () => {
     // Verify source portfolio balance
     const [sourceBalance] = await helpers.getPortfolioBalance({
       portfolioId: sourcePortfolio.id,
-      currencyId: usdCurrency!.currencyId,
+      currencyCode: usdCurrency!.currencyCode,
       raw: true,
     });
 
@@ -75,7 +75,7 @@ describe('Portfolio Transfer', () => {
     // Verify destination portfolio balance
     const [destBalance] = await helpers.getPortfolioBalance({
       portfolioId: destPortfolio.id,
-      currencyId: usdCurrency!.currencyId,
+      currencyCode: usdCurrency!.currencyCode,
       raw: true,
     });
 
@@ -96,7 +96,7 @@ describe('Portfolio Transfer', () => {
           fromPortfolioId: sourcePortfolio.id,
           payload: helpers.buildPortfolioTransferPayload({
             toPortfolioId: 999999, // Non-existent portfolio
-            currencyId: usdCurrency!.currencyId,
+            currencyCode: usdCurrency!.currencyCode,
           }),
         })
       ).statusCode,
@@ -109,7 +109,7 @@ describe('Portfolio Transfer', () => {
           fromPortfolioId: 999999, // Non-existent portfolio
           payload: helpers.buildPortfolioTransferPayload({
             toPortfolioId: sourcePortfolio.id,
-            currencyId: usdCurrency!.currencyId,
+            currencyCode: usdCurrency!.currencyCode,
           }),
         })
       ).statusCode,
@@ -133,7 +133,7 @@ describe('Portfolio Transfer', () => {
           fromPortfolioId: sourcePortfolio.id,
           payload: helpers.buildPortfolioTransferPayload({
             toPortfolioId: destPortfolio.id,
-            currencyId: usdCurrency!.currencyId,
+            currencyCode: usdCurrency!.currencyCode,
             amount: '0',
           }),
         })
@@ -147,7 +147,7 @@ describe('Portfolio Transfer', () => {
           fromPortfolioId: sourcePortfolio.id,
           payload: helpers.buildPortfolioTransferPayload({
             toPortfolioId: destPortfolio.id,
-            currencyId: usdCurrency!.currencyId,
+            currencyCode: usdCurrency!.currencyCode,
             amount: '-100',
           }),
         })
@@ -166,7 +166,7 @@ describe('Portfolio Transfer', () => {
       fromPortfolioId: portfolio.id,
       payload: helpers.buildPortfolioTransferPayload({
         toPortfolioId: portfolio.id,
-        currencyId: usdCurrency!.currencyId,
+        currencyCode: usdCurrency!.currencyCode,
       }),
     });
 

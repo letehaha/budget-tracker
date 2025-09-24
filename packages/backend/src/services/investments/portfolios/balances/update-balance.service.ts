@@ -9,7 +9,7 @@ import { Big } from 'big.js';
 interface UpdatePortfolioBalanceParams {
   userId: number;
   portfolioId: number;
-  currencyId: number;
+  currencyCode: string;
   availableCashDelta?: string; // Amount to add/subtract from available cash
   totalCashDelta?: string; // Amount to add/subtract from total cash
   setAvailableCash?: string; // Set available cash to specific amount
@@ -19,7 +19,7 @@ interface UpdatePortfolioBalanceParams {
 const updatePortfolioBalanceImpl = async ({
   userId,
   portfolioId,
-  currencyId,
+  currencyCode,
   availableCashDelta,
   totalCashDelta,
   setAvailableCash,
@@ -35,21 +35,21 @@ const updatePortfolioBalanceImpl = async ({
   }
 
   // Verify currency exists
-  const currency = await Currencies.findByPk(currencyId);
+  const currency = await Currencies.findByPk(currencyCode);
   if (!currency) {
     throw new NotFoundError({ message: 'Currency not found' });
   }
 
   // Find or create portfolio balance record
   let balance = await PortfolioBalances.findOne({
-    where: { portfolioId, currencyId },
+    where: { portfolioId, currencyCode },
   });
 
   if (!balance) {
     // Create new balance record with zero values
     balance = await PortfolioBalances.create({
       portfolioId,
-      currencyId,
+      currencyCode,
       availableCash: '0',
       totalCash: '0',
       refAvailableCash: '0',

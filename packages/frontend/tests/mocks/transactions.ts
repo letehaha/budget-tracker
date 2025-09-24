@@ -15,8 +15,8 @@ import { USER } from './user';
 const SHARED_TX_ACCOUNT = getUahAccount();
 const buildCommonTxBody = (overrides: Partial<TransactionModel> = {}): TransactionModel => {
   const amount = faker.number.int({ min: 1000, max: 100000 });
-  const currencyId = SHARED_TX_ACCOUNT.currencyId;
-  const currency = USER_CURRENCIES.find((item) => item.currencyId === currencyId);
+  const currencyCode = SHARED_TX_ACCOUNT.currencyCode;
+  const currency = USER_CURRENCIES.find((item) => item.currencyCode === currencyCode);
   const refAmount = amount * currency.exchangeRate;
 
   return {
@@ -30,8 +30,7 @@ const buildCommonTxBody = (overrides: Partial<TransactionModel> = {}): Transacti
     paymentType: PAYMENT_TYPES.creditCard,
     accountId: SHARED_TX_ACCOUNT.id,
     categoryId: USER_CATEGORIES[0].id,
-    currencyId,
-    currencyCode: currency.currency.code,
+    currencyCode,
     accountType: ACCOUNT_TYPES.system,
     refCurrencyCode: USER_BASE_CURRENCY.currency.code,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,

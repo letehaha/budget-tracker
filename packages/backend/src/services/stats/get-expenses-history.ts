@@ -14,7 +14,6 @@ export type GetExpensesHistoryResponseSchema = Pick<
   | 'time'
   | 'amount'
   | 'refAmount'
-  | 'currencyId'
   | 'currencyCode'
   | 'categoryId'
   | 'refundLinked'
@@ -53,7 +52,6 @@ export const getExpensesHistory = withTransaction(
       'time',
       'amount',
       'refAmount',
-      'currencyId',
       'currencyCode',
       'categoryId',
       'refundLinked',

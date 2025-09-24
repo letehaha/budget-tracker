@@ -6,7 +6,7 @@
           v-model="selectedCurrency"
           :values="filteredCurrencies"
           :placeholder="isCurrenciesLoading ? 'Loading...' : 'Select currency'"
-          value-key="id"
+          value-key="code"
           with-search
           :disabled="!filteredCurrencies.length"
           :label-key="(item: CurrencyModel) => `${item.code} - ${item.currency}`"
@@ -67,7 +67,7 @@ const addCurrency = async () => {
 
     isCurrenciesLoading.value = true;
 
-    await addUserCurrencies([{ currencyId: selectedCurrency.value.id }]);
+    await addUserCurrencies([{ currencyCode: selectedCurrency.value.code }]);
 
     queryClient.invalidateQueries({
       queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates,

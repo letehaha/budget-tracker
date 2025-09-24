@@ -25,13 +25,13 @@ describe('Create transaction controller', () => {
 
     const transactions = await helpers.getTransactions({ raw: true });
 
-    expect(baseTx.currencyId).toBe(global.BASE_CURRENCY.id);
+    expect(baseTx.currencyCode).toBe(global.BASE_CURRENCY.code);
     expect(baseTx.currencyCode).toBe(global.BASE_CURRENCY.code);
     expect(baseTx.amount).toBe(txPayload.amount);
     expect(baseTx.refAmount).toBe(txPayload.amount);
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
     expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
-    expect(baseTx).toStrictEqual(transactions[0]);
+    expect(baseTx).toStrictEqual(transactions![0]);
   });
   it('should successfully create a transaction for account with currency different from base one', async () => {
     // Create account with non-default currency
@@ -41,7 +41,7 @@ describe('Create transaction controller', () => {
     const account = await helpers.createAccount({
       payload: {
         ...helpers.buildAccountPayload(),
-        currencyId: currency.id,
+        currencyCode: currency.code,
       },
       raw: true,
     });
@@ -57,13 +57,13 @@ describe('Create transaction controller', () => {
     const transactions = await helpers.getTransactions({ raw: true });
     const currencyRate = (await helpers.getCurrenciesRates()).find((c) => c.baseCode === currency.code);
 
-    expect(baseTx.currencyId).toBe(currency.id);
+    expect(baseTx.currencyCode).toBe(currency.code);
     expect(baseTx.currencyCode).toBe(currency.code);
     expect(baseTx.amount).toBe(txPayload.amount);
     expect(baseTx.refAmount).toBe(Math.floor(txPayload.amount * currencyRate!.rate));
     expect(baseTx.transactionType).toBe(txPayload.transactionType);
     expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
-    expect(baseTx).toStrictEqual(transactions[0]);
+    expect(baseTx).toStrictEqual(transactions![0]);
   });
   it('should successfully create a transfer transaction between accounts with same currency', async () => {
     const accountA = await helpers.createAccount({ raw: true });
@@ -85,7 +85,7 @@ describe('Create transaction controller', () => {
 
     const transactions = await helpers.getTransactions({ raw: true });
 
-    expect(baseTx.currencyId).toBe(global.BASE_CURRENCY.id);
+    expect(baseTx.currencyCode).toBe(global.BASE_CURRENCY.code);
     expect(baseTx.currencyCode).toBe(global.BASE_CURRENCY.code);
 
     expect(baseTx.amount).toBe(txPayload.amount);
@@ -109,7 +109,7 @@ describe('Create transaction controller', () => {
       txPayload.transactionType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     );
 
-    expect(baseTx).toStrictEqual(transactions[0]);
+    expect(baseTx).toStrictEqual(transactions![0]);
   });
   it('should successfully create a transfer transaction between account with base and non-base currency', async () => {
     const accountA = await helpers.createAccount({ raw: true });
@@ -120,7 +120,7 @@ describe('Create transaction controller', () => {
     const accountB = await helpers.createAccount({
       payload: {
         ...helpers.buildAccountPayload(),
-        currencyId: currencyB.id,
+        currencyCode: currencyB.code,
       },
       raw: true,
     });
@@ -139,10 +139,10 @@ describe('Create transaction controller', () => {
 
     const transactions = await helpers.getTransactions({ raw: true });
 
-    expect(baseTx.currencyId).toBe(global.BASE_CURRENCY.id);
+    expect(baseTx.currencyCode).toBe(global.BASE_CURRENCY.code);
     expect(baseTx.currencyCode).toBe(global.BASE_CURRENCY.code);
 
-    expect(oppositeTx!.currencyId).toBe(currencyB.id);
+    expect(oppositeTx!.currencyCode).toBe(currencyB.code);
     expect(oppositeTx!.currencyCode).toBe(currencyB.code);
 
     expect(baseTx.amount).toBe(txPayload.amount);
@@ -168,7 +168,7 @@ describe('Create transaction controller', () => {
     );
 
     [baseTx, oppositeTx].forEach((tx, i) => {
-      expect(tx).toStrictEqual(transactions[i]);
+      expect(tx).toStrictEqual(transactions![i]);
     });
   });
   it('should successfully create a transfer transaction between accounts with both non-base currencies', async () => {
@@ -177,7 +177,7 @@ describe('Create transaction controller', () => {
     const accountA = await helpers.createAccount({
       payload: {
         ...helpers.buildAccountPayload(),
-        currencyId: currencyA.id,
+        currencyCode: currencyA.code,
       },
       raw: true,
     });
@@ -187,7 +187,7 @@ describe('Create transaction controller', () => {
     const accountB = await helpers.createAccount({
       payload: {
         ...helpers.buildAccountPayload(),
-        currencyId: currencyB.id,
+        currencyCode: currencyB.code,
       },
       raw: true,
     });
@@ -209,10 +209,10 @@ describe('Create transaction controller', () => {
 
     const transactions = await helpers.getTransactions({ raw: true });
 
-    expect(baseTx.currencyId).toBe(currencyA.id);
+    expect(baseTx.currencyCode).toBe(currencyA.code);
     expect(baseTx.currencyCode).toBe(currencyA.code);
 
-    expect(oppositeTx!.currencyId).toBe(currencyB.id);
+    expect(oppositeTx!.currencyCode).toBe(currencyB.code);
     expect(oppositeTx!.currencyCode).toBe(currencyB.code);
 
     expect(baseTx.amount).toBe(txPayload.amount);
@@ -238,7 +238,7 @@ describe('Create transaction controller', () => {
     );
 
     [baseTx, oppositeTx].forEach((tx, i) => {
-      expect(tx).toStrictEqual(transactions[i]);
+      expect(tx).toStrictEqual(transactions![i]);
     });
   });
   describe('create transfer via linking', () => {
@@ -277,7 +277,7 @@ describe('Create transaction controller', () => {
 
       const transactions = await helpers.getTransactions({ raw: true });
 
-      expect(transactions.length).toBe(2);
+      expect(transactions?.length).toBe(2);
       expect(baseTx.transferId).toBe(oppositeTx!.transferId);
       expect(oppositeTx!.amount).toBe(destinationTx.amount);
       expect(baseTx.amount).toBe(expectedValues.baseTransaction.amount);

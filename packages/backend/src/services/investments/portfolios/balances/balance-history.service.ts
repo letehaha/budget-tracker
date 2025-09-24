@@ -8,7 +8,7 @@ import { Op, WhereOptions } from 'sequelize';
 interface GetBalanceHistoryParams {
   userId: number;
   portfolioId: number;
-  currencyId?: number;
+  currencyCode?: string;
   startDate?: Date;
   endDate?: Date;
   limit?: number;
@@ -17,14 +17,13 @@ interface GetBalanceHistoryParams {
 
 interface BalanceSnapshot {
   portfolioId: number;
-  currencyId: number;
+  currencyCode: string;
   availableCash: string;
   totalCash: string;
   refAvailableCash: string;
   refTotalCash: string;
   snapshotDate: Date;
   currency: {
-    id: number;
     code: string;
     currency: string;
   };
@@ -33,7 +32,7 @@ interface BalanceSnapshot {
 const getPortfolioBalanceHistoryImpl = async ({
   userId,
   portfolioId,
-  currencyId,
+  currencyCode,
   startDate,
   endDate,
   limit = 100,
@@ -51,8 +50,8 @@ const getPortfolioBalanceHistoryImpl = async ({
   // Build where clause for balance query
   const where: WhereOptions<PortfolioBalances> = { portfolioId };
 
-  if (currencyId !== undefined) {
-    where.currencyId = currencyId;
+  if (currencyCode !== undefined) {
+    where.currencyCode = currencyCode;
   }
 
   if (startDate || endDate) {
@@ -72,7 +71,7 @@ const getPortfolioBalanceHistoryImpl = async ({
       {
         model: Currencies,
         as: 'currency',
-        attributes: ['id', 'code', 'currency'],
+        attributes: ['code', 'currency'],
       },
     ],
     order: [['updatedAt', 'DESC']],
@@ -83,14 +82,13 @@ const getPortfolioBalanceHistoryImpl = async ({
   // Transform to balance snapshots format
   const balanceHistory: BalanceSnapshot[] = balances.map((balance) => ({
     portfolioId: balance.portfolioId,
-    currencyId: balance.currencyId,
+    currencyCode: balance.currencyCode,
     availableCash: balance.availableCash,
     totalCash: balance.totalCash,
     refAvailableCash: balance.refAvailableCash,
     refTotalCash: balance.refTotalCash,
     snapshotDate: balance.updatedAt,
     currency: {
-      id: balance.currency?.id || 0,
       code: balance.currency?.code || '',
       currency: balance.currency?.currency || '',
     },
@@ -131,7 +129,7 @@ const createBalanceSnapshotImpl = async ({ userId, portfolioId, reason = 'manual
       {
         model: Currencies,
         as: 'currency',
-        attributes: ['id', 'code', 'currency'],
+        attributes: ['code', 'currency'],
       },
     ],
   });

@@ -42,7 +42,7 @@ export interface AccountModel {
   creditLimit: number;
   refCreditLimit: number;
   accountCategory: ACCOUNT_CATEGORIES;
-  currencyId: number;
+  currencyCode: string;
   userId: number;
   externalId?: string;
   externalData?: object;
@@ -78,7 +78,6 @@ export interface TransactionModel {
   paymentType: PAYMENT_TYPES;
   accountId: number;
   categoryId: number;
-  currencyId: number;
   currencyCode: string;
   accountType: ACCOUNT_TYPES;
   refCurrencyCode: string;
@@ -100,7 +99,6 @@ export interface TransactionModel {
 }
 
 export interface CurrencyModel {
-  id: number;
   currency: string;
   digits: number;
   number: number;
@@ -111,7 +109,7 @@ export interface CurrencyModel {
 export interface UserCurrencyModel {
   id: number;
   userId: number;
-  currencyId: number;
+  currencyCode: string;
   exchangeRate: number;
   liveRateUpdate: boolean;
   isDefaultCurrency: boolean;
@@ -120,10 +118,7 @@ export interface UserCurrencyModel {
 }
 
 export interface ExchangeRatesModel {
-  id: number;
-  baseId: number;
   baseCode: string;
-  quoteId: number;
   quoteCode: string;
   rate: number;
 }

@@ -68,7 +68,7 @@ describe('Delete Portfolio Service E2E', () => {
         // Create a portfolio balance using the dedicated helper
         const balanceResponse = await helpers.updatePortfolioBalance({
           portfolioId: createdPortfolio.id,
-          currencyId: global.BASE_CURRENCY.id,
+          currencyCode: global.BASE_CURRENCY.code,
           setTotalCash: '1000.00',
           setAvailableCash: '500.00',
         });
@@ -96,7 +96,7 @@ describe('Delete Portfolio Service E2E', () => {
         const investmentAccount = await helpers.createAccount({
           payload: helpers.buildAccountPayload({
             accountCategory: ACCOUNT_CATEGORIES.investment,
-            currencyId: currencyToUse.id,
+            currencyCode: currencyToUse.code,
           }),
           raw: true,
         });
@@ -158,7 +158,7 @@ describe('Delete Portfolio Service E2E', () => {
         // Create a portfolio balance using the dedicated helper
         await helpers.updatePortfolioBalance({
           portfolioId: createdPortfolio.id,
-          currencyId: global.BASE_CURRENCY.id,
+          currencyCode: global.BASE_CURRENCY.code,
           setTotalCash: '1000.00',
           setAvailableCash: '500.00',
         });
@@ -189,7 +189,7 @@ describe('Delete Portfolio Service E2E', () => {
         const investmentAccount = await helpers.createAccount({
           payload: helpers.buildAccountPayload({
             accountCategory: ACCOUNT_CATEGORIES.investment,
-            currencyId: currencyToUse.id,
+            currencyCode: currencyToUse.code,
           }),
           raw: true,
         });
@@ -224,7 +224,7 @@ describe('Delete Portfolio Service E2E', () => {
         // Create a portfolio balance using the dedicated helper
         await helpers.updatePortfolioBalance({
           portfolioId: createdPortfolio.id,
-          currencyId: global.BASE_CURRENCY.id,
+          currencyCode: global.BASE_CURRENCY.code,
           setTotalCash: '1000.00',
         });
 

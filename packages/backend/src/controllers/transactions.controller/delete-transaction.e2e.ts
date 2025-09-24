@@ -32,7 +32,7 @@ describe('Delete transaction controller', () => {
       const accountA = await helpers.createAccount({
         payload: {
           ...helpers.buildAccountPayload(),
-          currencyId: currencyA.id,
+          currencyCode: currencyA.code,
         },
         raw: true,
       });
@@ -42,7 +42,7 @@ describe('Delete transaction controller', () => {
       const accountB = await helpers.createAccount({
         payload: {
           ...helpers.buildAccountPayload(),
-          currencyId: currencyB.id,
+          currencyCode: currencyB.code,
         },
         raw: true,
       });

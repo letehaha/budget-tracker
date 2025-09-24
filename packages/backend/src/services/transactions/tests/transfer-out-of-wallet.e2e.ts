@@ -31,7 +31,7 @@ describe('out_of_wallet transfer', () => {
         expect(oppositeTx).toBe(undefined); // there's no opposite transaction when out_of_wallet created
 
         expect(baseTx.accountId).toBe(account.id);
-        expect(baseTx.currencyId).toBe(account.currencyId);
+        expect(baseTx.currencyCode).toBe(account.currencyCode);
         expect(baseTx.amount).toBe(txPayload.amount);
       },
     );

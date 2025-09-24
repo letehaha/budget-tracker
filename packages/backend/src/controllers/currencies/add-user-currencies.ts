@@ -1,11 +1,11 @@
-import { recordId } from '@common/lib/zod/custom-types';
+import { currencyCode } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as userCurrenciesService from '@services/currencies/add-user-currency';
 import { z } from 'zod';
 
 const UserCurrencySchema = z
   .object({
-    currencyId: recordId(),
+    currencyCode: currencyCode(),
     exchangeRate: z.number().positive().optional(),
     liveRateUpdate: z.boolean().optional(),
   })

@@ -27,8 +27,8 @@ export default class PortfolioBalances extends Model implements PortfolioBalance
   @PrimaryKey
   @ForeignKey(() => Currencies)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  currencyId!: number;
+  @Column({ type: DataType.STRING(3), allowNull: false })
+  currencyCode!: string;
 
   @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
   availableCash!: string;

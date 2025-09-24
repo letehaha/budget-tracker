@@ -10,34 +10,19 @@ import Currencies from './Currencies.model';
   freezeTableName: true,
 })
 export default class ExchangeRates extends Model {
-  @Column({
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
-
   @ForeignKey(() => Currencies)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  baseId!: number;
-
-  @Column({ allowNull: false, type: DataType.STRING })
+  @Column({ allowNull: false, type: DataType.STRING(3), primaryKey: true })
   baseCode!: string;
 
   @ForeignKey(() => Currencies)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  quoteId!: number;
-
-  @Column({ allowNull: false, type: DataType.STRING })
+  @Column({ allowNull: false, type: DataType.STRING(3), primaryKey: true })
   quoteCode!: string;
 
-  @Column({ allowNull: true, defaultValue: 1, type: DataType.NUMBER })
-  rate!: number;
-
-  @Column({ allowNull: false, type: DataType.DATE })
+  @Column({ allowNull: false, type: DataType.DATE, primaryKey: true })
   date!: Date;
+
+  @Column({ allowNull: false, defaultValue: 1, type: DataType.FLOAT })
+  rate!: number;
 }
 
 export async function getRatesForCurrenciesPairs(

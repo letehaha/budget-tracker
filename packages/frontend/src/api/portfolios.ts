@@ -38,7 +38,7 @@ export const deletePortfolio = async (portfolioId: number, force?: boolean): Pro
 
 interface CreatePortfolioTransferRequest {
   toPortfolioId: number;
-  currencyId: number;
+  currencyCode: string;
   amount: string;
   date: string;
   description?: string;

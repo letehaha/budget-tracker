@@ -248,7 +248,7 @@ beforeEach(async () => {
     await makeRequest({
       method: 'post',
       url: '/user/currencies/base',
-      payload: { currencyId: global.BASE_CURRENCY.id },
+      payload: { currencyCode: global.BASE_CURRENCY.code },
     });
   } catch (err) {
     console.error('Setup failed:', err);

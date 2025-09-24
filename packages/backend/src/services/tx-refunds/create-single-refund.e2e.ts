@@ -51,7 +51,7 @@ describe('Refund Transactions service', () => {
         const accountB = await helpers.createAccount({
           payload: {
             ...helpers.buildAccountPayload(),
-            currencyId: currencyB.id,
+            currencyCode: currencyB.code,
           },
           raw: true,
         });
@@ -82,7 +82,7 @@ describe('Refund Transactions service', () => {
           true,
         );
 
-        expect(baseTx.currencyId !== refundTx.currencyId).toBe(true);
+        expect(baseTx.currencyCode !== refundTx.currencyCode).toBe(true);
         expect(baseTx.amount > refundTx.amount).toBe(true);
         expect(baseTx.refAmount > refundTx.refAmount).toBe(true);
         expect(result.originalTxId).toEqual(baseTx.id);
@@ -98,7 +98,7 @@ describe('Refund Transactions service', () => {
         const accountB = await helpers.createAccount({
           payload: {
             ...helpers.buildAccountPayload(),
-            currencyId: currencyB.id,
+            currencyCode: currencyB.code,
           },
           raw: true,
         });
@@ -129,7 +129,7 @@ describe('Refund Transactions service', () => {
           true,
         );
 
-        expect(baseTx.currencyId !== refundTx.currencyId).toBe(true);
+        expect(baseTx.currencyCode !== refundTx.currencyCode).toBe(true);
         expect(refundTx.amount > baseTx.amount).toBe(true);
         expect(baseTx.refAmount > refundTx.refAmount).toBe(true);
         expect(result.originalTxId).toEqual(baseTx.id);
@@ -248,7 +248,7 @@ describe('Refund Transactions service', () => {
         const accountB = await helpers.createAccount({
           payload: {
             ...helpers.buildAccountPayload(),
-            currencyId: currencyB.id,
+            currencyCode: currencyB.code,
           },
           raw: true,
         });
@@ -361,7 +361,7 @@ describe('Refund Transactions service', () => {
           payload: {
             ...helpers.buildAccountPayload(),
             // We need to use some currency with higher exchange rate, to achieve expected conditions
-            currencyId: global.MODELS_CURRENCIES.find((item) => item.code === 'GBP').id,
+            currencyCode: global.MODELS_CURRENCIES.find((item) => item.code === 'GBP').code,
           },
           raw: true,
         });
@@ -507,7 +507,7 @@ describe('Refund Transactions service', () => {
         const accountB = await helpers.createAccount({
           payload: {
             ...helpers.buildAccountPayload(),
-            currencyId: currencyB.id,
+            currencyCode: currencyB.code,
           },
           raw: true,
         });

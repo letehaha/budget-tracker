@@ -26,7 +26,7 @@ const isOpen = ref(false);
         <span> Credit Limit: </span>
 
         {{ toLocalNumber(account.creditLimit) }}
-        {{ currenciesMap[account.currencyId].currency.code }}
+        {{ currenciesMap[account.currencyCode].currency.code }}
       </div>
       <Separator />
 
@@ -34,7 +34,7 @@ const isOpen = ref(false);
         <span> Initial Balance: </span>
 
         {{ toLocalNumber(account.initialBalance) }}
-        {{ currenciesMap[account.currencyId].currency.code }}
+        {{ currenciesMap[account.currencyCode].currency.code }}
       </div>
       <Separator />
       <div class="flex items-center justify-between gap-2">
@@ -59,9 +59,9 @@ const isOpen = ref(false);
             <span> Currency: </span>
 
             <div class="flex gap-2">
-              {{ currenciesMap[account.currencyId].currency.code }}
+              {{ currenciesMap[account.currencyCode].currency.code }}
 
-              <span v-if="currenciesMap[account.currencyId].isDefaultCurrency"> (main) </span>
+              <span v-if="currenciesMap[account.currencyCode].isDefaultCurrency"> (main) </span>
 
               <template v-if="isOpen">
                 <ChevronUpIcon />
@@ -80,7 +80,7 @@ const isOpen = ref(false);
             <div class="flex items-center justify-between gap-2">
               <span> Exchange Rate: </span>
 
-              {{ currenciesMap[account.currencyId].exchangeRate }}
+              {{ currenciesMap[account.currencyCode].exchangeRate }}
             </div>
 
             <Separator />
@@ -88,7 +88,7 @@ const isOpen = ref(false);
             <div class="flex items-center justify-between gap-2">
               <span> Exchange Rate Live Update: </span>
 
-              {{ currenciesMap[account.currencyId].liveRateUpdate ? 'Enabled' : 'Disabled' }}
+              {{ currenciesMap[account.currencyCode].liveRateUpdate ? 'Enabled' : 'Disabled' }}
             </div>
           </div>
         </Collapsible.CollapsibleContent>

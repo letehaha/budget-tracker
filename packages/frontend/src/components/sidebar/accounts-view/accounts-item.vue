@@ -8,7 +8,7 @@ defineProps<{
   account: AccountModel;
 }>();
 
-const { formatAmountByCurrencyId } = useFormatCurrency();
+const { formatAmountByCurrencyCode } = useFormatCurrency();
 </script>
 
 <template>
@@ -26,7 +26,7 @@ const { formatAmountByCurrencyId } = useFormatCurrency();
           </span>
         </div>
         <div class="text-sm">
-          {{ formatAmountByCurrencyId(account.currentBalance, account.currencyId) }}
+          {{ formatAmountByCurrencyCode(account.currentBalance, account.currencyCode) }}
         </div>
       </div>
     </Button>

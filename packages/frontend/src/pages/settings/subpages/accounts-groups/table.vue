@@ -28,7 +28,7 @@ const toggledListItem = ref([]);
 const deletedElements = ref<AccountModel[]>(null);
 const queryClient = useQueryClient();
 const toggledAccountId = ref<number>();
-const { formatAmountByCurrencyId } = useFormatCurrency();
+const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const { addSuccessNotification } = useNotificationCenter();
 
@@ -216,7 +216,7 @@ const unlinkAccountFromGroup = (id: number) => {
                         {{ account.name }}
                       </router-link>
                       <span class="text-sm">
-                        ({{ formatAmountByCurrencyId(account.currentBalance, account.currencyId) }})
+                        ({{ formatAmountByCurrencyCode(account.currentBalance, account.currencyCode) }})
                       </span>
                     </div>
 

@@ -20,7 +20,7 @@ describe('Update transaction controller', () => {
       raw: true,
     });
 
-    const txsAfterUpdation = await helpers.getTransactions({ raw: true });
+    const txsAfterUpdation = (await helpers.getTransactions({ raw: true }))!;
 
     expect(res[0]).toStrictEqual(txsAfterUpdation[0]);
     expect(res[0].amount).toStrictEqual(expectedNewAmount);
@@ -86,7 +86,6 @@ describe('Update transaction controller', () => {
       refAmount: oppositeTx!.refAmount,
       // accountId and currencyCode are changed
       accountId: accountEUR.id,
-      currencyId: currencyEUR.id,
       currencyCode: currencyEUR.code,
     });
   });
@@ -122,7 +121,7 @@ describe('Update transaction controller', () => {
         raw: true,
       });
 
-      const transactions = await helpers.getTransactions({ raw: true });
+      const transactions = (await helpers.getTransactions({ raw: true }))!;
 
       expect(transactions.length).toBe(1);
       expect(transactions[0]).toEqual(tx);
@@ -278,9 +277,9 @@ describe('Update transaction controller', () => {
 
         await checkBalanceIsCorrect(0);
 
-        const transactionsAfterUpdate = await helpers.getTransactions({
+        const transactionsAfterUpdate = (await helpers.getTransactions({
           raw: true,
-        });
+        }))!;
 
         // Check that opposite tx is deleted
         expect(transactionsAfterUpdate.find((i) => i.id === oppositeTx!.id)).toBe(undefined);
@@ -359,7 +358,7 @@ describe('Update transaction controller', () => {
           },
         });
 
-        const txsAfterUpdation = await helpers.getTransactions({ raw: true });
+        const txsAfterUpdation = (await helpers.getTransactions({ raw: true }))!;
 
         const tx1AfterUpdation = txsAfterUpdation.find((item) => item.id === tx1.id);
         const tx2AfterUpdation = txsAfterUpdation.find((item) => item.id === tx2.id);
@@ -520,7 +519,7 @@ describe('Update transaction controller', () => {
           },
         });
 
-        const txsAfterUpdation = await helpers.getTransactions({ raw: true });
+        const txsAfterUpdation = (await helpers.getTransactions({ raw: true }))!;
 
         expect(txsAfterUpdation.length).toBe(1);
         expect(txsAfterUpdation[0]).toEqual(tx1);
@@ -628,7 +627,7 @@ describe('Update transaction controller', () => {
             refundTxId: refundTx.id,
           });
 
-          const transactions = (await helpers.getTransactions({ raw: true })).filter((t) =>
+          const transactions = (await helpers.getTransactions({ raw: true }))!.filter((t) =>
             [originalTx.id, refundTx.id].includes(t.id),
           );
 
@@ -652,7 +651,7 @@ describe('Update transaction controller', () => {
             raw: true,
           });
 
-          let transactions = (await helpers.getTransactions({ raw: true })).filter((t) =>
+          let transactions = (await helpers.getTransactions({ raw: true }))!.filter((t) =>
             [originalTx.id, refundTx.id].includes(t.id),
           );
 
@@ -666,7 +665,7 @@ describe('Update transaction controller', () => {
             raw: true,
           });
 
-          transactions = (await helpers.getTransactions({ raw: true })).filter((t) =>
+          transactions = (await helpers.getTransactions({ raw: true }))!.filter((t) =>
             [originalTx.id, refundTx.id].includes(t.id),
           );
           const refund = await helpers.getSingleRefund({
@@ -714,7 +713,7 @@ describe('Update transaction controller', () => {
           });
           expect(newRefund.statusCode).toBe(200);
 
-          const transactions = await helpers.getTransactions({ raw: true });
+          const transactions = (await helpers.getTransactions({ raw: true }))!;
 
           // Test that previously refunded tx is now not marked as a refund
           expect(transactions.find((i) => i.id === originalTx1.id)!.refundLinked).toBe(false);
@@ -765,7 +764,7 @@ describe('Update transaction controller', () => {
             }),
           ]);
 
-          const transactions = await helpers.getTransactions({ raw: true });
+          const transactions = (await helpers.getTransactions({ raw: true }))!;
 
           expect(refunds.every((r) => r.statusCode === 200)).toBe(true);
           expect(updatedOriginalTx.refundLinked).toBe(true);
@@ -812,7 +811,7 @@ describe('Update transaction controller', () => {
             }),
           ]);
 
-          const transactions = await helpers.getTransactions({ raw: true });
+          const transactions = (await helpers.getTransactions({ raw: true }))!;
 
           expect(refunds.every((r) => r.statusCode === ERROR_CODES.NotFoundError)).toBe(true);
           expect(

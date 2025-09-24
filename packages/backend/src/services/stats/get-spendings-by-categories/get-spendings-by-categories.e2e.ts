@@ -216,14 +216,14 @@ describe('[Stats] Spendings by categories', () => {
     const uahAccount = await helpers.createAccount({
       payload: {
         ...helpers.buildAccountPayload(),
-        currencyId: uahCurrency!.currencyId,
+        currencyCode: uahCurrency!.currencyCode,
       },
       raw: true,
     });
     const eurAccount = await helpers.createAccount({
       payload: {
         ...helpers.buildAccountPayload(),
-        currencyId: eurCurrency!.currencyId,
+        currencyCode: eurCurrency!.currencyCode,
       },
       raw: true,
     });

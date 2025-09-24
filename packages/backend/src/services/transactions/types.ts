@@ -3,7 +3,7 @@ import * as Transactions from '@models/Transactions.model';
 
 export type CreateTransactionParams = Omit<
   Transactions.CreateTransactionPayload,
-  'refAmount' | 'currencyId' | 'currencyCode' | 'transferId' | 'refCurrencyCode'
+  'refAmount' | 'transferId' | 'currencyCode' | 'refCurrencyCode'
 > & {
   destinationAmount?: number;
   destinationAccountId?: number;

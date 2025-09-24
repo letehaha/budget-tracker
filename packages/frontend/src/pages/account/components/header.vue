@@ -92,14 +92,14 @@ const updateAccount = async () => {
         </div>
       </p>
       <div class="flex flex-wrap gap-2 justify-start items-end ml-auto">
-        <span v-if="account.currencyId !== baseCurrency.currencyId" class="text-white text-opacity-50">
+        <span v-if="account.currencyCode !== baseCurrency.currencyCode" class="text-white text-opacity-50">
           ~
           {{ toLocalNumber(account.refCurrentBalance) }}
           {{ baseCurrency.currency.code }}
         </span>
         <span class="text-3xl">
           {{ toLocalNumber(account.currentBalance) }}
-          {{ currenciesMap[account.currencyId].currency.code }}
+          {{ currenciesMap[account.currencyCode].currency.code }}
         </span>
       </div>
     </div>

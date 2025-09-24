@@ -57,7 +57,7 @@ const submitBaseCurrency = async () => {
     formError.value = null;
     isSubmitting.value = true;
 
-    await setBaseCurrency(selectedCurrency.value.id);
+    await setBaseCurrency(selectedCurrency.value.code);
 
     forwardToDashboard();
   } catch {
@@ -104,7 +104,7 @@ loadCurrencies();
             <select-field
               v-model="selectedCurrency"
               :values="currencies"
-              value-key="id"
+              value-key="code"
               placeholder="Loading..."
               label="Base Currency"
               with-search

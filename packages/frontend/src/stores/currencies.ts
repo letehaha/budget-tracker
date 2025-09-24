@@ -15,7 +15,7 @@ export const useCurrenciesStore = defineStore('currencies', () => {
   }>(() =>
     systemCurrencies.value.reduce(
       (acc, curr) => {
-        if (currencies.value.find((item) => item.currencyId === curr.id)) {
+        if (currencies.value.find((item) => item.currencyCode === curr.code)) {
           acc.linked.push(curr);
         } else {
           acc.unlinked.push(curr);
@@ -29,10 +29,10 @@ export const useCurrenciesStore = defineStore('currencies', () => {
   const currenciesMap = computed(() =>
     currencies.value.reduce(
       (acc, curr) => {
-        acc[curr.currencyId] = curr;
+        acc[curr.currencyCode] = curr;
         return acc;
       },
-      {} as Record<number, UserCurrencyModel>,
+      {} as Record<string, UserCurrencyModel>,
     ),
   );
 
@@ -43,7 +43,7 @@ export const useCurrenciesStore = defineStore('currencies', () => {
     systemCurrencies.value = systemOnes;
   };
 
-  const getCurrency = (currencyId: number) => currencies.value.find((currency) => currency.currencyId === currencyId);
+  const getCurrency = (currencyCode: string) => currencies.value.find((currency) => currency.currencyCode === currencyCode);
 
   const loadBaseCurrency = async () => {
     const result = await loadUserBaseCurrency();
@@ -57,8 +57,8 @@ export const useCurrenciesStore = defineStore('currencies', () => {
     }
   };
 
-  const setBaseCurrency = async (currencyId: number) => {
-    const result: UserCurrencyModel = await setBaseUserCurrency(currencyId);
+  const setBaseCurrency = async (currencyCode: string) => {
+    const result: UserCurrencyModel = await setBaseUserCurrency(currencyCode);
 
     if (result) {
       baseCurrency.value = result;

@@ -153,7 +153,6 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     accountId: destinationAccountId,
     categoryId: baseTransaction.categoryId,
     accountType: ACCOUNT_TYPES.system,
-    currencyId: oppositeTxCurrency.id,
     currencyCode: oppositeTxCurrency.code,
     refCurrencyCode: defaultUserCurrency.currency.code,
     transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
@@ -203,8 +202,6 @@ export const createTransaction = withTransaction(
         accountId,
         transferNature,
         refAmount: amount,
-        // since we already pass accountId, we don't need currencyId (at least for now)
-        currencyId: generalTxCurrency.id,
         currencyCode: generalTxCurrency.code,
         transferId: undefined,
         refCurrencyCode: defaultUserCurrency.code,

@@ -1,7 +1,7 @@
 export const GENERIC_CURRENCY = {
   id: 5,
   userId: 34,
-  currencyId: 154,
+  currencyCode: 'USD',
   exchangeRate: 1,
   liveRateUpdate: false,
   isDefaultCurrency: true,

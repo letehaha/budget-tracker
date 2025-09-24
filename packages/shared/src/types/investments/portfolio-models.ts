@@ -5,7 +5,7 @@ import { InvestmentTransactionModel } from './investment-transaction.model';
 
 export interface PortfolioBalanceModel {
   portfolioId: number;
-  currencyId: number;
+  currencyCode: string;
   availableCash: string;
   totalCash: string;
   refAvailableCash: string;
@@ -44,7 +44,7 @@ export interface PortfolioTransferModel {
   toAccountId: number | null;
   amount: string;
   refAmount: string;
-  currencyId: number;
+  currencyCode: string;
   date: string;
   description: string | null;
   createdAt: Date;

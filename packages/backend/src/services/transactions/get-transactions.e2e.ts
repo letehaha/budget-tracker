@@ -20,7 +20,7 @@ describe('Retrieve transactions with filters', () => {
     const accountB = await helpers.createAccount({
       payload: {
         ...helpers.buildAccountPayload(),
-        currencyId: currencyB!.id,
+        currencyCode: currencyB!.currencyCode,
       },
       raw: true,
     });
@@ -353,7 +353,7 @@ describe('Retrieve transactions with filters', () => {
             }),
           ),
         )
-      ).map((items) => items.length);
+      ).map((items) => items?.length ?? 0);
 
       expect(res).toEqual([
         2, // both transactions contain it
@@ -400,7 +400,7 @@ describe('Retrieve transactions with filters', () => {
       });
 
       expect(res.statusCode).toBe(200);
-      expect(helpers.extractResponse(res).length).toBe(1);
+      expect(helpers.extractResponse(res!).length).toBe(1);
     });
 
     it('works fine with incorrect format', async () => {
@@ -420,7 +420,7 @@ describe('Retrieve transactions with filters', () => {
       });
 
       expect(res.statusCode).toBe(200);
-      expect(helpers.extractResponse(res).length).toBe(1);
+      expect(helpers.extractResponse(res!).length).toBe(1);
     });
   });
 });

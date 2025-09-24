@@ -190,11 +190,6 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
 export const getHoldingValues = withDeduplication(getHoldingValuesImpl, {
   keyGenerator: ({ portfolioId, date, userId }) =>
     `holdings-${portfolioId}-${userId || 'no-user'}-${date?.toISOString() || 'latest'}`,
-  ttl:
-    process.env.NODE_ENV === 'test'
-      ? // Avoid any TTL since we don't need cache on the test environment
-        0
-      : // 1 second cache to handle concurrent requests, yet not that much to be stale
-        1000,
+  ttl: 1000, // 1 second cache to handle concurrent requests, yet not that much to be stale
   maxCacheSize: 5, // Reasonable limit for portfolio operations. It's not expected to have huge amount of calls
 });
