@@ -177,12 +177,12 @@ const isAmountFieldDisabled = computed(() => {
 const isCurrenciesDifferent = computed(() => {
   if (!form.value.account || !form.value.toAccount) return false;
 
-  return form.value.account.currencyId !== form.value.toAccount.currencyId;
+  return form.value.account.currencyCode !== form.value.toAccount.currencyCode;
 });
 
 const currencyCode = computed(() => {
-  if (form.value.account?.currencyId) {
-    return currenciesMap.value[form.value.account.currencyId].currency.code;
+  if (form.value.account?.currencyCode) {
+    return currenciesMap.value[form.value.account.currencyCode].currency.code;
   }
   return undefined;
 });

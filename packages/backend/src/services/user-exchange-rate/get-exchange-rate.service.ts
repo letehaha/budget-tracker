@@ -23,10 +23,11 @@ const exchangeRateCache = new CacheClient<ExchangeRateReturnType>({
 export async function getExchangeRate({
   userId,
   date,
-  ...params
+  baseCode,
+  quoteCode,
 }: ExchangeRateParams): Promise<ExchangeRateReturnType> {
   // **REDIS CACHE CHECK - FIRST THING, before any expensive operations**
-  exchangeRateCache.setCacheKey(`exchange_rate:${JSON.stringify({ userId, date, ...params })}`);
+  exchangeRateCache.setCacheKey(`exchange_rate:${JSON.stringify({ userId, date, baseCode, quoteCode })}`);
 
   const cachedResult = await exchangeRateCache.read();
 
@@ -38,19 +39,7 @@ export async function getExchangeRate({
   }
 
   // Now do the expensive operations only on cache miss
-  let pair: { baseCode: string; quoteCode: string };
-
-  if ('baseId' in params && 'quoteId' in params) {
-    const { code: baseCode } = await Currencies.getCurrency({
-      id: params.baseId,
-    });
-    const { code: quoteCode } = await Currencies.getCurrency({
-      id: params.quoteId,
-    });
-    pair = { baseCode, quoteCode };
-  } else {
-    pair = { baseCode: params.baseCode, quoteCode: params.quoteCode };
-  }
+  const pair = { baseCode, quoteCode };
 
   // If base and qoute are the same currency, early return with `1`
   if (pair.baseCode === pair.quoteCode) {
@@ -178,7 +167,9 @@ const loadRate = (code: string, rateDate: Date) => {
 type ExchangeRateParams = {
   userId: number;
   date: Date;
-} & ({ baseId: number; quoteId: number } | { baseCode: string; quoteCode: string });
+  baseCode: string;
+  quoteCode: string;
+};
 
 type ExchangeRateReturnType = {
   baseCode: string;

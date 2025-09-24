@@ -175,7 +175,7 @@ import { useRoute } from 'vue-router';
 
 const route = useRoute();
 const { accountsRecord } = storeToRefs(useAccountsStore());
-const { formatAmountByCurrencyId } = useFormatCurrency();
+const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const accountId = computed(() => parseInt(route.params.accountId as string));
 const account = computed(() => accountsRecord.value[accountId.value]);
@@ -224,7 +224,7 @@ const formatPrice = (holding: HoldingModel) => {
 
   if (qty > 0 && value > 0) {
     const price = value / qty;
-    return formatAmountByCurrencyId(price, holding.currencyCode === 'USD' ? 1 : 1); // Simplified for now
+    return formatAmountByCurrencyCode(price, holding.currencyCode);
   }
   return 'N/A';
 };
@@ -235,17 +235,17 @@ const formatAveragePrice = (holding: HoldingModel) => {
 
   if (qty > 0 && costBasis > 0) {
     const avgPrice = costBasis / qty;
-    return formatAmountByCurrencyId(avgPrice, holding.currencyCode === 'USD' ? 1 : 1); // Simplified for now
+    return formatAmountByCurrencyCode(avgPrice, holding.currencyCode);
   }
   return 'N/A';
 };
 
 const formatCostBasis = (holding: HoldingModel) => {
-  return formatAmountByCurrencyId(parseFloat(holding.costBasis), holding.currencyCode === 'USD' ? 1 : 1); // Simplified for now
+  return formatAmountByCurrencyCode(parseFloat(holding.costBasis), holding.currencyCode);
 };
 
 const formatMarketValue = (holding: HoldingModel) => {
-  return formatAmountByCurrencyId(parseFloat(holding.value), holding.currencyCode === 'USD' ? 1 : 1); // Simplified for now
+  return formatAmountByCurrencyCode(parseFloat(holding.value), holding.currencyCode);
 };
 
 const formatDate = (date: string | Date) => {

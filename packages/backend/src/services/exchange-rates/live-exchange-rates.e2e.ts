@@ -23,7 +23,7 @@ describe('Live exchange rates flows', () => {
     const account = await helpers.createAccount({
       payload: {
         ...helpers.buildAccountPayload(),
-        currencyId: userCurrencyUAH!.currencyId,
+        currencyCode: userCurrencyUAH!.currencyCode,
       },
       raw: true,
     });

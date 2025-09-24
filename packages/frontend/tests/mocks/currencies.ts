@@ -4,7 +4,6 @@ import { USER } from './user';
 
 export const SYSTEM_CURRENCIES: CurrencyModel[] = [
   {
-    id: 721,
     currency: 'UAE Dirham',
     digits: 2,
     number: 784,
@@ -12,7 +11,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 722,
     currency: 'Afghani',
     digits: 2,
     number: 971,
@@ -20,7 +18,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 723,
     currency: 'Lek',
     digits: 2,
     number: 8,
@@ -28,7 +25,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 724,
     currency: 'Armenian Dram',
     digits: 2,
     number: 51,
@@ -36,7 +32,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 725,
     currency: 'Netherlands Antillean Guilder',
     digits: 2,
     number: 532,
@@ -44,7 +39,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 726,
     currency: 'Kwanza',
     digits: 2,
     number: 973,
@@ -52,7 +46,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 727,
     currency: 'Argentine Peso',
     digits: 2,
     number: 32,
@@ -60,7 +53,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 728,
     currency: 'Australian Dollar',
     digits: 2,
     number: 36,
@@ -68,7 +60,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 729,
     currency: 'Aruban Florin',
     digits: 2,
     number: 533,
@@ -76,7 +67,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 730,
     currency: 'Azerbaijan Manat',
     digits: 2,
     number: 944,
@@ -84,7 +74,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 731,
     currency: 'Convertible Mark',
     digits: 2,
     number: 977,
@@ -92,7 +81,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 732,
     currency: 'Barbados Dollar',
     digits: 2,
     number: 52,
@@ -100,7 +88,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 733,
     currency: 'Taka',
     digits: 2,
     number: 50,
@@ -108,7 +95,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 734,
     currency: 'Bulgarian Lev',
     digits: 2,
     number: 975,
@@ -116,7 +102,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 735,
     currency: 'Bahraini Dinar',
     digits: 3,
     number: 48,
@@ -124,7 +109,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 736,
     currency: 'Burundi Franc',
     digits: 0,
     number: 108,
@@ -132,7 +116,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 737,
     currency: 'Bermudian Dollar',
     digits: 2,
     number: 60,
@@ -140,7 +123,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 738,
     currency: 'Brunei Dollar',
     digits: 2,
     number: 96,
@@ -148,7 +130,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 739,
     currency: 'Boliviano',
     digits: 2,
     number: 68,
@@ -156,7 +137,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 741,
     currency: 'Brazilian Real',
     digits: 2,
     number: 986,
@@ -164,7 +144,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 742,
     currency: 'Bahamian Dollar',
     digits: 2,
     number: 44,
@@ -172,7 +151,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 743,
     currency: 'Ngultrum',
     digits: 2,
     number: 64,
@@ -180,7 +158,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 744,
     currency: 'Pula',
     digits: 2,
     number: 72,
@@ -188,7 +165,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 745,
     currency: 'Belarusian Ruble',
     digits: 2,
     number: 933,
@@ -196,7 +172,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 746,
     currency: 'Belize Dollar',
     digits: 2,
     number: 84,
@@ -204,7 +179,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 747,
     currency: 'Canadian Dollar',
     digits: 2,
     number: 124,
@@ -212,7 +186,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 748,
     currency: 'Congolese Franc',
     digits: 2,
     number: 976,
@@ -220,7 +193,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 750,
     currency: 'Swiss Franc',
     digits: 2,
     number: 756,
@@ -228,7 +200,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 752,
     currency: 'Unidad de Fomento',
     digits: 4,
     number: 990,
@@ -236,7 +207,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 753,
     currency: 'Chilean Peso',
     digits: 0,
     number: 152,
@@ -244,7 +214,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 754,
     currency: 'Yuan Renminbi',
     digits: 2,
     number: 156,
@@ -252,7 +221,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 755,
     currency: 'Colombian Peso',
     digits: 2,
     number: 170,
@@ -260,7 +228,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 757,
     currency: 'Costa Rican Colon',
     digits: 2,
     number: 188,
@@ -268,7 +235,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 758,
     currency: 'Peso Convertible',
     digits: 2,
     number: 931,
@@ -276,7 +242,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 759,
     currency: 'Cuban Peso',
     digits: 2,
     number: 192,
@@ -284,7 +249,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 760,
     currency: 'Cabo Verde Escudo',
     digits: 2,
     number: 132,
@@ -292,7 +256,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 761,
     currency: 'Czech Koruna',
     digits: 2,
     number: 203,
@@ -300,7 +263,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 762,
     currency: 'Djibouti Franc',
     digits: 0,
     number: 262,
@@ -308,7 +270,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 763,
     currency: 'Danish Krone',
     digits: 2,
     number: 208,
@@ -316,7 +277,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 764,
     currency: 'Dominican Peso',
     digits: 2,
     number: 214,
@@ -324,7 +284,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 765,
     currency: 'Algerian Dinar',
     digits: 2,
     number: 12,
@@ -332,7 +291,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 766,
     currency: 'Egyptian Pound',
     digits: 2,
     number: 818,
@@ -340,7 +298,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 767,
     currency: 'Nakfa',
     digits: 2,
     number: 232,
@@ -348,7 +305,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 768,
     currency: 'Ethiopian Birr',
     digits: 2,
     number: 230,
@@ -356,7 +312,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 769,
     currency: 'Euro',
     digits: 2,
     number: 978,
@@ -364,7 +319,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 770,
     currency: 'Fiji Dollar',
     digits: 2,
     number: 242,
@@ -372,7 +326,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 771,
     currency: 'Falkland Islands Pound',
     digits: 2,
     number: 238,
@@ -380,7 +333,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 772,
     currency: 'Pound Sterling',
     digits: 2,
     number: 826,
@@ -388,7 +340,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 773,
     currency: 'Lari',
     digits: 2,
     number: 981,
@@ -396,7 +347,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 774,
     currency: 'Ghana Cedi',
     digits: 2,
     number: 936,
@@ -404,7 +354,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 775,
     currency: 'Gibraltar Pound',
     digits: 2,
     number: 292,
@@ -412,7 +361,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 776,
     currency: 'Dalasi',
     digits: 2,
     number: 270,
@@ -420,7 +368,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 777,
     currency: 'Guinean Franc',
     digits: 0,
     number: 324,
@@ -428,7 +375,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 778,
     currency: 'Quetzal',
     digits: 2,
     number: 320,
@@ -436,7 +382,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 779,
     currency: 'Guyana Dollar',
     digits: 2,
     number: 328,
@@ -444,7 +389,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 780,
     currency: 'Hong Kong Dollar',
     digits: 2,
     number: 344,
@@ -452,7 +396,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 781,
     currency: 'Lempira',
     digits: 2,
     number: 340,
@@ -460,7 +403,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 782,
     currency: 'Kuna',
     digits: 2,
     number: 191,
@@ -468,7 +410,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 783,
     currency: 'Gourde',
     digits: 2,
     number: 332,
@@ -476,7 +417,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 784,
     currency: 'Forint',
     digits: 2,
     number: 348,
@@ -484,7 +424,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 785,
     currency: 'Rupiah',
     digits: 2,
     number: 360,
@@ -492,7 +431,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 786,
     currency: 'New Israeli Sheqel',
     digits: 2,
     number: 376,
@@ -500,7 +438,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 787,
     currency: 'Indian Rupee',
     digits: 2,
     number: 356,
@@ -508,7 +445,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 788,
     currency: 'Iraqi Dinar',
     digits: 3,
     number: 368,
@@ -516,7 +452,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 789,
     currency: 'Iranian Rial',
     digits: 2,
     number: 364,
@@ -524,7 +459,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 790,
     currency: 'Iceland Krona',
     digits: 0,
     number: 352,
@@ -532,7 +466,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 791,
     currency: 'Jamaican Dollar',
     digits: 2,
     number: 388,
@@ -540,7 +473,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 792,
     currency: 'Jordanian Dinar',
     digits: 3,
     number: 400,
@@ -548,7 +480,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 793,
     currency: 'Yen',
     digits: 0,
     number: 392,
@@ -556,7 +487,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 794,
     currency: 'Kenyan Shilling',
     digits: 2,
     number: 404,
@@ -564,7 +494,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 795,
     currency: 'Som',
     digits: 2,
     number: 417,
@@ -572,7 +501,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 796,
     currency: 'Riel',
     digits: 2,
     number: 116,
@@ -580,7 +508,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 797,
     currency: 'Comorian Franc ',
     digits: 0,
     number: 174,
@@ -588,7 +515,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 798,
     currency: 'North Korean Won',
     digits: 2,
     number: 408,
@@ -596,7 +522,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 799,
     currency: 'Won',
     digits: 0,
     number: 410,
@@ -604,7 +529,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 800,
     currency: 'Kuwaiti Dinar',
     digits: 3,
     number: 414,
@@ -612,7 +536,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 801,
     currency: 'Cayman Islands Dollar',
     digits: 2,
     number: 136,
@@ -620,7 +543,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 802,
     currency: 'Tenge',
     digits: 2,
     number: 398,
@@ -628,7 +550,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 803,
     currency: 'Lao Kip',
     digits: 2,
     number: 418,
@@ -636,7 +557,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 804,
     currency: 'Lebanese Pound',
     digits: 2,
     number: 422,
@@ -644,7 +564,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 805,
     currency: 'Sri Lanka Rupee',
     digits: 2,
     number: 144,
@@ -652,7 +571,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 806,
     currency: 'Liberian Dollar',
     digits: 2,
     number: 430,
@@ -660,7 +578,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 807,
     currency: 'Loti',
     digits: 2,
     number: 426,
@@ -668,7 +585,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 808,
     currency: 'Libyan Dinar',
     digits: 3,
     number: 434,
@@ -676,7 +592,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 809,
     currency: 'Moroccan Dirham',
     digits: 2,
     number: 504,
@@ -684,7 +599,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 810,
     currency: 'Moldovan Leu',
     digits: 2,
     number: 498,
@@ -692,7 +606,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 811,
     currency: 'Malagasy Ariary',
     digits: 2,
     number: 969,
@@ -700,7 +613,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 812,
     currency: 'Denar',
     digits: 2,
     number: 807,
@@ -708,7 +620,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 813,
     currency: 'Kyat',
     digits: 2,
     number: 104,
@@ -716,7 +627,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 814,
     currency: 'Tugrik',
     digits: 2,
     number: 496,
@@ -724,7 +634,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 815,
     currency: 'Pataca',
     digits: 2,
     number: 446,
@@ -732,7 +641,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 817,
     currency: 'Mauritius Rupee',
     digits: 2,
     number: 480,
@@ -740,7 +648,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 818,
     currency: 'Rufiyaa',
     digits: 2,
     number: 462,
@@ -748,7 +655,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 819,
     currency: 'Malawi Kwacha',
     digits: 2,
     number: 454,
@@ -756,7 +662,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 820,
     currency: 'Mexican Peso',
     digits: 2,
     number: 484,
@@ -764,7 +669,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 822,
     currency: 'Malaysian Ringgit',
     digits: 2,
     number: 458,
@@ -772,7 +676,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 823,
     currency: 'Mozambique Metical',
     digits: 2,
     number: 943,
@@ -780,7 +683,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 824,
     currency: 'Namibia Dollar',
     digits: 2,
     number: 516,
@@ -788,7 +690,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 825,
     currency: 'Naira',
     digits: 2,
     number: 566,
@@ -796,7 +697,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 826,
     currency: 'Cordoba Oro',
     digits: 2,
     number: 558,
@@ -804,7 +704,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 827,
     currency: 'Norwegian Krone',
     digits: 2,
     number: 578,
@@ -812,7 +711,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 828,
     currency: 'Nepalese Rupee',
     digits: 2,
     number: 524,
@@ -820,7 +718,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 829,
     currency: 'New Zealand Dollar',
     digits: 2,
     number: 554,
@@ -828,7 +725,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 830,
     currency: 'Rial Omani',
     digits: 3,
     number: 512,
@@ -836,7 +732,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 831,
     currency: 'Balboa',
     digits: 2,
     number: 590,
@@ -844,7 +739,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 832,
     currency: 'Sol',
     digits: 2,
     number: 604,
@@ -852,7 +746,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 833,
     currency: 'Kina',
     digits: 2,
     number: 598,
@@ -860,7 +753,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 834,
     currency: 'Philippine Peso',
     digits: 2,
     number: 608,
@@ -868,7 +760,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 835,
     currency: 'Pakistan Rupee',
     digits: 2,
     number: 586,
@@ -876,7 +767,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 836,
     currency: 'Zloty',
     digits: 2,
     number: 985,
@@ -884,7 +774,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 837,
     currency: 'Guarani',
     digits: 0,
     number: 600,
@@ -892,7 +781,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 838,
     currency: 'Qatari Rial',
     digits: 2,
     number: 634,
@@ -900,7 +788,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 839,
     currency: 'Romanian Leu',
     digits: 2,
     number: 946,
@@ -908,7 +795,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 840,
     currency: 'Serbian Dinar',
     digits: 2,
     number: 941,
@@ -916,7 +802,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 841,
     currency: 'Russian Ruble',
     digits: 2,
     number: 643,
@@ -924,7 +809,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 842,
     currency: 'Rwanda Franc',
     digits: 0,
     number: 646,
@@ -932,7 +816,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 843,
     currency: 'Saudi Riyal',
     digits: 2,
     number: 682,
@@ -940,7 +823,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 844,
     currency: 'Solomon Islands Dollar',
     digits: 2,
     number: 90,
@@ -948,7 +830,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 845,
     currency: 'Seychelles Rupee',
     digits: 2,
     number: 690,
@@ -956,7 +837,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 846,
     currency: 'Sudanese Pound',
     digits: 2,
     number: 938,
@@ -964,7 +844,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 847,
     currency: 'Swedish Krona',
     digits: 2,
     number: 752,
@@ -972,7 +851,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 848,
     currency: 'Singapore Dollar',
     digits: 2,
     number: 702,
@@ -980,7 +858,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 849,
     currency: 'Saint Helena Pound',
     digits: 2,
     number: 654,
@@ -988,7 +865,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 850,
     currency: 'Leone',
     digits: 2,
     number: 694,
@@ -996,7 +872,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 851,
     currency: 'Somali Shilling',
     digits: 2,
     number: 706,
@@ -1004,7 +879,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 852,
     currency: 'Surinam Dollar',
     digits: 2,
     number: 968,
@@ -1012,7 +886,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 855,
     currency: 'El Salvador Colon',
     digits: 2,
     number: 222,
@@ -1020,7 +893,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 856,
     currency: 'Syrian Pound',
     digits: 2,
     number: 760,
@@ -1028,7 +900,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 857,
     currency: 'Lilangeni',
     digits: 2,
     number: 748,
@@ -1036,7 +907,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 858,
     currency: 'Baht',
     digits: 2,
     number: 764,
@@ -1044,7 +914,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 859,
     currency: 'Somoni',
     digits: 2,
     number: 972,
@@ -1052,7 +921,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 860,
     currency: 'Turkmenistan New Manat',
     digits: 2,
     number: 934,
@@ -1060,7 +928,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 861,
     currency: 'Tunisian Dinar',
     digits: 3,
     number: 788,
@@ -1068,7 +935,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 862,
     currency: 'Pa’anga',
     digits: 2,
     number: 776,
@@ -1076,7 +942,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 863,
     currency: 'Turkish Lira',
     digits: 2,
     number: 949,
@@ -1084,7 +949,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 864,
     currency: 'Trinidad and Tobago Dollar',
     digits: 2,
     number: 780,
@@ -1092,7 +956,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 865,
     currency: 'New Taiwan Dollar',
     digits: 2,
     number: 901,
@@ -1100,7 +963,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 866,
     currency: 'Tanzanian Shilling',
     digits: 2,
     number: 834,
@@ -1108,7 +970,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 867,
     currency: 'Hryvnia',
     digits: 2,
     number: 980,
@@ -1116,7 +977,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 868,
     currency: 'Uganda Shilling',
     digits: 0,
     number: 800,
@@ -1124,7 +984,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 869,
     currency: 'US Dollar',
     digits: 2,
     number: 840,
@@ -1132,7 +991,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 872,
     currency: 'Peso Uruguayo',
     digits: 2,
     number: 858,
@@ -1140,7 +998,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 874,
     currency: 'Uzbekistan Sum',
     digits: 2,
     number: 860,
@@ -1148,7 +1005,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 876,
     currency: 'Dong',
     digits: 0,
     number: 704,
@@ -1156,7 +1012,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 877,
     currency: 'Vatu',
     digits: 0,
     number: 548,
@@ -1164,7 +1019,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 878,
     currency: 'Tala',
     digits: 2,
     number: 882,
@@ -1172,7 +1026,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 879,
     currency: 'CFA Franc BEAC',
     digits: 0,
     number: 950,
@@ -1180,7 +1033,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 880,
     currency: 'Silver',
     digits: 0,
     number: 961,
@@ -1188,7 +1040,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 881,
     currency: 'Gold',
     digits: 0,
     number: 959,
@@ -1196,7 +1047,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 886,
     currency: 'East Caribbean Dollar',
     digits: 2,
     number: 951,
@@ -1204,7 +1054,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 887,
     currency: 'SDR (Special Drawing Right)',
     digits: 0,
     number: 960,
@@ -1212,7 +1061,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 888,
     currency: 'CFA Franc BCEAO',
     digits: 0,
     number: 952,
@@ -1220,7 +1068,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 890,
     currency: 'CFP Franc',
     digits: 0,
     number: 953,
@@ -1228,7 +1075,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 896,
     currency: 'Yemeni Rial',
     digits: 2,
     number: 886,
@@ -1236,7 +1082,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 897,
     currency: 'Rand',
     digits: 2,
     number: 710,
@@ -1244,7 +1089,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 898,
     currency: 'Zambian Kwacha',
     digits: 2,
     number: 967,
@@ -1252,7 +1096,6 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
     isDisabled: false,
   },
   {
-    id: 899,
     currency: 'Zimbabwe Dollar',
     digits: 2,
     number: 932,
@@ -1262,9 +1105,9 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
 ];
 export const USER_BASE_CURRENCY_CODE = 'UAH';
 export const USER_BASE_CURRENCY: UserCurrencyModel = {
-  id: 1,
+  id: 10,
   userId: USER.id,
-  currencyId: SYSTEM_CURRENCIES.find((item) => item.code === USER_BASE_CURRENCY_CODE).id,
+  currencyCode: USER_BASE_CURRENCY_CODE,
   exchangeRate: 1,
   liveRateUpdate: false,
   isDefaultCurrency: true,
@@ -1274,18 +1117,18 @@ export const USER_BASE_CURRENCY: UserCurrencyModel = {
 export const USER_CURRENCIES: UserCurrencyModel[] = [
   USER_BASE_CURRENCY,
   {
-    id: 2,
+    id: 11,
     userId: USER.id,
-    currencyId: SYSTEM_CURRENCIES.find((item) => item.code === 'EUR').id,
+    currencyCode: 'EUR',
     exchangeRate: 40,
     liveRateUpdate: false,
     isDefaultCurrency: false,
     currency: SYSTEM_CURRENCIES.find((item) => item.code === 'EUR'),
   },
   {
-    id: 3,
+    id: 12,
     userId: USER.id,
-    currencyId: SYSTEM_CURRENCIES.find((item) => item.code === 'USD').id,
+    currencyCode: 'USD',
     exchangeRate: 37,
     liveRateUpdate: false,
     isDefaultCurrency: false,

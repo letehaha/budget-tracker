@@ -79,7 +79,7 @@ const monobankStore = useBanksMonobankStore();
 const { accounts } = storeToRefs(useAccountsStore());
 const { isMonoAccountPaired: isPaired, isTokenPresent } = storeToRefs(monobankStore);
 
-const { formatAmountByCurrencyId } = useFormatCurrency();
+const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const refreshMonoAccounts = () => {
   monobankStore.refreshAccounts();
@@ -88,5 +88,5 @@ const refreshMonoAccounts = () => {
 const formattedAccounts = computed(() => [...accounts.value].sort((a, b) => +b.isEnabled - +a.isEnabled));
 
 const formatBalance = (account: AccountModel) =>
-  formatAmountByCurrencyId(account.currentBalance - account.creditLimit, account.currencyId);
+  formatAmountByCurrencyCode(account.currentBalance - account.creditLimit, account.currencyCode);
 </script>

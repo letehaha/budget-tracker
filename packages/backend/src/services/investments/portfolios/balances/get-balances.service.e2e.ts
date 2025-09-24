@@ -32,7 +32,7 @@ describe('Get Portfolio Balance Service E2E', () => {
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
 
-    it('should handle currencyId query parameter', async () => {
+    it('should handle currencyCode query parameter', async () => {
       const createResponse = await helpers.createPortfolio({
         payload: {
           name: 'Test Portfolio',
@@ -44,7 +44,7 @@ describe('Get Portfolio Balance Service E2E', () => {
 
       const balances = await helpers.getPortfolioBalance({
         portfolioId: createdPortfolio.id,
-        currencyId: 1,
+        currencyCode: 'USD',
         raw: true,
       });
 

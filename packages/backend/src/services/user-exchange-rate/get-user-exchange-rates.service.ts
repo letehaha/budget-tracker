@@ -18,8 +18,8 @@ export const getUserExchangeRates = withTransaction(async ({ userId }: { userId:
     userCurrencies.map((item) =>
       getExchangeRate({
         userId,
-        baseId: item.currencyId,
-        quoteId: userBaseCurrency.currencyId,
+        baseCode: item.currencyCode,
+        quoteCode: userBaseCurrency.currencyCode,
         date: new Date(),
       }),
     ),

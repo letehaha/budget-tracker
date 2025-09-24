@@ -8,10 +8,10 @@ import { WhereOptions } from 'sequelize';
 interface GetPortfolioBalancesParams {
   userId: number;
   portfolioId: number;
-  currencyId?: number; // If specified, return balance for specific currency only
+  currencyCode?: string; // If specified, return balance for specific currency only
 }
 
-const getPortfolioBalancesImpl = async ({ userId, portfolioId, currencyId }: GetPortfolioBalancesParams) => {
+const getPortfolioBalancesImpl = async ({ userId, portfolioId, currencyCode }: GetPortfolioBalancesParams) => {
   // Verify portfolio exists and user owns it
   const portfolio = await Portfolios.findOne({
     where: { id: portfolioId, userId },
@@ -23,8 +23,8 @@ const getPortfolioBalancesImpl = async ({ userId, portfolioId, currencyId }: Get
 
   // Build where clause for balance query
   const where: WhereOptions<PortfolioBalances> = { portfolioId };
-  if (currencyId !== undefined) {
-    where.currencyId = currencyId;
+  if (currencyCode !== undefined) {
+    where.currencyCode = currencyCode;
   }
 
   // Get portfolio balances

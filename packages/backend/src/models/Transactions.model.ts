@@ -74,7 +74,6 @@ export interface TransactionsAttributes {
   paymentType: PAYMENT_TYPES;
   accountId: number;
   categoryId: number;
-  currencyId: number;
   currencyCode: string;
   accountType: ACCOUNT_TYPES;
   refCurrencyCode: string;
@@ -160,16 +159,14 @@ export default class Transactions extends Model {
   categoryId!: number;
 
   @ForeignKey(() => Currencies)
-  @Column({ allowNull: true, type: DataType.INTEGER })
-  currencyId!: number;
-
-  @Column({ allowNull: true, type: DataType.STRING })
+  @Column({ allowNull: true, type: DataType.STRING(3) })
   currencyCode!: string;
 
   @Column({ allowNull: false, defaultValue: ACCOUNT_TYPES.system, type: DataType.ENUM(...Object.values(ACCOUNT_TYPES)), })
   accountType!: ACCOUNT_TYPES;
 
-  @Column({ allowNull: true, defaultValue: null, type: DataType.STRING })
+  @ForeignKey(() => Currencies)
+  @Column({ allowNull: true, defaultValue: null, type: DataType.STRING(3) })
   refCurrencyCode!: string;
 
   @Column({
@@ -250,7 +247,7 @@ export default class Transactions extends Model {
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
-    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, userId, currencyCode, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
@@ -259,7 +256,7 @@ export default class Transactions extends Model {
         amount,
         refAmount,
         transactionType,
-        currencyId,
+        currencyCode,
       });
     }
 
@@ -283,7 +280,7 @@ export default class Transactions extends Model {
           prevAmount: prevData.amount,
           prevRefAmount: prevData.refAmount,
           transactionType: prevData.transactionType,
-          currencyId: prevData.currencyId,
+          currencyCode: prevData.currencyCode,
         });
 
         // Update new tx
@@ -293,7 +290,7 @@ export default class Transactions extends Model {
           amount: newData.amount,
           refAmount: newData.refAmount,
           transactionType: newData.transactionType,
-          currencyId: newData.currencyId,
+          currencyCode: newData.currencyCode,
         });
       } else {
         await updateAccountBalanceForChangedTx({
@@ -305,7 +302,7 @@ export default class Transactions extends Model {
           prevRefAmount: prevData.refAmount,
           transactionType: newData.transactionType,
           prevTransactionType: prevData.transactionType,
-          currencyId: newData.currencyId,
+          currencyCode: newData.currencyCode,
         });
       }
     }
@@ -316,7 +313,7 @@ export default class Transactions extends Model {
       refAmount: prevData.refAmount,
       time: prevData.time,
       transactionType: prevData.transactionType,
-      currencyId: prevData.currencyId,
+      currencyCode: prevData.currencyCode,
     } as Transactions;
 
     await Balances.handleTransactionChange({
@@ -327,7 +324,7 @@ export default class Transactions extends Model {
 
   @BeforeDestroy
   static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
-    const { accountType, accountId, userId, currencyId, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, userId, currencyCode, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
@@ -336,7 +333,7 @@ export default class Transactions extends Model {
         prevAmount: amount,
         prevRefAmount: refAmount,
         transactionType,
-        currencyId,
+        currencyCode,
       });
     }
 
@@ -616,7 +613,6 @@ type CreateTxRequiredParams = Pick<
   | 'transactionType'
   | 'paymentType'
   | 'accountId'
-  | 'currencyId'
   | 'currencyCode'
   | 'accountType'
   | 'transferNature'
@@ -659,7 +655,6 @@ export interface UpdateTransactionByIdParams {
   paymentType?: PAYMENT_TYPES;
   accountId?: number;
   categoryId?: number;
-  currencyId?: number;
   currencyCode?: string;
   refCurrencyCode?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
@@ -696,7 +691,7 @@ export const updateTransactions = (
     accountId?: number;
     categoryId?: number;
     accountType?: ACCOUNT_TYPES;
-    currencyId?: number;
+    currencyCode?: string;
     refCurrencyCode?: string;
     refundLinked?: boolean;
   },

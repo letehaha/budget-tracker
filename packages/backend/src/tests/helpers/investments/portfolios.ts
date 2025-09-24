@@ -84,17 +84,17 @@ export async function getPortfolio<R extends boolean | undefined = false>({
 
 export async function getPortfolioBalance<R extends boolean | undefined = false>({
   portfolioId,
-  currencyId,
+  currencyCode,
   raw,
 }: {
   portfolioId: number;
-  currencyId?: number;
+  currencyCode?: string;
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _getPortfolioBalances>>, R>({
     method: 'get',
     url: `/investments/portfolios/${portfolioId}/balance`,
-    payload: removeUndefinedKeys({ currencyId }),
+    payload: removeUndefinedKeys({ currencyCode }),
     raw,
   });
 }
@@ -135,7 +135,7 @@ export async function deletePortfolio<R extends boolean | undefined = false>({
 
 export async function updatePortfolioBalance<R extends boolean | undefined = false>({
   portfolioId,
-  currencyId,
+  currencyCode,
   availableCashDelta,
   totalCashDelta,
   setAvailableCash,
@@ -143,7 +143,7 @@ export async function updatePortfolioBalance<R extends boolean | undefined = fal
   raw,
 }: {
   portfolioId: number;
-  currencyId: number;
+  currencyCode: string;
   availableCashDelta?: string;
   totalCashDelta?: string;
   setAvailableCash?: string;
@@ -154,7 +154,7 @@ export async function updatePortfolioBalance<R extends boolean | undefined = fal
     method: 'put',
     url: `/investments/portfolios/${portfolioId}/balance`,
     payload: removeUndefinedKeys({
-      currencyId,
+      currencyCode,
       availableCashDelta,
       totalCashDelta,
       setAvailableCash,

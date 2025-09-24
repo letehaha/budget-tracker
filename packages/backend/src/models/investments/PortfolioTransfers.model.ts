@@ -60,8 +60,8 @@ export default class PortfolioTransfers extends Model implements PortfolioTransf
 
   @ForeignKey(() => Currencies)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  currencyId!: number;
+  @Column({ type: DataType.STRING(3), allowNull: false })
+  currencyCode!: string;
 
   @Index
   @Column({ type: DataType.DATEONLY, allowNull: false })

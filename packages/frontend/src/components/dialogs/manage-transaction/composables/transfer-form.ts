@@ -42,7 +42,7 @@ export const useTransferFormLogic = ({
     return false;
   });
 
-  const targetCurrency = computed(() => currenciesMap.value[form.value.toAccount?.currencyId]);
+  const targetCurrency = computed(() => currenciesMap.value[form.value.toAccount?.currencyCode]);
 
   const fromAccountFieldDisabled = computed(() => {
     if (isRecordExternal.value) {

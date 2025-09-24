@@ -7,7 +7,7 @@ export const addUserCurrencies = withTransaction(
   async (
     currencies: {
       userId: number;
-      currencyId: number;
+      currencyCode: string;
       exchangeRate?: number;
       liveRateUpdate?: boolean;
     }[],
@@ -19,19 +19,19 @@ export const addUserCurrencies = withTransaction(
     const existingCurrencies = await UsersCurrencies.getCurrencies({
       userId: currencies[0].userId,
     });
-    const alreadyExistsIds: number[] = [];
+    const alreadyExistsCodes: string[] = [];
 
     existingCurrencies.forEach((item) => {
-      const index = currencies.findIndex((currency) => currency.currencyId === item.currencyId);
+      const index = currencies.findIndex((currency) => currency.currencyCode === item.currencyCode);
 
       if (index >= 0) {
-        alreadyExistsIds.push(currencies[index]!.currencyId);
+        alreadyExistsCodes.push(currencies[index]!.currencyCode);
         currencies.splice(index, 1);
       }
     });
 
     const result = await Promise.all(currencies.map((item) => UsersCurrencies.addCurrency(item)));
 
-    return { currencies: result, alreadyExistingIds: alreadyExistsIds };
+    return { currencies: result, alreadyExistingCodes: alreadyExistsCodes };
   },
 );

@@ -12,14 +12,6 @@ import { NotFoundError } from '@js/errors';
   freezeTableName: true,
 })
 export default class UsersCurrencies extends Model {
-  @BelongsTo(() => Users, {
-    as: 'user',
-    foreignKey: 'userId',
-  })
-  @BelongsTo(() => Currencies, {
-    as: 'currency',
-    foreignKey: 'currencyId',
-  })
   @Column({
     unique: true,
     allowNull: false,
@@ -34,11 +26,20 @@ export default class UsersCurrencies extends Model {
   userId!: number;
 
   @ForeignKey(() => Currencies)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  currencyId!: number;
+  @Column({ allowNull: false, type: DataType.STRING(3) })
+  currencyCode!: string;
+
+  @BelongsTo(() => Users, {
+    as: 'user',
+    foreignKey: 'userId',
+  })
+  @BelongsTo(() => Currencies, {
+    as: 'currency',
+    foreignKey: 'currencyCode',
+  })
 
   // Since base currency is always the same, here we're setting exchange rate
-  // between currencyId to user's base currency
+  // between currencyCode to user's base currency
   // TODO: probably deprecated?
   @Column({
     allowNull: true,
@@ -62,12 +63,12 @@ export default class UsersCurrencies extends Model {
   isDefaultCurrency!: boolean;
 }
 
-export async function getCurrencies({ userId, ids }: { userId: number; ids?: number[] }) {
+export async function getCurrencies({ userId, codes }: { userId: number; codes?: string[] }) {
   const where: Record<string, unknown> = {
     userId,
   };
 
-  if (ids) where.currencyId = { [Op.in]: ids };
+  if (codes) where.currencyCode = { [Op.in]: codes };
 
   return UsersCurrencies.findAll({
     where,
@@ -87,7 +88,7 @@ export const getBaseCurrency = async ({ userId }: { userId: number }) => {
 };
 
 type getCurrencyOverload = {
-  ({ userId, currencyId }: { userId: number; currencyId: number }): Promise<UsersCurrencies & { currency: Currencies }>;
+  ({ userId, currencyCode }: { userId: number; currencyCode: string }): Promise<UsersCurrencies & { currency: Currencies }>;
   ({
     userId,
     isDefaultCurrency,
@@ -98,15 +99,15 @@ type getCurrencyOverload = {
 };
 export const getCurrency: getCurrencyOverload = ({
   userId,
-  currencyId,
+  currencyCode,
   isDefaultCurrency,
 }: {
   userId: number;
-  currencyId?: number;
+  currencyCode?: string;
   isDefaultCurrency?: boolean;
 }) => {
   return UsersCurrencies.findOne({
-    where: removeUndefinedKeys({ userId, currencyId, isDefaultCurrency }),
+    where: removeUndefinedKeys({ userId, currencyCode, isDefaultCurrency }),
     include: {
       model: Currencies,
     },
@@ -115,26 +116,26 @@ export const getCurrency: getCurrencyOverload = ({
 
 export const addCurrency = async ({
   userId,
-  currencyId,
+  currencyCode,
   exchangeRate,
   liveRateUpdate = true,
   isDefaultCurrency,
 }: {
   userId: number;
-  currencyId: number;
+  currencyCode: string;
   exchangeRate?: number;
   liveRateUpdate?: boolean;
   isDefaultCurrency?: boolean;
 }) => {
-  const currency = await Currencies.findByPk(currencyId);
+  const currency = await Currencies.findByPk(currencyCode);
   if (!currency) {
     throw new NotFoundError({
-      message: 'Currency with provided id does not exist!',
+      message: 'Currency with provided code does not exist!',
     });
   }
 
   const existingCurrency = await UsersCurrencies.findOne({
-    where: { userId, currencyId },
+    where: { userId, currencyCode },
     raw: true,
   });
   if (existingCurrency) return existingCurrency;
@@ -142,7 +143,7 @@ export const addCurrency = async ({
   return UsersCurrencies.create(
     {
       userId,
-      currencyId,
+      currencyCode,
       exchangeRate,
       liveRateUpdate,
       isDefaultCurrency,
@@ -156,18 +157,18 @@ export const addCurrency = async ({
 
 export const updateCurrency = async ({
   userId,
-  currencyId,
+  currencyCode,
   exchangeRate,
   liveRateUpdate,
   isDefaultCurrency,
 }: {
   userId: number;
-  currencyId: number;
+  currencyCode: string;
   exchangeRate?: number;
   liveRateUpdate?: boolean;
   isDefaultCurrency?: boolean;
 }) => {
-  const where = { userId, currencyId };
+  const where = { userId, currencyCode };
 
   await UsersCurrencies.update(
     {
@@ -185,8 +186,8 @@ export const updateCurrency = async ({
   return currency;
 };
 
-export const deleteCurrency = async ({ userId, currencyId }: { userId: number; currencyId: number }) => {
-  const where = { userId, currencyId };
+export const deleteCurrency = async ({ userId, currencyCode }: { userId: number; currencyCode: string }) => {
+  const where = { userId, currencyCode };
 
   return UsersCurrencies.destroy({
     where,
@@ -195,25 +196,25 @@ export const deleteCurrency = async ({ userId, currencyId }: { userId: number; c
 
 export const updateCurrencies = async ({
   userId,
-  currencyIds,
+  currencyCodes,
   exchangeRate,
   liveRateUpdate,
   isDefaultCurrency,
 }: {
   userId: number;
-  currencyIds?: number[];
+  currencyCodes?: string[];
   exchangeRate?: number;
   liveRateUpdate?: boolean;
   isDefaultCurrency?: boolean;
 }) => {
   const where: {
     userId: number;
-    currencyId?: { [Op.in]: number[] };
+    currencyCode?: { [Op.in]: string[] };
   } = { userId };
 
-  if (currencyIds?.length) {
-    where.currencyId = {
-      [Op.in]: currencyIds,
+  if (currencyCodes?.length) {
+    where.currencyCode = {
+      [Op.in]: currencyCodes,
     };
   }
 

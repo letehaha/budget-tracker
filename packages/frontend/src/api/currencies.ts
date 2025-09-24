@@ -23,13 +23,13 @@ export const editUserCurrenciesExchangeRates = async (
   }[],
 ): Promise<UserExchangeRatesModel[]> => api.put('/user/currency/rates', { pairs });
 
-export const deleteUserCurrency = (currencyId: number) => api.delete('/user/currency', { currencyId });
+export const deleteUserCurrency = (currencyCode: string) => api.delete('/user/currency', { currencyCode });
 
-export const setBaseUserCurrency = (currencyId: number) => api.post('/user/currencies/base', { currencyId });
+export const setBaseUserCurrency = (currencyCode: string) => api.post('/user/currencies/base', { currencyCode });
 
 export const addUserCurrencies = async (
   currencies: {
-    currencyId: number;
+    currencyCode: string;
     exchangeRate?: number;
     liveRateUpdate?: boolean;
   }[],

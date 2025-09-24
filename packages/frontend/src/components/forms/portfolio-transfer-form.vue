@@ -178,9 +178,9 @@ const { isFormValid, getFieldErrorMessage, touchField, resetValidation } = useFo
 watch(
   [() => form.fromPortfolio, () => form.fromAccount],
   () => {
-    const sourceCurrencyId = form.fromPortfolio?.balances?.[0]?.currencyId || form.fromAccount?.currencyId;
-    if (sourceCurrencyId && !form.selectedCurrency) {
-      form.selectedCurrency = currencies.value?.find((c) => c.currencyId === sourceCurrencyId) || null;
+    const sourceCurrencyCode = form.fromPortfolio?.balances?.[0]?.currencyCode || form.fromAccount?.currencyCode;
+    if (sourceCurrencyCode && !form.selectedCurrency) {
+      form.selectedCurrency = currencies.value?.find((c) => c.currencyCode === sourceCurrencyCode) || null;
     }
   },
   { immediate: true },
@@ -288,7 +288,7 @@ const confirmTransfer = async () => {
       await createTransferMutation.mutateAsync({
         fromPortfolioId: form.fromPortfolio!.id,
         toPortfolioId: form.toPortfolio?.id || 0, // 0 for account transfers
-        currencyId: form.selectedCurrency!.currencyId,
+        currencyCode: form.selectedCurrency!.currencyCode,
         amount: form.amount,
         date: form.date.toISOString().split('T')[0],
         description: form.description || undefined,
@@ -394,7 +394,7 @@ const isSubmitDisabled = computed(
       v-model="form.selectedCurrency"
       label="Currency"
       :values="currencies || []"
-      value-key="currencyId"
+      value-key="currencyCode"
       :label-key="(currency) => currency.currency.code"
       placeholder="Select currency"
       :disabled="createTransferMutation.isPending.value || disabled"

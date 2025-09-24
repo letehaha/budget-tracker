@@ -26,31 +26,18 @@ const sortKey = ref<'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost' | 
 );
 const sortDir = ref<'asc' | 'desc'>('desc');
 
-const { formatAmountByCurrencyId } = useFormatCurrency();
+const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { currencies } = storeToRefs(useCurrenciesStore());
-const currencyCodeToIdMap = computed(() => {
-  if (!currencies.value) return {};
-  return currencies.value.reduce(
-    (acc, currency) => {
-      acc[currency.currency.code] = currency.currencyId;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-});
-
-const getCurrencyIdByCode = (code: string) => currencyCodeToIdMap.value[code];
-
 const formatCurrency = (amount: number, currencyCode: string) => {
-  const currencyId = getCurrencyIdByCode(currencyCode.toUpperCase());
-  if (currencyId === undefined) {
+  const userCurrency = currencies.value.find(c => c.currency.code === currencyCode.toUpperCase());
+  if (!userCurrency) {
     // Fallback or default formatting if currency not found
     return amount.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
   }
-  return formatAmountByCurrencyId(amount, currencyId);
+  return formatAmountByCurrencyCode(amount, userCurrency.currencyCode);
 };
 
 const toggleSort = (

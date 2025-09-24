@@ -27,7 +27,7 @@ export interface AccountsAttributes {
   refCreditLimit: number;
   type: ACCOUNT_TYPES;
   accountCategory: ACCOUNT_CATEGORIES;
-  currencyId: number;
+  currencyCode: string;
   userId: number;
   externalId: string; // represents id from the original external system if exists
   externalData: object; // JSON of any addition fields
@@ -46,7 +46,7 @@ export interface AccountsAttributes {
 export default class Accounts extends Model {
   @BelongsTo(() => Currencies, {
     as: 'currency',
-    foreignKey: 'currencyId',
+    foreignKey: 'currencyCode',
   })
   @HasMany(() => Transactions)
   transactions!: Transactions[];
@@ -120,8 +120,8 @@ export default class Accounts extends Model {
   accountCategory!: ACCOUNT_CATEGORIES;
 
   @ForeignKey(() => Currencies)
-  @Column({ type: DataType.INTEGER })
-  currencyId!: number;
+  @Column({ type: DataType.STRING(3) })
+  currencyCode!: string;
 
   @ForeignKey(() => Users)
   @Column({ type: DataType.INTEGER })
@@ -221,7 +221,7 @@ export interface CreateAccountPayload {
   externalData?: AccountsAttributes['externalData'];
   isEnabled?: AccountsAttributes['isEnabled'];
   accountCategory: AccountsAttributes['accountCategory'];
-  currencyId: AccountsAttributes['currencyId'];
+  currencyCode: AccountsAttributes['currencyCode'];
   name: AccountsAttributes['name'];
   initialBalance: AccountsAttributes['initialBalance'];
   refInitialBalance: AccountsAttributes['refInitialBalance'];
@@ -260,7 +260,7 @@ export interface UpdateAccountByIdPayload {
   externalId?: AccountsAttributes['externalId'];
   accountCategory?: AccountsAttributes['accountCategory'];
   // currency updating is disabled
-  // currencyId?: AccountsAttributes['currencyId'];
+  // currencyCode?: AccountsAttributes['currencyCode'];
   name?: AccountsAttributes['name'];
   initialBalance?: AccountsAttributes['initialBalance'];
   refInitialBalance?: AccountsAttributes['refInitialBalance'];
@@ -296,6 +296,6 @@ export const getAccountCurrency = async ({ userId, id }: { userId: number; id: n
   return account;
 };
 
-export const getAccountsByCurrency = ({ userId, currencyId }: { userId: number; currencyId: number }) => {
-  return Accounts.findAll({ where: { userId, currencyId } });
+export const getAccountsByCurrency = ({ userId, currencyCode }: { userId: number; currencyCode: string }) => {
+  return Accounts.findAll({ where: { userId, currencyCode } });
 };

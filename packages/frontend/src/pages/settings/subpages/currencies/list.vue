@@ -84,7 +84,7 @@ const currenciesStore = useCurrenciesStore();
 const accountsStore = useAccountsStore();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { currencies, baseCurrency } = storeToRefs(currenciesStore);
-const { accountsCurrencyIds } = storeToRefs(accountsStore);
+const { accountsCurrencyCodes } = storeToRefs(accountsStore);
 const queryClient = useQueryClient();
 
 const isEditingModalVisible = ref(false);
@@ -132,7 +132,7 @@ const onCurrencyEdit = async () => {
 
 const onDeleteHandler = async (index: ActiveItemIndex) => {
   try {
-    await deleteUserCurrency(currencies.value[index].currencyId);
+    await deleteUserCurrency(currencies.value[index].currencyCode);
     await currenciesStore.loadCurrencies();
     await onCurrencyEdit();
 
@@ -147,5 +147,5 @@ const onDeleteHandler = async (index: ActiveItemIndex) => {
   }
 };
 
-const isDeletionDisabled = (currency: UserCurrencyModel) => accountsCurrencyIds.value.includes(currency?.currencyId);
+const isDeletionDisabled = (currency: UserCurrencyModel) => accountsCurrencyCodes.value.includes(currency?.currencyCode);
 </script>

@@ -57,7 +57,7 @@ describe('Balances service', () => {
 
       const account = await helpers.createAccount({
         payload: helpers.buildAccountPayload({
-          currencyId: newCurrency?.id || global.BASE_CURRENCY.id,
+          currencyCode: newCurrency?.code || global.BASE_CURRENCY.code,
           initialBalance: accountInitialBalance,
           currentBalance: accountInitialBalance,
         }),

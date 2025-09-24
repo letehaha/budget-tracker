@@ -115,18 +115,18 @@ export const getUserBaseCurrency = withTransaction(({ userId }: { userId: number
 });
 
 export const setBaseUserCurrency = withTransaction(
-  async ({ userId, currencyId }: { userId: number; currencyId: number }) => {
+  async ({ userId, currencyCode }: { userId: number; currencyCode: string }) => {
     const existingBaseCurrency = await getUserBaseCurrency({ userId });
 
     if (existingBaseCurrency) {
       throw new ValidationError({ message: 'Base currency already exists!' });
     }
 
-    const [currency] = await Currencies.getCurrencies({ ids: [currencyId] });
+    const currency = await Currencies.getCurrency({ code: currencyCode });
 
     if (!currency) {
       throw new ValidationError({
-        message: 'Currency with passed id does not exist.',
+        message: 'Currency with passed code does not exist.',
       });
     }
 
@@ -143,12 +143,12 @@ export const setBaseUserCurrency = withTransaction(
     await addUserCurrencies([
       {
         userId,
-        currencyId,
+        currencyCode,
         exchangeRate: exchangeRate.rate,
       },
     ]);
 
-    const result = await setDefaultUserCurrency({ userId, currencyId });
+    const result = await setDefaultUserCurrency({ userId, currencyCode });
 
     return result;
   },
@@ -157,29 +157,29 @@ export const setBaseUserCurrency = withTransaction(
 export const editUserCurrency = withTransaction(
   async ({
     userId,
-    currencyId,
+    currencyCode,
     exchangeRate,
     liveRateUpdate,
   }: {
     userId: number;
-    currencyId: number;
+    currencyCode: string;
     exchangeRate?: number;
     liveRateUpdate?: boolean;
   }) => {
     const passedCurrency = await UsersCurrencies.getCurrency({
       userId,
-      currencyId,
+      currencyCode,
     });
 
     if (!passedCurrency) {
       throw new ValidationError({
-        message: `Currency with id "${currencyId}" does not exist.`,
+        message: `Currency with code "${currencyCode}" does not exist.`,
       });
     }
 
     const result = await UsersCurrencies.updateCurrency({
       userId,
-      currencyId,
+      currencyCode,
       exchangeRate,
       liveRateUpdate,
     });
@@ -189,15 +189,15 @@ export const editUserCurrency = withTransaction(
 );
 
 export const setDefaultUserCurrency = withTransaction(
-  async ({ userId, currencyId }: { userId: number; currencyId: number }) => {
+  async ({ userId, currencyCode }: { userId: number; currencyCode: string }) => {
     const passedCurrency = await UsersCurrencies.getCurrency({
       userId,
-      currencyId,
+      currencyCode,
     });
 
     if (!passedCurrency) {
       throw new ValidationError({
-        message: `Currency with id "${currencyId}" does not exist.`,
+        message: `Currency with code "${currencyCode}" does not exist.`,
       });
     }
 
@@ -209,11 +209,11 @@ export const setDefaultUserCurrency = withTransaction(
 
     const result = await UsersCurrencies.updateCurrency({
       userId,
-      currencyId,
+      currencyCode,
       isDefaultCurrency: true,
     });
 
-    const currency = await Currencies.getCurrency({ id: currencyId });
+    const currency = await Currencies.getCurrency({ code: currencyCode });
 
     await Transactions.updateTransactions(
       {
@@ -227,15 +227,15 @@ export const setDefaultUserCurrency = withTransaction(
 );
 
 export const deleteUserCurrency = withTransaction(
-  async ({ userId, currencyId }: { userId: number; currencyId: number }) => {
+  async ({ userId, currencyCode }: { userId: number; currencyCode: string }) => {
     const passedCurrency = await UsersCurrencies.getCurrency({
       userId,
-      currencyId,
+      currencyCode,
     });
 
     if (!passedCurrency) {
       throw new ValidationError({
-        message: `Currency with id "${currencyId}" does not exist.`,
+        message: `Currency with code "${currencyCode}" does not exist.`,
       });
     }
 
@@ -247,7 +247,7 @@ export const deleteUserCurrency = withTransaction(
 
     const accounts = await Accounts.getAccountsByCurrency({
       userId,
-      currencyId,
+      currencyCode,
     });
 
     if (accounts.length) {
@@ -276,14 +276,14 @@ export const deleteUserCurrency = withTransaction(
 
     await Transactions.updateTransactions(
       {
-        currencyId: defaultCurrency.currencyId,
+        currencyCode: defaultCurrency.currencyCode,
       },
-      { userId, currencyId: passedCurrency.currencyId },
+      { userId, currencyCode: passedCurrency.currencyCode },
     );
 
     await UsersCurrencies.deleteCurrency({
       userId,
-      currencyId,
+      currencyCode,
     });
   },
 );

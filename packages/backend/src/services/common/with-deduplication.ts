@@ -20,6 +20,13 @@ interface DeduplicationOptions<T extends unknown[]> {
    * Default: 100
    */
   maxCacheSize?: number;
+
+  /**
+   * Whether to disable deduplication in test environment.
+   * This prevents test interference and memory leaks from timers.
+   * Default: true
+   */
+  disableInTests?: boolean;
 }
 
 /**
@@ -46,7 +53,17 @@ export function withDeduplication<T extends unknown[], R>(
   fn: AsyncFunction<T, R>,
   options: DeduplicationOptions<T> = {},
 ): AsyncFunction<T, R> {
-  const { keyGenerator = (...args: T) => JSON.stringify(args), ttl = 1000, maxCacheSize = 100 } = options;
+  const {
+    keyGenerator = (...args: T) => JSON.stringify(args),
+    ttl = 1000,
+    maxCacheSize = 100,
+    disableInTests = true,
+  } = options;
+
+  // If in test environment and disableInTests is true, return original function
+  if (disableInTests && process.env.NODE_ENV === 'test') {
+    return fn;
+  }
 
   const cache = new Map<string, Promise<R>>();
   const insertionOrder: string[] = [];

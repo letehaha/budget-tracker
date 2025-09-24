@@ -28,11 +28,9 @@ export async function getCurrenciesRates({ codes }: { codes?: string[] } = {}): 
 }
 
 export function addUserCurrencies<R extends boolean | undefined = undefined>({
-  currencyIds = [],
   currencyCodes = [],
   raw,
 }: {
-  currencyIds?: number[];
   currencyCodes?: string[];
   raw?: R;
 } = {}) {
@@ -41,9 +39,8 @@ export function addUserCurrencies<R extends boolean | undefined = undefined>({
     url: '/user/currencies',
     payload: {
       currencies: [
-        ...currencyIds.map((id) => ({ currencyId: id })),
         ...currencyCodes.map((code) => ({
-          currencyId: global.MODELS_CURRENCIES.find((item) => item.code === code).id,
+          currencyCode: code,
         })),
       ],
     },
@@ -64,7 +61,7 @@ export function addUserCurrencyByCode<R extends boolean | undefined = undefined>
     payload: {
       currencies: [
         {
-          currencyId: global.MODELS_CURRENCIES.find((item) => item.code === code).id,
+          currencyCode: code,
         },
       ],
     },
@@ -94,7 +91,7 @@ export async function addUserCurrenciesWithRates<R extends boolean | undefined =
   raw,
 }: {
   currencies: {
-    currencyId: number;
+    currencyCode: string;
     exchangeRate?: number;
     liveRateUpdate?: boolean;
   }[];

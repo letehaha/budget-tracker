@@ -8,37 +8,31 @@ import { NotFoundError, ValidationError } from '@js/errors';
 
 type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>;
 
-@Table({ timestamps: true, tableName: 'UserExchangeRates', freezeTableName: true, })
+@Table({
+  timestamps: true,
+  createdAt: 'date',
+  updatedAt: false,
+  tableName: 'UserExchangeRates',
+  freezeTableName: true,
+})
 export default class UserExchangeRates extends Model {
-  @Column({
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
-
   @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.INTEGER })
+  @Column({ allowNull: false, type: DataType.INTEGER, primaryKey: true })
   userId!: number;
 
   @ForeignKey(() => Currencies.default)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  baseId!: number;
-
-  @Column({ allowNull: false, type: DataType.STRING })
+  @Column({ allowNull: false, type: DataType.STRING(3), primaryKey: true })
   baseCode!: string;
 
   @ForeignKey(() => Currencies.default)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  quoteId!: number;
-
-  @Column({ allowNull: false, type: DataType.STRING })
+  @Column({ allowNull: false, type: DataType.STRING(3), primaryKey: true })
   quoteCode!: string;
 
   @Column({ allowNull: true, defaultValue: 1, type: DataType.NUMBER })
   rate!: number;
+
+  @Column({ allowNull: false, type: DataType.DATE, primaryKey: true })
+  date!: Date;
 
   // TODO:
   // 1. Add date fields to UserExchangeRates: "effectiveFrom", "effectiveTo"
@@ -166,10 +160,10 @@ export async function updateRates({
       const currency = (await Currencies.default.findOne({
         where: { code: pairItem.baseCode },
         raw: true,
-        attributes: ['id'],
+        attributes: ['code'],
       }))!;
 
-      await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyId: currency.id } });
+      await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyCode: currency.code } });
 
       if (updatedItems[0]) returningValues.push(updatedItems[0]);
     } else {
@@ -178,7 +172,7 @@ export async function updateRates({
       });
       const userCurrencies = await UsersCurrencies.getCurrencies({
         userId,
-        ids: currencies.map((i) => i.id),
+        codes: currencies.map((i) => i.code),
       });
 
       if (currencies.length !== userCurrencies.length) {
@@ -195,9 +189,7 @@ export async function updateRates({
           {
             userId,
             rate: pairItem.rate,
-            baseId: baseCurrency.id,
             baseCode: baseCurrency.code,
-            quoteId: quoteCurrency.id,
             quoteCode: quoteCurrency.code,
           },
           {
@@ -208,9 +200,9 @@ export async function updateRates({
         const currency = (await Currencies.default.findOne({
           where: { code: pairItem.baseCode },
           raw: true,
-          attributes: ['id'],
+          attributes: ['code'],
         }))!;
-        await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyId: currency.id } });
+        await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyCode: currency.code } });
 
         returningValues.push(res);
       } else {

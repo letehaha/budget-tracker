@@ -11,7 +11,7 @@ export const buildAccountPayload = (
   overrides: Partial<endpointsTypes.CreateAccountBody> = {},
 ): endpointsTypes.CreateAccountBody => ({
   accountCategory: ACCOUNT_CATEGORIES.general,
-  currencyId: global.BASE_CURRENCY.id,
+  currencyCode: global.BASE_CURRENCY.code,
   name: 'test',
   type: ACCOUNT_TYPES.system,
   initialBalance: 0,
@@ -72,7 +72,7 @@ export const createAccountWithNewCurrency = async ({ currency }) => {
   const account = await createAccount({
     payload: {
       ...buildAccountPayload(),
-      currencyId: currencyA.id,
+      currencyCode: currencyA.code,
     },
     raw: true,
   });

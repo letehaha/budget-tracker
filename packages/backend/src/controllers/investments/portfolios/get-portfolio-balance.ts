@@ -1,4 +1,4 @@
-import { recordId } from '@common/lib/zod/custom-types';
+import { currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { getPortfolioBalances } from '@services/investments/portfolios/balances';
 import { z } from 'zod';
@@ -10,7 +10,7 @@ export default createController(
     }),
     query: z
       .object({
-        currencyId: recordId().optional(),
+        currencyCode: currencyCode().optional(),
       })
       .optional(),
   }),
@@ -18,7 +18,7 @@ export default createController(
     const balances = await getPortfolioBalances({
       userId: user.id,
       portfolioId: params.id,
-      currencyId: query?.currencyId,
+      currencyCode: query?.currencyCode,
     });
 
     return { data: balances };

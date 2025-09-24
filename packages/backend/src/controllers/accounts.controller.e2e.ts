@@ -34,7 +34,7 @@ describe('Accounts controller', () => {
           ...helpers.buildAccountPayload(),
           initialBalance,
           creditLimit,
-          currencyId: currency.currencyId,
+          currencyCode: currency.currencyCode,
         },
         raw: true,
       });
@@ -133,7 +133,7 @@ describe('Accounts controller', () => {
       const account = await helpers.createAccount({
         payload: {
           ...helpers.buildAccountPayload(),
-          currencyId: currency!.currencyId,
+          currencyCode: currency!.currencyCode,
         },
         raw: true,
       });

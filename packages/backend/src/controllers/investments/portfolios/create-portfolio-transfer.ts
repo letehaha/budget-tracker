@@ -1,3 +1,4 @@
+import { currencyCode } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { createPortfolioTransfer } from '@services/investments/portfolios/transfers';
 import { z } from 'zod';
@@ -8,7 +9,7 @@ const schema = z.object({
   }),
   body: z.object({
     toPortfolioId: z.number(),
-    currencyId: z.number(),
+    currencyCode: currencyCode(),
     amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
       message: 'Amount must be a valid number greater than 0',
     }),
@@ -22,7 +23,7 @@ export default createController(schema, async ({ user, params, body }) => {
     userId: user.id,
     fromPortfolioId: params.id,
     toPortfolioId: body.toPortfolioId,
-    currencyId: body.currencyId,
+    currencyCode: body.currencyCode,
     amount: body.amount,
     date: body.date,
     description: body.description || null,

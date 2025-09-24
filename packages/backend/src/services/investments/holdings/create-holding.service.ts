@@ -30,7 +30,7 @@ const createHoldingImpl = async ({ userId, portfolioId, securityId }: CreateHold
   if (!currency) {
     throw new NotFoundError({ message: 'Currency for security not found.' });
   }
-  await addUserCurrencies([{ userId, currencyId: currency.id }]);
+  await addUserCurrencies([{ userId, currencyCode: currency.code }]);
 
   const existingHolding = await Holdings.findOne({ where: { portfolioId, securityId } });
   if (existingHolding) {

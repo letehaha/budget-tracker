@@ -26,7 +26,7 @@ describe('Edit currency exchange rate controller', () => {
         method: 'post',
         url: '/user/currencies',
         payload: {
-          currencies: [{ currencyId: eur.id }],
+          currencies: [{ currencyCode: eur.code }],
         },
         raw: false,
       });

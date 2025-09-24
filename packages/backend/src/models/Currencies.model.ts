@@ -18,18 +18,12 @@ import { removeUndefinedKeys } from '@js/helpers';
   freezeTableName: true,
 })
 export default class Currencies extends Model {
-  @BelongsToMany(() => Users, {
-    as: 'users',
-    through: () => UsersCurrencies,
-  })
   @Column({
-    unique: true,
     allowNull: false,
-    autoIncrement: true,
     primaryKey: true,
-    type: DataType.INTEGER,
+    type: DataType.STRING(3),
   })
-  declare id: number;
+  code!: string;
 
   @Column({
     allowNull: false,
@@ -49,11 +43,10 @@ export default class Currencies extends Model {
   })
   number!: number;
 
-  @Column({
-    allowNull: false,
-    type: DataType.STRING,
+  @BelongsToMany(() => Users, {
+    as: 'users',
+    through: () => UsersCurrencies,
   })
-  code!: string;
 
   @Column({ allowNull: false, defaultValue: false, type: DataType.BOOLEAN })
   isDisabled!: boolean;
@@ -69,48 +62,42 @@ export const getAllCurrencies = async () => {
   return currencies;
 };
 
-export async function getCurrency({ id }: { id: number }): Promise<Currencies>;
 export async function getCurrency({ currency }: { currency: string }): Promise<Currencies>;
 export async function getCurrency({ number }: { number: number }): Promise<Currencies>;
 export async function getCurrency({ code }: { code: string }): Promise<Currencies>;
 export async function getCurrency({
-  id,
   currency,
   number,
   code,
 }: {
-  id?: number;
   currency?: string;
   number?: number;
   code?: string;
 }): Promise<Currencies | null> {
   return Currencies.findOne({
-    where: removeUndefinedKeys({ id, currency, number, code }),
+    where: removeUndefinedKeys({ currency, number, code }),
     include: [{ model: Users }],
   });
 }
 
 export async function getCurrencies({
-  ids,
   currencies,
   numbers,
   codes,
 }: {
-  ids?: number[];
   numbers?: number[];
   currencies?: string[];
   codes?: string[];
 }) {
-  if (ids === undefined && currencies === undefined && codes === undefined && numbers === undefined) {
+  if (currencies === undefined && codes === undefined && numbers === undefined) {
     throw new ValidationError({
-      message: 'Neither "ids", "currencies" or "codes" should be specified.',
+      message: 'Neither "currencies", "codes" or "numbers" should be specified.',
     });
   }
   const where: Record<string, unknown> = {
     isDisabled: { [Op.not]: true },
   };
 
-  if (ids) where.id = { [Op.in]: ids };
   if (currencies) where.currency = { [Op.in]: currencies };
   if (codes) where.code = { [Op.in]: codes };
   if (numbers) where.number = { [Op.in]: numbers };
@@ -118,12 +105,8 @@ export async function getCurrencies({
   return Currencies.findAll({ where });
 }
 
-export const createCurrency = async ({ code }: { code: number }) => {
-  const currency = cc.number(String(code));
-
-  if (!currency) {
-    return null;
-  }
+export const createCurrency = async ({ code }: { code: string }) => {
+  const currency = cc.code(code);
 
   if (!currency) {
     throw new ValidationError({
@@ -138,7 +121,7 @@ export const createCurrency = async ({ code }: { code: number }) => {
     currency: currency.currency,
   };
   const [result] = await Currencies.findOrCreate({
-    where: { number: code },
+    where: { code: currency.code },
     defaults: currencyData,
   });
 

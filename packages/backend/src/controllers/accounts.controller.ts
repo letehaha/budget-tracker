@@ -1,4 +1,5 @@
 import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { currencyCode } from '@common/lib/zod/custom-types';
 import { NotFoundError, Unauthorized, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
@@ -32,7 +33,7 @@ export const createAccount = createController(
   z.object({
     body: z.object({
       accountCategory: z.nativeEnum(ACCOUNT_CATEGORIES).default(ACCOUNT_CATEGORIES.general),
-      currencyId: z.number(),
+      currencyCode: currencyCode(),
       name: z.string(),
       type: z.nativeEnum(ACCOUNT_TYPES).default(ACCOUNT_TYPES.system),
       initialBalance: z.number().optional().default(0),
@@ -40,7 +41,7 @@ export const createAccount = createController(
     }),
   }),
   async ({ user, body }) => {
-    const { accountCategory, currencyId, name, type, initialBalance, creditLimit } = body;
+    const { accountCategory, currencyCode, name, type, initialBalance, creditLimit } = body;
     const { id: userId } = user;
 
     if (type !== ACCOUNT_TYPES.system && process.env.NODE_ENV === 'production') {
@@ -51,7 +52,7 @@ export const createAccount = createController(
 
     const account = await accountsService.createAccount({
       accountCategory,
-      currencyId,
+      currencyCode,
       name,
       type,
       creditLimit,

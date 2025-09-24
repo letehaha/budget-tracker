@@ -5,20 +5,20 @@ import { makeRequest } from '../common';
 
 export function buildPortfolioTransferPayload({
   toPortfolioId,
-  currencyId,
+  currencyCode,
   amount = '100',
   date = new Date().toISOString().slice(0, 10),
   description = 'Test portfolio transfer',
 }: {
   toPortfolioId: number;
-  currencyId: number;
+  currencyCode: string;
   amount?: string;
   date?: string;
   description?: string | null;
 }) {
   return {
     toPortfolioId,
-    currencyId,
+    currencyCode,
     amount,
     date,
     description,

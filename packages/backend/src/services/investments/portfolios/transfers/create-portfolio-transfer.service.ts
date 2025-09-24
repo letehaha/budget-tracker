@@ -11,7 +11,7 @@ interface CreatePortfolioTransferParams {
   userId: number;
   fromPortfolioId: number;
   toPortfolioId: number;
-  currencyId: number;
+  currencyCode: string;
   amount: string;
   date: string;
   description?: string | null;
@@ -21,7 +21,7 @@ const createPortfolioTransferImpl = async ({
   userId,
   fromPortfolioId,
   toPortfolioId,
-  currencyId,
+  currencyCode,
   amount,
   date,
   description,
@@ -54,7 +54,7 @@ const createPortfolioTransferImpl = async ({
   }
 
   // Verify currency exists
-  const currency = await Currencies.findByPk(currencyId);
+  const currency = await Currencies.findByPk(currencyCode);
   if (!currency) {
     throw new NotFoundError({ message: 'Currency not found' });
   }
@@ -76,7 +76,7 @@ const createPortfolioTransferImpl = async ({
     toAccountId: null,
     amount,
     refAmount,
-    currencyId,
+    currencyCode,
     date,
     description,
   });
@@ -86,7 +86,7 @@ const createPortfolioTransferImpl = async ({
   await updatePortfolioBalance({
     userId,
     portfolioId: fromPortfolioId,
-    currencyId,
+    currencyCode,
     availableCashDelta: new Big(amount).times(-1).toFixed(10),
     totalCashDelta: new Big(amount).times(-1).toFixed(10),
   });
@@ -95,7 +95,7 @@ const createPortfolioTransferImpl = async ({
   await updatePortfolioBalance({
     userId,
     portfolioId: toPortfolioId,
-    currencyId,
+    currencyCode,
     availableCashDelta: amount,
     totalCashDelta: amount,
   });
