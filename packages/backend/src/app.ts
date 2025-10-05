@@ -14,6 +14,7 @@ import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
 import middlewarePassword from './middlewares/passport';
 import './redis-client';
+import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
 /**
@@ -106,6 +107,9 @@ logger.info('Attempting to start server...');
 export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
   logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
   logger.info(`API Prefix: ${API_PREFIX}`);
+
+  // Initialize historical exchange rates from Frankfurter on startup (non-blocking)
+  initializeHistoricalRates();
 
   loadCurrencyRatesJob.start();
 
