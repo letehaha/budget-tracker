@@ -32,6 +32,12 @@ It will be working in HMR mode, so any changes to the codebase will be reflected
 
 Now it should be accessible under the port that you defined in the `.env.development` file.
 
+## Documentation
+
+For detailed documentation about the backend services and architecture, see the [`docs/`](./docs/) folder:
+
+- [Exchange Rates System](./docs/exchange-rates.md) - Hybrid exchange rates system (ApiLayer + Frankfurter)
+
 ### Troubleshoting:
 
 1. Sometimes when running `npm run docker:dev` it might stuck running migrations

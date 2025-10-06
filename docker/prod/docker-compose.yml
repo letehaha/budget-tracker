@@ -4,8 +4,8 @@ services:
       context: ../../
       dockerfile: docker/prod/backend/Dockerfile
     container_name: prod-budget-tracker-app
-    ports: ['${APPLICATION_PORT}:${APPLICATION_PORT}']
-    depends_on: ['db', 'redis']
+    ports: ["${APPLICATION_PORT}:${APPLICATION_PORT}"]
+    depends_on: ["db", "redis", "frankfurter"]
     env_file: ../../.env.production
 
   # ❗️ use if need to test image locally
@@ -21,26 +21,41 @@ services:
       context: ../../
       dockerfile: docker/prod/frontend/Dockerfile
     container_name: prod-budget-tracker-frontend
-    ports: ['${PORT:-80}:80']
-    depends_on: ['backend']
+    ports: ["${PORT:-80}:80"]
+    depends_on: ["backend"]
     env_file: ../../.env.production
 
   db:
     image: postgres:16
     restart: always
     container_name: prod-budget-tracker-db
-    volumes: ['db_data:/var/lib/postgresql/data']
+    volumes: ["db_data:/var/lib/postgresql/data"]
     environment:
       - POSTGRES_USER=${APPLICATION_DB_USERNAME}
       - POSTGRES_PASSWORD=${APPLICATION_DB_PASSWORD}
       - POSTGRES_DB=${APPLICATION_DB_DATABASE}
-    ports: ['${APPLICATION_DB_PORT}:5432']
+    ports: ["${APPLICATION_DB_PORT}:5432"]
 
   redis:
     image: redis:7
     container_name: prod-budget-tracker-redis
-    volumes: ['redis_data:/data']
-    ports: ['6379:6379']
+    volumes: ["redis_data:/data"]
+    ports: ["6379:6379"]
+
+  # Frankfurter: Self-hosted exchange rates service
+  # Provides historical exchange rates data from 1999-01-04 to present
+  # Used for: Historical data initialization & fallback when ApiLayer fails
+  # Supports: 31 major currencies (AUD, EUR, GBP, USD, etc.)
+  # API: http://frankfurter:8080/v1/latest or http://frankfurter:8080/v1/YYYY-MM-DD
+  frankfurter:
+    image: lineofflight/frankfurter
+    container_name: prod-budget-tracker-frankfurter
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   pgadmin:
     image: dpage/pgadmin4:8.11
@@ -48,8 +63,8 @@ services:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
       - PGADMIN_LISTEN_PORT=${PGADMIN_LISTEN_PORT}
-    ports: ['8001:8001']
-    depends_on: ['db']
+    ports: ["8001:8001"]
+    depends_on: ["db"]
     attach: false
 
 volumes:
