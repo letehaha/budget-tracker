@@ -1,4 +1,8 @@
 FROM node:21.7.3
+
+# Build arg to control offline mode
+ARG OFFLINE_MODE=false
+
 WORKDIR /app
 
 # Copy package files first for better caching
@@ -13,8 +17,13 @@ COPY packages/backend/tsconfig*.json ./packages/backend/
 COPY packages/shared/tsconfig*.json ./packages/shared/
 
 # Install dependencies
+# In offline mode, skip installation (use cached layer from previous build)
 RUN chmod +x ./post-install.sh
-RUN npm ci
+RUN if [ "$OFFLINE_MODE" = "false" ]; then \
+      npm ci; \
+    else \
+      echo "Offline mode: skipping npm ci, using cached dependencies"; \
+    fi
 
 # Copy source code
 COPY packages/backend ./packages/backend

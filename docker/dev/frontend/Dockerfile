@@ -1,5 +1,8 @@
 FROM node:23.11.0
 
+# Build arg to control offline mode
+ARG OFFLINE_MODE=false
+
 WORKDIR /app
 
 # Copy only what's needed to install dependencies
@@ -17,8 +20,13 @@ RUN chmod +x ./post-install.sh
 # Error: Cannot find module @rollup/rollup-linux-arm64-gnu. npm has a bug
 # related to optional dependencies (https://github.com/npm/cli/issues/4828).
 # Here we're removing package-lock and installing packages as we need
-RUN rm -rf package-lock.json node_modules
-RUN npm install
+# In offline mode, skip installation (use cached layer from previous build)
+RUN if [ "$OFFLINE_MODE" = "false" ]; then \
+      rm -rf package-lock.json node_modules && \
+      npm install; \
+    else \
+      echo "Offline mode: skipping npm install, using cached dependencies"; \
+    fi
 
 # Now copy the rest of the code
 COPY packages/shared ./packages/shared
