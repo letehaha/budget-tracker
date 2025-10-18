@@ -15,7 +15,9 @@ import updatePortfolioController from '@controllers/investments/portfolios/updat
 import updatePortfolioBalanceController from '@controllers/investments/portfolios/update-portfolio-balance';
 import getPricesController from '@controllers/investments/prices/get-prices.controller';
 import securitiesSyncController from '@controllers/investments/prices/securities-sync.controller';
+import bulkUploadPricesController from '@controllers/investments/securities/bulk-upload-prices.controller';
 import getAllSecurities from '@controllers/investments/securities/get-all.controller';
+import getPriceUploadInfoController from '@controllers/investments/securities/get-price-upload-info.controller';
 import searchSecuritiesController from '@controllers/investments/securities/search.controller';
 import createInvestmentTransactionController from '@controllers/investments/transactions/create-tx.controller';
 import deleteInvestmentTransactionController from '@controllers/investments/transactions/delete-tx.controller';
@@ -23,7 +25,7 @@ import getTransactionsController from '@controllers/investments/transactions/get
 import updateInvestmentTransactionController from '@controllers/investments/transactions/update-tx.controller';
 import { adminOnly } from '@middlewares/admin-only';
 import { authenticateJwt } from '@middlewares/passport';
-import { priceSyncRateLimit } from '@middlewares/rate-limit';
+import { priceSyncRateLimit, securitiesPricesBulkUploadRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -117,6 +119,26 @@ router.get(
   authenticateJwt,
   validateEndpoint(searchSecuritiesController.schema),
   searchSecuritiesController.handler,
+);
+
+// Admin-only: Get price upload info (accepts currency code)
+router.post(
+  '/securities/price-upload-info',
+  authenticateJwt,
+  adminOnly,
+  validateEndpoint(getPriceUploadInfoController.schema),
+  getPriceUploadInfoController.handler,
+);
+
+// Admin-only: Bulk upload security prices (accepts SecuritySearchResult)
+// Note: 1mb limit is set in app.ts for this path
+router.post(
+  '/securities/prices/bulk-upload',
+  authenticateJwt,
+  adminOnly,
+  securitiesPricesBulkUploadRateLimit,
+  validateEndpoint(bulkUploadPricesController.schema),
+  bulkUploadPricesController.handler,
 );
 
 router.get(

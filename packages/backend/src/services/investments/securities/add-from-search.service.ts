@@ -9,6 +9,10 @@ import { addOrUpdateFromProvider } from '../securities-manage';
 
 interface AddSecurityFromSearchParams {
   searchResult: SecuritySearchResult;
+  /**
+   * When user is uploading prices manually, we don't need to try fetch prices
+   */
+  skipPriceFetch?: boolean;
 }
 
 interface AddSecurityFromSearchResult {
@@ -21,6 +25,7 @@ interface AddSecurityFromSearchResult {
 
 const addSecurityFromSearchImpl = async ({
   searchResult,
+  skipPriceFetch = false,
 }: AddSecurityFromSearchParams): Promise<AddSecurityFromSearchResult> => {
   logger.info(`Adding security from search: ${searchResult.symbol} - ${searchResult.name}`);
 
@@ -36,38 +41,40 @@ const addSecurityFromSearchImpl = async ({
     throw new Error(`Failed to create/find security with symbol: ${searchResult.symbol}`);
   }
 
-  // Step 3: Fetch and store the latest price immediately
+  // Step 3: Fetch and store the latest price immediately (unless skipped)
   let latestPrice: AddSecurityFromSearchResult['latestPrice'];
 
-  try {
-    const provider = dataProviderFactory.getProvider(searchResult.providerName);
-    // TODO: conside using composite provider here
-    const priceData = await provider.getLatestPrice(searchResult.symbol);
+  if (!skipPriceFetch) {
+    try {
+      const provider = dataProviderFactory.getProvider(searchResult.providerName);
+      // TODO: conside using composite provider here
+      const priceData = await provider.getLatestPrice(searchResult.symbol);
 
-    // Store the price in SecurityPricing table
-    await SecurityPricing.create({
-      securityId: security.id,
-      date: priceData.date,
-      priceClose: priceData.priceClose.toString(),
-      source: provider.providerName,
-    });
+      // Store the price in SecurityPricing table
+      await SecurityPricing.create({
+        securityId: security.id,
+        date: priceData.date,
+        priceClose: priceData.priceClose.toString(),
+        source: provider.providerName,
+      });
 
-    latestPrice = {
-      price: priceData.priceClose,
-      date: priceData.date,
-    };
+      latestPrice = {
+        price: priceData.priceClose,
+        date: priceData.date,
+      };
 
-    // Update the security's last price sync timestamp
-    security.pricingLastSyncedAt = new Date();
-    await security.save();
+      // Update the security's last price sync timestamp
+      security.pricingLastSyncedAt = new Date();
+      await security.save();
 
-    logger.info(`Successfully fetched latest price for ${searchResult.symbol}: ${priceData.priceClose}`);
-  } catch (error) {
-    logger.error({
-      message: `Failed to fetch latest price for ${searchResult.symbol}`,
-      error: error as Error,
-    });
-    // Don't throw - the security creation succeeded, price fetch is optional
+      logger.info(`Successfully fetched latest price for ${searchResult.symbol}: ${priceData.priceClose}`);
+    } catch (error) {
+      logger.error({
+        message: `Failed to fetch latest price for ${searchResult.symbol}`,
+        error: error as Error,
+      });
+      // Don't throw - the security creation succeeded, price fetch is optional
+    }
   }
 
   logger.info(`Successfully added security from search: ${searchResult.symbol}`);
@@ -79,10 +86,11 @@ const addSecurityFromSearchImpl = async ({
 };
 
 /**
- * Adds a security to the database from search results and fetches its latest price.
+ * Adds a security to the database from search results and optionally fetches its latest price.
  * This is used when a user selects a security from search results to add to their portfolio.
  *
  * @param params - The search result selected by the user
- * @returns The created/updated security with latest price info
+ * @param params.skipPriceFetch - If true, skips fetching the latest price from external API
+ * @returns The created/updated security with optional latest price info
  */
 export const addSecurityFromSearch = withTransaction(addSecurityFromSearchImpl);

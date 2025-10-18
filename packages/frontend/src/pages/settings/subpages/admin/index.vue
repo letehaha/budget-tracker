@@ -17,10 +17,19 @@
             <span
               v-if="isPriceSyncLoading"
               class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
-            ></span>
+            />
             {{ isPriceSyncLoading ? 'Syncing...' : 'Trigger Price Sync' }}
           </Button>
         </div>
+      </div>
+
+      <div>
+        <h3 class="mb-2 text-lg font-medium">Manual Security Price Upload</h3>
+        <p class="mb-4 text-sm leading-relaxed">Upload historical price data for securities via CSV or JSON files</p>
+
+        <SecurityPriceUpload>
+          <Button>Upload Security Prices</Button>
+        </SecurityPriceUpload>
       </div>
     </CardContent>
   </Card>
@@ -35,6 +44,8 @@ import { useUserStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+
+import SecurityPriceUpload from './security-price-upload.vue';
 
 const userStore = useUserStore();
 const router = useRouter();

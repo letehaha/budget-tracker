@@ -4,6 +4,7 @@ import { createOverride } from '@tests/mocks/helpers';
 import { format } from 'date-fns';
 
 import { FRANKFURTER_ENDPOINT_REGEX } from './fetch-exchange-rates-for-date';
+import { FRANKFURTER_START_DATE } from './frankfurter.service';
 import { initializeHistoricalRates } from './initialize-historical-rates.service';
 
 describe('Initialize Historical Rates Service', () => {
@@ -70,14 +71,14 @@ describe('Initialize Historical Rates Service', () => {
   it('should handle invalid Frankfurt response gracefully', async () => {
     // Return invalid response (missing rates)
     frankfurterOverride.setOneTimeOverride({
-      body: { base: 'USD', start_date: '1999-01-04', end_date: '2025-01-01' },
+      body: { base: 'USD', start_date: format(FRANKFURTER_START_DATE, 'yyyy-MM-dd'), end_date: '2025-01-01' },
     });
 
     // Should not throw - just log error
     await expect(initializeHistoricalRates()).resolves.toBeUndefined();
   });
 
-  it('should load rates from start date (1999-01-04) to current date', async () => {
+  it('should load rates from start date (FRANKFURTER_START_DATE) to current date', async () => {
     // Clear any existing rates
     await ExchangeRates.destroy({ where: {} });
 
@@ -93,7 +94,7 @@ describe('Initialize Historical Rates Service', () => {
     expect(rates.length).toBeGreaterThanOrEqual(2);
 
     const dates = rates.map((r) => r.date);
-    const startDateStr = '1999-01-04';
+    const startDateStr = format(FRANKFURTER_START_DATE, 'yyyy-MM-dd');
 
     // Check if rates include the start date (from mock)
     const hasStartDate = dates.some((date) => format(new Date(date), 'yyyy-MM-dd') === startDateStr);

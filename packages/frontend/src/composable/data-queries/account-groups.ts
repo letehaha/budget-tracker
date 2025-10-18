@@ -1,4 +1,5 @@
 import { loadAccountGroups } from '@/api/account-groups';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AccountGroups } from '@/common/types/models';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { Ref } from 'vue';
@@ -16,13 +17,13 @@ export const useAccountGroupForAccount = (
       });
       return result.length ? result[0] : null;
     },
-    queryKey: ['account-group-of-account', accountId],
+    queryKey: [...VUE_QUERY_CACHE_KEYS.accountGroupForAccount, accountId],
     staleTime: Infinity,
     ...queryOptions,
   });
   const invalidate = () => {
     queryClient.invalidateQueries({
-      queryKey: ['account-group-of-account', accountId.value],
+      queryKey: [...VUE_QUERY_CACHE_KEYS.accountGroupForAccount, accountId.value],
     });
   };
   return {
