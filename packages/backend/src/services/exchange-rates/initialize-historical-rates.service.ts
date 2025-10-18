@@ -35,9 +35,7 @@ export async function initializeHistoricalRates(): Promise<void> {
       (rate) => validCurrencyCodes.has(rate.baseCode) && validCurrencyCodes.has(rate.quoteCode),
     );
 
-    logger.info(
-      `Filtered ${allRates.length} rates to ${validRates.length} valid rates (currencies exist in database)`,
-    );
+    logger.info(`Filtered ${allRates.length} rates to ${validRates.length} valid rates (currencies exist in database)`);
 
     // Insert all rates, ignoring duplicates (idempotent operation)
     await ExchangeRates.bulkCreate(

@@ -147,5 +147,6 @@ const onDeleteHandler = async (index: ActiveItemIndex) => {
   }
 };
 
-const isDeletionDisabled = (currency: UserCurrencyModel) => accountsCurrencyCodes.value.includes(currency?.currencyCode);
+const isDeletionDisabled = (currency: UserCurrencyModel) =>
+  accountsCurrencyCodes.value.includes(currency?.currencyCode);
 </script>
