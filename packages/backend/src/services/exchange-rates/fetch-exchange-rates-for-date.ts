@@ -45,14 +45,27 @@ export const fetchExchangeRatesForDate = withDeduplication(
     }
 
     try {
-      // Check if rates already exist for this date
+      // TODO: Improve this logic with proper fetch attempt tracking (ExchangeRatesFetchLog table or Redis cache)
+      // to avoid repeated API calls for currencies that providers don't have
+
+      // Check if we've already attempted a comprehensive fetch for this date
+      // If >50 rates exist, assume ApiLayer (comprehensive provider with 150+ currencies) was already tried
+      // If <50 rates exist, only Frankfurter (30 currencies) was tried, so we should attempt ApiLayer
       const existingRatesCount = await ExchangeRates.count({
         where: { date: normalizedDate },
       });
 
-      if (existingRatesCount > 0) {
-        logger.info(`Exchange rates for this date already exist (${existingRatesCount} rates found). Skipping sync.`);
+      if (existingRatesCount > 50) {
+        logger.info(
+          `Found ${existingRatesCount} rates for this date, indicating ApiLayer was already attempted. Skipping sync to avoid wasting API calls.`,
+        );
         return undefined;
+      }
+
+      if (existingRatesCount > 0 && existingRatesCount <= 50) {
+        logger.info(
+          `Found ${existingRatesCount} rates for this date (Frankfurter only). Will attempt ApiLayer to get full currency set.`,
+        );
       }
 
       const formattedDate = format(normalizedDate, API_LAYER_DATE_FORMAT);
@@ -235,8 +248,9 @@ export const fetchExchangeRatesForDate = withDeduplication(
       );
 
       logger.info(
-        `Exchange rates for date ${format(loadedDate, 'yyyy-MM-dd')} successfully loaded. ` +
-          `ApiLayer: ${apiLayerRates.length} rates, Frankfurter: ${frankfurterRates.length} rates, Total: ${allRates.length} rates`,
+        `Exchange rates for date ${format(loadedDate, 'yyyy-MM-dd')} successfully processed. ` +
+          `ApiLayer: ${apiLayerRates.length} rates, Frankfurter: ${frankfurterRates.length} rates, Total: ${allRates.length} rates. ` +
+          `(Duplicates automatically ignored)`,
       );
     } catch (error) {
       if (error instanceof CustomError) {

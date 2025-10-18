@@ -43,7 +43,8 @@ export const useCurrenciesStore = defineStore('currencies', () => {
     systemCurrencies.value = systemOnes;
   };
 
-  const getCurrency = (currencyCode: string) => currencies.value.find((currency) => currency.currencyCode === currencyCode);
+  const getCurrency = (currencyCode: string) =>
+    currencies.value.find((currency) => currency.currencyCode === currencyCode);
 
   const loadBaseCurrency = async () => {
     const result = await loadUserBaseCurrency();
