@@ -6,7 +6,7 @@ export const searchSecurities = async (query: string): Promise<SecuritySearchRes
   return res;
 };
 
-export interface PriceUploadInfo {
+interface PriceUploadInfo {
   oldestDate: string;
   newestDate: string;
   currencyCode: string;
@@ -18,7 +18,7 @@ export const getPriceUploadInfo = async (currencyCode: string): Promise<PriceUpl
   return res;
 };
 
-export interface BulkUploadPricesPayload {
+interface BulkUploadPricesPayload {
   searchResult: SecuritySearchResult;
   prices: Array<{
     price: number;
@@ -29,7 +29,7 @@ export interface BulkUploadPricesPayload {
   override: boolean;
 }
 
-export interface BulkUploadPricesResponse {
+interface BulkUploadPricesResponse {
   newOldestDate: string | null;
   newNewestDate: string | null;
   summary: {
@@ -39,32 +39,7 @@ export interface BulkUploadPricesResponse {
   };
 }
 
-export const bulkUploadPrices = async (
-  payload: BulkUploadPricesPayload
-): Promise<BulkUploadPricesResponse> => {
-  const res: BulkUploadPricesResponse = await api.post(
-    '/investments/securities/prices/bulk-upload',
-    payload
-  );
-  return res;
-};
-
-export interface SecurityPrice {
-  id: number;
-  securityId: number;
-  priceClose: string; // Decimal stored as string
-  date: string; // YYYY-MM-DD
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface GetSecurityPricesParams {
-  securityId: number;
-  startDate: string; // ISO datetime string
-  endDate: string; // ISO datetime string
-}
-
-export const getSecurityPrices = async (params: GetSecurityPricesParams): Promise<SecurityPrice[]> => {
-  const res: SecurityPrice[] = await api.get('/investments/prices', params);
+export const bulkUploadPrices = async (payload: BulkUploadPricesPayload): Promise<BulkUploadPricesResponse> => {
+  const res: BulkUploadPricesResponse = await api.post('/investments/securities/prices/bulk-upload', payload);
   return res;
 };

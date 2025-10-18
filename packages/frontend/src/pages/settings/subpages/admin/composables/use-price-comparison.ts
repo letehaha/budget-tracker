@@ -1,4 +1,4 @@
-import { computed, type ComputedRef, type Ref } from 'vue';
+import { type ComputedRef, type Ref, computed } from 'vue';
 
 export interface PreviewRow {
   price: number;
@@ -11,7 +11,7 @@ export interface ExistingPrice {
   price: number;
 }
 
-export interface EnrichedRow extends PreviewRow {
+interface EnrichedRow extends PreviewRow {
   existingPrice: number | null;
   percentageDiff: number | null;
   hasSignificantDiff: boolean;
