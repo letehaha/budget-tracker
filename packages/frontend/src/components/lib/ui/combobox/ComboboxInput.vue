@@ -1,25 +1,27 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import { reactiveOmit } from '@vueuse/core'
-import { ComboboxInput, type ComboboxInputProps, useForwardPropsEmits } from 'radix-vue'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils';
+import { reactiveOmit } from '@vueuse/core';
+import { ComboboxInput, type ComboboxInputProps, useForwardPropsEmits } from 'radix-vue';
+import type { HTMLAttributes } from 'vue';
 
-const props = defineProps<ComboboxInputProps & {
-  class?: HTMLAttributes['class']
-}>()
+const props = defineProps<
+  ComboboxInputProps & {
+    class?: HTMLAttributes['class'];
+  }
+>();
 
 // const emits = defineEmits()
 
-const delegatedProps = reactiveOmit(props, 'class')
+const delegatedProps = reactiveOmit(props, 'class');
 
-const forwarded = useForwardPropsEmits(delegatedProps)
+const forwarded = useForwardPropsEmits(delegatedProps);
 </script>
 
 <template>
   <ComboboxInput
     :type="'text'"
     v-bind="forwarded"
-    :class="cn('w-full bg-transparent outline-none placeholder:text-muted-foreground text-sm', props.class)"
+    :class="cn('placeholder:text-muted-foreground w-full bg-transparent text-sm outline-none', props.class)"
   >
     <slot />
   </ComboboxInput>

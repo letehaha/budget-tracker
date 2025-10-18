@@ -1,22 +1,24 @@
 <script setup lang="ts">
-import type { ComboboxLabelProps } from 'radix-vue'
-import type { HTMLAttributes } from 'vue'
-import { reactiveOmit } from '@vueuse/core'
-import { ComboboxLabel } from 'radix-vue'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils';
+import { reactiveOmit } from '@vueuse/core';
+import type { ComboboxLabelProps } from 'radix-vue';
+import { ComboboxLabel } from 'radix-vue';
+import type { HTMLAttributes } from 'vue';
 
-const props = defineProps<ComboboxLabelProps & {
-  class?: HTMLAttributes['class']
-  heading?: string
-}>()
+const props = defineProps<
+  ComboboxLabelProps & {
+    class?: HTMLAttributes['class'];
+    heading?: string;
+  }
+>();
 
-const delegatedProps = reactiveOmit(props, 'class', 'heading')
+const delegatedProps = reactiveOmit(props, 'class', 'heading');
 </script>
 
 <template>
   <ComboboxLabel
     v-bind="delegatedProps"
-    :class="cn('px-6 text-xs font-medium text-muted-foreground py-1', props.class)"
+    :class="cn('text-muted-foreground px-6 py-1 text-xs font-medium', props.class)"
   >
     {{ heading }}
     <slot />

@@ -1,23 +1,22 @@
 <script setup lang="ts">
-import type { ComboboxViewportProps } from 'radix-vue'
-import type { HTMLAttributes } from 'vue'
-import { reactiveOmit } from '@vueuse/core'
-import { ComboboxViewport } from 'radix-vue'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils';
+import { reactiveOmit } from '@vueuse/core';
+import type { ComboboxViewportProps } from 'radix-vue';
+import { ComboboxViewport } from 'radix-vue';
+import type { HTMLAttributes } from 'vue';
 
-const props = defineProps<ComboboxViewportProps & {
-  class?: HTMLAttributes['class']
-  nonce?: string
-}>()
+const props = defineProps<
+  ComboboxViewportProps & {
+    class?: HTMLAttributes['class'];
+    nonce?: string;
+  }
+>();
 
-const delegatedProps = reactiveOmit(props, 'class')
+const delegatedProps = reactiveOmit(props, 'class');
 </script>
 
 <template>
-  <ComboboxViewport
-    v-bind="delegatedProps"
-    :class="cn('p-1', props.class)"
-  >
+  <ComboboxViewport v-bind="delegatedProps" :class="cn('p-1', props.class)">
     <slot />
   </ComboboxViewport>
 </template>

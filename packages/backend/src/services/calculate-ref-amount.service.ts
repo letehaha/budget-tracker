@@ -36,9 +36,7 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
 
   // **REDIS CACHE CHECK** - Cache the final converted amount
   const dateStr = new Date(params.date).toISOString().split('T')[0];
-  refAmountCache.setCacheKey(
-    `ref_amount:${userId}:${amount}:${baseCode}:${quoteCode || 'default'}:${dateStr}`,
-  );
+  refAmountCache.setCacheKey(`ref_amount:${userId}:${amount}:${baseCode}:${quoteCode || 'default'}:${dateStr}`);
 
   const cachedAmount = await refAmountCache.read();
 

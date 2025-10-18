@@ -57,8 +57,8 @@
 import UiButton from '@/components/lib/ui/button/Button.vue';
 
 import { FiltersStruct } from './const';
-import AccountsFilter from './filters/combobox-accounts.vue';
 import AmountRangeFilter from './filters/amount-range-filter.vue';
+import AccountsFilter from './filters/combobox-accounts.vue';
 import DateRangeFilter from './filters/date-range-filter.vue';
 import ExclusionsFilter from './filters/exclusions.vue';
 import NoteIncludesFilter from './filters/note-includes.vue';

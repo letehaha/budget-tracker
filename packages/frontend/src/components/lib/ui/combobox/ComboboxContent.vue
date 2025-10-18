@@ -1,41 +1,43 @@
 <script setup lang="ts">
-import type { ComboboxContentProps as RadixComboboxContentProps } from 'radix-vue'
-import type { HTMLAttributes } from 'vue'
-import { reactiveOmit } from '@vueuse/core'
-import { ComboboxContent } from 'radix-vue'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils';
+import { reactiveOmit } from '@vueuse/core';
+import type { ComboboxContentProps as RadixComboboxContentProps } from 'radix-vue';
+import { ComboboxContent } from 'radix-vue';
+import type { HTMLAttributes } from 'vue';
 
 interface PointerDownOutsideEvent extends Event {
-  type: string
+  type: string;
   detail: {
-    originalEvent: PointerEvent
-  }
+    originalEvent: PointerEvent;
+  };
 }
 
 interface FocusOutsideEvent extends Event {
-  type: string
+  type: string;
   detail: {
-    originalEvent: FocusEvent
-  }
+    originalEvent: FocusEvent;
+  };
 }
 
-const props = defineProps<RadixComboboxContentProps & {
-  class?: HTMLAttributes['class']
-  forceMount?: boolean
-}>()
+const props = defineProps<
+  RadixComboboxContentProps & {
+    class?: HTMLAttributes['class'];
+    forceMount?: boolean;
+  }
+>();
 
 const emits = defineEmits<{
-  (e: 'escapeKeyDown', event: KeyboardEvent): void
-  (e: 'interactOutside', event: PointerDownOutsideEvent | FocusOutsideEvent): void
-}>()
+  (e: 'escapeKeyDown', event: KeyboardEvent): void;
+  (e: 'interactOutside', event: PointerDownOutsideEvent | FocusOutsideEvent): void;
+}>();
 
-const delegatedProps = reactiveOmit(props, 'class')
+const delegatedProps = reactiveOmit(props, 'class');
 </script>
 
 <template>
   <ComboboxContent
     v-bind="delegatedProps"
-    :class="cn(' w-full mt-2 bg-background rounded-md border border-input shadow-lg', props.class)"
+    :class="cn('bg-background border-input mt-2 w-full rounded-md border shadow-lg', props.class)"
     @escape-key-down="emits('escapeKeyDown', $event)"
     @interact-outside="emits('interactOutside', $event)"
   >

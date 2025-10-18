@@ -1,22 +1,27 @@
 <script setup lang="ts">
-import type { ComboboxItemEmits, ComboboxItemProps } from 'radix-vue'
-import type { HTMLAttributes } from 'vue'
-import { reactiveOmit } from '@vueuse/core'
-import { ComboboxItem, useForwardPropsEmits } from 'radix-vue'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils';
+import { reactiveOmit } from '@vueuse/core';
+import type { ComboboxItemEmits, ComboboxItemProps } from 'radix-vue';
+import { ComboboxItem, useForwardPropsEmits } from 'radix-vue';
+import type { HTMLAttributes } from 'vue';
 
-const props = defineProps<ComboboxItemProps & { class?: HTMLAttributes['class'] }>()
-const emits = defineEmits<ComboboxItemEmits>()
+const props = defineProps<ComboboxItemProps & { class?: HTMLAttributes['class'] }>();
+const emits = defineEmits<ComboboxItemEmits>();
 
-const delegatedProps = reactiveOmit(props, 'class')
+const delegatedProps = reactiveOmit(props, 'class');
 
-const forwarded = useForwardPropsEmits(delegatedProps, emits)
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
   <ComboboxItem
     v-bind="forwarded"
-    :class="cn('relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0', props.class)"
+    :class="
+      cn(
+        'data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
+        props.class,
+      )
+    "
   >
     <slot />
   </ComboboxItem>

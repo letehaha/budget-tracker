@@ -14,7 +14,6 @@ import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
 import middlewarePassword from './middlewares/passport';
 import './redis-client';
-import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
 /**
@@ -33,6 +32,7 @@ import testsRoutes from './routes/tests.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
+import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 import { supportedLocales } from './translations';
 
 logger.info('Starting application initialization...');
