@@ -71,7 +71,18 @@ app.use(
 
 logger.info(`CORS configured with origins: ${ALLOWED_ORIGINS}`);
 
-app.use(express.json());
+// Body parser with conditional limits
+app.use((req, res, next) => {
+  // Paths that need larger payloads
+  const largePaths = [`${API_PREFIX}/investments/securities/prices/bulk-upload`];
+
+  if (largePaths.includes(req.path)) {
+    return express.json({ limit: '1mb' })(req, res, next);
+  }
+
+  return express.json()(req, res, next);
+});
+
 app.use(express.urlencoded({ extended: false }));
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
@@ -108,13 +119,19 @@ export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : a
   logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
   logger.info(`API Prefix: ${API_PREFIX}`);
 
-  // Initialize historical exchange rates from Frankfurter on startup (non-blocking)
-  initializeHistoricalRates();
+  const isOfflineMode = process.env.OFFLINE_MODE === 'true';
 
-  loadCurrencyRatesJob.start();
+  if (isOfflineMode) {
+    logger.info('[Offline Mode] Skipping background jobs that require internet connection');
+  } else {
+    // Initialize historical exchange rates from Frankfurter on startup (non-blocking)
+    initializeHistoricalRates();
 
-  if (process.env.NODE_ENV === 'production') {
-    securitiesDailySyncCron.startCron();
+    loadCurrencyRatesJob.start();
+
+    if (process.env.NODE_ENV === 'production') {
+      securitiesDailySyncCron.startCron();
+    }
   }
 });
 

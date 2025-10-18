@@ -296,3 +296,6 @@ export async function fetchFromFrankfurterTimeSeries(startDate: Date, endDate: D
 export function isSupportedByFrankfurter(currencyCode: string): boolean {
   return FRANKFURTER_SUPPORTED_CURRENCIES.includes(currencyCode.toUpperCase());
 }
+
+// Frankfurter's earliest available data is from 1999-01-04 (when Euro was introduced)
+export const FRANKFURTER_START_DATE = new Date('1999-01-04');

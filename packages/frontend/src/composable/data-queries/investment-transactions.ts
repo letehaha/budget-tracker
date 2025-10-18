@@ -4,6 +4,7 @@ import {
   deleteInvestmentTransaction,
   getHoldingTransactions,
 } from '@/api/investment-transactions';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { MaybeRef, Ref, computed, toRef } from 'vue';
 
@@ -15,10 +16,10 @@ export const useCreateInvestmentTransaction = () => {
     mutationFn: createInvestmentTransaction,
     onSuccess: (_, variables: { portfolioId: number }) => {
       // Invalidate holdings and portfolio queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ['holdings', variables.portfolioId] });
-      queryClient.invalidateQueries({ queryKey: ['portfolio', variables.portfolioId] });
+      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.holdingsList, variables.portfolioId] });
+      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioDetails, variables.portfolioId] });
       // Invalidate holding-transactions queries to refresh transaction lists
-      queryClient.invalidateQueries({ queryKey: ['holding-transactions'] });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingTransactions });
     },
   });
 };
@@ -30,9 +31,9 @@ export const useDeleteInvestmentTransaction = () => {
     mutationFn: deleteInvestmentTransaction,
     onSuccess: () => {
       // Invalidate all related queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ['holding-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['holdings'] });
-      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingTransactions });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingsList });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioDetails });
     },
   });
 };
@@ -49,7 +50,7 @@ export const useGetHoldingTransactions = (
   const offset = computed(() => (page.value - 1) * limit.value);
 
   return useQuery<HoldingTransactionsResponse | undefined>({
-    queryKey: ['holding-transactions', portfolioIdRef, securityIdRef, page, limit],
+    queryKey: [...VUE_QUERY_CACHE_KEYS.holdingTransactions, portfolioIdRef, securityIdRef, page, limit],
     queryFn: () => {
       if (!portfolioIdRef.value || !securityIdRef.value) {
         return Promise.resolve(undefined);

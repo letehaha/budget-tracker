@@ -67,6 +67,19 @@ export const priceSyncRateLimit = createRateLimit({
 });
 
 /**
+ * Rate limit for bulk price uploads (1 minute window, 5 attempts per user)
+ * Prevents accidental DoS from repeated large uploads
+ */
+export const securitiesPricesBulkUploadRateLimit = createRateLimit({
+  windowSeconds: 60, // 1 minute
+  maxAttempts: 5,
+  keyGenerator: (req: Request) => {
+    const user = req.user as Users;
+    return `securities-prices-bulk-upload:user:${user.id}`;
+  },
+});
+
+/**
  * General API rate limit (per user, 60 requests per minute)
  */
 export const apiRateLimit = createRateLimit({

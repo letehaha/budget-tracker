@@ -1,4 +1,5 @@
 import { getPortfolioSummary } from '@/api/portfolios';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useQuery } from '@tanstack/vue-query';
 import { type MaybeRefOrGetter, computed, unref } from 'vue';
 
@@ -7,7 +8,7 @@ export const usePortfolioSummary = (portfolioId: MaybeRefOrGetter<number>, date?
   const dateRef = computed(() => (date ? unref(date) : undefined));
 
   return useQuery({
-    queryKey: ['portfolioSummary', portfolioIdRef, dateRef],
+    queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioSummary, portfolioIdRef, dateRef],
     queryFn: async () => {
       const id = unref(portfolioId) as number;
       const dateValue = date ? (unref(date) as string) : undefined;

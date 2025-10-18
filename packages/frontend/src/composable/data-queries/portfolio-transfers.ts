@@ -1,4 +1,5 @@
 import { createPortfolioTransfer, getPortfolioTransfers } from '@/api/portfolios';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRef, unref } from 'vue';
 
@@ -17,9 +18,9 @@ export const useCreatePortfolioTransfer = () => {
     }: { fromPortfolioId: number } & Parameters<typeof createPortfolioTransfer>[1]) =>
       createPortfolioTransfer(fromPortfolioId, params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['portfolio-transfers'] });
-      queryClient.invalidateQueries({ queryKey: ['portfolios'] });
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioTransfers });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts });
     },
   });
 };
@@ -31,7 +32,7 @@ export const usePortfolioTransfers = (portfolioId: MaybeRef<number | undefined>,
 
   const query = useQuery({
     queryFn: () => getPortfolioTransfers(unref(portfolioId)!),
-    queryKey: ['portfolio-transfers', portfolioId],
+    queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioTransfers, portfolioId],
     enabled: () => !!unref(portfolioId),
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...queryOptions,
@@ -39,6 +40,7 @@ export const usePortfolioTransfers = (portfolioId: MaybeRef<number | undefined>,
 
   return {
     ...query,
-    invalidate: () => queryClient.invalidateQueries({ queryKey: ['portfolio-transfers', unref(portfolioId)] }),
+    invalidate: () =>
+      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioTransfers, unref(portfolioId)] }),
   };
 };

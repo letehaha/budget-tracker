@@ -1,4 +1,5 @@
-import { Unauthorized } from '@js/errors';
+import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types';
+import { ERROR_CODES } from '@js/errors';
 import Users from '@models/Users.model';
 import type { NextFunction, Request, Response } from 'express';
 
@@ -11,27 +12,36 @@ export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
   const adminUsers = process.env.ADMIN_USERS?.split(',').map((username) => username.trim()) || [];
 
   if (adminUsers.length === 0) {
-    const error = new Unauthorized({
-      message: 'Admin functionality is not configured.',
+    return res.status(ERROR_CODES.Unauthorized).json({
+      status: API_RESPONSE_STATUS.error,
+      response: {
+        message: 'Admin functionality is not configured.',
+        code: API_ERROR_CODES.unauthorized,
+      },
     });
-    return next(error);
   }
 
   // Assumes user is already authenticated via authenticateJwt middleware
   const username = (req.user as Users)?.username;
 
   if (!username) {
-    const error = new Unauthorized({
-      message: 'Authentication required.',
+    return res.status(ERROR_CODES.Unauthorized).json({
+      status: API_RESPONSE_STATUS.error,
+      response: {
+        message: 'Authentication required.',
+        code: API_ERROR_CODES.unauthorized,
+      },
     });
-    return next(error);
   }
 
   if (!adminUsers.includes(username)) {
-    const error = new Unauthorized({
-      message: 'Admin privileges required.',
+    return res.status(ERROR_CODES.Unauthorized).json({
+      status: API_RESPONSE_STATUS.error,
+      response: {
+        message: 'Admin privileges required.',
+        code: API_ERROR_CODES.unauthorized,
+      },
     });
-    return next(error);
   }
 
   return next();

@@ -6,7 +6,7 @@ import {
   editTransaction,
   linkTransactions,
 } from '@/api';
-import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES, VUE_QUERY_TX_CHANGE_QUERY } from '@/common/const';
+import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -258,7 +258,7 @@ const submit = async () => {
 
     closeModal();
     // Reload all cached data in the app
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_TX_CHANGE_QUERY] });
+    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
     if (props.transaction?.id) {
       queryClient.invalidateQueries({
         queryKey: getInvalidationQueryKey(props.transaction.id),
@@ -292,7 +292,7 @@ const unlinkTransactions = async () => {
 
     closeModal();
     // Reload all cached data in the app
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_TX_CHANGE_QUERY] });
+    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.securityPriceChange] });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(err);
@@ -311,7 +311,7 @@ const deleteTransactionHandler = async () => {
 
     closeModal();
     // Reload all cached data in the app
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_TX_CHANGE_QUERY] });
+    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.securityPriceChange] });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(e);

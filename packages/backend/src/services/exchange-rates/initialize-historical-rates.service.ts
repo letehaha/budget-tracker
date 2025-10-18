@@ -3,10 +3,7 @@ import Currencies from '@models/Currencies.model';
 import ExchangeRates from '@models/ExchangeRates.model';
 import { format } from 'date-fns';
 
-import { fetchFromFrankfurterTimeSeries } from './frankfurter.service';
-
-// Frankfurter's earliest available data is from 1999-01-04 (when Euro was introduced)
-const FRANKFURTER_START_DATE = new Date('1999-01-04');
+import { FRANKFURTER_START_DATE, fetchFromFrankfurterTimeSeries } from './frankfurter.service';
 
 /**
  * Initializes the database with historical exchange rates from Frankfurter.

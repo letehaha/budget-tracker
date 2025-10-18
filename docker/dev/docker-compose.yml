@@ -3,6 +3,8 @@ services:
     build:
       context: ../../
       dockerfile: docker/dev/backend/Dockerfile
+      args:
+        OFFLINE_MODE: ${DOCKER_OFFLINE_MODE:-false}
     container_name: dev-budget-tracker-app
     volumes:
       - ../../packages/backend:/app/packages/backend
@@ -11,11 +13,15 @@ services:
     ports: ["${APPLICATION_PORT}:${APPLICATION_PORT}"]
     depends_on: ["db", "redis", "frankfurter"]
     env_file: ../../.env.development
+    environment:
+      - OFFLINE_MODE=${DOCKER_OFFLINE_MODE:-false}
 
   frontend:
     build:
       context: ../../
       dockerfile: docker/dev/frontend/Dockerfile
+      args:
+        OFFLINE_MODE: ${DOCKER_OFFLINE_MODE:-false}
     container_name: dev-budget-tracker-frontend
     volumes:
       - ../../packages/frontend:/app/packages/frontend

@@ -1,4 +1,4 @@
-import { VUE_QUERY_TX_CHANGE_QUERY } from '@/common/const';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { getHoursInMilliseconds } from '@/js/helpers';
 import { useAuthStore } from '@/stores/auth';
 import { useCategoriesStore } from '@/stores/categories/categories';
@@ -67,7 +67,7 @@ export const useRootStore = defineStore('root', () => {
         await Promise.allSettled([monobankStore.refreshAccounts(), monobankStore.loadTransactionsForEnabledAccounts()]);
 
         queryClient.invalidateQueries({
-          queryKey: [VUE_QUERY_TX_CHANGE_QUERY],
+          queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange],
         });
       }
     } catch (e) {
