@@ -106,7 +106,7 @@ export async function searchSecurities<R extends boolean | undefined = false>({
   payload,
   raw,
 }: {
-  payload: { query: string; limit?: number };
+  payload: Omit<Parameters<typeof _searchSecurities>[0], 'user'>;
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _searchSecurities>>, R>({

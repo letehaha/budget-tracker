@@ -12,7 +12,7 @@ export function useOppositeTxRecord(transaction) {
     ),
   );
 
-  const { data: oppositeTransferTransaction } = useQuery({
+  return useQuery({
     queryKey: [BASE_QUERY_KEY, transaction.id, transaction.transferId],
     queryFn: async () => {
       if (!transaction.transferId) return null;
@@ -23,10 +23,6 @@ export function useOppositeTxRecord(transaction) {
     enabled: isTransferTransaction.value,
     staleTime: Infinity,
   });
-
-  return {
-    oppositeTransferTransaction,
-  };
 }
 
 export const getInvalidationQueryKey = (transactionId) => [BASE_QUERY_KEY, transactionId];
