@@ -150,7 +150,7 @@
 
 @layer base {
   :root {
-    --header-height: 77px;
+    --header-height: 69px;
 
     --background: rgb(255, 255, 255);
     --foreground: rgb(8, 8, 10);

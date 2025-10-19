@@ -158,6 +158,9 @@ const toggleExpand = (securityId: number) => {
     expandedHoldingId.value = securityId;
   }
 };
+
+const cellStyles = 'py-0.5';
+const theadCellStyles = 'py-2';
 </script>
 
 <template>
@@ -167,54 +170,54 @@ const toggleExpand = (securityId: number) => {
     <div v-else-if="!holdings || holdings.length === 0" class="text-center">No holdings yet</div>
     <div v-else>
       <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-muted/50 text-muted-foreground">
-          <tr>
-            <th class="w-12 px-4 py-2 text-left"></th>
-            <th class="px-4 py-2 text-left">
+        <thead class="bg-muted text-muted-foreground sticky top-[var(--header-height)]">
+          <tr class="text-sm">
+            <th :class="[theadCellStyles, 'w-8 text-left']"></th>
+            <th :class="[theadCellStyles, 'px-4 text-left']">
               <button class="flex items-center gap-1" @click="toggleSort('symbol')">
                 Symbol
                 <ArrowUpIcon v-if="sortKey === 'symbol' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'symbol' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
-            <th class="px-4 py-2 text-left">Name</th>
-            <th class="px-4 py-2 text-right">
+            <th :class="[theadCellStyles, 'px-4 text-left']">Name</th>
+            <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('quantity')">
                 Shares
                 <ArrowUpIcon v-if="sortKey === 'quantity' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'quantity' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
-            <th class="px-4 py-2 text-right">Price</th>
-            <th class="px-4 py-2 text-right">
+            <th :class="[theadCellStyles, 'px-4 text-right']">Price</th>
+            <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('avgCost')">
                 AC/Share
                 <ArrowUpIcon v-if="sortKey === 'avgCost' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'avgCost' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
-            <th class="px-4 py-2 text-right">
+            <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('totalCost')">
                 Total Cost
                 <ArrowUpIcon v-if="sortKey === 'totalCost' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'totalCost' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
-            <th class="px-4 py-2 text-right">
+            <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('value')">
                 Market Value
                 <ArrowUpIcon v-if="sortKey === 'value' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'value' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
-            <th class="px-4 py-2 text-right">
+            <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('unrealizedGain')">
                 Unrealized Gain
                 <ArrowUpIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
-            <th class="px-4 py-2 text-right">
+            <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('realizedGain')">
                 Realized Gain
                 <ArrowUpIcon v-if="sortKey === 'realizedGain' && sortDir === 'asc'" class="size-3" />
@@ -225,29 +228,29 @@ const toggleExpand = (securityId: number) => {
         </thead>
         <tbody class="divide-border divide-y">
           <template v-for="h in sortedHoldings" :key="h.securityId">
-            <tr class="hover:bg-muted/20">
-              <td class="px-4 py-2">
+            <tr class="hover:bg-muted/20 text-sm">
+              <td>
                 <Button variant="ghost" size="icon" @click="toggleExpand(h.securityId)">
                   <ChevronDownIcon v-if="expandedHoldingId === h.securityId" class="size-4" />
                   <ChevronRightIcon v-else class="size-4" />
                 </Button>
               </td>
-              <td class="px-4 py-2 font-medium">{{ h.security?.symbol }}</td>
-              <td class="max-w-[150px] truncate px-4 py-2">{{ h.security?.name }}</td>
-              <td class="px-4 py-2 text-right">{{ Number(h.quantity).toLocaleString() }}</td>
-              <td class="px-4 py-2 text-right">{{ formatCurrency(getPrice(h), h.currencyCode) }}</td>
-              <td class="px-4 py-2 text-right">{{ formatCurrency(getAverageCost(h), h.currencyCode) }}</td>
-              <td class="px-4 py-2 text-right">{{ formatCurrency(getTotalCost(h), h.currencyCode) }}</td>
-              <td class="px-4 py-2 text-right">
+              <td :class="[cellStyles, 'px-4 font-medium']">{{ h.security?.symbol }}</td>
+              <td :class="[cellStyles, 'max-w-[150px] truncate px-4']">{{ h.security?.name }}</td>
+              <td :class="[cellStyles, 'px-4 text-right']">{{ Number(h.quantity).toLocaleString() }}</td>
+              <td :class="[cellStyles, 'px-4 text-right']">{{ formatCurrency(getPrice(h), h.currencyCode) }}</td>
+              <td :class="[cellStyles, 'px-4 text-right']">{{ formatCurrency(getAverageCost(h), h.currencyCode) }}</td>
+              <td :class="[cellStyles, 'px-4 text-right']">{{ formatCurrency(getTotalCost(h), h.currencyCode) }}</td>
+              <td :class="[cellStyles, 'px-4 text-right']">
                 {{ formatCurrency(Number(h.marketValue || h.value || 0), h.currencyCode) }}
               </td>
-              <td class="px-4 py-2 text-right">
+              <td :class="[cellStyles, 'px-4 text-right']">
                 <div :class="getGainColorClass(getUnrealizedGain(h).percent)">
                   <div class="font-medium">{{ formatCurrency(getUnrealizedGain(h).value, h.currencyCode) }}</div>
                   <div class="text-sm">{{ getUnrealizedGain(h).percent.toFixed(2) }}%</div>
                 </div>
               </td>
-              <td class="px-4 py-2 text-right">
+              <td :class="[cellStyles, 'px-4 text-right']">
                 <div :class="getGainColorClass(getRealizedGain(h).percent)">
                   <div class="font-medium">{{ formatCurrency(getRealizedGain(h).value, h.currencyCode) }}</div>
                   <div class="text-sm">{{ getRealizedGain(h).percent.toFixed(2) }}%</div>
