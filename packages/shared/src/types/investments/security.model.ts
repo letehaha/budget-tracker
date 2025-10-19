@@ -125,3 +125,10 @@ export interface SecuritySearchResult {
   cusip?: string;
   isin?: string;
 }
+
+/**
+ * Represents what exactly the API returns to the client
+ */
+export interface SecuritySearchResultFormatted extends SecuritySearchResult {
+  isInPortfolio?: boolean; // Indicates if this security is already in the queried portfolio
+}

@@ -1,8 +1,15 @@
 import { api } from '@/api/_api';
-import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import type { SecuritySearchResult, SecuritySearchResultFormatted } from '@bt/shared/types/investments';
 
-export const searchSecurities = async (query: string): Promise<SecuritySearchResult[]> => {
-  const res: SecuritySearchResult[] = await api.get('/investments/securities/search', { query });
+export const searchSecurities = async (
+  query: string,
+  portfolioId?: number,
+): Promise<SecuritySearchResultFormatted[]> => {
+  const params: { query: string; portfolioId?: number } = { query };
+  if (portfolioId !== undefined) {
+    params.portfolioId = portfolioId;
+  }
+  const res: SecuritySearchResultFormatted[] = await api.get('/investments/securities/search', params);
   return res;
 };
 

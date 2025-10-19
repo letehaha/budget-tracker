@@ -4,6 +4,7 @@ import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 import { FmpClient, type FmpSearchResult } from '../data-providers/clients/fmp-client';
+import { dataProviderFactory } from '../data-providers/provider-factory';
 
 // Get the globally mocked FMP client (set up in setupIntegrationTests.ts)
 const mockedFmpClient = jest.mocked(FmpClient);
@@ -127,5 +128,111 @@ describe('GET /investments/securities/search', () => {
 
     expect(mockedFmpSearch).toHaveBeenCalledWith('test', 10);
     expect(mockedFmpSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not include isInPortfolio flag when portfolioId is not provided', async () => {
+    // Mock FMP client response
+    mockedFmpSearch.mockResolvedValue([
+      {
+        symbol: 'AAPL',
+        name: 'Apple Inc.',
+        currency: 'USD',
+        stockExchange: 'NASDAQ Global Select',
+        exchangeShortName: 'NASDAQ',
+      },
+    ]);
+
+    const results = await helpers.searchSecurities({ payload: { query: 'apple' }, raw: true });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]!).toMatchObject({
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+    });
+    // isInPortfolio should be undefined when portfolioId is not provided
+    expect(results[0]!.isInPortfolio).toBeUndefined();
+  });
+
+  it('should mark securities as not in portfolio when portfolio is empty', async () => {
+    // Create a portfolio
+    const portfolio = await helpers.createPortfolio({ raw: true });
+
+    // Mock FMP client response
+    mockedFmpSearch.mockResolvedValue([
+      {
+        symbol: 'AAPL',
+        name: 'Apple Inc.',
+        currency: 'USD',
+        stockExchange: 'NASDAQ Global Select',
+        exchangeShortName: 'NASDAQ',
+      },
+    ]);
+
+    const results = await helpers.searchSecurities({
+      payload: { query: 'apple', portfolioId: portfolio.id },
+      raw: true,
+    });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]!.isInPortfolio).toBe(false);
+  });
+
+  it('should mark securities as in portfolio when they exist in holdings', async () => {
+    // Create a portfolio
+    const portfolio = await helpers.createPortfolio({ raw: true });
+
+    // Create a security and add it to the portfolio
+    const [security] = await helpers.seedSecurities([{ symbol: 'AAPL', name: 'Apple Inc.', currencyCode: 'USD' }]);
+
+    if (!security) {
+      throw new Error('Failed to seed security');
+    }
+
+    // Create a holding for this security
+    await helpers.createHolding({
+      payload: {
+        portfolioId: portfolio.id,
+        securityId: security.id,
+      },
+      raw: true,
+    });
+
+    // Re-establish mock binding after seedSecurities (which resets the mock and clears cache)
+    dataProviderFactory.clearCache();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockedFmpClient.mockImplementation(() => ({ search: mockedFmpSearch }) as any);
+
+    // Mock FMP client response with AAPL and GOOG
+    mockedFmpSearch.mockResolvedValue([
+      {
+        symbol: 'AAPL',
+        name: 'Apple Inc.',
+        currency: 'USD',
+        stockExchange: 'NASDAQ Global Select',
+        exchangeShortName: 'NASDAQ',
+      },
+      {
+        symbol: 'GOOG',
+        name: 'Alphabet Inc.',
+        currency: 'USD',
+        stockExchange: 'NASDAQ Global Select',
+        exchangeShortName: 'NASDAQ',
+      },
+    ]);
+
+    const results = await helpers.searchSecurities({
+      payload: { query: 'a', portfolioId: portfolio.id },
+      raw: true,
+    });
+
+    expect(results).toHaveLength(2);
+
+    // AAPL should be marked as in portfolio
+    const appleResult = results.find((r) => r.symbol === 'AAPL');
+    expect(appleResult?.isInPortfolio).toBe(true);
+
+    // GOOG should not be marked as in portfolio
+    const googleResult = results.find((r) => r.symbol === 'GOOG');
+    expect(googleResult?.isInPortfolio).toBe(false);
   });
 });

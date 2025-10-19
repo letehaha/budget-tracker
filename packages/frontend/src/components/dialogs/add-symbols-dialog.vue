@@ -4,8 +4,10 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InputField from '@/components/fields/input-field.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useCreateHolding } from '@/composable/data-queries/holdings';
+import { cn } from '@/lib/utils';
 import type { SecuritySearchResult } from '@bt/shared/types/investments';
 import { useQuery } from '@tanstack/vue-query';
+import { CheckCheckIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{ portfolioId: number }>();
@@ -24,11 +26,11 @@ watch(searchTerm, (v) => {
   }, 300);
 });
 
-const key = computed(() => ['sec-search', debounced.value] as const);
+const key = computed(() => ['sec-search', debounced.value, props.portfolioId] as const);
 
 const query = useQuery({
   queryKey: key,
-  queryFn: () => searchSecurities(debounced.value),
+  queryFn: () => searchSecurities(debounced.value, props.portfolioId),
   enabled: () => debounced.value.length >= 1,
 });
 
@@ -77,12 +79,27 @@ async function addSymbol(sec: SecuritySearchResult) {
             <li
               v-for="sec in query.data.value || []"
               :key="sec.symbol"
-              class="hover:bg-muted/40 grid cursor-pointer grid-cols-[auto_1fr_auto_auto] items-center gap-2 px-2 py-1"
-              @click="addSymbol(sec)"
+              :class="
+                cn(
+                  'grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-2 px-2 py-1',
+                  sec.isInPortfolio ? 'cursor-not-allowed opacity-80' : 'hover:bg-muted/40 cursor-pointer',
+                )
+              "
+              @click="!sec.isInPortfolio && addSymbol(sec)"
             >
-              <span class="font-medium">{{ sec.symbol }}</span>
+              <span class="flex items-center gap-2 font-medium">
+                <span v-if="sec.isInPortfolio" class="text-muted-foreground text-xs">
+                  <CheckCheckIcon class="text-success-text size-3" />
+                </span>
 
-              <span class="text-muted-foreground truncate text-xs">{{ sec.name }}</span>
+                {{ sec.symbol }}
+              </span>
+
+              <span class="text-muted-foreground truncate text-xs">
+                {{ sec.name }}
+
+                <span v-if="sec.isInPortfolio"> (Added) </span>
+              </span>
 
               <span class="text-muted-foreground text-right text-xs">{{ sec.exchangeName }}</span>
 
