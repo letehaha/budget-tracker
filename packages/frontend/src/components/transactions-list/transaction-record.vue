@@ -2,7 +2,10 @@
   <template
     :is="asButton ? 'button' : 'div'"
     :class="[
-      'grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_max-content] items-center justify-between gap-2 rounded-md px-2 py-1 [content-visibility:auto]',
+      'grid w-full cursor-pointer rounded-md px-2 py-1 [content-visibility:auto]',
+      shouldShowGroupedTransfer || isLoadingGroupedTransfer
+        ? 'grid-cols-[minmax(0,1fr)_max-content] items-end gap-3'
+        : 'grid-cols-[minmax(0,1fr)_max-content] items-center gap-2',
     ]"
     :type="asButton ? 'button' : undefined"
     aria-haspopup="true"
@@ -13,8 +16,41 @@
         <CategoryCircle :category="category" />
       </template>
 
-      <div class="text-left">
-        <template v-if="isTransferTransaction">
+      <div class="w-full text-left">
+        <template v-if="isLoadingGroupedTransfer">
+          <!-- Loading skeleton for grouped transfer -->
+          <div class="mb-1 flex items-center gap-1.5">
+            <span class="text-sm font-medium tracking-wide">
+              {{ accountFrom?.name }}
+            </span>
+            <ArrowRight :size="14" class="opacity-60" />
+            <div class="h-4 w-20 animate-pulse rounded bg-white/10"></div>
+          </div>
+          <div class="flex items-center gap-3 text-sm">
+            <span class="text-app-expense-color font-medium tabular-nums">{{ formattedExpenseAmount }}</span>
+            <ArrowRight :size="12" class="opacity-40" />
+            <div class="h-4 w-16 animate-pulse rounded bg-white/10"></div>
+          </div>
+        </template>
+        <template v-else-if="shouldShowGroupedTransfer">
+          <!-- Grouped transfer: show account movement on top with better styling -->
+          <div class="mb-1 flex items-center gap-1.5">
+            <span class="text-sm font-medium tracking-wide">
+              {{ accountFrom?.name }}
+            </span>
+            <ArrowRight :size="14" class="opacity-60" />
+            <span class="text-sm font-medium tracking-wide">
+              {{ accountTo?.name }}
+            </span>
+          </div>
+          <!-- Show both amounts on bottom with better spacing and typography -->
+          <div class="flex items-center gap-3 text-sm">
+            <span class="text-app-expense-color font-medium tabular-nums">{{ formattedExpenseAmount }}</span>
+            <ArrowRight :size="12" class="opacity-40" />
+            <span class="text-app-income-color font-medium tabular-nums">{{ formattedIncomeAmount }}</span>
+          </div>
+        </template>
+        <template v-else-if="isTransferTransaction">
           <span class="text-sm tracking-wider whitespace-nowrap">
             {{ accountMovement }}
           </span>
@@ -29,12 +65,20 @@
             </template>
           </div>
         </template>
-        <span class="line-clamp-1 text-sm tracking-wider [word-break:break-word] opacity-40">
+        <span
+          v-if="!shouldShowGroupedTransfer"
+          class="line-clamp-1 text-sm tracking-wider [word-break:break-word] opacity-40"
+        >
           {{ transaction.note }}
         </span>
       </div>
     </div>
-    <div>
+    <div v-if="shouldShowGroupedTransfer || isLoadingGroupedTransfer" class="flex items-start pt-0.5">
+      <div class="text-right text-sm whitespace-nowrap tabular-nums">
+        {{ formateDate(transaction.time) }}
+      </div>
+    </div>
+    <div v-else>
       <div
         :class="[
           'text-right',
@@ -58,6 +102,7 @@ import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore } from '@/stores';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { format } from 'date-fns';
+import { ArrowRight } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
 
@@ -85,7 +130,25 @@ const isTransferTransaction = computed(() =>
 );
 const isRefund = computed(() => transaction.refundLinked);
 
-const { oppositeTransferTransaction } = useOppositeTxRecord(transaction);
+const { data: oppositeTransferTransaction, isLoading: isLoadingOpposite } = useOppositeTxRecord(transaction);
+
+// Show grouped transfer display when we have both sides
+const shouldShowGroupedTransfer = computed(() => {
+  return (
+    isTransferTransaction.value &&
+    transaction.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
+    oppositeTransferTransaction.value
+  );
+});
+
+// Show loading state for common transfers while fetching opposite
+const isLoadingGroupedTransfer = computed(() => {
+  return (
+    isTransferTransaction.value &&
+    transaction.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
+    isLoadingOpposite.value
+  );
+});
 
 const category = computed(() => categoriesMap.value[transaction.categoryId]);
 const accountFrom = computed(() => accountsRecord.value[transaction.accountId]);
@@ -100,7 +163,7 @@ const accountMovement = computed(() => {
   return `${accountFrom.value?.name} ${separator} ${accountTo.value?.name}`;
 });
 
-const formateDate = (date) => format(new Date(date), 'd MMMM y');
+const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMMM y');
 
 const transactionEmit = () => {
   emit('record-click', [transaction, oppositeTransferTransaction.value]);
@@ -115,6 +178,19 @@ const formattedAmount = computed(() => {
 
   return formatUIAmount(amount, {
     currency: props.tx.currencyCode,
+  });
+});
+
+const formattedExpenseAmount = computed(() => {
+  return formatUIAmount(-transaction.amount, {
+    currency: props.tx.currencyCode,
+  });
+});
+
+const formattedIncomeAmount = computed(() => {
+  if (!oppositeTransferTransaction.value) return '';
+  return formatUIAmount(oppositeTransferTransaction.value.amount, {
+    currency: oppositeTransferTransaction.value.currencyCode,
   });
 });
 </script>

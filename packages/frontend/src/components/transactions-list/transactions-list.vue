@@ -24,6 +24,7 @@ const props = withDefaults(
     paginate?: boolean;
     scrollAreaId?: SCROLL_AREA_IDS;
     rawList?: boolean; // whenever we don't need to show anything except actual records
+    maxDisplay?: number; // maximum number of items to display after deduplication
   }>(),
   {
     isTransactionRecord: false,
@@ -78,9 +79,52 @@ const handlerRecordClick = ([baseTx, oppositeTx]: [baseTx: TransactionModel, opp
 
 const scrollContainer = useScrollAreaContainer(props.scrollAreaId);
 
+/**
+ * Smart container: Process transactions for display
+ * Deduplicate transfers by showing only expense side with opposite transaction attached
+ */
+const displayTransactions = computed(() => {
+  const seen = new Set<string>();
+
+  const deduplicated = props.transactions.filter((tx) => {
+    // Not a transfer - always show
+    if (!tx.transferId) {
+      return true;
+    }
+
+    // Transfer out of wallet - always show (no opposite transaction, can be income or expense)
+    if (tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
+      return true;
+    }
+
+    // Common transfer - deduplicate by showing only expense side
+    if (tx.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      // Skip if already processed
+      if (seen.has(tx.transferId)) {
+        return false;
+      }
+
+      // Only show expense side
+      if (tx.transactionType === TRANSACTION_TYPES.expense) {
+        seen.add(tx.transferId);
+        return true;
+      }
+
+      // Income side - skip without marking as seen
+      return false;
+    }
+
+    // Fallback: show the transaction
+    return true;
+  });
+
+  // Limit to maxDisplay if specified
+  return props.maxDisplay ? deduplicated.slice(0, props.maxDisplay) : deduplicated;
+});
+
 const virtualizer = useVirtualizer(
   computed(() => ({
-    count: props.transactions.length + (props.hasNextPage ? 1 : 0),
+    count: displayTransactions.value.length + (props.hasNextPage ? 1 : 0),
     getScrollElement: () => scrollContainer?.value?.viewportElement,
     estimateSize: () => 52 + 8,
     overscan: 10,
@@ -90,8 +134,8 @@ const virtualizer = useVirtualizer(
 
 defineExpose({
   virtualizer,
-  scrollToIndex: (index) => virtualizer.value.scrollToIndex(index),
-  scrollToOffset: (offset) => virtualizer.value.scrollToOffset(offset),
+  scrollToIndex: (index: number) => virtualizer.value.scrollToIndex(index),
+  scrollToOffset: (offset: number) => virtualizer.value.scrollToOffset(offset),
 });
 
 const virtualRows = computed(() => virtualizer.value.getVirtualItems());
@@ -102,7 +146,7 @@ watchEffect(() => {
 
   if (!lastItem) return;
 
-  if (lastItem.index >= props.transactions.length - 1 && props.hasNextPage && !props.isFetchingNextPage) {
+  if (lastItem.index >= displayTransactions.value.length - 1 && props.hasNextPage && !props.isFetchingNextPage) {
     emits('fetch-next-page');
   }
 });
@@ -117,8 +161,8 @@ watchEffect(() => {
             <div
               v-for="virtualRow in virtualRows"
               :key="
-                transactions[virtualRow.index]
-                  ? `${transactions[virtualRow.index].id}-${transactions[virtualRow.index].categoryId}-${transactions[virtualRow.index].refAmount}-${transactions[virtualRow.index].note}-${transactions[virtualRow.index].time}`
+                displayTransactions[virtualRow.index]
+                  ? `${displayTransactions[virtualRow.index].id}-${displayTransactions[virtualRow.index].categoryId}-${displayTransactions[virtualRow.index].refAmount}-${displayTransactions[virtualRow.index].note}-${displayTransactions[virtualRow.index].time}`
                   : virtualRow.index
               "
               :style="{
@@ -129,8 +173,8 @@ watchEffect(() => {
                 transform: `translateY(${virtualRow.start}px)`,
               }"
             >
-              <template v-if="transactions[virtualRow.index]">
-                <TransactionRecord :tx="transactions[virtualRow.index]" @record-click="handlerRecordClick" />
+              <template v-if="displayTransactions[virtualRow.index]">
+                <TransactionRecord :tx="displayTransactions[virtualRow.index]" @record-click="handlerRecordClick" />
               </template>
             </div>
           </div>
@@ -151,7 +195,7 @@ watchEffect(() => {
     <template v-else>
       <div v-bind="$attrs" class="grid grid-cols-1 gap-2">
         <template
-          v-for="item in transactions"
+          v-for="item in displayTransactions"
           :key="`${item.id}-${item.categoryId}-${item.refAmount}-${item.note}-${item.time}`"
         >
           <TransactionRecord :tx="item" @record-click="handlerRecordClick" />

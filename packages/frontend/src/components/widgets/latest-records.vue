@@ -17,7 +17,7 @@ const { isAppInitialized } = storeToRefs(useRootStore());
 
 const { data: transactions } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.widgetLatestRecords,
-  queryFn: () => apiLoadTransactions({ limit: 9, from: 0 }),
+  queryFn: () => apiLoadTransactions({ limit: 20, from: 0 }), // Over-fetch to account for deduplication
   staleTime: Infinity,
   placeholderData: [],
   enabled: isAppInitialized,
@@ -45,7 +45,7 @@ const isDataEmpty = computed(() => transactions.value.length === 0);
       </EmptyState>
     </template>
     <template v-else>
-      <TransactionsList raw-list class="gap-1" :transactions="transactions || []" />
+      <TransactionsList raw-list class="gap-1" :transactions="transactions || []" :max-display="10" />
     </template>
   </WidgetWrapper>
 </template>
