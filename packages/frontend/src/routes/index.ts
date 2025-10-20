@@ -44,11 +44,6 @@ const routes = [
         component: () => import('@/pages/investments/investments.vue'),
       },
       {
-        path: '/investments/:accountId',
-        name: ROUTES_NAMES.investmentAccount,
-        component: () => import('@/pages/investments/account.vue'),
-      },
-      {
         path: '/portfolios/:portfolioId',
         name: ROUTES_NAMES.portfolioDetail,
         component: () => import('@/pages/portfolios/portfolio-detail.vue'),
