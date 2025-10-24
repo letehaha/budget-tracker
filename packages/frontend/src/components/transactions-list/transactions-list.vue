@@ -162,7 +162,7 @@ watchEffect(() => {
               v-for="virtualRow in virtualRows"
               :key="
                 displayTransactions[virtualRow.index]
-                  ? `${displayTransactions[virtualRow.index].id}-${displayTransactions[virtualRow.index].categoryId}-${displayTransactions[virtualRow.index].refAmount}-${displayTransactions[virtualRow.index].note}-${displayTransactions[virtualRow.index].time}`
+                  ? `${displayTransactions[virtualRow.index].id}-${displayTransactions[virtualRow.index].categoryId}-${displayTransactions[virtualRow.index].refAmount}-${displayTransactions[virtualRow.index].note}-${displayTransactions[virtualRow.index].time}-${displayTransactions[virtualRow.index].transferNature}`
                   : virtualRow.index
               "
               :style="{

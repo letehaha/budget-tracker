@@ -287,6 +287,41 @@ describe('Update transaction controller', () => {
         expect(transactionsAfterUpdate.find((i) => i.id === baseTx.id)!.transferId).toBe(null);
       },
     );
+    it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
+      'updates external %s to transfer_out_wallet without transactionType',
+      async (transactionType) => {
+        await helpers.monobank.pair();
+        const { transactions } = await helpers.monobank.mockTransactions();
+
+        const externalTransaction = transactions.find((item) => item.transactionType === transactionType);
+        expect(externalTransaction).not.toBe(undefined);
+
+        // Update external transaction to transfer_out_wallet
+        const [baseTx] = await helpers.updateTransaction({
+          id: externalTransaction!.id,
+          payload: {
+            transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+          },
+          raw: true,
+        });
+
+        // Verify that the transaction was updated to transfer_out_wallet
+        expect(baseTx).toMatchObject({
+          amount: externalTransaction!.amount,
+          refAmount: externalTransaction!.refAmount,
+          accountId: externalTransaction!.accountId,
+          transferId: null,
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+          // transactionType should remain the same as the original
+          transactionType: transactionType,
+        });
+
+        // Verify no opposite transaction is created for out_of_wallet
+        const allTransactions = (await helpers.getTransactions({ raw: true }))!;
+        expect(allTransactions.length).toBe(transactions.length);
+      },
+    );
+
     it('throws error when trying to make invalid actions', async () => {
       await helpers.monobank.pair();
       const { transactions } = await helpers.monobank.mockTransactions();

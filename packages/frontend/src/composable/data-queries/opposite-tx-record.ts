@@ -1,4 +1,5 @@
 import { loadTransactionsByTransferId } from '@/api/transactions';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
@@ -13,7 +14,7 @@ export function useOppositeTxRecord(transaction) {
   );
 
   return useQuery({
-    queryKey: [BASE_QUERY_KEY, transaction.id, transaction.transferId],
+    queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange, BASE_QUERY_KEY, transaction.id, transaction.transferId],
     queryFn: async () => {
       if (!transaction.transferId) return null;
       const transactions = await loadTransactionsByTransferId(transaction.transferId);

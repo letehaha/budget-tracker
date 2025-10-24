@@ -78,9 +78,15 @@ export const prepareTxUpdationParams = ({
       // so we need to redefine it manually
       if (isOutOfWalletAccount(destinationAccount)) {
         editionParams.transferNature = TRANSACTION_TRANSFER_NATURE.transfer_out_wallet;
-        editionParams.transactionType = TRANSACTION_TYPES.expense;
+        // Don't set transactionType for external transactions - it's a restricted field
+        if (!isRecordExternal) {
+          editionParams.transactionType = TRANSACTION_TYPES.expense;
+        }
       } else if (isOutOfWalletAccount(form.account)) {
-        editionParams.transactionType = TRANSACTION_TYPES.income;
+        // Don't set transactionType for external transactions - it's a restricted field
+        if (!isRecordExternal) {
+          editionParams.transactionType = TRANSACTION_TYPES.income;
+        }
         editionParams.accountId = destinationAccount.id;
         editionParams.amount = getDestinationAmount({
           sourceTransaction: transaction,

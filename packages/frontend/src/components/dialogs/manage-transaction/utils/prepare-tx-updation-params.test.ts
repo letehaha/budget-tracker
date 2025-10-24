@@ -175,6 +175,74 @@ describe('prepareTxUpdationParams', () => {
         categoryId: formMock.category.id,
       });
     });
+
+    it('handles external expense → transfer_out_wallet (account → out_of_wallet) conversion without transactionType', () => {
+      const expenseTx = buildExternalExpenseTransaction();
+      const destinationAccount = getUahAccount();
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(expenseTx),
+        type: FORM_TYPES.transfer,
+        account: destinationAccount,
+        amount: 1500,
+        targetAmount: null,
+        toAccount: OUT_OF_WALLET_ACCOUNT_MOCK,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: expenseTx,
+        linkedTransaction: null,
+        isTransferTx: true,
+        isRecordExternal: true,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result).toEqual({
+        txId: expenseTx.id,
+        note: formMock.note,
+        paymentType: formMock.paymentType.value,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      });
+
+      // Ensure transactionType is NOT set for external transactions (restricted field)
+      expect(result).not.toHaveProperty('transactionType');
+    });
+
+    it('handles external expense → transfer_out_wallet (out_of_wallet → account) conversion without transactionType', () => {
+      const expenseTx = buildExternalExpenseTransaction();
+      const destinationAccount = getUahAccount();
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(expenseTx),
+        type: FORM_TYPES.transfer,
+        account: OUT_OF_WALLET_ACCOUNT_MOCK,
+        amount: null,
+        targetAmount: 1500,
+        toAccount: destinationAccount,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: expenseTx,
+        linkedTransaction: null,
+        isTransferTx: true,
+        isRecordExternal: true,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result).toEqual({
+        txId: expenseTx.id,
+        note: formMock.note,
+        paymentType: formMock.paymentType.value,
+        accountId: destinationAccount.id,
+        amount: formMock.targetAmount,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      });
+
+      // Ensure transactionType is NOT set for external transactions (restricted field)
+      expect(result).not.toHaveProperty('transactionType');
+    });
   });
 
   describe('income/expense conversions', () => {
