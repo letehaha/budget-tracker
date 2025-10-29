@@ -1,6 +1,7 @@
 export enum ACCOUNT_TYPES {
   system = 'system',
   monobank = 'monobank',
+  lunchflow = 'lunchflow',
 }
 
 export enum ACCOUNT_CATEGORIES {

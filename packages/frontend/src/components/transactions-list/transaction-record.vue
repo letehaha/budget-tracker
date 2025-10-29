@@ -58,7 +58,7 @@
         <template v-else>
           <div class="flex items-center gap-2">
             <span class="text-sm tracking-wider whitespace-nowrap">
-              {{ category.name || 'Other' }}
+              {{ category ? category.name : 'Other' }}
             </span>
             <template v-if="isRefund">
               <div class="border-primary rounded-sm border px-1 py-0.5 text-xs text-white/80">Refund</div>

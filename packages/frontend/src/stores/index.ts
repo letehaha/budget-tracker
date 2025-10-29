@@ -10,3 +10,4 @@ export { useCryptoBinanceStore } from './integrations/crypto/binance';
 
 // banks
 export { useBanksMonobankStore } from './integrations/banks/monobank';
+export { useBanksLunchflowStore } from './integrations/banks/lunchflow';

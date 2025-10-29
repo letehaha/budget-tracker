@@ -128,7 +128,9 @@ export const addCurrency = async ({
   isDefaultCurrency?: boolean;
 }) => {
   const currency = await Currencies.findByPk(currencyCode);
+
   if (!currency) {
+    console.log("currencyCode", currencyCode);
     throw new NotFoundError({
       message: 'Currency with provided code does not exist!',
     });

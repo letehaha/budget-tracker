@@ -117,6 +117,12 @@ export default class Balances extends Model {
     const date = new Date(time);
     date.setHours(0, 0, 0, 0);
 
+    // Lunchflow transactions don't affect balance calculations
+    // Balance is updated only via refresh-balance endpoint with actual snapshots
+    if (data.accountType === ACCOUNT_TYPES.lunchflow) {
+      return;
+    }
+
     if (data.accountType === ACCOUNT_TYPES.system) {
       if (isDelete) {
         amount = -amount; // Reverse the amount if it's a deletion

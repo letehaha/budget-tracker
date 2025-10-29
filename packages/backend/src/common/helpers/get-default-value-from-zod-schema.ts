@@ -10,7 +10,11 @@ export const getDefaultValue = (schema: ZodTypeAny): any => {
 
     for (const key in shape) {
       const field = shape[key];
-      defaultObject[key] = getDefaultValue(field);
+      const value = getDefaultValue(field);
+      // Only add the key if it's not undefined (skip optional fields)
+      if (value !== undefined) {
+        defaultObject[key] = value;
+      }
     }
     return defaultObject;
   }

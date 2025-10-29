@@ -9,6 +9,9 @@
           <template v-if="account.type === ACCOUNT_TYPES.monobank">
             <MonobankAccount :account="account" />
           </template>
+          <template v-else-if="account.type === ACCOUNT_TYPES.lunchflow">
+            <LunchflowAccount :account="account" />
+          </template>
           <template v-else-if="account.type === ACCOUNT_TYPES.system">
             <SystemAccount :account="account" :transactions="rawTransactionsList" />
           </template>
@@ -60,6 +63,7 @@ import { useRoute } from 'vue-router';
 
 import Header from './components/header.vue';
 import MonobankAccount from './types/monobank/monobank.vue';
+import LunchflowAccount from './types/lunchflow/lunchflow.vue';
 import SystemAccount from './types/system/system.vue';
 
 const route = useRoute();
