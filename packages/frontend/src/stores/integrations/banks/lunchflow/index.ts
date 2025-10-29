@@ -17,11 +17,11 @@ import { ref, watch } from 'vue';
 export const useBanksLunchflowStore = defineStore('banks-lunchflow', () => {
   const queryClient = useQueryClient();
   const userSettings = useUserSettings();
-  const isConnected = ref(!!userSettings.data.value?.lunchflow.apiToken);
+  const isConnected = ref(!!userSettings.data.value?.lunchflow?.apiToken);
   const isLoading = ref(false);
 
   watch(
-    () => userSettings.data.value?.lunchflow.apiToken,
+    () => userSettings.data.value?.lunchflow?.apiToken,
     (value) => {
       isConnected.value = !!value;
     },
