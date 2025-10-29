@@ -13,5 +13,10 @@ export const getUserSettings = withTransaction(async ({ userId }: { userId: numb
     return getDefaultValue(ZodSettingsSchema);
   }
 
-  return userSettings.settings;
+  // Merge defaults with stored settings to include any new fields
+  const defaults = getDefaultValue(ZodSettingsSchema);
+  return {
+    ...defaults,
+    ...userSettings.settings,
+  };
 });

@@ -8,6 +8,11 @@ export const ZodSettingsSchema = z.object({
       excludedCategories: z.array(z.number().int().positive().finite()),
     }),
   }),
+  lunchflow: z
+    .object({
+      apiToken: z.string().optional(), // Encrypted API token
+    })
+    .optional(),
 });
 
 export const DEFAULT_SETTINGS: SettingsSchema = {
@@ -16,6 +21,7 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
       excludedCategories: [],
     },
   },
+  lunchflow: undefined,
 };
 
 // Infer the TypeScript type from the Zod schema
