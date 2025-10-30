@@ -65,8 +65,18 @@ export function updateAccount<
   });
 }
 
-export const createAccountWithNewCurrency = async ({ currency }) => {
-  const currencyA: Currencies = global.MODELS_CURRENCIES.find((item) => item.code === currency);
+export function deleteAccount({ id, raw }: { id: number; raw: false }): Promise<Response>;
+export function deleteAccount({ id, raw }: { id: number; raw: true }): Promise<void>;
+export function deleteAccount({ id, raw = false }: { id: number; raw?: boolean }) {
+  return makeRequest({
+    method: 'delete',
+    url: `/accounts/${id}`,
+    raw,
+  });
+}
+
+export const createAccountWithNewCurrency = async ({ currency }: { currency: string }) => {
+  const currencyA: Currencies = global.MODELS_CURRENCIES.find((item: Currencies) => item.code === currency);
   await addUserCurrencies({ currencyCodes: [currencyA.code] });
 
   const account = await createAccount({

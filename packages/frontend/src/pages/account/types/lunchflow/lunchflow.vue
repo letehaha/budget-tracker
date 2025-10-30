@@ -4,13 +4,15 @@ import * as Tabs from '@/components/lib/ui/tabs';
 import AccountDetailsTab from '@/pages/account/components/account-details-tab.vue';
 import SettingAccountGroup from '@/pages/account/components/account-group.vue';
 import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
-import { AccountModel } from '@bt/shared/types';
+import AccountDeletionSection from '@/pages/account/components/account-deletion-section.vue';
+import { AccountModel, TransactionModel } from '@bt/shared/types';
 
 import SyncTransactions from './sync-transactions.vue';
 import RefreshBalance from './refresh-balance.vue';
 
 defineProps<{
   account: AccountModel;
+  transactions: TransactionModel[];
 }>();
 </script>
 
@@ -38,6 +40,10 @@ defineProps<{
         <Separator />
 
         <SyncTransactions :account="account" />
+
+        <Separator />
+
+        <AccountDeletionSection :account="account" :transactions="transactions" />
       </div>
     </Tabs.TabsContent>
   </Tabs.Tabs>

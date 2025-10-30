@@ -5,7 +5,7 @@ import {
   editAccount as apiEditAccount,
   loadAccounts as apiLoadAccounts,
 } from '@/api';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { defineStore, storeToRefs } from 'pinia';
@@ -68,6 +68,14 @@ export const useAccountsStore = defineStore('accounts', () => {
     try {
       await apiDeleteAccount({ id });
       await refetchAccounts();
+      // Invalidate all queries that depend on transaction changes
+      // since deleting an account will delete all associated transactions
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const queryKey = query.queryKey as string[];
+          return queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange);
+        },
+      });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(e);
