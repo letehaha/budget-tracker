@@ -333,4 +333,130 @@ describe('Lunchflow Sync Transactions', () => {
       expect(updatedAccount!.currentBalance).toBe(initialBalance);
     });
   });
+
+  describe('Account deletion and re-connection', () => {
+    it('can delete account with transactions and then re-connect and sync again', async () => {
+      // Step 1: Initial setup - store API key
+      await helpers.lunchflow.storeApiKey({ raw: true });
+
+      const mockedAccounts = getMockedLunchflowAccounts(1);
+      setMockedLunchflowAccounts(mockedAccounts);
+      setMockedLunchflowBalance(mockedAccounts[0]!.id, getMockedLunchflowBalance(5000));
+
+      // Step 2: Sync account and transactions
+      const initialTransactions = getMockedLunchflowTransactions(mockedAccounts[0]!.id, 10);
+      setMockedLunchflowTransactions(mockedAccounts[0]!.id, initialTransactions);
+
+      const syncResult1 = await helpers.lunchflow.syncAccounts({ raw: true });
+      const account1 = syncResult1.accounts[0]!;
+
+      const syncTxResult1 = await helpers.lunchflow.syncTransactions({ accountId: account1.id, raw: true });
+      expect(syncTxResult1.new).toBe(10);
+      expect(syncTxResult1.total).toBe(10);
+
+      // Verify transactions exist
+      const allTransactions1 = await helpers.getTransactions({ raw: true });
+      const lunchflowTransactions1 = allTransactions1.filter((tx) => tx.accountId === account1.id);
+      expect(lunchflowTransactions1).toHaveLength(10);
+
+      // Step 3: Delete the account (which should cascade delete all transactions)
+      await helpers.deleteAccount({ id: account1.id, raw: true });
+
+      // Verify account is deleted
+      const accountsAfterDelete = await helpers.getAccounts();
+      const deletedAccount = accountsAfterDelete.find((acc) => acc.id === account1.id);
+      expect(deletedAccount).toBeUndefined();
+
+      // Verify all transactions are deleted
+      const allTransactionsAfterDelete = await helpers.getTransactions({ raw: true });
+      const remainingLunchflowTransactions = allTransactionsAfterDelete.filter((tx) => tx.accountId === account1.id);
+      expect(remainingLunchflowTransactions).toHaveLength(0);
+
+      // Step 4: Re-connect and sync accounts again
+      const syncResult2 = await helpers.lunchflow.syncAccounts({ raw: true });
+      const account2 = syncResult2.accounts[0]!;
+
+      // Verify new account was created with different ID
+      expect(account2.id).not.toBe(account1.id);
+      expect(account2.type).toBe(ACCOUNT_TYPES.lunchflow);
+
+      // Step 5: Sync transactions again
+      const syncTxResult2 = await helpers.lunchflow.syncTransactions({ accountId: account2.id, raw: true });
+      expect(syncTxResult2.new).toBe(10); // Should sync all transactions again
+      expect(syncTxResult2.total).toBe(10);
+
+      // Verify transactions were re-created for the new account
+      const allTransactions2 = await helpers.getTransactions({ raw: true });
+      const lunchflowTransactions2 = allTransactions2.filter((tx) => tx.accountId === account2.id);
+      expect(lunchflowTransactions2).toHaveLength(10);
+
+      // Verify transactions have the same external IDs
+      const originalIds1 = initialTransactions.map((tx) => tx.id).sort();
+      const originalIds2 = lunchflowTransactions2.map((tx) => tx.originalId).sort();
+      expect(originalIds2).toEqual(originalIds1);
+    });
+
+    it('can delete account with transactions and re-connect with additional transactions', async () => {
+      // Setup and initial sync
+      await helpers.lunchflow.storeApiKey({ raw: true });
+
+      const mockedAccounts = getMockedLunchflowAccounts(1);
+      setMockedLunchflowAccounts(mockedAccounts);
+      setMockedLunchflowBalance(mockedAccounts[0]!.id, getMockedLunchflowBalance(5000));
+
+      const initialTransactions = getMockedLunchflowTransactions(mockedAccounts[0]!.id, 5);
+      setMockedLunchflowTransactions(mockedAccounts[0]!.id, initialTransactions);
+
+      const syncResult1 = await helpers.lunchflow.syncAccounts({ raw: true });
+      const account1 = syncResult1.accounts[0]!;
+
+      await helpers.lunchflow.syncTransactions({ accountId: account1.id, raw: true });
+
+      // Delete account
+      await helpers.deleteAccount({ id: account1.id, raw: true });
+
+      // Add more transactions to the mocked API
+      const additionalTransactions = [
+        {
+          id: 'new-after-delete-1',
+          accountId: mockedAccounts[0]!.id,
+          amount: -200,
+          currency: 'PLN',
+          date: new Date().toISOString().split('T')[0]!,
+          merchant: 'New Store',
+          description: 'New Purchase',
+        },
+        {
+          id: 'new-after-delete-2',
+          accountId: mockedAccounts[0]!.id,
+          amount: 300,
+          currency: 'PLN',
+          date: new Date().toISOString().split('T')[0]!,
+          merchant: 'New Income',
+          description: 'New Payment',
+        },
+      ];
+
+      setMockedLunchflowTransactions(mockedAccounts[0]!.id, [...initialTransactions, ...additionalTransactions]);
+
+      // Re-connect
+      const syncResult2 = await helpers.lunchflow.syncAccounts({ raw: true });
+      const account2 = syncResult2.accounts[0]!;
+
+      // Sync transactions - should get all 7 transactions
+      const syncTxResult2 = await helpers.lunchflow.syncTransactions({ accountId: account2.id, raw: true });
+      expect(syncTxResult2.new).toBe(7); // 5 original + 2 new
+      expect(syncTxResult2.total).toBe(7);
+
+      const allTransactions = await helpers.getTransactions({ raw: true });
+      const lunchflowTransactions = allTransactions.filter((tx) => tx.accountId === account2.id);
+      expect(lunchflowTransactions).toHaveLength(7);
+
+      // Verify the new transactions are present
+      const newTx1 = lunchflowTransactions.find((tx) => tx.originalId === 'new-after-delete-1');
+      const newTx2 = lunchflowTransactions.find((tx) => tx.originalId === 'new-after-delete-2');
+      expect(newTx1).toBeDefined();
+      expect(newTx2).toBeDefined();
+    });
+  });
 });

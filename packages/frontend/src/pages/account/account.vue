@@ -7,10 +7,10 @@
         <Separator />
         <Card.CardContent>
           <template v-if="account.type === ACCOUNT_TYPES.monobank">
-            <MonobankAccount :account="account" />
+            <MonobankAccount :account="account" :transactions="rawTransactionsList" />
           </template>
           <template v-else-if="account.type === ACCOUNT_TYPES.lunchflow">
-            <LunchflowAccount :account="account" />
+            <LunchflowAccount :account="account" :transactions="rawTransactionsList" />
           </template>
           <template v-else-if="account.type === ACCOUNT_TYPES.system">
             <SystemAccount :account="account" :transactions="rawTransactionsList" />
