@@ -12,7 +12,7 @@ import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { ArrowRightLeftIcon, Edit2Icon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 const props = defineProps<{
   account: AccountModel;
@@ -53,6 +53,11 @@ const updateAccount = async () => {
     addErrorNotification('An error occured while trying to update account');
   }
 };
+
+// Reset form when popover opens or when account changes
+watch([formEditingPopoverOpen, () => props.account.id], () => {
+  accountNameForm.value.name = props.account.name;
+});
 </script>
 
 <template>
