@@ -1,7 +1,7 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
-import { NotFoundError } from '@js/errors';
+import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { BankProviderType } from '@root/services/bank-data-providers';
@@ -55,42 +55,45 @@ export default createController(
       });
     }
 
+    // Check if account was linked using forward-only strategy and block historical loads before linkedAt
+    const accountExternalData = account.externalData || {};
+    const bankConnectionMetadata = accountExternalData.bankConnection;
+
+    if (bankConnectionMetadata?.linkedAt && bankConnectionMetadata?.linkingStrategy === 'forward-only') {
+      const linkedAt = new Date(bankConnectionMetadata.linkedAt);
+      const requestedFrom = new Date(from);
+
+      if (requestedFrom < linkedAt) {
+        throw new ValidationError({
+          message: `Cannot load transactions before account link date (${linkedAt.toISOString()}). This account was linked using "forward-only" strategy to prevent data duplication.`,
+        });
+      }
+    }
+
     // Validate date range (max 1 year)
     const fromDate = new Date(from);
     const toDate = new Date(to);
     const oneYearInMs = 365 * 24 * 60 * 60 * 1000;
 
     if (toDate.getTime() - fromDate.getTime() > oneYearInMs) {
-      return {
-        statusCode: 400,
-        data: {
-          message: 'Date range cannot exceed 1 year',
-          code: API_ERROR_CODES.BadRequest,
-        },
-      };
+      throw new ValidationError({
+        message: 'Date range cannot exceed 1 year.',
+      });
     }
 
     if (fromDate > toDate) {
-      return {
-        statusCode: 400,
-        data: {
-          message: '"from" date must be before "to" date',
-          code: API_ERROR_CODES.BadRequest,
-        },
-      };
+      throw new ValidationError({
+        message: '"from" date must be before "to" date',
+      });
     }
 
     // Get provider - currently only Monobank supports this feature
     const provider = bankProviderRegistry.get(connection.providerType);
 
     if (connection.providerType !== BankProviderType.MONOBANK) {
-      return {
-        statusCode: 400,
-        data: {
-          message: 'Loading transactions for period is only supported for Monobank',
-          code: API_ERROR_CODES.BadRequest,
-        },
-      };
+      throw new ValidationError({
+        message: 'Loading transactions for period is only supported for Monobank',
+      });
     }
 
     // Call the loadTransactionsForPeriod method

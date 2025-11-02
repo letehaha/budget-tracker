@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
-import { ACCOUNT_TYPES, TRANSACTION_TYPES, type TransactionModel } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES, type AccountModel, type TransactionModel } from '@bt/shared/types';
 import { computed } from 'vue';
 
 import { FORM_TYPES } from '../types';
@@ -59,6 +59,7 @@ const props = defineProps<{
   selectedTransactionType: FORM_TYPES;
   isFormCreation: boolean;
   transaction?: TransactionModel;
+  account?: AccountModel;
   disabled?: boolean;
 }>();
 
@@ -66,14 +67,16 @@ const emit = defineEmits<{
   'change-tx-type': [value: FORM_TYPES];
 }>();
 
+// Check the account type, not the transaction type
+// A system transaction in a monobank account should not be editable
 const isExpenseDisabled = computed(
   () =>
-    props.transaction?.accountType !== ACCOUNT_TYPES.system &&
+    props.account?.type !== ACCOUNT_TYPES.system &&
     props.transaction?.transactionType === TRANSACTION_TYPES.income,
 );
 const isIncomeDisabled = computed(
   () =>
-    props.transaction?.accountType !== ACCOUNT_TYPES.system &&
+    props.account?.type !== ACCOUNT_TYPES.system &&
     props.transaction?.transactionType === TRANSACTION_TYPES.expense,
 );
 

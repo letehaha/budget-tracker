@@ -90,7 +90,7 @@ export interface TransactionsAttributes {
     balance?: number;
     hold?: boolean;
     receiptId?: string;
-  };
+  } & Record<string, unknown>;
   commissionRate: number; // should be comission calculated as refAmount
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified

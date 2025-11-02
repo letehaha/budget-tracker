@@ -81,6 +81,7 @@ const loadTransactionsForPeriod = async () => {
     addNotification({
       text: e?.data?.message || 'Failed to load transactions',
       type: NotificationType.error,
+      visibilityTime: 10_000, // 10 seconds for error messages to give user time to read
     });
   } finally {
     isLoading.value = false;

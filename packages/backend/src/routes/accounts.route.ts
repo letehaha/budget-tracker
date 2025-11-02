@@ -6,6 +6,7 @@ import {
   updateAccount,
 } from '@controllers/accounts.controller';
 import unlinkAccountFromBankConnection from '@controllers/accounts/unlink-from-bunk-connection';
+import linkAccountToBankConnection from '@controllers/accounts/link-to-bank-connection';
 import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
@@ -22,6 +23,12 @@ router.post(
   authenticateJwt,
   validateEndpoint(unlinkAccountFromBankConnection.schema),
   unlinkAccountFromBankConnection.handler,
+);
+router.post(
+  '/:id/link',
+  authenticateJwt,
+  validateEndpoint(linkAccountToBankConnection.schema),
+  linkAccountToBankConnection.handler,
 );
 
 export default router;

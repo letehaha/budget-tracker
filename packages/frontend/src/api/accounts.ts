@@ -1,6 +1,6 @@
 import { api } from '@/api/_api';
 import { fromSystemAmount, toSystemAmount } from '@/api/helpers';
-import { ACCOUNT_CATEGORIES, AccountModel, endpointsTypes } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, AccountModel, TransactionModel, endpointsTypes } from '@bt/shared/types';
 
 export const formatAccount = (account: AccountModel): AccountModel => ({
   ...account,
@@ -61,4 +61,29 @@ export const unlinkAccountFromBankConnection = async ({
 }: UnlinkAccountFromBankConnectionPayload): Promise<AccountModel> => {
   const result = await api.post(`/accounts/${id}/unlink`);
   return formatAccount(result);
+};
+
+export interface LinkAccountToBankConnectionPayload {
+  accountId: number;
+  connectionId: number;
+  externalAccountId: string;
+}
+export const linkAccountToBankConnection = async ({
+  accountId,
+  connectionId,
+  externalAccountId,
+}: LinkAccountToBankConnectionPayload): Promise<{
+  account: AccountModel;
+  balanceDifference: number;
+  balanceAdjustmentTransaction: TransactionModel | null;
+  message: string;
+}> => {
+  const result = await api.post(`/accounts/${accountId}/link`, {
+    connectionId,
+    externalAccountId,
+  });
+  return {
+    ...result,
+    account: formatAccount(result.account),
+  };
 };

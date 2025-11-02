@@ -398,3 +398,4 @@ export const deleteAccountById = async ({ id }: { id: number }) => {
 };
 
 export { unlinkAccountFromBankConnection } from './accounts/unlink-from-bank-connection';
+export { linkAccountToBankConnection } from './accounts/link-to-bank-connection';

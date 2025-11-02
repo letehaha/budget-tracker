@@ -46,8 +46,8 @@ const unlinkAccount = async () => {
         <b>The account will no longer sync automatically.</b>
         Only manual updates will work.
         <br />
-        <b class="text-yellow-600">Note:</b> For now, there's no option to reconnect it later, but this feature is
-        planned.
+        <b class="text-green-600">Note:</b> You can reconnect this account to a bank connection later from the Settings
+        tab.
       </p>
     </div>
 
@@ -75,9 +75,8 @@ const unlinkAccount = async () => {
           <li>Automatic syncing will stop</li>
           <li>Connection history will be saved for potential future reconnection</li>
         </ul>
-        <p class="text-sm text-yellow-600">
-          <strong>Note:</strong> Reconnecting the account later is not yet available but is planned for a future
-          update.
+        <p class="text-sm text-green-600">
+          <strong>Note:</strong> You can reconnect this account to a bank connection later from the Settings tab.
         </p>
       </template>
       <template #content>

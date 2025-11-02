@@ -10,7 +10,7 @@ import {
   HasMany,
 } from 'sequelize-typescript';
 import { Op } from 'sequelize';
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
@@ -31,7 +31,7 @@ export interface AccountsAttributes {
   currencyCode: string;
   userId: number;
   externalId: string; // represents id from the original external system if exists
-  externalData: object; // JSON of any addition fields
+  externalData: AccountExternalData | null; // JSON of any addition fields
   // cashbackType: string; // move to additionalFields that will represent non-unified data
   // maskedPan: string; // move to additionalFields
   // type: string; // move to additionalFields
@@ -144,7 +144,7 @@ export default class Accounts extends Model {
     type: DataType.JSONB,
     allowNull: true,
   })
-  externalData!: object; // JSON of any addition fields
+  externalData!: AccountExternalData | null; // JSON of any addition fields
   // cashbackType: string;
   // maskedPan: string;
   // type: string;
