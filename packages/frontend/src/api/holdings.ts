@@ -19,5 +19,5 @@ export const createHolding = async (payload: CreateHoldingRequest): Promise<Hold
 };
 
 export const deleteHolding = async (holdingId: number): Promise<void> => {
-  await api.delete('/investments/holding', { holdingId });
+  await api.delete('/investments/holding', { data: { holdingId } });
 };

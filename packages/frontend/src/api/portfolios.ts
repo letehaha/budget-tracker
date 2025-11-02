@@ -33,7 +33,7 @@ export const updatePortfolio = async (
 };
 
 export const deletePortfolio = async (portfolioId: number, force?: boolean): Promise<void> => {
-  return api.delete(`/investments/portfolios/${portfolioId}`, { force });
+  return api.delete(`/investments/portfolios/${portfolioId}`, { data: { force } });
 };
 
 interface CreatePortfolioTransferRequest {

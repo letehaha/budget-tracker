@@ -8,6 +8,10 @@
           <UiButton as="span"> Create account </UiButton>
         </router-link>
 
+        <router-link :to="{ name: ROUTES_NAMES.accountIntegrations }">
+          <UiButton as="span" variant="outline"> Bank Integrations </UiButton>
+        </router-link>
+
         <template v-if="!isPaired">
           <MonobankSetToken>
             <UiButton data-cy="pair-monobank-account" type="button" variant="outline"> Pair Monobank account </UiButton>

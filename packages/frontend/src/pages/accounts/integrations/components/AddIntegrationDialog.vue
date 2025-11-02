@@ -1,0 +1,106 @@
+<template>
+  <Dialog :open="open" @update:open="$emit('update:open', $event)">
+    <DialogContent class="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>{{ dialogTitle }}</DialogTitle>
+      </DialogHeader>
+
+      <!-- Step 1: Select Provider -->
+      <template v-if="currentStep === 'select-provider'">
+        <div class="space-y-2">
+          <p class="text-muted-foreground mt-4 mb-8 text-sm">Choose a bank data provider to connect</p>
+          <UiButton
+            v-for="provider in providers"
+            :key="provider.type"
+            variant="outline"
+            class="w-full justify-start"
+            @click="handleSelectProvider(provider.type)"
+          >
+            {{ provider.name }}
+          </UiButton>
+        </div>
+      </template>
+
+      <!-- Step 2: Provider-specific connection flow -->
+      <template v-else-if="currentStep === 'connect-provider' && selectedProviderType">
+        <MonobankConnector
+          v-if="selectedProviderType === 'monobank'"
+          @connected="handleProviderConnected"
+          @cancel="handleCancel"
+        />
+        <!-- Add other provider components here -->
+        <!-- <OtherProviderConnector
+          v-else-if="selectedProviderType === 'other-provider'"
+          @connected="handleProviderConnected"
+          @cancel="handleCancel"
+        /> -->
+      </template>
+    </DialogContent>
+  </Dialog>
+</template>
+
+<script lang="ts" setup>
+import type { BankProvider } from '@/api/bank-data-providers';
+import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';
+import { computed, ref, watch } from 'vue';
+
+import MonobankConnector from './MonobankConnector.vue';
+
+interface Props {
+  open: boolean;
+  providers: BankProvider[];
+}
+
+const props = defineProps<Props>();
+
+const emit = defineEmits<{
+  'update:open': [value: boolean];
+  'integration-added': [];
+}>();
+
+type Step = 'select-provider' | 'connect-provider';
+
+const currentStep = ref<Step>('select-provider');
+const selectedProviderType = ref<string | null>(null);
+
+const dialogTitle = computed(() => {
+  if (currentStep.value === 'select-provider') {
+    return 'Add Integration';
+  }
+  const provider = props.providers.find((p) => p.type === selectedProviderType.value);
+  return `Connect ${provider?.name || 'Provider'}`;
+});
+
+console.log('providers', props.providers);
+
+const handleSelectProvider = (providerType: string) => {
+  selectedProviderType.value = providerType;
+  currentStep.value = 'connect-provider';
+};
+
+const handleProviderConnected = () => {
+  emit('integration-added');
+  resetDialog();
+};
+
+const handleCancel = () => {
+  currentStep.value = 'select-provider';
+  selectedProviderType.value = null;
+};
+
+const resetDialog = () => {
+  currentStep.value = 'select-provider';
+  selectedProviderType.value = null;
+};
+
+// Reset dialog state when it closes
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (!isOpen) {
+      setTimeout(resetDialog, 200); // Small delay to avoid visual glitches
+    }
+  },
+);
+</script>

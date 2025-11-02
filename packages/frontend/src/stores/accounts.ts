@@ -1,9 +1,11 @@
 import {
   DeleteAccountPayload,
+  UnlinkAccountFromBankConnectionPayload,
   createAccount as apiCreateAccount,
   deleteAccount as apiDeleteAccount,
   editAccount as apiEditAccount,
   loadAccounts as apiLoadAccounts,
+  unlinkAccountFromBankConnection as apiUnlinkAccountFromBankConnection,
 } from '@/api';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
@@ -82,6 +84,28 @@ export const useAccountsStore = defineStore('accounts', () => {
     }
   };
 
+  const unlinkAccountFromBankConnection = async ({ id }: UnlinkAccountFromBankConnectionPayload) => {
+    try {
+      await apiUnlinkAccountFromBankConnection({ id });
+      await refetchAccounts();
+      // Invalidate all queries that depend on transaction changes
+      // since unlinking updates all associated transactions
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const queryKey = query.queryKey as string[];
+          return (
+            queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange) ||
+            queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange)
+          );
+        },
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
+      throw e;
+    }
+  };
+
   return {
     accounts,
     accountsRecord,
@@ -94,5 +118,6 @@ export const useAccountsStore = defineStore('accounts', () => {
     createAccount,
     editAccount,
     deleteAccount,
+    unlinkAccountFromBankConnection,
   };
 });

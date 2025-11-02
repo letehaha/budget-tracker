@@ -5,8 +5,12 @@
         <Header :account="account" />
 
         <Separator />
+
         <Card.CardContent>
-          <template v-if="account.type === ACCOUNT_TYPES.monobank">
+          <template v-if="account.bankDataProviderConnectionId">
+            <BankConnectionView :account="account" :transactions="rawTransactionsList" />
+          </template>
+          <template v-else-if="account.type === ACCOUNT_TYPES.monobank">
             <MonobankAccount :account="account" :transactions="rawTransactionsList" />
           </template>
           <template v-else-if="account.type === ACCOUNT_TYPES.lunchflow">
@@ -62,8 +66,9 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 import Header from './components/header.vue';
-import MonobankAccount from './types/monobank/monobank.vue';
+import BankConnectionView from './types/bank-connection/index.vue';
 import LunchflowAccount from './types/lunchflow/lunchflow.vue';
+import MonobankAccount from './types/monobank/monobank.vue';
 import SystemAccount from './types/system/system.vue';
 
 const route = useRoute();

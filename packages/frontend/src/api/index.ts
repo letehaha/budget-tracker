@@ -10,3 +10,4 @@ export * from './stats';
 export * from './currencies';
 export * from './budgets';
 export * from './investments';
+export * from './bank-data-providers';

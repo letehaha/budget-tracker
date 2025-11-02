@@ -3,6 +3,7 @@ import { Sequelize } from 'sequelize-typescript';
 
 import AccountsModel from './Accounts.model';
 import BalancesModel from './Balances.model';
+import BankDataProviderConnectionsModel from './BankDataProviderConnections.model';
 import BudgetModel from './Budget.model';
 import BudgetTransactionsModel from './BudgetTransactions.model';
 import CategoriesModel from './Categories.model';
@@ -52,6 +53,7 @@ const models = [
   UsersModel,
   AccountsModel,
   BalancesModel,
+  BankDataProviderConnectionsModel,
   CategoriesModel,
   CurrenciesModel,
   ExchangeRatesModel,

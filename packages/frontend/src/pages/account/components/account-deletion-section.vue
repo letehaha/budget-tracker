@@ -2,12 +2,15 @@
 import { AlertDialog } from '@/components/common';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
+import { Separator } from '@/components/lib/ui/separator';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
 import { AccountModel, TransactionModel } from '@bt/shared/types';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
+
+import AccountUnlinkSection from './account-unlink-section.vue';
 
 const props = defineProps<{
   account: AccountModel;
@@ -39,6 +42,10 @@ const deleteAccount = async () => {
 <template>
   <div class="border-destructive @container/danger-zone mt-4 grid gap-4 rounded-xl border p-4 sm:-mx-4">
     <p class="text-xl font-medium">Danger zone</p>
+
+    <AccountUnlinkSection :account="account" />
+
+    <Separator v-if="account.bankDataProviderConnectionId" />
 
     <div
       class="flex flex-col justify-between gap-2 @[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center"

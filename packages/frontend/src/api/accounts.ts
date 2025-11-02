@@ -52,3 +52,13 @@ export interface DeleteAccountPayload {
   id: number;
 }
 export const deleteAccount = async ({ id }: DeleteAccountPayload): Promise<void> => api.delete(`/accounts/${id}`);
+
+export interface UnlinkAccountFromBankConnectionPayload {
+  id: number;
+}
+export const unlinkAccountFromBankConnection = async ({
+  id,
+}: UnlinkAccountFromBankConnectionPayload): Promise<AccountModel> => {
+  const result = await api.post(`/accounts/${id}/unlink`);
+  return formatAccount(result);
+};

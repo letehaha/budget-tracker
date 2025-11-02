@@ -103,12 +103,30 @@ class ApiCaller {
     });
   }
 
-  delete(endpoint: ApiCall['endpoint'], data: ApiCall['data'] = undefined, options: ApiCall['options'] = {}) {
+  delete<TQuery = Record<string, unknown>, TData = Record<string, unknown>>(
+    endpoint: ApiCall['endpoint'],
+    params?: {
+      query?: TQuery;
+      data?: TData;
+    },
+    options: ApiCall['options'] = {},
+  ) {
+    const validQuery: ApiCall['query'] = {};
+
+    if (params?.query) {
+      for (const key in params.query) {
+        if (params.query[key]) {
+          validQuery[key] = params.query[key]?.toString() ?? '';
+        }
+      }
+    }
+
     return this._call({
       method: 'DELETE',
       endpoint,
       options,
-      data,
+      query: validQuery,
+      data: params?.data,
     });
   }
 
