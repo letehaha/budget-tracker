@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
-import { BadRequestError, ForbiddenError, NotFoundError } from '@js/errors';
+import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Transactions from '@models/Transactions.model';
@@ -18,8 +18,8 @@ import {
 
 import { encryptCredentials } from '../utils/credential-encryption';
 import { MonobankApiClient } from './api-client';
+import { getJobGroupProgress, queueTransactionSync } from './transaction-sync-queue';
 import { MonobankCredentials, MonobankMetadata } from './types';
-import { queueTransactionSync, getJobGroupProgress } from './transaction-sync-queue';
 
 /**
  * Monobank provider implementation
@@ -58,7 +58,7 @@ export class MonobankProvider extends BaseBankDataProvider {
   async connect(userId: number, credentials: unknown): Promise<number> {
     // Validate credentials structure
     if (!this.isValidCredentials(credentials)) {
-      throw new BadRequestError({ message: 'Invalid credentials format for Monobank' });
+      throw new ValidationError({ message: 'Invalid credentials format for Monobank' });
     }
 
     const { apiToken } = credentials;
@@ -116,7 +116,7 @@ export class MonobankProvider extends BaseBankDataProvider {
 
   async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {
     if (!this.isValidCredentials(newCredentials)) {
-      throw new BadRequestError({ message: 'Invalid credentials format for Monobank' });
+      throw new ValidationError({ message: 'Invalid credentials format for Monobank' });
     }
 
     const connection = await this.getConnection(connectionId);
@@ -414,7 +414,7 @@ export class MonobankProvider extends BaseBankDataProvider {
   private async getValidatedCredentials(connectionId: number): Promise<MonobankCredentials> {
     const credentials = await this.getDecryptedCredentials(connectionId);
     if (!this.isValidCredentials(credentials)) {
-      throw new BadRequestError({ message: 'Invalid credentials format' });
+      throw new ValidationError({ message: 'Invalid credentials format' });
     }
     return credentials;
   }

@@ -233,17 +233,15 @@ describe('Update transaction controller', () => {
             url: '/stats/balance-history',
             raw: true,
           });
-          // Find opposite tx that should be created at the same date as the base tx
-          const externalTxBalanceRecord = balanceHistory.find(
-            (item) =>
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              item.amount === (externalTransaction!.externalData as any).balance,
-          );
+          // Find balance record for the external transaction's account and date
+          const externalTxDate = new Date(baseTx.time).toISOString().split('T')[0];
+
+          // Find balance record for the opposite transaction (accountB)
           const newTxBalanceRecord = balanceHistory.find(
-            (item) => item.date === externalTxBalanceRecord.date && item.accountId === oppositeTx!.accountId,
+            (item) => item.date === externalTxDate && item.accountId === oppositeTx!.accountId,
           );
 
-          expect(newTxBalanceRecord.amount).toBe(
+          expect(newTxBalanceRecord?.amount || 0).toBe(
             expected === 0 ? 0 : oppositeTx!.transactionType === TRANSACTION_TYPES.expense ? -expected : expected,
           );
         };

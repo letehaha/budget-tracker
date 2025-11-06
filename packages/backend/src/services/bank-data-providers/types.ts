@@ -13,10 +13,10 @@
  */
 export enum BankProviderType {
   MONOBANK = 'monobank',
-  LUNCHFLOW = 'lunchflow',
   // Future providers will be added here:
-  // GOCARDLESS = 'gocardless',
   // ENABLEBANKING = 'enablebanking',
+  // LUNCHFLOW = 'lunchflow',
+  // GOCARDLESS = 'gocardless',
 }
 
 /**

@@ -12,28 +12,23 @@ export default createController(
     }),
   }),
   async ({ user, params, body }) => {
-    try {
-      const createdAccounts = await connectSelectedAccounts({
-        connectionId: params.connectionId,
-        userId: user.id,
-        accountExternalIds: body.accountExternalIds,
-      });
+    const createdAccounts = await connectSelectedAccounts({
+      connectionId: params.connectionId,
+      userId: user.id,
+      accountExternalIds: body.accountExternalIds,
+    });
 
-      return {
-        data: {
-          syncedAccounts: createdAccounts.map((acc) => ({
-            id: acc.id,
-            externalId: acc.externalId,
-            name: acc.name,
-            balance: acc.currentBalance,
-            currency: acc.currencyCode,
-          })),
-          message: `Successfully synced ${createdAccounts.length} account(s)`,
-        },
-      };
-    } catch (e) {
-      console.log(e);
-      throw e;
-    }
+    return {
+      data: {
+        syncedAccounts: createdAccounts.map((acc) => ({
+          id: acc.id,
+          externalId: acc.externalId,
+          name: acc.name,
+          balance: acc.currentBalance,
+          currency: acc.currencyCode,
+        })),
+        message: `Successfully synced ${createdAccounts.length} account(s)`,
+      },
+    };
   },
 );

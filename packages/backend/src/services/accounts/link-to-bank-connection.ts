@@ -16,7 +16,6 @@ import { createTransaction } from '@services/transactions/create-transaction';
 
 const PROVIDER_TO_ACCOUNT_TYPE: Record<BankProviderType, ACCOUNT_TYPES> = {
   [BankProviderType.MONOBANK]: ACCOUNT_TYPES.monobank,
-  [BankProviderType.LUNCHFLOW]: ACCOUNT_TYPES.lunchflow,
 };
 
 interface LinkAccountToBankConnectionPayload {

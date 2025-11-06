@@ -1,8 +1,9 @@
+import bankDataProviders from './bank-data-providers';
 import lunchflow from './lunchflow';
 import monobank from './monobank';
 
 export * from './common';
-export { lunchflow, monobank };
+export { bankDataProviders, lunchflow, monobank };
 export * from './account';
 export * from './refunds';
 export * from './stats';
