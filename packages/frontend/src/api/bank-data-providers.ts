@@ -39,7 +39,7 @@ export interface BankConnection {
   createdAt: string;
 }
 
-export interface BankConnectionDetails {
+interface BankConnectionDetails {
   id: number;
   providerType: string;
   providerName: string;
@@ -81,7 +81,7 @@ export interface AvailableAccount {
   metadata?: Record<string, unknown>;
 }
 
-export interface SyncedAccount {
+interface SyncedAccount {
   id: number;
   externalId: string;
   name: string;
@@ -211,7 +211,7 @@ export const getSyncJobProgress = async (connectionId: number, jobGroupId: strin
   return response;
 };
 
-export interface ActiveSyncJob {
+interface ActiveSyncJob {
   jobGroupId: string;
   connectionId: number;
   accountId: number;
