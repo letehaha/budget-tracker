@@ -6,7 +6,6 @@ import {
   BelongsTo,
   DataType,
   AfterCreate,
-  BeforeUpdate,
   HasMany,
 } from 'sequelize-typescript';
 import { Op } from 'sequelize';
@@ -169,11 +168,6 @@ export default class Accounts extends Model {
   static async updateAccountBalanceAfterCreate(instance: Accounts) {
     await Balances.handleAccountChange({ account: instance });
   }
-
-  @BeforeUpdate
-  static async validateEditableFields(instance: Accounts) {
-    console.log('instance', instance);
-  }
 }
 
 export interface GetAccountsPayload {
@@ -282,6 +276,7 @@ export interface UpdateAccountByIdPayload {
   creditLimit?: AccountsAttributes['creditLimit'];
   refCreditLimit?: AccountsAttributes['refCreditLimit'];
   isEnabled?: AccountsAttributes['isEnabled'];
+  externalData?: AccountsAttributes['externalData'];
 }
 
 export async function updateAccountById({ id, userId, ...payload }: UpdateAccountByIdPayload) {

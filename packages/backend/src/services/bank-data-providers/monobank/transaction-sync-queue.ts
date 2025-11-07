@@ -1,18 +1,22 @@
-import { Queue, Worker, Job } from 'bullmq';
-import { logger } from '@js/utils/logger';
-import { MonobankApiClient } from './api-client';
-import { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
 import {
   ACCOUNT_TYPES,
+  AccountModel,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
-import * as transactionsService from '@services/transactions';
+import { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
+import { logger } from '@js/utils/logger';
+import Accounts from '@models/Accounts.model';
 import * as MerchantCategoryCodes from '@models/MerchantCategoryCodes.model';
+import Transactions from '@models/Transactions.model';
 import * as UserMerchantCategoryCodes from '@models/UserMerchantCategoryCodes.model';
 import * as Users from '@models/Users.model';
-import Accounts from '@models/Accounts.model';
+import * as accountsService from '@services/accounts.service';
+import * as transactionsService from '@services/transactions';
+import { Job, Queue, Worker } from 'bullmq';
+
+import { MonobankApiClient } from './api-client';
 
 interface TransactionSyncJobData {
   userId: number;
@@ -32,8 +36,15 @@ const connection = {
   maxRetriesPerRequest: null, // Required for BullMQ
 };
 
+// Namespace queue by Jest worker ID in test environment to prevent cross-contamination
+// when multiple test files run in parallel. Each worker gets its own isolated queue.
+const queueName =
+  process.env.NODE_ENV === 'test' && process.env.JEST_WORKER_ID
+    ? `monobank-transaction-sync-worker-${process.env.JEST_WORKER_ID}`
+    : 'monobank-transaction-sync';
+
 // Create queue for transaction sync jobs
-export const transactionSyncQueue = new Queue<TransactionSyncJobData>('monobank-transaction-sync', {
+export const transactionSyncQueue = new Queue<TransactionSyncJobData>(queueName, {
   connection,
   defaultJobOptions: {
     attempts: 3,
@@ -127,8 +138,9 @@ async function createMonobankTransaction(
 }
 
 // Create worker to process transaction sync jobs
+// Uses the same namespaced queue name to ensure worker processes jobs from the correct queue
 export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
-  'monobank-transaction-sync',
+  queueName,
   async (job: Job<TransactionSyncJobData>) => {
     const { userId, accountId, externalAccountId, apiToken, fromTimestamp, toTimestamp, batchIndex, totalBatches } =
       job.data;
@@ -176,13 +188,71 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
         }
       }
 
-      // Update account's last synced timestamp in externalData
-      const account = await Accounts.findByPk(accountId);
+      // Update account metadata and balance after processing all transactions in this batch
+      const account: Pick<AccountModel, 'externalData' | 'currentBalance'> | null = await Accounts.findByPk(accountId, {
+        raw: true,
+        attributes: ['externalData', 'currentBalance'],
+      });
+
       if (account) {
+        const accountDataToUpdate: Parameters<typeof accountsService.updateAccount>[0] = {
+          id: accountId,
+          userId,
+        };
+        // Update sync timestamp in externalData
         const externalData = (account.externalData as Record<string, unknown>) || {};
         externalData.lastSyncedAt = new Date().toISOString();
-        account.externalData = externalData;
-        await account.save();
+        accountDataToUpdate.externalData = externalData;
+
+        // Update account balance to reflect the current state from Monobank
+        // Monobank API returns transactions in chronological order (oldest to newest),
+        // and each transaction includes the account balance AFTER that transaction.
+        //
+        // To ensure we always have the most up-to-date balance regardless of batch processing
+        // order, we fetch the most recent transaction from the database and use its balance.
+        // This approach is more stable and race-condition safe compared to relying on batchIndex.
+        //
+        // This ensures that:
+        // 1. The account balance stays synchronized with Monobank's records
+        // 2. We don't need to manually calculate balance by summing transactions
+        // 3. Multiple batches can process in any order without overwriting with stale data
+        if (transactions.length > 0) {
+          // Fetch the most recent transaction from database for this account
+          const newestTransactionInDb = await Transactions.findOne({
+            where: {
+              userId,
+              accountId,
+            },
+            order: [['time', 'DESC']],
+            attributes: ['externalData'],
+            raw: true,
+          });
+
+          if (newestTransactionInDb) {
+            const balanceFromExternalData = newestTransactionInDb.externalData?.balance;
+
+            logger.info(
+              `Batch ${batchIndex + 1}/${totalBatches}: Updating account ${accountId} balance from newest transaction. ` +
+                `Current: ${account.currentBalance}, Latest tx balance: ${balanceFromExternalData}, Transactions processed: ${transactions.length}`,
+            );
+
+            if (balanceFromExternalData !== undefined) {
+              accountDataToUpdate.currentBalance = balanceFromExternalData;
+            } else {
+              logger.error(
+                "[Monobank transactions sync]: latest monobank transaction doesn't have balance in externalData",
+                { newestTransactionInDb },
+              );
+            }
+          } else {
+            logger.error(`[Monobank transactions sync]: no transactions found in the DB after syncing account: `, {
+              account,
+            });
+          }
+        }
+
+        await accountsService.updateAccount(accountDataToUpdate);
+        logger.info(`Account ${accountId} balance after save: ${account.currentBalance}`);
       }
 
       logger.info(`Completed batch ${batchIndex + 1}/${totalBatches} for account ${accountId}`);
@@ -201,10 +271,13 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
   {
     connection,
     concurrency: 1, // Process one job at a time per worker
-    limiter: {
-      max: 1, // Max jobs per duration
-      duration: 60000, // 60 seconds - Monobank rate limit
-    },
+    // Only enable rate limiter in production (not in tests)
+    ...(process.env.NODE_ENV !== 'test' && {
+      limiter: {
+        max: 1, // Max jobs per duration
+        duration: 60000, // 60 seconds - Monobank rate limit
+      },
+    }),
   },
 );
 

@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, type endpointsTypes } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, TransactionModel, type endpointsTypes } from '@bt/shared/types';
 import Accounts from '@models/Accounts.model';
 import Currencies from '@models/Currencies.model';
 import { updateAccount as apiUpdateAccount } from '@root/services/accounts.service';
@@ -71,6 +71,46 @@ export function deleteAccount({ id, raw = false }: { id: number; raw?: boolean }
   return makeRequest({
     method: 'delete',
     url: `/accounts/${id}`,
+    raw,
+  });
+}
+
+export function unlinkAccountFromBankConnection({ id, raw }: { id: number; raw: false }): Promise<Response>;
+export function unlinkAccountFromBankConnection({ id, raw }: { id: number; raw: true }): Promise<Accounts>;
+export function unlinkAccountFromBankConnection({ id, raw = false }: { id: number; raw?: boolean }) {
+  return makeRequest({
+    method: 'post',
+    url: `/accounts/${id}/unlink`,
+    raw,
+  });
+}
+
+export function linkAccountToBankConnection<R extends boolean | undefined = undefined>({
+  id,
+  connectionId,
+  externalAccountId,
+  raw,
+}: {
+  id: number;
+  connectionId: number;
+  externalAccountId: string;
+  raw?: R;
+}) {
+  return makeRequest<
+    {
+      account: Accounts;
+      balanceDifference: number;
+      balanceAdjustmentTransaction: TransactionModel | null;
+      message: string;
+    },
+    R
+  >({
+    method: 'post',
+    url: `/accounts/${id}/link`,
+    payload: {
+      connectionId,
+      externalAccountId,
+    },
     raw,
   });
 }

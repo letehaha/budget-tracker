@@ -72,8 +72,6 @@ describe('Bank Data Provider Connection Flow E2E', () => {
         raw: true,
       });
 
-      console.log('syncedAccounts', syncedAccounts);
-
       expect(Array.isArray(syncedAccounts)).toBe(true);
       expect(syncedAccounts.length).toBe(accountIdsToConnect.length);
 
@@ -87,8 +85,6 @@ describe('Bank Data Provider Connection Flow E2E', () => {
         connectionId,
         raw: true,
       });
-
-      console.log('connectionDetails', connectionDetails);
 
       expect(connectionDetails).toBeDefined();
       expect(connectionDetails.id).toBe(connectionId);

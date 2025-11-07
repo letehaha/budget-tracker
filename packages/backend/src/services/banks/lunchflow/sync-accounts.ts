@@ -24,15 +24,11 @@ export const syncAccounts = async ({ userId }: SyncAccountsParams) => {
     const client = new LunchFlowApiClient(encryptedToken);
     const { accounts: lunchflowAccounts } = await client.getAccounts();
 
-    console.log('lunchflowAccounts', lunchflowAccounts);
-
     // Get existing accounts
     const existingAccounts = await accountsService.getAccounts({
       userId,
       type: ACCOUNT_TYPES.lunchflow,
     });
-
-    console.log('existingAccounts', existingAccounts);
 
     const existingExternalIds = new Set(existingAccounts.map((acc) => acc.externalId));
 

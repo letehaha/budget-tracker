@@ -192,7 +192,7 @@ export default class Transactions extends Model {
     type: DataType.JSONB,
     allowNull: true,
   })
-  externalData!: object;
+  externalData!: TransactionsAttributes['externalData'];
 
   // Stores the original id from external source
   @Column({

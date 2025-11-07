@@ -105,5 +105,6 @@ export default {
   getTransactions,
   mockTransactions: addTransactions,
   mockedClientData: getMockedClientData,
+  mockedTransactionData: getMockedTransactionData,
   mockedToken: VALID_MONOBANK_TOKEN,
 };
