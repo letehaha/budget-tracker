@@ -87,3 +87,18 @@ export const linkAccountToBankConnection = async ({
     account: formatAccount(result.account),
   };
 };
+
+export interface ConvertMonobankToSystemPayload {
+  id: number;
+}
+export const convertMonobankToSystem = async ({
+  id,
+}: ConvertMonobankToSystemPayload): Promise<{
+  id: number;
+  name: string;
+  type: string;
+  message: string;
+}> => {
+  const result = await api.post(`/accounts/${id}/convert-to-system`);
+  return result;
+};

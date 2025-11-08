@@ -58,9 +58,7 @@ const unlinkAccount = async () => {
       @accept="unlinkAccount"
     >
       <template #trigger>
-        <Button variant="outline" class="border-yellow-600 text-yellow-600 hover:bg-yellow-600 hover:text-white">
-          Unlink from bank
-        </Button>
+        <Button variant="outline"> Unlink from bank </Button>
       </template>
       <template #description>
         <p class="mb-2">

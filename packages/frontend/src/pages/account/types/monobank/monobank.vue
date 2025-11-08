@@ -5,6 +5,7 @@ import AccountDetailsTab from '@/pages/account/components/account-details-tab.vu
 import SettingAccountGroup from '@/pages/account/components/account-group.vue';
 import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
 import AccountDeletionSection from '@/pages/account/components/account-deletion-section.vue';
+import AccountConvertMonobankSection from '@/pages/account/components/account-convert-monobank-section.vue';
 import { ACCOUNT_TYPES, AccountModel, TransactionModel } from '@bt/shared/types';
 
 import LoadLatestTransactions from './load-latest-transactions.vue';
@@ -42,6 +43,13 @@ defineProps<{
         <Separator />
 
         <LoadTransactions :account="account" />
+
+        <Separator />
+
+        <div class="border-warning @container/warning-zone grid gap-4 rounded-xl border p-4 sm:-mx-4">
+          <p class="text-xl font-medium">Legacy Account Migration</p>
+          <AccountConvertMonobankSection :account="account" />
+        </div>
 
         <Separator />
 

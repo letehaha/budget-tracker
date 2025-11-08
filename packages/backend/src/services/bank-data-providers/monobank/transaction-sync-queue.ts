@@ -71,9 +71,12 @@ async function createMonobankTransaction(
   userId: number,
 ): Promise<void> {
   // Check if transaction already exists (duplicate prevention)
-  const isTransactionExists = await transactionsService.getTransactionBySomeId({
-    originalId: data.id,
-    userId,
+  const isTransactionExists = await Transactions.findOne({
+    where: {
+      originalId: data.id,
+      accountId,
+      userId,
+    },
   });
 
   if (isTransactionExists) {
