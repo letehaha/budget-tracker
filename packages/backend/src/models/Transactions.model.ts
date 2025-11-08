@@ -90,7 +90,7 @@ export interface TransactionsAttributes {
     balance?: number;
     hold?: boolean;
     receiptId?: string;
-  };
+  } & Record<string, unknown>;
   commissionRate: number; // should be comission calculated as refAmount
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified
@@ -192,7 +192,7 @@ export default class Transactions extends Model {
     type: DataType.JSONB,
     allowNull: true,
   })
-  externalData!: object;
+  externalData!: TransactionsAttributes['externalData'];
 
   // Stores the original id from external source
   @Column({

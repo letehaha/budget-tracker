@@ -22,10 +22,25 @@ export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = ['amount', 'time', 't
  * 1. Do not allow editing specified fields
  * 2. Do now allow editing non-source transaction (TODO: except it's an external one)
  */
-const validateTransaction = (newData: UpdateTransactionParams, prevData: Transactions.default) => {
+const validateTransaction = async (newData: UpdateTransactionParams, prevData: Transactions.default) => {
   if (+newData.id !== +prevData.id) throw new ValidationError({ message: 'id cannot be changed' });
 
-  if (prevData.accountType !== ACCOUNT_TYPES.system) {
+  // Check the account type, not the transaction type
+  // A system transaction in a monobank account should be treated as external
+  const account = await Accounts.getAccountById({
+    userId: newData.userId,
+    id: prevData.accountId,
+  });
+
+  if (!account) {
+    throw new NotFoundError({
+      message: 'Account not found for this transaction',
+    });
+  }
+
+  const isExternalAccount = account.type !== ACCOUNT_TYPES.system;
+
+  if (isExternalAccount) {
     if (EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS.some((field) => newData[field] !== undefined)) {
       throw new ValidationError({
         message: 'Attempt to edit readonly fields of the external account',
@@ -33,11 +48,7 @@ const validateTransaction = (newData: UpdateTransactionParams, prevData: Transac
     }
   }
 
-  if (
-    newData.transactionType &&
-    prevData.accountType !== ACCOUNT_TYPES.system &&
-    newData.transactionType !== prevData.transactionType
-  ) {
+  if (newData.transactionType && isExternalAccount && newData.transactionType !== prevData.transactionType) {
     throw new ValidationError({
       message: 'It\'s disallowed to change "transactionType" of the non-system account',
     });
@@ -74,9 +85,16 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
     isDefaultCurrency: true,
   });
 
+  // Check the account type, not the transaction type
+  const account = await Accounts.getAccountById({
+    userId: newData.userId,
+    id: prevData.accountId,
+  });
+
+  const isSystemAccount = account?.type === ACCOUNT_TYPES.system;
+
   // Never update "transactionType" of non-system transactions. Just an additional guard
-  const transactionType =
-    prevData.accountType === ACCOUNT_TYPES.system ? newData.transactionType : prevData.transactionType;
+  const transactionType = isSystemAccount ? newData.transactionType : prevData.transactionType;
 
   const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams & {
     amount: number;
@@ -354,7 +372,7 @@ export const updateTransaction = withTransaction(
       }
 
       // Validate that passed parameters are not breaking anything
-      validateTransaction(payload, prevData);
+      await validateTransaction(payload, prevData);
 
       // Make basic updation to the base transaction. "Transfer" transactions
       // handled down in the code

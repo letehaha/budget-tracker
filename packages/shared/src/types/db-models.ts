@@ -31,6 +31,26 @@ export interface CategoryModel {
   userId: number;
 }
 
+/**
+ * Known structure for account externalData field.
+ * This is a JSONB field that can contain additional custom data.
+ */
+export interface AccountExternalData {
+  /** Bank connection linking metadata (for linked system accounts) */
+  bankConnection?: {
+    linkedAt: string; // ISO date string
+    linkingStrategy: 'forward-only' | 'full-reconciliation';
+    balanceReconciliation: {
+      systemBalance: number;
+      externalBalance: number;
+      difference: number;
+      adjustmentTransactionId: number | null;
+    };
+  };
+  // Allow any additional custom fields
+  [key: string]: unknown;
+}
+
 export interface AccountModel {
   type: ACCOUNT_TYPES;
   id: number;
@@ -45,8 +65,9 @@ export interface AccountModel {
   currencyCode: string;
   userId: number;
   externalId?: string;
-  externalData?: object;
+  externalData?: AccountExternalData | null;
   isEnabled: boolean;
+  bankDataProviderConnectionId?: number;
 }
 
 export interface MonobankUserModel {

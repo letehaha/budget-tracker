@@ -1,5 +1,6 @@
 import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { buildSystemExpenseTransaction, buildSystemIncomeTransaction } from '@tests/mocks';
+import { getUahAccount } from '@tests/mocks/accounts';
 import { mount } from '@vue/test-utils';
 
 import { getFormTypeFromTransaction } from '../helpers';
@@ -48,6 +49,7 @@ describe('Record TypeSelector component', () => {
             selectedTransactionType: getFormTypeFromTransaction(transaction),
             isFormCreation: false,
             transaction,
+            account: getUahAccount(),
           },
         });
 

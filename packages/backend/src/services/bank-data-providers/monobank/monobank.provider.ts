@@ -1,0 +1,491 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { ACCOUNT_TYPES } from '@bt/shared/types';
+import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
+import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
+import Accounts from '@models/Accounts.model';
+import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
+import Transactions from '@models/Transactions.model';
+import {
+  BankProviderType,
+  BaseBankDataProvider,
+  CredentialFieldType,
+  DateRange,
+  ProviderAccount,
+  ProviderBalance,
+  ProviderMetadata,
+  ProviderTransaction,
+} from '@services/bank-data-providers';
+
+import { encryptCredentials } from '../utils/credential-encryption';
+import { MonobankApiClient } from './api-client';
+import { getJobGroupProgress, queueTransactionSync } from './transaction-sync-queue';
+import { MonobankCredentials, MonobankMetadata } from './types';
+
+/**
+ * Monobank provider implementation
+ * Handles integration with Monobank API for account and transaction syncing
+ */
+export class MonobankProvider extends BaseBankDataProvider {
+  readonly metadata: ProviderMetadata = {
+    type: BankProviderType.MONOBANK,
+    name: 'Monobank',
+    description: 'Ukrainian digital bank with API access for personal finance tracking',
+    features: {
+      supportsWebhooks: true,
+      supportsRealtime: true,
+      requiresReauth: false,
+      supportsManualSync: true,
+      supportsAutoSync: true,
+      defaultSyncInterval: 4 * 60 * 60 * 1000, // 4 hours
+      minSyncInterval: 60 * 1000, // 1 minute (Monobank API rate limit)
+    },
+    credentialFields: [
+      {
+        name: 'apiToken',
+        type: CredentialFieldType.PASSWORD,
+        label: 'API Token',
+        placeholder: 'Enter your Monobank API token',
+        required: true,
+        helpText: 'Get your token from Monobank mobile app: Profile → API Settings → Generate Token',
+      },
+    ],
+  };
+
+  // ============================================================================
+  // Connection Management
+  // ============================================================================
+
+  async connect(userId: number, credentials: unknown): Promise<number> {
+    // Validate credentials structure
+    if (!this.isValidCredentials(credentials)) {
+      throw new ValidationError({ message: 'Invalid credentials format for Monobank' });
+    }
+
+    const { apiToken } = credentials;
+
+    // Validate token by calling Monobank API
+    const isValid = await this.validateCredentials(credentials);
+    if (!isValid) {
+      throw new ForbiddenError({ message: 'Invalid Monobank API token' });
+    }
+
+    const apiClient = new MonobankApiClient(apiToken);
+    // Get client info from Monobank (bypass cache to ensure fresh data during connection)
+    const clientInfo = await apiClient.getClientInfo({ bypassCache: true });
+
+    // Create connection in database
+    const connection = await BankDataProviderConnections.create({
+      userId,
+      providerType: this.metadata.type,
+      providerName: clientInfo.name || 'Monobank Account',
+      isActive: true,
+      credentials: encryptCredentials({ apiToken }),
+      metadata: {
+        clientId: clientInfo.clientId,
+        webHookUrl: clientInfo.webHookUrl,
+        userName: clientInfo.name,
+      },
+    } as any);
+
+    return connection.id;
+  }
+
+  async disconnect(connectionId: number): Promise<void> {
+    const connection = await this.getConnection(connectionId);
+    this.validateProviderType(connection);
+
+    // Delete the connection (CASCADE will handle related accounts via SET NULL)
+    await connection.destroy();
+  }
+
+  async validateCredentials(credentials: unknown): Promise<boolean> {
+    if (!this.isValidCredentials(credentials)) {
+      return false;
+    }
+
+    const { apiToken } = credentials;
+    const apiClient = new MonobankApiClient(apiToken);
+
+    try {
+      return await apiClient.testConnection();
+    } catch (error) {
+      // Network or other errors - consider as invalid
+      return false;
+    }
+  }
+
+  async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {
+    if (!this.isValidCredentials(newCredentials)) {
+      throw new ValidationError({ message: 'Invalid credentials format for Monobank' });
+    }
+
+    const connection = await this.getConnection(connectionId);
+    this.validateProviderType(connection);
+
+    // Validate new credentials
+    const isValid = await this.validateCredentials(newCredentials);
+    if (!isValid) {
+      throw new ForbiddenError({ message: 'Invalid Monobank API token' });
+    }
+
+    // Update credentials - newCredentials is validated as MonobankCredentials, cast to Record for encryption
+    connection.setEncryptedCredentials(newCredentials as unknown as Record<string, unknown>);
+    await connection.save();
+  }
+
+  // ============================================================================
+  // Account Operations
+  // ============================================================================
+
+  async fetchAccounts(connectionId: number): Promise<ProviderAccount[]> {
+    const { apiToken } = await this.getValidatedCredentials(connectionId);
+
+    const apiClient = new MonobankApiClient(apiToken);
+    const clientInfo = await apiClient.getClientInfo();
+
+    return this.transformMonobankAccounts(clientInfo);
+  }
+
+  async syncAccounts(connectionId: number): Promise<void> {
+    const connection = await this.getConnection(connectionId);
+    this.validateProviderType(connection);
+
+    const { apiToken } = await this.getValidatedCredentials(connectionId);
+    const apiClient = new MonobankApiClient(apiToken);
+    const clientInfo = await apiClient.getClientInfo();
+
+    // Get existing accounts linked to this connection
+    const existingAccounts = await Accounts.findAll({
+      where: {
+        userId: connection.userId,
+        bankDataProviderConnectionId: connectionId,
+      },
+    });
+
+    // Transform Monobank accounts to provider accounts
+    const providerAccounts = this.transformMonobankAccounts(clientInfo);
+
+    // Sync each account
+    for (const providerAccount of providerAccounts) {
+      const existingAccount = existingAccounts.find((acc) => acc.externalId === providerAccount.externalId);
+
+      if (existingAccount) {
+        // Update existing account
+        await existingAccount.update({
+          name: providerAccount.name,
+          currentBalance: providerAccount.balance,
+          creditLimit: providerAccount.metadata?.creditLimit || 0,
+        });
+      } else {
+        // Create new account
+        await Accounts.create({
+          userId: connection.userId,
+          name: providerAccount.name,
+          type: ACCOUNT_TYPES.monobank,
+          accountCategory: 'general', // TODO: determine proper category
+          currencyCode: this.getCurrencyCodeFromMonobank(providerAccount.metadata?.currencyCode as number),
+          initialBalance: providerAccount.balance,
+          refInitialBalance: providerAccount.balance, // TODO: calculate ref balance
+          currentBalance: providerAccount.balance,
+          refCurrentBalance: providerAccount.balance, // TODO: calculate ref balance
+          creditLimit: providerAccount.metadata?.creditLimit || 0,
+          refCreditLimit: providerAccount.metadata?.creditLimit || 0, // TODO: calculate ref balance
+          externalId: providerAccount.externalId,
+          externalData: providerAccount.metadata || {},
+          isEnabled: true,
+          bankDataProviderConnectionId: connectionId,
+        } as any);
+      }
+    }
+
+    // Update last sync timestamp
+    await this.updateLastSync(connectionId);
+  }
+
+  // ============================================================================
+  // Transaction Operations
+  // ============================================================================
+
+  async fetchTransactions(
+    connectionId: number,
+    accountExternalId: string,
+    dateRange?: DateRange,
+  ): Promise<ProviderTransaction[]> {
+    const { apiToken } = await this.getValidatedCredentials(connectionId);
+
+    const apiClient = new MonobankApiClient(apiToken);
+
+    // Default to last 31 days if no date range provided
+    const to = dateRange?.to || new Date();
+    const from = dateRange?.from || new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
+
+    const fromTimestamp = Math.floor(from.getTime() / 1000);
+    const toTimestamp = Math.floor(to.getTime() / 1000);
+
+    const transactions = await apiClient.getStatement(accountExternalId, fromTimestamp, toTimestamp);
+
+    return transactions.map((tx) => ({
+      externalId: tx.id,
+      amount: tx.amount,
+      currency: this.getCurrencyCodeFromMonobank(tx.currencyCode),
+      date: new Date(tx.time * 1000),
+      description: tx.description,
+      merchantName: tx.counterName,
+      metadata: {
+        mcc: tx.mcc,
+        hold: tx.hold,
+        cashbackAmount: tx.cashbackAmount,
+        balance: tx.balance,
+        commissionRate: tx.commissionRate,
+        operationAmount: tx.operationAmount,
+        receiptId: tx.receiptId,
+      },
+    }));
+  }
+
+  /**
+   * Sync transactions (queue-based for Monobank)
+   * Automatically determines date range from most recent transaction or last 31 days
+   */
+  async syncTransactions({
+    connectionId,
+    systemAccountId,
+  }: {
+    connectionId: number;
+    systemAccountId: number;
+  }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
+    const account = await this.getSystemAccount(systemAccountId);
+
+    // Find the most recent transaction for this account
+    const latestTransaction = await Transactions.findOne({
+      where: {
+        accountId: account.id,
+      },
+      order: [['time', 'DESC']],
+    });
+
+    // Default to last 31 days if no transactions found
+    const from = latestTransaction ? new Date(latestTransaction.time) : new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
+    const to = new Date();
+
+    return this.loadTransactionsForPeriod({
+      connectionId,
+      systemAccountId,
+      from,
+      to,
+    });
+  }
+
+  /**
+   * Load transactions for a specific date period using queue system
+   * Handles Monobank rate limits and splits into 31-day chunks
+   */
+  async loadTransactionsForPeriod({
+    connectionId,
+    systemAccountId,
+    from,
+    to,
+  }: {
+    connectionId: number;
+    systemAccountId: number;
+    from: Date;
+    to: Date;
+  }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
+    const account = await this.getSystemAccount(systemAccountId);
+    const connection = await this.getConnection(connectionId);
+    this.validateProviderType(connection);
+
+    if (!account.externalId) {
+      throw new BadRequestError({ message: 'Account does not have external ID from Monobank' });
+    }
+
+    const { apiToken } = await this.getValidatedCredentials(connectionId);
+
+    // Queue the transaction sync job
+    const result = await queueTransactionSync({
+      userId: connection.userId,
+      accountId: account.id,
+      connectionId,
+      externalAccountId: account.externalId,
+      apiToken,
+      from,
+      to,
+    });
+
+    return result;
+  }
+
+  /**
+   * Get progress of a queued transaction sync job
+   */
+  async getTransactionSyncProgress(jobGroupId: string): Promise<{
+    totalBatches: number;
+    completedBatches: number;
+    failedBatches: number;
+    activeBatches: number;
+    waitingBatches: number;
+    status: 'waiting' | 'active' | 'completed' | 'failed' | 'partial';
+    progress?: unknown;
+  }> {
+    return getJobGroupProgress(jobGroupId);
+  }
+
+  // ============================================================================
+  // Balance Operations
+  // ============================================================================
+
+  async fetchBalance(connectionId: number, accountExternalId: string): Promise<ProviderBalance> {
+    const { apiToken } = await this.getValidatedCredentials(connectionId);
+    const apiClient = new MonobankApiClient(apiToken);
+    const clientInfo = await apiClient.getClientInfo();
+
+    const account = clientInfo.accounts.find((acc) => acc.id === accountExternalId);
+
+    if (!account) {
+      throw new NotFoundError({ message: `Account ${accountExternalId} not found in Monobank` });
+    }
+
+    return {
+      amount: account.balance,
+      currency: this.getCurrencyCodeFromMonobank(account.currencyCode),
+      asOf: new Date(),
+    };
+  }
+
+  async refreshBalance(connectionId: number, systemAccountId: number): Promise<void> {
+    const account = await this.getSystemAccount(systemAccountId);
+
+    if (!account.externalId) {
+      throw new BadRequestError({ message: 'Account does not have external ID' });
+    }
+
+    const balance = await this.fetchBalance(connectionId, account.externalId);
+
+    await account.update({
+      currentBalance: balance.amount,
+      // TODO: calculate and update refCurrentBalance
+    });
+  }
+
+  // ============================================================================
+  // Webhook Support
+  // ============================================================================
+
+  async setupWebhook(connectionId: number, webhookUrl: string): Promise<void> {
+    const { apiToken } = await this.getValidatedCredentials(connectionId);
+    const apiClient = new MonobankApiClient(apiToken);
+    await apiClient.setWebhook(webhookUrl);
+
+    // Update metadata with webhook URL
+    const connection = await this.getConnection(connectionId);
+    const metadata = (connection.metadata as MonobankMetadata) || {};
+    metadata.webHookUrl = webhookUrl;
+    connection.metadata = metadata as any;
+    await connection.save();
+  }
+
+  async handleWebhook(): Promise<void> {
+    // TODO: Implement webhook handling
+    // This would involve:
+    // 1. Validate webhook signature (if Monobank provides one)
+    // 2. Extract transaction data from payload
+    // 3. Find the corresponding account
+    // 4. Create the transaction in database
+    throw new Error('handleWebhook not yet implemented for Monobank');
+  }
+
+  // ============================================================================
+  // Helper Methods
+  // ============================================================================
+
+  /**
+   * Type guard for Monobank credentials
+   */
+  private isValidCredentials(credentials: unknown): credentials is MonobankCredentials {
+    return (
+      typeof credentials === 'object' &&
+      credentials !== null &&
+      'apiToken' in credentials &&
+      typeof (credentials as any).apiToken === 'string' &&
+      (credentials as any).apiToken.length > 0
+    );
+  }
+
+  private async getValidatedCredentials(connectionId: number): Promise<MonobankCredentials> {
+    const credentials = await this.getDecryptedCredentials(connectionId);
+    if (!this.isValidCredentials(credentials)) {
+      throw new ValidationError({ message: 'Invalid credentials format' });
+    }
+    return credentials;
+  }
+
+  /**
+   * Transform Monobank API response to ProviderAccount format
+   */
+  private transformMonobankAccounts(clientInfo: ExternalMonobankClientInfoResponse): ProviderAccount[] {
+    return clientInfo.accounts.map((account) => ({
+      externalId: account.id,
+      name: this.getAccountName(account),
+      type: account.type,
+      balance: account.balance,
+      currency: this.getCurrencyCodeFromMonobank(account.currencyCode),
+      metadata: {
+        creditLimit: account.creditLimit,
+        currencyCode: account.currencyCode,
+        cashbackType: account.cashbackType,
+        maskedPan: account.maskedPan,
+        iban: account.iban,
+        sendId: account.sendId,
+      },
+    }));
+  }
+
+  /**
+   * Generate a user-friendly account name
+   */
+  private getAccountName(account: ExternalMonobankClientInfoResponse['accounts'][0]): string {
+    const cardType = this.formatCardType(account.type);
+    const lastFourDigits = account.maskedPan[0]?.slice(-4) || '';
+
+    if (lastFourDigits) {
+      return `${cardType} ****${lastFourDigits}`;
+    }
+
+    return cardType;
+  }
+
+  /**
+   * Format Monobank card type to user-friendly name
+   */
+  private formatCardType(type: string): string {
+    const typeMap: Record<string, string> = {
+      black: 'Black Card',
+      white: 'White Card',
+      platinum: 'Platinum Card',
+      iron: 'Iron Card',
+      fop: 'FOP Card',
+      yellow: 'Yellow Card',
+      eAid: 'eAid Card',
+    };
+
+    return typeMap[type] || type;
+  }
+
+  /**
+   * Convert Monobank currency code (ISO 4217 numeric) to string code
+   * @param numericCode - Numeric currency code from Monobank
+   * @returns Currency code string (e.g., 'UAH', 'USD')
+   */
+  private getCurrencyCodeFromMonobank(numericCode: number): string {
+    // ISO 4217 numeric codes
+    const currencyMap: Record<number, string> = {
+      980: 'UAH', // Ukrainian Hryvnia
+      840: 'USD', // US Dollar
+      978: 'EUR', // Euro
+      826: 'GBP', // British Pound
+      985: 'PLN', // Polish Zloty
+    };
+
+    return currencyMap[numericCode] || `UNKNOWN_${numericCode}`;
+  }
+}

@@ -10,7 +10,7 @@ export const deleteCustomRate = (
     baseCode: string;
     quoteCode: string;
   }[],
-) => api.delete('/user/currency/rates', { pairs });
+) => api.delete('/user/currency/rates', { data: { pairs } });
 
 export const loadUserCurrenciesExchangeRates = async (): Promise<UserExchangeRatesModel[]> =>
   api.get('/user/currencies/rates');
@@ -23,7 +23,7 @@ export const editUserCurrenciesExchangeRates = async (
   }[],
 ): Promise<UserExchangeRatesModel[]> => api.put('/user/currency/rates', { pairs });
 
-export const deleteUserCurrency = (currencyCode: string) => api.delete('/user/currency', { currencyCode });
+export const deleteUserCurrency = (currencyCode: string) => api.delete('/user/currency', { data: { currencyCode } });
 
 export const setBaseUserCurrency = (currencyCode: string) => api.post('/user/currencies/base', { currencyCode });
 

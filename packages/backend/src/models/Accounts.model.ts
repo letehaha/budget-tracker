@@ -6,15 +6,15 @@ import {
   BelongsTo,
   DataType,
   AfterCreate,
-  BeforeUpdate,
   HasMany,
 } from 'sequelize-typescript';
 import { Op } from 'sequelize';
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
 import Transactions from '@models/Transactions.model';
+import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 
 export interface AccountsAttributes {
   id: number;
@@ -30,12 +30,13 @@ export interface AccountsAttributes {
   currencyCode: string;
   userId: number;
   externalId: string; // represents id from the original external system if exists
-  externalData: object; // JSON of any addition fields
+  externalData: AccountExternalData | null; // JSON of any addition fields
   // cashbackType: string; // move to additionalFields that will represent non-unified data
   // maskedPan: string; // move to additionalFields
   // type: string; // move to additionalFields
   // iban: string; // move to additionalFields
   isEnabled: boolean; // represents "if account is active and should be visible in stats"
+  bankDataProviderConnectionId?: number; // FK to BankDataProviderConnections
 }
 
 @Table({
@@ -47,6 +48,10 @@ export default class Accounts extends Model {
   @BelongsTo(() => Currencies, {
     as: 'currency',
     foreignKey: 'currencyCode',
+  })
+  @BelongsTo(() => BankDataProviderConnections, {
+    as: 'bankDataProviderConnection',
+    foreignKey: 'bankDataProviderConnectionId',
   })
   @HasMany(() => Transactions)
   transactions!: Transactions[];
@@ -138,7 +143,7 @@ export default class Accounts extends Model {
     type: DataType.JSONB,
     allowNull: true,
   })
-  externalData!: object; // JSON of any addition fields
+  externalData!: AccountExternalData | null; // JSON of any addition fields
   // cashbackType: string;
   // maskedPan: string;
   // type: string;
@@ -152,14 +157,16 @@ export default class Accounts extends Model {
   })
   isEnabled!: boolean;
 
+  @ForeignKey(() => BankDataProviderConnections)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  bankDataProviderConnectionId!: number;
+
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Accounts) {
     await Balances.handleAccountChange({ account: instance });
-  }
-
-  @BeforeUpdate
-  static async validateEditableFields(instance: Accounts) {
-    console.log('instance', instance);
   }
 }
 
@@ -269,6 +276,7 @@ export interface UpdateAccountByIdPayload {
   creditLimit?: AccountsAttributes['creditLimit'];
   refCreditLimit?: AccountsAttributes['refCreditLimit'];
   isEnabled?: AccountsAttributes['isEnabled'];
+  externalData?: AccountsAttributes['externalData'];
 }
 
 export async function updateAccountById({ id, userId, ...payload }: UpdateAccountByIdPayload) {

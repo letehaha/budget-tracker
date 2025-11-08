@@ -30,7 +30,7 @@ export const linkAccountToGroup = async (payload: { accountId: number; groupId: 
 
 export const removeAccountFromGroup = async (payload: { accountIds: number[]; groupId: number }) => {
   await api.delete(`/account-group/${payload.groupId}/accounts`, {
-    accountIds: payload.accountIds,
+    data: { accountIds: payload.accountIds },
   });
 };
 

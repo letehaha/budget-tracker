@@ -6,9 +6,13 @@ export const VUE_QUERY_GLOBAL_PREFIXES = Object.freeze({
   // When security price is changed, dashboard and many security-related hooks should
   // be invalidated
   securityPriceChange: 'global-query-security-price-change',
+
+  // When bank connection changes (link/unlink/disconnect), all bank connection related
+  // queries should be invalidated
+  bankConnectionChange: 'global-query-bank-connection-change',
 });
 
-const { transactionChange, securityPriceChange } = VUE_QUERY_GLOBAL_PREFIXES;
+const { transactionChange, securityPriceChange, bankConnectionChange } = VUE_QUERY_GLOBAL_PREFIXES;
 
 export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // widget balance trend
@@ -59,4 +63,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // holdings
   holdingsList: [securityPriceChange, 'holdings'],
   holdingTransactions: [securityPriceChange, 'holding-transactions'],
+
+  // bank integrations
+  bankProviders: [bankConnectionChange, 'bank-providers'],
+  bankConnectionDetails: [bankConnectionChange, 'bank-connection-details'],
+  bankAvailableExternalAccounts: [bankConnectionChange, 'bank-available-external-accounts'],
+  bankConnections: [bankConnectionChange, 'bank-connections'],
 });

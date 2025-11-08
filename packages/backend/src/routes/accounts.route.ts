@@ -5,6 +5,9 @@ import {
   getAccounts,
   updateAccount,
 } from '@controllers/accounts.controller';
+import convertMonobankToSystem from '@controllers/accounts/convert-monobank-to-system';
+import linkAccountToBankConnection from '@controllers/accounts/link-to-bank-connection';
+import unlinkAccountFromBankConnection from '@controllers/accounts/unlink-from-bunk-connection';
 import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
@@ -16,5 +19,23 @@ router.get('/:id', authenticateJwt, validateEndpoint(getAccountById.schema), get
 router.post('/', authenticateJwt, validateEndpoint(createAccount.schema), createAccount.handler);
 router.put('/:id', authenticateJwt, validateEndpoint(updateAccount.schema), updateAccount.handler);
 router.delete('/:id', authenticateJwt, validateEndpoint(deleteAccount.schema), deleteAccount.handler);
+router.post(
+  '/:id/unlink',
+  authenticateJwt,
+  validateEndpoint(unlinkAccountFromBankConnection.schema),
+  unlinkAccountFromBankConnection.handler,
+);
+router.post(
+  '/:id/link',
+  authenticateJwt,
+  validateEndpoint(linkAccountToBankConnection.schema),
+  linkAccountToBankConnection.handler,
+);
+router.post(
+  '/:id/convert-to-system',
+  authenticateJwt,
+  validateEndpoint(convertMonobankToSystem.schema),
+  convertMonobankToSystem.handler,
+);
 
 export default router;

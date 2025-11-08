@@ -394,6 +394,8 @@ export async function updateAccountBalanceForChangedTxImpl({
 export const updateAccountBalanceForChangedTx = withTransaction(updateAccountBalanceForChangedTxImpl);
 
 export const deleteAccountById = async ({ id }: { id: number }) => {
-  console.log(1);
   return Accounts.deleteAccountById({ id });
 };
+
+export { unlinkAccountFromBankConnection } from './accounts/unlink-from-bank-connection';
+export { linkAccountToBankConnection } from './accounts/link-to-bank-connection';

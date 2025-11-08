@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { InputField } from '@/components/fields';
 import PortfolioTransferDialog from '@/components/dialogs/portfolio-transfer-dialog.vue';
+import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { CardHeader } from '@/components/lib/ui/card';
 import * as Popover from '@/components/lib/ui/popover';
@@ -62,13 +62,13 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
 
 <template>
   <CardHeader>
-    <div class="flex flex-wrap justify-between items-start">
-      <p class="flex gap-2 items-center">
+    <div class="flex flex-wrap items-start justify-between">
+      <div class="flex items-center gap-2">
         <span class="text-xl">
           {{ account.name }}
         </span>
 
-        <div class="flex gap-1 items-center">
+        <div class="flex items-center gap-1">
           <PortfolioTransferDialog :account="account" context="account">
             <Button variant="ghost" size="icon" title="Transfer to Portfolio">
               <ArrowRightLeftIcon :size="20" />
@@ -95,9 +95,9 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
             </Popover.PopoverContent>
           </Popover.Popover>
         </div>
-      </p>
-      <div class="flex flex-wrap gap-2 justify-start items-end ml-auto">
-        <span v-if="account.currencyCode !== baseCurrency.currencyCode" class="text-white text-opacity-50">
+      </div>
+      <div class="ml-auto flex flex-wrap items-end justify-start gap-2">
+        <span v-if="account.currencyCode !== baseCurrency.currencyCode" class="text-opacity-50 text-white">
           ~
           {{ toLocalNumber(account.refCurrentBalance) }}
           {{ baseCurrency.currency.code }}

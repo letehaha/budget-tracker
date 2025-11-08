@@ -8,19 +8,9 @@
           <UiButton as="span"> Create account </UiButton>
         </router-link>
 
-        <template v-if="!isPaired">
-          <MonobankSetToken>
-            <UiButton data-cy="pair-monobank-account" type="button" variant="outline"> Pair Monobank account </UiButton>
-          </MonobankSetToken>
-        </template>
-        <template v-else-if="isPaired && isTokenPresent">
-          <UiButton type="button" variant="outline" @click="refreshMonoAccounts"> Refresh Monobank balances </UiButton>
-        </template>
-        <template v-else-if="isPaired && !isTokenPresent">
-          <MonobankSetToken is-update>
-            <UiButton data-cy="pair-monobank-account" type="button" variant="outline"> Update Monobank token </UiButton>
-          </MonobankSetToken>
-        </template>
+        <router-link :to="{ name: ROUTES_NAMES.accountIntegrations }">
+          <UiButton as="span" variant="outline"> Bank Integrations </UiButton>
+        </router-link>
       </div>
     </div>
 
@@ -64,26 +54,19 @@
 </template>
 
 <script lang="ts" setup>
-import MonobankSetToken from '@/components/dialogs/monobank-set-token.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { useFormatCurrency } from '@/composable';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { useAccountsStore, useBanksMonobankStore } from '@/stores';
+import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 
-const monobankStore = useBanksMonobankStore();
 const { accounts } = storeToRefs(useAccountsStore());
-const { isMonoAccountPaired: isPaired, isTokenPresent } = storeToRefs(monobankStore);
 
 const { formatAmountByCurrencyCode } = useFormatCurrency();
-
-const refreshMonoAccounts = () => {
-  monobankStore.refreshAccounts();
-};
 
 const formattedAccounts = computed(() => [...accounts.value].sort((a, b) => +b.isEnabled - +a.isEnabled));
 

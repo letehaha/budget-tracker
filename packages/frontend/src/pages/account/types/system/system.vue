@@ -5,6 +5,7 @@ import AccountDetailsTab from '@/pages/account/components/account-details-tab.vu
 import SettingAccountGroup from '@/pages/account/components/account-group.vue';
 import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
 import AccountDeletionSection from '@/pages/account/components/account-deletion-section.vue';
+import AccountLinkSection from '@/pages/account/components/account-link-section.vue';
 import { AccountModel, TransactionModel } from '@bt/shared/types';
 
 defineProps<{
@@ -29,6 +30,10 @@ defineProps<{
         <Separator />
 
         <SettingAccountGroup :account="account" />
+
+        <Separator />
+
+        <AccountLinkSection :account="account" />
 
         <Separator />
 

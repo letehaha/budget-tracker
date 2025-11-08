@@ -34,6 +34,21 @@ const routes = [
         component: () => import('@/pages/account/create.vue'),
       },
       {
+        path: '/accounts/integrations',
+        name: ROUTES_NAMES.accountIntegrations,
+        component: () => import('@/pages/accounts/integrations/index.vue'),
+      },
+      {
+        path: '/accounts/integrations/:connectionId',
+        name: ROUTES_NAMES.accountIntegrationDetails,
+        component: () => import('@/pages/accounts/integrations/details.vue'),
+      },
+      {
+        path: '/accounts/integrations/connect/:providerType',
+        name: ROUTES_NAMES.accountIntegrationsConnect,
+        component: () => import('@/pages/accounts/integrations/connect.vue'),
+      },
+      {
         path: '/crypto',
         name: ROUTES_NAMES.crypto,
         component: () => import('@/pages/crypto/crypto.vue'),

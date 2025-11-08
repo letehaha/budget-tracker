@@ -64,7 +64,7 @@ export const removeTransactionsFromBudget = async ({
 }: {
   budgetId: number;
   payload: { transactionIds: number[] };
-}) => api.delete(`/budgets/${budgetId}/transactions`, payload);
+}) => api.delete(`/budgets/${budgetId}/transactions`, { data: payload });
 
 interface StatsResponse {
   summary: {

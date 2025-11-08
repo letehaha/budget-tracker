@@ -160,8 +160,16 @@ export default class Balances extends Model {
     } else if (data.accountType === ACCOUNT_TYPES.monobank) {
       const balance = (data.externalData as TransactionsAttributes['externalData']).balance;
 
-      // We don't need to calculate Monobank account balance based on tx since
-      // Monobank already provides us with the actual balance.
+      // Monobank provides us with the actual account balance after the transaction.
+      // However, balance is in account's currency (e.g., UAH), but Balances.amount
+      // must be stored in BASE currency (refBalance).
+      // We calculate the conversion rate from the transaction data and apply it.
+
+      // Calculate exchange rate from transaction: refAmount / amount
+      // Then apply to balance: balance * exchangeRate = refBalance
+      const exchangeRate = data.refAmount / data.amount;
+      const refBalance = balance ? Math.round(balance * exchangeRate) : 0;
+
       const existingRecordForTheDate = await this.findOne({
         where: {
           accountId,
@@ -170,20 +178,16 @@ export default class Balances extends Model {
       });
 
       if (existingRecordForTheDate) {
-        // Store the highest amount
+        // Store the highest refBalance (converted to base currency)
         existingRecordForTheDate.amount =
-          existingRecordForTheDate.amount > (balance || 0) ? existingRecordForTheDate.amount : (balance as number);
-
-        // existingRecordForTheDate.amount = balance
-        // ? Math.max(existingRecordForTheDate.amount, balance)
-        // : existingRecordForTheDate.amount;
+          existingRecordForTheDate.amount > refBalance ? existingRecordForTheDate.amount : refBalance;
 
         await existingRecordForTheDate.save();
       } else {
         await this.create({
           accountId,
           date,
-          amount: (data.externalData as TransactionsAttributes['externalData']).balance,
+          amount: refBalance,
         });
       }
     }

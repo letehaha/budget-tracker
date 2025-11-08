@@ -114,7 +114,10 @@ const linkedTransaction = ref<TransactionModel | null>(null);
 
 const isRecordExternal = computed(() => {
   if (!props.transaction) return false;
-  return props.transaction.accountType !== ACCOUNT_TYPES.system;
+  // Check the account type, not the transaction type
+  // A system transaction in a monobank account should be treated as external
+  const account = accountsRecord.value[props.transaction.accountId];
+  return account && account.type !== ACCOUNT_TYPES.system;
 });
 // If record is external, the account field will be disabled, so we need to preselect
 // the account
@@ -303,7 +306,9 @@ const unlinkTransactions = async () => {
 
 const deleteTransactionHandler = async () => {
   try {
-    if (props.transaction.accountType !== ACCOUNT_TYPES.system) return;
+    // Check the account type, not the transaction type
+    const account = accountsRecord.value[props.transaction.accountId];
+    if (account && account.type !== ACCOUNT_TYPES.system) return;
 
     isLoading.value = true;
 
@@ -378,6 +383,7 @@ onUnmounted(() => {
           :is-form-creation="isFormCreation"
           :selected-transaction-type="currentTxType"
           :transaction="transaction"
+          :account="transaction ? accountsRecord[transaction.accountId] : undefined"
           :disabled="isFormFieldsDisabled"
           class="mb-6"
           @change-tx-type="selectTransactionType"
@@ -545,7 +551,7 @@ onUnmounted(() => {
 
         <div class="flex items-center justify-between py-6">
           <Button
-            v-if="transaction && transaction.accountType === ACCOUNT_TYPES.system"
+            v-if="transaction && accountsRecord[transaction.accountId]?.type === ACCOUNT_TYPES.system"
             class="min-w-[100px]"
             :disabled="isFormFieldsDisabled"
             aria-label="Delete transaction"

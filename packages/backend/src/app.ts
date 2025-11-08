@@ -21,6 +21,7 @@ import accountsRoutes from './routes/accounts.route';
  *  Routes
  * */
 import authRoutes from './routes/auth.route';
+import bankDataProvidersRoutes from './routes/bank-data-providers.route';
 import lunchflowRoutes from './routes/banks/lunchflow.route';
 import monobankRoutes from './routes/banks/monobank.route';
 import budgetsRoutes from './routes/budgets.route';
@@ -34,6 +35,7 @@ import testsRoutes from './routes/tests.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
+import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
 import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 import { supportedLocales } from './translations';
 
@@ -92,6 +94,9 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(locale(supportedLocales));
 app.use(sessionMiddleware);
 
+// Initialize bank data providers
+initializeBankProviders();
+
 /**
  *  Routes include
  * */
@@ -102,6 +107,7 @@ app.use(`${API_PREFIX}/accounts`, accountsRoutes);
 app.use(`${API_PREFIX}/transactions`, transactionsRoutes);
 app.use(`${API_PREFIX}/categories`, categoriesRoutes);
 app.use(`${API_PREFIX}/models/currencies`, modelsCurrenciesRoutes);
+app.use(`${API_PREFIX}/bank-data-providers`, bankDataProvidersRoutes);
 app.use(`${API_PREFIX}/banks/monobank`, monobankRoutes);
 app.use(`${API_PREFIX}/banks/lunchflow`, lunchflowRoutes);
 app.use(`${API_PREFIX}/crypto/binance`, binanceRoutes);
