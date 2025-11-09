@@ -70,6 +70,13 @@ interface BankConnectionDetails {
     currencyCode: string;
     type: string;
   }>;
+  consent?: {
+    validFrom: string | null;
+    validUntil: string | null;
+    daysRemaining: number | null;
+    isExpired: boolean;
+    isExpiringSoon: boolean;
+  };
 }
 
 export interface AvailableAccount {
@@ -117,7 +124,7 @@ export const connectProvider = async (
   providerType: string,
   credentials: Record<string, unknown>,
   providerName?: string,
-): Promise<{ connectionId: number; message: string }> => {
+): Promise<{ connectionId: number; authUrl?: string; message: string }> => {
   const response = await api.post(`/bank-data-providers/${providerType}/connect`, {
     credentials,
     providerName,
@@ -138,11 +145,15 @@ export const disconnectProvider = async ({
   return response;
 };
 
+export const reauthorizeConnection = async (connectionId: number): Promise<{ authUrl: string; message: string }> => {
+  const response = await api.post(`/bank-data-providers/connections/${connectionId}/reauthorize`);
+  return response;
+};
+
 export const getAvailableAccounts = async (connectionId: number): Promise<AvailableAccount[]> => {
   const response = await api.get<{ accounts: AvailableAccount[] }>(
     `/bank-data-providers/connections/${connectionId}/available-accounts`,
   );
-  console.log('response.accounts', response.accounts);
   return response.accounts.map((item) => ({
     ...item,
     balance: fromSystemAmount(item.balance),
@@ -221,4 +232,75 @@ interface ActiveSyncJob {
 export const getActiveSyncJobs = async (): Promise<ActiveSyncJob[]> => {
   const response = await api.get<{ jobs: ActiveSyncJob[] }>('/bank-data-providers/active-sync-jobs');
   return response.jobs;
+};
+
+// Enable Banking specific APIs
+export interface ASPSP {
+  /** Available authentication methods */
+  auth_methods: Array<{
+    approach: string;
+    credentials: Array<{
+      description?: string;
+      name: string;
+      required: boolean;
+      template?: string;
+      title?: string;
+    }>;
+    hidden_method: boolean;
+    name: string;
+    psu_type: 'personal' | 'business';
+  }>;
+  /** Whether bank is in beta */
+  beta: boolean;
+  /** BIC code */
+  bic: string;
+  /** Country code */
+  country: string;
+  /** Logo URL */
+  logo: string;
+  /** Maximum consent validity in seconds */
+  maximum_consent_validity?: number;
+  /** Bank name */
+  name: string;
+  /** Payment capabilities */
+  payments?: Array<{
+    allowed_auth_methods: string[];
+    currencies: string[];
+    payment_type: string;
+    psu_type: 'personal' | 'business';
+    [key: string]: unknown;
+  }>;
+  /** Supported PSU types */
+  psu_types: Array<'personal' | 'business'>;
+  /** Required PSU headers */
+  required_psu_headers: string[];
+}
+
+export const getEnableBankingCountries = async (appId: string, privateKey: string): Promise<string[]> => {
+  const response: { countries: string[] } = await api.post('/bank-data-providers/enablebanking/countries', {
+    appId,
+    privateKey,
+  });
+  return response.countries;
+};
+
+export const getEnableBankingBanks = async (appId: string, privateKey: string, country: string): Promise<ASPSP[]> => {
+  const response: { banks: ASPSP[] } = await api.post(`/bank-data-providers/enablebanking/banks?country=${country}`, {
+    appId,
+    privateKey,
+  });
+  return response.banks;
+};
+
+export const completeEnableBankingOAuth = async (
+  connectionId: number,
+  code: string,
+  state: string,
+): Promise<{ success: boolean; message: string }> => {
+  const response = await api.post('/bank-data-providers/enablebanking/oauth-callback', {
+    connectionId,
+    code,
+    state,
+  });
+  return response;
 };

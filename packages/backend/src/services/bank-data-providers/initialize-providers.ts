@@ -1,5 +1,6 @@
 import { logger } from '@js/utils/logger';
 
+import { EnableBankingProvider } from './enablebanking';
 import { MonobankProvider } from './monobank';
 import { bankProviderRegistry } from './registry';
 
@@ -11,6 +12,9 @@ export function initializeBankProviders(): void {
   try {
     // Register Monobank provider
     bankProviderRegistry.register(new MonobankProvider());
+
+    // Register Enable Banking provider
+    bankProviderRegistry.register(new EnableBankingProvider());
 
     // Future providers will be registered here:
     // bankProviderRegistry.register(new LunchFlowProvider());

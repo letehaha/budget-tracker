@@ -7,7 +7,11 @@ import listActiveSyncJobs from '@controllers/bank-data-providers/connections/lis
 import listExternalAccounts from '@controllers/bank-data-providers/connections/list-external-accounts';
 import listUserConnections from '@controllers/bank-data-providers/connections/list-user-connections';
 import loadTransactionsForPeriod from '@controllers/bank-data-providers/connections/load-transactions-for-period';
+import reauthorizeConnection from '@controllers/bank-data-providers/connections/reauthorize-connection';
 import syncTransactionsForAccount from '@controllers/bank-data-providers/connections/sync-transactions-for-account';
+import listBanks from '@controllers/bank-data-providers/enablebanking/list-banks';
+import listCountries from '@controllers/bank-data-providers/enablebanking/list-countries';
+import oauthCallback from '@controllers/bank-data-providers/enablebanking/oauth-callback';
 import * as providersController from '@controllers/bank-data-providers/providers.controller';
 import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';
@@ -42,6 +46,12 @@ router.delete(
   authenticateJwt,
   validateEndpoint(disconnectProvider.schema),
   disconnectProvider.handler,
+);
+router.post(
+  '/connections/:connectionId/reauthorize',
+  authenticateJwt,
+  validateEndpoint(reauthorizeConnection.schema),
+  reauthorizeConnection.handler,
 );
 
 // Account sync flow
@@ -83,5 +93,15 @@ router.get(
   validateEndpoint(listActiveSyncJobs.schema),
   listActiveSyncJobs.handler,
 );
+
+// Enable Banking specific endpoints
+router.post(
+  '/enablebanking/countries',
+  authenticateJwt,
+  validateEndpoint(listCountries.schema),
+  listCountries.handler,
+);
+router.post('/enablebanking/banks', authenticateJwt, validateEndpoint(listBanks.schema), listBanks.handler);
+router.post('/enablebanking/oauth-callback', authenticateJwt, validateEndpoint(oauthCallback.schema), oauthCallback.handler);
 
 export default router;

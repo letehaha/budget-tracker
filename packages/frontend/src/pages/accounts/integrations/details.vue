@@ -60,6 +60,96 @@
         </CardContent>
       </Card>
 
+      <!-- Consent Validity Card (for Enable Banking) -->
+      <Card
+        v-if="connectionDetails.consent"
+        class="mb-6"
+        :class="{
+          'border-yellow-500': connectionDetails.consent.isExpiringSoon,
+          'border-red-500': connectionDetails.consent.isExpired,
+        }"
+      >
+        <CardHeader>
+          <h2 class="text-lg font-semibold tracking-wide">Connection Validity</h2>
+        </CardHeader>
+        <CardContent>
+          <div class="space-y-4">
+            <!-- Expiration Warning -->
+            <div v-if="connectionDetails.consent.isExpired" class="rounded-lg bg-red-100 p-4 text-red-800">
+              <p class="font-semibold">⚠️ Connection Expired</p>
+              <p class="mt-1 text-sm">
+                Your bank connection has expired. Please reconnect to continue syncing transactions.
+              </p>
+            </div>
+            <div
+              v-else-if="connectionDetails.consent.isExpiringSoon"
+              class="rounded-lg bg-yellow-100 p-4 text-yellow-800"
+            >
+              <p class="font-semibold">⚠️ Expiring Soon</p>
+              <p class="mt-1 text-sm">
+                Your bank connection will expire in {{ connectionDetails.consent.daysRemaining }} day{{
+                  connectionDetails.consent.daysRemaining !== 1 ? 's' : ''
+                }}. Please reconnect soon to avoid interruption.
+              </p>
+            </div>
+
+            <!-- Validity Details -->
+            <div class="grid gap-4 md:grid-cols-2">
+              <div>
+                <p class="text-muted-foreground text-sm">Valid From</p>
+                <p class="font-medium">
+                  {{ connectionDetails.consent.validFrom ? formatDate(connectionDetails.consent.validFrom) : 'N/A' }}
+                </p>
+              </div>
+              <div>
+                <p class="text-muted-foreground text-sm">Valid Until</p>
+                <p class="font-medium">
+                  {{ formatDate(connectionDetails.consent.validUntil) }}
+                </p>
+              </div>
+              <div>
+                <p class="text-muted-foreground text-sm">Days Remaining</p>
+                <p
+                  class="font-medium"
+                  :class="{
+                    'text-red-600': connectionDetails.consent.isExpired,
+                    'text-yellow-600': connectionDetails.consent.isExpiringSoon,
+                  }"
+                >
+                  {{ connectionDetails.consent.daysRemaining }} day{{
+                    connectionDetails.consent.daysRemaining !== 1 ? 's' : ''
+                  }}
+                </p>
+              </div>
+              <div>
+                <p class="text-muted-foreground text-sm">Status</p>
+                <p
+                  class="font-medium"
+                  :class="{
+                    'text-green-600': !connectionDetails.consent.isExpired && !connectionDetails.consent.isExpiringSoon,
+                    'text-yellow-600': connectionDetails.consent.isExpiringSoon,
+                    'text-red-600': connectionDetails.consent.isExpired,
+                  }"
+                >
+                  {{
+                    connectionDetails.consent.isExpired
+                      ? 'Expired'
+                      : connectionDetails.consent.isExpiringSoon
+                        ? 'Expiring Soon'
+                        : 'Active'
+                  }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Reconnect Button (if expired or expiring soon) -->
+            <div v-if="connectionDetails.consent.isExpired || connectionDetails.consent.isExpiringSoon" class="pt-2">
+              <UiButton variant="default" @click="handleReconnect"> Reconnect Now </UiButton>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <!-- Connected Accounts Card -->
       <Card class="mb-6">
         <CardHeader class="flex flex-row items-center justify-between">
@@ -74,9 +164,10 @@
           </div>
 
           <div v-else class="space-y-3">
-            <div
+            <router-link
               v-for="account in connectionDetails.accounts"
               :key="account.id"
+              :to="`/account/${account.id}`"
               class="flex items-center justify-between rounded-lg border p-4"
             >
               <div class="flex-1">
@@ -87,7 +178,7 @@
               <div class="text-right">
                 <p class="font-semibold">{{ formatCurrency(account.currentBalance) }} {{ account.currencyCode }}</p>
               </div>
-            </div>
+            </router-link>
           </div>
         </CardContent>
       </Card>
@@ -120,8 +211,9 @@
 
         <div v-if="isLoadingAvailableAccounts" class="py-8 text-center">Loading available accounts...</div>
 
-        <div v-else-if="availableAccountsError" class="rounded-lg border border-red-500 bg-red-50 p-4 text-red-700">
-          Failed to load available accounts. Please try again.
+        <div v-else-if="availableAccountsError" class="border-destructive text-destructive-text rounded-lg border p-4">
+          <p v-if="isForbiddenError">Your session has expired. Please reconnect your bank connection to continue.</p>
+          <p v-else>Failed to load available accounts. Please try again.</p>
         </div>
 
         <div v-else-if="availableAccounts && availableAccounts.length === 0" class="py-8 text-center">
@@ -203,6 +295,7 @@ import {
   disconnectProvider,
   getAvailableAccounts,
   getConnectionDetails,
+  reauthorizeConnection,
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
@@ -217,7 +310,9 @@ import {
   DialogTitle,
 } from '@/components/lib/ui/dialog';
 import { useNotificationCenter } from '@/components/notification-center';
+import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
+import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -254,6 +349,7 @@ const {
   queryKey: [...VUE_QUERY_CACHE_KEYS.bankAvailableExternalAccounts, connectionId.value],
   queryFn: () => getAvailableAccounts(connectionId.value),
   enabled: isFetchAccountsDialogOpen,
+  retry: false,
   staleTime: 60 * 1000, // 30 seconds
 });
 
@@ -305,6 +401,14 @@ const isAccountConnected = (externalId: string): boolean => {
   return connectionDetails.value?.accounts.some((account) => account.externalId === externalId) ?? false;
 };
 
+const isForbiddenError = computed(() => {
+  if (!availableAccountsError.value) return false;
+  if (availableAccountsError.value instanceof ApiErrorResponseError) {
+    return availableAccountsError.value.data.code === API_ERROR_CODES.forbidden;
+  }
+  return false;
+});
+
 const openFetchAccountsDialog = () => {
   isFetchAccountsDialogOpen.value = true;
 };
@@ -340,6 +444,22 @@ const formatCurrency = (amount: number) => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
+};
+
+const handleReconnect = async () => {
+  try {
+    // Call reauthorization API
+    const response = await reauthorizeConnection(connectionId.value);
+
+    // Store connection ID for OAuth callback
+    localStorage.setItem('pendingEnableBankingConnectionId', String(connectionId.value));
+
+    // Redirect to the authorization URL
+    window.location.href = response.authUrl;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to start reauthorization';
+    addErrorNotification(message);
+  }
 };
 
 // Reset selected accounts when dialog closes

@@ -1,0 +1,377 @@
+<template>
+  <div class="space-y-4">
+    <!-- Step 1: Enter Enable Banking Credentials -->
+    <template v-if="currentStep === 1">
+      <div class="space-y-4">
+        <div>
+          <label class="mb-2 block text-sm font-medium">Application ID</label>
+          <input
+            v-model="appId"
+            type="text"
+            class="w-full rounded-md border px-3 py-2"
+            placeholder="Enter your Enable Banking app_id"
+          />
+          <p class="text-muted-foreground mt-1 text-xs">
+            Get from Enable Banking portal after uploading your certificate
+          </p>
+        </div>
+        <div>
+          <label class="mb-2 block text-sm font-medium">Private Key</label>
+          <textarea
+            v-model="privateKey"
+            class="w-full rounded-md border px-3 py-2 font-mono text-xs"
+            rows="6"
+            placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+          />
+          <p class="text-muted-foreground mt-1 text-xs">Your PEM-encoded RSA private key (stored encrypted)</p>
+        </div>
+        <div class="flex gap-2">
+          <UiButton @click="handleLoadBanks" :disabled="!appId || !privateKey || isLoading">
+            {{ isLoading ? 'Loading...' : 'Next' }}
+          </UiButton>
+          <UiButton variant="outline" @click="$emit('cancel')" :disabled="isLoading"> Cancel </UiButton>
+        </div>
+      </div>
+    </template>
+
+    <!-- Step 2: Select Country -->
+    <template v-else-if="currentStep === 2">
+      <div class="space-y-4">
+        <div v-if="isLoading" class="py-8 text-center">Loading countries...</div>
+
+        <template v-else>
+          <div class="text-muted-foreground mb-4 text-sm">Select your bank's country</div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium">Country</label>
+            <input
+              v-model="countryFilter"
+              type="text"
+              class="w-full rounded-md border px-3 py-2"
+              placeholder="Search countries..."
+            />
+          </div>
+
+          <div class="max-h-64 space-y-2 overflow-y-auto">
+            <button
+              v-for="country in filteredCountries"
+              :key="country"
+              @click="selectCountry(country)"
+              class="hover:bg-accent w-full rounded-md border p-3 text-left transition-colors"
+            >
+              {{ getCountryName(country) }} ({{ country }})
+            </button>
+          </div>
+
+          <div class="flex gap-2 pt-4">
+            <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading"> Back </UiButton>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- Step 3: Select Bank -->
+    <template v-else-if="currentStep === 3">
+      <div class="space-y-4">
+        <div v-if="isLoading" class="py-8 text-center">Loading banks...</div>
+
+        <template v-else>
+          <div class="text-muted-foreground mb-4 text-sm">Select your bank in {{ selectedCountry }}</div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium">Bank</label>
+            <input
+              v-model="bankFilter"
+              type="text"
+              class="w-full rounded-md border px-3 py-2"
+              placeholder="Search banks..."
+            />
+          </div>
+
+          <div class="max-h-64 space-y-2 overflow-y-auto">
+            <button
+              v-for="bank in filteredBanks"
+              :key="bank.name"
+              @click="selectBank(bank)"
+              class="hover:bg-accent w-full rounded-md border p-3 text-left transition-colors"
+            >
+              <div class="font-medium">{{ bank.name }}</div>
+              <div v-if="bank.bic" class="text-muted-foreground text-xs">BIC: {{ bank.bic }}</div>
+            </button>
+          </div>
+
+          <div class="flex gap-2 pt-4">
+            <UiButton variant="outline" @click="currentStep = 2" :disabled="isLoading"> Back </UiButton>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- Step 4: Redirect to Bank Authorization -->
+    <template v-else-if="currentStep === 4">
+      <div class="space-y-4">
+        <div v-if="isLoading" class="py-8 text-center">Connecting to {{ selectedBankName }}...</div>
+
+        <template v-else-if="authUrl">
+          <div class="text-muted-foreground space-y-4 text-sm">
+            <p>Click the button below to authorize access to your {{ selectedBankName }} account.</p>
+            <p class="text-warning font-medium">
+              You will be redirected to {{ selectedBankName }}'s website to log in and approve the connection.
+            </p>
+          </div>
+
+          <div class="flex gap-2 pt-4">
+            <UiButton @click="openAuthUrl"> Authorize with {{ selectedBankName }} </UiButton>
+            <UiButton variant="outline" @click="currentStep = 3" :disabled="isLoading"> Back </UiButton>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- Step 5: Select Accounts (shown after OAuth callback) -->
+    <template v-else-if="currentStep === 5">
+      <div class="space-y-4">
+        <div v-if="isLoading" class="py-8 text-center">Loading accounts...</div>
+
+        <template v-else>
+          <div class="text-muted-foreground mb-4 text-sm">Select the accounts you want to sync with Budget Tracker</div>
+
+          <div class="space-y-2">
+            <label
+              v-for="account in availableAccounts"
+              :key="account.externalId"
+              class="hover:bg-accent flex cursor-pointer items-center gap-3 rounded-md border p-3"
+            >
+              <input type="checkbox" :value="account.externalId" v-model="selectedAccountIds" class="h-4 w-4" />
+              <div class="flex-1">
+                <div class="font-medium">{{ account.name }}</div>
+                <div class="text-muted-foreground text-sm">
+                  {{ formatBalance(account.balance, account.currency) }}
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <div class="flex gap-2 pt-4">
+            <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading">
+              {{ isLoading ? 'Syncing...' : `Sync ${selectedAccountIds.length} account(s)` }}
+            </UiButton>
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import {
+  type ASPSP,
+  type AvailableAccount,
+  connectProvider,
+  getAvailableAccounts,
+  getEnableBankingBanks,
+  getEnableBankingCountries,
+  syncSelectedAccounts,
+} from '@/api/bank-data-providers';
+import UiButton from '@/components/lib/ui/button/Button.vue';
+import { useNotificationCenter } from '@/components/notification-center';
+import { useAccountsStore } from '@/stores';
+import { computed, ref } from 'vue';
+
+const emit = defineEmits<{
+  connected: [];
+  cancel: [];
+  authStarted: [connectionId: number];
+}>();
+
+const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const accountsStore = useAccountsStore();
+
+const currentStep = ref(1);
+const isLoading = ref(false);
+
+// Step 1 data
+const appId = ref('');
+const privateKey = ref('');
+
+// Step 2 data
+const countries = ref<string[]>([]);
+const countryFilter = ref('');
+const selectedCountry = ref('');
+
+// Step 3 data
+const banks = ref<ASPSP[]>([]);
+const bankFilter = ref('');
+const selectedBank = ref<ASPSP | null>(null);
+const selectedBankName = computed(() => selectedBank.value?.name || '');
+
+// Step 4 data
+const authUrl = ref('');
+const connectionId = ref<number | null>(null);
+
+// Step 5 data
+const availableAccounts = ref<AvailableAccount[]>([]);
+const selectedAccountIds = ref<string[]>([]);
+
+const filteredCountries = computed(() => {
+  if (!countryFilter.value) return countries.value;
+  const filter = countryFilter.value.toLowerCase();
+  return countries.value.filter(
+    (c) => c.toLowerCase().includes(filter) || getCountryName(c).toLowerCase().includes(filter),
+  );
+});
+
+const filteredBanks = computed(() => {
+  if (!bankFilter.value) return banks.value;
+  const filter = bankFilter.value.toLowerCase();
+  return banks.value.filter((b) => b.name.toLowerCase().includes(filter) || b.bic?.toLowerCase().includes(filter));
+});
+
+const handleLoadBanks = async () => {
+  if (!appId.value || !privateKey.value || isLoading.value) return;
+
+  try {
+    isLoading.value = true;
+    countries.value = await getEnableBankingCountries(appId.value, privateKey.value);
+    currentStep.value = 2;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to load countries. Please check your credentials.';
+    addErrorNotification(message);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const selectCountry = async (country: string) => {
+  selectedCountry.value = country;
+
+  try {
+    isLoading.value = true;
+    banks.value = await getEnableBankingBanks(appId.value, privateKey.value, country);
+    currentStep.value = 3;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to load banks';
+    addErrorNotification(message);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const selectBank = async (bank: ASPSP) => {
+  selectedBank.value = bank;
+
+  try {
+    isLoading.value = true;
+
+    // Connect provider - this will return the auth URL
+    const response = await connectProvider('enable-banking', {
+      appId: appId.value,
+      privateKey: privateKey.value,
+      bankName: bank.name,
+      bankCountry: bank.country,
+      maxConsentValidity: bank.maximum_consent_validity, // Pass bank's max consent validity
+    });
+
+    connectionId.value = response.connectionId;
+
+    // Extract auth URL from response
+    if (response.authUrl) {
+      authUrl.value = response.authUrl;
+      currentStep.value = 4;
+
+      // Store connection ID for OAuth callback
+      localStorage.setItem('pendingEnableBankingConnectionId', String(response.connectionId));
+
+      // Notify parent that auth has started
+      emit('authStarted', response.connectionId);
+    } else {
+      addErrorNotification('No authorization URL received from server');
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to connect provider';
+    addErrorNotification(message);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const openAuthUrl = () => {
+  if (authUrl.value) {
+    window.location.href = authUrl.value;
+  }
+};
+
+// This method should be called from the parent after OAuth callback
+const loadAccounts = async (connId: number) => {
+  try {
+    isLoading.value = true;
+    connectionId.value = connId;
+    availableAccounts.value = await getAvailableAccounts(connId);
+    currentStep.value = 5;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to load accounts';
+    addErrorNotification(message);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const handleSyncAccounts = async () => {
+  if (!connectionId.value || selectedAccountIds.value.length === 0 || isLoading.value) {
+    return;
+  }
+
+  try {
+    isLoading.value = true;
+
+    await syncSelectedAccounts(connectionId.value, selectedAccountIds.value);
+
+    // Refresh accounts store
+    await accountsStore.refetchAccounts();
+
+    addSuccessNotification(`Successfully synced ${selectedAccountIds.value.length} account(s)`);
+
+    // Emit connected event to close dialog
+    emit('connected');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to sync accounts';
+    addErrorNotification(message);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const formatBalance = (balance: number, currency: string) => {
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: currency,
+  }).format(balance);
+};
+
+// Simple country name mapping (can be expanded)
+const getCountryName = (code: string): string => {
+  const names: Record<string, string> = {
+    FI: 'Finland',
+    SE: 'Sweden',
+    NO: 'Norway',
+    DK: 'Denmark',
+    DE: 'Germany',
+    FR: 'France',
+    ES: 'Spain',
+    IT: 'Italy',
+    NL: 'Netherlands',
+    BE: 'Belgium',
+    PL: 'Poland',
+    GB: 'United Kingdom',
+    IE: 'Ireland',
+    AT: 'Austria',
+    CH: 'Switzerland',
+  };
+  return names[code] || code;
+};
+
+// Expose method for parent to trigger account loading after OAuth
+defineExpose({
+  loadAccounts,
+});
+</script>
