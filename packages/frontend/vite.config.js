@@ -1,6 +1,7 @@
 import tailwind from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import autoprefixer from 'autoprefixer';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { defineConfig, loadEnv } from 'vite';
@@ -13,12 +14,21 @@ const __dirname = path.dirname(__filename);
 export default ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, path.resolve(__dirname, '../../'), '') };
 
+  const certPath = path.resolve(__dirname, '../../docker/dev/certs/cert.pem');
+  const keyPath = path.resolve(__dirname, '../../docker/dev/certs/key.pem');
+
+  const serverConfig = {
+    port: process.env.PORT,
+    host: process.env.HOST,
+    https: {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath),
+    },
+  };
+
   return defineConfig({
     plugins: [vue(), tailwind(), svgLoader()],
-    server: {
-      port: process.env.PORT,
-      host: process.env.HOST,
-    },
+    server: serverConfig,
     resolve: {
       alias: [
         {

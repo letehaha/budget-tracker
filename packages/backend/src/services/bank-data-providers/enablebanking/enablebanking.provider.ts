@@ -379,8 +379,6 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const apiClient = new EnableBankingApiClient(credentials);
     const session = await apiClient.getSession(credentials.sessionId);
 
-    console.log('session.accounts', session.accounts);
-
     // Fetch all account details and balances in parallel
     const accountsData = await Promise.all(
       session.accounts.map(async (accountId) => {
