@@ -5,6 +5,7 @@ import { toSystemAmount } from '@js/helpers/system-amount';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Transactions from '@models/Transactions.model';
+import { getUserDefaultCategory } from '@models/Users.model';
 import {
   BankProviderType,
   BaseBankDataProvider,
@@ -595,6 +596,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       const originalAmount = (tx.metadata?.originalAmount as number) || 0;
       const isExpense = originalAmount < 0;
 
+      const { defaultCategoryId } = (await getUserDefaultCategory({ id: connection.userId }))!;
+
       // Create transaction using service (handles all required fields)
       await createTransaction({
         originalId: tx.externalId,
@@ -608,7 +611,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         userId: connection.userId,
         transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
         paymentType: PAYMENT_TYPES.bankTransfer,
-        categoryId: undefined, // Will use user's default category
+        categoryId: defaultCategoryId,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         accountType: ACCOUNT_TYPES.enableBanking,
       });
