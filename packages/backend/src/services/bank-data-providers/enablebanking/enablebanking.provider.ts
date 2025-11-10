@@ -705,21 +705,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
   /**
    * Calculate consent validity end date based on bank's maximum
-   * Uses 3 minutes for testing, will use bank's max in production
    */
-  private calculateConsentValidUntil(bankMaxConsentValidity: number | undefined = 3 * 60): Date {
-    // For testing: use 3 minutes
-    const testingPeriodSeconds = 3 * 60 || bankMaxConsentValidity;
-
-    // In production, use bank's max or default to 90 days
-    // const defaultSeconds = 90 * 24 * 60 * 60; // 90 days
-    // const consentValiditySeconds = Math.min(
-    //   bankMaxConsentValidity || defaultSeconds,
-    //   defaultSeconds
-    // );
-
-    // Currently using testing period
-    const consentValiditySeconds = testingPeriodSeconds;
+  private calculateConsentValidUntil(bankMaxConsentValidity: number | undefined = 90 * 24 * 60 * 60): Date {
+    const consentValiditySeconds = bankMaxConsentValidity;
 
     return new Date(Date.now() + consentValiditySeconds * 1000);
   }
