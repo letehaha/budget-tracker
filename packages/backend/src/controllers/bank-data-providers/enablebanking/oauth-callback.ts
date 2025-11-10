@@ -1,5 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
-import { BadRequestError, NotFoundError } from '@js/errors';
+import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { BankProviderType, bankProviderRegistry } from '@root/services/bank-data-providers';
 import { EnableBankingProvider } from '@root/services/bank-data-providers/enablebanking';
@@ -39,25 +39,17 @@ export default createController(schema, async ({ body, user }) => {
   const provider = bankProviderRegistry.get(BankProviderType.ENABLE_BANKING) as EnableBankingProvider;
 
   // Handle OAuth callback
-  try {
-    await provider.handleOAuthCallback(connectionId, {
-      code,
-      state,
-      error,
-      error_description,
-    });
+  await provider.handleOAuthCallback(connectionId, {
+    code,
+    state,
+    error,
+    error_description,
+  });
 
-    return {
-      data: {
-        success: true,
-        message: 'Connection successfully established',
-        connectionId,
-      },
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to complete OAuth flow';
-    throw new BadRequestError({
-      message: errorMessage,
-    });
-  }
+  return {
+    data: {
+      message: 'Connection successfully established',
+      connectionId,
+    },
+  };
 });

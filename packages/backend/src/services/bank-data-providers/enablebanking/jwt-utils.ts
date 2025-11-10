@@ -2,8 +2,9 @@
  * JWT token generation utilities for Enable Banking API authentication
  * Enable Banking requires RS256 signed JWT tokens for all API calls
  */
-
+import { logger } from '@js/utils';
 import * as crypto from 'crypto';
+
 import { EnableBankingJWTPayload } from './types';
 
 /**
@@ -112,7 +113,7 @@ export function validatePrivateKey(privateKey: string): boolean {
     crypto.createPrivateKey(normalizedKey);
     return true;
   } catch (error) {
-    console.error('Private key validation failed:', error);
+    logger.error({ message: 'Private key validation failed:', error: error as Error });
     return false;
   }
 }

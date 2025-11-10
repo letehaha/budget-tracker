@@ -95,13 +95,13 @@ router.get(
 );
 
 // Enable Banking specific endpoints
-router.post(
-  '/enablebanking/countries',
-  authenticateJwt,
-  validateEndpoint(listCountries.schema),
-  listCountries.handler,
-);
+router.post('/enablebanking/countries', authenticateJwt, validateEndpoint(listCountries.schema), listCountries.handler);
 router.post('/enablebanking/banks', authenticateJwt, validateEndpoint(listBanks.schema), listBanks.handler);
-router.post('/enablebanking/oauth-callback', authenticateJwt, validateEndpoint(oauthCallback.schema), oauthCallback.handler);
+router.post(
+  '/enablebanking/oauth-callback',
+  authenticateJwt,
+  validateEndpoint(oauthCallback.schema),
+  oauthCallback.handler,
+);
 
 export default router;
