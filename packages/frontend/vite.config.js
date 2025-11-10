@@ -17,13 +17,18 @@ export default ({ mode }) => {
   const certPath = path.resolve(__dirname, '../../docker/dev/certs/cert.pem');
   const keyPath = path.resolve(__dirname, '../../docker/dev/certs/key.pem');
 
+  // Only enable HTTPS if certs exist (skip on CI)
+  const httpsConfig = fs.existsSync(certPath) && fs.existsSync(keyPath)
+    ? {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath),
+      }
+    : undefined;
+
   const serverConfig = {
     port: process.env.PORT,
     host: process.env.HOST,
-    https: {
-      key: fs.readFileSync(keyPath),
-      cert: fs.readFileSync(certPath),
-    },
+    ...(httpsConfig && { https: httpsConfig }),
   };
 
   return defineConfig({
