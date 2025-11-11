@@ -153,7 +153,7 @@ if (process.env.NODE_ENV === 'development') {
 } else {
   // Test mode uses HTTP for simplicity
   // Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
-  serverInstance = app.listen(0, () => {
+  serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
     logger.info(`[OK] Test server is running on http://localhost:${app.get('port')}`);
     logger.info(`API Prefix: ${API_PREFIX}`);
     initializeBackgroundJobs();
