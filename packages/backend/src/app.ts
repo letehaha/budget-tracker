@@ -129,7 +129,7 @@ logger.info('Attempting to start server...');
 let serverInstance: https.Server | ReturnType<typeof app.listen>;
 
 // Use HTTPS in development, HTTP in test mode
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV === 'development') {
   const certPath = path.join(__dirname, '../../../docker/dev/certs/cert.pem');
   const keyPath = path.join(__dirname, '../../../docker/dev/certs/key.pem');
 
