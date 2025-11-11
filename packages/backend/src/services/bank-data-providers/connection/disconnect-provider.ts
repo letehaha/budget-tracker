@@ -1,9 +1,9 @@
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { withTransaction } from '@root/services/common';
 
 import { bankProviderRegistry } from '../registry';
-import { BankProviderType } from '../types';
 
 export const disconnectProvider = withTransaction(
   async ({
@@ -37,7 +37,7 @@ export const disconnectProvider = withTransaction(
       });
     }
 
-    const provider = bankProviderRegistry.get(connection.providerType as BankProviderType);
+    const provider = bankProviderRegistry.get(connection.providerType as BANK_PROVIDER_TYPE);
     await provider.disconnect(connectionId);
 
     return;

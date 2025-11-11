@@ -1,8 +1,8 @@
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { bankProviderRegistry } from '@services/bank-data-providers/registry';
-import { BankProviderType } from '@services/bank-data-providers/types';
 import { z } from 'zod';
 
 export default createController(
@@ -25,7 +25,7 @@ export default createController(
     }
 
     // Get provider
-    const provider = bankProviderRegistry.get(connection.providerType as BankProviderType);
+    const provider = bankProviderRegistry.get(connection.providerType as BANK_PROVIDER_TYPE);
 
     // Check if provider has reauthorize method (Enable Banking specific)
     if (!('reauthorize' in provider)) {

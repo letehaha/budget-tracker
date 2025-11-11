@@ -2,6 +2,7 @@ import {
   ACCOUNT_TYPES,
   API_ERROR_CODES,
   type AccountExternalData,
+  BANK_PROVIDER_TYPE,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
@@ -10,13 +11,13 @@ import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Transactions from '@models/Transactions.model';
-import { BankProviderType, bankProviderRegistry } from '@services/bank-data-providers';
+import { bankProviderRegistry } from '@services/bank-data-providers';
 import { withTransaction } from '@services/common/with-transaction';
 import { createTransaction } from '@services/transactions/create-transaction';
 
-const PROVIDER_TO_ACCOUNT_TYPE: Record<BankProviderType, ACCOUNT_TYPES> = {
-  [BankProviderType.MONOBANK]: ACCOUNT_TYPES.monobank,
-  [BankProviderType.ENABLE_BANKING]: ACCOUNT_TYPES.enableBanking,
+const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
+  [BANK_PROVIDER_TYPE.MONOBANK]: ACCOUNT_TYPES.monobank,
+  [BANK_PROVIDER_TYPE.ENABLE_BANKING]: ACCOUNT_TYPES.enableBanking,
 };
 
 interface LinkAccountToBankConnectionPayload {
@@ -91,7 +92,7 @@ export const linkAccountToBankConnection = withTransaction(
     }
 
     // 3. Get provider and fetch external account details
-    const provider = bankProviderRegistry.get(bankConnection.providerType as BankProviderType);
+    const provider = bankProviderRegistry.get(bankConnection.providerType as BANK_PROVIDER_TYPE);
     const externalAccounts = await provider.fetchAccounts(connectionId);
 
     const externalAccount = externalAccounts.find((acc) => acc.externalId === externalAccountId);
@@ -168,7 +169,7 @@ export const linkAccountToBankConnection = withTransaction(
     };
 
     // 9. Update account to external type
-    const newAccountType = PROVIDER_TO_ACCOUNT_TYPE[bankConnection.providerType as BankProviderType];
+    const newAccountType = PROVIDER_TO_ACCOUNT_TYPE[bankConnection.providerType as BANK_PROVIDER_TYPE];
 
     await account.update({
       type: newAccountType,

@@ -1,9 +1,9 @@
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { ListExternalAccountsResponseData } from '@controllers/bank-data-providers/connections/list-external-accounts';
 import * as connectProviderService from '@services/bank-data-providers/connection/connect-provider';
 import * as getConnectionDetailsService from '@services/bank-data-providers/connection/get-connection-details';
 import * as listUserConnectionsService from '@services/bank-data-providers/connection/list-user-connections';
 import { listSupportedProviders } from '@services/bank-data-providers/list-supported-providers.service';
-import { BankProviderType } from '@services/bank-data-providers/types';
 
 import { MakeRequestReturn, UtilizeReturnType, makeRequest } from './common';
 
@@ -21,7 +21,7 @@ export function connectProvider<R extends boolean | undefined = false>({
   providerName,
   raw,
 }: {
-  providerType: BankProviderType;
+  providerType: BANK_PROVIDER_TYPE;
   credentials: Record<string, unknown>;
   providerName?: string;
   raw?: R;

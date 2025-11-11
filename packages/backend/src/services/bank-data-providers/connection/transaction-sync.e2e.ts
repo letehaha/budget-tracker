@@ -1,9 +1,8 @@
-import { ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import Transactions from '@models/Transactions.model';
-import { BankProviderType } from '@services/bank-data-providers';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import { subDays } from 'date-fns';
@@ -14,7 +13,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       it('should successfully sync transactions for a connected account', async () => {
         // Setup: Connect provider and account
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -87,7 +86,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should return validation error for non-existent account', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -103,7 +102,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       it('should return error if account is not linked to the connection', async () => {
         // Create first connection and account
         const { connectionId: connectionId1 } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -121,7 +120,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
         // Create second connection
         const { connectionId: connectionId2 } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           providerName: 'Second Connection',
           raw: true,
@@ -140,7 +139,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Transaction data integrity', () => {
       it('should correctly map transaction fields from external source', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -200,7 +199,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should prevent duplicate transactions with same originalId', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -255,7 +254,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should sync multiple accounts independently', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -308,7 +307,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Transaction date ranges', () => {
       it('should sync transactions from most recent transaction onwards', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -365,7 +364,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should sync last 31 days if no transactions exist', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -404,7 +403,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Account balance updates', () => {
       it('should update account balance after syncing transactions', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -456,7 +455,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Basic load flow', () => {
       it('should successfully load transactions for a specified period', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -518,7 +517,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should return validation error for non-existent account', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -537,7 +536,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Date range validation', () => {
       it('should reject date range exceeding 1 year', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -570,7 +569,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should reject invalid date range (from > to)', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -603,7 +602,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should accept valid date range within 1 year', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -643,7 +642,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Forward-only linking strategy', () => {
       it('should block loading transactions before linkedAt date for forward-only accounts', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -692,7 +691,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should allow loading transactions after linkedAt date for forward-only accounts', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -753,7 +752,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should allow loading any period for non-forward-only accounts', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -794,7 +793,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Long date ranges and batching', () => {
       it('should split long date ranges into multiple batches', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -846,7 +845,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
   describe('Transaction editing restrictions', () => {
     it('should allow editing description and category of synced transactions', async () => {
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -892,7 +891,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
     it('should reject editing amount of synced transactions', async () => {
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -957,7 +956,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       });
 
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -1005,7 +1004,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       });
 
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });

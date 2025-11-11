@@ -1,7 +1,8 @@
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import { BankProviderType, bankProviderRegistry } from '@root/services/bank-data-providers';
+import { bankProviderRegistry } from '@root/services/bank-data-providers';
 import { EnableBankingProvider } from '@root/services/bank-data-providers/enablebanking';
 import { z } from 'zod';
 
@@ -27,7 +28,7 @@ export default createController(schema, async ({ body, user }) => {
     where: {
       id: connectionId,
       userId: user.id,
-      providerType: BankProviderType.ENABLE_BANKING,
+      providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
     },
   });
 
@@ -36,7 +37,7 @@ export default createController(schema, async ({ body, user }) => {
   }
 
   // Get provider instance
-  const provider = bankProviderRegistry.get(BankProviderType.ENABLE_BANKING) as EnableBankingProvider;
+  const provider = bankProviderRegistry.get(BANK_PROVIDER_TYPE.ENABLE_BANKING) as EnableBankingProvider;
 
   // Handle OAuth callback
   await provider.handleOAuthCallback(connectionId, {

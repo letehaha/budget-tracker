@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { BadRequestError, NotFoundError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
@@ -8,11 +8,10 @@ import { withTransaction } from '@root/services/common';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 
 import { bankProviderRegistry } from '../registry';
-import { BankProviderType } from '../types';
 
-const PROVIDER_TO_ACCOUNT_TYPE: Record<BankProviderType, ACCOUNT_TYPES> = {
-  [BankProviderType.MONOBANK]: ACCOUNT_TYPES.monobank,
-  [BankProviderType.ENABLE_BANKING]: ACCOUNT_TYPES.enableBanking,
+const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
+  [BANK_PROVIDER_TYPE.MONOBANK]: ACCOUNT_TYPES.monobank,
+  [BANK_PROVIDER_TYPE.ENABLE_BANKING]: ACCOUNT_TYPES.enableBanking,
 };
 
 export const connectSelectedAccounts = withTransaction(
@@ -39,7 +38,7 @@ export const connectSelectedAccounts = withTransaction(
       });
     }
 
-    const provider = bankProviderRegistry.get(connection.providerType as BankProviderType);
+    const provider = bankProviderRegistry.get(connection.providerType as BANK_PROVIDER_TYPE);
 
     // Fetch all available accounts from provider
     const availableAccounts = await provider.fetchAccounts(connectionId);
@@ -87,7 +86,7 @@ export const connectSelectedAccounts = withTransaction(
         const newAccount = await Accounts.create({
           userId,
           name: providerAccount.name,
-          type: PROVIDER_TO_ACCOUNT_TYPE[connection.providerType as BankProviderType],
+          type: PROVIDER_TO_ACCOUNT_TYPE[connection.providerType as BANK_PROVIDER_TYPE],
           accountCategory: 'general', // TODO: determine proper category
           currencyCode: providerAccount.currency,
           initialBalance: providerAccount.balance,

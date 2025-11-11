@@ -1,5 +1,5 @@
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
-import { BankProviderType } from '@services/bank-data-providers';
 import * as helpers from '@tests/helpers';
 
 describe('Bank Data Providers controller', () => {
@@ -39,7 +39,7 @@ describe('Bank Data Providers controller', () => {
         raw: true,
       });
 
-      const monobankProvider = providers.find((p) => p.type === BankProviderType.MONOBANK);
+      const monobankProvider = providers.find((p) => p.type === BANK_PROVIDER_TYPE.MONOBANK);
 
       expect(monobankProvider).toBeDefined();
       expect(monobankProvider.name).toBe('Monobank');

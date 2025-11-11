@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Transactions from '@models/Transactions.model';
 import {
-  BankProviderType,
   BaseBankDataProvider,
   CredentialFieldType,
   DateRange,
@@ -27,7 +26,7 @@ import { MonobankCredentials, MonobankMetadata } from './types';
  */
 export class MonobankProvider extends BaseBankDataProvider {
   readonly metadata: ProviderMetadata = {
-    type: BankProviderType.MONOBANK,
+    type: BANK_PROVIDER_TYPE.MONOBANK,
     name: 'Monobank',
     description: 'Ukrainian digital bank with API access for personal finance tracking',
     features: {

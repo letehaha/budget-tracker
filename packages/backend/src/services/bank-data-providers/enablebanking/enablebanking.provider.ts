@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  BANK_PROVIDER_TYPE,
+  PAYMENT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import { toSystemAmount } from '@js/helpers/system-amount';
 import Accounts from '@models/Accounts.model';
@@ -7,7 +13,6 @@ import BankDataProviderConnections from '@models/BankDataProviderConnections.mod
 import Transactions from '@models/Transactions.model';
 import { getUserDefaultCategory } from '@models/Users.model';
 import {
-  BankProviderType,
   BaseBankDataProvider,
   CredentialFieldType,
   DateRange,
@@ -38,7 +43,7 @@ import {
  */
 export class EnableBankingProvider extends BaseBankDataProvider {
   readonly metadata: ProviderMetadata = {
-    type: BankProviderType.ENABLE_BANKING,
+    type: BANK_PROVIDER_TYPE.ENABLE_BANKING,
     name: 'Enable Banking',
     description: 'Access 6000+ European banks via PSD2 open banking',
     features: {

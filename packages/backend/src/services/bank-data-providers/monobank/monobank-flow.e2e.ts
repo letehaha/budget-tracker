@@ -1,6 +1,6 @@
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import { BankProviderType } from '@services/bank-data-providers';
 import * as helpers from '@tests/helpers';
 import { INVALID_MONOBANK_TOKEN, VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
 
@@ -18,7 +18,7 @@ describe('Monobank Data Provider E2E', () => {
       expect(providers.length).toBeGreaterThan(0);
 
       // Verify Monobank is in the list
-      const monobankProvider = providers.find((p: { type: string }) => p.type === BankProviderType.MONOBANK)!;
+      const monobankProvider = providers.find((p: { type: string }) => p.type === BANK_PROVIDER_TYPE.MONOBANK)!;
       expect(monobankProvider).toBeDefined();
       expect(monobankProvider.name).toBe('Monobank');
       expect(monobankProvider.credentialFields).toBeDefined();
@@ -26,7 +26,7 @@ describe('Monobank Data Provider E2E', () => {
 
       // Step 2: Connect to selected provider
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         providerName: 'My Monobank Connection',
         raw: true,
@@ -45,7 +45,7 @@ describe('Monobank Data Provider E2E', () => {
 
       const connection = connections.find((c: { id: number }) => c.id === connectionId);
       expect(connection).toBeDefined();
-      expect(connection?.providerType).toBe(BankProviderType.MONOBANK);
+      expect(connection?.providerType).toBe(BANK_PROVIDER_TYPE.MONOBANK);
       expect(connection?.providerName).toBe('My Monobank Connection');
       expect(connection?.isActive).toBe(true);
       expect(connection?.accountsCount).toBe(0); // No accounts connected yet
@@ -92,7 +92,7 @@ describe('Monobank Data Provider E2E', () => {
 
       expect(connectionDetails).toBeDefined();
       expect(connectionDetails.id).toBe(connectionId);
-      expect(connectionDetails.providerType).toBe(BankProviderType.MONOBANK);
+      expect(connectionDetails.providerType).toBe(BANK_PROVIDER_TYPE.MONOBANK);
       expect(connectionDetails.providerName).toBe('My Monobank Connection');
       expect(connectionDetails.isActive).toBe(true);
 
@@ -152,7 +152,7 @@ describe('Monobank Data Provider E2E', () => {
     it('should include Monobank provider', async () => {
       const { providers } = await helpers.bankDataProviders.getSupportedBankProviders({ raw: true });
 
-      const monobankProvider = providers.find((p: { type: string }) => p.type === BankProviderType.MONOBANK)!;
+      const monobankProvider = providers.find((p: { type: string }) => p.type === BANK_PROVIDER_TYPE.MONOBANK)!;
       expect(monobankProvider).toBeDefined();
       expect(monobankProvider.name).toBe('Monobank');
     });
@@ -180,7 +180,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should successfully connect with valid credentials', async () => {
       const result = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -192,7 +192,7 @@ describe('Monobank Data Provider E2E', () => {
     it('should fail with invalid credentials', async () => {
       const result = await helpers.makeRequest({
         method: 'post',
-        url: `/bank-data-providers/${BankProviderType.MONOBANK}/connect`,
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.MONOBANK}/connect`,
         payload: {
           credentials: { apiToken: INVALID_MONOBANK_TOKEN },
         },
@@ -204,7 +204,7 @@ describe('Monobank Data Provider E2E', () => {
     it('should accept optional provider name', async () => {
       const customName = 'My Custom Provider Name';
       const result = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         providerName: customName,
         raw: true,
@@ -218,7 +218,7 @@ describe('Monobank Data Provider E2E', () => {
     it('should validate Monobank requires apiToken', async () => {
       const result = await helpers.makeRequest({
         method: 'post',
-        url: `/bank-data-providers/${BankProviderType.MONOBANK}/connect`,
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.MONOBANK}/connect`,
         payload: {
           credentials: { wrongField: 'value' },
         },
@@ -236,7 +236,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should list user connection after connecting', async () => {
       const result = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         providerName: 'My Connection',
         raw: true,
@@ -250,7 +250,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should return connections with correct structure', async () => {
       await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -269,7 +269,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should show accountsCount as 0 for newly connected providers', async () => {
       const result = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -282,14 +282,14 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should allow multiple connections to the same provider', async () => {
       const result1 = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         providerName: 'Monobank 1',
         raw: true,
       });
 
       const result2 = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         providerName: 'Monobank 2',
         raw: true,
@@ -299,7 +299,7 @@ describe('Monobank Data Provider E2E', () => {
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
       const monobankConnections = connections.filter(
-        (c: { providerType: string }) => c.providerType === BankProviderType.MONOBANK,
+        (c: { providerType: string }) => c.providerType === BANK_PROVIDER_TYPE.MONOBANK,
       );
 
       expect(monobankConnections.length).toBeGreaterThanOrEqual(2);
@@ -317,7 +317,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should list external accounts from provider', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -333,7 +333,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should return accounts with correct structure', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -356,7 +356,7 @@ describe('Monobank Data Provider E2E', () => {
     it('should return accounts matching mocked data', async () => {
       const mockedData = helpers.monobank.mockedClientData();
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -382,7 +382,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should fail with invalid account IDs', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -400,7 +400,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should successfully connect valid accounts', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -426,7 +426,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should create accounts with correct balances and currency', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -455,7 +455,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should update connection lastSyncAt after connecting accounts', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -482,7 +482,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should enable existing disabled accounts when reconnecting', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -528,7 +528,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should update accountsCount after connecting accounts', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -562,7 +562,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should return connection details with provider metadata', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         providerName: 'Test Connection',
         raw: true,
@@ -574,7 +574,7 @@ describe('Monobank Data Provider E2E', () => {
       });
 
       expect(details.id).toBe(connectionResult.connectionId);
-      expect(details.providerType).toBe(BankProviderType.MONOBANK);
+      expect(details.providerType).toBe(BANK_PROVIDER_TYPE.MONOBANK);
       expect(details.providerName).toBe('Test Connection');
       expect(details.isActive).toBe(true);
 
@@ -586,7 +586,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should include connected accounts in details', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -631,7 +631,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should return empty accounts array when no accounts connected', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -648,7 +648,7 @@ describe('Monobank Data Provider E2E', () => {
   describe('Connection persistence and state', () => {
     it('should store credentials securely (encrypted)', async () => {
       const result = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -661,13 +661,13 @@ describe('Monobank Data Provider E2E', () => {
 
       expect(connection).toBeDefined();
       expect(connection.id).toBe(result.connectionId);
-      expect(connection.providerType).toBe(BankProviderType.MONOBANK);
+      expect(connection.providerType).toBe(BANK_PROVIDER_TYPE.MONOBANK);
       expect(connection.isActive).toBe(true);
     });
 
     it('should create connection with correct initial state', async () => {
       const result = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -677,7 +677,7 @@ describe('Monobank Data Provider E2E', () => {
 
       expect(connection).toBeDefined();
       expect(connection?.isActive).toBe(true);
-      expect(connection?.providerType).toBe(BankProviderType.MONOBANK);
+      expect(connection?.providerType).toBe(BANK_PROVIDER_TYPE.MONOBANK);
       expect(connection?.lastSyncAt).toBeNull();
       expect(connection?.createdAt).toBeDefined();
       expect(connection?.accountsCount).toBe(0); // No accounts synced yet
@@ -689,7 +689,7 @@ describe('Monobank Data Provider E2E', () => {
 
       await helpers.makeRequest({
         method: 'post',
-        url: `/bank-data-providers/${BankProviderType.MONOBANK}/connect`,
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.MONOBANK}/connect`,
         payload: {
           credentials: { apiToken: INVALID_MONOBANK_TOKEN },
         },

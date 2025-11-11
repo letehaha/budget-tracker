@@ -1,12 +1,12 @@
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { connectProvider } from '@root/services/bank-data-providers/connection/connect-provider';
-import { BankProviderType } from '@services/bank-data-providers';
 import { z } from 'zod';
 
 export default createController(
   z.object({
     params: z.object({
-      providerType: z.nativeEnum(BankProviderType),
+      providerType: z.nativeEnum(BANK_PROVIDER_TYPE),
     }),
     body: z.object({
       credentials: z.record(z.unknown()),

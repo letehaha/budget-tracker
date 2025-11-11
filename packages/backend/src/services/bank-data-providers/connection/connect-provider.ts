@@ -1,9 +1,9 @@
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { withTransaction } from '@root/services/common';
 
 import { EnableBankingProvider } from '../enablebanking';
 import { bankProviderRegistry } from '../registry';
-import { BankProviderType } from '../types';
 
 export const connectProvider = withTransaction(
   async ({
@@ -12,7 +12,7 @@ export const connectProvider = withTransaction(
     credentials,
     providerName,
   }: {
-    providerType: BankProviderType;
+    providerType: BANK_PROVIDER_TYPE;
     userId: number;
     credentials: Record<string, unknown>;
     providerName?: string;
@@ -29,7 +29,7 @@ export const connectProvider = withTransaction(
 
     // For Enable Banking, get the authorization URL
     let authUrl: string | undefined;
-    if (providerType === BankProviderType.ENABLE_BANKING) {
+    if (providerType === BANK_PROVIDER_TYPE.ENABLE_BANKING) {
       const enableBankingProvider = provider as EnableBankingProvider;
       authUrl = await enableBankingProvider.getAuthorizationUrl(connectionId);
     }
