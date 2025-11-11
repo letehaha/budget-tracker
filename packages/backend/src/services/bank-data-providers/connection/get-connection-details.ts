@@ -40,6 +40,13 @@ export interface ConnectionDetailsResponse {
     currencyCode: string;
     type: string;
   }>;
+  consent?: {
+    validFrom: string | null;
+    validUntil: string | null;
+    daysRemaining: number | null;
+    isExpired: boolean;
+    isExpiringSoon: boolean; // Less than 7 days remaining
+  };
 }
 
 export async function getConnectionDetails(params: GetConnectionDetailsParams): Promise<ConnectionDetailsResponse> {
@@ -73,6 +80,30 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
 
   const providerMetadata = provider.metadata;
 
+  // Calculate consent validity info if available in metadata
+  let consentInfo: ConnectionDetailsResponse['consent'] = undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const metadata = connection.metadata as any;
+
+  if (metadata?.consentValidUntil) {
+    const now = new Date();
+    const validUntil = new Date(metadata.consentValidUntil);
+    const validFrom = metadata.consentValidFrom ? new Date(metadata.consentValidFrom) : null;
+
+    const msRemaining = validUntil.getTime() - now.getTime();
+    const daysRemaining = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
+    const isExpired = msRemaining <= 0;
+    const isExpiringSoon = !isExpired && daysRemaining <= 7;
+
+    consentInfo = {
+      validFrom: validFrom?.toISOString() || null,
+      validUntil: validUntil.toISOString(),
+      daysRemaining: isExpired ? 0 : daysRemaining,
+      isExpired,
+      isExpiringSoon,
+    };
+  }
+
   return {
     id: connection.id,
     providerType: connection.providerType,
@@ -96,5 +127,6 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
       currencyCode: account.currencyCode,
       type: account.type,
     })),
+    consent: consentInfo,
   };
 }

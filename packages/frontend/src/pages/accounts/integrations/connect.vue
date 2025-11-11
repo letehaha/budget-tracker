@@ -14,73 +14,89 @@
       <CardHeader class="pb-4">
         <div class="text-lg font-medium">{{ stepTitle }}</div>
       </CardHeader>
+
       <CardContent>
-        <!-- Step 1: Enter API Token -->
-        <template v-if="currentStep === 1">
-          <div class="space-y-4">
-            <div>
-              <label class="mb-2 block text-sm font-medium">API Token</label>
-              <input
-                v-model="apiToken"
-                type="password"
-                class="w-full rounded-md border px-3 py-2"
-                placeholder="Enter your Monobank API token"
-                @keyup.enter="handleConnectProvider"
-              />
-              <p class="text-muted-foreground mt-1 text-xs">You can get your API token from Monobank mobile app</p>
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Connection Name (optional)</label>
-              <input
-                v-model="connectionName"
-                type="text"
-                class="w-full rounded-md border px-3 py-2"
-                placeholder="e.g., Personal Account"
-              />
-            </div>
-            <div class="flex gap-2">
-              <UiButton @click="handleConnectProvider" :disabled="!apiToken || isLoading">
-                {{ isLoading ? 'Connecting...' : 'Connect' }}
-              </UiButton>
-            </div>
-          </div>
-        </template>
+        <!-- Enable Banking Provider -->
+        <EnableBankingConnector
+          v-if="providerType === 'enable-banking'"
+          @connected="handleConnected"
+          @cancel="handleCancel"
+        />
 
-        <!-- Step 2: Select Accounts -->
-        <template v-else-if="currentStep === 2">
-          <div class="space-y-4">
-            <div v-if="isLoading" class="py-8 text-center">Loading accounts...</div>
-
-            <template v-else>
-              <div class="text-muted-foreground mb-4 text-sm">
-                Select the accounts you want to sync with Budget Tracker
+        <!-- Monobank Provider (legacy hardcoded flow) -->
+        <template v-else-if="providerType === 'monobank'">
+          <!-- Step 1: Enter API Token -->
+          <template v-if="currentStep === 1">
+            <div class="space-y-4">
+              <div>
+                <label class="mb-2 block text-sm font-medium">API Token</label>
+                <input
+                  v-model="apiToken"
+                  type="password"
+                  class="w-full rounded-md border px-3 py-2"
+                  placeholder="Enter your Monobank API token"
+                  @keyup.enter="handleConnectProvider"
+                />
+                <p class="text-muted-foreground mt-1 text-xs">You can get your API token from Monobank mobile app</p>
               </div>
-
-              <div class="space-y-2">
-                <label
-                  v-for="account in availableAccounts"
-                  :key="account.externalId"
-                  class="hover:bg-accent flex cursor-pointer items-center gap-3 rounded-md border p-3"
-                >
-                  <input type="checkbox" :value="account.externalId" v-model="selectedAccountIds" class="h-4 w-4" />
-                  <div class="flex-1">
-                    <div class="font-medium">{{ account.name }}</div>
-                    <div class="text-muted-foreground text-sm">
-                      {{ formatBalance(account.balance, account.currency) }}
-                    </div>
-                  </div>
-                </label>
+              <div>
+                <label class="mb-2 block text-sm font-medium">Connection Name (optional)</label>
+                <input
+                  v-model="connectionName"
+                  type="text"
+                  class="w-full rounded-md border px-3 py-2"
+                  placeholder="e.g., Personal Account"
+                />
               </div>
-
-              <div class="flex gap-2 pt-4">
-                <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading">
-                  {{ isLoading ? 'Syncing...' : `Sync ${selectedAccountIds.length} account(s)` }}
+              <div class="flex gap-2">
+                <UiButton @click="handleConnectProvider" :disabled="!apiToken || isLoading">
+                  {{ isLoading ? 'Connecting...' : 'Connect' }}
                 </UiButton>
-                <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading"> Back </UiButton>
               </div>
-            </template>
-          </div>
+            </div>
+          </template>
+
+          <!-- Step 2: Select Accounts -->
+          <template v-else-if="currentStep === 2">
+            <div class="space-y-4">
+              <div v-if="isLoading" class="py-8 text-center">Loading accounts...</div>
+
+              <template v-else>
+                <div class="text-muted-foreground mb-4 text-sm">
+                  Select the accounts you want to sync with Budget Tracker
+                </div>
+
+                <div class="space-y-2">
+                  <label
+                    v-for="account in availableAccounts"
+                    :key="account.externalId"
+                    class="hover:bg-accent flex cursor-pointer items-center gap-3 rounded-md border p-3"
+                  >
+                    <input type="checkbox" :value="account.externalId" v-model="selectedAccountIds" class="h-4 w-4" />
+                    <div class="flex-1">
+                      <div class="font-medium">{{ account.name }}</div>
+                      <div class="text-muted-foreground text-sm">
+                        {{ formatBalance(account.balance, account.currency) }}
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="flex gap-2 pt-4">
+                  <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading">
+                    {{ isLoading ? 'Syncing...' : `Sync ${selectedAccountIds.length} account(s)` }}
+                  </UiButton>
+                  <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading"> Back </UiButton>
+                </div>
+              </template>
+            </div>
+          </template>
         </template>
+
+        <!-- Fallback for unknown providers -->
+        <div v-else class="text-muted-foreground py-8 text-center">
+          Provider "{{ providerType }}" is not yet supported.
+        </div>
       </CardContent>
     </Card>
   </div>
@@ -101,6 +117,8 @@ import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+
+import EnableBankingConnector from './components/EnableBankingConnector.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -124,6 +142,10 @@ const availableAccounts = ref<AvailableAccount[]>([]);
 const selectedAccountIds = ref<string[]>([]);
 
 const stepTitle = computed(() => {
+  if (providerType.value === 'enable-banking') {
+    return 'Connect Enable Banking';
+  }
+
   switch (currentStep.value) {
     case 1:
       return 'Enter API Token';
@@ -133,6 +155,21 @@ const stepTitle = computed(() => {
       return '';
   }
 });
+
+const handleConnected = async () => {
+  // Refresh accounts store
+  await accountsStore.refetchAccounts();
+  await currenciesStore.loadCurrencies();
+
+  addSuccessNotification('Bank connection established successfully!');
+
+  // Redirect to accounts page
+  router.push({ name: ROUTES_NAMES.accounts });
+};
+
+const handleCancel = () => {
+  router.push({ name: ROUTES_NAMES.accountIntegrations });
+};
 
 const handleConnectProvider = async () => {
   if (!apiToken.value || isLoading.value) return;

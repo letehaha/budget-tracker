@@ -12,6 +12,7 @@ import { BankProviderType } from '../types';
 
 const PROVIDER_TO_ACCOUNT_TYPE: Record<BankProviderType, ACCOUNT_TYPES> = {
   [BankProviderType.MONOBANK]: ACCOUNT_TYPES.monobank,
+  [BankProviderType.ENABLE_BANKING]: ACCOUNT_TYPES.enableBanking,
 };
 
 export const connectSelectedAccounts = withTransaction(

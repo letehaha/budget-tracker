@@ -5,9 +5,12 @@ import { requestIdMiddleware } from '@middlewares/request-id';
 import { sessionMiddleware } from '@middlewares/session-id';
 import cors from 'cors';
 import express from 'express';
+import fs from 'fs';
+import https from 'https';
 import locale from 'locale';
 import morgan from 'morgan';
 import passport from 'passport';
+import path from 'path';
 
 import { API_PREFIX } from './config';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
@@ -123,11 +126,41 @@ if (process.env.NODE_ENV === 'test') {
 
 logger.info('Attempting to start server...');
 
-// Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
-export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
-  logger.info(`[OK] Server is running on localhost:${app.get('port')}`);
-  logger.info(`API Prefix: ${API_PREFIX}`);
+let serverInstance: https.Server | ReturnType<typeof app.listen>;
 
+// Use HTTPS in development, HTTP in test mode
+if (process.env.NODE_ENV !== 'test') {
+  const certPath = path.join(__dirname, '../../../docker/dev/certs/cert.pem');
+  const keyPath = path.join(__dirname, '../../../docker/dev/certs/key.pem');
+
+  if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
+    logger.error(`SSL certificates not found at ${certPath} and ${keyPath}`);
+    logger.error('Please run: cd docker/dev/certs && mkcert localhost 127.0.0.1 ::1 budget-tracker.com');
+    process.exit(1);
+  }
+
+  const httpsOptions = {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath),
+  };
+
+  serverInstance = https.createServer(httpsOptions, app);
+  serverInstance.listen(app.get('port'), () => {
+    logger.info(`[OK] HTTPS Server is running on https://localhost:${app.get('port')}`);
+    logger.info(`API Prefix: ${API_PREFIX}`);
+    initializeBackgroundJobs();
+  });
+} else {
+  // Test mode uses HTTP for simplicity
+  // Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
+  serverInstance = app.listen(0, () => {
+    logger.info(`[OK] Test server is running on http://localhost:${app.get('port')}`);
+    logger.info(`API Prefix: ${API_PREFIX}`);
+    initializeBackgroundJobs();
+  });
+}
+
+function initializeBackgroundJobs() {
   const isOfflineMode = process.env.OFFLINE_MODE === 'true';
 
   if (isOfflineMode) {
@@ -143,7 +176,9 @@ export const serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : a
       securitiesDailySyncCron.startCron();
     }
   }
-});
+}
+
+export { serverInstance };
 
 serverInstance.on('error', (error) => {
   console.error('Server failed to start:', error);

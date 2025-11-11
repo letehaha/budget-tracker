@@ -4,6 +4,8 @@ node_modules
 dist
 packages/backend/dist
 packages/frontend/dist
+docker/dev/certs/*
+!docker/dev/certs/README.md
 
 # local env files
 .env

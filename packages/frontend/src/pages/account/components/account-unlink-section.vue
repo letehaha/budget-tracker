@@ -47,7 +47,7 @@ const unlinkAccount = async () => {
         Only manual updates will work.
         <br />
         <b class="text-green-600">Note:</b> You can reconnect this account to a bank connection later from the Settings
-        tab.
+        tab. After reconnection syncing will start from the latest transaction date.
       </p>
     </div>
 
@@ -74,7 +74,8 @@ const unlinkAccount = async () => {
           <li>Connection history will be saved for potential future reconnection</li>
         </ul>
         <p class="text-sm text-green-600">
-          <strong>Note:</strong> You can reconnect this account to a bank connection later from the Settings tab.
+          <strong>Note:</strong> You can reconnect this account to a bank connection later from the Settings tab. After
+          reconnection syncing will start from the latest transaction date.
         </p>
       </template>
       <template #content>

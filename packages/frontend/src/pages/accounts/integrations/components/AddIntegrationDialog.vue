@@ -28,6 +28,11 @@
           @connected="handleProviderConnected"
           @cancel="handleCancel"
         />
+        <EnableBankingConnector
+          v-else-if="selectedProviderType === 'enable-banking'"
+          @connected="handleProviderConnected"
+          @cancel="handleCancel"
+        />
         <!-- Add other provider components here -->
         <!-- <OtherProviderConnector
           v-else-if="selectedProviderType === 'other-provider'"
@@ -45,6 +50,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';
 import { computed, ref, watch } from 'vue';
 
+import EnableBankingConnector from './EnableBankingConnector.vue';
 import MonobankConnector from './MonobankConnector.vue';
 
 interface Props {

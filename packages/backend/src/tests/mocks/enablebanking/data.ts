@@ -1,0 +1,267 @@
+import { faker } from '@faker-js/faker';
+
+/**
+ * Mock Enable Banking test data
+ */
+
+export const MOCK_ENABLE_BANKING_APP_ID = 'test-app-id-12345';
+// Valid test RSA private key (2048-bit, for testing only - DO NOT USE IN PRODUCTION)
+export const MOCK_ENABLE_BANKING_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCr5KrR6mAOqASp
+VS6dkfTjuEuaBI/aMSOVhTQzklBEiUdHGDiPHOYjLuc+LanLFNw45iHf4eSE8xH3
+gJsNLY/9Mv25BhHcQH4AUc3Q1ZYfcAXb8+Q+4T4LBtAirR3P7EU2S46hNPpckyqE
+cytjxuUeNlsuc0b6EKP3l+ltetsZVNnjvPM+6kqQOgNeI+R/hwhhmg1/ZfKRKHl5
+q++QpoI/iiO27unzC0qQhrq6uk9oGsseIRrTlBXkuz8ddr053Q6/DnjJtsRDN7Hh
+tn/bCXX4XVtHR72buuFMoC1qhNGUyuvvsK528oSCM51lPoXXzFza1Hb7w6ve2kvU
+7MGE0qHBAgMBAAECgf8iF9GIjcMiTBkIuadHcDD+YbdtQnPdkuxTvLc0nWUgrFIa
+ocn50QxjdrttO1VoOtG80nMXcWCoTALY3wmtsuWEWDPeeV1QawUMPRNb0LMGHu2M
+vpL0QOpruHF327T7lFML6jgf3W4L30uZTjXL1pbeOrN9yY0F/PJUfNsAWKINBXcQ
+Xirkr+skr2rNFxvrWVBViqMg8sBIst8krREU7DtMVcQ7G7rwFxUOBG95jguu5gnl
+aKs8Ek92YO0z9vKg4qBbbhBk4a/O9vf8qCA7eaDZcxUZKjaJClsmhq7xYQoPVEZy
+kuxaB3/l5okwn/QVDlsZ5xfD0hJxG8zDOf6OUZ0CgYEA5JtXeuByAaHrCXmJYi/E
+qkuvh07VnhQMvxwoh9CZ0dJBHf3DI+GzOWUAkh6XxFcVhyNKuH8JDGTPZ3paoaB4
+HWnm5xQC2HJl06ji4EtF4DehVaad3MLw8PbL6d/sHrcQ7UVrIicSAlLkIymk+Nfv
+yr5omwZBS3lyvUn3edL3r+0CgYEAwH2Z0aJOKh/s/yyrBvlMlu4Tbibcb1jO449/
+p5wKbPUe6K2lZoK1IeS25UpBHkH9Sg6AC+VZ6J7zFr1b0rUMJwlJQEME+Rtnz3fr
+/FOALjDipjYogvhIVuaKxwqHA5Yow3BC3ePjZQxJS2rr9B/WblMXHUbkd45CeANA
+bGeTdqUCgYEAkdzsPGLpW1FM/oaluhhwi5gvL06Fzo9McsQsuDvJaa+WDOTVlhd0
+m7JuYs1SWNyXx9ok2wNzao0IKSZQncAd4+amhdqm1iRoBF1GJYbh1uan8laVcz6P
+LbDK+zb9GbwE+N/KM8hqHUF2f1kbAgwF3H8Rj5i2IMolA9ImLX0GvSECgYBvKtqf
+6EWOLHv57vkjAO1LqVlNX2IlaDurzp8h1Its26+rH0YLyucDGQzLpTOwXtoCYBdx
+R1bCcrHfayLRsL/A96r3Uv1XRI2SkyaVxj+b7Z2n8lU5NlzI20JAq4LH/nuyS25C
+qa8VF6BozupQRebYNmJ+BQhDR8R5fR9CvBq9BQKBgQDE8rVpk3H1DqK+k0zA9LCi
++9Y8pGQROWlTEuEBWaXzmve0se+3HtjAo8Ev+aW5UVZKrasRkQ/YJpacJynOuaho
+9QZPH6+DGd6HR5neh7ASyXrHWkLtnmKK3qf+paEUfsPHIX+VulZ7umYmghWnWIUV
+SwWGCgCtcUKMwXLQICWZww==
+-----END PRIVATE KEY-----`;
+
+export const INVALID_ENABLE_BANKING_APP_ID = 'invalid-app-id';
+export const INVALID_ENABLE_BANKING_PRIVATE_KEY = 'not-a-valid-key';
+
+// Mock bank details
+export const MOCK_BANK_NAME = 'Nordea';
+export const MOCK_BANK_COUNTRY = 'FI';
+export const MOCK_BANK_BIC = 'NDEAFIHH';
+
+// Mock OAuth state and codes
+export const MOCK_AUTHORIZATION_ID = 'auth_1234567890abcdef';
+export const MOCK_AUTH_CODE = 'oauth_code_abc123xyz789';
+export const MOCK_SESSION_ID = 'session_9876543210fedcba';
+
+// Mock account IDs
+export const MOCK_ACCOUNT_UID_1 = 'account_eb_001';
+export const MOCK_ACCOUNT_UID_2 = 'account_eb_002';
+export const MOCK_ACCOUNT_UID_3 = 'account_eb_003';
+
+/**
+ * Generate mock ASPSP (bank) data
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const getMockedASPSPData = (overrides?: Partial<any>) => {
+  return [
+    {
+      name: MOCK_BANK_NAME,
+      country: MOCK_BANK_COUNTRY,
+      bic: MOCK_BANK_BIC,
+      logo: 'https://example.com/nordea-logo.png',
+      supported_account_schemes: ['IBAN'],
+      supported_payment_types: ['SEPA'],
+      identification_codes: ['NDEAFIHH'],
+      bank_code: 'NORDEA',
+      max_access_valid_for_days: 90,
+      ...overrides,
+    },
+    {
+      name: 'Revolut',
+      country: 'GB',
+      bic: 'REVOGB21',
+      logo: 'https://example.com/revolut-logo.png',
+      supported_account_schemes: ['IBAN', 'SORTCODE'],
+      supported_payment_types: ['SEPA', 'INSTANT_SEPA'],
+      identification_codes: ['REVOGB21'],
+      bank_code: 'REVOLUT',
+      max_access_valid_for_days: 90,
+    },
+  ];
+};
+
+/**
+ * Generate mock account details
+ */
+export const getMockedAccountDetails = (accountId: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const accounts: Record<string, any> = {
+    [MOCK_ACCOUNT_UID_1]: {
+      uid: MOCK_ACCOUNT_UID_1,
+      name: 'Main Account',
+      currency: 'EUR',
+      account_id: {
+        iban: 'FI1234567890123456',
+      },
+      product: 'Current Account',
+      owner_name: 'John Doe',
+      details: 'Personal account',
+      account_servicer: {
+        name: MOCK_BANK_NAME,
+        bic_fi: MOCK_BANK_BIC,
+      },
+    },
+    [MOCK_ACCOUNT_UID_2]: {
+      uid: MOCK_ACCOUNT_UID_2,
+      name: 'Savings Account',
+      currency: 'EUR',
+      account_id: {
+        iban: 'FI9876543210987654',
+      },
+      product: 'Savings Account',
+      owner_name: 'John Doe',
+      details: 'Personal savings',
+      account_servicer: {
+        name: MOCK_BANK_NAME,
+        bic_fi: MOCK_BANK_BIC,
+      },
+    },
+    [MOCK_ACCOUNT_UID_3]: {
+      uid: MOCK_ACCOUNT_UID_3,
+      name: 'Business Account',
+      currency: 'USD',
+      account_id: {
+        iban: 'FI1111222233334444',
+      },
+      product: 'Business Account',
+      owner_name: 'John Doe',
+      details: 'Business expenses',
+      account_servicer: {
+        name: MOCK_BANK_NAME,
+        bic_fi: MOCK_BANK_BIC,
+      },
+    },
+  };
+
+  return accounts[accountId] || accounts[MOCK_ACCOUNT_UID_1];
+};
+
+/**
+ * Generate mock account balances
+ */
+export const getMockedAccountBalances = (accountId: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const balances: Record<string, any[]> = {
+    [MOCK_ACCOUNT_UID_1]: [
+      {
+        balance_type: 'ITAV', // Interim Available
+        balance_amount: {
+          amount: '1523.45',
+          currency: 'EUR',
+        },
+        reference_date: new Date().toISOString().split('T')[0],
+      },
+      {
+        balance_type: 'ITBD', // Interim Booked
+        balance_amount: {
+          amount: '1523.45',
+          currency: 'EUR',
+        },
+        reference_date: new Date().toISOString().split('T')[0],
+      },
+    ],
+    [MOCK_ACCOUNT_UID_2]: [
+      {
+        balance_type: 'ITAV',
+        balance_amount: {
+          amount: '5432.10',
+          currency: 'EUR',
+        },
+        reference_date: new Date().toISOString().split('T')[0],
+      },
+    ],
+    [MOCK_ACCOUNT_UID_3]: [
+      {
+        balance_type: 'ITAV',
+        balance_amount: {
+          amount: '789.50',
+          currency: 'USD',
+        },
+        reference_date: new Date().toISOString().split('T')[0],
+      },
+    ],
+  };
+
+  return balances[accountId] || balances[MOCK_ACCOUNT_UID_1];
+};
+
+/**
+ * Generate mock transactions for an account
+ */
+export const getMockedTransactions = (accountId: string, count: number = 10) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const transactions: any[] = [];
+  const today = new Date();
+
+  for (let i = 0; i < count; i++) {
+    const isExpense = i % 3 !== 0; // 2/3 expenses, 1/3 income
+    const amount = faker.number.float({ min: 10, max: 500, fractionDigits: 2 });
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+
+    transactions.push({
+      transaction_id: `tx_${accountId}_${i}`,
+      booking_date: date.toISOString().split('T')[0],
+      value_date: date.toISOString().split('T')[0],
+      transaction_amount: {
+        amount: amount.toFixed(2),
+        currency: accountId === MOCK_ACCOUNT_UID_3 ? 'USD' : 'EUR',
+      },
+      credit_debit_indicator: isExpense ? 'DBIT' : 'CRDT',
+      remittance_information: [
+        isExpense ? faker.company.name() : 'Salary payment',
+        isExpense ? 'Payment for services' : 'Monthly income',
+      ],
+      debtor: isExpense
+        ? {
+            name: 'John Doe',
+          }
+        : {
+            name: faker.company.name(),
+          },
+      debtor_account: isExpense
+        ? {
+            iban: getMockedAccountDetails(accountId).account_id.iban,
+          }
+        : {
+            iban: `FI${faker.string.numeric(16)}`,
+          },
+      creditor: isExpense
+        ? {
+            name: faker.company.name(),
+          }
+        : {
+            name: 'John Doe',
+          },
+      creditor_account: isExpense
+        ? {
+            iban: `FI${faker.string.numeric(16)}`,
+          }
+        : {
+            iban: getMockedAccountDetails(accountId).account_id.iban,
+          },
+      entry_reference: `ref_${faker.string.alphanumeric(10)}`,
+      balance_after_transaction: {
+        balance_type: 'ITBD',
+        balance_amount: {
+          amount: faker.number.float({ min: 100, max: 2000, fractionDigits: 2 }).toFixed(2),
+          currency: accountId === MOCK_ACCOUNT_UID_3 ? 'USD' : 'EUR',
+        },
+      },
+    });
+  }
+
+  return transactions;
+};
+
+/**
+ * Get all mock account UIDs
+ */
+export const getAllMockAccountUIDs = () => {
+  return [MOCK_ACCOUNT_UID_1, MOCK_ACCOUNT_UID_2, MOCK_ACCOUNT_UID_3];
+};

@@ -13,8 +13,8 @@
  */
 export enum BankProviderType {
   MONOBANK = 'monobank',
+  ENABLE_BANKING = 'enable-banking',
   // Future providers will be added here:
-  // ENABLEBANKING = 'enablebanking',
   // LUNCHFLOW = 'lunchflow',
   // GOCARDLESS = 'gocardless',
 }
