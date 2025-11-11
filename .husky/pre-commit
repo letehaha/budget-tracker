@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+#!/bin/sh
+. ~/.zshrc 2>/dev/null || . ~/.bashrc 2>/dev/null
 
 npm run lint
