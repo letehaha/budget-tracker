@@ -6,13 +6,23 @@ on:
     types:
       - completed
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
+      - name: Check if user is authorized
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [[ "${{ github.actor }}" != "letehaha" ]]; then
+            echo "Error: Only letehaha can manually trigger this workflow"
+            exit 1
+          fi
+          echo "User authorized: ${{ github.actor }}"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
