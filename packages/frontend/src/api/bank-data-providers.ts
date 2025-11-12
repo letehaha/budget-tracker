@@ -32,7 +32,7 @@ export interface BankProvider {
 
 export interface BankConnection {
   id: number;
-  providerType: string;
+  providerType: BANK_PROVIDER_TYPE;
   providerName: string;
   isActive: boolean;
   lastSyncAt: string | null;
@@ -42,7 +42,7 @@ export interface BankConnection {
 
 interface BankConnectionDetails {
   id: number;
-  providerType: string;
+  providerType: BANK_PROVIDER_TYPE;
   providerName: string;
   isActive: boolean;
   lastSyncAt: string | null;

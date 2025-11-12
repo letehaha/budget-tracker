@@ -26,12 +26,12 @@
         <CardContent>
           <div class="grid gap-4 md:grid-cols-2">
             <div>
-              <p class="text-muted-foreground text-sm">Provider</p>
-              <p class="font-medium">{{ connectionDetails.provider.name }}</p>
-            </div>
-            <div>
               <p class="text-muted-foreground text-sm">Type</p>
-              <p class="font-medium">{{ connectionDetails.providerType }}</p>
+              <p class="mt-1 flex items-center gap-2 font-medium">
+                <BankProviderLogo class="size-5" :provider="connectionDetails.providerType" />
+
+                {{ METAINFO_FROM_TYPE[connectionDetails.providerType].name }}
+              </p>
             </div>
             <div>
               <p class="text-muted-foreground text-sm">Status</p>
@@ -51,11 +51,6 @@
               <p class="text-muted-foreground text-sm">Connected Accounts</p>
               <p class="font-medium">{{ connectionDetails.accounts.length }}</p>
             </div>
-          </div>
-
-          <div v-if="connectionDetails.provider.description" class="mt-4">
-            <p class="text-muted-foreground text-sm">Description</p>
-            <p class="mt-1">{{ connectionDetails.provider.description }}</p>
           </div>
         </CardContent>
       </Card>
@@ -299,6 +294,8 @@ import {
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
+import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import {

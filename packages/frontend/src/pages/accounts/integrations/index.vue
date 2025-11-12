@@ -2,8 +2,10 @@
   <div class="p-6">
     <div class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl tracking-wider">Bank Integrations</h1>
+
       <UiButton @click="openAddIntegrationDialog">
-        <span class="mr-2">+</span>
+        <PlusIcon class="size-5" />
+
         Add Integration
       </UiButton>
     </div>
@@ -38,11 +40,14 @@
               <div class="mb-2 text-lg font-medium tracking-wide">
                 {{ connection.providerName }}
               </div>
-              <div class="text-muted-foreground text-sm">
-                {{ connection.providerType }}
+              <div class="mt-3 flex items-center gap-2 text-base">
+                <BankProviderLogo class="size-8" :provider="connection.providerType" />
+
+                {{ METAINFO_FROM_TYPE[connection.providerType].name }}
               </div>
             </CardHeader>
-            <CardContent class="px-4 pb-4">
+
+            <CardContent class="px-4! pb-4">
               <div class="mb-2 text-sm">
                 <span class="text-muted-foreground">Connected accounts:</span>
                 <span class="ml-1">{{ connection.accountsCount }}</span>
@@ -91,11 +96,14 @@ import {
   listProviders,
 } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
+import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { PlusIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
