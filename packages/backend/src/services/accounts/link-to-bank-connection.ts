@@ -12,6 +12,7 @@ import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Transactions from '@models/Transactions.model';
 import { bankProviderRegistry } from '@services/bank-data-providers';
+import { syncTransactionsForAccount } from '@services/bank-data-providers/connection/sync-transactions-for-account';
 import { withTransaction } from '@services/common/with-transaction';
 import { createTransaction } from '@services/transactions/create-transaction';
 
@@ -185,6 +186,15 @@ export const linkAccountToBankConnection = withTransaction(
 
     // 10. Update connection's last sync timestamp
     await bankConnection.update({ lastSyncAt: new Date() });
+
+    // 11. Trigger automatic transaction sync for the newly linked account
+    // This uses the syncTransactionsForAccount service which handles all the logic
+    // including checking correct from-to dates, rate limits, and provider-specific behavior
+    await syncTransactionsForAccount({
+      connectionId,
+      userId,
+      accountId,
+    });
 
     // 12. Fetch and return the updated account
     const updatedAccount = await Accounts.findByPk(accountId);
