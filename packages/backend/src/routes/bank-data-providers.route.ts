@@ -9,6 +9,7 @@ import listUserConnections from '@controllers/bank-data-providers/connections/li
 import loadTransactionsForPeriod from '@controllers/bank-data-providers/connections/load-transactions-for-period';
 import reauthorizeConnection from '@controllers/bank-data-providers/connections/reauthorize-connection';
 import syncTransactionsForAccount from '@controllers/bank-data-providers/connections/sync-transactions-for-account';
+import updateConnectionDetails from '@controllers/bank-data-providers/connections/update-connection-details';
 import listBanks from '@controllers/bank-data-providers/enablebanking/list-banks';
 import listCountries from '@controllers/bank-data-providers/enablebanking/list-countries';
 import oauthCallback from '@controllers/bank-data-providers/enablebanking/oauth-callback';
@@ -52,6 +53,12 @@ router.post(
   authenticateJwt,
   validateEndpoint(reauthorizeConnection.schema),
   reauthorizeConnection.handler,
+);
+router.patch(
+  '/connections/:connectionId',
+  authenticateJwt,
+  validateEndpoint(updateConnectionDetails.schema),
+  updateConnectionDetails.handler,
 );
 
 // Account sync flow

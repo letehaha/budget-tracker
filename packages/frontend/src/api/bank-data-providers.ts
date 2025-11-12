@@ -151,6 +151,14 @@ export const reauthorizeConnection = async (connectionId: number): Promise<{ aut
   return response;
 };
 
+export const updateConnectionDetails = async (
+  connectionId: number,
+  details: { providerName: string },
+): Promise<{ message: string; connection: BankConnectionDetails }> => {
+  const response = await api.patch(`/bank-data-providers/connections/${connectionId}`, details);
+  return response;
+};
+
 export const getAvailableAccounts = async (connectionId: number): Promise<AvailableAccount[]> => {
   const response = await api.get<{ accounts: AvailableAccount[] }>(
     `/bank-data-providers/connections/${connectionId}/available-accounts`,

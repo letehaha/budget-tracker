@@ -16,6 +16,9 @@
           <span class="text-xl">←</span>
         </UiButton>
         <h1 class="text-2xl tracking-wider">{{ connectionDetails.providerName }}</h1>
+        <UiButton variant="ghost" size="icon" @click="openEditNameDialog">
+          <PencilIcon class="size-4" />
+        </UiButton>
       </div>
 
       <!-- Connection Details Card -->
@@ -282,6 +285,14 @@
       :is-disconnecting="isDisconnecting"
       @confirm="handleDisconnectConfirm"
     />
+
+    <!-- Edit Connection Name Dialog -->
+    <EditConnectionNameDialog
+      v-model:open="isEditNameDialogOpen"
+      :provider-name="connectionDetails?.providerName || ''"
+      :is-saving="isSavingName"
+      @save="handleSaveConnectionName"
+    />
   </div>
 </template>
 
@@ -292,6 +303,7 @@ import {
   getConnectionDetails,
   reauthorizeConnection,
   syncSelectedAccounts,
+  updateConnectionDetails,
 } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
@@ -311,10 +323,12 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { PencilIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import DisconnectIntegrationDialog from './components/DisconnectIntegrationDialog.vue';
+import EditConnectionNameDialog from './components/EditConnectionNameDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -324,6 +338,7 @@ const queryClient = useQueryClient();
 const connectionId = computed(() => Number(route.params.connectionId));
 const isFetchAccountsDialogOpen = ref(false);
 const isDisconnectDialogOpen = ref(false);
+const isEditNameDialogOpen = ref(false);
 const selectedAccountIds = ref<string[]>([]);
 
 // Query for connection details
@@ -394,6 +409,25 @@ const { mutate: disconnectMutation, isPending: isDisconnecting } = useMutation({
   },
 });
 
+// Mutation for updating connection name
+const { mutate: updateNameMutation, isPending: isSavingName } = useMutation({
+  mutationFn: ({ connectionId, providerName }: { connectionId: number; providerName: string }) =>
+    updateConnectionDetails(connectionId, { providerName }),
+  onSuccess: () => {
+    addSuccessNotification('Connection name updated successfully');
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange);
+      },
+    });
+    isEditNameDialogOpen.value = false;
+  },
+  onError: () => {
+    addErrorNotification('Failed to update connection name');
+  },
+});
+
 const isAccountConnected = (externalId: string): boolean => {
   return connectionDetails.value?.accounts.some((account) => account.externalId === externalId) ?? false;
 };
@@ -412,6 +446,14 @@ const openFetchAccountsDialog = () => {
 
 const openDisconnectDialog = () => {
   isDisconnectDialogOpen.value = true;
+};
+
+const openEditNameDialog = () => {
+  isEditNameDialogOpen.value = true;
+};
+
+const handleSaveConnectionName = (providerName: string) => {
+  updateNameMutation({ connectionId: connectionId.value, providerName });
 };
 
 const handleSyncSelectedAccounts = () => {
