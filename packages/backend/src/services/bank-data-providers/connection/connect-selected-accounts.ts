@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { BadRequestError, NotFoundError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
@@ -8,6 +8,7 @@ import { withTransaction } from '@root/services/common';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 
 import { bankProviderRegistry } from '../registry';
+import { syncTransactionsForAccount } from './sync-transactions-for-account';
 
 const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
   [BANK_PROVIDER_TYPE.MONOBANK]: ACCOUNT_TYPES.monobank,
@@ -87,7 +88,7 @@ export const connectSelectedAccounts = withTransaction(
           userId,
           name: providerAccount.name,
           type: PROVIDER_TO_ACCOUNT_TYPE[connection.providerType as BANK_PROVIDER_TYPE],
-          accountCategory: 'general', // TODO: determine proper category
+          accountCategory: ACCOUNT_CATEGORIES.general,
           currencyCode: providerAccount.currency,
           initialBalance: providerAccount.balance,
           refInitialBalance: accountRefBalance,
@@ -106,6 +107,16 @@ export const connectSelectedAccounts = withTransaction(
 
     // Update connection's last sync timestamp
     await connection.update({ lastSyncAt: new Date() });
+
+    // Trigger automatic transaction sync for all connected accounts
+    // This runs after account creation to ensure all accounts are synced with their historical transactions
+    for (const account of createdAccounts) {
+      await syncTransactionsForAccount({
+        connectionId,
+        userId,
+        accountId: account.id,
+      });
+    }
 
     return createdAccounts;
   },

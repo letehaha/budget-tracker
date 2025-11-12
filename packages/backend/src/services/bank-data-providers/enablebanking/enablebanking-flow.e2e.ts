@@ -566,6 +566,52 @@ describe('Enable Banking Data Provider E2E', () => {
   });
 
   describe('Step 6: Connect selected accounts', () => {
+    it('should automatically sync transactions when connecting accounts', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      const accountIds = [MOCK_ACCOUNT_UID_1];
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: accountIds,
+        raw: true,
+      });
+
+      const createdAccountId = syncedAccounts[0]!.id;
+
+      // Verify transactions were automatically synced by checking if any transactions exist for this account
+      const transactions = await helpers.getTransactions({
+        accountIds: [createdAccountId],
+        raw: true,
+      });
+
+      // Transactions should have been automatically synced
+      // Note: The exact number depends on mock data, but there should be at least some transactions
+      expect(Array.isArray(transactions)).toBe(true);
+      expect(transactions.length).toBeGreaterThan(0);
+
+      // Verify transactions belong to the correct account
+      transactions.forEach((tx: { accountId: number }) => {
+        expect(tx.accountId).toBe(createdAccountId);
+      });
+    });
+
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: 99999,
