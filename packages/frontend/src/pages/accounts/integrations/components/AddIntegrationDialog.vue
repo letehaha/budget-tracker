@@ -1,7 +1,7 @@
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-w-2xl">
-      <DialogHeader>
+      <DialogHeader class="mb-4">
         <DialogTitle>{{ dialogTitle }}</DialogTitle>
       </DialogHeader>
 
@@ -9,14 +9,33 @@
       <template v-if="currentStep === 'select-provider'">
         <div class="space-y-2">
           <p class="text-muted-foreground mt-4 mb-8 text-sm">Choose a bank data provider to connect</p>
+
           <UiButton
             v-for="provider in providers"
             :key="provider.type"
             variant="outline"
-            class="w-full justify-start"
+            class="h-auto w-full justify-start"
             @click="handleSelectProvider(provider.type)"
           >
-            {{ provider.name }}
+            <div class="flex items-center gap-6">
+              <img
+                class="size-10"
+                :src="
+                  currentTheme === Themes.dark
+                    ? providerMetainfo[provider.type].icon.dark
+                    : providerMetainfo[provider.type].icon.light
+                "
+              />
+
+              <div class="flex flex-col text-left">
+                <p class="mb-1 text-lg">
+                  {{ provider.name }}
+                </p>
+                <p class="text-sm opacity-70">
+                  {{ providerMetainfo[provider.type].description }}
+                </p>
+              </div>
+            </div>
           </UiButton>
         </div>
       </template>
@@ -24,12 +43,12 @@
       <!-- Step 2: Provider-specific connection flow -->
       <template v-else-if="currentStep === 'connect-provider' && selectedProviderType">
         <MonobankConnector
-          v-if="selectedProviderType === 'monobank'"
+          v-if="selectedProviderType === BANK_PROVIDER_TYPE.MONOBANK"
           @connected="handleProviderConnected"
           @cancel="handleCancel"
         />
         <EnableBankingConnector
-          v-else-if="selectedProviderType === 'enable-banking'"
+          v-else-if="selectedProviderType === BANK_PROVIDER_TYPE.ENABLE_BANKING"
           @connected="handleProviderConnected"
           @cancel="handleCancel"
         />
@@ -46,8 +65,10 @@
 
 <script lang="ts" setup>
 import type { BankProvider } from '@/api/bank-data-providers';
+import { Themes, currentTheme } from '@/common/utils';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { computed, ref, watch } from 'vue';
 
 import EnableBankingConnector from './EnableBankingConnector.vue';
@@ -57,6 +78,25 @@ interface Props {
   open: boolean;
   providers: BankProvider[];
 }
+
+const providerMetainfo = {
+  [BANK_PROVIDER_TYPE.ENABLE_BANKING]: {
+    icon: {
+      dark: 'https://cdn.brandfetch.io/idJpLeYSIH/w/994/h/1041/theme/light/logo.png?c=1bxid64Mup7aczewSAYMX&t=1762089232186',
+      light:
+        'https://cdn.brandfetch.io/idJpLeYSIH/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1762089232284',
+    },
+    description: 'Access 6000+ European banks via PSD2 open banking',
+  },
+  [BANK_PROVIDER_TYPE.MONOBANK]: {
+    icon: {
+      dark: 'https://cdn.brandfetch.io/id-CBRc8NA/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1674203441813',
+      light:
+        'https://cdn.brandfetch.io/id-CBRc8NA/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1674203441813',
+    },
+    description: 'Ukrainian digital bank',
+  },
+};
 
 const props = defineProps<Props>();
 

@@ -1,9 +1,10 @@
 import { api } from '@/api/_api';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 
 import { fromSystemAmount } from './helpers';
 
 export interface BankProvider {
-  type: string;
+  type: BANK_PROVIDER_TYPE;
   name: string;
   description: string;
   logoUrl?: string;
@@ -121,7 +122,7 @@ export const getConnectionDetails = async (connectionId: number): Promise<BankCo
 };
 
 export const connectProvider = async (
-  providerType: string,
+  providerType: BANK_PROVIDER_TYPE,
   credentials: Record<string, unknown>,
   providerName?: string,
 ): Promise<{ connectionId: number; authUrl?: string; message: string }> => {
