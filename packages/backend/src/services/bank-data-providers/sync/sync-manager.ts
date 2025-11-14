@@ -33,7 +33,7 @@ interface AccountWithConnection extends Accounts {
 
 // Limit concurrent syncs to 5 to prevent event loop blocking
 const syncLimiter = new Bottleneck({
-  maxConcurrent: 5,
+  maxConcurrent: process.env.NODE_ENV === 'test' ? Infinity : 5,
 });
 
 /**

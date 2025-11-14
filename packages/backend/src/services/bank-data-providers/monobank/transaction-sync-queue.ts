@@ -48,17 +48,17 @@ const queueName =
 export const transactionSyncQueue = new Queue<TransactionSyncJobData>(queueName, {
   connection,
   defaultJobOptions: {
-    attempts: 3,
+    attempts: 2,
     backoff: {
       type: 'exponential',
       delay: 60000, // Start with 60 seconds due to Monobank rate limits
     },
     removeOnComplete: {
-      age: 7200, // Keep completed jobs for 2 hours (enough time for UI to poll)
-      count: 1000, // Keep last 1000 completed jobs
+      age: 1800, // Keep completed jobs for 30 mins (just in case)
+      count: 20, // Keep last 20 completed jobs
     },
     removeOnFail: {
-      age: 86400, // Keep failed jobs for 24 hours
+      age: 7200, // Keep failed jobs for 2 hours
     },
   },
 });
