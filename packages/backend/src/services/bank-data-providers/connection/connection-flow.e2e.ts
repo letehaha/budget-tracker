@@ -384,7 +384,7 @@ describe('Bank Data Provider Connection Flow E2E', () => {
       // Mock transaction data for the Monobank API
       const mockTransactions = helpers.monobank.mockedTransactionData(5);
       const { getMonobankTransactionsMock } = await import('@tests/mocks/monobank/mock-api');
-      global.mswMockServer.use(getMonobankTransactionsMock(mockTransactions));
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: mockTransactions }));
 
       // Connect account - this should trigger automatic transaction sync
       const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({

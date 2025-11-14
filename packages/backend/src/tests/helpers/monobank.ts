@@ -80,7 +80,7 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
     initialBalance: account.initialBalance,
   });
 
-  global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+  global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
   await helpers.makeRequest({
     method: 'get',

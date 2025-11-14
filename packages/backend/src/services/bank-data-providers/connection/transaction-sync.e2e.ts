@@ -33,7 +33,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
         // Mock transaction data
         const mockedTransactions = helpers.monobank.mockedTransactionData(5);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         // Sync transactions
         const syncResult = await helpers.bankDataProviders.syncTransactionsForAccount({
@@ -161,7 +161,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         const mockedTransactions = helpers.monobank.mockedTransactionData(1);
         const mockTx = mockedTransactions[0]!;
 
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
@@ -218,7 +218,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         const accountId = syncedAccounts[0]!.id;
 
         const mockedTransactions = helpers.monobank.mockedTransactionData(3);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         // First sync
         const { jobGroupId: jobId1 } = await helpers.bankDataProviders.syncTransactionsForAccount({
@@ -270,34 +270,38 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
           raw: true,
         });
 
-        const account1Id = syncedAccounts[0]!.id;
-        const account2Id = syncedAccounts[1]!.id;
+        const account1 = syncedAccounts[0]!;
+        const account2 = syncedAccounts[1]!;
 
         // Mock different transaction counts for each account
         const txForAccount1 = helpers.monobank.mockedTransactionData(3);
         const txForAccount2 = helpers.monobank.mockedTransactionData(5);
 
+        // Set up account-specific mocks
+        global.mswMockServer.use(
+          getMonobankTransactionsMock({ accountId: account1.externalId, response: txForAccount1 }),
+          getMonobankTransactionsMock({ accountId: account2.externalId, response: txForAccount2 }),
+        );
+
         // Sync account 1
-        global.mswMockServer.use(getMonobankTransactionsMock(txForAccount1));
         const { jobGroupId: jobId1 } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
-          accountId: account1Id,
+          accountId: account1.id,
           raw: true,
         });
         await helpers.bankDataProviders.waitForSyncJobsToComplete({ connectionId, jobGroupId: jobId1! });
 
         // Sync account 2
-        global.mswMockServer.use(getMonobankTransactionsMock(txForAccount2));
         const { jobGroupId: jobId2 } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
-          accountId: account2Id,
+          accountId: account2.id,
           raw: true,
         });
         await helpers.bankDataProviders.waitForSyncJobsToComplete({ connectionId, jobGroupId: jobId2! });
 
         // Verify each account has correct transaction count
-        const account1TxCount = await Transactions.count({ where: { accountId: account1Id } });
-        const account2TxCount = await Transactions.count({ where: { accountId: account2Id } });
+        const account1TxCount = await Transactions.count({ where: { accountId: account1.id } });
+        const account2TxCount = await Transactions.count({ where: { accountId: account2.id } });
 
         expect(account1TxCount).toBe(3);
         expect(account2TxCount).toBe(5);
@@ -331,7 +335,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         oldTransactions[0]!.time = Math.floor(subDays(new Date(), 10).getTime() / 1000);
         oldTransactions[1]!.time = Math.floor(subDays(new Date(), 9).getTime() / 1000);
 
-        global.mswMockServer.use(getMonobankTransactionsMock(oldTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: oldTransactions }));
 
         const { jobGroupId: jobId1 } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
@@ -347,7 +351,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         newTransactions[1]!.time = Math.floor(subDays(new Date(), 1).getTime() / 1000);
         newTransactions[2]!.time = Math.floor(new Date().getTime() / 1000);
 
-        global.mswMockServer.use(getMonobankTransactionsMock(newTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: newTransactions }));
 
         const { jobGroupId: jobId2 } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
@@ -385,7 +389,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         // Mock transactions within last 31 days
         const mockedTransactions = helpers.monobank.mockedTransactionData(10);
 
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
@@ -429,7 +433,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
           initialBalance,
         });
 
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
@@ -477,7 +481,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         const to = new Date();
 
         const mockedTransactions = helpers.monobank.mockedTransactionData(7);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const loadResult = await helpers.bankDataProviders.loadTransactionsForPeriod({
           connectionId,
@@ -621,7 +625,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         const accountId = syncedAccounts[0]!.id;
 
         const mockedTransactions = helpers.monobank.mockedTransactionData(5);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const from = subDays(new Date(), 60);
         const to = new Date();
@@ -724,7 +728,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         });
 
         const mockedTransactions = helpers.monobank.mockedTransactionData(3);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         // Load transactions after linkedAt (valid)
         const from = subDays(new Date(), 10);
@@ -772,7 +776,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
         // Account without forward-only strategy can load any period
         const mockedTransactions = helpers.monobank.mockedTransactionData(4);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const from = subDays(new Date(), 90);
         const to = new Date();
@@ -812,7 +816,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         const accountId = syncedAccounts[0]!.id;
 
         const mockedTransactions = helpers.monobank.mockedTransactionData(10);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         // Load 90 days (should create multiple batches)
         const from = subDays(new Date(), 90);
@@ -864,7 +868,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       const accountId = syncedAccounts[0]!.id;
 
       const mockedTransactions = helpers.monobank.mockedTransactionData(1);
-      global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
       const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
         connectionId,
@@ -910,7 +914,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       const accountId = syncedAccounts[0]!.id;
 
       const mockedTransactions = helpers.monobank.mockedTransactionData(1);
-      global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
       const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
         connectionId,
@@ -1038,7 +1042,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       const mockedTransactions = helpers.monobank.mockedTransactionData(5, {
         initialBalance: currentBalance,
       });
-      global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
       const syncResult = await helpers.bankDataProviders.syncTransactionsForAccount({
         connectionId,
@@ -1160,7 +1164,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         tx.time = Math.floor((Date.now() + idx * 1000) / 1000);
       });
 
-      global.mswMockServer.use(getMonobankTransactionsMock(newMockedTransactions));
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: newMockedTransactions }));
 
       const { jobGroupId: newJobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
         connectionId,
