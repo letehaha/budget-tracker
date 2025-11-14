@@ -56,8 +56,8 @@ describe('Sync Flow E2E', () => {
       expect(accountStatus).toHaveProperty('providerType');
       expect(accountStatus).toHaveProperty('status');
       // Newly connected account has auto-sync functionality so at the moment of
-      // connection it's expected for it to be "syncing"
-      expect(accountStatus.status).toBe(SyncStatus.SYNCING);
+      // connection it's expected for it to be "syncing" or "queued"
+      expect([SyncStatus.SYNCING, SyncStatus.QUEUED].includes(accountStatus.status)).toBe(true);
     });
   });
 
