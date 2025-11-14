@@ -2,18 +2,16 @@
 import { Button } from '@/components/lib/ui/button';
 import { Calendar } from '@/components/lib/ui/calendar';
 import * as Popover from '@/components/lib/ui/popover';
-import { NotificationType, useNotificationCenter } from '@/components/notification-center';
-import { useBanksMonobankStore } from '@/stores';
+import { useNotificationCenter } from '@/components/notification-center';
 import { AccountModel } from '@bt/shared/types';
 import { format, subDays } from 'date-fns';
 import { CalendarIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 
-const props = defineProps<{
+defineProps<{
   account: AccountModel;
 }>();
-const { addNotification } = useNotificationCenter();
-const monobankStore = useBanksMonobankStore();
+const { addErrorNotification } = useNotificationCenter();
 
 const INITIAL_FORM_VALUE = {
   start: subDays(new Date(), 1),
@@ -23,29 +21,8 @@ const INITIAL_FORM_VALUE = {
 const selectorVisible = ref(false);
 const dateRange = ref(INITIAL_FORM_VALUE);
 
-const loadTransactionsForPeriod = async () => {
-  try {
-    const { start, end } = dateRange.value;
-
-    await monobankStore.loadTransactionsForPeriod({
-      accountId: props.account.id,
-      from: start.getTime(),
-      to: end.getTime(),
-    });
-
-    addNotification({
-      text: 'Loaded successfully',
-      type: NotificationType.success,
-    });
-
-    dateRange.value = INITIAL_FORM_VALUE;
-    selectorVisible.value = false;
-  } catch {
-    addNotification({
-      text: 'Unexpected error',
-      type: NotificationType.error,
-    });
-  }
+const loadTransactionsForPeriod = () => {
+  addErrorNotification('Migrate this account to new bank connection flow.');
 };
 </script>
 

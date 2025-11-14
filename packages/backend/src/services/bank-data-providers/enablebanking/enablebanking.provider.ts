@@ -24,6 +24,7 @@ import {
 import { createTransaction } from '@services/transactions';
 import crypto from 'crypto';
 
+import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { EnableBankingApiClient } from './api-client';
 import { generateState, validatePrivateKey, validateState } from './jwt-utils';
@@ -559,78 +560,92 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     connectionId: number;
     systemAccountId: number;
   }): Promise<void> {
-    const account = await this.getSystemAccount(systemAccountId);
-    const connection = await this.getConnection(connectionId);
-    this.validateProviderType(connection);
+    // Import sync status tracker dynamically to avoid circular dependency
+    // Set status to SYNCING
+    await setAccountSyncStatus(systemAccountId, SyncStatus.SYNCING);
 
-    if (!account.externalId) {
-      throw new BadRequestError({ message: 'Account does not have external ID from Enable Banking' });
-    }
+    try {
+      const account = await this.getSystemAccount(systemAccountId);
+      const connection = await this.getConnection(connectionId);
+      this.validateProviderType(connection);
 
-    // Find the most recent transaction
-    const latestTransaction = await Transactions.findOne({
-      where: { accountId: account.id },
-      order: [['time', 'DESC']],
-    });
-
-    // Default to last 3 years if no transactions found
-    const days = 1095;
-    const from = latestTransaction
-      ? new Date(latestTransaction.time)
-      : new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    const to = new Date();
-
-    // Fetch transactions
-    const providerTransactions = await this.fetchTransactions(connectionId, account.externalId, { from, to });
-
-    // Process each transaction
-    for (const tx of providerTransactions) {
-      // Check if transaction already exists
-      const existingTx = await Transactions.findOne({
-        where: {
-          accountId: account.id,
-          originalId: tx.externalId,
-        },
-      });
-
-      if (existingTx) {
-        continue; // Skip existing transactions
+      if (!account.externalId) {
+        throw new BadRequestError({ message: 'Account does not have external ID from Enable Banking' });
       }
 
-      // Determine transaction type based on original amount (stored in metadata)
-      const originalAmount = (tx.metadata?.originalAmount as number) || 0;
-      const isExpense = originalAmount < 0;
-
-      const { defaultCategoryId } = (await getUserDefaultCategory({ id: connection.userId }))!;
-
-      // Create transaction using service (handles all required fields)
-      await createTransaction({
-        originalId: tx.externalId,
-        note: tx.description,
-        amount: tx.amount, // Already converted to system amount
-        time: tx.date,
-        externalData: tx.metadata,
-        commissionRate: 0,
-        cashbackAmount: 0,
-        accountId: account.id,
-        userId: connection.userId,
-        transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
-        paymentType: PAYMENT_TYPES.bankTransfer,
-        categoryId: defaultCategoryId,
-        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-        accountType: ACCOUNT_TYPES.enableBanking,
+      // Find the most recent transaction
+      const latestTransaction = await Transactions.findOne({
+        where: { accountId: account.id },
+        order: [['time', 'DESC']],
       });
-    }
 
-    // Update account balance from latest transaction if available
-    if (providerTransactions.length > 0) {
-      const balance = await this.fetchBalance(connectionId, account.externalId);
-      await account.update({
-        currentBalance: balance.amount,
-      });
-    }
+      // Default to last 3 years if no transactions found
+      const days = 1095;
+      const from = latestTransaction
+        ? new Date(latestTransaction.time)
+        : new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const to = new Date();
 
-    await this.updateLastSync(connectionId);
+      // Fetch transactions
+      const providerTransactions = await this.fetchTransactions(connectionId, account.externalId, { from, to });
+
+      // Process each transaction
+      for (const tx of providerTransactions) {
+        // Check if transaction already exists
+        const existingTx = await Transactions.findOne({
+          where: {
+            accountId: account.id,
+            originalId: tx.externalId,
+          },
+        });
+
+        if (existingTx) {
+          continue; // Skip existing transactions
+        }
+
+        // Determine transaction type based on original amount (stored in metadata)
+        const originalAmount = (tx.metadata?.originalAmount as number) || 0;
+        const isExpense = originalAmount < 0;
+
+        const { defaultCategoryId } = (await getUserDefaultCategory({ id: connection.userId }))!;
+
+        // Create transaction using service (handles all required fields)
+        await createTransaction({
+          originalId: tx.externalId,
+          note: tx.description,
+          amount: tx.amount, // Already converted to system amount
+          time: tx.date,
+          externalData: tx.metadata,
+          commissionRate: 0,
+          cashbackAmount: 0,
+          accountId: account.id,
+          userId: connection.userId,
+          transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
+          paymentType: PAYMENT_TYPES.bankTransfer,
+          categoryId: defaultCategoryId,
+          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+          accountType: ACCOUNT_TYPES.enableBanking,
+        });
+      }
+
+      // Update account balance from latest transaction if available
+      if (providerTransactions.length > 0) {
+        const balance = await this.fetchBalance(connectionId, account.externalId);
+        await account.update({
+          currentBalance: balance.amount,
+        });
+      }
+
+      await this.updateLastSync(connectionId);
+
+      // Set status to COMPLETED on success
+      await setAccountSyncStatus(systemAccountId, SyncStatus.COMPLETED);
+    } catch (error) {
+      // Set status to FAILED on error
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      await setAccountSyncStatus(systemAccountId, SyncStatus.FAILED, errorMessage);
+      throw error; // Re-throw to maintain existing error handling
+    }
   }
 
   // ============================================================================

@@ -313,3 +313,89 @@ export const completeEnableBankingOAuth = async (
   });
   return response;
 };
+
+// Bulk account sync APIs
+export enum SyncStatus {
+  IDLE = 'idle',
+  QUEUED = 'queued',
+  SYNCING = 'syncing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
+export interface AccountSyncStatus {
+  accountId: number;
+  accountName: string;
+  providerType: string;
+  status: SyncStatus;
+  startedAt: string | null;
+  completedAt: string | null;
+  error: string | null;
+}
+
+interface SyncStatusSummary {
+  total: number;
+  syncing: number;
+  queued: number;
+  completed: number;
+  failed: number;
+  idle: number;
+}
+
+export interface SyncStatusResponse {
+  lastSyncAt: number | null;
+  accounts: AccountSyncStatus[];
+  summary: SyncStatusSummary;
+}
+
+interface SyncResult {
+  totalAccounts: number;
+  syncedAccounts: number;
+  failedAccounts: number;
+  skippedAccounts: number;
+  accountResults: Array<{
+    accountId: number;
+    accountName: string;
+    status: 'success' | 'failed' | 'skipped';
+    error?: string;
+  }>;
+}
+
+interface CheckSyncResponse {
+  syncTriggered: boolean;
+  message?: string;
+  totalAccounts?: number;
+  syncedAccounts?: number;
+  failedAccounts?: number;
+  skippedAccounts?: number;
+  accountResults?: Array<{
+    accountId: number;
+    accountName: string;
+    status: 'success' | 'failed' | 'skipped';
+    error?: string;
+  }>;
+}
+
+/**
+ * Check if auto-sync is needed and trigger if 4+ hours have passed
+ */
+export const checkSync = async (): Promise<CheckSyncResponse> => {
+  const response = await api.get<CheckSyncResponse>('/bank-data-providers/sync/check');
+  return response;
+};
+
+/**
+ * Manually trigger sync for all bank-connected accounts
+ */
+export const triggerSync = async (): Promise<SyncResult> => {
+  const response = await api.post('/bank-data-providers/sync/trigger');
+  return response;
+};
+
+/**
+ * Get current sync status for all user's bank accounts
+ */
+export const getSyncStatus = async (): Promise<SyncStatusResponse> => {
+  const response = await api.get<SyncStatusResponse>('/bank-data-providers/sync/status');
+  return response;
+};

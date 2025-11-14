@@ -16,6 +16,7 @@ import * as accountsService from '@services/accounts.service';
 import * as transactionsService from '@services/transactions';
 import { Job, Queue, Worker } from 'bullmq';
 
+import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { MonobankApiClient } from './api-client';
 
 interface TransactionSyncJobData {
@@ -152,6 +153,11 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
       `Processing Monobank transaction sync batch ${batchIndex + 1}/${totalBatches} for account ${accountId}`,
     );
 
+    // Set status to SYNCING when worker starts (only for first batch)
+    if (batchIndex === 0) {
+      await setAccountSyncStatus(accountId, SyncStatus.SYNCING);
+    }
+
     // Update job progress
     await job.updateProgress({
       batchIndex,
@@ -268,6 +274,10 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
       };
     } catch (error) {
       logger.error({ message: `Error processing batch ${batchIndex + 1}/${totalBatches}`, error: error as Error });
+
+      // Set status to FAILED
+      await setAccountSyncStatus(accountId, SyncStatus.FAILED, (error as Error).message);
+
       throw error; // Will trigger retry
     }
   },
@@ -285,8 +295,19 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
 );
 
 // Worker event listeners
-transactionSyncWorker.on('completed', (job) => {
+transactionSyncWorker.on('completed', async (job) => {
   logger.info(`Job ${job.id} completed successfully`);
+
+  // Extract jobGroupId and check if all batches are completed
+  const jobGroupId = job.id?.substring(0, job.id.lastIndexOf('-')) || '';
+  const { totalBatches, accountId } = job.data;
+
+  const progress = await getJobGroupProgress(jobGroupId);
+
+  if (progress.completedBatches === totalBatches) {
+    await setAccountSyncStatus(accountId, SyncStatus.COMPLETED);
+    logger.info(`All batches completed for account ${accountId}, status set to COMPLETED`);
+  }
 });
 
 transactionSyncWorker.on('failed', (job, err) => {
