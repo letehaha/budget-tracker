@@ -14,10 +14,10 @@
             v-for="provider in providers"
             :key="provider.type"
             variant="outline"
-            class="h-auto w-full justify-start"
+            class="h-max w-full justify-start whitespace-normal"
             @click="handleSelectProvider(provider.type)"
           >
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-3 sm:gap-6">
               <BankProviderLogo class="size-12" :provider="provider.type" />
 
               <div class="flex flex-col text-left">

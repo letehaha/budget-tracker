@@ -53,24 +53,34 @@
 
     <!-- Default view: Show last sync time and sync button -->
     <div v-else class="space-y-3">
-      <div v-if="accountStatuses.length === 0" class="text-muted-foreground py-4 text-center text-sm">
-        No bank accounts connected
-      </div>
-
-      <div v-if="lastSyncTimestamp" class="text-muted-foreground text-xs">
-        Last synced: {{ formatLastSyncTime(lastSyncTimestamp) }}
-      </div>
-      <div v-else class="text-muted-foreground text-xs">Never synced</div>
-
-      <Button
-        class="w-full"
-        size="sm"
-        :disabled="isLoading || accountStatuses.length === 0"
-        @click="$emit('triggerSync')"
+      <div
+        v-if="accountStatuses.length === 0"
+        class="text-muted-foreground flex flex-col items-center gap-2 py-4 text-center text-sm"
       >
-        <RefreshCcw :class="{ 'animate-spin': isLoading }" class="mr-2 size-4" />
-        Sync Now
-      </Button>
+        <Building2 class="size-10 opacity-50" />
+        <span>No bank accounts connected</span>
+
+        <Button as-child size="sm" class="mt-4 w-full">
+          <RouterLink to="/accounts/integrations"> Connect </RouterLink>
+        </Button>
+      </div>
+
+      <template v-else-if="accountStatuses.length !== 0">
+        <div v-if="lastSyncTimestamp" class="text-muted-foreground text-xs">
+          Last synced: {{ formatLastSyncTime(lastSyncTimestamp) }}
+        </div>
+        <div v-else class="text-muted-foreground text-xs">Never synced</div>
+
+        <Button
+          class="w-full"
+          size="sm"
+          :disabled="isLoading || accountStatuses.length === 0"
+          @click="$emit('triggerSync')"
+        >
+          <RefreshCcw :class="{ 'animate-spin': isLoading }" class="mr-2 size-4" />
+          Sync Now
+        </Button>
+      </template>
     </div>
   </div>
 </template>
@@ -79,7 +89,7 @@
 import { type AccountSyncStatus, SyncStatus } from '@/api/bank-data-providers';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import Button from '@/components/lib/ui/button/Button.vue';
-import { CheckCircle2, Circle, Clock, Loader2, RefreshCcw, XCircle } from 'lucide-vue-next';
+import { Building2, CheckCircle2, Circle, Clock, Loader2, RefreshCcw, XCircle } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{

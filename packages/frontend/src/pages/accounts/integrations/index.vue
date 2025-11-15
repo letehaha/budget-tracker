@@ -23,8 +23,9 @@
         <p class="text-muted-foreground mb-6 max-w-md">
           Connect your bank accounts to automatically import transactions and keep your finances up to date.
         </p>
+
         <UiButton @click="openAddIntegrationDialog">
-          <span class="mr-2">+</span>
+          <PlusIcon class="size-4" />
           Add Your First Integration
         </UiButton>
       </div>
