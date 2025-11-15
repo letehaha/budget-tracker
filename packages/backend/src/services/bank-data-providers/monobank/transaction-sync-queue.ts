@@ -150,7 +150,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
       job.data;
 
     logger.info(
-      `Processing Monobank transaction sync batch ${batchIndex + 1}/${totalBatches} for account ${accountId}`,
+      `[WORKER] Processing Monobank transaction sync batch ${batchIndex + 1}/${totalBatches} for account ${accountId} (externalId: ${externalAccountId})`,
     );
 
     // Set status to SYNCING when worker starts (only for first batch)
@@ -171,7 +171,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
       // Fetch transactions from Monobank API
       const transactions = await apiClient.getStatement(externalAccountId, fromTimestamp, toTimestamp);
 
-      logger.info(`Fetched ${transactions.length} transactions for batch ${batchIndex + 1}/${totalBatches}`);
+      logger.info(`[WORKER] Fetched ${transactions.length} transactions for batch ${batchIndex + 1}/${totalBatches}`);
 
       // Update job progress
       await job.updateProgress({
@@ -264,7 +264,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
         logger.info(`Account ${accountId} balance after save: ${account.currentBalance}`);
       }
 
-      logger.info(`Completed batch ${batchIndex + 1}/${totalBatches} for account ${accountId}`);
+      logger.info(`[WORKER] Completed batch ${batchIndex + 1}/${totalBatches} for account ${accountId}`);
 
       return {
         success: true,
@@ -273,7 +273,10 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
         transactionCount: transactions.length,
       };
     } catch (error) {
-      logger.error({ message: `Error processing batch ${batchIndex + 1}/${totalBatches}`, error: error as Error });
+      logger.error({
+        message: `[WORKER] Error processing batch ${batchIndex + 1}/${totalBatches}`,
+        error: error as Error,
+      });
 
       // Set status to FAILED
       await setAccountSyncStatus(accountId, SyncStatus.FAILED, (error as Error).message);
@@ -387,7 +390,7 @@ export async function queueTransactionSync(params: {
 
   await transactionSyncQueue.addBulk(jobs);
 
-  logger.info(`Queued ${chunks.length} batch(es) for transaction sync (group: ${jobGroupId})`);
+  logger.info(`[QUEUE] Queued ${chunks.length} batch(es) for transaction sync (group: ${jobGroupId})`);
 
   // Each batch takes ~60 seconds due to rate limiting
   const estimatedMinutes = Math.max(1, chunks.length - 1); // First batch starts immediately

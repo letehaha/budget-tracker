@@ -14,14 +14,13 @@ export const getMonobankTransactionsMock = ({
   response = [],
   accountId,
 }: { response?: ExternalMonobankTransactionResponse[]; accountId?: string | number } = {}) => {
-  return http.get(
-    accountId
-      ? new RegExp(`${MONOBANK_URLS_MOCK.personalStatement.source}/${accountId}`)
-      : MONOBANK_URLS_MOCK.personalStatement,
-    () => {
-      return HttpResponse.json(response);
-    },
-  );
+  const urlPattern = accountId
+    ? new RegExp(`${MONOBANK_URLS_MOCK.personalStatement.source}/${accountId}`)
+    : MONOBANK_URLS_MOCK.personalStatement;
+
+  return http.get(urlPattern, () => {
+    return HttpResponse.json(response);
+  });
 };
 
 export const monobankHandlers = [
@@ -37,5 +36,4 @@ export const monobankHandlers = [
 
     return HttpResponse.json(getMockedClientData());
   }),
-  getMonobankTransactionsMock(),
 ];
