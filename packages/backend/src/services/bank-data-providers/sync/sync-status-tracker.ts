@@ -24,7 +24,7 @@ export const REDIS_KEYS = {
   accountPriority: (accountId: number | string): string => redisKeyFormatter(`account:${accountId}:priority`),
 };
 
-const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+const AUTO_SYNC_PERIOD = 12 * 60 * 60 * 1000;
 const STATUS_TTL = 24 * 60 * 60; // 24 hours in seconds
 const STALE_SYNC_THRESHOLD = 20 * 60 * 1000; // 15 minutes - if PENDING/SYNCING for longer, consider stale
 
@@ -41,7 +41,7 @@ export async function shouldTriggerAutoSync(userId: number): Promise<boolean> {
   const lastSyncTimestamp = parseInt(lastSyncTime, 10);
   const timeSinceLastSync = Date.now() - lastSyncTimestamp;
 
-  return timeSinceLastSync >= FOUR_HOURS_MS;
+  return timeSinceLastSync >= AUTO_SYNC_PERIOD;
 }
 
 /**
