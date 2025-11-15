@@ -58,11 +58,12 @@ import { minLength, required, sameAs } from '@/js/helpers/validators';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
-import { computed, reactive, ref } from 'vue';
+import { useMutation } from '@tanstack/vue-query';
+import { computed, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const autoStore = useAuthStore();
+const authStore = useAuthStore();
 const { addErrorNotification } = useNotificationCenter();
 const form = reactive({
   username: '',
@@ -90,35 +91,32 @@ const { isFormValid, getFieldErrorMessage } = useFormValidation(
   {
     customValidationMessages: {
       passwordMinLength: 'Minimal length is 6.',
-      sameAs: "Passwords doesn't match",
+      sameAs: "Passwords don't match",
     },
   },
 );
 
-const isFormLoading = ref(false);
-
-const submit = async () => {
-  try {
-    if (!isFormValid()) return;
-
-    const { password, username } = form;
-
-    isFormLoading.value = true;
-
-    await autoStore.signup({ password, username });
-
+const { mutate: registerUser, isPending: isFormLoading } = useMutation({
+  mutationFn: ({ username, password }: { username: string; password: string }) =>
+    authStore.signup({ username, password }),
+  onSuccess: () => {
     router.push({ name: ROUTES_NAMES.welcome });
-  } catch (e) {
-    if (e instanceof ApiErrorResponseError) {
-      if (e.data.code === API_ERROR_CODES.userExists) {
+  },
+  onError: (error) => {
+    if (error instanceof ApiErrorResponseError) {
+      if (error.data.code === API_ERROR_CODES.userExists) {
         addErrorNotification('User with that username already exists!');
         return;
       }
     }
-
     addErrorNotification('Unexpected error');
-  } finally {
-    isFormLoading.value = false;
-  }
+  },
+});
+
+const submit = () => {
+  if (!isFormValid()) return;
+
+  const { password, username } = form;
+  registerUser({ password, username });
 };
 </script>

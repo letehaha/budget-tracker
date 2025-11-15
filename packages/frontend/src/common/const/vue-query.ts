@@ -15,58 +15,63 @@ export const VUE_QUERY_GLOBAL_PREFIXES = Object.freeze({
 const { transactionChange, securityPriceChange, bankConnectionChange } = VUE_QUERY_GLOBAL_PREFIXES;
 
 export const VUE_QUERY_CACHE_KEYS = Object.freeze({
+  // currencies
+  allCurrencies: ['currencies', 'all'] as const,
+  userCurrencies: ['currencies', 'user'] as const,
+  baseCurrency: ['currencies', 'base'] as const,
+
   // widget balance trend
-  widgetBalanceTrend: [transactionChange, securityPriceChange, 'widget-balance-trend'],
-  widgetBalanceTotalBalance: [transactionChange, securityPriceChange, 'widget-balance-total-balance'],
-  widgetBalancePreviousBalance: [transactionChange, securityPriceChange, 'widget-balance-previous-balance'],
+  widgetBalanceTrend: [transactionChange, securityPriceChange, 'widget-balance-trend'] as const,
+  widgetBalanceTotalBalance: [transactionChange, securityPriceChange, 'widget-balance-total-balance'] as const,
+  widgetBalancePreviousBalance: [transactionChange, securityPriceChange, 'widget-balance-previous-balance'] as const,
 
   // widget expenses structure
-  widgetExpensesStructureTotal: [transactionChange, 'widget-expenses-structure-total'],
-  widgetExpensesStructureCurrentAmount: [transactionChange, 'widget-expenses-structure-current-amount'],
-  widgetExpensesStructurePrevAmount: [transactionChange, 'widget-expenses-structure-prev-amount'],
+  widgetExpensesStructureTotal: [transactionChange, 'widget-expenses-structure-total'] as const,
+  widgetExpensesStructureCurrentAmount: [transactionChange, 'widget-expenses-structure-current-amount'] as const,
+  widgetExpensesStructurePrevAmount: [transactionChange, 'widget-expenses-structure-prev-amount'] as const,
 
   // widget latest records
-  widgetLatestRecords: [transactionChange, 'widget-latest-records'],
+  widgetLatestRecords: [transactionChange, 'widget-latest-records'] as const,
 
   // others
-  analyticsBalanceHistoryTrend: [transactionChange, securityPriceChange, 'analytics-balance-history-trend'],
+  analyticsBalanceHistoryTrend: [transactionChange, securityPriceChange, 'analytics-balance-history-trend'] as const,
 
-  recordsPageRecordsList: [transactionChange, 'records-page-records-list'],
+  recordsPageRecordsList: [transactionChange, 'records-page-records-list'] as const,
 
-  recordsPageTransactionList: [transactionChange, 'records-page'],
+  recordsPageTransactionList: [transactionChange, 'records-page'] as const,
 
-  accountSpecificTransactions: [transactionChange, 'account-transactions'],
+  accountSpecificTransactions: [transactionChange, 'account-transactions'] as const,
 
-  allAccounts: [transactionChange, securityPriceChange, 'all-accounts'],
+  allAccounts: [transactionChange, securityPriceChange, 'all-accounts'] as const,
 
-  accountGroupForAccount: ['account-group-for-account'],
+  accountGroupForAccount: ['account-group-for-account'] as const,
 
-  exchangeRates: ['exchange-rates'],
-  accountGroups: [transactionChange, 'account-groups'],
+  exchangeRates: ['exchange-rates'] as const,
+  accountGroups: [transactionChange, 'account-groups'] as const,
 
-  budgetsList: ['budgets-list'],
-  budgetsListItem: ['budgets-list-item'],
-  budgetTransactionList: [transactionChange, 'budget-transaction-list'],
-  budgetAddingTransactionList: [transactionChange, 'budget-adding-transaction-list'],
-  budgetStats: [transactionChange, 'budget-stats'],
+  budgetsList: ['budgets-list'] as const,
+  budgetsListItem: ['budgets-list-item'] as const,
+  budgetTransactionList: [transactionChange, 'budget-transaction-list'] as const,
+  budgetAddingTransactionList: [transactionChange, 'budget-adding-transaction-list'] as const,
+  budgetStats: [transactionChange, 'budget-stats'] as const,
 
   /**
    * Investments
    */
 
   // portfolios
-  portfoliosList: [securityPriceChange, 'portfolios'],
-  portfolioDetails: [securityPriceChange, 'portfolio-details'],
-  portfolioTransfers: [securityPriceChange, 'portfolio-transfers'],
-  portfolioSummary: [securityPriceChange, 'portfolio-summary'],
+  portfoliosList: [securityPriceChange, 'portfolios'] as const,
+  portfolioDetails: [securityPriceChange, 'portfolio-details'] as const,
+  portfolioTransfers: [securityPriceChange, 'portfolio-transfers'] as const,
+  portfolioSummary: [securityPriceChange, 'portfolio-summary'] as const,
 
   // holdings
-  holdingsList: [securityPriceChange, 'holdings'],
-  holdingTransactions: [securityPriceChange, 'holding-transactions'],
+  holdingsList: [securityPriceChange, 'holdings'] as const,
+  holdingTransactions: [securityPriceChange, 'holding-transactions'] as const,
 
   // bank integrations
-  bankProviders: [bankConnectionChange, 'bank-providers'],
-  bankConnectionDetails: [bankConnectionChange, 'bank-connection-details'],
-  bankAvailableExternalAccounts: [bankConnectionChange, 'bank-available-external-accounts'],
-  bankConnections: [bankConnectionChange, 'bank-connections'],
+  bankProviders: [bankConnectionChange, 'bank-providers'] as const,
+  bankConnectionDetails: [bankConnectionChange, 'bank-connection-details'] as const,
+  bankAvailableExternalAccounts: [bankConnectionChange, 'bank-available-external-accounts'] as const,
+  bankConnections: [bankConnectionChange, 'bank-connections'] as const,
 });
