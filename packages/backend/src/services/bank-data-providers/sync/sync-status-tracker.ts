@@ -19,9 +19,9 @@ export interface AccountSyncStatus {
 }
 
 export const REDIS_KEYS = {
-  userLastAutoSync: (userId: number): string => redisKeyFormatter(`user:${userId}:last-auto-sync`),
-  accountSyncStatus: (accountId: number): string => redisKeyFormatter(`account:${accountId}:sync-status`),
-  accountPriority: (accountId: number): string => redisKeyFormatter(`account:${accountId}:priority`),
+  userLastAutoSync: (userId: number | string): string => redisKeyFormatter(`user:${userId}:last-auto-sync`),
+  accountSyncStatus: (accountId: number | string): string => redisKeyFormatter(`account:${accountId}:sync-status`),
+  accountPriority: (accountId: number | string): string => redisKeyFormatter(`account:${accountId}:priority`),
 };
 
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
@@ -157,20 +157,53 @@ export async function getAccountPriority(accountId: number): Promise<number> {
 }
 
 /**
- * Clear all sync-related statuses from Redis
- * Should be called on application startup to clean up stale states
+ * Clear stale sync statuses from Redis on startup
+ * Only resets QUEUED/SYNCING statuses (which are invalid after restart)
+ * Preserves COMPLETED/FAILED/IDLE statuses and user last-sync timestamps
  */
 export async function clearAllSyncStatuses(): Promise<void> {
-  // Use wildcards to match keys with or without Jest worker prefix
-  const accountStatusPattern = '*account:*:sync-status*';
-  const userSyncPattern = '*user:*:last-auto-sync*';
+  // Wrap into `*..*` wildcard just in case
+  const accountStatusKeys = await redisClient.keys(`*${REDIS_KEYS.accountSyncStatus('*')}*`);
 
-  const accountStatusKeys = await redisClient.keys(accountStatusPattern);
-  const userSyncKeys = await redisClient.keys(userSyncPattern);
-  const allKeys = [...accountStatusKeys, ...userSyncKeys];
+  let clearedCount = 0;
+  let resetCount = 0;
 
-  if (allKeys.length > 0) {
-    await redisClient.del(allKeys);
-    logger.info(`[Sync Status] Cleared ${allKeys.length} stale sync status keys on startup`);
+  for (const key of accountStatusKeys) {
+    const data = await redisClient.get(key);
+    if (!data) continue;
+
+    try {
+      const status: AccountSyncStatus = JSON.parse(data);
+
+      // Only reset statuses that indicate active syncing
+      // These are invalid after a restart since the actual sync process is gone
+      if (status.status === SyncStatus.QUEUED || status.status === SyncStatus.SYNCING) {
+        // Reset to IDLE instead of deleting - preserves the key structure
+        const resetStatus: AccountSyncStatus = {
+          ...status,
+          status: SyncStatus.IDLE,
+          startedAt: null,
+          completedAt: null,
+          error: 'Sync interrupted by server restart',
+        };
+
+        await redisClient.setEx(key, STATUS_TTL, JSON.stringify(resetStatus));
+        resetCount++;
+      }
+      // Keep COMPLETED, FAILED, and IDLE statuses - they're still valid
+    } catch (err) {
+      // If we can't parse it, delete it
+      await redisClient.del(key);
+      clearedCount++;
+    }
   }
+
+  if (resetCount > 0 || clearedCount > 0) {
+    logger.info(
+      `[Sync Status] Startup cleanup: reset ${resetCount} active syncs to IDLE, cleared ${clearedCount} invalid keys`,
+    );
+  }
+
+  // Note: We DON'T touch userLastAutoSync or accountPriority keys
+  // These are historical data and remain valid across restarts
 }
