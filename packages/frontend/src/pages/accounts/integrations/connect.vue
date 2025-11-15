@@ -7,6 +7,7 @@
       >
         ← Back to Integrations
       </router-link>
+
       <h1 class="mt-4 text-2xl tracking-wider">Connect {{ providerName }}</h1>
     </div>
 
@@ -18,13 +19,13 @@
       <CardContent>
         <!-- Enable Banking Provider -->
         <EnableBankingConnector
-          v-if="providerType === 'enable-banking'"
+          v-if="providerType === BANK_PROVIDER_TYPE.ENABLE_BANKING"
           @connected="handleConnected"
           @cancel="handleCancel"
         />
 
         <!-- Monobank Provider (legacy hardcoded flow) -->
-        <template v-else-if="providerType === 'monobank'">
+        <template v-else-if="providerType === BANK_PROVIDER_TYPE.MONOBANK">
           <!-- Step 1: Enter API Token -->
           <template v-if="currentStep === 1">
             <div class="space-y-4">
@@ -115,6 +116,7 @@ import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -126,7 +128,7 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const accountsStore = useAccountsStore();
 const currenciesStore = useCurrenciesStore();
 
-const providerType = computed(() => route.params.providerType as string);
+const providerType = computed(() => route.params.providerType as BANK_PROVIDER_TYPE);
 const providerName = ref('');
 
 const currentStep = ref(1);
@@ -142,7 +144,7 @@ const availableAccounts = ref<AvailableAccount[]>([]);
 const selectedAccountIds = ref<string[]>([]);
 
 const stepTitle = computed(() => {
-  if (providerType.value === 'enable-banking') {
+  if (providerType.value === BANK_PROVIDER_TYPE.ENABLE_BANKING) {
     return 'Connect Enable Banking';
   }
 

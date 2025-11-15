@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Transactions from '@models/Transactions.model';
 import {
-  BankProviderType,
   BaseBankDataProvider,
   CredentialFieldType,
   DateRange,
@@ -16,6 +15,7 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 
+import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { MonobankApiClient } from './api-client';
 import { getJobGroupProgress, queueTransactionSync } from './transaction-sync-queue';
@@ -27,7 +27,7 @@ import { MonobankCredentials, MonobankMetadata } from './types';
  */
 export class MonobankProvider extends BaseBankDataProvider {
   readonly metadata: ProviderMetadata = {
-    type: BankProviderType.MONOBANK,
+    type: BANK_PROVIDER_TYPE.MONOBANK,
     name: 'Monobank',
     description: 'Ukrainian digital bank with API access for personal finance tracking',
     features: {
@@ -254,26 +254,40 @@ export class MonobankProvider extends BaseBankDataProvider {
     connectionId: number;
     systemAccountId: number;
   }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
-    const account = await this.getSystemAccount(systemAccountId);
+    // Import sync status tracker dynamically to avoid circular dependency
+    // Set status to QUEUED (jobs are queued, not actively syncing yet)
+    await setAccountSyncStatus(systemAccountId, SyncStatus.QUEUED);
 
-    // Find the most recent transaction for this account
-    const latestTransaction = await Transactions.findOne({
-      where: {
-        accountId: account.id,
-      },
-      order: [['time', 'DESC']],
-    });
+    try {
+      const account = await this.getSystemAccount(systemAccountId);
 
-    // Default to last 31 days if no transactions found
-    const from = latestTransaction ? new Date(latestTransaction.time) : new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
-    const to = new Date();
+      // Find the most recent transaction for this account
+      const latestTransaction = await Transactions.findOne({
+        where: {
+          accountId: account.id,
+        },
+        order: [['time', 'DESC']],
+      });
 
-    return this.loadTransactionsForPeriod({
-      connectionId,
-      systemAccountId,
-      from,
-      to,
-    });
+      // Default to last 31 days if no transactions found
+      const from = latestTransaction
+        ? new Date(latestTransaction.time)
+        : new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
+      const to = new Date();
+
+      return this.loadTransactionsForPeriod({
+        connectionId,
+        systemAccountId,
+        from,
+        to,
+      });
+      // Worker will set SYNCING when it starts, then COMPLETED when done
+    } catch (error) {
+      // Set status to FAILED on error
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      await setAccountSyncStatus(systemAccountId, SyncStatus.FAILED, errorMessage);
+      throw error;
+    }
   }
 
   /**

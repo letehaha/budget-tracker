@@ -1,7 +1,8 @@
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { logger } from '@js/utils';
 
 import { BaseBankDataProvider } from './base-provider';
-import { BankProviderType, ProviderMetadata } from './types';
+import { ProviderMetadata } from './types';
 
 /**
  * Registry for managing bank data providers.
@@ -9,11 +10,11 @@ import { BankProviderType, ProviderMetadata } from './types';
  *
  * Usage:
  *   - Register providers at app startup: providerRegistry.register(new MonobankProvider())
- *   - Get provider instance: providerRegistry.get(BankProviderType.MONOBANK)
+ *   - Get provider instance: providerRegistry.get(BANK_PROVIDER_TYPE.MONOBANK)
  *   - List all providers: providerRegistry.listAll()
  */
 class BankProviderRegistry {
-  private providers = new Map<BankProviderType, BaseBankDataProvider>();
+  private providers = new Map<BANK_PROVIDER_TYPE, BaseBankDataProvider>();
   private static instance: BankProviderRegistry;
 
   /**
@@ -53,7 +54,7 @@ class BankProviderRegistry {
    * @returns Provider instance
    * @throws Error if provider type is not registered
    */
-  get(type: BankProviderType): BaseBankDataProvider {
+  get(type: BANK_PROVIDER_TYPE): BaseBankDataProvider {
     const provider = this.providers.get(type);
 
     if (!provider) {
@@ -69,7 +70,7 @@ class BankProviderRegistry {
    * @param type - Provider type to check
    * @returns True if provider is registered
    */
-  has(type: BankProviderType): boolean {
+  has(type: BANK_PROVIDER_TYPE): boolean {
     return this.providers.has(type);
   }
 
@@ -86,7 +87,7 @@ class BankProviderRegistry {
    * Get list of all registered provider types
    * @returns Array of provider types
    */
-  listTypes(): BankProviderType[] {
+  listTypes(): BANK_PROVIDER_TYPE[] {
     return Array.from(this.providers.keys());
   }
 
@@ -96,7 +97,7 @@ class BankProviderRegistry {
    * @param required - Array of provider types that must be registered
    * @throws Error if any required providers are missing
    */
-  validateAllRegistered(required: BankProviderType[]): void {
+  validateAllRegistered(required: BANK_PROVIDER_TYPE[]): void {
     const missing = required.filter((type) => !this.has(type));
 
     if (missing.length > 0) {

@@ -16,6 +16,7 @@ import * as accountsService from '@services/accounts.service';
 import * as transactionsService from '@services/transactions';
 import { Job, Queue, Worker } from 'bullmq';
 
+import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { MonobankApiClient } from './api-client';
 
 interface TransactionSyncJobData {
@@ -47,17 +48,17 @@ const queueName =
 export const transactionSyncQueue = new Queue<TransactionSyncJobData>(queueName, {
   connection,
   defaultJobOptions: {
-    attempts: 3,
+    attempts: 2,
     backoff: {
       type: 'exponential',
       delay: 60000, // Start with 60 seconds due to Monobank rate limits
     },
     removeOnComplete: {
-      age: 7200, // Keep completed jobs for 2 hours (enough time for UI to poll)
-      count: 1000, // Keep last 1000 completed jobs
+      age: 1800, // Keep completed jobs for 30 mins (just in case)
+      count: 20, // Keep last 20 completed jobs
     },
     removeOnFail: {
-      age: 86400, // Keep failed jobs for 24 hours
+      age: 7200, // Keep failed jobs for 2 hours
     },
   },
 });
@@ -149,8 +150,13 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
       job.data;
 
     logger.info(
-      `Processing Monobank transaction sync batch ${batchIndex + 1}/${totalBatches} for account ${accountId}`,
+      `[WORKER] Processing Monobank transaction sync batch ${batchIndex + 1}/${totalBatches} for account ${accountId} (externalId: ${externalAccountId})`,
     );
+
+    // Set status to SYNCING when worker starts (only for first batch)
+    if (batchIndex === 0) {
+      await setAccountSyncStatus(accountId, SyncStatus.SYNCING);
+    }
 
     // Update job progress
     await job.updateProgress({
@@ -165,7 +171,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
       // Fetch transactions from Monobank API
       const transactions = await apiClient.getStatement(externalAccountId, fromTimestamp, toTimestamp);
 
-      logger.info(`Fetched ${transactions.length} transactions for batch ${batchIndex + 1}/${totalBatches}`);
+      logger.info(`[WORKER] Fetched ${transactions.length} transactions for batch ${batchIndex + 1}/${totalBatches}`);
 
       // Update job progress
       await job.updateProgress({
@@ -258,7 +264,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
         logger.info(`Account ${accountId} balance after save: ${account.currentBalance}`);
       }
 
-      logger.info(`Completed batch ${batchIndex + 1}/${totalBatches} for account ${accountId}`);
+      logger.info(`[WORKER] Completed batch ${batchIndex + 1}/${totalBatches} for account ${accountId}`);
 
       return {
         success: true,
@@ -267,7 +273,14 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
         transactionCount: transactions.length,
       };
     } catch (error) {
-      logger.error({ message: `Error processing batch ${batchIndex + 1}/${totalBatches}`, error: error as Error });
+      logger.error({
+        message: `[WORKER] Error processing batch ${batchIndex + 1}/${totalBatches}`,
+        error: error as Error,
+      });
+
+      // Set status to FAILED
+      await setAccountSyncStatus(accountId, SyncStatus.FAILED, (error as Error).message);
+
       throw error; // Will trigger retry
     }
   },
@@ -285,8 +298,19 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
 );
 
 // Worker event listeners
-transactionSyncWorker.on('completed', (job) => {
+transactionSyncWorker.on('completed', async (job) => {
   logger.info(`Job ${job.id} completed successfully`);
+
+  // Extract jobGroupId and check if all batches are completed
+  const jobGroupId = job.id?.substring(0, job.id.lastIndexOf('-')) || '';
+  const { totalBatches, accountId } = job.data;
+
+  const progress = await getJobGroupProgress(jobGroupId);
+
+  if (progress.completedBatches === totalBatches) {
+    await setAccountSyncStatus(accountId, SyncStatus.COMPLETED);
+    logger.info(`All batches completed for account ${accountId}, status set to COMPLETED`);
+  }
 });
 
 transactionSyncWorker.on('failed', (job, err) => {
@@ -366,7 +390,7 @@ export async function queueTransactionSync(params: {
 
   await transactionSyncQueue.addBulk(jobs);
 
-  logger.info(`Queued ${chunks.length} batch(es) for transaction sync (group: ${jobGroupId})`);
+  logger.info(`[QUEUE] Queued ${chunks.length} batch(es) for transaction sync (group: ${jobGroupId})`);
 
   // Each batch takes ~60 seconds due to rate limiting
   const estimatedMinutes = Math.max(1, chunks.length - 1); // First batch starts immediately

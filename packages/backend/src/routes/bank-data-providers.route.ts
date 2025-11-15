@@ -9,10 +9,14 @@ import listUserConnections from '@controllers/bank-data-providers/connections/li
 import loadTransactionsForPeriod from '@controllers/bank-data-providers/connections/load-transactions-for-period';
 import reauthorizeConnection from '@controllers/bank-data-providers/connections/reauthorize-connection';
 import syncTransactionsForAccount from '@controllers/bank-data-providers/connections/sync-transactions-for-account';
+import updateConnectionDetails from '@controllers/bank-data-providers/connections/update-connection-details';
 import listBanks from '@controllers/bank-data-providers/enablebanking/list-banks';
 import listCountries from '@controllers/bank-data-providers/enablebanking/list-countries';
 import oauthCallback from '@controllers/bank-data-providers/enablebanking/oauth-callback';
 import * as providersController from '@controllers/bank-data-providers/providers.controller';
+import checkSync from '@controllers/bank-data-providers/sync/check-sync';
+import getSyncStatus from '@controllers/bank-data-providers/sync/get-sync-status';
+import triggerSync from '@controllers/bank-data-providers/sync/trigger-sync';
 import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';
 import express from 'express';
@@ -52,6 +56,12 @@ router.post(
   authenticateJwt,
   validateEndpoint(reauthorizeConnection.schema),
   reauthorizeConnection.handler,
+);
+router.patch(
+  '/connections/:connectionId',
+  authenticateJwt,
+  validateEndpoint(updateConnectionDetails.schema),
+  updateConnectionDetails.handler,
 );
 
 // Account sync flow
@@ -93,6 +103,11 @@ router.get(
   validateEndpoint(listActiveSyncJobs.schema),
   listActiveSyncJobs.handler,
 );
+
+// Bulk account sync endpoints
+router.get('/sync/check', authenticateJwt, validateEndpoint(checkSync.schema), checkSync.handler);
+router.post('/sync/trigger', authenticateJwt, validateEndpoint(triggerSync.schema), triggerSync.handler);
+router.get('/sync/status', authenticateJwt, validateEndpoint(getSyncStatus.schema), getSyncStatus.handler);
 
 // Enable Banking specific endpoints
 router.post('/enablebanking/countries', authenticateJwt, validateEndpoint(listCountries.schema), listCountries.handler);

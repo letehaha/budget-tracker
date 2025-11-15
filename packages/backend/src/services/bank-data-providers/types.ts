@@ -3,21 +3,11 @@
  * This system allows users to connect multiple bank accounts from various providers
  * (Monobank, LunchFlow, etc.) in a unified, modular way.
  */
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 
 // ============================================================================
 // Provider Types and Enums
 // ============================================================================
-
-/**
- * Supported bank data provider types
- */
-export enum BankProviderType {
-  MONOBANK = 'monobank',
-  ENABLE_BANKING = 'enable-banking',
-  // Future providers will be added here:
-  // LUNCHFLOW = 'lunchflow',
-  // GOCARDLESS = 'gocardless',
-}
 
 /**
  * Types of credential fields that providers can require
@@ -76,7 +66,7 @@ export interface ProviderFeatures {
  */
 export interface ProviderMetadata {
   /** Provider type identifier */
-  type: BankProviderType;
+  type: BANK_PROVIDER_TYPE;
   /** Display name for UI */
   name: string;
   /** Short description of the provider */
@@ -105,7 +95,7 @@ export interface BankDataProviderConnection {
   /** User who owns this connection */
   userId: number;
   /** Type of provider */
-  providerType: BankProviderType;
+  providerType: BANK_PROVIDER_TYPE;
   /** User-defined friendly name */
   providerName: string;
   /** Whether connection is currently active */

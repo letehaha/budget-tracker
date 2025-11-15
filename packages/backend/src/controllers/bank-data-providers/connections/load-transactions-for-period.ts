@@ -1,10 +1,9 @@
-import { API_ERROR_CODES } from '@bt/shared/types';
+import { API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import { BankProviderType } from '@root/services/bank-data-providers';
 import { MonobankProvider } from '@root/services/bank-data-providers/monobank/monobank.provider';
 import { bankProviderRegistry } from '@root/services/bank-data-providers/registry';
 import { z } from 'zod';
@@ -90,7 +89,7 @@ export default createController(
     // Get provider - currently only Monobank supports this feature
     const provider = bankProviderRegistry.get(connection.providerType);
 
-    if (connection.providerType !== BankProviderType.MONOBANK) {
+    if (connection.providerType !== BANK_PROVIDER_TYPE.MONOBANK) {
       throw new ValidationError({
         message: 'Loading transactions for period is only supported for Monobank',
       });

@@ -1,98 +1,82 @@
 <script lang="ts" setup>
-import { getAllCurrencies } from '@/api/currencies';
 import FormWrapper from '@/components/fields/form-wrapper.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
-import { useNotificationCenter } from '@/components/notification-center';
+import { useAllCurrencies, useBaseCurrency, useSetBaseCurrency } from '@/composable/data-queries/currencies';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { useAuthStore, useCurrenciesStore } from '@/stores';
+import { useAuthStore } from '@/stores';
 import { CurrencyModel } from '@bt/shared/types';
-import { storeToRefs } from 'pinia';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const currenciesStore = useCurrenciesStore();
 const { logout } = useAuthStore();
-const { setBaseCurrency, loadBaseCurrency } = useCurrenciesStore();
-const { addErrorNotification } = useNotificationCenter();
-
-const { baseCurrency } = storeToRefs(currenciesStore);
-
-const currencies = ref<CurrencyModel[]>([]);
 
 const selectedCurrency = ref<CurrencyModel | null>(null);
-const isCurrenciesLoading = ref(false);
-const isSubmitting = ref(false);
 const formError = ref<string | null>(null);
-
 const forwardToDashboard = () => {
   router.push({ name: ROUTES_NAMES.home });
 };
 
-watch(selectedCurrency, () => {
-  formError.value = null;
+const { data: allCurrencies, isLoading: isCurrenciesLoading, isError: isErrorLoadingCurrencies } = useAllCurrencies();
+const { data: baseCurrency } = useBaseCurrency();
+const { mutate: setBaseCurrency, isPending: isSubmitting } = useSetBaseCurrency();
+
+// Sort currencies with priority currencies first (USD, EUR, UAH, PLN)
+const currencies = computed(() => {
+  if (!allCurrencies.value || allCurrencies.value.length === 0) return [];
+
+  const priorityCurrencies = ['USD', 'EUR', 'UAH', 'PLN'];
+  const priority: CurrencyModel[] = [];
+  const others: CurrencyModel[] = [];
+
+  allCurrencies.value.forEach((currency) => {
+    if (priorityCurrencies.includes(currency.code)) {
+      priority.push(currency);
+    } else {
+      others.push(currency);
+    }
+  });
+
+  // Sort priority currencies by their order in the priorityCurrencies array
+  priority.sort((a, b) => priorityCurrencies.indexOf(a.code) - priorityCurrencies.indexOf(b.code));
+
+  return [...priority, ...others];
 });
 
-const loadCurrencies = async () => {
-  try {
-    isCurrenciesLoading.value = true;
+watch(selectedCurrency, () => (formError.value = null));
+watch(currencies, () => (selectedCurrency.value = currencies.value[0]));
+watch(isErrorLoadingCurrencies, () => (formError.value = 'Unable to load currencies list. Try later'));
+watch(baseCurrency, (value) => {
+  if (value) forwardToDashboard();
+});
 
-    currencies.value = await getAllCurrencies();
+const isFormDisabled = computed(() => isCurrenciesLoading.value || isSubmitting.value);
 
-    if (!selectedCurrency.value) {
-      selectedCurrency.value = currencies.value[0];
-    }
-  } catch {
-    addErrorNotification('Unexpected error. Cannot load currencies.');
-  } finally {
-    isCurrenciesLoading.value = false;
-  }
-};
-
-const submitBaseCurrency = async () => {
+const submitBaseCurrency = () => {
   if (!selectedCurrency.value) return;
 
-  try {
-    formError.value = null;
-    isSubmitting.value = true;
-
-    await setBaseCurrency(selectedCurrency.value.code);
-
-    forwardToDashboard();
-  } catch {
-    formError.value = 'Unexpected error. Cannot set base currency. Please try later or contact support.';
-  } finally {
-    isSubmitting.value = false;
-  }
+  formError.value = null;
+  setBaseCurrency(selectedCurrency.value.code, {
+    onSuccess: () => {
+      forwardToDashboard();
+    },
+    onError: () => {
+      formError.value = 'Unexpected error. Cannot set base currency. Please try later or contact support.';
+    },
+  });
 };
 
 const logOutHandler = () => {
   logout();
   router.push({ name: ROUTES_NAMES.signIn });
 };
-
-const checkBaseCurrencyExisting = async () => {
-  await loadBaseCurrency();
-
-  if (baseCurrency.value) {
-    forwardToDashboard();
-  }
-};
-
-if (baseCurrency.value) {
-  forwardToDashboard();
-} else {
-  checkBaseCurrencyExisting();
-}
-
-loadCurrencies();
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col">
+  <div class="flex min-h-screen flex-col px-4">
     <div class="flex justify-end px-6 py-3">
-      <ui-button theme="primary" class="sidebar__logout" @click="logOutHandler"> Logout </ui-button>
+      <Button theme="primary" class="sidebar__logout" @click="logOutHandler"> Logout </Button>
     </div>
 
     <div class="flex flex-auto items-center justify-center">
@@ -102,12 +86,14 @@ loadCurrencies();
         <form-wrapper :error="formError">
           <div class="my-6">
             <select-field
+              :key="currencies.length"
               v-model="selectedCurrency"
               :values="currencies"
               value-key="code"
               placeholder="Loading..."
               label="Base Currency"
               with-search
+              :disabled="isFormDisabled"
               :label-key="(item) => `${item.code} - ${item.currency}`"
             />
           </div>
@@ -115,7 +101,7 @@ loadCurrencies();
             Your base currency should ideally be the one you use most often. All transactions in other currencies will
             be calculated based on this one. You won't be able to change your base currency later (for now).
           </p>
-          <Button class="w-full" :disabled="isCurrenciesLoading" @click="submitBaseCurrency"> Confirm Currency </Button>
+          <Button class="w-full" :disabled="isFormDisabled" @click="submitBaseCurrency"> Confirm Currency </Button>
         </form-wrapper>
       </div>
     </div>

@@ -1,44 +1,38 @@
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-    <div class="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
+  <div class="flex min-h-screen items-center justify-center px-4">
+    <div class="w-full max-w-md rounded-lg p-8 shadow-lg">
       <div v-if="isProcessing" class="text-center">
-        <div class="mb-4">
-          <svg class="mx-auto h-12 w-12 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-        </div>
+        <InfoIcon class="mb-4 size-12" />
+
         <h2 class="mb-2 text-xl font-semibold">Completing Authorization...</h2>
+
         <p class="text-muted-foreground text-sm">Please wait while we verify your bank connection</p>
       </div>
 
       <div v-else-if="error" class="text-center">
-        <div class="mb-4">
-          <svg class="mx-auto h-12 w-12 text-destructive" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <h2 class="mb-2 text-xl font-semibold text-destructive">Authorization Failed</h2>
+        <InfoIcon class="text-destructive-text mx-auto mb-4 size-12" />
+
+        <h2 class="text-destructive-text mb-2 text-xl font-semibold">Authorization Failed</h2>
+
         <p class="text-muted-foreground mb-6 text-sm">{{ error }}</p>
         <button
           @click="goToIntegrations"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+          class="bg-primary hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium text-white"
         >
           Back to Integrations
         </button>
       </div>
 
       <div v-else-if="success" class="text-center">
-        <div class="mb-4">
-          <svg class="mx-auto h-12 w-12 text-success" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <h2 class="mb-2 text-xl font-semibold text-success">Connection Successful!</h2>
+        <CheckCircle2Icon class="text-success-text mx-auto mb-4 size-12" />
+
+        <h2 class="text-success-text mb-2 text-xl font-semibold">Connection Successful!</h2>
+
         <p class="text-muted-foreground mb-6 text-sm">Your bank account has been connected successfully.</p>
+
         <button
           @click="goToAccounts"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+          class="bg-primary hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium text-white"
         >
           View Accounts
         </button>
@@ -51,6 +45,7 @@
 import { completeEnableBankingOAuth } from '@/api/bank-data-providers';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes/constants';
+import { CheckCircle2Icon, InfoIcon } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -105,13 +100,12 @@ onMounted(async () => {
     success.value = true;
     addSuccessNotification('Bank connection established successfully!');
 
-    // Redirect to connection details page after 1 second
     setTimeout(() => {
       router.push({
         name: ROUTES_NAMES.accountIntegrationDetails,
         params: { connectionId },
       });
-    }, 1500);
+    }, 2000);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to complete authorization';
     error.value = message;

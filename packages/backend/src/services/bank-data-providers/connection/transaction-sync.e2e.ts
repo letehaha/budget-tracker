@@ -1,9 +1,8 @@
-import { ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import Transactions from '@models/Transactions.model';
-import { BankProviderType } from '@services/bank-data-providers';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import { subDays } from 'date-fns';
@@ -14,7 +13,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       it('should successfully sync transactions for a connected account', async () => {
         // Setup: Connect provider and account
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -34,7 +33,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
         // Mock transaction data
         const mockedTransactions = helpers.monobank.mockedTransactionData(5);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         // Sync transactions
         const syncResult = await helpers.bankDataProviders.syncTransactionsForAccount({
@@ -87,7 +86,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should return validation error for non-existent account', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -103,7 +102,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       it('should return error if account is not linked to the connection', async () => {
         // Create first connection and account
         const { connectionId: connectionId1 } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -121,7 +120,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
         // Create second connection
         const { connectionId: connectionId2 } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           providerName: 'Second Connection',
           raw: true,
@@ -140,7 +139,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Transaction data integrity', () => {
       it('should correctly map transaction fields from external source', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -162,7 +161,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         const mockedTransactions = helpers.monobank.mockedTransactionData(1);
         const mockTx = mockedTransactions[0]!;
 
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
@@ -200,7 +199,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should prevent duplicate transactions with same originalId', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -219,7 +218,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         const accountId = syncedAccounts[0]!.id;
 
         const mockedTransactions = helpers.monobank.mockedTransactionData(3);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         // First sync
         const { jobGroupId: jobId1 } = await helpers.bankDataProviders.syncTransactionsForAccount({
@@ -255,7 +254,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should sync multiple accounts independently', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -271,34 +270,38 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
           raw: true,
         });
 
-        const account1Id = syncedAccounts[0]!.id;
-        const account2Id = syncedAccounts[1]!.id;
+        const account1 = syncedAccounts[0]!;
+        const account2 = syncedAccounts[1]!;
 
         // Mock different transaction counts for each account
         const txForAccount1 = helpers.monobank.mockedTransactionData(3);
         const txForAccount2 = helpers.monobank.mockedTransactionData(5);
 
+        // Set up account-specific mocks
+        global.mswMockServer.use(
+          getMonobankTransactionsMock({ accountId: account1.externalId, response: txForAccount1 }),
+          getMonobankTransactionsMock({ accountId: account2.externalId, response: txForAccount2 }),
+        );
+
         // Sync account 1
-        global.mswMockServer.use(getMonobankTransactionsMock(txForAccount1));
         const { jobGroupId: jobId1 } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
-          accountId: account1Id,
+          accountId: account1.id,
           raw: true,
         });
         await helpers.bankDataProviders.waitForSyncJobsToComplete({ connectionId, jobGroupId: jobId1! });
 
         // Sync account 2
-        global.mswMockServer.use(getMonobankTransactionsMock(txForAccount2));
         const { jobGroupId: jobId2 } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
-          accountId: account2Id,
+          accountId: account2.id,
           raw: true,
         });
         await helpers.bankDataProviders.waitForSyncJobsToComplete({ connectionId, jobGroupId: jobId2! });
 
         // Verify each account has correct transaction count
-        const account1TxCount = await Transactions.count({ where: { accountId: account1Id } });
-        const account2TxCount = await Transactions.count({ where: { accountId: account2Id } });
+        const account1TxCount = await Transactions.count({ where: { accountId: account1.id } });
+        const account2TxCount = await Transactions.count({ where: { accountId: account2.id } });
 
         expect(account1TxCount).toBe(3);
         expect(account2TxCount).toBe(5);
@@ -308,7 +311,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Transaction date ranges', () => {
       it('should sync transactions from most recent transaction onwards', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -332,7 +335,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         oldTransactions[0]!.time = Math.floor(subDays(new Date(), 10).getTime() / 1000);
         oldTransactions[1]!.time = Math.floor(subDays(new Date(), 9).getTime() / 1000);
 
-        global.mswMockServer.use(getMonobankTransactionsMock(oldTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: oldTransactions }));
 
         const { jobGroupId: jobId1 } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
@@ -348,7 +351,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         newTransactions[1]!.time = Math.floor(subDays(new Date(), 1).getTime() / 1000);
         newTransactions[2]!.time = Math.floor(new Date().getTime() / 1000);
 
-        global.mswMockServer.use(getMonobankTransactionsMock(newTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: newTransactions }));
 
         const { jobGroupId: jobId2 } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
@@ -365,7 +368,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should sync last 31 days if no transactions exist', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -386,7 +389,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         // Mock transactions within last 31 days
         const mockedTransactions = helpers.monobank.mockedTransactionData(10);
 
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
@@ -404,7 +407,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Account balance updates', () => {
       it('should update account balance after syncing transactions', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -430,7 +433,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
           initialBalance,
         });
 
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
@@ -456,7 +459,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Basic load flow', () => {
       it('should successfully load transactions for a specified period', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -478,7 +481,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         const to = new Date();
 
         const mockedTransactions = helpers.monobank.mockedTransactionData(7);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const loadResult = await helpers.bankDataProviders.loadTransactionsForPeriod({
           connectionId,
@@ -518,7 +521,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should return validation error for non-existent account', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -537,7 +540,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Date range validation', () => {
       it('should reject date range exceeding 1 year', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -570,7 +573,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should reject invalid date range (from > to)', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -603,7 +606,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should accept valid date range within 1 year', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -622,7 +625,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         const accountId = syncedAccounts[0]!.id;
 
         const mockedTransactions = helpers.monobank.mockedTransactionData(5);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const from = subDays(new Date(), 60);
         const to = new Date();
@@ -643,7 +646,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Forward-only linking strategy', () => {
       it('should block loading transactions before linkedAt date for forward-only accounts', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -692,7 +695,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should allow loading transactions after linkedAt date for forward-only accounts', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -725,7 +728,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         });
 
         const mockedTransactions = helpers.monobank.mockedTransactionData(3);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         // Load transactions after linkedAt (valid)
         const from = subDays(new Date(), 10);
@@ -753,7 +756,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should allow loading any period for non-forward-only accounts', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -773,7 +776,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
         // Account without forward-only strategy can load any period
         const mockedTransactions = helpers.monobank.mockedTransactionData(4);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         const from = subDays(new Date(), 90);
         const to = new Date();
@@ -794,7 +797,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
     describe('Long date ranges and batching', () => {
       it('should split long date ranges into multiple batches', async () => {
         const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BankProviderType.MONOBANK,
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
           credentials: { apiToken: VALID_MONOBANK_TOKEN },
           raw: true,
         });
@@ -813,7 +816,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         const accountId = syncedAccounts[0]!.id;
 
         const mockedTransactions = helpers.monobank.mockedTransactionData(10);
-        global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
         // Load 90 days (should create multiple batches)
         const from = subDays(new Date(), 90);
@@ -846,7 +849,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
   describe('Transaction editing restrictions', () => {
     it('should allow editing description and category of synced transactions', async () => {
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -865,7 +868,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       const accountId = syncedAccounts[0]!.id;
 
       const mockedTransactions = helpers.monobank.mockedTransactionData(1);
-      global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
       const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
         connectionId,
@@ -892,7 +895,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
 
     it('should reject editing amount of synced transactions', async () => {
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -911,7 +914,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       const accountId = syncedAccounts[0]!.id;
 
       const mockedTransactions = helpers.monobank.mockedTransactionData(1);
-      global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
       const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
         connectionId,
@@ -957,7 +960,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       });
 
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -1005,7 +1008,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       });
 
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.MONOBANK,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
         raw: true,
       });
@@ -1039,7 +1042,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
       const mockedTransactions = helpers.monobank.mockedTransactionData(5, {
         initialBalance: currentBalance,
       });
-      global.mswMockServer.use(getMonobankTransactionsMock(mockedTransactions));
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
       const syncResult = await helpers.bankDataProviders.syncTransactionsForAccount({
         connectionId,
@@ -1161,7 +1164,7 @@ describe('Bank Data Provider Transaction Sync E2E', () => {
         tx.time = Math.floor((Date.now() + idx * 1000) / 1000);
       });
 
-      global.mswMockServer.use(getMonobankTransactionsMock(newMockedTransactions));
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: newMockedTransactions }));
 
       const { jobGroupId: newJobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
         connectionId,

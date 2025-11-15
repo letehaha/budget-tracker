@@ -8,23 +8,18 @@
 </template>
 
 <script lang="ts" setup>
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { Button } from '@/components/lib/ui/button';
-import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { useNotificationCenter } from '@/components/notification-center';
 import { useLocalStorage } from '@/composable';
-import { useBanksMonobankStore } from '@/stores';
-import { API_ERROR_CODES, AccountModel } from '@bt/shared/types';
-import { useQueryClient } from '@tanstack/vue-query';
+import { AccountModel } from '@bt/shared/types';
 import { computed, ref, watchEffect } from 'vue';
 
 const props = defineProps<{
   account: AccountModel;
 }>();
 
-const queryClient = useQueryClient();
-const { addNotification } = useNotificationCenter();
+const { addErrorNotification } = useNotificationCenter();
 const { addLSItem, removeLSItem, getLSItem } = useLocalStorage();
-const monobankStore = useBanksMonobankStore();
 
 const isRefreshDisabled = ref(false);
 
@@ -42,50 +37,8 @@ const setLoadingTimer = (wait: number) => {
   }, wait);
 };
 
-const loadLatestTransactionsHandler = async () => {
-  try {
-    const response = await monobankStore.loadTransactionsFromLatest({
-      accountId: props.account.id,
-    });
-
-    if (!response) {
-      addNotification({
-        text: "You don't have any transactions loaded yet, so we cannot load latest.",
-        type: NotificationType.warning,
-      });
-
-      return;
-    }
-
-    const isUserNeedToWait = response.minutesToFinish >= 1;
-
-    if (isUserNeedToWait) {
-      setLoadingTimer(response.minutesToFinish * 60 * 1000);
-    }
-
-    addNotification({
-      text: isUserNeedToWait
-        ? `Loading started. Estimated loading time is ${response.minutesToFinish} minute(s).`
-        : 'Loaded successfully',
-      type: NotificationType.success,
-    });
-
-    if (!isUserNeedToWait) {
-      queryClient.invalidateQueries({
-        queryKey: [...VUE_QUERY_CACHE_KEYS.accountSpecificTransactions, props.account.id],
-      });
-    }
-  } catch (e) {
-    if (e?.data?.code === API_ERROR_CODES.forbidden) {
-      addNotification({
-        text: e.data.message,
-        type: NotificationType.error,
-      });
-    } else {
-      // eslint-disable-next-line no-console
-      console.error(e);
-    }
-  }
+const loadLatestTransactionsHandler = () => {
+  addErrorNotification('Migrate this account to new bank connection flow.');
 };
 
 watchEffect(() => {

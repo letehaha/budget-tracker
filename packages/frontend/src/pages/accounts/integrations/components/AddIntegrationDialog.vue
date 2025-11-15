@@ -1,7 +1,7 @@
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-w-2xl">
-      <DialogHeader>
+      <DialogHeader class="mb-4">
         <DialogTitle>{{ dialogTitle }}</DialogTitle>
       </DialogHeader>
 
@@ -9,14 +9,26 @@
       <template v-if="currentStep === 'select-provider'">
         <div class="space-y-2">
           <p class="text-muted-foreground mt-4 mb-8 text-sm">Choose a bank data provider to connect</p>
+
           <UiButton
             v-for="provider in providers"
             :key="provider.type"
             variant="outline"
-            class="w-full justify-start"
+            class="h-max w-full justify-start whitespace-normal"
             @click="handleSelectProvider(provider.type)"
           >
-            {{ provider.name }}
+            <div class="flex items-center gap-3 sm:gap-6">
+              <BankProviderLogo class="size-12" :provider="provider.type" />
+
+              <div class="flex flex-col text-left">
+                <p class="mb-1 text-lg">
+                  {{ provider.name }}
+                </p>
+                <p class="text-sm opacity-70">
+                  {{ METAINFO_FROM_TYPE[provider.type].description }}
+                </p>
+              </div>
+            </div>
           </UiButton>
         </div>
       </template>
@@ -24,12 +36,12 @@
       <!-- Step 2: Provider-specific connection flow -->
       <template v-else-if="currentStep === 'connect-provider' && selectedProviderType">
         <MonobankConnector
-          v-if="selectedProviderType === 'monobank'"
+          v-if="selectedProviderType === BANK_PROVIDER_TYPE.MONOBANK"
           @connected="handleProviderConnected"
           @cancel="handleCancel"
         />
         <EnableBankingConnector
-          v-else-if="selectedProviderType === 'enable-banking'"
+          v-else-if="selectedProviderType === BANK_PROVIDER_TYPE.ENABLE_BANKING"
           @connected="handleProviderConnected"
           @cancel="handleCancel"
         />
@@ -46,8 +58,11 @@
 
 <script lang="ts" setup>
 import type { BankProvider } from '@/api/bank-data-providers';
+import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
+import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { computed, ref, watch } from 'vue';
 
 import EnableBankingConnector from './EnableBankingConnector.vue';

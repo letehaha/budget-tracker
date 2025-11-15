@@ -1,6 +1,6 @@
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import { BankProviderType } from '@services/bank-data-providers';
 import * as helpers from '@tests/helpers';
 import {
   INVALID_ENABLE_BANKING_APP_ID,
@@ -23,7 +23,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       // Verify Enable Banking is in the list
       const enableBankingProvider = providers.find(
-        (p: { type: string }) => p.type === BankProviderType.ENABLE_BANKING,
+        (p: { type: string }) => p.type === BANK_PROVIDER_TYPE.ENABLE_BANKING,
       )!;
       expect(enableBankingProvider).toBeDefined();
       expect(enableBankingProvider.name).toBe('Enable Banking');
@@ -32,7 +32,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       // Step 2: Initiate connection (this creates a pending connection and returns auth URL)
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         providerName: 'My Enable Banking Connection',
         raw: true,
@@ -50,7 +50,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       expect(pendingConnection.isActive).toBe(false); // Not active until OAuth completes
-      expect(pendingConnection.providerType).toBe(BankProviderType.ENABLE_BANKING);
+      expect(pendingConnection.providerType).toBe(BANK_PROVIDER_TYPE.ENABLE_BANKING);
 
       // Step 4: Extract state from connection metadata for OAuth callback
       const state = await helpers.enablebanking.getConnectionState(connectionId);
@@ -77,7 +77,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       expect(activeConnection.isActive).toBe(true);
-      expect(activeConnection.providerType).toBe(BankProviderType.ENABLE_BANKING);
+      expect(activeConnection.providerType).toBe(BANK_PROVIDER_TYPE.ENABLE_BANKING);
       expect(activeConnection.providerName).toBe('My Enable Banking Connection');
 
       // Step 7: List external accounts
@@ -143,7 +143,9 @@ describe('Enable Banking Data Provider E2E', () => {
     it('should include Enable Banking in providers list', async () => {
       const { providers } = await helpers.bankDataProviders.getSupportedBankProviders({ raw: true });
 
-      const enableBankingProvider = providers.find((p: { type: string }) => p.type === BankProviderType.ENABLE_BANKING);
+      const enableBankingProvider = providers.find(
+        (p: { type: string }) => p.type === BANK_PROVIDER_TYPE.ENABLE_BANKING,
+      );
       expect(enableBankingProvider).toBeDefined();
       expect(enableBankingProvider?.name).toBe('Enable Banking');
       expect(enableBankingProvider?.description).toContain('6000+');
@@ -152,7 +154,9 @@ describe('Enable Banking Data Provider E2E', () => {
     it('should include correct credential fields for Enable Banking', async () => {
       const { providers } = await helpers.bankDataProviders.getSupportedBankProviders({ raw: true });
 
-      const enableBankingProvider = providers.find((p: { type: string }) => p.type === BankProviderType.ENABLE_BANKING);
+      const enableBankingProvider = providers.find(
+        (p: { type: string }) => p.type === BANK_PROVIDER_TYPE.ENABLE_BANKING,
+      );
       expect(enableBankingProvider?.credentialFields).toBeDefined();
 
       const fieldNames = enableBankingProvider?.credentialFields.map((f: { name: string }) => f.name);
@@ -185,7 +189,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should successfully create pending connection with valid credentials', async () => {
       const result = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -205,7 +209,7 @@ describe('Enable Banking Data Provider E2E', () => {
     it('should fail with invalid credentials', async () => {
       const result = await helpers.makeRequest({
         method: 'post',
-        url: `/bank-data-providers/${BankProviderType.ENABLE_BANKING}/connect`,
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.ENABLE_BANKING}/connect`,
         payload: {
           credentials: {
             appId: INVALID_ENABLE_BANKING_APP_ID,
@@ -222,7 +226,7 @@ describe('Enable Banking Data Provider E2E', () => {
     it('should accept optional provider name', async () => {
       const customName = 'My Custom Bank Connection';
       const result = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         providerName: customName,
         raw: true,
@@ -239,7 +243,7 @@ describe('Enable Banking Data Provider E2E', () => {
     it('should validate required Enable Banking fields', async () => {
       const result = await helpers.makeRequest({
         method: 'post',
-        url: `/bank-data-providers/${BankProviderType.ENABLE_BANKING}/connect`,
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.ENABLE_BANKING}/connect`,
         payload: {
           credentials: {
             appId: helpers.enablebanking.mockAppId,
@@ -253,7 +257,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should store authorization details in connection metadata', async () => {
       const result = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -286,7 +290,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should return error for invalid state parameter', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -306,7 +310,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should successfully activate connection with valid OAuth callback', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -353,7 +357,7 @@ describe('Enable Banking Data Provider E2E', () => {
   describe('Step 4: List user connections', () => {
     it('should list Enable Banking connection after OAuth completes', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         providerName: 'My Enable Banking',
         raw: true,
@@ -375,13 +379,13 @@ describe('Enable Banking Data Provider E2E', () => {
 
       const enableBankingConnection = connections.find((c: { id: number }) => c.id === connectResult.connectionId);
       expect(enableBankingConnection).toBeDefined();
-      expect(enableBankingConnection?.providerType).toBe(BankProviderType.ENABLE_BANKING);
+      expect(enableBankingConnection?.providerType).toBe(BANK_PROVIDER_TYPE.ENABLE_BANKING);
       expect(enableBankingConnection?.isActive).toBe(true);
     });
 
     it('should show accountsCount as 0 for newly connected providers', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -406,14 +410,14 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should allow multiple Enable Banking connections', async () => {
       const result1 = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         providerName: 'Enable Banking 1',
         raw: true,
       });
 
       const result2 = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         providerName: 'Enable Banking 2',
         raw: true,
@@ -423,7 +427,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
       const enableBankingConnections = connections.filter(
-        (c: { providerType: string }) => c.providerType === BankProviderType.ENABLE_BANKING,
+        (c: { providerType: string }) => c.providerType === BANK_PROVIDER_TYPE.ENABLE_BANKING,
       );
 
       expect(enableBankingConnections.length).toBeGreaterThanOrEqual(2);
@@ -441,7 +445,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should list external accounts from Enable Banking', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -471,7 +475,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should return accounts with correct structure', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -505,7 +509,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should return all mocked accounts', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -533,7 +537,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should include account metadata (IBAN, product, etc.)', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -562,6 +566,52 @@ describe('Enable Banking Data Provider E2E', () => {
   });
 
   describe('Step 6: Connect selected accounts', () => {
+    it('should automatically sync transactions when connecting accounts', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      const accountIds = [MOCK_ACCOUNT_UID_1];
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: accountIds,
+        raw: true,
+      });
+
+      const createdAccountId = syncedAccounts[0]!.id;
+
+      // Verify transactions were automatically synced by checking if any transactions exist for this account
+      const transactions = await helpers.getTransactions({
+        accountIds: [createdAccountId],
+        raw: true,
+      });
+
+      // Transactions should have been automatically synced
+      // Note: The exact number depends on mock data, but there should be at least some transactions
+      expect(Array.isArray(transactions)).toBe(true);
+      expect(transactions.length).toBeGreaterThan(0);
+
+      // Verify transactions belong to the correct account
+      transactions.forEach((tx: { accountId: number }) => {
+        expect(tx.accountId).toBe(createdAccountId);
+      });
+    });
+
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: 99999,
@@ -573,7 +623,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should fail with invalid account IDs', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -603,7 +653,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should successfully connect valid accounts', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -636,7 +686,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should create accounts with correct balances and currency', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -676,7 +726,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should update connection lastSyncAt after connecting accounts', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -710,7 +760,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should enable existing disabled accounts when reconnecting', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -761,7 +811,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should update accountsCount after connecting accounts', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -793,7 +843,7 @@ describe('Enable Banking Data Provider E2E', () => {
   describe('Step 7: Get connection details', () => {
     it('should return connection details with provider metadata', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         providerName: 'Test Connection',
         raw: true,
@@ -817,7 +867,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       expect(details.id).toBe(connectResult.connectionId);
-      expect(details.providerType).toBe(BankProviderType.ENABLE_BANKING);
+      expect(details.providerType).toBe(BANK_PROVIDER_TYPE.ENABLE_BANKING);
       expect(details.providerName).toBe('Test Connection');
       expect(details.isActive).toBe(true);
 
@@ -829,7 +879,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should include connected accounts in details', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -880,7 +930,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should return empty accounts array when no accounts connected', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -909,7 +959,7 @@ describe('Enable Banking Data Provider E2E', () => {
   describe('Connection persistence and state', () => {
     it('should store credentials securely (encrypted)', async () => {
       const result = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -921,13 +971,13 @@ describe('Enable Banking Data Provider E2E', () => {
 
       expect(connection).toBeDefined();
       expect(connection.id).toBe(result.connectionId);
-      expect(connection.providerType).toBe(BankProviderType.ENABLE_BANKING);
+      expect(connection.providerType).toBe(BANK_PROVIDER_TYPE.ENABLE_BANKING);
       expect(connection.isActive).toBe(false); // Pending until OAuth
     });
 
     it('should create connection with correct initial state', async () => {
       const result = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -937,7 +987,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       expect(connection).toBeDefined();
       expect(connection?.isActive).toBe(false); // Not active until OAuth
-      expect(connection?.providerType).toBe(BankProviderType.ENABLE_BANKING);
+      expect(connection?.providerType).toBe(BANK_PROVIDER_TYPE.ENABLE_BANKING);
       expect(connection?.lastSyncAt).toBeNull();
       expect(connection?.createdAt).toBeDefined();
       expect(connection?.accountsCount).toBe(0);
@@ -945,7 +995,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should transition from pending to active after OAuth', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -982,7 +1032,7 @@ describe('Enable Banking Data Provider E2E', () => {
   describe('Reauthorization flow', () => {
     it('should allow reauthorization of an existing connection', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });
@@ -1020,7 +1070,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
     it('should complete reauthorization flow', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BankProviderType.ENABLE_BANKING,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
         raw: true,
       });

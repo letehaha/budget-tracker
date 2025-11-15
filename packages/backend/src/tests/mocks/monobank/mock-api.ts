@@ -10,8 +10,15 @@ export const MONOBANK_URLS_MOCK = Object.freeze({
   clientInfo: /personal\/client-info/,
 });
 
-export const getMonobankTransactionsMock = (response: ExternalMonobankTransactionResponse[] = []) => {
-  return http.get(MONOBANK_URLS_MOCK.personalStatement, () => {
+export const getMonobankTransactionsMock = ({
+  response = [],
+  accountId,
+}: { response?: ExternalMonobankTransactionResponse[]; accountId?: string | number } = {}) => {
+  const urlPattern = accountId
+    ? new RegExp(`${MONOBANK_URLS_MOCK.personalStatement.source}/${accountId}`)
+    : MONOBANK_URLS_MOCK.personalStatement;
+
+  return http.get(urlPattern, () => {
     return HttpResponse.json(response);
   });
 };
@@ -29,5 +36,4 @@ export const monobankHandlers = [
 
     return HttpResponse.json(getMockedClientData());
   }),
-  getMonobankTransactionsMock(),
 ];

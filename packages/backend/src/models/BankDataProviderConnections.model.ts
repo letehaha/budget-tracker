@@ -9,11 +9,11 @@ import {
 } from 'sequelize-typescript';
 import Users from '@models/Users.model';
 import Accounts from '@models/Accounts.model';
-import { BankProviderType } from '@services/bank-data-providers/types';
 import {
   encryptCredentials,
   decryptCredentials,
 } from '@services/bank-data-providers/utils/credential-encryption';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 
 /**
  * Interface for BankDataProviderConnections attributes
@@ -21,7 +21,7 @@ import {
 export interface BankDataProviderConnectionsAttributes {
   id: number;
   userId: number;
-  providerType: BankProviderType;
+  providerType: BANK_PROVIDER_TYPE;
   providerName: string;
   isActive: boolean;
   credentials: string; // Encrypted JSON string in DB
@@ -75,7 +75,7 @@ export default class BankDataProviderConnections extends Model<BankDataProviderC
     type: DataType.STRING(50),
     comment: 'Type of provider: monobank, lunchflow, etc.',
   })
-  providerType!: BankProviderType;
+  providerType!: BANK_PROVIDER_TYPE;
 
   @Column({
     allowNull: false,

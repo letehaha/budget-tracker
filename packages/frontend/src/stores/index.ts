@@ -7,6 +7,3 @@ export { useAuthStore } from './auth';
 
 // crypto
 export { useCryptoBinanceStore } from './integrations/crypto/binance';
-
-// banks
-export { useBanksMonobankStore } from './integrations/banks/monobank';

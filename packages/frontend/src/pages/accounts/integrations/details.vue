@@ -16,6 +16,9 @@
           <span class="text-xl">←</span>
         </UiButton>
         <h1 class="text-2xl tracking-wider">{{ connectionDetails.providerName }}</h1>
+        <UiButton variant="ghost" size="icon" @click="openEditNameDialog">
+          <PencilIcon class="size-4" />
+        </UiButton>
       </div>
 
       <!-- Connection Details Card -->
@@ -26,12 +29,12 @@
         <CardContent>
           <div class="grid gap-4 md:grid-cols-2">
             <div>
-              <p class="text-muted-foreground text-sm">Provider</p>
-              <p class="font-medium">{{ connectionDetails.provider.name }}</p>
-            </div>
-            <div>
               <p class="text-muted-foreground text-sm">Type</p>
-              <p class="font-medium">{{ connectionDetails.providerType }}</p>
+              <p class="mt-1 flex items-center gap-2 font-medium">
+                <BankProviderLogo class="size-5" :provider="connectionDetails.providerType" />
+
+                {{ METAINFO_FROM_TYPE[connectionDetails.providerType].name }}
+              </p>
             </div>
             <div>
               <p class="text-muted-foreground text-sm">Status</p>
@@ -51,11 +54,6 @@
               <p class="text-muted-foreground text-sm">Connected Accounts</p>
               <p class="font-medium">{{ connectionDetails.accounts.length }}</p>
             </div>
-          </div>
-
-          <div v-if="connectionDetails.provider.description" class="mt-4">
-            <p class="text-muted-foreground text-sm">Description</p>
-            <p class="mt-1">{{ connectionDetails.provider.description }}</p>
           </div>
         </CardContent>
       </Card>
@@ -287,6 +285,14 @@
       :is-disconnecting="isDisconnecting"
       @confirm="handleDisconnectConfirm"
     />
+
+    <!-- Edit Connection Name Dialog -->
+    <EditConnectionNameDialog
+      v-model:open="isEditNameDialogOpen"
+      :provider-name="connectionDetails?.providerName || ''"
+      :is-saving="isSavingName"
+      @save="handleSaveConnectionName"
+    />
   </div>
 </template>
 
@@ -297,8 +303,11 @@ import {
   getConnectionDetails,
   reauthorizeConnection,
   syncSelectedAccounts,
+  updateConnectionDetails,
 } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
+import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import {
@@ -314,10 +323,12 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { PencilIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import DisconnectIntegrationDialog from './components/DisconnectIntegrationDialog.vue';
+import EditConnectionNameDialog from './components/EditConnectionNameDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -327,6 +338,7 @@ const queryClient = useQueryClient();
 const connectionId = computed(() => Number(route.params.connectionId));
 const isFetchAccountsDialogOpen = ref(false);
 const isDisconnectDialogOpen = ref(false);
+const isEditNameDialogOpen = ref(false);
 const selectedAccountIds = ref<string[]>([]);
 
 // Query for connection details
@@ -397,6 +409,25 @@ const { mutate: disconnectMutation, isPending: isDisconnecting } = useMutation({
   },
 });
 
+// Mutation for updating connection name
+const { mutate: updateNameMutation, isPending: isSavingName } = useMutation({
+  mutationFn: ({ connectionId, providerName }: { connectionId: number; providerName: string }) =>
+    updateConnectionDetails(connectionId, { providerName }),
+  onSuccess: () => {
+    addSuccessNotification('Connection name updated successfully');
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange);
+      },
+    });
+    isEditNameDialogOpen.value = false;
+  },
+  onError: () => {
+    addErrorNotification('Failed to update connection name');
+  },
+});
+
 const isAccountConnected = (externalId: string): boolean => {
   return connectionDetails.value?.accounts.some((account) => account.externalId === externalId) ?? false;
 };
@@ -415,6 +446,14 @@ const openFetchAccountsDialog = () => {
 
 const openDisconnectDialog = () => {
   isDisconnectDialogOpen.value = true;
+};
+
+const openEditNameDialog = () => {
+  isEditNameDialogOpen.value = true;
+};
+
+const handleSaveConnectionName = (providerName: string) => {
+  updateNameMutation({ connectionId: connectionId.value, providerName });
 };
 
 const handleSyncSelectedAccounts = () => {

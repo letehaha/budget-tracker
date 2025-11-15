@@ -4,7 +4,7 @@
     <template v-if="currentStep === 1">
       <div class="space-y-4">
         <div>
-          <label class="mb-2 block text-sm font-medium">API Token</label>
+          <label class="text-sm font-medium">API Token</label>
           <input
             v-model="apiToken"
             type="password"
@@ -12,7 +12,24 @@
             placeholder="Enter your Monobank API token"
             @keyup.enter="handleConnectProvider"
           />
-          <p class="text-muted-foreground mt-1 text-xs">You can get your API token from Monobank mobile app</p>
+
+          <Tooltip.TooltipProvider>
+            <Tooltip.Tooltip>
+              <Tooltip.TooltipTrigger class="mt-2 flex items-center gap-2">
+                <p class="text-muted-foreground text-xs">You can get your API token from Monobank mobile app</p>
+                <InfoIcon class="text-primary size-4" />
+              </Tooltip.TooltipTrigger>
+              <Tooltip.TooltipContent class="max-w-[400px] p-4">
+                <span class="text-sm leading-6 opacity-90">
+                  To obtain a token for personal use please visit
+                  <ExternalLink href="https://api.monobank.ua" />
+                  and follow instructions. Once token is generated, store it somewhere and enter into the field.
+                  <br />
+                  <b>Note:</b> Don't worry, the API token is strictly read-only.
+                </span>
+              </Tooltip.TooltipContent>
+            </Tooltip.Tooltip>
+          </Tooltip.TooltipProvider>
         </div>
         <div>
           <label class="mb-2 block text-sm font-medium">Connection Name (optional)</label>
@@ -23,11 +40,12 @@
             placeholder="e.g., Personal Account"
           />
         </div>
-        <div class="flex gap-2">
+        <div class="flex justify-between gap-2">
+          <UiButton variant="outline" @click="$emit('cancel')" :disabled="isLoading"> Back </UiButton>
+
           <UiButton @click="handleConnectProvider" :disabled="!apiToken || isLoading">
             {{ isLoading ? 'Connecting...' : 'Connect' }}
           </UiButton>
-          <UiButton variant="outline" @click="$emit('cancel')" :disabled="isLoading"> Cancel </UiButton>
         </div>
       </div>
     </template>
@@ -56,11 +74,12 @@
             </label>
           </div>
 
-          <div class="flex gap-2 pt-4">
+          <div class="flex justify-between gap-2 pt-4">
+            <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading"> Back </UiButton>
+
             <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading">
               {{ isLoading ? 'Syncing...' : `Sync ${selectedAccountIds.length} account(s)` }}
             </UiButton>
-            <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading"> Back </UiButton>
           </div>
         </template>
       </div>
@@ -75,9 +94,13 @@ import {
   getAvailableAccounts,
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
+import ExternalLink from '@/components/external-link.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore } from '@/stores';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { InfoIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 const emit = defineEmits<{
@@ -107,7 +130,11 @@ const handleConnectProvider = async () => {
     isLoading.value = true;
 
     // Step 1: Connect provider
-    const response = await connectProvider('monobank', { apiToken: apiToken.value }, connectionName.value || undefined);
+    const response = await connectProvider(
+      BANK_PROVIDER_TYPE.MONOBANK,
+      { apiToken: apiToken.value },
+      connectionName.value || undefined,
+    );
 
     connectionId.value = response.connectionId;
 

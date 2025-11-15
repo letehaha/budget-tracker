@@ -1,21 +1,16 @@
-import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { getHoursInMilliseconds } from '@/js/helpers';
 import { useAuthStore } from '@/stores/auth';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { useCurrenciesStore } from '@/stores/currencies';
-import { useBanksMonobankStore } from '@/stores/integrations/banks/monobank';
 import { useUserStore } from '@/stores/user';
-import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore, storeToRefs } from 'pinia';
 import { ref, shallowRef } from 'vue';
 
 export const useRootStore = defineStore('root', () => {
   const authStore = useAuthStore();
   const currenciesStore = useCurrenciesStore();
-  const monobankStore = useBanksMonobankStore();
   const userStore = useUserStore();
   const categoriesStore = useCategoriesStore();
-  const queryClient = useQueryClient();
 
   const isAppInitialized = ref(false);
   const isFinancialDataSyncingError = shallowRef<null | Error>(null);
@@ -50,7 +45,6 @@ export const useRootStore = defineStore('root', () => {
         ...(categories.value.length ? [] : [categoriesStore.loadCategories()]),
         currenciesStore.loadCurrencies(),
         ...(isBaseCurrencyExists.value ? [] : [currenciesStore.loadBaseCurrency()]),
-        monobankStore.loadUserData(),
       ]);
 
       isAppInitialized.value = true;
@@ -62,14 +56,7 @@ export const useRootStore = defineStore('root', () => {
       isFinancialDataSyncingError.value = null;
       isFinancialDataSyncing.value = true;
 
-      if (isAllowedToSyncFinancialData.value) {
-        // refresh balances of all monobank accounts
-        await Promise.allSettled([monobankStore.refreshAccounts(), monobankStore.loadTransactionsForEnabledAccounts()]);
-
-        queryClient.invalidateQueries({
-          queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange],
-        });
-      }
+      // TODO: cleanup
     } catch (e) {
       isFinancialDataSyncingError.value = e as Error;
     } finally {

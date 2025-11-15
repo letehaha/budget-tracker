@@ -57,10 +57,7 @@ const hasExternalAccounts = computed(() => externalAccounts.value && externalAcc
 
 const canConfirmLink = computed(() => {
   return (
-    !!selectedConnectionId.value &&
-    !!selectedExternalAccountId.value &&
-    !isLinking.value &&
-    !currencyMismatch.value
+    !!selectedConnectionId.value && !!selectedExternalAccountId.value && !isLinking.value && !currencyMismatch.value
   );
 });
 
@@ -178,7 +175,9 @@ const linkingError = computed(() => {
               :disabled="isLoadingExternalAccounts || !hasExternalAccounts"
             >
               <Select.SelectTrigger id="account-select">
-                <Select.SelectValue placeholder="Select an external account" />
+                <Select.SelectValue
+                  :placeholder="isLoadingExternalAccounts ? `Loading...` : `Select an external account`"
+                />
               </Select.SelectTrigger>
               <Select.SelectContent>
                 <template v-if="isLoadingExternalAccounts">
@@ -197,13 +196,13 @@ const linkingError = computed(() => {
           </div>
 
           <!-- Currency Mismatch Error -->
-          <div v-if="linkingError" class="rounded-md bg-destructive/10 p-3 text-sm">
-            <p class="font-semibold text-destructive">⚠️ Cannot Link Account</p>
-            <p class="mt-1 text-xs text-destructive">{{ linkingError }}</p>
+          <div v-if="linkingError" class="bg-destructive/10 rounded-md p-3 text-sm">
+            <p class="text-destructive font-semibold">⚠️ Cannot Link Account</p>
+            <p class="text-destructive mt-1 text-xs">{{ linkingError }}</p>
           </div>
 
           <!-- Balance Preview -->
-          <div v-else-if="selectedExternalAccount" class="rounded-md bg-muted p-3 text-sm">
+          <div v-else-if="selectedExternalAccount" class="bg-muted rounded-md p-3 text-sm">
             <p class="mb-1 font-semibold">Current Balance Comparison:</p>
             <div class="grid grid-cols-2 gap-2">
               <div>
