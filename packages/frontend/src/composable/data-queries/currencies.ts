@@ -1,6 +1,6 @@
-import { getAllCurrencies, loadUserBaseCurrency, loadUserCurrencies, setBaseUserCurrency } from '@/api/currencies';
+import { getAllCurrencies, loadUserBaseCurrency, setBaseUserCurrency } from '@/api/currencies';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { CurrencyModel, UserCurrencyModel } from '@bt/shared/types';
+import { CurrencyModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 
 /**
@@ -20,26 +20,6 @@ export const useAllCurrencies = (queryOptions = {}) => {
   return {
     ...query,
     invalidate: () => queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allCurrencies }),
-  };
-};
-
-/**
- * Query for fetching user's currencies
- */
-export const useUserCurrencies = (queryOptions = {}) => {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryFn: loadUserCurrencies,
-    queryKey: VUE_QUERY_CACHE_KEYS.userCurrencies,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    placeholderData: [] as UserCurrencyModel[],
-    ...queryOptions,
-  });
-
-  return {
-    ...query,
-    invalidate: () => queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.userCurrencies }),
   };
 };
 
