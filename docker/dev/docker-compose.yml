@@ -49,7 +49,7 @@ services:
     image: redis:7
     container_name: dev-budget-tracker-redis
     volumes: ["redis_data:/data"]
-    ports: ["6379:6379"]
+    ports: ["${MAP_REDIS_PORT_TO_OS_PORT:-6379}:6379"]
 
   # Frankfurter: Self-hosted exchange rates service
   # Provides historical exchange rates data from 1999-01-04 to present
