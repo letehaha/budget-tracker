@@ -14,35 +14,28 @@
       </div>
     </div>
 
-    <template v-if="formattedAccounts.length">
-      <div class="mb-6 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
-        <template v-for="account in formattedAccounts" :key="account.id">
-          <Card :class="cn('relative', !account.isEnabled && 'opacity-40')">
-            <router-link
-              :to="{
-                name: ROUTES_NAMES.account,
-                params: { id: account.id },
-              }"
-              class="block h-full"
-            >
-              <CardHeader class="p-3">
-                <div
-                  v-if="!account.isEnabled"
-                  :class="['bg-background absolute top-0 right-0 rounded-tr-md p-1 text-xs leading-none']"
-                >
-                  Hidden
+    <template v-if="accounts.length">
+      <div class="grid gap-6">
+        <template v-for="key in Object.keys(groupedAccounts)">
+          <template v-if="groupedAccounts[key].length">
+            <Section :default-open="key === 'hidden' ? false : true">
+              <template #trigger-content>
+                <h2 class="xs:text-lg text-base font-semibold">
+                  <template v-if="key === 'hidden'">Hidden accounts</template>
+                  <template v-else-if="key === 'manual'">Manual accounts</template>
+                  <template v-else-if="key === 'integrations'">Bank Integrations</template>
+                </h2>
+              </template>
+
+              <template #content>
+                <div class="xs:gap-3 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))]">
+                  <template v-for="account in groupedAccounts[key]" :key="account.id">
+                    <AccountCard :account="account" />
+                  </template>
                 </div>
-                <div class="mb-2.5 max-w-[calc(100%-60px)] overflow-hidden text-lg tracking-wide text-ellipsis">
-                  {{ account.name || 'No name set...' }}
-                </div>
-              </CardHeader>
-              <CardContent class="px-3 pb-3">
-                <div class="accounts__item-balance">
-                  {{ formatBalance(account) }}
-                </div>
-              </CardContent>
-            </router-link>
-          </Card>
+              </template>
+            </Section>
+          </template>
         </template>
       </div>
     </template>
@@ -86,9 +79,6 @@
 import { type BankProvider, listProviders } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
-import { useFormatCurrency } from '@/composable';
-import { cn } from '@/lib/utils';
 import AddIntegrationDialog from '@/pages/accounts/integrations/components/AddIntegrationDialog.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
@@ -98,15 +88,31 @@ import { LandmarkIcon, LinkIcon, PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
+import AccountCard from './components/account-card.vue';
+import Section from './components/section.vue';
+
 const { accounts } = storeToRefs(useAccountsStore());
 const queryClient = useQueryClient();
 
-const { formatAmountByCurrencyCode } = useFormatCurrency();
+type AccountTypeKey = 'integrations' | 'manual' | 'hidden';
 
-const formattedAccounts = computed(() => [...accounts.value].sort((a, b) => +b.isEnabled - +a.isEnabled));
-
-const formatBalance = (account: AccountModel) =>
-  formatAmountByCurrencyCode(account.currentBalance - account.creditLimit, account.currencyCode);
+const groupedAccounts = computed(() =>
+  accounts.value.reduce(
+    (acc, account) => {
+      if (!account.isEnabled) {
+        acc.hidden.push(account);
+      } else {
+        if (typeof account.bankDataProviderConnectionId === 'number') {
+          acc.integrations.push(account);
+        } else {
+          acc.manual.push(account);
+        }
+      }
+      return acc;
+    },
+    { integrations: [], manual: [], hidden: [] } as Record<AccountTypeKey, AccountModel[]>,
+  ),
+);
 
 // Integration dialog state
 const isDialogOpen = ref(false);
