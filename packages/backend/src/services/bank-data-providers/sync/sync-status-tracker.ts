@@ -25,7 +25,8 @@ export const REDIS_KEYS = {
 };
 
 const AUTO_SYNC_PERIOD = 12 * 60 * 60 * 1000;
-const STATUS_TTL = 24 * 60 * 60; // 24 hours in seconds
+// 24 hours for prod, and about infinity for other envs to avoid unneeded syncs
+const STATUS_TTL = (process.env.NODE_ENV === 'production' ? 24 : 3600) * 60 * 60;
 const STALE_SYNC_THRESHOLD = 20 * 60 * 1000; // 15 minutes - if PENDING/SYNCING for longer, consider stale
 
 /**
