@@ -46,7 +46,6 @@ const DBConfig: Record<string, unknown> = {
   database: process.env.APPLICATION_DB_DATABASE,
   port: process.env.APPLICATION_DB_PORT,
   dialect: process.env.APPLICATION_DB_DIALECT,
-  logging: true,
 };
 
 const models = [
@@ -90,10 +89,10 @@ const sequelize = new Sequelize({
     max: 50,
     evict: 10000,
   },
-  logging: process.env.NODE_ENV === 'production',
+  logging: process.env.DB_QUERY_LOGGING === 'true',
 });
 
-if (process.env.NODE_ENV === 'defelopment') {
+if (process.env.NODE_ENV === 'development') {
   console.log('DBConfig', DBConfig);
 }
 
