@@ -22,6 +22,7 @@
     "not dead"
   ],
   "dependencies": {
+    "@internationalized/date": "^3.10.0",
     "@tanstack/vue-query": "^5.51.21",
     "@tanstack/vue-virtual": "^3.13.9",
     "@vuelidate/core": "^2.0.3",
