@@ -4,7 +4,6 @@ import * as Balances from '@models/Balances.model';
 import { format } from 'date-fns';
 import { Op } from 'sequelize';
 
-import { withTransaction } from '../common/with-transaction';
 import { getWhereConditionForTime } from './utils';
 
 /**
@@ -23,14 +22,25 @@ import { getWhereConditionForTime } from './utils';
  * @example
  * const balances = await getBalanceHistory({ userId: 1, from: '2023-01-01', to: '2023-12-31' });
  */
-export const getBalanceHistory = withTransaction(
-  async ({ userId, from, to }: { userId: number; from?: string; to?: string }): Promise<BalanceModel[]> => {
-    try {
-      let data: BalanceModel[] = [];
+export const getBalanceHistory = async ({
+  userId,
+  from,
+  to,
+}: {
+  userId: number;
+  from?: string;
+  to?: string;
+}): Promise<BalanceModel[]> => {
+  try {
+    const dataAttributes = ['date', 'amount', 'accountId'];
 
-      const dataAttributes = ['date', 'amount', 'accountId'];
-      // Fetch all balance records within the specified date range for the user
-      const balancesInRange = await Balances.default.findAll({
+    const [allUserAccounts, balancesInRange] = await Promise.all([
+      Accounts.default.findAll({
+        where: { userId },
+        attributes: ['id'],
+        raw: true,
+      }),
+      Balances.default.findAll({
         where: getWhereConditionForTime({ from, to, columnName: 'date' }),
         order: [['date', 'ASC']],
         include: [
@@ -42,89 +52,90 @@ export const getBalanceHistory = withTransaction(
         ],
         raw: true,
         attributes: dataAttributes,
-      });
+      }) as Promise<BalanceModel[]>,
+    ]);
 
-      data = balancesInRange;
+    let data = balancesInRange;
+    const allAccountIds = allUserAccounts.map((acc) => acc.id);
 
-      // Extract account IDs for balance records which have the same date as the
-      // first record in the range. This is needed to make sure that we know the
-      // balance for each account for the beginning of the date range
-      const accountIdsInRange = balancesInRange
-        .filter((item) => item.date === balancesInRange[0]!.date)
-        .map((b) => b.accountId);
+    // Extract account IDs for balance records which have the same date as the
+    // first record in the range. This is needed to make sure that we know the
+    // balance for each account for the beginning of the date range
+    const accountIdsInRange = balancesInRange
+      .filter((item) => item.date === balancesInRange[0]?.date)
+      .map((b) => b.accountId);
 
-      // Fetch all accounts for the user
-      const allUserAccounts = await Accounts.default.findAll({
-        where: { userId },
-        attributes: ['id'],
-      });
-      const allAccountIds = allUserAccounts.map((acc) => acc.id);
-      const accountIdsNotInRange = allAccountIds.filter((id) => !accountIdsInRange.includes(id));
+    const accountIdsNotInRange = allAccountIds.filter((id) => !accountIdsInRange.includes(id));
 
-      if (accountIdsNotInRange.length) {
-        const latestBalancesPromises = accountIdsNotInRange.map(async (accountId) => {
-          let balanceRecord;
-
-          if (from) {
-            // Check for records before "from" date
-            balanceRecord = await Balances.default.findOne({
+    if (accountIdsNotInRange.length && (from || to)) {
+      const [balancesBeforeFrom, balancesAfterTo] = await Promise.all([
+        // Get latest balance before 'from' date for each missing account
+        from
+          ? Balances.default.findAll({
               where: {
-                date: {
-                  [Op.lt]: new Date(from),
-                },
-                accountId,
+                accountId: { [Op.in]: accountIdsNotInRange },
+                date: { [Op.lt]: new Date(from) },
               },
-              order: [['date', 'DESC']],
-              attributes: dataAttributes,
+              attributes: [...dataAttributes, 'id'],
               raw: true,
-            });
+            })
+          : Promise.resolve([]),
+        // Get earliest balance after 'to' date with amount > 0 for each missing account
+        to
+          ? Balances.default.findAll({
+              where: {
+                accountId: { [Op.in]: accountIdsNotInRange },
+                date: { [Op.gt]: new Date(to) },
+              },
+              attributes: [...dataAttributes, 'id'],
+              raw: true,
+            })
+          : Promise.resolve([]),
+      ]);
+
+      // For each missing account, find the latest "before" or earliest "after" balance
+      const latestBalances = accountIdsNotInRange
+        .map((accountId) => {
+          // Find latest balance before 'from' for this account
+          const beforeBalances = balancesBeforeFrom
+            .filter((b) => b.accountId === accountId)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+          if (beforeBalances.length > 0) {
+            return beforeBalances[0];
           }
 
-          if (!balanceRecord && to) {
-            // If no record found before "from" date, check for records after "to"
-            // date with amount > 0
-            balanceRecord = await Balances.default.findOne({
-              where: {
-                accountId,
-                date: {
-                  [Op.gt]: new Date(to),
-                },
-                amount: {
-                  [Op.gt]: 0,
-                },
-              },
-              order: [['date', 'ASC']],
-              attributes: dataAttributes,
-              raw: true,
-            });
+          // Fallback: Find earliest balance after 'to' with amount > 0
+          const afterBalances = balancesAfterTo
+            .filter((b) => b.accountId === accountId)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+          if (afterBalances.length > 0) {
+            return afterBalances[0];
           }
 
-          return balanceRecord;
-        });
+          return null;
+        })
+        .filter(Boolean) as BalanceModel[];
 
-        const latestBalances = await Promise.all(latestBalancesPromises);
-
-        // Combine the results
-        data = [
-          ...data,
-          // filter(Boolean) to remove any null values
-          ...latestBalances.filter(Boolean).map((item) => ({
-            ...item,
-            // since date is lower than "from", we need to hard-rewrite it to "to" if provided,
-            // or "from" otherwise, so it will behave logically correctly
-            date: new Date(to ?? from ?? new Date()),
-          })),
-          // Sort the result ASC
-        ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      }
-
-      return data;
-    } catch (err) {
-      console.log(err);
-      throw err;
+      // Combine results
+      data = [
+        ...data,
+        ...latestBalances.map((item) => ({
+          ...item,
+          // since date is lower than "from", we need to hard-rewrite it to "to" if provided,
+          // or "from" otherwise, so it will behave logically correctly
+          date: new Date(to ?? from ?? new Date()),
+        })),
+      ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }
-  },
-);
+
+    return data;
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
+};
 
 interface AggregatedBalanceHistoryItem {
   date: string;
@@ -233,10 +244,10 @@ function aggregateBalanceTrendData(data: BalanceModel[]): AggregatedBalanceHisto
  * @param {string} [params.to] - The end date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @returns {Promise<AggregatedBalanceHistoryItem[]>} - A promise that resolves to an array of aggregated balance records.
  */
-export const getAggregatedBalanceHistory = withTransaction(
-  async (...args: Parameters<typeof getBalanceHistory>): Promise<AggregatedBalanceHistoryItem[]> => {
-    const rawBalanceHistory = await getBalanceHistory(...args);
+export const getAggregatedBalanceHistory = async (
+  ...args: Parameters<typeof getBalanceHistory>
+): Promise<AggregatedBalanceHistoryItem[]> => {
+  const rawBalanceHistory = await getBalanceHistory(...args);
 
-    return aggregateBalanceTrendData(rawBalanceHistory);
-  },
-);
+  return aggregateBalanceTrendData(rawBalanceHistory);
+};

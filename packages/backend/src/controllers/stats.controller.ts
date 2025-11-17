@@ -168,8 +168,7 @@ export const getCombinedBalanceHistory = createController(combinedBalanceHistory
 
   tryBasicDateValidation({ from, to });
 
-  const combinedBalanceHistory = await statsService.getCombinedBalanceHistoryOptimized({
-    // const combinedBalanceHistory = await statsService.getCombinedBalanceHistory({
+  const combinedBalanceHistory = await statsService.getCombinedBalanceHistory({
     userId,
     from,
     to,
