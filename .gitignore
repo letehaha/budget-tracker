@@ -141,9 +141,5 @@ ai-context.md
 packages/backend/data
 
 dev-debug.log
-# Environment variables
-# OS specific
 
-# Task files
-# tasks.json
-# tasks/
+scripts/local/*

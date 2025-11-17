@@ -1,9 +1,15 @@
+import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
 import { toSystemAmount } from '@js/helpers/system-amount';
-import { format, parseISO } from 'date-fns';
+import { logger } from '@js/utils';
+import ExchangeRates from '@models/ExchangeRates.model';
+import UserExchangeRates from '@models/UserExchangeRates.model';
+import UsersCurrencies from '@models/UsersCurrencies.model';
+import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
+import Portfolios from '@models/investments/Portfolios.model';
+import SecurityPricing from '@models/investments/SecurityPricing.model';
+import { eachDayOfInterval, format, parseISO } from 'date-fns';
+import { Op } from 'sequelize';
 
-import { withTransaction } from '../common/with-transaction';
-import { getPortfolioValuesForDateRange } from '../investments/portfolios/historical-value.service';
-import { listPortfolios } from '../investments/portfolios/list.service';
 import { getAggregatedBalanceHistory } from './get-balance-history';
 
 export interface CombinedBalanceHistoryItem {
@@ -12,6 +18,252 @@ export interface CombinedBalanceHistoryItem {
   portfoliosBalance: number;
   totalBalance: number;
 }
+
+/**
+ * Helper function to calculate portfolio balance history
+ * Runs independently of accounts balance calculation
+ */
+const calculatePortfolioBalanceHistory = async ({
+  userId,
+  minDate,
+  maxDate,
+  uniqueDates,
+}: {
+  userId: number;
+  minDate: string;
+  maxDate: string;
+  uniqueDates: string[];
+}): Promise<Map<string, number> | null> => {
+  const [userBaseCurrency, portfolios] = await Promise.all([
+    UsersCurrencies.findOne({
+      where: { userId, isDefaultCurrency: true },
+      raw: true,
+      attributes: ['currencyCode'],
+    }) as Promise<Pick<UsersCurrencies, 'currencyCode'> | null>,
+    Portfolios.findAll({
+      where: { userId, isEnabled: true },
+      attributes: ['id'],
+      raw: true,
+    }),
+  ]);
+
+  if (!userBaseCurrency?.currencyCode || portfolios.length === 0) {
+    return null;
+  }
+
+  const portfolioIds = portfolios.map((p: { id: number }) => p.id);
+
+  type TransactionRow = Pick<
+    InvestmentTransaction,
+    'portfolioId' | 'securityId' | 'category' | 'date' | 'quantity' | 'refAmount' | 'refFees' | 'currencyCode'
+  >;
+
+  const transactions: TransactionRow[] = await InvestmentTransaction.findAll({
+    where: {
+      portfolioId: { [Op.in]: portfolioIds },
+      date: {
+        [Op.lte]: maxDate,
+      },
+    },
+    order: [
+      ['portfolioId', 'ASC'],
+      ['date', 'ASC'],
+      ['createdAt', 'ASC'],
+    ],
+    attributes: ['portfolioId', 'securityId', 'category', 'date', 'quantity', 'refAmount', 'refFees', 'currencyCode'],
+    raw: true,
+  });
+
+  const securityIds = [...new Set(transactions.map((t: TransactionRow) => t.securityId))];
+  const currencyCodes = [...new Set(transactions.map((t: TransactionRow) => t.currencyCode))];
+
+  if (securityIds.length === 0) {
+    return null;
+  }
+
+  type SecurityPriceRow = Pick<SecurityPricing, 'securityId' | 'date' | 'priceClose'>;
+  type ExchangeRateRow = Pick<UserExchangeRates, 'baseCode' | 'quoteCode' | 'date' | 'rate'>;
+
+  const [securityPrices, userCustomExchangeRates, systemExchangeRates] = await Promise.all([
+    SecurityPricing.findAll({
+      where: {
+        securityId: {
+          [Op.in]: securityIds,
+        },
+        date: {
+          [Op.between]: [minDate, maxDate],
+        },
+      },
+      order: [
+        ['securityId', 'ASC'],
+        ['date', 'ASC'],
+      ],
+      attributes: ['securityId', 'date', 'priceClose'],
+      raw: true,
+    }) as Promise<SecurityPriceRow[]>,
+    UserExchangeRates.findAll({
+      where: {
+        userId,
+        baseCode: {
+          [Op.in]: currencyCodes,
+        },
+        quoteCode: userBaseCurrency.currencyCode,
+        date: {
+          [Op.between]: [minDate, maxDate],
+        },
+      },
+      attributes: ['baseCode', 'quoteCode', 'date', 'rate'],
+      raw: true,
+    }) as Promise<ExchangeRateRow[]>,
+    ExchangeRates.findAll({
+      where: {
+        baseCode: {
+          [Op.in]: currencyCodes,
+        },
+        quoteCode: userBaseCurrency.currencyCode,
+        date: {
+          [Op.between]: [minDate, maxDate],
+        },
+      },
+      raw: true,
+    }),
+  ]);
+
+  const pricesBySecurity = new Map<number, Array<{ date: string; price: number }>>();
+  for (const price of securityPrices) {
+    if (!pricesBySecurity.has(price.securityId)) {
+      pricesBySecurity.set(price.securityId, []);
+    }
+    pricesBySecurity.get(price.securityId)!.push({
+      date: String(price.date),
+      price: parseFloat(price.priceClose),
+    });
+  }
+
+  const exchangeRateMap = new Map<string, number>();
+  const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
+
+  for (const rate of systemExchangeRates) {
+    const key = `${rate.baseCode}_${formatDate(rate.date)}`;
+    const userRate = userCustomExchangeRates.find(
+      (r) => r.baseCode === rate.baseCode && formatDate(r.date) === formatDate(rate.date),
+    );
+    exchangeRateMap.set(key, userRate ? userRate.rate : rate.rate);
+  }
+
+  const getExchangeRate = (currencyCode: string, dateStr: string): number => {
+    if (currencyCode === userBaseCurrency.currencyCode) {
+      return 1;
+    }
+
+    const key = `${currencyCode}_${dateStr}`;
+    const rate = exchangeRateMap.get(key);
+
+    if (rate) {
+      return rate;
+    }
+
+    const availableRates = Array.from(exchangeRateMap.entries())
+      .filter(([k]) => {
+        const parts = k.split('_');
+        return k.startsWith(`${currencyCode}_`) && parts[1] && parts[1] <= dateStr;
+      })
+      .sort((a, b) => b[0].localeCompare(a[0]));
+
+    if (availableRates.length > 0) {
+      return availableRates[0]![1];
+    }
+
+    logger.warn(`No exchange rate found for ${currencyCode} on ${dateStr}, using 1:1`);
+    return 1;
+  };
+
+  const findPriceForDate = (securityId: number, targetDate: string): number | null => {
+    const prices = pricesBySecurity.get(securityId);
+    if (!prices) return null;
+
+    const exactMatch = prices.find((p) => p.date === targetDate);
+    if (exactMatch) return exactMatch.price;
+
+    const availablePrices = prices.filter((p) => p.date <= targetDate);
+    if (availablePrices.length > 0) {
+      return availablePrices[availablePrices.length - 1]!.price;
+    }
+
+    return null;
+  };
+
+  const portfolioValuesByDate = new Map<string, number>();
+
+  for (const dateStr of uniqueDates) {
+    let totalValueForDate = 0;
+
+    for (const portfolioId of portfolioIds) {
+      const portfolioTransactions = transactions.filter(
+        (t: TransactionRow) => t.portfolioId === portfolioId && t.date <= dateStr,
+      );
+
+      const holdings = new Map<
+        number,
+        {
+          quantity: number;
+          costBasis: number;
+          currencyCode: string;
+        }
+      >();
+
+      for (const tx of portfolioTransactions) {
+        const securityId = tx.securityId;
+        const quantity = parseFloat(tx.quantity);
+        const totalAmount = parseFloat(tx.refAmount) + parseFloat(tx.refFees);
+
+        if (!holdings.has(securityId)) {
+          holdings.set(securityId, {
+            quantity: 0,
+            costBasis: 0,
+            currencyCode: tx.currencyCode,
+          });
+        }
+
+        const holding = holdings.get(securityId)!;
+
+        if (tx.category === INVESTMENT_TRANSACTION_CATEGORY.buy) {
+          holding.quantity += quantity;
+          holding.costBasis += totalAmount;
+        } else if (tx.category === INVESTMENT_TRANSACTION_CATEGORY.sell) {
+          if (holding.quantity > 0) {
+            const sellRatio = quantity / holding.quantity;
+            holding.costBasis *= 1 - sellRatio;
+            holding.quantity -= quantity;
+          }
+        }
+
+        if (holding.quantity <= 0) {
+          holdings.delete(securityId);
+        }
+      }
+
+      for (const [securityId, holding] of holdings) {
+        if (holding.quantity <= 0) continue;
+
+        const currentPrice = findPriceForDate(securityId, dateStr);
+
+        if (currentPrice) {
+          const marketValueInSecurityCurrency = holding.quantity * currentPrice;
+          const exchangeRate = getExchangeRate(holding.currencyCode, dateStr);
+          const marketValueInBaseCurrency = Math.floor(marketValueInSecurityCurrency * exchangeRate);
+          totalValueForDate += marketValueInBaseCurrency;
+        } else {
+          totalValueForDate += holding.costBasis;
+        }
+      }
+    }
+
+    portfolioValuesByDate.set(dateStr, toSystemAmount(totalValueForDate));
+  }
+
+  return portfolioValuesByDate;
+};
 
 /**
  * Retrieves combined balance history for accounts and portfolios for a user within a specified date range.
@@ -27,99 +279,74 @@ export interface CombinedBalanceHistoryItem {
  * @returns {Promise<CombinedBalanceHistoryItem[]>} - A promise that resolves to an array of combined balance records.
  * @throws {Error} - Throws an error if the database query fails.
  */
-export const getCombinedBalanceHistory = withTransaction(
-  async ({
-    userId,
-    from,
-    to,
-  }: {
-    userId: number;
-    from?: string;
-    to?: string;
-  }): Promise<CombinedBalanceHistoryItem[]> => {
-    try {
-      // Get aggregated accounts balance history
-      const accountsBalanceHistory = await getAggregatedBalanceHistory({ userId, from, to });
+export const getCombinedBalanceHistory = async ({
+  userId,
+  from,
+  to,
+}: {
+  userId: number;
+  from?: string;
+  to?: string;
+}): Promise<CombinedBalanceHistoryItem[]> => {
+  try {
+    // Handle optional from/to parameters
+    // If 'to' is not provided, use today
+    const maxDate = to || format(new Date(), 'yyyy-MM-dd');
 
-      if (!accountsBalanceHistory || accountsBalanceHistory.length === 0) {
-        return [];
-      }
-
-      const uniqueDates = accountsBalanceHistory.map((item) => item.date);
-
-      // Get user's portfolios
-      const portfolios = await listPortfolios({ userId, isEnabled: true });
-
-      if (portfolios.length === 0) {
-        // If user has no portfolios, return only accounts balance with 0 portfolio balance
-        return accountsBalanceHistory.map((item) => ({
-          date: item.date,
-          accountsBalance: item.amount,
-          portfoliosBalance: 0,
-          totalBalance: item.amount,
-        }));
-      }
-
-      // Create date range for portfolio calculations
-      const dateRange = uniqueDates.map((dateStr) => parseISO(dateStr));
-
-      // Calculate historical portfolio values for all portfolios and all dates
-      const portfolioValuesPromises = portfolios.map(async (portfolio) => {
-        try {
-          const values = await getPortfolioValuesForDateRange({
-            userId,
-            portfolioId: portfolio.id,
-            dateRange,
-          });
-          return values;
-        } catch (error) {
-          console.warn(`Failed to get portfolio values for portfolio ${portfolio.id}:`, error);
-          // Return zero values for this portfolio if calculation fails
-          return dateRange.map((date) => ({
-            date: format(date, 'yyyy-MM-dd'),
-            totalValue: 0,
-            totalCostBasis: 0,
-            unrealizedGain: 0,
-            currencyCode: 'USD',
-          }));
-        }
+    // If 'from' is not provided, try to get the earliest investment transaction date
+    let minDate = from;
+    if (!minDate) {
+      const oldestTransaction = await InvestmentTransaction.findOne({
+        include: [
+          {
+            model: Portfolios,
+            // Filter out transactions for userId
+            where: { userId, isEnabled: true },
+            attributes: [],
+          },
+        ],
+        order: [['date', 'ASC']],
+        attributes: ['date'],
+        raw: true,
       });
 
-      const allPortfolioValues = await Promise.all(portfolioValuesPromises);
-
-      // Aggregate portfolio values by date
-      const portfolioValuesByDate = new Map<string, number>();
-
-      for (const portfolioValues of allPortfolioValues) {
-        for (const value of portfolioValues) {
-          const currentTotal = portfolioValuesByDate.get(value.date) || 0;
-          portfolioValuesByDate.set(value.date, currentTotal + value.totalValue);
-        }
-      }
-
-      // Create a map of accounts balance by date for easy lookup
-      const accountsBalanceMap = new Map<string, number>();
-      accountsBalanceHistory.forEach((item) => {
-        accountsBalanceMap.set(item.date, item.amount);
-      });
-
-      // Combine accounts and portfolio balances
-      const combinedHistory: CombinedBalanceHistoryItem[] = uniqueDates.map((dateStr) => {
-        const accountsBalance = accountsBalanceMap.get(dateStr) || 0;
-        const portfoliosBalance = toSystemAmount(portfolioValuesByDate.get(dateStr) || 0);
-
-        return {
-          date: dateStr,
-          accountsBalance,
-          portfoliosBalance,
-          totalBalance: accountsBalance + portfoliosBalance,
-        };
-      });
-
-      return combinedHistory;
-    } catch (err) {
-      console.error('Error getting combined balance history:', err);
-      throw err;
+      minDate = oldestTransaction?.date ? format(new Date(oldestTransaction.date), 'yyyy-MM-dd') : maxDate; // Fallback to maxDate if no transactions
     }
-  },
-);
+
+    const uniqueDates = eachDayOfInterval({
+      start: parseISO(minDate),
+      end: parseISO(maxDate),
+    }).map((date) => format(date, 'yyyy-MM-dd'));
+
+    const [accountsBalanceHistory, portfolioValuesByDate] = await Promise.all([
+      getAggregatedBalanceHistory({ userId, from: minDate, to: maxDate }),
+      calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
+    ]);
+
+    // If no data at all, return empty array
+    if (
+      (!accountsBalanceHistory || accountsBalanceHistory.length === 0) &&
+      (!portfolioValuesByDate || portfolioValuesByDate.size === 0)
+    ) {
+      return [];
+    }
+
+    // Combine accounts and portfolio balances
+    const combinedHistory: CombinedBalanceHistoryItem[] = uniqueDates.map((dateStr) => {
+      const accountsBalance = accountsBalanceHistory.find((item) => item.date === dateStr)?.amount || 0;
+      const portfoliosBalance = portfolioValuesByDate?.get(dateStr) || 0;
+
+      return {
+        date: dateStr,
+        accountsBalance,
+        portfoliosBalance,
+        totalBalance: accountsBalance + portfoliosBalance,
+      };
+    });
+
+    return combinedHistory;
+  } catch (err) {
+    console.error('Error getting optimized combined balance history:', err);
+    throw err;
+  }
+};

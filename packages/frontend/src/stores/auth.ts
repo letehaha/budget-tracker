@@ -60,14 +60,23 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   const logout = () => {
+    // Clear authentication first
     api.setToken('');
     localStorage.setItem('user-token', '');
     isMobileSheetOpen.value = false;
-
+    // Set logged out state before resetting stores to prevent watcher from triggering query invalidation
+    isLoggedIn.value = false;
+    // Cancel all queries before resetting stores to prevent refetching
+    queryClient.cancelQueries();
     resetAllDefinedStores();
   };
 
-  watch(isLoggedIn, () => queryClient.invalidateQueries());
+  watch(isLoggedIn, (newValue) => {
+    // Only invalidate queries when logging IN, not when logging out
+    if (newValue) {
+      queryClient.invalidateQueries();
+    }
+  });
 
   return {
     isLoggedIn,

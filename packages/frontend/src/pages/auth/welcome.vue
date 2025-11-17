@@ -2,15 +2,15 @@
 import FormWrapper from '@/components/fields/form-wrapper.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { useLogout } from '@/composable/actions/logout';
 import { useAllCurrencies, useBaseCurrency, useSetBaseCurrency } from '@/composable/data-queries/currencies';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { useAuthStore } from '@/stores';
 import { CurrencyModel } from '@bt/shared/types';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const { logout } = useAuthStore();
+const logoutHandler = useLogout();
 
 const selectedCurrency = ref<CurrencyModel | null>(null);
 const formError = ref<string | null>(null);
@@ -66,17 +66,12 @@ const submitBaseCurrency = () => {
     },
   });
 };
-
-const logOutHandler = () => {
-  logout();
-  router.push({ name: ROUTES_NAMES.signIn });
-};
 </script>
 
 <template>
   <div class="flex min-h-screen flex-col px-4">
     <div class="flex justify-end px-6 py-3">
-      <Button theme="primary" class="sidebar__logout" @click="logOutHandler"> Logout </Button>
+      <Button theme="primary" class="sidebar__logout" @click="logoutHandler"> Logout </Button>
     </div>
 
     <div class="flex flex-auto items-center justify-center">

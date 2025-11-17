@@ -56,7 +56,7 @@ import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
-import { addDays, endOfMonth, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
+import { startOfDay } from 'date-fns';
 import { Chart as Highcharts } from 'highcharts-vue';
 import { ChartLineIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -66,15 +66,15 @@ import EmptyState from './components/empty-state.vue';
 import LoadingState from './components/loading-state.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
-// Calculate it manually so shart will always have first and last ticks (dates)
-function generateDateSteps(datesToShow = 5, date = new Date()) {
-  const start = startOfMonth(date).getTime();
-  const end = startOfDay(endOfMonth(date)).getTime();
-  const monthDuration = end - start;
+// Calculate it manually so chart will always have first and last ticks (dates)
+function generateDateSteps(datesToShow = 5, fromDate: Date, toDate: Date) {
+  const start = startOfDay(fromDate).getTime();
+  const end = startOfDay(toDate).getTime();
+  const duration = end - start;
   const dates = [start];
 
   for (let i = 1; i < datesToShow - 1; i++) {
-    const nextDate = start + (monthDuration * i) / (datesToShow - 1);
+    const nextDate = start + (duration * i) / (datesToShow - 1);
     dates.push(Math.floor(nextDate));
   }
 
@@ -150,7 +150,7 @@ const chartOptions = computed(() => {
   const fromDate = actualDataPeriod.value.from;
   const toDate = actualDataPeriod.value.to;
 
-  const xAxisTicks = generateDateSteps(ticksAmount, fromDate);
+  const xAxisTicks = generateDateSteps(ticksAmount, fromDate, toDate);
 
   const config = buildAreaChartConfig({
     chart: {
@@ -234,22 +234,15 @@ const chartOptions = computed(() => {
         showInLegend: false,
         fillOpacity: 0.6,
         animation: false,
-        data: [
-          ...(balanceHistory.value || []).map((point) => {
-            const value =
-              selectedBalanceType.value.value === 'total'
-                ? point.totalBalance
-                : selectedBalanceType.value.value === 'accounts'
-                  ? point.accountsBalance
-                  : point.portfoliosBalance;
-            return [new Date(point.date).getTime(), value];
-          }),
-          // fill remaining days with `null` so chart will be rendered for all
-          // days in the month
-          ...Array(getDaysInMonth(toDate) - toDate.getDate())
-            .fill([])
-            .map((_, i) => [addDays(toDate, i + 1).getTime(), null]),
-        ],
+        data: (balanceHistory.value || []).map((point) => {
+          const value =
+            selectedBalanceType.value.value === 'total'
+              ? point.totalBalance
+              : selectedBalanceType.value.value === 'accounts'
+                ? point.accountsBalance
+                : point.portfoliosBalance;
+          return [new Date(point.date).getTime(), value];
+        }),
       },
     ],
   });

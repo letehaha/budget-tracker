@@ -300,7 +300,6 @@
 import {
   disconnectProvider,
   getAvailableAccounts,
-  getConnectionDetails,
   reauthorizeConnection,
   syncSelectedAccounts,
   updateConnectionDetails,
@@ -319,6 +318,7 @@ import {
   DialogTitle,
 } from '@/components/lib/ui/dialog';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useBankConnectionDetails } from '@/composable/data-queries/bank-providers/bank-connection-details';
 import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
@@ -341,16 +341,7 @@ const isDisconnectDialogOpen = ref(false);
 const isEditNameDialogOpen = ref(false);
 const selectedAccountIds = ref<string[]>([]);
 
-// Query for connection details
-const {
-  data: connectionDetails,
-  isLoading,
-  error,
-} = useQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.bankConnectionDetails, connectionId.value],
-  queryFn: () => getConnectionDetails(connectionId.value),
-  staleTime: 60 * 1000, // 1 minute
-});
+const { data: connectionDetails, isLoading, error } = useBankConnectionDetails({ connectionId: connectionId });
 
 // Query for available accounts (only when dialog is open)
 const {
