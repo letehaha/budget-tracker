@@ -35,21 +35,6 @@ alwaysApply: true
     - Related rules have been updated
     - Implementation details have changed
 
-- **Example Pattern Recognition:**
-
-  ```typescript
-  // If you see repeated patterns like:
-  const data = await prisma.user.findMany({
-    select: { id: true, email: true },
-    where: { status: 'ACTIVE' },
-  });
-
-  // Consider adding to [prisma.md](.github/instructions/prisma.md):
-  // - Standard select fields
-  // - Common where conditions
-  // - Performance optimization patterns
-  ```
-
 - **Rule Quality Checks:**
 
   - Rules should be actionable and specific

@@ -18,12 +18,6 @@ alwaysApply: true
     - Examples and explanations
   ```
 
-- **File References:**
-
-  - Use `[filename](mdc:path/to/file)` ([filename](mdc:filename)) to reference files
-  - Example: [prisma.md](.github/instructions/prisma.md) for rule references
-  - Example: [schema.prisma](mdc:prisma/schema.prisma) for code references
-
 - **Code Examples:**
 
   - Use language-specific code blocks

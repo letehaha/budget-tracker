@@ -32,18 +32,11 @@ alwaysApply: true
     - Implementation details have changed
 
 - **Example Pattern Recognition:**
-  ```typescript
-  // If you see repeated patterns like:
-  const data = await prisma.user.findMany({
-    select: { id: true, email: true },
-    where: { status: 'ACTIVE' }
-  });
-  
-  // Consider adding to [prisma.mdc](mdc:.cursor/rules/prisma.mdc):
-  // - Standard select fields
-  // - Common where conditions
-  // - Performance optimization patterns
-  ```
+  - Standardized error handling structures
+  - Consistent use of specific libraries or functions
+  - Repeated validation logic for inputs
+  - Common logging or monitoring patterns
+  - Recurring architectural patterns (e.g., service layers)
 
 - **Rule Quality Checks:**
   - Rules should be actionable and specific
