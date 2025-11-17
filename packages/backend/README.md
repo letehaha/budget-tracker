@@ -1,4 +1,4 @@
-# budget-tracker-be
+# budget-tracker backend
 
 ## First run instructions
 
