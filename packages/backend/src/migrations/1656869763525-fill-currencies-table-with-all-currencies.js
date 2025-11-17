@@ -28,7 +28,7 @@ module.exports = {
 
       // replace old ids with new ids
       await (async () => {
-        for (item of oldCurrencies) {
+        for (const item of oldCurrencies) {
           const oldId = item.id;
           const newId = newCurrencies.find((n) => n.code === item.code).id;
 
