@@ -50,7 +50,6 @@ describe('POST /holdings (create holding)', () => {
     expect(holding).toBeTruthy();
     expect(holding?.quantity).toBeNumericEqual(0);
     expect(holding?.costBasis).toBeNumericEqual(0);
-    expect(holding?.value).toBeNumericEqual(0);
     expect(holding?.currencyCode).toBe(vooSecurity.currencyCode);
   });
 
@@ -159,8 +158,6 @@ describe('POST /holdings (create holding)', () => {
     expect(holding.quantity).toBeNumericEqual(0);
     expect(holding.costBasis).toBeNumericEqual(0);
     expect(holding.refCostBasis).toBeNumericEqual(0);
-    expect(holding.value).toBeNumericEqual(0);
-    expect(holding.refValue).toBeNumericEqual(0);
     expect(typeof holding.currencyCode).toBe('string');
     expect(holding.portfolioId).toBe(investmentPortfolio.id);
     expect(holding.securityId).toBe(vooSecurity.id);

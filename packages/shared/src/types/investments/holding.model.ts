@@ -9,9 +9,6 @@ export interface HoldingModel {
   refCostBasis: string;
   currencyCode: string;
   excluded: boolean;
-  // Deprecated: Use calculated marketValue instead
-  value: string;
-  refValue: string;
   security?: SecurityModel;
   portfolio?: PortfolioModel;
   // Dynamic calculated fields (only present when fetched with price data)
