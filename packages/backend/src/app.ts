@@ -135,7 +135,7 @@ if (process.env.NODE_ENV === 'development') {
 
   if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
     logger.error(`SSL certificates not found at ${certPath} and ${keyPath}`);
-    logger.error('Please run: cd docker/dev/certs && mkcert localhost 127.0.0.1 ::1 budget-tracker.com');
+    logger.error('Please run: cd docker/dev/certs && mkcert localhost 127.0.0.1 ::1');
     process.exit(1);
   }
 

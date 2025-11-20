@@ -232,7 +232,7 @@
 
                         <div class="pl-4">
                           <div>Application name: <b>Whatever</b></div>
-                          <div>Allowed redirect URLs: <b>https://gamanets.money/bank-callback</b></div>
+                          <div>Allowed redirect URLs: <b>https://moneymatter.app/bank-callback</b></div>
                           <div>Application description: <b>whatever</b></div>
                           <div>Email for data protection matters: <b>whatever</b></div>
                           <div>Privacy URL: <b>whatever</b></div>
