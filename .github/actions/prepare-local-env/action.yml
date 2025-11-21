@@ -15,10 +15,6 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: '${{ steps.nvm.outputs.NVMRC }}'
-    - name: Add hosts to /etc/hosts
-      shell: bash
-      run: |
-        sudo echo "127.0.0.1 budget-tracker.com" | sudo tee -a /etc/hosts
     - name: Get npm cache directory
       shell: bash
       id: npm-cache-dir
