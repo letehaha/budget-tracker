@@ -43,7 +43,7 @@ describe('Live exchange rates flows', () => {
 
     const date = format(new Date(), API_LAYER_DATE_FORMAT);
 
-    const response = await helpers.getExchangeRates({ date, raw: true });
+    const response = (await helpers.getExchangeRates({ date, raw: true }))!;
     expect(response).toBeInstanceOf(Array);
     expect(response.length).toBeGreaterThan(0);
 
