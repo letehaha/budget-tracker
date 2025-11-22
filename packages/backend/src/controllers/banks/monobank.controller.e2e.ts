@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
+import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { faker } from '@faker-js/faker';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -44,11 +45,11 @@ describe('Monobank integration', () => {
         const rate = rates.find((r) => r.baseCode === CURRENCY_NUMBER_TO_CODE[item.currencyCode])!.rate;
 
         expect(resultItem.initialBalance).toBe(mockedAccount.balance);
-        expect(resultItem.refInitialBalance).toBe(Math.floor(mockedAccount.balance * rate));
+        expect(resultItem.refInitialBalance).toBe(roundHalfToEven(mockedAccount.balance * rate));
         expect(resultItem.currentBalance).toBe(mockedAccount.balance);
-        expect(resultItem.refCurrentBalance).toBe(Math.floor(mockedAccount.balance * rate));
+        expect(resultItem.refCurrentBalance).toBe(roundHalfToEven(mockedAccount.balance * rate));
         expect(resultItem.creditLimit).toBe(mockedAccount.creditLimit);
-        expect(resultItem.refCreditLimit).toBe(Math.floor(mockedAccount.creditLimit * rate));
+        expect(resultItem.refCreditLimit).toBe(roundHalfToEven(mockedAccount.creditLimit * rate));
         expect(resultItem.type).toBe(ACCOUNT_TYPES.monobank);
         // By default all Monobank accounts should be disabled so we will load
         // new transactions only to accounts that user choosed

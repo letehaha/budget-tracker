@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
+import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -42,11 +43,11 @@ describe('Accounts controller', () => {
       const currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0];
 
       expect(account.initialBalance).toStrictEqual(initialBalance);
-      expect(account.refInitialBalance).toStrictEqual(Math.floor(initialBalance * currencyRate!.rate));
+      expect(account.refInitialBalance).toStrictEqual(roundHalfToEven(initialBalance * currencyRate!.rate));
       expect(account.currentBalance).toStrictEqual(initialBalance);
-      expect(account.refCurrentBalance).toStrictEqual(Math.floor(initialBalance * currencyRate!.rate));
+      expect(account.refCurrentBalance).toStrictEqual(roundHalfToEven(initialBalance * currencyRate!.rate));
       expect(account.creditLimit).toStrictEqual(creditLimit);
-      expect(account.refCreditLimit).toStrictEqual(Math.floor(creditLimit * currencyRate!.rate));
+      expect(account.refCreditLimit).toStrictEqual(roundHalfToEven(creditLimit * currencyRate!.rate));
     });
   });
   describe('update account', () => {
