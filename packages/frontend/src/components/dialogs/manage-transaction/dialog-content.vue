@@ -67,7 +67,7 @@ const closeModal = () => {
 const route = useRoute();
 watch(() => route.path, closeModal);
 
-const { addErrorNotification } = useNotificationCenter();
+const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const { accountsRecord, systemAccounts } = storeToRefs(useAccountsStore());
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
@@ -316,7 +316,8 @@ const deleteTransactionHandler = async () => {
 
     closeModal();
     // Reload all cached data in the app
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.securityPriceChange] });
+    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+    addSuccessNotification('Successfully removed');
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(e);
