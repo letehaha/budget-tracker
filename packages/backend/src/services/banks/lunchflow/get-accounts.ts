@@ -24,6 +24,6 @@ export const getAccounts = async ({ userId }: GetAccountsParams) => {
 
     return { accounts };
   } catch (error) {
-    throw new UnexpectedError(API_ERROR_CODES.unexpected, 'Failed to fetch accounts from Lunch Flow');
+    throw new UnexpectedError({ message: 'Failed to fetch accounts from Lunch Flow' });
   }
 };

@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, API_ERROR_CODES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -276,7 +276,7 @@ export const createTransaction = withTransaction(
               ids: [[baseTransaction!.id, destinationTransactionId]],
               result,
             });
-            throw new UnexpectedError(API_ERROR_CODES.unexpected, 'Cannot create transaction with provided params');
+            throw new UnexpectedError({ message: 'Cannot create transaction with provided params' });
           }
         } else {
           const res = await createOppositeTransaction([

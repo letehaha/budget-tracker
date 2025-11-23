@@ -95,7 +95,10 @@ export class ForbiddenError extends CustomError {
 }
 
 export class UnexpectedError extends CustomError {
-  constructor(code: API_ERROR_CODES, message: string) {
+  constructor({
+    code = API_ERROR_CODES.unexpected,
+    message = 'Unexpected error',
+  }: { code?: API_ERROR_CODES; message?: string } = {}) {
     super(ERROR_CODES.UnexpectedError, code, message);
   }
 }

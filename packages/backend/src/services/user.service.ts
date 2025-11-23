@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
+import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import * as Accounts from '@models/Accounts.model';
 import * as Currencies from '@models/Currencies.model';
@@ -268,10 +268,7 @@ export const deleteUserCurrency = withTransaction(
     });
 
     if (!defaultCurrency) {
-      throw new UnexpectedError(
-        API_ERROR_CODES.unexpected,
-        'Cannot delete currency. Default currency is not present in the system',
-      );
+      throw new UnexpectedError({ message: 'Cannot delete currency. Default currency is not present in the system' });
     }
 
     await Transactions.updateTransactions(

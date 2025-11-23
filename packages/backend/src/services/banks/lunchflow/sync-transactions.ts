@@ -82,6 +82,6 @@ export const syncTransactions = async ({ userId, accountId }: SyncTransactionsPa
     if (error instanceof NotFoundError) {
       throw error;
     }
-    throw new UnexpectedError(API_ERROR_CODES.unexpected, 'Failed to sync transactions from Lunch Flow');
+    throw new UnexpectedError({ message: 'Failed to sync transactions from Lunch Flow' });
   }
 };
