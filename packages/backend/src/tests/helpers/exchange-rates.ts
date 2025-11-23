@@ -1,3 +1,4 @@
+import { getExchangeRatesForDate } from '@root/services/exchange-rates';
 import { editUserExchangeRates } from '@root/services/user-exchange-rate';
 
 import { makeRequest } from './common';
@@ -32,7 +33,7 @@ export async function getExchangeRates<R extends boolean | undefined = undefined
   date: string; // yyyy-mm-dd
   raw?: R;
 }) {
-  const response = await makeRequest({
+  const response = await makeRequest<Awaited<ReturnType<typeof getExchangeRatesForDate>>, R>({
     method: 'get',
     url: `/currencies/rates/${date}`,
     raw,
