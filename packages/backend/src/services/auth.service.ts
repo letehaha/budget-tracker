@@ -101,11 +101,8 @@ export const register = withTransaction(
       const defaultCategory = categories.find((item) => item.name === DEFAULT_CATEGORIES.names.other);
 
       if (!defaultCategory) {
-        // TODO: return UnexpectedError, but move descriptive message to logger, so users won't see this internal issue
-        throw new UnexpectedError(
-          API_ERROR_CODES.unexpected,
-          "Cannot find 'defaultCategoryId' in the previously create categories.",
-        );
+        logger.error("Cannot find 'defaultCategoryId' in the previously created categories.");
+        throw new UnexpectedError();
       } else {
         try {
           const updatedUser = await userService.updateUser({

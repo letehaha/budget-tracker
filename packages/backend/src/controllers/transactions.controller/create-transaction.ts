@@ -8,6 +8,7 @@ const schema = z.object({
   body: z
     .object({
       amount: z.number().int().positive('Amount must be greater than 0').finite(),
+      commissionRate: z.number().int().positive('Amount must be greater than 0').finite().optional(),
       note: z.string().max(1000, 'The string must not exceed 1000 characters.').nullish(),
       time: z.string().datetime({ message: 'Invalid ISO date string' }).optional(),
       transactionType: z.nativeEnum(TRANSACTION_TYPES),
@@ -76,12 +77,25 @@ const schema = z.object({
         message: "'categoryId' is required for non-transfer transactions.",
         path: ['categoryId', 'transferNature'],
       },
+    )
+    .refine(
+      (data) => {
+        if (typeof data.commissionRate === 'number' && data.amount < data.commissionRate) {
+          return false;
+        }
+        return true;
+      },
+      {
+        message: "'commissionRate' cannot be greater than 'amount",
+        path: ['commissionRate', 'amount'],
+      },
     ),
 });
 
 export default createController(schema, async ({ user, body }) => {
   const {
     amount,
+    commissionRate,
     destinationAmount,
     destinationTransactionId,
     note,
@@ -99,6 +113,7 @@ export default createController(schema, async ({ user, body }) => {
 
   const params = {
     amount,
+    commissionRate,
     destinationTransactionId,
     destinationAmount,
     note: note || undefined,

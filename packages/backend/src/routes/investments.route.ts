@@ -24,6 +24,7 @@ import deleteInvestmentTransactionController from '@controllers/investments/tran
 import getTransactionsController from '@controllers/investments/transactions/get-transactions.controller';
 import updateInvestmentTransactionController from '@controllers/investments/transactions/update-tx.controller';
 import { adminOnly } from '@middlewares/admin-only';
+import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import { authenticateJwt } from '@middlewares/passport';
 import { priceSyncRateLimit, securitiesPricesBulkUploadRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
@@ -63,6 +64,7 @@ router.get(
 router.put(
   '/portfolios/:id/balance',
   authenticateJwt,
+  checkBaseCurrencyLock,
   validateEndpoint(updatePortfolioBalanceController.schema),
   updatePortfolioBalanceController.handler,
 );
@@ -70,6 +72,7 @@ router.put(
 router.post(
   '/portfolios/:id/transfer',
   authenticateJwt,
+  checkBaseCurrencyLock,
   validateEndpoint(createPortfolioTransferController.schema),
   createPortfolioTransferController.handler,
 );
@@ -84,6 +87,7 @@ router.get(
 router.put(
   '/portfolios/:id',
   authenticateJwt,
+  checkBaseCurrencyLock,
   validateEndpoint(updatePortfolioController.schema),
   updatePortfolioController.handler,
 );
@@ -91,6 +95,7 @@ router.put(
 router.delete(
   '/portfolios/:id',
   authenticateJwt,
+  checkBaseCurrencyLock,
   validateEndpoint(deletePortfolioController.schema),
   deletePortfolioController.handler,
 );
@@ -98,6 +103,7 @@ router.delete(
 router.post(
   '/portfolios',
   authenticateJwt,
+  checkBaseCurrencyLock,
   validateEndpoint(createPortfolioController.schema),
   createPortfolioController.handler,
 );
@@ -150,12 +156,14 @@ router.get(
 router.post(
   '/holding',
   authenticateJwt,
+  checkBaseCurrencyLock,
   validateEndpoint(createHoldingController.schema),
   createHoldingController.handler,
 );
 router.delete(
   '/holding',
   authenticateJwt,
+  checkBaseCurrencyLock,
   validateEndpoint(deleteHoldingController.schema),
   deleteHoldingController.handler,
 );
@@ -170,6 +178,7 @@ router.get(
 router.post(
   '/transaction',
   authenticateJwt,
+  checkBaseCurrencyLock,
   validateEndpoint(createInvestmentTransactionController.schema),
   createInvestmentTransactionController.handler,
 );
@@ -177,6 +186,7 @@ router.post(
 router.delete(
   '/transaction/:transactionId',
   authenticateJwt,
+  checkBaseCurrencyLock,
   validateEndpoint(deleteInvestmentTransactionController.schema),
   deleteInvestmentTransactionController.handler,
 );
@@ -184,6 +194,7 @@ router.delete(
 router.put(
   '/transaction/:transactionId',
   authenticateJwt,
+  checkBaseCurrencyLock,
   validateEndpoint(updateInvestmentTransactionController.schema),
   updateInvestmentTransactionController.handler,
 );

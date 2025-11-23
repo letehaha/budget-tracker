@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, API_ERROR_CODES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import RefundTransactions from '@models/RefundTransactions.model';
@@ -56,7 +56,7 @@ export const deleteTransaction = withTransaction(
         );
       } else {
         logger.error(`Unexpected issue when tried to delete transaction with id ${id}`);
-        throw new UnexpectedError(API_ERROR_CODES.unexpected, 'Unexpected issue when tried to delete transaction');
+        throw new UnexpectedError({ message: 'Unexpected issue when tried to delete transaction' });
       }
     } catch (e) {
       if (process.env.NODE_ENV !== 'test') {

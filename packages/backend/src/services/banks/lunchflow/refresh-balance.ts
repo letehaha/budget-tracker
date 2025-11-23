@@ -98,6 +98,6 @@ export const refreshBalance = async ({ userId, accountId }: RefreshBalanceParams
     if (error instanceof NotFoundError) {
       throw error;
     }
-    throw new UnexpectedError(API_ERROR_CODES.unexpected, 'Failed to refresh balance from Lunch Flow');
+    throw new UnexpectedError({ message: 'Failed to refresh balance from Lunch Flow' });
   }
 };

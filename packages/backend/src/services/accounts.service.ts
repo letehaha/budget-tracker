@@ -268,7 +268,7 @@ export const updateAccount = withTransaction(
     });
 
     if (!result) {
-      throw new UnexpectedError(API_ERROR_CODES.unexpected, 'Account updation is not successful');
+      throw new UnexpectedError({ message: 'Account updation is not successful' });
     }
 
     await Balances.handleAccountChange({

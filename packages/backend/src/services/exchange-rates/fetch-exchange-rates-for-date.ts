@@ -6,6 +6,7 @@ import { withDeduplication } from '@services/common/with-deduplication';
 import axios, { isAxiosError } from 'axios';
 import { format, startOfDay } from 'date-fns';
 
+import { ApiKeyRateLimitService } from './api-key-rate-limit.service';
 import { fetchFromFrankfurter } from './frankfurter.service';
 
 interface API_LAYER_EXCHANGE_RATES_RESPONSE {
@@ -81,12 +82,20 @@ export const fetchExchangeRatesForDate = withDeduplication(
 
       logger.info('Attempting to fetch exchange rates from ApiLayer');
 
-      // Try each API key until success or all keys exhausted
-      for (let i = 0; i < apiKeys.length; i++) {
-        const currentApiKey = apiKeys[i];
+      // Filter out rate-limited API keys before attempting requests
+      const availableApiKeys = await ApiKeyRateLimitService.filterAvailableKeys('apilayer', apiKeys);
+
+      if (availableApiKeys.length === 0) {
+        logger.warn('All API keys are rate-limited, falling back to Frankfurter immediately');
+        apiLayerFailed = true;
+      }
+
+      // Try each available API key until success or all keys exhausted
+      for (let i = 0; i < availableApiKeys.length && !apiLayerFailed; i++) {
+        const currentApiKey = availableApiKeys[i]!;
 
         try {
-          logger.info(`Attempting to fetch exchange rates with API key ${i + 1}/${apiKeys.length}`);
+          logger.info(`Attempting to fetch exchange rates with API key ${i + 1}/${availableApiKeys.length}`);
 
           response = (
             await axios<API_LAYER_EXCHANGE_RATES_RESPONSE>({
@@ -101,7 +110,7 @@ export const fetchExchangeRatesForDate = withDeduplication(
 
           // If we get here, the request was successful - exit the retry loop
           logger.info(
-            `Successfully fetched exchange rates using API key ${i + 1}/${apiKeys.length}. Exiting retry loop.`,
+            `Successfully fetched exchange rates using API key ${i + 1}/${availableApiKeys.length}. Exiting retry loop.`,
           );
           break;
         } catch (err) {
@@ -129,15 +138,20 @@ export const fetchExchangeRatesForDate = withDeduplication(
                 logger.error('Error 404. Failed to load exchange rates due 404 error.', { ...params, url: API_URL });
                 throw new BadGateway({ message: badGatewayErrorMessage });
               } else if (statusCode === 429) {
+                // Mark this API key as rate-limited in Redis
+                await ApiKeyRateLimitService.markAsRateLimited('apilayer', currentApiKey, 'HTTP 429 Too Many Requests');
+
                 logger.warn(
-                  `Error 429. Rate limit reached for API key ${i + 1}/${apiKeys.length}. ${i < apiKeys.length - 1 ? 'Trying next key...' : 'All keys exhausted.'}`,
+                  `Error 429. Rate limit reached for API key ${i + 1}/${availableApiKeys.length}. ` +
+                    `Key marked as rate-limited until end of month. ` +
+                    `${i < availableApiKeys.length - 1 ? 'Trying next key...' : 'All available keys exhausted.'}`,
                   { ...params, url: API_URL },
                 );
 
-                // If this is the last API key, mark as failed to trigger Frankfurter fallback
-                if (i === apiKeys.length - 1) {
+                // If this is the last available API key, mark as failed to trigger Frankfurter fallback
+                if (i === availableApiKeys.length - 1) {
                   apiLayerFailed = true;
-                  logger.warn('All API keys exhausted due to rate limiting, will fallback to Frankfurter');
+                  logger.warn('All available API keys exhausted due to rate limiting, will fallback to Frankfurter');
                   break;
                 }
 

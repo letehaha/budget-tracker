@@ -63,17 +63,6 @@ export default class Holdings extends Model implements HoldingModel {
   securityId!: number;
 
   /**
-   * DEPRECATED: These fields will be removed in favor of dynamic calculation.
-   * Market value should be calculated as quantity × latest price.
-   * Kept temporarily for backward compatibility during migration.
-   */
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  value!: string;
-
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  refValue!: string;
-
-  /**
    * The `quantity` field represents the total number of units or shares
    * of the specific security currently held in the investment account. This field is crucial
    * for determining the overall exposure or investment in that particular security. It is used

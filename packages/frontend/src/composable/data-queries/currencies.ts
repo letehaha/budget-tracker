@@ -1,5 +1,6 @@
-import { getAllCurrencies, loadUserBaseCurrency, setBaseUserCurrency } from '@/api/currencies';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { changeBaseCurrency, getAllCurrencies, loadUserBaseCurrency, setBaseUserCurrency } from '@/api/currencies';
+import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { useCurrenciesStore } from '@/stores';
 import { CurrencyModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 
@@ -53,6 +54,25 @@ export const useSetBaseCurrency = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.baseCurrency });
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.userCurrencies });
+    },
+  });
+};
+
+/**
+ * Mutation for changing user's base currency and recalculating all amounts
+ */
+export const useChangeBaseCurrency = () => {
+  const queryClient = useQueryClient();
+  const currenciesStore = useCurrenciesStore();
+
+  return useMutation({
+    mutationFn: (newCurrencyCode: string) => changeBaseCurrency(newCurrencyCode),
+    onSuccess: () => {
+      currenciesStore.loadCurrencies();
+      currenciesStore.loadBaseCurrency();
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.securityPriceChange] });
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.currencies] });
     },
   });
 };

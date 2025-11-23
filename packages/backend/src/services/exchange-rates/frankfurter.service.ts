@@ -24,7 +24,7 @@ const FRANKFURTER_BASE_CURRENCY_CODE = 'USD';
 
 // List of currencies supported by Frankfurt service
 // Last updated: 2025-10-05
-const FRANKFURTER_SUPPORTED_CURRENCIES = [
+export const FRANKFURTER_SUPPORTED_CURRENCIES = [
   'AUD',
   'BGN',
   'BRL',

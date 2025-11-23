@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, API_ERROR_CODES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -168,6 +168,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
 export const createTransaction = withTransaction(
   async ({
     amount,
+    commissionRate = 0,
     userId,
     accountId,
     transferNature,
@@ -198,10 +199,12 @@ export const createTransaction = withTransaction(
         ...payload,
         time: payload.time ?? new Date(),
         amount,
+        refAmount: amount,
+        commissionRate: commissionRate || 0,
+        refCommissionRate: commissionRate || 0,
         userId,
         accountId,
         transferNature,
-        refAmount: amount,
         currencyCode: generalTxCurrency.code,
         transferId: undefined,
         refCurrencyCode: defaultUserCurrency.code,
@@ -211,6 +214,13 @@ export const createTransaction = withTransaction(
         generalTxParams.refAmount = await calculateRefAmount({
           userId,
           amount: generalTxParams.amount,
+          baseCode: generalTxCurrency.code,
+          quoteCode: defaultUserCurrency.code,
+          date: generalTxParams.time,
+        });
+        generalTxParams.refCommissionRate = await calculateRefAmount({
+          userId,
+          amount: generalTxParams.commissionRate || 0,
           baseCode: generalTxCurrency.code,
           quoteCode: defaultUserCurrency.code,
           date: generalTxParams.time,
@@ -266,7 +276,7 @@ export const createTransaction = withTransaction(
               ids: [[baseTransaction!.id, destinationTransactionId]],
               result,
             });
-            throw new UnexpectedError(API_ERROR_CODES.unexpected, 'Cannot create transaction with provided params');
+            throw new UnexpectedError({ message: 'Cannot create transaction with provided params' });
           }
         } else {
           const res = await createOppositeTransaction([

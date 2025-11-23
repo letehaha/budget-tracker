@@ -27,6 +27,9 @@ export const deleteUserCurrency = (currencyCode: string) => api.delete('/user/cu
 
 export const setBaseUserCurrency = (currencyCode: string) => api.post('/user/currencies/base', { currencyCode });
 
+export const changeBaseCurrency = (newCurrencyCode: string) =>
+  api.post('/user/currencies/change-base', { newCurrencyCode });
+
 export const addUserCurrencies = async (
   currencies: {
     currencyCode: string;

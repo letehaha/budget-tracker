@@ -3,9 +3,8 @@
     <button v-for="(currency, index) in currenciesList" :key="currency.id" type="button">
       <Card
         :class="[
-          'flex flex-col gap-4 rounded-lg border p-4 shadow-xs transition-all duration-300',
-          currency.isDefaultCurrency && 'cursor-default',
-          !currency.isDefaultCurrency && 'hover:border-green-500',
+          'flex cursor-auto flex-col gap-4 rounded-lg border p-4 shadow-xs transition-all duration-300',
+          !currency.isDefaultCurrency && 'hover:bg-card-tooltip cursor-pointer',
         ]"
         @click="!currency.isDefaultCurrency && toggleActiveItem(index)"
       >
@@ -13,14 +12,28 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center">
               <img class="h-5 w-5" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
-              <div class="ml-2 text-lg font-medium text-white">
+              <div class="ml-2 flex items-center gap-2 text-lg font-medium text-white">
                 {{ currency.currency.currency }}
+
+                <template v-if="currency.isDefaultCurrency">
+                  <ui-tooltip
+                    position="top"
+                    content="Your base currency. All information on dashboard is displayed in this currency"
+                  >
+                    <div
+                      class="bg-background border-accent flex items-center gap-1 rounded border px-2 py-1 text-xs text-white"
+                    >
+                      Base currency
+                      <InfoIcon class="size-4" />
+                    </div>
+                  </ui-tooltip>
+                </template>
               </div>
             </div>
 
             <div>
               <div class="text-sm font-bold">
-                {{ currency.quoteRate.toLocaleString() }}
+                {{ currency.rate.toLocaleString() }}
 
                 <span class="text-sm">
                   {{ currency.currency.code }} /
@@ -28,7 +41,7 @@
                 </span>
               </div>
               <div class="text-sm font-bold">
-                {{ currency.rate.toLocaleString() }}
+                {{ currency.quoteRate.toLocaleString() }}
 
                 <span class="text-sm">
                   {{ baseCurrency.currency.code }} /
@@ -66,12 +79,14 @@
 import { deleteUserCurrency, loadUserCurrenciesExchangeRates } from '@/api/currencies';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import UiTooltip from '@/components/common/tooltip.vue';
 import { Card } from '@/components/lib/ui/card';
 import { useNotificationCenter } from '@/components/notification-center';
 import { getCurrencyIcon } from '@/js/helpers/currencyImage';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { API_ERROR_CODES, UserCurrencyModel } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
+import { InfoIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, nextTick, ref } from 'vue';
 
@@ -97,18 +112,20 @@ const { data: rates } = useQuery({
 });
 
 const currenciesList = computed<CurrencyWithExchangeRate[]>(() =>
-  currencies.value.map((item) => {
-    const rate = rates.value.find((i) => i.baseCode === item.currency.code);
-    const quoteRate = Number(Number(1 / Number(rate?.rate)).toFixed(4));
+  currencies.value
+    .map((item) => {
+      const rate = rates.value.find((i) => i.baseCode === item.currency.code);
+      const quoteRate = Number(Number(1 / Number(rate?.rate)).toFixed(4));
 
-    return {
-      ...item,
-      rate: Number(rate?.rate?.toFixed(4)),
-      custom: rate?.custom ?? false,
-      quoteCode: rate?.quoteCode,
-      quoteRate,
-    };
-  }),
+      return {
+        ...item,
+        rate: Number(rate?.rate?.toFixed(4)),
+        custom: rate?.custom ?? false,
+        quoteCode: rate?.quoteCode,
+        quoteRate,
+      };
+    })
+    .sort((a) => (a.isDefaultCurrency ? -1 : 1)),
 );
 
 const activeItemIndex = ref<ActiveItemIndex>(null);

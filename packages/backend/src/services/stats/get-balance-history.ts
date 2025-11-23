@@ -146,7 +146,7 @@ interface AggregatedBalanceHistoryItem {
  * Aggregates balance trend data by filling gaps and summing all accounts per date.
  * This is the logic that was previously done on the frontend.
  */
-function aggregateBalanceTrendData(data: BalanceModel[]): AggregatedBalanceHistoryItem[] {
+function aggregateBalanceTrendData(data: BalanceModel[], from?: string, to?: string): AggregatedBalanceHistoryItem[] {
   const formatDate = (date: string | Date) => format(new Date(date), 'yyyy-MM-dd');
 
   if (!data || data.length === 0) {
@@ -162,8 +162,10 @@ function aggregateBalanceTrendData(data: BalanceModel[]): AggregatedBalanceHisto
   if (sortedDates.length === 0) {
     return [];
   }
-  const firstDate = new Date(sortedDates[0]!);
-  const lastDate = new Date(sortedDates[sortedDates.length - 1]!);
+
+  // Use requested from/to dates if provided, otherwise use data range
+  const firstDate = from ? new Date(from) : new Date(sortedDates[0]!);
+  const lastDate = to ? new Date(to) : new Date(sortedDates[sortedDates.length - 1]!);
 
   // Generate a list of all dates from the earliest to the latest.
   const allDates: string[] = [];
@@ -244,10 +246,16 @@ function aggregateBalanceTrendData(data: BalanceModel[]): AggregatedBalanceHisto
  * @param {string} [params.to] - The end date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @returns {Promise<AggregatedBalanceHistoryItem[]>} - A promise that resolves to an array of aggregated balance records.
  */
-export const getAggregatedBalanceHistory = async (
-  ...args: Parameters<typeof getBalanceHistory>
-): Promise<AggregatedBalanceHistoryItem[]> => {
-  const rawBalanceHistory = await getBalanceHistory(...args);
+export const getAggregatedBalanceHistory = async ({
+  userId,
+  from,
+  to,
+}: {
+  userId: number;
+  from: string;
+  to: string;
+}): Promise<AggregatedBalanceHistoryItem[]> => {
+  const rawBalanceHistory = await getBalanceHistory({ userId, from, to });
 
-  return aggregateBalanceTrendData(rawBalanceHistory);
+  return aggregateBalanceTrendData(rawBalanceHistory, from, to);
 };

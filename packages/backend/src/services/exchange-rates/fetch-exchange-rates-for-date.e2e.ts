@@ -21,7 +21,7 @@ describe('Exchange Rates Functionality', () => {
     await expect(helpers.getExchangeRates({ date, raw: true })).resolves.toBe(null);
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
 
-    const response = await helpers.getExchangeRates({ date, raw: true });
+    const response = (await helpers.getExchangeRates({ date, raw: true }))!;
     expect(response).toBeInstanceOf(Array);
     expect(response.length).toBeGreaterThan(0);
 
@@ -65,7 +65,7 @@ describe('Exchange Rates Functionality', () => {
     expect(frankfurterCounter.count).toBe(1);
 
     const date = format(new Date(), 'yyyy-MM-dd');
-    const response = await helpers.getExchangeRates({ date, raw: true });
+    const response = (await helpers.getExchangeRates({ date, raw: true }))!;
     expect(response).toBeInstanceOf(Array);
     expect(response.length).toBeGreaterThan(0);
   });

@@ -67,8 +67,8 @@ const sortedHoldings = computed(() => {
         bv = Number(b.quantity);
         break;
       case 'value':
-        av = Number(a.marketValue || a.value || 0);
-        bv = Number(b.marketValue || b.value || 0);
+        av = Number(a.marketValue || 0);
+        bv = Number(b.marketValue || 0);
         break;
       case 'avgCost':
         av = getAverageCost(a);
@@ -101,7 +101,7 @@ const getPrice = (holding: HoldingModel) => {
 
   // Fallback: calculate from marketValue (preferred) or value and quantity
   const quantity = Number(holding.quantity);
-  const marketValue = Number(holding.marketValue || holding.value || 0);
+  const marketValue = Number(holding.marketValue || 0);
   return quantity > 0 && marketValue > 0 ? marketValue / quantity : 0;
 };
 
@@ -242,7 +242,7 @@ const theadCellStyles = 'py-2';
               <td :class="[cellStyles, 'px-4 text-right']">{{ formatCurrency(getAverageCost(h), h.currencyCode) }}</td>
               <td :class="[cellStyles, 'px-4 text-right']">{{ formatCurrency(getTotalCost(h), h.currencyCode) }}</td>
               <td :class="[cellStyles, 'px-4 text-right']">
-                {{ formatCurrency(Number(h.marketValue || h.value || 0), h.currencyCode) }}
+                {{ formatCurrency(Number(h.marketValue || 0), h.currencyCode) }}
               </td>
               <td :class="[cellStyles, 'px-4 text-right']">
                 <div :class="getGainColorClass(getUnrealizedGain(h).percent)">

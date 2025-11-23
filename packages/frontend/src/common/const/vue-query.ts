@@ -10,15 +10,17 @@ export const VUE_QUERY_GLOBAL_PREFIXES = Object.freeze({
   // When bank connection changes (link/unlink/disconnect), all bank connection related
   // queries should be invalidated
   bankConnectionChange: 'global-query-bank-connection-change',
+
+  currencies: 'currencies',
 });
 
 const { transactionChange, securityPriceChange, bankConnectionChange } = VUE_QUERY_GLOBAL_PREFIXES;
 
 export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // currencies
-  allCurrencies: ['currencies', 'all'] as const,
-  userCurrencies: ['currencies', 'user'] as const,
-  baseCurrency: ['currencies', 'base'] as const,
+  allCurrencies: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'all'] as const,
+  userCurrencies: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'user'] as const,
+  baseCurrency: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'base'] as const,
 
   // widget balance trend
   widgetBalanceTrend: [transactionChange, securityPriceChange, 'widget-balance-trend'] as const,

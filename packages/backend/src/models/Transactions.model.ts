@@ -187,14 +187,13 @@ export default class Transactions extends Model {
   })
   originalId!: string;
 
-  // Stores the original id from external source
+  // Stores the data from external source
   @Column({
     type: DataType.JSONB,
     allowNull: true,
   })
   externalData!: TransactionsAttributes['externalData'];
 
-  // Stores the original id from external source
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
@@ -202,7 +201,6 @@ export default class Transactions extends Model {
   })
   commissionRate!: number;
 
-  // Stores the original id from external source
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
@@ -210,7 +208,6 @@ export default class Transactions extends Model {
   })
   refCommissionRate!: number;
 
-  // Stores the original id from external source
   @Column({
     type: DataType.INTEGER,
     allowNull: false,

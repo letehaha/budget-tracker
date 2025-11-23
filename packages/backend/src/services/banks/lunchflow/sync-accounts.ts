@@ -65,10 +65,9 @@ export const syncAccounts = async ({ userId }: SyncAccountsParams) => {
         });
 
         if (!account) {
-          throw new UnexpectedError(
-            API_ERROR_CODES.unexpected,
-            `Was not able to sync account ${lfAccount.institution_name} - ${lfAccount.name}`,
-          );
+          throw new UnexpectedError({
+            message: `Was not able to sync account ${lfAccount.institution_name} - ${lfAccount.name}`,
+          });
         }
 
         newAccounts.push(account);
@@ -90,6 +89,6 @@ export const syncAccounts = async ({ userId }: SyncAccountsParams) => {
     if (error instanceof NotFoundError || error instanceof UnexpectedError) {
       throw error;
     }
-    throw new UnexpectedError(API_ERROR_CODES.unexpected, 'Failed to sync accounts from Lunch Flow');
+    throw new UnexpectedError({ message: 'Failed to sync accounts from Lunch Flow' });
   }
 };

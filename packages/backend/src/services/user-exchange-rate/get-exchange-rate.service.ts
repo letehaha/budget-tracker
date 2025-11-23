@@ -1,4 +1,4 @@
-import { NotFoundError } from '@js/errors';
+import { NotFoundError, UnexpectedError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import * as Currencies from '@models/Currencies.model';
 import * as ExchangeRates from '@models/ExchangeRates.model';
@@ -96,27 +96,37 @@ export async function getExchangeRate({
     }
   }
 
-  let baseRate: ExchangeRates.default | null = null;
-  let quoteRate: ExchangeRates.default | null = null;
+  let baseRate: ExchangeRateReturnType | null = null;
+  let quoteRate: ExchangeRateReturnType | null = null;
 
   baseRate = await loadRate(pair.baseCode, date);
   quoteRate = await loadRate(pair.quoteCode, date);
 
-  // If none rates found in the DB, it means we need to sync data manually
-  if (!baseRate || !quoteRate) {
+  // Fetch exchange rates if we're missing data
+  // Note: loadRate returns { rate: 1 } for USD, so we only need to check for null
+  const needsFetch = !baseRate || !quoteRate;
+
+  if (needsFetch) {
     await fetchExchangeRatesForDate(date);
 
     // Retry fetching the missing rates after the API call
-    if (!baseRate) baseRate = await loadRate(pair.baseCode, date);
-    if (!quoteRate) quoteRate = await loadRate(pair.quoteCode, date);
+    if (!baseRate) {
+      baseRate = await loadRate(pair.baseCode, date);
+    }
+    if (!quoteRate) {
+      quoteRate = await loadRate(pair.quoteCode, date);
+    }
   }
 
-  // If still no rates found in the DB, it means something happened in the
-  // meanwhile, and we need to take the rate for the nearest date
-  if (!baseRate || !quoteRate) {
-    // TODO: if cannot load rate for "today", load for the nearest date, and send
-    // more fields to client to warn about it and say for which date currency rate
-    // is loaded
+  // If still no rates found in the DB after fetching, it means the currency
+  // is not available from the exchange rate providers
+  if (
+    (!baseRate && pair.baseCode !== API_LAYER_BASE_CURRENCY_CODE) ||
+    (!quoteRate && pair.quoteCode !== API_LAYER_BASE_CURRENCY_CODE)
+  ) {
+    throw new UnexpectedError({
+      message: `Exchange rate not available for ${pair.baseCode}/${pair.quoteCode} on ${date.toISOString()}`,
+    });
   }
 
   let result: ExchangeRateReturnType;
@@ -147,14 +157,21 @@ export async function getExchangeRate({
   return result;
 }
 
-const loadRate = (code: string, rateDate: Date) => {
+const loadRate = async (code: string, rateDate: Date): Promise<ExchangeRateReturnType | null> => {
   if (code === API_LAYER_BASE_CURRENCY_CODE) {
-    return null; // No need to fetch if it's the API's default base currency
+    // No need to fetch if it's the API's default base currency
+    return {
+      baseCode: code,
+      quoteCode: code,
+      rate: 1,
+      date: rateDate,
+    };
   }
   const liveRateWhereCondition = {
     date: { [Op.between]: [startOfDay(rateDate), endOfDay(rateDate)] },
   };
-  return ExchangeRates.default.findOne({
+
+  const result = await ExchangeRates.default.findOne({
     where: {
       ...liveRateWhereCondition,
       baseCode: API_LAYER_BASE_CURRENCY_CODE,
@@ -162,6 +179,15 @@ const loadRate = (code: string, rateDate: Date) => {
     },
     raw: true,
   });
+
+  if (!result) return null;
+
+  return {
+    baseCode: result.baseCode,
+    quoteCode: result.quoteCode,
+    rate: result.rate,
+    date: result.date,
+  };
 };
 
 type ExchangeRateParams = {

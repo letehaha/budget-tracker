@@ -122,6 +122,7 @@ export interface CreateTransactionBody {
   destinationAccountId?: TransactionModel['accountId'];
   destinationAmount?: TransactionModel['amount'];
   destinationTransactionId?: number;
+  commissionRate?: TransactionModel['commissionRate'];
   transferNature?: TransactionModel['transferNature'];
   // When transaction is being created, it can be marked as a refund for another transaction
   refundForTxId?: number;
