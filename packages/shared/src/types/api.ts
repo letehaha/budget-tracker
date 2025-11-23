@@ -14,6 +14,7 @@ export enum API_ERROR_CODES {
   forbidden = 'FORBIDDEN',
   BadRequest = 'BAD_REQUEST',
   locked = 'LOCKED',
+  baseCurrencyChangeInProgress = 'BASE_CURRENCY_CHANGE_IN_PROGRESS',
   badGateway = 'BAD_GATEWAY',
 
   // auth

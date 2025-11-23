@@ -1,4 +1,5 @@
 import addUserCurrencies from '@controllers/currencies/add-user-currencies';
+import changeBaseCurrency from '@controllers/currencies/change-base-currency.controller';
 import editCurrencyExchangeRate from '@controllers/currencies/edit-currency-exchange-rate';
 import editExcludedCategories from '@controllers/user-settings/edit-exclude-categories';
 import getUserSettings from '@controllers/user-settings/get-settings';
@@ -45,6 +46,12 @@ router.post(
   authenticateJwt,
   validateEndpoint(setBaseUserCurrency.schema),
   setBaseUserCurrency.handler,
+);
+router.post(
+  '/currencies/change-base',
+  authenticateJwt,
+  validateEndpoint(changeBaseCurrency.schema),
+  changeBaseCurrency.handler,
 );
 
 router.put('/currency', authenticateJwt, validateEndpoint(editUserCurrency.schema), editUserCurrency.handler);
