@@ -15,7 +15,9 @@
       "Bash(npm run test:e2e:*)",
       "mcp__github__get_issue",
       "Bash(awk:*)",
-      "Bash(sort:*)"
+      "Bash(sort:*)",
+      "WebSearch",
+      "Bash(cat:*)"
     ],
     "deny": []
   }
