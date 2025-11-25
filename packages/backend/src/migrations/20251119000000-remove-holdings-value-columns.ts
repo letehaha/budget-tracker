@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { QueryInterface, DataTypes, Transaction } from 'sequelize';
+import { DataTypes, QueryInterface, Transaction } from 'sequelize';
 
 /**
  * Migration to remove deprecated value and refValue columns from Holdings table.

@@ -1,0 +1,5 @@
+Date;Amount;Description;Category;Account;Currency;Type
+15.01.2024;100,50;Grocery shopping;Food;Main Account;EUR;expense
+16.01.2024;50,00;Coffee shop;Food;Main Account;EUR;expense
+17.01.2024;2500,00;Salary;Income;Main Account;EUR;income
+

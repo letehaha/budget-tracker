@@ -1,14 +1,14 @@
-import { describe, expect, it, afterEach } from '@jest/globals';
+import { afterEach, describe, expect, it } from '@jest/globals';
 import { redisClient } from '@root/redis-client';
 
 import {
-  clearAllSyncStatuses,
-  setAccountSyncStatus,
-  getAccountSyncStatus,
-  SyncStatus,
   REDIS_KEYS,
-  updateLastAutoSync,
+  SyncStatus,
+  clearAllSyncStatuses,
+  getAccountSyncStatus,
   setAccountPriority,
+  setAccountSyncStatus,
+  updateLastAutoSync,
 } from './sync-status-tracker';
 
 describe('Sync Status Tracker - clearAllSyncStatuses', () => {

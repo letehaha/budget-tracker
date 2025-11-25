@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
+import AccountDeletionSection from '@/pages/account/components/account-deletion-section.vue';
 import AccountDetailsTab from '@/pages/account/components/account-details-tab.vue';
 import SettingAccountGroup from '@/pages/account/components/account-group.vue';
-import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
-import AccountDeletionSection from '@/pages/account/components/account-deletion-section.vue';
 import AccountLinkSection from '@/pages/account/components/account-link-section.vue';
+import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
 import { AccountModel, TransactionModel } from '@bt/shared/types';
 
 defineProps<{

@@ -32,6 +32,7 @@ import categoriesRoutes from './routes/categories.route';
 import binanceRoutes from './routes/crypto/binance.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
+import csvImportExportRoutes from './routes/import-export/csv.route';
 import investmentsRoutes from './routes/investments.route';
 import statsRoutes from './routes/stats.route';
 import testsRoutes from './routes/tests.route';
@@ -81,10 +82,21 @@ logger.info(`CORS configured with origins: ${ALLOWED_ORIGINS}`);
 // Body parser with conditional limits
 app.use((req, res, next) => {
   // Paths that need larger payloads
-  const largePaths = [`${API_PREFIX}/investments/securities/prices/bulk-upload`];
+  const largePaths = {
+    '1mb': [`${API_PREFIX}/investments/securities/prices/bulk-upload`],
+    '10mb': [
+      `${API_PREFIX}/import/csv/parse`,
+      `${API_PREFIX}/import/csv/extract-unique-values`,
+      `${API_PREFIX}/import/csv/detect-duplicates`,
+      `${API_PREFIX}/import/csv/execute`,
+    ],
+  };
 
-  if (largePaths.includes(req.path)) {
-    return express.json({ limit: '1mb' })(req, res, next);
+  // Check each limit size and apply if path matches
+  for (const [limit, paths] of Object.entries(largePaths)) {
+    if (paths.includes(req.path)) {
+      return express.json({ limit })(req, res, next);
+    }
   }
 
   return express.json()(req, res, next);
@@ -119,6 +131,7 @@ app.use(`${API_PREFIX}/account-group`, accountGroupsRoutes);
 app.use(`${API_PREFIX}/currencies/rates`, exchangeRatesRoutes);
 app.use(`${API_PREFIX}/budgets`, budgetsRoutes);
 app.use(`${API_PREFIX}/investments`, investmentsRoutes);
+app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
 
 if (process.env.NODE_ENV === 'test') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);

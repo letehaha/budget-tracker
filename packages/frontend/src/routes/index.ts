@@ -90,6 +90,11 @@ const routes = [
         component: () => import('@/pages/records/root.vue'),
       },
       {
+        path: '/import/csv',
+        name: ROUTES_NAMES.importCsv,
+        component: () => import('@/pages/import-export/csv-import.vue'),
+      },
+      {
         path: '/settings',
         name: ROUTES_NAMES.settings,
         component: () => import('@/pages/settings/settings.vue'),
@@ -113,6 +118,11 @@ const routes = [
             path: 'integrations',
             name: ROUTES_NAMES.settingsIntegrations,
             component: () => import('@/pages/settings/subpages/integrations/index.vue'),
+          },
+          {
+            path: 'data-management',
+            name: ROUTES_NAMES.settingsDataManagement,
+            component: () => import('@/pages/settings/subpages/data-management/index.vue'),
           },
           {
             path: 'admin',

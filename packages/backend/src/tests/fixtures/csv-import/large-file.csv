@@ -1,0 +1,27 @@
+Date,Amount,Description,Category,Account,Currency,Type
+2024-01-01,100.00,Transaction 1,Food,Account1,USD,expense
+2024-01-02,200.00,Transaction 2,Food,Account1,USD,expense
+2024-01-03,300.00,Transaction 3,Food,Account1,USD,expense
+2024-01-04,400.00,Transaction 4,Food,Account1,USD,expense
+2024-01-05,500.00,Transaction 5,Food,Account1,USD,expense
+2024-01-06,600.00,Transaction 6,Food,Account1,USD,expense
+2024-01-07,700.00,Transaction 7,Food,Account1,USD,expense
+2024-01-08,800.00,Transaction 8,Food,Account1,USD,expense
+2024-01-09,900.00,Transaction 9,Food,Account1,USD,expense
+2024-01-10,1000.00,Transaction 10,Food,Account1,USD,expense
+2024-01-11,1100.00,Transaction 11,Food,Account1,USD,expense
+2024-01-12,1200.00,Transaction 12,Food,Account1,USD,expense
+2024-01-13,1300.00,Transaction 13,Food,Account1,USD,expense
+2024-01-14,1400.00,Transaction 14,Food,Account1,USD,expense
+2024-01-15,1500.00,Transaction 15,Food,Account1,USD,expense
+2024-01-16,1600.00,Transaction 16,Food,Account1,USD,expense
+2024-01-17,1700.00,Transaction 17,Food,Account1,USD,expense
+2024-01-18,1800.00,Transaction 18,Food,Account1,USD,expense
+2024-01-19,1900.00,Transaction 19,Food,Account1,USD,expense
+2024-01-20,2000.00,Transaction 20,Food,Account1,USD,expense
+2024-01-21,2100.00,Transaction 21,Food,Account1,USD,expense
+2024-01-22,2200.00,Transaction 22,Food,Account1,USD,expense
+2024-01-23,2300.00,Transaction 23,Food,Account1,USD,expense
+2024-01-24,2400.00,Transaction 24,Food,Account1,USD,expense
+2024-01-25,2500.00,Transaction 25,Food,Account1,USD,expense
+

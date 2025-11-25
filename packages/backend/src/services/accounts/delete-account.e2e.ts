@@ -22,9 +22,7 @@ describe('Delete Account', () => {
       const groupsBefore = await helpers.getAccountGroups({ raw: true });
       const accountGroup = groupsBefore.find((g) => g.id === group.id);
       expect(accountGroup).toBeDefined();
-      expect(accountGroup!.accounts).toContainEqual(
-        expect.objectContaining({ id: account.id }),
-      );
+      expect(accountGroup!.accounts).toContainEqual(expect.objectContaining({ id: account.id }));
 
       // Delete the account
       await helpers.deleteAccount({ id: account.id, raw: true });
@@ -38,9 +36,7 @@ describe('Delete Account', () => {
       const groupsAfter = await helpers.getAccountGroups({ raw: true });
       const accountGroupAfter = groupsAfter.find((g) => g.id === group.id);
       expect(accountGroupAfter).toBeDefined();
-      expect(accountGroupAfter!.accounts).not.toContainEqual(
-        expect.objectContaining({ id: account.id }),
-      );
+      expect(accountGroupAfter!.accounts).not.toContainEqual(expect.objectContaining({ id: account.id }));
     });
 
     it('successfully deletes account from multiple groups', async () => {
@@ -112,9 +108,7 @@ describe('Delete Account', () => {
 
       // Verify all transactions are deleted (cascade)
       const transactionsAfterDelete = await helpers.getTransactions({ raw: true });
-      const remainingAccountTransactions = transactionsAfterDelete.filter(
-        (tx) => tx.accountId === account.id,
-      );
+      const remainingAccountTransactions = transactionsAfterDelete.filter((tx) => tx.accountId === account.id);
       expect(remainingAccountTransactions).toHaveLength(0);
     });
   });
@@ -149,9 +143,7 @@ describe('Delete Account', () => {
       const groupsBefore = await helpers.getAccountGroups({ raw: true });
       const accountGroup = groupsBefore.find((g) => g.id === group.id);
       expect(accountGroup).toBeDefined();
-      expect(accountGroup!.accounts).toContainEqual(
-        expect.objectContaining({ id: account.id }),
-      );
+      expect(accountGroup!.accounts).toContainEqual(expect.objectContaining({ id: account.id }));
 
       // Delete the account
       await helpers.deleteAccount({ id: account.id, raw: true });
@@ -163,18 +155,14 @@ describe('Delete Account', () => {
 
       // Verify transactions are deleted
       const transactionsAfterDelete = await helpers.getTransactions({ raw: true });
-      const remainingAccountTransactions = transactionsAfterDelete.filter(
-        (tx) => tx.accountId === account.id,
-      );
+      const remainingAccountTransactions = transactionsAfterDelete.filter((tx) => tx.accountId === account.id);
       expect(remainingAccountTransactions).toHaveLength(0);
 
       // Verify group still exists but account is removed
       const groupsAfter = await helpers.getAccountGroups({ raw: true });
       const accountGroupAfter = groupsAfter.find((g) => g.id === group.id);
       expect(accountGroupAfter).toBeDefined();
-      expect(accountGroupAfter!.accounts).not.toContainEqual(
-        expect.objectContaining({ id: account.id }),
-      );
+      expect(accountGroupAfter!.accounts).not.toContainEqual(expect.objectContaining({ id: account.id }));
     });
   });
 });

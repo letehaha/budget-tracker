@@ -1,7 +1,7 @@
 <template>
   <div class="ui-tabs">
     <div
-      class="flex h-12 items-center gap-2"
+      class="flex h-12 items-center gap-2 overflow-x-auto"
       :style="{
         justifyContent: tabsAlignment,
       }"
@@ -10,7 +10,7 @@
         :is="isTabsLink ? 'router-link' : 'button'"
         v-for="item in options"
         :key="item.name"
-        class="text-base-text [&.router-link-exact-active]:text-primary cursor-pointer p-2 text-sm"
+        class="text-base-text [&.router-link-exact-active]:text-primary cursor-pointer p-2 text-sm whitespace-nowrap flex-shrink-0"
         v-bind="
           isTabsLink
             ? {

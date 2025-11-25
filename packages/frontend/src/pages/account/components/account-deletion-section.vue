@@ -47,9 +47,7 @@ const deleteAccount = async () => {
 
     <Separator v-if="account.bankDataProviderConnectionId" />
 
-    <div
-      class="flex flex-col justify-between gap-2 @[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center"
-    >
+    <div class="flex flex-col justify-between gap-2 @[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center">
       <div>
         <p class="mb-2 font-bold">Delete this account</p>
         <p class="text-xs">
@@ -72,8 +70,7 @@ const deleteAccount = async () => {
           <template v-if="accountHasTransactions">
             This action cannot be undone.
             <strong>
-              You have {{ transactions.length }} transactions associated with this account, they will also be
-              deleted.
+              You have {{ transactions.length }} transactions associated with this account, they will also be deleted.
             </strong>
             Do you really want to delete this account?
           </template>

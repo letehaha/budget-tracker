@@ -175,20 +175,23 @@ const deleteSessionHandler = http.delete(`${ENABLE_BANKING_BASE_URL}/sessions/:s
 /**
  * Mock: GET /accounts/:accountId/details - Get account details
  */
-const getAccountDetailsHandler = http.get(`${ENABLE_BANKING_BASE_URL}/accounts/:accountId/details`, ({ request, params }) => {
-  if (!hasValidAuth(request)) {
-    return new HttpResponse(null, {
-      status: 401,
-      statusText: 'Unauthorized',
-    });
-  }
+const getAccountDetailsHandler = http.get(
+  `${ENABLE_BANKING_BASE_URL}/accounts/:accountId/details`,
+  ({ request, params }) => {
+    if (!hasValidAuth(request)) {
+      return new HttpResponse(null, {
+        status: 401,
+        statusText: 'Unauthorized',
+      });
+    }
 
-  const { accountId } = params as { accountId: string };
+    const { accountId } = params as { accountId: string };
 
-  const accountDetails = getMockedAccountDetails(accountId);
+    const accountDetails = getMockedAccountDetails(accountId);
 
-  return HttpResponse.json(accountDetails);
-});
+    return HttpResponse.json(accountDetails);
+  },
+);
 
 /**
  * Mock: GET /accounts/:accountId/balances - Get account balances
