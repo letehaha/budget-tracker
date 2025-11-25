@@ -18,8 +18,20 @@ const router = Router({});
 router.get('/', authenticateJwt, validateEndpoint(getAccounts.schema), getAccounts.handler);
 router.get('/:id', authenticateJwt, validateEndpoint(getAccountById.schema), getAccountById.handler);
 router.post('/', authenticateJwt, checkBaseCurrencyLock, validateEndpoint(createAccount.schema), createAccount.handler);
-router.put('/:id', authenticateJwt, checkBaseCurrencyLock, validateEndpoint(updateAccount.schema), updateAccount.handler);
-router.delete('/:id', authenticateJwt, checkBaseCurrencyLock, validateEndpoint(deleteAccount.schema), deleteAccount.handler);
+router.put(
+  '/:id',
+  authenticateJwt,
+  checkBaseCurrencyLock,
+  validateEndpoint(updateAccount.schema),
+  updateAccount.handler,
+);
+router.delete(
+  '/:id',
+  authenticateJwt,
+  checkBaseCurrencyLock,
+  validateEndpoint(deleteAccount.schema),
+  deleteAccount.handler,
+);
 router.post(
   '/:id/unlink',
   authenticateJwt,

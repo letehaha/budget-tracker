@@ -1,4 +1,4 @@
-import { encryptToken, decryptToken } from '@common/utils/encryption';
+import { decryptToken, encryptToken } from '@common/utils/encryption';
 
 /**
  * Encrypt credentials object for storage in database

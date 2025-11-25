@@ -23,8 +23,20 @@ const router = Router({});
 // Define all named routes level above to avoid matching with /:id
 router.get('/refund', authenticateJwt, validateEndpoint(getRefund.schema), getRefund.handler);
 router.get('/refunds', authenticateJwt, validateEndpoint(getRefunds.schema), getRefunds.handler);
-router.post('/refund', authenticateJwt, checkBaseCurrencyLock, validateEndpoint(createRefund.schema), createRefund.handler);
-router.delete('/refund', authenticateJwt, checkBaseCurrencyLock, validateEndpoint(deleteRefund.schema), deleteRefund.handler);
+router.post(
+  '/refund',
+  authenticateJwt,
+  checkBaseCurrencyLock,
+  validateEndpoint(createRefund.schema),
+  createRefund.handler,
+);
+router.delete(
+  '/refund',
+  authenticateJwt,
+  checkBaseCurrencyLock,
+  validateEndpoint(deleteRefund.schema),
+  deleteRefund.handler,
+);
 
 router.get('/', authenticateJwt, validateEndpoint(getTransactions.schema), getTransactions.handler);
 router.get('/:id', authenticateJwt, validateEndpoint(getTransactionById.schema), getTransactionById.handler);
@@ -40,7 +52,13 @@ router.get(
   validateEndpoint(getTransactionsByTransferId.schema),
   getTransactionsByTransferId.handler,
 );
-router.post('/', authenticateJwt, checkBaseCurrencyLock, validateEndpoint(createTransaction.schema), createTransaction.handler);
+router.post(
+  '/',
+  authenticateJwt,
+  checkBaseCurrencyLock,
+  validateEndpoint(createTransaction.schema),
+  createTransaction.handler,
+);
 router.put(
   '/unlink',
   authenticateJwt,
@@ -49,7 +67,19 @@ router.put(
   unlinkTransferTransactions.handler,
 );
 router.put('/link', authenticateJwt, checkBaseCurrencyLock, linkTransactions);
-router.put('/:id', authenticateJwt, checkBaseCurrencyLock, validateEndpoint(updateTransaction.schema), updateTransaction.handler);
-router.delete('/:id', authenticateJwt, checkBaseCurrencyLock, validateEndpoint(deleteTransaction.schema), deleteTransaction.handler);
+router.put(
+  '/:id',
+  authenticateJwt,
+  checkBaseCurrencyLock,
+  validateEndpoint(updateTransaction.schema),
+  updateTransaction.handler,
+);
+router.delete(
+  '/:id',
+  authenticateJwt,
+  checkBaseCurrencyLock,
+  validateEndpoint(deleteTransaction.schema),
+  deleteTransaction.handler,
+);
 
 export default router;

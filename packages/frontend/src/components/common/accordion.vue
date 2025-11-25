@@ -43,7 +43,6 @@
 import { FormattedCategory } from '@/common/types';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import { Button } from '@/components/lib/ui/button';
-import { defineEmits, defineProps } from 'vue';
 
 const props = defineProps<{
   categories: FormattedCategory[];

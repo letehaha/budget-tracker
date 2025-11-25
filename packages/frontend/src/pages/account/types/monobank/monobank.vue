@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
+import AccountConvertMonobankSection from '@/pages/account/components/account-convert-monobank-section.vue';
+import AccountDeletionSection from '@/pages/account/components/account-deletion-section.vue';
 import AccountDetailsTab from '@/pages/account/components/account-details-tab.vue';
 import SettingAccountGroup from '@/pages/account/components/account-group.vue';
 import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
-import AccountDeletionSection from '@/pages/account/components/account-deletion-section.vue';
-import AccountConvertMonobankSection from '@/pages/account/components/account-convert-monobank-section.vue';
 import { ACCOUNT_TYPES, AccountModel, TransactionModel } from '@bt/shared/types';
 
 import LoadLatestTransactions from './load-latest-transactions.vue';

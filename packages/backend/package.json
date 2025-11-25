@@ -32,6 +32,7 @@
     "cors": "2.8.5",
     "cron": "^3.2.1",
     "crypto-js": "4.2.0",
+    "csv-parse": "^6.1.0",
     "currency-codes": "2.1.0",
     "date-fns": "3.6.0",
     "express": "4.21.2",

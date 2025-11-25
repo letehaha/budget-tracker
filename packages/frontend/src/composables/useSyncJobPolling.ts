@@ -1,8 +1,8 @@
-import { getSyncJobProgress, getActiveSyncJobs, type JobProgress } from '@/api/bank-data-providers';
+import { type JobProgress, getActiveSyncJobs, getSyncJobProgress } from '@/api/bank-data-providers';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useQueryClient } from '@tanstack/vue-query';
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 
 interface ActiveJob {
   jobGroupId: string;
@@ -102,13 +102,16 @@ export function useSyncJobPolling() {
     }, 5000); // Poll every 5 seconds
 
     // Auto-stop polling after 30 minutes
-    const timeoutId = setTimeout(() => {
-      stopPolling(jobGroupId);
-      addNotification({
-        text: 'Sync job polling timed out. Please refresh the page to check status.',
-        type: NotificationType.warning,
-      });
-    }, 30 * 60 * 1000);
+    const timeoutId = setTimeout(
+      () => {
+        stopPolling(jobGroupId);
+        addNotification({
+          text: 'Sync job polling timed out. Please refresh the page to check status.',
+          type: NotificationType.warning,
+        });
+      },
+      30 * 60 * 1000,
+    );
 
     activeJobs.value.set(jobGroupId, {
       jobGroupId,

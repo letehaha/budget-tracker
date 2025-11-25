@@ -95,9 +95,7 @@ watch(
 
     <!-- Date Format Selection -->
     <div class="border-border space-y-2 rounded border p-3">
-      <label class="text-sm font-medium">
-        Date Format <span class="text-destructive-text">*</span>
-      </label>
+      <label class="text-sm font-medium"> Date Format <span class="text-destructive-text">*</span> </label>
       <p class="text-muted-foreground text-xs">Select the date format used in your file</p>
       <select v-model="dateFormat" class="border-border bg-background w-full rounded border px-3 py-2 text-sm">
         <option value="dd/MM/yyyy">DD/MM/YYYY (e.g., 31/12/2024)</option>

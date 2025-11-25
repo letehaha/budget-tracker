@@ -78,7 +78,10 @@ async function handleFile(file: File) {
       emit('fileLoaded', { content, fileName: file.name, fileType: 'csv' });
     }
   } catch (error) {
-    emit('error', `Failed to parse ${fileType.toUpperCase()} file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    emit(
+      'error',
+      `Failed to parse ${fileType.toUpperCase()} file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    );
   }
 }
 
@@ -116,7 +119,7 @@ function openFileDialog() {
   <div class="space-y-2">
     <h3 class="text-sm font-medium">Upload File</h3>
     <div
-      class="border-border hover:border-primary transition-colors flex min-h-[150px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6"
+      class="border-border hover:border-primary flex min-h-[150px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors"
       :class="{ 'border-primary bg-primary/5': isDragging }"
       @click="openFileDialog"
       @drop.prevent="onDrop"
@@ -139,13 +142,7 @@ function openFileDialog() {
       </svg>
       <p class="text-foreground mb-1 text-sm font-medium">Click to upload or drag and drop</p>
       <p class="text-muted-foreground text-xs">CSV or JSON files supported</p>
-      <input
-        ref="fileInputRef"
-        type="file"
-        accept=".csv,.json"
-        class="hidden"
-        @change="onFileChange"
-      />
+      <input ref="fileInputRef" type="file" accept=".csv,.json" class="hidden" @change="onFileChange" />
     </div>
   </div>
 </template>

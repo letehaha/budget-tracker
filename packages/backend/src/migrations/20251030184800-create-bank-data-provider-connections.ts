@@ -90,15 +90,11 @@ module.exports = {
         transaction: t,
       });
 
-      await queryInterface.addIndex(
-        'BankDataProviderConnections',
-        ['isActive'],
-        {
-          name: 'bank_data_provider_connections_active_idx',
-          where: { isActive: true },
-          transaction: t,
-        },
-      );
+      await queryInterface.addIndex('BankDataProviderConnections', ['isActive'], {
+        name: 'bank_data_provider_connections_active_idx',
+        where: { isActive: true },
+        transaction: t,
+      });
 
       // Add bankDataProviderConnectionId column to Accounts table
       await queryInterface.addColumn(

@@ -1,0 +1,7 @@
+Date,Amount,Description,Category,Account,Currency,Type
+2024-01-15,100.50,Grocery shopping,Food,Main Account,USD,expense
+2024-01-16,-50.00,Coffee shop,Food,Main Account,USD,expense
+2024-01-17,2500.00,Salary,Income,Main Account,USD,income
+2024-01-18,35.99,Netflix subscription,Entertainment,Main Account,USD,expense
+2024-01-19,150.00,Gas station,Transport,Main Account,USD,expense
+

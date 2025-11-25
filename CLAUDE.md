@@ -50,3 +50,6 @@ Always test through the actual API endpoints to ensure full integration testing.
 Other instructions:
 
 1. File names should always be in kebab-case
+2. All functions should _always_ use object-like params.
+   - Never: function(arg1, arg2, arg3)
+   - Always: function({ arg1, arg2, arg3 })

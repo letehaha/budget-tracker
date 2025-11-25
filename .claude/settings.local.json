@@ -17,7 +17,9 @@
       "Bash(awk:*)",
       "Bash(sort:*)",
       "WebSearch",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npx vue-tsc:*)"
     ],
     "deny": []
   }

@@ -1,0 +1,8 @@
+Date,Amount,Description,Category,Account,Currency,Type
+2024-01-15,100.50,Valid row,Food,Main Account,USD,expense
+invalid-date,50.00,Invalid date,Food,Main Account,USD,expense
+2024-01-17,not-a-number,Invalid amount,Food,Main Account,USD,expense
+2024-01-18,75.00,Unknown type,Food,Main Account,USD,unknown
+2024-01-19,200.00,Empty account,Food,,USD,expense
+2024-01-20,150.00,Valid row 2,Transport,Main Account,USD,expense
+

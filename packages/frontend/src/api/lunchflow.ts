@@ -43,8 +43,7 @@ export const storeApiKey = async (payload: StoreApiKeyPayload): Promise<{ messag
 /**
  * Get accounts from Lunch Flow API (not from our DB)
  */
-export const getAccounts = async (): Promise<{ accounts: LunchFlowAccount[] }> =>
-  api.get('/banks/lunchflow/accounts');
+export const getAccounts = async (): Promise<{ accounts: LunchFlowAccount[] }> => api.get('/banks/lunchflow/accounts');
 
 /**
  * Sync accounts from Lunch Flow to our database

@@ -29,7 +29,14 @@
 
 <script lang="ts" setup>
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/lib/ui/dialog';
 import { ref, watch } from 'vue';
 
 const props = defineProps<{
