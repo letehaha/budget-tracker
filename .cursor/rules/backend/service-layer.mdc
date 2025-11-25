@@ -11,7 +11,7 @@ alwaysApply: true
 ```typescript
 import { NotFoundError, ValidationError } from '@js/errors';
 import * as FeatureModel from '@models/Feature.model';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 
 interface ServiceParams {
   userId: number;

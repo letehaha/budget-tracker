@@ -18,7 +18,7 @@ import * as Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import * as Transactions from '@models/Transactions.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import { v4 as uuidv4 } from 'uuid';
 

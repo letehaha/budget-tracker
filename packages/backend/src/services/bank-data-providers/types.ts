@@ -1,7 +1,7 @@
 /**
  * Core types and interfaces for the Bank Data Provider system.
  * This system allows users to connect multiple bank accounts from various providers
- * (Monobank, LunchFlow, etc.) in a unified, modular way.
+ * (Monobank, Enable Banking, etc.) in a unified, modular way.
  */
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 

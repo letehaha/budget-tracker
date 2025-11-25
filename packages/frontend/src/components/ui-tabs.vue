@@ -10,7 +10,7 @@
         :is="isTabsLink ? 'router-link' : 'button'"
         v-for="item in options"
         :key="item.name"
-        class="text-base-text [&.router-link-exact-active]:text-primary cursor-pointer p-2 text-sm whitespace-nowrap flex-shrink-0"
+        class="text-base-text [&.router-link-exact-active]:text-primary flex-shrink-0 cursor-pointer p-2 text-sm whitespace-nowrap"
         v-bind="
           isTabsLink
             ? {

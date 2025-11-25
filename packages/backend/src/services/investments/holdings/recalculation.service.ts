@@ -2,7 +2,7 @@ import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { NotFoundError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 import { Big } from 'big.js';
 
 const recalculateHoldingImpl = async (holdingId: { portfolioId: number; securityId: number }) => {

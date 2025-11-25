@@ -2,7 +2,7 @@ import { BUDGET_STATUSES } from '@bt/shared/types';
 import Budgets from '@models/Budget.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
 import Transactions from '@models/Transactions.model';
-import { withTransaction } from '@services/common/index';
+import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
 export interface CreateBudgetPayload {

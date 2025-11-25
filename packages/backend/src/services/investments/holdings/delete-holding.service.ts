@@ -1,7 +1,7 @@
 import { NotAllowedError, NotFoundError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
 import Portfolios from '@models/investments/Portfolios.model';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteParams {
   userId: number;

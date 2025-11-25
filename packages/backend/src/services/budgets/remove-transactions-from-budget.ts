@@ -1,7 +1,7 @@
 import { NotFoundError } from '@js/errors';
 import Budgets from '@models/Budget.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
-import { withTransaction } from '@services/common/index';
+import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
 interface RemoveTransactionsPayload {

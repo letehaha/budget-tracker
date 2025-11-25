@@ -1,5 +1,5 @@
 import SecurityPricing from '@models/investments/SecurityPricing.model';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 import { Op, WhereOptions } from 'sequelize';
 
 interface PriceQueryOptions {

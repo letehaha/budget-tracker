@@ -1,7 +1,7 @@
 import { BudgetModel } from '@bt/shared/types';
 import Budgets from '@models/Budget.model';
 
-import { withTransaction } from './common';
+import { withTransaction } from './common/with-transaction';
 
 export const getBudgets = withTransaction(async ({ userId }: { userId: number }) => {
   const budgets = await Budgets.findAll({

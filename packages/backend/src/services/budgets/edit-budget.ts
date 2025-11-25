@@ -1,6 +1,6 @@
 import { NotFoundError } from '@js/errors';
 import Budgets from '@models/Budget.model';
-import { withTransaction } from '@services/common/index';
+import { withTransaction } from '@services/common/with-transaction';
 
 export interface EditBudgetPayload {
   id: number;

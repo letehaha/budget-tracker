@@ -2,7 +2,7 @@ import type { SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 
 import { dataProviderFactory } from '../data-providers';
 import { addOrUpdateFromProvider } from '../securities-manage';

@@ -1,5 +1,5 @@
 import * as Categories from '@models/Categories.model';
-import { withTransaction } from '@services/common/index';
+import { withTransaction } from '@services/common/with-transaction';
 
 export const editCategory = withTransaction(async (payload: Categories.EditCategoryPayload) => {
   const result = await Categories.editCategory(payload);

@@ -9,7 +9,7 @@ import { IBankDataProvider, ProviderAccount, ProviderMetadata } from './types';
  * Abstract base class for all bank data providers.
  * Provides common functionality and enforces implementation of required methods.
  *
- * All providers (Monobank, LunchFlow, etc.) should extend this class.
+ * All providers (Monobank, Enable Banking, etc.) should extend this class.
  */
 export abstract class BaseBankDataProvider implements IBankDataProvider {
   // ============================================================================

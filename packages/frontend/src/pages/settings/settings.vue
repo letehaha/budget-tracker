@@ -37,11 +37,6 @@ const baseTabs: Tab[] = [
     to: { name: ROUTES_NAMES.settingsAccounts },
   },
   {
-    name: 'integrations',
-    label: 'Integrations',
-    to: { name: ROUTES_NAMES.settingsIntegrations },
-  },
-  {
     name: 'data-management',
     label: 'Data Management',
     to: { name: ROUTES_NAMES.settingsDataManagement },

@@ -3,8 +3,8 @@ import { logger } from '@js/utils';
 import Holdings from '@models/investments/Holdings.model';
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
-import { withTransaction } from '@services/common';
 import { withLock } from '@services/common/lock';
+import { withTransaction } from '@services/common/with-transaction';
 import { endOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 

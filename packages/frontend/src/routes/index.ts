@@ -115,11 +115,6 @@ const routes = [
             component: () => import('@/pages/settings/subpages/accounts-groups/index.vue'),
           },
           {
-            path: 'integrations',
-            name: ROUTES_NAMES.settingsIntegrations,
-            component: () => import('@/pages/settings/subpages/integrations/index.vue'),
-          },
-          {
             path: 'data-management',
             name: ROUTES_NAMES.settingsDataManagement,
             component: () => import('@/pages/settings/subpages/data-management/index.vue'),
