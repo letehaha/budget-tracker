@@ -14,7 +14,6 @@ import path from 'path';
 
 import { API_PREFIX } from './config';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
-import { lunchflowSyncCron } from './crons/lunchflow-sync';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
 import middlewarePassword from './middlewares/passport';
 import './redis-client';
@@ -25,7 +24,6 @@ import accountsRoutes from './routes/accounts.route';
  * */
 import authRoutes from './routes/auth.route';
 import bankDataProvidersRoutes from './routes/bank-data-providers.route';
-import lunchflowRoutes from './routes/banks/lunchflow.route';
 import monobankRoutes from './routes/banks/monobank.route';
 import budgetsRoutes from './routes/budgets.route';
 import categoriesRoutes from './routes/categories.route';
@@ -124,7 +122,6 @@ app.use(`${API_PREFIX}/categories`, categoriesRoutes);
 app.use(`${API_PREFIX}/models/currencies`, modelsCurrenciesRoutes);
 app.use(`${API_PREFIX}/bank-data-providers`, bankDataProvidersRoutes);
 app.use(`${API_PREFIX}/banks/monobank`, monobankRoutes);
-app.use(`${API_PREFIX}/banks/lunchflow`, lunchflowRoutes);
 app.use(`${API_PREFIX}/crypto/binance`, binanceRoutes);
 app.use(`${API_PREFIX}/stats`, statsRoutes);
 app.use(`${API_PREFIX}/account-group`, accountGroupsRoutes);
@@ -183,7 +180,6 @@ function initializeBackgroundJobs() {
     initializeHistoricalRates();
 
     loadCurrencyRatesJob.start();
-    lunchflowSyncCron.startCron();
 
     if (process.env.NODE_ENV === 'production') {
       securitiesDailySyncCron.startCron();
@@ -208,7 +204,6 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const processUnexpectedExit = () => {
   securitiesDailySyncCron.stopCron();
-  lunchflowSyncCron.stopCron();
   loadCurrencyRatesJob.stop();
   process.exit(0);
 };

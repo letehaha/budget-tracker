@@ -12,8 +12,8 @@ services:
       - backend_node_modules:/app/packages/backend/node_modules
       # Mount SSL certificates for HTTPS
       - ../../docker/dev/certs:/app/docker/dev/certs:ro
-    ports: ["${APPLICATION_PORT}:${APPLICATION_PORT}"]
-    depends_on: ["db", "redis", "frankfurter"]
+    ports: ['${APPLICATION_PORT}:${APPLICATION_PORT}']
+    depends_on: ['db', 'redis', 'frankfurter']
     env_file: ../../.env.development
     environment:
       - OFFLINE_MODE=${DOCKER_OFFLINE_MODE:-false}
@@ -30,26 +30,26 @@ services:
       - frontend_node_modules:/app/packages/frontend/node_modules
       # Mount SSL certificates for HTTPS
       - ../../docker/dev/certs:/app/docker/dev/certs:ro
-    ports: ["${PORT}:${PORT}"]
-    depends_on: ["backend"]
+    ports: ['${PORT}:${PORT}']
+    depends_on: ['backend']
     env_file: ../../.env.development
 
   db:
     image: postgres:16
     restart: always
     container_name: dev-budget-tracker-db
-    volumes: ["db_data:/var/lib/postgresql/data"]
+    volumes: ['db_data:/var/lib/postgresql/data']
     environment:
       - POSTGRES_USER=${APPLICATION_DB_USERNAME}
       - POSTGRES_PASSWORD=${APPLICATION_DB_PASSWORD}
       - POSTGRES_DB=${APPLICATION_DB_DATABASE}
-    ports: ["${APPLICATION_DB_PORT}:5432"]
+    ports: ['${APPLICATION_DB_PORT}:5432']
 
   redis:
     image: redis:7
     container_name: dev-budget-tracker-redis
-    volumes: ["redis_data:/data"]
-    ports: ["${MAP_REDIS_PORT_TO_OS_PORT:-6379}:6379"]
+    volumes: ['redis_data:/data']
+    ports: ['${MAP_REDIS_PORT_TO_OS_PORT:-6379}:6379']
 
   # Frankfurter: Self-hosted exchange rates service
   # Provides historical exchange rates data from 1999-01-04 to present
@@ -62,10 +62,10 @@ services:
     restart: unless-stopped
     attach: false
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   pgadmin:
     image: dpage/pgadmin4:8.11
@@ -73,8 +73,8 @@ services:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
       - PGADMIN_LISTEN_PORT=${PGADMIN_LISTEN_PORT}
-    ports: ["8001:8001"]
-    depends_on: ["db"]
+    ports: ['8001:8001']
+    depends_on: ['db']
     attach: false
 
 volumes:

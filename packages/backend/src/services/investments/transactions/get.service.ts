@@ -3,7 +3,7 @@ import { NotFoundError } from '@js/errors';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Portfolios from '@models/investments/Portfolios.model';
 import Securities from '@models/investments/Securities.model';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 import { format, parseISO } from 'date-fns';
 import { Op, WhereOptions } from 'sequelize';
 

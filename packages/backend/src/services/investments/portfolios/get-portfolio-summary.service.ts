@@ -2,7 +2,7 @@ import { NotFoundError } from '@js/errors';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import Portfolios from '@models/investments/Portfolios.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 import { getHoldingValues } from '@services/investments/holdings/get-holding-values.service';
 
 interface GetPortfolioSummaryParams {

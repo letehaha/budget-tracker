@@ -1,6 +1,6 @@
 import Budgets from '@models/Budget.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
-import { withTransaction } from '@services/common/index';
+import { withTransaction } from '@services/common/with-transaction';
 
 export interface DeleteBudgetPayload {
   id: number;

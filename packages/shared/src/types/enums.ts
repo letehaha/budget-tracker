@@ -1,7 +1,6 @@
 export enum ACCOUNT_TYPES {
   system = 'system',
   monobank = 'monobank',
-  lunchflow = 'lunchflow',
   enableBanking = 'enable-banking',
 }
 
@@ -12,7 +11,6 @@ export enum BANK_PROVIDER_TYPE {
   MONOBANK = 'monobank',
   ENABLE_BANKING = 'enable-banking',
   // Future providers will be added here:
-  // LUNCHFLOW = 'lunchflow',
   // GOCARDLESS = 'gocardless',
 }
 

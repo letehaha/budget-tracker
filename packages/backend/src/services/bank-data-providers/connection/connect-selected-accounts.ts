@@ -4,7 +4,7 @@ import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { getCurrency } from '@models/Currencies.model';
 import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
-import { withTransaction } from '@root/services/common';
+import { withTransaction } from '@root/services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 
 import { bankProviderRegistry } from '../registry';

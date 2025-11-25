@@ -33,7 +33,7 @@ export interface BankDataProviderConnectionsAttributes {
 
 /**
  * BankDataProviderConnections model
- * Stores user connections to external bank data providers (Monobank, LunchFlow, etc.)
+ * Stores user connections to external bank data providers (Monobank, Enable Banking, etc.)
  * Allows users to connect multiple instances of the same provider
  */
 @Table({
@@ -73,7 +73,7 @@ export default class BankDataProviderConnections extends Model<BankDataProviderC
   @Column({
     allowNull: false,
     type: DataType.STRING(50),
-    comment: 'Type of provider: monobank, lunchflow, etc.',
+    comment: 'Type of provider: monobank, enable-banking, etc.',
   })
   providerType!: BANK_PROVIDER_TYPE;
 

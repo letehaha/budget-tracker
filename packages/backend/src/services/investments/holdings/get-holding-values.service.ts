@@ -3,7 +3,7 @@ import InvestmentTransaction from '@models/investments/InvestmentTransaction.mod
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
-import { withDeduplication } from '@services/common';
+import { withDeduplication } from '@services/common/with-deduplication';
 import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
 import { Big } from 'big.js';
 import { Op, WhereOptions } from 'sequelize';

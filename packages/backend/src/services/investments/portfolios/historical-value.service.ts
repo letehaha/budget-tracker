@@ -6,7 +6,7 @@ import Portfolios from '@models/investments/Portfolios.model';
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 import { format } from 'date-fns';
 import { Op } from 'sequelize';
 

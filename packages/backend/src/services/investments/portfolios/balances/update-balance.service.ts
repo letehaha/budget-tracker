@@ -3,7 +3,7 @@ import Currencies from '@models/Currencies.model';
 import PortfolioBalances from '@models/investments/PortfolioBalances.model';
 import Portfolios from '@models/investments/Portfolios.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 import { Big } from 'big.js';
 
 interface UpdatePortfolioBalanceParams {

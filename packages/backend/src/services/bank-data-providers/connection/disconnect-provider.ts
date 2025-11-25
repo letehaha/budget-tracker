@@ -1,7 +1,7 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import { withTransaction } from '@root/services/common';
+import { withTransaction } from '@root/services/common/with-transaction';
 
 import { bankProviderRegistry } from '../registry';
 

@@ -3,7 +3,7 @@ import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import PortfolioBalances from '@models/investments/PortfolioBalances.model';
 import Portfolios from '@models/investments/Portfolios.model';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 
 interface DeletePortfolioParams {
   userId: number;

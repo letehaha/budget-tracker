@@ -1,6 +1,6 @@
 import { NotFoundError } from '@js/errors';
 import Portfolios from '@models/investments/Portfolios.model';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 
 interface GetPortfolioParams {
   userId: number;

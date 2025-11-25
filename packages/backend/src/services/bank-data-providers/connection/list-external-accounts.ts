@@ -1,7 +1,7 @@
 import { API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import { withTransaction } from '@root/services/common';
+import { withTransaction } from '@root/services/common/with-transaction';
 import { ProviderAccount, bankProviderRegistry } from '@services/bank-data-providers';
 
 export const listExternalAccounts = withTransaction(

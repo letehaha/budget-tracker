@@ -6,9 +6,6 @@ export interface UserSettingsSchema {
       excludedCategories: number[];
     };
   };
-  lunchflow: {
-    apiToken: string;
-  };
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {

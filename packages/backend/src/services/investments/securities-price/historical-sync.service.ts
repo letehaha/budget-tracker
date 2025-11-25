@@ -1,8 +1,8 @@
 import { logger } from '@js/utils';
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
-import { withTransaction } from '@services/common';
 import { withLock } from '@services/common/lock';
+import { withTransaction } from '@services/common/with-transaction';
 import { dataProviderFactory } from '@services/investments/data-providers';
 import { PriceData } from '@services/investments/data-providers/base-provider';
 import { subYears } from 'date-fns';

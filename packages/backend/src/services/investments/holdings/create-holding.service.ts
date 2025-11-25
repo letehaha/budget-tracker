@@ -4,7 +4,7 @@ import { getCurrency } from '@models/Currencies.model';
 import Holdings from '@models/investments/Holdings.model';
 import Portfolios from '@models/investments/Portfolios.model';
 import Securities from '@models/investments/Securities.model';
-import { withTransaction } from '@services/common';
+import { withTransaction } from '@services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import { syncHistoricalPrices } from '@services/investments/securities-price/historical-sync.service';
 

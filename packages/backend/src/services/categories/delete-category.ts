@@ -1,7 +1,7 @@
 import { NotFoundError, ValidationError } from '@js/errors';
 import * as Categories from '@models/Categories.model';
 import Transactions from '@models/Transactions.model';
-import { withTransaction } from '@services/common/index';
+import { withTransaction } from '@services/common/with-transaction';
 import { editExcludedCategories } from '@services/user-settings/edit-excluded-categories';
 
 export const deleteCategory = withTransaction(async (payload: Categories.DeleteCategoryPayload) => {
