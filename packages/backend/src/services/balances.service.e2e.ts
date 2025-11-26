@@ -386,8 +386,12 @@ describe('Balances service', () => {
         accountInitialBalance: 0,
       });
 
-      // Update transaction for the next month
-      const newAccountTxDate = addMonths(startOfDay(addDays(testDate, 5)), 1);
+      // Update transaction for the next month.
+      // Guard against landing on the 1st of a month, which would cause
+      // startOfMonth(newAccountTxDate) to equal newAccountTxDate
+      const baseDate = addDays(testDate, 5);
+      const adjustedDate = baseDate.getDate() === 1 ? addDays(baseDate, 1) : baseDate;
+      const newAccountTxDate = addMonths(startOfDay(adjustedDate), 1);
 
       await helpers.updateTransaction({
         id: transactionResults[3]!.id,
