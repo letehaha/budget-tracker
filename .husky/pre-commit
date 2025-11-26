@@ -1,3 +1,6 @@
 #!/bin/sh
 
+export NVM_DIR="$HOME/.nvm"
+. "$NVM_DIR/nvm.sh"
+
 npm run lint

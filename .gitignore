@@ -134,8 +134,8 @@ jspm_packages/
 # TernJS port file
 .tern-port
 
-# File that contains project's context details for LLM models
-ai-context.md
+# Local Claude Code settings
+.claude/settings.local.json
 
 # Different kinds of data
 packages/backend/data

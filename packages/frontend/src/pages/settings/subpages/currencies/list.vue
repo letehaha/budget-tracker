@@ -6,7 +6,7 @@
           'flex cursor-auto flex-col gap-4 rounded-lg border p-4 shadow-xs transition-all duration-300',
           !currency.isDefaultCurrency && 'hover:bg-card-tooltip cursor-pointer',
         ]"
-        @click="!currency.isDefaultCurrency && toggleActiveItem(index)"
+        @click="selectCurrency(currency)"
       >
         <div class="gap-4">
           <div class="flex items-center justify-between">
@@ -67,7 +67,6 @@
         <edit-currency
           :currency="selectedCurrency"
           :deletion-disabled="isDeletionDisabled(selectedCurrency)"
-          @delete="onDeleteHandler(activeItemIndex)"
           @submit="onCurrencyEdit"
         />
       </template>
@@ -76,28 +75,24 @@
 </template>
 
 <script setup lang="ts">
-import { deleteUserCurrency, loadUserCurrenciesExchangeRates } from '@/api/currencies';
+import { loadUserCurrenciesExchangeRates } from '@/api/currencies';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import UiTooltip from '@/components/common/tooltip.vue';
 import { Card } from '@/components/lib/ui/card';
-import { useNotificationCenter } from '@/components/notification-center';
 import { getCurrencyIcon } from '@/js/helpers/currencyImage';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
-import { API_ERROR_CODES, UserCurrencyModel } from '@bt/shared/types';
+import { UserCurrencyModel } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { InfoIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, nextTick, ref } from 'vue';
 
-import EditCurrency from './edit-currency.vue';
+import EditCurrency from './edit-currency/index.vue';
 import { CurrencyWithExchangeRate } from './types';
-
-type ActiveItemIndex = number;
 
 const currenciesStore = useCurrenciesStore();
 const accountsStore = useAccountsStore();
-const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { currencies, baseCurrency } = storeToRefs(currenciesStore);
 const { accountsCurrencyCodes } = storeToRefs(accountsStore);
 const queryClient = useQueryClient();
@@ -128,40 +123,25 @@ const currenciesList = computed<CurrencyWithExchangeRate[]>(() =>
     .sort((a) => (a.isDefaultCurrency ? -1 : 1)),
 );
 
-const activeItemIndex = ref<ActiveItemIndex>(null);
-
 const selectedCurrency = ref<CurrencyWithExchangeRate | null>(null);
 
-const toggleActiveItem = (index: ActiveItemIndex) => {
-  activeItemIndex.value = activeItemIndex.value === index ? null : index;
-  selectedCurrency.value = activeItemIndex.value !== null ? currenciesList.value[index] : null;
-  isEditingModalVisible.value = !!selectedCurrency.value;
-};
-
 const onCurrencyEdit = async () => {
+  currenciesStore.loadCurrencies();
   isEditingModalVisible.value = false;
+
   await nextTick();
-  toggleActiveItem(null);
+
   queryClient.invalidateQueries({
     queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates,
   });
 };
 
-const onDeleteHandler = async (index: ActiveItemIndex) => {
-  try {
-    await deleteUserCurrency(currencies.value[index].currencyCode);
-    await currenciesStore.loadCurrencies();
-    await onCurrencyEdit();
+const selectCurrency = (currency: CurrencyWithExchangeRate) => {
+  if (currency.isDefaultCurrency) return;
 
-    addSuccessNotification('Successfully deleted.');
-  } catch (e) {
-    if (e.data.code === API_ERROR_CODES.unauthorized) return;
-    if (e.data.code === API_ERROR_CODES.validationError) {
-      addErrorNotification(e.data.message);
-      return;
-    }
-    addErrorNotification('Unexpected error. Currency is not deleted.');
-  }
+  selectedCurrency.value = currency;
+
+  isEditingModalVisible.value = true;
 };
 
 const isDeletionDisabled = (currency: UserCurrencyModel) =>
