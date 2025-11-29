@@ -22,12 +22,6 @@ export enum API_ERROR_CODES {
   invalidCredentials = 'INVALID_CREDENTIALS',
   userExists = 'USER_ALREADY_EXISTS',
 
-  // monobank
-  monobankUserNotPaired = 'MONOBANK_USER_NOT_PAIRED',
-  monobankUserAlreadyConnected = 'MONOBANK_USER_ALREADY_CONNECTED',
-  monobankUserNotExist = 'MONOBANK_USER_NOT_EXIST',
-  monobankTokenInvalid = 'MONOBANK_USER_TOKEN_INVALID',
-
   // crypto/binance
   cryptoBinanceBothAPIKeysDoesNotexist = 10101,
   cryptoBinancePublicAPIKeyNotDefined = 10102,

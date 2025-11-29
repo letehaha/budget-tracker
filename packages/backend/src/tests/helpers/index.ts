@@ -1,9 +1,8 @@
 import bankDataProviders from './bank-data-providers';
 import enablebanking from './enablebanking';
-import monobank from './monobank';
 
 export * from './common';
-export { bankDataProviders, enablebanking, monobank };
+export { bankDataProviders, enablebanking };
 export * from './account';
 export * from './refunds';
 export * from './stats';

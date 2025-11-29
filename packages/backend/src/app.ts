@@ -24,7 +24,6 @@ import accountsRoutes from './routes/accounts.route';
  * */
 import authRoutes from './routes/auth.route';
 import bankDataProvidersRoutes from './routes/bank-data-providers.route';
-import monobankRoutes from './routes/banks/monobank.route';
 import budgetsRoutes from './routes/budgets.route';
 import categoriesRoutes from './routes/categories.route';
 import binanceRoutes from './routes/crypto/binance.route';
@@ -121,7 +120,6 @@ app.use(`${API_PREFIX}/transactions`, transactionsRoutes);
 app.use(`${API_PREFIX}/categories`, categoriesRoutes);
 app.use(`${API_PREFIX}/models/currencies`, modelsCurrenciesRoutes);
 app.use(`${API_PREFIX}/bank-data-providers`, bankDataProvidersRoutes);
-app.use(`${API_PREFIX}/banks/monobank`, monobankRoutes);
 app.use(`${API_PREFIX}/crypto/binance`, binanceRoutes);
 app.use(`${API_PREFIX}/stats`, statsRoutes);
 app.use(`${API_PREFIX}/account-group`, accountGroupsRoutes);
