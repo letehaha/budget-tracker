@@ -10,10 +10,7 @@
           <template v-if="account.bankDataProviderConnectionId">
             <BankConnectionView :account="account" :transactions="rawTransactionsList" />
           </template>
-          <template v-else-if="account.type === ACCOUNT_TYPES.monobank">
-            <MonobankAccount :account="account" :transactions="rawTransactionsList" />
-          </template>
-          <template v-else-if="account.type === ACCOUNT_TYPES.system">
+          <template v-else>
             <SystemAccount :account="account" :transactions="rawTransactionsList" />
           </template>
         </Card.CardContent>
@@ -56,7 +53,6 @@ import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
 import { useAccountsStore, useRootStore } from '@/stores';
-import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { useInfiniteQuery } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
@@ -64,7 +60,6 @@ import { useRoute } from 'vue-router';
 
 import Header from './components/header.vue';
 import BankConnectionView from './types/bank-connection/index.vue';
-import MonobankAccount from './types/monobank/monobank.vue';
 import SystemAccount from './types/system/system.vue';
 
 const route = useRoute();

@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { until } from '@common/helpers';
-import { usersQuery } from '@controllers/banks/monobank.controller';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
@@ -204,9 +203,6 @@ beforeEach(async () => {
     if (workerKeys.length) {
       await redisClient.del(workerKeys);
     }
-
-    // Clear query cache
-    usersQuery.clear();
 
     // Run migrations with deadlock retry (this can be slow with TypeScript)
     await retryWithBackoff(
