@@ -3,7 +3,7 @@
     <p class="mb-2 text-sm">Banks connections sync status</p>
 
     <!-- Just completed: Show success message -->
-    <div v-if="showSuccessMessage" class="flex items-center gap-2 rounded-md bg-green-50 p-3 text-sm text-green-700">
+    <div v-if="showSuccessMessage" class="bg-success text-success-text flex items-center gap-2 rounded-md p-3 text-sm">
       <CheckCircle2 class="size-5 shrink-0" />
       <span class="font-medium">Synced successfully</span>
     </div>
