@@ -187,7 +187,10 @@ const chartOptions = computed(() => {
         });
 
         // Find the corresponding data point to get accounts and portfolios breakdown
-        const dataPoint = balanceHistory.value?.find((point) => new Date(point.date).getTime() === this.x);
+        // Use startOfDay to match the data point timestamps (same as series data)
+        const dataPoint = balanceHistory.value?.find(
+          (point) => startOfDay(new Date(point.date)).getTime() === this.x,
+        );
 
         if (!dataPoint) return '';
 
@@ -248,7 +251,8 @@ const chartOptions = computed(() => {
               : selectedBalanceType.value.value === 'accounts'
                 ? point.accountsBalance
                 : point.portfoliosBalance;
-          return [new Date(point.date).getTime(), value];
+          // Use startOfDay to match the x-axis tick calculation (local timezone)
+          return [startOfDay(new Date(point.date)).getTime(), value];
         }),
       },
     ],
