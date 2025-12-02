@@ -120,7 +120,7 @@ import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import EnableBankingConnector from './components/EnableBankingConnector.vue';
+import EnableBankingConnector from './components/enable-banking-connector.vue';
 
 const router = useRouter();
 const route = useRoute();

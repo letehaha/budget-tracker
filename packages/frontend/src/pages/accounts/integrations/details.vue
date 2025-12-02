@@ -106,7 +106,10 @@
             <CardContent class="pt-0 max-sm:px-4 max-sm:pb-4">
               <div class="space-y-4">
                 <!-- Expiration Warning -->
-                <div v-if="connectionDetails.consent.isExpired" class="rounded-lg bg-red-100 p-4 text-red-800">
+                <div
+                  v-if="connectionDetails.consent.isExpired"
+                  class="text-destructive-text bg-destructive/20 rounded-lg p-4"
+                >
                   <p class="font-semibold">⚠️ Connection Expired</p>
                   <p class="mt-1 text-sm">
                     Your bank connection has expired. Please reconnect to continue syncing transactions.
@@ -145,7 +148,7 @@
                     <p
                       class="font-medium"
                       :class="{
-                        'text-red-600': connectionDetails.consent.isExpired,
+                        'text-destructive-text': connectionDetails.consent.isExpired,
                         'text-yellow-600': connectionDetails.consent.isExpiringSoon,
                       }"
                     >
@@ -165,10 +168,7 @@
                     Connection is valid. You can still reconnect to refresh available accounts or extend the connection
                     validity.
                   </p>
-                  <UiButton variant="default" @click="handleReconnect" :disabled="isReconnectPending">
-                    <template v-if="isReconnectPending"> Preparing reconnection... </template>
-                    <template v-else> Reconnect Now </template>
-                  </UiButton>
+                  <UiButton variant="default" @click="openReconnectDialog"> Reconnect Now </UiButton>
                 </div>
               </div>
             </CardContent>
@@ -336,6 +336,13 @@
       :is-saving="isSavingName"
       @save="handleSaveConnectionName"
     />
+
+    <!-- Reconnect Confirmation Dialog -->
+    <ReconnectConfirmationDialog
+      v-model:open="isReconnectDialogOpen"
+      :is-pending="isReconnectPending"
+      @confirm="handleReconnect"
+    />
   </div>
 </template>
 
@@ -371,8 +378,9 @@ import { ChevronDownIcon, PencilIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import DisconnectIntegrationDialog from './components/DisconnectIntegrationDialog.vue';
-import EditConnectionNameDialog from './components/EditConnectionNameDialog.vue';
+import DisconnectIntegrationDialog from './components/disconnect-integration-dialog.vue';
+import EditConnectionNameDialog from './components/edit-connection-name-dialog.vue';
+import ReconnectConfirmationDialog from './components/reconnect-confirmation-dialog.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -383,6 +391,7 @@ const connectionId = computed(() => Number(route.params.connectionId));
 const isFetchAccountsDialogOpen = ref(false);
 const isDisconnectDialogOpen = ref(false);
 const isEditNameDialogOpen = ref(false);
+const isReconnectDialogOpen = ref(false);
 const selectedAccountIds = ref<string[]>([]);
 
 // Collapsible states
@@ -504,6 +513,10 @@ const openEditNameDialog = () => {
   isEditNameDialogOpen.value = true;
 };
 
+const openReconnectDialog = () => {
+  isReconnectDialogOpen.value = true;
+};
+
 const handleSaveConnectionName = (providerName: string) => {
   updateNameMutation({ connectionId: connectionId.value, providerName });
 };
@@ -551,6 +564,7 @@ const handleReconnect = async () => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to start reauthorization';
     isReconnectPending.value = false;
+    isReconnectDialogOpen.value = false;
     addErrorNotification(message);
   }
 };

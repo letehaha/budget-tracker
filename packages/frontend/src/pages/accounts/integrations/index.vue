@@ -108,8 +108,8 @@ import { PlusIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import AddIntegrationDialog from './components/AddIntegrationDialog.vue';
-import DisconnectIntegrationDialog from './components/DisconnectIntegrationDialog.vue';
+import AddIntegrationDialog from './components/add-integration-dialog.vue';
+import DisconnectIntegrationDialog from './components/disconnect-integration-dialog.vue';
 
 const router = useRouter();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
