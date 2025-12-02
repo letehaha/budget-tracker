@@ -23,39 +23,47 @@
 
       <!-- Connection Details Card -->
       <Card class="mb-6">
-        <CardHeader>
-          <h2 class="text-lg font-semibold tracking-wide">Connection Details</h2>
-        </CardHeader>
-        <CardContent>
-          <div class="grid gap-4 md:grid-cols-2">
-            <div>
-              <p class="text-muted-foreground text-sm">Type</p>
-              <p class="mt-1 flex items-center gap-2 font-medium">
-                <BankProviderLogo class="size-5" :provider="connectionDetails.providerType" />
+        <Collapsible v-model:open="isConnectionDetailsOpen">
+          <CollapsibleTrigger class="flex w-full cursor-pointer items-center justify-between p-6">
+            <h2 class="text-lg font-semibold tracking-wide">Connection Details</h2>
+            <ChevronDownIcon
+              class="size-5 transition-transform duration-200"
+              :class="{ 'rotate-180': isConnectionDetailsOpen }"
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent class="pt-0 max-sm:px-4 max-sm:pb-4">
+              <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                  <p class="text-muted-foreground text-sm">Type</p>
+                  <p class="mt-1 flex items-center gap-2 font-medium">
+                    <BankProviderLogo class="size-5" :provider="connectionDetails.providerType" />
 
-                {{ METAINFO_FROM_TYPE[connectionDetails.providerType].name }}
-              </p>
-            </div>
-            <div>
-              <p class="text-muted-foreground text-sm">Status</p>
-              <p class="font-medium">{{ connectionDetails.isActive ? 'Active' : 'Inactive' }}</p>
-            </div>
-            <div>
-              <p class="text-muted-foreground text-sm">Last Sync</p>
-              <p class="font-medium">
-                {{ connectionDetails.lastSyncAt ? formatDate(connectionDetails.lastSyncAt) : 'Never' }}
-              </p>
-            </div>
-            <div>
-              <p class="text-muted-foreground text-sm">Created</p>
-              <p class="font-medium">{{ formatDate(connectionDetails.createdAt) }}</p>
-            </div>
-            <div>
-              <p class="text-muted-foreground text-sm">Connected Accounts</p>
-              <p class="font-medium">{{ connectionDetails.accounts.length }}</p>
-            </div>
-          </div>
-        </CardContent>
+                    {{ METAINFO_FROM_TYPE[connectionDetails.providerType].name }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-muted-foreground text-sm">Status</p>
+                  <p class="font-medium">{{ connectionDetails.isActive ? 'Active' : 'Inactive' }}</p>
+                </div>
+                <div>
+                  <p class="text-muted-foreground text-sm">Last Sync</p>
+                  <p class="font-medium">
+                    {{ connectionDetails.lastSyncAt ? formatDate(connectionDetails.lastSyncAt) : 'Never' }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-muted-foreground text-sm">Created</p>
+                  <p class="font-medium">{{ formatDate(connectionDetails.createdAt) }}</p>
+                </div>
+                <div>
+                  <p class="text-muted-foreground text-sm">Connected Accounts</p>
+                  <p class="font-medium">{{ connectionDetails.accounts.length }}</p>
+                </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
       <!-- Consent Validity Card (for Enable Banking) -->
@@ -64,121 +72,152 @@
         class="mb-6"
         :class="{
           'border-yellow-500': connectionDetails.consent.isExpiringSoon,
-          'border-red-500': connectionDetails.consent.isExpired,
+          'border-destructive': connectionDetails.consent.isExpired,
         }"
       >
-        <CardHeader>
-          <h2 class="text-lg font-semibold tracking-wide">Connection Validity</h2>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-4">
-            <!-- Expiration Warning -->
-            <div v-if="connectionDetails.consent.isExpired" class="rounded-lg bg-red-100 p-4 text-red-800">
-              <p class="font-semibold">⚠️ Connection Expired</p>
-              <p class="mt-1 text-sm">
-                Your bank connection has expired. Please reconnect to continue syncing transactions.
-              </p>
+        <Collapsible v-model:open="isConnectionValidityOpen">
+          <CollapsibleTrigger class="flex w-full cursor-pointer items-center justify-between p-6">
+            <div class="flex items-center gap-3">
+              <h2 class="text-lg font-semibold tracking-wide">Connection Validity</h2>
+              <span
+                class="rounded-full px-2 py-0.5 text-xs font-medium"
+                :class="{
+                  'bg-success text-success-text':
+                    !connectionDetails.consent.isExpired && !connectionDetails.consent.isExpiringSoon,
+                  'bg-yellow-500/40 text-white': connectionDetails.consent.isExpiringSoon,
+                  'bg-destructive/20 text-destructive-text': connectionDetails.consent.isExpired,
+                }"
+              >
+                {{
+                  connectionDetails.consent.isExpired
+                    ? 'Expired'
+                    : connectionDetails.consent.isExpiringSoon
+                      ? 'Expiring Soon'
+                      : 'Active'
+                }}
+              </span>
             </div>
-            <div
-              v-else-if="connectionDetails.consent.isExpiringSoon"
-              class="rounded-lg bg-yellow-100 p-4 text-yellow-800"
-            >
-              <p class="font-semibold">⚠️ Expiring Soon</p>
-              <p class="mt-1 text-sm">
-                Your bank connection will expire in {{ connectionDetails.consent.daysRemaining }} day{{
-                  connectionDetails.consent.daysRemaining !== 1 ? 's' : ''
-                }}. Please reconnect soon to avoid interruption.
-              </p>
-            </div>
-
-            <!-- Validity Details -->
-            <div class="grid gap-4 md:grid-cols-2">
-              <div>
-                <p class="text-muted-foreground text-sm">Valid From</p>
-                <p class="font-medium">
-                  {{ connectionDetails.consent.validFrom ? formatDate(connectionDetails.consent.validFrom) : 'N/A' }}
-                </p>
-              </div>
-              <div>
-                <p class="text-muted-foreground text-sm">Valid Until</p>
-                <p class="font-medium">
-                  {{ formatDate(connectionDetails.consent.validUntil) }}
-                </p>
-              </div>
-              <div>
-                <p class="text-muted-foreground text-sm">Days Remaining</p>
-                <p
-                  class="font-medium"
-                  :class="{
-                    'text-red-600': connectionDetails.consent.isExpired,
-                    'text-yellow-600': connectionDetails.consent.isExpiringSoon,
-                  }"
+            <ChevronDownIcon
+              class="size-5 transition-transform duration-200"
+              :class="{ 'rotate-180': isConnectionValidityOpen }"
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent class="pt-0 max-sm:px-4 max-sm:pb-4">
+              <div class="space-y-4">
+                <!-- Expiration Warning -->
+                <div v-if="connectionDetails.consent.isExpired" class="rounded-lg bg-red-100 p-4 text-red-800">
+                  <p class="font-semibold">⚠️ Connection Expired</p>
+                  <p class="mt-1 text-sm">
+                    Your bank connection has expired. Please reconnect to continue syncing transactions.
+                  </p>
+                </div>
+                <div
+                  v-else-if="connectionDetails.consent.isExpiringSoon"
+                  class="rounded-lg bg-yellow-100 p-4 text-yellow-800"
                 >
-                  {{ connectionDetails.consent.daysRemaining }} day{{
-                    connectionDetails.consent.daysRemaining !== 1 ? 's' : ''
-                  }}
-                </p>
-              </div>
-              <div>
-                <p class="text-muted-foreground text-sm">Status</p>
-                <p
-                  class="font-medium"
-                  :class="{
-                    'text-green-600': !connectionDetails.consent.isExpired && !connectionDetails.consent.isExpiringSoon,
-                    'text-yellow-600': connectionDetails.consent.isExpiringSoon,
-                    'text-red-600': connectionDetails.consent.isExpired,
-                  }"
-                >
-                  {{
-                    connectionDetails.consent.isExpired
-                      ? 'Expired'
-                      : connectionDetails.consent.isExpiringSoon
-                        ? 'Expiring Soon'
-                        : 'Active'
-                  }}
-                </p>
-              </div>
-            </div>
+                  <p class="font-semibold">⚠️ Expiring Soon</p>
+                  <p class="mt-1 text-sm">
+                    Your bank connection will expire in {{ connectionDetails.consent.daysRemaining }} day{{
+                      connectionDetails.consent.daysRemaining !== 1 ? 's' : ''
+                    }}. Please reconnect soon to avoid interruption.
+                  </p>
+                </div>
 
-            <!-- Reconnect Button (if expired or expiring soon) -->
-            <div v-if="connectionDetails.consent.isExpired || connectionDetails.consent.isExpiringSoon" class="pt-2">
-              <UiButton variant="default" @click="handleReconnect"> Reconnect Now </UiButton>
-            </div>
-          </div>
-        </CardContent>
+                <!-- Validity Details -->
+                <div class="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <p class="text-muted-foreground text-sm">Valid From</p>
+                    <p class="font-medium">
+                      {{
+                        connectionDetails.consent.validFrom ? formatDate(connectionDetails.consent.validFrom) : 'N/A'
+                      }}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-muted-foreground text-sm">Valid Until</p>
+                    <p class="font-medium">
+                      {{ formatDate(connectionDetails.consent.validUntil) }}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-muted-foreground text-sm">Days Remaining</p>
+                    <p
+                      class="font-medium"
+                      :class="{
+                        'text-red-600': connectionDetails.consent.isExpired,
+                        'text-yellow-600': connectionDetails.consent.isExpiringSoon,
+                      }"
+                    >
+                      {{ connectionDetails.consent.daysRemaining }} day{{
+                        connectionDetails.consent.daysRemaining !== 1 ? 's' : ''
+                      }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Reconnect Button -->
+                <div class="pt-2">
+                  <p
+                    v-if="!connectionDetails.consent.isExpired && !connectionDetails.consent.isExpiringSoon"
+                    class="text-muted-foreground mb-3 text-sm"
+                  >
+                    Connection is valid. You can still reconnect to refresh available accounts or extend the connection
+                    validity.
+                  </p>
+                  <UiButton variant="default" @click="handleReconnect"> Reconnect Now </UiButton>
+                </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
       <!-- Connected Accounts Card -->
       <Card class="mb-6">
-        <CardHeader class="flex flex-row items-center justify-between">
-          <h2 class="text-lg font-semibold tracking-wide">Connected Accounts</h2>
-          <UiButton size="sm" @click="openFetchAccountsDialog">Connect Remaining Accounts</UiButton>
-        </CardHeader>
-        <CardContent>
-          <div v-if="connectionDetails.accounts.length === 0" class="text-muted-foreground space-y-4 py-8 text-center">
-            <p>No accounts connected yet.</p>
+        <Collapsible v-model:open="isConnectedAccountsOpen">
+          <div class="flex items-center justify-between gap-6 p-6">
+            <CollapsibleTrigger class="flex flex-1 cursor-pointer items-center justify-between gap-2">
+              <h2 class="text-lg font-semibold tracking-wide">Connected Accounts</h2>
 
-            <UiButton size="sm" @click="openFetchAccountsDialog">Connect Accounts</UiButton>
+              <ChevronDownIcon
+                class="size-5 transition-transform duration-200"
+                :class="{ 'rotate-180': isConnectedAccountsOpen }"
+              />
+            </CollapsibleTrigger>
+            <UiButton size="sm" @click="openFetchAccountsDialog">Connect Remaining Accounts</UiButton>
           </div>
+          <CollapsibleContent>
+            <CardContent class="pt-0">
+              <div
+                v-if="connectionDetails.accounts.length === 0"
+                class="text-muted-foreground space-y-4 py-8 text-center"
+              >
+                <p>No accounts connected yet.</p>
 
-          <div v-else class="space-y-3">
-            <router-link
-              v-for="account in connectionDetails.accounts"
-              :key="account.id"
-              :to="`/account/${account.id}`"
-              class="flex items-center justify-between rounded-lg border p-4"
-            >
-              <div class="flex-1">
-                <p class="font-medium">{{ account.name }}</p>
-                <p class="text-muted-foreground text-sm">{{ account.type }}</p>
-                <p class="text-muted-foreground text-sm">External ID: {{ account.externalId }}</p>
+                <UiButton size="sm" @click="openFetchAccountsDialog">Connect Accounts</UiButton>
               </div>
-              <div class="text-right">
-                <p class="font-semibold">{{ formatCurrency(account.currentBalance) }} {{ account.currencyCode }}</p>
+
+              <div v-else class="space-y-3">
+                <router-link
+                  v-for="account in connectionDetails.accounts"
+                  :key="account.id"
+                  :to="`/account/${account.id}`"
+                  class="flex items-center justify-between rounded-lg border p-4"
+                >
+                  <div class="flex-1">
+                    <p class="font-medium">{{ account.name }}</p>
+                    <p class="text-muted-foreground text-sm">{{ account.type }}</p>
+                    <p class="text-muted-foreground text-sm">External ID: {{ account.externalId }}</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="font-semibold">{{ formatCurrency(account.currentBalance) }} {{ account.currencyCode }}</p>
+                  </div>
+                </router-link>
               </div>
-            </router-link>
-          </div>
-        </CardContent>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
       <!-- Actions Card -->
@@ -186,8 +225,9 @@
         <CardHeader>
           <h2 class="text-lg font-semibold tracking-wide">Actions</h2>
         </CardHeader>
+
         <CardContent>
-          <div class="flex gap-4">
+          <div class="flex gap-4 max-sm:p-4">
             <UiButton variant="destructive" :disabled="isDisconnecting" @click="openDisconnectDialog">
               Disconnect Integration
             </UiButton>
@@ -309,6 +349,7 @@ import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -323,7 +364,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { PencilIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, PencilIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -341,7 +382,23 @@ const isDisconnectDialogOpen = ref(false);
 const isEditNameDialogOpen = ref(false);
 const selectedAccountIds = ref<string[]>([]);
 
+// Collapsible states
+const isConnectionDetailsOpen = ref(true);
+const isConnectedAccountsOpen = ref(true);
+const isConnectionValidityOpen = ref(false);
+
 const { data: connectionDetails, isLoading, error } = useBankConnectionDetails({ connectionId: connectionId });
+
+// Initialize connection validity open state based on consent status
+watch(
+  () => connectionDetails.value?.consent,
+  (consent) => {
+    if (consent) {
+      isConnectionValidityOpen.value = consent.isExpired || consent.isExpiringSoon;
+    }
+  },
+  { immediate: true },
+);
 
 // Query for available accounts (only when dialog is open)
 const {

@@ -12,7 +12,7 @@ defineProps<{ mobileView?: boolean }>();
   <component :is="mobileView ? 'div' : Card" class="flex h-full flex-col rounded-none">
     <CardHeader class="h-[52px] sm:py-3">
       <div class="text-lg font-medium">
-        <span class="hidden md:block"> BudgetTracker </span>
+        <span class="hidden md:block"> MoneyMatter </span>
         <span class="md:hidden"> BT </span>
       </div>
     </CardHeader>

@@ -6,6 +6,13 @@
         "path": "packages/backend"
       },
       "activation": "always"
+    },
+    {
+      "rule": "frontend",
+      "context": {
+        "path": "packages/frontend"
+      },
+      "activation": "always"
     }
   ]
 }

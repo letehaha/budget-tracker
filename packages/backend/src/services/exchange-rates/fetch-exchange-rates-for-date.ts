@@ -1,3 +1,4 @@
+import { API_ERROR_CODES } from '@bt/shared/types';
 import { BadGateway, CustomError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
 import Currencies from '@models/Currencies.model';
@@ -105,6 +106,7 @@ export const fetchExchangeRatesForDate = withDeduplication(
               },
               responseType: 'json',
               method: 'GET',
+              timeout: 10_000,
             })
           ).data;
 
@@ -233,6 +235,7 @@ export const fetchExchangeRatesForDate = withDeduplication(
             error: frankfurterError instanceof Error ? frankfurterError.message : String(frankfurterError),
           });
           throw new BadGateway({
+            code: API_ERROR_CODES.currencyProviderUnavailable,
             message: 'Failed to load exchange rates from all providers',
           });
         }

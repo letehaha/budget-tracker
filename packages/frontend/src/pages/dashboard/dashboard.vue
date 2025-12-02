@@ -1,7 +1,13 @@
 <template>
-  <section class="p-6">
-    <div class="mb-6">
-      <!-- Main period selector -->
+  <section class="flex min-h-full flex-col p-6">
+    <!-- Main period selector - floating on mobile, normal flow on desktop -->
+    <div
+      :class="[
+        'bg-background/95 supports-[backdrop-filter]:bg-background/80 z-(--z-navbar) order-last -mx-6 mt-auto -mb-6 border-t py-2 backdrop-blur',
+        'sticky max-md:-bottom-px md:top-[calc(var(--header-height)-2px)]',
+        'md:order-first md:mx-0 md:mt-0 md:mb-6 md:border-t-0 md:py-0',
+      ]"
+    >
       <div class="flex items-center justify-center gap-1">
         <ui-button size="icon" variant="ghost" @click="selectPrevPeriod">
           <ChevronLeft :size="20" />
@@ -14,7 +20,7 @@
               {{ periodSelectorText }}
             </ui-button>
           </PopoverTrigger>
-          <PopoverContent class="w-auto p-4" align="center">
+          <PopoverContent class="w-auto p-4" align="center" side="top" :side-offset="8">
             <div class="xs:gap-4 flex">
               <!-- Quick actions sidebar -->
               <div class="xs:pr-4 flex flex-col gap-2 border-r pr-2">
@@ -50,7 +56,7 @@
 
     <div
       :class="[
-        `grid gap-6`,
+        `grid gap-6 max-md:pb-4`,
         `xl:grid-cols-[minmax(0,1fr)_420px] xl:[grid-template-areas:'balance-trend_latest-records'_'spending-categories_latest-records']`,
         `md:grid-cols-2 md:[grid-template-areas:'balance-trend_balance-trend'_'spending-categories_latest-records']`,
         `grid-cols-1 [grid-template-areas:'balance-trend'_'spending-categories'_'latest-records']`,
@@ -80,7 +86,6 @@ import {
   isSameMonth,
   startOfMonth,
   startOfYear,
-  subDays,
   subMonths,
   subYears,
 } from 'date-fns';
@@ -110,12 +115,11 @@ const calendarDateToDate = (calendarDate: DateValue): Date => {
   return new Date(calendarDate.year, calendarDate.month - 1, calendarDate.day);
 };
 
-const currentDayInMonth = new Date().getDate();
 const isCalendarOpen = ref(false);
 
 const currentPeriod = ref({
-  from: subDays(new Date(), currentDayInMonth - 1),
-  to: new Date(),
+  from: startOfMonth(new Date()),
+  to: endOfMonth(new Date()),
 });
 
 // Calendar value for the RangeCalendar component
@@ -130,7 +134,7 @@ const quickPresets = ref<PeriodPreset[]>([
     label: 'Current Month',
     getValue: () => ({
       from: startOfMonth(new Date()),
-      to: new Date(),
+      to: endOfMonth(new Date()),
     }),
   },
   {
@@ -212,9 +216,7 @@ const selectPrevPeriod = () => {
 
 const selectNextPeriod = () => {
   const from = startOfMonth(addMonths(currentPeriod.value.from, 1));
-  let to = endOfMonth(addMonths(currentPeriod.value.to, 1));
-
-  if (isSameMonth(new Date(), to)) to = new Date();
+  const to = endOfMonth(addMonths(currentPeriod.value.to, 1));
 
   currentPeriod.value = { from, to };
 };

@@ -24,7 +24,7 @@
     <template v-else>
       <div>
         <div class="mb-1 flex items-center justify-between text-xs">
-          <div class="font-medium tracking-tight uppercase">Today</div>
+          <div class="font-medium tracking-tight uppercase">{{ periodLabel }}</div>
           <div class="tracking-tight">vs previous period</div>
         </div>
 
@@ -56,7 +56,7 @@ import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
-import { startOfDay } from 'date-fns';
+import { format, isSameMonth, min, startOfDay } from 'date-fns';
 import { Chart as Highcharts } from 'highcharts-vue';
 import { ChartLineIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -108,9 +108,16 @@ const actualDataPeriod = ref(props.selectedPeriod);
 const prevDataPeriod = ref(props.selectedPeriod);
 const periodQueryKey = computed(() => props.selectedPeriod.from.getTime());
 
+// For data fetching, cap the 'to' date at today - we can't have balance history
+// for future dates. The chart x-axis will still show the full period range.
+const fetchPeriod = computed(() => ({
+  from: props.selectedPeriod.from,
+  to: min([props.selectedPeriod.to, new Date()]),
+}));
+
 const { data: balanceHistory, isFetching: isBalanceHistoryFetching } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.widgetBalanceTrend, periodQueryKey],
-  queryFn: () => loadCombinedBalanceTrendData(props.selectedPeriod),
+  queryFn: () => loadCombinedBalanceTrendData(fetchPeriod.value),
   staleTime: Infinity,
   placeholderData: (prevData) => prevData,
 });
@@ -142,6 +149,35 @@ watch(
 );
 
 const isDataEmpty = computed(() => !balanceHistory.value || balanceHistory.value.every((i) => i.totalBalance === 0));
+
+const periodLabel = computed(() => {
+  const from = props.selectedPeriod.from;
+  const to = props.selectedPeriod.to;
+  const now = new Date();
+
+  // Current month - show "Today"
+  if (isSameMonth(now, to) && isSameMonth(from, to)) {
+    return 'Today';
+  }
+
+  // Specific month (not current) - show "November 2025"
+  if (isSameMonth(from, to)) {
+    return format(to, 'MMMM yyyy');
+  }
+
+  // Check if it's a month-aligned range (starts on 1st day, ends on last day of month)
+  const isFromMonthStart = from.getDate() === 1;
+  const endOfToMonth = new Date(to.getFullYear(), to.getMonth() + 1, 0);
+  const isToMonthEnd = to.getDate() === endOfToMonth.getDate();
+
+  if (isFromMonthStart && isToMonthEnd) {
+    // Multi-month range like "Aug 2025 - Nov 2025"
+    return `${format(from, 'MMM yyyy')} - ${format(to, 'MMM yyyy')}`;
+  }
+
+  // Custom date range - show "MMM d, yyyy - MMM d, yyyy"
+  return `${format(from, 'MMM d, yyyy')} - ${format(to, 'MMM d, yyyy')}`;
+});
 
 const chartOptions = computed(() => {
   const pixelsPerTick = 120;
@@ -180,7 +216,10 @@ const chartOptions = computed(() => {
         });
 
         // Find the corresponding data point to get accounts and portfolios breakdown
-        const dataPoint = balanceHistory.value?.find((point) => new Date(point.date).getTime() === this.x);
+        // Use startOfDay to match the data point timestamps (same as series data)
+        const dataPoint = balanceHistory.value?.find(
+          (point) => startOfDay(new Date(point.date)).getTime() === this.x,
+        );
 
         if (!dataPoint) return '';
 
@@ -241,7 +280,8 @@ const chartOptions = computed(() => {
               : selectedBalanceType.value.value === 'accounts'
                 ? point.accountsBalance
                 : point.portfoliosBalance;
-          return [new Date(point.date).getTime(), value];
+          // Use startOfDay to match the x-axis tick calculation (local timezone)
+          return [startOfDay(new Date(point.date)).getTime(), value];
         }),
       },
     ],

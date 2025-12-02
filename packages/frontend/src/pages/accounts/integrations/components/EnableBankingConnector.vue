@@ -389,10 +389,11 @@ const handleLoadBanks = async () => {
 
   try {
     isLoading.value = true;
-    countries.value = await getEnableBankingCountries(appId.value, privateKey.value);
     currentStep.value = 2;
+    countries.value = await getEnableBankingCountries(appId.value, privateKey.value);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load countries. Please check your credentials.';
+    currentStep.value = 1;
     addErrorNotification(message);
   } finally {
     isLoading.value = false;
@@ -404,10 +405,11 @@ const selectCountry = async (country: string) => {
 
   try {
     isLoading.value = true;
-    banks.value = await getEnableBankingBanks(appId.value, privateKey.value, country);
     currentStep.value = 3;
+    banks.value = await getEnableBankingBanks(appId.value, privateKey.value, country);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load banks';
+    currentStep.value = 2;
     addErrorNotification(message);
   } finally {
     isLoading.value = false;
@@ -420,6 +422,7 @@ const selectBank = async (bank: ASPSP) => {
   try {
     isLoading.value = true;
 
+    currentStep.value = 4;
     // Connect provider - this will return the auth URL
     const response = await connectProvider(BANK_PROVIDER_TYPE.ENABLE_BANKING, {
       appId: appId.value,
@@ -434,7 +437,6 @@ const selectBank = async (bank: ASPSP) => {
     // Extract auth URL from response
     if (response.authUrl) {
       authUrl.value = response.authUrl;
-      currentStep.value = 4;
 
       // Store connection ID for OAuth callback
       localStorage.setItem('pendingEnableBankingConnectionId', String(response.connectionId));
@@ -443,9 +445,11 @@ const selectBank = async (bank: ASPSP) => {
       emit('authStarted', response.connectionId);
     } else {
       addErrorNotification('No authorization URL received from server');
+      currentStep.value = 3;
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to connect provider';
+    currentStep.value = 3;
     addErrorNotification(message);
   } finally {
     isLoading.value = false;
