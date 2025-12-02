@@ -1,0 +1,9 @@
+{
+  "name": "MoneyMatter",
+  "short_name": "MoneyMatter",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#9074db"
+}
