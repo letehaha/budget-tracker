@@ -28,6 +28,9 @@ export enum API_ERROR_CODES {
   monobankUserNotExist = 'MONOBANK_USER_NOT_EXIST',
   monobankTokenInvalid = 'MONOBANK_USER_TOKEN_INVALID',
 
+  // currencies-related
+  currencyProviderUnavailable = 'CURRENCY_PROVIDER_UNAVAILABLE',
+
   // crypto/binance
   cryptoBinanceBothAPIKeysDoesNotexist = 10101,
   cryptoBinancePublicAPIKeyNotDefined = 10102,
