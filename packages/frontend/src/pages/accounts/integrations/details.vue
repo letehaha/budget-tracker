@@ -165,7 +165,10 @@
                     Connection is valid. You can still reconnect to refresh available accounts or extend the connection
                     validity.
                   </p>
-                  <UiButton variant="default" @click="handleReconnect"> Reconnect Now </UiButton>
+                  <UiButton variant="default" @click="handleReconnect" :disabled="isReconnectPending">
+                    <template v-if="isReconnectPending"> Preparing reconnection... </template>
+                    <template v-else> Reconnect Now </template>
+                  </UiButton>
                 </div>
               </div>
             </CardContent>
@@ -386,6 +389,7 @@ const selectedAccountIds = ref<string[]>([]);
 const isConnectionDetailsOpen = ref(true);
 const isConnectedAccountsOpen = ref(true);
 const isConnectionValidityOpen = ref(false);
+const isReconnectPending = ref(false);
 
 const { data: connectionDetails, isLoading, error } = useBankConnectionDetails({ connectionId: connectionId });
 
@@ -535,6 +539,7 @@ const formatCurrency = (amount: number) => {
 
 const handleReconnect = async () => {
   try {
+    isReconnectPending.value = true;
     // Call reauthorization API
     const response = await reauthorizeConnection(connectionId.value);
 
@@ -545,6 +550,7 @@ const handleReconnect = async () => {
     window.location.href = response.authUrl;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to start reauthorization';
+    isReconnectPending.value = false;
     addErrorNotification(message);
   }
 };

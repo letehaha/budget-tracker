@@ -8,6 +8,7 @@ import {
   MOCK_ENABLE_BANKING_PRIVATE_KEY,
   getMockedASPSPData,
 } from '@tests/mocks/enablebanking/data';
+import { resetSessionCounter as resetMockSessionCounter } from '@tests/mocks/enablebanking/mock-api';
 
 /**
  * Helper to get list of countries (ASPSPs)
@@ -99,6 +100,14 @@ const getConnectionState = async (connectionId: number): Promise<string> => {
   return metadata.state;
 };
 
+/**
+ * Reset mock session counter
+ * Call this before tests that need fresh session state
+ */
+const resetSessionCounter = () => {
+  resetMockSessionCounter();
+};
+
 export default {
   listCountries,
   listBanks,
@@ -107,6 +116,7 @@ export default {
   mockedASPSPData,
   mockCredentials,
   getConnectionState,
+  resetSessionCounter,
   // Export mock constants for direct use in tests
   mockAppId: MOCK_ENABLE_BANKING_APP_ID,
   mockPrivateKey: MOCK_ENABLE_BANKING_PRIVATE_KEY,

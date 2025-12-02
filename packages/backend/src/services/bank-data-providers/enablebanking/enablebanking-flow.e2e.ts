@@ -1,18 +1,27 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import {
   INVALID_ENABLE_BANKING_APP_ID,
   INVALID_ENABLE_BANKING_PRIVATE_KEY,
   MOCK_ACCOUNT_UID_1,
+  MOCK_ACCOUNT_UID_1_RECONNECTED,
   MOCK_ACCOUNT_UID_2,
+  MOCK_ACCOUNT_UID_2_RECONNECTED,
   MOCK_BANK_COUNTRY,
   MOCK_BANK_NAME,
   getAllMockAccountUIDs,
+  getAllMockAccountUIDsReconnected,
 } from '@tests/mocks/enablebanking/data';
 
 describe('Enable Banking Data Provider E2E', () => {
+  // Reset mock session counter before each test to ensure predictable behavior
+  // The counter determines whether mock returns original or reconnected account UIDs
+  beforeEach(() => {
+    helpers.enablebanking.resetSessionCounter();
+  });
+
   describe('Complete connection flow', () => {
     it('should complete the full OAuth flow: list providers -> connect -> OAuth callback -> list connections -> list external accounts -> connect accounts -> get details', async () => {
       // Step 1: Fetch supported providers
@@ -1113,6 +1122,246 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       expect(connection.isActive).toBe(true);
+    });
+  });
+
+  describe('Reauthorization with externalId update', () => {
+    it('should update account externalId after reconnection when Enable Banking returns new UUIDs', async () => {
+      // Step 1: Create initial connection and connect accounts
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      let state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      // Complete initial OAuth (this will use original account UIDs)
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      // Connect accounts with original UIDs
+      const { syncedAccounts: initialAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_ACCOUNT_UID_1, MOCK_ACCOUNT_UID_2],
+        raw: true,
+      });
+
+      // Verify initial externalIds
+      expect(initialAccounts.length).toBe(2);
+      const account1Id = initialAccounts.find((a) => a.externalId === MOCK_ACCOUNT_UID_1)?.id;
+      const account2Id = initialAccounts.find((a) => a.externalId === MOCK_ACCOUNT_UID_2)?.id;
+      expect(account1Id).toBeDefined();
+      expect(account2Id).toBeDefined();
+
+      // Verify accounts have original externalIds
+      const account1Before = await helpers.getAccount({ id: account1Id!, raw: true });
+      const account2Before = await helpers.getAccount({ id: account2Id!, raw: true });
+      expect(account1Before.externalId).toBe(MOCK_ACCOUNT_UID_1);
+      expect(account2Before.externalId).toBe(MOCK_ACCOUNT_UID_2);
+
+      // Step 2: Reauthorize connection
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}/reauthorize`,
+      });
+
+      // Step 3: Complete OAuth again (this will return NEW account UIDs from mock)
+      state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      // Step 4: Verify existing accounts have been updated with new externalIds
+      const account1After = await helpers.getAccount({ id: account1Id!, raw: true });
+      const account2After = await helpers.getAccount({ id: account2Id!, raw: true });
+
+      // The externalIds should now be the reconnected versions
+      expect(account1After.externalId).toBe(MOCK_ACCOUNT_UID_1_RECONNECTED);
+      expect(account2After.externalId).toBe(MOCK_ACCOUNT_UID_2_RECONNECTED);
+
+      // The account IDs should remain the same (same database records)
+      expect(account1After.id).toBe(account1Id);
+      expect(account2After.id).toBe(account2Id);
+
+      // Step 5: Verify that listing external accounts now returns new UIDs
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectResult.connectionId,
+        raw: true,
+      });
+
+      const reconnectedUIDs = getAllMockAccountUIDsReconnected();
+      externalAccounts.forEach((acc: { externalId: string }) => {
+        expect(reconnectedUIDs).toContain(acc.externalId);
+      });
+
+      // Step 6: Verify connection details show correct accounts
+      const { connection } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId: connectResult.connectionId,
+        raw: true,
+      });
+
+      expect(connection.isActive).toBe(true);
+      expect(connection.accounts.length).toBe(2);
+
+      // Accounts in connection should have updated externalIds
+      const connAccount1 = connection.accounts.find((a: { id: number }) => a.id === account1Id);
+      const connAccount2 = connection.accounts.find((a: { id: number }) => a.id === account2Id);
+      expect(connAccount1?.externalId).toBe(MOCK_ACCOUNT_UID_1_RECONNECTED);
+      expect(connAccount2?.externalId).toBe(MOCK_ACCOUNT_UID_2_RECONNECTED);
+    });
+
+    it('should allow transaction sync after reconnection with updated externalId', async () => {
+      // Create connection and connect an account
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      let state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      // Connect one account
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+
+      // Get transaction count before reconnection
+      const transactionsBefore = await helpers.getTransactions({
+        accountIds: [accountId],
+        raw: true,
+      });
+      const txCountBefore = transactionsBefore.length;
+
+      // Reauthorize
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}/reauthorize`,
+      });
+
+      // Complete OAuth with new session
+      state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      // Verify account externalId was updated
+      const accountAfterReconnect = await helpers.getAccount({ id: accountId, raw: true });
+      expect(accountAfterReconnect.externalId).toBe(MOCK_ACCOUNT_UID_1_RECONNECTED);
+
+      // Trigger transaction sync - this should work because externalId is updated
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}/sync-transactions`,
+        payload: {
+          accountId,
+        },
+        raw: true,
+      });
+
+      // Verify transactions were synced (count should be same or more)
+      const transactionsAfter = await helpers.getTransactions({
+        accountIds: [accountId],
+        raw: true,
+      });
+
+      // Should have at least as many transactions as before (sync doesn't duplicate)
+      expect(transactionsAfter.length).toBeGreaterThanOrEqual(txCountBefore);
+    });
+
+    it('should preserve account data (balance, name, currency) after externalId update', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      let state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+      const accountBefore = await helpers.getAccount({ id: accountId, raw: true });
+
+      // Reauthorize and complete OAuth
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}/reauthorize`,
+      });
+
+      state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      const accountAfter = await helpers.getAccount({ id: accountId, raw: true });
+
+      // Core data should be preserved
+      expect(accountAfter.id).toBe(accountBefore.id);
+      expect(accountAfter.name).toBe(accountBefore.name);
+      expect(accountAfter.currencyCode).toBe(accountBefore.currencyCode);
+      expect(accountAfter.currentBalance).toBe(accountBefore.currentBalance);
+      expect(accountAfter.initialBalance).toBe(accountBefore.initialBalance);
+
+      // Only externalId should change
+      expect(accountAfter.externalId).not.toBe(accountBefore.externalId);
+      expect(accountAfter.externalId).toBe(MOCK_ACCOUNT_UID_1_RECONNECTED);
     });
   });
 });

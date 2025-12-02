@@ -231,12 +231,13 @@ export interface CreateSessionRequest {
 
 /**
  * Response from creating a session
+ * https://enablebanking.com/docs/api/reference/#authorize-user-session
  */
 export interface CreateSessionResponse {
   /** Session ID for subsequent API calls */
   session_id: string;
-  /** List of account UIDs accessible in this session */
-  accounts: string[];
+  /** List of accounts accessible in this session (full account objects) */
+  accounts: EnableBankingAccount[];
 }
 
 /**

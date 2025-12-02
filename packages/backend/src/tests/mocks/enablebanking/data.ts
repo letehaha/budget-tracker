@@ -48,10 +48,19 @@ export const MOCK_AUTHORIZATION_ID = 'auth_1234567890abcdef';
 export const MOCK_AUTH_CODE = 'oauth_code_abc123xyz789';
 export const MOCK_SESSION_ID = 'session_9876543210fedcba';
 
-// Mock account IDs
+// Mock account IDs (initial connection)
 export const MOCK_ACCOUNT_UID_1 = 'account_eb_001';
 export const MOCK_ACCOUNT_UID_2 = 'account_eb_002';
 export const MOCK_ACCOUNT_UID_3 = 'account_eb_003';
+
+// Mock account IDs after reconnection (new UUIDs, same IBANs)
+// Enable Banking assigns new UUIDs after each reauthorization
+export const MOCK_ACCOUNT_UID_1_RECONNECTED = 'account_eb_001_reconnected';
+export const MOCK_ACCOUNT_UID_2_RECONNECTED = 'account_eb_002_reconnected';
+export const MOCK_ACCOUNT_UID_3_RECONNECTED = 'account_eb_003_reconnected';
+
+// Second session ID for reconnection
+export const MOCK_SESSION_ID_RECONNECTED = 'session_reconnected_abc123';
 
 /**
  * Generate mock ASPSP (bank) data
@@ -87,12 +96,13 @@ export const getMockedASPSPData = (overrides?: Partial<any>) => {
 
 /**
  * Generate mock account details
+ * Handles both original and reconnected UIDs - reconnected UIDs return same IBAN but new UID
  */
 export const getMockedAccountDetails = (accountId: string) => {
+  // Base account data (keyed by original UID)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const accounts: Record<string, any> = {
+  const baseAccounts: Record<string, any> = {
     [MOCK_ACCOUNT_UID_1]: {
-      uid: MOCK_ACCOUNT_UID_1,
       name: 'Main Account',
       currency: 'EUR',
       account_id: {
@@ -107,7 +117,6 @@ export const getMockedAccountDetails = (accountId: string) => {
       },
     },
     [MOCK_ACCOUNT_UID_2]: {
-      uid: MOCK_ACCOUNT_UID_2,
       name: 'Savings Account',
       currency: 'EUR',
       account_id: {
@@ -122,7 +131,6 @@ export const getMockedAccountDetails = (accountId: string) => {
       },
     },
     [MOCK_ACCOUNT_UID_3]: {
-      uid: MOCK_ACCOUNT_UID_3,
       name: 'Business Account',
       currency: 'USD',
       account_id: {
@@ -138,11 +146,27 @@ export const getMockedAccountDetails = (accountId: string) => {
     },
   };
 
-  return accounts[accountId] || accounts[MOCK_ACCOUNT_UID_1];
+  // Map reconnected UID to original for data lookup
+  const reconnectedToOriginal: Record<string, string> = {
+    [MOCK_ACCOUNT_UID_1_RECONNECTED]: MOCK_ACCOUNT_UID_1,
+    [MOCK_ACCOUNT_UID_2_RECONNECTED]: MOCK_ACCOUNT_UID_2,
+    [MOCK_ACCOUNT_UID_3_RECONNECTED]: MOCK_ACCOUNT_UID_3,
+  };
+
+  // Determine which base data to use
+  const originalUid = reconnectedToOriginal[accountId] || accountId;
+  const baseData = baseAccounts[originalUid] || baseAccounts[MOCK_ACCOUNT_UID_1];
+
+  // Return with the requested UID (original or reconnected)
+  return {
+    ...baseData,
+    uid: accountId,
+  };
 };
 
 /**
  * Generate mock account balances
+ * Handles both original and reconnected UIDs
  */
 export const getMockedAccountBalances = (accountId: string) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -187,7 +211,15 @@ export const getMockedAccountBalances = (accountId: string) => {
     ],
   };
 
-  return balances[accountId] || balances[MOCK_ACCOUNT_UID_1];
+  // Map reconnected UID to original for data lookup
+  const reconnectedToOriginal: Record<string, string> = {
+    [MOCK_ACCOUNT_UID_1_RECONNECTED]: MOCK_ACCOUNT_UID_1,
+    [MOCK_ACCOUNT_UID_2_RECONNECTED]: MOCK_ACCOUNT_UID_2,
+    [MOCK_ACCOUNT_UID_3_RECONNECTED]: MOCK_ACCOUNT_UID_3,
+  };
+
+  const originalUid = reconnectedToOriginal[accountId] || accountId;
+  return balances[originalUid] || balances[MOCK_ACCOUNT_UID_1];
 };
 
 /**
@@ -260,8 +292,44 @@ export const getMockedTransactions = (accountId: string, count: number = 10) => 
 };
 
 /**
- * Get all mock account UIDs
+ * Get all mock account UIDs (legacy - for getSession which returns just UIDs)
  */
 export const getAllMockAccountUIDs = () => {
   return [MOCK_ACCOUNT_UID_1, MOCK_ACCOUNT_UID_2, MOCK_ACCOUNT_UID_3];
+};
+
+/**
+ * Get all mock account UIDs for reconnected session (legacy - for getSession)
+ * These are new UUIDs but will return same IBANs
+ */
+export const getAllMockAccountUIDsReconnected = () => {
+  return [MOCK_ACCOUNT_UID_1_RECONNECTED, MOCK_ACCOUNT_UID_2_RECONNECTED, MOCK_ACCOUNT_UID_3_RECONNECTED];
+};
+
+/**
+ * Get all mock accounts as full objects (for createSession response)
+ * Enable Banking's POST /sessions returns full account objects, not just UIDs
+ */
+export const getAllMockAccounts = () => {
+  return getAllMockAccountUIDs().map((uid) => getMockedAccountDetails(uid));
+};
+
+/**
+ * Get all mock accounts as full objects for reconnected session
+ * Returns new UIDs but same IBANs
+ */
+export const getAllMockAccountsReconnected = () => {
+  return getAllMockAccountUIDsReconnected().map((uid) => getMockedAccountDetails(uid));
+};
+
+/**
+ * Map reconnected UID to original UID for data lookup
+ */
+export const getOriginalUIDFromReconnected = (reconnectedUid: string): string => {
+  const mapping: Record<string, string> = {
+    [MOCK_ACCOUNT_UID_1_RECONNECTED]: MOCK_ACCOUNT_UID_1,
+    [MOCK_ACCOUNT_UID_2_RECONNECTED]: MOCK_ACCOUNT_UID_2,
+    [MOCK_ACCOUNT_UID_3_RECONNECTED]: MOCK_ACCOUNT_UID_3,
+  };
+  return mapping[reconnectedUid] || reconnectedUid;
 };

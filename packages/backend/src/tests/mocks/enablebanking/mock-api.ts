@@ -4,12 +4,36 @@ import {
   MOCK_AUTHORIZATION_ID,
   MOCK_AUTH_CODE,
   MOCK_SESSION_ID,
+  MOCK_SESSION_ID_RECONNECTED,
   getAllMockAccountUIDs,
+  getAllMockAccountUIDsReconnected,
+  getAllMockAccounts,
+  getAllMockAccountsReconnected,
   getMockedASPSPData,
   getMockedAccountBalances,
   getMockedAccountDetails,
   getMockedTransactions,
 } from './data';
+
+/**
+ * Track session state for testing reconnection scenarios
+ * When sessionCounter > 0, return reconnected account UIDs
+ */
+let sessionCounter = 0;
+
+/**
+ * Reset session counter (call this before tests that need fresh state)
+ */
+const resetSessionCounter = () => {
+  sessionCounter = 0;
+};
+
+/**
+ * Increment session counter (simulates reauthorization)
+ */
+const incrementSessionCounter = () => {
+  sessionCounter++;
+};
 
 /**
  * Enable Banking API mock handlers
@@ -99,6 +123,8 @@ const startAuthorizationHandler = http.post(`${ENABLE_BANKING_BASE_URL}/auth`, a
 
 /**
  * Mock: POST /sessions - Create session after OAuth
+ * Returns full account objects (not just UIDs) as per Enable Banking API
+ * Returns different account UIDs based on sessionCounter to simulate reconnection
  */
 const createSessionHandler = http.post(`${ENABLE_BANKING_BASE_URL}/sessions`, async ({ request }) => {
   if (!hasValidAuth(request)) {
@@ -121,15 +147,24 @@ const createSessionHandler = http.post(`${ENABLE_BANKING_BASE_URL}/sessions`, as
     );
   }
 
-  // Return session with account IDs
+  // Increment counter to track session creation (for reconnection testing)
+  sessionCounter++;
+
+  // Return different session ID and full account objects based on whether this is a reconnection
+  const isReconnection = sessionCounter > 1;
+  const sessionId = isReconnection ? MOCK_SESSION_ID_RECONNECTED : MOCK_SESSION_ID;
+  // createSession returns full account objects (with uid, currency, account_id, etc.)
+  const accounts = isReconnection ? getAllMockAccountsReconnected() : getAllMockAccounts();
+
   return HttpResponse.json({
-    session_id: MOCK_SESSION_ID,
-    accounts: getAllMockAccountUIDs(),
+    session_id: sessionId,
+    accounts,
   });
 });
 
 /**
  * Mock: GET /sessions/:sessionId - Get session details
+ * Handles both original and reconnected session IDs
  */
 const getSessionHandler = http.get(`${ENABLE_BANKING_BASE_URL}/sessions/:sessionId`, ({ request, params }) => {
   if (!hasValidAuth(request)) {
@@ -141,21 +176,31 @@ const getSessionHandler = http.get(`${ENABLE_BANKING_BASE_URL}/sessions/:session
 
   const { sessionId } = params;
 
-  if (sessionId !== MOCK_SESSION_ID) {
-    return HttpResponse.json(
-      {
-        message: 'Session not found',
-      },
-      { status: 404 },
-    );
+  // Handle both original and reconnected session IDs
+  if (sessionId === MOCK_SESSION_ID) {
+    return HttpResponse.json({
+      session_id: MOCK_SESSION_ID,
+      accounts: getAllMockAccountUIDs(),
+      created_at: new Date().toISOString(),
+      valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    });
   }
 
-  return HttpResponse.json({
-    session_id: MOCK_SESSION_ID,
-    accounts: getAllMockAccountUIDs(),
-    created_at: new Date().toISOString(),
-    valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-  });
+  if (sessionId === MOCK_SESSION_ID_RECONNECTED) {
+    return HttpResponse.json({
+      session_id: MOCK_SESSION_ID_RECONNECTED,
+      accounts: getAllMockAccountUIDsReconnected(),
+      created_at: new Date().toISOString(),
+      valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+  }
+
+  return HttpResponse.json(
+    {
+      message: 'Session not found',
+    },
+    { status: 404 },
+  );
 });
 
 /**
@@ -280,4 +325,6 @@ export {
   getAccountDetailsHandler,
   getAccountBalancesHandler,
   getTransactionsHandler,
+  resetSessionCounter,
+  incrementSessionCounter,
 };

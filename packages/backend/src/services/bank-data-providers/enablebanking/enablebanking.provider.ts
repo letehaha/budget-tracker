@@ -30,6 +30,7 @@ import { EnableBankingApiClient } from './api-client';
 import { generateState, validatePrivateKey, validateState } from './jwt-utils';
 import {
   CreditDebitIndicator,
+  EnableBankingAccount,
   EnableBankingConnectionParams,
   EnableBankingCredentials,
   EnableBankingMetadata,
@@ -225,16 +226,67 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     credentials.sessionId = sessionResponse.session_id;
     connection.setEncryptedCredentials(credentials as unknown as Record<string, unknown>);
 
-    // Update metadata with account list
+    // Update metadata with account UIDs (extract from full account objects)
     const updatedMetadata: EnableBankingMetadata = {
       ...metadata,
-      accounts: sessionResponse.accounts,
+      accounts: sessionResponse.accounts.map((account) => account.uid),
       state: undefined, // Clear state after successful auth
     };
     connection.metadata = updatedMetadata as any;
     connection.isActive = true;
 
     await connection.save();
+
+    // Update externalId for existing accounts after reconnection
+    // Enable Banking assigns new UUIDs after each authorization, but IBAN stays the same
+    await this.updateExistingAccountExternalIds({
+      connectionId,
+      userId: connection.userId,
+      newAccounts: sessionResponse.accounts,
+    });
+  }
+
+  /**
+   * Update externalId for existing accounts after reconnection.
+   * Enable Banking assigns new UUIDs after each authorization, but IBAN stays the same.
+   * This method matches accounts by IBAN and updates their externalId to the new value.
+   */
+  private async updateExistingAccountExternalIds({
+    connectionId,
+    userId,
+    newAccounts,
+  }: {
+    connectionId: number;
+    userId: number;
+    newAccounts: EnableBankingAccount[];
+  }): Promise<void> {
+    // Get existing accounts for this connection
+    const existingAccounts = await Accounts.findAll({
+      where: {
+        userId,
+        bankDataProviderConnectionId: connectionId,
+      },
+    });
+
+    if (existingAccounts.length === 0) {
+      return; // No existing accounts to update
+    }
+
+    // Match and update existing accounts by IBAN + currency
+    for (const existingAccount of existingAccounts) {
+      const existingIban = (existingAccount.externalData as Record<string, unknown>)?.iban;
+      if (!existingIban) continue;
+
+      const matchingNewAccount = newAccounts.find(
+        (newAcc) => newAcc.account_id?.iban === existingIban && newAcc.currency === existingAccount.currencyCode,
+      );
+
+      if (matchingNewAccount && matchingNewAccount.uid !== existingAccount.externalId) {
+        await existingAccount.update({
+          externalId: matchingNewAccount.uid,
+        });
+      }
+    }
   }
 
   /**
@@ -377,6 +429,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
   // ============================================================================
 
   async fetchAccounts(connectionId: number): Promise<ProviderAccount[]> {
+    const connection = await this.getConnection(connectionId);
+    this.validateProviderType(connection);
+
     const credentials = await this.getValidatedCredentials(connectionId);
 
     if (!credentials.sessionId) {
@@ -446,13 +501,28 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     // Sync each account
     for (const providerAccount of providerAccounts) {
-      const existingAccount = existingAccounts.find((acc) => acc.externalId === providerAccount.externalId);
+      // Match by IBAN (stable across reconnections) first, then fallback to externalId
+      const existingAccount = existingAccounts.find((acc) => {
+        const existingIban = (acc.externalData as Record<string, unknown>)?.iban;
+        const providerIban = providerAccount.metadata?.iban;
+
+        // Primary: match by IBAN + currency (stable across reconnections)
+        if (existingIban && providerIban && existingIban === providerIban) {
+          return acc.currencyCode === providerAccount.currency;
+        }
+
+        // Fallback: match by externalId (for backwards compatibility)
+        return acc.externalId === providerAccount.externalId;
+      });
 
       if (existingAccount) {
-        // Update existing account
+        // Update existing account, including the new externalId from provider
+        // This is critical for reconnection flows where Enable Banking assigns new UUIDs
         await existingAccount.update({
           name: providerAccount.name,
           currentBalance: providerAccount.balance,
+          externalId: providerAccount.externalId,
+          externalData: providerAccount.metadata || existingAccount.externalData,
         });
       } else {
         // Create new account
@@ -641,6 +711,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       // Set status to COMPLETED on success
       await setAccountSyncStatus(systemAccountId, SyncStatus.COMPLETED);
     } catch (error) {
+      console.error('Enable Banking sync error:', error);
       // Set status to FAILED on error
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       await setAccountSyncStatus(systemAccountId, SyncStatus.FAILED, errorMessage);
