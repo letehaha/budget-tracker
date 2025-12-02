@@ -24,7 +24,7 @@
     <template v-else>
       <div>
         <div class="mb-1 flex items-center justify-between text-xs">
-          <div class="font-medium tracking-tight uppercase">Today</div>
+          <div class="font-medium tracking-tight uppercase">{{ periodLabel }}</div>
           <div class="tracking-tight">vs previous period</div>
         </div>
 
@@ -56,7 +56,7 @@ import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
-import { min, startOfDay } from 'date-fns';
+import { format, isSameMonth, min, startOfDay } from 'date-fns';
 import { Chart as Highcharts } from 'highcharts-vue';
 import { ChartLineIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -149,6 +149,35 @@ watch(
 );
 
 const isDataEmpty = computed(() => !balanceHistory.value || balanceHistory.value.every((i) => i.totalBalance === 0));
+
+const periodLabel = computed(() => {
+  const from = props.selectedPeriod.from;
+  const to = props.selectedPeriod.to;
+  const now = new Date();
+
+  // Current month - show "Today"
+  if (isSameMonth(now, to) && isSameMonth(from, to)) {
+    return 'Today';
+  }
+
+  // Specific month (not current) - show "November 2025"
+  if (isSameMonth(from, to)) {
+    return format(to, 'MMMM yyyy');
+  }
+
+  // Check if it's a month-aligned range (starts on 1st day, ends on last day of month)
+  const isFromMonthStart = from.getDate() === 1;
+  const endOfToMonth = new Date(to.getFullYear(), to.getMonth() + 1, 0);
+  const isToMonthEnd = to.getDate() === endOfToMonth.getDate();
+
+  if (isFromMonthStart && isToMonthEnd) {
+    // Multi-month range like "Aug 2025 - Nov 2025"
+    return `${format(from, 'MMM yyyy')} - ${format(to, 'MMM yyyy')}`;
+  }
+
+  // Custom date range - show "MMM d, yyyy - MMM d, yyyy"
+  return `${format(from, 'MMM d, yyyy')} - ${format(to, 'MMM d, yyyy')}`;
+});
 
 const chartOptions = computed(() => {
   const pixelsPerTick = 120;
