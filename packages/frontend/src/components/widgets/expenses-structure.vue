@@ -5,33 +5,33 @@
         Expenses Structure
 
         <template v-if="hasExcludedStats">
-          <Tooltip.TooltipProvider>
-            <Tooltip.Tooltip>
-              <Tooltip.TooltipTrigger class="px-1">
+          <Popover.Popover>
+            <Popover.PopoverTrigger class="px-1" as-child>
+              <Button size="icon-sm" variant="ghost">
                 <CircleOffIcon class="text-warning size-4" />
-              </Tooltip.TooltipTrigger>
-              <Tooltip.TooltipContent class="max-w-[300px] p-4">
-                <div>
-                  <p>
-                    Some categories are excluded.
-                    <router-link to="/settings/categories" class="text-primary hover:underline" as="span">
-                      Update settings
-                    </router-link>
-                    to change this behavior.
-                  </p>
-                  <div class="mt-3 grid gap-2">
-                    <template v-for="categoryId of excludedCategories" :key="categoryId">
-                      <div class="flex items-center gap-2">
-                        <CategoryCircle :category="categoriesMap[categoryId]" />
+              </Button>
+            </Popover.PopoverTrigger>
+            <Popover.PopoverContent class="max-w-[300px] text-sm">
+              <div>
+                <p>
+                  Some categories are excluded.
+                  <router-link to="/settings/categories" class="text-primary hover:underline" as="span">
+                    Update settings
+                  </router-link>
+                  to change this behavior.
+                </p>
+                <div class="mt-3 grid gap-2">
+                  <template v-for="categoryId of excludedCategories" :key="categoryId">
+                    <div class="flex items-center gap-2">
+                      <CategoryCircle :category="categoriesMap[categoryId]" />
 
-                        {{ categoriesMap[categoryId].name }}
-                      </div>
-                    </template>
-                  </div>
+                      {{ categoriesMap[categoryId].name }}
+                    </div>
+                  </template>
                 </div>
-              </Tooltip.TooltipContent>
-            </Tooltip.Tooltip>
-          </Tooltip.TooltipProvider>
+              </div>
+            </Popover.PopoverContent>
+          </Popover.Popover>
         </template>
       </div>
     </template>
@@ -76,7 +76,8 @@
 import { getExpensesAmountForPeriod, getSpendingsByCategories } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import CategoryCircle from '@/components/common/category-circle.vue';
-import * as Tooltip from '@/components/lib/ui/tooltip';
+import Button from '@/components/lib/ui/button/Button.vue';
+import * as Popover from '@/components/lib/ui/popover';
 import { useFormatCurrency, useHighcharts } from '@/composable';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { calculatePercentageDifference } from '@/js/helpers';
