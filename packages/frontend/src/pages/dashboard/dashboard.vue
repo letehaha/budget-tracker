@@ -80,7 +80,6 @@ import {
   isSameMonth,
   startOfMonth,
   startOfYear,
-  subDays,
   subMonths,
   subYears,
 } from 'date-fns';
@@ -110,12 +109,11 @@ const calendarDateToDate = (calendarDate: DateValue): Date => {
   return new Date(calendarDate.year, calendarDate.month - 1, calendarDate.day);
 };
 
-const currentDayInMonth = new Date().getDate();
 const isCalendarOpen = ref(false);
 
 const currentPeriod = ref({
-  from: subDays(new Date(), currentDayInMonth - 1),
-  to: new Date(),
+  from: startOfMonth(new Date()),
+  to: endOfMonth(new Date()),
 });
 
 // Calendar value for the RangeCalendar component
@@ -130,7 +128,7 @@ const quickPresets = ref<PeriodPreset[]>([
     label: 'Current Month',
     getValue: () => ({
       from: startOfMonth(new Date()),
-      to: new Date(),
+      to: endOfMonth(new Date()),
     }),
   },
   {
@@ -212,9 +210,7 @@ const selectPrevPeriod = () => {
 
 const selectNextPeriod = () => {
   const from = startOfMonth(addMonths(currentPeriod.value.from, 1));
-  let to = endOfMonth(addMonths(currentPeriod.value.to, 1));
-
-  if (isSameMonth(new Date(), to)) to = new Date();
+  const to = endOfMonth(addMonths(currentPeriod.value.to, 1));
 
   currentPeriod.value = { from, to };
 };

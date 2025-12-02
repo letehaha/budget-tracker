@@ -56,7 +56,7 @@ import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
-import { startOfDay } from 'date-fns';
+import { min, startOfDay } from 'date-fns';
 import { Chart as Highcharts } from 'highcharts-vue';
 import { ChartLineIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -108,9 +108,16 @@ const actualDataPeriod = ref(props.selectedPeriod);
 const prevDataPeriod = ref(props.selectedPeriod);
 const periodQueryKey = computed(() => props.selectedPeriod.from.getTime());
 
+// For data fetching, cap the 'to' date at today - we can't have balance history
+// for future dates. The chart x-axis will still show the full period range.
+const fetchPeriod = computed(() => ({
+  from: props.selectedPeriod.from,
+  to: min([props.selectedPeriod.to, new Date()]),
+}));
+
 const { data: balanceHistory, isFetching: isBalanceHistoryFetching } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.widgetBalanceTrend, periodQueryKey],
-  queryFn: () => loadCombinedBalanceTrendData(props.selectedPeriod),
+  queryFn: () => loadCombinedBalanceTrendData(fetchPeriod.value),
   staleTime: Infinity,
   placeholderData: (prevData) => prevData,
 });
