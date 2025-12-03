@@ -155,8 +155,11 @@ export const linkAccountToBankConnection = withTransaction(
     }
 
     // 8. Update account metadata with linking information
+    // Include external account metadata (iban, product, ownerName, etc.) to ensure
+    // IBAN is stored for account matching during reconnection flows
     const updatedExternalData: AccountExternalData = {
       ...existingExternalData,
+      ...externalAccount.metadata,
       bankConnection: {
         linkedAt,
         linkingStrategy: 'forward-only' as const,
