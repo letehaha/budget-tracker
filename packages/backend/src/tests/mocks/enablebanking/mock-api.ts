@@ -16,23 +16,32 @@ import {
 } from './data';
 
 /**
- * Track session state for testing reconnection scenarios
- * When sessionCounter > 0, return reconnected account UIDs
+ * Track session state for testing reconnection scenarios per Jest worker.
+ * When sessionCounter > 0, return reconnected account UIDs.
+ * Using worker-specific counters ensures test isolation in parallel execution.
  */
-let sessionCounter = 0;
+const sessionCounters: Record<string, number> = {};
 
 /**
- * Reset session counter (call this before tests that need fresh state)
+ * Get the current Jest worker ID
+ */
+const getWorkerId = (): string => process.env.JEST_WORKER_ID || '1';
+
+/**
+ * Reset session counter for the current worker (call this before tests that need fresh state)
  */
 const resetSessionCounter = () => {
-  sessionCounter = 0;
+  const workerId = getWorkerId();
+  sessionCounters[workerId] = 0;
 };
 
 /**
- * Increment session counter (simulates reauthorization)
+ * Increment session counter for the current worker (simulates reauthorization)
  */
 const incrementSessionCounter = () => {
-  sessionCounter++;
+  const workerId = getWorkerId();
+  sessionCounters[workerId] = (sessionCounters[workerId] || 0) + 1;
+  return sessionCounters[workerId];
 };
 
 /**
@@ -148,10 +157,10 @@ const createSessionHandler = http.post(`${ENABLE_BANKING_BASE_URL}/sessions`, as
   }
 
   // Increment counter to track session creation (for reconnection testing)
-  sessionCounter++;
+  const currentCount = incrementSessionCounter();
 
   // Return different session ID and full account objects based on whether this is a reconnection
-  const isReconnection = sessionCounter > 1;
+  const isReconnection = currentCount > 1;
   const sessionId = isReconnection ? MOCK_SESSION_ID_RECONNECTED : MOCK_SESSION_ID;
   // createSession returns full account objects (with uid, currency, account_id, etc.)
   const accounts = isReconnection ? getAllMockAccountsReconnected() : getAllMockAccounts();

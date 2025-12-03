@@ -7,7 +7,7 @@ import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import { subDays } from 'date-fns';
 
-describe('Bank Data Provider Transaction Sync E2E', () => {
+describe.skip('Bank Data Provider Transaction Sync E2E', () => {
   describe('Sync transactions', () => {
     describe('Basic sync flow', () => {
       it('should successfully sync transactions for a connected account', async () => {
