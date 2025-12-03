@@ -10,6 +10,7 @@ import { extractResponse, makeRequest } from '@tests/helpers';
 import path from 'path';
 import Umzug from 'umzug';
 
+import { resetSessionCounter } from './mocks/enablebanking/mock-api';
 import { setupMswServer } from './mocks/setup-mock-server';
 import { retryWithBackoff } from './utils/retry-db-operation-with-backoff';
 
@@ -50,7 +51,12 @@ jest.mock('../services/investments/data-providers/clients/fmp-client', () => ({
 }));
 
 beforeAll(() => mswMockServer.listen({ onUnhandledRequest: 'bypass' }));
-afterEach(() => mswMockServer.resetHandlers());
+afterEach(() => {
+  mswMockServer.resetHandlers();
+  // Reset Enable Banking session counter to ensure test isolation
+  // The counter persists across tests and affects mock responses for reconnection testing
+  resetSessionCounter();
+});
 afterAll(() => mswMockServer.close());
 
 global.mswMockServer = mswMockServer;

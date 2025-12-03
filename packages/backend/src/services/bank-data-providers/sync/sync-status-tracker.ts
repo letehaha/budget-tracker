@@ -170,10 +170,10 @@ export async function clearAllSyncStatuses(): Promise<void> {
   let resetCount = 0;
 
   for (const key of accountStatusKeys) {
-    const data = await redisClient.get(key);
-    if (!data) continue;
-
     try {
+      const data = await redisClient.get(key);
+      if (!data) continue;
+
       const status: AccountSyncStatus = JSON.parse(data);
 
       // Only reset statuses that indicate active syncing

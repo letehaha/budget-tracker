@@ -65,8 +65,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/l
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { computed, ref, watch } from 'vue';
 
-import EnableBankingConnector from './EnableBankingConnector.vue';
-import MonobankConnector from './MonobankConnector.vue';
+import EnableBankingConnector from './enable-banking-connector.vue';
+import MonobankConnector from './monobank-connector.vue';
 
 interface Props {
   open: boolean;

@@ -30,6 +30,7 @@ import { EnableBankingApiClient } from './api-client';
 import { generateState, validatePrivateKey, validateState } from './jwt-utils';
 import {
   CreditDebitIndicator,
+  EnableBankingAccount,
   EnableBankingConnectionParams,
   EnableBankingCredentials,
   EnableBankingMetadata,
@@ -225,16 +226,73 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     credentials.sessionId = sessionResponse.session_id;
     connection.setEncryptedCredentials(credentials as unknown as Record<string, unknown>);
 
-    // Update metadata with account list
+    // Calculate consent validity - consent is now active after successful OAuth
+    const consentValidFrom = new Date();
+    const consentValidUntil = this.calculateConsentValidUntil(metadata.bankMaxConsentValidity);
+
+    // Update metadata with account UIDs and consent dates
     const updatedMetadata: EnableBankingMetadata = {
       ...metadata,
-      accounts: sessionResponse.accounts,
+      accounts: sessionResponse.accounts.map((account) => account.uid),
       state: undefined, // Clear state after successful auth
+      consentValidFrom: consentValidFrom.toISOString(),
+      consentValidUntil: consentValidUntil.toISOString(),
     };
-    connection.metadata = updatedMetadata as any;
+    connection.metadata = updatedMetadata;
     connection.isActive = true;
 
     await connection.save();
+
+    // Update externalId for existing accounts after reconnection
+    // Enable Banking assigns new UUIDs after each authorization, but IBAN stays the same
+    await this.updateExistingAccountExternalIds({
+      connectionId,
+      userId: connection.userId,
+      newAccounts: sessionResponse.accounts,
+    });
+  }
+
+  /**
+   * Update externalId for existing accounts after reconnection.
+   * Enable Banking assigns new UUIDs after each authorization, but IBAN stays the same.
+   * This method matches accounts by IBAN and updates their externalId to the new value.
+   */
+  private async updateExistingAccountExternalIds({
+    connectionId,
+    userId,
+    newAccounts,
+  }: {
+    connectionId: number;
+    userId: number;
+    newAccounts: EnableBankingAccount[];
+  }): Promise<void> {
+    // Get existing accounts for this connection
+    const existingAccounts = await Accounts.findAll({
+      where: {
+        userId,
+        bankDataProviderConnectionId: connectionId,
+      },
+    });
+
+    if (existingAccounts.length === 0) {
+      return; // No existing accounts to update
+    }
+
+    // Match and update existing accounts by IBAN + currency
+    for (const existingAccount of existingAccounts) {
+      const existingIban = (existingAccount.externalData as Record<string, unknown>)?.iban;
+      if (!existingIban) continue;
+
+      const matchingNewAccount = newAccounts.find(
+        (newAcc) => newAcc.account_id?.iban === existingIban && newAcc.currency === existingAccount.currencyCode,
+      );
+
+      if (matchingNewAccount && matchingNewAccount.uid !== existingAccount.externalId) {
+        await existingAccount.update({
+          externalId: matchingNewAccount.uid,
+        });
+      }
+    }
   }
 
   /**
@@ -252,6 +310,18 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       throw new BadRequestError({ message: 'Bank information not found in connection metadata' });
     }
 
+    // Mark connection as inactive IMMEDIATELY before any API calls
+    // Once reauthorization starts, the old session becomes invalid at Enable Banking's side
+    // Set consent end date to now so UI shows as expired with 0 days remaining
+    const now = new Date().toISOString();
+    connection.isActive = false;
+    const expiredMetadata: EnableBankingMetadata = {
+      ...metadata,
+      consentValidUntil: now, // Expired now - UI will show 0 days remaining
+    };
+    connection.metadata = expiredMetadata as any;
+    await connection.save();
+
     // Revoke existing session if it exists
     if (credentials.sessionId) {
       try {
@@ -266,9 +336,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // Generate new OAuth state
     const state = generateState(connection.userId);
 
-    // Calculate new consent validity period
-    const consentValidFrom = new Date();
-    const consentValidUntil = this.calculateConsentValidUntil(metadata.bankMaxConsentValidity);
+    // Calculate consent validity period for the API request
+    // The actual consent dates will be set in handleOAuthCallback() after OAuth completes
+    const consentValidUntil = this.calculateConsentValidUntil(expiredMetadata.bankMaxConsentValidity);
 
     // Create API client with existing credentials
     const apiClient = new EnableBankingApiClient(credentials);
@@ -289,15 +359,14 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     connection.setEncryptedCredentials(credentials as unknown as Record<string, unknown>);
 
     // Update metadata with new auth info
+    // Note: consent dates are intentionally NOT set here - they should only be set
+    // after OAuth completes successfully in handleOAuthCallback()
     const updatedMetadata: EnableBankingMetadata = {
-      ...metadata,
+      ...expiredMetadata, // Use cleared metadata (without consent dates)
       state,
       authUrl: authResponse.url,
-      consentValidFrom: consentValidFrom.toISOString(),
-      consentValidUntil: consentValidUntil.toISOString(),
     };
-    connection.metadata = updatedMetadata as any;
-    connection.isActive = false; // Mark as inactive until OAuth completes
+    connection.metadata = updatedMetadata;
 
     await connection.save();
 
@@ -377,6 +446,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
   // ============================================================================
 
   async fetchAccounts(connectionId: number): Promise<ProviderAccount[]> {
+    const connection = await this.getConnection(connectionId);
+    this.validateProviderType(connection);
+
     const credentials = await this.getValidatedCredentials(connectionId);
 
     if (!credentials.sessionId) {
@@ -446,13 +518,28 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     // Sync each account
     for (const providerAccount of providerAccounts) {
-      const existingAccount = existingAccounts.find((acc) => acc.externalId === providerAccount.externalId);
+      // Match by IBAN (stable across reconnections) first, then fallback to externalId
+      const existingAccount = existingAccounts.find((acc) => {
+        const existingIban = (acc.externalData as Record<string, unknown>)?.iban;
+        const providerIban = providerAccount.metadata?.iban;
+
+        // Primary: match by IBAN + currency (stable across reconnections)
+        if (existingIban && providerIban && existingIban === providerIban) {
+          return acc.currencyCode === providerAccount.currency;
+        }
+
+        // Fallback: match by externalId (for backwards compatibility)
+        return acc.externalId === providerAccount.externalId;
+      });
 
       if (existingAccount) {
-        // Update existing account
+        // Update existing account, including the new externalId from provider
+        // This is critical for reconnection flows where Enable Banking assigns new UUIDs
         await existingAccount.update({
           name: providerAccount.name,
           currentBalance: providerAccount.balance,
+          externalId: providerAccount.externalId,
+          externalData: providerAccount.metadata || existingAccount.externalData,
         });
       } else {
         // Create new account
@@ -641,6 +728,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       // Set status to COMPLETED on success
       await setAccountSyncStatus(systemAccountId, SyncStatus.COMPLETED);
     } catch (error) {
+      console.error('Enable Banking sync error:', error);
       // Set status to FAILED on error
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       await setAccountSyncStatus(systemAccountId, SyncStatus.FAILED, errorMessage);

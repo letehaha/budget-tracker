@@ -79,7 +79,7 @@
 import { type BankProvider, listProviders } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import AddIntegrationDialog from '@/pages/accounts/integrations/components/AddIntegrationDialog.vue';
+import AddIntegrationDialog from '@/pages/accounts/integrations/components/add-integration-dialog.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
