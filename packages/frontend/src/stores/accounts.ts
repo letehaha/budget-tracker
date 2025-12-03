@@ -54,11 +54,10 @@ export const useAccountsStore = defineStore('accounts', () => {
     try {
       await apiEditAccount({ id, ...data });
       await refetchAccounts();
-      if (data.isEnabled !== undefined) {
-        queryClient.invalidateQueries({
-          queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
-        });
-      }
+
+      queryClient.invalidateQueries({
+        queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
+      });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(e);
