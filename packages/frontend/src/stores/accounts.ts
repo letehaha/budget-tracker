@@ -21,7 +21,11 @@ export const useAccountsStore = defineStore('accounts', () => {
 
   const accountsRecord = ref<Record<number, AccountModel>>({});
 
-  const { data: accounts, refetch: refetchAccounts } = useQuery({
+  const {
+    data: accounts,
+    refetch: refetchAccounts,
+    isFetched: isAccountsFetched,
+  } = useQuery({
     queryKey: VUE_QUERY_CACHE_KEYS.allAccounts,
     queryFn: apiLoadAccounts,
     staleTime: Infinity,
@@ -111,6 +115,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     enabledAccounts,
     systemAccounts,
     accountsCurrencyCodes,
+    isAccountsFetched,
 
     loadAccounts: refetchAccounts,
     refetchAccounts,
