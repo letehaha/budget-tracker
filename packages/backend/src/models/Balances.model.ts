@@ -91,18 +91,6 @@ export default class Balances extends Model {
   // 1. ✅ Add a new record to Balances table with a `currentBalance` that is specified in Accounts table
 
   // ### Account deletion will be handled by `cascade` deletion
-
-  // ### Monobank account creation
-  // 1. ✅ Add a new record to Balances table with a `currentBalance` that is specified in Accounts table
-
-  // ### Monobank transaction creation
-  // 1. Same as with system transaction creation
-
-  // ### Monobank transaction deletion
-  // 1. Remove record
-
-  // ### Monobank account deletion, keep DB's cascade deletion
-
   static async handleTransactionChange({
     data,
     prevData,

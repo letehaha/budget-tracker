@@ -14,6 +14,7 @@ const props = defineProps<{
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
 const confirmAccountName = ref('');
+const isAccountUnlinking = ref(false);
 
 const isAccountLinkedToBank = computed(() => !!props.account.bankDataProviderConnectionId);
 
@@ -21,6 +22,9 @@ const unlinkAccount = async () => {
   const accountName = props.account.name;
 
   if (confirmAccountName.value !== accountName) return;
+
+  isAccountUnlinking.value = true;
+
   try {
     await accountsStore.unlinkAccountFromBankConnection({
       id: props.account.id,
@@ -29,6 +33,7 @@ const unlinkAccount = async () => {
     confirmAccountName.value = '';
   } catch {
     addErrorNotification('An error occured while trying to unlink account');
+    isAccountUnlinking.value = false;
   }
 };
 </script>
@@ -58,7 +63,10 @@ const unlinkAccount = async () => {
       @accept="unlinkAccount"
     >
       <template #trigger>
-        <Button variant="outline"> Unlink from bank </Button>
+        <Button variant="outline" :disable="isAccountUnlinking">
+          <template v-if="isAccountUnlinking"> Unlinking... </template>
+          <template v-else> Unlink from bank </template>
+        </Button>
       </template>
       <template #description>
         <p class="mb-2">

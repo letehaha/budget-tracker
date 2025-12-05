@@ -1,7 +1,7 @@
 export enum ACCOUNT_TYPES {
   system = 'system',
-  monobank = 'monobank',
-  enableBanking = 'enable-banking',
+  monobank = 'monobank', // monobank provider connection
+  enableBanking = 'enable-banking', // enable-banking provider connection
 }
 
 /**

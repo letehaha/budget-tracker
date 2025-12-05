@@ -21,7 +21,11 @@ export const useAccountsStore = defineStore('accounts', () => {
 
   const accountsRecord = ref<Record<number, AccountModel>>({});
 
-  const { data: accounts, refetch: refetchAccounts } = useQuery({
+  const {
+    data: accounts,
+    refetch: refetchAccounts,
+    isFetched: isAccountsFetched,
+  } = useQuery({
     queryKey: VUE_QUERY_CACHE_KEYS.allAccounts,
     queryFn: apiLoadAccounts,
     staleTime: Infinity,
@@ -54,11 +58,10 @@ export const useAccountsStore = defineStore('accounts', () => {
     try {
       await apiEditAccount({ id, ...data });
       await refetchAccounts();
-      if (data.isEnabled !== undefined) {
-        queryClient.invalidateQueries({
-          queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
-        });
-      }
+
+      queryClient.invalidateQueries({
+        queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
+      });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(e);
@@ -112,6 +115,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     enabledAccounts,
     systemAccounts,
     accountsCurrencyCodes,
+    isAccountsFetched,
 
     loadAccounts: refetchAccounts,
     refetchAccounts,

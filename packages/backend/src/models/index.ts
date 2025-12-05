@@ -19,7 +19,6 @@ import UsersModel from './Users.model';
 import UsersCurrenciesModel from './UsersCurrencies.model';
 import AccountGroupingModel from './accounts-groups/AccountGrouping.model';
 import AccountGroupsModel from './accounts-groups/AccountGroups.model';
-import MonobankUsersModel from './banks/monobank/Users.model';
 import BinanceUsersModel from './binance/UserSettings.model';
 import HoldingsModel from './investments/Holdings.model';
 import InvestmentTransactionModel from './investments/InvestmentTransaction.model';
@@ -65,7 +64,6 @@ const models = [
   UsersCurrenciesModel,
   AccountGroupingModel,
   AccountGroupsModel,
-  MonobankUsersModel,
   BinanceUsersModel,
   BudgetModel,
   BudgetTransactionsModel,

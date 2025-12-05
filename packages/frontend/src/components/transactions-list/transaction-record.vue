@@ -35,11 +35,11 @@
         <template v-else-if="shouldShowGroupedTransfer">
           <!-- Grouped transfer: show account movement on top with better styling -->
           <div class="mb-1 flex items-center gap-1.5">
-            <span class="text-sm font-medium tracking-wide">
+            <span class="line-clamp-1 min-w-17 text-sm font-medium tracking-wide">
               {{ accountFrom?.name }}
             </span>
             <ArrowRight :size="14" class="opacity-60" />
-            <span class="text-sm font-medium tracking-wide">
+            <span class="line-clamp-1 min-w-17 text-sm font-medium tracking-wide">
               {{ accountTo?.name }}
             </span>
           </div>
