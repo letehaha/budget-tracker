@@ -1,5 +1,4 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { describe, expect, it } from '@jest/globals';
 import Balances from '@models/Balances.model';
 import Currencies from '@models/Currencies.model';
@@ -66,7 +65,7 @@ describe('Balances service', () => {
       });
 
       expect(account.initialBalance).toBe(accountInitialBalance);
-      expect(account.refInitialBalance).toBe(Math.round(accountInitialBalance * currencyRate));
+      expect(account.refInitialBalance).toEqualRefValue(accountInitialBalance * currencyRate);
 
       const expense = helpers.buildTransactionPayload({
         accountId: account.id,
@@ -79,8 +78,8 @@ describe('Balances service', () => {
 
       expect(initialBalancesHistory.statusCode).toEqual(200);
       expect(helpers.extractResponse(initialBalancesHistory).length).toEqual(1);
-      expect(helpers.extractResponse(initialBalancesHistory)[0].amount).toEqual(
-        roundHalfToEven(account.currentBalance * currencyRate),
+      expect(helpers.extractResponse(initialBalancesHistory)[0].amount).toEqualRefValue(
+        account.currentBalance * currencyRate,
       );
 
       return {
@@ -476,7 +475,7 @@ describe('Balances service', () => {
 
       const initialHistory = helpers.extractResponse(await callGetBalanceHistory(accountData.id));
 
-      expect(initialHistory[0].amount).toBe(roundHalfToEven(initialBalance * currencyRate));
+      expect(initialHistory[0].amount).toEqualRefValue(initialBalance * currencyRate);
 
       // Firstly test that balance increase works well
       await helpers.updateAccount({

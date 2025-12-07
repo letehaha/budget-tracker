@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { until } from '@common/helpers';
+import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
@@ -164,6 +165,22 @@ expect.extend({
     return {
       pass,
       message: () => `expected ${received} to be within ${range} of ${target}`,
+    };
+  },
+  /**
+   * Custom matcher for ref values (refAmount, refInitialBalance, refCurrentBalance, etc.)
+   * Applies roundHalfToEven to the expected value and allows ±1 tolerance for floating point precision.
+   * Use this matcher exclusively for ref* field comparisons involving currency rate calculations.
+   */
+  toEqualRefValue(received: number, expected: number) {
+    const roundedExpected = roundHalfToEven(expected);
+    const pass = Math.abs(received - roundedExpected) <= 1;
+    return {
+      pass,
+      message: () =>
+        pass
+          ? `expected ${received} not to equal ref value ${roundedExpected} (±1)`
+          : `expected ${received} to equal ref value ${roundedExpected} (±1), difference: ${Math.abs(received - roundedExpected)}`,
     };
   },
   toBeNumericEqual(received, expected) {

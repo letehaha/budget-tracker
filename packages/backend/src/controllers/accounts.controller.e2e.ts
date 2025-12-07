@@ -1,5 +1,4 @@
 import { ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
-import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -43,11 +42,11 @@ describe('Accounts controller', () => {
       const currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0];
 
       expect(account.initialBalance).toStrictEqual(initialBalance);
-      expect(account.refInitialBalance).toStrictEqual(roundHalfToEven(initialBalance * currencyRate!.rate));
+      expect(account.refInitialBalance).toEqualRefValue(initialBalance * currencyRate!.rate);
       expect(account.currentBalance).toStrictEqual(initialBalance);
-      expect(account.refCurrentBalance).toStrictEqual(roundHalfToEven(initialBalance * currencyRate!.rate));
+      expect(account.refCurrentBalance).toEqualRefValue(initialBalance * currencyRate!.rate);
       expect(account.creditLimit).toStrictEqual(creditLimit);
-      expect(account.refCreditLimit).toStrictEqual(roundHalfToEven(creditLimit * currencyRate!.rate));
+      expect(account.refCreditLimit).toEqualRefValue(creditLimit * currencyRate!.rate);
     });
   });
   describe('update account', () => {
@@ -157,7 +156,7 @@ describe('Accounts controller', () => {
       expect(accountAfterTxs.initialBalance).toBe(0);
       expect(accountAfterTxs.refInitialBalance).toBe(0);
       expect(accountAfterTxs.currentBalance).toBe(-3000);
-      expect(accountAfterTxs.refCurrentBalance).toBeWithinRange(-3000 * currencyRate, 2);
+      expect(accountAfterTxs.refCurrentBalance).toEqualRefValue(-3000 * currencyRate);
 
       // Update account balance directly, with no tx usage. In that case balance should
       // be changed as well as initialBalance
@@ -172,9 +171,9 @@ describe('Accounts controller', () => {
       // We changed currentBalance from -3000 to -500, so it means that
       // initialbalance should be increased on 2500
       expect(accountUpdateBalance.initialBalance).toBe(2500);
-      expect(accountUpdateBalance.refInitialBalance).toBeWithinRange(2500 * currencyRate, 2);
+      expect(accountUpdateBalance.refInitialBalance).toEqualRefValue(2500 * currencyRate);
       expect(accountUpdateBalance.currentBalance).toBe(-500);
-      expect(accountUpdateBalance.refCurrentBalance).toBeWithinRange(-500 * currencyRate, 2);
+      expect(accountUpdateBalance.refCurrentBalance).toEqualRefValue(-500 * currencyRate);
     });
 
     it('updates and declines monobank accounts update correctly', async () => {
