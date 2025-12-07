@@ -5,7 +5,6 @@ import {
   getAccounts,
   updateAccount,
 } from '@controllers/accounts.controller';
-import convertMonobankToSystem from '@controllers/accounts/convert-monobank-to-system';
 import linkAccountToBankConnection from '@controllers/accounts/link-to-bank-connection';
 import unlinkAccountFromBankConnection from '@controllers/accounts/unlink-from-bunk-connection';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
@@ -43,12 +42,6 @@ router.post(
   authenticateJwt,
   validateEndpoint(linkAccountToBankConnection.schema),
   linkAccountToBankConnection.handler,
-);
-router.post(
-  '/:id/convert-to-system',
-  authenticateJwt,
-  validateEndpoint(convertMonobankToSystem.schema),
-  convertMonobankToSystem.handler,
 );
 
 export default router;

@@ -6,7 +6,6 @@ import { createClient } from 'redis';
 import { clearAllSyncStatuses } from './services/bank-data-providers/sync/sync-status-tracker';
 
 logger.info('Initializing Redis client...');
-console.time('connect-to-redis');
 
 export const redisClient = createClient({
   socket: {
@@ -15,20 +14,22 @@ export const redisClient = createClient({
   },
 });
 
-redisClient
-  .connect()
-  .then(() => {
-    logger.info('✅ App connected to Redis! Took: ');
-    console.timeEnd('connect-to-redis');
+// Promise that resolves when Redis is fully initialized (connected + cleanup done)
+export const redisReady: Promise<void> = (async () => {
+  const startTime = Date.now();
+  try {
+    await redisClient.connect();
+    logger.info(`✅ App connected to Redis! Took: ${Date.now() - startTime}ms`);
 
     // Clear stale sync statuses from Redis on startup
     // When app restarts, all in-memory queue states are lost, so Redis should be reset too
-    clearAllSyncStatuses();
-  })
-  .catch((err) => {
-    console.error('❌ Cannot connect to Redis!', err);
-    logger.error({ message: 'Redis connection failed', error: err });
-  });
+    // IMPORTANT: This must be awaited to prevent race conditions in tests
+    await clearAllSyncStatuses();
+  } catch (err) {
+    logger.error({ message: 'Redis connection failed', error: err as Error });
+    throw err;
+  }
+})();
 
 redisClient.on('error', (error: Error) => {
   console.error('❗ Redis Client Error:', error);

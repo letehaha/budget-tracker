@@ -135,8 +135,12 @@ const linkingError = computed(() => {
       @accept="linkAccount"
     >
       <template #trigger>
-        <Button variant="outline" class="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white">
-          Link to bank
+        <Button
+          variant="outline"
+          :disabled="isLinking"
+          class="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+        >
+          {{ isLinking ? 'Linking...' : 'Link to bank' }}
         </Button>
       </template>
 

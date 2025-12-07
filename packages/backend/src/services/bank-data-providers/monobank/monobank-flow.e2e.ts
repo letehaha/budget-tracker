@@ -420,10 +420,7 @@ describe('Monobank Data Provider E2E', () => {
 
       // Transactions should have been automatically synced
       expect(Array.isArray(transactions)).toBe(true);
-
-      // TODO: improve `expect` checks. Right now on CI for some reason only part
-      // of transactions is diplayed, not MOCK_AMOUNT * 2
-      console.log({ tx_length: transactions.length, expected: MOCK_AMOUNT * accountIds.length });
+      expect(transactions.length).toBe(MOCK_AMOUNT * accountIds.length);
     });
 
     it('should return 404 for non-existent connection', async () => {

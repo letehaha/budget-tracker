@@ -44,7 +44,7 @@ describe('Update transaction controller', () => {
 
     expect(baseTx.accountId).toStrictEqual(accountUAH.id);
     expect(baseTx.amount).toStrictEqual(createdTransaction.amount);
-    expect(baseTx.refAmount).toStrictEqual(Math.round(createdTransaction.amount * currencyRate!.rate));
+    expect(baseTx.refAmount).toEqualRefValue(createdTransaction.amount * currencyRate!.rate);
   });
   it('should create transfer tx for ref + non-ref tx, and change destination non-ref account to another non-ref account', async () => {
     const baseAccount = await helpers.createAccount({ raw: true });

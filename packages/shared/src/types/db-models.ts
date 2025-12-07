@@ -70,15 +70,6 @@ export interface AccountModel {
   bankDataProviderConnectionId?: number;
 }
 
-export interface MonobankUserModel {
-  id: number;
-  clientId: string;
-  name: string;
-  webHookUrl?: string;
-  systemUserId: number;
-  apiToken: string;
-}
-
 export interface BalanceModel {
   id: number;
   date: Date;

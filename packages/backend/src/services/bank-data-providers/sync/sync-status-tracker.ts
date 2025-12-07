@@ -2,6 +2,14 @@ import { redisKeyFormatter } from '@common/lib/redis';
 import { logger } from '@js/utils';
 import { redisClient } from '@root/redis-client';
 
+/**
+ * Check if Redis client is ready for operations
+ * Prevents "The client is closed" errors during test teardown
+ */
+function isRedisReady(): boolean {
+  return redisClient.isOpen && redisClient.isReady;
+}
+
 export enum SyncStatus {
   IDLE = 'idle',
   QUEUED = 'queued', // For Monobank jobs waiting in BullMQ queue
@@ -33,6 +41,8 @@ const STALE_SYNC_THRESHOLD = 20 * 60 * 1000; // 15 minutes - if PENDING/SYNCING 
  * Check if auto-sync is needed based on last sync time
  */
 export async function shouldTriggerAutoSync(userId: number): Promise<boolean> {
+  if (!isRedisReady()) return true; // Default to allowing sync if Redis unavailable
+
   const lastSyncTime = await redisClient.get(REDIS_KEYS.userLastAutoSync(userId));
 
   if (!lastSyncTime) {
@@ -49,6 +59,7 @@ export async function shouldTriggerAutoSync(userId: number): Promise<boolean> {
  * Update user's last auto-sync timestamp
  */
 export async function updateLastAutoSync(userId: number): Promise<void> {
+  if (!isRedisReady()) return;
   await redisClient.set(REDIS_KEYS.userLastAutoSync(userId), Date.now().toString());
 }
 
@@ -56,6 +67,7 @@ export async function updateLastAutoSync(userId: number): Promise<void> {
  * Get last auto-sync timestamp for user
  */
 export async function getLastAutoSync(userId: number): Promise<number | null> {
+  if (!isRedisReady()) return null;
   const lastSyncTime = await redisClient.get(REDIS_KEYS.userLastAutoSync(userId));
   return lastSyncTime ? parseInt(lastSyncTime, 10) : null;
 }
@@ -68,6 +80,8 @@ export async function setAccountSyncStatus(
   status: SyncStatus,
   error: string | null = null,
 ): Promise<void> {
+  if (!isRedisReady()) return;
+
   const statusData: AccountSyncStatus = {
     accountId,
     status,
@@ -82,6 +96,9 @@ export async function setAccountSyncStatus(
     statusData.startedAt = existing.startedAt;
   }
 
+  // Re-check Redis connection after async operation (client may have closed during getAccountSyncStatus)
+  if (!isRedisReady()) return;
+
   await redisClient.setEx(REDIS_KEYS.accountSyncStatus(accountId), STATUS_TTL, JSON.stringify(statusData));
 }
 
@@ -90,16 +107,20 @@ export async function setAccountSyncStatus(
  * Automatically clears stale PENDING/SYNCING statuses
  */
 export async function getAccountSyncStatus(accountId: number): Promise<AccountSyncStatus | null> {
+  const defaultStatus: AccountSyncStatus = {
+    accountId,
+    status: SyncStatus.IDLE,
+    startedAt: null,
+    completedAt: null,
+    error: null,
+  };
+
+  if (!isRedisReady()) return defaultStatus;
+
   const data = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
 
   if (!data) {
-    return {
-      accountId,
-      status: SyncStatus.IDLE,
-      startedAt: null,
-      completedAt: null,
-      error: null,
-    };
+    return defaultStatus;
   }
 
   const status: AccountSyncStatus = JSON.parse(data);
@@ -112,14 +133,10 @@ export async function getAccountSyncStatus(accountId: number): Promise<AccountSy
     if (elapsed > STALE_SYNC_THRESHOLD) {
       // Clear stale status and return IDLE
       logger.info(`Account ID:${accountId} was queued/syncing for too log. Status was reset.`);
-      await redisClient.del(REDIS_KEYS.accountSyncStatus(accountId));
-      return {
-        accountId,
-        status: SyncStatus.IDLE,
-        startedAt: null,
-        completedAt: null,
-        error: null,
-      };
+      if (isRedisReady()) {
+        await redisClient.del(REDIS_KEYS.accountSyncStatus(accountId));
+      }
+      return defaultStatus;
     }
   }
 
@@ -139,6 +156,7 @@ export async function getMultipleAccountsSyncStatus(accountIds: number[]): Promi
  * Clear sync status for an account
  */
 export async function clearAccountSyncStatus(accountId: number): Promise<void> {
+  if (!isRedisReady()) return;
   await redisClient.del(REDIS_KEYS.accountSyncStatus(accountId));
 }
 
@@ -146,6 +164,7 @@ export async function clearAccountSyncStatus(accountId: number): Promise<void> {
  * Set priority score for an account (higher = more priority)
  */
 export async function setAccountPriority(accountId: number, priority: number): Promise<void> {
+  if (!isRedisReady()) return;
   await redisClient.setEx(REDIS_KEYS.accountPriority(accountId), STATUS_TTL, priority.toString());
 }
 
@@ -153,6 +172,7 @@ export async function setAccountPriority(accountId: number, priority: number): P
  * Get priority score for an account
  */
 export async function getAccountPriority(accountId: number): Promise<number> {
+  if (!isRedisReady()) return 0;
   const priority = await redisClient.get(REDIS_KEYS.accountPriority(accountId));
   return priority ? parseFloat(priority) : 0;
 }
@@ -163,6 +183,11 @@ export async function getAccountPriority(accountId: number): Promise<number> {
  * Preserves COMPLETED/FAILED/IDLE statuses and user last-sync timestamps
  */
 export async function clearAllSyncStatuses(): Promise<void> {
+  if (!isRedisReady()) {
+    logger.info('[Sync Status] Skipping cleanup - Redis not ready');
+    return;
+  }
+
   // Wrap into `*..*` wildcard just in case
   const accountStatusKeys = await redisClient.keys(`*${REDIS_KEYS.accountSyncStatus('*')}*`);
 
@@ -170,6 +195,12 @@ export async function clearAllSyncStatuses(): Promise<void> {
   let resetCount = 0;
 
   for (const key of accountStatusKeys) {
+    // Check Redis connection before each operation to handle teardown gracefully
+    if (!isRedisReady()) {
+      logger.info('[Sync Status] Stopping cleanup - Redis connection closed');
+      break;
+    }
+
     try {
       const data = await redisClient.get(key);
       if (!data) continue;
@@ -188,14 +219,18 @@ export async function clearAllSyncStatuses(): Promise<void> {
           error: 'Sync interrupted by server restart',
         };
 
-        await redisClient.setEx(key, STATUS_TTL, JSON.stringify(resetStatus));
-        resetCount++;
+        if (isRedisReady()) {
+          await redisClient.setEx(key, STATUS_TTL, JSON.stringify(resetStatus));
+          resetCount++;
+        }
       }
       // Keep COMPLETED, FAILED, and IDLE statuses - they're still valid
     } catch (err) {
-      // If we can't parse it, delete it
-      await redisClient.del(key);
-      clearedCount++;
+      // If we can't parse it, delete it (only if Redis is still ready)
+      if (isRedisReady()) {
+        await redisClient.del(key);
+        clearedCount++;
+      }
     }
   }
 

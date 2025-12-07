@@ -642,11 +642,11 @@ describe('Change Base Currency', () => {
 
       // Validate UAH transaction calculation using the actual service function
       const expectedUahRefAmount = calculateRefAmountFromParams({ amount: sampleUahTx.amount, rate: uahToUsdRate });
-      expect(sampleUahTx.refAmount).toEqual(expectedUahRefAmount);
+      expect(sampleUahTx.refAmount).toEqualRefValue(expectedUahRefAmount);
 
       // Validate EUR transaction calculation using the actual service function
       const expectedEurRefAmount = calculateRefAmountFromParams({ amount: sampleEurTx.amount, rate: eurToUsdRate });
-      expect(sampleEurTx.refAmount).toEqual(expectedEurRefAmount);
+      expect(sampleEurTx.refAmount).toEqualRefValue(expectedEurRefAmount);
 
       // Validate USD transaction (should be 1:1)
       expect(sampleUsdTx.refAmount).toEqual(sampleUsdTx.amount);

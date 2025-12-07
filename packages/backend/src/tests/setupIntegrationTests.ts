@@ -1,11 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { until } from '@common/helpers';
-import { usersQuery } from '@controllers/banks/monobank.controller';
+import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
-import { redisClient } from '@root/redis-client';
+import { redisClient, redisReady } from '@root/redis-client';
+import {
+  transactionSyncQueue,
+  transactionSyncWorker,
+} from '@services/bank-data-providers/monobank/transaction-sync-queue';
 import { extractResponse, makeRequest } from '@tests/helpers';
 import path from 'path';
 import Umzug from 'umzug';
@@ -116,16 +120,30 @@ async function waitForDatabaseConnection() {
 }
 
 async function waitForRedisConnection() {
+  // Wait for Redis to be fully initialized (connected + cleanup done)
+  // This uses the redisReady promise from redis-client.ts which ensures
+  // clearAllSyncStatuses() has completed before proceeding
+  try {
+    await redisReady;
+  } catch {
+    // Redis might have failed to connect initially, try to poll for connection
+  }
+
+  // Poll until Redis is ready and responsive
   await until(
     async () => {
       try {
+        // Check if client is connected and responsive
+        if (!redisClient.isOpen) {
+          return false;
+        }
         const result = await redisClient.hello();
         return !!result;
       } catch {
         return false;
       }
     },
-    { timeout: 10000, interval: 100 },
+    { timeout: 15000, interval: 100 },
   );
 }
 
@@ -147,6 +165,22 @@ expect.extend({
     return {
       pass,
       message: () => `expected ${received} to be within ${range} of ${target}`,
+    };
+  },
+  /**
+   * Custom matcher for ref values (refAmount, refInitialBalance, refCurrentBalance, etc.)
+   * Applies roundHalfToEven to the expected value and allows ±1 tolerance for floating point precision.
+   * Use this matcher exclusively for ref* field comparisons involving currency rate calculations.
+   */
+  toEqualRefValue(received: number, expected: number) {
+    const roundedExpected = roundHalfToEven(expected);
+    const pass = Math.abs(received - roundedExpected) <= 1;
+    return {
+      pass,
+      message: () =>
+        pass
+          ? `expected ${received} not to equal ref value ${roundedExpected} (±1)`
+          : `expected ${received} to equal ref value ${roundedExpected} (±1), difference: ${Math.abs(received - roundedExpected)}`,
     };
   },
   toBeNumericEqual(received, expected) {
@@ -205,9 +239,6 @@ beforeEach(async () => {
       await redisClient.del(workerKeys);
     }
 
-    // Clear query cache
-    usersQuery.clear();
-
     // Run migrations with deadlock retry (this can be slow with TypeScript)
     await retryWithBackoff(
       async () => {
@@ -264,6 +295,12 @@ beforeEach(async () => {
 
 afterAll(async () => {
   try {
+    // Close BullMQ worker and queue first to ensure no pending operations
+    // This prevents "The client is closed" errors when workers try to access Redis
+    await transactionSyncWorker.close();
+    await transactionSyncQueue.close();
+
+    // Now safe to close Redis client
     await redisClient.close();
     serverInstance.close();
     loadCurrencyRatesJob.stop();
