@@ -46,31 +46,20 @@ const getMockedTransactionData = (
 };
 
 /**
- * Pairs and connects Monobank accounts using the new unified bank data provider flow
+ * Creates a Monobank connection WITHOUT connecting accounts or triggering sync.
+ * This allows tests to set up mocks before any sync happens.
+ * Use mockTransactions() after pair() to actually sync transactions with mocked data.
  */
 const pairMonobankUser = async (token: string = VALID_MONOBANK_TOKEN) => {
-  // Step 1: Connect provider
+  // Only create the connection - don't connect accounts yet
+  // This avoids triggering auto-sync before tests can set up mocks
   const { connectionId } = await helpers.bankDataProviders.connectProvider({
     providerType: BANK_PROVIDER_TYPE.MONOBANK,
     credentials: { apiToken: token },
     raw: true,
   });
 
-  // Step 2: List external accounts
-  const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
-    connectionId,
-    raw: true,
-  });
-
-  // Step 3: Connect all available accounts
-  const accountExternalIds = externalAccounts.map((acc) => acc.externalId);
-  const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
-    connectionId,
-    accountExternalIds,
-    raw: true,
-  });
-
-  return { connectionId, syncedAccounts };
+  return { connectionId };
 };
 
 const getTransactions = async () => {
@@ -86,7 +75,10 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
   account: Accounts;
   transactions: Transactions[];
 }> => {
-  // Check if there's already a connected Monobank account
+  // Generate mocked transactions data first (we'll use initial balance later if account exists)
+  let mockedTransactions = getMockedTransactionData(amount);
+
+  // Check if there's already a connected Monobank connection
   const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
   const existingConnection = connections.find(
     (c: { providerType: string }) => c.providerType === BANK_PROVIDER_TYPE.MONOBANK,
@@ -106,9 +98,20 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
     });
 
     if (connection.accounts.length > 0) {
+      // Accounts already connected - just get the account and sync with mocked data
       account = await Accounts.findByPk(connection.accounts[0]!.id);
+
+      if (account) {
+        // Regenerate mocked transactions with correct initial balance
+        mockedTransactions = getMockedTransactionData(amount, {
+          initialBalance: account.initialBalance,
+        });
+      }
     } else {
-      // Connection exists but no accounts - connect them
+      // Connection exists but no accounts - set up mock BEFORE connecting
+      // because connectSelectedAccounts triggers auto-sync
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
+
       const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
         connectionId,
         raw: true,
@@ -119,23 +122,44 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
         raw: true,
       });
       account = await Accounts.findByPk(syncedAccounts[0]!.id);
+
+      // Wait for auto-sync to complete via BullMQ
+      await helpers.sleep(2000);
+
+      const transactions = await getTransactions();
+      return { account: account!, transactions };
     }
   } else {
-    // No existing connection - pair from scratch
-    const pairResult = await pairMonobankUser();
-    connectionId = pairResult.connectionId;
-    account = await Accounts.findByPk(pairResult.syncedAccounts[0]!.id);
+    // No existing connection - create connection, set up mock, then connect accounts
+    const { connectionId: newConnectionId } = await pairMonobankUser();
+    connectionId = newConnectionId;
+
+    // Set up mock BEFORE connecting accounts (auto-sync uses this mock)
+    global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
+
+    const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+      connectionId,
+      raw: true,
+    });
+    const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+      connectionId,
+      accountExternalIds: externalAccounts.map((acc) => acc.externalId),
+      raw: true,
+    });
+    account = await Accounts.findByPk(syncedAccounts[0]!.id);
+
+    // Wait for auto-sync to complete via BullMQ
+    await helpers.sleep(2000);
+
+    const transactions = await getTransactions();
+    return { account: account!, transactions };
   }
 
   if (!account) {
     throw new Error('Account not found after pairing');
   }
 
-  const mockedTransactions = getMockedTransactionData(amount, {
-    initialBalance: account.initialBalance,
-  });
-
-  // Mock the transaction API response
+  // For existing accounts, set up mock and trigger sync explicitly
   global.mswMockServer.use(getMonobankTransactionsMock({ response: mockedTransactions }));
 
   // Trigger transaction sync
@@ -146,7 +170,7 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
   });
 
   // Let server some time to process transactions via queues
-  await helpers.sleep(1000);
+  await helpers.sleep(2000);
 
   const transactions = await getTransactions();
 

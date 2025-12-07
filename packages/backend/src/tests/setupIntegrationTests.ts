@@ -4,7 +4,11 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
-import { redisClient } from '@root/redis-client';
+import { redisClient, redisReady } from '@root/redis-client';
+import {
+  transactionSyncQueue,
+  transactionSyncWorker,
+} from '@services/bank-data-providers/monobank/transaction-sync-queue';
 import { extractResponse, makeRequest } from '@tests/helpers';
 import path from 'path';
 import Umzug from 'umzug';
@@ -115,16 +119,30 @@ async function waitForDatabaseConnection() {
 }
 
 async function waitForRedisConnection() {
+  // Wait for Redis to be fully initialized (connected + cleanup done)
+  // This uses the redisReady promise from redis-client.ts which ensures
+  // clearAllSyncStatuses() has completed before proceeding
+  try {
+    await redisReady;
+  } catch {
+    // Redis might have failed to connect initially, try to poll for connection
+  }
+
+  // Poll until Redis is ready and responsive
   await until(
     async () => {
       try {
+        // Check if client is connected and responsive
+        if (!redisClient.isOpen) {
+          return false;
+        }
         const result = await redisClient.hello();
         return !!result;
       } catch {
         return false;
       }
     },
-    { timeout: 10000, interval: 100 },
+    { timeout: 15000, interval: 100 },
   );
 }
 
@@ -260,6 +278,12 @@ beforeEach(async () => {
 
 afterAll(async () => {
   try {
+    // Close BullMQ worker and queue first to ensure no pending operations
+    // This prevents "The client is closed" errors when workers try to access Redis
+    await transactionSyncWorker.close();
+    await transactionSyncQueue.close();
+
+    // Now safe to close Redis client
     await redisClient.close();
     serverInstance.close();
     loadCurrencyRatesJob.stop();
