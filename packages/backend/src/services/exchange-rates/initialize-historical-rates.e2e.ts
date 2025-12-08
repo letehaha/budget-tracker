@@ -1,19 +1,33 @@
-import { beforeAll, describe, expect, it } from '@jest/globals';
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import ExchangeRates from '@models/ExchangeRates.model';
 import { createOverride } from '@tests/mocks/helpers';
 import { format } from 'date-fns';
 
 import { CURRENCY_RATES_API_ENDPOINT_REGEX, FRANKFURTER_ENDPOINT_REGEX } from './fetch-exchange-rates-for-date';
-import { initializeHistoricalRates } from './initialize-historical-rates.service';
+import { initializeHistoricalRates, providerAvailabilityConfig } from './initialize-historical-rates.service';
 import { exchangeRateProviderRegistry } from './providers';
 
 describe('Initialize Historical Rates Service', () => {
   let currencyRatesApiOverride: ReturnType<typeof createOverride>;
   let frankfurterOverride: ReturnType<typeof createOverride>;
 
+  // Store original config values
+  const originalMaxRetries = providerAvailabilityConfig.maxRetries;
+  const originalRetryIntervalMs = providerAvailabilityConfig.retryIntervalMs;
+
   beforeAll(() => {
     currencyRatesApiOverride = createOverride(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
     frankfurterOverride = createOverride(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
+
+    // Use shorter retry intervals for tests
+    providerAvailabilityConfig.maxRetries = 2;
+    providerAvailabilityConfig.retryIntervalMs = 100; // 100ms instead of 30s
+  });
+
+  afterAll(() => {
+    // Restore original config values
+    providerAvailabilityConfig.maxRetries = originalMaxRetries;
+    providerAvailabilityConfig.retryIntervalMs = originalRetryIntervalMs;
   });
 
   it('should successfully load historical rates on initialization', async () => {

@@ -1,54 +1,71 @@
 import { logger } from '@js/utils';
 import Currencies from '@models/Currencies.model';
 import ExchangeRates from '@models/ExchangeRates.model';
-import { format, startOfDay } from 'date-fns';
+import { addYears, format, min, startOfDay } from 'date-fns';
+import chunk from 'lodash/chunk';
 
 import { exchangeRateProviderRegistry } from './providers';
+import { ExchangeRateResult } from './providers/types';
 
 // Fallback date if no providers are registered (should not happen in practice)
 const FALLBACK_START_DATE = new Date('1999-01-04');
 
+// Batch size for bulk inserts to avoid memory issues
+const BULK_INSERT_BATCH_SIZE = 2000;
+
 /**
- * Initializes the database with historical exchange rates.
- * Uses the provider registry to fetch data from the highest-priority provider
- * that supports historical data loading.
- *
- * This function is idempotent - it can be safely called multiple times.
- * On first run, it loads all historical data. On subsequent runs, it only inserts new data.
+ * Configuration for provider availability retry logic.
+ * Exported for testing purposes - allows tests to use shorter intervals.
  */
-export async function initializeHistoricalRates(): Promise<void> {
-  try {
-    const startDate = exchangeRateProviderRegistry.getEarliestHistoricalDate() ?? FALLBACK_START_DATE;
-    const endDate = new Date();
+export const providerAvailabilityConfig = {
+  maxRetries: 5,
+  retryIntervalMs: 30000, // 30 seconds
+};
 
-    logger.info('Starting historical exchange rates initialization');
+/**
+ * Wait for at least one historical data provider to become available
+ * @returns true if a provider is available, false if none available after retries
+ */
+async function waitForProviderAvailability(): Promise<boolean> {
+  const { maxRetries, retryIntervalMs } = providerAvailabilityConfig;
 
-    // Get all valid currency codes from the database
-    const validCurrencies = await Currencies.findAll({
-      attributes: ['code'],
-      raw: true,
-    });
-    const validCurrencyCodes = new Set(validCurrencies.map((c) => c.code));
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const providers = await exchangeRateProviderRegistry.getHistoricalDataProviders();
 
-    // Fetch historical data using the provider registry (with priority-based fallback)
-    const fetchResult = await exchangeRateProviderRegistry.fetchHistoricalRatesWithFallback({
-      startDate,
-      endDate,
-    });
-
-    if (!fetchResult) {
-      logger.error('No providers available for historical data loading. Historical rates will not be initialized.');
-      return;
+    if (providers.length > 0) {
+      logger.info(`Historical data provider available: ${providers[0]!.metadata.name}`);
+      return true;
     }
 
-    const { results, providerName } = fetchResult;
+    if (attempt < maxRetries) {
+      logger.info(
+        `No historical data providers available (attempt ${attempt}/${maxRetries}), retrying in ${retryIntervalMs / 1000}s...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, retryIntervalMs));
+    }
+  }
 
-    // Convert provider results to rate entries
-    const allRates: { baseCode: string; quoteCode: string; rate: number; date: Date }[] = [];
-    for (const result of results) {
-      const rateDate = startOfDay(new Date(result.date));
-      for (const [quoteCode, rate] of Object.entries(result.rates)) {
-        allRates.push({
+  return false;
+}
+
+/**
+ * Process and insert rates from a single fetch result
+ */
+async function insertRatesChunk({
+  results,
+  validCurrencyCodes,
+}: {
+  results: ExchangeRateResult[];
+  validCurrencyCodes: Set<string>;
+}): Promise<{ totalRates: number; insertedRates: number }> {
+  // Convert provider results to rate entries, filtering as we go to reduce memory
+  const validRates: { baseCode: string; quoteCode: string; rate: number; date: Date }[] = [];
+
+  for (const result of results) {
+    const rateDate = startOfDay(new Date(result.date));
+    for (const [quoteCode, rate] of Object.entries(result.rates)) {
+      if (validCurrencyCodes.has(result.baseCurrency) && validCurrencyCodes.has(quoteCode)) {
+        validRates.push({
           baseCode: result.baseCurrency,
           quoteCode,
           rate,
@@ -56,17 +73,18 @@ export async function initializeHistoricalRates(): Promise<void> {
         });
       }
     }
+  }
 
-    // Filter to only include currencies that exist in our database
-    const validRates = allRates.filter(
-      (rate) => validCurrencyCodes.has(rate.baseCode) && validCurrencyCodes.has(rate.quoteCode),
-    );
+  if (validRates.length === 0) {
+    return { totalRates: 0, insertedRates: 0 };
+  }
 
-    logger.info(`Filtered ${allRates.length} rates to ${validRates.length} valid rates (currencies exist in database)`);
+  // Insert in batches to avoid memory pressure
+  const chunks = chunk(validRates, BULK_INSERT_BATCH_SIZE);
 
-    // Insert all rates, ignoring duplicates (idempotent operation)
+  for (const batch of chunks) {
     await ExchangeRates.bulkCreate(
-      validRates.map((rate) => ({
+      batch.map((rate) => ({
         baseCode: rate.baseCode,
         quoteCode: rate.quoteCode,
         rate: rate.rate,
@@ -78,8 +96,95 @@ export async function initializeHistoricalRates(): Promise<void> {
       },
     );
 
+    // Yield to event loop between batches
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+
+  return { totalRates: validRates.length, insertedRates: validRates.length };
+}
+
+/**
+ * Initializes the database with historical exchange rates.
+ * Uses the provider registry to fetch data from the highest-priority provider
+ * that supports historical data loading.
+ *
+ * This function is idempotent - it can be safely called multiple times.
+ * On first run, it loads all historical data. On subsequent runs, it only inserts new data.
+ *
+ * Data is processed in yearly chunks to avoid memory issues with large datasets.
+ */
+export async function initializeHistoricalRates(): Promise<void> {
+  try {
+    logger.info('Starting historical exchange rates initialization');
+
+    // Wait for at least one provider to become available (with retries)
+    const providerAvailable = await waitForProviderAvailability();
+
+    if (!providerAvailable) {
+      logger.info(
+        'No historical data providers available after retries. Skipping historical rates initialization. The sync cron job will fill in data later.',
+      );
+      return;
+    }
+
+    const globalStartDate = exchangeRateProviderRegistry.getEarliestHistoricalDate() ?? FALLBACK_START_DATE;
+    const globalEndDate = new Date();
+
+    // Get all valid currency codes from the database
+    const validCurrencies = await Currencies.findAll({
+      attributes: ['code'],
+      raw: true,
+    });
+    const validCurrencyCodes = new Set(validCurrencies.map((c) => c.code));
+
+    logger.info(`Found ${validCurrencyCodes.size} valid currencies in database`);
+
+    let currentStartDate = new Date(globalStartDate);
+    let totalInserted = 0;
+    let providerName: string | null = null;
+
+    // Process data in yearly chunks to avoid memory issues
+    while (currentStartDate < globalEndDate) {
+      const currentEndDate = min([addYears(currentStartDate, 1), globalEndDate]);
+
+      logger.info(
+        `Processing rates from ${format(currentStartDate, 'yyyy-MM-dd')} to ${format(currentEndDate, 'yyyy-MM-dd')}`,
+      );
+
+      // Fetch data for this year chunk
+      const fetchResult = await exchangeRateProviderRegistry.fetchHistoricalRatesWithFallback({
+        startDate: currentStartDate,
+        endDate: currentEndDate,
+      });
+
+      if (!fetchResult) {
+        logger.warn(
+          `No provider available for range ${format(currentStartDate, 'yyyy-MM-dd')} to ${format(currentEndDate, 'yyyy-MM-dd')}, skipping`,
+        );
+      } else {
+        providerName = fetchResult.providerName;
+
+        const { insertedRates } = await insertRatesChunk({
+          results: fetchResult.results,
+          validCurrencyCodes,
+        });
+
+        totalInserted += insertedRates;
+        logger.info(
+          `Inserted ${insertedRates} rates for ${format(currentStartDate, 'yyyy-MM-dd')} to ${format(currentEndDate, 'yyyy-MM-dd')}`,
+        );
+      }
+
+      // Move to next year (add 1 day to avoid overlap)
+      currentStartDate = new Date(currentEndDate);
+      currentStartDate.setDate(currentStartDate.getDate() + 1);
+
+      // Allow garbage collection between chunks
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+
     logger.info(
-      `[Historical Rates: ${providerName}] Initialization completed. Loaded currency rates from ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`,
+      `[Historical Rates${providerName ? `: ${providerName}` : ''}] Initialization completed. Loaded ${totalInserted} currency rates from ${format(globalStartDate, 'yyyy-MM-dd')} to ${format(globalEndDate, 'yyyy-MM-dd')}`,
     );
   } catch (error) {
     logger.error('Failed to initialize historical exchange rates', {
