@@ -13,7 +13,7 @@ services:
       # Mount SSL certificates for HTTPS
       - ../../docker/dev/certs:/app/docker/dev/certs:ro
     ports: ['${APPLICATION_PORT}:${APPLICATION_PORT}']
-    depends_on: ['db', 'redis', 'frankfurter']
+    depends_on: ['db', 'redis', 'frankfurter', 'currency-rates-api']
     env_file: ../../.env.development
     environment:
       - OFFLINE_MODE=${DOCKER_OFFLINE_MODE:-false}
@@ -51,9 +51,33 @@ services:
     volumes: ['redis_data:/data']
     ports: ['${MAP_REDIS_PORT_TO_OS_PORT:-6379}:6379']
 
-  # Frankfurter: Self-hosted exchange rates service
+  # Currency Rates API: Custom exchange rate service (primary provider)
+  # Uses ECB + NBU data sources for comprehensive currency coverage
+  # Supports: 38 currencies with historical data from 1999-01-04
+  # API: http://currency-rates-api:8080/{date} or http://currency-rates-api:8080/latest
+  currency-rates-api:
+    image: letehaha/currency-rates-api:latest
+    container_name: dev-budget-tracker-currency-rates-api
+    restart: unless-stopped
+    ports:
+      - '8102:8080'
+    volumes:
+      - currency_rates_data:/app/data
+    attach: false
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:8080/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frankfurter: Self-hosted exchange rates service (fallback provider)
   # Provides historical exchange rates data from 1999-01-04 to present
-  # Used for: Historical data initialization & fallback when ApiLayer fails
+  # Used for: Fallback when Currency Rates API is unavailable
   # Supports: 31 major currencies (AUD, EUR, GBP, USD, etc.)
   # API: http://frankfurter:8080/v1/latest or http://frankfurter:8080/v1/YYYY-MM-DD
   frankfurter:
@@ -80,5 +104,6 @@ services:
 volumes:
   db_data:
   redis_data:
+  currency_rates_data:
   backend_node_modules:
   frontend_node_modules:

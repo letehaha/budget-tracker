@@ -3,14 +3,16 @@ import ExchangeRates from '@models/ExchangeRates.model';
 import { createOverride } from '@tests/mocks/helpers';
 import { format } from 'date-fns';
 
-import { FRANKFURTER_ENDPOINT_REGEX } from './fetch-exchange-rates-for-date';
-import { FRANKFURTER_START_DATE } from './frankfurter.service';
+import { CURRENCY_RATES_API_ENDPOINT_REGEX, FRANKFURTER_ENDPOINT_REGEX } from './fetch-exchange-rates-for-date';
 import { initializeHistoricalRates } from './initialize-historical-rates.service';
+import { exchangeRateProviderRegistry } from './providers';
 
 describe('Initialize Historical Rates Service', () => {
+  let currencyRatesApiOverride: ReturnType<typeof createOverride>;
   let frankfurterOverride: ReturnType<typeof createOverride>;
 
   beforeAll(() => {
+    currencyRatesApiOverride = createOverride(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
     frankfurterOverride = createOverride(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
   });
 
@@ -52,33 +54,42 @@ describe('Initialize Historical Rates Service', () => {
     expect(secondRunCount).toBe(firstRunCount);
   });
 
-  it('should handle Frankfurt service 500 error gracefully without crashing', async () => {
-    // Make Frankfurt return 500 error
+  it('should handle provider errors gracefully without crashing', async () => {
+    // Make all providers return 500 error
+    currencyRatesApiOverride.setOneTimeOverride({ status: 500 });
     frankfurterOverride.setOneTimeOverride({ status: 500 });
 
     // Should not throw - just log error
     await expect(initializeHistoricalRates()).resolves.toBeUndefined();
   });
 
-  it('should handle Frankfurt service 404 error gracefully', async () => {
-    // Make Frankfurt return 404 error
+  it('should handle provider 404 error gracefully', async () => {
+    // Make all providers return 404 error
+    currencyRatesApiOverride.setOneTimeOverride({ status: 404 });
     frankfurterOverride.setOneTimeOverride({ status: 404 });
 
     // Should not throw - just log error
     await expect(initializeHistoricalRates()).resolves.toBeUndefined();
   });
 
-  it('should handle invalid Frankfurt response gracefully', async () => {
-    // Return invalid response (missing rates)
+  it('should handle invalid provider response gracefully', async () => {
+    const startDate = exchangeRateProviderRegistry.getEarliestHistoricalDate();
+    const startDateStr = startDate ? format(startDate, 'yyyy-MM-dd') : '1999-01-04';
+
+    // Return invalid response (missing rates) from primary provider
+    currencyRatesApiOverride.setOneTimeOverride({
+      body: { base: 'USD', start_date: startDateStr, end_date: '2025-01-01' },
+    });
+    // Make Frankfurter also return invalid response
     frankfurterOverride.setOneTimeOverride({
-      body: { base: 'USD', start_date: format(FRANKFURTER_START_DATE, 'yyyy-MM-dd'), end_date: '2025-01-01' },
+      body: { base: 'USD', start_date: startDateStr, end_date: '2025-01-01' },
     });
 
     // Should not throw - just log error
     await expect(initializeHistoricalRates()).resolves.toBeUndefined();
   });
 
-  it('should load rates from start date (FRANKFURTER_START_DATE) to current date', async () => {
+  it('should load rates from start date to current date', async () => {
     // Clear any existing rates
     await ExchangeRates.destroy({ where: {} });
 
@@ -94,7 +105,9 @@ describe('Initialize Historical Rates Service', () => {
     expect(rates.length).toBeGreaterThanOrEqual(2);
 
     const dates = rates.map((r) => r.date);
-    const startDateStr = format(FRANKFURTER_START_DATE, 'yyyy-MM-dd');
+    const startDate = exchangeRateProviderRegistry.getEarliestHistoricalDate();
+    expect(startDate).not.toBeNull();
+    const startDateStr = format(startDate!, 'yyyy-MM-dd');
 
     // Check if rates include the start date (from mock)
     const hasStartDate = dates.some((date) => format(new Date(date), 'yyyy-MM-dd') === startDateStr);
@@ -135,7 +148,8 @@ describe('Initialize Historical Rates Service', () => {
   });
 
   it('should not crash the app even if initialization fails (fire-and-forget safety)', async () => {
-    // Make Frankfurt return error
+    // Make all providers return error
+    currencyRatesApiOverride.setOneTimeOverride({ status: 500 });
     frankfurterOverride.setOneTimeOverride({ status: 500 });
 
     // Call without await - simulating startup

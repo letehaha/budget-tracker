@@ -2,7 +2,7 @@ import type { SecuritySearchResult } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
 import ExchangeRates from '@models/ExchangeRates.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
-import { FRANKFURTER_START_DATE } from '@root/services/exchange-rates/frankfurter.service';
+import { exchangeRateProviderRegistry } from '@services/exchange-rates/providers';
 import { format, startOfDay } from 'date-fns';
 import { Op } from 'sequelize';
 
@@ -19,7 +19,12 @@ interface bulkUploadSecurityPrices {
   override?: boolean;
 }
 
-const MIN_ALLOWED_DATE = FRANKFURTER_START_DATE;
+// Fallback date if no providers are registered (should not happen in practice)
+const FALLBACK_MIN_DATE = new Date('1999-01-04');
+
+function getMinAllowedDate(): Date {
+  return exchangeRateProviderRegistry.getEarliestHistoricalDate() ?? FALLBACK_MIN_DATE;
+}
 
 export const bulkUploadSecurityPrices = async (params: bulkUploadSecurityPrices) => {
   const { searchResult, prices, autoFilter = false, override = false } = params;
@@ -37,11 +42,12 @@ export const bulkUploadSecurityPrices = async (params: bulkUploadSecurityPrices)
   }
 
   // Get available exchange rate date range
+  const minAllowedDate = getMinAllowedDate();
   const oldestRate = await ExchangeRates.findOne({
     where: {
       [Op.or]: [{ baseCode: security.currencyCode }, { quoteCode: security.currencyCode }],
       date: {
-        [Op.gte]: MIN_ALLOWED_DATE,
+        [Op.gte]: minAllowedDate,
       },
     },
     order: [['date', 'ASC']],
@@ -64,7 +70,7 @@ export const bulkUploadSecurityPrices = async (params: bulkUploadSecurityPrices)
     });
   }
 
-  const oldestAllowedDate = startOfDay(Math.max(MIN_ALLOWED_DATE.getTime(), oldestRate.date.getTime()));
+  const oldestAllowedDate = startOfDay(Math.max(minAllowedDate.getTime(), oldestRate.date.getTime()));
   const newestAllowedDate = startOfDay(newestRate.date);
 
   // Filter or validate dates

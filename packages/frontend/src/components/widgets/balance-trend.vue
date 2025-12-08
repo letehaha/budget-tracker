@@ -217,9 +217,7 @@ const chartOptions = computed(() => {
 
         // Find the corresponding data point to get accounts and portfolios breakdown
         // Use startOfDay to match the data point timestamps (same as series data)
-        const dataPoint = balanceHistory.value?.find(
-          (point) => startOfDay(new Date(point.date)).getTime() === this.x,
-        );
+        const dataPoint = balanceHistory.value?.find((point) => startOfDay(new Date(point.date)).getTime() === this.x);
 
         if (!dataPoint) return '';
 

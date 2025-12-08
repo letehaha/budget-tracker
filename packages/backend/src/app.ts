@@ -38,6 +38,7 @@ import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
 import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
+import { initializeExchangeRateProviders } from './services/exchange-rates/providers';
 import { supportedLocales } from './translations';
 
 logger.info('Starting application initialization...');
@@ -106,8 +107,9 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(locale(supportedLocales));
 app.use(sessionMiddleware);
 
-// Initialize bank data providers
+// Initialize data providers
 initializeBankProviders();
+initializeExchangeRateProviders();
 
 /**
  *  Routes include
@@ -174,7 +176,7 @@ function initializeBackgroundJobs() {
   if (isOfflineMode) {
     logger.info('[Offline Mode] Skipping background jobs that require internet connection');
   } else {
-    // Initialize historical exchange rates from Frankfurter on startup (non-blocking)
+    // Initialize historical exchange rates on startup (non-blocking)
     initializeHistoricalRates();
 
     loadCurrencyRatesJob.start();
