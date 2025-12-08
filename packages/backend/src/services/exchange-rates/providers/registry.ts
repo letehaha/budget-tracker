@@ -133,6 +133,8 @@ class ExchangeRateProviderRegistry {
       return null;
     }
 
+    const failedProviders: { name: string; type: EXCHANGE_RATE_PROVIDER_TYPE; error?: string }[] = [];
+
     for (const provider of providers) {
       try {
         logger.info(`Attempting to fetch rates from ${provider.metadata.name}`);
@@ -140,6 +142,30 @@ class ExchangeRateProviderRegistry {
 
         if (result && Object.keys(result.rates).length > 0) {
           logger.info(`Successfully fetched ${Object.keys(result.rates).length} rates from ${provider.metadata.name}`);
+
+          // Alert: Frankfurter was used (ideally should never happen if currency-rates-api works)
+          if (provider.metadata.type === EXCHANGE_RATE_PROVIDER_TYPE.FRANKFURTER) {
+            logger.warn(`[ALERT:FRANKFURTER_USED] Frankfurter fallback was triggered`, {
+              failedProviders: failedProviders.map((p) => p.name),
+              date: params.date.toISOString(),
+            });
+          }
+
+          // Alert: Currency Rates API failed but another provider succeeded
+          const currencyRatesApiFailed = failedProviders.some(
+            (p) => p.type === EXCHANGE_RATE_PROVIDER_TYPE.CURRENCY_RATES_API,
+          );
+          if (currencyRatesApiFailed) {
+            const failedProvider = failedProviders.find(
+              (p) => p.type === EXCHANGE_RATE_PROVIDER_TYPE.CURRENCY_RATES_API,
+            );
+            logger.warn(`[ALERT:CURRENCY_RATES_API_FAILED] Primary provider failed`, {
+              error: failedProvider?.error,
+              fallbackProvider: provider.metadata.name,
+              date: params.date.toISOString(),
+            });
+          }
+
           return {
             result,
             providerName: provider.metadata.name,
@@ -148,9 +174,18 @@ class ExchangeRateProviderRegistry {
         }
 
         logger.warn(`${provider.metadata.name} returned no rates, trying next provider`);
+        failedProviders.push({
+          name: provider.metadata.name,
+          type: provider.metadata.type,
+          error: 'No rates returned',
+        });
       } catch (error) {
-        logger.warn(`${provider.metadata.name} failed, trying next provider`, {
-          error: error instanceof Error ? error.message : String(error),
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.warn(`${provider.metadata.name} failed, trying next provider`, { error: errorMessage });
+        failedProviders.push({
+          name: provider.metadata.name,
+          type: provider.metadata.type,
+          error: errorMessage,
         });
       }
     }
