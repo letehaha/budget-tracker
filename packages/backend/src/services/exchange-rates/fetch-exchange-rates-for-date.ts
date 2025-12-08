@@ -1,283 +1,100 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { BadGateway, CustomError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
-import Currencies from '@models/Currencies.model';
 import ExchangeRates from '@models/ExchangeRates.model';
 import { withDeduplication } from '@services/common/with-deduplication';
-import axios, { isAxiosError } from 'axios';
 import { format, startOfDay } from 'date-fns';
 
-import { ApiKeyRateLimitService } from './api-key-rate-limit.service';
-import { fetchFromFrankfurter } from './frankfurter.service';
-
-interface API_LAYER_EXCHANGE_RATES_RESPONSE {
-  base: string; // base currency symbol, e.g. USD
-  date: string; // yyyy-mm-dd
-  historical: boolean;
-  rates: { [symbol: string]: number }; // SYMBOL - FLOAT rate
-  success: boolean;
-  timestamp: number;
-}
+import { exchangeRateProviderRegistry } from './providers';
 
 // Used in tests
 export const API_LAYER_ENDPOINT_REGEX = /https:\/\/api.apilayer.com\/fixer/;
 export const FRANKFURTER_ENDPOINT_REGEX = /http:\/\/frankfurter:8080\/v1/;
+export const CURRENCY_RATES_API_ENDPOINT_REGEX = /http:\/\/currency-rates-api:8080/;
 export const API_LAYER_DATE_FORMAT = 'yyyy-MM-dd';
 export const API_LAYER_BASE_CURRENCY_CODE = 'USD';
 
+/**
+ * Fetch exchange rates for a specific date using the modular provider system.
+ *
+ * Providers are tried in priority order:
+ * 1. Currency Rates API (custom service)
+ * 2. Frankfurter (free ECB data)
+ * 3. ApiLayer (comprehensive, paid)
+ *
+ * Includes deduplication to prevent concurrent calls for the same date.
+ */
 export const fetchExchangeRatesForDate = withDeduplication(
   async (date: Date): Promise<void> => {
-    // Normalize the date to start of day
     const normalizedDate = startOfDay(date);
-
-    if (!process.env.API_LAYER_API_KEYS) {
-      logger.error(`API_LAYER_API_KEYS is missing. Tried to load exchange rates for date ${normalizedDate}`);
-      throw new BadGateway({ message: 'Unexpected error with currency rates provider.' });
-    }
-
-    // Parse API keys from comma-separated string
-    const apiKeys =
-      process.env.API_LAYER_API_KEYS?.split(',')
-        .map((key) => key.trim())
-        .filter((key) => key) || [];
-
-    if (apiKeys.length === 0) {
-      logger.error('No valid API keys found in API_LAYER_API_KEYS');
-      throw new BadGateway({ message: 'Unexpected error with currency rates provider.' });
-    }
+    const formattedDate = format(normalizedDate, API_LAYER_DATE_FORMAT);
 
     try {
-      // TODO: Improve this logic with proper fetch attempt tracking (ExchangeRatesFetchLog table or Redis cache)
-      // to avoid repeated API calls for currencies that providers don't have
-
-      // Check if we've already attempted a comprehensive fetch for this date
-      // If >50 rates exist, assume ApiLayer (comprehensive provider with 150+ currencies) was already tried
-      // If <50 rates exist, only Frankfurter (30 currencies) was tried, so we should attempt ApiLayer
+      // Check if we already have rates for this date
       const existingRatesCount = await ExchangeRates.count({
         where: { date: normalizedDate },
       });
 
+      // If we have a substantial number of rates, skip to avoid redundant API calls
+      // 50+ rates indicates a comprehensive provider (ApiLayer) was already used
       if (existingRatesCount > 50) {
         logger.info(
-          `Found ${existingRatesCount} rates for this date, indicating ApiLayer was already attempted. Skipping sync to avoid wasting API calls.`,
+          `Found ${existingRatesCount} rates for ${formattedDate}, skipping sync to avoid redundant API calls`,
         );
         return undefined;
       }
 
-      if (existingRatesCount > 0 && existingRatesCount <= 50) {
+      if (existingRatesCount > 0) {
         logger.info(
-          `Found ${existingRatesCount} rates for this date (Frankfurter only). Will attempt ApiLayer to get full currency set.`,
+          `Found ${existingRatesCount} rates for ${formattedDate}, will attempt to fetch more from providers`,
         );
       }
 
-      const formattedDate = format(normalizedDate, API_LAYER_DATE_FORMAT);
+      // Fetch rates using the provider registry (handles priority and fallback)
+      const fetchResult = await exchangeRateProviderRegistry.fetchRatesWithFallback({
+        date: normalizedDate,
+        baseCurrency: API_LAYER_BASE_CURRENCY_CODE,
+      });
 
-      // HYBRID APPROACH: Try ApiLayer first, fallback to Frankfurter if needed
-      const apiLayerRates: { rate: number; baseCode: string; quoteCode: string }[] = [];
-      let apiLayerFailed = false;
-
-      const API_URL = `https://api.apilayer.com/fixer/${formattedDate}?base=${API_LAYER_BASE_CURRENCY_CODE}`;
-
-      // Step 1: Try to fetch from ApiLayer with retry logic for different API keys
-      let response: API_LAYER_EXCHANGE_RATES_RESPONSE | null = null;
-
-      logger.info('Attempting to fetch exchange rates from ApiLayer');
-
-      // Filter out rate-limited API keys before attempting requests
-      const availableApiKeys = await ApiKeyRateLimitService.filterAvailableKeys('apilayer', apiKeys);
-
-      if (availableApiKeys.length === 0) {
-        logger.warn('All API keys are rate-limited, falling back to Frankfurter immediately');
-        apiLayerFailed = true;
-      }
-
-      // Try each available API key until success or all keys exhausted
-      for (let i = 0; i < availableApiKeys.length && !apiLayerFailed; i++) {
-        const currentApiKey = availableApiKeys[i]!;
-
-        try {
-          logger.info(`Attempting to fetch exchange rates with API key ${i + 1}/${availableApiKeys.length}`);
-
-          response = (
-            await axios<API_LAYER_EXCHANGE_RATES_RESPONSE>({
-              url: API_URL,
-              headers: {
-                apikey: currentApiKey,
-              },
-              responseType: 'json',
-              method: 'GET',
-              timeout: 10_000,
-            })
-          ).data;
-
-          // If we get here, the request was successful - exit the retry loop
-          logger.info(
-            `Successfully fetched exchange rates using API key ${i + 1}/${availableApiKeys.length}. Exiting retry loop.`,
-          );
-          break;
-        } catch (err) {
-          if (isAxiosError(err)) {
-            // List of error codes
-            // https://apilayer.com/marketplace/fixer-api?utm_source=apilayermarketplace&utm_medium=featured#errors
-
-            const params = {
-              date: formattedDate,
-              base: API_LAYER_BASE_CURRENCY_CODE,
-              apiKeyIndex: i + 1,
-            };
-            const badGatewayErrorMessage =
-              'Failed to load exchange rates due to the issues with the external provider.';
-            const statusCode = err.response?.status;
-
-            if (statusCode) {
-              if (statusCode === 400) {
-                logger.error('Error 400. Failed to load exchange rates due to unacceptable request.', params);
-                throw new BadGateway({ message: badGatewayErrorMessage });
-              } else if (statusCode === 401) {
-                logger.error('Error 401. Failed to load exchange rates due to invalid API key.', params);
-                throw new BadGateway({ message: badGatewayErrorMessage });
-              } else if (statusCode === 404) {
-                logger.error('Error 404. Failed to load exchange rates due 404 error.', { ...params, url: API_URL });
-                throw new BadGateway({ message: badGatewayErrorMessage });
-              } else if (statusCode === 429) {
-                // Mark this API key as rate-limited in Redis
-                await ApiKeyRateLimitService.markAsRateLimited('apilayer', currentApiKey, 'HTTP 429 Too Many Requests');
-
-                logger.warn(
-                  `Error 429. Rate limit reached for API key ${i + 1}/${availableApiKeys.length}. ` +
-                    `Key marked as rate-limited until end of month. ` +
-                    `${i < availableApiKeys.length - 1 ? 'Trying next key...' : 'All available keys exhausted.'}`,
-                  { ...params, url: API_URL },
-                );
-
-                // If this is the last available API key, mark as failed to trigger Frankfurter fallback
-                if (i === availableApiKeys.length - 1) {
-                  apiLayerFailed = true;
-                  logger.warn('All available API keys exhausted due to rate limiting, will fallback to Frankfurter');
-                  break;
-                }
-
-                // Continue to next API key
-                continue;
-              } else if (statusCode >= 500 && statusCode < 600) {
-                // Server error - fallback to Frankfurter instead of throwing
-                apiLayerFailed = true;
-                logger.warn(`ApiLayer server error (${statusCode}), will fallback to Frankfurter`);
-                break;
-              } else if (statusCode === 403 && err.response?.data.includes('consume')) {
-                logger.error('Error 403. Failed to load exchange rates due 403 error.', {
-                  ...params,
-                  url: API_URL,
-                  data: err.response?.data,
-                });
-                throw new BadGateway({ message: badGatewayErrorMessage });
-              }
-            }
-          } else {
-            // Unknown error - fallback to Frankfurter
-            apiLayerFailed = true;
-            logger.warn('Unknown ApiLayer error, will fallback to Frankfurter', {
-              error: err instanceof Error ? err.message : String(err),
-            });
-            break;
-          }
-        }
-      }
-
-      // Step 2: Process ApiLayer response if successful
-      if (response && response.rates && !apiLayerFailed) {
-        if (response.base !== API_LAYER_BASE_CURRENCY_CODE) {
-          logger.error(
-            `Exchange rates fetching failed. Expected to load ${API_LAYER_BASE_CURRENCY_CODE}, got ${response.base}`,
-          );
-          throw new ValidationError({
-            message: 'Invalid response from exchange rate API',
-          });
-        }
-
-        const rates = response.rates;
-        const allCurrencies = await Currencies.findAll();
-
-        // Extract all currencies from ApiLayer
-        for (const currency of allCurrencies) {
-          if (currency.code !== API_LAYER_BASE_CURRENCY_CODE && rates[currency.code]) {
-            apiLayerRates.push({
-              baseCode: API_LAYER_BASE_CURRENCY_CODE,
-              quoteCode: currency.code,
-              rate: rates[currency.code]!,
-            });
-          }
-        }
-
-        logger.info(`Successfully fetched ${apiLayerRates.length} rates from ApiLayer`);
-      }
-
-      // Step 3: Fallback to Frankfurter if ApiLayer failed
-      let frankfurterRates: { rate: number; baseCode: string; quoteCode: string }[] = [];
-
-      if (apiLayerFailed) {
-        try {
-          logger.info('ApiLayer failed, attempting to fetch exchange rates from Frankfurter service');
-          const frankfurterData = await fetchFromFrankfurter(normalizedDate);
-          frankfurterRates = frankfurterData.map((rate) => ({
-            baseCode: rate.baseCode,
-            quoteCode: rate.quoteCode,
-            rate: rate.rate,
-          }));
-          logger.info(`Successfully fetched ${frankfurterRates.length} rates from Frankfurter as fallback`);
-        } catch (frankfurterError) {
-          // If Frankfurter returns validation error, preserve it
-          if (frankfurterError instanceof ValidationError) {
-            throw frankfurterError;
-          }
-
-          logger.error('Both ApiLayer and Frankfurter failed', {
-            error: frankfurterError instanceof Error ? frankfurterError.message : String(frankfurterError),
-          });
-          throw new BadGateway({
-            code: API_ERROR_CODES.currencyProviderUnavailable,
-            message: 'Failed to load exchange rates from all providers',
-          });
-        }
-      }
-
-      // Step 4: Combine rates (either ApiLayer or Frankfurter)
-      const allRates = [...apiLayerRates, ...frankfurterRates];
-
-      if (allRates.length === 0) {
-        throw new ValidationError({
-          message: 'No exchange rates were loaded from any provider',
+      if (!fetchResult || Object.keys(fetchResult.result.rates).length === 0) {
+        throw new BadGateway({
+          code: API_ERROR_CODES.currencyProviderUnavailable,
+          message: 'Failed to load exchange rates from all providers',
         });
       }
 
-      // Use the normalized date for consistency
-      const loadedDate = normalizedDate;
+      const { result, providerName } = fetchResult;
 
-      // Step 6: Bulk insert combined rates
-      await ExchangeRates.bulkCreate(
-        allRates.map((rate) => ({
-          ...rate,
-          date: loadedDate,
-        })),
-        {
-          ignoreDuplicates: true, // Don't error if rate for a specific date already exists
-        },
-      );
+      // Convert rates to database format
+      const rateEntries = Object.entries(result.rates).map(([quoteCode, rate]) => ({
+        baseCode: result.baseCurrency,
+        quoteCode,
+        rate,
+        date: normalizedDate,
+      }));
+
+      // Bulk insert with duplicate handling
+      await ExchangeRates.bulkCreate(rateEntries, {
+        ignoreDuplicates: true,
+      });
 
       logger.info(
-        `Exchange rates for date ${format(loadedDate, 'yyyy-MM-dd')} successfully processed. ` +
-          `ApiLayer: ${apiLayerRates.length} rates, Frankfurter: ${frankfurterRates.length} rates, Total: ${allRates.length} rates. ` +
-          `(Duplicates automatically ignored)`,
+        `[Exchange Rates: ${providerName}] Rates for ${formattedDate} successfully processed. ` +
+          `Fetched ${rateEntries.length} rates. (Duplicates automatically ignored)`,
       );
     } catch (error) {
       if (error instanceof CustomError) {
         throw error;
-      } else {
-        console.error('Error fetching exchange rates:', error);
-        throw new ValidationError({
-          message: 'Failed to fetch exchange rates',
-        });
       }
+
+      logger.error('Error fetching exchange rates:', {
+        error: error instanceof Error ? error.message : String(error),
+        date: formattedDate,
+      });
+
+      throw new ValidationError({
+        message: 'Failed to fetch exchange rates',
+      });
     }
   },
   {

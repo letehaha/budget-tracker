@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import ExchangeRates from '@models/ExchangeRates.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
-import { FRANKFURTER_START_DATE } from '@root/services/exchange-rates/frankfurter.service';
+import { exchangeRateProviderRegistry } from '@services/exchange-rates/providers';
 import * as helpers from '@tests/helpers';
 import { startOfDay } from 'date-fns';
 import { Op } from 'sequelize';
@@ -510,7 +510,9 @@ describe('POST /investments/securities/price-upload-info', () => {
       expect(response.oldestDate).toBeTruthy();
       expect(response.newestDate).toBeTruthy();
       expect(response.currencyCode).toBe('USD');
-      expect(startOfDay(new Date(response.minAllowedDate))).toEqual(startOfDay(FRANKFURTER_START_DATE));
+      const expectedMinDate = exchangeRateProviderRegistry.getEarliestHistoricalDate();
+      expect(expectedMinDate).not.toBeNull();
+      expect(startOfDay(new Date(response.minAllowedDate))).toEqual(startOfDay(expectedMinDate!));
 
       // Verify dates are in correct order
       expect(new Date(response.oldestDate).getTime()).toBeLessThanOrEqual(new Date(response.newestDate).getTime());

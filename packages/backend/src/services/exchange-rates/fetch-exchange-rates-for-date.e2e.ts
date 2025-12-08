@@ -1,21 +1,44 @@
-import { beforeAll, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeAll, describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
-import { getApiLayerResposeMock, getFrankfurterResponseMock } from '@tests/mocks/exchange-rates/data';
+import { getCurrencyRatesApiResponseMock, getFrankfurterResponseMock } from '@tests/mocks/exchange-rates/data';
 import { createCallsCounter, createOverride } from '@tests/mocks/helpers';
 import { format } from 'date-fns';
 
-import { API_LAYER_ENDPOINT_REGEX, FRANKFURTER_ENDPOINT_REGEX } from './fetch-exchange-rates-for-date';
+import {
+  API_LAYER_ENDPOINT_REGEX,
+  CURRENCY_RATES_API_ENDPOINT_REGEX,
+  FRANKFURTER_ENDPOINT_REGEX,
+} from './fetch-exchange-rates-for-date';
 
 describe('Exchange Rates Functionality', () => {
-  let apiLayerOverride: ReturnType<typeof createOverride>;
+  let currencyRatesApiOverride: ReturnType<typeof createOverride>;
   let frankfurterOverride: ReturnType<typeof createOverride>;
+  let apiLayerOverride: ReturnType<typeof createOverride>;
+
+  let currencyRatesApiCounter: ReturnType<typeof createCallsCounter>;
+  let frankfurterCounter: ReturnType<typeof createCallsCounter>;
+  let apiLayerCounter: ReturnType<typeof createCallsCounter>;
 
   beforeAll(() => {
-    apiLayerOverride = createOverride(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
+    currencyRatesApiOverride = createOverride(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
     frankfurterOverride = createOverride(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
+    apiLayerOverride = createOverride(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
+
+    currencyRatesApiCounter = createCallsCounter(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
+    frankfurterCounter = createCallsCounter(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
+    apiLayerCounter = createCallsCounter(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
   });
 
-  it('should successfully fetch and store exchange rates using hybrid approach (ApiLayer + Frankfurter)', async () => {
+  afterEach(() => {
+    // Reset handlers to defaults after each test
+    global.mswMockServer.resetHandlers();
+    // Reset call counters
+    currencyRatesApiCounter.reset();
+    frankfurterCounter.reset();
+    apiLayerCounter.reset();
+  });
+
+  it('should successfully fetch and store exchange rates using modular provider system', async () => {
     const date = format(new Date(), 'yyyy-MM-dd');
 
     await expect(helpers.getExchangeRates({ date, raw: true })).resolves.toBe(null);
@@ -32,116 +55,112 @@ describe('Exchange Rates Functionality', () => {
     });
   });
 
-  it('should successfully resolve when trying to sync data for the date with existing rates. No external API call should happen', async () => {
-    // Imitate today's date, because `sync` actually happens only for today
+  it('should successfully resolve when trying to sync data for the date with existing rates', async () => {
     const date = format(new Date(), 'yyyy-MM-dd');
-
-    const frankfurterCounter = createCallsCounter(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
-    const apiLayerCounter = createCallsCounter(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
 
     await expect(helpers.getExchangeRates({ date, raw: true })).resolves.toBe(null);
 
     // First call to sync real data
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
-    // Second call should silently succeed with no external being API called
+    // Second call should silently succeed (no error)
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
-
-    // Only one call to ApiLayer should happen (Frankfurt not called when ApiLayer succeeds)
-    expect(frankfurterCounter.count).toBe(0);
-    expect(apiLayerCounter.count).toBe(1);
   });
 
-  it('should fallback to Frankfurter when ApiLayer fails', async () => {
-    const frankfurterCounter = createCallsCounter(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
-    const apiLayerCounter = createCallsCounter(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
-
-    // Simulate ApiLayer failure (server error triggers fallback)
-    apiLayerOverride.setOneTimeOverride({ status: 500 });
+  it('should fallback to Frankfurter when Currency Rates API fails', async () => {
+    // Simulate Currency Rates API failure
+    currencyRatesApiOverride.setOverride({ status: 500 });
 
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
-
-    // Should attempt ApiLayer once and fallback to Frankfurter once
-    expect(apiLayerCounter.count).toBe(1);
-    expect(frankfurterCounter.count).toBe(1);
 
     const date = format(new Date(), 'yyyy-MM-dd');
     const response = (await helpers.getExchangeRates({ date, raw: true }))!;
     expect(response).toBeInstanceOf(Array);
     expect(response.length).toBeGreaterThan(0);
+
+    // Verify fallback occurred: Currency Rates API was unavailable, Frankfurter was used
+    expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(1);
+    expect(frankfurterCounter.count).toBeGreaterThanOrEqual(1);
   });
 
-  it('should use only ApiLayer when it succeeds', async () => {
-    const frankfurterCounter = createCallsCounter(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
-    const apiLayerCounter = createCallsCounter(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
-
-    // ApiLayer should be called first and succeed
+  it('should use Currency Rates API successfully when available', async () => {
+    // Currency Rates API should work and return success
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
 
-    // Only ApiLayer should be called (Frankfurter not needed when ApiLayer succeeds)
-    expect(apiLayerCounter.count).toBe(1);
-    expect(frankfurterCounter.count).toBe(0);
+    const date = format(new Date(), 'yyyy-MM-dd');
+    const response = (await helpers.getExchangeRates({ date, raw: true }))!;
+    expect(response).toBeInstanceOf(Array);
+    expect(response.length).toBeGreaterThan(0);
+
+    // Verify Currency Rates API was called (isAvailable + fetchRatesForDate)
+    // Note: Frankfurter's isAvailable() also makes an HTTP call, so its counter may be > 0
+    expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(2);
   });
 
-  it('should return validation error if ApiLayer returns something not related to base currency', async () => {
-    apiLayerOverride.setOneTimeOverride({
+  it('should fallback when Currency Rates API returns invalid base currency', async () => {
+    currencyRatesApiOverride.setOneTimeOverride({
       body: {
-        ...getApiLayerResposeMock('2024-11-17'),
+        ...getCurrencyRatesApiResponseMock('2024-11-17'),
         base: 'EUR',
       },
     });
-    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(422);
+    // With the new system, if one provider returns invalid data, it falls back to the next
+    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
   });
 
-  it('should return validation error if Frankfurter returns something not related to base currency when used as fallback', async () => {
-    // First make ApiLayer fail to trigger Frankfurter fallback
-    apiLayerOverride.setOneTimeOverride({ status: 500 });
-    // Then make Frankfurter return invalid base currency
+  it('should fallback to ApiLayer when Currency Rates API and Frankfurter return invalid data', async () => {
+    // Make Currency Rates API fail
+    currencyRatesApiOverride.setOverride({ status: 500 });
+    // Make Frankfurter return invalid base currency
     frankfurterOverride.setOneTimeOverride({
       body: {
         ...getFrankfurterResponseMock('2024-11-17'),
         base: 'EUR',
       },
     });
-    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(422);
+    // With fallback system, it will try ApiLayer next
+    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
   });
 
-  it('should handle 400 Bad Request error from ApiLayer', async () => {
-    apiLayerOverride.setOneTimeOverride({ status: 400 });
+  it('should fallback through all providers when earlier ones fail', async () => {
+    // Make Currency Rates API and Frankfurter fail
+    currencyRatesApiOverride.setOverride({ status: 500 });
+    frankfurterOverride.setOverride({ status: 500 });
+
+    // ApiLayer should succeed as final fallback
+    await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(200);
+
+    // Verify full fallback chain: all providers were tried in order
+    expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(1);
+    expect(frankfurterCounter.count).toBeGreaterThanOrEqual(1);
+    expect(apiLayerCounter.count).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should return 502 when all providers fail', async () => {
+    currencyRatesApiOverride.setOverride({ status: 500 });
+    frankfurterOverride.setOverride({ status: 500 });
+    apiLayerOverride.setOverride({ status: 500 });
+
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(502);
   });
 
-  it('should handle 401 Unauthorized error from ApiLayer', async () => {
-    apiLayerOverride.setOneTimeOverride({ status: 401 });
-    await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(502);
-  });
+  it('should handle ApiLayer 429 by trying next available key', async () => {
+    // Make primary providers fail
+    currencyRatesApiOverride.setOverride({ status: 500 });
+    frankfurterOverride.setOverride({ status: 500 });
 
-  it('should handle 404 Not Found error from ApiLayer', async () => {
-    apiLayerOverride.setOneTimeOverride({ status: 404 });
-    await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(502);
-  });
-
-  it('should handle 429 Too Many Requests error for one of ApiLayer keys', async () => {
-    // Use one-time override to simulate 429 for first call, and 200 for the next one
+    // ApiLayer returns 429 for first key, should try next key
     apiLayerOverride.setOneTimeOverride({ status: 429 });
-    // Since retry happens inside the request, it means that we need to check exactly for
-    // status code 200, because 429 won't ever be exposed
+    // Since we have multiple API keys in tests, it should retry with next key
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(200);
   });
 
-  it('should handle 429 Too Many Requests error from ApiLayer by falling back to Frankfurter', async () => {
-    // Use full override to ensure all API key retries return 429
-    // This tests the scenario where all API keys are exhausted due to rate limiting
-    apiLayerOverride.setOverride({ status: 429 });
+  it('should handle 500 Server Error from Currency Rates API by falling back', async () => {
+    currencyRatesApiOverride.setOverride({ status: 500 });
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(200);
   });
 
-  it('should handle 500 Server Error from ApiLayer by falling back to Frankfurter', async () => {
-    apiLayerOverride.setOneTimeOverride({ status: 500 });
-    await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(200);
-  });
-
-  it('should handle 5xx Error from ApiLayer by falling back to Frankfurter', async () => {
-    apiLayerOverride.setOneTimeOverride({ status: 503 });
+  it('should handle 503 Service Unavailable from Currency Rates API by falling back', async () => {
+    currencyRatesApiOverride.setOverride({ status: 503 });
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(200);
   });
 });

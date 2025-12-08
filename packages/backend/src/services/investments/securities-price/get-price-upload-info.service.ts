@@ -1,23 +1,29 @@
 import { NotFoundError } from '@js/errors';
 import ExchangeRates from '@models/ExchangeRates.model';
-import { FRANKFURTER_START_DATE } from '@root/services/exchange-rates/frankfurter.service';
+import { exchangeRateProviderRegistry } from '@services/exchange-rates/providers';
 import { Op } from 'sequelize';
 
 interface getPriceUploadInfo {
   currencyCode: string;
 }
 
-const MIN_ALLOWED_DATE = FRANKFURTER_START_DATE;
+// Fallback date if no providers are registered (should not happen in practice)
+const FALLBACK_MIN_DATE = new Date('1999-01-04');
+
+function getMinAllowedDate(): Date {
+  return exchangeRateProviderRegistry.getEarliestHistoricalDate() ?? FALLBACK_MIN_DATE;
+}
 
 export const getPriceUploadInfo = async (params: getPriceUploadInfo) => {
   const { currencyCode } = params;
+  const minAllowedDate = getMinAllowedDate();
 
   // Get or create the security from search result (skip price fetch - we're uploading them manually)
   const oldestRate = await ExchangeRates.findOne({
     where: {
       [Op.or]: [{ baseCode: currencyCode }, { quoteCode: currencyCode }],
       date: {
-        [Op.gte]: MIN_ALLOWED_DATE,
+        [Op.gte]: minAllowedDate,
       },
     },
     order: [['date', 'ASC']],
@@ -44,6 +50,6 @@ export const getPriceUploadInfo = async (params: getPriceUploadInfo) => {
     oldestDate: oldestRate.date,
     newestDate: newestRate.date,
     currencyCode,
-    minAllowedDate: MIN_ALLOWED_DATE,
+    minAllowedDate,
   };
 };

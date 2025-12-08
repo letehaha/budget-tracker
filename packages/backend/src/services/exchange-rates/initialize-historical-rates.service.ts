@@ -1,18 +1,24 @@
 import { logger } from '@js/utils';
 import Currencies from '@models/Currencies.model';
 import ExchangeRates from '@models/ExchangeRates.model';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 
-import { FRANKFURTER_START_DATE, fetchFromFrankfurterTimeSeries } from './frankfurter.service';
+import { exchangeRateProviderRegistry } from './providers';
+
+// Fallback date if no providers are registered (should not happen in practice)
+const FALLBACK_START_DATE = new Date('1999-01-04');
 
 /**
- * Initializes the database with historical exchange rates from Frankfurter.
+ * Initializes the database with historical exchange rates.
+ * Uses the provider registry to fetch data from the highest-priority provider
+ * that supports historical data loading.
+ *
  * This function is idempotent - it can be safely called multiple times.
  * On first run, it loads all historical data. On subsequent runs, it only inserts new data.
  */
 export async function initializeHistoricalRates(): Promise<void> {
   try {
-    const startDate = FRANKFURTER_START_DATE;
+    const startDate = exchangeRateProviderRegistry.getEarliestHistoricalDate() ?? FALLBACK_START_DATE;
     const endDate = new Date();
 
     logger.info('Starting historical exchange rates initialization');
@@ -24,8 +30,32 @@ export async function initializeHistoricalRates(): Promise<void> {
     });
     const validCurrencyCodes = new Set(validCurrencies.map((c) => c.code));
 
-    // Fetch all historical data from Frankfurter
-    const allRates = await fetchFromFrankfurterTimeSeries(startDate, endDate);
+    // Fetch historical data using the provider registry (with priority-based fallback)
+    const fetchResult = await exchangeRateProviderRegistry.fetchHistoricalRatesWithFallback({
+      startDate,
+      endDate,
+    });
+
+    if (!fetchResult) {
+      logger.error('No providers available for historical data loading. Historical rates will not be initialized.');
+      return;
+    }
+
+    const { results, providerName } = fetchResult;
+
+    // Convert provider results to rate entries
+    const allRates: { baseCode: string; quoteCode: string; rate: number; date: Date }[] = [];
+    for (const result of results) {
+      const rateDate = startOfDay(new Date(result.date));
+      for (const [quoteCode, rate] of Object.entries(result.rates)) {
+        allRates.push({
+          baseCode: result.baseCurrency,
+          quoteCode,
+          rate,
+          date: rateDate,
+        });
+      }
+    }
 
     // Filter to only include currencies that exist in our database
     const validRates = allRates.filter(
@@ -49,7 +79,7 @@ export async function initializeHistoricalRates(): Promise<void> {
     );
 
     logger.info(
-      `Historical exchange rates initialization completed. Loaded currency rates from ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`,
+      `[Historical Rates: ${providerName}] Initialization completed. Loaded currency rates from ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`,
     );
   } catch (error) {
     logger.error('Failed to initialize historical exchange rates', {
