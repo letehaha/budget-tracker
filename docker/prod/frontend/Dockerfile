@@ -1,5 +1,9 @@
-FROM node:23.11.0 as build-stage
+# 🏗️ Stage 1️⃣: Build
+FROM node:23.11.0-alpine AS build-stage
 WORKDIR /app
+
+# Install build dependencies for native modules (node-gyp)
+RUN apk add --no-cache python3 make g++
 
 # Copy root-level package files and post-install script
 COPY package*.json ./
@@ -25,7 +29,17 @@ COPY docker/prod ./docker/prod
 WORKDIR /app/packages/frontend
 RUN npm run build
 
-FROM nginx as production-stage
-RUN mkdir /app
-COPY --from=build-stage /app/packages/frontend/dist /app
-COPY packages/frontend/nginx.conf /etc/nginx/nginx.conf
+# 🚀 Stage 2️⃣: Production
+FROM nginx:1.27-alpine AS production-stage
+
+# Create app directory with proper permissions
+RUN mkdir /app && chown nginx:nginx /app
+
+# Copy built assets
+COPY --from=build-stage --chown=nginx:nginx /app/packages/frontend/dist /app
+COPY --chown=nginx:nginx packages/frontend/nginx.conf /etc/nginx/nginx.conf
+
+# Use non-root user
+USER nginx
+
+EXPOSE 80

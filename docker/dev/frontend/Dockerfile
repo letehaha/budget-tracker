@@ -17,13 +17,12 @@ COPY packages/frontend/package*.json ./packages/frontend/
 RUN chmod +x ./post-install.sh
 
 # Install dependencies
-# Error: Cannot find module @rollup/rollup-linux-arm64-gnu. npm has a bug
-# related to optional dependencies (https://github.com/npm/cli/issues/4828).
-# Here we're removing package-lock and installing packages as we need
+# Note: There was previously a workaround for @rollup/rollup-linux-arm64-gnu
+# optional dependency issue (https://github.com/npm/cli/issues/4828).
+# Using npm ci with --legacy-peer-deps as a more secure alternative.
 # In offline mode, skip installation (use cached layer from previous build)
 RUN if [ "$OFFLINE_MODE" = "false" ]; then \
-      rm -rf package-lock.json node_modules && \
-      npm install; \
+      npm ci --legacy-peer-deps || npm install; \
     else \
       echo "Offline mode: skipping npm install, using cached dependencies"; \
     fi
