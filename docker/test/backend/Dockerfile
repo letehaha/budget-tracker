@@ -1,4 +1,4 @@
-FROM node:21.7.3
+FROM node:23.11.0
 
 LABEL com.docker.compose.project=test
 
@@ -20,7 +20,7 @@ COPY packages/shared/tsconfig*.json ./packages/shared/
 COPY post-install.sh ./
 COPY docker ./docker
 RUN chmod +x ./post-install.sh
-RUN npm ci --also=dev
+RUN npm ci --include=dev
 
 # Copy source codes
 COPY packages/backend ./packages/backend

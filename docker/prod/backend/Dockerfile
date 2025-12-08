@@ -3,6 +3,9 @@ FROM node:23.11.0-alpine AS build-stage
 
 WORKDIR /app
 
+# Install build dependencies for native modules (node-gyp)
+RUN apk add --no-cache python3 make g++
+
 # Copy root-level package files
 COPY package*.json ./
 COPY post-install.sh ./
@@ -29,6 +32,12 @@ FROM node:23.11.0-alpine AS production
 
 WORKDIR /app
 
+# Install build dependencies for native modules (node-gyp)
+RUN apk add --no-cache python3 make g++
+
+# Create non-root user for security
+RUN addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -s /bin/sh -D nodejs
+
 # Copy only production dependencies
 COPY package*.json ./
 COPY post-install.sh ./
@@ -36,6 +45,9 @@ RUN chmod +x ./post-install.sh
 
 COPY packages/backend/package*.json ./packages/backend/
 RUN npm ci
+
+# Remove build dependencies to reduce image size
+RUN apk del python3 make g++
 
 COPY --from=build-stage /app/tsconfig.json ./
 
@@ -51,13 +63,20 @@ COPY --from=build-stage /app/packages/backend/src/migrations ./packages/backend/
 # Copy and prepare entrypoint script
 COPY docker/prod/backend/docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
-ENTRYPOINT ["/docker-entrypoint.sh"]
+
+# Set ownership to non-root user
+RUN chown -R nodejs:nodejs /app
 
 # Set working directory to backend
 WORKDIR /app/packages/backend
 
+# Switch to non-root user
+USER nodejs
+
 # Set environment to production
 ENV NODE_ENV=production
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Run the compiled app
 CMD ["node", "--enable-source-maps", "dist/app.js"]

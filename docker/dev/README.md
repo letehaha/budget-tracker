@@ -37,7 +37,7 @@ This command:
 
 - Builds Docker images with npm dependencies cached
 - Pulls all required base images (postgres:16, redis:7, etc.)
-- Caches Node.js base images (node:21.7.3, node:23.11.0)
+- Caches Node.js base images (node:23.11.0)
 
 ### Using Offline
 
