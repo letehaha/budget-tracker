@@ -7,6 +7,7 @@
  * Priority: 1 (highest - try first)
  */
 import axios, { isAxiosError } from 'axios';
+import { subDays } from 'date-fns';
 
 import { BaseExchangeRateProvider } from '../base-provider';
 import {
@@ -136,9 +137,37 @@ export class CurrencyRatesApiProvider extends BaseExchangeRateProvider {
   }
 
   /**
-   * Fetch exchange rates for a specific date
+   * Fetch exchange rates for a specific date.
+   * If today's rates are not available (404), automatically tries yesterday's rates
+   * before giving up. This handles the case where NBU/ECB haven't published yet.
    */
   async fetchRatesForDate(params: FetchRatesParams): Promise<ExchangeRateResult | null> {
+    // Try the requested date first
+    const result = await this.fetchRatesForSingleDate(params);
+    if (result) {
+      return result;
+    }
+
+    // If the requested date failed, try yesterday as a fallback
+    const yesterday = subDays(params.date, 1);
+    this.logInfo(`Today's rates not available, trying yesterday (${this.formatDate(yesterday)})`);
+
+    const fallbackResult = await this.fetchRatesForSingleDate({
+      ...params,
+      date: yesterday,
+    });
+
+    if (fallbackResult) {
+      this.logInfo(`Using yesterday's rates as fallback for ${this.formatDate(params.date)}`);
+    }
+
+    return fallbackResult;
+  }
+
+  /**
+   * Internal method to fetch rates for a single specific date (no fallback)
+   */
+  private async fetchRatesForSingleDate(params: FetchRatesParams): Promise<ExchangeRateResult | null> {
     const formattedDate = this.formatDate(params.date);
     const baseCurrency = this.getBaseCurrency(params);
 
