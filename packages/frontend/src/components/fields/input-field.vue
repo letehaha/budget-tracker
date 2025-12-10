@@ -74,10 +74,6 @@ enum MODEL_EVENTS {
   input = 'update:modelValue',
 }
 
-interface InputChangeEvent extends Event {
-  target: HTMLInputElement;
-}
-
 const props = defineProps<{
   label?: string;
   modelValue?: string | number;
@@ -109,8 +105,9 @@ const attrs = useAttrs();
 const computedAttrs = {
   ...attrs,
   class: attrs.class,
-  onInput: (event: InputChangeEvent) => {
-    const value: string = event.target.value;
+  onInput: (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const value: string = target.value;
 
     if (props.disabled) return;
     if (props.modelValue === value) return;

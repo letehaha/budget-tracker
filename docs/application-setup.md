@@ -41,7 +41,7 @@ budget-tracker/
 **Tech Stack:**
 
 - **Backend**: Node.js, Express, TypeScript, Sequelize (ORM), PostgreSQL, Redis, BullMQ
-- **Frontend**: Vue 3, TypeScript, Vite, Pinia, TailwindCSS, Radix Vue
+- **Frontend**: Vue 3, TypeScript, Vite, Pinia, TailwindCSS, Reka UI
 - **Infrastructure**: Docker, Docker Compose, pgAdmin
 
 ## Quick Start with Docker

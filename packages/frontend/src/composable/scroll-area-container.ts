@@ -1,5 +1,5 @@
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
-import { ScrollAreaViewport } from 'radix-vue';
+import { ScrollAreaViewport } from 'reka-ui';
 import { Ref, inject, ref } from 'vue';
 
 /**

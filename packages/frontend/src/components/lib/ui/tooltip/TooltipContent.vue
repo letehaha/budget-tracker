@@ -6,7 +6,7 @@ import {
   type TooltipContentProps,
   TooltipPortal,
   useForwardPropsEmits,
-} from 'radix-vue';
+} from 'reka-ui';
 import { type HTMLAttributes, computed } from 'vue';
 
 defineOptions({

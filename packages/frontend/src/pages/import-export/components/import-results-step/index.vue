@@ -45,7 +45,7 @@
 
     <!-- Errors Section -->
     <div v-if="importStore.importResult?.summary.errors.length" class="mb-6">
-      <h3 class="mb-3 text-sm font-semibold text-red-600">Import Errors</h3>
+      <h3 class="text-destructive-text mb-3 text-sm font-semibold">Import Errors</h3>
       <div class="max-h-48 overflow-auto rounded-lg border border-red-200">
         <table class="w-full text-sm">
           <thead class="bg-red-50">
@@ -61,7 +61,7 @@
               class="border-b last:border-b-0"
             >
               <td class="px-4 py-2 font-mono">{{ error.rowIndex }}</td>
-              <td class="px-4 py-2 text-red-600">{{ error.error }}</td>
+              <td class="text-destructive-text px-4 py-2">{{ error.error }}</td>
             </tr>
           </tbody>
         </table>

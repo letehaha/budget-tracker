@@ -36,7 +36,7 @@
               <div v-if="getAccountAction(sourceAccount.name) === 'link-existing'">
                 <Select.Select
                   :model-value="getAccountSelectValue(sourceAccount.name)"
-                  @update:model-value="handleAccountSelect(sourceAccount.name, $event)"
+                  @update:model-value="handleAccountSelect(sourceAccount.name, String($event))"
                 >
                   <Select.SelectTrigger class="h-9">
                     <Select.SelectValue placeholder="Select account...">

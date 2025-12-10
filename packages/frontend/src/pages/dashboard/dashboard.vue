@@ -90,7 +90,7 @@ import {
   subYears,
 } from 'date-fns';
 import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next';
-import { type DateRange } from 'radix-vue';
+import { type DateRange } from 'reka-ui';
 import { computed, defineAsyncComponent, ref } from 'vue';
 
 const BalanceTrendWidget = defineAsyncComponent(() => import('@/components/widgets/balance-trend.vue'));

@@ -14,7 +14,7 @@ import { InfoIcon } from 'lucide-vue-next';
     </Popover.PopoverTrigger>
     <Popover.PopoverContent class="w-[500px] overflow-y-auto" side="right">
       <ScrollArea.ScrollArea
-        class="*:data-radix-scroll-area-viewport:max-h-[90dvh]"
+        class="*:data-reka-scroll-area-viewport:max-h-[90dvh]"
         :scroll-area-id="SCROLL_AREA_IDS.txRefundInfo"
       >
         <h3 class="mb-2 text-lg font-bold">About Refund Transactions</h3>

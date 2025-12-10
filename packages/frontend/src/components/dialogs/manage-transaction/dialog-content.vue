@@ -31,7 +31,7 @@ import {
 import { useQueryClient } from '@tanstack/vue-query';
 import { watchOnce } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
-import { DialogClose, DialogTitle } from 'radix-vue';
+import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 

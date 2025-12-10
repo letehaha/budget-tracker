@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useForwardPropsEmits } from 'radix-vue';
+import { useForwardPropsEmits } from 'reka-ui';
 import type { DrawerRootEmits, DrawerRootProps } from 'vaul-vue';
 import { DrawerRoot } from 'vaul-vue';
 

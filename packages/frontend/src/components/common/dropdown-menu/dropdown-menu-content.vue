@@ -5,7 +5,7 @@ import {
   type DropdownMenuContentEmits,
   type DropdownMenuContentProps,
   useForwardPropsEmits,
-} from 'radix-vue';
+} from 'reka-ui';
 
 const props = withDefaults(defineProps<DropdownMenuContentProps>(), {
   sideOffset: 4,

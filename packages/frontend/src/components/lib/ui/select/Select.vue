@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { SelectRootEmits, SelectRootProps } from 'radix-vue';
-import { SelectRoot, useForwardPropsEmits } from 'radix-vue';
+import type { SelectRootEmits, SelectRootProps } from 'reka-ui';
+import { SelectRoot, useForwardPropsEmits } from 'reka-ui';
 import { provide, ref } from 'vue';
 
 import { PROVIDER_NAME } from './types';

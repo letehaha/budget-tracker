@@ -16,8 +16,8 @@
         <p class="text-2xl font-bold text-green-600">{{ importStore.importSummary.validRows }}</p>
       </div>
       <div class="rounded-lg bg-red-500/10 p-4">
-        <p class="text-sm text-red-600">Invalid Rows</p>
-        <p class="text-2xl font-bold text-red-600">{{ importStore.importSummary.invalidRows }}</p>
+        <p class="text-destructive-text text-sm">Invalid Rows</p>
+        <p class="text-destructive-text text-2xl font-bold">{{ importStore.importSummary.invalidRows }}</p>
       </div>
       <div class="rounded-lg bg-yellow-500/10 p-4">
         <p class="text-sm text-yellow-600">Duplicates</p>
@@ -27,10 +27,10 @@
 
     <!-- Invalid Rows Section -->
     <div v-if="importStore.invalidRows.length > 0" class="mb-6">
-      <h3 class="mb-3 text-sm font-semibold text-red-600">Invalid Rows (Will Not Be Imported)</h3>
+      <h3 class="text-destructive-text mb-3 text-sm font-semibold">Invalid Rows (Will Not Be Imported)</h3>
       <div class="max-h-64 overflow-auto rounded-lg border border-red-200">
         <table class="w-full text-sm">
-          <thead class="bg-red-50">
+          <thead class="bg-destructive">
             <tr>
               <th class="border-b px-4 py-2 text-left font-medium">Row #</th>
               <th class="border-b px-4 py-2 text-left font-medium">Errors</th>
@@ -41,7 +41,7 @@
             <tr v-for="row in importStore.invalidRows" :key="row.rowIndex" class="border-b last:border-b-0">
               <td class="px-4 py-2 font-mono">{{ row.rowIndex }}</td>
               <td class="px-4 py-2">
-                <ul class="list-inside list-disc text-red-600">
+                <ul class="text-destructive-text list-inside list-disc">
                   <li v-for="(error, idx) in row.errors" :key="idx">{{ error }}</li>
                 </ul>
               </td>
@@ -122,8 +122,8 @@
         <span class="font-bold text-green-600">{{ importStore.importSummary.willImport }}</span>
         transactions will be imported.
         <span v-if="importStore.importSummary.invalidRows > 0">
-          <span class="font-bold text-red-600">{{ importStore.importSummary.invalidRows }}</span> invalid rows will be
-          skipped.
+          <span class="text-destructive-text font-bold">{{ importStore.importSummary.invalidRows }}</span> invalid rows
+          will be skipped.
         </span>
         <span v-if="importStore.importSummary.duplicates > 0">
           <span class="font-bold text-yellow-600">{{ importStore.importSummary.duplicates }}</span> duplicates will be

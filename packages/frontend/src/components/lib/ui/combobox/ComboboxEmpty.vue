@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
 import { reactiveOmit } from '@vueuse/core';
-import type { ComboboxEmptyProps } from 'radix-vue';
-import { ComboboxEmpty } from 'radix-vue';
+import type { ComboboxEmptyProps } from 'reka-ui';
+import { ComboboxEmpty } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 
 const props = defineProps<ComboboxEmptyProps & { class?: HTMLAttributes['class'] }>();

@@ -6,7 +6,7 @@ import {
   type PopoverContentProps,
   PopoverPortal,
   useForwardPropsEmits,
-} from 'radix-vue';
+} from 'reka-ui';
 
 const props = withDefaults(defineProps<PopoverContentProps & { class?: string }>(), {
   sideOffset: 4,
