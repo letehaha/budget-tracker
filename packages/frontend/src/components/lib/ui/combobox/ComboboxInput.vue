@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
 import { reactiveOmit } from '@vueuse/core';
-import { ComboboxInput, type ComboboxInputProps, useForwardPropsEmits } from 'radix-vue';
+import { ComboboxInput, type ComboboxInputProps, useForwardPropsEmits } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 
 const props = defineProps<

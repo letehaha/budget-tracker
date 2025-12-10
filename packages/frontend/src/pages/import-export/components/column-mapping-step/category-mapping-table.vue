@@ -33,7 +33,7 @@
               <div v-if="getCategoryAction(categoryName) === 'link-existing'">
                 <Select.Select
                   :model-value="getCategorySelectValue(categoryName)"
-                  @update:model-value="handleCategorySelect(categoryName, $event)"
+                  @update:model-value="handleCategorySelect(categoryName, String($event))"
                 >
                   <Select.SelectTrigger class="h-9">
                     <Select.SelectValue placeholder="Select category...">

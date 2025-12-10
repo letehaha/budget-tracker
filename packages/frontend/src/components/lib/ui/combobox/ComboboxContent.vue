@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
 import { reactiveOmit } from '@vueuse/core';
-import type { ComboboxContentProps as RadixComboboxContentProps } from 'radix-vue';
-import { ComboboxContent } from 'radix-vue';
+import type { ComboboxContentProps as RekaComboboxContentProps } from 'reka-ui';
+import { ComboboxContent } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 
 interface PointerDownOutsideEvent extends Event {
@@ -20,7 +20,7 @@ interface FocusOutsideEvent extends Event {
 }
 
 const props = defineProps<
-  RadixComboboxContentProps & {
+  RekaComboboxContentProps & {
     class?: HTMLAttributes['class'];
     forceMount?: boolean;
   }

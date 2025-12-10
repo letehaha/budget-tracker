@@ -5,7 +5,7 @@ import {
   type RangeCalendarRootEmits,
   type RangeCalendarRootProps,
   useForwardPropsEmits,
-} from 'radix-vue';
+} from 'reka-ui';
 import { type HTMLAttributes, computed } from 'vue';
 
 import {

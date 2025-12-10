@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
 import { reactiveOmit } from '@vueuse/core';
-import type { ComboboxLabelProps } from 'radix-vue';
-import { ComboboxLabel } from 'radix-vue';
+import type { ComboboxLabelProps } from 'reka-ui';
+import { ComboboxLabel } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 
 const props = defineProps<

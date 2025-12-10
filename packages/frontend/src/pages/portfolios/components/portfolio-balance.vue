@@ -99,7 +99,7 @@ const formatCurrency = (amount: number, currencyCode: string) => {
 
 const getGainColorClass = (gainPercent: number) => {
   if (gainPercent > 0) return 'text-green-600';
-  if (gainPercent < 0) return 'text-red-600';
+  if (gainPercent < 0) return 'text-destructive-text';
   return 'text-gray-600';
 };
 

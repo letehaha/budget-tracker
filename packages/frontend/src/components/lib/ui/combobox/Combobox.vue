@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ComboboxRoot, type ComboboxRootEmits, type ComboboxRootProps, useForwardPropsEmits } from 'radix-vue';
+import { ComboboxRoot, type ComboboxRootEmits, type ComboboxRootProps, useForwardPropsEmits } from 'reka-ui';
 
 const props = defineProps<ComboboxRootProps>();
 const emits = defineEmits<ComboboxRootEmits>();

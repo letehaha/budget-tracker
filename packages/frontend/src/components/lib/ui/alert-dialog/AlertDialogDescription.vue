@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
-import { AlertDialogDescription, type AlertDialogDescriptionProps } from 'radix-vue';
+import { AlertDialogDescription, type AlertDialogDescriptionProps } from 'reka-ui';
 
 const props = defineProps<AlertDialogDescriptionProps & { class?: string }>();
 </script>

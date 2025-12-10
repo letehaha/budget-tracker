@@ -37,7 +37,7 @@
     </Combobox.ComboboxAnchor>
 
     <Combobox.ComboboxList
-      class="max-h-[400px] w-[var(--radix-combobox-trigger-width)] lg:max-h-[300px]"
+      class="max-h-[400px] w-[var(--reka-combobox-trigger-width)] lg:max-h-[300px]"
       :side="dropdownSide"
       :avoid-collisions="false"
     >
