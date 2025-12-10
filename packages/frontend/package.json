@@ -22,6 +22,7 @@
     "not dead"
   ],
   "dependencies": {
+    "@popperjs/core": "^2.11.8",
     "@internationalized/date": "^3.10.0",
     "@tanstack/vue-query": "^5.51.21",
     "@tanstack/vue-virtual": "^3.13.9",

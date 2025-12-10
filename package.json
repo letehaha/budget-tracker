@@ -12,7 +12,7 @@
     "docker:dev:offline": "cross-env DOCKER_OFFLINE_MODE=true docker compose -f ./docker/dev/docker-compose.yml --env-file .env.development up",
     "docker:dev:prepare-offline": "docker compose -f ./docker/dev/docker-compose.yml --env-file .env.development build && docker compose -f ./docker/dev/docker-compose.yml --env-file .env.development pull",
     "docker:dev:frontend": "docker compose -f ./docker/dev/docker-compose.frontend-only.yml --env-file .env.development up --build",
-    "docker:dev:down": "docker compose -f ./docker/dev/docker-compose.yml down",
+    "docker:dev:down": "docker compose -f ./docker/dev/docker-compose.yml --env-file .env.development down",
     "docker:dev:logs": "docker compose -f ./docker/dev/docker-compose.yml logs -f",
     "docker:dev:clean": "docker compose -f ./docker/dev/docker-compose.yml --env-file .env.development down -v --remove-orphans",
     "docker:dev:rebuild": "docker compose -f ./docker/dev/docker-compose.yml --env-file .env.development build --no-cache",

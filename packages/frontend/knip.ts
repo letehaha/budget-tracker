@@ -37,6 +37,9 @@ const config: KnipConfig = {
     // used in global.css file
     'tailwindcss',
     'tw-animate-css',
+
+    // peerDependency of v-calendar
+    '@popperjs/core',
   ],
   // ignoreBinaries: ["eslint"],
   rules: {
