@@ -210,7 +210,8 @@ watchEffect(() => {
     <template v-if="isMobile">
       <Drawer.Drawer v-model:open="isDialogVisible">
         <Drawer.DrawerContent custom-indicator>
-          <Drawer.DrawerDescription></Drawer.DrawerDescription>
+          <Drawer.DrawerTitle class="sr-only">Transaction details</Drawer.DrawerTitle>
+          <Drawer.DrawerDescription class="sr-only">View and edit transaction</Drawer.DrawerDescription>
           <SlotContent />
         </Drawer.DrawerContent>
       </Drawer.Drawer>
@@ -218,7 +219,8 @@ watchEffect(() => {
     <template v-else>
       <Dialog.Dialog v-model:open="isDialogVisible">
         <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-[900px] p-0">
-          <Dialog.DialogDescription></Dialog.DialogDescription>
+          <Dialog.DialogTitle class="sr-only">Transaction details</Dialog.DialogTitle>
+          <Dialog.DialogDescription class="sr-only">View and edit transaction</Dialog.DialogDescription>
           <SlotContent />
         </Dialog.DialogContent>
       </Dialog.Dialog>

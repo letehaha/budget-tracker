@@ -9,7 +9,7 @@
       <Button variant="secondary" class="mt-8 w-full" type="button" @click="() => fetchNextPage()">Load more</Button>
     </template>
     <template v-else>
-      <p>No more data to load</p>
+      <p class="mt-4 text-center">No more data to load</p>
     </template>
   </div>
 </template>

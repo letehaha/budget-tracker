@@ -296,10 +296,10 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 /**
  * If right now base tx is not transfer, but previously it was one, we need to:
  *
- * 1. remove old opposite tx
- * 2. remove "trasferId" from base tx
+ * 1. unlink old opposite tx (remove transferId and set transferNature to not_transfer)
+ * 2. remove "transferId" from base tx
  */
-const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
+const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
   const [newData, prevData, baseTransaction] = params;
 
   const notBaseTransaction = (
@@ -311,9 +311,11 @@ const deleteOppositeTransaction = async (params: HelperFunctionsArgs) => {
   ).find((item) => Number(item.id) !== Number(newData.id));
 
   if (notBaseTransaction) {
-    await Transactions.deleteTransactionById({
+    await Transactions.updateTransactionById({
       id: notBaseTransaction.id,
       userId: notBaseTransaction.userId,
+      transferId: null,
+      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     });
   }
 
@@ -386,7 +388,7 @@ export const updateTransaction = withTransaction(
         // Handle the case when initially tx was "expense", became "transfer",
         // but now user wants to unmark it from transfer and make "income"
         if (payload.transactionType !== undefined && payload.transactionType !== prevData.transactionType) {
-          await deleteOppositeTransaction(helperFunctionsArgs);
+          await unlinkOppositeTransaction(helperFunctionsArgs);
         }
 
         const { baseTx, oppositeTx } = await updateTransferTransaction(helperFunctionsArgs);
@@ -416,7 +418,7 @@ export const updateTransaction = withTransaction(
           updatedTransactions = [baseTx, oppositeTx];
         }
       } else if (isDiscardingTransfer(payload, prevData)) {
-        await deleteOppositeTransaction(helperFunctionsArgs);
+        await unlinkOppositeTransaction(helperFunctionsArgs);
       }
 
       return updatedTransactions;

@@ -1,25 +1,13 @@
 <script lang="ts" setup>
-import {
-  unlinkTransactions as apiUnlinkTransactions,
-  createTransaction,
-  deleteTransaction,
-  editTransaction,
-  linkTransactions,
-} from '@/api';
-import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
-import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
-import { useNotificationCenter } from '@/components/notification-center';
-import TransactionRecrod from '@/components/transactions-list/transaction-record.vue';
-import { getInvalidationQueryKey } from '@/composable/data-queries/opposite-tx-record';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { ApiErrorResponseError } from '@/js/errors';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
 import {
   ACCOUNT_TYPES,
@@ -28,8 +16,7 @@ import {
   TRANSACTION_TYPES,
   type TransactionModel,
 } from '@bt/shared/types';
-import { useQueryClient } from '@tanstack/vue-query';
-import { watchOnce } from '@vueuse/core';
+import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -37,13 +24,18 @@ import { useRoute } from 'vue-router';
 
 import AccountField from './components/account-field.vue';
 import FormRow from './components/form-row.vue';
+import LinkTransactionSection from './components/link-transaction-section.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import TypeSelector from './components/type-selector.vue';
-import { getRefundInfo, useTransferFormLogic } from './composables';
+import {
+  getRefundInfo,
+  useDeleteTransaction,
+  useSubmitTransaction,
+  useTransferFormLogic,
+  useUnlinkTransactions,
+} from './composables';
 import { prepopulateForm } from './helpers';
-import RecordList from './record-list.vue';
 import { FORM_TYPES, UI_FORM_STRUCT } from './types';
-import { prepareTxCreationParams, prepareTxUpdationParams } from './utils';
 
 defineOptions({
   name: 'record-form',
@@ -67,11 +59,9 @@ const closeModal = () => {
 const route = useRoute();
 watch(() => route.path, closeModal);
 
-const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const { accountsRecord, systemAccounts } = storeToRefs(useAccountsStore());
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
-const queryClient = useQueryClient();
 
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
@@ -135,7 +125,13 @@ watch(
   { immediate: true },
 );
 
-const isLoading = ref(false);
+const submitMutation = useSubmitTransaction({ onSuccess: closeModal });
+const unlinkMutation = useUnlinkTransactions({ onSuccess: closeModal });
+const deleteMutation = useDeleteTransaction({ onSuccess: closeModal });
+
+const isLoading = computed(
+  () => submitMutation.isPending.value || unlinkMutation.isPending.value || deleteMutation.isPending.value,
+);
 const isFormFieldsDisabled = computed(() => isLoading.value || !isInitialRefundsDataLoaded.value);
 
 const currentTxType = computed(() => form.value.type);
@@ -227,107 +223,36 @@ watch(
   },
 );
 
-const submit = async () => {
-  isLoading.value = true;
-
-  try {
-    if (isFormCreation.value) {
-      await createTransaction(
-        // TODO: unit tests for "prepareTxCreationParams" and "prepareTxUpdationParams"
-        prepareTxCreationParams({
-          form: form.value,
-          isTransferTx: isTransferTx.value,
-          isCurrenciesDifferent: isCurrenciesDifferent.value,
-          // linkedTransaction: linkedTransaction.value,
-        }),
-      );
-    } else if (linkedTransaction.value) {
-      await linkTransactions({
-        ids: [[props.transaction.id, linkedTransaction.value.id]],
-      });
-    } else {
-      await editTransaction(
-        prepareTxUpdationParams({
-          form: form.value,
-          transaction: props.transaction,
-          linkedTransaction: linkedTransaction.value,
-          isTransferTx: isTransferTx.value,
-          isRecordExternal: isRecordExternal.value,
-          isCurrenciesDifferent: isCurrenciesDifferent.value,
-          isOriginalRefundsOverriden: isOriginalRefundsOverriden.value,
-        }),
-      );
-    }
-
-    closeModal();
-    // Reload all cached data in the app
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
-    if (props.transaction?.id) {
-      queryClient.invalidateQueries({
-        queryKey: getInvalidationQueryKey(props.transaction.id),
-      });
-    }
-    if (props.oppositeTransaction?.id) {
-      queryClient.invalidateQueries({
-        queryKey: getInvalidationQueryKey(props.oppositeTransaction.id),
-      });
-    }
-  } catch (e) {
-    if (e instanceof ApiErrorResponseError) {
-      addErrorNotification(e.data.message);
-    } else {
-      // eslint-disable-next-line no-console
-      console.error(e);
-      addErrorNotification('Unexpected error!');
-    }
-  } finally {
-    isLoading.value = false;
-  }
+const submit = () => {
+  submitMutation.mutate({
+    form: form.value,
+    isFormCreation: isFormCreation.value,
+    isTransferTx: isTransferTx.value,
+    isCurrenciesDifferent: isCurrenciesDifferent.value,
+    isOriginalRefundsOverriden: isOriginalRefundsOverriden.value,
+    isRecordExternal: isRecordExternal.value,
+    transaction: props.transaction,
+    linkedTransaction: linkedTransaction.value,
+    oppositeTransaction: props.oppositeTransaction,
+  });
 };
 
-const unlinkTransactions = async () => {
-  try {
-    isLoading.value = true;
-
-    await apiUnlinkTransactions({
-      transferIds: [props.transaction.transferId],
-    });
-
-    closeModal();
-    // Reload all cached data in the app
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.securityPriceChange] });
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(err);
-  } finally {
-    isLoading.value = false;
-  }
+const unlinkTransactions = () => {
+  unlinkMutation.mutate({
+    transferIds: [props.transaction.transferId],
+    transactionId: props.transaction?.id,
+    oppositeTransactionId: props.oppositeTransaction?.id,
+  });
 };
 
-const deleteTransactionHandler = async () => {
-  try {
-    // Check the account type, not the transaction type
-    const account = accountsRecord.value[props.transaction.accountId];
-    if (account && account.type !== ACCOUNT_TYPES.system) return;
+const deleteTransactionHandler = () => {
+  // Check the account type, not the transaction type
+  const account = accountsRecord.value[props.transaction.accountId];
+  if (account && account.type !== ACCOUNT_TYPES.system) return;
 
-    isLoading.value = true;
-
-    await deleteTransaction(props.transaction.id);
-
-    closeModal();
-    // Reload all cached data in the app
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
-    addSuccessNotification('Successfully removed');
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(e);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-const deleteTransactionRecordHandler = () => {
-  linkedTransaction.value = null;
+  deleteMutation.mutate({
+    transactionId: props.transaction.id,
+  });
 };
 
 const selectTransactionType = (type: FORM_TYPES, disabled = false) => {
@@ -337,6 +262,8 @@ const selectTransactionType = (type: FORM_TYPES, disabled = false) => {
 // Stores element that was focused before modal was opened, to then focus it back
 // when modal will be closed
 const previouslyFocusedElement = ref(document.activeElement);
+
+const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
 onMounted(() => {
   if (!props.transaction) {
@@ -358,6 +285,40 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <!-- Define reusable template for "More Options" section (payment type, note, refund) -->
+  <DefineMoreOptions>
+    <FormRow>
+      <SelectField
+        v-model="form.paymentType"
+        label="Payment Type"
+        :disabled="isFormFieldsDisabled || isRecordExternal"
+        :values="VERBOSE_PAYMENT_TYPES"
+        is-value-preselected
+      />
+    </FormRow>
+    <FormRow>
+      <TextareaField
+        v-model="form.note"
+        placeholder="Note"
+        :disabled="isFormFieldsDisabled"
+        label="Note (optional)"
+      />
+    </FormRow>
+    <template v-if="!isTransferTx">
+      <FormRow>
+        <MarkAsRefundField
+          v-model:refunds="form.refundsTx"
+          v-model:refunded-by="form.refundedByTxs"
+          :transaction-id="transaction?.id"
+          :is-record-creation="isFormCreation"
+          :transaction-type="refundTransactionsTypeBasedOnFormType"
+          :disabled="isFormFieldsDisabled"
+          :is-there-original-refunds="Boolean(originalRefunds.length)"
+        />
+      </FormRow>
+    </template>
+  </DefineMoreOptions>
+
   <div class="rounded-t-xl">
     <div
       :class="[
@@ -450,49 +411,15 @@ onUnmounted(() => {
             </form-row>
           </template>
 
-          <template v-if="isTransferTx && !linkedTransaction && !isFormCreation && !Boolean(oppositeTransaction)">
-            <form-row>
-              <Dialog.Dialog>
-                <Dialog.DialogTrigger>
-                  <Button class="w-full" :disabled="isFormFieldsDisabled" size="sm"> Link existing transaction </Button>
-                </Dialog.DialogTrigger>
-
-                <Dialog.DialogContent>
-                  <RecordList
-                    :transaction-type="
-                      transaction?.transactionType === TRANSACTION_TYPES.expense
-                        ? TRANSACTION_TYPES.income
-                        : TRANSACTION_TYPES.expense
-                    "
-                    @select="linkedTransaction = $event"
-                  />
-                </Dialog.DialogContent>
-              </Dialog.Dialog>
-            </form-row>
-          </template>
-
-          <template v-if="isTransferTx && oppositeTransaction">
-            <form-row>
-              <Button class="w-full" :disabled="isFormFieldsDisabled" size="sm" @click="unlinkTransactions">
-                Unlink transactions
-              </Button>
-            </form-row>
-          </template>
-
-          <template v-if="linkedTransaction && isTransferTx && !isFormCreation">
-            <form-row class="flex items-center gap-2.5">
-              <TransactionRecrod class="bg-background" :tx="linkedTransaction" />
-
-              <Button
-                aria-label="Cancel linking"
-                :disabled="isFormFieldsDisabled"
-                size="sm"
-                @click="deleteTransactionRecordHandler"
-              >
-                Cancel
-              </Button>
-            </form-row>
-          </template>
+          <LinkTransactionSection
+            v-model:linked-transaction="linkedTransaction"
+            :is-transfer-tx="isTransferTx"
+            :is-form-creation="isFormCreation"
+            :opposite-transaction="oppositeTransaction"
+            :transaction-type="transaction?.transactionType"
+            :disabled="isFormFieldsDisabled"
+            @unlink="unlinkTransactions"
+          />
 
           <form-row>
             <date-field
@@ -515,36 +442,7 @@ onUnmounted(() => {
             <Drawer.DrawerContent>
               <Drawer.DrawerTitle></Drawer.DrawerTitle>
               <div class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
-                <form-row>
-                  <select-field
-                    v-model="form.paymentType"
-                    label="Payment Type"
-                    :disabled="isFormFieldsDisabled || isRecordExternal"
-                    :values="VERBOSE_PAYMENT_TYPES"
-                    is-value-preselected
-                  />
-                </form-row>
-                <form-row>
-                  <textarea-field
-                    v-model="form.note"
-                    placeholder="Note"
-                    :disabled="isFormFieldsDisabled"
-                    label="Note (optional)"
-                  />
-                </form-row>
-                <template v-if="!isTransferTx">
-                  <form-row>
-                    <MarkAsRefundField
-                      v-model:refunds="form.refundsTx"
-                      v-model:refunded-by="form.refundedByTxs"
-                      :transaction-id="transaction?.id"
-                      :is-record-creation="isFormCreation"
-                      :transaction-type="refundTransactionsTypeBasedOnFormType"
-                      :disabled="isFormFieldsDisabled"
-                      :is-there-original-refunds="Boolean(originalRefunds.length)"
-                    />
-                  </form-row>
-                </template>
+                <ReuseMoreOptions />
               </div>
             </Drawer.DrawerContent>
           </Drawer.Drawer>
@@ -572,40 +470,9 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <template v-if="!isMobileView">
-        <div class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
-          <form-row>
-            <select-field
-              v-model="form.paymentType"
-              label="Payment Type"
-              :disabled="isFormFieldsDisabled || isRecordExternal"
-              :values="VERBOSE_PAYMENT_TYPES"
-              is-value-preselected
-            />
-          </form-row>
-          <form-row>
-            <textarea-field
-              v-model="form.note"
-              placeholder="Note"
-              :disabled="isFormFieldsDisabled"
-              label="Note (optional)"
-            />
-          </form-row>
-          <template v-if="!isTransferTx">
-            <form-row>
-              <MarkAsRefundField
-                v-model:refunds="form.refundsTx"
-                v-model:refunded-by="form.refundedByTxs"
-                :transaction-id="transaction?.id"
-                :is-record-creation="isFormCreation"
-                :transaction-type="refundTransactionsTypeBasedOnFormType"
-                :disabled="isFormFieldsDisabled"
-                :is-there-original-refunds="Boolean(originalRefunds.length)"
-              />
-            </form-row>
-          </template>
-        </div>
-      </template>
+      <div v-if="!isMobileView" class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
+        <ReuseMoreOptions />
+      </div>
     </div>
   </div>
 </template>

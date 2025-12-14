@@ -103,7 +103,7 @@ describe('Update transaction controller', () => {
         raw: true,
       });
 
-      await helpers.updateTransaction({
+      const [, oppositeTx] = await helpers.updateTransaction({
         id: tx.id,
         payload: {
           transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
@@ -123,8 +123,24 @@ describe('Update transaction controller', () => {
 
       const transactions = (await helpers.getTransactions({ raw: true }))!;
 
-      expect(transactions.length).toBe(1);
-      expect(transactions[0]).toEqual(tx);
+      // Both transactions should exist but be unlinked (not deleted)
+      expect(transactions.length).toBe(2);
+
+      const baseTxAfter = transactions.find((t) => t.id === tx.id);
+      const oppositeTxAfter = transactions.find((t) => t.id === oppositeTx!.id);
+
+      // Base tx should be back to original state (unlinked)
+      expect(baseTxAfter).toMatchObject({
+        ...tx,
+        transferId: null,
+        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      });
+
+      // Opposite tx should also be unlinked (not deleted)
+      expect(oppositeTxAfter).toMatchObject({
+        transferId: null,
+        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      });
     },
   );
 
@@ -273,14 +289,18 @@ describe('Update transaction controller', () => {
           raw: true,
         });
 
-        await checkBalanceIsCorrect(0);
+        // Balance should remain the same since opposite tx is now unlinked (not deleted)
+        await checkBalanceIsCorrect(externalTransaction!.refAmount);
 
         const transactionsAfterUpdate = (await helpers.getTransactions({
           raw: true,
         }))!;
 
-        // Check that opposite tx is deleted
-        expect(transactionsAfterUpdate.find((i) => i.id === oppositeTx!.id)).toBe(undefined);
+        // Check that opposite tx is unlinked (not deleted)
+        const oppositeTxAfter = transactionsAfterUpdate.find((i) => i.id === oppositeTx!.id);
+        expect(oppositeTxAfter).not.toBe(undefined);
+        expect(oppositeTxAfter!.transferId).toBe(null);
+        expect(oppositeTxAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
         // Check that base tx doesn't have transferId anymore
         expect(transactionsAfterUpdate.find((i) => i.id === baseTx.id)!.transferId).toBe(null);
       },
@@ -514,7 +534,7 @@ describe('Update transaction controller', () => {
     );
 
     it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
-      'update transfer of two linked transactions back to their initial state will just remove the opposite tx. testing %s',
+      'update transfer of two linked transactions back to their initial state will unlink both transactions. testing %s',
       async (txType) => {
         const accountA = await helpers.createAccount({ raw: true });
         const accountB = await helpers.createAccount({ raw: true });
@@ -554,8 +574,23 @@ describe('Update transaction controller', () => {
 
         const txsAfterUpdation = (await helpers.getTransactions({ raw: true }))!;
 
-        expect(txsAfterUpdation.length).toBe(1);
-        expect(txsAfterUpdation[0]).toEqual(tx1);
+        // Both transactions should exist but be unlinked
+        expect(txsAfterUpdation.length).toBe(2);
+
+        const tx1After = txsAfterUpdation.find((t) => t.id === tx1.id);
+        const tx2After = txsAfterUpdation.find((t) => t.id === tx2.id);
+
+        // Both should be unlinked
+        expect(tx1After).toMatchObject({
+          ...tx1,
+          transferId: null,
+          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        });
+        expect(tx2After).toMatchObject({
+          ...tx2,
+          transferId: null,
+          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        });
       },
     );
   });

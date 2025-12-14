@@ -14,7 +14,7 @@
         <!-- Progress bar -->
         <div class="space-y-2">
           <div class="flex items-center justify-between text-xs">
-            <span class="font-medium">{{ syncProgress.current }} of {{ syncProgress.total }}</span>
+            <span class="font-medium">{{ syncProgress.current }} of {{ syncProgress.total }} synced</span>
             <span class="text-muted-foreground">{{ syncProgress.percentage }}%</span>
           </div>
           <div class="bg-muted h-2 overflow-hidden rounded-full">
