@@ -34,9 +34,7 @@ const showLinkButton = computed(
 
 const showUnlinkButton = computed(() => props.isTransferTx && props.oppositeTransaction);
 
-const showLinkedTransaction = computed(
-  () => linkedTransaction.value && props.isTransferTx && !props.isFormCreation,
-);
+const showLinkedTransaction = computed(() => linkedTransaction.value && props.isTransferTx && !props.isFormCreation);
 
 const clearLinkedTransaction = () => {
   linkedTransaction.value = null;
@@ -53,6 +51,7 @@ const clearLinkedTransaction = () => {
 
         <Dialog.DialogContent>
           <Dialog.DialogTitle class="sr-only">Link existing transaction</Dialog.DialogTitle>
+          <Dialog.DialogDescription class="sr-only"> Link existing transaction </Dialog.DialogDescription>
           <RecordList :transaction-type="oppositeTransactionType" @select="linkedTransaction = $event" />
         </Dialog.DialogContent>
       </Dialog.Dialog>
@@ -61,9 +60,7 @@ const clearLinkedTransaction = () => {
 
   <template v-if="showUnlinkButton">
     <FormRow>
-      <Button class="w-full" :disabled="disabled" size="sm" @click="$emit('unlink')">
-        Unlink transactions
-      </Button>
+      <Button class="w-full" :disabled="disabled" size="sm" @click="$emit('unlink')"> Unlink transactions </Button>
     </FormRow>
   </template>
 

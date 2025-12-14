@@ -1,12 +1,5 @@
 <script lang="ts" setup>
-import {
-  unlinkTransactions as apiUnlinkTransactions,
-  createTransaction,
-  deleteTransaction,
-  editTransaction,
-  linkTransactions,
-} from '@/api';
-import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -14,10 +7,7 @@ import SelectField from '@/components/fields/select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
-import { useNotificationCenter } from '@/components/notification-center';
-import { getInvalidationQueryKey } from '@/composable/data-queries/opposite-tx-record';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { ApiErrorResponseError } from '@/js/errors';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
 import {
   ACCOUNT_TYPES,
@@ -26,7 +16,6 @@ import {
   TRANSACTION_TYPES,
   type TransactionModel,
 } from '@bt/shared/types';
-import { useQueryClient } from '@tanstack/vue-query';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
@@ -38,10 +27,15 @@ import FormRow from './components/form-row.vue';
 import LinkTransactionSection from './components/link-transaction-section.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import TypeSelector from './components/type-selector.vue';
-import { getRefundInfo, useTransferFormLogic } from './composables';
+import {
+  getRefundInfo,
+  useDeleteTransaction,
+  useSubmitTransaction,
+  useTransferFormLogic,
+  useUnlinkTransactions,
+} from './composables';
 import { prepopulateForm } from './helpers';
 import { FORM_TYPES, UI_FORM_STRUCT } from './types';
-import { prepareTxCreationParams, prepareTxUpdationParams } from './utils';
 
 defineOptions({
   name: 'record-form',
@@ -65,11 +59,9 @@ const closeModal = () => {
 const route = useRoute();
 watch(() => route.path, closeModal);
 
-const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const { accountsRecord, systemAccounts } = storeToRefs(useAccountsStore());
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
-const queryClient = useQueryClient();
 
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
@@ -133,7 +125,13 @@ watch(
   { immediate: true },
 );
 
-const isLoading = ref(false);
+const submitMutation = useSubmitTransaction({ onSuccess: closeModal });
+const unlinkMutation = useUnlinkTransactions({ onSuccess: closeModal });
+const deleteMutation = useDeleteTransaction({ onSuccess: closeModal });
+
+const isLoading = computed(
+  () => submitMutation.isPending.value || unlinkMutation.isPending.value || deleteMutation.isPending.value,
+);
 const isFormFieldsDisabled = computed(() => isLoading.value || !isInitialRefundsDataLoaded.value);
 
 const currentTxType = computed(() => form.value.type);
@@ -225,117 +223,36 @@ watch(
   },
 );
 
-const submit = async () => {
-  isLoading.value = true;
-
-  try {
-    if (isFormCreation.value) {
-      await createTransaction(
-        prepareTxCreationParams({
-          form: form.value,
-          isTransferTx: isTransferTx.value,
-          isCurrenciesDifferent: isCurrenciesDifferent.value,
-          // linkedTransaction: linkedTransaction.value,
-        }),
-      );
-    } else if (linkedTransaction.value) {
-      await linkTransactions({
-        ids: [[props.transaction.id, linkedTransaction.value.id]],
-      });
-    } else {
-      await editTransaction(
-        prepareTxUpdationParams({
-          form: form.value,
-          transaction: props.transaction,
-          linkedTransaction: linkedTransaction.value,
-          isTransferTx: isTransferTx.value,
-          isRecordExternal: isRecordExternal.value,
-          isCurrenciesDifferent: isCurrenciesDifferent.value,
-          isOriginalRefundsOverriden: isOriginalRefundsOverriden.value,
-        }),
-      );
-    }
-
-    closeModal();
-    // Reload all cached data in the app
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
-    if (props.transaction?.id) {
-      queryClient.invalidateQueries({
-        queryKey: getInvalidationQueryKey(props.transaction.id),
-      });
-    }
-    if (props.oppositeTransaction?.id) {
-      queryClient.invalidateQueries({
-        queryKey: getInvalidationQueryKey(props.oppositeTransaction.id),
-      });
-    }
-    if (linkedTransaction.value?.id) {
-      queryClient.invalidateQueries({
-        queryKey: getInvalidationQueryKey(linkedTransaction.value.id),
-      });
-    }
-  } catch (e) {
-    if (e instanceof ApiErrorResponseError) {
-      addErrorNotification(e.data.message);
-    } else {
-      // eslint-disable-next-line no-console
-      console.error(e);
-      addErrorNotification('Unexpected error!');
-    }
-  } finally {
-    isLoading.value = false;
-  }
+const submit = () => {
+  submitMutation.mutate({
+    form: form.value,
+    isFormCreation: isFormCreation.value,
+    isTransferTx: isTransferTx.value,
+    isCurrenciesDifferent: isCurrenciesDifferent.value,
+    isOriginalRefundsOverriden: isOriginalRefundsOverriden.value,
+    isRecordExternal: isRecordExternal.value,
+    transaction: props.transaction,
+    linkedTransaction: linkedTransaction.value,
+    oppositeTransaction: props.oppositeTransaction,
+  });
 };
 
-const unlinkTransactions = async () => {
-  try {
-    isLoading.value = true;
-
-    await apiUnlinkTransactions({
-      transferIds: [props.transaction.transferId],
-    });
-
-    closeModal();
-    // Reload all cached data in the app
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
-    if (props.transaction?.id) {
-      queryClient.invalidateQueries({
-        queryKey: getInvalidationQueryKey(props.transaction.id),
-      });
-    }
-    if (props.oppositeTransaction?.id) {
-      queryClient.invalidateQueries({
-        queryKey: getInvalidationQueryKey(props.oppositeTransaction.id),
-      });
-    }
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(err);
-  } finally {
-    isLoading.value = false;
-  }
+const unlinkTransactions = () => {
+  unlinkMutation.mutate({
+    transferIds: [props.transaction.transferId],
+    transactionId: props.transaction?.id,
+    oppositeTransactionId: props.oppositeTransaction?.id,
+  });
 };
 
-const deleteTransactionHandler = async () => {
-  try {
-    // Check the account type, not the transaction type
-    const account = accountsRecord.value[props.transaction.accountId];
-    if (account && account.type !== ACCOUNT_TYPES.system) return;
+const deleteTransactionHandler = () => {
+  // Check the account type, not the transaction type
+  const account = accountsRecord.value[props.transaction.accountId];
+  if (account && account.type !== ACCOUNT_TYPES.system) return;
 
-    isLoading.value = true;
-
-    await deleteTransaction(props.transaction.id);
-
-    closeModal();
-    // Reload all cached data in the app
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
-    addSuccessNotification('Successfully removed');
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(e);
-  } finally {
-    isLoading.value = false;
-  }
+  deleteMutation.mutate({
+    transactionId: props.transaction.id,
+  });
 };
 
 const selectTransactionType = (type: FORM_TYPES, disabled = false) => {
