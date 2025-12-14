@@ -10,6 +10,7 @@ import {
   SyncStatus,
   getLastAutoSync,
   getMultipleAccountsSyncStatus,
+  setAccountSyncStatus,
   shouldTriggerAutoSync,
   updateLastAutoSync,
 } from './sync-status-tracker';
@@ -88,8 +89,13 @@ export async function syncAllUserAccounts(userId: number): Promise<SyncResult> {
     };
   }
 
+  // Set all accounts to QUEUED immediately, before Bottleneck scheduling
+  // This ensures frontend knows all accounts are pending, even those waiting
+  // in Bottleneck's internal queue (which only executes 5 at a time)
+  await Promise.all(accounts.map((account) => setAccountSyncStatus(account.id, SyncStatus.QUEUED)));
+
   // Trigger all syncs with concurrency control (fire and forget)
-  // Providers will set SYNCING status themselves
+  // Providers will update status to SYNCING when they actually start
   accounts.forEach((account) => {
     syncLimiter
       .schedule(() => syncSingleAccount(account, userId))

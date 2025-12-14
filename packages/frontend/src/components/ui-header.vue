@@ -46,7 +46,10 @@
           <Button variant="ghost" class="flex items-center gap-2" size="sm">
             <template v-if="syncStatus.isSyncing.value">
               <RefreshCcw class="animate-spin" :size="16" />
-              <span class="font-medium">{{ syncStatus.syncingSummaryText.value || 'Synchronizing...' }}</span>
+              <span class="font-medium">
+                <span class="xs:hidden">Syncing</span>
+                <span class="xs:inline hidden">{{ syncStatus.syncingSummaryText.value || 'Synchronizing...' }}</span>
+              </span>
             </template>
             <template v-else>
               <CheckCircle :size="14" class="text-green-700" />

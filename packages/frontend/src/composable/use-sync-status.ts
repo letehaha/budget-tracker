@@ -53,11 +53,10 @@ export function useSyncStatus() {
     if (!syncStatusData.value || !isSyncing.value) return '';
 
     const { summary } = syncStatusData.value;
-    if (summary.syncing > 0) {
-      return `Syncing ${summary.syncing} of ${summary.total} accounts`;
-    }
-    if (summary.queued > 0) {
-      return `${summary.queued} account${summary.queued > 1 ? 's' : ''} queued`;
+    const inProgress = summary.syncing + summary.queued;
+
+    if (inProgress > 0) {
+      return `Syncing ${inProgress} of ${summary.total} accounts`;
     }
     return '';
   });
@@ -154,8 +153,9 @@ export function useSyncStatus() {
       // Update status
       await fetchStatus();
 
-      // Start polling if sync was triggered (providers set SYNCING asynchronously)
-      if (result.syncTriggered) {
+      // Start polling if sync was triggered OR if sync is already in progress
+      // (e.g., page refresh while sync is running from another tab/session)
+      if (result.syncTriggered || isSyncing.value) {
         startPolling();
       }
 
