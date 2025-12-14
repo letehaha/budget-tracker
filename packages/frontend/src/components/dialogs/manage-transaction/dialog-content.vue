@@ -13,10 +13,8 @@ import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
-import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { useNotificationCenter } from '@/components/notification-center';
-import TransactionRecrod from '@/components/transactions-list/transaction-record.vue';
 import { getInvalidationQueryKey } from '@/composable/data-queries/opposite-tx-record';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ApiErrorResponseError } from '@/js/errors';
@@ -37,11 +35,11 @@ import { useRoute } from 'vue-router';
 
 import AccountField from './components/account-field.vue';
 import FormRow from './components/form-row.vue';
+import LinkTransactionSection from './components/link-transaction-section.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import TypeSelector from './components/type-selector.vue';
 import { getRefundInfo, useTransferFormLogic } from './composables';
 import { prepopulateForm } from './helpers';
-import RecordList from './record-list.vue';
 import { FORM_TYPES, UI_FORM_STRUCT } from './types';
 import { prepareTxCreationParams, prepareTxUpdationParams } from './utils';
 
@@ -272,6 +270,11 @@ const submit = async () => {
         queryKey: getInvalidationQueryKey(props.oppositeTransaction.id),
       });
     }
+    if (linkedTransaction.value?.id) {
+      queryClient.invalidateQueries({
+        queryKey: getInvalidationQueryKey(linkedTransaction.value.id),
+      });
+    }
   } catch (e) {
     if (e instanceof ApiErrorResponseError) {
       addErrorNotification(e.data.message);
@@ -295,7 +298,17 @@ const unlinkTransactions = async () => {
 
     closeModal();
     // Reload all cached data in the app
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.securityPriceChange] });
+    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+    if (props.transaction?.id) {
+      queryClient.invalidateQueries({
+        queryKey: getInvalidationQueryKey(props.transaction.id),
+      });
+    }
+    if (props.oppositeTransaction?.id) {
+      queryClient.invalidateQueries({
+        queryKey: getInvalidationQueryKey(props.oppositeTransaction.id),
+      });
+    }
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(err);
@@ -324,10 +337,6 @@ const deleteTransactionHandler = async () => {
   } finally {
     isLoading.value = false;
   }
-};
-
-const deleteTransactionRecordHandler = () => {
-  linkedTransaction.value = null;
 };
 
 const selectTransactionType = (type: FORM_TYPES, disabled = false) => {
@@ -486,49 +495,15 @@ onUnmounted(() => {
             </form-row>
           </template>
 
-          <template v-if="isTransferTx && !linkedTransaction && !isFormCreation && !Boolean(oppositeTransaction)">
-            <form-row>
-              <Dialog.Dialog>
-                <Dialog.DialogTrigger>
-                  <Button class="w-full" :disabled="isFormFieldsDisabled" size="sm"> Link existing transaction </Button>
-                </Dialog.DialogTrigger>
-
-                <Dialog.DialogContent>
-                  <RecordList
-                    :transaction-type="
-                      transaction?.transactionType === TRANSACTION_TYPES.expense
-                        ? TRANSACTION_TYPES.income
-                        : TRANSACTION_TYPES.expense
-                    "
-                    @select="linkedTransaction = $event"
-                  />
-                </Dialog.DialogContent>
-              </Dialog.Dialog>
-            </form-row>
-          </template>
-
-          <template v-if="isTransferTx && oppositeTransaction">
-            <form-row>
-              <Button class="w-full" :disabled="isFormFieldsDisabled" size="sm" @click="unlinkTransactions">
-                Unlink transactions
-              </Button>
-            </form-row>
-          </template>
-
-          <template v-if="linkedTransaction && isTransferTx && !isFormCreation">
-            <form-row class="flex items-center gap-2.5">
-              <TransactionRecrod class="bg-background" :tx="linkedTransaction" />
-
-              <Button
-                aria-label="Cancel linking"
-                :disabled="isFormFieldsDisabled"
-                size="sm"
-                @click="deleteTransactionRecordHandler"
-              >
-                Cancel
-              </Button>
-            </form-row>
-          </template>
+          <LinkTransactionSection
+            v-model:linked-transaction="linkedTransaction"
+            :is-transfer-tx="isTransferTx"
+            :is-form-creation="isFormCreation"
+            :opposite-transaction="oppositeTransaction"
+            :transaction-type="transaction?.transactionType"
+            :disabled="isFormFieldsDisabled"
+            @unlink="unlinkTransactions"
+          />
 
           <form-row>
             <date-field
