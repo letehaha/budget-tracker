@@ -231,7 +231,6 @@ const submit = async () => {
   try {
     if (isFormCreation.value) {
       await createTransaction(
-        // TODO: unit tests for "prepareTxCreationParams" and "prepareTxUpdationParams"
         prepareTxCreationParams({
           form: form.value,
           isTransferTx: isTransferTx.value,
