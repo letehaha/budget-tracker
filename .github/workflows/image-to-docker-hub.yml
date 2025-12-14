@@ -60,5 +60,5 @@ jobs:
             # no downtime
             docker compose --env-file .env.production up -d --no-deps
 
-            # Remove old containers
-            docker container prune -f
+            # Remove old containers and unused images
+            docker system prune -f
