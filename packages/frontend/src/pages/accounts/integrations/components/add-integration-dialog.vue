@@ -93,8 +93,6 @@ const dialogTitle = computed(() => {
   return `Connect ${provider?.name || 'Provider'}`;
 });
 
-console.log('providers', props.providers);
-
 const handleSelectProvider = (providerType: string) => {
   selectedProviderType.value = providerType;
   currentStep.value = 'connect-provider';
