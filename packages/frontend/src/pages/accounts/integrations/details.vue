@@ -437,7 +437,8 @@ const { mutate: syncAccountsMutation, isPending: isSyncingAccounts } = useMutati
 
         return (
           queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange) ||
-          queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange)
+          queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange) ||
+          queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.currencies)
         );
       },
     });
