@@ -96,11 +96,11 @@ export const deleteTransaction = async (txId: number): Promise<void> => {
 };
 
 export const linkTransactions = async (payload: endpointsTypes.LinkTransactionsBody): Promise<void> => {
-  api.put('/transactions/link', payload);
+  await api.put('/transactions/link', payload);
 };
 
 export const unlinkTransactions = async (payload: endpointsTypes.UnlinkTransferTransactionsBody): Promise<void> => {
-  api.put('/transactions/unlink', payload);
+  await api.put('/transactions/unlink', payload);
 };
 
 export const getTransactionByBudgetId = async (budgetId: number): Promise<TransactionModel[]> => {
