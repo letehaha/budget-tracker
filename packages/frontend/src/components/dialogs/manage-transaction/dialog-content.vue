@@ -29,7 +29,7 @@ import {
   type TransactionModel,
 } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
-import { watchOnce } from '@vueuse/core';
+import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -338,6 +338,8 @@ const selectTransactionType = (type: FORM_TYPES, disabled = false) => {
 // when modal will be closed
 const previouslyFocusedElement = ref(document.activeElement);
 
+const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
+
 onMounted(() => {
   if (!props.transaction) {
     form.value.account = systemAccounts.value[0];
@@ -358,6 +360,40 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <!-- Define reusable template for "More Options" section (payment type, note, refund) -->
+  <DefineMoreOptions>
+    <FormRow>
+      <SelectField
+        v-model="form.paymentType"
+        label="Payment Type"
+        :disabled="isFormFieldsDisabled || isRecordExternal"
+        :values="VERBOSE_PAYMENT_TYPES"
+        is-value-preselected
+      />
+    </FormRow>
+    <FormRow>
+      <TextareaField
+        v-model="form.note"
+        placeholder="Note"
+        :disabled="isFormFieldsDisabled"
+        label="Note (optional)"
+      />
+    </FormRow>
+    <template v-if="!isTransferTx">
+      <FormRow>
+        <MarkAsRefundField
+          v-model:refunds="form.refundsTx"
+          v-model:refunded-by="form.refundedByTxs"
+          :transaction-id="transaction?.id"
+          :is-record-creation="isFormCreation"
+          :transaction-type="refundTransactionsTypeBasedOnFormType"
+          :disabled="isFormFieldsDisabled"
+          :is-there-original-refunds="Boolean(originalRefunds.length)"
+        />
+      </FormRow>
+    </template>
+  </DefineMoreOptions>
+
   <div class="rounded-t-xl">
     <div
       :class="[
@@ -515,36 +551,7 @@ onUnmounted(() => {
             <Drawer.DrawerContent>
               <Drawer.DrawerTitle></Drawer.DrawerTitle>
               <div class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
-                <form-row>
-                  <select-field
-                    v-model="form.paymentType"
-                    label="Payment Type"
-                    :disabled="isFormFieldsDisabled || isRecordExternal"
-                    :values="VERBOSE_PAYMENT_TYPES"
-                    is-value-preselected
-                  />
-                </form-row>
-                <form-row>
-                  <textarea-field
-                    v-model="form.note"
-                    placeholder="Note"
-                    :disabled="isFormFieldsDisabled"
-                    label="Note (optional)"
-                  />
-                </form-row>
-                <template v-if="!isTransferTx">
-                  <form-row>
-                    <MarkAsRefundField
-                      v-model:refunds="form.refundsTx"
-                      v-model:refunded-by="form.refundedByTxs"
-                      :transaction-id="transaction?.id"
-                      :is-record-creation="isFormCreation"
-                      :transaction-type="refundTransactionsTypeBasedOnFormType"
-                      :disabled="isFormFieldsDisabled"
-                      :is-there-original-refunds="Boolean(originalRefunds.length)"
-                    />
-                  </form-row>
-                </template>
+                <ReuseMoreOptions />
               </div>
             </Drawer.DrawerContent>
           </Drawer.Drawer>
@@ -572,40 +579,9 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <template v-if="!isMobileView">
-        <div class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
-          <form-row>
-            <select-field
-              v-model="form.paymentType"
-              label="Payment Type"
-              :disabled="isFormFieldsDisabled || isRecordExternal"
-              :values="VERBOSE_PAYMENT_TYPES"
-              is-value-preselected
-            />
-          </form-row>
-          <form-row>
-            <textarea-field
-              v-model="form.note"
-              placeholder="Note"
-              :disabled="isFormFieldsDisabled"
-              label="Note (optional)"
-            />
-          </form-row>
-          <template v-if="!isTransferTx">
-            <form-row>
-              <MarkAsRefundField
-                v-model:refunds="form.refundsTx"
-                v-model:refunded-by="form.refundedByTxs"
-                :transaction-id="transaction?.id"
-                :is-record-creation="isFormCreation"
-                :transaction-type="refundTransactionsTypeBasedOnFormType"
-                :disabled="isFormFieldsDisabled"
-                :is-there-original-refunds="Boolean(originalRefunds.length)"
-              />
-            </form-row>
-          </template>
-        </div>
-      </template>
+      <div v-if="!isMobileView" class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
+        <ReuseMoreOptions />
+      </div>
     </div>
   </div>
 </template>
