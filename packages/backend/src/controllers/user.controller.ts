@@ -4,6 +4,7 @@ import { ValidationError } from '@js/errors';
 import { ExchangeRatePair, UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';
+import { deleteUser as deleteUserService } from '@services/user/delete-user.service';
 import { z } from 'zod';
 
 export const getUser = createController(z.object({}), async ({ user }) => {
@@ -37,7 +38,7 @@ export const updateUser = createController(
 );
 
 export const deleteUser = createController(z.object({}), async ({ user }) => {
-  await userService.deleteUser(user.id);
+  await deleteUserService({ userId: user.id });
 });
 
 export const getUserCurrencies = createController(z.object({}), async ({ user }) => {

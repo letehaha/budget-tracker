@@ -2,7 +2,7 @@ import { editExcludedCategories as apiEditExcludedCategories } from '@root/servi
 import { getUserSettings as apiGetUserSettings } from '@root/services/user-settings/get-user-settings';
 import { updateUserSettings as apiUpdateUserSettings } from '@root/services/user-settings/update-settings';
 
-import { makeRequest } from './common';
+import { CustomResponse, makeRequest } from './common';
 
 export async function getUserSettings<R extends boolean | undefined = undefined>({ raw }: { raw?: R }) {
   return makeRequest<Awaited<ReturnType<typeof apiGetUserSettings>>, R>({
@@ -38,5 +38,12 @@ export async function editExcludedCategories<R extends boolean | undefined = und
     url: '/user/settings/edit-excluded-categories',
     payload: { addIds, removeIds },
     raw,
+  });
+}
+
+export async function deleteUserAccount(): Promise<CustomResponse<void>> {
+  return makeRequest<void>({
+    method: 'delete',
+    url: '/user/delete',
   });
 }
