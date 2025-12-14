@@ -13,6 +13,8 @@ const isOpen = ref(false);
       <slot />
     </Dialog.DialogTrigger>
     <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-[900px] p-0">
+      <Dialog.DialogTitle class="sr-only">Manage transaction</Dialog.DialogTitle>
+      <Dialog.DialogDescription class="sr-only">Create or edit a transaction</Dialog.DialogDescription>
       <DialogContent @close-modal="isOpen = false" />
     </Dialog.DialogContent>
   </Dialog.Dialog>
