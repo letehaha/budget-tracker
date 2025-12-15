@@ -35,6 +35,11 @@
       :accounts="filters.accounts"
       @update:accounts="$emit('update:filters', { ...filters, accounts: $event })"
     />
+
+    <CategoryFilter
+      :category-ids="filters.categoryIds"
+      @update:category-ids="$emit('update:filters', { ...filters, categoryIds: $event })"
+    />
   </div>
 
   <div class="lg:bg-card max-lg:bg-background sticky -bottom-px mt-4 flex gap-2">
@@ -58,6 +63,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 
 import { FiltersStruct } from './const';
 import AmountRangeFilter from './filters/amount-range-filter.vue';
+import CategoryFilter from './filters/category-filter.vue';
 import AccountsFilter from './filters/combobox-accounts.vue';
 import DateRangeFilter from './filters/date-range-filter.vue';
 import ExclusionsFilter from './filters/exclusions.vue';

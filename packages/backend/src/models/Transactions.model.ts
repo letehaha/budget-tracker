@@ -360,7 +360,7 @@ export const findWithFilters = async ({
   endDate,
   amountGte,
   amountLte,
-  categoryId,
+  categoryIds,
   noteSearch,
   attributes,
 }: {
@@ -385,7 +385,7 @@ export const findWithFilters = async ({
   endDate?: string;
   amountGte?: number;
   amountLte?: number;
-  categoryId?: number;
+  categoryIds?: number[];
   noteSearch?: string[]; // array of keywords
   attributes?: (keyof Transactions)[];
 }) => {
@@ -399,9 +399,14 @@ export const findWithFilters = async ({
       transactionType,
       transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
       refundLinked: excludeRefunds ? false : undefined,
-      categoryId: categoryId || undefined,
     }),
   };
+
+  if (categoryIds && categoryIds.length > 0) {
+    whereClause.categoryId = {
+      [Op.in]: categoryIds,
+    };
+  }
 
   if (accountIds && accountIds.length > 0) {
     whereClause.accountId = {
