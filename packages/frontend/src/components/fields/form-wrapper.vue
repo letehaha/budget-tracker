@@ -3,7 +3,7 @@
     <template v-if="Array.isArray(error)">
       <div class="grid gap-2">
         <template v-for="item in error" :key="item">
-          <p class="text-destructive-foreground overflow-hidden text-center text-sm">
+          <p class="text-destructive-text overflow-hidden text-center text-sm">
             {{ item }}
           </p>
         </template>
@@ -11,7 +11,7 @@
     </template>
     <template v-else-if="error">
       <div class="grid gap-2">
-        <p class="text-destructive-foreground overflow-hidden text-center text-sm">
+        <p class="text-destructive-text overflow-hidden text-center text-sm">
           {{ error }}
         </p>
       </div>

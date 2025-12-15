@@ -20,6 +20,8 @@
           </Button>
         </router-link>
       </div>
+
+      <DeleteAccountSection />
     </CardContent>
   </Card>
 </template>
@@ -29,4 +31,6 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { ROUTES_NAMES } from '@/routes';
 import { UploadIcon } from 'lucide-vue-next';
+
+import DeleteAccountSection from './delete-account-section.vue';
 </script>

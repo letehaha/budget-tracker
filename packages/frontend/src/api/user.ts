@@ -6,3 +6,7 @@ export const loadUserData = async (): Promise<UserModel> => {
 
   return result;
 };
+
+export const deleteUserAccount = async (): Promise<void> => {
+  await api.delete('/user/delete');
+};

@@ -10,11 +10,14 @@ import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { withTransaction } from './common/with-transaction';
 import { addUserCurrencies } from './currencies/add-user-currency';
 
-export const getUser = withTransaction(async (id: number) => {
-  const user = await Users.getUserById({ id });
+export const getUser = async (id: number) => {
+  const user = await Users.default.findOne({
+    where: { id },
+    raw: true,
+  });
 
   return user;
-});
+};
 
 export const createUser = withTransaction(
   async ({
@@ -99,10 +102,6 @@ export const updateUser = withTransaction(
     return user;
   },
 );
-
-export const deleteUser = withTransaction(async (id: number) => {
-  await Users.default.destroy({ where: { id } });
-});
 
 export const getUserCurrencies = withTransaction(async ({ userId }: { userId: number }) => {
   const list = await UsersCurrencies.getCurrencies({ userId });
