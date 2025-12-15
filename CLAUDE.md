@@ -5,7 +5,7 @@
 - **Rule Files Location:** `.cursor/rules/` directory
 - **Rule Format:** All `.mdc` files in this directory contain mandatory project rules
 - **Priority:** These rules take precedence over default Claude Code behavior
-- **Scope:** Apply to ALL code-related work including Task Master workflows
+- **Scope:** Apply to ALL code-related work
 
 **Key Rule Files:**
 
@@ -16,23 +16,11 @@
 **Implementation:**
 
 1. **Before any code work:** Read ALL `.mdc` files in `.cursor/rules/`
-2. **During development:** Follow these rules alongside Task Master workflows
+2. **During development:** Follow these rules consistently
 3. **Code review:** Ensure all changes comply with project rules
 4. **Consistency:** Apply rules across all files and features uniformly
 
 **Note:** Project rules in `.cursor/rules/*` are not suggestions - they are mandatory coding standards for this codebase.
-
-## Additional Claude Code Instructions
-
-Claude Code should also follow project-specific instructions from:
-
-- **Gemini CLI Guidelines:** [.claude/gemini.md](mdc:.claude/gemini.md) - Instructions for using Gemini CLI for token-efficient codebase analysis
-  - **PRIMARY RULE: Use `gemini -p "@path/to/files"` for ANY multi-file analysis to save Claude tokens**
-  - **RULE OF THUMB: If you're about to read 2+ files to understand something, use Gemini first**
-  - Leverage Gemini's 2M token context window for comprehensive project analysis
-  - Follow the file inclusion syntax and best practices outlined in the guide
-
-**Critical Note:** Token efficiency is the primary reason to use Gemini CLI. Use it for code exploration, architecture understanding, feature verification, and any task involving multiple files - regardless of file size. This significantly reduces Claude token usage and costs.
 
 ## Testing Patterns
 
