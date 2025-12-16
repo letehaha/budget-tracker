@@ -45,9 +45,13 @@
           </div>
           <!-- Show both amounts on bottom with better spacing and typography -->
           <div class="flex items-center gap-3 text-sm">
-            <span class="text-app-expense-color font-medium tabular-nums">{{ formattedExpenseAmount }}</span>
+            <span class="text-app-expense-color font-medium whitespace-nowrap tabular-nums">{{
+              formattedExpenseAmount
+            }}</span>
             <ArrowRight :size="12" class="opacity-40" />
-            <span class="text-app-income-color font-medium tabular-nums">{{ formattedIncomeAmount }}</span>
+            <span class="text-app-income-color font-medium whitespace-nowrap tabular-nums">{{
+              formattedIncomeAmount
+            }}</span>
           </div>
         </template>
         <template v-else-if="isTransferTransaction">
@@ -163,7 +167,7 @@ const accountMovement = computed(() => {
   return `${accountFrom.value?.name} ${separator} ${accountTo.value?.name}`;
 });
 
-const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMMM y');
+const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMM y');
 
 const transactionEmit = () => {
   emit('record-click', [transaction, oppositeTransferTransaction.value]);
