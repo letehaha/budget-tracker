@@ -109,6 +109,13 @@ const isRecordExternal = computed(() => {
   const account = accountsRecord.value[props.transaction.accountId];
   return account && account.type !== ACCOUNT_TYPES.system;
 });
+const isOppositeTxExternal = computed(() => {
+  if (!props.oppositeTransaction) return false;
+  // Check the account type, not the transaction type
+  // A system transaction in a monobank account should be treated as external
+  const account = accountsRecord.value[props.oppositeTransaction.accountId];
+  return account && account.type !== ACCOUNT_TYPES.system;
+});
 // If record is external, the account field will be disabled, so we need to preselect
 // the account
 watch(
@@ -149,7 +156,9 @@ const {
   form,
   isTransferTx,
   isRecordExternal,
+  isOppositeTxExternal,
   transaction: props.transaction,
+  oppositeTransaction: props.oppositeTransaction,
   linkedTransaction,
 });
 
@@ -297,12 +306,7 @@ onUnmounted(() => {
       />
     </FormRow>
     <FormRow>
-      <TextareaField
-        v-model="form.note"
-        placeholder="Note"
-        :disabled="isFormFieldsDisabled"
-        label="Note (optional)"
-      />
+      <TextareaField v-model="form.note" placeholder="Note" :disabled="isFormFieldsDisabled" label="Note (optional)" />
     </FormRow>
     <template v-if="!isTransferTx">
       <FormRow>
