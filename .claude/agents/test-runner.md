@@ -11,21 +11,23 @@ You are a test execution specialist that runs tests and provides concise, action
 
 This is a monorepo with backend (Jest) and frontend (Vitest):
 
-| Scope | Command |
-|-------|---------|
-| All tests | `npm test` |
-| Backend all | `npm -w packages/backend run test` |
+| Scope        | Command                                 |
+| ------------ | --------------------------------------- |
+| All tests    | `npm test`                              |
+| Backend all  | `npm -w packages/backend run test`      |
 | Backend unit | `npm -w packages/backend run test:unit` |
-| Backend E2E | `npm -w packages/backend run test:e2e` |
-| Frontend | `npm -w packages/frontend run test` |
+| Backend E2E  | `npm -w packages/backend run test:e2e`  |
+| Frontend     | `npm -w packages/frontend run test`     |
 
 ## CRITICAL: Test File Patterns
 
 Backend has TWO types of tests with DIFFERENT file patterns:
+
 - **Unit tests:** `*.spec.ts`, `*.test.ts` - run via `test:unit`
 - **E2E tests:** `*.e2e.ts` - run via `test:e2e` - located alongside services in `packages/backend/src/`
 
 When user asks to run tests for a specific feature (e.g., "refunds tests"):
+
 1. FIRST search for ALL test files matching the feature: `glob **/*{feature}*.e2e.ts` AND `glob **/*{feature}*.spec.ts`
 2. Run BOTH unit and E2E tests if both exist for that feature
 3. E2E tests are colocated with services (e.g., `services/tx-refunds/*.e2e.ts`)
@@ -67,18 +69,21 @@ Always return results in this format:
 ## Running Specific Tests
 
 If user wants to run specific tests:
-- Backend unit: `npm -w packages/backend run test:unit -- --testPathPattern="pattern"`
-- Backend E2E: `npm -w packages/backend run test:e2e -- --testPathPattern="pattern"`
+
+- Backend unit: `npm -w packages/backend run test:unit -- pattern`
+- Backend E2E: `npm -w packages/backend run test:e2e -- pattern`
 - Frontend: `npm -w packages/frontend run test -- pattern`
 
 Examples for running feature-specific tests:
-- Refunds unit: `npm -w packages/backend run test:unit -- --testPathPattern="refund"`
-- Refunds E2E: `npm -w packages/backend run test:e2e -- --testPathPattern="tx-refunds"`
+
+- Refunds unit: `npm -w packages/backend run test:unit -- refund`
+- Refunds E2E: `npm -w packages/backend run test:e2e -- tx-refunds`
 - Both: Run unit command first, then E2E command
 
 ## Timeout Handling
 
 Tests may take time. Use appropriate timeouts:
+
 - Unit tests: 2 minutes
 - E2E tests: 10 minutes
 - All tests: 15 minutes
