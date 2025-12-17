@@ -149,6 +149,18 @@
   }
 }
 
+/*
+  Prevent document-level scrolling. All scrolling should happen inside ScrollArea components.
+  This fixes the "double scroll" issue where html/body can scroll independently.
+*/
+@layer base {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
 @layer base {
   :root {
     --header-height: 69px;
