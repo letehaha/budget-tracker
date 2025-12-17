@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertDialog } from '@/components/common';
+import { AlertDialog, ClickToCopy } from '@/components/common';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { Separator } from '@/components/lib/ui/separator';
@@ -7,7 +7,6 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
 import { AccountModel, TransactionModel } from '@bt/shared/types';
-import { CheckIcon, CopyIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -23,19 +22,6 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const accountsStore = useAccountsStore();
 const confirmAccountName = ref('');
 const accountHasTransactions = computed(() => props.transactions.length > 0);
-
-const isCopied = ref(false);
-const copyAccountName = async () => {
-  try {
-    await navigator.clipboard.writeText(props.account.name);
-    isCopied.value = true;
-    setTimeout(() => {
-      isCopied.value = false;
-    }, 2000);
-  } catch {
-    addErrorNotification('Failed to copy account name');
-  }
-};
 
 const deleteAccount = async () => {
   const accountName = props.account.name;
@@ -96,17 +82,7 @@ const deleteAccount = async () => {
         <template #content>
           <div class="mb-3">
             <p class="text-muted-foreground mb-1 text-xs">Account name (click to copy)</p>
-            <div
-              type="button"
-              class="bg-muted inline-flex w-min max-w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-white/10"
-              @click="copyAccountName"
-            >
-              <span class="truncate font-mono text-sm">
-                {{ account.name }}
-              </span>
-              <CheckIcon v-if="isCopied" class="text-success-text size-4" />
-              <CopyIcon v-else class="text-muted-foreground size-4 shrink-0" />
-            </div>
+            <ClickToCopy :value="account.name" />
           </div>
 
           <InputField
