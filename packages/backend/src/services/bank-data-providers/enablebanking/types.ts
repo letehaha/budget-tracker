@@ -384,7 +384,9 @@ export interface EnableBankingBalance {
 }
 
 interface AmountType {
-  /** ISO 4217 code of the currency of the amount */
+  /** ISO 4217 code of the currency of the amount
+   * ALWAYS positive value. Direction is determined by `CreditDebitIndicator`
+   */
   amount: string;
 
   /** Numerical value or monetary figure associated with a particular transaction,

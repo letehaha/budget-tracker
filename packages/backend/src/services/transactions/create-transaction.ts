@@ -177,6 +177,20 @@ export const createTransaction = withTransaction(
     ...payload
   }: CreateTransactionParams) => {
     try {
+      // Detect negative amounts - this is a bug in the caller code
+      // Transaction amounts should ALWAYS be positive, with transactionType determining expense/income
+      if (amount < 0) {
+        const stack = new Error().stack;
+        logger.error('Negative amount detected in createTransaction. This is a bug - amounts must be positive.', {
+          amount,
+          userId,
+          accountId,
+          transactionType: payload.transactionType,
+          stack,
+        });
+        amount = Math.abs(amount);
+      }
+
       if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
         throw new ValidationError({
           message: 'It is not allowed to crate a transaction that is a refund and a transfer at the same time',

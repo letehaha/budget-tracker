@@ -591,10 +591,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     return transactions.map((tx) => {
       const isExpense = tx.credit_debit_indicator === CreditDebitIndicator.DBIT;
-      let amountFloat = parseFloat(tx.transaction_amount.amount);
-      if (isExpense) {
-        amountFloat = amountFloat * -1;
-      }
+      const amountFloat = parseFloat(tx.transaction_amount.amount);
       const amountSystemAmount = toSystemAmount(amountFloat);
       const merchantName = tx.debtor?.name || tx.creditor?.name || 'Unknown';
 
@@ -626,7 +623,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           creditorName: tx.creditor?.name || null,
           creditorAccount: tx.creditor_account?.iban,
           balanceAfter: tx.balance_after_transaction,
-          originalAmount: amountFloat, // Store original for determining income/expense
+          oritinalAmount: parseFloat(tx.transaction_amount.amount),
+          isExpense, // Store transaction type indicator
           entryReference: tx.entry_reference,
           originalTransactionId: tx.transaction_id, // Store if available
 
@@ -690,9 +688,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           continue; // Skip existing transactions
         }
 
-        // Determine transaction type based on original amount (stored in metadata)
-        const originalAmount = (tx.metadata?.originalAmount as number) || 0;
-        const isExpense = originalAmount < 0;
+        // Determine transaction type from metadata
+        const isExpense = tx.metadata?.isExpense === true;
 
         const { defaultCategoryId } = (await getUserDefaultCategory({ id: connection.userId }))!;
 
@@ -700,7 +697,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         await createTransaction({
           originalId: tx.externalId,
           note: tx.description,
-          amount: tx.amount, // Already converted to system amount
+          amount: Math.abs(tx.amount), // Ensure positive value
           time: tx.date,
           externalData: tx.metadata,
           commissionRate: 0,
