@@ -51,6 +51,25 @@ const props = withDefaults(defineProps<CreateRecordModalProps>(), {
   oppositeTransaction: undefined,
 });
 
+// Normalize transactions so that `transaction` is always the expense (source) side
+// and `oppositeTransaction` is always the income (destination) side.
+// This ensures consistent form population regardless of how props are passed.
+const shouldSwapTransactions = computed(() => {
+  return (
+    props.transaction &&
+    props.oppositeTransaction &&
+    props.oppositeTransaction.transactionType === TRANSACTION_TYPES.expense
+  );
+});
+
+const transaction = computed(() =>
+  shouldSwapTransactions.value ? props.oppositeTransaction : props.transaction,
+);
+
+const oppositeTransaction = computed(() =>
+  shouldSwapTransactions.value ? props.transaction : props.oppositeTransaction,
+);
+
 const emit = defineEmits(['close-modal']);
 const closeModal = () => {
   emit('close-modal');
@@ -103,17 +122,17 @@ watchOnce(
 const linkedTransaction = ref<TransactionModel | null>(null);
 
 const isRecordExternal = computed(() => {
-  if (!props.transaction) return false;
+  if (!transaction.value) return false;
   // Check the account type, not the transaction type
   // A system transaction in a monobank account should be treated as external
-  const account = accountsRecord.value[props.transaction.accountId];
+  const account = accountsRecord.value[transaction.value.accountId];
   return account && account.type !== ACCOUNT_TYPES.system;
 });
 const isOppositeTxExternal = computed(() => {
-  if (!props.oppositeTransaction) return false;
+  if (!oppositeTransaction.value) return false;
   // Check the account type, not the transaction type
   // A system transaction in a monobank account should be treated as external
-  const account = accountsRecord.value[props.oppositeTransaction.accountId];
+  const account = accountsRecord.value[oppositeTransaction.value.accountId];
   return account && account.type !== ACCOUNT_TYPES.system;
 });
 // If record is external, the account field will be disabled, so we need to preselect
@@ -121,10 +140,10 @@ const isOppositeTxExternal = computed(() => {
 watch(
   () => isRecordExternal.value,
   (value) => {
-    if (value && props.transaction.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
+    if (value && transaction.value?.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
       nextTick(() => {
-        if (accountsRecord.value[props.transaction.accountId]) {
-          form.value.account = accountsRecord.value[props.transaction.accountId];
+        if (transaction.value && accountsRecord.value[transaction.value.accountId]) {
+          form.value.account = accountsRecord.value[transaction.value.accountId];
         }
       });
     }
@@ -157,8 +176,8 @@ const {
   isTransferTx,
   isRecordExternal,
   isOppositeTxExternal,
-  transaction: props.transaction,
-  oppositeTransaction: props.oppositeTransaction,
+  transaction: transaction.value,
+  oppositeTransaction: oppositeTransaction.value,
   linkedTransaction,
 });
 
@@ -172,7 +191,7 @@ const {
 const isAmountFieldDisabled = computed(() => {
   if (isRecordExternal.value) {
     if (!isTransferTx.value) return true;
-    if (props.transaction.transactionType === TRANSACTION_TYPES.expense) {
+    if (transaction.value?.transactionType === TRANSACTION_TYPES.expense) {
       return true;
     }
   }
@@ -198,11 +217,11 @@ const currencyCode = computed(() => {
 watch(
   () => [currentTxType.value, linkedTransaction.value],
   ([txType, isLinked], [prevTxType]) => {
-    if (props.transaction) {
+    if (transaction.value) {
       // If it's a transaction coming from props it means user currectly edits the form.
       // When switching between transfer type and others we need to keep consistent fields
       // fulfillment
-      const { amount, transactionType, accountId, transferNature } = props.transaction;
+      const { amount, transactionType, accountId, transferNature } = transaction.value;
 
       if (isLinked) {
         form.value.amount = amount;
@@ -240,27 +259,27 @@ const submit = () => {
     isCurrenciesDifferent: isCurrenciesDifferent.value,
     isOriginalRefundsOverriden: isOriginalRefundsOverriden.value,
     isRecordExternal: isRecordExternal.value,
-    transaction: props.transaction,
+    transaction: transaction.value,
     linkedTransaction: linkedTransaction.value,
-    oppositeTransaction: props.oppositeTransaction,
+    oppositeTransaction: oppositeTransaction.value,
   });
 };
 
 const unlinkTransactions = () => {
   unlinkMutation.mutate({
-    transferIds: [props.transaction.transferId],
-    transactionId: props.transaction?.id,
-    oppositeTransactionId: props.oppositeTransaction?.id,
+    transferIds: [transaction.value.transferId],
+    transactionId: transaction.value?.id,
+    oppositeTransactionId: oppositeTransaction.value?.id,
   });
 };
 
 const deleteTransactionHandler = () => {
   // Check the account type, not the transaction type
-  const account = accountsRecord.value[props.transaction.accountId];
+  const account = accountsRecord.value[transaction.value.accountId];
   if (account && account.type !== ACCOUNT_TYPES.system) return;
 
   deleteMutation.mutate({
-    transactionId: props.transaction.id,
+    transactionId: transaction.value.id,
   });
 };
 
@@ -275,12 +294,12 @@ const previouslyFocusedElement = ref(document.activeElement);
 const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
 onMounted(() => {
-  if (!props.transaction) {
+  if (!transaction.value) {
     form.value.account = systemAccounts.value[0];
   } else {
     const data = prepopulateForm({
-      transaction: props.transaction,
-      oppositeTransaction: props.oppositeTransaction,
+      transaction: transaction.value,
+      oppositeTransaction: oppositeTransaction.value,
       accounts: accountsRecord.value,
       categories: categoriesMap.value,
     });
@@ -378,7 +397,7 @@ onUnmounted(() => {
             :disabled="isFormFieldsDisabled"
             :is-transfer-transaction="isTransferTx"
             :is-transaction-linking="!!linkedTransaction"
-            :transaction-type="props.transaction?.transactionType || TRANSACTION_TYPES.expense"
+            :transaction-type="transaction?.transactionType || TRANSACTION_TYPES.expense"
             :accounts="isTransferTx ? transferSourceAccounts : systemAccounts"
             :from-account-disabled="fromAccountFieldDisabled"
             :to-account-disabled="toAccountFieldDisabled"
