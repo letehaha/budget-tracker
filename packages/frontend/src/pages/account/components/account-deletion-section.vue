@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertDialog } from '@/components/common';
+import { AlertDialog, ClickToCopy } from '@/components/common';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { Separator } from '@/components/lib/ui/separator';
@@ -80,9 +80,14 @@ const deleteAccount = async () => {
           </template>
         </template>
         <template #content>
+          <div class="mb-3">
+            <p class="text-muted-foreground mb-1 text-xs">Account name (click to copy)</p>
+            <ClickToCopy :value="account.name" />
+          </div>
+
           <InputField
             v-model="confirmAccountName"
-            placeholder="Enter account name"
+            placeholder="Type account name to confirm"
             class="border-destructive focus-visible:outline-destructive"
           />
         </template>

@@ -126,7 +126,7 @@ POST /bank-data-providers/enablebanking/callback
 
 ### Balance Updates
 
-1. During `syncAccounts` - fetched and stored
+1. During `connectSelectedAccounts` - fetched and stored when accounts are created
 2. After `syncTransactions` - re-fetched for accuracy
 
 ### Data Storage

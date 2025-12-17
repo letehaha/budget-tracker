@@ -58,6 +58,7 @@ export const useTransactionsWithFilters = ({
         excludeRefunds: filter.excludeRefunds,
         excludeTransfer: filter.excludeTransfer,
         accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
+        categoryIds: filter.categoryIds.length ? filter.categoryIds : undefined,
         ...staticFilters,
       }),
     );

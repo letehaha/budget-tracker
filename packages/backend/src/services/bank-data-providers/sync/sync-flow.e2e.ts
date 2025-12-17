@@ -210,6 +210,97 @@ describe('Sync Flow E2E', () => {
       expect(response.body.response.syncedAccounts).toBe(0);
       expect(response.body.response.accountResults).toEqual([]);
     });
+
+    it('should skip disabled accounts from sync', async () => {
+      // Setup: Connect provider and multiple accounts
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      // Connect 2 accounts
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: externalAccounts.slice(0, 2).map((a: { externalId: string }) => a.externalId),
+        raw: true,
+      });
+
+      // Disable the first account
+      await helpers.updateAccount({
+        id: syncedAccounts[0]!.id,
+        payload: { isEnabled: false },
+        raw: true,
+      });
+
+      // Trigger sync
+      const response = await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/sync/trigger',
+      });
+
+      expect(response.status).toBe(200);
+      // Only 1 account should be synced (the enabled one)
+      expect(response.body.response.totalAccounts).toBe(1);
+      expect(response.body.response.accountResults.length).toBe(1);
+      expect(response.body.response.accountResults[0]!.accountId).toBe(syncedAccounts[1]!.id);
+    });
+
+    it('should include account in sync after re-enabling it', async () => {
+      // Setup: Connect provider and account
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+
+      // Disable the account
+      await helpers.updateAccount({
+        id: accountId,
+        payload: { isEnabled: false },
+        raw: true,
+      });
+
+      // Verify sync skips disabled account
+      let response = await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/sync/trigger',
+      });
+      expect(response.body.response.totalAccounts).toBe(0);
+
+      // Re-enable the account
+      await helpers.updateAccount({
+        id: accountId,
+        payload: { isEnabled: true },
+        raw: true,
+      });
+
+      // Verify sync now includes the account
+      response = await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/sync/trigger',
+      });
+      expect(response.body.response.totalAccounts).toBe(1);
+      expect(response.body.response.accountResults[0]!.accountId).toBe(accountId);
+    });
   });
 
   // TODO: unskip and fix

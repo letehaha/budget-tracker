@@ -11,6 +11,7 @@ export interface FiltersStruct {
   accounts: AccountModel[];
   excludedBudgetIds?: number[] | null;
   noteIncludes: string;
+  categoryIds: number[];
 }
 
 export const DEFAULT_FILTERS: FiltersStruct = {
@@ -24,4 +25,5 @@ export const DEFAULT_FILTERS: FiltersStruct = {
   accounts: [],
   excludedBudgetIds: null,
   noteIncludes: '',
+  categoryIds: [],
 };

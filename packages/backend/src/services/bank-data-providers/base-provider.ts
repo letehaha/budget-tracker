@@ -133,12 +133,6 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
   abstract fetchAccounts(connectionId: number): Promise<ProviderAccount[]>;
 
   /**
-   * Sync accounts from provider to our database
-   * @param connectionId - Connection to sync accounts for
-   */
-  abstract syncAccounts(connectionId: number): Promise<void>;
-
-  /**
    * Fetch transactions for a specific account (without saving to DB)
    * @param connectionId - Connection ID
    * @param accountExternalId - Provider's account ID

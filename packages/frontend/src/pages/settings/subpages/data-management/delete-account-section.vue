@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { deleteUserAccount } from '@/api/user';
-import { AlertDialog } from '@/components/common';
+import { AlertDialog, ClickToCopy } from '@/components/common';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -73,9 +73,11 @@ const handleDeleteAccount = async () => {
           </div>
         </template>
         <template #content>
-          <p class="mt-4 mb-2 text-left text-sm">
-            Please type <strong>{{ user.username }}</strong> to confirm
-          </p>
+          <div class="mt-4 mb-2 text-left text-sm">
+            Please type
+            <ClickToCopy :value="user.username" />
+            to confirm
+          </div>
           <InputField
             v-model="confirmUsername"
             placeholder="Enter your username"

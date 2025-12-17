@@ -2,11 +2,21 @@
   <section class="flex min-h-full flex-col p-6">
     <!-- Main period selector - floating on mobile, normal flow on desktop -->
     <div
-      :class="[
-        'bg-background/95 supports-[backdrop-filter]:bg-background/80 z-(--z-navbar) order-last -mx-6 mt-auto -mb-6 border-t py-2 backdrop-blur',
-        'sticky max-md:-bottom-px md:top-[calc(var(--header-height)-2px)]',
-        'md:order-first md:mx-0 md:mt-0 md:mb-6 md:border-t-0 md:py-0',
-      ]"
+      :class="
+        cn([
+          'bg-background/95 supports-[backdrop-filter]:bg-background/80 z-(--z-navbar) order-last -mx-6 mt-auto border-t py-2 backdrop-blur',
+          // 'sticky max-md:bottom-[var(--bottom-navbar-height)] md:top-[var(--header-height)]',
+          // 'max-md:right-0 max-md:bottom-[calc(var(--bottom-navbar-height)+env(safe-area-inset-bottom)-1px)] max-md:left-0',
+          'max-md:right-0 max-md:left-0',
+          'sticky md:top-[var(--header-height)]',
+          isSafariMobile
+            ? isPWA
+              ? 'max-md:bottom-[calc(var(--bottom-navbar-height)-env(safe-area-inset-bottom)-1px)]'
+              : 'max-md:bottom-[calc(var(--bottom-navbar-height-content-rect)-env(safe-area-inset-bottom)-1px)]'
+            : 'max-md:bottom-[calc(env(safe-area-inset-bottom)-1px)]',
+          'md:order-first md:mx-0 md:mt-0 md:mb-6 md:border-t-0 md:py-0',
+        ])
+      "
     >
       <div class="flex items-center justify-center gap-1">
         <ui-button size="icon" variant="ghost" @click="selectPrevPeriod">
@@ -77,6 +87,8 @@ import Popover from '@/components/lib/ui/popover/Popover.vue';
 import PopoverContent from '@/components/lib/ui/popover/PopoverContent.vue';
 import PopoverTrigger from '@/components/lib/ui/popover/PopoverTrigger.vue';
 import RangeCalendar from '@/components/lib/ui/range-calendar/RangeCalendar.vue';
+import { useSafariDetection } from '@/composable/detect-safari';
+import { cn } from '@/lib/utils';
 import { CalendarDate, type DateValue } from '@internationalized/date';
 import {
   addMonths,
@@ -96,6 +108,8 @@ import { computed, defineAsyncComponent, ref } from 'vue';
 const BalanceTrendWidget = defineAsyncComponent(() => import('@/components/widgets/balance-trend.vue'));
 const LatestRecordsWidget = defineAsyncComponent(() => import('@/components/widgets/latest-records.vue'));
 const SpendingCategoriesWidget = defineAsyncComponent(() => import('@/components/widgets/expenses-structure.vue'));
+
+const { isSafariMobile, isPWA } = useSafariDetection();
 
 defineOptions({
   name: 'page-dashboard',

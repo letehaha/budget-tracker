@@ -1,5 +1,5 @@
 <template>
-  <div class="shadow-header border-border flex max-h-(--header-height) items-center justify-between border-b px-6 py-3">
+  <div ref="headerRef" class="shadow-header border-border flex items-center justify-between border-b px-6 py-3">
     <div class="flex items-center gap-4">
       <template v-if="isMobileView">
         <Sheet.Sheet :open="isMobileSheetOpen" @update:open="isMobileSheetOpen = $event">
@@ -96,12 +96,17 @@ import Sidebar from '@/components/sidebar/index.vue';
 import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
+import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-size';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes';
 import { CheckCircle, MenuIcon, MoonStar, PlusIcon, RefreshCcw, SettingsIcon, Sun } from 'lucide-vue-next';
 import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+
+const { elementRef: headerRef } = useCssVarFromElementSize({
+  cssVars: [{ cssVarName: '--header-height' }],
+});
 
 const route = useRoute();
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);

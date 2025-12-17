@@ -56,7 +56,7 @@ export function useSyncStatus() {
     const inProgress = summary.syncing + summary.queued;
 
     if (inProgress > 0) {
-      return `Syncing ${inProgress} of ${summary.total} accounts`;
+      return `Syncing ${inProgress} accounts`;
     }
     return '';
   });

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { Switch } from '@/components/lib/ui/switch';
+import * as Tooltip from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { debounce } from 'lodash-es';
-import { reactive, watch, watchEffect } from 'vue';
+import { InfoIcon } from 'lucide-vue-next';
+import { computed, reactive, watch, watchEffect } from 'vue';
 
 const props = defineProps<{
   account: AccountModel;
@@ -42,6 +44,16 @@ watchEffect(() => {
   }
 });
 
+// Inverted value to represent "hidden" label
+// - Switch ON = account is hidden (isEnabled: false)
+// - Switch OFF = account is visible (isEnabled: true)
+const isHidden = computed({
+  get: () => !form.isEnabled,
+  set: (value: boolean) => {
+    form.isEnabled = !value;
+  },
+});
+
 watch(
   () => form.isEnabled,
   (value) => {
@@ -52,14 +64,29 @@ watch(
       });
     }
   },
-  { immediate: true },
 );
 </script>
 
 <template>
   <div class="flex items-center justify-between gap-2">
-    <span> Make this account visible on the Dashboard: </span>
+    <span class="flex items-center gap-2">
+      Hidden:
 
-    <Switch v-model:checked="form.isEnabled" />
+      <Tooltip.TooltipProvider>
+        <Tooltip.Tooltip>
+          <Tooltip.TooltipTrigger>
+            <InfoIcon class="text-primary size-4" />
+          </Tooltip.TooltipTrigger>
+          <Tooltip.TooltipContent class="max-w-[400px] p-4">
+            <span class="text-sm leading-6 opacity-90">
+              Hidden accounts are not visible on the Dashboard, won't affect statistics, and won't be automatically
+              synced via bank connection until re-enabled.
+            </span>
+          </Tooltip.TooltipContent>
+        </Tooltip.Tooltip>
+      </Tooltip.TooltipProvider>
+    </span>
+
+    <Switch v-model:model-value="isHidden" />
   </div>
 </template>

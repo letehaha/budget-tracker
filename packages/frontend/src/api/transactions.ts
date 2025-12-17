@@ -42,6 +42,7 @@ export const loadTransactions = async (params: {
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
   accountIds?: number[];
+  categoryIds?: number[];
   sort?: SORT_DIRECTIONS;
   includeUser?: boolean;
   includeAccount?: boolean;

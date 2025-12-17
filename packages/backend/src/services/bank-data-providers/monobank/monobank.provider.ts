@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
-import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Transactions from '@models/Transactions.model';
 import {
@@ -14,6 +13,7 @@ import {
   ProviderMetadata,
   ProviderTransaction,
 } from '@services/bank-data-providers';
+import cc from 'currency-codes';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
@@ -144,62 +144,6 @@ export class MonobankProvider extends BaseBankDataProvider {
     const clientInfo = await apiClient.getClientInfo();
 
     return this.transformMonobankAccounts(clientInfo);
-  }
-
-  async syncAccounts(connectionId: number): Promise<void> {
-    const connection = await this.getConnection(connectionId);
-    this.validateProviderType(connection);
-
-    const { apiToken } = await this.getValidatedCredentials(connectionId);
-    const apiClient = new MonobankApiClient(apiToken);
-    const clientInfo = await apiClient.getClientInfo();
-
-    // Get existing accounts linked to this connection
-    const existingAccounts = await Accounts.findAll({
-      where: {
-        userId: connection.userId,
-        bankDataProviderConnectionId: connectionId,
-      },
-    });
-
-    // Transform Monobank accounts to provider accounts
-    const providerAccounts = this.transformMonobankAccounts(clientInfo);
-
-    // Sync each account
-    for (const providerAccount of providerAccounts) {
-      const existingAccount = existingAccounts.find((acc) => acc.externalId === providerAccount.externalId);
-
-      if (existingAccount) {
-        // Update existing account
-        await existingAccount.update({
-          name: providerAccount.name,
-          currentBalance: providerAccount.balance,
-          creditLimit: providerAccount.metadata?.creditLimit || 0,
-        });
-      } else {
-        // Create new account
-        await Accounts.create({
-          userId: connection.userId,
-          name: providerAccount.name,
-          type: ACCOUNT_TYPES.monobank,
-          accountCategory: 'general', // TODO: determine proper category
-          currencyCode: this.getCurrencyCodeFromMonobank(providerAccount.metadata?.currencyCode as number),
-          initialBalance: providerAccount.balance,
-          refInitialBalance: providerAccount.balance, // TODO: calculate ref balance
-          currentBalance: providerAccount.balance,
-          refCurrentBalance: providerAccount.balance, // TODO: calculate ref balance
-          creditLimit: providerAccount.metadata?.creditLimit || 0,
-          refCreditLimit: providerAccount.metadata?.creditLimit || 0, // TODO: calculate ref balance
-          externalId: providerAccount.externalId,
-          externalData: providerAccount.metadata || {},
-          isEnabled: true,
-          bankDataProviderConnectionId: connectionId,
-        } as any);
-      }
-    }
-
-    // Update last sync timestamp
-    await this.updateLastSync(connectionId);
   }
 
   // ============================================================================
@@ -491,15 +435,10 @@ export class MonobankProvider extends BaseBankDataProvider {
    * @returns Currency code string (e.g., 'UAH', 'USD')
    */
   private getCurrencyCodeFromMonobank(numericCode: number): string {
-    // ISO 4217 numeric codes
-    const currencyMap: Record<number, string> = {
-      980: 'UAH', // Ukrainian Hryvnia
-      840: 'USD', // US Dollar
-      978: 'EUR', // Euro
-      826: 'GBP', // British Pound
-      985: 'PLN', // Polish Zloty
-    };
-
-    return currencyMap[numericCode] || `UNKNOWN_${numericCode}`;
+    const currency = cc.number(String(numericCode));
+    if (!currency) {
+      throw new ValidationError({ message: `Unknown currency code: ${numericCode}` });
+    }
+    return currency.code;
   }
 }

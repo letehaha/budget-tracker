@@ -45,6 +45,7 @@ async function getUserBankAccounts(userId: number): Promise<AccountWithConnectio
     where: {
       userId,
       bankDataProviderConnectionId: { [Op.ne]: null },
+      isEnabled: true,
     },
     include: [
       {

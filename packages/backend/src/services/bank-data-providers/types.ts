@@ -235,13 +235,6 @@ export interface IBankDataProvider {
    */
   fetchAccounts(connectionId: number): Promise<ProviderAccount[]>;
 
-  /**
-   * Sync accounts from provider to our database
-   * Creates or updates accounts in our system
-   * @param connectionId - Connection to sync accounts for
-   */
-  syncAccounts(connectionId: number): Promise<void>;
-
   // ========================================
   // Transaction Operations
   // ========================================

@@ -502,70 +502,6 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     return accountsData;
   }
 
-  async syncAccounts(connectionId: number): Promise<void> {
-    const connection = await this.getConnection(connectionId);
-    this.validateProviderType(connection);
-
-    const providerAccounts = await this.fetchAccounts(connectionId);
-
-    // Get existing accounts
-    const existingAccounts = await Accounts.findAll({
-      where: {
-        userId: connection.userId,
-        bankDataProviderConnectionId: connectionId,
-      },
-    });
-
-    // Sync each account
-    for (const providerAccount of providerAccounts) {
-      // Match by IBAN (stable across reconnections) first, then fallback to externalId
-      const existingAccount = existingAccounts.find((acc) => {
-        const existingIban = (acc.externalData as Record<string, unknown>)?.iban;
-        const providerIban = providerAccount.metadata?.iban;
-
-        // Primary: match by IBAN + currency (stable across reconnections)
-        if (existingIban && providerIban && existingIban === providerIban) {
-          return acc.currencyCode === providerAccount.currency;
-        }
-
-        // Fallback: match by externalId (for backwards compatibility)
-        return acc.externalId === providerAccount.externalId;
-      });
-
-      if (existingAccount) {
-        // Update existing account, including the new externalId from provider
-        // This is critical for reconnection flows where Enable Banking assigns new UUIDs
-        await existingAccount.update({
-          name: providerAccount.name,
-          currentBalance: providerAccount.balance,
-          externalId: providerAccount.externalId,
-          externalData: providerAccount.metadata || existingAccount.externalData,
-        });
-      } else {
-        // Create new account
-        await Accounts.create({
-          userId: connection.userId,
-          name: providerAccount.name,
-          type: ACCOUNT_TYPES.enableBanking,
-          accountCategory: 'general',
-          currencyCode: providerAccount.currency,
-          initialBalance: providerAccount.balance,
-          refInitialBalance: providerAccount.balance,
-          currentBalance: providerAccount.balance,
-          refCurrentBalance: providerAccount.balance,
-          creditLimit: 0,
-          refCreditLimit: 0,
-          externalId: providerAccount.externalId,
-          externalData: providerAccount.metadata || {},
-          isEnabled: true,
-          bankDataProviderConnectionId: connectionId,
-        } as any);
-      }
-    }
-
-    await this.updateLastSync(connectionId);
-  }
-
   // ============================================================================
   // Transaction Operations
   // ============================================================================
@@ -591,10 +527,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     return transactions.map((tx) => {
       const isExpense = tx.credit_debit_indicator === CreditDebitIndicator.DBIT;
-      let amountFloat = parseFloat(tx.transaction_amount.amount);
-      if (isExpense) {
-        amountFloat = amountFloat * -1;
-      }
+      const amountFloat = parseFloat(tx.transaction_amount.amount);
       const amountSystemAmount = toSystemAmount(amountFloat);
       const merchantName = tx.debtor?.name || tx.creditor?.name || 'Unknown';
 
@@ -626,7 +559,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           creditorName: tx.creditor?.name || null,
           creditorAccount: tx.creditor_account?.iban,
           balanceAfter: tx.balance_after_transaction,
-          originalAmount: amountFloat, // Store original for determining income/expense
+          oritinalAmount: parseFloat(tx.transaction_amount.amount),
+          isExpense, // Store transaction type indicator
           entryReference: tx.entry_reference,
           originalTransactionId: tx.transaction_id, // Store if available
 
@@ -690,9 +624,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           continue; // Skip existing transactions
         }
 
-        // Determine transaction type based on original amount (stored in metadata)
-        const originalAmount = (tx.metadata?.originalAmount as number) || 0;
-        const isExpense = originalAmount < 0;
+        // Determine transaction type from metadata
+        const isExpense = tx.metadata?.isExpense === true;
 
         const { defaultCategoryId } = (await getUserDefaultCategory({ id: connection.userId }))!;
 
@@ -700,7 +633,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         await createTransaction({
           originalId: tx.externalId,
           note: tx.description,
-          amount: tx.amount, // Already converted to system amount
+          amount: Math.abs(tx.amount), // Ensure positive value
           time: tx.date,
           externalData: tx.metadata,
           commissionRate: 0,
