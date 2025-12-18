@@ -9,9 +9,11 @@ import {
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import { toSystemAmount } from '@js/helpers/system-amount';
 import Accounts from '@models/Accounts.model';
+import Balances from '@models/Balances.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Transactions from '@models/Transactions.model';
 import { getUserDefaultCategory } from '@models/Users.model';
+import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import {
   BaseBankDataProvider,
   CredentialFieldType,
@@ -23,6 +25,7 @@ import {
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
 import crypto from 'crypto';
+import { startOfDay } from 'date-fns';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
@@ -654,13 +657,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         createdTransactionIds.push(createdTx.id);
       }
 
-      // Update account balance from latest transaction if available
-      if (providerTransactions.length > 0) {
-        const balance = await this.fetchBalance(connectionId, account.externalId);
-        await account.update({
-          currentBalance: balance.amount,
-        });
-      }
+      // Always update account balance from bank when syncing
+      // This ensures balance stays accurate even if no new transactions were found
+      const balance = await this.fetchBalance(connectionId, account.externalId);
+      await this.updateAccountBalance({ account, balance: balance.amount });
 
       await this.updateLastSync(connectionId);
 
@@ -726,9 +726,50 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     const balance = await this.fetchBalance(connectionId, account.externalId);
 
-    await account.update({
-      currentBalance: balance.amount,
+    await this.updateAccountBalance({ account, balance: balance.amount });
+  }
+
+  /**
+   * Update account balance and record it in balance history.
+   * This ensures both currentBalance/refCurrentBalance and the Balances table are in sync.
+   */
+  private async updateAccountBalance({ account, balance }: { account: Accounts; balance: number }): Promise<void> {
+    const today = startOfDay(new Date());
+
+    // Calculate ref balance (in user's base currency)
+    const refBalance = await calculateRefAmount({
+      amount: balance,
+      userId: account.userId,
+      date: today,
+      baseCode: account.currencyCode,
     });
+
+    // Update account balance
+    await account.update({
+      currentBalance: balance,
+      refCurrentBalance: refBalance,
+    });
+
+    // Update balance history - create or update record for today
+    const existingRecord = await Balances.findOne({
+      where: {
+        accountId: account.id,
+        date: today,
+      },
+    });
+
+    if (existingRecord) {
+      // Update existing record with the latest balance
+      existingRecord.amount = refBalance;
+      await existingRecord.save();
+    } else {
+      // Create new balance record for today
+      await Balances.create({
+        accountId: account.id,
+        date: today,
+        amount: refBalance,
+      });
+    }
   }
 
   // ============================================================================

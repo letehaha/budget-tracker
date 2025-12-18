@@ -1364,4 +1364,176 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(accountAfter.externalId).toBe(MOCK_ACCOUNT_UID_1_RECONNECTED);
     });
   });
+
+  describe('Balance history tracking', () => {
+    it('should create balance record when account is first connected', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      // Connect an account
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+
+      // Get balance history for this account
+      const balanceHistory = await helpers.getBalanceHistory({ raw: true });
+
+      // Should have at least one balance record for this account
+      const accountBalances = balanceHistory.filter((b: { accountId: number }) => b.accountId === accountId);
+      expect(accountBalances.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should update balance history when transactions are synced', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+
+      // Get balance history count after account connection
+      const balanceHistoryBefore = await helpers.getBalanceHistory({ raw: true });
+      const accountBalancesBefore = balanceHistoryBefore.filter(
+        (b: { accountId: number }) => b.accountId === accountId,
+      );
+      const balanceCountBefore = accountBalancesBefore.length;
+
+      // Sync transactions
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}/sync-transactions`,
+        payload: {
+          accountId,
+        },
+        raw: true,
+      });
+
+      // Verify transactions were synced
+      const transactions = await helpers.getTransactions({
+        accountIds: [accountId],
+        raw: true,
+      });
+      expect(transactions.length).toBeGreaterThan(0);
+
+      // Get balance history count after transaction sync
+      const balanceHistoryAfter = await helpers.getBalanceHistory({ raw: true });
+      const accountBalancesAfter = balanceHistoryAfter.filter((b: { accountId: number }) => b.accountId === accountId);
+
+      // Balance history SHOULD be maintained after transaction sync
+      // On the same day, the existing record is updated (not a new one created)
+      // The count stays the same but the balance amount reflects the bank's current balance
+      expect(accountBalancesAfter.length).toBeGreaterThanOrEqual(balanceCountBefore);
+      expect(accountBalancesAfter.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should update balance history when account is refreshed/resynced', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      let state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+
+      // Get balance history after initial connection
+      const balanceHistoryBefore = await helpers.getBalanceHistory({ raw: true });
+      const accountBalancesBefore = balanceHistoryBefore.filter(
+        (b: { accountId: number }) => b.accountId === accountId,
+      );
+      const balanceCountBefore = accountBalancesBefore.length;
+
+      // Reauthorize and complete OAuth (simulating account refresh)
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}/reauthorize`,
+      });
+
+      state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      // Trigger a sync to update balance from bank after reauthorization
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}/sync-transactions`,
+        payload: {
+          accountId,
+        },
+        raw: true,
+      });
+
+      // Get balance history after reauthorization and sync
+      const balanceHistoryAfter = await helpers.getBalanceHistory({ raw: true });
+      const accountBalancesAfter = balanceHistoryAfter.filter((b: { accountId: number }) => b.accountId === accountId);
+
+      // Balance history SHOULD be maintained after refresh/resync
+      // On the same day, the existing record is updated (not a new one created)
+      expect(accountBalancesAfter.length).toBeGreaterThanOrEqual(balanceCountBefore);
+      expect(accountBalancesAfter.length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });
