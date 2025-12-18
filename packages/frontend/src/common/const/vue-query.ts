@@ -76,4 +76,6 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   bankConnectionDetails: [bankConnectionChange, 'bank-connection-details'] as const,
   bankAvailableExternalAccounts: [bankConnectionChange, 'bank-available-external-accounts'] as const,
   bankConnections: [bankConnectionChange, 'bank-connections'] as const,
+
+  aiSettings: ['ai-settings'] as const,
 });

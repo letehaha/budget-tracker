@@ -1,9 +1,11 @@
 import {
   ACCOUNT_TYPES,
+  CategorizationMeta,
+  CATEGORIZATION_SOURCE,
   PAYMENT_TYPES,
-  TRANSACTION_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
   SORT_DIRECTIONS,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
   TransactionModel,
 } from '@bt/shared/types';
 import { Op, Includeable, WhereOptions } from 'sequelize';
@@ -95,6 +97,7 @@ export interface TransactionsAttributes {
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified
   refundLinked: boolean;
+  categorizationMeta: CategorizationMeta | null;
 }
 
 @Table({
@@ -224,6 +227,13 @@ export default class Transactions extends Model {
     defaultValue: false,
   })
   refundLinked!: boolean;
+
+  // Metadata about how this transaction was categorized (manual, ai, mcc_rule, user_rule)
+  @Column({
+    type: DataType.JSONB,
+    allowNull: true,
+  })
+  categorizationMeta!: CategorizationMeta | null;
 
   // User should set all of requiredFields for transfer transaction
   @BeforeCreate
@@ -363,6 +373,7 @@ export const findWithFilters = async ({
   categoryIds,
   noteSearch,
   attributes,
+  categorizationSource,
 }: {
   from: number;
   limit?: number;
@@ -388,6 +399,7 @@ export const findWithFilters = async ({
   categoryIds?: number[];
   noteSearch?: string[]; // array of keywords
   attributes?: (keyof Transactions)[];
+  categorizationSource?: CATEGORIZATION_SOURCE;
 }) => {
   const include = prepareTXInclude({ includeUser, includeAccount, includeCategory, includeAll, nestedInclude });
   const queryInclude: Includeable[] = Array.isArray(include) ? include : include ? [include] : [];
@@ -475,6 +487,11 @@ export const findWithFilters = async ({
         [Op.iLike]: `%${term}%`
       }))
     };
+  }
+
+  // Filter by categorization source (stored in JSONB field)
+  if (categorizationSource) {
+    whereClause['categorizationMeta.source'] = categorizationSource;
   }
 
   const transactions = await Transactions.findAll({

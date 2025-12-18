@@ -66,3 +66,22 @@ export enum BUDGET_STATUSES {
   active = 'active',
   closed = 'closed',
 }
+
+/**
+ * Source of transaction categorization
+ */
+export enum CATEGORIZATION_SOURCE {
+  manual = 'manual',
+  ai = 'ai',
+  mccRule = 'mcc_rule',
+  userRule = 'user_rule',
+}
+
+/**
+ * Supported AI providers for features like transaction categorization
+ */
+export enum AI_PROVIDER {
+  anthropic = 'anthropic',
+  openai = 'openai',
+  google = 'google',
+}

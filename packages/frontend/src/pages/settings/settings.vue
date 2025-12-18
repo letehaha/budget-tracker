@@ -41,6 +41,11 @@ const baseTabs: Tab[] = [
     label: 'Data Management',
     to: { name: ROUTES_NAMES.settingsDataManagement },
   },
+  {
+    name: 'ai',
+    label: 'AI',
+    to: { name: ROUTES_NAMES.settingsAi },
+  },
 ];
 
 const adminTab: Tab = {

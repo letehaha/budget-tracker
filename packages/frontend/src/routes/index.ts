@@ -124,6 +124,11 @@ const routes = [
             name: ROUTES_NAMES.settingsAdmin,
             component: () => import('@/pages/settings/subpages/admin/index.vue'),
           },
+          {
+            path: 'ai',
+            name: ROUTES_NAMES.settingsAi,
+            component: () => import('@/pages/settings/subpages/ai/index.vue'),
+          },
         ],
       },
     ],

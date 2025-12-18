@@ -20,6 +20,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@polygon.io/client-js": "^7.4.0",
     "@types/cls-hooked": "^4.3.9",
     "alphavantage": "^2.5.0",

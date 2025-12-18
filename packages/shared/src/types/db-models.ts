@@ -1,6 +1,7 @@
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
+  CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
@@ -78,6 +79,18 @@ export interface BalanceModel {
   account: Omit<AccountModel, 'systemType'>;
 }
 
+/**
+ * Metadata about how a transaction was categorized.
+ * Stored as JSONB in the database.
+ */
+export interface CategorizationMeta {
+  source: CATEGORIZATION_SOURCE;
+  /** Rule ID for user_rule categorization */
+  ruleId?: number;
+  /** ISO timestamp when categorization was applied */
+  categorizedAt?: string;
+}
+
 export interface TransactionModel {
   id: number;
   amount: number;
@@ -108,6 +121,8 @@ export interface TransactionModel {
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified
   refundLinked: boolean;
+  /** Metadata about how this transaction was categorized */
+  categorizationMeta?: CategorizationMeta | null;
 }
 
 export interface CurrencyModel {

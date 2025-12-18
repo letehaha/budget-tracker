@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, CATEGORIZATION_SOURCE, SORT_DIRECTIONS, TRANSACTION_TYPES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
@@ -71,6 +71,7 @@ const schema = z.object({
           if (!val || val === '') return undefined;
           return parseCommaSeparatedStrings(val);
         }),
+      categorizationSource: z.nativeEnum(CATEGORIZATION_SOURCE).optional(),
     })
     .refine(
       (data) => {

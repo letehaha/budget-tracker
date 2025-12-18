@@ -1,4 +1,4 @@
-import { AccountModel, TRANSACTION_TYPES } from '@bt/shared/types';
+import { AccountModel, CATEGORIZATION_SOURCE, TRANSACTION_TYPES } from '@bt/shared/types';
 
 export interface FiltersStruct {
   start: Date | null; // ISO date
@@ -12,6 +12,7 @@ export interface FiltersStruct {
   excludedBudgetIds?: number[] | null;
   noteIncludes: string;
   categoryIds: number[];
+  categorizationSource: CATEGORIZATION_SOURCE | null;
 }
 
 export const DEFAULT_FILTERS: FiltersStruct = {
@@ -26,4 +27,5 @@ export const DEFAULT_FILTERS: FiltersStruct = {
   excludedBudgetIds: null,
   noteIncludes: '',
   categoryIds: [],
+  categorizationSource: null,
 };

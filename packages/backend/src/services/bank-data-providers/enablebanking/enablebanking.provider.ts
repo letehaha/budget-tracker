@@ -26,6 +26,7 @@ import crypto from 'crypto';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
+import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
 import { EnableBankingApiClient } from './api-client';
 import { generateState, validatePrivateKey, validateState } from './jwt-utils';
 import {
@@ -610,7 +611,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       // Fetch transactions
       const providerTransactions = await this.fetchTransactions(connectionId, account.externalId, { from, to });
 
-      // Process each transaction
+      // Process each transaction and collect created transaction IDs
+      const createdTransactionIds: number[] = [];
+
       for (const tx of providerTransactions) {
         // Check if transaction already exists
         const existingTx = await Transactions.findOne({
@@ -629,8 +632,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
         const { defaultCategoryId } = (await getUserDefaultCategory({ id: connection.userId }))!;
 
+        // TODO: consider creating transactions in batch?
         // Create transaction using service (handles all required fields)
-        await createTransaction({
+        const [createdTx] = await createTransaction({
           originalId: tx.externalId,
           note: tx.description,
           amount: Math.abs(tx.amount), // Ensure positive value
@@ -646,6 +650,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           accountType: ACCOUNT_TYPES.enableBanking,
         });
+
+        createdTransactionIds.push(createdTx.id);
       }
 
       // Update account balance from latest transaction if available
@@ -657,6 +663,13 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       }
 
       await this.updateLastSync(connectionId);
+
+      // Emit event for downstream services (e.g., AI categorization)
+      emitTransactionsSyncEvent({
+        userId: connection.userId,
+        accountId: account.id,
+        transactionIds: createdTransactionIds,
+      });
 
       // Set status to COMPLETED on success
       await setAccountSyncStatus(systemAccountId, SyncStatus.COMPLETED);

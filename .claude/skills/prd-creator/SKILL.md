@@ -54,3 +54,5 @@ Do NOT activate for:
 7. Try to use standards like ISO in your suggestions. If user asks for some data format or strucure, suggest him some widely-used format/structure in the industry first. Yet if you think customzations should be applied, suggest them as well.
 
 8. If user asks to regenerate existing PDR, do it by following instructions of this skill. When removing some sections from the old file, ask user if he wants to keep them.
+
+9. **PRD Storage Location**: All PRD files MUST be stored in `docs/prds/` directory using kebab-case naming (e.g., `ai-transaction-categorization.md`).

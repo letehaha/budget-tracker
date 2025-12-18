@@ -17,6 +17,7 @@ import * as transactionsService from '@services/transactions';
 import { Job, Queue, Worker } from 'bullmq';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
+import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
 import { MonobankApiClient } from './api-client';
 
 interface TransactionSyncJobData {
@@ -64,13 +65,14 @@ export const transactionSyncQueue = new Queue<TransactionSyncJobData>(queueName,
 });
 
 /**
- * Create transaction from Monobank API response
+ * Create transaction from Monobank API response.
+ * Returns the created transaction ID, or undefined if skipped (duplicate).
  */
 async function createMonobankTransaction(
   data: ExternalMonobankTransactionResponse,
   accountId: number,
   userId: number,
-): Promise<void> {
+): Promise<number | undefined> {
   // Check if transaction already exists (duplicate prevention)
   const isTransactionExists = await Transactions.findOne({
     where: {
@@ -82,7 +84,7 @@ async function createMonobankTransaction(
 
   if (isTransactionExists) {
     logger.info(`Transaction ${data.id} already exists, skipping`);
-    return;
+    return undefined;
   }
 
   // Get or create MCC code
@@ -116,7 +118,7 @@ async function createMonobankTransaction(
   }
 
   // Create transaction in database
-  await transactionsService.createTransaction({
+  const [createdTx] = await transactionsService.createTransaction({
     originalId: data.id,
     note: data.description,
     amount: Math.abs(data.amount),
@@ -139,6 +141,7 @@ async function createMonobankTransaction(
   });
 
   logger.info(`Created Monobank transaction: ${data.id}, amount: ${data.amount}`);
+  return createdTx.id;
 }
 
 // Create worker to process transaction sync jobs
@@ -181,9 +184,14 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
         transactionCount: transactions.length,
       });
 
-      // Process each transaction
+      // Process each transaction and collect created IDs
+      const createdTransactionIds: number[] = [];
+
       for (let i = 0; i < transactions.length; i++) {
-        await createMonobankTransaction(transactions[i]!, accountId, userId);
+        const createdId = await createMonobankTransaction(transactions[i]!, accountId, userId);
+        if (createdId !== undefined) {
+          createdTransactionIds.push(createdId);
+        }
 
         // Update progress periodically
         if (i % 10 === 0) {
@@ -196,6 +204,9 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
           });
         }
       }
+
+      // Emit event for this batch's transactions (AI categorization, etc.)
+      emitTransactionsSyncEvent({ userId, accountId, transactionIds: createdTransactionIds });
 
       // Update account metadata and balance after processing all transactions in this batch
       const account: Pick<AccountModel, 'externalData' | 'currentBalance'> | null = await Accounts.findByPk(accountId, {

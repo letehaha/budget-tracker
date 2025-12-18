@@ -25,8 +25,8 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "typeRoots": ["./node_modules/@types", "./src/tests/global.d.ts", "./src/typings"]
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "./src/typings"]
   },
-  "include": ["src/**/*", "src/tests/custom-matchers.d.ts"],
+  "include": ["src/**/*", "src/tests/global.d.ts", "src/tests/custom-matchers.d.ts"],
   "exclude": ["config/**/*", "src/migrations/**/*", "dist"]
 }
