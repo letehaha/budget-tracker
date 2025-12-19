@@ -143,3 +143,5 @@ packages/backend/data
 dev-debug.log
 
 scripts/local/*
+
+docs/prds/*

@@ -7,8 +7,12 @@
     class="hover:bg-accent max-xs:justify-between max-xs:items-center max-xs:gap-5 max-xs:py-2 xs:rounded-lg xs:flex-col relative flex h-full gap-3 border p-4 shadow-xs"
   >
     <div class="flex items-center gap-4 overflow-hidden">
-      <template v-if="connectionDetails">
-        <BankProviderLogo class="size-6" :provider="connectionDetails.providerType" />
+      <template v-if="props.account.bankDataProviderConnectionId">
+        <div class="size-6">
+          <template v-if="connectionDetails">
+            <BankProviderLogo class="size-6" :provider="connectionDetails.providerType" />
+          </template>
+        </div>
       </template>
       <div class="xs:max-w-[calc(100%-60px)] truncate text-base tracking-wide whitespace-nowrap">
         {{ account.name || 'No name set...' }}

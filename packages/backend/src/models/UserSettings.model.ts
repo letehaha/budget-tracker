@@ -1,6 +1,18 @@
+import { AI_PROVIDER } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import Users from './Users.model';
 import { z } from 'zod';
+
+export const ZodAiApiKeySchema = z.object({
+  provider: z.nativeEnum(AI_PROVIDER),
+  keyEncrypted: z.string(),
+  createdAt: z.string().datetime(),
+});
+
+export const ZodAiSettingsSchema = z.object({
+  apiKeys: z.array(ZodAiApiKeySchema).default([]),
+  defaultProvider: z.nativeEnum(AI_PROVIDER).optional(),
+});
 
 export const ZodSettingsSchema = z.object({
   stats: z.object({
@@ -8,6 +20,7 @@ export const ZodSettingsSchema = z.object({
       excludedCategories: z.array(z.number().int().positive().finite()),
     }),
   }),
+  ai: ZodAiSettingsSchema.optional(),
 });
 
 export const DEFAULT_SETTINGS: SettingsSchema = {

@@ -1,6 +1,13 @@
 import addUserCurrencies from '@controllers/currencies/add-user-currencies';
 import changeBaseCurrency from '@controllers/currencies/change-base-currency.controller';
 import editCurrencyExchangeRate from '@controllers/currencies/edit-currency-exchange-rate';
+import {
+  deleteAiApiKey,
+  deleteAllAiApiKeys,
+  getAiApiKeyStatus,
+  setAiApiKeyController,
+  setDefaultAiProviderController,
+} from '@controllers/user-settings/ai-api-key';
 import editExcludedCategories from '@controllers/user-settings/edit-exclude-categories';
 import getUserSettings from '@controllers/user-settings/get-settings';
 import updateUserSettings from '@controllers/user-settings/update-settings';
@@ -77,6 +84,33 @@ router.put(
   authenticateJwt,
   validateEndpoint(editExcludedCategories.schema),
   editExcludedCategories.handler,
+);
+
+// AI API Key management
+router.get(
+  '/settings/ai-api-key',
+  authenticateJwt,
+  validateEndpoint(getAiApiKeyStatus.schema),
+  getAiApiKeyStatus.handler,
+);
+router.put(
+  '/settings/ai-api-key',
+  authenticateJwt,
+  validateEndpoint(setAiApiKeyController.schema),
+  setAiApiKeyController.handler,
+);
+router.put(
+  '/settings/ai-api-key/default',
+  authenticateJwt,
+  validateEndpoint(setDefaultAiProviderController.schema),
+  setDefaultAiProviderController.handler,
+);
+router.delete('/settings/ai-api-key', authenticateJwt, validateEndpoint(deleteAiApiKey.schema), deleteAiApiKey.handler);
+router.delete(
+  '/settings/ai-api-key/all',
+  authenticateJwt,
+  validateEndpoint(deleteAllAiApiKeys.schema),
+  deleteAllAiApiKeys.handler,
 );
 
 export default router;

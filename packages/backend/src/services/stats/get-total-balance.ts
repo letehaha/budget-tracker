@@ -1,4 +1,3 @@
-import { withTransaction } from '../common/with-transaction';
 import { getBalanceHistory } from './get-balance-history';
 
 /**
@@ -16,16 +15,14 @@ import { getBalanceHistory } from './get-balance-history';
  * @example
  * const total = await getTotalBalance({ userId: 1, date: '2023-01-01' });
  */
-export const getTotalBalance = withTransaction(
-  async ({ userId, date }: { userId: number; date: string }): Promise<number> => {
-    const balancesForDate = await getBalanceHistory({
-      userId,
-      from: date,
-      to: date,
-    });
+export const getTotalBalance = async ({ userId, date }: { userId: number; date: string }): Promise<number> => {
+  const balancesForDate = await getBalanceHistory({
+    userId,
+    from: date,
+    to: date,
+  });
 
-    const totalBalance = balancesForDate.reduce((acc, value) => (acc += value.amount), 0);
+  const totalBalance = balancesForDate.reduce((acc, value) => (acc += value.amount), 0);
 
-    return totalBalance;
-  },
-);
+  return totalBalance;
+};

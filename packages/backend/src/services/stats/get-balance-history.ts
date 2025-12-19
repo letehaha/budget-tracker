@@ -36,7 +36,7 @@ export const getBalanceHistory = async ({
 
     const [allUserAccounts, balancesInRange] = await Promise.all([
       Accounts.default.findAll({
-        where: { userId },
+        where: { userId, isEnabled: true },
         attributes: ['id'],
         raw: true,
       }),
@@ -46,7 +46,7 @@ export const getBalanceHistory = async ({
         include: [
           {
             model: Accounts.default,
-            where: { userId },
+            where: { userId, isEnabled: true },
             attributes: [],
           },
         ],

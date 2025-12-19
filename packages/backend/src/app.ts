@@ -36,6 +36,7 @@ import testsRoutes from './routes/tests.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
+import { registerAiCategorizationListeners } from './services/ai-categorization';
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
 import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 import { initializeExchangeRateProviders } from './services/exchange-rates/providers';
@@ -107,9 +108,10 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(locale(supportedLocales));
 app.use(sessionMiddleware);
 
-// Initialize data providers
+// Initialize data providers and event listeners
 initializeBankProviders();
 initializeExchangeRateProviders();
+registerAiCategorizationListeners();
 
 /**
  *  Routes include

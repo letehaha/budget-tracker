@@ -4,6 +4,7 @@ import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES } from '@bt/shared/types
 import { subDays, startOfMonth } from 'date-fns';
 import Accounts from './Accounts.model';
 import Transactions, { TransactionsAttributes } from './Transactions.model';
+import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
@@ -145,12 +146,20 @@ export default class Balances extends Model {
       // Monobank provides us with the actual account balance after the transaction.
       // However, balance is in account's currency (e.g., UAH), but Balances.amount
       // must be stored in BASE currency (refBalance).
-      // We calculate the conversion rate from the transaction data and apply it.
-
-      // Calculate exchange rate from transaction: refAmount / amount
-      // Then apply to balance: balance * exchangeRate = refBalance
-      const exchangeRate = data.refAmount / data.amount;
-      const refBalance = balance ? Math.round(balance * exchangeRate) : 0;
+      //
+      // We use the proper exchange rate service to get consistent market rates
+      // instead of deriving the rate from transaction amounts. This is important
+      // because transfers between accounts (e.g., USD -> UAH) can override refAmount
+      // of the transaction_To if transaction_From was in user's base currency
+      // TODO: we probably need to avoid updating opposite_tx refAmount based on
+      // original-tx refAmount
+      const exchangeRateData = await getExchangeRate({
+        userId: data.userId,
+        date,
+        baseCode: data.currencyCode,
+        quoteCode: data.refCurrencyCode,
+      });
+      const refBalance = balance ? Math.round(balance * exchangeRateData.rate) : 0;
 
       const existingRecordForTheDate = await this.findOne({
         where: {

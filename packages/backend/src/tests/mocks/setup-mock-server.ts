@@ -1,8 +1,9 @@
 import { setupServer } from 'msw/node';
 
+import { anthropicHandlers } from './anthropic/mock-api';
 import { enableBankingHandlers } from './enablebanking/mock-api';
 import { exchangeRatesHandlers } from './exchange-rates/use-mock-api';
 import { monobankHandlers } from './monobank/mock-api';
 
 export const setupMswServer = () =>
-  setupServer(...exchangeRatesHandlers, ...monobankHandlers, ...enableBankingHandlers);
+  setupServer(...exchangeRatesHandlers, ...monobankHandlers, ...enableBankingHandlers, ...anthropicHandlers);
