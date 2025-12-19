@@ -47,14 +47,27 @@
                   <p class="font-medium">{{ connectionDetails.isActive ? 'Active' : 'Inactive' }}</p>
                 </div>
                 <div>
-                  <p class="text-muted-foreground text-sm">Last Sync</p>
-                  <p class="font-medium">
-                    {{ connectionDetails.lastSyncAt ? formatDate(connectionDetails.lastSyncAt) : 'Never' }}
+                  <p class="text-muted-foreground flex items-center gap-1 text-sm">
+                    Auto-Sync
+
+                    <Popover.Popover>
+                      <Popover.PopoverTrigger>
+                        <InfoIcon class="text-primary size-4 cursor-pointer" />
+                      </Popover.PopoverTrigger>
+                      <Popover.PopoverContent class="max-w-[300px]">
+                        <span class="text-sm leading-6 opacity-90">
+                          Auto-sync is triggered each time you log in, if more than 12 hours have passed since the last
+                          sync. You can also trigger a sync manually from the header at any time.
+                        </span>
+                      </Popover.PopoverContent>
+                    </Popover.Popover>
                   </p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground text-sm">Created</p>
-                  <p class="font-medium">{{ formatDate(connectionDetails.createdAt) }}</p>
+                  <p class="font-medium">
+                    Every 12 hours
+                    <span class="text-muted-foreground font-normal">
+                      (last {{ formatRelativeTime(connectionDetails.lastSyncAt) }})
+                    </span>
+                  </p>
                 </div>
                 <div>
                   <p class="text-muted-foreground text-sm">Connected Accounts</p>
@@ -247,6 +260,23 @@
 
           <DialogDescription class="mt-2">
             Select available accounts from {{ connectionDetails?.providerName }} that are not yet connected.
+
+            <div class="mt-2">
+              <Popover.Popover>
+                <Popover.PopoverTrigger class="text-primary flex cursor-pointer items-center gap-2 text-sm">
+                  Don't see your accounts? <InfoIcon class="size-4" />
+                </Popover.PopoverTrigger>
+                <Popover.PopoverContent class="max-w-[320px]">
+                  <p class="text-sm leading-6">
+                    If you can't see some of your accounts, try reconnecting your bank connection from the
+                    <strong>Connection Validity</strong> section by clicking <strong>Reconnect Now</strong>.
+                  </p>
+                  <p class="text-muted-foreground mt-2 text-sm">
+                    If the issue persists, please report it for further investigation.
+                  </p>
+                </Popover.PopoverContent>
+              </Popover.Popover>
+            </div>
           </DialogDescription>
         </DialogHeader>
 
@@ -368,13 +398,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/lib/ui/dialog';
+import * as Popover from '@/components/lib/ui/popover';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useBankConnectionDetails } from '@/composable/data-queries/bank-providers/bank-connection-details';
 import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { ChevronDownIcon, PencilIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, InfoIcon, PencilIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -542,6 +573,22 @@ const formatDate = (dateString: string) => {
     hour: '2-digit',
     minute: '2-digit',
   });
+};
+
+const formatRelativeTime = (dateString: string | null) => {
+  if (!dateString) return 'never';
+
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
 };
 
 const formatCurrency = (amount: number) => {
