@@ -7,8 +7,8 @@ import Transactions, { TransactionsAttributes } from './Transactions.model';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { logger } from '@js/utils';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
-// import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
-// import { toSystemAmount } from '@js/helpers/system-amount';
+import { toSystemAmount } from '@js/helpers/system-amount';
+import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
 
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
@@ -173,29 +173,29 @@ export default class Balances extends Model {
       }
 
       case ACCOUNT_TYPES.enableBanking: {
-      //   // EnableBanking transactions are sorted by booking_date before processing,
-      //   // so the last transaction processed for each day will have the correct end-of-day balance.
-      //   // After all transactions are synced, Balances.updateAccountBalance() is called
-      //   // with the authoritative balance from the bank's API to ensure accuracy.
-      //   //
-      //   // balance_after_transaction is optional in the EnableBanking API - not all banks provide it.
-      //   // When available, we use it to build historical balance data for smooth trend indicators.
-      //   const externalData = data.externalData as { balanceAfter?: AmountType } | undefined;
-      //   const balanceAfter = externalData?.balanceAfter;
+        // EnableBanking transactions are sorted by booking_date before processing,
+        // so the last transaction processed for each day will have the correct end-of-day balance.
+        // After all transactions are synced, Balances.updateAccountBalance() is called
+        // with the authoritative balance from the bank's API to ensure accuracy.
+        //
+        // balance_after_transaction is optional in the EnableBanking API - not all banks provide it.
+        // When available, we use it to build historical balance data for smooth trend indicators.
+        const externalData = data.externalData as { balanceAfter?: AmountType } | undefined;
+        const balanceAfter = externalData?.balanceAfter;
 
-      //   if (balanceAfter) {
-      //     const balanceAmount = toSystemAmount(parseFloat(balanceAfter.amount));
-      //     const exchangeRateData = await getExchangeRate({
-      //       userId: data.userId,
-      //       date,
-      //       baseCode: data.currencyCode,
-      //       quoteCode: data.refCurrencyCode,
-      //     });
-      //     const refBalance = roundHalfToEven(balanceAmount * exchangeRateData.rate);
+        if (balanceAfter) {
+          const balanceAmount = toSystemAmount(parseFloat(balanceAfter.amount));
+          const exchangeRateData = await getExchangeRate({
+            userId: data.userId,
+            date,
+            baseCode: data.currencyCode,
+            quoteCode: data.refCurrencyCode,
+          });
+          const refBalance = roundHalfToEven(balanceAmount * exchangeRateData.rate);
 
-      //     await this.updateAccountBalance({ accountId, date, refBalance });
-      //   }
-      //   // If no balanceAfter, skip - balance will be set by updateAccountBalance() after sync
+          await this.updateAccountBalance({ accountId, date, refBalance });
+        }
+        // If no balanceAfter, skip - balance will be set by updateAccountBalance() after sync
         break;
       }
 

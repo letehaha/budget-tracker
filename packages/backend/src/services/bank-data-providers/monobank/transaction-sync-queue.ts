@@ -187,6 +187,11 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
       // Process each transaction and collect created IDs
       const createdTransactionIds: number[] = [];
 
+      // Sort transactions by date (ascending) so the last transaction for each day
+      // This is important for Balances.handleTransactionChange() which uses the
+      // balance from the last-processed transaction for each date.
+      transactions.sort((a, b) => a.time - b.time);
+
       for (let i = 0; i < transactions.length; i++) {
         const createdId = await createMonobankTransaction(transactions[i]!, accountId, userId);
         if (createdId !== undefined) {
