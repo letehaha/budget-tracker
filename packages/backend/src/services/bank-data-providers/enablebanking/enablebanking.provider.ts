@@ -614,6 +614,12 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       // Fetch transactions
       const providerTransactions = await this.fetchTransactions(connectionId, account.externalId, { from, to });
 
+      // Sort transactions by date (ascending) so the last transaction for each day
+      // will have the correct end-of-day balance in balance_after_transaction.
+      // This is important for Balances.handleTransactionChange() which uses the
+      // balance from the last-processed transaction for each date.
+      providerTransactions.sort((a, b) => a.date.getTime() - b.date.getTime());
+
       // Process each transaction and collect created transaction IDs
       const createdTransactionIds: number[] = [];
 
@@ -750,26 +756,12 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       refCurrentBalance: refBalance,
     });
 
-    // Update balance history - create or update record for today
-    const existingRecord = await Balances.findOne({
-      where: {
-        accountId: account.id,
-        date: today,
-      },
+    // Update balance history using centralized Balances model method
+    await Balances.updateAccountBalance({
+      accountId: account.id,
+      date: today,
+      refBalance,
     });
-
-    if (existingRecord) {
-      // Update existing record with the latest balance
-      existingRecord.amount = refBalance;
-      await existingRecord.save();
-    } else {
-      // Create new balance record for today
-      await Balances.create({
-        accountId: account.id,
-        date: today,
-        amount: refBalance,
-      });
-    }
   }
 
   // ============================================================================

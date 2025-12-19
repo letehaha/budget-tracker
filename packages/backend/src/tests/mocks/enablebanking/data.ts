@@ -278,12 +278,10 @@ export const getMockedTransactions = (accountId: string, count: number = 10) => 
             iban: getMockedAccountDetails(accountId).account_id.iban,
           },
       entry_reference: `ref_${faker.string.alphanumeric(10)}`,
+      // balance_after_transaction follows AmountType: { amount: string; currency: string }
       balance_after_transaction: {
-        balance_type: 'ITBD',
-        balance_amount: {
-          amount: faker.number.float({ min: 100, max: 2000, fractionDigits: 2 }).toFixed(2),
-          currency: accountId === MOCK_ACCOUNT_UID_3 ? 'USD' : 'EUR',
-        },
+        amount: faker.number.float({ min: 100, max: 2000, fractionDigits: 2 }).toFixed(2),
+        currency: accountId === MOCK_ACCOUNT_UID_3 ? 'USD' : 'EUR',
       },
     });
   }

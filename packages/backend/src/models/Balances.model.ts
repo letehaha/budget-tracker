@@ -1,7 +1,7 @@
 import { Op } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
 import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES } from '@bt/shared/types';
-import { subDays, startOfMonth } from 'date-fns';
+import { subDays, startOfMonth, startOfDay } from 'date-fns';
 import Accounts from './Accounts.model';
 import Transactions, { TransactionsAttributes } from './Transactions.model';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
@@ -126,7 +126,7 @@ export default class Balances extends Model {
           amount
           // THEN remove the original transaction
         ) {
-          await this.updateRecord({
+          await this.updateBalanceIncremental({
             accountId: prevData.accountId,
             date: originalDate,
             amount: -originalAmount,
@@ -135,7 +135,7 @@ export default class Balances extends Model {
       }
 
       // Update the balance for the current account and date
-      await this.updateRecord({
+      await this.updateBalanceIncremental({
         accountId,
         date,
         amount,
@@ -184,8 +184,23 @@ export default class Balances extends Model {
     }
   }
 
-  // Update the balance for a specific system account and date
-  private static async updateRecord({ accountId, date, amount }: { accountId: number; date: Date; amount: number }) {
+  /**
+   * Update balance for system accounts using INCREMENTAL amount changes.
+   *
+   * This method is specifically for ACCOUNT_TYPES.system where transactions
+   * incrementally affect balance. It differs from updateAccountBalance() which
+   * sets an absolute value.
+   *
+   * Key behaviors:
+   * - Takes an incremental `amount` (positive for income, negative for expense)
+   * - Adds the amount to the existing balance (not replaces it)
+   * - Cascades changes to all future dates (updates all records after this date)
+   * - Creates first-of-month records for easier period calculations
+   *
+   * For external bank providers (Monobank, EnableBanking), use updateAccountBalance()
+   * which sets an absolute balance value without cascading.
+   */
+  private static async updateBalanceIncremental({ accountId, date, amount }: { accountId: number; date: Date; amount: number }) {
     // If there's no record for the 1st of the month, create it based on the closest record prior it
     // so it's easier to calculate stats for the period
     const firstDayOfMonth = startOfMonth(new Date(date));
@@ -303,6 +318,17 @@ export default class Balances extends Model {
     // }
   }
 
+  /**
+   * Handles balance records when an account is created or its initial balance is updated.
+   *
+   * - **Account creation**: Creates the first balance record for today with the account's
+   *   initial balance (refInitialBalance).
+   * - **Initial balance update**: Adjusts all existing balance records by the difference
+   *   between old and new initial balance, maintaining correct historical balances.
+   *
+   * @param account - The account being created or updated
+   * @param prevAccount - The previous account state (undefined for new accounts)
+   */
   static async handleAccountChange({ account, prevAccount }: { account: Accounts; prevAccount?: Accounts }) {
     const { id: accountId, refInitialBalance } = account;
 
@@ -327,14 +353,55 @@ export default class Balances extends Model {
       );
       // }
     } else {
-      const date = new Date();
-      date.setHours(0, 0, 0, 0);
+      const date = startOfDay(new Date());
 
       // If no balance exists yet, create one with the account's current balance
       await this.create({
         accountId,
         date,
         amount: refInitialBalance,
+      });
+    }
+  }
+
+  /**
+   * Update account balance with an absolute value (not incremental).
+   * Used by external bank providers (e.g., Monobank, EnableBanking) to set balance
+   * based on transaction's balance_after or the authoritative balance from bank's API.
+   *
+   * Transactions should be sorted by time before processing so the last transaction
+   * for each day sets the correct end-of-day balance.
+   *
+   * @param accountId - The account to update
+   * @param date - The date for the balance record
+   * @param refBalance - The balance amount in base currency
+   */
+  static async updateAccountBalance({
+    accountId,
+    date,
+    refBalance,
+  }: {
+    accountId: number;
+    date: Date;
+    refBalance: number;
+  }) {
+    const normalizedDate = startOfDay(date);
+
+    const existingRecord = await this.findOne({
+      where: {
+        accountId,
+        date: normalizedDate,
+      },
+    });
+
+    if (existingRecord) {
+      existingRecord.amount = refBalance;
+      await existingRecord.save();
+    } else {
+      await this.create({
+        accountId,
+        date: normalizedDate,
+        amount: refBalance,
       });
     }
   }
