@@ -15,6 +15,8 @@ export const redisClient = new Redis({
   keyPrefix: REDIS_KEY_PREFIX,
   lazyConnect: true,
   maxRetriesPerRequest: 3,
+  connectTimeout: 20000, // 20s connection timeout for slower CI environments
+  retryStrategy: (times) => Math.min(times * 100, 3000), // Exponential backoff, max 3s
 });
 
 // ioredis emits error events that need handling to prevent crashes
