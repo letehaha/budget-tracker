@@ -21,8 +21,14 @@
               <BankProviderLogo class="size-12" :provider="provider.type" />
 
               <div class="flex flex-col text-left">
-                <p class="mb-1 text-lg">
+                <p class="mb-1 flex items-center gap-2 text-lg">
                   {{ provider.name }}
+                  <span
+                    v-if="provider.type === BANK_PROVIDER_TYPE.ENABLE_BANKING"
+                    class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
+                  >
+                    Beta
+                  </span>
                 </p>
                 <p class="text-sm opacity-70">
                   {{ METAINFO_FROM_TYPE[provider.type].description }}

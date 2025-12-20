@@ -44,11 +44,6 @@ const routes = [
         component: () => import('@/pages/accounts/integrations/details.vue'),
       },
       {
-        path: '/accounts/integrations/connect/:providerType',
-        name: ROUTES_NAMES.accountIntegrationsConnect,
-        component: () => import('@/pages/accounts/integrations/connect.vue'),
-      },
-      {
         path: '/bank-callback',
         name: ROUTES_NAMES.bankCallback,
         component: () => import('@/pages/bank-callback.vue'),
