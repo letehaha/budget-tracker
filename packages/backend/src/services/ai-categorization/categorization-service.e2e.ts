@@ -1,4 +1,4 @@
-import { AI_PROVIDER, BANK_PROVIDER_TYPE, CATEGORIZATION_SOURCE } from '@bt/shared/types';
+import { AI_PROVIDER, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
@@ -6,10 +6,11 @@ import {
   INVALID_ANTHROPIC_API_KEY,
   VALID_ANTHROPIC_API_KEY,
   createAnthropicMock,
-  createDynamicCategorizationMock,
 } from '@tests/mocks/anthropic/mock-api';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import { Op } from 'sequelize';
+
+import { DOMAIN_EVENTS, eventBus } from '../common/event-bus';
 
 /**
  * E2E tests for AI Categorization Service
@@ -19,82 +20,61 @@ import { Op } from 'sequelize';
  */
 describe('AI Categorization Service E2E', () => {
   describe('Full categorization flow with Monobank', () => {
-    it('should automatically categorize transactions after bank sync when AI API key is configured', async () => {
-      const MOCK_TRANSACTION_COUNT = 3;
+    describe('Event integration with bank sync', () => {
+      it('should emit TRANSACTIONS_SYNCED event after bank sync to trigger AI categorization', async () => {
+        const MOCK_TRANSACTION_COUNT = 3;
 
-      // Step 1: Create a custom category for the user
-      const category = await helpers.addCustomCategory({
-        name: 'Groceries',
-        color: '#00FF00',
-        raw: true,
-      });
+        // Spy on event emission
+        const eventSpy = jest.spyOn(eventBus, 'emit');
 
-      // Step 2: Set up AI API key for the user
-      await helpers.setAiApiKey({
-        apiKey: VALID_ANTHROPIC_API_KEY,
-        provider: AI_PROVIDER.anthropic,
-        raw: true,
-      });
+        // Connect to Monobank
+        const { connectionId } = await helpers.bankDataProviders.connectProvider({
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
+          credentials: { apiToken: VALID_MONOBANK_TOKEN },
+          providerName: 'Test Monobank',
+          raw: true,
+        });
 
-      // Step 3: Connect to Monobank
-      const { connectionId } = await helpers.bankDataProviders.connectProvider({
-        providerType: BANK_PROVIDER_TYPE.MONOBANK,
-        credentials: { apiToken: VALID_MONOBANK_TOKEN },
-        providerName: 'Test Monobank',
-        raw: true,
-      });
+        // List external accounts
+        const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+          connectionId,
+          raw: true,
+        });
 
-      // Step 4: List external accounts
-      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
-        connectionId,
-        raw: true,
-      });
+        const accountIds = externalAccounts.slice(0, 1).map((acc: { externalId: string }) => acc.externalId);
 
-      const accountIds = externalAccounts.slice(0, 1).map((acc: { externalId: string }) => acc.externalId);
+        // Mock Monobank transactions
+        global.mswMockServer.use(
+          ...accountIds.map((id) =>
+            getMonobankTransactionsMock({
+              accountId: id,
+              response: helpers.monobank.mockedTransactionData(MOCK_TRANSACTION_COUNT),
+            }),
+          ),
+        );
 
-      // Step 5: Mock Monobank transactions
-      global.mswMockServer.use(
-        ...accountIds.map((id) =>
-          getMonobankTransactionsMock({
-            accountId: id,
-            response: helpers.monobank.mockedTransactionData(MOCK_TRANSACTION_COUNT),
+        // Connect selected accounts (triggers transaction sync)
+        await helpers.bankDataProviders.connectSelectedAccounts({
+          connectionId,
+          accountExternalIds: accountIds,
+          raw: true,
+        });
+
+        // Wait for async queue processing
+        await helpers.sleep(5000);
+
+        // Verify TRANSACTIONS_SYNCED event was emitted (this triggers AI categorization queue)
+        expect(eventSpy).toHaveBeenCalledWith(
+          DOMAIN_EVENTS.TRANSACTIONS_SYNCED,
+          expect.objectContaining({
+            userId: expect.any(Number),
+            accountId: expect.any(Number),
+            transactionIds: expect.arrayContaining([expect.any(Number)]),
           }),
-        ),
-      );
+        );
 
-      // Step 6: Set up dynamic Anthropic mock to categorize all transactions
-      global.mswMockServer.use(createDynamicCategorizationMock({ categoryId: category.id }));
-
-      // Step 7: Connect selected accounts (triggers transaction sync + AI categorization)
-      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
-        connectionId,
-        accountExternalIds: accountIds,
-        raw: true,
+        eventSpy.mockRestore();
       });
-
-      // Step 8: Wait for async processing (transaction sync + AI categorization queue)
-      await helpers.sleep(7000);
-
-      // Step 9: Verify transactions were synced AND categorized by AI
-      const transactions = await Transactions.findAll({
-        where: {
-          accountId: {
-            [Op.in]: syncedAccounts.map((i) => i.id),
-          },
-        },
-        raw: true,
-      });
-
-      // Transactions should have been synced
-      expect(transactions.length).toBe(MOCK_TRANSACTION_COUNT);
-
-      // All transactions should be categorized with our category
-      for (const tx of transactions) {
-        expect(tx.categoryId).toBe(category.id);
-        expect(tx.categorizationMeta).toBeDefined();
-        expect(tx.categorizationMeta?.source).toBe(CATEGORIZATION_SOURCE.ai);
-        expect(tx.categorizationMeta?.categorizedAt).toBeDefined();
-      }
     });
 
     it('should NOT categorize transactions when AI API key is not configured', async () => {

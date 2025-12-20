@@ -3,6 +3,7 @@
     <div class="flex items-center justify-between">
       <div>
         <p>Sync latest transactions</p>
+        <p class="text-muted-foreground text-sm">Transactions are auto-synced every 12 hours</p>
       </div>
 
       <Button :disabled="isSyncDisabled" class="min-w-[100px]" size="sm" @click="syncTransactionsHandler">

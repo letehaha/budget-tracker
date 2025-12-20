@@ -1,10 +1,14 @@
 import { Op } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
 import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES } from '@bt/shared/types';
-import { subDays, startOfMonth } from 'date-fns';
+import { subDays, startOfMonth, startOfDay } from 'date-fns';
 import Accounts from './Accounts.model';
 import Transactions, { TransactionsAttributes } from './Transactions.model';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
+import { logger } from '@js/utils';
+import { roundHalfToEven } from '@common/utils/round-half-to-even';
+import { toSystemAmount } from '@js/helpers/system-amount';
+import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
 
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
@@ -103,89 +107,128 @@ export default class Balances extends Model {
   }) {
     const { accountId, time } = data;
     let amount = data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount * -1;
-    const date = new Date(time);
-    date.setHours(0, 0, 0, 0);
+    const date = startOfDay(new Date(time));
 
-    if (data.accountType === ACCOUNT_TYPES.system) {
-      if (isDelete) {
-        amount = -amount; // Reverse the amount if it's a deletion
-      } else if (prevData) {
-        const originalDate = new Date(prevData.time);
-        const originalAmount =
-          prevData.transactionType === TRANSACTION_TYPES.income ? prevData.refAmount : prevData.refAmount * -1;
-        originalDate.setHours(0, 0, 0, 0);
+    switch (data.accountType) {
+      case ACCOUNT_TYPES.system: {
+        if (isDelete) {
+          amount = -amount; // Reverse the amount if it's a deletion
+        } else if (prevData) {
+          const originalDate = startOfDay(new Date(prevData.time));
+          const originalAmount =
+            prevData.transactionType === TRANSACTION_TYPES.income ? prevData.refAmount : prevData.refAmount * -1;
 
-        if (
-          // If the account ID changed,
-          accountId !== prevData.accountId ||
-          // the date changed,
-          +date !== +originalDate ||
-          // the transaction type changed,
-          data.transactionType !== prevData.transactionType ||
-          // or the amount changed
-          amount
-          // THEN remove the original transaction
-        ) {
-          await this.updateRecord({
-            accountId: prevData.accountId,
-            date: originalDate,
-            amount: -originalAmount,
-          });
+          if (
+            // If the account ID changed,
+            accountId !== prevData.accountId ||
+            // the date changed,
+            +date !== +originalDate ||
+            // the transaction type changed,
+            data.transactionType !== prevData.transactionType ||
+            // or the amount changed
+            amount
+            // THEN remove the original transaction
+          ) {
+            await this.updateBalanceIncremental({
+              accountId: prevData.accountId,
+              date: originalDate,
+              amount: -originalAmount,
+            });
+          }
         }
+
+        // Update the balance for the current account and date
+        await this.updateBalanceIncremental({
+          accountId,
+          date,
+          amount,
+        });
+        break;
       }
 
-      // Update the balance for the current account and date
-      await this.updateRecord({
-        accountId,
-        date,
-        amount,
-      });
-    } else if (data.accountType === ACCOUNT_TYPES.monobank) {
-      const balance = (data.externalData as TransactionsAttributes['externalData']).balance;
+      case ACCOUNT_TYPES.monobank: {
+        // Monobank provides the actual account balance after each transaction.
+        // Transactions are sorted by time before processing, so the last transaction
+        // for each day will set the correct end-of-day balance.
+        //
+        // Balance is in account's currency (e.g., UAH), but Balances.amount must be
+        // stored in BASE currency (refBalance). We use the exchange rate service to
+        // get consistent market rates.
+        // TODO: we probably need to avoid updating opposite_tx refAmount based on
+        // original-tx refAmount
+        const balance = (data.externalData as TransactionsAttributes['externalData']).balance;
 
-      // Monobank provides us with the actual account balance after the transaction.
-      // However, balance is in account's currency (e.g., UAH), but Balances.amount
-      // must be stored in BASE currency (refBalance).
-      //
-      // We use the proper exchange rate service to get consistent market rates
-      // instead of deriving the rate from transaction amounts. This is important
-      // because transfers between accounts (e.g., USD -> UAH) can override refAmount
-      // of the transaction_To if transaction_From was in user's base currency
-      // TODO: we probably need to avoid updating opposite_tx refAmount based on
-      // original-tx refAmount
-      const exchangeRateData = await getExchangeRate({
-        userId: data.userId,
-        date,
-        baseCode: data.currencyCode,
-        quoteCode: data.refCurrencyCode,
-      });
-      const refBalance = balance ? Math.round(balance * exchangeRateData.rate) : 0;
+        if (balance !== undefined) {
+          const exchangeRateData = await getExchangeRate({
+            userId: data.userId,
+            date,
+            baseCode: data.currencyCode,
+            quoteCode: data.refCurrencyCode,
+          });
+          const refBalance = roundHalfToEven(balance * exchangeRateData.rate);
 
-      const existingRecordForTheDate = await this.findOne({
-        where: {
-          accountId,
-          date,
-        },
-      });
+          await this.updateAccountBalance({ accountId, date, refBalance });
+        }
+        break;
+      }
 
-      if (existingRecordForTheDate) {
-        // Store the highest refBalance (converted to base currency)
-        existingRecordForTheDate.amount =
-          existingRecordForTheDate.amount > refBalance ? existingRecordForTheDate.amount : refBalance;
+      case ACCOUNT_TYPES.enableBanking: {
+        // EnableBanking transactions are sorted by booking_date before processing,
+        // so the last transaction processed for each day will have the correct end-of-day balance.
+        // After all transactions are synced, Balances.updateAccountBalance() is called
+        // with the authoritative balance from the bank's API to ensure accuracy.
+        //
+        // balance_after_transaction is optional in the EnableBanking API - not all banks provide it.
+        // When available, we use it to build historical balance data for smooth trend indicators.
+        const externalData = data.externalData as { balanceAfter?: AmountType } | undefined;
+        const balanceAfter = externalData?.balanceAfter;
 
-        await existingRecordForTheDate.save();
-      } else {
-        await this.create({
-          accountId,
-          date,
-          amount: refBalance,
-        });
+        if (balanceAfter) {
+          const balanceAmount = toSystemAmount(parseFloat(balanceAfter.amount));
+          const exchangeRateData = await getExchangeRate({
+            userId: data.userId,
+            date,
+            baseCode: data.currencyCode,
+            quoteCode: data.refCurrencyCode,
+          });
+          const refBalance = roundHalfToEven(balanceAmount * exchangeRateData.rate);
+
+          await this.updateAccountBalance({ accountId, date, refBalance });
+        }
+        // If no balanceAfter, skip - balance will be set by updateAccountBalance() after sync
+        break;
+      }
+
+      default: {
+        const exhaustiveCheck: never = data.accountType;
+
+        if (process.env.NODE_ENV === "development") {
+          throw new Error(`Unhandled account type in handleTransactionChange: ${exhaustiveCheck}`);
+        } else {
+          logger.error(`Unhandled account type in handleTransactionChange: ${exhaustiveCheck}`)
+        }
+        console.log('default');
       }
     }
   }
 
-  // Update the balance for a specific system account and date
-  private static async updateRecord({ accountId, date, amount }: { accountId: number; date: Date; amount: number }) {
+  /**
+   * Update balance for system accounts using INCREMENTAL amount changes.
+   *
+   * This method is specifically for ACCOUNT_TYPES.system where transactions
+   * incrementally affect balance. It differs from updateAccountBalance() which
+   * sets an absolute value.
+   *
+   * Key behaviors:
+   * - Takes an incremental `amount` (positive for income, negative for expense)
+   * - Adds the amount to the existing balance (not replaces it)
+   * - Cascades changes to all future dates (updates all records after this date)
+   * - Creates first-of-month records for easier period calculations
+   *
+   * For external bank providers (Monobank, EnableBanking), use updateAccountBalance()
+   * which sets an absolute balance value without cascading.
+   */
+  private static async updateBalanceIncremental({ accountId, date, amount }: { accountId: number; date: Date; amount: number }) {
     // If there's no record for the 1st of the month, create it based on the closest record prior it
     // so it's easier to calculate stats for the period
     const firstDayOfMonth = startOfMonth(new Date(date));
@@ -303,6 +346,17 @@ export default class Balances extends Model {
     // }
   }
 
+  /**
+   * Handles balance records when an account is created or its initial balance is updated.
+   *
+   * - **Account creation**: Creates the first balance record for today with the account's
+   *   initial balance (refInitialBalance).
+   * - **Initial balance update**: Adjusts all existing balance records by the difference
+   *   between old and new initial balance, maintaining correct historical balances.
+   *
+   * @param account - The account being created or updated
+   * @param prevAccount - The previous account state (undefined for new accounts)
+   */
   static async handleAccountChange({ account, prevAccount }: { account: Accounts; prevAccount?: Accounts }) {
     const { id: accountId, refInitialBalance } = account;
 
@@ -327,14 +381,55 @@ export default class Balances extends Model {
       );
       // }
     } else {
-      const date = new Date();
-      date.setHours(0, 0, 0, 0);
+      const date = startOfDay(new Date());
 
       // If no balance exists yet, create one with the account's current balance
       await this.create({
         accountId,
         date,
         amount: refInitialBalance,
+      });
+    }
+  }
+
+  /**
+   * Update account balance with an absolute value (not incremental).
+   * Used by external bank providers (e.g., Monobank, EnableBanking) to set balance
+   * based on transaction's balance_after or the authoritative balance from bank's API.
+   *
+   * Transactions should be sorted by time before processing so the last transaction
+   * for each day sets the correct end-of-day balance.
+   *
+   * @param accountId - The account to update
+   * @param date - The date for the balance record
+   * @param refBalance - The balance amount in base currency
+   */
+  static async updateAccountBalance({
+    accountId,
+    date,
+    refBalance,
+  }: {
+    accountId: number;
+    date: Date;
+    refBalance: number;
+  }) {
+    const normalizedDate = startOfDay(date);
+
+    const existingRecord = await this.findOne({
+      where: {
+        accountId,
+        date: normalizedDate,
+      },
+    });
+
+    if (existingRecord) {
+      existingRecord.amount = refBalance;
+      await existingRecord.save();
+    } else {
+      await this.create({
+        accountId,
+        date: normalizedDate,
+        amount: refBalance,
       });
     }
   }

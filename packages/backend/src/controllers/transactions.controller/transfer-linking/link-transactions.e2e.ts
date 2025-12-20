@@ -83,10 +83,15 @@ describe('link transactions between each other', () => {
 
   it('throws an error when trying to link tx from the same account', async () => {
     await helpers.monobank.pair();
-    const { transactions } = await helpers.monobank.mockTransactions();
+    const { account, transactions } = await helpers.monobank.mockTransactions();
 
-    const tx1 = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.expense);
-    const tx2 = transactions.find((item) => item.transactionType === TRANSACTION_TYPES.income);
+    // Explicitly filter by account to ensure both transactions are from the same account
+    const tx1 = transactions.find(
+      (item) => item.transactionType === TRANSACTION_TYPES.expense && item.accountId === account.id,
+    );
+    const tx2 = transactions.find(
+      (item) => item.transactionType === TRANSACTION_TYPES.income && item.accountId === account.id,
+    );
 
     const result = await helpers.linkTransactions({
       payload: {

@@ -383,7 +383,15 @@ export interface EnableBankingBalance {
   last_committed_transaction?: string | null;
 }
 
-interface AmountType {
+export interface AmountType {
+  /**
+   * @example:
+   * {
+   *   "currency": "EUR",
+   *   "amount": "1.23
+   * }
+   */
+
   /** ISO 4217 code of the currency of the amount
    * ALWAYS positive value. Direction is determined by `CreditDebitIndicator`
    */

@@ -442,10 +442,13 @@ describe('Update transaction controller', () => {
           txType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income;
 
         await helpers.monobank.pair();
-        const { transactions } = await helpers.monobank.mockTransactions();
+        const { account, transactions } = await helpers.monobank.mockTransactions();
 
-        const tx1 = transactions.find((item) => item.transactionType === txType);
-        const tx2 = transactions.find((item) => item.transactionType === oppositeTxType);
+        // Explicitly filter by account to ensure both transactions are from the same account
+        const tx1 = transactions.find((item) => item.transactionType === txType && item.accountId === account.id);
+        const tx2 = transactions.find(
+          (item) => item.transactionType === oppositeTxType && item.accountId === account.id,
+        );
 
         const result = await helpers.updateTransaction({
           id: tx1!.id,
