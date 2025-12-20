@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
-import { redisClient, redisReady } from '@root/redis-client';
+import { REDIS_KEY_PREFIX, redisClient, redisReady } from '@root/redis-client';
 import {
   transactionSyncQueue,
   transactionSyncWorker,
@@ -134,11 +134,11 @@ async function waitForRedisConnection() {
     async () => {
       try {
         // Check if client is connected and responsive
-        if (!redisClient.isOpen) {
+        if (redisClient.status !== 'ready') {
           return false;
         }
-        const result = await redisClient.hello();
-        return !!result;
+        const result = await redisClient.ping();
+        return result === 'PONG';
       } catch {
         return false;
       }
@@ -234,9 +234,14 @@ beforeEach(async () => {
     );
 
     // Clean up Redis keys for this worker
-    const workerKeys = await redisClient.keys(`${process.env.JEST_WORKER_ID}*`);
+    // With ioredis keyPrefix, keys('*') returns full keys including prefix
+    // We need to strip the prefix before del() to avoid double-prefixing
+    const workerKeys = await redisClient.keys('*');
     if (workerKeys.length) {
-      await redisClient.del(workerKeys);
+      const keysWithoutPrefix = REDIS_KEY_PREFIX
+        ? workerKeys.map((k) => k.slice(REDIS_KEY_PREFIX!.length))
+        : workerKeys;
+      await redisClient.del(...keysWithoutPrefix);
     }
 
     // Run migrations with deadlock retry (this can be slow with TypeScript)
@@ -301,7 +306,7 @@ afterAll(async () => {
     await transactionSyncQueue.close();
 
     // Now safe to close Redis client
-    await redisClient.close();
+    await redisClient.quit();
     serverInstance.close();
     loadCurrencyRatesJob.stop();
   } catch (err) {

@@ -1,5 +1,4 @@
 import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
-import { redisKeyFormatter } from '@common/lib/redis';
 import { ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
@@ -209,7 +208,7 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
   return result;
 }
 
-export const buildLockKey = (userId: number) => redisKeyFormatter(`change-base-currency:user:${userId}`);
+export const buildLockKey = (userId: number) => `change-base-currency:user:${userId}`;
 
 /**
  * Changes the user's base currency and recalculates all ref- amounts using historical exchange rates.
@@ -722,7 +721,7 @@ async function clearUserCache(userId: number): Promise<void> {
 
     // Delete all ref_amount cache keys for this user using pattern matching
     // Pattern: ref_amount:${userId}:*
-    const pattern = redisKeyFormatter(`ref_amount:${userId}:*`);
+    const pattern = `ref_amount:${userId}:*`;
     await cache.delete(pattern, true); // isPattern=true triggers SCAN-based deletion
 
     logger.info(`Successfully cleared ref_amount cache for user ${userId}`);

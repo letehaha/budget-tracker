@@ -6,4 +6,5 @@ console.log('❗ RUNNING UNIT TESTS');
 export default {
   ...baseConfig,
   testMatch: ['<rootDir>/src/**/?(*.)+(unit).[jt]s?(x)'],
+  setupFilesAfterEnv: ['<rootDir>/src/tests/setupUnitTests.ts'],
 };
