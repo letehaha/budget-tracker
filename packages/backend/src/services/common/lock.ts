@@ -1,4 +1,3 @@
-import { redisKeyFormatter } from '@common/lib/redis';
 import { LockedError } from '@js/errors';
 import { logger } from '@js/utils';
 import { redisClient } from '@root/redis-client';
@@ -29,10 +28,7 @@ export function withLock<T extends unknown[], R>(
     // Try to acquire the lock atomically.
     // 'NX' means only set the key if it does not already exist.
     // 'EX' sets the expiration time in seconds.
-    const acquired = await redisClient.set(redisKeyFormatter(lockKey), lockValue, {
-      NX: true,
-      EX: ttl,
-    });
+    const acquired = await redisClient.set(lockKey, lockValue, 'EX', ttl, 'NX');
 
     if (!acquired) {
       logger.warn(`Could not acquire lock for key: "${lockKey}". Process is already running.`);
@@ -50,9 +46,9 @@ export function withLock<T extends unknown[], R>(
       // Always release the lock, even if the function throws an error.
       // We check if the lock is still ours before deleting to avoid deleting
       // a lock acquired by another process after ours expired.
-      const currentValue = await redisClient.get(redisKeyFormatter(lockKey));
+      const currentValue = await redisClient.get(lockKey);
       if (currentValue === lockValue) {
-        await redisClient.del(redisKeyFormatter(lockKey));
+        await redisClient.del(lockKey);
         logger.info(`Lock released for key: "${lockKey}".`);
       }
     }

@@ -85,5 +85,5 @@ Examples for running feature-specific tests:
 Tests may take time. Use appropriate timeouts:
 
 - Unit tests: 2 minutes
-- E2E tests: 10 minutes
-- All tests: 15 minutes
+- E2E tests: 15 minutes
+- All tests: 20 minutes

@@ -1,4 +1,3 @@
-import { redisKeyFormatter } from '@common/lib/redis/key-formatter';
 import { logger } from '@js/utils';
 import { redisClient } from '@root/redis-client';
 
@@ -17,7 +16,7 @@ export class RateLimitService {
    * @returns Promise<RateLimitResult>
    */
   static async checkRateLimit(key: string, windowSeconds: number, maxAttempts: number = 1): Promise<RateLimitResult> {
-    const redisKey = redisKeyFormatter(`rate_limit:${key}`);
+    const redisKey = `rate_limit:${key}`;
 
     try {
       // Get current count
@@ -66,7 +65,7 @@ export class RateLimitService {
    * @param key - The rate limit key to reset
    */
   static async resetRateLimit(key: string): Promise<void> {
-    const redisKey = redisKeyFormatter(`rate_limit:${key}`);
+    const redisKey = `rate_limit:${key}`;
 
     try {
       await redisClient.del(redisKey);
@@ -85,7 +84,7 @@ export class RateLimitService {
    * @returns Promise<{ count: number; ttl: number }>
    */
   static async getRateLimitStatus(key: string): Promise<{ count: number; ttl: number }> {
-    const redisKey = redisKeyFormatter(`rate_limit:${key}`);
+    const redisKey = `rate_limit:${key}`;
 
     try {
       const [count, ttl] = await Promise.all([redisClient.get(redisKey), redisClient.ttl(redisKey)]);

@@ -1,4 +1,3 @@
-import { redisKeyFormatter } from '@common/lib/redis/key-formatter';
 import { logger } from '@js/utils';
 import { redisClient } from '@root/redis-client';
 import { endOfMonth } from 'date-fns';
@@ -15,7 +14,7 @@ export class ApiKeyRateLimitService {
    * @param apiKeyHash - Hashed or truncated identifier for the API key (not the full key for security)
    */
   private static getRedisKey(provider: string, apiKeyHash: string): string {
-    return redisKeyFormatter(`${this.REDIS_PREFIX}:${provider}:${apiKeyHash}`);
+    return `${this.REDIS_PREFIX}:${provider}:${apiKeyHash}`;
   }
 
   /**
@@ -48,7 +47,7 @@ export class ApiKeyRateLimitService {
     const ttl = this.getSecondsUntilEndOfMonth();
 
     try {
-      await redisClient.setEx(redisKey, ttl, reason || 'Rate limit exceeded');
+      await redisClient.setex(redisKey, ttl, reason || 'Rate limit exceeded');
 
       const endOfMonthDate = endOfMonth(new Date());
       logger.info(
