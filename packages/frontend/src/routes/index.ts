@@ -8,6 +8,11 @@ export { ROUTES_NAMES } from './constants';
 const routes = [
   {
     path: '/',
+    name: ROUTES_NAMES.landing,
+    component: () => import('@/pages/landing/index.vue'),
+  },
+  {
+    path: '/app',
     name: ROUTES_NAMES.dashboard,
     component: () => import('@/layouts/dashboard.vue'),
     beforeEnter: [redirectRouteGuard, baseCurrencyExists],

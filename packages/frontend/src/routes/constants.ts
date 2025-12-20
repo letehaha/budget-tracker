@@ -1,6 +1,7 @@
 const ROUTER_LAYOUTS = Object.freeze({
   auth: 'auth',
   dashboard: 'dashboard',
+  landing: 'landing',
 });
 
 export const ROUTES_NAMES = Object.freeze({
@@ -33,4 +34,6 @@ export const ROUTES_NAMES = Object.freeze({
   signIn: `${ROUTER_LAYOUTS.auth}.sign-in`,
   signUp: `${ROUTER_LAYOUTS.auth}.sign-up`,
   welcome: `${ROUTER_LAYOUTS.auth}.welcome`,
+
+  landing: ROUTER_LAYOUTS.landing,
 });
