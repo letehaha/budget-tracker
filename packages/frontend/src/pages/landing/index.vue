@@ -499,15 +499,31 @@ const ctaRoute = computed(() => (isLoggedIn.value ? ROUTES_NAMES.home : ROUTES_N
 const ctaText = computed(() => (isLoggedIn.value ? 'Go to Dashboard' : 'Start for free'));
 const ctaTextShort = computed(() => (isLoggedIn.value ? 'Dashboard' : 'Get Started'));
 
+const siteUrl = 'https://moneymatter.app';
+const pageTitle = 'MoneyMatter - Take Control of Your Financial Future';
+const pageDescription =
+  'Track expenses, connect your banks, set budgets, and own your data. MoneyMatter is the open-source personal finance app that puts you in charge.';
+const ogImage = `${siteUrl}/img/og-image.png`;
+
 useHead({
-  title: 'MoneyMatter - Take Control of Your Financial Future',
+  title: pageTitle,
   meta: [
-    {
-      name: 'description',
-      content:
-        'Track expenses, connect your banks, set budgets, and own your data. MoneyMatter is the open-source personal finance app that puts you in charge.',
-    },
+    { name: 'description', content: pageDescription },
+    // Open Graph
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: siteUrl },
+    { property: 'og:title', content: pageTitle },
+    { property: 'og:description', content: pageDescription },
+    { property: 'og:image', content: ogImage },
+    { property: 'og:site_name', content: 'MoneyMatter' },
+    // Twitter Card
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:url', content: siteUrl },
+    { name: 'twitter:title', content: pageTitle },
+    { name: 'twitter:description', content: pageDescription },
+    { name: 'twitter:image', content: ogImage },
   ],
+  link: [{ rel: 'canonical', href: siteUrl }],
 });
 
 const currentYear = computed(() => new Date().getFullYear());
