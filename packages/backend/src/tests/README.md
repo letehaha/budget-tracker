@@ -28,7 +28,7 @@ database: process.env.NODE_ENV === 'test'
 
 ### Redis Connection
 
-To run tests correctly we also need to set keys per-worker and empty worker-related keys before each test. Prefix for worker is being managed by `redisKeyFormatter`, and emptying logic is stored in the `src/tests/setupIntegrationTests.ts`. Info is just FYI, no additional actions required.
+To run tests correctly we also need to set keys per-worker and empty worker-related keys before each test. The key prefix for each worker is automatically managed by ioredis `keyPrefix` option in `src/redis-client.ts`, and cleanup logic is in `src/tests/setupIntegrationTests.ts`. Info is just FYI, no additional actions required.
 
 ### Docker Integration
 

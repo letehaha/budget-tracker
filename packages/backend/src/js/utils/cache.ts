@@ -1,5 +1,4 @@
-import { redisKeyFormatter } from '@common/lib/redis';
-import { redisClient } from '@root/redis-client';
+import { REDIS_KEY_PREFIX, redisClient } from '@root/redis-client';
 
 import { logger } from './logger';
 
@@ -34,7 +33,7 @@ export class CacheClient<T = unknown> {
     }
 
     try {
-      const cached = await redisClient.get(redisKeyFormatter(cacheKey));
+      const cached = await redisClient.get(cacheKey);
       if (cached !== null) {
         return this.parseJson ? JSON.parse(cached) : (cached as T);
       } else {
@@ -58,7 +57,7 @@ export class CacheClient<T = unknown> {
 
     try {
       const serializedValue = typeof params.value === 'string' ? params.value : JSON.stringify(params.value);
-      await redisClient.setEx(redisKeyFormatter(cacheKey), ttl, serializedValue);
+      await redisClient.setex(cacheKey, ttl, serializedValue);
     } catch (error) {
       logger.error({ message: `${this.logPrefix} write error for key ${cacheKey}:`, error: error as Error });
     }
@@ -69,7 +68,9 @@ export class CacheClient<T = unknown> {
       if (isPattern) {
         const keys = await redisClient.keys(keyOrPattern);
         if (keys.length > 0) {
-          await redisClient.del(keys);
+          // Strip keyPrefix from keys returned by keys() to avoid double-prefixing
+          const strippedKeys = REDIS_KEY_PREFIX ? keys.map((k) => k.slice(REDIS_KEY_PREFIX!.length)) : keys;
+          await redisClient.del(...strippedKeys);
         }
       } else {
         await redisClient.del(keyOrPattern);
@@ -83,20 +84,20 @@ export class CacheClient<T = unknown> {
     const results = new Map<string, T | null>();
 
     try {
-      const cachedResults = await redisClient.mGet(keys);
+      const cachedResults = await redisClient.mget(...keys);
 
       keys.forEach((key, index) => {
         const cached = cachedResults[index];
         if (cached !== null && cached !== undefined) {
           const parsedValue = this.parseJson ? JSON.parse(cached) : (cached as T);
-          results.set(redisKeyFormatter(key), parsedValue);
+          results.set(key, parsedValue);
         } else {
-          results.set(redisKeyFormatter(key), null);
+          results.set(key, null);
         }
       });
     } catch (error) {
       console.warn(`${this.logPrefix} batch read error:`, error);
-      keys.forEach((key) => results.set(redisKeyFormatter(key), null));
+      keys.forEach((key) => results.set(key, null));
     }
 
     return results;

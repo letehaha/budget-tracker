@@ -1,13 +1,12 @@
-import { redisKeyFormatter } from '@common/lib/redis';
 import { logger } from '@js/utils';
-import { redisClient } from '@root/redis-client';
+import { REDIS_KEY_PREFIX, redisClient } from '@root/redis-client';
 
 /**
  * Check if Redis client is ready for operations
  * Prevents "The client is closed" errors during test teardown
  */
 function isRedisReady(): boolean {
-  return redisClient.isOpen && redisClient.isReady;
+  return redisClient.status === 'ready';
 }
 
 export enum SyncStatus {
@@ -27,9 +26,9 @@ export interface AccountSyncStatus {
 }
 
 export const REDIS_KEYS = {
-  userLastAutoSync: (userId: number | string): string => redisKeyFormatter(`user:${userId}:last-auto-sync`),
-  accountSyncStatus: (accountId: number | string): string => redisKeyFormatter(`account:${accountId}:sync-status`),
-  accountPriority: (accountId: number | string): string => redisKeyFormatter(`account:${accountId}:priority`),
+  userLastAutoSync: (userId: number | string): string => `user:${userId}:last-auto-sync`,
+  accountSyncStatus: (accountId: number | string): string => `account:${accountId}:sync-status`,
+  accountPriority: (accountId: number | string): string => `account:${accountId}:priority`,
 };
 
 const AUTO_SYNC_PERIOD = 12 * 60 * 60 * 1000;
@@ -99,7 +98,7 @@ export async function setAccountSyncStatus(
   // Re-check Redis connection after async operation (client may have closed during getAccountSyncStatus)
   if (!isRedisReady()) return;
 
-  await redisClient.setEx(REDIS_KEYS.accountSyncStatus(accountId), STATUS_TTL, JSON.stringify(statusData));
+  await redisClient.setex(REDIS_KEYS.accountSyncStatus(accountId), STATUS_TTL, JSON.stringify(statusData));
 }
 
 /**
@@ -165,7 +164,7 @@ export async function clearAccountSyncStatus(accountId: number): Promise<void> {
  */
 export async function setAccountPriority(accountId: number, priority: number): Promise<void> {
   if (!isRedisReady()) return;
-  await redisClient.setEx(REDIS_KEYS.accountPriority(accountId), STATUS_TTL, priority.toString());
+  await redisClient.setex(REDIS_KEYS.accountPriority(accountId), STATUS_TTL, priority.toString());
 }
 
 /**
@@ -194,7 +193,10 @@ export async function clearAllSyncStatuses(): Promise<void> {
   let clearedCount = 0;
   let resetCount = 0;
 
-  for (const key of accountStatusKeys) {
+  for (const rawKey of accountStatusKeys) {
+    // Strip the keyPrefix from keys returned by keys() to avoid double-prefixing
+    const key =
+      REDIS_KEY_PREFIX && rawKey.startsWith(REDIS_KEY_PREFIX) ? rawKey.slice(REDIS_KEY_PREFIX!.length) : rawKey;
     // Check Redis connection before each operation to handle teardown gracefully
     if (!isRedisReady()) {
       logger.info('[Sync Status] Stopping cleanup - Redis connection closed');
@@ -220,7 +222,7 @@ export async function clearAllSyncStatuses(): Promise<void> {
         };
 
         if (isRedisReady()) {
-          await redisClient.setEx(key, STATUS_TTL, JSON.stringify(resetStatus));
+          await redisClient.setex(key, STATUS_TTL, JSON.stringify(resetStatus));
           resetCount++;
         }
       }
