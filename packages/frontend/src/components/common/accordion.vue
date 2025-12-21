@@ -3,16 +3,22 @@
     <template v-for="cat in categories" :key="cat.id">
       <div>
         <Button
-          :class="[
-            '-ml-4 grid w-[calc(100%+32px)] grid-cols-[1fr_min-content] gap-8',
-            { 'bg-accent': isActiveCategory(cat) },
-          ]"
+          :class="
+            cn([
+              '-ml-4 grid w-[calc(100%+32px)] grid-cols-[1fr_min-content] gap-8',
+              {
+                'bg-accent': isActiveCategory(cat),
+              },
+              cat.subCategories.length ? 'grid-cols-[1fr_min-content]' : 'grid-cols-1',
+            ])
+          "
           variant="ghost"
-          @click="toggleCategory(cat)"
+          @click="toggleCategory(cat, $event)"
         >
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 overflow-hidden">
             <CategoryCircle :category="cat" />
-            {{ cat.name }}
+
+            <span class="truncate">{{ cat.name }}</span>
           </div>
           <span v-if="cat.subCategories.length" class="flex w-max gap-2 text-sm opacity-70">
             <span>{{ props.expandedCategories.includes(cat.id) ? '↓' : '→' }}</span>
@@ -43,6 +49,7 @@
 import { FormattedCategory } from '@/common/types';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import { Button } from '@/components/lib/ui/button';
+import { cn } from '@/lib/utils';
 
 const props = defineProps<{
   categories: FormattedCategory[];
