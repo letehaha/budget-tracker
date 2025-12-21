@@ -236,28 +236,53 @@
                 <div class="text-muted-foreground space-y-1">
                   <div>1. Log in to the Enable Banking portal</div>
                   <div>2. Navigate to <ExternalLink href="https://enablebanking.com/cp/applications" /></div>
+                  <div>3. Look at the "Create Application" form</div>
+                  <div>4. Select <strong>"Production"</strong> environment</div>
                   <div>
-                    3. Look at the "Create Application" form
-                    <div class="pl-4">
-                      <div>3.1 Select <strong>"Production"</strong> environment</div>
-                      <div>3.2 Generate private RSA key <b>in the browser</b></div>
-                      <div>
-                        3.3: fill out form with the next values
-
-                        <div class="pl-4">
-                          <div>Application name: <b>Whatever</b></div>
-                          <div>Allowed redirect URLs: <b>https://moneymatter.app/bank-callback</b></div>
-                          <div>Application description: <b>whatever</b></div>
-                          <div>Email for data protection matters: <b>whatever</b></div>
-                          <div>Privacy URL: <b>whatever</b></div>
-                          <div>Terms URL: <b>whatever</b></div>
-                        </div>
+                    5. Check the <strong>"Generate private RSA key in the browser"</strong> checkbox. Once application
+                    is created, the .pem key will be saved to your computer automatically as a file
+                  </div>
+                  <div>
+                    6. Fill out form with the next values:
+                    <div class="mt-2 flex flex-col gap-1 pl-4">
+                      <div class="flex flex-wrap gap-1">
+                        <span class="font-semibold"> Application name: </span>
+                        <ClickToCopy class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]" value="Own testing" />
+                      </div>
+                      <div class="flex flex-wrap gap-1">
+                        <span class="font-semibold"> Allowed redirect URLs: </span>
+                        <ClickToCopy
+                          class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]"
+                          value="https://moneymatter.app/bank-callback https://moneymatter.app/bank-callback"
+                        />
+                      </div>
+                      <div class="flex flex-wrap gap-1">
+                        <span class="font-semibold"> Application description: </span>
+                        <ClickToCopy class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]" value="testing" />
+                      </div>
+                      <div class="flex flex-wrap gap-1">
+                        <span class="font-semibold"> Email for data protection matters: </span>
+                        <ClickToCopy class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]" value="test@gmail.com" />
+                      </div>
+                      <div class="flex flex-wrap gap-1">
+                        <span class="font-semibold"> Privacy URL: </span>
+                        <ClickToCopy
+                          class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]"
+                          value="https://moneymatter.app/privacy-policy"
+                        />
+                      </div>
+                      <div class="flex flex-wrap gap-1">
+                        <span class="font-semibold"> Terms URL: </span>
+                        <ClickToCopy
+                          class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]"
+                          value="https://moneymatter.app/terms-of-use"
+                        />
                       </div>
                     </div>
                   </div>
-                  <div>4. Click "Register"</div>
+                  <div>7. Click "Register"</div>
                   <div>
-                    5. You will be suggested to download a file. It's your RSA key that you must save somewhere since
+                    8. You will be suggested to download a file. It's your RSA key that you must save somewhere since
                     this is part of your credentials
                   </div>
                 </div>
@@ -298,8 +323,8 @@
                   </li>
                   <li>
                     <strong>Private Key:</strong> Open your saved
-                    <code class="bg-muted rounded px-1">private.pem</code> file and copy its entire contents (including
-                    the BEGIN and END lines)
+                    <code class="bg-muted rounded px-1">private.pem</code> file via some text editor (TextEdit on MacOS
+                    or Notepad on Windows) and copy its entire content (including the BEGIN and END lines)
                   </li>
                 </ul>
               </div>
@@ -339,6 +364,7 @@ import {
   getEnableBankingCountries,
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
+import ClickToCopy from '@/components/common/click-to-copy.vue';
 import ExternalLink from '@/components/external-link.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';

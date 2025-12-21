@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useNotificationCenter } from '@/components/notification-center';
+import { cn } from '@/lib/utils';
 import { CheckIcon, CopyIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 
@@ -24,9 +25,14 @@ const copyToClipboard = async ({ value }: { value: string }) => {
 </script>
 
 <template>
-  <div
+  <button
     type="button"
-    class="bg-muted inline-flex w-min max-w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-white/10"
+    :class="
+      cn(
+        'bg-muted inline-flex w-min max-w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-white/10',
+        $attrs.class,
+      )
+    "
     @click="copyToClipboard({ value })"
   >
     <span class="truncate font-mono text-sm">
@@ -34,5 +40,5 @@ const copyToClipboard = async ({ value }: { value: string }) => {
     </span>
     <CheckIcon v-if="isCopied" class="text-success-text size-4" />
     <CopyIcon v-else class="text-muted-foreground size-4 shrink-0" />
-  </div>
+  </button>
 </template>

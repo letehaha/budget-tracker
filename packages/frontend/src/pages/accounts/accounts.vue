@@ -23,7 +23,7 @@
                 <h2 class="xs:text-lg text-base font-semibold">
                   <template v-if="key === 'hidden'">Hidden accounts</template>
                   <template v-else-if="key === 'manual'">Manual accounts</template>
-                  <template v-else-if="key === 'integrations'">Bank Integrations</template>
+                  <template v-else-if="key === 'integrations'">Connected Accounts</template>
                 </h2>
               </template>
 
