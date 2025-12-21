@@ -56,7 +56,7 @@
         <div v-if="isLoading" class="py-8 text-center">Loading accounts...</div>
 
         <template v-else>
-          <div class="text-muted-foreground mb-4 text-sm">Select the accounts you want to sync with Budget Tracker</div>
+          <div class="text-muted-foreground mb-4 text-sm">Select the accounts you want to sync with MoneyMatter</div>
 
           <div class="space-y-2">
             <label

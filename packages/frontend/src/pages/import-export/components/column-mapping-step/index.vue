@@ -3,7 +3,7 @@
     <div class="mb-4">
       <h2 class="text-lg font-semibold">Step 2: Map Columns</h2>
       <p class="text-muted-foreground text-sm">
-        Match your CSV columns to Budget Tracker fields. Preview shown below with first 10 rows.
+        Match your CSV columns to MoneyMatter fields. Preview shown below with first 10 rows.
       </p>
     </div>
 
