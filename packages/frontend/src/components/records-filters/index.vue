@@ -5,6 +5,7 @@
       :end="filters.end"
       @update:start="$emit('update:filters', { ...filters, start: $event })"
       @update:end="$emit('update:filters', { ...filters, end: $event })"
+      @update:range="$emit('update:filters', { ...filters, start: $event.start, end: $event.end })"
     />
 
     <TransactionTypeFilter
