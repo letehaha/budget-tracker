@@ -425,44 +425,52 @@
     <!-- Footer -->
     <footer class="border-border/40 border-t py-12">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col items-center justify-between gap-6 sm:flex-row">
-          <!-- Logo -->
-          <div class="flex items-center gap-2">
-            <div
-              class="from-primary flex size-8 items-center justify-center rounded-lg bg-gradient-to-br to-purple-600"
-            >
-              <CircleDollarSign class="size-5 text-white" :stroke-width="2" />
+        <div class="flex flex-col flex-wrap items-center justify-between gap-6 sm:flex-row">
+          <div class="flex w-full items-center justify-between gap-6 max-sm:flex-col">
+            <!-- Logo -->
+            <div class="flex items-center gap-2">
+              <div
+                class="from-primary flex size-8 items-center justify-center rounded-lg bg-gradient-to-br to-purple-600"
+              >
+                <CircleDollarSign class="size-5 text-white" :stroke-width="2" />
+              </div>
+              <span class="font-semibold">MoneyMatter</span>
             </div>
-            <span class="font-semibold">MoneyMatter</span>
-          </div>
 
-          <!-- Links -->
-          <div class="text-muted-foreground flex items-center gap-6 text-sm">
-            <a
-              href="https://github.com/letehaha/budget-tracker"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="hover:text-foreground transition-colors"
-            >
-              GitHub
-            </a>
-            <template v-if="isLoggedIn">
-              <router-link :to="{ name: ROUTES_NAMES.home }" class="hover:text-foreground transition-colors">
-                Dashboard
+            <!-- Links -->
+            <div class="text-muted-foreground flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+              <a
+                href="https://github.com/letehaha/budget-tracker"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hover:text-foreground transition-colors"
+              >
+                GitHub
+              </a>
+              <template v-if="isLoggedIn">
+                <router-link :to="{ name: ROUTES_NAMES.home }" class="hover:text-foreground transition-colors">
+                  Dashboard
+                </router-link>
+              </template>
+              <template v-else>
+                <router-link :to="{ name: ROUTES_NAMES.signIn }" class="hover:text-foreground transition-colors">
+                  Sign In
+                </router-link>
+                <router-link :to="{ name: ROUTES_NAMES.signUp }" class="hover:text-foreground transition-colors">
+                  Sign Up
+                </router-link>
+              </template>
+              <router-link :to="{ name: ROUTES_NAMES.privacyPolicy }" class="hover:text-foreground transition-colors">
+                Privacy Policy
               </router-link>
-            </template>
-            <template v-else>
-              <router-link :to="{ name: ROUTES_NAMES.signIn }" class="hover:text-foreground transition-colors">
-                Sign In
+              <router-link :to="{ name: ROUTES_NAMES.termsOfUse }" class="hover:text-foreground transition-colors">
+                Terms of Use
               </router-link>
-              <router-link :to="{ name: ROUTES_NAMES.signUp }" class="hover:text-foreground transition-colors">
-                Sign Up
-              </router-link>
-            </template>
+            </div>
           </div>
 
           <!-- Copyright -->
-          <p class="text-muted-foreground text-sm">
+          <p class="text-muted-foreground mx-auto text-sm">
             &copy; {{ currentYear }} MoneyMatter. Open source under CC BY-NC-SA 4.0.
           </p>
         </div>

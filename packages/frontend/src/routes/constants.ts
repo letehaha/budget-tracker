@@ -35,4 +35,6 @@ export const ROUTES_NAMES = Object.freeze({
   welcome: `${ROUTER_LAYOUTS.auth}.welcome`,
 
   landing: ROUTER_LAYOUTS.landing,
+  privacyPolicy: 'privacy-policy',
+  termsOfUse: 'terms-of-use',
 });

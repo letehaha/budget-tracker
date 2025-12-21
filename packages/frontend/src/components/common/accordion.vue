@@ -13,7 +13,7 @@
             ])
           "
           variant="ghost"
-          @click="toggleCategory(cat, $event)"
+          @click="toggleCategory(cat)"
         >
           <div class="flex items-center gap-2 overflow-hidden">
             <CategoryCircle :category="cat" />
