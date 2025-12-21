@@ -53,12 +53,16 @@
                 <span class="xs:inline hidden">{{ syncStatus.syncingSummaryText.value || 'Synchronizing...' }}</span>
               </span>
             </template>
-            <template v-else>
+            <template v-else-if="hasConnections">
               <CloudCheckIcon class="text-success-text size-5" />
               <template v-if="lastSyncRelativeTime">
                 <span class="xs:block hidden font-medium"> Synced {{ lastSyncRelativeTime }} </span>
                 <span class="xs:hidden font-medium"> Synced </span>
               </template>
+            </template>
+            <template v-else>
+              <CloudCheckIcon class="size-5" />
+              <span class="xs:block hidden font-medium">Connect bank</span>
             </template>
           </Button>
         </Popover.PopoverTrigger>
@@ -128,6 +132,8 @@ const lastSyncRelativeTime = computed(() => {
   if (!syncStatus.lastSyncTimestamp.value) return null;
   return formatDistanceToNow(new Date(syncStatus.lastSyncTimestamp.value), { addSuffix: true });
 });
+
+const hasConnections = computed(() => syncStatus.accountStatuses.value.length > 0);
 
 // Initialize sync status on mount
 onMounted(async () => {
