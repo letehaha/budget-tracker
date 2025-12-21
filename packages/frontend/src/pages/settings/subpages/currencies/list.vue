@@ -9,29 +9,28 @@
         @click="selectCurrency(currency)"
       >
         <div class="gap-4">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <img class="h-5 w-5" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
-              <div class="ml-2 flex items-center gap-2 text-lg font-medium text-white">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
+              <img class="h-5 w-5 shrink-0" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
+              <span class="text-lg font-medium text-white">
                 {{ currency.currency.currency }}
+              </span>
 
-                <template v-if="currency.isDefaultCurrency">
-                  <ui-tooltip
-                    position="top"
-                    content="Your base currency. All information on dashboard is displayed in this currency"
-                  >
-                    <div
-                      class="bg-background border-accent flex items-center gap-1 rounded border px-2 py-1 text-xs text-white"
-                    >
-                      Base currency
-                      <InfoIcon class="size-4" />
-                    </div>
-                  </ui-tooltip>
-                </template>
-              </div>
+              <ui-tooltip
+                v-if="currency.isDefaultCurrency"
+                position="top"
+                content="Your base currency. All information on dashboard is displayed in this currency"
+              >
+                <div
+                  class="bg-background border-accent flex shrink-0 items-center gap-1 whitespace-nowrap rounded border px-2 py-1 text-xs text-white"
+                >
+                  Base currency
+                  <InfoIcon class="size-4" />
+                </div>
+              </ui-tooltip>
             </div>
 
-            <div>
+            <div class="shrink-0 text-right">
               <div class="text-sm font-bold">
                 {{ currency.rate.toLocaleString() }}
 

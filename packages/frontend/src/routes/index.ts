@@ -103,7 +103,6 @@ const routes = [
         path: '/settings',
         name: ROUTES_NAMES.settings,
         component: () => import('@/pages/settings/settings.vue'),
-        redirect: { name: ROUTES_NAMES.settingsCurrencies },
         children: [
           {
             path: 'categories',
