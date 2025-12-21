@@ -1,5 +1,5 @@
 <template>
-  <div class="group relative">
+  <div :class="cn('group relative', $attrs.class)">
     <slot />
 
     <template v-if="content || $slots['tooltip-content'] || $slots['tooltip-message']">
@@ -22,6 +22,8 @@
 </template>
 
 <script setup lang="ts">
+import { cn } from '@/lib/utils';
+
 defineOptions({
   name: 'ui-tooltip',
 });

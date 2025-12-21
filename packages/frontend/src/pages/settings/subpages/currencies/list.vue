@@ -1,57 +1,8 @@
 <template>
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
-    <button v-for="(currency, index) in currenciesList" :key="currency.id" type="button">
-      <Card
-        :class="[
-          'flex cursor-auto flex-col gap-4 rounded-lg border p-4 shadow-xs transition-all duration-300',
-          !currency.isDefaultCurrency && 'hover:bg-card-tooltip cursor-pointer',
-        ]"
-        @click="selectCurrency(currency)"
-      >
-        <div class="gap-4">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex min-w-0 flex-wrap items-center gap-2">
-              <img class="h-5 w-5 shrink-0" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
-              <span class="text-lg font-medium text-white">
-                {{ currency.currency.currency }}
-              </span>
-
-              <ui-tooltip
-                v-if="currency.isDefaultCurrency"
-                position="top"
-                content="Your base currency. All information on dashboard is displayed in this currency"
-              >
-                <div
-                  class="bg-background border-accent flex shrink-0 items-center gap-1 whitespace-nowrap rounded border px-2 py-1 text-xs text-white"
-                >
-                  Base currency
-                  <InfoIcon class="size-4" />
-                </div>
-              </ui-tooltip>
-            </div>
-
-            <div class="shrink-0 text-right">
-              <div class="text-sm font-bold">
-                {{ currency.rate.toLocaleString() }}
-
-                <span class="text-sm">
-                  {{ currency.currency.code }} /
-                  {{ baseCurrency.currency.code }}
-                </span>
-              </div>
-              <div class="text-sm font-bold">
-                {{ currency.quoteRate.toLocaleString() }}
-
-                <span class="text-sm">
-                  {{ baseCurrency.currency.code }} /
-                  {{ currency.currency.code }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
-    </button>
+    <template v-for="currency in currenciesList" :key="currency.id">
+      <ListItem :currency="currency" @click="selectCurrency(currency)" />
+    </template>
 
     <ResponsiveDialog v-model:open="isEditingModalVisible">
       <template #trigger>
@@ -77,22 +28,19 @@
 import { loadUserCurrenciesExchangeRates } from '@/api/currencies';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
-import UiTooltip from '@/components/common/tooltip.vue';
-import { Card } from '@/components/lib/ui/card';
-import { getCurrencyIcon } from '@/js/helpers/currencyImage';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { UserCurrencyModel } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
-import { InfoIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, nextTick, ref } from 'vue';
 
 import EditCurrency from './edit-currency/index.vue';
+import ListItem from './list-item.vue';
 import { CurrencyWithExchangeRate } from './types';
 
 const currenciesStore = useCurrenciesStore();
 const accountsStore = useAccountsStore();
-const { currencies, baseCurrency } = storeToRefs(currenciesStore);
+const { currencies } = storeToRefs(currenciesStore);
 const { accountsCurrencyCodes } = storeToRefs(accountsStore);
 const queryClient = useQueryClient();
 
