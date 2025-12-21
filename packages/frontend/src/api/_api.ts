@@ -153,6 +153,7 @@ class ApiCaller {
     if (additionalParams) {
       additionalParams = `?${additionalParams}`;
     }
+    const userHadToken = !!(this.authToken || window.localStorage.getItem('user-token'));
     const url = `${API_HTTP}${API_VER}${opts.endpoint}${additionalParams}`;
     const config: ApiRequestConfig = {
       method: opts.method,
@@ -221,13 +222,23 @@ class ApiCaller {
     if (status === API_RESPONSE_STATUS.error) {
       if (response.code === API_ERROR_CODES.unauthorized) {
         useAuthStore().logout();
-        router.push('/');
 
-        addNotification({
-          id: 'authorization-error',
-          text: 'Unauthorized. Please, login first.',
-          type: NotificationType.error,
-        });
+        // Public pages where we don't show notification or redirect
+        // Use window.location.pathname instead of router.currentRoute because during
+        // navigation guards, currentRoute may not yet reflect the actual destination
+        const publicPaths = ['/', '/privacy-policy', '/terms-of-use'];
+        const currentPath = window.location.pathname;
+        const isOnPublicPage = publicPaths.includes(currentPath);
+
+        if (!isOnPublicPage) {
+          router.push('/sign-in');
+
+          addNotification({
+            id: 'authorization-error',
+            text: userHadToken ? 'Your session has expired. Please sign in again' : 'Please sign in to continue',
+            type: NotificationType.error,
+          });
+        }
 
         throw new errors.AuthError(response.statusText, response);
       }

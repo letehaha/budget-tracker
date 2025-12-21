@@ -504,10 +504,28 @@ import { computed, onMounted, onUnmounted } from 'vue';
 
 const authStore = useAuthStore();
 const { isLoggedIn } = storeToRefs(authStore);
+const { isReturningUser } = authStore;
 
-const ctaRoute = computed(() => (isLoggedIn.value ? ROUTES_NAMES.home : ROUTES_NAMES.signUp));
-const ctaText = computed(() => (isLoggedIn.value ? 'Go to Dashboard' : 'Start for free'));
-const ctaTextShort = computed(() => (isLoggedIn.value ? 'Dashboard' : 'Get Started'));
+// Validate session on landing page to check if stored token is still valid
+onMounted(async () => {
+  const token = localStorage.getItem('user-token');
+  if (token && !isLoggedIn.value) {
+    await authStore.validateSession();
+  }
+});
+
+const ctaRoute = computed(() => {
+  if (isLoggedIn.value) return ROUTES_NAMES.home;
+  return isReturningUser ? ROUTES_NAMES.signIn : ROUTES_NAMES.signUp;
+});
+const ctaText = computed(() => {
+  if (isLoggedIn.value) return 'Go to Dashboard';
+  return isReturningUser ? 'Sign in' : 'Start for free';
+});
+const ctaTextShort = computed(() => {
+  if (isLoggedIn.value) return 'Dashboard';
+  return isReturningUser ? 'Sign in' : 'Get Started';
+});
 
 const siteUrl = 'https://moneymatter.app';
 const pageTitle = 'MoneyMatter - Take Control of Your Financial Future';
