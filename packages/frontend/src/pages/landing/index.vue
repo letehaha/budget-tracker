@@ -53,7 +53,7 @@
     </header>
 
     <!-- Hero Section -->
-    <section class="relative overflow-hidden pt-32 pb-20 sm:pt-40 sm:pb-32">
+    <section class="relative overflow-hidden py-20 sm:pt-40 sm:pb-32">
       <!-- Background gradient -->
       <div class="pointer-events-none absolute inset-0 overflow-hidden">
         <div
@@ -87,7 +87,9 @@
             style="text-shadow: 0 0 40px rgba(168, 85, 247, 0.4)"
           >
             Your money. Your data.
-            <span class="from-primary bg-gradient-to-r via-purple-500 to-pink-500 bg-clip-text text-transparent">
+            <span
+              class="from-primary bg-gradient-to-r via-purple-500 to-pink-500 bg-clip-text whitespace-nowrap text-transparent"
+            >
               It matters.
             </span>
           </p>
@@ -143,11 +145,11 @@
     </section>
 
     <!-- Features Section -->
-    <section id="features" class="relative py-24 sm:py-32">
+    <section id="features" class="relative py-16 sm:py-32">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <!-- Section header -->
         <div class="mx-auto max-w-2xl text-center">
-          <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          <h2 class="text-2xl font-bold tracking-tight sm:text-4xl">
             Everything you need to <br />
             manage your money
           </h2>
@@ -260,7 +262,7 @@
     </section>
 
     <!-- Self-Host Section -->
-    <section id="self-host" class="relative py-24 sm:py-32">
+    <section id="self-host" class="relative py-16 sm:py-32">
       <!-- Background -->
       <div class="pointer-events-none absolute inset-0 overflow-hidden">
         <div
@@ -278,7 +280,7 @@
               <ShieldCheck class="size-4" />
               Your data, your control
             </div>
-            <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Self-host for complete privacy</h2>
+            <h2 class="text-2xl font-bold tracking-tight sm:text-4xl">Self-host for complete privacy</h2>
             <p class="text-muted-foreground mt-4 text-lg">
               Run MoneyMatter on your own server. Your financial data never leaves your infrastructure. No
               subscriptions, no data collection, no third-party access.
@@ -377,10 +379,10 @@
     </section>
 
     <!-- CTA Section -->
-    <section class="relative py-24 sm:py-32">
+    <section class="relative py-16 sm:py-32">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div
-          class="from-primary relative overflow-hidden rounded-3xl bg-gradient-to-br via-purple-600 to-pink-600 px-8 py-16 text-center sm:px-16 sm:py-24"
+          class="from-primary relative overflow-hidden rounded-3xl bg-gradient-to-br via-purple-600 to-pink-600 px-6 py-12 text-center sm:px-16 sm:py-24"
         >
           <!-- Background pattern -->
           <div class="pointer-events-none absolute inset-0 opacity-30">
