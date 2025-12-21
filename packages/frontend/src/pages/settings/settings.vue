@@ -1,5 +1,16 @@
 <template>
-  <div ref="containerRef" class="flex min-h-[calc(100dvh-var(--header-height))] flex-col gap-6 p-6 lg:flex-row">
+  <div
+    ref="containerRef"
+    :class="
+      cn(
+        'flex min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))] flex-col gap-6 p-6 sm:flex-row',
+        isMobileView
+          ? 'min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))]'
+          : 'min-h-[calc(100dvh-var(--header-height))]',
+        (isOnChildRoute || !isCompactLayout) && 'pt-4',
+      )
+    "
+  >
     <!-- Sidebar Navigation (wide: always visible, compact: only on root) -->
     <nav
       v-if="!isOnChildRoute || !isCompactLayout"
@@ -8,7 +19,7 @@
         !isCompactLayout && 'lg:w-52',
       ]"
     >
-      <ul class="flex flex-col gap-1">
+      <ul class="sticky top-[var(--header-height)] flex flex-col gap-1">
         <li v-for="tab in tabs" :key="tab.name">
           <router-link
             :to="tab.to"
@@ -17,7 +28,7 @@
                 'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
                 'hover:bg-accent hover:text-foreground',
                 '[&.router-link-exact-active]:bg-accent [&.router-link-exact-active]:text-foreground',
-                isCompactLayout ? 'text-sm md:gap-4 md:text-lg' : 'text-sm',
+                isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
               )
             "
           >
@@ -35,7 +46,7 @@
       <router-link
         v-if="isCompactLayout"
         :to="{ name: ROUTES_NAMES.settings }"
-        class="text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1 text-sm transition-colors"
+        class="text-muted-foreground bg-background hover:text-foreground sticky top-[var(--header-height)] z-[var(--z-navbar)] mb-2 flex items-center gap-1 py-2 text-sm transition-colors"
       >
         <ChevronLeftIcon class="size-4" />
         Back to Settings
@@ -47,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
 import { useUserStore } from '@/stores';
@@ -78,6 +90,10 @@ const { user } = storeToRefs(useUserStore());
 
 const containerRef = ref<HTMLElement | null>(null);
 const { width: containerWidth } = useElementSize(containerRef);
+
+const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile, {
+  wait: 50,
+});
 
 const isCompactLayout = computed(() => containerWidth.value < 920);
 const showAdminTab = ref(user.value.isAdmin);
