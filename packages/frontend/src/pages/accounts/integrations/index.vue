@@ -6,7 +6,7 @@
       <UiButton @click="openAddIntegrationDialog">
         <PlusIcon class="size-5" />
 
-        Add Integration
+        Add <span class="max-sm:hidden">Integration</span>
       </UiButton>
     </div>
 
@@ -16,7 +16,7 @@
       <!-- Empty State -->
       <div
         v-if="!connections || connections.length === 0"
-        class="flex min-h-[400px] flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center"
+        class="flex min-h-[400px] flex-col items-center justify-center rounded-lg border border-dashed p-6 text-center md:p-12"
       >
         <div class="mb-4 text-6xl">🏦</div>
         <h2 class="mb-2 text-xl font-semibold tracking-wide">No Bank Integrations Yet</h2>

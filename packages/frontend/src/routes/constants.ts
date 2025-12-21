@@ -9,7 +9,6 @@ export const ROUTES_NAMES = Object.freeze({
   home: `${ROUTER_LAYOUTS.dashboard}.home`,
   accounts: `${ROUTER_LAYOUTS.dashboard}.accounts`,
   account: `${ROUTER_LAYOUTS.dashboard}.account`,
-  createAccount: `${ROUTER_LAYOUTS.dashboard}.create-account`,
   accountIntegrations: `${ROUTER_LAYOUTS.dashboard}.account-integrations`,
   accountIntegrationDetails: `${ROUTER_LAYOUTS.dashboard}.account-integration-details`,
   bankCallback: `${ROUTER_LAYOUTS.dashboard}.bank-callback`,

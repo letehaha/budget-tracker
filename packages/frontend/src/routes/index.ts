@@ -34,11 +34,6 @@ const routes = [
         component: () => import('@/pages/account/account.vue'),
       },
       {
-        path: '/create-account',
-        name: ROUTES_NAMES.createAccount,
-        component: () => import('@/pages/account/create.vue'),
-      },
-      {
         path: '/accounts/integrations',
         name: ROUTES_NAMES.accountIntegrations,
         component: () => import('@/pages/accounts/integrations/index.vue'),

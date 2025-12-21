@@ -4,9 +4,9 @@
       <h1 class="text-2xl tracking-wider">Accounts</h1>
 
       <div class="flex flex-wrap gap-x-4 gap-y-2">
-        <UiButton as-child variant="outline">
-          <router-link :to="{ name: ROUTES_NAMES.createAccount }"> Create account </router-link>
-        </UiButton>
+        <CreateAccountDialog>
+          <UiButton variant="outline"> Create account </UiButton>
+        </CreateAccountDialog>
 
         <UiButton as-child>
           <router-link :to="{ name: ROUTES_NAMES.accountIntegrations }"> Bank Integrations </router-link>
@@ -56,12 +56,12 @@
             Connect Bank Account
           </UiButton>
 
-          <UiButton as-child variant="outline">
-            <router-link :to="{ name: ROUTES_NAMES.createAccount }">
+          <CreateAccountDialog>
+            <UiButton variant="outline">
               <PlusIcon class="mr-2 size-4" />
               Create Manual Account
-            </router-link>
-          </UiButton>
+            </UiButton>
+          </CreateAccountDialog>
         </div>
       </div>
     </template>
@@ -78,6 +78,7 @@
 <script lang="ts" setup>
 import { type BankProvider, listProviders } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import AddIntegrationDialog from '@/pages/accounts/integrations/components/add-integration-dialog.vue';
 import { ROUTES_NAMES } from '@/routes/constants';

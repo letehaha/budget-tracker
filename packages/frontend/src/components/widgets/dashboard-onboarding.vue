@@ -6,17 +6,19 @@
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
-      <Card class="hover:bg-accent/50 cursor-pointer p-4 transition-colors" @click="navigateToCreateAccount">
-        <div class="flex flex-col items-center gap-3 text-center">
-          <div class="bg-primary/10 rounded-full p-3">
-            <WalletIcon class="text-primary size-6" />
+      <CreateAccountDialog>
+        <Card class="hover:bg-accent/50 cursor-pointer p-4 transition-colors">
+          <div class="flex flex-col items-center gap-3 text-center">
+            <div class="bg-primary/10 rounded-full p-3">
+              <WalletIcon class="text-primary size-6" />
+            </div>
+            <div>
+              <h3 class="font-medium">Create Manual Account</h3>
+              <p class="text-muted-foreground mt-1 text-sm">Add a cash account or track expenses manually</p>
+            </div>
           </div>
-          <div>
-            <h3 class="font-medium">Create Manual Account</h3>
-            <p class="text-muted-foreground mt-1 text-sm">Add a cash account or track expenses manually</p>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      </CreateAccountDialog>
 
       <Card class="hover:bg-accent/50 cursor-pointer p-4 transition-colors" @click="navigateToIntegrations">
         <div class="flex flex-col items-center gap-3 text-center">
@@ -34,16 +36,13 @@
 </template>
 
 <script setup lang="ts">
+import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
 import { Card } from '@/components/lib/ui/card';
 import { ROUTES_NAMES } from '@/routes';
 import { LandmarkIcon, WalletIcon } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-
-const navigateToCreateAccount = () => {
-  router.push({ name: ROUTES_NAMES.createAccount });
-};
 
 const navigateToIntegrations = () => {
   router.push({ name: ROUTES_NAMES.accountIntegrations });
