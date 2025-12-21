@@ -289,6 +289,59 @@
               Track transfers between accounts seamlessly. Keep accurate balances across all accounts.
             </p>
           </div>
+
+          <!-- Portfolio Tracking -->
+          <div
+            class="group border-border/50 bg-card hover:border-primary/50 relative overflow-hidden rounded-2xl border p-6 transition-all hover:shadow-lg"
+          >
+            <div
+              class="mb-4 flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/10 text-emerald-500"
+            >
+              <TrendingUp class="size-6" />
+            </div>
+            <h3 class="mb-2 text-lg font-semibold">
+              Portfolio Tracking
+              <span
+                class="ml-1 rounded bg-amber-500/20 px-1.5 py-0.5 align-middle text-xs font-medium text-amber-600 dark:text-amber-400"
+              >
+                Beta
+              </span>
+            </h3>
+            <p class="text-muted-foreground text-sm">
+              Monitor your stocks and investments. Track performance, gains, and portfolio allocation in real-time.
+            </p>
+          </div>
+
+          <!-- Multi-Currency -->
+          <div
+            class="group border-border/50 bg-card hover:border-primary/50 relative overflow-hidden rounded-2xl border p-6 transition-all hover:shadow-lg"
+          >
+            <div
+              class="mb-4 flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/10 to-indigo-600/10 text-indigo-500"
+            >
+              <Globe class="size-6" />
+            </div>
+            <h3 class="mb-2 text-lg font-semibold">Multi-Currency</h3>
+            <p class="text-muted-foreground text-sm">
+              Manage accounts in different currencies. Automatic exchange rates keep your totals accurate.
+            </p>
+          </div>
+
+          <!-- And many more -->
+          <div
+            class="group border-border/50 bg-card hover:border-primary/50 relative overflow-hidden rounded-2xl border p-6 transition-all hover:shadow-lg"
+          >
+            <div
+              class="mb-4 flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/10 to-violet-600/10 text-violet-500"
+            >
+              <Sparkles class="size-6" />
+            </div>
+            <h3 class="mb-2 text-lg font-semibold">And Many More</h3>
+            <p class="text-muted-foreground text-sm">
+              Refunds tracking, transaction linking, hidden categories, account groups, custom exchange rates, transfers
+              out of wallet, and more.
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -525,10 +578,13 @@ import {
   Check,
   CircleDollarSign,
   ExternalLinkIcon,
+  Globe,
   Landmark,
   Lightbulb,
   ShieldCheck,
+  Sparkles,
   Tag,
+  TrendingUp,
   Upload,
 } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
