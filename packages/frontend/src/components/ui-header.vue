@@ -32,7 +32,7 @@
     </div>
 
     <div class="ml-auto flex items-center gap-2">
-<!-- Theme toggle temporarily disabled - light theme coming soon
+      <!-- Theme toggle temporarily disabled - light theme coming soon
       <Button variant="ghost" size="icon" @click="toggleTheme">
         <template v-if="currentTheme === Themes.dark">
           <MoonStar :size="20" />
@@ -45,7 +45,7 @@
 
       <Popover.Popover v-model:open="isPopoverOpen">
         <Popover.PopoverTrigger as-child>
-          <Button variant="ghost" class="flex items-center gap-2" size="sm">
+          <Button variant="secondary" class="flex items-center gap-2">
             <template v-if="syncStatus.isSyncing.value">
               <RefreshCcw class="animate-spin" :size="16" />
               <span class="font-medium">
@@ -54,8 +54,11 @@
               </span>
             </template>
             <template v-else>
-              <CheckCircle :size="14" class="text-green-700" />
-              <span class="xs:block hidden font-medium"> Synchronized </span>
+              <CloudCheckIcon class="text-success-text size-5" />
+              <template v-if="lastSyncRelativeTime">
+                <span class="xs:block hidden font-medium"> Synced {{ lastSyncRelativeTime }} </span>
+                <span class="xs:hidden font-medium"> Synced </span>
+              </template>
             </template>
           </Button>
         </Popover.PopoverTrigger>
@@ -103,9 +106,10 @@ import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes';
+import { formatDistanceToNow } from 'date-fns';
 // MoonStar, Sun removed - theme toggle temporarily disabled
-import { CheckCircle, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon } from 'lucide-vue-next';
-import { onMounted, ref, watch } from 'vue';
+import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon } from 'lucide-vue-next';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 const { elementRef: headerRef } = useCssVarFromElementSize({
@@ -119,6 +123,11 @@ const isPopoverOpen = ref(false);
 
 // Use new sync status system
 const syncStatus = useSyncStatus();
+
+const lastSyncRelativeTime = computed(() => {
+  if (!syncStatus.lastSyncTimestamp.value) return null;
+  return formatDistanceToNow(new Date(syncStatus.lastSyncTimestamp.value), { addSuffix: true });
+});
 
 // Initialize sync status on mount
 onMounted(async () => {
