@@ -32,6 +32,7 @@
     </div>
 
     <div class="ml-auto flex items-center gap-2">
+<!-- Theme toggle temporarily disabled - light theme coming soon
       <Button variant="ghost" size="icon" @click="toggleTheme">
         <template v-if="currentTheme === Themes.dark">
           <MoonStar :size="20" />
@@ -40,6 +41,7 @@
           <Sun :size="20" />
         </template>
       </Button>
+      -->
 
       <Popover.Popover v-model:open="isPopoverOpen">
         <Popover.PopoverTrigger as-child>
@@ -78,7 +80,7 @@
 
       <router-link :to="{ name: ROUTES_NAMES.settings }">
         <Button variant="secondary" class="text-white" size="icon" as="span">
-          <SettingsIcon :color="currentTheme === Themes.light ? 'black' : undefined" />
+          <SettingsIcon />
         </Button>
       </router-link>
     </div>
@@ -86,7 +88,8 @@
 </template>
 
 <script setup lang="ts">
-import { Themes, currentTheme, toggleTheme } from '@/common/utils';
+// Theme toggle temporarily disabled - light theme coming soon
+// import { Themes, currentTheme, toggleTheme } from '@/common/utils';
 import ManageTransactionDrawer from '@/components/dialogs/manage-transaction/drawer-view.vue';
 import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
@@ -100,7 +103,8 @@ import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes';
-import { CheckCircle, MenuIcon, MoonStar, PlusIcon, RefreshCcw, SettingsIcon, Sun } from 'lucide-vue-next';
+// MoonStar, Sun removed - theme toggle temporarily disabled
+import { CheckCircle, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon } from 'lucide-vue-next';
 import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
