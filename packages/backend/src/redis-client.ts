@@ -16,6 +16,7 @@ export const redisClient = new Redis({
   lazyConnect: true,
   maxRetriesPerRequest: 3,
   connectTimeout: 20000, // 20s connection timeout for slower CI environments
+  keepAlive: 10000, // Send TCP keepalive to prevent idle disconnection
   retryStrategy: (times) => Math.min(times * 100, 3000), // Exponential backoff, max 3s
 });
 

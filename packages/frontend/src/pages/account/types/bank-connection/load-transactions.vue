@@ -4,7 +4,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Calendar } from '@/components/lib/ui/calendar';
 import * as Popover from '@/components/lib/ui/popover';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
-import { useSyncJobPolling } from '@/composables/useSyncJobPolling';
+import { useSyncJobPolling } from '@/composable/use-sync-job-polling';
 import { AccountModel } from '@bt/shared/types';
 import { differenceInDays, format, subDays } from 'date-fns';
 import { CalendarIcon } from 'lucide-vue-next';

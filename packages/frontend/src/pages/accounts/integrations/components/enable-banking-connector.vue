@@ -1,5 +1,19 @@
 <template>
   <div class="space-y-4">
+    <!-- Beta disclaimer -->
+    <div
+      class="flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400"
+    >
+      <TriangleAlertIcon class="mt-0.5 size-5 shrink-0" />
+      <div class="space-y-2">
+        <p class="font-semibold">Beta Feature - Developer-Oriented</p>
+        <p class="opacity-90">
+          This integration requires technical knowledge to set up. You'll need to register your own Enable Banking
+          application and provide API credentials. The setup process and API may change in future updates.
+        </p>
+      </div>
+    </div>
+
     <!-- Step 1: Enter Enable Banking Credentials -->
     <template v-if="currentStep === 1">
       <div class="space-y-4">
@@ -331,7 +345,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { InfoIcon } from 'lucide-vue-next';
+import { InfoIcon, TriangleAlertIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const emit = defineEmits<{

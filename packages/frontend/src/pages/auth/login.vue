@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full items-center justify-center">
+  <div class="flex h-dvh items-center justify-center">
     <Card class="w-full max-w-[450px]" as="form" @submit.prevent="submit">
       <card-header>
         <h1 class="text-center text-2xl font-semibold tracking-tight">Log in to account</h1>

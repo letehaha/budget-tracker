@@ -8,7 +8,7 @@ export const authPageGuard: NavigationGuard = (to, from, next): void => {
 
   if (useAuthStore().isLoggedIn || token) {
     api.setToken(token);
-    next('/');
+    next('/dashboard');
   } else {
     next();
   }

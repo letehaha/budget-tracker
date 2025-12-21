@@ -18,7 +18,7 @@ import { type SyncJobResult, syncTransactions } from '@/api/bank-data-providers'
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { Button } from '@/components/lib/ui/button';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
-import { useSyncJobPolling } from '@/composables/useSyncJobPolling';
+import { useSyncJobPolling } from '@/composable/use-sync-job-polling';
 import { API_ERROR_CODES, AccountModel } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed } from 'vue';

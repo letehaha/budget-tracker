@@ -8,6 +8,11 @@ export { ROUTES_NAMES } from './constants';
 const routes = [
   {
     path: '/',
+    name: ROUTES_NAMES.landing,
+    component: () => import('@/pages/landing/index.vue'),
+  },
+  {
+    path: '/app',
     name: ROUTES_NAMES.dashboard,
     component: () => import('@/layouts/dashboard.vue'),
     beforeEnter: [redirectRouteGuard, baseCurrencyExists],
@@ -42,11 +47,6 @@ const routes = [
         path: '/accounts/integrations/:connectionId',
         name: ROUTES_NAMES.accountIntegrationDetails,
         component: () => import('@/pages/accounts/integrations/details.vue'),
-      },
-      {
-        path: '/accounts/integrations/connect/:providerType',
-        name: ROUTES_NAMES.accountIntegrationsConnect,
-        component: () => import('@/pages/accounts/integrations/connect.vue'),
       },
       {
         path: '/bank-callback',

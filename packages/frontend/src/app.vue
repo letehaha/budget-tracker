@@ -1,5 +1,5 @@
 <template>
-  <main class="bg-background h-screen">
+  <main class="bg-background">
     <router-view />
 
     <notifications-center />
