@@ -199,6 +199,8 @@ useHead({
 onMounted(() => {
   document.documentElement.style.overflow = 'auto';
   document.body.style.overflow = 'auto';
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
 });
 
 onUnmounted(() => {
