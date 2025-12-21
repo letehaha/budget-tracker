@@ -5,7 +5,7 @@ import { useAttrs } from 'vue';
 const attrs = useAttrs();
 withDefaults(
   defineProps<{
-    as?: 'div' | 'form';
+    as?: 'div' | 'form' | 'button';
   }>(),
   {
     as: 'div',

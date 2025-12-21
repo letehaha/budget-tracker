@@ -165,7 +165,7 @@
         <div v-if="isLoading" class="py-8 text-center">Loading accounts...</div>
 
         <template v-else>
-          <div class="text-muted-foreground mb-4 text-sm">Select the accounts you want to sync with Budget Tracker</div>
+          <div class="text-muted-foreground mb-4 text-sm">Select the accounts you want to sync with MoneyMatter</div>
 
           <div class="space-y-2">
             <label
@@ -193,139 +193,7 @@
     </template>
 
     <!-- Help Dialog -->
-    <Dialog :open="showHelpDialog" @update:open="showHelpDialog = $event">
-      <DialogContent class="max-h-[80vh] max-w-2xl overflow-y-auto">
-        <DialogHeader class="mb-4">
-          <DialogTitle>How to Obtain Enable Banking Credentials</DialogTitle>
-        </DialogHeader>
-
-        <div class="space-y-6 text-sm">
-          <div>
-            <h3 class="mb-2 text-base font-semibold">Overview</h3>
-            <p class="text-muted-foreground">
-              Enable Banking requires you to register an application and generate security credentials to access banking
-              data. Follow these steps to get your Application ID and Private Key.
-            </p>
-          </div>
-
-          <div class="space-y-4">
-            <div class="flex gap-3">
-              <div
-                class="bg-primary text-primary-foreground flex size-6 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold"
-              >
-                1
-              </div>
-              <div class="flex-1">
-                <h4 class="mb-1 font-semibold">Register an Enable Banking Account</h4>
-                <p class="text-muted-foreground mb-2">
-                  Visit
-                  <ExternalLink href="https://enablebanking.com" text="enablebanking.com" />
-                  and create an account if you don't have one already.
-                </p>
-              </div>
-            </div>
-
-            <div class="flex gap-3">
-              <div
-                class="bg-primary text-primary-foreground flex size-6 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold"
-              >
-                2
-              </div>
-              <div class="flex-1">
-                <h4 class="mb-1 font-semibold">Create an Application</h4>
-                <div class="text-muted-foreground space-y-1">
-                  <div>1. Log in to the Enable Banking portal</div>
-                  <div>2. Navigate to <ExternalLink href="https://enablebanking.com/cp/applications" /></div>
-                  <div>
-                    3. Look at the "Create Application" form
-                    <div class="pl-4">
-                      <div>3.1 Select <strong>"Production"</strong> environment</div>
-                      <div>3.2 Generate private RSA key <b>in the browser</b></div>
-                      <div>
-                        3.3: fill out form with the next values
-
-                        <div class="pl-4">
-                          <div>Application name: <b>Whatever</b></div>
-                          <div>Allowed redirect URLs: <b>https://moneymatter.app/bank-callback</b></div>
-                          <div>Application description: <b>whatever</b></div>
-                          <div>Email for data protection matters: <b>whatever</b></div>
-                          <div>Privacy URL: <b>whatever</b></div>
-                          <div>Terms URL: <b>whatever</b></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div>4. Click "Register"</div>
-                  <div>
-                    5. You will be suggested to download a file. It's your RSA key that you must save somewhere since
-                    this is part of your credentials
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex gap-3">
-              <div
-                class="bg-primary text-primary-foreground flex size-6 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold"
-              >
-                3
-              </div>
-              <div class="flex-1">
-                <h4 class="mb-1 font-semibold">Link Your Bank Accounts</h4>
-                <p class="text-muted-foreground mb-2">
-                  Before using the application with Budget Tracker, you must first link your bank accounts through the
-                  Enable Banking portal. Look for the "Link accounts" button inside the created application's tile and
-                  follow all the steps required there
-                </p>
-              </div>
-            </div>
-
-            <div class="flex gap-3">
-              <div
-                class="bg-primary text-primary-foreground flex size-6 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold"
-              >
-                4
-              </div>
-              <div class="flex-1">
-                <h4 class="mb-1 font-semibold">Get Your Credentials</h4>
-                <p class="text-muted-foreground mb-2">From the Enable Banking portal:</p>
-                <ul class="text-muted-foreground list-inside list-disc space-y-1">
-                  <li>
-                    <strong>Application ID:</strong> Copy the <code class="bg-muted rounded px-1">app_id</code> from
-                    your application details
-                    <br />
-                    Example: <code class="bg-muted rounded px-1"> 0f711c28-1682-27b5-946c-e221168abf79 </code>
-                  </li>
-                  <li>
-                    <strong>Private Key:</strong> Open your saved
-                    <code class="bg-muted rounded px-1">private.pem</code> file and copy its entire contents (including
-                    the BEGIN and END lines)
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div class="rounded-md border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
-            <div class="flex gap-2">
-              <InfoIcon class="mt-0.5 size-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-              <div>
-                <p class="mb-1 font-semibold text-blue-900 dark:text-blue-100">Security Note</p>
-                <p class="text-xs text-blue-800 dark:text-blue-200">
-                  Your private key is stored encrypted in our database and is only used to authenticate with Enable
-                  Banking on your behalf. Token is limited to read-only data. Yet, never share your private key with
-                  anyone else.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter class="mt-6">
-          <UiButton @click="showHelpDialog = false">Got it</UiButton>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <InstructionsDialog v-model:open="showHelpDialog" />
   </div>
 </template>
 
@@ -339,14 +207,14 @@ import {
   getEnableBankingCountries,
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
-import ExternalLink from '@/components/external-link.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { InfoIcon, TriangleAlertIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+
+import InstructionsDialog from './enable-banking/instructions-dialog.vue';
 
 const emit = defineEmits<{
   connected: [];

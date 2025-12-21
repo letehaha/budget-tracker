@@ -18,18 +18,23 @@ const setTheme = (theme: Themes, save = false) => {
   if (save) localStorage.setItem(THEME_LS_KEY, theme);
 };
 
-export const toggleTheme = () => {
-  setTheme(currentTheme.value === Themes.dark ? Themes.light : Themes.dark, true);
-};
+// Theme toggle temporarily disabled - light theme coming soon
+// export const toggleTheme = () => {
+//   setTheme(currentTheme.value === Themes.dark ? Themes.light : Themes.dark, true);
+// };
 
 export const identifyCurrentTheme = () => {
-  const preferredTheme = localStorage.getItem(THEME_LS_KEY) as Themes;
+  // Force dark theme - light theme coming soon
+  setTheme(Themes.dark);
 
-  if (Object.values(Themes).includes(preferredTheme)) {
-    setTheme(preferredTheme);
-  } else {
-    const matched = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    setTheme(matched ? Themes.dark : Themes.light);
-  }
+  // Original logic:
+  // const preferredTheme = localStorage.getItem(THEME_LS_KEY) as Themes;
+  //
+  // if (Object.values(Themes).includes(preferredTheme)) {
+  //   setTheme(preferredTheme);
+  // } else {
+  //   const matched = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  //
+  //   setTheme(matched ? Themes.dark : Themes.light);
+  // }
 };

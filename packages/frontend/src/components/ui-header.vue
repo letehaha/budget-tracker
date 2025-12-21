@@ -32,6 +32,7 @@
     </div>
 
     <div class="ml-auto flex items-center gap-2">
+      <!-- Theme toggle temporarily disabled - light theme coming soon
       <Button variant="ghost" size="icon" @click="toggleTheme">
         <template v-if="currentTheme === Themes.dark">
           <MoonStar :size="20" />
@@ -40,10 +41,11 @@
           <Sun :size="20" />
         </template>
       </Button>
+      -->
 
       <Popover.Popover v-model:open="isPopoverOpen">
         <Popover.PopoverTrigger as-child>
-          <Button variant="ghost" class="flex items-center gap-2" size="sm">
+          <Button variant="secondary" class="flex items-center gap-2">
             <template v-if="syncStatus.isSyncing.value">
               <RefreshCcw class="animate-spin" :size="16" />
               <span class="font-medium">
@@ -51,9 +53,16 @@
                 <span class="xs:inline hidden">{{ syncStatus.syncingSummaryText.value || 'Synchronizing...' }}</span>
               </span>
             </template>
+            <template v-else-if="hasConnections">
+              <CloudCheckIcon class="text-success-text size-5" />
+              <template v-if="lastSyncRelativeTime">
+                <span class="xs:block hidden font-medium"> Synced {{ lastSyncRelativeTime }} </span>
+                <span class="xs:hidden font-medium"> Synced </span>
+              </template>
+            </template>
             <template v-else>
-              <CheckCircle :size="14" class="text-green-700" />
-              <span class="xs:block hidden font-medium"> Synchronized </span>
+              <CloudCheckIcon class="size-5" />
+              <span class="xs:block hidden font-medium">Connect bank</span>
             </template>
           </Button>
         </Popover.PopoverTrigger>
@@ -78,7 +87,7 @@
 
       <router-link :to="{ name: ROUTES_NAMES.settings }">
         <Button variant="secondary" class="text-white" size="icon" as="span">
-          <SettingsIcon :color="currentTheme === Themes.light ? 'black' : undefined" />
+          <SettingsIcon />
         </Button>
       </router-link>
     </div>
@@ -86,7 +95,8 @@
 </template>
 
 <script setup lang="ts">
-import { Themes, currentTheme, toggleTheme } from '@/common/utils';
+// Theme toggle temporarily disabled - light theme coming soon
+// import { Themes, currentTheme, toggleTheme } from '@/common/utils';
 import ManageTransactionDrawer from '@/components/dialogs/manage-transaction/drawer-view.vue';
 import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
@@ -100,8 +110,10 @@ import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes';
-import { CheckCircle, MenuIcon, MoonStar, PlusIcon, RefreshCcw, SettingsIcon, Sun } from 'lucide-vue-next';
-import { onMounted, ref, watch } from 'vue';
+import { formatDistanceToNow } from 'date-fns';
+// MoonStar, Sun removed - theme toggle temporarily disabled
+import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon } from 'lucide-vue-next';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 const { elementRef: headerRef } = useCssVarFromElementSize({
@@ -115,6 +127,13 @@ const isPopoverOpen = ref(false);
 
 // Use new sync status system
 const syncStatus = useSyncStatus();
+
+const lastSyncRelativeTime = computed(() => {
+  if (!syncStatus.lastSyncTimestamp.value) return null;
+  return formatDistanceToNow(new Date(syncStatus.lastSyncTimestamp.value), { addSuffix: true });
+});
+
+const hasConnections = computed(() => syncStatus.accountStatuses.value.length > 0);
 
 // Initialize sync status on mount
 onMounted(async () => {

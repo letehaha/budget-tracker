@@ -69,9 +69,9 @@
     <form-row>
       <input-field model-value="No account exists" label="Account" readonly :disabled="disabled">
         <template #label-right>
-          <div class="text-primary cursor-pointer hover:underline" @click="redirectToCreateAccountPage">
-            Create account
-          </div>
+          <CreateAccountDialog>
+            <div class="text-primary cursor-pointer hover:underline">Create account</div>
+          </CreateAccountDialog>
         </template>
       </input-field>
     </form-row>
@@ -83,9 +83,7 @@ import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue'
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { ROUTES_NAMES } from '@/routes';
 import { AccountModel, TRANSACTION_TYPES } from '@bt/shared/types';
-import { useRouter } from 'vue-router';
 
 import FormRow from './form-row.vue';
 
@@ -111,15 +109,7 @@ withDefaults(
   },
 );
 
-const emit = defineEmits(['close-modal', 'update:account', 'update:to-account']);
-
-const router = useRouter();
-
-const redirectToCreateAccountPage = async () => {
-  await router.push({ name: ROUTES_NAMES.createAccount });
-
-  emit('close-modal');
-};
+const emit = defineEmits(['update:account', 'update:to-account']);
 
 const updateFormAccount = (account: AccountModel) => {
   emit('update:account', account);

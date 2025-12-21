@@ -12,6 +12,16 @@ const routes = [
     component: () => import('@/pages/landing/index.vue'),
   },
   {
+    path: '/privacy-policy',
+    name: ROUTES_NAMES.privacyPolicy,
+    component: () => import('@/pages/legal/privacy-policy.vue'),
+  },
+  {
+    path: '/terms-of-use',
+    name: ROUTES_NAMES.termsOfUse,
+    component: () => import('@/pages/legal/terms-of-use.vue'),
+  },
+  {
     path: '/app',
     name: ROUTES_NAMES.dashboard,
     component: () => import('@/layouts/dashboard.vue'),
@@ -32,11 +42,6 @@ const routes = [
         path: '/account/:id',
         name: ROUTES_NAMES.account,
         component: () => import('@/pages/account/account.vue'),
-      },
-      {
-        path: '/create-account',
-        name: ROUTES_NAMES.createAccount,
-        component: () => import('@/pages/account/create.vue'),
       },
       {
         path: '/accounts/integrations',

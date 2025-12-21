@@ -6,7 +6,7 @@
     }"
     class="relative w-full flex-1"
   >
-    <Popover.Popover>
+    <Popover.Popover v-model:open="isPopoverOpen">
       <FieldLabel :label="label">
         <div class="relative">
           <input
@@ -115,6 +115,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', payload: Date): void;
 }>();
 const localValue = ref<Date>(props.modelValue);
+const isPopoverOpen = ref(false);
 
 const handleLocalInputUpdate = (event: InputChangeEvent) => {
   const inputVal = event.target.value;
@@ -154,5 +155,6 @@ watch(
 
 watch(localValue, () => {
   emit('update:modelValue', localValue.value);
+  isPopoverOpen.value = false;
 });
 </script>
