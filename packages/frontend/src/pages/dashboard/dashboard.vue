@@ -2,6 +2,7 @@
   <section class="flex min-h-full flex-col p-6">
     <!-- Main period selector - floating on mobile, normal flow on desktop -->
     <div
+      v-if="!hasNoAccounts"
       :class="
         cn([
           'bg-background/95 supports-[backdrop-filter]:bg-background/80 z-(--z-navbar) order-last -mx-6 mt-auto border-t py-2 backdrop-blur',
@@ -64,20 +65,25 @@
       </div>
     </div>
 
-    <div
-      :class="[
-        `grid gap-6 max-md:pb-4`,
-        `xl:grid-cols-[minmax(0,1fr)_420px] xl:[grid-template-areas:'balance-trend_latest-records'_'spending-categories_latest-records']`,
-        `md:grid-cols-2 md:[grid-template-areas:'balance-trend_balance-trend'_'spending-categories_latest-records']`,
-        `grid-cols-1 [grid-template-areas:'balance-trend'_'spending-categories'_'latest-records']`,
-      ]"
-    >
-      <BalanceTrendWidget :selected-period="currentPeriod" class="[grid-area:balance-trend]" />
+    <template v-if="hasNoAccounts">
+      <DashboardOnboarding />
+    </template>
+    <template v-else>
+      <div
+        :class="[
+          `grid gap-6 max-md:pb-4`,
+          `xl:grid-cols-[minmax(0,1fr)_420px] xl:[grid-template-areas:'balance-trend_latest-records'_'spending-categories_latest-records']`,
+          `md:grid-cols-2 md:[grid-template-areas:'balance-trend_balance-trend'_'spending-categories_latest-records']`,
+          `grid-cols-1 [grid-template-areas:'balance-trend'_'spending-categories'_'latest-records']`,
+        ]"
+      >
+        <BalanceTrendWidget :selected-period="currentPeriod" class="[grid-area:balance-trend]" />
 
-      <SpendingCategoriesWidget :selected-period="currentPeriod" class="[grid-area:spending-categories]" />
+        <SpendingCategoriesWidget :selected-period="currentPeriod" class="[grid-area:spending-categories]" />
 
-      <LatestRecordsWidget class="[grid-area:latest-records] lg:max-w-[420px]" />
-    </div>
+        <LatestRecordsWidget class="[grid-area:latest-records] lg:max-w-[420px]" />
+      </div>
+    </template>
   </section>
 </template>
 
@@ -87,8 +93,11 @@ import Popover from '@/components/lib/ui/popover/Popover.vue';
 import PopoverContent from '@/components/lib/ui/popover/PopoverContent.vue';
 import PopoverTrigger from '@/components/lib/ui/popover/PopoverTrigger.vue';
 import RangeCalendar from '@/components/lib/ui/range-calendar/RangeCalendar.vue';
+import DashboardOnboarding from '@/components/widgets/dashboard-onboarding.vue';
 import { useSafariDetection } from '@/composable/detect-safari';
 import { cn } from '@/lib/utils';
+import { useAccountsStore } from '@/stores';
+import { storeToRefs } from 'pinia';
 import { CalendarDate, type DateValue } from '@internationalized/date';
 import {
   addMonths,
@@ -110,6 +119,10 @@ const LatestRecordsWidget = defineAsyncComponent(() => import('@/components/widg
 const SpendingCategoriesWidget = defineAsyncComponent(() => import('@/components/widgets/expenses-structure.vue'));
 
 const { isSafariMobile, isPWA } = useSafariDetection();
+
+const accountsStore = useAccountsStore();
+const { accounts, isAccountsFetched } = storeToRefs(accountsStore);
+const hasNoAccounts = computed(() => isAccountsFetched.value && accounts.value.length === 0);
 
 defineOptions({
   name: 'page-dashboard',
