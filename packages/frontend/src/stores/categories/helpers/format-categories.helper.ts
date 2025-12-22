@@ -1,5 +1,19 @@
 import { type FormattedCategory } from '@/common/types';
-import { CategoryModel } from '@bt/shared/types';
+import { CATEGORY_TYPES, CategoryModel } from '@bt/shared/types';
+
+/**
+ * Sorts categories so that internal categories come last
+ */
+const sortCategoriesWithInternalLast = (categories: FormattedCategory[]): FormattedCategory[] => {
+  return categories.sort((a, b) => {
+    const aIsInternal = a.type === CATEGORY_TYPES.internal;
+    const bIsInternal = b.type === CATEGORY_TYPES.internal;
+
+    if (aIsInternal && !bIsInternal) return 1;
+    if (!aIsInternal && bIsInternal) return -1;
+    return 0;
+  });
+};
 
 export const buildCategiesObjectGraph = (items: CategoryModel[]): FormattedCategory[] => {
   const itemsById: Record<string, FormattedCategory> = {};
@@ -22,5 +36,6 @@ export const buildCategiesObjectGraph = (items: CategoryModel[]): FormattedCateg
     nodes.push(item);
   });
 
-  return roots;
+  // Sort so internal categories appear at the bottom
+  return sortCategoriesWithInternalLast(roots);
 };

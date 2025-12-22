@@ -12,11 +12,16 @@
             ])
           "
         >
-          <Button
-            class="flex flex-1 items-center justify-start gap-2 overflow-hidden"
-            variant="ghost"
-            size="sm"
-            @click="toggleCategory(cat)"
+          <div
+            :class="
+              cn([
+                'flex flex-1 items-center justify-start gap-2 overflow-hidden rounded-md px-3 py-2 text-sm font-medium',
+                isInternalCategory(cat)
+                  ? 'cursor-default opacity-70'
+                  : 'hover:bg-accent hover:text-accent-foreground cursor-pointer',
+              ])
+            "
+            @click="!isInternalCategory(cat) && toggleCategory(cat)"
           >
             <ChevronRightIcon
               v-if="cat.subCategories.length"
@@ -27,9 +32,15 @@
 
             <CategoryCircle :category="cat" />
             <span class="truncate">{{ cat.name }}</span>
-          </Button>
+            <span
+              v-if="isInternalCategory(cat)"
+              class="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-xs"
+            >
+              system
+            </span>
+          </div>
 
-          <ResponsiveMenu v-if="showActions" v-model:open="menuOpenState[cat.id]">
+          <ResponsiveMenu v-if="showActions && !isInternalCategory(cat)" v-model:open="menuOpenState[cat.id]">
             <template #trigger>
               <Button variant="ghost" size="icon-sm" class="size-8 shrink-0" title="Actions" @click.stop>
                 <MoreVerticalIcon class="size-4" />
@@ -98,8 +109,11 @@ import CategoryCircle from '@/components/common/category-circle.vue';
 import ResponsiveMenu from '@/components/common/responsive-menu.vue';
 import { Button } from '@/components/lib/ui/button';
 import { cn } from '@/lib/utils';
+import { CATEGORY_TYPES } from '@bt/shared/types';
 import { ChevronRightIcon, MoreVerticalIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-vue-next';
 import { computed, reactive } from 'vue';
+
+const isInternalCategory = (category: FormattedCategory) => category.type === CATEGORY_TYPES.internal;
 
 const props = withDefaults(
   defineProps<{
