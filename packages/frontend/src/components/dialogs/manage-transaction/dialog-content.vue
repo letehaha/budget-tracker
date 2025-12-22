@@ -402,7 +402,6 @@ onUnmounted(() => {
             :from-account-disabled="fromAccountFieldDisabled"
             :to-account-disabled="toAccountFieldDisabled"
             :filtered-accounts="transferDestinationAccounts"
-            @close-modal="closeModal"
           />
 
           <template v-if="currentTxType !== FORM_TYPES.transfer">
