@@ -76,7 +76,7 @@ const isSubmitDisabled = computed(() => isMutating.value || !form.value.name);
 
     <div class="flex gap-2">
       <label class="flex cursor-pointer items-center gap-2">
-        <Checkbox :checked="form.autoInclude" :disabled="!isDateExist" @update:checked="form.autoInclude = $event" />
+        <Checkbox v-model="form.autoInclude" :disabled="!isDateExist" />
         Auto include transactions
       </label>
     </div>

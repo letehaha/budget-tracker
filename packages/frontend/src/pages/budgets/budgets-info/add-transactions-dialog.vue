@@ -157,10 +157,10 @@ const isMobileView = useWindowBreakpoints(1024);
               ]"
             >
               <Checkbox
-                :checked="pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)"
-                @update:checked="
+                :model-value="pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)"
+                @update:model-value="
                   handleSelection(
-                    $event,
+                    !!$event,
                     flatTransactions[virtualRow.index].id,
                     virtualRow.index,
                     flatTransactions,
