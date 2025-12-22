@@ -4,6 +4,8 @@ import * as Tooltip from '@/components/lib/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { createReusableTemplate, useMediaQuery } from '@vueuse/core';
 
+defineOptions({ inheritAttrs: false });
+
 const [UseTemplate, SlotContent] = createReusableTemplate();
 // Detect touch-primary devices (coarse pointer = finger/stylus)
 const isTouch = useMediaQuery('(pointer: coarse)');

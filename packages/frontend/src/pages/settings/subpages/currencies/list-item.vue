@@ -1,17 +1,22 @@
 <template>
   <Card
     :class="[
-      'relative flex cursor-auto flex-col justify-end gap-4 rounded-lg border p-4 shadow-xs transition-colors duration-300',
+      'currency-card relative flex cursor-auto flex-col justify-end gap-4 rounded-lg border p-4 shadow-xs transition-colors duration-300',
       !currency.isDefaultCurrency && 'hover:bg-card-tooltip cursor-pointer',
-      isShortenView && 'pt-8',
     ]"
     as="button"
     type="button"
-    ref="containerRef"
   >
     <div class="gap-4">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <div class="flex min-w-0 flex-wrap items-center gap-2">
+        <div
+          :class="
+            cn(
+              'flex min-w-0 flex-wrap items-center gap-2',
+              currency.isDefaultCurrency && '@[0px]/card:mt-3 @[370px]/card:mt-0',
+            )
+          "
+        >
           <img class="h-5 w-5 shrink-0" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
           <span class="text-lg font-medium text-white">
             {{ currency.currency.currency }}
@@ -20,7 +25,7 @@
           <ResponsiveTooltip
             v-if="currency.isDefaultCurrency"
             content="Your base currency. All information on dashboard is displayed in this currency"
-            :class="cn(isShortenView && 'absolute top-0 right-0')"
+            class="@[0px]/card:absolute @[0px]/card:top-0 @[0px]/card:left-0 @[370px]/card:static"
             contentClassName="max-w-[320px]"
           >
             <div
@@ -61,10 +66,8 @@ import { Card } from '@/components/lib/ui/card';
 import { getCurrencyIcon } from '@/js/helpers/currencyImage';
 import { cn } from '@/lib/utils';
 import { useCurrenciesStore } from '@/stores';
-import { useElementSize } from '@vueuse/core';
 import { InfoIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed, ref } from 'vue';
 
 import type { CurrencyWithExchangeRate } from './types';
 
@@ -72,9 +75,11 @@ defineProps<{ currency: CurrencyWithExchangeRate }>();
 
 const currenciesStore = useCurrenciesStore();
 const { baseCurrency } = storeToRefs(currenciesStore);
-const containerRef = ref<HTMLButtonElement | null>(null);
-
-const { width: containerWidth } = useElementSize(containerRef);
-
-const isShortenView = computed(() => containerWidth.value < 370);
 </script>
+
+<style scoped>
+.currency-card {
+  container-name: card;
+  container-type: inline-size;
+}
+</style>
