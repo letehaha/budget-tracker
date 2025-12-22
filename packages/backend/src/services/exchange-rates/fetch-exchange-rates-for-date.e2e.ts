@@ -1,8 +1,9 @@
-import { afterEach, beforeAll, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from '@jest/globals';
+import { connection } from '@models/index';
 import * as helpers from '@tests/helpers';
 import { getCurrencyRatesApiResponseMock, getFrankfurterResponseMock } from '@tests/mocks/exchange-rates/data';
 import { createCallsCounter, createOverride } from '@tests/mocks/helpers';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 
 import {
   API_LAYER_ENDPOINT_REGEX,
@@ -27,6 +28,13 @@ describe('Exchange Rates Functionality', () => {
     currencyRatesApiCounter = createCallsCounter(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
     frankfurterCounter = createCallsCounter(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
     apiLayerCounter = createCallsCounter(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
+  });
+
+  beforeEach(async () => {
+    // Clean up today's exchange rates before each test to ensure tests start fresh
+    // This is needed because ExchangeRates table is preserved between tests for performance
+    const today = startOfDay(new Date());
+    await connection.sequelize.query(`DELETE FROM "ExchangeRates" WHERE date >= :today`, { replacements: { today } });
   });
 
   afterEach(() => {
