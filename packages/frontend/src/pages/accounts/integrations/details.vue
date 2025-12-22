@@ -50,17 +50,12 @@
                   <p class="text-muted-foreground flex items-center gap-1 text-sm">
                     Auto-Sync
 
-                    <Popover.Popover>
-                      <Popover.PopoverTrigger>
-                        <InfoIcon class="text-primary size-4 cursor-pointer" />
-                      </Popover.PopoverTrigger>
-                      <Popover.PopoverContent class="max-w-[300px]">
-                        <span class="text-sm leading-6 opacity-90">
-                          Auto-sync is triggered each time you log in, if more than 12 hours have passed since the last
-                          sync. You can also trigger a sync manually from the header at any time.
-                        </span>
-                      </Popover.PopoverContent>
-                    </Popover.Popover>
+                    <ResponsiveTooltip
+                      content="Auto-sync is triggered each time you log in, if more than 12 hours have passed since the last sync. You can also trigger a sync manually from the header at any time."
+                      content-class-name="max-w-[300px] text-sm leading-6 text-white/90"
+                    >
+                      <InfoIcon class="text-primary size-4 cursor-pointer" />
+                    </ResponsiveTooltip>
                   </p>
                   <p class="font-medium">
                     Every 12 hours
@@ -387,6 +382,7 @@ import {
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
