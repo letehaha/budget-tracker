@@ -21,14 +21,16 @@
                   : 'hover:bg-accent hover:text-accent-foreground cursor-pointer',
               ])
             "
-            @click="!isInternalCategory(cat) && toggleCategory(cat)"
+            @click="!isInternalCategory(cat) && handleCategoryClick(cat)"
           >
             <ChevronRightIcon
-              v-if="cat.subCategories.length"
               class="text-muted-foreground size-4 shrink-0 transition-transform duration-200"
-              :class="{ 'rotate-90': props.expandedCategories.includes(cat.id) }"
+              :class="[
+                cat.subCategories.length
+                  ? { 'rotate-90': props.expandedCategories.includes(cat.id) }
+                  : 'opacity-30',
+              ]"
             />
-            <span v-else class="w-4" />
 
             <CategoryCircle :category="cat" />
             <span class="truncate">{{ cat.name }}</span>
@@ -91,7 +93,7 @@
             :current-level="currentLevel + 1"
             :active-category-id="activeCategoryId"
             :show-actions="showActions"
-            @toggle="toggleCategory"
+            @toggle="(c) => emits('toggle', c)"
             @select="selectCategory"
             @edit="(c) => emits('edit', c)"
             @add-subcategory="(c) => emits('add-subcategory', c)"
@@ -141,8 +143,12 @@ const menuOpenState = reactive<Record<number, boolean>>({});
 
 const canAddSubcategory = computed(() => props.currentLevel < props.maxLevel);
 
-const toggleCategory = (category: FormattedCategory) => {
-  emits('toggle', category);
+const handleCategoryClick = (category: FormattedCategory) => {
+  if (category.subCategories.length) {
+    emits('toggle', category);
+  } else if (props.showActions) {
+    menuOpenState[category.id] = true;
+  }
 };
 
 const isActiveCategory = (category: FormattedCategory) => category.id === props.activeCategoryId;
