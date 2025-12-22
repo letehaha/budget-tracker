@@ -3,9 +3,8 @@ import { logger } from '@js/utils/logger';
 import Accounts from '@models/Accounts.model';
 import { getCategories } from '@models/Categories.model';
 import Transactions from '@models/Transactions.model';
-import { getAiApiKey } from '@services/user-settings/ai-api-key';
 
-import { AnthropicClient, AnthropicClientModel } from './anthropic-client';
+import { GeminiClient, GeminiClientModel } from './gemini-client';
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
 import { CategorizationBatchResult, CategorizationResult, TransactionForCategorization } from './types';
 import { buildCategoryList } from './utils/build-category-list';
@@ -27,9 +26,9 @@ async function categorizeBatch({
   categories: Awaited<ReturnType<typeof getCategories>>;
 }): Promise<CategorizationBatchResult> {
   /**
-   * Use `AnthropicClientModel.haiku` for better speed and cheaper API price
+   * Use `GeminiClientModel.flash` for better speed and cheaper API price
    */
-  const client = new AnthropicClient({ apiKey, model: AnthropicClientModel.haiku });
+  const client = new GeminiClient({ apiKey, model: GeminiClientModel.flash });
 
   const categoryList = buildCategoryList(categories);
 
@@ -42,6 +41,8 @@ async function categorizeBatch({
   try {
     const response = await client.sendMessage({ systemPrompt, userMessage });
 
+    console.log('response', response);
+
     const validCategoryIds = new Set(categories.map((c) => c.id));
     const validTransactionIds = new Set(transactions.map((t) => t.id));
 
@@ -50,6 +51,8 @@ async function categorizeBatch({
       validCategoryIds,
       validTransactionIds,
     });
+
+    console.log('results', results);
 
     const successfulIds = new Set(results.map((r) => r.transactionId));
     const failed = transactions.filter((t) => !successfulIds.has(t.id)).map((t) => t.id);
@@ -163,14 +166,14 @@ export async function categorizeTransactions({
   userId: number;
   transactionIds: number[];
 }): Promise<CategorizationBatchResult> {
-  // Get the user's AI API key
-  const apiKey = await getAiApiKey({ userId });
+  // Use server-side Gemini API key
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    logger.info(`User ${userId} has no AI API key configured, skipping categorization`);
+    logger.warn('GEMINI_API_KEY environment variable is not configured, skipping categorization');
     return {
       successful: [],
       failed: transactionIds,
-      errors: ['No AI API key configured'],
+      errors: ['GEMINI_API_KEY not configured on server'],
     };
   }
 
