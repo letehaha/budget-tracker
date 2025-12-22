@@ -10,10 +10,8 @@
 
       <div class="py-4">
         <label class="flex cursor-pointer items-center gap-3">
-          <Checkbox
-            :checked="removeAssociatedAccounts"
-            @update:checked="(checked) => (removeAssociatedAccounts = checked as boolean)"
-          />
+          <Checkbox v-model="removeAssociatedAccounts" />
+
           <div class="flex flex-col gap-1">
             <span class="text-sm font-medium">Also remove associated accounts</span>
             <span class="text-muted-foreground text-xs">

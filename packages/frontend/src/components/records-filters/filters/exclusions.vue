@@ -4,13 +4,13 @@
 
     <div class="flex gap-2">
       <label class="flex cursor-pointer items-center gap-2">
-        <Checkbox :checked="excludeRefunds" @update:checked="$emit('update:exclude-refunds', $event)" />
+        <Checkbox :model-value="excludeRefunds" @update:model-value="$emit('update:exclude-refunds', $event)" />
 
         Refunds
       </label>
 
       <label class="flex cursor-pointer items-center gap-2">
-        <Checkbox :checked="excludeTransfer" @update:checked="$emit('update:exclude-transfer', $event)" />
+        <Checkbox :model-value="excludeTransfer" @update:model-value="$emit('update:exclude-transfer', $event)" />
 
         Transfers
       </label>

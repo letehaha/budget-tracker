@@ -31,7 +31,11 @@
         :aria-disabled="isFormDisabled"
       >
         <span class="mr-2.5 w-max">Live update</span>
-        <Checkbox :checked="isLiveRateEnabled" :disabled="isFormDisabled" @update:checked="toggleChange($event)" />
+        <Checkbox
+          :model-value="isLiveRateEnabled"
+          :disabled="isFormDisabled"
+          @update:model-value="toggleChange(Boolean($event))"
+        />
       </label>
     </div>
 
@@ -101,7 +105,7 @@ const onQuoteFocus = () => {
 };
 const toggleChange = (value: boolean) => {
   if (props.isFormDisabled) return;
-  isLiveRateEnabled.value = value;
+  isLiveRateEnabled.value = !!value;
 };
 
 watch(
