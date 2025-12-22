@@ -1,7 +1,7 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK } from '@/common/const';
+import type { FormattedCategory } from '@/common/types';
 import {
   type AccountModel,
-  type CategoryModel,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
@@ -21,12 +21,13 @@ const createMockAccount = (overrides: Partial<AccountModel> = {}): AccountModel 
     ...overrides,
   }) as AccountModel;
 
-const createMockCategory = (overrides: Partial<CategoryModel> = {}): CategoryModel =>
+const createMockCategory = (overrides: Partial<FormattedCategory> = {}): FormattedCategory =>
   ({
     id: 1,
     name: 'Test Category',
+    subCategories: [],
     ...overrides,
-  }) as CategoryModel;
+  }) as FormattedCategory;
 
 const createMockTransaction = (overrides: Partial<TransactionModel> = {}): TransactionModel =>
   ({

@@ -1,8 +1,9 @@
-import { CATEGORY_TYPES, CategoryModel } from '@bt/shared/types';
+import type { FormattedCategory } from '@/common/types';
+import { CATEGORY_TYPES } from '@bt/shared/types';
 
 import { USER } from './user';
 
-export const USER_CATEGORIES: CategoryModel[] = [
+export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3121,
     name: 'Food and Drinks',
@@ -11,6 +12,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: null,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3122,
@@ -20,6 +22,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: null,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3123,
@@ -29,6 +32,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: null,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3124,
@@ -38,6 +42,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: null,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3125,
@@ -47,6 +52,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: null,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3126,
@@ -56,6 +62,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: null,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3127,
@@ -65,6 +72,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: null,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3128,
@@ -74,6 +82,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: null,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3129,
@@ -83,6 +92,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: null,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3130,
@@ -92,6 +102,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: null,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3131,
@@ -101,6 +112,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.internal,
     parentId: null,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3132,
@@ -110,6 +122,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3121,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3133,
@@ -119,6 +132,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3121,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3134,
@@ -128,6 +142,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3121,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3135,
@@ -137,6 +152,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3136,
@@ -146,6 +162,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3137,
@@ -155,6 +172,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3138,
@@ -164,6 +182,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3139,
@@ -173,6 +192,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3140,
@@ -182,6 +202,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3141,
@@ -191,6 +212,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3142,
@@ -200,6 +222,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3143,
@@ -209,6 +232,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3144,
@@ -218,6 +242,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3145,
@@ -227,6 +252,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3146,
@@ -236,6 +262,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3147,
@@ -245,6 +272,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3148,
@@ -254,6 +282,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3149,
@@ -263,6 +292,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3150,
@@ -272,6 +302,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3151,
@@ -281,6 +312,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3152,
@@ -290,6 +322,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3124,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3153,
@@ -299,6 +332,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3124,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3154,
@@ -308,6 +342,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3124,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3155,
@@ -317,6 +352,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3124,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3156,
@@ -326,6 +362,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3157,
@@ -335,6 +372,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3158,
@@ -344,6 +382,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3159,
@@ -353,6 +392,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3160,
@@ -362,6 +402,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3161,
@@ -371,6 +412,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3162,
@@ -380,6 +422,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3163,
@@ -389,6 +432,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3164,
@@ -398,6 +442,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3165,
@@ -407,6 +452,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3166,
@@ -416,6 +462,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3167,
@@ -425,6 +472,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3168,
@@ -434,6 +482,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3169,
@@ -443,6 +492,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3170,
@@ -452,6 +502,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3171,
@@ -461,6 +512,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3172,
@@ -470,6 +522,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3173,
@@ -479,6 +532,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3174,
@@ -488,6 +542,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3127,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3175,
@@ -497,6 +552,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3127,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3176,
@@ -506,6 +562,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3127,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3177,
@@ -515,6 +572,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3127,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3178,
@@ -524,6 +582,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3179,
@@ -533,6 +592,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3180,
@@ -542,6 +602,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3181,
@@ -551,6 +612,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3182,
@@ -560,6 +622,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3183,
@@ -569,6 +632,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3184,
@@ -578,6 +642,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3185,
@@ -587,6 +652,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3129,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3186,
@@ -596,6 +662,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3129,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3187,
@@ -605,6 +672,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3129,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3188,
@@ -614,6 +682,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3129,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3189,
@@ -623,6 +692,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3129,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3190,
@@ -632,6 +702,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3191,
@@ -641,6 +712,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3192,
@@ -650,6 +722,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3193,
@@ -659,6 +732,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3194,
@@ -668,6 +742,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3195,
@@ -677,6 +752,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3196,
@@ -686,6 +762,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3197,
@@ -695,6 +772,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3198,
@@ -704,6 +782,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3199,
@@ -713,6 +792,7 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
     userId: USER.id,
+    subCategories: [],
   },
   {
     id: 3200,
@@ -722,5 +802,6 @@ export const USER_CATEGORIES: CategoryModel[] = [
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
     userId: USER.id,
+    subCategories: [],
   },
 ];

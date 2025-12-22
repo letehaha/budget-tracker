@@ -1,5 +1,6 @@
 import type { VerbosePaymentType } from '@/common/const';
-import { AccountModel, CategoryModel, TransactionModel } from '@bt/shared/types';
+import type { FormattedCategory } from '@/common/types';
+import { AccountModel, TransactionModel } from '@bt/shared/types';
 
 export enum FORM_TYPES {
   income = 'income',
@@ -14,7 +15,7 @@ export interface UI_FORM_STRUCT {
   amount: number;
   account: AccountModel;
   toAccount?: AccountModel;
-  category: CategoryModel;
+  category: FormattedCategory;
   time: Date;
   paymentType: VerbosePaymentType;
   note?: string;

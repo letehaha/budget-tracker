@@ -338,7 +338,7 @@ describe.skip('transactions create/update/delete form', () => {
       });
     });
 
-    test.only.each([
+    test.each([
       [TRANSACTION_TYPES.income, dataMocks.buildSystemIncomeTransaction()],
       // [TRANSACTION_TYPES.expense, dataMocks.buildSystemExpenseTransaction()],
     ])('%s -> transfer with same currency', async (txType, transaction) => {
