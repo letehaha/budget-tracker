@@ -91,6 +91,9 @@ global.BASE_CURRENCY_CODE = 'AED';
 global.MODELS_CURRENCIES = null;
 global.APP_AUTH_TOKEN = null;
 
+// Track if schema has been set up for this worker
+let schemaInitialized = false;
+
 async function dropAllEnums(sequelize) {
   // Get all ENUM types
   const enums = await sequelize.query(`
@@ -104,6 +107,49 @@ async function dropAllEnums(sequelize) {
   for (const enumType of enums[0]) {
     await sequelize.query(`DROP TYPE "${enumType.enumtype}" CASCADE`);
   }
+}
+
+/**
+ * Tables that contain seed/reference data from migrations and should NOT be truncated.
+ * These tables are populated during migration and their data is required for the app to function.
+ * Use lowercase for comparison since pg_tables stores names in lowercase.
+ */
+const SEED_DATA_TABLES = [
+  'sequelizemeta', // Migration tracking (SequelizeMeta)
+  'currencies', // All world currencies - seeded in migration
+  'merchantcategorycodes', // MCC codes - seeded in migration
+  'exchangerates', // Exchange rates - seeded with historical rates (10 days ago)
+];
+
+/**
+ * Fast table truncation - much faster than DROP + migrations
+ * Uses TRUNCATE with CASCADE to clear all data while keeping schema intact
+ */
+async function truncateAllTables() {
+  // Get all table names from the database (excluding system/seed tables and backup tables)
+  // Use LOWER() for case-insensitive comparison since pg_tables stores names in lowercase
+  const excludeList = SEED_DATA_TABLES.map((t) => `'${t}'`).join(', ');
+  const [tables] = await connection.sequelize.query(`
+    SELECT tablename FROM pg_tables
+    WHERE schemaname = 'public'
+    AND LOWER(tablename) NOT IN (${excludeList})
+    AND tablename NOT LIKE '%_backup_%'
+  `);
+
+  if (tables.length === 0) return;
+
+  const tableNames = tables.map((t: { tablename: string }) => `"${t.tablename}"`).join(', ');
+
+  // TRUNCATE all tables in a single statement with CASCADE
+  // RESTART IDENTITY resets auto-increment counters
+  // Use retry logic to handle potential deadlocks with parallel workers
+  await retryWithBackoff(
+    async () => {
+      await connection.sequelize.query(`TRUNCATE TABLE ${tableNames} RESTART IDENTITY CASCADE`);
+    },
+    15,
+    200,
+  );
 }
 
 async function waitForDatabaseConnection() {
@@ -219,21 +265,6 @@ beforeEach(async () => {
     // Wait for both database and Redis connections with better error handling
     await Promise.all([waitForDatabaseConnection(), waitForRedisConnection()]);
 
-    // Dynamic delay based on worker ID to reduce database contention
-    const workerId = parseInt(process.env.JEST_WORKER_ID || '1', 10);
-    const staggerDelay = workerId * 200; // 200ms per worker
-    await new Promise((resolve) => setTimeout(resolve, staggerDelay));
-
-    // Clean up database schema with deadlock retry
-    await retryWithBackoff(
-      async () => {
-        await connection.sequelize.drop({ cascade: true });
-        await dropAllEnums(connection.sequelize);
-      },
-      15,
-      200,
-    );
-
     // Clean up Redis keys for this worker
     // With ioredis keyPrefix, keys('*') returns full keys including prefix
     // We need to strip the prefix before del() to avoid double-prefixing
@@ -245,14 +276,37 @@ beforeEach(async () => {
       await redisClient.del(...keysWithoutPrefix);
     }
 
-    // Run migrations with deadlock retry (this can be slow with TypeScript)
-    await retryWithBackoff(
-      async () => {
-        await umzug.up();
-      },
-      15,
-      200,
-    );
+    if (!schemaInitialized) {
+      // First test in this worker - need to set up schema from scratch
+      // Dynamic delay based on worker ID to reduce database contention during initial setup
+      const workerId = parseInt(process.env.JEST_WORKER_ID || '1', 10);
+      const staggerDelay = workerId * 200; // 200ms per worker
+      await new Promise((resolve) => setTimeout(resolve, staggerDelay));
+
+      // Clean up database schema with deadlock retry
+      await retryWithBackoff(
+        async () => {
+          await connection.sequelize.drop({ cascade: true });
+          await dropAllEnums(connection.sequelize);
+        },
+        15,
+        200,
+      );
+
+      // Run migrations with deadlock retry (this can be slow with TypeScript)
+      await retryWithBackoff(
+        async () => {
+          await umzug.up();
+        },
+        15,
+        200,
+      );
+
+      schemaInitialized = true;
+    } else {
+      // Schema already exists - just truncate tables (much faster!)
+      await truncateAllTables();
+    }
 
     // Set up test user
     await makeRequest({
@@ -297,7 +351,7 @@ beforeEach(async () => {
     console.error('Setup failed:', err);
     throw err;
   }
-}, 30_000); // Increased timeout due to TypeScript migrations and other stuff
+}, 30_000); // Increased timeout for first test (schema setup)
 
 afterAll(async () => {
   try {
