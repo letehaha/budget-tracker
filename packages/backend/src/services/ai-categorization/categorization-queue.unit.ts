@@ -7,6 +7,7 @@ import { categorizationQueue, queueCategorizationJob } from './categorization-qu
 jest.mock('bullmq', () => ({
   Queue: jest.fn().mockImplementation(() => ({
     add: jest.fn().mockResolvedValue({ id: 'test-job-id' } as never),
+    on: jest.fn(),
   })),
   Worker: jest.fn().mockImplementation(() => ({
     on: jest.fn(),
