@@ -41,8 +41,6 @@ async function categorizeBatch({
   try {
     const response = await client.sendMessage({ systemPrompt, userMessage });
 
-    console.log('response', response);
-
     const validCategoryIds = new Set(categories.map((c) => c.id));
     const validTransactionIds = new Set(transactions.map((t) => t.id));
 
@@ -51,8 +49,6 @@ async function categorizeBatch({
       validCategoryIds,
       validTransactionIds,
     });
-
-    console.log('results', results);
 
     const successfulIds = new Set(results.map((r) => r.transactionId));
     const failed = transactions.filter((t) => !successfulIds.has(t.id)).map((t) => t.id);
