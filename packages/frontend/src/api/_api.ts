@@ -33,7 +33,9 @@ interface ApiCall {
   };
 }
 
-const API_HTTP = import.meta.env.VITE_APP_API_HTTP;
+const API_HTTP = import.meta.env.DEV
+  ? `${window.location.protocol}//${window.location.hostname}:8081`
+  : import.meta.env.VITE_APP_API_HTTP;
 const API_VER = import.meta.env.VITE_APP_API_VER;
 const SESSION_ID_KEY = 'session-id';
 
