@@ -9,9 +9,13 @@ interface CategorizationJobData {
 }
 
 // Redis connection configuration for BullMQ
+// Uses same resilient settings as main redisClient to prevent "Connection is closed" errors in CI
 const connection = {
   host: process.env.APPLICATION_REDIS_HOST,
   maxRetriesPerRequest: null, // Required for BullMQ
+  connectTimeout: 20000, // 20s connection timeout for slower CI environments
+  keepAlive: 10000, // Send TCP keepalive to prevent idle disconnection
+  retryStrategy: (times: number) => Math.min(times * 100, 3000), // Exponential backoff, max 3s
 };
 
 // Namespace queue by Jest worker ID in test environment
@@ -38,10 +42,19 @@ export const categorizationQueue = new Queue<CategorizationJobData>(queueName, {
   },
 });
 
+// Handle Queue error events to prevent unhandled exceptions in CI
+categorizationQueue.on('error', (err) => {
+  // Ignore "Connection is closed" errors during test teardown
+  if (!err.message.includes('Connection is closed')) {
+    logger.error({ message: '[AI Categorization Queue] Queue error', error: err });
+  }
+});
+
 /**
  * Worker to process categorization jobs
+ * Exported for proper cleanup in test teardown
  */
-const categorizationWorker = new Worker<CategorizationJobData>(
+export const categorizationWorker = new Worker<CategorizationJobData>(
   queueName,
   async (job: Job<CategorizationJobData>) => {
     const { userId, transactionIds } = job.data;
@@ -78,7 +91,10 @@ categorizationWorker.on('failed', (job, err) => {
 });
 
 categorizationWorker.on('error', (err) => {
-  logger.error({ message: '[AI Categorization Worker] Worker error', error: err });
+  // Ignore "Connection is closed" errors during test teardown
+  if (!err.message.includes('Connection is closed')) {
+    logger.error({ message: '[AI Categorization Worker] Worker error', error: err });
+  }
 });
 
 /**

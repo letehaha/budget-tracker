@@ -34,7 +34,10 @@ export const redisReady: Promise<void> = (async () => {
   logger.info(`✅ App connected to Redis! Took: ${Date.now() - startTime}ms`);
 
   // Clear stale sync statuses from Redis on startup
-  await clearAllSyncStatuses();
+  // Skip in test environment - handled by setupIntegrationTests.ts beforeEach
+  if (process.env.NODE_ENV !== 'test') {
+    await clearAllSyncStatuses();
+  }
 })();
 
 // Prevent unhandled rejection if connection fails before being awaited

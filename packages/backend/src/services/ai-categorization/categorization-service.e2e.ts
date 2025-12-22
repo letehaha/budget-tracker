@@ -1,12 +1,8 @@
-import { AI_PROVIDER, BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
-import {
-  INVALID_ANTHROPIC_API_KEY,
-  VALID_ANTHROPIC_API_KEY,
-  createAnthropicMock,
-} from '@tests/mocks/anthropic/mock-api';
+import { INVALID_GEMINI_API_KEY, VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import { Op } from 'sequelize';
 
@@ -17,8 +13,27 @@ import { DOMAIN_EVENTS, eventBus } from '../common/event-bus';
  *
  * These tests verify the complete flow from bank transaction sync
  * to AI-powered automatic categorization.
+ *
+ * Note: AI categorization now uses a server-side GEMINI_API_KEY environment variable
+ * instead of per-user API keys.
  */
 describe('AI Categorization Service E2E', () => {
+  // Store original env value to restore after tests
+  let originalGeminiApiKey: string | undefined;
+
+  beforeEach(() => {
+    originalGeminiApiKey = process.env.GEMINI_API_KEY;
+  });
+
+  afterEach(() => {
+    // Restore original env value
+    if (originalGeminiApiKey === undefined) {
+      delete process.env.GEMINI_API_KEY;
+    } else {
+      process.env.GEMINI_API_KEY = originalGeminiApiKey;
+    }
+  });
+
   describe('Full categorization flow with Monobank', () => {
     describe('Event integration with bank sync', () => {
       it('should emit TRANSACTIONS_SYNCED event after bank sync to trigger AI categorization', async () => {
@@ -77,17 +92,20 @@ describe('AI Categorization Service E2E', () => {
       });
     });
 
-    it('should NOT categorize transactions when AI API key is not configured', async () => {
+    it('should NOT categorize transactions when GEMINI_API_KEY is not configured', async () => {
       const MOCK_TRANSACTION_COUNT = 3;
 
-      // Step 1: Create a custom category (but don't set AI API key)
+      // Ensure GEMINI_API_KEY is not set
+      delete process.env.GEMINI_API_KEY;
+
+      // Step 1: Create a custom category
       await helpers.addCustomCategory({
         name: 'Food',
         color: '#FF0000',
         raw: true,
       });
 
-      // Step 2: Connect to Monobank (no AI API key set)
+      // Step 2: Connect to Monobank (no GEMINI_API_KEY set)
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
@@ -151,12 +169,8 @@ describe('AI Categorization Service E2E', () => {
         raw: true,
       });
 
-      // Step 2: Set up AI API key
-      await helpers.setAiApiKey({
-        apiKey: VALID_ANTHROPIC_API_KEY,
-        provider: AI_PROVIDER.anthropic,
-        raw: true,
-      });
+      // Step 2: Set up GEMINI_API_KEY env var
+      process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
 
       // Step 3: Connect to Monobank
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
@@ -184,8 +198,8 @@ describe('AI Categorization Service E2E', () => {
         ),
       );
 
-      // Step 6: Set up Anthropic mock to FAIL
-      global.mswMockServer.use(createAnthropicMock({ shouldFail: true, errorStatus: 500 }));
+      // Step 6: Set up Gemini mock to FAIL
+      global.mswMockServer.use(createGeminiMock({ shouldFail: true, errorStatus: 500 }));
 
       // Step 7: Connect selected accounts
       const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
@@ -225,12 +239,8 @@ describe('AI Categorization Service E2E', () => {
         raw: true,
       });
 
-      // Step 2: Set up INVALID AI API key
-      await helpers.setAiApiKey({
-        apiKey: INVALID_ANTHROPIC_API_KEY,
-        provider: AI_PROVIDER.anthropic,
-        raw: true,
-      });
+      // Step 2: Set up INVALID GEMINI_API_KEY
+      process.env.GEMINI_API_KEY = INVALID_GEMINI_API_KEY;
 
       // Step 3: Connect to Monobank
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
@@ -287,46 +297,48 @@ describe('AI Categorization Service E2E', () => {
     });
   });
 
-  describe('AI API Key management', () => {
-    it('should allow setting and retrieving AI API key status', async () => {
-      // Initially no key set
-      const initialStatus = await helpers.getAiApiKeyStatus({ raw: true });
-      expect(initialStatus.hasApiKey).toBe(false);
-
-      // Set API key
-      await helpers.setAiApiKey({
-        apiKey: VALID_ANTHROPIC_API_KEY,
-        provider: AI_PROVIDER.anthropic,
-        raw: true,
-      });
-
-      // Verify key is set
-      const afterStatus = await helpers.getAiApiKeyStatus({ raw: true });
-      expect(afterStatus.hasApiKey).toBe(true);
-      expect(afterStatus.providers.some((p: { provider: string }) => p.provider === AI_PROVIDER.anthropic)).toBe(true);
-    });
-
-    it('should allow deleting AI API key', async () => {
-      // Set API key
-      await helpers.setAiApiKey({
-        apiKey: VALID_ANTHROPIC_API_KEY,
-        provider: AI_PROVIDER.anthropic,
-        raw: true,
-      });
-
-      // Verify key is set
-      const statusBefore = await helpers.getAiApiKeyStatus({ raw: true });
-      expect(statusBefore.hasApiKey).toBe(true);
-
-      // Delete key
-      await helpers.deleteAiApiKey({
-        provider: AI_PROVIDER.anthropic,
-        raw: true,
-      });
-
-      // Verify key is deleted
-      const statusAfter = await helpers.getAiApiKeyStatus({ raw: true });
-      expect(statusAfter.providers.some((p: { provider: string }) => p.provider === AI_PROVIDER.anthropic)).toBe(false);
-    });
-  });
+  // AI API Key management routes are disabled - using server-side GEMINI_API_KEY instead
+  // These tests are kept for reference but skipped
+  // describe('AI API Key management', () => {
+  //   it('should allow setting and retrieving AI API key status', async () => {
+  //     // Initially no key set
+  //     const initialStatus = await helpers.getAiApiKeyStatus({ raw: true });
+  //     expect(initialStatus.hasApiKey).toBe(false);
+  //
+  //     // Set API key
+  //     await helpers.setAiApiKey({
+  //       apiKey: VALID_GEMINI_API_KEY,
+  //       provider: AI_PROVIDER.google,
+  //       raw: true,
+  //     });
+  //
+  //     // Verify key is set
+  //     const afterStatus = await helpers.getAiApiKeyStatus({ raw: true });
+  //     expect(afterStatus.hasApiKey).toBe(true);
+  //     expect(afterStatus.providers.some((p: { provider: string }) => p.provider === AI_PROVIDER.google)).toBe(true);
+  //   });
+  //
+  //   it('should allow deleting AI API key', async () => {
+  //     // Set API key
+  //     await helpers.setAiApiKey({
+  //       apiKey: VALID_GEMINI_API_KEY,
+  //       provider: AI_PROVIDER.google,
+  //       raw: true,
+  //     });
+  //
+  //     // Verify key is set
+  //     const statusBefore = await helpers.getAiApiKeyStatus({ raw: true });
+  //     expect(statusBefore.hasApiKey).toBe(true);
+  //
+  //     // Delete key
+  //     await helpers.deleteAiApiKey({
+  //       provider: AI_PROVIDER.google,
+  //       raw: true,
+  //     });
+  //
+  //     // Verify key is deleted
+  //     const statusAfter = await helpers.getAiApiKeyStatus({ raw: true });
+  //     expect(statusAfter.providers.some((p: { provider: string }) => p.provider === AI_PROVIDER.google)).toBe(false);
+  //   });
+  // });
 });

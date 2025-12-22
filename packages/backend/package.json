@@ -21,6 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
+    "@google/generative-ai": "^0.24.1",
     "@polygon.io/client-js": "^7.4.0",
     "@types/cls-hooked": "^4.3.9",
     "alphavantage": "^2.5.0",

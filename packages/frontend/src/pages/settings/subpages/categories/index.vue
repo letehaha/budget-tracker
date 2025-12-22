@@ -83,15 +83,12 @@ import { useCategoriesStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { onMounted, reactive, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { reactive, ref } from 'vue';
 
 defineOptions({
   name: 'settings-categories',
 });
 
-const router = useRouter();
-const route = useRoute();
 const categoriesStore = useCategoriesStore();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 
@@ -121,25 +118,6 @@ const deleteDialogState = reactive<{
   category: undefined,
 });
 
-const getCategoryParents = (
-  categories: FormattedCategory[],
-  id: number,
-  parents: FormattedCategory[] = [],
-): FormattedCategory[] => {
-  for (const category of categories) {
-    if (category.id === id) {
-      return [...parents, category];
-    }
-    if (category.subCategories && category.subCategories.length > 0) {
-      const result = getCategoryParents(category.subCategories, id, [...parents, category]);
-      if (result.length > 0) {
-        return result;
-      }
-    }
-  }
-  return [];
-};
-
 const toggleCategory = (category: FormattedCategory) => {
   const categoryId = category.id;
   const index = expandedCategories.value.indexOf(categoryId);
@@ -155,13 +133,6 @@ const toggleCategory = (category: FormattedCategory) => {
   }
 
   selectedCategoryId.value = categoryId;
-
-  router.replace({
-    query: {
-      ...route.query,
-      selected: categoryId,
-    },
-  });
 };
 
 const selectCategory = (category: FormattedCategory) => {
@@ -221,18 +192,4 @@ const handleDeleteCategory = async () => {
   }
 };
 
-onMounted(() => {
-  const selectedCategoryIdParam = route.query.selected;
-
-  if (selectedCategoryIdParam) {
-    const categoryParents = getCategoryParents(formattedCategories.value, Number(selectedCategoryIdParam));
-
-    if (categoryParents.length > 0) {
-      const category = categoryParents[categoryParents.length - 1];
-      const allCategoryIds = categoryParents.map((c) => c.id);
-      expandedCategories.value = allCategoryIds;
-      selectedCategoryId.value = category.id;
-    }
-  }
-});
 </script>

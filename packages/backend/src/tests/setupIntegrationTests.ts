@@ -6,6 +6,7 @@ import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
 import { REDIS_KEY_PREFIX, redisClient, redisReady } from '@root/redis-client';
+import { categorizationQueue, categorizationWorker } from '@services/ai-categorization/categorization-queue';
 import {
   transactionSyncQueue,
   transactionSyncWorker,
@@ -300,10 +301,12 @@ beforeEach(async () => {
 
 afterAll(async () => {
   try {
-    // Close BullMQ worker and queue first to ensure no pending operations
+    // Close ALL BullMQ workers and queues first to ensure no pending operations
     // This prevents "The client is closed" errors when workers try to access Redis
     await transactionSyncWorker.close();
     await transactionSyncQueue.close();
+    await categorizationWorker.close();
+    await categorizationQueue.close();
 
     // Now safe to close Redis client
     await redisClient.quit();

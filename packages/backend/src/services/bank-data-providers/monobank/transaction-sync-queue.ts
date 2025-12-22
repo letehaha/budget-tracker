@@ -33,9 +33,13 @@ interface TransactionSyncJobData {
 }
 
 // Redis connection configuration for BullMQ
+// Uses same resilient settings as main redisClient to prevent "Connection is closed" errors in CI
 const connection = {
   host: process.env.APPLICATION_REDIS_HOST,
   maxRetriesPerRequest: null, // Required for BullMQ
+  connectTimeout: 20000, // 20s connection timeout for slower CI environments
+  keepAlive: 10000, // Send TCP keepalive to prevent idle disconnection
+  retryStrategy: (times: number) => Math.min(times * 100, 3000), // Exponential backoff, max 3s
 };
 
 // Namespace queue by Jest worker ID in test environment to prevent cross-contamination
@@ -62,6 +66,14 @@ export const transactionSyncQueue = new Queue<TransactionSyncJobData>(queueName,
       age: 7200, // Keep failed jobs for 2 hours
     },
   },
+});
+
+// Handle Queue error events to prevent unhandled exceptions in CI
+transactionSyncQueue.on('error', (err) => {
+  // Ignore "Connection is closed" errors during test teardown
+  if (!err.message.includes('Connection is closed')) {
+    logger.error({ message: 'Queue error', error: err });
+  }
 });
 
 /**
@@ -334,7 +346,10 @@ transactionSyncWorker.on('failed', (job, err) => {
 });
 
 transactionSyncWorker.on('error', (err) => {
-  logger.error({ message: 'Worker error', error: err });
+  // Ignore "Connection is closed" errors during test teardown
+  if (!err.message.includes('Connection is closed')) {
+    logger.error({ message: 'Worker error', error: err });
+  }
 });
 
 /**
