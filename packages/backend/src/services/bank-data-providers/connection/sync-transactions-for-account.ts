@@ -39,6 +39,6 @@ export const syncTransactionsForAccount = withTransaction(
     }
 
     const provider = bankProviderRegistry.get(connection.providerType);
-    return provider.syncTransactions({ connectionId, systemAccountId: accountId });
+    return provider.syncTransactions({ connectionId, systemAccountId: accountId, userId });
   },
 );

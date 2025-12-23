@@ -194,13 +194,14 @@ export class MonobankProvider extends BaseBankDataProvider {
   async syncTransactions({
     connectionId,
     systemAccountId,
+    userId,
   }: {
     connectionId: number;
     systemAccountId: number;
+    userId: number;
   }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
-    // Import sync status tracker dynamically to avoid circular dependency
     // Set status to QUEUED (jobs are queued, not actively syncing yet)
-    await setAccountSyncStatus(systemAccountId, SyncStatus.QUEUED);
+    await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.QUEUED, userId });
 
     try {
       const account = await this.getSystemAccount(systemAccountId);
@@ -222,6 +223,7 @@ export class MonobankProvider extends BaseBankDataProvider {
       return this.loadTransactionsForPeriod({
         connectionId,
         systemAccountId,
+        userId,
         from,
         to,
       });
@@ -229,7 +231,12 @@ export class MonobankProvider extends BaseBankDataProvider {
     } catch (error) {
       // Set status to FAILED on error
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      await setAccountSyncStatus(systemAccountId, SyncStatus.FAILED, errorMessage);
+      await setAccountSyncStatus({
+        accountId: systemAccountId,
+        status: SyncStatus.FAILED,
+        error: errorMessage,
+        userId,
+      });
       throw error;
     }
   }
@@ -241,11 +248,13 @@ export class MonobankProvider extends BaseBankDataProvider {
   async loadTransactionsForPeriod({
     connectionId,
     systemAccountId,
+    userId,
     from,
     to,
   }: {
     connectionId: number;
     systemAccountId: number;
+    userId: number;
     from: Date;
     to: Date;
   }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
@@ -261,7 +270,7 @@ export class MonobankProvider extends BaseBankDataProvider {
 
     // Queue the transaction sync job
     const result = await queueTransactionSync({
-      userId: connection.userId,
+      userId,
       accountId: account.id,
       connectionId,
       externalAccountId: account.externalId,

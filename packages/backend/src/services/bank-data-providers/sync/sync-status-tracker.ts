@@ -1,6 +1,8 @@
 import { logger } from '@js/utils';
 import { REDIS_KEY_PREFIX, redisClient } from '@root/redis-client';
 
+import { SSE_EVENT_TYPES, sseManager } from '../../common/sse';
+
 /**
  * Check if Redis client is ready for operations
  * Prevents "The client is closed" errors during test teardown
@@ -34,7 +36,7 @@ export const REDIS_KEYS = {
 const AUTO_SYNC_PERIOD = 12 * 60 * 60 * 1000;
 // 24 hours for prod, and about infinity for other envs to avoid unneeded syncs
 const STATUS_TTL = (process.env.NODE_ENV === 'production' ? 24 : 3600) * 60 * 60;
-const STALE_SYNC_THRESHOLD = 20 * 60 * 1000; // 15 minutes - if PENDING/SYNCING for longer, consider stale
+const STALE_SYNC_THRESHOLD = 20 * 60 * 1000; // 20 minutes - if PENDING/SYNCING for longer, consider stale
 
 /**
  * Check if auto-sync is needed based on last sync time
@@ -72,13 +74,19 @@ export async function getLastAutoSync(userId: number): Promise<number | null> {
 }
 
 /**
- * Set sync status for an account
+ * Set sync status for an account and emit SSE event
  */
-export async function setAccountSyncStatus(
-  accountId: number,
-  status: SyncStatus,
-  error: string | null = null,
-): Promise<void> {
+export async function setAccountSyncStatus({
+  accountId,
+  status,
+  error = null,
+  userId,
+}: {
+  accountId: number;
+  status: SyncStatus;
+  error?: string | null;
+  userId: number;
+}): Promise<void> {
   if (!isRedisReady()) return;
 
   const statusData: AccountSyncStatus = {
@@ -86,7 +94,7 @@ export async function setAccountSyncStatus(
     status,
     startedAt: status === SyncStatus.SYNCING ? new Date().toISOString() : null,
     completedAt: [SyncStatus.COMPLETED, SyncStatus.FAILED].includes(status) ? new Date().toISOString() : null,
-    error,
+    error: error ?? null,
   };
 
   // Get existing data to preserve startedAt
@@ -99,6 +107,23 @@ export async function setAccountSyncStatus(
   if (!isRedisReady()) return;
 
   await redisClient.setex(REDIS_KEYS.accountSyncStatus(accountId), STATUS_TTL, JSON.stringify(statusData));
+
+  // Emit SSE event for interesting status changes (not IDLE)
+  if (status !== SyncStatus.IDLE) {
+    try {
+      // Import dynamically to avoid circular dependency
+      const { getUserAccountsSyncStatus } = await import('./get-user-sync-status');
+      const fullStatus = await getUserAccountsSyncStatus(userId);
+      sseManager.sendToUser({
+        userId,
+        event: SSE_EVENT_TYPES.SYNC_STATUS_CHANGED,
+        data: fullStatus,
+      });
+    } catch (err) {
+      // Log but don't throw - Redis state is already updated, SSE is best-effort
+      logger.error({ message: '[SSE] Failed to emit sync status event', error: err as Error });
+    }
+  }
 }
 
 /**

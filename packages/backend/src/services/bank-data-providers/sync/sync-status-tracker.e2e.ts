@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeAll, describe, expect, it } from '@jest/globals';
+import Users from '@models/Users.model';
 import { redisClient } from '@root/redis-client';
 
 import {
@@ -11,7 +12,17 @@ import {
   updateLastAutoSync,
 } from './sync-status-tracker';
 
+// Test user ID - derived from the test user created in setupIntegrationTests.ts
+let testUserId: number;
+
 describe('Sync Status Tracker - clearAllSyncStatuses', () => {
+  beforeAll(async () => {
+    // Get the test user ID from the user created in setupIntegrationTests.ts
+    const user = await Users.findOne({ where: { username: 'test1' } });
+    if (!user) throw new Error('Test user not found');
+    testUserId = user.id;
+  });
+
   afterEach(async () => {
     // Clean up after each test
     const keys = await redisClient.keys('*account:*:sync-status*');
@@ -27,7 +38,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
     const accountId = 12345;
 
     // Set account to QUEUED status
-    await setAccountSyncStatus(accountId, SyncStatus.QUEUED);
+    await setAccountSyncStatus({ accountId, status: SyncStatus.QUEUED, userId: testUserId });
 
     // Verify it's QUEUED
     const beforeCleanup = await getAccountSyncStatus(accountId);
@@ -48,7 +59,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
     const accountId = 12346;
 
     // Set account to SYNCING status
-    await setAccountSyncStatus(accountId, SyncStatus.SYNCING);
+    await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId: testUserId });
 
     // Verify it's SYNCING
     const beforeCleanup = await getAccountSyncStatus(accountId);
@@ -69,7 +80,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
     const accountId = 12347;
 
     // Set account to COMPLETED status
-    await setAccountSyncStatus(accountId, SyncStatus.COMPLETED);
+    await setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId: testUserId });
 
     // Get the completed status before cleanup
     const beforeCleanup = await getAccountSyncStatus(accountId);
@@ -91,7 +102,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
     const originalError = 'Original sync error';
 
     // Set account to FAILED status
-    await setAccountSyncStatus(accountId, SyncStatus.FAILED, originalError);
+    await setAccountSyncStatus({ accountId, status: SyncStatus.FAILED, error: originalError, userId: testUserId });
 
     // Run cleanup
     await clearAllSyncStatuses();
@@ -107,7 +118,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
     const accountId = 12349;
 
     // Set account to IDLE status
-    await setAccountSyncStatus(accountId, SyncStatus.IDLE);
+    await setAccountSyncStatus({ accountId, status: SyncStatus.IDLE, userId: testUserId });
 
     // Run cleanup
     await clearAllSyncStatuses();
@@ -124,10 +135,15 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
     const failedAccountId = 44444;
 
     // Set up various statuses
-    await setAccountSyncStatus(queuedAccountId, SyncStatus.QUEUED);
-    await setAccountSyncStatus(syncingAccountId, SyncStatus.SYNCING);
-    await setAccountSyncStatus(completedAccountId, SyncStatus.COMPLETED);
-    await setAccountSyncStatus(failedAccountId, SyncStatus.FAILED, 'Test error');
+    await setAccountSyncStatus({ accountId: queuedAccountId, status: SyncStatus.QUEUED, userId: testUserId });
+    await setAccountSyncStatus({ accountId: syncingAccountId, status: SyncStatus.SYNCING, userId: testUserId });
+    await setAccountSyncStatus({ accountId: completedAccountId, status: SyncStatus.COMPLETED, userId: testUserId });
+    await setAccountSyncStatus({
+      accountId: failedAccountId,
+      status: SyncStatus.FAILED,
+      error: 'Test error',
+      userId: testUserId,
+    });
 
     // Run cleanup
     await clearAllSyncStatuses();

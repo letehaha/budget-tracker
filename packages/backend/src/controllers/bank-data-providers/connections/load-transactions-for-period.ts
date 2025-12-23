@@ -100,6 +100,7 @@ export default createController(
     const result = await monobankProvider.loadTransactionsForPeriod({
       connectionId,
       systemAccountId: accountId,
+      userId: user.id,
       from: fromDate,
       to: toDate,
     });
