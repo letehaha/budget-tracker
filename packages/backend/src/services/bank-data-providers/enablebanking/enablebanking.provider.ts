@@ -581,13 +581,14 @@ export class EnableBankingProvider extends BaseBankDataProvider {
   async syncTransactions({
     connectionId,
     systemAccountId,
+    userId,
   }: {
     connectionId: number;
     systemAccountId: number;
+    userId: number;
   }): Promise<void> {
-    // Import sync status tracker dynamically to avoid circular dependency
     // Set status to SYNCING
-    await setAccountSyncStatus(systemAccountId, SyncStatus.SYNCING);
+    await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.SYNCING, userId });
 
     try {
       const account = await this.getSystemAccount(systemAccountId);
@@ -678,12 +679,17 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       });
 
       // Set status to COMPLETED on success
-      await setAccountSyncStatus(systemAccountId, SyncStatus.COMPLETED);
+      await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.COMPLETED, userId });
     } catch (error) {
       console.error('Enable Banking sync error:', error);
       // Set status to FAILED on error
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      await setAccountSyncStatus(systemAccountId, SyncStatus.FAILED, errorMessage);
+      await setAccountSyncStatus({
+        accountId: systemAccountId,
+        status: SyncStatus.FAILED,
+        error: errorMessage,
+        userId,
+      });
       throw error; // Re-throw to maintain existing error handling
     }
   }

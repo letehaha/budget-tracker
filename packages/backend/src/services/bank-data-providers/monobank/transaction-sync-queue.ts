@@ -170,7 +170,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
 
     // Set status to SYNCING when worker starts (only for first batch)
     if (batchIndex === 0) {
-      await setAccountSyncStatus(accountId, SyncStatus.SYNCING);
+      await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId });
     }
 
     // Update job progress
@@ -307,7 +307,12 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
       });
 
       // Set status to FAILED
-      await setAccountSyncStatus(accountId, SyncStatus.FAILED, (error as Error).message);
+      await setAccountSyncStatus({
+        accountId,
+        status: SyncStatus.FAILED,
+        error: (error as Error).message,
+        userId,
+      });
 
       throw error; // Will trigger retry
     }
@@ -331,12 +336,12 @@ transactionSyncWorker.on('completed', async (job) => {
 
   // Extract jobGroupId and check if all batches are completed
   const jobGroupId = job.id?.substring(0, job.id.lastIndexOf('-')) || '';
-  const { totalBatches, accountId } = job.data;
+  const { totalBatches, accountId, userId } = job.data;
 
   const progress = await getJobGroupProgress(jobGroupId);
 
   if (progress.completedBatches === totalBatches) {
-    await setAccountSyncStatus(accountId, SyncStatus.COMPLETED);
+    await setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId });
     logger.info(`All batches completed for account ${accountId}, status set to COMPLETED`);
   }
 });

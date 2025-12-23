@@ -145,14 +145,17 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * Sync transactions for a specific account to our database
    * @param connectionId - Connection ID
    * @param systemAccountId - Our internal account ID
+   * @param userId - User ID for SSE notifications
    * @returns Either void (immediate sync) or job info (queue-based sync)
    */
   abstract syncTransactions({
     connectionId,
     systemAccountId,
+    userId,
   }: {
     connectionId: number;
     systemAccountId: number;
+    userId: number;
   }): Promise<void | { jobGroupId: string; totalBatches: number; estimatedMinutes: number }>;
 
   /**

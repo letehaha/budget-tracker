@@ -4,7 +4,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Calendar } from '@/components/lib/ui/calendar';
 import * as Popover from '@/components/lib/ui/popover';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
-import { useSyncJobPolling } from '@/composable/use-sync-job-polling';
+import { useSyncStatus } from '@/composable/use-sync-status';
 import { AccountModel } from '@bt/shared/types';
 import { differenceInDays, format, subDays } from 'date-fns';
 import { CalendarIcon } from 'lucide-vue-next';
@@ -15,15 +15,12 @@ const props = defineProps<{
 }>();
 
 const { addNotification } = useNotificationCenter();
-const { startPolling, activeJobIds } = useSyncJobPolling();
+const { accountStatuses, subscribeToSSE } = useSyncStatus();
 
-// Check if there's an active sync job for this account
-const hasActiveSync = computed(() => {
-  // Job ID pattern: userId-accountId-timestamp
-  return activeJobIds.value.some((jobId) => {
-    const parts = jobId.split('-');
-    return parts[1] === String(props.account.id);
-  });
+// Check if there's an active sync for this specific account
+const isAccountSyncing = computed(() => {
+  const status = accountStatuses.value.find((s) => s.accountId === props.account.id);
+  return status?.status === 'syncing' || status?.status === 'queued';
 });
 
 const INITIAL_FORM_VALUE = {
@@ -59,6 +56,9 @@ const loadTransactionsForPeriod = async () => {
 
     isLoading.value = true;
 
+    // Subscribe to SSE for updates
+    subscribeToSSE();
+
     const result = await apiLoadTransactions(
       props.account.bankDataProviderConnectionId,
       props.account.id,
@@ -74,8 +74,7 @@ const loadTransactionsForPeriod = async () => {
     dateRange.value = INITIAL_FORM_VALUE;
     selectorVisible.value = false;
 
-    // Start polling for progress using global composable
-    startPolling(result.jobGroupId, props.account.bankDataProviderConnectionId);
+    // SSE will provide updates as sync progresses
   } catch (error) {
     const e = error as { data?: { message?: string } };
     addNotification({
@@ -95,8 +94,8 @@ const loadTransactionsForPeriod = async () => {
 
     <Popover.Popover :open="selectorVisible" @update:open="selectorVisible = $event">
       <Popover.PopoverTrigger as-child>
-        <Button :disabled="isLoading || hasActiveSync" class="min-w-[100px]" size="sm">
-          {{ isLoading || hasActiveSync ? 'Loading...' : 'Select period' }}
+        <Button :disabled="isLoading || isAccountSyncing" class="min-w-[100px]" size="sm">
+          {{ isLoading || isAccountSyncing ? 'Loading...' : 'Select period' }}
         </Button>
       </Popover.PopoverTrigger>
 

@@ -1,19 +1,12 @@
 import { logger } from '@js/utils/logger';
-import Accounts from '@models/Accounts.model';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Bottleneck from 'bottleneck';
-import { Op } from 'sequelize';
 
 import { syncTransactionsForAccount } from '../connection/sync-transactions-for-account';
-import {
-  type AccountSyncStatus,
-  SyncStatus,
-  getLastAutoSync,
-  getMultipleAccountsSyncStatus,
-  setAccountSyncStatus,
-  shouldTriggerAutoSync,
-  updateLastAutoSync,
-} from './sync-status-tracker';
+import { type AccountWithConnection, getUserBankAccounts } from './get-user-sync-status';
+import { SyncStatus, setAccountSyncStatus, shouldTriggerAutoSync, updateLastAutoSync } from './sync-status-tracker';
+
+// Re-export for backwards compatibility
+export { getUserAccountsSyncStatus } from './get-user-sync-status';
 
 export interface SyncResult {
   totalAccounts: number;
@@ -28,35 +21,10 @@ export interface SyncResult {
   }>;
 }
 
-interface AccountWithConnection extends Accounts {
-  bankDataProviderConnection: BankDataProviderConnections;
-}
-
 // Limit concurrent syncs to 5 to prevent event loop blocking
 const syncLimiter = new Bottleneck({
   maxConcurrent: process.env.NODE_ENV === 'test' ? Infinity : 5,
 });
-
-/**
- * Get all bank-connected accounts for a user
- */
-async function getUserBankAccounts(userId: number): Promise<AccountWithConnection[]> {
-  return Accounts.findAll({
-    where: {
-      userId,
-      bankDataProviderConnectionId: { [Op.ne]: null },
-      isEnabled: true,
-    },
-    include: [
-      {
-        model: BankDataProviderConnections,
-        as: 'bankDataProviderConnection',
-        where: { isActive: true },
-        required: true,
-      },
-    ],
-  }) as Promise<AccountWithConnection[]>;
-}
 
 /**
  * Sync a single account
@@ -93,7 +61,9 @@ export async function syncAllUserAccounts(userId: number): Promise<SyncResult> {
   // Set all accounts to QUEUED immediately, before Bottleneck scheduling
   // This ensures frontend knows all accounts are pending, even those waiting
   // in Bottleneck's internal queue (which only executes 5 at a time)
-  await Promise.all(accounts.map((account) => setAccountSyncStatus(account.id, SyncStatus.QUEUED)));
+  await Promise.all(
+    accounts.map((account) => setAccountSyncStatus({ accountId: account.id, status: SyncStatus.QUEUED, userId })),
+  );
 
   // Trigger all syncs with concurrency control (fire and forget)
   // Providers will update status to SYNCING when they actually start
@@ -137,52 +107,4 @@ export async function checkAndTriggerAutoSync(userId: number): Promise<SyncResul
   const result = await syncAllUserAccounts(userId);
 
   return result;
-}
-
-/**
- * Get sync status for all user's bank accounts
- */
-export async function getUserAccountsSyncStatus(userId: number): Promise<{
-  lastSyncAt: number | null;
-  accounts: Array<AccountSyncStatus & { accountName: string; providerType: string }>;
-  summary: {
-    total: number;
-    syncing: number;
-    queued: number;
-    completed: number;
-    failed: number;
-    idle: number;
-  };
-}> {
-  const accounts = await getUserBankAccounts(userId);
-  const accountIds = accounts.map((a) => a.id);
-
-  const statuses = await getMultipleAccountsSyncStatus(accountIds);
-  const lastSyncAt = await getLastAutoSync(userId);
-
-  // Enrich statuses with account names and provider types
-  const enrichedStatuses = statuses.map((status) => {
-    const account = accounts.find((a) => a.id === status.accountId);
-    return {
-      ...status,
-      accountName: account?.name || 'Unknown',
-      providerType: account?.bankDataProviderConnection.providerType || 'Unknown',
-    };
-  });
-
-  // Calculate summary
-  const summary = {
-    total: enrichedStatuses.length,
-    syncing: enrichedStatuses.filter((s) => s.status === SyncStatus.SYNCING).length,
-    queued: enrichedStatuses.filter((s) => s.status === SyncStatus.QUEUED).length,
-    completed: enrichedStatuses.filter((s) => s.status === SyncStatus.COMPLETED).length,
-    failed: enrichedStatuses.filter((s) => s.status === SyncStatus.FAILED).length,
-    idle: enrichedStatuses.filter((s) => s.status === SyncStatus.IDLE).length,
-  };
-
-  return {
-    lastSyncAt,
-    accounts: enrichedStatuses,
-    summary,
-  };
 }

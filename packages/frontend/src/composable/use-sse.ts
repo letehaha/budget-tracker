@@ -3,12 +3,13 @@ import {
   type SSEEventPayload,
   type SSEEventType,
   SSE_EVENT_TYPES,
+  type SyncStatusChangedPayload,
 } from '@bt/shared/types';
 import { EventSourceMessage, fetchEventSource } from '@microsoft/fetch-event-source';
 import { onUnmounted, ref } from 'vue';
 
 // Re-export types for consumers of this composable
-export { SSE_EVENT_TYPES, type AiCategorizationCompletedPayload };
+export { SSE_EVENT_TYPES, type AiCategorizationCompletedPayload, type SyncStatusChangedPayload };
 
 type SSEEventHandler<T extends SSEEventPayload = SSEEventPayload> = (data: T) => void;
 
@@ -27,15 +28,34 @@ const eventHandlers = new Map<SSEEventType, Set<SSEEventHandler>>();
 
 /**
  * Connect to SSE endpoint
+ * Returns a promise that resolves when the connection is established
  */
 async function connect(): Promise<void> {
-  if (isConnected.value || isConnecting.value) {
+  // If already connected, return immediately
+  if (isConnected.value) {
     return;
+  }
+
+  // If connection is in progress, wait for it (with timeout)
+  if (isConnecting.value) {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        clearInterval(checkConnection);
+        resolve(); // Resolve anyway after timeout
+      }, 10000); // 10 second timeout
+
+      const checkConnection = setInterval(() => {
+        if (isConnected.value || !isConnecting.value) {
+          clearInterval(checkConnection);
+          clearTimeout(timeout);
+          resolve();
+        }
+      }, 100);
+    });
   }
 
   const token = window.localStorage.getItem('user-token');
   if (!token) {
-    console.warn('[SSE] No auth token found, skipping connection');
     return;
   }
 
@@ -44,8 +64,12 @@ async function connect(): Promise<void> {
 
   const url = `${API_HTTP}${API_VER}/sse/events`;
 
-  try {
-    await fetchEventSource(url, {
+  // Return a promise that resolves when connection opens
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    // Start the connection in the background (don't await - it never resolves while open)
+    fetchEventSource(url, {
       method: 'GET',
       headers: {
         Authorization: token,
@@ -60,12 +84,23 @@ async function connect(): Promise<void> {
         if (response.ok) {
           isConnected.value = true;
           isConnecting.value = false;
-          console.log('[SSE] Connected');
+          if (!settled) {
+            settled = true;
+            resolve(); // Resolve the promise when connection opens
+          }
         } else if (response.status === 401) {
-          console.warn('[SSE] Unauthorized, disconnecting');
+          isConnecting.value = false;
           disconnect();
+          if (!settled) {
+            settled = true;
+            reject(new Error('Unauthorized'));
+          }
         } else {
-          throw new Error(`SSE connection failed: ${response.status}`);
+          isConnecting.value = false;
+          if (!settled) {
+            settled = true;
+            reject(new Error(`SSE connection failed: ${response.status}`));
+          }
         }
       },
 
@@ -89,30 +124,39 @@ async function connect(): Promise<void> {
         }
       },
 
-      onerror: (err) => {
-        console.error('[SSE] Connection error:', err);
+      onerror: () => {
         isConnected.value = false;
         isConnecting.value = false;
 
+        // Reject if error happens before connection opened
+        if (!settled) {
+          settled = true;
+          reject(new Error('SSE connection error'));
+        }
+
         // Return retry delay in ms. The library will reconnect after this delay.
-        // Returning undefined uses library defaults, throwing stops retrying.
         return 3000; // Retry after 3 seconds
       },
 
       onclose: () => {
-        console.log('[SSE] Connection closed');
         isConnected.value = false;
         isConnecting.value = false;
+
+        // Reject if closed before connection opened
+        if (!settled) {
+          settled = true;
+          reject(new Error('SSE connection closed unexpectedly'));
+        }
       },
+    }).catch((err) => {
+      // AbortError is expected when disconnecting
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('[SSE] Failed to connect:', err);
+      }
+      isConnected.value = false;
+      isConnecting.value = false;
     });
-  } catch (err) {
-    // AbortError is expected when disconnecting
-    if (err instanceof Error && err.name !== 'AbortError') {
-      console.error('[SSE] Failed to connect:', err);
-    }
-    isConnected.value = false;
-    isConnecting.value = false;
-  }
+  });
 }
 
 /**

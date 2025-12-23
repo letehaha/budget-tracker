@@ -4,4 +4,6 @@ export {
   type AiCategorizationCompletedPayload,
   type SSEEventPayload,
   type SSEEventType,
+  type SyncAccountStatus,
+  type SyncStatusChangedPayload,
 } from '@bt/shared/types';

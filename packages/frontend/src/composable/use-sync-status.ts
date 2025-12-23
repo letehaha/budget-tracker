@@ -1,19 +1,24 @@
 import * as bankDataProvidersApi from '@/api/bank-data-providers';
 import type { SyncStatusResponse } from '@/api/bank-data-providers';
-import { computed, onUnmounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 
-const POLL_INTERVAL = 5000; // 5 seconds
+import { SSE_EVENT_TYPES, type SyncStatusChangedPayload, useSSE } from './use-sse';
+
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
 
 // Global state shared across all component instances
 const syncStatusData = ref<SyncStatusResponse | null>(null);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
-const pollIntervalId = ref<NodeJS.Timeout | null>(null);
-const wasSyncing = ref(false); // Track if sync was in progress
 const justCompleted = ref(false); // Track if sync just completed
 
+// SSE subscription state
+let sseUnsubscribe: (() => void) | null = null;
+let isSSESubscribed = false;
+
 export function useSyncStatus() {
+  const { connect, disconnect, on, isConnected } = useSSE();
+
   const isSyncing = computed(() => {
     if (!syncStatusData.value) return false;
     const { summary } = syncStatusData.value;
@@ -65,29 +70,62 @@ export function useSyncStatus() {
     return justCompleted.value && !isSyncing.value;
   });
 
-  const fetchStatus = async () => {
-    try {
-      isLoading.value = true;
-      error.value = null;
+  /**
+   * Subscribe to SSE sync status events
+   */
+  const subscribeToSSE = () => {
+    if (isSSESubscribed) return;
 
-      // Store previous syncing state
+    sseUnsubscribe = on<SyncStatusChangedPayload>(SSE_EVENT_TYPES.SYNC_STATUS_CHANGED, (data) => {
+      // Track if sync just completed
       const wasSyncingBefore = isSyncing.value;
 
-      const data = await bankDataProvidersApi.getSyncStatus();
-      syncStatusData.value = data;
+      // Update status from SSE event (cast to SyncStatusResponse since the types are compatible)
+      syncStatusData.value = data as unknown as SyncStatusResponse;
 
       // Detect sync completion
-      if (wasSyncingBefore && !isSyncing.value) {
+      const isNowSyncing = data.summary.syncing > 0 || data.summary.queued > 0;
+      if (wasSyncingBefore && !isNowSyncing) {
         justCompleted.value = true;
 
         // Clear success message after 3 seconds
         setTimeout(() => {
           justCompleted.value = false;
         }, 3000);
-      }
 
-      // Update tracking state
-      wasSyncing.value = isSyncing.value;
+        // Disconnect SSE when sync is complete (per user requirement)
+        // TODO: Handle SSE reconnection for cron-triggered syncs. Currently SSE
+        // disconnects when idle and only reconnects on manual trigger. Cron syncs
+        // won't push updates until user manually triggers or refreshes the page.
+        // Options: (1) Keep SSE always connected, (2) Use WebSocket, (3) Polling fallback
+        disconnect();
+      }
+    });
+
+    isSSESubscribed = true;
+  };
+
+  /**
+   * Unsubscribe from SSE sync status events
+   */
+  const unsubscribeFromSSE = () => {
+    if (sseUnsubscribe) {
+      sseUnsubscribe();
+      sseUnsubscribe = null;
+    }
+    isSSESubscribed = false;
+  };
+
+  /**
+   * Fetch current sync status from API
+   */
+  const fetchStatus = async () => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+
+      const data = await bankDataProvidersApi.getSyncStatus();
+      syncStatusData.value = data;
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch sync status';
       console.error('Error fetching sync status:', err);
@@ -96,25 +134,9 @@ export function useSyncStatus() {
     }
   };
 
-  const startPolling = () => {
-    stopPolling(); // Clear any existing interval
-    pollIntervalId.value = setInterval(async () => {
-      await fetchStatus();
-
-      // Stop polling if nothing is syncing
-      if (!isSyncing.value) {
-        stopPolling();
-      }
-    }, POLL_INTERVAL);
-  };
-
-  const stopPolling = () => {
-    if (pollIntervalId.value) {
-      clearInterval(pollIntervalId.value);
-      pollIntervalId.value = null;
-    }
-  };
-
+  /**
+   * Trigger sync and connect to SSE for updates
+   */
   const triggerSync = async (skipConfirmation = false): Promise<boolean> => {
     try {
       // Check if confirmation is needed
@@ -125,13 +147,14 @@ export function useSyncStatus() {
       isLoading.value = true;
       error.value = null;
 
+      // Connect to SSE before triggering sync
+      subscribeToSSE();
+      await connect();
+
       await bankDataProvidersApi.triggerSync();
 
-      // Immediately fetch updated status
+      // SSE will receive updates, but also fetch immediately for responsiveness
       await fetchStatus();
-
-      // Always start polling after trigger (providers set SYNCING asynchronously)
-      startPolling();
 
       return true;
     } catch (err) {
@@ -143,6 +166,9 @@ export function useSyncStatus() {
     }
   };
 
+  /**
+   * Check if auto-sync should run and trigger if needed
+   */
   const checkAndAutoSync = async () => {
     try {
       isLoading.value = true;
@@ -150,13 +176,14 @@ export function useSyncStatus() {
 
       const result = await bankDataProvidersApi.checkSync();
 
-      // Update status
+      // Always fetch current status
       await fetchStatus();
 
-      // Start polling if sync was triggered OR if sync is already in progress
+      // Connect to SSE if sync was triggered OR if sync is already in progress
       // (e.g., page refresh while sync is running from another tab/session)
       if (result.syncTriggered || isSyncing.value) {
-        startPolling();
+        subscribeToSSE();
+        await connect();
       }
 
       return result;
@@ -169,10 +196,8 @@ export function useSyncStatus() {
     }
   };
 
-  // Cleanup on component unmount
-  onUnmounted(() => {
-    stopPolling();
-  });
+  // TODO: Multi-tab handling - currently each tab has independent SSE connection.
+  // Consider using SharedWorker or BroadcastChannel for coordination.
 
   return {
     // State
@@ -187,12 +212,13 @@ export function useSyncStatus() {
     accountStatuses,
     syncingSummaryText,
     showSuccessMessage,
+    isConnected,
 
     // Methods
     fetchStatus,
     triggerSync,
     checkAndAutoSync,
-    startPolling,
-    stopPolling,
+    subscribeToSSE,
+    unsubscribeFromSSE,
   };
 }

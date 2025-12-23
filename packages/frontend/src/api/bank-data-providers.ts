@@ -183,21 +183,11 @@ export const syncSelectedAccounts = async (
   return response;
 };
 
-export interface SyncJobResult {
+interface SyncJobResult {
   jobGroupId: string;
   totalBatches: number;
   estimatedMinutes: number;
   message: string;
-}
-
-export interface JobProgress {
-  totalBatches: number;
-  completedBatches: number;
-  failedBatches: number;
-  activeBatches: number;
-  waitingBatches: number;
-  status: 'waiting' | 'active' | 'completed' | 'failed' | 'partial';
-  progress?: unknown;
 }
 
 export const syncTransactions = async (
@@ -222,25 +212,6 @@ export const loadTransactionsForPeriod = async (
     to,
   });
   return response;
-};
-
-export const getSyncJobProgress = async (connectionId: number, jobGroupId: string): Promise<JobProgress> => {
-  const response = await api.get<JobProgress>(
-    `/bank-data-providers/connections/${connectionId}/sync-job-progress?jobGroupId=${encodeURIComponent(jobGroupId)}`,
-  );
-  return response;
-};
-
-interface ActiveSyncJob {
-  jobGroupId: string;
-  connectionId: number;
-  accountId: number;
-  status: 'waiting' | 'active';
-}
-
-export const getActiveSyncJobs = async (): Promise<ActiveSyncJob[]> => {
-  const response = await api.get<{ jobs: ActiveSyncJob[] }>('/bank-data-providers/active-sync-jobs');
-  return response.jobs;
 };
 
 // Enable Banking specific APIs

@@ -7,18 +7,18 @@
       </div>
 
       <Button :disabled="isSyncDisabled" class="min-w-[100px]" size="sm" @click="syncTransactionsHandler">
-        {{ isSyncing || hasActiveSync ? 'Syncing...' : 'Sync' }}
+        {{ isSyncing || isAccountSyncing ? 'Syncing...' : 'Sync' }}
       </Button>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { type SyncJobResult, syncTransactions } from '@/api/bank-data-providers';
+import { syncTransactions } from '@/api/bank-data-providers';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { Button } from '@/components/lib/ui/button';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
-import { useSyncJobPolling } from '@/composable/use-sync-job-polling';
+import { useSyncStatus } from '@/composable/use-sync-status';
 import { API_ERROR_CODES, AccountModel } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed } from 'vue';
@@ -29,47 +29,39 @@ const props = defineProps<{
 
 const queryClient = useQueryClient();
 const { addNotification } = useNotificationCenter();
-const { startPolling, activeJobIds } = useSyncJobPolling();
+const { accountStatuses, subscribeToSSE } = useSyncStatus();
 
-// Check if there's an active sync job for this account
-const hasActiveSync = computed(() => {
-  // Job ID pattern: userId-accountId-timestamp
-  // We can check if any active job contains this account ID
-  return activeJobIds.value.some((jobId) => {
-    const parts = jobId.split('-');
-    // parts[1] should be accountId
-    return parts[1] === String(props.account.id);
-  });
+// Check if there's an active sync for this specific account
+const isAccountSyncing = computed(() => {
+  const status = accountStatuses.value.find((s) => s.accountId === props.account.id);
+  return status?.status === 'syncing' || status?.status === 'queued';
 });
-
-// TODO: reflect rate-limit on the UI. Unified for all providers
 
 // Mutation for syncing transactions
 const { mutate: syncMutate, isPending: isSyncing } = useMutation({
-  mutationFn: () => {
+  mutationFn: async () => {
     if (!props.account.bankDataProviderConnectionId) {
       throw new Error('Account is not linked to a bank connection');
     }
+
+    // Subscribe to SSE for updates
+    subscribeToSSE();
+
     return syncTransactions(props.account.bankDataProviderConnectionId, props.account.id);
   },
   onSuccess: (response) => {
-    // Check if response has jobGroupId (queue-based sync)
+    // Check if response has jobGroupId (queue-based sync like Monobank)
     if ('jobGroupId' in response) {
-      const jobResult = response as SyncJobResult;
       addNotification({
-        text: `${jobResult.message}. Processing ${jobResult.totalBatches} batch(es)...`,
+        text: `${response.message}. Processing ${response.totalBatches} batch(es)...`,
         type: NotificationType.info,
       });
-
-      // Start polling for progress using global composable
-      if (props.account.bankDataProviderConnectionId) {
-        startPolling(jobResult.jobGroupId, props.account.bankDataProviderConnectionId);
-      }
+      // SSE will provide updates as sync progresses
     } else {
-      // Old sync method - immediate success
+      // Immediate sync (EnableBanking) - SSE will notify when complete
       addNotification({
-        text: 'Transactions synced successfully',
-        type: NotificationType.success,
+        text: 'Sync started...',
+        type: NotificationType.info,
       });
 
       queryClient.invalidateQueries({
@@ -85,7 +77,6 @@ const { mutate: syncMutate, isPending: isSyncing } = useMutation({
         type: NotificationType.error,
       });
     } else {
-      // eslint-disable-next-line no-console
       console.error(error);
       addNotification({
         text: 'Failed to sync transactions',
@@ -95,7 +86,7 @@ const { mutate: syncMutate, isPending: isSyncing } = useMutation({
   },
 });
 
-const isSyncDisabled = computed(() => isSyncing.value || hasActiveSync.value);
+const isSyncDisabled = computed(() => isSyncing.value || isAccountSyncing.value);
 
 const syncTransactionsHandler = () => {
   if (!props.account.bankDataProviderConnectionId) {

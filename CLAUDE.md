@@ -41,3 +41,5 @@ Other instructions:
 2. All functions should _always_ use object-like params.
    - Never: function(arg1, arg2, arg3)
    - Always: function({ arg1, arg2, arg3 })
+3. When planning the implementation don't limit yourself to 3-4 questions and 1 round.
+   Ask as many questions with as many rounds as needed to collect all important information
