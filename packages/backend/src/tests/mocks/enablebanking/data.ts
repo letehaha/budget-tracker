@@ -223,9 +223,92 @@ export const getMockedAccountBalances = (accountId: string) => {
 };
 
 /**
+ * Configuration for mock transaction data.
+ * Controls whether transactions include all date fields or partial data.
+ */
+interface MockTransactionConfig {
+  /** If true, only include booking_date (simulates initial sync) */
+  partialDates: boolean;
+  /** If provided, use these fixed transactions instead of generating new ones */
+  fixedTransactions: FixedTransaction[] | null;
+}
+
+export interface FixedTransaction {
+  entryReference: string;
+  amount: string;
+  currency: string;
+  isExpense: boolean;
+  bookingDate?: string;
+  valueDate?: string;
+  transactionDate?: string;
+}
+
+let mockTransactionConfig: MockTransactionConfig = {
+  partialDates: false,
+  fixedTransactions: null,
+};
+
+/**
+ * Set the mock transaction configuration.
+ * Use this in tests to control transaction data behavior.
+ */
+export const setMockTransactionConfig = (config: Partial<MockTransactionConfig>) => {
+  mockTransactionConfig = { ...mockTransactionConfig, ...config };
+};
+
+/**
+ * Reset mock transaction configuration to defaults.
+ */
+export const resetMockTransactionConfig = () => {
+  mockTransactionConfig = {
+    partialDates: false,
+    fixedTransactions: null,
+  };
+};
+
+/**
  * Generate mock transactions for an account
  */
 export const getMockedTransactions = (accountId: string, count: number = 10) => {
+  // If fixed transactions are configured, use those
+  if (mockTransactionConfig.fixedTransactions) {
+    return mockTransactionConfig.fixedTransactions.map((ft) => {
+      const tx: Record<string, unknown> = {
+        transaction_id: `tx_${accountId}_${ft.entryReference}`,
+        transaction_amount: {
+          amount: ft.amount,
+          currency: ft.currency,
+        },
+        credit_debit_indicator: ft.isExpense ? 'DBIT' : 'CRDT',
+        remittance_information: ['Test transaction'],
+        debtor: { name: ft.isExpense ? 'John Doe' : 'Test Company' },
+        debtor_account: {
+          iban: ft.isExpense ? getMockedAccountDetails(accountId).account_id.iban : 'FI0000000000000000',
+        },
+        creditor: { name: ft.isExpense ? 'Test Company' : 'John Doe' },
+        creditor_account: {
+          iban: ft.isExpense ? 'FI0000000000000000' : getMockedAccountDetails(accountId).account_id.iban,
+        },
+        entry_reference: ft.entryReference,
+        balance_after_transaction: { amount: '1000.00', currency: ft.currency },
+        status: 'BOOK',
+      };
+
+      // Add optional date fields if present
+      if (ft.bookingDate) {
+        tx.booking_date = ft.bookingDate;
+      }
+      if (ft.valueDate) {
+        tx.value_date = ft.valueDate;
+      }
+      if (ft.transactionDate) {
+        tx.transaction_date = ft.transactionDate;
+      }
+
+      return tx;
+    });
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transactions: any[] = [];
   const today = new Date();
@@ -236,10 +319,10 @@ export const getMockedTransactions = (accountId: string, count: number = 10) => 
     const date = new Date(today);
     date.setDate(date.getDate() - i);
 
-    transactions.push({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tx: any = {
       transaction_id: `tx_${accountId}_${i}`,
       booking_date: date.toISOString().split('T')[0],
-      value_date: date.toISOString().split('T')[0],
       transaction_amount: {
         amount: amount.toFixed(2),
         currency: accountId === MOCK_ACCOUNT_UID_3 ? 'USD' : 'EUR',
@@ -283,7 +366,15 @@ export const getMockedTransactions = (accountId: string, count: number = 10) => 
         amount: faker.number.float({ min: 100, max: 2000, fractionDigits: 2 }).toFixed(2),
         currency: accountId === MOCK_ACCOUNT_UID_3 ? 'USD' : 'EUR',
       },
-    });
+      status: 'BOOK',
+    };
+
+    // Add value_date only if not in partial dates mode
+    if (!mockTransactionConfig.partialDates) {
+      tx.value_date = date.toISOString().split('T')[0];
+    }
+
+    transactions.push(tx);
   }
 
   return transactions;
