@@ -52,7 +52,10 @@ import FiltersPanel from '@/components/records-filters/index.vue';
 import { useTransactionsWithFilters } from '@/components/records-filters/transactions-with-filters';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { ref, watch } from 'vue';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { parseISO } from 'date-fns';
+import { onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 
 import ScrollTopButton from './components/scroll-to-top.vue';
 
@@ -72,7 +75,61 @@ const {
   transactionsListRef,
 } = useTransactionsWithFilters();
 
+const route = useRoute();
 const isFiltersDialogOpen = ref(false);
+
+// Initialize filters from query parameters
+onMounted(() => {
+  const query = route.query;
+  
+  if (Object.keys(query).length > 0) {
+    // Create initial filters from query parameters
+    const initialFilters = { ...filters.value };
+    
+    if (query.categoryIds) {
+      const categoryIds = Array.isArray(query.categoryIds) 
+        ? query.categoryIds.map(id => Number(id))
+        : [Number(query.categoryIds)];
+      initialFilters.categoryIds = categoryIds;
+    }
+    
+    if (query.start) {
+      initialFilters.start = parseISO(query.start as string);
+    }
+    
+    if (query.end) {
+      initialFilters.end = parseISO(query.end as string);
+    }
+    
+    if (query.transactionType) {
+      initialFilters.transactionType = query.transactionType as TRANSACTION_TYPES;
+    }
+    
+    if (query.amountGte) {
+      initialFilters.amountGte = Number(query.amountGte);
+    }
+    
+    if (query.amountLte) {
+      initialFilters.amountLte = Number(query.amountLte);
+    }
+    
+    if (query.noteIncludes) {
+      initialFilters.noteIncludes = query.noteIncludes as string;
+    }
+    
+    if (query.excludeRefunds) {
+      initialFilters.excludeRefunds = query.excludeRefunds === 'true';
+    }
+    
+    if (query.excludeTransfer) {
+      initialFilters.excludeTransfer = query.excludeTransfer === 'true';
+    }
+    
+    // Apply the initial filters
+    filters.value = initialFilters;
+    appliedFilters.value = initialFilters;
+  }
+});
 
 watch(appliedFilters, () => {
   isFiltersDialogOpen.value = false;
