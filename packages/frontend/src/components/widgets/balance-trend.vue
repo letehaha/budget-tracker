@@ -56,7 +56,7 @@ import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
-import { format, isSameMonth, min, startOfDay } from 'date-fns';
+import { differenceInDays, format, isSameMonth, min, startOfDay, subDays } from 'date-fns';
 import { Chart as Highcharts } from 'highcharts-vue';
 import { ChartLineIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -106,7 +106,10 @@ const { buildAreaChartConfig } = useHighcharts();
 // can still show the old period, to avoid UI flickering
 const actualDataPeriod = ref(props.selectedPeriod);
 const prevDataPeriod = ref(props.selectedPeriod);
-const periodQueryKey = computed(() => props.selectedPeriod.from.getTime());
+// Include both from and to in query key to ensure cache invalidation when period changes
+const periodQueryKey = computed(
+  () => `${props.selectedPeriod.from.getTime()}-${props.selectedPeriod.to.getTime()}`,
+);
 
 // For data fetching, cap the 'to' date at today - we can't have balance history
 // for future dates. The chart x-axis will still show the full period range.
@@ -122,7 +125,29 @@ const { data: balanceHistory, isFetching: isBalanceHistoryFetching } = useQuery(
   placeholderData: (prevData) => prevData,
 });
 
-const isWidgetDataFetching = computed(() => isBalanceHistoryFetching.value);
+// Fetch the previous period's balance to compare against
+// The previous period has the same duration and ends right before the current period starts
+const prevPeriod = computed(() => {
+  const durationInDays = differenceInDays(props.selectedPeriod.to, props.selectedPeriod.from) + 1;
+  const prevTo = subDays(props.selectedPeriod.from, 1); // Day before current period starts
+  const prevFrom = subDays(props.selectedPeriod.from, durationInDays);
+
+  return {
+    from: prevFrom,
+    to: min([prevTo, new Date()]),
+  };
+});
+
+const { data: prevPeriodBalance, isFetching: isPrevPeriodBalanceFetching } = useQuery({
+  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetBalanceTrendPrev, periodQueryKey],
+  queryFn: () => loadCombinedBalanceTrendData(prevPeriod.value),
+  staleTime: Infinity,
+  placeholderData: (prevData) => prevData,
+});
+
+const isWidgetDataFetching = computed(
+  () => isBalanceHistoryFetching.value || isPrevPeriodBalanceFetching.value,
+);
 
 // On each "selectedPeriod" change we immediately set it as "actualDataPeriod"
 // but if "isWidgetDataFetching" is also triggered, means we started loading new
@@ -291,18 +316,32 @@ const chartOptions = computed(() => {
 const displayBalance = computed(() => {
   if (!balanceHistory.value || balanceHistory.value.length === 0) return { current: 0, previous: 0 };
 
-  // Get the latest balance entry
+  // Get the latest balance entry from current period
   const latestEntry = balanceHistory.value[balanceHistory.value.length - 1];
-  const firstEntry = balanceHistory.value[0];
+
+  // Get the latest (ending) balance from previous period for comparison
+  const prevPeriodLastEntry =
+    prevPeriodBalance.value && prevPeriodBalance.value.length > 0
+      ? prevPeriodBalance.value[prevPeriodBalance.value.length - 1]
+      : null;
 
   switch (selectedBalanceType.value.value) {
     case 'accounts':
-      return { current: latestEntry.accountsBalance || 0, previous: firstEntry.accountsBalance || 0 };
+      return {
+        current: latestEntry.accountsBalance || 0,
+        previous: prevPeriodLastEntry?.accountsBalance || 0,
+      };
     case 'portfolios':
-      return { current: latestEntry.portfoliosBalance || 0, previous: firstEntry.portfoliosBalance || 0 };
+      return {
+        current: latestEntry.portfoliosBalance || 0,
+        previous: prevPeriodLastEntry?.portfoliosBalance || 0,
+      };
     case 'total':
     default:
-      return { current: latestEntry.totalBalance || 0, previous: firstEntry.totalBalance || 0 };
+      return {
+        current: latestEntry.totalBalance || 0,
+        previous: prevPeriodLastEntry?.totalBalance || 0,
+      };
   }
 });
 
