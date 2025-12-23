@@ -1,6 +1,7 @@
 import { logger } from '@js/utils/logger';
 import { Job, Queue, Worker } from 'bullmq';
 
+import { SSE_EVENT_TYPES, sseManager } from '../common/sse';
 import { categorizeTransactions } from './categorization-service';
 
 interface CategorizationJobData {
@@ -84,6 +85,17 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
 // Worker event listeners
 categorizationWorker.on('completed', (job, result) => {
   logger.info(`[AI Categorization Worker] Job ${job.id} completed: ${JSON.stringify(result)}`);
+
+  // Notify connected clients via SSE
+  const { userId } = job.data;
+  sseManager.sendToUser({
+    userId,
+    event: SSE_EVENT_TYPES.AI_CATEGORIZATION_COMPLETED,
+    data: {
+      categorizedCount: result.successful,
+      failedCount: result.failed,
+    },
+  });
 });
 
 categorizationWorker.on('failed', (job, err) => {
