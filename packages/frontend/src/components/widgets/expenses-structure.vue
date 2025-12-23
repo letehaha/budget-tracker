@@ -69,6 +69,37 @@
 
       <highcharts :options="chartOptions" />
     </template>
+
+    <!-- Category Transactions Dialog -->
+    <Dialog.Dialog v-model:open="isDialogOpen">
+      <Dialog.DialogContent class="bg-card max-h-[90dvh] w-full max-w-[900px] p-0">
+        <Dialog.DialogHeader class="p-6 pb-0">
+          <Dialog.DialogTitle class="text-lg font-semibold">
+            {{ selectedCategory?.name }} Transactions
+          </Dialog.DialogTitle>
+          <Dialog.DialogDescription class="text-sm text-muted-foreground">
+            {{ formatBaseCurrency(-(selectedCategoryAmount || 0)) }} spent on {{ selectedCategory?.name }} this period
+          </Dialog.DialogDescription>
+        </Dialog.DialogHeader>
+
+        <div class="p-6 pt-4">
+          <template v-if="isFetched && transactions">
+            <TransactionsList
+              :transactions="transactions"
+              :has-next-page="hasNextPage"
+              :is-fetching-next-page="isFetchingNextPage"
+              :paginate="true"
+              @fetch-next-page="fetchNextPage"
+            />
+          </template>
+          <template v-else>
+            <div class="flex items-center justify-center py-8">
+              <div class="text-sm text-muted-foreground">Loading transactions...</div>
+            </div>
+          </template>
+        </div>
+      </Dialog.DialogContent>
+    </Dialog.Dialog>
   </WidgetWrapper>
 </template>
 
@@ -77,11 +108,14 @@ import { getExpensesAmountForPeriod, getSpendingsByCategories } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import * as Dialog from '@/components/lib/ui/dialog';
 import * as Popover from '@/components/lib/ui/popover';
-import { useFormatCurrency, useHighcharts } from '@/composable';
+import TransactionsList from '@/components/transactions-list/transactions-list.vue';
+import { useFormatCurrency, useHighcharts, useTransactions } from '@/composable';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { calculatePercentageDifference } from '@/js/helpers';
 import { useCategoriesStore } from '@/stores';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { differenceInDays, subDays } from 'date-fns';
 import { Chart as Highcharts } from 'highcharts-vue';
@@ -104,6 +138,10 @@ const props = defineProps<{
 const { formatBaseCurrency } = useFormatCurrency();
 const categoriesStore = useCategoriesStore();
 const { categoriesMap } = storeToRefs(categoriesStore);
+
+// Dialog state
+const isDialogOpen = ref(false);
+const selectedCategory = ref<{ id: number; name: string } | null>(null);
 
 // Include both from and to in query key to ensure cache invalidation when period changes
 const periodQueryKey = ref(`${new Date().getTime()}-${new Date().getTime()}`);
@@ -192,6 +230,23 @@ const isDataEmpty = computed(() => chartSeries.value.length === 0);
 const chartOptions = computed(() =>
   buildDonutChartConfig({
     chart: { height: 220 },
+    plotOptions: {
+      pie: {
+        point: {
+          events: {
+            click: function() {
+              const categoryData = spendingsByCategories.value;
+              const category = Object.values(categoryData || {}).find(cat => cat.name === this.name);
+
+              if (category) {
+                selectedCategory.value = { id: category.id, name: category.name };
+                isDialogOpen.value = true;
+              }
+            }
+          }
+        }
+      }
+    },
     series: [
       {
         type: 'pie',
@@ -200,4 +255,29 @@ const chartOptions = computed(() =>
     ],
   }),
 );
+
+// Transactions query for the selected category
+const { transactionsPages, fetchNextPage, hasNextPage, isFetchingNextPage, isFetched } = useTransactions({
+  filters: computed(() => ({
+    transactionType: TRANSACTION_TYPES.expense,
+    start: selectedCategory.value ? props.selectedPeriod.from : undefined,
+    end: selectedCategory.value ? props.selectedPeriod.to : undefined,
+    categoryIds: selectedCategory.value ? [selectedCategory.value.id] : undefined,
+  })),
+  limit: 50,
+  queryOptions: {
+    enabled: computed(() => selectedCategory.value !== null),
+    queryKey: computed(() => ['category-transactions', selectedCategory.value?.id, props.selectedPeriod.from, props.selectedPeriod.to]),
+  },
+});
+
+const transactions = computed(() => transactionsPages.value?.pages.flat() || []);
+
+// Get the amount for the selected category
+const selectedCategoryAmount = computed(() => {
+  if (!selectedCategory.value) return 0;
+  const categoryData = spendingsByCategories.value;
+  const category = Object.values(categoryData || {}).find(cat => cat.id === selectedCategory.value?.id);
+  return category?.amount || 0;
+});
 </script>
