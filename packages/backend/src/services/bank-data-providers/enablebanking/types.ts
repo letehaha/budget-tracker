@@ -493,7 +493,7 @@ export interface EnableBankingTransaction {
    * Booking date (ISO 8601). Booking date of the transaction on the account,
    * i.e. the date at which the transaction has been recorded on books
    */
-  booking_date: string;
+  booking_date?: string;
 
   /**
    * (ISO 8601) Value date of the transaction on the account, i.e. the date at
@@ -501,6 +501,14 @@ export interface EnableBankingTransaction {
    * or cease to be available to the account holder (in case of a debit transaction)
    */
   value_date?: string;
+
+  /**
+   * (ISO 8601) Date used for specific purposes:
+   * - for card transaction: date of the transaction
+   * - for credit transfer: acquiring date of the transaction
+   * - for direct debit: receiving date of the transaction
+   */
+  transaction_date?: string;
 
   /**
    * Payment details. For credit transfers may contain free text, reference number

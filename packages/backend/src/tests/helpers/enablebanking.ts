@@ -1,5 +1,6 @@
 import * as helpers from '@tests/helpers';
 import {
+  FixedTransaction,
   MOCK_AUTHORIZATION_ID,
   MOCK_AUTH_CODE,
   MOCK_BANK_COUNTRY,
@@ -7,6 +8,8 @@ import {
   MOCK_ENABLE_BANKING_APP_ID,
   MOCK_ENABLE_BANKING_PRIVATE_KEY,
   getMockedASPSPData,
+  resetMockTransactionConfig,
+  setMockTransactionConfig,
 } from '@tests/mocks/enablebanking/data';
 import { resetSessionCounter as resetMockSessionCounter } from '@tests/mocks/enablebanking/mock-api';
 
@@ -108,6 +111,22 @@ const resetSessionCounter = () => {
   resetMockSessionCounter();
 };
 
+/**
+ * Set fixed transactions for testing.
+ * Use this to control exactly what transactions are returned by the mock API.
+ */
+const setFixedTransactions = (transactions: FixedTransaction[]) => {
+  setMockTransactionConfig({ fixedTransactions: transactions });
+};
+
+/**
+ * Reset mock transaction configuration to defaults.
+ * Call this after tests that modify transaction config.
+ */
+const resetTransactionConfig = () => {
+  resetMockTransactionConfig();
+};
+
 export default {
   listCountries,
   listBanks,
@@ -117,6 +136,8 @@ export default {
   mockCredentials,
   getConnectionState,
   resetSessionCounter,
+  setFixedTransactions,
+  resetTransactionConfig,
   // Export mock constants for direct use in tests
   mockAppId: MOCK_ENABLE_BANKING_APP_ID,
   mockPrivateKey: MOCK_ENABLE_BANKING_PRIVATE_KEY,

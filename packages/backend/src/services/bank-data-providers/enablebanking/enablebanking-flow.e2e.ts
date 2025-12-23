@@ -1,8 +1,9 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import {
+  FixedTransaction,
   INVALID_ENABLE_BANKING_APP_ID,
   INVALID_ENABLE_BANKING_PRIVATE_KEY,
   MOCK_ACCOUNT_UID_1,
@@ -20,6 +21,11 @@ describe('Enable Banking Data Provider E2E', () => {
   // The counter determines whether mock returns original or reconnected account UIDs
   beforeEach(() => {
     helpers.enablebanking.resetSessionCounter();
+  });
+
+  // Reset transaction config after each test
+  afterEach(() => {
+    helpers.enablebanking.resetTransactionConfig();
   });
 
   describe('Complete connection flow', () => {
@@ -1534,6 +1540,206 @@ describe('Enable Banking Data Provider E2E', () => {
       // On the same day, the existing record is updated (not a new one created)
       expect(accountBalancesAfter.length).toBeGreaterThanOrEqual(balanceCountBefore);
       expect(accountBalancesAfter.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('Transaction update on re-sync', () => {
+    it('should update existing transaction when booking_date appears', async () => {
+      // This test verifies that when a transaction is synced initially without booking_date
+      // (e.g., only value_date), and then re-synced with booking_date added,
+      // the existing transaction is UPDATED with the new data.
+
+      // Step 1: Set up fixed transactions WITHOUT booking_date (simulating initial sync)
+      const entryRef = 'test_entry_ref_12345';
+      const valueDate = '2024-01-16';
+      const bookingDate = '2024-01-17'; // Appears later when bank finalizes the transaction
+
+      const initialTransactions: FixedTransaction[] = [
+        {
+          entryReference: entryRef,
+          amount: '100.00',
+          currency: 'EUR',
+          isExpense: true,
+          valueDate: valueDate,
+          // No bookingDate - simulating pending/unfinalized transaction
+        },
+      ];
+
+      helpers.enablebanking.setFixedTransactions(initialTransactions);
+
+      // Step 2: Create connection and connect account
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      // Connect account (this triggers initial sync)
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+
+      // Step 3: Verify initial transaction was created
+      const transactionsAfterFirstSync = await helpers.getTransactions({
+        accountIds: [accountId],
+        raw: true,
+      });
+
+      expect(transactionsAfterFirstSync.length).toBe(1);
+      const initialTx = transactionsAfterFirstSync[0]!;
+
+      // Verify initial transaction uses value_date (since no booking_date was provided)
+      const initialTxDate = new Date(initialTx.time).toISOString().split('T')[0];
+      expect(initialTxDate).toBe(valueDate);
+
+      // Verify externalData has only value_date, no booking_date
+      expect(initialTx.externalData.valueDate).toBe(valueDate);
+      expect(initialTx.externalData.bookingDate).toBeUndefined();
+
+      // Step 4: Update mock to return same transaction with booking_date added
+      const updatedTransactions: FixedTransaction[] = [
+        {
+          entryReference: entryRef, // Same entry reference = same transaction
+          amount: '100.00',
+          currency: 'EUR',
+          isExpense: true,
+          valueDate: valueDate,
+          bookingDate: bookingDate, // Now includes booking_date (transaction finalized)
+        },
+      ];
+
+      helpers.enablebanking.setFixedTransactions(updatedTransactions);
+
+      // Step 5: Trigger re-sync
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}/sync-transactions`,
+        payload: {
+          accountId,
+        },
+        raw: true,
+      });
+
+      // Step 6: Verify transaction was updated, not duplicated
+      const transactionsAfterSecondSync = await helpers.getTransactions({
+        accountIds: [accountId],
+        raw: true,
+      });
+
+      // Should still be only 1 transaction (updated, not duplicated)
+      expect(transactionsAfterSecondSync.length).toBe(1);
+
+      const updatedTx = transactionsAfterSecondSync[0]!;
+
+      // Verify it's the same transaction (same ID)
+      expect(updatedTx.id).toBe(initialTx.id);
+
+      // Verify externalData now has both dates
+      expect(updatedTx.externalData.valueDate).toBe(valueDate);
+      expect(updatedTx.externalData.bookingDate).toBe(bookingDate);
+    });
+
+    it('should not create duplicates when syncing transactions with same entry_reference', async () => {
+      // This test verifies that transactions with the same entry_reference
+      // are correctly identified as duplicates and updated rather than created anew.
+
+      const entryRef = 'unique_entry_ref_abc123';
+
+      const transactions: FixedTransaction[] = [
+        {
+          entryReference: entryRef,
+          amount: '50.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: '2024-01-20',
+          transactionDate: '2024-01-18',
+        },
+      ];
+
+      helpers.enablebanking.setFixedTransactions(transactions);
+
+      // Create connection and connect account
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+
+      // First sync
+      const txAfterFirstSync = await helpers.getTransactions({
+        accountIds: [accountId],
+        raw: true,
+      });
+      expect(txAfterFirstSync.length).toBe(1);
+
+      // Second sync (same transaction data)
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}/sync-transactions`,
+        payload: {
+          accountId,
+        },
+        raw: true,
+      });
+
+      // Verify no duplicates
+      const txAfterSecondSync = await helpers.getTransactions({
+        accountIds: [accountId],
+        raw: true,
+      });
+      expect(txAfterSecondSync.length).toBe(1);
+
+      // Third sync (just to be sure)
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}/sync-transactions`,
+        payload: {
+          accountId,
+        },
+        raw: true,
+      });
+
+      const txAfterThirdSync = await helpers.getTransactions({
+        accountIds: [accountId],
+        raw: true,
+      });
+      expect(txAfterThirdSync.length).toBe(1);
     });
   });
 });
