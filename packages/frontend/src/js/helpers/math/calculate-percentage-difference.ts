@@ -1,3 +1,11 @@
+/**
+ * Calculates the percentage change from value `b` (previous) to value `a` (current).
+ * Uses the standard formula: ((current - previous) / |previous|) * 100
+ *
+ * @param _a - Current value
+ * @param _b - Previous value (base for comparison)
+ * @returns Percentage change (can exceed ±100%)
+ */
 export function calculatePercentageDifference(_a: number, _b: number): number {
   const a = Number.isNaN(_a) || !Number.isFinite(_a) ? 0 : _a;
   const b = Number.isNaN(_b) || !Number.isFinite(_b) ? 0 : _b;
@@ -7,19 +15,17 @@ export function calculatePercentageDifference(_a: number, _b: number): number {
     return 0;
   }
 
-  // If one number is zero and the other isn't, it's a 100% difference
-  if (a === 0 || b === 0) {
-    return a > b ? 100 : -100;
+  // If previous value is zero and current isn't, it's a 100% increase
+  if (b === 0) {
+    return a > 0 ? 100 : -100;
   }
 
-  // If the numbers have opposite signs
-  if ((a > 0 && b < 0) || (a < 0 && b > 0)) {
-    return a > b ? 100 : -100;
+  // If current value is zero, it's a 100% decrease
+  if (a === 0) {
+    return -100;
   }
 
-  const difference = a - b;
-  const average = (Math.abs(a) + Math.abs(b)) / 2;
-
-  const percent = (difference / average) * 100;
-  return Math.max(-100, Math.min(100, percent));
+  // Standard percentage change formula: ((current - previous) / |previous|) * 100
+  const percent = ((a - b) / Math.abs(b)) * 100;
+  return percent;
 }

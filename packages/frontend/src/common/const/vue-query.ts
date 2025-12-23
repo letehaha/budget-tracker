@@ -24,6 +24,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // widget balance trend
   widgetBalanceTrend: [transactionChange, securityPriceChange, 'widget-balance-trend'] as const,
+  widgetBalanceTrendPrev: [transactionChange, securityPriceChange, 'widget-balance-trend-prev'] as const,
   widgetBalanceTotalBalance: [transactionChange, securityPriceChange, 'widget-balance-total-balance'] as const,
   widgetBalancePreviousBalance: [transactionChange, securityPriceChange, 'widget-balance-previous-balance'] as const,
 

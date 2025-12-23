@@ -97,20 +97,22 @@ import DashboardOnboarding from '@/components/widgets/dashboard-onboarding.vue';
 import { useSafariDetection } from '@/composable/detect-safari';
 import { cn } from '@/lib/utils';
 import { useAccountsStore } from '@/stores';
-import { storeToRefs } from 'pinia';
 import { CalendarDate, type DateValue } from '@internationalized/date';
 import {
-  addMonths,
+  addDays,
+  differenceInDays,
   endOfMonth,
   endOfYear,
   format,
   isSameMonth,
   startOfMonth,
   startOfYear,
+  subDays,
   subMonths,
   subYears,
 } from 'date-fns';
 import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { type DateRange } from 'reka-ui';
 import { computed, defineAsyncComponent, ref } from 'vue';
 
@@ -235,16 +237,18 @@ const periodSelectorText = computed(() => {
   return `${format(from, 'dd MMM yyyy')} - ${format(to, 'dd MMM yyyy')}`;
 });
 
+// Calculate period duration to shift by the same amount
+const periodDurationDays = computed(() => differenceInDays(currentPeriod.value.to, currentPeriod.value.from) + 1);
+
 const selectPrevPeriod = () => {
-  const from = startOfMonth(subMonths(currentPeriod.value.from, 1));
-  const to = endOfMonth(subMonths(currentPeriod.value.to, 1));
+  const from = subDays(currentPeriod.value.from, periodDurationDays.value);
+  const to = subDays(currentPeriod.value.from, 1); // End right before current period starts
   currentPeriod.value = { from, to };
 };
 
 const selectNextPeriod = () => {
-  const from = startOfMonth(addMonths(currentPeriod.value.from, 1));
-  const to = endOfMonth(addMonths(currentPeriod.value.to, 1));
-
+  const from = addDays(currentPeriod.value.to, 1); // Start right after current period ends
+  const to = addDays(currentPeriod.value.to, periodDurationDays.value);
   currentPeriod.value = { from, to };
 };
 

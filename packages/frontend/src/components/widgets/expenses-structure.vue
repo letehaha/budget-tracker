@@ -83,7 +83,7 @@ import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { calculatePercentageDifference } from '@/js/helpers';
 import { useCategoriesStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
-import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
+import { differenceInDays, subDays } from 'date-fns';
 import { Chart as Highcharts } from 'highcharts-vue';
 import { ChartPieIcon, CircleOffIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -104,7 +104,9 @@ const props = defineProps<{
 const { formatBaseCurrency } = useFormatCurrency();
 const categoriesStore = useCategoriesStore();
 const { categoriesMap } = storeToRefs(categoriesStore);
-const periodFrom = ref(new Date().getTime());
+
+// Include both from and to in query key to ensure cache invalidation when period changes
+const periodQueryKey = ref(`${new Date().getTime()}-${new Date().getTime()}`);
 
 const { data: userSettings } = useUserSettings();
 
@@ -114,14 +116,15 @@ const excludedCategories = computed(() =>
 const hasExcludedStats = computed(() => excludedCategories.value.length);
 
 watch(
-  () => props.selectedPeriod.from,
+  () => props.selectedPeriod,
   () => {
-    periodFrom.value = props.selectedPeriod.from.getTime();
+    periodQueryKey.value = `${props.selectedPeriod.from.getTime()}-${props.selectedPeriod.to.getTime()}`;
   },
+  { deep: true },
 );
 
 const { data: spendingsByCategories, isFetching: isSpendingsByCategoriesFetching } = useQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructureTotal, periodFrom],
+  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructureTotal, periodQueryKey],
   queryFn: () =>
     getSpendingsByCategories({
       from: props.selectedPeriod.from,
@@ -132,7 +135,7 @@ const { data: spendingsByCategories, isFetching: isSpendingsByCategoriesFetching
 });
 
 const { data: currentMonthExpense, isFetching: isCurrentMonthExpenseFetching } = useQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructureCurrentAmount, periodFrom],
+  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructureCurrentAmount, periodQueryKey],
   queryFn: () =>
     getExpensesAmountForPeriod({
       from: props.selectedPeriod.from,
@@ -142,12 +145,21 @@ const { data: currentMonthExpense, isFetching: isCurrentMonthExpenseFetching } =
   placeholderData: (previousData) => previousData || 0,
 });
 
+// Calculate previous period with the same duration, ending right before current period starts
+const prevPeriod = computed(() => {
+  const durationInDays = differenceInDays(props.selectedPeriod.to, props.selectedPeriod.from) + 1;
+  const prevTo = subDays(props.selectedPeriod.from, 1); // Day before current period starts
+  const prevFrom = subDays(props.selectedPeriod.from, durationInDays);
+
+  return { from: prevFrom, to: prevTo };
+});
+
 const { data: prevMonthExpense, isFetching: isPrevMonthExpenseFetching } = useQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructurePrevAmount, periodFrom],
+  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructurePrevAmount, periodQueryKey],
   queryFn: () =>
     getExpensesAmountForPeriod({
-      from: startOfMonth(subMonths(props.selectedPeriod.from, 1)),
-      to: endOfMonth(subMonths(props.selectedPeriod.to, 1)),
+      from: prevPeriod.value.from,
+      to: prevPeriod.value.to,
     }),
   staleTime: Infinity,
   placeholderData: (previousData) => previousData || 0,
