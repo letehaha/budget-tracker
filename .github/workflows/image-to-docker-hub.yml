@@ -9,9 +9,20 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  # Create database backup before deployment
+  backup:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    uses: ./.github/workflows/database-backup.yml
+    with:
+      backup_reason: 'pre-deployment'
+    secrets: inherit
+
+  build:
+    needs: [backup]
+    runs-on: ubuntu-latest
+    # Always run build if backup completed (success or failure) - don't block deploys on backup issues
+    # But don't run if the workflow was triggered by a failed CI run
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
 
     steps:
       - name: Check if user is authorized
