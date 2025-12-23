@@ -31,6 +31,7 @@ import modelsCurrenciesRoutes from './routes/currencies.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
 import csvImportExportRoutes from './routes/import-export/csv.route';
 import investmentsRoutes from './routes/investments.route';
+import sseRoutes from './routes/sse.route';
 import statsRoutes from './routes/stats.route';
 import testsRoutes from './routes/tests.route';
 import transactionsRoutes from './routes/transactions.route';
@@ -131,6 +132,7 @@ app.use(`${API_PREFIX}/currencies/rates`, exchangeRatesRoutes);
 app.use(`${API_PREFIX}/budgets`, budgetsRoutes);
 app.use(`${API_PREFIX}/investments`, investmentsRoutes);
 app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
+app.use(`${API_PREFIX}/sse`, sseRoutes);
 
 if (process.env.NODE_ENV === 'test') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);
