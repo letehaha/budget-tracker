@@ -1,0 +1,143 @@
+name: Database Backup
+
+on:
+  schedule:
+    # Every 12 hours at 3:00 and 15:00 UTC
+    - cron: '0 3,15 * * *'
+  workflow_call:
+    inputs:
+      backup_reason:
+        description: 'Reason for backup (e.g., pre-deployment, scheduled)'
+        required: false
+        type: string
+        default: 'scheduled'
+  workflow_dispatch:
+    inputs:
+      backup_reason:
+        description: 'Reason for backup'
+        required: false
+        default: 'manual'
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    # Only allow letehaha to manually trigger
+    if: ${{ github.event_name != 'workflow_dispatch' || github.actor == 'letehaha' }}
+
+    steps:
+      - name: Create database backup and upload to R2
+        uses: appleboy/ssh-action@master
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          DB_USERNAME: ${{ secrets.APPLICATION_DB_USERNAME }}
+          DB_DATABASE: ${{ secrets.APPLICATION_DB_DATABASE }}
+          COMMIT_SHA: ${{ github.sha }}
+          BACKUP_REASON: ${{ inputs.backup_reason || 'scheduled' }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+          envs: R2_ENDPOINT,R2_ACCESS_KEY_ID,R2_SECRET_ACCESS_KEY,R2_BUCKET,DB_USERNAME,DB_DATABASE,COMMIT_SHA,BACKUP_REASON
+          script: |
+            set -e
+
+            echo "🗄️ Starting database backup..."
+
+            # Navigate to project directory
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+
+            # Generate backup filename with timestamp and commit SHA
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            SHORT_SHA="${COMMIT_SHA:0:7}"
+            BACKUP_FILENAME="db_backup_${TIMESTAMP}_${SHORT_SHA}_${BACKUP_REASON}.sql.gz"
+            BACKUP_PATH="/tmp/${BACKUP_FILENAME}"
+
+            # Create compressed database dump
+            # Using docker compose exec with -T flag (no TTY) for non-interactive execution
+            echo "📦 Creating database dump..."
+            docker compose exec -T db pg_dump \
+              -U "$DB_USERNAME" \
+              -d "$DB_DATABASE" \
+              --no-owner \
+              --no-acl \
+              | gzip > "$BACKUP_PATH"
+
+            BACKUP_SIZE=$(ls -lh "$BACKUP_PATH" | awk '{print $5}')
+            echo "✅ Backup created: $BACKUP_FILENAME ($BACKUP_SIZE)"
+
+            # Upload to Cloudflare R2 using AWS CLI with S3-compatible API
+            echo "☁️ Uploading to Cloudflare R2..."
+            AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+            AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+            aws s3 cp "$BACKUP_PATH" "s3://${R2_BUCKET}/backups/${BACKUP_FILENAME}" \
+              --endpoint-url "$R2_ENDPOINT"
+
+            echo "✅ Backup uploaded to R2: backups/${BACKUP_FILENAME}"
+
+            # Clean up local backup file
+            rm -f "$BACKUP_PATH"
+
+            # List recent backups in R2 (last 5)
+            echo ""
+            echo "📋 Recent backups in R2:"
+            AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+            AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+            aws s3 ls "s3://${R2_BUCKET}/backups/" \
+              --endpoint-url "$R2_ENDPOINT" \
+              | tail -5
+
+            echo ""
+            echo "🎉 Database backup completed successfully!"
+
+      - name: Cleanup old backups (older than 7 days)
+        uses: appleboy/ssh-action@master
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+          envs: R2_ENDPOINT,R2_ACCESS_KEY_ID,R2_SECRET_ACCESS_KEY,R2_BUCKET
+          script: |
+            set -e
+
+            echo "🧹 Cleaning up backups older than 7 days..."
+
+            # Navigate to project directory (for consistent working directory)
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+
+            CUTOFF_DATE=$(date -d '7 days ago' +%Y%m%d 2>/dev/null || date -v-7d +%Y%m%d)
+
+            # List all backups and filter those older than 7 days
+            AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+            AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+            aws s3 ls "s3://${R2_BUCKET}/backups/" \
+              --endpoint-url "$R2_ENDPOINT" \
+              | while read -r line; do
+                  # Extract filename from the line
+                  FILENAME=$(echo "$line" | awk '{print $4}')
+                  if [ -z "$FILENAME" ]; then
+                    continue
+                  fi
+
+                  # Extract date from filename (format: db_backup_YYYYMMDD_HHMMSS_...)
+                  FILE_DATE=$(echo "$FILENAME" | sed -n 's/db_backup_\([0-9]\{8\}\)_.*/\1/p')
+
+                  if [ -n "$FILE_DATE" ] && [ "$FILE_DATE" -lt "$CUTOFF_DATE" ]; then
+                    echo "🗑️ Deleting old backup: $FILENAME"
+                    AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+                    AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+                    aws s3 rm "s3://${R2_BUCKET}/backups/${FILENAME}" \
+                      --endpoint-url "$R2_ENDPOINT"
+                  fi
+                done
+
+            echo "✅ Cleanup completed!"
