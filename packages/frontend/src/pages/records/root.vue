@@ -55,7 +55,7 @@ import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { parseISO } from 'date-fns';
 import { onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 import ScrollTopButton from './components/scroll-to-top.vue';
 
@@ -76,6 +76,7 @@ const {
 } = useTransactionsWithFilters();
 
 const route = useRoute();
+const router = useRouter();
 const isFiltersDialogOpen = ref(false);
 
 // Initialize filters from query parameters
@@ -128,6 +129,9 @@ onMounted(() => {
     // Apply the initial filters
     filters.value = initialFilters;
     appliedFilters.value = initialFilters;
+
+    // Clear query params from URL (replace to preserve back navigation to dashboard)
+    router.replace({ query: {} });
   }
 });
 
