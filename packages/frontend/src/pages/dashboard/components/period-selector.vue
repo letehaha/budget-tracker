@@ -68,7 +68,6 @@ import {
 import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { type DateRange } from 'reka-ui';
 import { computed, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
 
 import { type Period } from '../types';
 
@@ -84,8 +83,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: Period];
 }>();
-
-const router = useRouter();
 
 // Helper functions to convert between Date and DateValue
 const dateToCalendarDate = (date: Date): CalendarDate => {
@@ -114,21 +111,21 @@ const isCurrentMonthPeriod = (period: Period) => {
   );
 };
 
-// Sync period to URL (using replace to allow proper back navigation)
+// Sync period to URL using history.replaceState to avoid scroll reset on mobile
 // Clear query when default period (current month) is selected
 watch(
   () => props.modelValue,
   (period) => {
+    const url = new URL(window.location.href);
+
     if (isCurrentMonthPeriod(period)) {
-      router.replace({ query: {} });
+      url.search = '';
     } else {
-      router.replace({
-        query: {
-          from: format(period.from, 'yyyy-MM-dd'),
-          to: format(period.to, 'yyyy-MM-dd'),
-        },
-      });
+      url.searchParams.set('from', format(period.from, 'yyyy-MM-dd'));
+      url.searchParams.set('to', format(period.to, 'yyyy-MM-dd'));
     }
+
+    window.history.replaceState(history.state, '', url);
   },
   { deep: true },
 );
