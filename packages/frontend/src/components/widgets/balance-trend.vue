@@ -1,5 +1,5 @@
 <template>
-  <WidgetWrapper :is-fetching="isWidgetDataFetching">
+  <WidgetWrapper :is-fetching="isWidgetDataFetching" class="min-h-[320px]">
     <template #title>
       <div class="flex w-full items-center gap-4">
         <span>Balance trend</span>
@@ -13,7 +13,7 @@
         />
       </div>
     </template>
-    <template v-if="isWidgetDataFetching">
+    <template v-if="isInitialLoading">
       <LoadingState />
     </template>
     <template v-else-if="isDataEmpty">
@@ -43,7 +43,13 @@
         </div>
       </div>
 
-      <highcharts v-node-resize-observer="{ callback: onChartResize }" :options="chartOptions" />
+      <Transition name="chart-fade" mode="out-in">
+        <highcharts
+          :key="chartKey"
+          v-node-resize-observer="{ callback: onChartResize }"
+          :options="chartOptions"
+        />
+      </Transition>
     </template>
   </WidgetWrapper>
 </template>
@@ -107,9 +113,7 @@ const { buildAreaChartConfig } = useHighcharts();
 const actualDataPeriod = ref(props.selectedPeriod);
 const prevDataPeriod = ref(props.selectedPeriod);
 // Include both from and to in query key to ensure cache invalidation when period changes
-const periodQueryKey = computed(
-  () => `${props.selectedPeriod.from.getTime()}-${props.selectedPeriod.to.getTime()}`,
-);
+const periodQueryKey = computed(() => `${props.selectedPeriod.from.getTime()}-${props.selectedPeriod.to.getTime()}`);
 
 // For data fetching, cap the 'to' date at today - we can't have balance history
 // for future dates. The chart x-axis will still show the full period range.
@@ -145,9 +149,9 @@ const { data: prevPeriodBalance, isFetching: isPrevPeriodBalanceFetching } = use
   placeholderData: (prevData) => prevData,
 });
 
-const isWidgetDataFetching = computed(
-  () => isBalanceHistoryFetching.value || isPrevPeriodBalanceFetching.value,
-);
+const isWidgetDataFetching = computed(() => isBalanceHistoryFetching.value || isPrevPeriodBalanceFetching.value);
+// Only show full loading state on initial load (when we have no data to display)
+const isInitialLoading = computed(() => isWidgetDataFetching.value && !balanceHistory.value);
 
 // On each "selectedPeriod" change we immediately set it as "actualDataPeriod"
 // but if "isWidgetDataFetching" is also triggered, means we started loading new
@@ -174,6 +178,9 @@ watch(
 );
 
 const isDataEmpty = computed(() => !balanceHistory.value || balanceHistory.value.every((i) => i.totalBalance === 0));
+
+// Key for the chart component - changes when period changes to trigger CSS transition
+const chartKey = computed(() => `${actualDataPeriod.value.from.getTime()}-${actualDataPeriod.value.to.getTime()}`);
 
 const periodLabel = computed(() => {
   const from = props.selectedPeriod.from;
@@ -295,7 +302,6 @@ const chartOptions = computed(() => {
         type: 'area',
         showInLegend: false,
         fillOpacity: 0.6,
-        animation: false,
         data: (balanceHistory.value || []).map((point) => {
           const value =
             selectedBalanceType.value.value === 'total'
@@ -359,3 +365,15 @@ const onChartResize = (entries: ResizeObserverEntry[]) => {
   currentChartWidth.value = entry.contentRect.width;
 };
 </script>
+
+<style scoped>
+.chart-fade-enter-active,
+.chart-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.chart-fade-enter-from,
+.chart-fade-leave-to {
+  opacity: 0;
+}
+</style>

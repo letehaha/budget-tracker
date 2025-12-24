@@ -1,6 +1,6 @@
 <template>
   <Combobox.Combobox
-    v-model="selectedAccounts"
+    :model-value="undefined"
     v-model:searchTerm="searchTerm"
     v-model:open="isOpen"
     :multiple="true"
@@ -55,10 +55,9 @@
           <Combobox.ComboboxItem
             v-for="account in displayedAccounts"
             :key="account.id"
-            :value="account.name"
+            :value="account"
             class="hover:bg-accent hover:text-accent-foreground flex-start flex cursor-pointer items-center justify-between rounded-md px-2 py-1"
-            @click="pickAccount(account)"
-            @select.prevent
+            @select.prevent="pickAccount(account)"
           >
             <span>{{ account.name }}</span>
             <CheckIcon v-if="isAccountSelected(account)" />
@@ -75,6 +74,7 @@ import * as Combobox from '@/components/lib/ui/combobox';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
+import { isEqual } from 'lodash-es';
 import { CheckIcon, ChevronDown, SearchIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
@@ -117,7 +117,7 @@ const sessionOrder = ref<number[]>([]);
 
 watch(isOpen, (open) => {
   if (open) {
-    const selectedIds = new Set(selectedAccounts.value.map((a) => a.id));
+    const selectedIds = new Set(selectedAccountIds.value);
     const selectedFirst = baseSortedAccounts.value.filter((a) => selectedIds.has(a.id));
     const others = baseSortedAccounts.value.filter((a) => !selectedIds.has(a.id));
     sessionOrder.value = [...selectedFirst, ...others].map((a) => a.id);
@@ -138,43 +138,40 @@ const displayedAccounts = computed(() => {
   return orderedAccounts.value.filter((a) => a.name.toLowerCase().includes(term));
 });
 
-const selectedAccounts = ref<AccountModel[]>([]);
-const initialized = ref(false);
+const selectedAccountIds = ref<number[]>([]);
 
+// Derive selectedAccounts from IDs - no need to maintain separately
+const selectedAccounts = computed(() => storeAccounts.value.filter((a) => selectedAccountIds.value.includes(a.id)));
+
+// Sync internal state when props change (and differ from current state)
 watch(
-  [storeAccounts, () => props.accounts],
-  ([storeAccs, inputAccs]) => {
-    if (initialized.value) return;
-    if (inputAccs && inputAccs.length) {
-      selectedAccounts.value = [...inputAccs];
-      initialized.value = true;
-      emit('update:accounts', selectedAccounts.value);
-      return;
-    }
-    if (storeAccs && storeAccs.length) {
-      // Default to empty array (no filter = all accounts shown)
-      selectedAccounts.value = [];
-      initialized.value = true;
-      emit('update:accounts', selectedAccounts.value);
-    }
+  () => props.accounts,
+  (newAccounts) => {
+    const newIds = newAccounts.map((a) => a.id).sort();
+    // Only sync if values actually differ (prevents loops)
+    if (isEqual(newIds, [...selectedAccountIds.value].sort())) return;
+
+    selectedAccountIds.value = newAccounts.map((a) => a.id);
   },
   { immediate: true },
 );
 
-const isAllSelected = computed(() => selectedAccounts.value.length === 0);
+const isAllSelected = computed(() => selectedAccountIds.value.length === 0);
 
-const isAccountSelected = (account: AccountModel) => selectedAccounts.value.some((a) => a.id === account.id);
+const isAccountSelected = (account: AccountModel) => selectedAccountIds.value.includes(account.id);
 
 const toggleAccount = (account: AccountModel, checked: boolean) => {
-  selectedAccounts.value = checked
-    ? [...selectedAccounts.value, account]
-    : selectedAccounts.value.filter((a) => a.id !== account.id);
+  if (checked) {
+    selectedAccountIds.value = [...selectedAccountIds.value, account.id];
+  } else {
+    selectedAccountIds.value = selectedAccountIds.value.filter((id) => id !== account.id);
+  }
 
   emit('update:accounts', selectedAccounts.value);
 };
 
 const clearSelection = () => {
-  selectedAccounts.value = [];
-  emit('update:accounts', selectedAccounts.value);
+  selectedAccountIds.value = [];
+  emit('update:accounts', []);
 };
 </script>

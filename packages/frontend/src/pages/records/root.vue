@@ -50,9 +50,11 @@ import { Card } from '@/components/lib/ui/card';
 import FiltersDialog from '@/components/records-filters/filters-dialog.vue';
 import FiltersPanel from '@/components/records-filters/index.vue';
 import { useTransactionsWithFilters } from '@/components/records-filters/transactions-with-filters';
+import { useFiltersFromQuery } from '@/components/records-filters/use-filters-from-query';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 import ScrollTopButton from './components/scroll-to-top.vue';
 
@@ -72,7 +74,25 @@ const {
   transactionsListRef,
 } = useTransactionsWithFilters();
 
+const route = useRoute();
+const router = useRouter();
 const isFiltersDialogOpen = ref(false);
+const { parseFiltersFromQuery } = useFiltersFromQuery();
+
+// Initialize filters from query parameters
+onMounted(() => {
+  const queryFilters = parseFiltersFromQuery({ query: route.query });
+
+  if (queryFilters) {
+    const initialFilters = { ...filters.value, ...queryFilters };
+
+    filters.value = initialFilters;
+    appliedFilters.value = initialFilters;
+
+    // Clear query params from URL (replace to preserve back navigation to dashboard)
+    router.replace({ query: {} });
+  }
+});
 
 watch(appliedFilters, () => {
   isFiltersDialogOpen.value = false;

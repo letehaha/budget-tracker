@@ -4,10 +4,11 @@ description: Build and optionally push the backend Docker image
 inputs:
   docker-hub-username:
     description: 'DOCKER_HUB_USERNAME'
-    required: true
+    required: false
+    default: 'local'
   docker-hub-access-token:
     description: 'DOCKER_HUB_ACCESS_TOKEN'
-    required: true
+    required: false
   push:
     description: Specifies if docker result should be pushed
     required: false
@@ -22,6 +23,7 @@ runs:
   using: composite
   steps:
     - name: Login to Docker Hub
+      if: inputs.push == 'true'
       uses: docker/login-action@v3
       with:
         username: ${{ inputs.docker-hub-username }}

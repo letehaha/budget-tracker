@@ -49,7 +49,7 @@ jobs:
       - name: Run ${{ matrix.task }}
         run: npm run ${{ matrix.task }} -w packages/frontend
 
-  fontend-docker-build:
+  frontend-docker-build:
     name: Build frontend Docker image
     runs-on: ubuntu-latest
     steps:
@@ -66,11 +66,6 @@ jobs:
         uses: actions/checkout@v4
       - id: frontend-docker-build
         uses: ./.github/actions/frontend-docker-build
-        with:
-          api-base-url: ${{ secrets.API_BASE_URL }}
-          vue-app-api-ver: ${{ secrets.VUE_APP_API_VER }}
-          docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       - name: Image digest
         run: echo ${{ steps.frontend-docker-build.outputs.docker-build-digest }}
 
@@ -136,9 +131,5 @@ jobs:
         uses: actions/checkout@v4
       - id: backend-docker-build
         uses: ./.github/actions/backend-docker-build
-        with:
-          docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-          push: 'false'
       - name: Image digest
         run: echo ${{ steps.backend-docker-build.outputs.docker-build-digest }}
