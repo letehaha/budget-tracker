@@ -43,47 +43,52 @@
       </Button>
       -->
 
-      <Popover.Popover v-model:open="isPopoverOpen">
-        <Popover.PopoverTrigger as-child>
-          <Button variant="secondary" class="flex items-center gap-2">
-            <template v-if="syncStatus.isSyncing.value">
-              <RefreshCcw class="animate-spin" :size="16" />
-              <span class="font-medium">
-                <span class="xs:hidden">Syncing</span>
-                <span class="xs:inline hidden">{{ syncStatus.syncingSummaryText.value || 'Synchronizing...' }}</span>
-              </span>
-            </template>
-            <template v-else-if="hasConnections">
-              <CloudCheckIcon class="text-success-text size-5" />
-              <template v-if="lastSyncRelativeTime">
-                <span class="xs:block hidden font-medium"> Synced {{ lastSyncRelativeTime }} </span>
-                <span class="xs:hidden font-medium"> Synced </span>
+      <template v-if="accountsNeedingRelink.length > 0">
+        <AccountsRelinkWarning />
+      </template>
+      <template v-else>
+        <Popover.Popover v-model:open="isPopoverOpen">
+          <Popover.PopoverTrigger as-child>
+            <Button variant="secondary" class="flex items-center gap-2">
+              <template v-if="syncStatus.isSyncing.value">
+                <RefreshCcw class="animate-spin" :size="16" />
+                <span class="font-medium">
+                  <span class="xs:hidden">Syncing</span>
+                  <span class="xs:inline hidden">{{ syncStatus.syncingSummaryText.value || 'Synchronizing...' }}</span>
+                </span>
               </template>
-            </template>
-            <template v-else>
-              <CloudCheckIcon class="size-5" />
-              <span class="xs:block hidden font-medium">Connect bank</span>
-            </template>
-          </Button>
-        </Popover.PopoverTrigger>
-        <Popover.PopoverContent class="w-auto p-0" align="end">
-          <SyncStatusTooltip
-            :account-statuses="syncStatus.accountStatuses.value"
-            :sync-progress="syncStatus.syncProgress.value"
-            :last-sync-timestamp="syncStatus.lastSyncTimestamp.value"
-            :is-loading="syncStatus.isLoading.value"
-            :is-syncing="syncStatus.isSyncing.value"
-            :show-success-message="syncStatus.showSuccessMessage.value"
-            @trigger-sync="handleSyncClick"
-          />
-        </Popover.PopoverContent>
-      </Popover.Popover>
+              <template v-else-if="hasConnections">
+                <CloudCheckIcon class="text-success-text size-5" />
+                <template v-if="lastSyncRelativeTime">
+                  <span class="xs:block hidden font-medium"> Synced {{ lastSyncRelativeTime }} </span>
+                  <span class="xs:hidden font-medium"> Synced </span>
+                </template>
+              </template>
+              <template v-else>
+                <CloudCheckIcon class="size-5" />
+                <span class="xs:block hidden font-medium">Connect bank</span>
+              </template>
+            </Button>
+          </Popover.PopoverTrigger>
+          <Popover.PopoverContent class="w-auto p-0" align="end">
+            <SyncStatusTooltip
+              :account-statuses="syncStatus.accountStatuses.value"
+              :sync-progress="syncStatus.syncProgress.value"
+              :last-sync-timestamp="syncStatus.lastSyncTimestamp.value"
+              :is-loading="syncStatus.isLoading.value"
+              :is-syncing="syncStatus.isSyncing.value"
+              :show-success-message="syncStatus.showSuccessMessage.value"
+              @trigger-sync="handleSyncClick"
+            />
+          </Popover.PopoverContent>
+        </Popover.Popover>
 
-      <SyncConfirmationDialog
-        v-model:open="showConfirmDialog"
-        :last-sync-timestamp="syncStatus.lastSyncTimestamp.value"
-        @confirm="confirmSync"
-      />
+        <SyncConfirmationDialog
+          v-model:open="showConfirmDialog"
+          :last-sync-timestamp="syncStatus.lastSyncTimestamp.value"
+          @confirm="confirmSync"
+        />
+      </template>
 
       <router-link :to="{ name: ROUTES_NAMES.settings }">
         <Button variant="secondary" class="text-white" size="icon" as="span">
@@ -97,6 +102,7 @@
 <script setup lang="ts">
 // Theme toggle temporarily disabled - light theme coming soon
 // import { Themes, currentTheme, toggleTheme } from '@/common/utils';
+import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
 import ManageTransactionDrawer from '@/components/dialogs/manage-transaction/drawer-view.vue';
 import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
@@ -110,11 +116,16 @@ import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes';
+import { useAccountsStore } from '@/stores';
 import { formatDistanceToNow } from 'date-fns';
 // MoonStar, Sun removed - theme toggle temporarily disabled
 import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
+import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+
+const accountsStore = useAccountsStore();
+const { accountsNeedingRelink } = storeToRefs(accountsStore);
 
 const { elementRef: headerRef } = useCssVarFromElementSize({
   cssVars: [{ cssVarName: '--header-height' }],
@@ -135,12 +146,17 @@ const lastSyncRelativeTime = computed(() => {
 
 const hasConnections = computed(() => syncStatus.accountStatuses.value.length > 0);
 
-// Initialize sync status on mount
-onMounted(async () => {
-  await syncStatus.fetchStatus();
-  // Trigger auto-sync check when app loads
-  await syncStatus.checkAndAutoSync();
-});
+// Initialize sync status on mount only when user don't have issues with his connections
+watch(
+  accountsNeedingRelink,
+  async (value) => {
+    if (value.length) return;
+    await syncStatus.fetchStatus();
+    // Trigger auto-sync check when app loads
+    await syncStatus.checkAndAutoSync();
+  },
+  { immediate: true },
+);
 
 const handleSyncClick = async () => {
   // Check if confirmation is needed

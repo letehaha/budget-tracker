@@ -71,6 +71,16 @@ export interface AccountModel {
   bankDataProviderConnectionId?: number;
 }
 
+/**
+ * Account model with computed `needsRelink` flag.
+ * Used in API responses where the backend computes whether an Enable Banking
+ * account needs to be re-linked due to schema migration (externalId was uid,
+ * now should be identification_hash).
+ */
+export interface AccountWithRelinkStatus extends AccountModel {
+  needsRelink: boolean;
+}
+
 export interface BalanceModel {
   id: number;
   date: Date;
