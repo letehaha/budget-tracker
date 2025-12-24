@@ -67,8 +67,10 @@ export const getAccountsByExternalIds = withTransaction(async (payload: Accounts
 
 export const getAccountById = withTransaction(
   async (payload: { id: number; userId: number }): Promise<AccountWithRelinkStatus | null> => {
-    const account = await Accounts.getAccountById(payload);
+    const account = await Accounts.getAccountById({ ...payload, raw: true });
+
     if (!account) return null;
+
     return {
       ...account,
       needsRelink: checkNeedsRelink(account),
