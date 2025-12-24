@@ -43,21 +43,20 @@
 </template>
 
 <script lang="ts" setup>
+import BalanceTrendWidget from '@/components/widgets/balance-trend.vue';
 import DashboardOnboarding from '@/components/widgets/dashboard-onboarding.vue';
+import SpendingCategoriesWidget from '@/components/widgets/expenses-structure.vue';
+import LatestRecordsWidget from '@/components/widgets/latest-records.vue';
 import { useSafariDetection } from '@/composable/detect-safari';
 import { cn } from '@/lib/utils';
 import { useAccountsStore } from '@/stores';
 import { endOfMonth, parseISO, startOfMonth } from 'date-fns';
 import { storeToRefs } from 'pinia';
-import { computed, defineAsyncComponent, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 import PeriodSelector from './components/period-selector.vue';
 import { type Period } from './types';
-
-const BalanceTrendWidget = defineAsyncComponent(() => import('@/components/widgets/balance-trend.vue'));
-const LatestRecordsWidget = defineAsyncComponent(() => import('@/components/widgets/latest-records.vue'));
-const SpendingCategoriesWidget = defineAsyncComponent(() => import('@/components/widgets/expenses-structure.vue'));
 
 const { isSafariMobile, isPWA } = useSafariDetection();
 
