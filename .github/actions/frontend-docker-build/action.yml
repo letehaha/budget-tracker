@@ -4,16 +4,19 @@ description: Build and optionally push the frontend Docker image
 inputs:
   api-base-url:
     description: 'API_BASE_URL'
-    required: true
+    required: false
+    default: 'http://localhost:8080'
   vue-app-api-ver:
     description: 'VUE_APP_API_VER'
-    required: true
+    required: false
+    default: 'v1'
   docker-hub-username:
     description: 'DOCKER_HUB_USERNAME'
-    required: true
+    required: false
+    default: 'local'
   docker-hub-access-token:
     description: 'DOCKER_HUB_ACCESS_TOKEN'
-    required: true
+    required: false
   push:
     description: Specifies if docker result should be pushed
     required: false
@@ -34,17 +37,18 @@ runs:
         file_name: .env.production
 
     - name: Login to Docker Hub
-      uses: docker/login-action@v1
+      if: inputs.push == 'true'
+      uses: docker/login-action@v3
       with:
         username: ${{ inputs.docker-hub-username }}
         password: ${{ inputs.docker-hub-access-token }}
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      uses: docker/setup-buildx-action@v3
 
     - name: Build
       id: docker-build
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v6
       with:
         context: ./
         file: ./docker/prod/frontend/Dockerfile
