@@ -8,7 +8,7 @@ import {
   unlinkAccountFromBankConnection as apiUnlinkAccountFromBankConnection,
 } from '@/api';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
-import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
+import { ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { defineStore, storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
@@ -19,7 +19,7 @@ export const useAccountsStore = defineStore('accounts', () => {
   const queryClient = useQueryClient();
   const { isUserExists } = storeToRefs(useUserStore());
 
-  const accountsRecord = ref<Record<number, AccountModel>>({});
+  const accountsRecord = ref<Record<number, AccountWithRelinkStatus>>({});
 
   const {
     data: accounts,
@@ -43,6 +43,12 @@ export const useAccountsStore = defineStore('accounts', () => {
 
   const systemAccounts = computed(() => accounts.value.filter((item) => item.type === ACCOUNT_TYPES.system));
   const enabledAccounts = computed(() => accounts.value.filter((item) => item.isEnabled));
+
+  /**
+   * Accounts that need to be re-linked due to schema migration.
+   * These are Enable Banking accounts where externalId doesn't match identification_hash.
+   */
+  const accountsNeedingRelink = computed(() => accounts.value.filter((item) => item.needsRelink));
 
   const createAccount = async (payload: Parameters<typeof apiCreateAccount>[0]) => {
     try {
@@ -115,6 +121,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     enabledAccounts,
     systemAccounts,
     accountsCurrencyCodes,
+    accountsNeedingRelink,
     isAccountsFetched,
 
     loadAccounts: refetchAccounts,

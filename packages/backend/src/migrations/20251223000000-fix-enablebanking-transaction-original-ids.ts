@@ -103,7 +103,9 @@ module.exports = {
       { type: QueryTypes.SELECT },
     );
 
-    console.log(`Found ${transactions.length} Enable Banking transactions to migrate`);
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`Found ${transactions.length} Enable Banking transactions to migrate`);
+    }
 
     let updated = 0;
     let skipped = 0;
@@ -162,7 +164,9 @@ module.exports = {
       }
     }
 
-    console.log(`Migration complete: ${updated} updated, ${skipped} skipped, ${errors} errors`);
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`Migration complete: ${updated} updated, ${skipped} skipped, ${errors} errors`);
+    }
   },
 
   down: async (): Promise<void> => {

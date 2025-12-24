@@ -41,6 +41,7 @@ import {
   EnableBankingMetadata,
   EnableBankingTransaction,
   OAuthCallbackParams,
+  PSUType,
   StartAuthorizationResponse,
 } from './types';
 
@@ -236,10 +237,18 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const consentValidFrom = new Date();
     const consentValidUntil = this.calculateConsentValidUntil(metadata.bankMaxConsentValidity);
 
-    // Update metadata with account UIDs and consent dates
+    // Update metadata with account summaries and consent dates
+    // Store all accounts including those without uid (blocked/closed accounts)
+    // UI can check uid to show appropriate warnings
     const updatedMetadata: EnableBankingMetadata = {
       ...metadata,
-      accounts: sessionResponse.accounts.map((account) => account.uid),
+      accounts: sessionResponse.accounts.map((account) => ({
+        identification_hash: account.identification_hash,
+        uid: account.uid,
+        iban: account.account_id?.iban,
+        currency: account.currency,
+        name: account.name || account.owner_name,
+      })),
       state: undefined, // Clear state after successful auth
       consentValidFrom: consentValidFrom.toISOString(),
       consentValidUntil: consentValidUntil.toISOString(),
@@ -259,9 +268,13 @@ export class EnableBankingProvider extends BaseBankDataProvider {
   }
 
   /**
-   * Update externalId for existing accounts after reconnection.
-   * Enable Banking assigns new UUIDs after each authorization, but IBAN stays the same.
-   * This method matches accounts by IBAN and updates their externalId to the new value.
+   * Update existing accounts after reconnection.
+   * Enable Banking assigns new UIDs after each authorization, but identification_hash stays the same.
+   * This method:
+   * 1. Matches accounts by IBAN + currency
+   * 2. Updates externalData with new rawAccountData and uid (for API calls)
+   * 3. Migrates transaction hashes if externalId changes (from old uid to identification_hash)
+   * 4. Updates externalId to identification_hash (stable across sessions)
    */
   private async updateExistingAccountExternalIds({
     connectionId,
@@ -284,20 +297,61 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       return; // No existing accounts to update
     }
 
-    // Match and update existing accounts by IBAN + currency
+    // Match and update existing accounts
     for (const existingAccount of existingAccounts) {
-      const existingIban = (existingAccount.externalData as Record<string, unknown>)?.iban;
-      if (!existingIban) continue;
+      const existingMetadata = existingAccount.externalData as Record<string, unknown> | null;
+      const existingIban = existingMetadata?.iban as string | undefined;
 
-      const matchingNewAccount = newAccounts.find(
-        (newAcc) => newAcc.account_id?.iban === existingIban && newAcc.currency === existingAccount.currencyCode,
-      );
+      // Primary: match by identification_hash (externalId now stores this stable ID)
+      let matchingNewAccount = newAccounts.find((newAcc) => newAcc.identification_hash === existingAccount.externalId);
 
-      if (matchingNewAccount && matchingNewAccount.uid !== existingAccount.externalId) {
-        await existingAccount.update({
-          externalId: matchingNewAccount.uid,
-        });
+      // Fallback: match by IBAN + currency (for legacy accounts where externalId was uid)
+      if (!matchingNewAccount && existingIban) {
+        matchingNewAccount = newAccounts.find(
+          (newAcc) => newAcc.account_id?.iban === existingIban && newAcc.currency === existingAccount.currencyCode,
+        );
       }
+
+      if (!matchingNewAccount) {
+        // No match found - account needs to be re-linked by user
+        logger.warn(
+          `Could not match existing account ${existingAccount.id} (${existingAccount.name}, ${existingAccount.currencyCode}). ` +
+            `Account needs to be re-linked.`,
+        );
+        continue;
+      }
+
+      // The stable identifier we should use for externalId
+      const newExternalId = matchingNewAccount.identification_hash;
+
+      // Update externalData with fresh account data (including uid for API calls)
+      const updatedMetadata = {
+        ...existingMetadata,
+        iban: matchingNewAccount.account_id?.iban,
+        product: matchingNewAccount.product,
+        ownerName: matchingNewAccount.owner_name,
+        accountServicer: matchingNewAccount.account_servicer?.name,
+        bic: matchingNewAccount.account_servicer?.bic_fi,
+        uid: matchingNewAccount.uid, // Session-specific uid for API calls
+        rawAccountData: matchingNewAccount, // Full account data
+      };
+
+      // Check if we need to migrate transaction hashes
+      // This happens when externalId was previously set to uid (old behavior)
+      // and now we're updating it to identification_hash (new stable identifier)
+      if (existingAccount.externalId !== newExternalId) {
+        await this.migrateTransactionHashes({
+          account: existingAccount,
+          newExternalId,
+        });
+        // Reload to get updated externalId
+        await existingAccount.reload();
+      }
+
+      // Update externalData (always update to get fresh uid and rawAccountData)
+      await existingAccount.update({
+        externalData: updatedMetadata,
+      });
     }
   }
 
@@ -485,7 +539,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         const balanceSystemAmount = toSystemAmount(balanceFloat);
 
         return {
-          externalId: details.uid,
+          externalId: details.identification_hash,
           name:
             details.name ||
             details.details ||
@@ -500,6 +554,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             ownerName: details.owner_name,
             accountServicer: details.account_servicer?.name,
             bic: details.account_servicer?.bic_fi,
+            // Store the session-specific uid for API calls (balances, transactions)
+            uid: details.uid,
+            // Store complete raw payload for future reference and migrations
+            rawAccountData: details,
           },
         };
       }),
@@ -512,10 +570,18 @@ export class EnableBankingProvider extends BaseBankDataProvider {
   // Transaction Operations
   // ============================================================================
 
+  /**
+   * Fetch transactions from Enable Banking API
+   * @param connectionId - Connection ID
+   * @param accountApiUid - Session-specific uid for API calls
+   * @param dateRange - Optional date range filter
+   * @param accountExternalIdForHash - Stable identifier for hash generation (defaults to accountApiUid for backward compatibility)
+   */
   async fetchTransactions(
     connectionId: number,
-    accountExternalId: string,
+    accountApiUid: string,
     dateRange?: DateRange,
+    accountExternalIdForHash?: string,
   ): Promise<ProviderTransaction[]> {
     const credentials = await this.getValidatedCredentials(connectionId);
 
@@ -525,8 +591,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     const apiClient = new EnableBankingApiClient(credentials);
 
+    // Use the stable externalId for hashing (identification_hash), or fall back to apiUid for backward compatibility
+    const hashId = accountExternalIdForHash || accountApiUid;
+
     // Get all transactions for the date range
-    const transactions = await apiClient.getAllTransactions(accountExternalId, {
+    const transactions = await apiClient.getAllTransactions(accountApiUid, {
       date_from: dateRange?.from?.toISOString().split('T')[0],
       date_to: dateRange?.to?.toISOString().split('T')[0],
     });
@@ -538,8 +607,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       const merchantName = tx.debtor?.name || tx.creditor?.name || 'Unknown';
 
       // Generate unique hash from transaction data
-      // Include accountExternalId because entry_reference is only unique per account, not globally
-      const uniqueId = this.generateTransactionHash({ tx, accountExternalId });
+      // Use stable externalId (identification_hash) for hashing, not session-specific uid
+      const uniqueId = this.generateTransactionHash({ tx, accountExternalId: hashId });
 
       // Get the transaction date using priority-based selection
       const transactionDateString = this.getTransactionDateString(tx);
@@ -598,6 +667,40 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         throw new BadRequestError({ message: 'Account does not have external ID from Enable Banking' });
       }
 
+      // Get metadata for API calls and migrations
+      let metadata = account.externalData as Record<string, unknown> | null;
+      let rawAccountData = metadata?.rawAccountData as EnableBankingAccount | undefined;
+
+      // Check if we need to refresh account metadata from the API
+      // This happens for accounts created before rawAccountData/uid were stored
+      const needsMetadataRefresh = !rawAccountData || !metadata?.uid;
+
+      if (needsMetadataRefresh) {
+        logger.info(`Account ${account.id} is missing rawAccountData or uid, refreshing from API...`);
+        const freshAccountData = await this.refreshAccountMetadata({ connectionId, account });
+        if (freshAccountData) {
+          // Reload account to get updated externalData
+          await account.reload();
+          metadata = account.externalData as Record<string, unknown> | null;
+          rawAccountData = metadata?.rawAccountData as EnableBankingAccount | undefined;
+        }
+      }
+
+      // Get uid from metadata for API calls (session-specific)
+      // Fall back to externalId for backward compatibility
+      const apiUid = (metadata?.uid as string) || account.externalId;
+
+      // Check if we need to migrate transaction hashes
+      // This happens when account was created with uid as externalId but now has identification_hash available
+      if (rawAccountData?.identification_hash && account.externalId !== rawAccountData.identification_hash) {
+        await this.migrateTransactionHashes({
+          account,
+          newExternalId: rawAccountData.identification_hash,
+        });
+        // Reload account to get updated externalId
+        await account.reload();
+      }
+
       // Find the most recent transaction
       const latestTransaction = await Transactions.findOne({
         where: { accountId: account.id },
@@ -611,8 +714,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         : new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       const to = new Date();
 
-      // Fetch transactions
-      const providerTransactions = await this.fetchTransactions(connectionId, account.externalId, { from, to });
+      // Fetch transactions using uid for API calls, but externalId (identification_hash) for hashing
+      const providerTransactions = await this.fetchTransactions(connectionId, apiUid, { from, to }, account.externalId);
 
       // Sort transactions by date (ascending) so the last transaction for each day
       // will have the correct end-of-day balance in balance_after_transaction.
@@ -686,7 +789,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
       // Always update account balance from bank when syncing
       // This ensures balance stays accurate even if no new transactions were found
-      const balance = await this.fetchBalance(connectionId, account.externalId);
+      const balance = await this.fetchBalance(connectionId, apiUid);
       await this.updateAccountBalance({ account, balance: balance.amount });
 
       await this.updateLastSync(connectionId);
@@ -756,7 +859,12 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       throw new BadRequestError({ message: 'Account does not have external ID' });
     }
 
-    const balance = await this.fetchBalance(connectionId, account.externalId);
+    // Get uid from metadata for API calls (session-specific)
+    // Fall back to externalId for backward compatibility
+    const metadata = account.externalData as Record<string, unknown> | null;
+    const apiUid = (metadata?.uid as string) || account.externalId;
+
+    const balance = await this.fetchBalance(connectionId, apiUid);
 
     await this.updateAccountBalance({ account, balance: balance.amount });
   }
@@ -815,7 +923,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       },
       state,
       redirect_url: redirectUrl,
-      psu_type: 'personal',
+      psu_type: PSUType.Personal,
     });
   }
 
@@ -867,6 +975,157 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     }
 
     return credentials;
+  }
+
+  /**
+   * Refresh account metadata from Enable Banking API.
+   * This is used to update rawAccountData and uid for accounts that were created
+   * before these fields were stored, or when the session has been refreshed.
+   *
+   * @param connectionId - The connection ID
+   * @param account - The account to refresh
+   * @returns The fresh account data from the API, or null if not found
+   */
+  private async refreshAccountMetadata({
+    connectionId,
+    account,
+  }: {
+    connectionId: number;
+    account: Accounts;
+  }): Promise<EnableBankingAccount | null> {
+    const credentials = await this.getValidatedCredentials(connectionId);
+
+    if (!credentials.sessionId) {
+      logger.warn(`Cannot refresh account metadata: no active session for connection ${connectionId}`);
+      return null;
+    }
+
+    const apiClient = new EnableBankingApiClient(credentials);
+
+    // Get the current session to find matching account
+    const session = await apiClient.getSession(credentials.sessionId);
+
+    // Get existing metadata for matching
+    const existingMetadata = account.externalData as Record<string, unknown> | null;
+    const existingIban = existingMetadata?.iban as string | undefined;
+
+    // Fetch details for all accounts in session to find match
+    const accountsDetails = await Promise.all(
+      session.accounts.map(async (accountUid) => {
+        try {
+          return await apiClient.getAccountDetails(accountUid);
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.warn(`Failed to fetch details for account uid ${accountUid}: ${errorMessage}`);
+          return null;
+        }
+      }),
+    );
+
+    // Filter out null results
+    const validAccountsDetails = accountsDetails.filter((d): d is EnableBankingAccount => d !== null);
+
+    // Primary: match by identification_hash (externalId now stores this stable ID)
+    let matchingAccount = validAccountsDetails.find((details) => details.identification_hash === account.externalId);
+
+    // Fallback: match by IBAN + currency (for legacy accounts where externalId was uid)
+    if (!matchingAccount && existingIban) {
+      matchingAccount = validAccountsDetails.find(
+        (details) => details.account_id?.iban === existingIban && details.currency === account.currencyCode,
+      );
+    }
+
+    if (!matchingAccount) {
+      // No match found - account needs to be re-linked by user
+      logger.warn(
+        `Could not find matching account in session for account ${account.id} ` +
+          `(${account.name}, ${account.currencyCode}). Account needs to be re-linked.`,
+      );
+      return null;
+    }
+
+    // Update account's externalData with fresh metadata
+    const updatedMetadata = {
+      ...existingMetadata,
+      iban: matchingAccount.account_id?.iban,
+      product: matchingAccount.product,
+      ownerName: matchingAccount.owner_name,
+      accountServicer: matchingAccount.account_servicer?.name,
+      bic: matchingAccount.account_servicer?.bic_fi,
+      uid: matchingAccount.uid, // Session-specific uid for API calls
+      rawAccountData: matchingAccount, // Full account data
+    };
+
+    await account.update({ externalData: updatedMetadata });
+
+    logger.info(`Refreshed account metadata for account ${account.id} (uid: ${matchingAccount.uid})`);
+
+    return matchingAccount;
+  }
+
+  /**
+   * Migrate transaction hashes when account externalId changes.
+   * This recalculates all transaction originalIds using the new externalId.
+   *
+   * @param account - The account whose transactions need migration
+   * @param newExternalId - The new externalId (identification_hash)
+   * @returns Number of transactions migrated
+   *
+   * @deprecated Temporary migration for legacy accounts (pre-identification_hash).
+   * Can be removed once all accounts have been migrated to use identification_hash as externalId.
+   */
+  private async migrateTransactionHashes({
+    account,
+    newExternalId,
+  }: {
+    account: Accounts;
+    newExternalId: string;
+  }): Promise<number> {
+    // Skip if externalId hasn't changed
+    if (account.externalId === newExternalId) {
+      return 0;
+    }
+
+    logger.info(
+      `Migrating transaction hashes for account ${account.id} from ${account.externalId} to ${newExternalId}`,
+    );
+
+    // Get all transactions for this account
+    const transactions = await Transactions.findAll({
+      where: { accountId: account.id },
+    });
+
+    let migratedCount = 0;
+
+    for (const tx of transactions) {
+      const rawTransaction = (tx.externalData as Record<string, unknown>)?.rawTransaction as
+        | EnableBankingTransaction
+        | undefined;
+
+      if (!rawTransaction) {
+        logger.warn(`Transaction ${tx.id} has no rawTransaction in externalData, skipping migration`);
+        continue;
+      }
+
+      // Calculate new hash using the new externalId (identification_hash)
+      const newOriginalId = this.generateTransactionHash({
+        tx: rawTransaction,
+        accountExternalId: newExternalId,
+      });
+
+      // Update if hash changed
+      if (tx.originalId !== newOriginalId) {
+        await tx.update({ originalId: newOriginalId });
+        migratedCount++;
+      }
+    }
+
+    // Update account's externalId to the new value
+    await account.update({ externalId: newExternalId });
+
+    logger.info(`Migrated ${migratedCount} transaction hashes for account ${account.id}`);
+
+    return migratedCount;
   }
 
   /**

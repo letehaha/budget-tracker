@@ -1,19 +1,26 @@
 import { api } from '@/api/_api';
 import { fromSystemAmount, toSystemAmount } from '@/api/helpers';
-import { ACCOUNT_CATEGORIES, AccountModel, TransactionModel, endpointsTypes } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  AccountModel,
+  AccountWithRelinkStatus,
+  TransactionModel,
+  endpointsTypes,
+} from '@bt/shared/types';
 
-export const formatAccount = (account: AccountModel): AccountModel => ({
-  ...account,
-  creditLimit: fromSystemAmount(account.creditLimit),
-  currentBalance: fromSystemAmount(account.currentBalance),
-  initialBalance: fromSystemAmount(account.initialBalance),
-  refCreditLimit: fromSystemAmount(account.refCreditLimit),
-  refCurrentBalance: fromSystemAmount(account.refCurrentBalance),
-  refInitialBalance: fromSystemAmount(account.refInitialBalance),
-});
+export const formatAccount = <T extends AccountModel>(account: T): T =>
+  ({
+    ...account,
+    creditLimit: fromSystemAmount(account.creditLimit),
+    currentBalance: fromSystemAmount(account.currentBalance),
+    initialBalance: fromSystemAmount(account.initialBalance),
+    refCreditLimit: fromSystemAmount(account.refCreditLimit),
+    refCurrentBalance: fromSystemAmount(account.refCurrentBalance),
+    refInitialBalance: fromSystemAmount(account.refInitialBalance),
+  }) as T;
 
-export const loadAccounts = async (): Promise<AccountModel[]> => {
-  const result: AccountModel[] = await api.get('/accounts');
+export const loadAccounts = async (): Promise<AccountWithRelinkStatus[]> => {
+  const result: AccountWithRelinkStatus[] = await api.get('/accounts');
 
   return result.map((item) => formatAccount(item));
 };

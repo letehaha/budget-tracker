@@ -14,6 +14,33 @@
       <Card.Card class="w-full max-w-[600px]">
         <Header :account="account" />
 
+        <!-- Account re-link warning banner -->
+        <div
+          v-if="account.needsRelink"
+          class="bg-destructive/10 border-destructive/20 mx-6 mb-4 flex items-start gap-3 rounded-lg border p-4"
+        >
+          <AlertTriangleIcon class="text-destructive-text mt-0.5 size-5 shrink-0" />
+          <div class="space-y-2">
+            <p class="text-destructive-text text-sm font-medium">Enable Banking: Account needs update</p>
+            <p class="text-muted-foreground text-xs">
+              This account needs to be updated due to a data schema change. First, try reconnecting via
+              <span class="text-foreground font-medium">"Connection Validity"</span> in
+              <router-link
+                v-if="account.bankDataProviderConnectionId"
+                :to="{
+                  name: ROUTES_NAMES.accountIntegrationDetails,
+                  params: { connectionId: account.bankDataProviderConnectionId },
+                }"
+                class="text-primary hover:text-primary/80 inline-flex items-center gap-0.5 font-medium underline underline-offset-2"
+              >
+                Connection Settings
+              </router-link>
+              <template v-else>Settings</template>. If the issue persists, use
+              <span class="text-foreground font-medium">"Unlink"</span> below, then link it again.
+            </p>
+          </div>
+        </div>
+
         <Separator />
 
         <Card.CardContent>
@@ -66,6 +93,7 @@ import TransactionsList from '@/components/transactions-list/transactions-list.v
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
 import { useInfiniteQuery } from '@tanstack/vue-query';
+import { AlertTriangleIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';

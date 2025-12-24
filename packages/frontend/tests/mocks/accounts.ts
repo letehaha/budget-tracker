@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
 
 import { USER_CURRENCIES } from './currencies';
 import { USER } from './user';
@@ -8,7 +8,7 @@ export const usdAccountName = 'Account USD';
 export const uahAccountName = 'Account UAH';
 export const uah2AccountName = 'Account UAH (2)';
 
-export const ACCOUNTS: AccountModel[] = [
+export const ACCOUNTS: AccountWithRelinkStatus[] = [
   {
     id: 1,
     name: eurAccountName,
@@ -25,6 +25,7 @@ export const ACCOUNTS: AccountModel[] = [
     externalId: null,
     externalData: null,
     isEnabled: true,
+    needsRelink: false,
   },
   {
     id: 2,
@@ -42,6 +43,7 @@ export const ACCOUNTS: AccountModel[] = [
     externalId: null,
     externalData: null,
     isEnabled: true,
+    needsRelink: false,
   },
   {
     id: 3,
@@ -59,6 +61,7 @@ export const ACCOUNTS: AccountModel[] = [
     externalId: null,
     externalData: null,
     isEnabled: true,
+    needsRelink: false,
   },
   {
     id: 4,
@@ -76,6 +79,7 @@ export const ACCOUNTS: AccountModel[] = [
     externalId: null,
     externalData: null,
     isEnabled: true,
+    needsRelink: false,
   },
 ];
 

@@ -195,12 +195,15 @@ export const getAccounts = async (payload: GetAccountsPayload) => {
 export const getAccountById = async ({
   userId,
   id,
+  raw,
 }: {
   userId: AccountsAttributes['userId'];
   id: AccountsAttributes['id'];
+  raw?: boolean;
 }) => {
   const account = await Accounts.findOne({
     where: { userId, id },
+    raw,
   });
 
   return account;

@@ -1,4 +1,10 @@
-import { ACCOUNT_TYPES, AccountModel, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  AccountExternalData,
+  AccountModel,
+  AccountWithRelinkStatus,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { NotFoundError, UnexpectedError } from '@js/errors';
 import * as Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
@@ -7,8 +13,52 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 import { withTransaction } from './common/with-transaction';
 
+/**
+ * Check if an Enable Banking account needs to be re-linked.
+ * This is true when the account has rawAccountData with identification_hash,
+ * but the externalId doesn't match (meaning it was created with uid instead).
+ */
+function checkNeedsRelink(account: AccountModel): boolean {
+  // Only check accounts linked to a bank connection
+  if (!account.bankDataProviderConnectionId) return false;
+
+  switch (account.type) {
+    case ACCOUNT_TYPES.enableBanking: {
+      const externalData = account.externalData as AccountExternalData | null;
+      if (!externalData) {
+        // No externalData means very old account created before we stored raw data
+        return true;
+      }
+
+      const rawAccountData = externalData.rawAccountData as { identification_hash?: string } | undefined;
+      if (!rawAccountData?.identification_hash) {
+        // No identification_hash means that account uses old schema – need to be updated
+        return true;
+      }
+
+      // Account needs re-link if externalId doesn't match the stable identification_hash
+      return account.externalId !== rawAccountData.identification_hash;
+    }
+    default:
+      return false;
+  }
+}
+
+/**
+ * Add needsRelink flag to accounts
+ */
+function addNeedsRelinkFlag(accounts: AccountModel[]): AccountWithRelinkStatus[] {
+  return accounts.map((account) => ({
+    ...account,
+    needsRelink: checkNeedsRelink(account),
+  }));
+}
+
 export const getAccounts = withTransaction(
-  async (payload: Accounts.GetAccountsPayload): Promise<AccountModel[]> => Accounts.getAccounts(payload),
+  async (payload: Accounts.GetAccountsPayload): Promise<AccountWithRelinkStatus[]> => {
+    const accounts = await Accounts.getAccounts(payload);
+    return addNeedsRelinkFlag(accounts);
+  },
 );
 
 export const getAccountsByExternalIds = withTransaction(async (payload: Accounts.GetAccountsByExternalIdsPayload) =>
@@ -16,7 +66,16 @@ export const getAccountsByExternalIds = withTransaction(async (payload: Accounts
 );
 
 export const getAccountById = withTransaction(
-  async (payload: { id: number; userId: number }): Promise<AccountModel | null> => Accounts.getAccountById(payload),
+  async (payload: { id: number; userId: number }): Promise<AccountWithRelinkStatus | null> => {
+    const account = await Accounts.getAccountById({ ...payload, raw: true });
+
+    if (!account) return null;
+
+    return {
+      ...account,
+      needsRelink: checkNeedsRelink(account),
+    };
+  },
 );
 
 export const createAccount = withTransaction(
