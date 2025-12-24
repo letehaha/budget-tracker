@@ -36,7 +36,40 @@
       </div>
     </template>
 
-    <template v-if="isWidgetDataFetching">
+    <!-- Always show header section to prevent layout jumps -->
+    <div>
+      <div class="mb-1 flex items-center justify-between text-xs">
+        <div class="font-medium tracking-tight uppercase">Today</div>
+        <div class="tracking-tight">vs previous period</div>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <div class="text-lg font-bold tracking-wider">
+          <template v-if="isWidgetDataFetching && !hasData">
+            <div class="bg-muted h-7 w-24 animate-pulse rounded" />
+          </template>
+          <template v-else>
+            {{ formatBaseCurrency(-(currentMonthExpense || 0)) }}
+          </template>
+        </div>
+
+        <div
+          :class="{
+            'text-destructive-text': expensesDiff > 0,
+            'text-success-text': expensesDiff < 0,
+          }"
+        >
+          <template v-if="isWidgetDataFetching && !hasData">
+            <div class="bg-muted h-5 w-12 animate-pulse rounded" />
+          </template>
+          <template v-else>
+            {{ `${expensesDiff}%` }}
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <template v-if="isWidgetDataFetching && !hasData">
       <LoadingState />
     </template>
     <template v-else-if="isDataEmpty">
@@ -45,28 +78,6 @@
       </EmptyState>
     </template>
     <template v-else>
-      <div>
-        <div class="mb-1 flex items-center justify-between text-xs">
-          <div class="font-medium tracking-tight uppercase">Today</div>
-          <div class="tracking-tight">vs previous period</div>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <div class="text-lg font-bold tracking-wider">
-            {{ formatBaseCurrency(-(currentMonthExpense || 0)) }}
-          </div>
-
-          <div
-            :class="{
-              'text-destructive-text': expensesDiff > 0,
-              'text-success-text': expensesDiff < 0,
-            }"
-          >
-            {{ `${expensesDiff}%` }}
-          </div>
-        </div>
-      </div>
-
       <highcharts :options="chartOptions" />
     </template>
   </WidgetWrapper>
@@ -192,6 +203,7 @@ const chartSeries = computed(() =>
 );
 
 const isDataEmpty = computed(() => chartSeries.value.length === 0);
+const hasData = computed(() => currentMonthExpense.value !== undefined && prevMonthExpense.value !== undefined);
 
 // Helper function to get all category IDs including subcategories
 const getAllCategoryIds = (rootCategoryId: number): number[] => {
