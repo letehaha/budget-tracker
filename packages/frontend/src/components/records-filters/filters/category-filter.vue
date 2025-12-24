@@ -1,6 +1,6 @@
 <template>
   <Combobox.Combobox
-    v-model="selectedCategories"
+    :model-value="undefined"
     v-model:searchTerm="searchTerm"
     v-model:open="isOpen"
     :multiple="true"
@@ -59,7 +59,7 @@
             :key="category.id"
             :value="category"
             class="hover:bg-accent hover:text-accent-foreground flex-start flex cursor-pointer items-center justify-between rounded-md px-2 py-1"
-            @select="(ev) => { ev.preventDefault(); pickCategory(category); }"
+            @select.prevent="pickCategory(category)"
           >
             <div class="flex items-center gap-2">
               <CategoryCircle :category="category" />
@@ -80,6 +80,7 @@ import * as Combobox from '@/components/lib/ui/combobox';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useCategoriesStore } from '@/stores';
 import { CategoryModel } from '@bt/shared/types';
+import { isEqual } from 'lodash-es';
 import { CheckIcon, ChevronDown, SearchIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
@@ -103,24 +104,15 @@ const dropdownSide = computed(() => (isMobile.value ? 'top' : 'bottom'));
 const categoriesCount = computed(() => categories.value.length);
 
 const selectedCategoryIds = ref<number[]>([]);
-const selectedCategories = ref<CategoryModel[]>([]);
-const initialized = ref(false);
 
+// Sync internal state when props change (and differ from current state)
 watch(
-  [categories, () => props.categoryIds],
-  ([storeCats, inputIds]) => {
-    if (initialized.value) return;
-    if (inputIds && inputIds.length && storeCats.length) {
-      selectedCategoryIds.value = [...inputIds];
-      selectedCategories.value = storeCats.filter((c) => inputIds.includes(c.id));
-      initialized.value = true;
-      return;
-    }
-    if (storeCats && storeCats.length) {
-      selectedCategoryIds.value = [];
-      selectedCategories.value = [];
-      initialized.value = true;
-    }
+  () => props.categoryIds,
+  (newIds) => {
+    // Only sync if values actually differ (prevents loops)
+    if (isEqual([...newIds].sort(), [...selectedCategoryIds.value].sort())) return;
+
+    selectedCategoryIds.value = [...newIds];
   },
   { immediate: true },
 );
@@ -196,10 +188,8 @@ const pickCategory = (category: CategoryModel) => {
 const toggleCategory = ({ category, checked }: { category: CategoryModel; checked: boolean }) => {
   if (checked) {
     selectedCategoryIds.value = [...selectedCategoryIds.value, category.id];
-    selectedCategories.value = [...selectedCategories.value, category];
   } else {
     selectedCategoryIds.value = selectedCategoryIds.value.filter((id) => id !== category.id);
-    selectedCategories.value = selectedCategories.value.filter((c) => c.id !== category.id);
   }
 
   emit('update:categoryIds', selectedCategoryIds.value);
@@ -207,7 +197,6 @@ const toggleCategory = ({ category, checked }: { category: CategoryModel; checke
 
 const clearSelection = () => {
   selectedCategoryIds.value = [];
-  selectedCategories.value = [];
   emit('update:categoryIds', []);
 };
 </script>
