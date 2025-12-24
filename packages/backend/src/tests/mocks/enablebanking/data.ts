@@ -59,6 +59,12 @@ export const MOCK_ACCOUNT_UID_1_RECONNECTED = 'account_eb_001_reconnected';
 export const MOCK_ACCOUNT_UID_2_RECONNECTED = 'account_eb_002_reconnected';
 export const MOCK_ACCOUNT_UID_3_RECONNECTED = 'account_eb_003_reconnected';
 
+// Mock identification_hash - stable across sessions (unlike uid)
+// This is a base64 encoded hash of account identifiers
+export const MOCK_IDENTIFICATION_HASH_1 = 'aGFzaF9hY2NvdW50XzE='; // hash_account_1
+export const MOCK_IDENTIFICATION_HASH_2 = 'aGFzaF9hY2NvdW50XzI='; // hash_account_2
+export const MOCK_IDENTIFICATION_HASH_3 = 'aGFzaF9hY2NvdW50XzM='; // hash_account_3
+
 // Second session ID for reconnection
 export const MOCK_SESSION_ID_RECONNECTED = 'session_reconnected_abc123';
 
@@ -97,6 +103,7 @@ export const getMockedASPSPData = (overrides?: Partial<any>) => {
 /**
  * Generate mock account details
  * Handles both original and reconnected UIDs - reconnected UIDs return same IBAN but new UID
+ * identification_hash is stable across sessions (same for original and reconnected)
  */
 export const getMockedAccountDetails = (accountId: string) => {
   // Base account data (keyed by original UID)
@@ -115,6 +122,7 @@ export const getMockedAccountDetails = (accountId: string) => {
         name: MOCK_BANK_NAME,
         bic_fi: MOCK_BANK_BIC,
       },
+      identification_hash: MOCK_IDENTIFICATION_HASH_1,
     },
     [MOCK_ACCOUNT_UID_2]: {
       name: 'Savings Account',
@@ -129,6 +137,7 @@ export const getMockedAccountDetails = (accountId: string) => {
         name: MOCK_BANK_NAME,
         bic_fi: MOCK_BANK_BIC,
       },
+      identification_hash: MOCK_IDENTIFICATION_HASH_2,
     },
     [MOCK_ACCOUNT_UID_3]: {
       name: 'Business Account',
@@ -143,6 +152,7 @@ export const getMockedAccountDetails = (accountId: string) => {
         name: MOCK_BANK_NAME,
         bic_fi: MOCK_BANK_BIC,
       },
+      identification_hash: MOCK_IDENTIFICATION_HASH_3,
     },
   };
 
@@ -158,6 +168,7 @@ export const getMockedAccountDetails = (accountId: string) => {
   const baseData = baseAccounts[originalUid] || baseAccounts[MOCK_ACCOUNT_UID_1];
 
   // Return with the requested UID (original or reconnected)
+  // identification_hash stays the same (stable across sessions)
   return {
     ...baseData,
     uid: accountId,

@@ -6,14 +6,11 @@ import {
   FixedTransaction,
   INVALID_ENABLE_BANKING_APP_ID,
   INVALID_ENABLE_BANKING_PRIVATE_KEY,
-  MOCK_ACCOUNT_UID_1,
-  MOCK_ACCOUNT_UID_1_RECONNECTED,
-  MOCK_ACCOUNT_UID_2,
-  MOCK_ACCOUNT_UID_2_RECONNECTED,
   MOCK_BANK_COUNTRY,
   MOCK_BANK_NAME,
+  MOCK_IDENTIFICATION_HASH_1,
+  MOCK_IDENTIFICATION_HASH_2,
   getAllMockAccountUIDs,
-  getAllMockAccountUIDsReconnected,
 } from '@tests/mocks/enablebanking/data';
 
 describe('Enable Banking Data Provider E2E', () => {
@@ -600,7 +597,7 @@ describe('Enable Banking Data Provider E2E', () => {
         },
       });
 
-      const accountIds = [MOCK_ACCOUNT_UID_1];
+      const accountIds = [MOCK_IDENTIFICATION_HASH_1];
 
       const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
@@ -685,7 +682,7 @@ describe('Enable Banking Data Provider E2E', () => {
         },
       });
 
-      const accountIds = [MOCK_ACCOUNT_UID_1, MOCK_ACCOUNT_UID_2];
+      const accountIds = [MOCK_IDENTIFICATION_HASH_1, MOCK_IDENTIFICATION_HASH_2];
 
       const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
@@ -764,7 +761,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
         raw: true,
       });
 
@@ -795,7 +792,7 @@ describe('Enable Banking Data Provider E2E', () => {
       // Connect account first time
       const { syncedAccounts: firstConnect } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
         raw: true,
       });
 
@@ -810,7 +807,7 @@ describe('Enable Banking Data Provider E2E', () => {
       // Reconnect the same account
       const { syncedAccounts: secondConnect } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
         raw: true,
       });
 
@@ -845,7 +842,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1, MOCK_ACCOUNT_UID_2],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1, MOCK_IDENTIFICATION_HASH_2],
         raw: true,
       });
 
@@ -913,7 +910,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1, MOCK_ACCOUNT_UID_2],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1, MOCK_IDENTIFICATION_HASH_2],
         raw: true,
       });
 
@@ -1131,8 +1128,8 @@ describe('Enable Banking Data Provider E2E', () => {
     });
   });
 
-  describe('Reauthorization with externalId update', () => {
-    it('should update account externalId after reconnection when Enable Banking returns new UUIDs', async () => {
+  describe('Reauthorization with stable externalId', () => {
+    it('should maintain stable externalId after reconnection (identification_hash is stable)', async () => {
       // Step 1: Create initial connection and connect accounts
       const connectResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
@@ -1142,7 +1139,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       let state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
 
-      // Complete initial OAuth (this will use original account UIDs)
+      // Complete initial OAuth
       await helpers.makeRequest({
         method: 'post',
         url: '/bank-data-providers/enablebanking/oauth-callback',
@@ -1153,25 +1150,25 @@ describe('Enable Banking Data Provider E2E', () => {
         },
       });
 
-      // Connect accounts with original UIDs
+      // Connect accounts
       const { syncedAccounts: initialAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1, MOCK_ACCOUNT_UID_2],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1, MOCK_IDENTIFICATION_HASH_2],
         raw: true,
       });
 
-      // Verify initial externalIds
+      // Verify initial externalIds (based on identification_hash, stable across sessions)
       expect(initialAccounts.length).toBe(2);
-      const account1Id = initialAccounts.find((a) => a.externalId === MOCK_ACCOUNT_UID_1)?.id;
-      const account2Id = initialAccounts.find((a) => a.externalId === MOCK_ACCOUNT_UID_2)?.id;
+      const account1Id = initialAccounts.find((a) => a.externalId === MOCK_IDENTIFICATION_HASH_1)?.id;
+      const account2Id = initialAccounts.find((a) => a.externalId === MOCK_IDENTIFICATION_HASH_2)?.id;
       expect(account1Id).toBeDefined();
       expect(account2Id).toBeDefined();
 
-      // Verify accounts have original externalIds
+      // Verify accounts have externalIds based on identification_hash
       const account1Before = await helpers.getAccount({ id: account1Id!, raw: true });
       const account2Before = await helpers.getAccount({ id: account2Id!, raw: true });
-      expect(account1Before.externalId).toBe(MOCK_ACCOUNT_UID_1);
-      expect(account2Before.externalId).toBe(MOCK_ACCOUNT_UID_2);
+      expect(account1Before.externalId).toBe(MOCK_IDENTIFICATION_HASH_1);
+      expect(account2Before.externalId).toBe(MOCK_IDENTIFICATION_HASH_2);
 
       // Step 2: Reauthorize connection
       await helpers.makeRequest({
@@ -1179,7 +1176,7 @@ describe('Enable Banking Data Provider E2E', () => {
         url: `/bank-data-providers/connections/${connectResult.connectionId}/reauthorize`,
       });
 
-      // Step 3: Complete OAuth again (this will return NEW account UIDs from mock)
+      // Step 3: Complete OAuth again (mock returns different UIDs but same identification_hash)
       state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
 
       await helpers.makeRequest({
@@ -1192,28 +1189,30 @@ describe('Enable Banking Data Provider E2E', () => {
         },
       });
 
-      // Step 4: Verify existing accounts have been updated with new externalIds
+      // Step 4: Verify externalIds remain STABLE (identification_hash doesn't change)
       const account1After = await helpers.getAccount({ id: account1Id!, raw: true });
       const account2After = await helpers.getAccount({ id: account2Id!, raw: true });
 
-      // The externalIds should now be the reconnected versions
-      expect(account1After.externalId).toBe(MOCK_ACCOUNT_UID_1_RECONNECTED);
-      expect(account2After.externalId).toBe(MOCK_ACCOUNT_UID_2_RECONNECTED);
+      // externalId should be the same since identification_hash is stable across sessions
+      expect(account1After.externalId).toBe(MOCK_IDENTIFICATION_HASH_1);
+      expect(account2After.externalId).toBe(MOCK_IDENTIFICATION_HASH_2);
 
       // The account IDs should remain the same (same database records)
       expect(account1After.id).toBe(account1Id);
       expect(account2After.id).toBe(account2Id);
 
-      // Step 5: Verify that listing external accounts now returns new UIDs
+      // Step 5: Verify that listing external accounts returns same identification_hash values
       const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
         connectionId: connectResult.connectionId,
         raw: true,
       });
 
-      const reconnectedUIDs = getAllMockAccountUIDsReconnected();
-      externalAccounts.forEach((acc: { externalId: string }) => {
-        expect(reconnectedUIDs).toContain(acc.externalId);
-      });
+      const expectedHashes = [MOCK_IDENTIFICATION_HASH_1, MOCK_IDENTIFICATION_HASH_2];
+      // Filter to only the accounts we connected
+      const connectedAccounts = externalAccounts.filter((acc: { externalId: string }) =>
+        expectedHashes.includes(acc.externalId),
+      );
+      expect(connectedAccounts.length).toBe(2);
 
       // Step 6: Verify connection details show correct accounts
       const { connection } = await helpers.bankDataProviders.getConnectionDetails({
@@ -1224,14 +1223,14 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(connection.isActive).toBe(true);
       expect(connection.accounts.length).toBe(2);
 
-      // Accounts in connection should have updated externalIds
+      // Accounts in connection should have stable externalIds
       const connAccount1 = connection.accounts.find((a: { id: number }) => a.id === account1Id);
       const connAccount2 = connection.accounts.find((a: { id: number }) => a.id === account2Id);
-      expect(connAccount1?.externalId).toBe(MOCK_ACCOUNT_UID_1_RECONNECTED);
-      expect(connAccount2?.externalId).toBe(MOCK_ACCOUNT_UID_2_RECONNECTED);
+      expect(connAccount1?.externalId).toBe(MOCK_IDENTIFICATION_HASH_1);
+      expect(connAccount2?.externalId).toBe(MOCK_IDENTIFICATION_HASH_2);
     });
 
-    it('should allow transaction sync after reconnection with updated externalId', async () => {
+    it('should allow transaction sync after reconnection (externalId stable)', async () => {
       // Create connection and connect an account
       const connectResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
@@ -1254,7 +1253,7 @@ describe('Enable Banking Data Provider E2E', () => {
       // Connect one account
       const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
         raw: true,
       });
 
@@ -1286,11 +1285,11 @@ describe('Enable Banking Data Provider E2E', () => {
         },
       });
 
-      // Verify account externalId was updated
+      // Verify account externalId remains stable (identification_hash doesn't change)
       const accountAfterReconnect = await helpers.getAccount({ id: accountId, raw: true });
-      expect(accountAfterReconnect.externalId).toBe(MOCK_ACCOUNT_UID_1_RECONNECTED);
+      expect(accountAfterReconnect.externalId).toBe(MOCK_IDENTIFICATION_HASH_1);
 
-      // Trigger transaction sync - this should work because externalId is updated
+      // Trigger transaction sync - this should work with stable externalId
       await helpers.makeRequest({
         method: 'post',
         url: `/bank-data-providers/connections/${connectResult.connectionId}/sync-transactions`,
@@ -1310,7 +1309,7 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(transactionsAfter.length).toBeGreaterThanOrEqual(txCountBefore);
     });
 
-    it('should preserve account data (balance, name, currency) after externalId update', async () => {
+    it('should preserve all account data after reconnection (including stable externalId)', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
@@ -1331,7 +1330,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
         raw: true,
       });
 
@@ -1358,16 +1357,14 @@ describe('Enable Banking Data Provider E2E', () => {
 
       const accountAfter = await helpers.getAccount({ id: accountId, raw: true });
 
-      // Core data should be preserved
+      // All data should be preserved including externalId (based on stable identification_hash)
       expect(accountAfter.id).toBe(accountBefore.id);
       expect(accountAfter.name).toBe(accountBefore.name);
       expect(accountAfter.currencyCode).toBe(accountBefore.currencyCode);
       expect(accountAfter.currentBalance).toBe(accountBefore.currentBalance);
       expect(accountAfter.initialBalance).toBe(accountBefore.initialBalance);
-
-      // Only externalId should change
-      expect(accountAfter.externalId).not.toBe(accountBefore.externalId);
-      expect(accountAfter.externalId).toBe(MOCK_ACCOUNT_UID_1_RECONNECTED);
+      expect(accountAfter.externalId).toBe(accountBefore.externalId);
+      expect(accountAfter.externalId).toBe(MOCK_IDENTIFICATION_HASH_1);
     });
   });
 
@@ -1394,7 +1391,7 @@ describe('Enable Banking Data Provider E2E', () => {
       // Connect an account
       const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
         raw: true,
       });
 
@@ -1429,7 +1426,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
         raw: true,
       });
 
@@ -1491,7 +1488,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
         raw: true,
       });
 
@@ -1589,7 +1586,7 @@ describe('Enable Banking Data Provider E2E', () => {
       // Connect account (this triggers initial sync)
       const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
         raw: true,
       });
 
@@ -1695,7 +1692,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_ACCOUNT_UID_1],
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
         raw: true,
       });
 
