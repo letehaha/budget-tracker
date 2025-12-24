@@ -41,6 +41,7 @@ import {
   EnableBankingMetadata,
   EnableBankingTransaction,
   OAuthCallbackParams,
+  PSUType,
   StartAuthorizationResponse,
 } from './types';
 
@@ -236,10 +237,18 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const consentValidFrom = new Date();
     const consentValidUntil = this.calculateConsentValidUntil(metadata.bankMaxConsentValidity);
 
-    // Update metadata with account UIDs and consent dates
+    // Update metadata with account summaries and consent dates
+    // Store all accounts including those without uid (blocked/closed accounts)
+    // UI can check uid to show appropriate warnings
     const updatedMetadata: EnableBankingMetadata = {
       ...metadata,
-      accounts: sessionResponse.accounts.map((account) => account.uid),
+      accounts: sessionResponse.accounts.map((account) => ({
+        identification_hash: account.identification_hash,
+        uid: account.uid,
+        iban: account.account_id?.iban,
+        currency: account.currency,
+        name: account.name || account.owner_name,
+      })),
       state: undefined, // Clear state after successful auth
       consentValidFrom: consentValidFrom.toISOString(),
       consentValidUntil: consentValidUntil.toISOString(),
@@ -500,6 +509,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             ownerName: details.owner_name,
             accountServicer: details.account_servicer?.name,
             bic: details.account_servicer?.bic_fi,
+            // Store the session-specific uid for API calls (balances, transactions)
+            uid: details.uid,
+            // Store complete raw payload for future reference and migrations
+            rawAccountData: details,
           },
         };
       }),
@@ -815,7 +828,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       },
       state,
       redirect_url: redirectUrl,
-      psu_type: 'personal',
+      psu_type: PSUType.Personal,
     });
   }
 

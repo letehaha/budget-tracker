@@ -186,20 +186,31 @@
 
       <!-- Connected Accounts Card -->
       <Card class="mb-6">
-        <Collapsible v-model:open="isConnectedAccountsOpen">
-          <div class="flex items-center justify-between gap-6 p-6">
+        <Collapsible class="@container/connect-accounts" v-model:open="isConnectedAccountsOpen">
+          <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 p-6">
             <CollapsibleTrigger class="flex flex-1 cursor-pointer items-center justify-between gap-2">
-              <h2 class="text-lg font-semibold tracking-wide">Connected Accounts</h2>
+              <h2 class="text-lg font-semibold tracking-wide whitespace-nowrap">Connected Accounts</h2>
 
               <ChevronDownIcon
                 class="size-5 transition-transform duration-200"
                 :class="{ 'rotate-180': isConnectedAccountsOpen }"
               />
             </CollapsibleTrigger>
-            <UiButton size="sm" @click="openFetchAccountsDialog">Connect Remaining Accounts</UiButton>
+
+            <UiButton class="ml-auto hidden @[550px]/connect-accounts:block" size="sm" @click="openFetchAccountsDialog">
+              Connect Remaining Accounts
+            </UiButton>
           </div>
           <CollapsibleContent>
             <CardContent class="pt-0">
+              <UiButton
+                class="mb-4 ml-auto block @[550px]/connect-accounts:hidden"
+                size="sm"
+                @click="openFetchAccountsDialog"
+              >
+                Connect Remaining Accounts
+              </UiButton>
+
               <div
                 v-if="connectionDetails.accounts.length === 0"
                 class="text-muted-foreground space-y-4 py-8 text-center"
@@ -214,14 +225,16 @@
                   v-for="account in connectionDetails.accounts"
                   :key="account.id"
                   :to="`/account/${account.id}`"
-                  class="flex items-center justify-between rounded-lg border p-4"
+                  class="flex items-center justify-between gap-4 rounded-lg border p-4"
                 >
-                  <div class="flex-1">
+                  <div class="flex-1 truncate">
                     <p class="font-medium">{{ account.name }}</p>
                     <p class="text-muted-foreground text-sm">{{ account.type }}</p>
-                    <p class="text-muted-foreground text-sm">External ID: {{ account.externalId }}</p>
+                    <p class="text-muted-foreground truncate text-sm whitespace-nowrap">
+                      External ID: {{ account.externalId }}
+                    </p>
                   </div>
-                  <div class="text-right">
+                  <div class="text-right whitespace-nowrap">
                     <p class="font-semibold">{{ formatCurrency(account.currentBalance) }} {{ account.currencyCode }}</p>
                   </div>
                 </router-link>
