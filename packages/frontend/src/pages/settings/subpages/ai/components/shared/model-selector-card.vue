@@ -32,33 +32,32 @@
     <div class="flex items-end gap-3">
       <div class="flex-1">
         <label class="mb-1.5 block text-sm font-medium">Model</label>
-        <select
-          :value="featureStatus.modelId"
-          class="bg-background w-full rounded-md border px-3 py-2"
-          :disabled="isUpdating"
-          @change="handleModelChange(($event.target as HTMLSelectElement).value)"
-        >
-          <optgroup v-for="group in groupedModels" :key="group.provider" :label="getGroupLabel(group.provider)">
-            <option
-              v-for="model in group.models"
-              :key="model.id"
-              :value="model.id"
-              :disabled="!hasUserKey(model.provider)"
-            >
-              {{ model.name }} - {{ getCostLabel(model.costTier) }}
-              {{ !hasUserKey(model.provider) ? '(No API key)' : '' }}
-            </option>
-          </optgroup>
-        </select>
+        <div class="relative">
+          <select
+            :value="featureStatus.modelId"
+            class="bg-background w-full appearance-none rounded-md border py-2 pr-9 pl-3"
+            :disabled="isUpdating"
+            @change="handleModelChange(($event.target as HTMLSelectElement).value)"
+          >
+            <optgroup v-for="group in groupedModels" :key="group.provider" :label="getGroupLabel(group.provider)">
+              <option
+                v-for="model in group.models"
+                :key="model.id"
+                :value="model.id"
+                :disabled="!hasUserKey(model.provider)"
+              >
+                {{ model.name }} - {{ getCostLabel(model.costTier) }}
+                {{ !hasUserKey(model.provider) ? '(No API key)' : '' }}
+              </option>
+            </optgroup>
+          </select>
+          <ChevronDownIcon
+            class="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
+          />
+        </div>
       </div>
 
-      <Button
-        v-if="featureStatus.isConfigured"
-        variant="outline"
-        size="sm"
-        :disabled="isResetting"
-        @click="handleReset"
-      >
+      <Button v-if="featureStatus.isConfigured" variant="outline" :disabled="isResetting" @click="handleReset">
         Reset to Default
       </Button>
     </div>
@@ -113,7 +112,7 @@ import {
   AIModelPricing,
   AI_PROVIDER,
 } from '@bt/shared/types';
-import { AlertTriangleIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, ChevronDownIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{

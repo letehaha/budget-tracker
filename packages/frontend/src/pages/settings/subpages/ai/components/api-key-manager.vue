@@ -115,15 +115,20 @@
         <form class="flex flex-col gap-4" @submit.prevent="handleSaveKey">
           <div class="flex flex-col gap-2">
             <label class="text-sm font-medium">Provider</label>
-            <select
-              v-model="selectedProvider"
-              class="bg-background rounded-md border px-3 py-2"
-              @change="validationError = ''"
-            >
-              <option v-for="provider in availableProvidersToAdd" :key="provider.value" :value="provider.value">
-                {{ provider.label }}
-              </option>
-            </select>
+            <div class="relative">
+              <select
+                v-model="selectedProvider"
+                class="bg-background w-full appearance-none rounded-md border py-2 pr-9 pl-3"
+                @change="validationError = ''"
+              >
+                <option v-for="provider in availableProvidersToAdd" :key="provider.value" :value="provider.value">
+                  {{ provider.label }}
+                </option>
+              </select>
+              <ChevronDownIcon
+                class="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
+              />
+            </div>
             <p class="text-muted-foreground text-xs">
               {{ getProviderDescription(selectedProvider) }}
             </p>
@@ -173,7 +178,7 @@ import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { ApiErrorResponseError } from '@/js/errors';
 import { AI_PROVIDER } from '@bt/shared/types';
 import { formatDistanceToNow } from 'date-fns';
-import { AlertCircleIcon, CheckCircleIcon, KeyIcon, Loader2Icon, Trash2Icon } from 'lucide-vue-next';
+import { AlertCircleIcon, CheckCircleIcon, ChevronDownIcon, KeyIcon, Loader2Icon, Trash2Icon } from 'lucide-vue-next';
 import { computed, reactive, ref } from 'vue';
 
 const PROVIDER_CONFIG: Record<AI_PROVIDER, { label: string; placeholder: string; description: string }> = {
