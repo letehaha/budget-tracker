@@ -32,3 +32,4 @@ export const OUT_OF_WALLET_ACCOUNT_MOCK = {
 } as OutOfWalletAccountModel;
 
 export * from './account-categories-verbose';
+export * from './ai-features';

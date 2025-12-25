@@ -9,4 +9,5 @@ export * from './investments';
 export * from './api';
 export * from './import-export';
 export * from './sse';
+export * from './ai';
 export { endpointsTypes };

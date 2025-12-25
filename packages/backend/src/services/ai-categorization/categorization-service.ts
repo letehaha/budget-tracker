@@ -1,10 +1,11 @@
-import { CATEGORIZATION_SOURCE } from '@bt/shared/types';
+import { AI_FEATURE, CATEGORIZATION_SOURCE } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/Accounts.model';
 import { getCategories } from '@models/Categories.model';
 import Transactions from '@models/Transactions.model';
+import { AIClientResult, createAIClient } from '@services/ai';
+import { generateText } from 'ai';
 
-import { GeminiClient, GeminiClientModel } from './gemini-client';
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
 import { CategorizationBatchResult, CategorizationResult, TransactionForCategorization } from './types';
 import { buildCategoryList } from './utils/build-category-list';
@@ -17,19 +18,14 @@ const BATCH_SIZE = 200;
  * Categorize a batch of transactions using AI
  */
 async function categorizeBatch({
-  apiKey,
+  aiClient,
   transactions,
   categories,
 }: {
-  apiKey: string;
+  aiClient: AIClientResult;
   transactions: TransactionForCategorization[];
   categories: Awaited<ReturnType<typeof getCategories>>;
 }): Promise<CategorizationBatchResult> {
-  /**
-   * Use `GeminiClientModel.flash` for better speed and cheaper API price
-   */
-  const client = new GeminiClient({ apiKey, model: GeminiClientModel.flash });
-
   const categoryList = buildCategoryList(categories);
 
   const systemPrompt = buildSystemPrompt();
@@ -39,13 +35,23 @@ async function categorizeBatch({
   });
 
   try {
-    const response = await client.sendMessage({ systemPrompt, userMessage });
+    const { text, usage } = await generateText({
+      model: aiClient.model,
+      system: systemPrompt,
+      prompt: userMessage,
+    });
+
+    if (usage) {
+      logger.info(
+        `AI categorization API call (${aiClient.modelId}): ${usage.inputTokens ?? 0} input, ${usage.outputTokens ?? 0} output tokens`,
+      );
+    }
 
     const validCategoryIds = new Set(categories.map((c) => c.id));
     const validTransactionIds = new Set(transactions.map((t) => t.id));
 
     const results = parseCategorizationResponse({
-      response,
+      response: text,
       validCategoryIds,
       validTransactionIds,
     });
@@ -162,16 +168,28 @@ export async function categorizeTransactions({
   userId: number;
   transactionIds: number[];
 }): Promise<CategorizationBatchResult> {
-  // Use server-side Gemini API key
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    logger.warn('GEMINI_API_KEY environment variable is not configured, skipping categorization');
+  // Create AI client for categorization feature
+  // This handles user preferences, API key resolution, and server fallback
+  const aiClient = await createAIClient({
+    userId,
+    feature: AI_FEATURE.categorization,
+  });
+
+  if (!aiClient) {
+    logger.warn('No AI provider available for categorization', { userId });
     return {
       successful: [],
       failed: transactionIds,
-      errors: ['GEMINI_API_KEY not configured on server'],
+      errors: ['No AI provider configured. Please add an API key or contact support.'],
     };
   }
+
+  logger.info('Using AI provider for categorization', {
+    userId,
+    provider: aiClient.provider,
+    modelId: aiClient.modelId,
+    usingUserKey: aiClient.usingUserKey,
+  });
 
   // Get user's categories
   const categories = await getCategories({ userId });
@@ -208,7 +226,7 @@ export async function categorizeTransactions({
     logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(transactions.length / BATCH_SIZE)}`);
 
     const batchResult = await categorizeBatch({
-      apiKey,
+      aiClient,
       transactions: batch,
       categories,
     });

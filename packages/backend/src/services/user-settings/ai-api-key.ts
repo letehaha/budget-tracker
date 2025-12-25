@@ -66,7 +66,7 @@ export const setAiApiKey = withTransaction(
     });
 
     const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
-    const currentAiSettings = currentSettings.ai ?? { apiKeys: [] };
+    const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
     let apiKeys = [...(currentAiSettings.apiKeys ?? [])];
 
     // Remove existing key for this provider
@@ -93,6 +93,7 @@ export const setAiApiKey = withTransaction(
     userSettings.settings = {
       ...currentSettings,
       ai: {
+        ...currentAiSettings,
         apiKeys,
         defaultProvider,
       },
@@ -116,7 +117,7 @@ export const setDefaultAiProvider = withTransaction(
     }
 
     const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
-    const currentAiSettings = currentSettings.ai ?? { apiKeys: [] };
+    const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
 
     // Verify the provider has a key configured
     const hasProvider = currentAiSettings.apiKeys?.some((k) => k.provider === provider);
@@ -208,7 +209,12 @@ export const removeAllAiApiKeys = withTransaction(async ({ userId }: { userId: n
 
   userSettings.settings = {
     ...currentSettings,
-    ai: undefined,
+    ai: {
+      apiKeys: [],
+      defaultProvider: undefined,
+      // Preserve feature configs so user preferences persist when they add new keys
+      featureConfigs: currentSettings.ai?.featureConfigs ?? [],
+    },
   };
 
   await userSettings.save();

@@ -1,4 +1,4 @@
-import { AI_PROVIDER } from '@bt/shared/types';
+import { AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import Users from './Users.model';
 import { z } from 'zod';
@@ -9,9 +9,15 @@ export const ZodAiApiKeySchema = z.object({
   createdAt: z.string().datetime(),
 });
 
+export const ZodAiFeatureConfigSchema = z.object({
+  feature: z.nativeEnum(AI_FEATURE),
+  modelId: z.string(), // Format: 'provider/model', e.g., 'openai/gpt-4o'
+});
+
 export const ZodAiSettingsSchema = z.object({
   apiKeys: z.array(ZodAiApiKeySchema).default([]),
   defaultProvider: z.nativeEnum(AI_PROVIDER).optional(),
+  featureConfigs: z.array(ZodAiFeatureConfigSchema).default([]),
 });
 
 export const ZodSettingsSchema = z.object({

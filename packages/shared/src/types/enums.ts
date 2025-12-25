@@ -84,4 +84,16 @@ export enum AI_PROVIDER {
   anthropic = 'anthropic',
   openai = 'openai',
   google = 'google',
+  groq = 'groq',
+}
+
+/**
+ * AI-powered features that can have individual model configurations
+ */
+export enum AI_FEATURE {
+  categorization = 'categorization',
+  // Future features:
+  // insights = 'insights',
+  // budgetSuggestions = 'budget_suggestions',
+  // receiptParsing = 'receipt_parsing',
 }

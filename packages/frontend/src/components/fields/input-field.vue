@@ -32,6 +32,7 @@
           :disabled="disabled"
           :tabindex="tabindex"
           :min="minValue"
+          :placeholder="placeholder"
           autocomplete="off"
           autocorrect="off"
           autocapitalize="off"
@@ -39,7 +40,7 @@
           :class="
             cn(
               'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
-              computedAttrs.class ?? '',
+              (computedAttrs.class as string) ?? '',
             )
           "
         />
@@ -86,6 +87,7 @@ const props = defineProps<{
   autofocus?: boolean;
   trailingIconCssClass?: string;
   leadingIconCssClass?: string;
+  placeholder?: string;
 }>();
 
 const emits = defineEmits<{
@@ -102,33 +104,37 @@ const slots = defineSlots<{
 }>();
 const attrs = useAttrs();
 
-const computedAttrs = {
+const onInput = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const value: string = target.value;
+
+  if (props.disabled) return;
+  if (props.modelValue === value) return;
+
+  emits(MODEL_EVENTS.input, value);
+};
+
+const onKeypress = (event: KeyboardEvent) => {
+  if (props.disabled) return;
+
+  if (props.type === 'number') {
+    if (event.keyCode === KEYBOARD_CODES.keyE) {
+      event.preventDefault();
+    }
+  }
+  if (props.onlyPositive) {
+    if ([KEYBOARD_CODES.minus, KEYBOARD_CODES.equal, KEYBOARD_CODES.plus].includes(event.keyCode)) {
+      event.preventDefault();
+    }
+  }
+};
+
+const computedAttrs = computed(() => ({
   ...attrs,
   class: attrs.class,
-  onInput: (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    const value: string = target.value;
-
-    if (props.disabled) return;
-    if (props.modelValue === value) return;
-
-    emits(MODEL_EVENTS.input, value);
-  },
-  onkeypress: (event: KeyboardEvent) => {
-    if (props.disabled) return;
-
-    if (props.type === 'number') {
-      if (event.keyCode === KEYBOARD_CODES.keyE) {
-        event.preventDefault();
-      }
-    }
-    if (props.onlyPositive) {
-      if ([KEYBOARD_CODES.minus, KEYBOARD_CODES.equal, KEYBOARD_CODES.plus].includes(event.keyCode)) {
-        event.preventDefault();
-      }
-    }
-  },
-};
+  onInput,
+  onkeypress: onKeypress,
+}));
 
 const inputFieldRef = ref<HTMLInputElement | null>(null);
 const minValue = computed<number>(() => {
