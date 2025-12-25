@@ -70,6 +70,11 @@ export interface AIFeatureConfig {
 }
 
 /**
+ * API key status
+ */
+export type AIApiKeyStatus = 'valid' | 'invalid';
+
+/**
  * API key entry stored in UserSettings.settings.ai.apiKeys[]
  */
 export interface AIApiKeyEntry {
@@ -79,6 +84,14 @@ export interface AIApiKeyEntry {
   keyEncrypted: string;
   /** ISO datetime when key was added */
   createdAt: string;
+  /** Current validation status of the key */
+  status: AIApiKeyStatus;
+  /** ISO datetime when key was last successfully validated */
+  lastValidatedAt: string;
+  /** Error message if key is invalid */
+  lastError?: string;
+  /** ISO datetime when key was marked as invalid */
+  invalidatedAt?: string;
 }
 
 /**
@@ -89,6 +102,14 @@ export interface AIApiKeyInfo {
   provider: AI_PROVIDER;
   /** ISO datetime when key was added */
   createdAt: string;
+  /** Current validation status of the key */
+  status: AIApiKeyStatus;
+  /** ISO datetime when key was last successfully validated */
+  lastValidatedAt: string;
+  /** Error message if key is invalid */
+  lastError?: string;
+  /** ISO datetime when key was marked as invalid */
+  invalidatedAt?: string;
 }
 
 /**

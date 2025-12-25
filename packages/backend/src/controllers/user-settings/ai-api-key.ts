@@ -30,7 +30,8 @@ export const getAiApiKeyStatus = createController(getSchema, async ({ user }) =>
 });
 
 /**
- * Set or update AI API key for a specific provider
+ * Set or update AI API key for a specific provider.
+ * Validates the key first by making a test API call.
  */
 const setSchema = z.object({
   body: z.object({

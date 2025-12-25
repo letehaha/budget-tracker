@@ -19,9 +19,15 @@
               <SparklesIcon class="size-4" />
               AI Features
             </TabsTrigger>
-            <TabsTrigger value="api-keys" class="flex items-center gap-2">
+            <TabsTrigger value="api-keys" class="relative flex items-center gap-2">
               <KeyIcon class="size-4" />
               API Keys
+              <!-- Red indicator dot when there are invalid keys -->
+              <span
+                v-if="hasInvalidKeys"
+                class="bg-destructive absolute -top-1 -right-1 h-2.5 w-2.5 animate-pulse rounded-full"
+                title="One or more API keys are invalid"
+              />
             </TabsTrigger>
           </TabsList>
 
@@ -57,6 +63,7 @@ import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { KeyIcon, Loader2Icon, SparklesIcon } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 import ApiKeyManager from './components/api-key-manager.vue';
 import FeatureModelSelector from './components/feature-model-selector.vue';
@@ -65,5 +72,8 @@ defineOptions({
   name: 'settings-ai',
 });
 
-const { isLoading } = useAiSettings();
+const { isLoading, configuredProviders } = useAiSettings();
+
+/** True if any API key has invalid status */
+const hasInvalidKeys = computed(() => configuredProviders.value.some((p) => p.status === 'invalid'));
 </script>

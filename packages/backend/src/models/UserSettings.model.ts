@@ -3,10 +3,16 @@ import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize
 import Users from './Users.model';
 import { z } from 'zod';
 
+export const ZodAiApiKeyStatusSchema = z.enum(['valid', 'invalid']);
+
 export const ZodAiApiKeySchema = z.object({
   provider: z.nativeEnum(AI_PROVIDER),
   keyEncrypted: z.string(),
   createdAt: z.string().datetime(),
+  status: ZodAiApiKeyStatusSchema,
+  lastValidatedAt: z.string().datetime(),
+  lastError: z.string().optional(),
+  invalidatedAt: z.string().datetime().optional(),
 });
 
 export const ZodAiFeatureConfigSchema = z.object({

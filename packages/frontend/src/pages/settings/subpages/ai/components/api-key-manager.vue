@@ -12,43 +12,66 @@
       <div
         v-for="providerInfo in sortedConfiguredProviders"
         :key="providerInfo.provider"
-        class="flex items-center justify-between rounded-lg border p-3"
+        class="rounded-lg border p-3"
+        :class="{ 'border-destructive/50 bg-destructive/5': providerInfo.status === 'invalid' }"
       >
-        <div class="flex items-center gap-3">
-          <CheckCircleIcon class="h-5 w-5 text-green-600" />
-          <div>
-            <div class="font-medium">
-              {{ getProviderLabel(providerInfo.provider) }}
-              <span
-                v-if="providerInfo.provider === defaultProvider"
-                class="bg-primary/10 text-primary ml-2 rounded-full px-2 py-0.5 text-xs"
-              >
-                Default
-              </span>
-            </div>
-            <div class="text-muted-foreground text-xs">
-              Added {{ formatRelativeDate(new Date(providerInfo.createdAt)) }}
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <!-- Status icon -->
+            <CheckCircleIcon v-if="providerInfo.status !== 'invalid'" class="h-5 w-5 text-green-600" />
+            <AlertCircleIcon v-else class="text-destructive h-5 w-5" />
+
+            <div>
+              <div class="font-medium">
+                {{ getProviderLabel(providerInfo.provider) }}
+                <span
+                  v-if="providerInfo.provider === defaultProvider"
+                  class="bg-primary/10 text-primary ml-2 rounded-full px-2 py-0.5 text-xs"
+                >
+                  Default
+                </span>
+                <span
+                  v-if="providerInfo.status === 'invalid'"
+                  class="bg-destructive/10 text-destructive ml-2 rounded-full px-2 py-0.5 text-xs"
+                >
+                  Invalid
+                </span>
+              </div>
+              <div class="text-muted-foreground text-xs">
+                <template v-if="providerInfo.status === 'invalid'">
+                  Failed {{ formatRelativeDate(new Date(providerInfo.invalidatedAt!)) }}
+                </template>
+                <template v-else> Validated {{ formatRelativeDate(new Date(providerInfo.lastValidatedAt)) }} </template>
+              </div>
             </div>
           </div>
+          <div class="flex gap-2">
+            <Button
+              v-if="providerInfo.provider !== defaultProvider && configuredProviders.length > 1"
+              size="sm"
+              variant="outline"
+              :disabled="isSettingDefault"
+              @click="handleSetDefault(providerInfo.provider)"
+            >
+              Set as Default
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost-destructive"
+              :disabled="isDeletingKey"
+              @click="handleDeleteKey(providerInfo.provider)"
+            >
+              <Trash2Icon class="size-4" />
+            </Button>
+          </div>
         </div>
-        <div class="flex gap-2">
-          <Button
-            v-if="providerInfo.provider !== defaultProvider && configuredProviders.length > 1"
-            size="sm"
-            variant="outline"
-            :disabled="isSettingDefault"
-            @click="handleSetDefault(providerInfo.provider)"
-          >
-            Set as Default
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost-destructive"
-            :disabled="isDeletingKey"
-            @click="handleDeleteKey(providerInfo.provider)"
-          >
-            <Trash2Icon class="size-4" />
-          </Button>
+
+        <!-- Error message for invalid keys -->
+        <div v-if="providerInfo.status === 'invalid' && providerInfo.lastError" class="mt-2">
+          <p class="text-destructive text-sm">{{ providerInfo.lastError }}</p>
+          <p class="text-muted-foreground mt-1 text-xs">
+            Add a new key below to replace this one, or remove it if you no longer need it.
+          </p>
         </div>
       </div>
     </div>
@@ -72,7 +95,11 @@
         <form class="flex flex-col gap-4" @submit.prevent="handleSaveKey">
           <div class="flex flex-col gap-2">
             <label class="text-sm font-medium">Provider</label>
-            <select v-model="selectedProvider" class="bg-background rounded-md border px-3 py-2">
+            <select
+              v-model="selectedProvider"
+              class="bg-background rounded-md border px-3 py-2"
+              @change="validationError = ''"
+            >
               <option v-for="provider in availableProvidersToAdd" :key="provider.value" :value="provider.value">
                 {{ provider.label }}
               </option>
@@ -86,14 +113,15 @@
             v-model="apiKeyInput"
             label="API Key"
             :placeholder="getProviderPlaceholder(selectedProvider)"
-            type="password"
+            :error-message="validationError"
+            @update:model-value="validationError = ''"
           />
 
           <div class="flex gap-2">
             <Button type="submit" :disabled="!apiKeyInput.trim() || isSettingKey">
               <template v-if="isSettingKey">
                 <Loader2Icon class="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                Validating...
               </template>
               <template v-else>
                 <KeyIcon class="mr-2 h-4 w-4" />
@@ -112,9 +140,10 @@ import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
+import { ApiErrorResponseError } from '@/js/errors';
 import { AI_PROVIDER } from '@bt/shared/types';
 import { formatDistanceToNow } from 'date-fns';
-import { CheckCircleIcon, KeyIcon, Loader2Icon, Trash2Icon } from 'lucide-vue-next';
+import { AlertCircleIcon, CheckCircleIcon, KeyIcon, Loader2Icon, Trash2Icon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const PROVIDER_CONFIG: Record<AI_PROVIDER, { label: string; placeholder: string; description: string }> = {
@@ -154,6 +183,7 @@ const {
 
 const apiKeyInput = ref('');
 const selectedProvider = ref<AI_PROVIDER>(AI_PROVIDER.openai);
+const validationError = ref('');
 
 const availableProvidersToAdd = computed(() => {
   const configuredSet = new Set(configuredProviders.value.map((p) => p.provider));
@@ -185,17 +215,24 @@ const handleSaveKey = async () => {
   const trimmedKey = apiKeyInput.value.trim();
   if (!trimmedKey) return;
 
+  // Clear any previous validation error
+  validationError.value = '';
+
   try {
     await setApiKey({ apiKey: trimmedKey, provider: selectedProvider.value });
     apiKeyInput.value = '';
-    addSuccessNotification('API key saved successfully');
+    addSuccessNotification('API key saved and validated successfully');
 
     // Select next available provider if there's one
     if (availableProvidersToAdd.value.length > 0) {
       selectedProvider.value = availableProvidersToAdd.value[0].value;
     }
-  } catch {
-    addErrorNotification('Failed to save API key');
+  } catch (error) {
+    // Show the validation error message inline below the input field
+    validationError.value =
+      error instanceof ApiErrorResponseError
+        ? error.data.message
+        : 'API key is not working. Please verify the key is correct, has sufficient credits, and has the required permissions.';
   }
 };
 
