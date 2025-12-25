@@ -47,10 +47,6 @@ export const getAiFeaturesStatus = async (): Promise<AiFeaturesStatusResponse> =
   return api.get('/user/settings/ai/features');
 };
 
-export const getAiFeatureConfig = async ({ feature }: { feature: AI_FEATURE }): Promise<AIFeatureStatus> => {
-  return api.get(`/user/settings/ai/features/${feature}`);
-};
-
 export const setAiFeatureConfig = async ({
   feature,
   modelId,
