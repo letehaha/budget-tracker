@@ -6,6 +6,9 @@ import type {
   ExecuteImportRequest,
   ExecuteImportResponse,
   ExtractUniqueValuesResponse,
+  StatementCostEstimate,
+  StatementExtractionResult,
+  StatementFileType,
 } from '@bt/shared/types';
 
 export interface ParseCsvRequest {
@@ -45,5 +48,46 @@ export const detectDuplicates = async (payload: DetectDuplicatesRequest): Promis
 
 export const executeImport = async (payload: ExecuteImportRequest): Promise<ExecuteImportResponse> => {
   const result = await api.post('/import/csv/execute', payload);
+  return result;
+};
+
+// Statement Parser API (supports PDF, CSV, TXT)
+
+export interface StatementCostEstimateRequest {
+  fileBase64: string;
+}
+
+export interface StatementCostEstimateFailure {
+  success: false;
+  textExtraction: {
+    success: false;
+    characterCount: number;
+    pageCount: number;
+    error?: string;
+  };
+  fileType: StatementFileType;
+  suggestion: string;
+  error?: {
+    code: string;
+    message: string;
+    details?: string;
+  };
+}
+
+export const estimateStatementCost = async (
+  payload: StatementCostEstimateRequest,
+): Promise<StatementCostEstimate | StatementCostEstimateFailure> => {
+  const result = await api.post('/import/text-source/estimate-cost', payload);
+  return result;
+};
+
+export interface StatementExtractRequest {
+  fileBase64: string;
+}
+
+export const extractStatementTransactions = async (
+  payload: StatementExtractRequest,
+): Promise<StatementExtractionResult> => {
+  const result = await api.post('/import/text-source/extract', payload);
   return result;
 };

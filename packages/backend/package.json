@@ -52,6 +52,7 @@
     "p-queue": "6.6.2",
     "passport": "0.6.0",
     "passport-jwt": "4.0.1",
+    "pdf-parse": "^1.1.0",
     "pg": "8.11.5",
     "pg-hstore": "2.3.4",
     "sequelize": "6.37.3",

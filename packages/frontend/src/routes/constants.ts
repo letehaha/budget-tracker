@@ -28,6 +28,7 @@ export const ROUTES_NAMES = Object.freeze({
   settingsAi: `${ROUTER_LAYOUTS.dashboard}.settings.ai`,
   settingsAdmin: `${ROUTER_LAYOUTS.dashboard}.settings.admin`,
   importCsv: `${ROUTER_LAYOUTS.dashboard}.import-csv`,
+  importStatement: `${ROUTER_LAYOUTS.dashboard}.import-statement`,
 
   auth: ROUTER_LAYOUTS.auth,
   signIn: `${ROUTER_LAYOUTS.auth}.sign-in`,

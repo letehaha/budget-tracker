@@ -92,6 +92,7 @@ export enum AI_PROVIDER {
  */
 export enum AI_FEATURE {
   categorization = 'categorization',
+  statementParsing = 'statement_parsing',
   // Future features:
   // insights = 'insights',
   // budgetSuggestions = 'budget_suggestions',

@@ -30,6 +30,7 @@ import binanceRoutes from './routes/crypto/binance.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
 import csvImportExportRoutes from './routes/import-export/csv.route';
+import statementParserRoutes from './routes/import-export/text-source.route';
 import investmentsRoutes from './routes/investments.route';
 import sseRoutes from './routes/sse.route';
 import statsRoutes from './routes/stats.route';
@@ -39,7 +40,7 @@ import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
 import { registerAiCategorizationListeners } from './services/ai-categorization';
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
-import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
+// import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 import { initializeExchangeRateProviders } from './services/exchange-rates/providers';
 import { supportedLocales } from './translations';
 
@@ -89,6 +90,9 @@ app.use((req, res, next) => {
       `${API_PREFIX}/import/csv/extract-unique-values`,
       `${API_PREFIX}/import/csv/detect-duplicates`,
       `${API_PREFIX}/import/csv/execute`,
+      // Statement parser endpoints need 10MB for base64 encoded files (max 10MB = ~13.3MB base64)
+      `${API_PREFIX}/import/text-source/estimate-cost`,
+      `${API_PREFIX}/import/text-source/extract`,
     ],
   };
 
@@ -132,6 +136,7 @@ app.use(`${API_PREFIX}/currencies/rates`, exchangeRatesRoutes);
 app.use(`${API_PREFIX}/budgets`, budgetsRoutes);
 app.use(`${API_PREFIX}/investments`, investmentsRoutes);
 app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
+app.use(`${API_PREFIX}/import`, statementParserRoutes);
 app.use(`${API_PREFIX}/sse`, sseRoutes);
 
 if (process.env.NODE_ENV === 'test') {
@@ -183,7 +188,7 @@ function initializeBackgroundJobs() {
     logger.info('[Offline Mode] Skipping background jobs that require internet connection');
   } else {
     // Initialize historical exchange rates on startup (non-blocking)
-    initializeHistoricalRates();
+    // initializeHistoricalRates();
 
     loadCurrencyRatesJob.start();
 

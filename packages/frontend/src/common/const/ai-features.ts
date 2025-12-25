@@ -12,6 +12,10 @@ const AI_FEATURE_DISPLAY_INFO: Record<AI_FEATURE, AIFeatureDisplayInfo> = {
     name: 'Transaction Categorization',
     description: 'Automatically categorize transactions based on their description and merchant',
   },
+  [AI_FEATURE.statementParsing]: {
+    name: 'Statement Parser',
+    description: 'Extract transactions from bank statements (PDF, CSV, TXT) using AI',
+  },
 };
 
 /**

@@ -100,6 +100,11 @@ const routes = [
         component: () => import('@/pages/import-export/csv-import.vue'),
       },
       {
+        path: '/import/text-source',
+        name: ROUTES_NAMES.importStatement,
+        component: () => import('@/pages/import-export/statement-parser.vue'),
+      },
+      {
         path: '/settings',
         name: ROUTES_NAMES.settings,
         component: () => import('@/pages/settings/settings.vue'),
