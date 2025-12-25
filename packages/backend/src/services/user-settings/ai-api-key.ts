@@ -1,8 +1,8 @@
-import { AIApiKeyStatus, AI_PROVIDER } from '@bt/shared/types';
+import { AIApiKeyStatus, AIFeatureConfig, AI_PROVIDER } from '@bt/shared/types';
 import { decryptToken, encryptToken } from '@common/utils/encryption';
 import { ValidationError } from '@js/errors';
 import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/UserSettings.model';
-import { validateApiKey } from '@services/ai';
+import { getFirstAvailableRecommendedModel, getProviderFromModelId, validateApiKey } from '@services/ai';
 
 import { withTransaction } from '../common/with-transaction';
 
@@ -56,6 +56,9 @@ export const getAiApiKey = withTransaction(
  *
  * When setting a new key, validates it first by making a test API call.
  * Throws ValidationError if the key doesn't work.
+ *
+ * When removing a key, updates any feature configs that were using that provider
+ * to use the first recommended model from another available provider.
  */
 export const setAiApiKey = withTransaction(
   async ({
@@ -113,18 +116,73 @@ export const setAiApiKey = withTransaction(
       defaultProvider = apiKeys[0]?.provider;
     }
 
+    // Update feature configs when removing a key
+    let featureConfigs = [...(currentAiSettings.featureConfigs ?? [])];
+    if (!apiKey) {
+      featureConfigs = migrateFeatureConfigsOnProviderRemoval({
+        featureConfigs,
+        removedProvider: provider,
+        remainingProviders: apiKeys.map((k) => k.provider),
+      });
+    }
+
     userSettings.settings = {
       ...currentSettings,
       ai: {
         ...currentAiSettings,
         apiKeys,
         defaultProvider,
+        featureConfigs,
       },
     };
 
     await userSettings.save();
   },
 );
+
+/**
+ * Migrate feature configs when a provider is removed.
+ * Updates configs that were using the removed provider to use another available provider.
+ * If no providers remain, clears all feature configs.
+ */
+function migrateFeatureConfigsOnProviderRemoval({
+  featureConfigs,
+  removedProvider,
+  remainingProviders,
+}: {
+  featureConfigs: AIFeatureConfig[];
+  removedProvider: AI_PROVIDER;
+  remainingProviders: AI_PROVIDER[];
+}): AIFeatureConfig[] {
+  // If no providers remain, clear all feature configs
+  if (remainingProviders.length === 0) {
+    return [];
+  }
+
+  return featureConfigs
+    .map((config) => {
+      const configProvider = getProviderFromModelId({ modelId: config.modelId });
+
+      // Only update configs that were using the removed provider
+      if (configProvider !== removedProvider) {
+        return config;
+      }
+
+      // Find a new recommended model from remaining providers
+      const newModelId = getFirstAvailableRecommendedModel({
+        feature: config.feature,
+        availableProviders: remainingProviders,
+      });
+
+      // If no recommended model found, remove this config (will use server default)
+      if (!newModelId) {
+        return null;
+      }
+
+      return { ...config, modelId: newModelId };
+    })
+    .filter((config): config is AIFeatureConfig => config !== null);
+}
 
 /**
  * Set the default AI provider for a user.

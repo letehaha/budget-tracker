@@ -59,7 +59,7 @@
               size="sm"
               variant="ghost-destructive"
               :disabled="isDeletingKey"
-              @click="handleDeleteKey(providerInfo.provider)"
+              @click="openDeleteConfirmation(providerInfo.provider)"
             >
               <Trash2Icon class="size-4" />
             </Button>
@@ -75,6 +75,26 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete confirmation dialog -->
+    <AlertDialog v-model:open="deleteDialogState.isOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove API key?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to remove the {{ deleteDialogState.providerLabel }} API key?
+            <template v-if="configuredProviders.length > 1">
+              AI features currently using {{ deleteDialogState.providerLabel }} will switch to another available
+              provider.
+            </template>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" @click="confirmDeleteKey">Remove</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     <!-- Add new key form -->
     <div class="rounded-lg border p-4">
@@ -137,6 +157,16 @@
 
 <script setup lang="ts">
 import InputField from '@/components/fields/input-field.vue';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/lib/ui/alert-dialog';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
@@ -144,7 +174,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { AI_PROVIDER } from '@bt/shared/types';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertCircleIcon, CheckCircleIcon, KeyIcon, Loader2Icon, Trash2Icon } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 const PROVIDER_CONFIG: Record<AI_PROVIDER, { label: string; placeholder: string; description: string }> = {
   [AI_PROVIDER.anthropic]: {
@@ -184,6 +214,15 @@ const {
 const apiKeyInput = ref('');
 const selectedProvider = ref<AI_PROVIDER>(AI_PROVIDER.openai);
 const validationError = ref('');
+const deleteDialogState = reactive<{
+  isOpen: boolean;
+  provider: AI_PROVIDER | null;
+  providerLabel: string;
+}>({
+  isOpen: false,
+  provider: null,
+  providerLabel: '',
+});
 
 const availableProvidersToAdd = computed(() => {
   const configuredSet = new Set(configuredProviders.value.map((p) => p.provider));
@@ -245,10 +284,21 @@ const handleSetDefault = async (provider: AI_PROVIDER) => {
   }
 };
 
-const handleDeleteKey = async (provider: AI_PROVIDER) => {
+const openDeleteConfirmation = (provider: AI_PROVIDER) => {
+  deleteDialogState.provider = provider;
+  deleteDialogState.providerLabel = getProviderLabel(provider);
+  deleteDialogState.isOpen = true;
+};
+
+const confirmDeleteKey = async () => {
+  if (!deleteDialogState.provider) return;
+
+  const provider = deleteDialogState.provider;
+  const providerLabel = deleteDialogState.providerLabel;
+
   try {
     await deleteApiKey({ provider });
-    addSuccessNotification(`${getProviderLabel(provider)} API key removed`);
+    addSuccessNotification(`${providerLabel} API key removed`);
   } catch {
     addErrorNotification('Failed to remove API key');
   }

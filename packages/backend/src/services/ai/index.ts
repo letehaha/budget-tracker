@@ -10,4 +10,6 @@ export {
   isValidModelId,
   getRecommendedModelIds,
   isModelRecommendedForFeature,
+  getProviderFromModelId,
+  getFirstAvailableRecommendedModel,
 } from './models-config';

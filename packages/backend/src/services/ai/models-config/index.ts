@@ -63,3 +63,35 @@ export function isModelRecommendedForFeature({ modelId, feature }: { modelId: st
   const recommendations = FEATURE_RECOMMENDATIONS[feature] ?? [];
   return recommendations.includes(modelId as AI_MODEL_ID);
 }
+
+/**
+ * Extract provider from a model ID (e.g., 'openai/gpt-4o' -> 'openai')
+ */
+export function getProviderFromModelId({ modelId }: { modelId: string }): AI_PROVIDER | null {
+  const model = AVAILABLE_MODELS[modelId as AI_MODEL_ID];
+  return model?.provider ?? null;
+}
+
+/**
+ * Get the first recommended model for a feature that belongs to one of the available providers.
+ * Returns null if no recommended model is available for the given providers.
+ */
+export function getFirstAvailableRecommendedModel({
+  feature,
+  availableProviders,
+}: {
+  feature: AI_FEATURE;
+  availableProviders: AI_PROVIDER[];
+}): AI_MODEL_ID | null {
+  const recommendations = FEATURE_RECOMMENDATIONS[feature] ?? [];
+  const providerSet = new Set(availableProviders);
+
+  for (const modelId of recommendations) {
+    const model = AVAILABLE_MODELS[modelId];
+    if (model && providerSet.has(model.provider)) {
+      return modelId;
+    }
+  }
+
+  return null;
+}
