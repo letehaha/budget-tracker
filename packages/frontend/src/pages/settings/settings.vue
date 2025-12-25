@@ -70,6 +70,7 @@ import {
   DatabaseIcon,
   LayersIcon,
   ShieldIcon,
+  SparklesIcon,
   TagsIcon,
 } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -135,12 +136,12 @@ const baseTabs: Tab[] = [
     to: { name: ROUTES_NAMES.settingsDataManagement },
     icon: DatabaseIcon,
   },
-  // {
-  //   name: 'ai',
-  //   label: 'AI',
-  //   to: { name: ROUTES_NAMES.settingsAi },
-  //   icon: SparklesIcon,
-  // },
+  {
+    name: 'ai',
+    label: 'AI',
+    to: { name: ROUTES_NAMES.settingsAi },
+    icon: SparklesIcon,
+  },
 ];
 
 const adminTab: Tab = {

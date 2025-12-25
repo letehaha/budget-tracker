@@ -1,35 +1,43 @@
-import { CATEGORIZATION_SOURCE } from '@bt/shared/types';
+import { AI_FEATURE, CATEGORIZATION_SOURCE, getProviderFromModelId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/Accounts.model';
 import { getCategories } from '@models/Categories.model';
 import Transactions from '@models/Transactions.model';
+import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
+import { markApiKeyInvalid, markApiKeyValid } from '@services/user-settings/ai-api-key';
+import { generateText } from 'ai';
 
-import { GeminiClient, GeminiClientModel } from './gemini-client';
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
 import { CategorizationBatchResult, CategorizationResult, TransactionForCategorization } from './types';
 import { buildCategoryList } from './utils/build-category-list';
 import { parseCategorizationResponse } from './utils/parse-response';
 
+/** Error message shown to user when API key is invalid */
+const INVALID_KEY_ERROR_MESSAGE =
+  'API key is not working. Please verify the key is correct, has sufficient credits, and has the required permissions.';
+
 // Not strong meaning here, just a value to avoid huge payloads
 const BATCH_SIZE = 200;
+
+interface CategorizeBatchResult extends CategorizationBatchResult {
+  /** True if the error was an auth error (invalid key) */
+  isAuthError?: boolean;
+  /** True if the error was a temporary error (rate limit, server error) */
+  isTemporaryError?: boolean;
+}
 
 /**
  * Categorize a batch of transactions using AI
  */
 async function categorizeBatch({
-  apiKey,
+  aiClient,
   transactions,
   categories,
 }: {
-  apiKey: string;
+  aiClient: AIClientResult;
   transactions: TransactionForCategorization[];
   categories: Awaited<ReturnType<typeof getCategories>>;
-}): Promise<CategorizationBatchResult> {
-  /**
-   * Use `GeminiClientModel.flash` for better speed and cheaper API price
-   */
-  const client = new GeminiClient({ apiKey, model: GeminiClientModel.flash });
-
+}): Promise<CategorizeBatchResult> {
   const categoryList = buildCategoryList(categories);
 
   const systemPrompt = buildSystemPrompt();
@@ -39,13 +47,23 @@ async function categorizeBatch({
   });
 
   try {
-    const response = await client.sendMessage({ systemPrompt, userMessage });
+    const { text, usage } = await generateText({
+      model: aiClient.model,
+      system: systemPrompt,
+      prompt: userMessage,
+    });
+
+    if (usage) {
+      logger.info(
+        `AI categorization API call (${aiClient.modelId}): ${usage.inputTokens ?? 0} input, ${usage.outputTokens ?? 0} output tokens`,
+      );
+    }
 
     const validCategoryIds = new Set(categories.map((c) => c.id));
     const validTransactionIds = new Set(transactions.map((t) => t.id));
 
     const results = parseCategorizationResponse({
-      response,
+      response: text,
       validCategoryIds,
       validTransactionIds,
     });
@@ -59,10 +77,13 @@ async function categorizeBatch({
     };
   } catch (error) {
     logger.error({ message: 'AI categorization batch failed', error: error as Error });
+
     return {
       successful: [],
       failed: transactions.map((t) => t.id),
       errors: [(error as Error).message],
+      isAuthError: isAuthError(error),
+      isTemporaryError: isTemporaryError(error),
     };
   }
 }
@@ -152,8 +173,12 @@ async function getUncategorizedTransactions({
 }
 
 /**
- * Main function to categorize transactions for a user
- * Processes transactions in batches
+ * Categorize transactions using AI. Processes in batches of 200.
+ *
+ * Error handling:
+ * - Temporary errors (429, 5xx): stop processing, return partial results
+ * - Auth errors (401, 403): mark user's key invalid, fallback to server key and retry
+ * - On success with user key: update lastValidatedAt
  */
 export async function categorizeTransactions({
   userId,
@@ -162,16 +187,28 @@ export async function categorizeTransactions({
   userId: number;
   transactionIds: number[];
 }): Promise<CategorizationBatchResult> {
-  // Use server-side Gemini API key
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    logger.warn('GEMINI_API_KEY environment variable is not configured, skipping categorization');
+  // Create AI client for categorization feature
+  // This handles user preferences, API key resolution, and server fallback
+  let aiClient = await createAIClient({
+    userId,
+    feature: AI_FEATURE.categorization,
+  });
+
+  if (!aiClient) {
+    logger.warn('No AI provider available for categorization', { userId });
     return {
       successful: [],
       failed: transactionIds,
-      errors: ['GEMINI_API_KEY not configured on server'],
+      errors: ['No AI provider configured. Please add an API key or contact support.'],
     };
   }
+
+  logger.info('Using AI provider for categorization', {
+    userId,
+    provider: aiClient.provider,
+    modelId: aiClient.modelId,
+    usingUserKey: aiClient.usingUserKey,
+  });
 
   // Get user's categories
   const categories = await getCategories({ userId });
@@ -202,20 +239,89 @@ export async function categorizeTransactions({
     errors: [],
   };
 
+  // Track if we've already tried fallback (to avoid infinite loops)
+  let hasTriedFallback = false;
+
   // Process in batches
   for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
     const batch = transactions.slice(i, i + BATCH_SIZE);
     logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(transactions.length / BATCH_SIZE)}`);
 
     const batchResult = await categorizeBatch({
-      apiKey,
+      aiClient,
       transactions: batch,
       categories,
     });
 
+    // Handle temporary errors (rate limit, server errors) - return early
+    if (batchResult.isTemporaryError) {
+      logger.warn('Temporary AI error, returning early without marking key invalid', {
+        userId,
+        provider: aiClient.provider,
+        usingUserKey: aiClient.usingUserKey,
+      });
+      // Return what we have so far, marking remaining as failed
+      const remainingTransactions = transactions.slice(i);
+      allResults.failed.push(...remainingTransactions.map((t) => t.id));
+      allResults.errors!.push('AI provider temporarily unavailable. Please try again later.');
+      break;
+    }
+
+    // Handle auth errors with user's key - mark invalid and fallback to server
+    if (batchResult.isAuthError && aiClient.usingUserKey && !hasTriedFallback) {
+      const provider = getProviderFromModelId({ modelId: aiClient.modelId });
+
+      if (provider) {
+        logger.warn('User API key auth error, marking invalid and trying server fallback', {
+          userId,
+          provider,
+        });
+
+        // Mark the user's key as invalid
+        await markApiKeyInvalid({
+          userId,
+          provider,
+          errorMessage: INVALID_KEY_ERROR_MESSAGE,
+        });
+
+        // Try to get a new AI client (will now use server key if available)
+        const fallbackClient = await createAIClient({
+          userId,
+          feature: AI_FEATURE.categorization,
+        });
+
+        if (fallbackClient && !fallbackClient.usingUserKey) {
+          logger.info('Falling back to server API key', {
+            userId,
+            provider: fallbackClient.provider,
+          });
+
+          aiClient = fallbackClient;
+          hasTriedFallback = true;
+
+          // Retry this batch with the fallback client
+          i -= BATCH_SIZE;
+          continue;
+        }
+      }
+
+      // If no fallback available, return with error
+      allResults.failed.push(...batch.map((t) => t.id));
+      allResults.errors!.push(INVALID_KEY_ERROR_MESSAGE);
+      continue;
+    }
+
     // Apply successful categorizations immediately
     if (batchResult.successful.length > 0) {
       await applyCategorizationResults({ results: batchResult.successful, userId });
+
+      // If using user's key and it succeeded, mark it as valid (update lastValidatedAt)
+      if (aiClient.usingUserKey) {
+        const provider = getProviderFromModelId({ modelId: aiClient.modelId });
+        if (provider) {
+          await markApiKeyValid({ userId, provider });
+        }
+      }
     }
 
     allResults.successful.push(...batchResult.successful);

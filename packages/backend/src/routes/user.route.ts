@@ -1,14 +1,20 @@
 import addUserCurrencies from '@controllers/currencies/add-user-currencies';
 import changeBaseCurrency from '@controllers/currencies/change-base-currency.controller';
 import editCurrencyExchangeRate from '@controllers/currencies/edit-currency-exchange-rate';
-// AI API key management is disabled - using server-side GEMINI_API_KEY instead
-// import {
-//   deleteAiApiKey,
-//   deleteAllAiApiKeys,
-//   getAiApiKeyStatus,
-//   setAiApiKeyController,
-//   setDefaultAiProviderController,
-// } from '@controllers/user-settings/ai-api-key';
+import {
+  deleteAiApiKey,
+  deleteAllAiApiKeys,
+  getAiApiKeyStatus,
+  setAiApiKeyController,
+  setDefaultAiProviderController,
+} from '@controllers/user-settings/ai-api-key';
+import {
+  getAvailableModelsController,
+  getFeatureConfigController,
+  getFeaturesStatus,
+  resetFeatureConfigController,
+  setFeatureConfigController,
+} from '@controllers/user-settings/ai-feature-settings';
 import editExcludedCategories from '@controllers/user-settings/edit-exclude-categories';
 import getUserSettings from '@controllers/user-settings/get-settings';
 import updateUserSettings from '@controllers/user-settings/update-settings';
@@ -87,31 +93,70 @@ router.put(
   editExcludedCategories.handler,
 );
 
-// AI API Key management - disabled, using server-side GEMINI_API_KEY instead
-// router.get(
-//   '/settings/ai-api-key',
-//   authenticateJwt,
-//   validateEndpoint(getAiApiKeyStatus.schema),
-//   getAiApiKeyStatus.handler,
-// );
-// router.put(
-//   '/settings/ai-api-key',
-//   authenticateJwt,
-//   validateEndpoint(setAiApiKeyController.schema),
-//   setAiApiKeyController.handler,
-// );
-// router.put(
-//   '/settings/ai-api-key/default',
-//   authenticateJwt,
-//   validateEndpoint(setDefaultAiProviderController.schema),
-//   setDefaultAiProviderController.handler,
-// );
-// router.delete('/settings/ai-api-key', authenticateJwt, validateEndpoint(deleteAiApiKey.schema), deleteAiApiKey.handler);
-// router.delete(
-//   '/settings/ai-api-key/all',
-//   authenticateJwt,
-//   validateEndpoint(deleteAllAiApiKeys.schema),
-//   deleteAllAiApiKeys.handler,
-// );
+// AI API Key management
+router.get(
+  '/settings/ai/api-keys',
+  authenticateJwt,
+  validateEndpoint(getAiApiKeyStatus.schema),
+  getAiApiKeyStatus.handler,
+);
+router.put(
+  '/settings/ai/api-keys',
+  authenticateJwt,
+  validateEndpoint(setAiApiKeyController.schema),
+  setAiApiKeyController.handler,
+);
+router.put(
+  '/settings/ai/api-keys/default',
+  authenticateJwt,
+  validateEndpoint(setDefaultAiProviderController.schema),
+  setDefaultAiProviderController.handler,
+);
+router.delete(
+  '/settings/ai/api-keys',
+  authenticateJwt,
+  validateEndpoint(deleteAiApiKey.schema),
+  deleteAiApiKey.handler,
+);
+router.delete(
+  '/settings/ai/api-keys/all',
+  authenticateJwt,
+  validateEndpoint(deleteAllAiApiKeys.schema),
+  deleteAllAiApiKeys.handler,
+);
+
+// AI Feature configuration
+router.get(
+  '/settings/ai/features',
+  authenticateJwt,
+  validateEndpoint(getFeaturesStatus.schema),
+  getFeaturesStatus.handler,
+);
+router.get(
+  '/settings/ai/features/:feature',
+  authenticateJwt,
+  validateEndpoint(getFeatureConfigController.schema),
+  getFeatureConfigController.handler,
+);
+router.put(
+  '/settings/ai/features/:feature',
+  authenticateJwt,
+  validateEndpoint(setFeatureConfigController.schema),
+  setFeatureConfigController.handler,
+);
+router.delete(
+  '/settings/ai/features/:feature',
+  authenticateJwt,
+  validateEndpoint(resetFeatureConfigController.schema),
+  resetFeatureConfigController.handler,
+);
+
+// AI Models
+router.get(
+  '/settings/ai/models',
+  authenticateJwt,
+  validateEndpoint(getAvailableModelsController.schema),
+  getAvailableModelsController.handler,
+);
 
 export default router;

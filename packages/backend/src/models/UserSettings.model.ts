@@ -1,17 +1,29 @@
-import { AI_PROVIDER } from '@bt/shared/types';
+import { AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import Users from './Users.model';
 import { z } from 'zod';
+
+export const ZodAiApiKeyStatusSchema = z.enum(['valid', 'invalid']);
 
 export const ZodAiApiKeySchema = z.object({
   provider: z.nativeEnum(AI_PROVIDER),
   keyEncrypted: z.string(),
   createdAt: z.string().datetime(),
+  status: ZodAiApiKeyStatusSchema,
+  lastValidatedAt: z.string().datetime(),
+  lastError: z.string().optional(),
+  invalidatedAt: z.string().datetime().optional(),
+});
+
+export const ZodAiFeatureConfigSchema = z.object({
+  feature: z.nativeEnum(AI_FEATURE),
+  modelId: z.string(), // Format: 'provider/model', e.g., 'openai/gpt-4o'
 });
 
 export const ZodAiSettingsSchema = z.object({
   apiKeys: z.array(ZodAiApiKeySchema).default([]),
   defaultProvider: z.nativeEnum(AI_PROVIDER).optional(),
+  featureConfigs: z.array(ZodAiFeatureConfigSchema).default([]),
 });
 
 export const ZodSettingsSchema = z.object({
