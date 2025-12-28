@@ -314,7 +314,6 @@ export const useStatementParserStore = defineStore('statementParser', () => {
         accountId: selectedAccount.value.id,
         transactions: extractionResult.value.transactions,
         skipIndices: skipIndices.value,
-        metadata: extractionResult.value.metadata,
       });
       importResult.value = result;
 

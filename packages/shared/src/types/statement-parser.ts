@@ -172,8 +172,6 @@ export interface StatementExecuteImportRequest {
   transactions: ExtractedTransaction[];
   /** Transaction indices to skip (confirmed duplicates) */
   skipIndices: number[];
-  /** Metadata from extraction (for reference) */
-  metadata?: ExtractedMetadata;
 }
 
 /**

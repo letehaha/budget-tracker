@@ -10,20 +10,6 @@ const extractedTransactionSchema = z.object({
   type: z.enum(['income', 'expense']),
 });
 
-const extractedMetadataSchema = z
-  .object({
-    bankName: z.string().optional(),
-    accountNumberLast4: z.string().optional(),
-    statementPeriod: z
-      .object({
-        from: z.string(),
-        to: z.string(),
-      })
-      .optional(),
-    currencyCode: z.string().optional(),
-  })
-  .optional();
-
 /**
  * Execute statement import - create transactions in the database
  *
@@ -39,19 +25,16 @@ export const executeImportController = createController(
       transactions: z.array(extractedTransactionSchema),
       /** Transaction indices to skip (confirmed duplicates) */
       skipIndices: z.array(z.number().int().nonnegative()),
-      /** Metadata from extraction (for reference) */
-      metadata: extractedMetadataSchema,
     }),
   }),
   async ({ user, body }) => {
-    const { accountId, transactions, skipIndices, metadata } = body;
+    const { accountId, transactions, skipIndices } = body;
 
     const result = await executeImport({
       userId: user.id,
       accountId,
       transactions,
       skipIndices,
-      metadata,
     });
 
     return {

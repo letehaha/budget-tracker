@@ -63,12 +63,12 @@
       <div class="mb-6 text-center">
         <div
           :class="{
-            'bg-green-100': hasNoErrors,
+            'bg-success/40': hasNoErrors,
             'bg-yellow-100': hasErrors,
           }"
           class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full"
         >
-          <CheckCircleIcon v-if="hasNoErrors" class="size-8 text-green-600" />
+          <CheckCircleIcon v-if="hasNoErrors" class="text-success-text size-8" />
           <AlertCircleIcon v-else class="size-8 text-yellow-600" />
         </div>
         <h2 class="text-lg font-semibold">

@@ -137,7 +137,6 @@ export interface StatementExecuteImportRequest {
   accountId: number;
   transactions: StatementExtractionResult['transactions'];
   skipIndices: number[];
-  metadata?: StatementExtractionResult['metadata'];
 }
 
 export interface StatementExecuteImportResponse {

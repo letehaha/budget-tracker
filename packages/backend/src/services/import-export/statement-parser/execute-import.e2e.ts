@@ -1,7 +1,8 @@
-import type { ExtractedMetadata, ExtractedTransaction } from '@bt/shared/types';
-import { TRANSACTION_TYPES } from '@bt/shared/types';
+import type { ExtractedTransaction, TransactionImportDetails } from '@bt/shared/types';
+import { ImportSource, TRANSACTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
 
 describe('Statement Parser - Execute Import endpoint', () => {
@@ -217,38 +218,37 @@ describe('Statement Parser - Execute Import endpoint', () => {
     });
   });
 
-  describe('metadata handling', () => {
-    it('should store metadata in externalData field', async () => {
+  describe('importDetails in externalData', () => {
+    it('should store importDetails with correct structure', async () => {
       const account = await helpers.createAccount({ raw: true });
       const transactions = createExtractedTransactions();
-      const metadata: ExtractedMetadata = {
-        bankName: 'Test Bank',
-        accountNumberLast4: '1234',
-        statementPeriod: {
-          from: '2024-01-01',
-          to: '2024-01-31',
-        },
-        currencyCode: 'USD',
-      };
 
       const result = await helpers.statementExecuteImport({
         payload: {
           accountId: account.id,
           transactions,
           skipIndices: [],
-          metadata,
         },
         raw: true,
       });
 
       expect(result.summary.imported).toBe(3);
-
-      // Note: We can't directly verify externalData through the transactions helper
-      // as it may not be returned in the response. The test verifies no errors occur.
       expect(result.summary.errors).toHaveLength(0);
+
+      // Verify externalData.importDetails is stored correctly
+      const importedTx = await Transactions.findByPk(result.newTransactionIds[0]);
+      const importDetails = importedTx?.externalData?.importDetails as TransactionImportDetails | undefined;
+
+      expect(importDetails).toBeDefined();
+      expect(importDetails?.batchId).toBe(result.batchId);
+      expect(importDetails?.source).toBe(ImportSource.statementParser);
+      expect(importDetails?.importedAt).toBeDefined();
+      // Verify importedAt is a valid ISO date string
+      expect(() => new Date(importDetails!.importedAt)).not.toThrow();
+      expect(new Date(importDetails!.importedAt).toISOString()).toBe(importDetails!.importedAt);
     });
 
-    it('should work without metadata', async () => {
+    it('should store same batchId for all transactions in a single import', async () => {
       const account = await helpers.createAccount({ raw: true });
       const transactions = createExtractedTransactions();
 
@@ -257,13 +257,53 @@ describe('Statement Parser - Execute Import endpoint', () => {
           accountId: account.id,
           transactions,
           skipIndices: [],
-          // No metadata
         },
         raw: true,
       });
 
       expect(result.summary.imported).toBe(3);
-      expect(result.summary.errors).toHaveLength(0);
+
+      // Verify all transactions have the same batchId
+      const importedTxs = await Transactions.findAll({
+        where: { id: result.newTransactionIds },
+      });
+
+      const batchIds = importedTxs.map((tx) => (tx.externalData?.importDetails as TransactionImportDetails)?.batchId);
+      expect(batchIds.every((id) => id === result.batchId)).toBe(true);
+    });
+
+    it('should have different batchIds for separate imports', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const transactions = createExtractedTransactions();
+
+      const result1 = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      const result2 = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      // Verify batchIds are different between imports
+      const tx1 = await Transactions.findByPk(result1.newTransactionIds[0]);
+      const tx2 = await Transactions.findByPk(result2.newTransactionIds[0]);
+
+      const batchId1 = (tx1?.externalData?.importDetails as TransactionImportDetails)?.batchId;
+      const batchId2 = (tx2?.externalData?.importDetails as TransactionImportDetails)?.batchId;
+
+      expect(batchId1).toBe(result1.batchId);
+      expect(batchId2).toBe(result2.batchId);
+      expect(batchId1).not.toBe(batchId2);
     });
   });
 
@@ -549,6 +589,323 @@ describe('Statement Parser - Execute Import endpoint', () => {
       expect(result.summary.imported).toBe(5);
       expect(result.summary.skipped).toBe(5);
       expect(result.summary.errors).toHaveLength(0);
+    });
+  });
+
+  describe('import with existing transactions in account', () => {
+    it('should import correctly when account has existing transactions in mid-period', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // Create an existing transaction on 2025-12-16 (mid-period)
+      const existingTxPayload = helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 50000, // 500.00
+        transactionType: TRANSACTION_TYPES.expense,
+        time: new Date('2025-12-16T12:00:00').toISOString(),
+        note: 'Existing mid-period transaction',
+      });
+      await helpers.createTransaction({ payload: existingTxPayload, raw: true });
+
+      // Import transactions from 2025-12-01 to 2025-12-20
+      const transactions: ExtractedTransaction[] = [
+        {
+          date: '2025-12-01 10:00:00',
+          description: 'Start of period',
+          amount: 10000,
+          type: 'expense',
+        },
+        {
+          date: '2025-12-10 14:00:00',
+          description: 'Mid period before existing',
+          amount: 20000,
+          type: 'expense',
+        },
+        {
+          date: '2025-12-18 09:00:00',
+          description: 'After existing transaction',
+          amount: 15000,
+          type: 'expense',
+        },
+        {
+          date: '2025-12-20 16:00:00',
+          description: 'End of period',
+          amount: 25000,
+          type: 'income',
+        },
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(4);
+      expect(result.summary.errors).toHaveLength(0);
+
+      // Verify all transactions exist (1 existing + 4 imported)
+      const allTransactions = await helpers.getTransactions({
+        accountIds: [account.id],
+        raw: true,
+      });
+      const accountTxs = allTransactions.filter((tx) => tx.accountId === account.id);
+      expect(accountTxs).toHaveLength(5);
+    });
+
+    it('should import correctly when account has multiple existing transactions scattered in period', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // Create existing transactions scattered throughout the period
+      const existingDates = ['2025-12-05', '2025-12-12', '2025-12-18'];
+      for (const date of existingDates) {
+        const txPayload = helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 10000,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: new Date(`${date}T12:00:00`).toISOString(),
+          note: `Existing on ${date}`,
+        });
+        await helpers.createTransaction({ payload: txPayload, raw: true });
+      }
+
+      // Import transactions for the same period
+      const transactions: ExtractedTransaction[] = [
+        { date: '2025-12-01', description: 'Import 1', amount: 5000, type: 'expense' },
+        { date: '2025-12-08', description: 'Import 2', amount: 7500, type: 'expense' },
+        { date: '2025-12-15', description: 'Import 3', amount: 12000, type: 'income' },
+        { date: '2025-12-20', description: 'Import 4', amount: 8000, type: 'expense' },
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(4);
+      expect(result.summary.errors).toHaveLength(0);
+
+      // Verify all transactions exist (3 existing + 4 imported)
+      const allTransactions = await helpers.getTransactions({
+        accountIds: [account.id],
+        raw: true,
+      });
+      const accountTxs = allTransactions.filter((tx) => tx.accountId === account.id);
+      expect(accountTxs).toHaveLength(7);
+    });
+  });
+
+  describe('account balance updates', () => {
+    it('should correctly update account balance after importing expenses', async () => {
+      // Create account with initial balance
+      const initialBalance = 100000; // 1000.00
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance }),
+        raw: true,
+      });
+
+      // Verify initial balance
+      const accountBefore = await helpers.getAccount({ id: account.id, raw: true });
+      expect(accountBefore.currentBalance).toBe(initialBalance);
+
+      // Import expense transactions
+      const transactions: ExtractedTransaction[] = [
+        { date: '2025-12-01', description: 'Expense 1', amount: 10000, type: 'expense' },
+        { date: '2025-12-02', description: 'Expense 2', amount: 25000, type: 'expense' },
+        { date: '2025-12-03', description: 'Expense 3', amount: 15000, type: 'expense' },
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(3);
+
+      // Verify balance was decremented correctly
+      // Initial: 100000, Expenses: 10000 + 25000 + 15000 = 50000
+      // Expected: 100000 - 50000 = 50000
+      const accountAfter = await helpers.getAccount({ id: account.id, raw: true });
+      expect(accountAfter.currentBalance).toBe(50000);
+    });
+
+    it('should correctly update account balance after importing income', async () => {
+      const initialBalance = 50000; // 500.00
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance }),
+        raw: true,
+      });
+
+      // Import income transactions
+      const transactions: ExtractedTransaction[] = [
+        { date: '2025-12-01', description: 'Salary', amount: 200000, type: 'income' },
+        { date: '2025-12-15', description: 'Bonus', amount: 50000, type: 'income' },
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(2);
+
+      // Verify balance was incremented correctly
+      // Initial: 50000, Income: 200000 + 50000 = 250000
+      // Expected: 50000 + 250000 = 300000
+      const accountAfter = await helpers.getAccount({ id: account.id, raw: true });
+      expect(accountAfter.currentBalance).toBe(300000);
+    });
+
+    it('should correctly update account balance with mixed income and expenses', async () => {
+      const initialBalance = 100000; // 1000.00
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance }),
+        raw: true,
+      });
+
+      // Import mixed transactions
+      const transactions: ExtractedTransaction[] = [
+        { date: '2025-12-01', description: 'Salary', amount: 300000, type: 'income' },
+        { date: '2025-12-05', description: 'Rent', amount: 150000, type: 'expense' },
+        { date: '2025-12-10', description: 'Freelance', amount: 50000, type: 'income' },
+        { date: '2025-12-15', description: 'Groceries', amount: 30000, type: 'expense' },
+        { date: '2025-12-20', description: 'Utilities', amount: 20000, type: 'expense' },
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(5);
+
+      // Verify balance calculation
+      // Initial: 100000
+      // Income: 300000 + 50000 = 350000
+      // Expenses: 150000 + 30000 + 20000 = 200000
+      // Expected: 100000 + 350000 - 200000 = 250000
+      const accountAfter = await helpers.getAccount({ id: account.id, raw: true });
+      expect(accountAfter.currentBalance).toBe(250000);
+    });
+
+    it('should correctly update balance when skipping some transactions', async () => {
+      const initialBalance = 100000;
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance }),
+        raw: true,
+      });
+
+      const transactions: ExtractedTransaction[] = [
+        { date: '2025-12-01', description: 'Expense 1', amount: 10000, type: 'expense' }, // index 0 - skip
+        { date: '2025-12-02', description: 'Expense 2', amount: 20000, type: 'expense' }, // index 1 - import
+        { date: '2025-12-03', description: 'Income 1', amount: 50000, type: 'income' }, // index 2 - skip
+        { date: '2025-12-04', description: 'Expense 3', amount: 15000, type: 'expense' }, // index 3 - import
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [0, 2], // Skip first expense and income
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(2);
+      expect(result.summary.skipped).toBe(2);
+
+      // Only Expense 2 (20000) and Expense 3 (15000) should affect balance
+      // Expected: 100000 - 20000 - 15000 = 65000
+      const accountAfter = await helpers.getAccount({ id: account.id, raw: true });
+      expect(accountAfter.currentBalance).toBe(65000);
+    });
+
+    it('should handle balance going negative', async () => {
+      const initialBalance = 10000; // 100.00
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance }),
+        raw: true,
+      });
+
+      // Import expense larger than balance
+      const transactions: ExtractedTransaction[] = [
+        { date: '2025-12-01', description: 'Big expense', amount: 50000, type: 'expense' },
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+
+      // Expected: 10000 - 50000 = -40000
+      const accountAfter = await helpers.getAccount({ id: account.id, raw: true });
+      expect(accountAfter.currentBalance).toBe(-40000);
+    });
+
+    it('should correctly update balance when importing to account with existing transactions', async () => {
+      const initialBalance = 100000;
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance }),
+        raw: true,
+      });
+
+      // Create existing transaction
+      const existingTxPayload = helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 30000,
+        transactionType: TRANSACTION_TYPES.expense,
+        time: new Date('2025-12-10').toISOString(),
+      });
+      await helpers.createTransaction({ payload: existingTxPayload, raw: true });
+
+      // Verify balance after existing transaction
+      const accountMid = await helpers.getAccount({ id: account.id, raw: true });
+      expect(accountMid.currentBalance).toBe(70000); // 100000 - 30000
+
+      // Import more transactions
+      const transactions: ExtractedTransaction[] = [
+        { date: '2025-12-15', description: 'New expense', amount: 20000, type: 'expense' },
+        { date: '2025-12-20', description: 'New income', amount: 50000, type: 'income' },
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(2);
+
+      // Expected: 70000 - 20000 + 50000 = 100000
+      const accountAfter = await helpers.getAccount({ id: account.id, raw: true });
+      expect(accountAfter.currentBalance).toBe(100000);
     });
   });
 });

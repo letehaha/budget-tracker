@@ -1,10 +1,16 @@
 import type {
-  ExtractedMetadata,
   ExtractedTransaction,
   StatementExecuteImportResponse,
   StatementImportError,
+  TransactionImportDetails,
 } from '@bt/shared/types';
-import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  ImportSource,
+  PAYMENT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/Accounts.model';
 import * as Transactions from '@models/Transactions.model';
@@ -18,7 +24,6 @@ interface ExecuteImportParams {
   accountId: number;
   transactions: ExtractedTransaction[];
   skipIndices: number[];
-  metadata?: ExtractedMetadata;
 }
 
 /**
@@ -33,7 +38,6 @@ async function executeImportImpl({
   accountId,
   transactions,
   skipIndices,
-  metadata,
 }: ExecuteImportParams): Promise<StatementExecuteImportResponse> {
   const batchId = uuidv4();
   const importedAt = new Date();
@@ -99,6 +103,12 @@ async function executeImportImpl({
         date: txDate,
       });
 
+      const importDetails: TransactionImportDetails = {
+        batchId,
+        importedAt: importedAt.toISOString(),
+        source: ImportSource.statementParser,
+      };
+
       // Create transaction
       const transaction = await Transactions.createTransaction({
         userId,
@@ -113,17 +123,8 @@ async function executeImportImpl({
         currencyCode,
         accountType: ACCOUNT_TYPES.system,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-        originalId: `statement_import_${batchId}_${i}`,
         externalData: {
-          importBatchId: batchId,
-          importedAt: importedAt.toISOString(),
-          importSource: 'statement-parser',
-          originalIndex: i,
-          ...(tx.confidence !== undefined && { extractionConfidence: tx.confidence }),
-          ...(metadata && {
-            bankName: metadata.bankName,
-            statementPeriod: metadata.statementPeriod,
-          }),
+          importDetails,
         },
       });
 

@@ -3,6 +3,27 @@
  * These types are used by both frontend and backend for CSV import functionality
  */
 
+/**
+ * Import source types for imported transactions
+ */
+export enum ImportSource {
+  csv = 'csv',
+  statementParser = 'statement-parser',
+}
+
+/**
+ * Import details stored in transaction's externalData for imported transactions.
+ * This is undefined/null for manually created transactions or bank-synced transactions.
+ */
+export interface TransactionImportDetails {
+  /** Unique identifier for the import batch - groups all transactions from a single import */
+  batchId: string;
+  /** ISO timestamp when the import was executed */
+  importedAt: string;
+  /** Source of the import */
+  source: ImportSource;
+}
+
 export enum CategoryOptionValue {
   mapDataSourceColumn = 'map-data-source-column',
   createNewCategories = 'create-new-categories',

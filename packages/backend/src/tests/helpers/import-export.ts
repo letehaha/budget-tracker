@@ -181,7 +181,6 @@ interface StatementExecuteImportParams {
   accountId: number;
   transactions: ExtractedTransaction[];
   skipIndices: number[];
-  metadata?: ExtractedMetadata;
 }
 
 export function statementExecuteImport<R extends boolean | undefined = false>({
