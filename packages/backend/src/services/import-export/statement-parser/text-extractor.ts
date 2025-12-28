@@ -2,10 +2,7 @@
  * Text extraction from various file formats (PDF, CSV, TXT)
  */
 import type { StatementFileType } from '@bt/shared/types';
-
-// pdf-parse v1.x is a CommonJS module that exports a function directly
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require('pdf-parse');
+import pdfParse from 'pdf-parse';
 
 export interface TextExtractionResult {
   success: boolean;

@@ -11,6 +11,8 @@ import type {
   StatementFileType,
 } from '@bt/shared/types';
 
+import { toSystemAmount } from './helpers';
+
 export interface ParseCsvRequest {
   fileContent: string;
   delimiter?: string;
@@ -89,5 +91,81 @@ export const extractStatementTransactions = async (
   payload: StatementExtractRequest,
 ): Promise<StatementExtractionResult> => {
   const result = await api.post('/import/text-source/extract', payload);
+  return result;
+};
+
+// Statement Parser - Duplicate Detection
+
+export interface StatementDetectDuplicatesRequest {
+  accountId: number;
+  transactions: StatementExtractionResult['transactions'];
+}
+
+export interface StatementDetectDuplicatesResponse {
+  duplicates: Array<{
+    transactionIndex: number;
+    extractedTransaction: StatementExtractionResult['transactions'][number];
+    existingTransaction: {
+      id: number;
+      date: string;
+      amount: number;
+      note: string;
+    };
+  }>;
+}
+
+export const detectStatementDuplicates = async (
+  payload: StatementDetectDuplicatesRequest,
+): Promise<StatementDetectDuplicatesResponse> => {
+  // Convert amounts to system format (integers, multiply by 100)
+  const convertedTransactions = payload.transactions.map((tx) => ({
+    ...tx,
+    amount: toSystemAmount(tx.amount),
+    balance: tx.balance !== undefined ? toSystemAmount(tx.balance) : undefined,
+  }));
+
+  const result = await api.post('/import/text-source/detect-duplicates', {
+    ...payload,
+    transactions: convertedTransactions,
+  });
+  return result;
+};
+
+// Statement Parser - Execute Import
+
+export interface StatementExecuteImportRequest {
+  accountId: number;
+  transactions: StatementExtractionResult['transactions'];
+  skipIndices: number[];
+  metadata?: StatementExtractionResult['metadata'];
+}
+
+export interface StatementExecuteImportResponse {
+  summary: {
+    imported: number;
+    skipped: number;
+    errors: Array<{
+      transactionIndex: number;
+      error: string;
+    }>;
+  };
+  newTransactionIds: number[];
+  batchId: string;
+}
+
+export const executeStatementImport = async (
+  payload: StatementExecuteImportRequest,
+): Promise<StatementExecuteImportResponse> => {
+  // Convert amounts to system format (integers, multiply by 100)
+  const convertedTransactions = payload.transactions.map((tx) => ({
+    ...tx,
+    amount: toSystemAmount(tx.amount),
+    balance: tx.balance !== undefined ? toSystemAmount(tx.balance) : undefined,
+  }));
+
+  const result = await api.post('/import/text-source/execute', {
+    ...payload,
+    transactions: convertedTransactions,
+  });
   return result;
 };

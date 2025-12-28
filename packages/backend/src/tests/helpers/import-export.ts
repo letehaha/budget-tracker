@@ -5,7 +5,11 @@ import type {
   DetectDuplicatesResponse,
   ExecuteImportResponse,
   ExtractUniqueValuesResponse,
+  ExtractedMetadata,
+  ExtractedTransaction,
   ParsedTransactionRow,
+  StatementDetectDuplicatesResponse,
+  StatementExecuteImportResponse,
 } from '@bt/shared/types';
 import fs from 'fs';
 import path from 'path';
@@ -14,6 +18,19 @@ import { type UtilizeReturnType, makeRequest } from './common';
 
 // Path to CSV fixtures
 const FIXTURES_PATH = path.join(__dirname, '../fixtures/csv-import');
+const STATEMENT_FIXTURES_PATH = path.join(__dirname, '../fixtures');
+
+/**
+ * Load a statement fixture file by name (JSON format)
+ */
+export function loadStatementFixture(filename: string): {
+  transactions: ExtractedTransaction[];
+  metadata: ExtractedMetadata;
+} {
+  const filePath = path.join(STATEMENT_FIXTURES_PATH, filename);
+  const content = fs.readFileSync(filePath, 'utf-8');
+  return JSON.parse(content);
+}
 
 /**
  * Load a CSV fixture file by name
@@ -127,6 +144,56 @@ export function executeImport<R extends boolean | undefined = false>({
   return makeRequest<ExecuteImportResponse, R>({
     method: 'post',
     url: '/import/csv/execute',
+    payload,
+    raw,
+  });
+}
+
+// ============================================
+// Statement Parser - Detect Duplicates Endpoint
+// ============================================
+
+interface StatementDetectDuplicatesParams {
+  accountId: number;
+  transactions: ExtractedTransaction[];
+}
+
+export function statementDetectDuplicates<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: StatementDetectDuplicatesParams;
+  raw?: R;
+}): UtilizeReturnType<() => StatementDetectDuplicatesResponse, R> {
+  return makeRequest<StatementDetectDuplicatesResponse, R>({
+    method: 'post',
+    url: '/import/text-source/detect-duplicates',
+    payload,
+    raw,
+  });
+}
+
+// ============================================
+// Statement Parser - Execute Import Endpoint
+// ============================================
+
+interface StatementExecuteImportParams {
+  accountId: number;
+  transactions: ExtractedTransaction[];
+  skipIndices: number[];
+  metadata?: ExtractedMetadata;
+}
+
+export function statementExecuteImport<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: StatementExecuteImportParams;
+  raw?: R;
+}): UtilizeReturnType<() => StatementExecuteImportResponse, R> {
+  return makeRequest<StatementExecuteImportResponse, R>({
+    method: 'post',
+    url: '/import/text-source/execute',
     payload,
     raw,
   });

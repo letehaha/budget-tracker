@@ -18,7 +18,7 @@
           >
             <div class="flex items-center gap-3">
               <div
-                class="flex size-8 items-center justify-center rounded-full border-2 text-sm font-semibold"
+                class="flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold"
                 :class="{
                   'border-primary bg-primary text-primary-foreground': importStore.currentStep === 1,
                   'border-primary bg-primary/10 text-primary': importStore.completedSteps.includes(1),
@@ -56,7 +56,7 @@
           >
             <div class="flex items-center gap-3">
               <div
-                class="flex size-8 items-center justify-center rounded-full border-2 text-sm font-semibold"
+                class="flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold"
                 :class="{
                   'border-primary bg-primary text-primary-foreground': importStore.currentStep === 2,
                   'border-primary bg-primary/10 text-primary': importStore.completedSteps.includes(2),
@@ -96,7 +96,7 @@
           >
             <div class="flex items-center gap-3">
               <div
-                class="flex size-8 items-center justify-center rounded-full border-2 text-sm font-semibold"
+                class="flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold"
                 :class="{
                   'border-primary bg-primary text-primary-foreground': importStore.currentStep === 3,
                   'border-primary bg-primary/10 text-primary': importStore.completedSteps.includes(3),
@@ -136,7 +136,7 @@
           >
             <div class="flex items-center gap-3">
               <div
-                class="flex size-8 items-center justify-center rounded-full border-2 text-sm font-semibold"
+                class="flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold"
                 :class="{
                   'border-primary bg-primary text-primary-foreground': importStore.currentStep === 4,
                   'border-primary bg-primary/10 text-primary': importStore.completedSteps.includes(4),

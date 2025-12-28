@@ -102,7 +102,7 @@ const routes = [
       {
         path: '/import/text-source',
         name: ROUTES_NAMES.importStatement,
-        component: () => import('@/pages/import-export/statement-parser.vue'),
+        component: () => import('@/pages/import-export/statement-parser/index.vue'),
       },
       {
         path: '/settings',

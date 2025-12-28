@@ -22,8 +22,8 @@ export interface ExtractedTransaction {
   type: 'income' | 'expense';
   /** Running balance after transaction (if available) */
   balance?: number;
-  /** Extraction confidence score 0.0-1.0 */
-  confidence: number;
+  /** Extraction confidence score 0.0-1.0 (optional, only from AI extraction) */
+  confidence?: number;
 }
 
 /**
@@ -124,6 +124,77 @@ export interface StatementExtractError {
   message: string;
   /** Additional details */
   details?: string;
+}
+
+/**
+ * Request for statement duplicate detection
+ */
+export interface StatementDetectDuplicatesRequest {
+  /** Account ID to check duplicates against */
+  accountId: number;
+  /** Extracted transactions from AI */
+  transactions: ExtractedTransaction[];
+}
+
+/**
+ * Duplicate match for statement import
+ * Simpler than CSV import since we match by date + amount + type only
+ */
+export interface StatementDuplicateMatch {
+  /** Index in the extracted transactions array */
+  transactionIndex: number;
+  /** The extracted transaction */
+  extractedTransaction: ExtractedTransaction;
+  /** The existing transaction in the database */
+  existingTransaction: {
+    id: number;
+    date: string;
+    amount: number;
+    note: string;
+  };
+}
+
+/**
+ * Response from statement duplicate detection
+ */
+export interface StatementDetectDuplicatesResponse {
+  /** Indices of transactions that appear to be duplicates */
+  duplicates: StatementDuplicateMatch[];
+}
+
+/**
+ * Request for statement import execution
+ */
+export interface StatementExecuteImportRequest {
+  /** Account ID to import transactions to */
+  accountId: number;
+  /** Extracted transactions to import */
+  transactions: ExtractedTransaction[];
+  /** Transaction indices to skip (confirmed duplicates) */
+  skipIndices: number[];
+  /** Metadata from extraction (for reference) */
+  metadata?: ExtractedMetadata;
+}
+
+/**
+ * Import error for a specific transaction
+ */
+export interface StatementImportError {
+  transactionIndex: number;
+  error: string;
+}
+
+/**
+ * Response from statement import execution
+ */
+export interface StatementExecuteImportResponse {
+  summary: {
+    imported: number;
+    skipped: number;
+    errors: StatementImportError[];
+  };
+  newTransactionIds: number[];
+  batchId: string;
 }
 
 // Re-export old names for backward compatibility during migration

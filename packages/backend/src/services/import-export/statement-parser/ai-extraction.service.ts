@@ -156,23 +156,3 @@ export async function extractTransactionsWithAI({
     };
   }
 }
-
-/**
- * Placeholder for image/native PDF extraction
- * This will be implemented when adding vision model support
- */
-export async function extractTransactionsWithAIVision(_params: {
-  userId: number;
-  pdfBuffer: Buffer;
-  pageCount: number;
-}): Promise<AIExtractionResultType> {
-  // TODO: Implement native PDF support for Anthropic
-  // TODO: Implement image conversion for vision models
-  return {
-    success: false,
-    error: {
-      code: 'EXTRACTION_FAILED',
-      message: 'Image-based extraction is not yet implemented',
-    },
-  };
-}
