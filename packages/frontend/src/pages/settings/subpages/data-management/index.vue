@@ -7,7 +7,7 @@
 
     <CardContent class="mt-6 flex flex-col gap-6">
       <div>
-        <h3 class="mb-2 text-lg font-medium">Import from Text</h3>
+        <h3 class="mb-2 text-lg font-medium">Import from any Text Source</h3>
         <p class="mb-4 text-sm leading-relaxed">
           Parse and import transactions from bank statements, emails, or any text source. Uses AI to automatically
           extract transaction data.

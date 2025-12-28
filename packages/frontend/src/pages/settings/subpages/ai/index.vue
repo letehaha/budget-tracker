@@ -47,8 +47,11 @@
                   If you add your own API key for a provider, that key will be used instead for models from that
                   provider.
                 </li>
-                <li>Your API keys are encrypted with AES-256-GCM and stored securely.</li>
-                <li>You can remove your key anytime to switch back to the server-provided key.</li>
+                <li>Your API keys are encrypted and stored securely.</li>
+                <li>
+                  You can remove your key anytime to switch back to the server-provided key (rate limits will be applied
+                  based on current demand).
+                </li>
               </ul>
             </div>
           </TabsContent>

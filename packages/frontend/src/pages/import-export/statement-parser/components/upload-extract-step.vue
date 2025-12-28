@@ -98,11 +98,17 @@
 
       <!-- Extraction Progress -->
       <div v-if="store.isExtracting" class="space-y-3">
-        <div class="bg-muted h-2 overflow-hidden rounded-full">
-          <div class="bg-primary h-full animate-pulse rounded-full" style="width: 60%" />
+        <div class="flex items-center gap-3">
+          <div class="bg-muted h-2 flex-1 overflow-hidden rounded-full">
+            <div
+              class="bg-primary h-full rounded-full transition-all duration-300 ease-out"
+              :style="{ width: `${extractionProgress}%` }"
+            />
+          </div>
+          <span class="text-muted-foreground w-10 text-right text-sm font-medium"> {{ extractionProgress }}% </span>
         </div>
         <p class="text-muted-foreground text-center text-xs">
-          This may take 10-30 seconds depending on the document size
+          This may take 30-60 seconds depending on the document size
         </p>
       </div>
     </div>
@@ -145,7 +151,7 @@ import {
   SparklesIcon,
   XIcon,
 } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { onUnmounted, ref } from 'vue';
 
 const store = useStatementParserStore();
 
@@ -153,6 +159,41 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const isDragging = ref(false);
 const fileError = ref<string | null>(null);
 const extractionStatus = ref('Extracting...');
+const extractionProgress = ref(0);
+
+// Progress animation interval
+let progressInterval: ReturnType<typeof setInterval> | null = null;
+let statusTimeouts: ReturnType<typeof setTimeout>[] = [];
+
+onUnmounted(() => {
+  cleanupProgressAnimation();
+});
+
+function cleanupProgressAnimation() {
+  if (progressInterval) {
+    clearInterval(progressInterval);
+    progressInterval = null;
+  }
+  statusTimeouts.forEach(clearTimeout);
+  statusTimeouts = [];
+}
+
+function startProgressAnimation() {
+  extractionProgress.value = 0;
+  const startTime = Date.now();
+
+  // Expected duration ~60s, but we'll cap progress at 95% until complete
+  // Progress curve: fast at start, slower as it progresses
+  progressInterval = setInterval(() => {
+    const elapsed = (Date.now() - startTime) / 1000; // seconds
+
+    // Logarithmic progress curve that slows down over time
+    // Reaches ~50% at 15s, ~70% at 30s, ~85% at 45s, ~92% at 60s
+    // Never exceeds 95% until extraction completes
+    const progress = Math.min(95, 100 * (1 - Math.exp(-elapsed / 25)));
+    extractionProgress.value = Math.round(progress);
+  }, 200);
+}
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const SUPPORTED_EXTENSIONS = ['.pdf', '.csv', '.txt'];
@@ -214,18 +255,22 @@ async function handleEstimate() {
 
 async function handleExtract() {
   extractionStatus.value = 'Sending file to AI...';
+  startProgressAnimation();
 
-  // Simulate progress updates
+  // Status updates with extended timings for AI processing
+  // AI extraction typically takes 20-60 seconds
   const statusUpdates = [
-    { delay: 2000, message: 'AI is reading the document...' },
-    { delay: 5000, message: 'Extracting transaction data...' },
-    { delay: 10000, message: 'Processing transactions...' },
-    { delay: 20000, message: 'Almost done...' },
+    { delay: 3000, message: 'AI is reading the document...' },
+    { delay: 8000, message: 'Analyzing statement structure...' },
+    { delay: 15000, message: 'Extracting transaction data...' },
+    { delay: 25000, message: 'Processing transactions...' },
+    { delay: 40000, message: 'Finalizing extraction...' },
+    { delay: 55000, message: 'Almost done...' },
   ];
 
-  const timeouts: ReturnType<typeof setTimeout>[] = [];
+  statusTimeouts = [];
   statusUpdates.forEach(({ delay, message }) => {
-    timeouts.push(
+    statusTimeouts.push(
       setTimeout(() => {
         if (store.isExtracting) {
           extractionStatus.value = message;
@@ -236,8 +281,10 @@ async function handleExtract() {
 
   try {
     await store.extract();
+    // On success, jump to 100%
+    extractionProgress.value = 100;
   } finally {
-    timeouts.forEach(clearTimeout);
+    cleanupProgressAnimation();
   }
 }
 </script>

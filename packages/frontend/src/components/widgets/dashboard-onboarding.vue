@@ -1,50 +1,85 @@
 <template>
-  <Card class="p-6">
-    <div class="mb-6 text-center">
-      <h2 class="text-2xl font-semibold">Welcome to MoneyMatter 🎉</h2>
-      <p class="text-muted-foreground mt-2">Get started by adding your first account</p>
+  <div class="mx-auto w-full max-w-2xl">
+    <!-- Header -->
+    <div class="mb-8 text-center">
+      <h1 class="text-3xl font-semibold tracking-tight">Welcome to MoneyMatter</h1>
+      <p class="text-muted-foreground mt-2 text-base">Get started by setting up your first account</p>
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2">
+    <!-- Primary Options -->
+    <div class="grid gap-3 sm:grid-cols-2">
       <CreateAccountDialog>
-        <Card class="hover:bg-accent/50 cursor-pointer p-4 transition-colors">
-          <div class="flex flex-col items-center gap-3 text-center">
-            <div class="bg-primary/10 rounded-full p-3">
-              <WalletIcon class="text-primary size-6" />
-            </div>
-            <div>
-              <h3 class="font-medium">Create Manual Account</h3>
-              <p class="text-muted-foreground mt-1 text-sm">Add a cash account or track expenses manually</p>
-            </div>
-          </div>
-        </Card>
-      </CreateAccountDialog>
-
-      <Card class="hover:bg-accent/50 cursor-pointer p-4 transition-colors" @click="navigateToIntegrations">
-        <div class="flex flex-col items-center gap-3 text-center">
-          <div class="bg-primary/10 rounded-full p-3">
-            <LandmarkIcon class="text-primary size-6" />
+        <button
+          class="border-border hover:border-foreground/25 hover:bg-accent/50 group flex w-full items-start gap-4 rounded-lg border bg-transparent p-5 text-left transition-all"
+        >
+          <div class="bg-primary/10 group-hover:bg-primary/15 rounded-lg p-2.5 transition-colors">
+            <WalletIcon class="text-primary size-5" />
           </div>
           <div>
-            <h3 class="font-medium">Connect Your Bank</h3>
-            <p class="text-muted-foreground mt-1 text-sm">Automatically sync transactions from your bank</p>
+            <h3 class="font-medium">Create Manual Account</h3>
+            <p class="text-muted-foreground mt-1 text-sm leading-relaxed">
+              Track cash, savings, or any account manually
+            </p>
           </div>
+        </button>
+      </CreateAccountDialog>
+
+      <button
+        class="border-border hover:border-foreground/25 hover:bg-accent/50 group flex w-full items-start gap-4 rounded-lg border bg-transparent p-5 text-left transition-all"
+        @click="navigateToIntegrations"
+      >
+        <div class="bg-primary/10 group-hover:bg-primary/15 rounded-lg p-2.5 transition-colors">
+          <LandmarkIcon class="text-primary size-5" />
         </div>
-      </Card>
+        <div>
+          <h3 class="font-medium">Connect Your Bank</h3>
+          <p class="text-muted-foreground mt-1 text-sm leading-relaxed">
+            Automatically sync transactions from your bank
+          </p>
+        </div>
+      </button>
     </div>
-  </Card>
+
+    <!-- Divider -->
+    <div class="relative my-8">
+      <div class="border-border absolute inset-0 flex items-center">
+        <div class="border-border w-full border-t"></div>
+      </div>
+      <div class="relative flex justify-center">
+        <span class="bg-background text-muted-foreground px-3 text-sm">or import existing data</span>
+      </div>
+    </div>
+
+    <!-- Secondary Option - Import -->
+    <button
+      class="border-border hover:border-foreground/25 hover:bg-accent/50 group flex w-full items-center gap-4 rounded-lg border bg-transparent p-5 text-left transition-all"
+      @click="navigateToImport"
+    >
+      <div class="bg-muted group-hover:bg-muted/80 rounded-lg p-2.5 transition-colors">
+        <FileUpIcon class="text-muted-foreground size-5" />
+      </div>
+      <div class="flex-1">
+        <h3 class="font-medium">Import from File</h3>
+        <p class="text-muted-foreground mt-0.5 text-sm">Import transactions from bank statements (PDF) or CSV files</p>
+      </div>
+      <ArrowRightIcon class="text-muted-foreground size-4 transition-transform group-hover:translate-x-0.5" />
+    </button>
+  </div>
 </template>
 
 <script setup lang="ts">
 import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
-import { Card } from '@/components/lib/ui/card';
 import { ROUTES_NAMES } from '@/routes';
-import { LandmarkIcon, WalletIcon } from 'lucide-vue-next';
+import { ArrowRightIcon, FileUpIcon, LandmarkIcon, WalletIcon } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
 const navigateToIntegrations = () => {
   router.push({ name: ROUTES_NAMES.accountIntegrations });
+};
+
+const navigateToImport = () => {
+  router.push({ name: ROUTES_NAMES.settingsDataManagement });
 };
 </script>
