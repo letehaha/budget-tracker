@@ -7,7 +7,9 @@ import {
   executeStatementImport,
   extractStatementTransactions,
 } from '@/api/import-export';
+import { loadTransactions } from '@/api/transactions';
 import type { AccountModel, StatementCostEstimate, StatementExtractionResult } from '@bt/shared/types';
+import type { TransactionModel } from '@bt/shared/types/db-models';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
@@ -50,6 +52,8 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   // Step 5: Duplicate detection
   const isDetectingDuplicates = ref(false);
   const duplicates = ref<StatementDetectDuplicatesResponse['duplicates']>([]);
+  // Existing transactions in the account within the statement date range
+  const existingTransactions = ref<TransactionModel[]>([]);
   // Set of transaction indices that user wants to import anyway (override duplicate detection)
   const overriddenDuplicateIndices = ref<Set<number>>(new Set());
   // Set of transaction indices that user wants to exclude (manual exclusion)
@@ -62,6 +66,21 @@ export const useStatementParserStore = defineStore('statementParser', () => {
 
   // Computed properties
   const detectedCurrency = computed(() => extractionResult.value?.metadata.currencyCode);
+
+  /**
+   * Get the date range of extracted transactions for fetching existing transactions
+   */
+  const extractedDateRange = computed(() => {
+    if (!extractionResult.value?.transactions.length) return null;
+
+    const dates = extractionResult.value.transactions.map((tx) => tx.date.split(' ')[0]!);
+    const sortedDates = [...dates].sort();
+
+    return {
+      startDate: sortedDates[0]!,
+      endDate: sortedDates[sortedDates.length - 1]!,
+    };
+  });
 
   const duplicateIndices = computed(() => new Set(duplicates.value.map((d) => d.transactionIndex)));
 
@@ -221,13 +240,31 @@ export const useStatementParserStore = defineStore('statementParser', () => {
 
     isDetectingDuplicates.value = true;
     duplicates.value = [];
+    existingTransactions.value = [];
 
     try {
-      const result = await detectStatementDuplicates({
+      // Fetch duplicates and existing transactions in parallel
+      const duplicatesPromise = detectStatementDuplicates({
         accountId: selectedAccount.value.id,
         transactions: extractionResult.value.transactions,
       });
-      duplicates.value = result.duplicates;
+
+      // Fetch existing transactions for the date range
+      const dateRange = extractedDateRange.value;
+      const existingPromise = dateRange
+        ? loadTransactions({
+            from: 0,
+            limit: 1000, // Reasonable limit for a statement period
+            accountIds: [selectedAccount.value.id],
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+          })
+        : Promise.resolve([]);
+
+      const [duplicatesResult, existingResult] = await Promise.all([duplicatesPromise, existingPromise]);
+
+      duplicates.value = duplicatesResult.duplicates;
+      existingTransactions.value = existingResult;
 
       // Mark duplicate review step as completed
       if (!completedSteps.value.includes(3)) {
@@ -310,6 +347,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     isNewAccount.value = false;
     isDetectingDuplicates.value = false;
     duplicates.value = [];
+    existingTransactions.value = [];
     overriddenDuplicateIndices.value = new Set();
     excludedTransactionIndices.value = new Set();
     isImporting.value = false;
@@ -340,6 +378,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     isNewAccount,
     isDetectingDuplicates,
     duplicates,
+    existingTransactions,
     overriddenDuplicateIndices,
     excludedTransactionIndices,
     isImporting,
@@ -348,6 +387,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
 
     // Computed
     detectedCurrency,
+    extractedDateRange,
     duplicateIndices,
     transactionsToImport,
     skipIndices,

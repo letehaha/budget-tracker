@@ -10,7 +10,7 @@
       <!-- Summary Stats -->
       <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
         <div class="flex items-center gap-2">
-          <span class="text-muted-foreground">Total:</span>
+          <span class="text-muted-foreground">Extracted:</span>
           <span class="font-semibold">{{ store.importSummary.total }}</span>
         </div>
         <div class="flex items-center gap-2">
@@ -20,6 +20,10 @@
         <div class="flex items-center gap-2">
           <span class="text-muted-foreground">Will Import:</span>
           <span class="font-semibold text-green-600">{{ store.importSummary.toImport }}</span>
+        </div>
+        <div v-if="existingTransactionsCount > 0" class="flex items-center gap-2">
+          <span class="text-muted-foreground">Already in Account:</span>
+          <span class="font-semibold text-gray-500">{{ existingTransactionsCount }}</span>
         </div>
       </div>
 
@@ -63,7 +67,7 @@
                 <div
                   class="size-2 shrink-0 rounded-full ring-1"
                   :class="{
-                    'bg-green-500/20 ring-green-500': item.type === 'new',
+                    'ring-success-text bg-green-500/20': item.type === 'new',
                     'bg-yellow-500/20 ring-yellow-500': item.type === 'duplicate',
                     'bg-gray-500/20 ring-gray-500': item.type === 'existing',
                   }"
@@ -76,7 +80,7 @@
                 <span
                   class="w-16 shrink-0 rounded px-1 py-0.5 text-center text-xs"
                   :class="{
-                    'bg-green-500/20 text-green-700': item.txType === 'income',
+                    'text-success-text bg-success/40': item.txType === 'income',
                     'bg-destructive/20 text-destructive-text': item.txType === 'expense',
                   }"
                 >
@@ -86,12 +90,18 @@
                 <!-- Description -->
                 <span class="min-w-0 flex-1 truncate text-xs">{{ item.description }}</span>
 
-                <!-- Duplicate Badge -->
+                <!-- Status Badge -->
                 <span
                   v-if="item.type === 'duplicate'"
                   class="shrink-0 rounded bg-yellow-500/20 px-1 py-0.5 text-xs text-yellow-700"
                 >
                   Dup
+                </span>
+                <span
+                  v-else-if="item.type === 'existing'"
+                  class="shrink-0 rounded bg-gray-500/20 px-1 py-0.5 text-xs text-gray-600"
+                >
+                  Existing
                 </span>
 
                 <!-- Amount -->
@@ -160,9 +170,17 @@ import { computed } from 'vue';
 
 const store = useStatementParserStore();
 
+// Count existing transactions that are not duplicates
+const existingTransactionsCount = computed(() => {
+  const duplicateExistingIds = new Set(store.duplicates.map((d) => d.existingTransaction.id));
+  return store.existingTransactions.filter((tx) => !duplicateExistingIds.has(tx.id)).length;
+});
+
 interface TimelineItem {
   type: 'new' | 'duplicate' | 'existing';
   transactionIndex: number;
+  /** For existing transactions, this is the actual transaction ID */
+  existingId?: number;
   date: string;
   description: string;
   amount: number;
@@ -178,7 +196,11 @@ const timelineItems = computed((): TimelineItem[] => {
   const items: TimelineItem[] = [];
   const duplicateMap = new Map(store.duplicates.map((d) => [d.transactionIndex, d]));
 
-  // Add extracted transactions
+  // Get the set of existing transaction IDs that are matched as duplicates
+  // to avoid showing them twice (once as duplicate, once as existing)
+  const duplicateExistingIds = new Set(store.duplicates.map((d) => d.existingTransaction.id));
+
+  // Add extracted transactions (new and duplicates)
   store.extractionResult.transactions.forEach((tx, index) => {
     const duplicate = duplicateMap.get(index);
     const isExcluded = store.excludedTransactionIndices.has(index);
@@ -206,6 +228,25 @@ const timelineItems = computed((): TimelineItem[] => {
         isExcluded,
       });
     }
+  });
+
+  // Add existing transactions from the account (excluding those already shown as duplicates)
+  store.existingTransactions.forEach((tx) => {
+    // Skip if this existing transaction is already shown as a duplicate match
+    if (duplicateExistingIds.has(tx.id)) return;
+
+    const txDate = new Date(tx.time);
+    const dateStr = txDate.toISOString().split('T')[0]!;
+
+    items.push({
+      type: 'existing',
+      transactionIndex: -1, // Not applicable for existing transactions
+      existingId: tx.id,
+      date: dateStr,
+      description: tx.note || 'No description',
+      amount: Math.abs(tx.amount),
+      txType: tx.amount < 0 ? 'expense' : 'income',
+    });
   });
 
   // Sort by date (newest first)
