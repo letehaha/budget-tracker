@@ -32,7 +32,7 @@
         <component :is="getFileIcon()" class="text-primary mx-auto size-12" />
         <p class="font-medium">{{ store.uploadedFile.name }}</p>
         <p class="text-muted-foreground text-sm">{{ (store.uploadedFile.size / 1024).toFixed(1) }} KB</p>
-        <Button variant="ghost" size="sm" @click="clearFile">
+        <Button variant="ghost-destructive" size="sm" @click="clearFile">
           <XIcon class="mr-1 size-4" />
           Remove
         </Button>
