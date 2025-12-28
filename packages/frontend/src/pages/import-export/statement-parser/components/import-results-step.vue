@@ -50,7 +50,7 @@
       <div class="flex flex-col items-center justify-center py-8">
         <AlertCircleIcon class="mb-4 size-12 text-red-500" />
         <h3 class="text-lg font-semibold">Import Failed</h3>
-        <p class="text-destructive mt-1 text-sm">{{ store.importError }}</p>
+        <p class="text-destructive-text mt-1 text-sm">{{ store.importError }}</p>
       </div>
       <div class="flex gap-3">
         <Button variant="outline" class="flex-1" @click="store.reset()">Start Over</Button>
@@ -97,7 +97,7 @@
 
       <!-- Errors Section -->
       <div v-if="store.importResult.summary.errors.length" class="space-y-2">
-        <h3 class="text-destructive text-sm font-semibold">Import Errors</h3>
+        <h3 class="text-destructive-text text-sm font-semibold">Import Errors</h3>
         <div class="max-h-48 overflow-auto rounded-lg border border-red-200">
           <table class="w-full text-sm">
             <thead class="bg-red-50">
@@ -113,7 +113,7 @@
                 class="border-b last:border-b-0"
               >
                 <td class="px-4 py-2 font-mono">{{ error.transactionIndex + 1 }}</td>
-                <td class="text-destructive px-4 py-2">{{ error.error }}</td>
+                <td class="text-destructive-text px-4 py-2">{{ error.error }}</td>
               </tr>
             </tbody>
           </table>
@@ -159,7 +159,7 @@ const hasErrors = computed(() => {
 
 function handleBack() {
   // Go back to step 3 (review) for existing accounts, or step 2 (account selection) for new accounts
-  store.goToStep({ step: store.isNewAccount ? 2 : 3 });
+  store.goBackToStep({ step: store.isNewAccount ? 2 : 3 });
 }
 
 async function handleImport() {

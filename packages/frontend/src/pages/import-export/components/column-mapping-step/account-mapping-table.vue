@@ -64,7 +64,7 @@
                 </Select.Select>
                 <p
                   v-if="getFilteredAccounts(sourceAccount.currency).length === 0"
-                  class="text-destructive mt-1 text-xs"
+                  class="text-destructive-text mt-1 text-xs"
                 >
                   No accounts available with matching currency ({{ sourceAccount.currency }})
                 </p>

@@ -19,7 +19,7 @@
 
     <template v-else-if="portfoliosQuery.error.value">
       <div class="py-12 text-center">
-        <div class="text-destructive mb-4">Failed to load portfolios</div>
+        <div class="text-destructive-text mb-4">Failed to load portfolios</div>
         <UiButton @click="portfoliosQuery.refetch()">Try Again</UiButton>
       </div>
     </template>

@@ -18,13 +18,36 @@
       </div>
     </div>
 
+    <!-- Currency selector when not detected -->
+    <div
+      v-if="!store.detectedCurrency"
+      class="flex flex-col gap-3 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4"
+    >
+      <div class="flex items-start gap-2 text-sm text-yellow-700">
+        <AlertTriangleIcon class="mt-0.5 size-4 shrink-0" />
+        <p>Could not detect statement currency. Please select the currency manually:</p>
+      </div>
+      <div class="max-w-xs">
+        <Select.Select :model-value="store.manualCurrency ?? undefined" @update:model-value="handleCurrencyChange">
+          <Select.SelectTrigger>
+            <Select.SelectValue placeholder="Select currency" />
+          </Select.SelectTrigger>
+          <Select.SelectContent>
+            <template v-for="item of systemCurrenciesVerbose.linked" :key="item.code">
+              <Select.SelectItem :value="item.code"> {{ item.code }} - {{ item.currency }} </Select.SelectItem>
+            </template>
+          </Select.SelectContent>
+        </Select.Select>
+      </div>
+    </div>
+
     <!-- Account Selection -->
     <div class="space-y-4">
       <div class="xs:grid-cols-[minmax(0,1fr)_max-content] grid grid-cols-1 flex-wrap gap-3">
         <AccountSelectField
           :model-value="store.selectedAccount"
           :accounts="enabledAccounts"
-          :detected-currency="store.detectedCurrency"
+          :detected-currency="store.effectiveCurrency"
           :is-new-account="store.isNewAccount"
           placeholder="Select existing account"
           @update:model-value="selectExistingAccount"
@@ -40,14 +63,14 @@
       <div
         v-if="
           store.selectedAccount &&
-          store.detectedCurrency &&
-          store.selectedAccount.currencyCode !== store.detectedCurrency
+          store.effectiveCurrency &&
+          store.selectedAccount.currencyCode !== store.effectiveCurrency
         "
         class="flex items-start gap-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-700"
       >
         <AlertTriangleIcon class="mt-0.5 size-4 shrink-0" />
         <p>
-          The statement currency ({{ store.detectedCurrency }}) differs from the account currency ({{
+          The statement currency ({{ store.effectiveCurrency }}) differs from the account currency ({{
             store.selectedAccount.currencyCode
           }}). Transactions will be imported using the account currency.
         </p>
@@ -68,7 +91,7 @@
     <!-- Create Account Dialog -->
     <CreateAccountForImportDialog
       v-model:open="showCreateDialog"
-      :default-currency="store.detectedCurrency"
+      :default-currency="store.effectiveCurrency"
       :default-name="store.extractionResult?.metadata.bankName"
       @created="handleAccountCreated"
     />
@@ -77,7 +100,8 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
-import { useAccountsStore } from '@/stores';
+import * as Select from '@/components/lib/ui/select';
+import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { useStatementParserStore } from '@/stores/statement-parser';
 import type { AccountModel } from '@bt/shared/types';
 import { AlertTriangleIcon, ArrowLeftIcon, PlusIcon } from 'lucide-vue-next';
@@ -89,7 +113,9 @@ import CreateAccountForImportDialog from './create-account-for-import-dialog.vue
 
 const store = useStatementParserStore();
 const accountsStore = useAccountsStore();
+const currenciesStore = useCurrenciesStore();
 const { enabledAccounts } = storeToRefs(accountsStore);
+const { systemCurrenciesVerbose } = storeToRefs(currenciesStore);
 
 const showCreateDialog = ref(false);
 
@@ -106,8 +132,14 @@ function handleAccountCreated(account: AccountModel) {
   showCreateDialog.value = false;
 }
 
+function handleCurrencyChange(currencyCode: string | null) {
+  store.setManualCurrency({ currencyCode });
+  // Clear selected account when currency changes since it might no longer match
+  store.clearSelectedAccount();
+}
+
 function handleBack() {
-  store.goToStep({ step: 1 });
+  store.goBackToStep({ step: 1 });
 }
 
 async function handleProceed() {

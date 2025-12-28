@@ -132,7 +132,7 @@ const baseTabs: Tab[] = [
   },
   {
     name: 'data-management',
-    label: 'Data Management',
+    label: 'Import Data',
     to: { name: ROUTES_NAMES.settingsDataManagement },
     icon: DatabaseIcon,
   },

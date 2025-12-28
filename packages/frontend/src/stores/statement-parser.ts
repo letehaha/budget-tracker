@@ -48,6 +48,8 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   // Step 4: Account selection
   const selectedAccount = ref<AccountModel | null>(null);
   const isNewAccount = ref(false);
+  // Manual currency selection (used when AI doesn't detect currency)
+  const manualCurrency = ref<string | null>(null);
 
   // Step 5: Duplicate detection
   const isDetectingDuplicates = ref(false);
@@ -66,6 +68,11 @@ export const useStatementParserStore = defineStore('statementParser', () => {
 
   // Computed properties
   const detectedCurrency = computed(() => extractionResult.value?.metadata.currencyCode);
+
+  /**
+   * Effective currency - either AI-detected or manually selected by user
+   */
+  const effectiveCurrency = computed(() => detectedCurrency.value || manualCurrency.value);
 
   /**
    * Get the date range of extracted transactions for fetching existing transactions
@@ -207,6 +214,10 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     overriddenDuplicateIndices.value = new Set();
   }
 
+  function setManualCurrency({ currencyCode }: { currencyCode: string | null }) {
+    manualCurrency.value = currencyCode;
+  }
+
   function clearSelectedAccount() {
     selectedAccount.value = null;
     isNewAccount.value = false;
@@ -344,6 +355,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     extractionError.value = null;
     selectedAccount.value = null;
     isNewAccount.value = false;
+    manualCurrency.value = null;
     isDetectingDuplicates.value = false;
     duplicates.value = [];
     existingTransactions.value = [];
@@ -354,9 +366,27 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     importError.value = null;
   }
 
+  /**
+   * Navigate to a step (used by accordion clicks).
+   * Only allows going to the current step (no skipping via accordion).
+   */
   function goToStep({ step }: { step: number }) {
-    // Can only go to completed steps or current step + 1
-    if (completedSteps.value.includes(step - 1) || step === 1) {
+    // Only allow navigating to current step (keeps accordion behavior but prevents skipping)
+    if (step === currentStep.value) {
+      return;
+    }
+    // Don't allow clicking on accordion headers to change steps
+    // Users must use Back/Continue buttons
+  }
+
+  /**
+   * Go back to a previous step (used by Back buttons).
+   * Removes completion status of steps after the target step.
+   */
+  function goBackToStep({ step }: { step: number }) {
+    if (step < currentStep.value) {
+      // Remove completion status for all steps >= target step
+      completedSteps.value = completedSteps.value.filter((s) => s < step);
       currentStep.value = step;
     }
   }
@@ -375,6 +405,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     extractionError,
     selectedAccount,
     isNewAccount,
+    manualCurrency,
     isDetectingDuplicates,
     duplicates,
     existingTransactions,
@@ -386,6 +417,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
 
     // Computed
     detectedCurrency,
+    effectiveCurrency,
     extractedDateRange,
     duplicateIndices,
     transactionsToImport,
@@ -397,6 +429,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     estimateCost,
     extract,
     selectAccount,
+    setManualCurrency,
     clearSelectedAccount,
     proceedFromAccountSelection,
     detectDuplicates,
@@ -406,5 +439,6 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     executeImport,
     reset,
     goToStep,
+    goBackToStep,
   };
 });

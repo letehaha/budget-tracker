@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <div v-if="fileError" class="bg-destructive/10 text-destructive rounded-lg p-3">
+    <div v-if="fileError" class="bg-destructive/10 text-destructive-text rounded-lg p-3">
       {{ fileError }}
     </div>
 
@@ -57,7 +57,7 @@
       </Button>
     </div>
 
-    <div v-if="store.estimateError" class="bg-destructive/10 text-destructive rounded-lg p-3">
+    <div v-if="store.estimateError" class="bg-destructive/10 text-destructive-text rounded-lg p-3">
       {{ store.estimateError }}
       <Button variant="ghost" size="sm" class="mt-2" @click="handleEstimate"> Try Again </Button>
     </div>
@@ -107,7 +107,7 @@
       </div>
     </div>
 
-    <div v-if="store.extractionError" class="bg-destructive/10 text-destructive rounded-lg p-3">
+    <div v-if="store.extractionError" class="bg-destructive/10 text-destructive-text rounded-lg p-3">
       {{ store.extractionError }}
     </div>
 

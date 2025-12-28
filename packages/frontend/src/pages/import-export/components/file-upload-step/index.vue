@@ -35,7 +35,7 @@
       <input ref="fileInputRef" type="file" accept=".csv,text/csv" class="hidden" @change="handleFileSelect" />
     </div>
 
-    <div v-if="error" class="bg-destructive/10 text-destructive mt-4 rounded-lg p-3 text-sm">
+    <div v-if="error" class="bg-destructive/10 text-destructive-text mt-4 rounded-lg p-3 text-sm">
       {{ error }}
     </div>
 

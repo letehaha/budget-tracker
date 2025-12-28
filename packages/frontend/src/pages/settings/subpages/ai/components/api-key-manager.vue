@@ -19,7 +19,7 @@
           <div class="flex items-center gap-3">
             <!-- Status icon -->
             <CheckCircleIcon v-if="providerInfo.status !== 'invalid'" class="h-5 w-5 text-green-600" />
-            <AlertCircleIcon v-else class="text-destructive h-5 w-5" />
+            <AlertCircleIcon v-else class="text-destructive-text h-5 w-5" />
 
             <div>
               <div class="font-medium">
@@ -32,7 +32,7 @@
                 </span>
                 <span
                   v-if="providerInfo.status === 'invalid'"
-                  class="bg-destructive/10 text-destructive ml-2 rounded-full px-2 py-0.5 text-xs"
+                  class="bg-destructive/10 text-destructive-text ml-2 rounded-full px-2 py-0.5 text-xs"
                 >
                   Invalid
                 </span>
@@ -68,7 +68,7 @@
 
         <!-- Error message for invalid keys -->
         <div v-if="providerInfo.status === 'invalid' && providerInfo.lastError" class="mt-2">
-          <p class="text-destructive text-sm">{{ providerInfo.lastError }}</p>
+          <p class="text-destructive-text text-sm">{{ providerInfo.lastError }}</p>
           <p class="text-muted-foreground mt-1 text-xs">
             Add a new key below to replace this one, or remove it if you no longer need it.
           </p>

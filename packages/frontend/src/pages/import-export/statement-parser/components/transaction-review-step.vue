@@ -55,7 +55,8 @@
               class="border-b last:border-b-0"
               :class="[
                 item.type === 'new' && !item.isExcluded && 'bg-green-500/5',
-                item.type === 'duplicate' && 'bg-yellow-500/5',
+                item.type === 'duplicate' && !item.isOverridden && 'bg-yellow-500/5',
+                item.type === 'duplicate' && item.isOverridden && 'bg-green-500/5',
                 item.type === 'existing' && 'bg-muted/50',
                 item.isExcluded && 'opacity-50',
                 item.type !== 'existing' && 'hover:bg-muted/30 cursor-pointer',
@@ -67,8 +68,9 @@
                 <div
                   class="size-2 shrink-0 rounded-full ring-1"
                   :class="{
-                    'ring-success-text bg-green-500/20': item.type === 'new',
-                    'bg-yellow-500/20 ring-yellow-500': item.type === 'duplicate',
+                    'ring-success-text bg-green-500/20':
+                      item.type === 'new' || (item.type === 'duplicate' && item.isOverridden),
+                    'bg-yellow-500/20 ring-yellow-500': item.type === 'duplicate' && !item.isOverridden,
                     'bg-gray-500/20 ring-gray-500': item.type === 'existing',
                   }"
                 ></div>
@@ -88,36 +90,42 @@
                 </span>
 
                 <!-- Description -->
-                <span class="min-w-0 flex-1 truncate text-xs">{{ item.description }}</span>
+                <span class="max-w-[300px] min-w-0 flex-1 truncate text-xs">{{ item.description }}</span>
 
                 <!-- Status Badge -->
                 <span
-                  v-if="item.type === 'duplicate'"
+                  v-if="item.type === 'duplicate' && !item.isOverridden"
                   class="shrink-0 rounded bg-yellow-500/20 px-1 py-0.5 text-xs text-yellow-700"
                 >
                   Dup
                 </span>
                 <span
+                  v-else-if="item.type === 'duplicate' && item.isOverridden"
+                  class="text-success-text shrink-0 rounded bg-green-500/20 px-1 py-0.5 text-xs"
+                >
+                  Import
+                </span>
+                <span
                   v-else-if="item.type === 'existing'"
                   class="shrink-0 rounded bg-gray-500/20 px-1 py-0.5 text-xs text-gray-600"
                 >
-                  Existing
+                  Exists
                 </span>
 
                 <!-- Amount -->
-                <span class="w-24 shrink-0 text-right font-mono text-xs font-medium">
+                <span class="ml-auto w-24 shrink-0 text-right font-mono text-xs font-medium">
                   {{ item.txType === 'expense' ? '-' : '+' }}{{ item.amount.toFixed(2) }}
                 </span>
 
                 <!-- Action Icon -->
                 <div class="w-6 shrink-0 text-center">
                   <template v-if="item.type === 'new'">
-                    <PlusCircleIcon v-if="item.isExcluded" class="inline size-3.5" />
-                    <MinusCircleIcon v-else class="text-destructive-text inline size-3.5" />
+                    <CheckCircleIcon v-if="!item.isExcluded" class="inline size-4 text-green-600" />
+                    <XCircleIcon v-else class="text-muted-foreground inline size-4" />
                   </template>
                   <template v-else-if="item.type === 'duplicate'">
-                    <XCircleIcon v-if="item.isOverridden" class="inline size-3.5 text-yellow-600" />
-                    <CheckCircleIcon v-else class="inline size-3.5 text-green-600" />
+                    <CheckCircleIcon v-if="item.isOverridden" class="inline size-4 text-green-600" />
+                    <BanIcon v-else class="text-muted-foreground inline size-4" />
                   </template>
                 </div>
               </div>
@@ -136,8 +144,8 @@
           </span>
         </p>
         <p class="text-muted-foreground mt-1">
-          Click the <CheckCircleIcon class="inline size-4 text-green-600" /> button to import a duplicate anyway, or
-          <XCircleIcon class="inline size-4 text-yellow-600" /> to skip it.
+          Click on a row to toggle: <CheckCircleIcon class="inline size-4 text-green-600" /> will import,
+          <BanIcon class="text-muted-foreground inline size-4" /> will skip.
         </p>
       </div>
 
@@ -158,14 +166,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
 import { useStatementParserStore } from '@/stores/statement-parser';
-import {
-  ArrowLeftIcon,
-  CheckCircleIcon,
-  Loader2Icon,
-  MinusCircleIcon,
-  PlusCircleIcon,
-  XCircleIcon,
-} from 'lucide-vue-next';
+import { ArrowLeftIcon, BanIcon, CheckCircleIcon, Loader2Icon, XCircleIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const store = useStatementParserStore();
@@ -264,7 +265,7 @@ function handleRowClick(item: TimelineItem) {
 }
 
 function handleBack() {
-  store.goToStep({ step: 2 });
+  store.goBackToStep({ step: 2 });
 }
 
 function handleProceed() {

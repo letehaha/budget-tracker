@@ -43,7 +43,7 @@
     </div>
 
     <div v-else-if="error" class="py-12 text-center">
-      <p class="text-destructive mb-4">Failed to load portfolio details.</p>
+      <p class="text-destructive-text mb-4">Failed to load portfolio details.</p>
       <UiButton @click="refetch">Try Again</UiButton>
     </div>
   </div>

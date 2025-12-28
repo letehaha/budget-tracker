@@ -201,8 +201,8 @@ const linkingError = computed(() => {
 
           <!-- Currency Mismatch Error -->
           <div v-if="linkingError" class="bg-destructive/10 rounded-md p-3 text-sm">
-            <p class="text-destructive font-semibold">⚠️ Cannot Link Account</p>
-            <p class="text-destructive mt-1 text-xs">{{ linkingError }}</p>
+            <p class="text-destructive-text font-semibold">⚠️ Cannot Link Account</p>
+            <p class="text-destructive-text mt-1 text-xs">{{ linkingError }}</p>
           </div>
 
           <!-- Balance Preview -->
