@@ -20,12 +20,12 @@ export const FEATURE_RECOMMENDATIONS: Record<AI_FEATURE, AI_MODEL_ID[]> = {
     AI_MODEL_ID['google/gemini-2.5-flash'], // Fast and good for document understanding
     AI_MODEL_ID['google/gemini-2.5-pro'], // Best Gemini quality for complex statements
     // Claude models - best for document understanding
-    AI_MODEL_ID['anthropic/claude-sonnet-4-5'], // Latest and best for complex documents
+    AI_MODEL_ID['anthropic/claude-haiku-4-5'], // Latest and best for complex documents
     AI_MODEL_ID['anthropic/claude-3-7-sonnet-latest'], // Great balance of quality and cost
     AI_MODEL_ID['anthropic/claude-3-5-haiku-latest'], // Cheaper Claude option
     // GPT-4o has vision capabilities
-    AI_MODEL_ID['openai/gpt-4o'], // Good vision capabilities for image-based extraction
     AI_MODEL_ID['openai/gpt-4o-mini'], // Cheaper option with decent vision
+    AI_MODEL_ID['openai/gpt-4o'], // Good vision capabilities for image-based extraction
   ],
 };
 
