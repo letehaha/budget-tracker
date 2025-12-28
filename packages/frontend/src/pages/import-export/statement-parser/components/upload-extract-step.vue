@@ -153,6 +153,8 @@ import {
 } from 'lucide-vue-next';
 import { onUnmounted, ref } from 'vue';
 
+import { validateStatementFile } from '../utils/file-validation';
+
 const store = useStatementParserStore();
 
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -195,9 +197,6 @@ function startProgressAnimation() {
   }, 200);
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const SUPPORTED_EXTENSIONS = ['.pdf', '.csv', '.txt'];
-
 function getFileIcon() {
   if (!store.uploadedFile) return FileIcon;
   const ext = store.uploadedFile.name.toLowerCase().split('.').pop();
@@ -224,17 +223,9 @@ function handleDrop(event: DragEvent) {
 async function validateAndSetFile(file: File) {
   fileError.value = null;
 
-  // Check file extension
-  const ext = '.' + (file.name.toLowerCase().split('.').pop() || '');
-  const isValidExtension = SUPPORTED_EXTENSIONS.includes(ext);
-
-  if (!isValidExtension) {
-    fileError.value = 'Unsupported file type. Please upload a PDF, CSV, or TXT file.';
-    return;
-  }
-
-  if (file.size > MAX_FILE_SIZE) {
-    fileError.value = `File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds maximum of 10MB`;
+  const validation = await validateStatementFile({ file });
+  if (!validation.valid) {
+    fileError.value = validation.error!;
     return;
   }
 
