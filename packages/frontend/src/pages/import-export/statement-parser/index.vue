@@ -1,5 +1,7 @@
 <template>
-  <div class="p-6">
+  <div class="p-6 pt-4">
+    <BackLink :to="{ name: ROUTES_NAMES.settingsDataManagement }">Back to Settings</BackLink>
+
     <div class="mb-6">
       <h1 class="text-2xl tracking-wider">Statement Parser</h1>
       <p class="text-muted-foreground mt-2">
@@ -155,6 +157,8 @@
 </template>
 
 <script setup lang="ts">
+import BackLink from '@/components/common/back-link.vue';
+import { ROUTES_NAMES } from '@/routes';
 import { useStatementParserStore } from '@/stores/statement-parser';
 import { CheckIcon, ChevronDownIcon, LockIcon } from 'lucide-vue-next';
 import { nextTick, onUnmounted, ref, watch } from 'vue';
