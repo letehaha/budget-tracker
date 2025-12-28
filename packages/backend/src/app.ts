@@ -40,7 +40,7 @@ import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
 import { registerAiCategorizationListeners } from './services/ai-categorization';
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
-// import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
+import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 import { initializeExchangeRateProviders } from './services/exchange-rates/providers';
 import { supportedLocales } from './translations';
 
@@ -188,7 +188,7 @@ function initializeBackgroundJobs() {
     logger.info('[Offline Mode] Skipping background jobs that require internet connection');
   } else {
     // Initialize historical exchange rates on startup (non-blocking)
-    // initializeHistoricalRates();
+    initializeHistoricalRates();
 
     loadCurrencyRatesJob.start();
 
