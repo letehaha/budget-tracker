@@ -48,7 +48,7 @@
           class="h-9 w-full rounded-md border pl-9 focus-visible:ring-0"
           placeholder="Search categories..."
         />
-        <SearchIcon class="text-muted-foreground absolute top-[60%] left-4 h-5 w-5 -translate-y-1/2" />
+        <SearchIcon class="text-muted-foreground absolute top-[60%] left-4 size-5 -translate-y-1/2" />
       </div>
       <div class="max-h-[340px] overflow-y-auto p-[5px] lg:max-h-[240px]">
         <Combobox.ComboboxEmpty class="text-mauve8 py-2 text-center text-xs font-medium" />

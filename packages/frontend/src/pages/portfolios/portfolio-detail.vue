@@ -3,7 +3,7 @@
     <div class="mb-6 flex items-center justify-between">
       <div class="flex items-center gap-4">
         <router-link :to="{ name: ROUTES_NAMES.investments }" class="text-muted-foreground hover:text-foreground">
-          <ChevronLeftIcon class="h-5 w-5" />
+          <ChevronLeftIcon class="size-5" />
         </router-link>
         <h1 v-if="portfolio" class="text-2xl tracking-wider">{{ portfolio.name }}</h1>
         <h1 v-else-if="isLoading" class="text-2xl tracking-wider">Loading...</h1>

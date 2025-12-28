@@ -86,7 +86,7 @@
       v-if="!featureStatus.usingUserKey"
       class="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950"
     >
-      <AlertTriangleIcon class="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+      <AlertTriangleIcon class="mt-0.5 size-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
       <p class="text-xs text-amber-700 dark:text-amber-300">
         Using server-provided AI with free-tier rate limiting. Feature availability depends on demand from other users.
         For reliable access, add your own API key in the API Keys tab.

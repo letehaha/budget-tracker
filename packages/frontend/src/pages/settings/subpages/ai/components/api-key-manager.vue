@@ -18,8 +18,8 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <!-- Status icon -->
-            <CheckCircleIcon v-if="providerInfo.status !== 'invalid'" class="h-5 w-5 text-green-600" />
-            <AlertCircleIcon v-else class="text-destructive-text h-5 w-5" />
+            <CheckCircleIcon v-if="providerInfo.status !== 'invalid'" class="size-5 text-green-600" />
+            <AlertCircleIcon v-else class="text-destructive-text size-5" />
 
             <div>
               <div class="font-medium">
@@ -101,7 +101,7 @@
       <!-- All providers configured state -->
       <template v-if="availableProvidersToAdd.length === 0">
         <div class="text-muted-foreground flex items-center gap-3">
-          <CheckCircleIcon class="h-5 w-5 text-green-600" />
+          <CheckCircleIcon class="size-5 text-green-600" />
           <p class="text-sm">All providers are set up</p>
         </div>
       </template>
@@ -145,11 +145,11 @@
           <div class="flex gap-2">
             <Button type="submit" :disabled="!apiKeyInput.trim() || isSettingKey">
               <template v-if="isSettingKey">
-                <Loader2Icon class="mr-2 h-4 w-4 animate-spin" />
+                <Loader2Icon class="mr-2 size-4 animate-spin" />
                 Validating...
               </template>
               <template v-else>
-                <KeyIcon class="mr-2 h-4 w-4" />
+                <KeyIcon class="mr-2 size-4" />
                 Save Key
               </template>
             </Button>

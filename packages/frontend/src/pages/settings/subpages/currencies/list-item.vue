@@ -17,7 +17,7 @@
             )
           "
         >
-          <img class="h-5 w-5 shrink-0" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
+          <img class="size-5 shrink-0" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
           <span class="text-lg font-medium text-white">
             {{ currency.currency.currency }}
           </span>

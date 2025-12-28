@@ -38,7 +38,7 @@
   @apply rounded-md;
 }
 .calendar .vc-day-content {
-  @apply ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring relative inline-flex h-9 w-9 items-center justify-center p-0 text-center text-sm font-normal select-none focus-within:relative focus-within:z-20 hover:transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden aria-selected:opacity-100;
+  @apply ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring relative inline-flex size-9 items-center justify-center p-0 text-center text-sm font-normal select-none focus-within:relative focus-within:z-20 hover:transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden aria-selected:opacity-100;
 }
 .calendar .vc-day-content:not(.vc-highlight-content-light) {
   @apply rounded-md;

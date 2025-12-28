@@ -15,7 +15,7 @@
 
         <router-link :to="{ name: ROUTES_NAMES.importStatement }">
           <Button>
-            <FileTextIcon class="mr-2 h-4 w-4" />
+            <FileTextIcon class="mr-2 size-4" />
             Import from Text
           </Button>
         </router-link>
@@ -30,7 +30,7 @@
 
         <router-link :to="{ name: ROUTES_NAMES.importCsv }">
           <Button>
-            <UploadIcon class="mr-2 h-4 w-4" />
+            <UploadIcon class="mr-2 size-4" />
             Import CSV File
           </Button>
         </router-link>

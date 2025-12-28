@@ -8,7 +8,7 @@
     <CardContent class="mt-6 flex flex-col gap-6">
       <!-- Loading state -->
       <div v-if="isLoading" class="flex items-center justify-center py-8">
-        <Loader2Icon class="text-muted-foreground h-6 w-6 animate-spin" />
+        <Loader2Icon class="text-muted-foreground size-6 animate-spin" />
       </div>
 
       <template v-else>

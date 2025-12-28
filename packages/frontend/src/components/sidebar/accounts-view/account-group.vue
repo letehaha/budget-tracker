@@ -31,7 +31,7 @@ watch(
       <Button variant="ghost" as="div" size="default" class="h-[56px] w-full">
         <div class="flex w-full items-center justify-between">
           <span class="text-sm"> {{ group.name }} ({{ group.accounts.length }}) </span>
-          <ChevronDown :class="{ 'rotate-180': isOpen }" class="h-4 w-4 transition-transform" />
+          <ChevronDown :class="{ 'rotate-180': isOpen }" class="size-4 transition-transform" />
         </div>
       </Button>
     </CollapsibleTrigger>

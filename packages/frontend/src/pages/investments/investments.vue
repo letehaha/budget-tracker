@@ -31,7 +31,7 @@
             <div class="absolute top-2 right-2">
               <DropdownMenu>
                 <DropdownMenuTrigger as-child>
-                  <UiButton variant="ghost" size="icon" class="h-8 w-8">
+                  <UiButton variant="ghost" size="icon" class="size-8">
                     <MoreVerticalIcon class="size-4" />
                   </UiButton>
                 </DropdownMenuTrigger>

@@ -128,7 +128,7 @@ function openFileDialog() {
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="text-muted-foreground mb-3 h-12 w-12"
+        class="text-muted-foreground mb-3 size-12"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"

@@ -16,7 +16,7 @@
               @click="filterText = ''"
               class="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
             >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
