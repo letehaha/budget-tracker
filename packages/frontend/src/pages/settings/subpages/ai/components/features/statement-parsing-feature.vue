@@ -13,7 +13,7 @@
     :default-open="defaultOpen"
   >
     <template #before-selector>
-      <!-- Model selection hint specific to categorization -->
+      <!-- Model selection hint specific to statement parsing -->
       <div class="mb-4">
         <button
           type="button"
@@ -25,27 +25,25 @@
           <ChevronDownIcon class="size-3 transition-transform" :class="{ 'rotate-180': showModelHint }" />
         </button>
         <p v-if="showModelHint" class="bg-muted/50 text-muted-foreground mt-2 rounded-md p-2 text-xs">
-          For transaction categorization, <strong>low-cost models</strong> like Gemini Flash, Claude Haiku, or GPT-4o
-          Mini are recommended. Categorization is a straightforward task that doesn't require expensive reasoning
-          models. Using cheaper models lets you process more transactions at lower cost.
+          For statement parsing, <strong>mid-tier models</strong> like Claude Sonnet, Gemini Pro, or GPT-4o are
+          recommended. Statement parsing requires understanding complex document structures and extracting accurate
+          data, which benefits from more capable models. However, cheaper models like Gemini Flash or Claude Haiku can
+          also work well for simpler statements.
         </p>
       </div>
     </template>
 
     <template #after-card>
-      <!-- How it works for categorization -->
+      <!-- How it works for statement parsing -->
       <div class="mt-4 border-t pt-4">
         <h5 class="mb-2 text-sm font-medium">How it works</h5>
         <ul class="text-muted-foreground list-disc space-y-1.5 pl-5 text-xs leading-relaxed">
+          <li>Upload a bank statement (PDF, CSV, or TXT) and AI will extract all transactions automatically.</li>
           <li>
-            When you sync transactions from your bank, uncategorized transactions are automatically sent to AI for
-            categorization.
+            The AI analyzes the document structure to identify dates, descriptions, amounts, and transaction types.
           </li>
-          <li>
-            The AI analyzes transaction descriptions and merchant names to suggest appropriate categories from your
-            existing category list.
-          </li>
-          <li>You can always manually override AI-suggested categories.</li>
+          <li>You can review and correct any extracted data before importing into your account.</li>
+          <li>Cost is estimated before processing, yet it only reflects the approximate cost.</li>
         </ul>
       </div>
     </template>
@@ -66,14 +64,15 @@ defineProps<{
 }>();
 
 /**
- * Token estimates for categorization:
- * - ~250 input tokens per transaction (description + category list)
- * - ~30 output tokens per transaction (category name)
+ * Token estimates for statement parsing:
+ * - ~2000 input tokens per page (document text + prompt)
+ * - ~100 output tokens per transaction (structured data)
+ * Average statement has ~30 transactions
  */
-const TOKENS_PER_TRANSACTION = { input: 250, output: 30 };
+const TOKENS_PER_TRANSACTION = { input: 500, output: 50 };
 
 const showModelHint = ref(false);
 
-// Fetch models with recommendations specific to categorization
-const { availableModels, groupedModels, isLoading: isLoadingModels } = useFeatureModels(AI_FEATURE.categorization);
+// Fetch models with recommendations specific to statement parsing
+const { availableModels, groupedModels, isLoading: isLoadingModels } = useFeatureModels(AI_FEATURE.statementParsing);
 </script>

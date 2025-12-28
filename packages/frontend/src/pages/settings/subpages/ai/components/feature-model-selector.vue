@@ -10,17 +10,19 @@
       Loading features...
     </div>
 
-    <div v-else class="space-y-4">
+    <div v-else class="space-y-3">
       <!-- Render feature-specific components -->
-      <template v-for="feature in featuresStatus" :key="feature.feature">
-        <CategorizationFeature v-if="feature.feature === AI_FEATURE.categorization" :feature-status="feature" />
-        <!-- Add more feature components here as they are implemented -->
-        <!-- Example:
-        <SomeOtherFeature
-          v-else-if="feature.feature === AI_FEATURE.someOther"
+      <template v-for="(feature, index) in featuresStatus" :key="feature.feature">
+        <CategorizationFeature
+          v-if="feature.feature === AI_FEATURE.categorization"
           :feature-status="feature"
+          :default-open="index === 0"
         />
-        -->
+        <StatementParsingFeature
+          v-else-if="feature.feature === AI_FEATURE.statementParsing"
+          :feature-status="feature"
+          :default-open="index === 0"
+        />
       </template>
     </div>
   </div>
@@ -32,6 +34,7 @@ import { AI_FEATURE } from '@bt/shared/types';
 import { Loader2Icon } from 'lucide-vue-next';
 
 import CategorizationFeature from './features/categorization-feature.vue';
+import StatementParsingFeature from './features/statement-parsing-feature.vue';
 
 const { featuresStatus, isLoadingFeatures: isLoading } = useAiSettings();
 </script>

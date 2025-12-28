@@ -1,7 +1,7 @@
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useQueryClient } from '@tanstack/vue-query';
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 import { AiCategorizationCompletedPayload, SSE_EVENT_TYPES, useSSE } from './use-sse';
 
@@ -32,8 +32,6 @@ export function useAiCategorizationEvents() {
 
     // Subscribe to AI categorization completed events
     unsubscribe = on<AiCategorizationCompletedPayload>(SSE_EVENT_TYPES.AI_CATEGORIZATION_COMPLETED, (data) => {
-      console.log('[AI Categorization] Received completion event:', data);
-
       // Invalidate all transaction-related queries to refetch with new categories
       queryClient.invalidateQueries({
         queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange],
@@ -61,13 +59,10 @@ export function useAiCategorizationEvents() {
     initialized.value = false;
   };
 
+  // Don't cleanup on unmount as this is a singleton
+  // Only cleanup when explicitly called (e.g., on logout)
   onMounted(() => {
     initialize();
-  });
-
-  onUnmounted(() => {
-    // Don't cleanup on unmount as this is a singleton
-    // Only cleanup when explicitly called (e.g., on logout)
   });
 
   return {
