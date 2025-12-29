@@ -73,6 +73,8 @@ interface StatsResponse {
     balance: number; // Net difference
     utilizationRate: null | number; // Percentage used (0-100)
     transactionsCount: number;
+    firstTransactionDate: string | null; // ISO date string of earliest transaction
+    lastTransactionDate: string | null; // ISO date string of latest transaction
   };
 }
 

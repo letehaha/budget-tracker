@@ -50,6 +50,8 @@ const stats = computed(() => ({
   balance: budgetStats.value?.summary.balance || 0,
   utilizationRate: budgetStats.value?.summary.utilizationRate ?? null,
   transactionsCount: budgetStats.value?.summary.transactionsCount || 0,
+  firstTransactionDate: budgetStats.value?.summary.firstTransactionDate || null,
+  lastTransactionDate: budgetStats.value?.summary.lastTransactionDate || null,
 }));
 
 const { data: budgetItem, isLoading } = useQuery({
@@ -97,9 +99,15 @@ const formatDate = (date: Date | string | null | undefined) => {
   return format(parsedDate, 'MMM d, yyyy');
 };
 
-const hasValidDates = computed(() => {
-  if (!budgetData.value) return false;
-  return formatDate(budgetData.value.startDate) || formatDate(budgetData.value.endDate);
+// Transaction date range from stats (actual transactions linked to this budget)
+const transactionDateRange = computed(() => {
+  const first = stats.value.firstTransactionDate;
+  const last = stats.value.lastTransactionDate;
+  if (!first && !last) return null;
+  return {
+    first: first ? formatDate(first) : null,
+    last: last ? formatDate(last) : null,
+  };
 });
 
 // Time status badge logic (same as budget-list)
@@ -203,18 +211,18 @@ const utilizationTextColor = computed(() => {
                 {{ getBudgetTimeStatus?.text }}
               </span>
             </div>
-            <!-- Date Range -->
-            <div v-if="hasValidDates" class="text-muted-foreground mt-1 flex items-center gap-1.5 text-sm">
+            <!-- Transaction Date Range (based on actual linked transactions) -->
+            <div v-if="transactionDateRange" class="text-muted-foreground mt-1 flex items-center gap-1.5 text-sm">
               <CalendarIcon class="size-3.5" />
-              <span v-if="formatDate(budgetData.startDate) && formatDate(budgetData.endDate)">
-                {{ formatDate(budgetData.startDate) }}
+              <span v-if="transactionDateRange.first && transactionDateRange.last">
+                {{ transactionDateRange.first }}
                 <ArrowRightIcon class="inline size-3" />
-                {{ formatDate(budgetData.endDate) }}
+                {{ transactionDateRange.last }}
               </span>
-              <span v-else-if="formatDate(budgetData.startDate)"> From {{ formatDate(budgetData.startDate) }} </span>
-              <span v-else-if="formatDate(budgetData.endDate)"> Until {{ formatDate(budgetData.endDate) }} </span>
+              <span v-else-if="transactionDateRange.first">{{ transactionDateRange.first }}</span>
+              <span v-else-if="transactionDateRange.last">{{ transactionDateRange.last }}</span>
             </div>
-            <p v-else class="text-muted-foreground mt-1 text-sm">No date range set</p>
+            <p v-else class="text-muted-foreground mt-1 text-sm">No transactions yet</p>
           </div>
         </div>
 

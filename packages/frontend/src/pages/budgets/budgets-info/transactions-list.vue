@@ -4,18 +4,20 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import Button from '@/components/lib/ui/button/Button.vue';
 import Card from '@/components/lib/ui/card/Card.vue';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
+import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { useNotificationCenter } from '@/components/notification-center';
+import RecordsFiltersDialog from '@/components/records-filters/filters-dialog.vue';
+import RecordsFilters from '@/components/records-filters/index.vue';
+import { useTransactionsWithFilters } from '@/components/records-filters/transactions-with-filters';
+import TransactionRecordSkeleton from '@/components/transactions-list/transaction-record-skeleton.vue';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
-import { useTransactions } from '@/composable/data-queries/get-transactions';
 import { useShiftMultiSelect } from '@/composable/shift-multi-select';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { AlertTriangleIcon, LinkIcon, PlusIcon, WalletIcon, XIcon } from 'lucide-vue-next';
-import { computed, inject, nextTick, reactive, ref } from 'vue';
+import { computed, inject, nextTick, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-
-import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 
 import AddTransactionsDialog from './add-transactions-dialog.vue';
 
@@ -45,34 +47,58 @@ const enableUnlinkingMode = async () => {
   const viewport = scrollAreaViewport?.value?.viewportElement;
   const cardEl = cardRef.value?.$el as HTMLElement;
   if (viewport && cardEl) {
-    const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height') || '64');
+    const headerHeight = parseInt(
+      getComputedStyle(document.documentElement).getPropertyValue('--header-height') || '64',
+    );
     const cardTop = cardEl.offsetTop - headerHeight;
     viewport.scrollTo({ top: cardTop, behavior: 'smooth' });
   }
 };
 
-const budgetFilters = ref({
-  transactionType: null,
-  budgetIds: [currentBudgetId.value],
-});
+// Use useTransactionsWithFilters with staticFilters for budgetIds
 const {
-  data: budgetTransactionsList,
+  isResetButtonDisabled,
+  isFiltersOutOfSync,
+  resetFilters,
+  applyFilters,
+  appliedFilters,
+  isAnyFiltersApplied,
+  filters,
+  transactionsPages: budgetTransactionsList,
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
   isFetched,
+  isFetching,
   invalidate,
-} = useTransactions({
-  filters: budgetFilters,
-  queryOptions: {
-    queryKey: [...VUE_QUERY_CACHE_KEYS.budgetAddingTransactionList, currentBudgetId],
-  },
+} = useTransactionsWithFilters({
+  appendQueryKey: [...VUE_QUERY_CACHE_KEYS.budgetAddingTransactionList, currentBudgetId],
+  staticFilters: { budgetIds: [currentBudgetId.value] },
+});
+
+const isFiltersDialogOpen = ref(false);
+
+// Close filters dialog when filters are applied
+watch(appliedFilters, () => {
+  isFiltersDialogOpen.value = false;
 });
 
 const parentRef = ref(null);
 const flatTransactions = computed(() => {
   return budgetTransactionsList.value?.pages?.flat() ?? [];
 });
+
+// Track if we've ever had data to preserve height during refetching
+const hadDataBefore = ref(false);
+
+// Track when we've had transactions to preserve height during refetch
+watch(
+  () => flatTransactions.value.length,
+  (len) => {
+    if (len > 0) hadDataBefore.value = true;
+  },
+  { immediate: true },
+);
 const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   items: flatTransactions,
   hasNextPage,
@@ -245,32 +271,22 @@ const toggleSelectAll = () => {
         </template>
 
         <template v-else>
-          <!-- Stacked Layout (Normal Mode) -->
-          <div class="flex flex-col gap-3 @lg:hidden">
-            <div class="text-muted-foreground text-sm">Manage linked transactions</div>
-            <div class="flex items-center gap-2">
-              <Button
-                :disabled="isBudgetDataUpdating || flatTransactions.length === 0"
-                @click="enableUnlinkingMode"
-                variant="outline"
-                size="sm"
-                class="flex-1"
-              >
-                <LinkIcon class="mr-2 size-4" />
-                Unlink
-              </Button>
-              <AddTransactionsDialog>
-                <Button :disabled="isBudgetDataUpdating" size="sm" class="flex-1">
-                  <PlusIcon class="mr-2 size-4" />
-                  Add
-                </Button>
-              </AddTransactionsDialog>
-            </div>
-          </div>
+          <!-- Normal Mode: Single row with filters on left, actions on right -->
+          <div class="flex items-center justify-between gap-2">
+            <!-- Left: Filter button -->
+            <RecordsFiltersDialog v-model:open="isFiltersDialogOpen" :isAnyFiltersApplied="isAnyFiltersApplied">
+              <div class="relative max-h-[calc(100vh-var(--header-height)-32px)] overflow-auto">
+                <RecordsFilters
+                  v-model:filters="filters"
+                  :is-reset-button-disabled="isResetButtonDisabled"
+                  :is-filters-out-of-sync="isFiltersOutOfSync"
+                  @reset-filters="resetFilters"
+                  @apply-filters="applyFilters"
+                />
+              </div>
+            </RecordsFiltersDialog>
 
-          <!-- Row Layout (Normal Mode) -->
-          <div class="hidden items-center justify-between @lg:flex">
-            <div class="text-muted-foreground text-sm">Manage linked transactions</div>
+            <!-- Right: Action buttons -->
             <div class="flex items-center gap-2">
               <Button
                 :disabled="isBudgetDataUpdating || flatTransactions.length === 0"
@@ -278,13 +294,14 @@ const toggleSelectAll = () => {
                 variant="outline"
                 size="sm"
               >
-                <LinkIcon class="mr-2 size-4" />
-                Unlink
+                <LinkIcon class="size-4" />
+                <span>Unlink</span>
               </Button>
               <AddTransactionsDialog>
                 <Button :disabled="isBudgetDataUpdating" size="sm">
-                  <PlusIcon class="mr-2 size-4" />
-                  Add Transactions
+                  <PlusIcon class="size-4" />
+                  <span class="hidden @sm:inline">Add Transactions</span>
+                  <span class="@sm:hidden">Add</span>
                 </Button>
               </AddTransactionsDialog>
             </div>
@@ -296,7 +313,13 @@ const toggleSelectAll = () => {
     <!-- Transactions List -->
     <div class="p-3 @md:p-4">
       <template v-if="!isUnlinkingSelectionEnabled">
-        <template v-if="isFetched && budgetTransactionsList">
+        <!-- Loading state during refetch -->
+        <template v-if="isFetching && hadDataBefore && flatTransactions.length === 0">
+          <div class="space-y-1">
+            <TransactionRecordSkeleton v-for="i in 10" :key="i" />
+          </div>
+        </template>
+        <template v-else-if="isFetched && budgetTransactionsList">
           <template v-if="flatTransactions.length > 0">
             <TransactionsList
               :hasNextPage="hasNextPage"
@@ -311,16 +334,27 @@ const toggleSelectAll = () => {
               <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
                 <WalletIcon class="text-muted-foreground size-8" />
               </div>
-              <h3 class="mb-1 font-medium">No transactions linked</h3>
+              <h3 class="mb-1 font-medium">
+                {{ isAnyFiltersApplied ? 'No matching transactions' : 'No transactions linked' }}
+              </h3>
               <p class="text-muted-foreground mb-4 max-w-sm text-sm">
-                Add transactions to this budget to start tracking your spending.
+                {{
+                  isAnyFiltersApplied
+                    ? 'Try adjusting your filters to see more transactions.'
+                    : 'Add transactions to this budget to start tracking your spending.'
+                }}
               </p>
-              <AddTransactionsDialog>
-                <Button size="sm">
-                  <PlusIcon class="mr-2 size-4" />
-                  Add Transactions
-                </Button>
-              </AddTransactionsDialog>
+              <template v-if="isAnyFiltersApplied">
+                <Button size="sm" variant="outline" @click="resetFilters">Reset Filters</Button>
+              </template>
+              <template v-else>
+                <AddTransactionsDialog>
+                  <Button size="sm">
+                    <PlusIcon class="mr-2 size-4" />
+                    Add Transactions
+                  </Button>
+                </AddTransactionsDialog>
+              </template>
             </div>
           </template>
         </template>

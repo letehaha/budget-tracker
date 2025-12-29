@@ -86,9 +86,22 @@ const deleteBudget = async ({ budgetId }: { budgetId: number }) => {
   }
 };
 
-const formatDate = (date: Date | string | undefined) => {
+const formatDate = (date: Date | string | undefined | null) => {
   if (!date) return null;
   return format(new Date(date), 'MMM d, yyyy');
+};
+
+// Get transaction date range from stats
+const getTransactionDateRange = (budgetId: number) => {
+  const stats = getBudgetStats(budgetId);
+  if (!stats) return null;
+  const first = stats.summary?.firstTransactionDate;
+  const last = stats.summary?.lastTransactionDate;
+  if (!first && !last) return null;
+  return {
+    first: first ? formatDate(first) : null,
+    last: last ? formatDate(last) : null,
+  };
 };
 
 const getBudgetTimeStatus = (budget: BudgetModel) => {
@@ -211,21 +224,36 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
               </div>
             </div>
 
-            <!-- Date Range (if exists) -->
-            <div
-              v-if="budget.startDate || budget.endDate"
-              class="text-muted-foreground mb-3 flex items-center justify-between text-xs"
-            >
-              <div class="flex items-center gap-1.5">
-                <CalendarIcon class="size-3.5" />
-                <span v-if="budget.startDate && budget.endDate">
-                  {{ formatDate(budget.startDate) }}
-                  <ArrowRightIcon class="inline size-3" />
-                  {{ formatDate(budget.endDate) }}
-                </span>
-                <span v-else-if="budget.startDate"> From {{ formatDate(budget.startDate) }} </span>
-                <span v-else-if="budget.endDate"> Until {{ formatDate(budget.endDate) }} </span>
-              </div>
+            <!-- Transaction Date Range (based on actual transactions) -->
+            <div class="text-muted-foreground mb-3 flex items-center justify-between text-xs">
+              <template v-if="isBudgetStatsLoading(budget.id)">
+                <div class="flex items-center gap-1.5">
+                  <CalendarIcon class="size-3.5" />
+                  <span class="bg-muted inline-block h-3 w-24 animate-pulse rounded" />
+                </div>
+              </template>
+              <template v-else-if="getTransactionDateRange(budget.id)">
+                <div class="flex items-center gap-1.5">
+                  <CalendarIcon class="size-3.5" />
+                  <span v-if="getTransactionDateRange(budget.id)?.first && getTransactionDateRange(budget.id)?.last">
+                    {{ getTransactionDateRange(budget.id)?.first }}
+                    <ArrowRightIcon class="inline size-3" />
+                    {{ getTransactionDateRange(budget.id)?.last }}
+                  </span>
+                  <span v-else-if="getTransactionDateRange(budget.id)?.first">
+                    {{ getTransactionDateRange(budget.id)?.first }}
+                  </span>
+                  <span v-else-if="getTransactionDateRange(budget.id)?.last">
+                    {{ getTransactionDateRange(budget.id)?.last }}
+                  </span>
+                </div>
+              </template>
+              <template v-else>
+                <div class="flex items-center gap-1.5">
+                  <CalendarIcon class="size-3.5" />
+                  <span class="text-muted-foreground/60 italic">No transactions yet</span>
+                </div>
+              </template>
               <span
                 v-if="getBudgetTimeStatus(budget)"
                 :class="[

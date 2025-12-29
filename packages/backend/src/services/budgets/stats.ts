@@ -12,6 +12,8 @@ interface StatsResponse {
     balance: number; // Net difference
     utilizationRate: null | number; // Percentage used (0-100)
     transactionsCount: number;
+    firstTransactionDate: string | null; // ISO date string of earliest transaction
+    lastTransactionDate: string | null; // ISO date string of latest transaction
   };
 }
 
@@ -22,6 +24,8 @@ export const getResponseInitialState = (): StatsResponse => ({
     balance: 0, // Net difference
     utilizationRate: null, // Percentage used (0-100)
     transactionsCount: 0,
+    firstTransactionDate: null,
+    lastTransactionDate: null,
   },
 });
 
@@ -51,6 +55,15 @@ export const getBudgetStats = withTransaction(
       } else {
         acc.summary.actualIncome += curr.refAmount;
         acc.summary.balance += curr.refAmount;
+      }
+
+      // Track earliest and latest transaction dates
+      const txDate = new Date(curr.time).toISOString();
+      if (!acc.summary.firstTransactionDate || txDate < acc.summary.firstTransactionDate) {
+        acc.summary.firstTransactionDate = txDate;
+      }
+      if (!acc.summary.lastTransactionDate || txDate > acc.summary.lastTransactionDate) {
+        acc.summary.lastTransactionDate = txDate;
       }
 
       return acc;
