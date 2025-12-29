@@ -24,9 +24,10 @@
       </template>
 
       <component :is="isMobileView ? ManageTransactionDrawer : ManageTransactionDialog">
-        <Button variant="default" :size="isMobileView ? 'default' : 'lg'">
-          <span class="hidden md:block"> New Transaction </span>
-          <span class="flex items-center gap-1 md:hidden"> <PlusIcon class="size-5" /> Add </span>
+        <Button variant="default" class="flex items-center gap-1">
+          <PlusIcon class="size-5" />
+          <span class="hidden md:block">New Transaction</span>
+          <span class="md:hidden">Add</span>
         </Button>
       </component>
     </div>

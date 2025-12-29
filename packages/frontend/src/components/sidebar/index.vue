@@ -9,14 +9,16 @@ defineProps<{ mobileView?: boolean }>();
 </script>
 
 <template>
-  <component :is="mobileView ? 'div' : Card" class="flex h-full flex-col rounded-none">
-    <CardHeader class="h-[52px] sm:py-3">
+  <component :is="mobileView ? 'div' : Card" class="flex h-full w-[300px] flex-col rounded-none max-md:w-auto">
+    <CardHeader class="ml-2 h-13 px-5 py-3">
       <div class="text-lg font-medium">MoneyMatter</div>
     </CardHeader>
-    <CardContent class="flex max-h-[calc(100%-52px)] grow flex-col px-3 md:px-6">
-      <nav class="grid gap-2 md:-ml-3">
+    <CardContent class="flex max-h-[calc(100%-52px)] grow flex-col gap-2 px-4 pt-0 pb-3 sm:p-4">
+      <nav class="grid gap-1">
         <NavigationLinks />
       </nav>
+
+      <hr class="bg-border h-px w-full" />
 
       <AccountsView />
 

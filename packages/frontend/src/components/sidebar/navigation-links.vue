@@ -14,7 +14,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
       size="default"
     >
-      <LayoutDashboardIcon />
+      <LayoutDashboardIcon class="size-5 shrink-0" />
       <span :class="{ 'max-sm:hidden': bottomNav }"> Dashboard </span>
     </ui-button>
   </router-link>
@@ -26,7 +26,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
       size="default"
     >
-      <LayersIcon />
+      <LayersIcon class="size-5 shrink-0" />
       <span :class="{ 'max-sm:hidden': bottomNav }"> Accounts </span>
     </ui-button>
   </router-link>
@@ -38,7 +38,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
       size="default"
     >
-      <TrendingUpIcon />
+      <TrendingUpIcon class="size-5 shrink-0" />
       <span :class="{ 'max-sm:hidden': bottomNav }"> Investments </span>
     </ui-button>
   </router-link>
@@ -50,7 +50,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
       size="default"
     >
-      <CreditCardIcon />
+      <CreditCardIcon class="size-5 shrink-0" />
       <span :class="{ 'max-sm:hidden': bottomNav }"> Transactions </span>
     </ui-button>
   </router-link>
@@ -62,7 +62,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
       size="default"
     >
-      <Wallet />
+      <Wallet class="size-5 shrink-0" />
       <span :class="{ 'max-sm:hidden': bottomNav }"> Budgets </span>
     </ui-button>
   </router-link>

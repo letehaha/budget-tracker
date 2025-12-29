@@ -51,9 +51,9 @@ const isPopoverOpen = ref(false);
 </script>
 
 <template>
-  <div class="my-6 grid min-w-[300px] gap-0.5 overflow-y-hidden md:-ml-3">
-    <div class="ml-3 flex items-center justify-between">
-      <p class="text-xs uppercase">Accounts</p>
+  <div class="mb-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-hidden">
+    <div class="flex items-center justify-between">
+      <p class="ml-2 text-xs font-medium tracking-wide uppercase">Accounts</p>
 
       <Popover.Popover :open="isPopoverOpen" @update:open="isPopoverOpen = $event">
         <Popover.PopoverTrigger as-child>
@@ -61,7 +61,7 @@ const isPopoverOpen = ref(false);
             <PlusIcon :class="['transition-transform', isPopoverOpen && '-rotate-45']" />
           </Button>
         </Popover.PopoverTrigger>
-        <Popover.PopoverContent side="bottom">
+        <Popover.PopoverContent side="bottom" align="end">
           <div class="grid gap-2">
             <CreateAccountDialog @created="isPopoverOpen = false">
               <Button type="button" size="sm" variant="secondary"> New account </Button>
@@ -75,9 +75,9 @@ const isPopoverOpen = ref(false);
       </Popover.Popover>
     </div>
 
-    <div class="grid max-h-full gap-0.5 overflow-auto">
+    <div class="flex-1 overflow-auto">
       <template v-if="isLoading">
-        <div>Loading</div>
+        <div class="text-muted-foreground px-2 py-4 text-sm">Loading...</div>
       </template>
       <template v-else>
         <AccountGroupsList :groups="accountGroups" />

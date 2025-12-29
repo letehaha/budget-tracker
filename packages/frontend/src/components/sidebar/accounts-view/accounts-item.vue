@@ -8,7 +8,7 @@ defineProps<{
   account: AccountModel;
 }>();
 
-const { formatAmountByCurrencyCode } = useFormatCurrency();
+const { formatCompactAmount } = useFormatCurrency();
 </script>
 
 <template>
@@ -17,17 +17,15 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
     :to="{ name: ROUTES_NAMES.account, params: { id: account.id } }"
     class="flex w-full"
   >
-    <Button :variant="isActive ? 'secondary' : 'ghost'" as="div" size="default" class="h-[56px] w-full">
-      <div class="flex w-full items-center justify-between">
-        <div class="flex flex-col gap-1">
-          <span class="text-sm">{{ account.name }}</span>
-          <span class="text-xs">
-            {{ account.accountCategory }}
-          </span>
-        </div>
-        <div class="text-sm">
-          {{ formatAmountByCurrencyCode(account.currentBalance, account.currencyCode) }}
-        </div>
+    <Button :variant="isActive ? 'secondary' : 'ghost'" as="div" size="default" class="h-auto w-full px-2">
+      <div class="flex w-full items-center justify-between gap-x-2">
+        <span class="truncate text-sm">{{ account.name }}</span>
+        <span
+          class="shrink-0 text-sm tabular-nums"
+          :class="account.currentBalance >= 0 ? 'text-muted-foreground' : 'text-destructive-text'"
+        >
+          {{ formatCompactAmount(account.currentBalance, account.currencyCode) }}
+        </span>
       </div>
     </Button>
   </router-link>
