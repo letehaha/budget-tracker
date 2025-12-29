@@ -4,11 +4,13 @@ import type {
   ExecuteImportResponse,
   ImportError,
   ParsedTransactionRow,
+  TransactionImportDetails,
 } from '@bt/shared/types';
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   CATEGORY_TYPES,
+  ImportSource,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
@@ -118,6 +120,12 @@ async function executeImportImpl({
         date: new Date(row.date),
       });
 
+      const importDetails: TransactionImportDetails = {
+        batchId,
+        importedAt: importedAt.toISOString(),
+        source: ImportSource.csv,
+      };
+
       // Create transaction
       const transaction = await Transactions.createTransaction({
         userId,
@@ -132,11 +140,8 @@ async function executeImportImpl({
         currencyCode: row.currencyCode,
         accountType: ACCOUNT_TYPES.system,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-        originalId: `import_${batchId}_${row.rowIndex}`,
         externalData: {
-          importBatchId: batchId,
-          importedAt: importedAt.toISOString(),
-          originalRowIndex: row.rowIndex,
+          importDetails,
         },
       });
 

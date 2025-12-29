@@ -39,7 +39,9 @@
 
       <div class="grid gap-4 md:grid-cols-2">
         <div>
-          <label class="mb-2 block text-sm font-medium"> Income Values <span class="text-destructive">*</span> </label>
+          <label class="mb-2 block text-sm font-medium">
+            Income Values <span class="text-destructive-text">*</span>
+          </label>
           <input
             v-model="incomeValuesInput"
             @blur="updateIncomeValues"
@@ -51,7 +53,9 @@
         </div>
 
         <div>
-          <label class="mb-2 block text-sm font-medium"> Expense Values <span class="text-destructive">*</span> </label>
+          <label class="mb-2 block text-sm font-medium">
+            Expense Values <span class="text-destructive-text">*</span>
+          </label>
           <input
             v-model="expenseValuesInput"
             @blur="updateExpenseValues"

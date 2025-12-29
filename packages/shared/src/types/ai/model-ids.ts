@@ -8,12 +8,12 @@ export enum AI_MODEL_ID {
   'openai/gpt-4o-mini' = 'openai/gpt-4o-mini',
   'openai/gpt-4-turbo' = 'openai/gpt-4-turbo',
 
-  // Anthropic
-  'anthropic/claude-sonnet-4-5-latest' = 'anthropic/claude-sonnet-4-5-latest',
-  'anthropic/claude-haiku-4-5-latest' = 'anthropic/claude-haiku-4-5-latest',
-  'anthropic/claude-opus-4-5-latest' = 'anthropic/claude-opus-4-5-latest',
+  // Anthropic - using Vercel AI SDK model names
+  'anthropic/claude-opus-4-5' = 'anthropic/claude-opus-4-5',
+  'anthropic/claude-sonnet-4-5' = 'anthropic/claude-sonnet-4-5',
+  'anthropic/claude-haiku-4-5' = 'anthropic/claude-haiku-4-5',
+  'anthropic/claude-3-7-sonnet-latest' = 'anthropic/claude-3-7-sonnet-latest',
   'anthropic/claude-3-5-haiku-latest' = 'anthropic/claude-3-5-haiku-latest',
-  'anthropic/claude-3-5-sonnet-latest' = 'anthropic/claude-3-5-sonnet-latest',
 
   // Google
   'google/gemini-3-pro-preview' = 'google/gemini-3-pro-preview',

@@ -1,0 +1,274 @@
+<template>
+  <div class="space-y-6">
+    <!-- Loading State -->
+    <div v-if="store.isDetectingDuplicates" class="flex items-center justify-center py-8">
+      <Loader2Icon class="text-primary mr-2 size-6 animate-spin" />
+      <span>Checking for duplicates...</span>
+    </div>
+
+    <template v-else>
+      <!-- Summary Stats -->
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <div class="flex items-center gap-2">
+          <span class="text-muted-foreground">Extracted:</span>
+          <span class="font-semibold">{{ store.importSummary.total }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-muted-foreground">Potential Duplicates:</span>
+          <span class="font-semibold text-yellow-600">{{ store.importSummary.duplicates }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-muted-foreground">Will Import:</span>
+          <span class="font-semibold text-green-600">{{ store.importSummary.toImport }}</span>
+        </div>
+        <div v-if="existingTransactionsCount > 0" class="flex items-center gap-2">
+          <span class="text-muted-foreground">Already in Account:</span>
+          <span class="font-semibold text-gray-500">{{ existingTransactionsCount }}</span>
+        </div>
+      </div>
+
+      <!-- Transaction Timeline -->
+      <div class="space-y-1">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-medium">Transaction Timeline</h3>
+          <div class="flex items-center gap-3 text-xs">
+            <div class="flex items-center gap-1">
+              <div class="size-2 rounded-full bg-green-500/20 ring-1 ring-green-500"></div>
+              <span class="text-muted-foreground">New</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="size-2 rounded-full bg-yellow-500/20 ring-1 ring-yellow-500"></div>
+              <span class="text-muted-foreground">Duplicate</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="size-2 rounded-full bg-gray-500/20 ring-1 ring-gray-500"></div>
+              <span class="text-muted-foreground">Existing</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="max-h-80 overflow-auto rounded-lg border">
+          <div class="min-w-max">
+            <div
+              v-for="(item, index) in timelineItems"
+              :key="`${item.type}-${index}`"
+              class="border-b last:border-b-0"
+              :class="[
+                item.type === 'new' && !item.isExcluded && 'bg-green-500/5',
+                item.type === 'duplicate' && !item.isOverridden && 'bg-yellow-500/5',
+                item.type === 'duplicate' && item.isOverridden && 'bg-green-500/5',
+                item.type === 'existing' && 'bg-muted/50',
+                item.isExcluded && 'opacity-50',
+                item.type !== 'existing' && 'hover:bg-muted/30 cursor-pointer',
+              ]"
+              @click="handleRowClick(item)"
+            >
+              <div class="flex items-center gap-2 px-2 py-1.5">
+                <!-- Status Indicator -->
+                <div
+                  class="size-2 shrink-0 rounded-full ring-1"
+                  :class="{
+                    'ring-success-text bg-green-500/20':
+                      item.type === 'new' || (item.type === 'duplicate' && item.isOverridden),
+                    'bg-yellow-500/20 ring-yellow-500': item.type === 'duplicate' && !item.isOverridden,
+                    'bg-gray-500/20 ring-gray-500': item.type === 'existing',
+                  }"
+                ></div>
+
+                <!-- Date -->
+                <span class="text-muted-foreground w-20 shrink-0 text-xs">{{ item.date }}</span>
+
+                <!-- Type Badge -->
+                <span
+                  class="w-16 shrink-0 rounded px-1 py-0.5 text-center text-xs"
+                  :class="{
+                    'text-success-text bg-success/40': item.txType === 'income',
+                    'bg-destructive/20 text-destructive-text': item.txType === 'expense',
+                  }"
+                >
+                  {{ item.txType }}
+                </span>
+
+                <!-- Description -->
+                <span class="max-w-[300px] min-w-0 flex-1 truncate text-xs">{{ item.description }}</span>
+
+                <!-- Status Badge -->
+                <span
+                  v-if="item.type === 'duplicate' && !item.isOverridden"
+                  class="shrink-0 rounded bg-yellow-500/20 px-1 py-0.5 text-xs text-yellow-700"
+                >
+                  Dup
+                </span>
+                <span
+                  v-else-if="item.type === 'duplicate' && item.isOverridden"
+                  class="text-success-text shrink-0 rounded bg-green-500/20 px-1 py-0.5 text-xs"
+                >
+                  Import
+                </span>
+                <span
+                  v-else-if="item.type === 'existing'"
+                  class="shrink-0 rounded bg-gray-500/20 px-1 py-0.5 text-xs text-gray-600"
+                >
+                  Exists
+                </span>
+
+                <!-- Amount -->
+                <span class="ml-auto w-24 shrink-0 text-right font-mono text-xs font-medium">
+                  {{ item.txType === 'expense' ? '-' : '+' }}{{ item.amount.toFixed(2) }}
+                </span>
+
+                <!-- Action Icon -->
+                <div class="w-6 shrink-0 text-center">
+                  <template v-if="item.type === 'new'">
+                    <CheckCircleIcon v-if="!item.isExcluded" class="inline size-4 text-green-600" />
+                    <XCircleIcon v-else class="text-muted-foreground inline size-4" />
+                  </template>
+                  <template v-else-if="item.type === 'duplicate'">
+                    <CheckCircleIcon v-if="item.isOverridden" class="inline size-4 text-green-600" />
+                    <BanIcon v-else class="text-muted-foreground inline size-4" />
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Duplicate Action Info -->
+      <div v-if="store.duplicates.length > 0" class="bg-muted/50 rounded-lg p-4 text-sm">
+        <p class="text-muted-foreground">
+          <strong>{{ store.importSummary.duplicates - store.importSummary.overridden }}</strong> transactions will be
+          skipped as duplicates.
+          <span v-if="store.importSummary.overridden > 0">
+            <strong>{{ store.importSummary.overridden }}</strong> duplicates have been overridden and will be imported.
+          </span>
+        </p>
+        <p class="text-muted-foreground mt-1">
+          Click on a row to toggle: <CheckCircleIcon class="inline size-4 text-green-600" /> will import,
+          <BanIcon class="text-muted-foreground inline size-4" /> will skip.
+        </p>
+      </div>
+
+      <!-- Navigation Buttons -->
+      <div class="flex gap-3">
+        <Button variant="outline" @click="handleBack">
+          <ArrowLeftIcon class="mr-2 size-4" />
+          Back
+        </Button>
+        <Button class="flex-1" @click="handleProceed" :disabled="store.importSummary.toImport === 0">
+          Continue to Import <span class="max-sm:hidden"> ({{ store.importSummary.toImport }} transactions) </span>
+        </Button>
+      </div>
+    </template>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { Button } from '@/components/lib/ui/button';
+import { useStatementParserStore } from '@/stores/statement-parser';
+import { ArrowLeftIcon, BanIcon, CheckCircleIcon, Loader2Icon, XCircleIcon } from 'lucide-vue-next';
+import { computed } from 'vue';
+
+const store = useStatementParserStore();
+
+// Count existing transactions that are not duplicates
+const existingTransactionsCount = computed(() => {
+  const duplicateExistingIds = new Set(store.duplicates.map((d) => d.existingTransaction.id));
+  return store.existingTransactions.filter((tx) => !duplicateExistingIds.has(tx.id)).length;
+});
+
+interface TimelineItem {
+  type: 'new' | 'duplicate' | 'existing';
+  transactionIndex: number;
+  /** For existing transactions, this is the actual transaction ID */
+  existingId?: number;
+  date: string;
+  description: string;
+  amount: number;
+  txType: 'income' | 'expense';
+  existingNote?: string;
+  isExcluded?: boolean;
+  isOverridden?: boolean;
+}
+
+const timelineItems = computed((): TimelineItem[] => {
+  if (!store.extractionResult) return [];
+
+  const items: TimelineItem[] = [];
+  const duplicateMap = new Map(store.duplicates.map((d) => [d.transactionIndex, d]));
+
+  // Get the set of existing transaction IDs that are matched as duplicates
+  // to avoid showing them twice (once as duplicate, once as existing)
+  const duplicateExistingIds = new Set(store.duplicates.map((d) => d.existingTransaction.id));
+
+  // Add extracted transactions (new and duplicates)
+  store.extractionResult.transactions.forEach((tx, index) => {
+    const duplicate = duplicateMap.get(index);
+    const isExcluded = store.excludedTransactionIndices.has(index);
+    const isOverridden = store.overriddenDuplicateIndices.has(index);
+
+    if (duplicate) {
+      items.push({
+        type: 'duplicate',
+        transactionIndex: index,
+        date: tx.date.split(' ')[0]!,
+        description: tx.description,
+        amount: tx.amount,
+        txType: tx.type,
+        existingNote: duplicate.existingTransaction.note,
+        isOverridden,
+      });
+    } else {
+      items.push({
+        type: 'new',
+        transactionIndex: index,
+        date: tx.date.split(' ')[0]!,
+        description: tx.description,
+        amount: tx.amount,
+        txType: tx.type,
+        isExcluded,
+      });
+    }
+  });
+
+  // Add existing transactions from the account (excluding those already shown as duplicates)
+  store.existingTransactions.forEach((tx) => {
+    // Skip if this existing transaction is already shown as a duplicate match
+    if (duplicateExistingIds.has(tx.id)) return;
+
+    const txDate = new Date(tx.time);
+    const dateStr = txDate.toISOString().split('T')[0]!;
+
+    items.push({
+      type: 'existing',
+      transactionIndex: -1, // Not applicable for existing transactions
+      existingId: tx.id,
+      date: dateStr,
+      description: tx.note || 'No description',
+      amount: Math.abs(tx.amount),
+      txType: tx.amount < 0 ? 'expense' : 'income',
+    });
+  });
+
+  // Sort by date (newest first)
+  items.sort((a, b) => b.date.localeCompare(a.date));
+
+  return items;
+});
+
+function handleRowClick(item: TimelineItem) {
+  if (item.type === 'new') {
+    store.toggleTransactionExclusion({ transactionIndex: item.transactionIndex });
+  } else if (item.type === 'duplicate') {
+    store.toggleDuplicateOverride({ transactionIndex: item.transactionIndex });
+  }
+}
+
+function handleBack() {
+  store.goBackToStep({ step: 2 });
+}
+
+function handleProceed() {
+  store.proceedToImport();
+}
+</script>

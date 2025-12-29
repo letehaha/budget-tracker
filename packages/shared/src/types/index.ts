@@ -8,6 +8,7 @@ export * from './external-services';
 export * from './investments';
 export * from './api';
 export * from './import-export';
+export * from './statement-parser';
 export * from './sse';
 export * from './ai';
 export { endpointsTypes };

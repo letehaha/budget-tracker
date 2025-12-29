@@ -1,6 +1,8 @@
-import type { ParsedTransactionRow } from '@bt/shared/types';
+import type { ParsedTransactionRow, TransactionImportDetails } from '@bt/shared/types';
+import { ImportSource } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
 
 describe('Execute Import endpoint', () => {
@@ -1329,6 +1331,119 @@ describe('Execute Import endpoint', () => {
 
       expect(result.summary.imported).toBe(2);
       expect(result.summary.accountsCreated).toBe(2);
+    });
+  });
+
+  describe('importDetails in externalData', () => {
+    it('should store importDetails with correct structure', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(3);
+      expect(result.summary.errors).toHaveLength(0);
+
+      // Verify externalData.importDetails is stored correctly
+      const importedTx = await Transactions.findByPk(result.newTransactionIds[0]);
+      const importDetails = importedTx?.externalData?.importDetails as TransactionImportDetails | undefined;
+
+      expect(importDetails).toBeDefined();
+      expect(importDetails?.batchId).toBe(result.batchId);
+      expect(importDetails?.source).toBe(ImportSource.csv);
+      expect(importDetails?.importedAt).toBeDefined();
+      // Verify importedAt is a valid ISO date string
+      expect(() => new Date(importDetails!.importedAt)).not.toThrow();
+      expect(new Date(importDetails!.importedAt).toISOString()).toBe(importDetails!.importedAt);
+    });
+
+    it('should store same batchId for all transactions in a single import', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(3);
+
+      // Verify all transactions have the same batchId
+      const importedTxs = await Transactions.findAll({
+        where: { id: result.newTransactionIds },
+      });
+
+      const batchIds = importedTxs.map((tx) => (tx.externalData?.importDetails as TransactionImportDetails)?.batchId);
+      expect(batchIds.every((id) => id === result.batchId)).toBe(true);
+    });
+
+    it('should have different batchIds for separate imports', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      });
+
+      const result1 = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      const result2 = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      // Verify batchIds are different between imports
+      const tx1 = await Transactions.findByPk(result1.newTransactionIds[0]);
+      const tx2 = await Transactions.findByPk(result2.newTransactionIds[0]);
+
+      const batchId1 = (tx1?.externalData?.importDetails as TransactionImportDetails)?.batchId;
+      const batchId2 = (tx2?.externalData?.importDetails as TransactionImportDetails)?.batchId;
+
+      expect(batchId1).toBe(result1.batchId);
+      expect(batchId2).toBe(result2.batchId);
+      expect(batchId1).not.toBe(batchId2);
     });
   });
 });

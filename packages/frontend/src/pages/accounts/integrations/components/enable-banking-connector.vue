@@ -173,7 +173,7 @@
               :key="account.externalId"
               class="hover:bg-accent flex cursor-pointer items-center gap-3 rounded-md border p-3"
             >
-              <input type="checkbox" :value="account.externalId" v-model="selectedAccountIds" class="h-4 w-4" />
+              <input type="checkbox" :value="account.externalId" v-model="selectedAccountIds" class="size-4" />
               <div class="flex-1">
                 <div class="font-medium">{{ account.name }}</div>
                 <div class="text-muted-foreground text-sm">

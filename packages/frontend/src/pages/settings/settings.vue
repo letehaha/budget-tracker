@@ -43,14 +43,7 @@
     <!-- Content Area (wide: always visible, compact: only on child routes) -->
     <div v-if="isOnChildRoute || !isCompactLayout" class="min-w-0 flex-1">
       <!-- Back button (compact layout only) -->
-      <router-link
-        v-if="isCompactLayout"
-        :to="{ name: ROUTES_NAMES.settings }"
-        class="text-muted-foreground bg-background hover:text-foreground sticky top-[var(--header-height)] z-[var(--z-navbar)] mb-2 flex items-center gap-1 py-2 text-sm transition-colors"
-      >
-        <ChevronLeftIcon class="size-4" />
-        Back to Settings
-      </router-link>
+      <BackLink v-if="isCompactLayout" :to="{ name: ROUTES_NAMES.settings }"> Back to Settings </BackLink>
 
       <router-view />
     </div>
@@ -58,20 +51,20 @@
 </template>
 
 <script setup lang="ts">
+import BackLink from '@/components/common/back-link.vue';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
 import { useUserStore } from '@/stores';
 import { useElementSize } from '@vueuse/core';
 import {
-  ChevronLeftIcon,
   ChevronRightIcon,
   CircleDollarSignIcon,
-  DatabaseIcon,
   LayersIcon,
   ShieldIcon,
   SparklesIcon,
   TagsIcon,
+  UploadIcon,
 } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { type Component, computed, ref, watch } from 'vue';
@@ -132,9 +125,9 @@ const baseTabs: Tab[] = [
   },
   {
     name: 'data-management',
-    label: 'Data Management',
+    label: 'Import Data',
     to: { name: ROUTES_NAMES.settingsDataManagement },
-    icon: DatabaseIcon,
+    icon: UploadIcon,
   },
   {
     name: 'ai',

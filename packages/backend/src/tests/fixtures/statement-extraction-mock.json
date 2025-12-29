@@ -1,0 +1,363 @@
+{
+  "transactions": [
+    {
+      "date": "2025-12-25 20:18:55",
+      "description": "Cafes and restaurants",
+      "amount": 2329.82,
+      "type": "expense",
+      "balance": 138206.1,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-25 20:07:20",
+      "description": "Books",
+      "amount": 2254.84,
+      "type": "expense",
+      "balance": 140535.92,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-25 20:01:27",
+      "description": "Other",
+      "amount": 651.5,
+      "type": "expense",
+      "balance": 142790.76,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-25 04:34:44",
+      "description": "Movie",
+      "amount": 499,
+      "type": "expense",
+      "balance": 143442.26,
+      "confidence": 0.99
+    },
+    {
+      "date": "2024-12-24 20:05:15",
+      "description": "Other",
+      "amount": 169.44,
+      "type": "expense",
+      "balance": 143941.26,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-19 20:39:43",
+      "description": "Cafes and restaurants",
+      "amount": 2035.56,
+      "type": "expense",
+      "balance": 144110.7,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-17 22:27:43",
+      "description": "Products and supermarkets",
+      "amount": 284.23,
+      "type": "expense",
+      "balance": 146146.26,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-17 21:45:56",
+      "description": "Repair",
+      "amount": 952.68,
+      "type": "expense",
+      "balance": 146430.49,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-17 14:12:08",
+      "description": "Auto",
+      "amount": 2677.64,
+      "type": "expense",
+      "balance": 147383.17,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-17 00:56:45",
+      "description": "White card",
+      "amount": 26000,
+      "type": "expense",
+      "balance": 150060.81,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-16 21:57:58",
+      "description": "Money transfer",
+      "amount": 23000,
+      "type": "expense",
+      "balance": 176060.81,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-16 21:48:50",
+      "description": "Money transfer",
+      "amount": 10500,
+      "type": "expense",
+      "balance": 199060.81,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-16 20:17:19",
+      "description": "Card top-up",
+      "amount": 66495,
+      "type": "income",
+      "balance": 209560.81,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-14 12:42:04",
+      "description": "Cafes and restaurants",
+      "amount": 605.88,
+      "type": "expense",
+      "balance": 143065.81,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-13 16:02:13",
+      "description": "Other",
+      "amount": 706.3,
+      "type": "expense",
+      "balance": 143671.69,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-12 01:03:30",
+      "description": "Other",
+      "amount": 786.63,
+      "type": "expense",
+      "balance": 144377.99,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-11 14:00:09",
+      "description": "Products and supermarkets",
+      "amount": 596.69,
+      "type": "expense",
+      "balance": 145164.62,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-11 00:07:18",
+      "description": "Other",
+      "amount": 113.98,
+      "type": "expense",
+      "balance": 145761.31,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-09 13:08:22",
+      "description": "Other",
+      "amount": 17.37,
+      "type": "expense",
+      "balance": 145875.29,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-09 03:30:17",
+      "description": "Other",
+      "amount": 1598.98,
+      "type": "income",
+      "balance": 145892.66,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-07 14:29:25",
+      "description": "Other",
+      "amount": 1624.94,
+      "type": "expense",
+      "balance": 144293.68,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-06 20:20:20",
+      "description": "Products and supermarkets",
+      "amount": 2184.1,
+      "type": "expense",
+      "balance": 145918.62,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-06 15:39:46",
+      "description": "Recreation and sports",
+      "amount": 339,
+      "type": "expense",
+      "balance": 148102.72,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-05 19:41:38",
+      "description": "Cafes and restaurants",
+      "amount": 1655.44,
+      "type": "expense",
+      "balance": 148441.72,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-05 09:32:44",
+      "description": "Auto",
+      "amount": 3647,
+      "type": "expense",
+      "balance": 150097.16,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-04 15:16:31",
+      "description": "Recreation and sports",
+      "amount": 339.9,
+      "type": "expense",
+      "balance": 153744.16,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-04 11:15:23",
+      "description": "Card top-up",
+      "amount": 34674,
+      "type": "income",
+      "balance": 154084.06,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-03 17:30:27",
+      "description": "Card top-up",
+      "amount": 31500,
+      "type": "income",
+      "balance": 119410.06,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-03 15:33:32",
+      "description": "Other",
+      "amount": 187.18,
+      "type": "expense",
+      "balance": 87910.06,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-03 12:31:37",
+      "description": "Card top-up",
+      "amount": 3500,
+      "type": "income",
+      "balance": 88097.24,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-03 11:41:41",
+      "description": "Card top-up",
+      "amount": 20000,
+      "type": "income",
+      "balance": 84597.24,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-03 11:41:16",
+      "description": "Card top-up",
+      "amount": 20000,
+      "type": "income",
+      "balance": 64597.24,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-03 02:15:22",
+      "description": "Cafes and restaurants",
+      "amount": 233.97,
+      "type": "expense",
+      "balance": 44597.24,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-02 21:22:03",
+      "description": "Cafes and restaurants",
+      "amount": 713.83,
+      "type": "expense",
+      "balance": 44831.21,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-01 16:32:37",
+      "description": "Other",
+      "amount": 425.41,
+      "type": "expense",
+      "balance": 45545.04,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-01 16:30:05",
+      "description": "Other",
+      "amount": 212.7,
+      "type": "expense",
+      "balance": 45970.45,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-01 16:27:10",
+      "description": "Other",
+      "amount": 4171.1,
+      "type": "expense",
+      "balance": 46183.15,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-01 15:35:43",
+      "description": "Other",
+      "amount": 638.11,
+      "type": "expense",
+      "balance": 50354.25,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-01 13:07:23",
+      "description": "Household appliances",
+      "amount": 2923.81,
+      "type": "expense",
+      "balance": 50992.36,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-01 08:42:47",
+      "description": "Other",
+      "amount": 255.24,
+      "type": "expense",
+      "balance": 53916.17,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-01 03:35:47",
+      "description": "Recreation and sports",
+      "amount": 424.98,
+      "type": "expense",
+      "balance": 54171.41,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-01 00:19:57",
+      "description": "Cafes and restaurants",
+      "amount": 1226.87,
+      "type": "expense",
+      "balance": 54596.39,
+      "confidence": 0.99
+    },
+    {
+      "date": "2025-12-01 00:15:04",
+      "description": "Cafes and restaurants",
+      "amount": 2009.61,
+      "type": "expense",
+      "balance": 55823.26,
+      "confidence": 0.99
+    }
+  ],
+  "metadata": {
+    "bankName": "UNIVERSAL BANK JSC",
+    "accountNumberLast4": "0001",
+    "statementPeriod": {
+      "from": "2025-12-01",
+      "to": "2025-12-25"
+    },
+    "currencyCode": "UAH"
+  },
+  "pageCount": 3,
+  "fileType": "pdf",
+  "tokenCount": {
+    "input": 4005,
+    "output": 7274
+  }
+}

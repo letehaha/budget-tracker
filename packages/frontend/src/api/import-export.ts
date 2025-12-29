@@ -6,7 +6,12 @@ import type {
   ExecuteImportRequest,
   ExecuteImportResponse,
   ExtractUniqueValuesResponse,
+  StatementCostEstimate,
+  StatementExtractionResult,
+  StatementFileType,
 } from '@bt/shared/types';
+
+import { toSystemAmount } from './helpers';
 
 export interface ParseCsvRequest {
   fileContent: string;
@@ -45,5 +50,121 @@ export const detectDuplicates = async (payload: DetectDuplicatesRequest): Promis
 
 export const executeImport = async (payload: ExecuteImportRequest): Promise<ExecuteImportResponse> => {
   const result = await api.post('/import/csv/execute', payload);
+  return result;
+};
+
+// Statement Parser API (supports PDF, CSV, TXT)
+
+export interface StatementCostEstimateRequest {
+  fileBase64: string;
+}
+
+export interface StatementCostEstimateFailure {
+  success: false;
+  textExtraction: {
+    success: false;
+    characterCount: number;
+    pageCount: number;
+    error?: string;
+  };
+  fileType: StatementFileType;
+  suggestion: string;
+  error?: {
+    code: string;
+    message: string;
+    details?: string;
+  };
+}
+
+export const estimateStatementCost = async (
+  payload: StatementCostEstimateRequest,
+): Promise<StatementCostEstimate | StatementCostEstimateFailure> => {
+  const result = await api.post('/import/text-source/estimate-cost', payload);
+  return result;
+};
+
+export interface StatementExtractRequest {
+  fileBase64: string;
+}
+
+export const extractStatementTransactions = async (
+  payload: StatementExtractRequest,
+): Promise<StatementExtractionResult> => {
+  const result = await api.post('/import/text-source/extract', payload);
+  return result;
+};
+
+// Statement Parser - Duplicate Detection
+
+export interface StatementDetectDuplicatesRequest {
+  accountId: number;
+  transactions: StatementExtractionResult['transactions'];
+}
+
+export interface StatementDetectDuplicatesResponse {
+  duplicates: Array<{
+    transactionIndex: number;
+    extractedTransaction: StatementExtractionResult['transactions'][number];
+    existingTransaction: {
+      id: number;
+      date: string;
+      amount: number;
+      note: string;
+    };
+  }>;
+}
+
+export const detectStatementDuplicates = async (
+  payload: StatementDetectDuplicatesRequest,
+): Promise<StatementDetectDuplicatesResponse> => {
+  // Convert amounts to system format (integers, multiply by 100)
+  const convertedTransactions = payload.transactions.map((tx) => ({
+    ...tx,
+    amount: toSystemAmount(tx.amount),
+    balance: tx.balance !== undefined ? toSystemAmount(tx.balance) : undefined,
+  }));
+
+  const result = await api.post('/import/text-source/detect-duplicates', {
+    ...payload,
+    transactions: convertedTransactions,
+  });
+  return result;
+};
+
+// Statement Parser - Execute Import
+
+export interface StatementExecuteImportRequest {
+  accountId: number;
+  transactions: StatementExtractionResult['transactions'];
+  skipIndices: number[];
+}
+
+export interface StatementExecuteImportResponse {
+  summary: {
+    imported: number;
+    skipped: number;
+    errors: Array<{
+      transactionIndex: number;
+      error: string;
+    }>;
+  };
+  newTransactionIds: number[];
+  batchId: string;
+}
+
+export const executeStatementImport = async (
+  payload: StatementExecuteImportRequest,
+): Promise<StatementExecuteImportResponse> => {
+  // Convert amounts to system format (integers, multiply by 100)
+  const convertedTransactions = payload.transactions.map((tx) => ({
+    ...tx,
+    amount: toSystemAmount(tx.amount),
+    balance: tx.balance !== undefined ? toSystemAmount(tx.balance) : undefined,
+  }));
+
+  const result = await api.post('/import/text-source/execute', {
+    ...payload,
+    transactions: convertedTransactions,
+  });
   return result;
 };

@@ -1,7 +1,7 @@
 <template>
   <Card>
     <div v-if="isLoading" class="text-muted-foreground text-center">Loading portfolio summary...</div>
-    <div v-else-if="error" class="text-destructive text-center">Failed to load portfolio summary.</div>
+    <div v-else-if="error" class="text-destructive-text text-center">Failed to load portfolio summary.</div>
     <div v-else-if="summary">
       <!-- Main Portfolio Value - Yahoo Finance Style -->
       <CardHeader class="flex flex-row items-baseline gap-3">

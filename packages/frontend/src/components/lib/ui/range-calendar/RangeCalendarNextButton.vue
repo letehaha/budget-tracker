@@ -20,12 +20,12 @@ const forwardedProps = useForwardProps(delegatedProps);
 <template>
   <RangeCalendarNext
     :class="
-      cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100', props.class)
+      cn(buttonVariants({ variant: 'outline' }), 'size-7 bg-transparent p-0 opacity-50 hover:opacity-100', props.class)
     "
     v-bind="forwardedProps"
   >
     <slot>
-      <ChevronRight class="h-4 w-4" />
+      <ChevronRight class="size-4" />
     </slot>
   </RangeCalendarNext>
 </template>

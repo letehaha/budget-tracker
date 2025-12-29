@@ -8,7 +8,7 @@
     <CardContent class="mt-6 flex flex-col gap-6">
       <!-- Loading state -->
       <div v-if="isLoading" class="flex items-center justify-center py-8">
-        <Loader2Icon class="text-muted-foreground h-6 w-6 animate-spin" />
+        <Loader2Icon class="text-muted-foreground size-6 animate-spin" />
       </div>
 
       <template v-else>
@@ -47,8 +47,11 @@
                   If you add your own API key for a provider, that key will be used instead for models from that
                   provider.
                 </li>
-                <li>Your API keys are encrypted with AES-256-GCM and stored securely.</li>
-                <li>You can remove your key anytime to switch back to the server-provided key.</li>
+                <li>Your API keys are encrypted and stored securely.</li>
+                <li>
+                  You can remove your key anytime to switch back to the server-provided key (rate limits will be applied
+                  based on current demand).
+                </li>
               </ul>
             </div>
           </TabsContent>
