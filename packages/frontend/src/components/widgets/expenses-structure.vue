@@ -78,7 +78,31 @@
       </EmptyState>
     </template>
     <template v-else>
-      <highcharts :options="chartOptions" />
+      <div class="relative">
+        <highcharts :options="chartOptions" />
+
+        <!-- Touch device overlay: shows category details + navigation button in center -->
+        <div
+          v-if="isTouch && selectedCategory"
+          class="pointer-events-none absolute inset-0 flex items-center justify-center"
+        >
+          <div class="pointer-events-auto mt-4 flex flex-col items-center gap-1 text-center">
+            <div class="text-xs">{{ selectedCategory.name }}</div>
+            <div class="text-sm font-medium">
+              {{ formatBaseCurrency(selectedCategory.amount) }}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              class="mt-1 h-6 gap-1 px-2 text-xs"
+              @click="navigateToTransactions({ categoryId: selectedCategoryId! })"
+            >
+              View
+              <ExternalLinkIcon class="size-3" />
+            </Button>
+          </div>
+        </div>
+      </div>
     </template>
   </WidgetWrapper>
 </template>
@@ -86,19 +110,20 @@
 <script lang="ts" setup>
 import { getExpensesAmountForPeriod, getSpendingsByCategories } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { ROUTES_NAMES } from '@/routes';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import { useFormatCurrency, useHighcharts } from '@/composable';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { calculatePercentageDifference } from '@/js/helpers';
+import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
+import { useMediaQuery } from '@vueuse/core';
 import { differenceInDays, subDays } from 'date-fns';
 import { Chart as Highcharts } from 'highcharts-vue';
-import { ChartPieIcon, CircleOffIcon } from 'lucide-vue-next';
+import { ChartPieIcon, CircleOffIcon, ExternalLinkIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
@@ -119,6 +144,17 @@ const { formatBaseCurrency } = useFormatCurrency();
 const categoriesStore = useCategoriesStore();
 const { categoriesMap } = storeToRefs(categoriesStore);
 const router = useRouter();
+
+// Detect touch-primary devices (coarse pointer = finger/stylus)
+const isTouch = useMediaQuery('(pointer: coarse)');
+
+// Track selected category for touch devices (since there's no hover)
+const selectedCategoryId = ref<number | null>(null);
+
+const selectedCategory = computed(() => {
+  if (!selectedCategoryId.value || !spendingsByCategories.value) return null;
+  return spendingsByCategories.value[selectedCategoryId.value] || null;
+});
 
 // Include both from and to in query key to ensure cache invalidation when period changes
 const periodQueryKey = ref(`${new Date().getTime()}-${new Date().getTime()}`);
@@ -209,20 +245,43 @@ const hasData = computed(() => currentMonthExpense.value !== undefined && prevMo
 const getAllCategoryIds = (rootCategoryId: number): number[] => {
   const result = [rootCategoryId];
   const categories = Object.values(categoriesMap.value);
-  
+
   // Find all categories that have this category as parent
   const findChildren = (parentId: number) => {
-    categories.forEach(cat => {
+    categories.forEach((cat) => {
       if (cat.parentId === parentId && !result.includes(cat.id)) {
         result.push(cat.id);
         findChildren(cat.id); // Recursively find children of children
       }
     });
   };
-  
+
   findChildren(rootCategoryId);
   return result;
 };
+
+// Navigate to transactions page with category filter
+const navigateToTransactions = ({ categoryId }: { categoryId: number }) => {
+  const allCategoryIds = getAllCategoryIds(categoryId);
+
+  router.push({
+    name: ROUTES_NAMES.transactions,
+    query: {
+      categoryIds: allCategoryIds.map(String),
+      start: props.selectedPeriod.from.toISOString(),
+      end: props.selectedPeriod.to.toISOString(),
+      transactionType: TRANSACTION_TYPES.expense,
+    },
+  });
+};
+
+// Clear selection when period changes
+watch(
+  () => props.selectedPeriod,
+  () => {
+    selectedCategoryId.value = null;
+  },
+);
 
 const chartOptions = computed(() => {
   const baseConfig = buildDonutChartConfig({
@@ -235,9 +294,13 @@ const chartOptions = computed(() => {
     ],
   });
 
-  // Preserve existing mouse events and add click event
+  // For touch devices, disable the hover events (we handle selection via Vue overlay)
+  // For non-touch devices, keep the hover events for the center label
   const existingEvents = baseConfig.plotOptions?.pie?.point?.events || {};
-  
+  const mouseEvents = isTouch.value
+    ? { mouseOver: undefined, mouseOut: undefined }
+    : { mouseOver: existingEvents.mouseOver, mouseOut: existingEvents.mouseOut };
+
   return {
     ...baseConfig,
     plotOptions: {
@@ -248,34 +311,26 @@ const chartOptions = computed(() => {
         point: {
           ...baseConfig.plotOptions?.pie?.point,
           events: {
-            ...existingEvents,
-            click: function(this: Highcharts.Point) {
+            ...mouseEvents,
+            click: function (this: Highcharts.Point) {
               const categoryData = spendingsByCategories.value;
               // Find the category ID by matching the category name
-              const categoryId = Object.keys(categoryData || {}).find(
-                id => categoryData[+id]?.name === this.name
-              );
+              const categoryId = Object.keys(categoryData || {}).find((id) => categoryData[+id]?.name === this.name);
 
               if (categoryId) {
-                // Get all category IDs including subcategories
-                const allCategoryIds = getAllCategoryIds(Number(categoryId));
-                
-                // Navigate to transactions page with category filter
-                router.push({
-                  name: ROUTES_NAMES.transactions,
-                  query: {
-                    categoryIds: allCategoryIds.map(String),
-                    start: props.selectedPeriod.from.toISOString(),
-                    end: props.selectedPeriod.to.toISOString(),
-                    transactionType: TRANSACTION_TYPES.expense
-                  }
-                });
+                if (isTouch.value) {
+                  // On touch devices, select the category to show details + button
+                  selectedCategoryId.value = Number(categoryId);
+                } else {
+                  // On non-touch devices, navigate directly
+                  navigateToTransactions({ categoryId: Number(categoryId) });
+                }
               }
-            }
-          }
-        }
-      }
-    }
+            },
+          },
+        },
+      },
+    },
   };
 });
 </script>
