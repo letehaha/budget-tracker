@@ -501,6 +501,164 @@ describe('Statement Parser - Execute Import endpoint', () => {
 
       expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
     });
+
+    it('should return error for future date transaction', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // Create a date 1 year in the future
+      const futureDate = new Date();
+      futureDate.setFullYear(futureDate.getFullYear() + 1);
+      const futureDateStr = futureDate.toISOString().split('T')[0];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions: [
+            {
+              date: futureDateStr!,
+              description: 'Future transaction',
+              amount: 1000,
+              type: 'expense',
+            },
+          ],
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      // Transaction should not be imported, should be in errors
+      expect(result.summary.imported).toBe(0);
+      expect(result.summary.errors).toHaveLength(1);
+      expect(result.summary.errors[0]!.transactionIndex).toBe(0);
+      expect(result.summary.errors[0]!.error).toContain('is in the future');
+    });
+
+    it('should allow transaction dated today or yesterday', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions: [
+            {
+              date: todayStr!,
+              description: 'Today transaction',
+              amount: 1000,
+              type: 'expense',
+            },
+          ],
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.errors).toHaveLength(0);
+    });
+
+    it('should return error for extreme amount exceeding threshold', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions: [
+            {
+              date: '2024-01-15',
+              description: 'Extremely large amount',
+              amount: 2_000_000_000, // 2 billion - exceeds 1 billion threshold
+              type: 'expense',
+            },
+          ],
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      // Transaction should not be imported, should be in errors
+      expect(result.summary.imported).toBe(0);
+      expect(result.summary.errors).toHaveLength(1);
+      expect(result.summary.errors[0]!.transactionIndex).toBe(0);
+      expect(result.summary.errors[0]!.error).toContain('exceeds maximum allowed value');
+    });
+
+    it('should allow amount just under the threshold', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions: [
+            {
+              date: '2024-01-15',
+              description: 'Large but valid amount',
+              amount: 999_999_999, // Just under 1 billion threshold
+              type: 'income',
+            },
+          ],
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.errors).toHaveLength(0);
+    });
+
+    it('should handle mixed valid and invalid transactions', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // Create a future date
+      const futureDate = new Date();
+      futureDate.setFullYear(futureDate.getFullYear() + 1);
+      const futureDateStr = futureDate.toISOString().split('T')[0];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions: [
+            {
+              date: '2024-01-15',
+              description: 'Valid transaction 1',
+              amount: 5000,
+              type: 'expense',
+            },
+            {
+              date: futureDateStr!, // Invalid - future date
+              description: 'Future date transaction',
+              amount: 1000,
+              type: 'expense',
+            },
+            {
+              date: '2024-01-16',
+              description: 'Valid transaction 2',
+              amount: 3000,
+              type: 'income',
+            },
+            {
+              date: '2024-01-17',
+              description: 'Extreme amount transaction',
+              amount: 2_000_000_000, // Invalid - too large
+              type: 'expense',
+            },
+          ],
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      // 2 valid, 2 invalid
+      expect(result.summary.imported).toBe(2);
+      expect(result.summary.errors).toHaveLength(2);
+
+      // Check error indices
+      const errorIndices = result.summary.errors.map((e) => e.transactionIndex);
+      expect(errorIndices).toContain(1); // Future date
+      expect(errorIndices).toContain(3); // Extreme amount
+    });
   });
 
   describe('account isolation', () => {

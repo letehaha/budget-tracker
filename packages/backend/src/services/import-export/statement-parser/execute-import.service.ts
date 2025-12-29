@@ -95,6 +95,37 @@ async function executeImportImpl({
         continue;
       }
 
+      // Validate: no future dates (with 1-day tolerance for timezone differences)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(23, 59, 59, 999);
+      if (txDate > tomorrow) {
+        errors.push({
+          transactionIndex: i,
+          error: `Transaction date "${tx.date}" is in the future`,
+        });
+        continue;
+      }
+
+      // Validate: amount must be positive (type determines income/expense direction)
+      if (tx.amount <= 0) {
+        errors.push({
+          transactionIndex: i,
+          error: `Amount must be positive, got: ${tx.amount}`,
+        });
+        continue;
+      }
+
+      // Validate: amount should not exceed reasonable threshold (1 billion)
+      const MAX_AMOUNT = 1_000_000_000;
+      if (tx.amount > MAX_AMOUNT) {
+        errors.push({
+          transactionIndex: i,
+          error: `Amount ${tx.amount} exceeds maximum allowed value of ${MAX_AMOUNT}`,
+        });
+        continue;
+      }
+
       // Calculate refAmount
       const refAmount = await calculateRefAmount({
         userId,
