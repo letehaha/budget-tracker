@@ -3,14 +3,14 @@
  * Validates file content using magic bytes to prevent renamed/malicious files
  */
 
-export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-export const SUPPORTED_EXTENSIONS = ['.pdf', '.csv', '.txt'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const SUPPORTED_EXTENSIONS = ['.pdf', '.csv', '.txt'];
 
 // Magic bytes for file type detection
 const PDF_MAGIC_BYTES = [0x25, 0x50, 0x44, 0x46]; // %PDF
 const PKCS7_MAGIC_BYTE = 0x30; // ASN.1 SEQUENCE (signed PDF container)
 
-export interface FileValidationResult {
+interface FileValidationResult {
   valid: boolean;
   error?: string;
 }
@@ -58,7 +58,7 @@ async function isValidTextContent({ file }: { file: File }): Promise<boolean> {
  * Validate file content matches the expected type based on extension.
  * This prevents users from uploading renamed files (e.g., .exe renamed to .pdf)
  */
-export async function validateFileContent({ file }: { file: File }): Promise<FileValidationResult> {
+async function validateFileContent({ file }: { file: File }): Promise<FileValidationResult> {
   const ext = '.' + (file.name.toLowerCase().split('.').pop() || '');
   const header = await readFileHeader({ file });
 
