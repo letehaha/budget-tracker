@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
-import Card from '@/components/lib/ui/card/Card.vue';
-import CardContent from '@/components/lib/ui/card/CardContent.vue';
-import CardHeader from '@/components/lib/ui/card/CardHeader.vue';
 import { PlusIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 
@@ -20,25 +17,21 @@ const isModalClosed = () => {
 </script>
 
 <template>
-  <div class="p-4">
-    <Card class="@container/budgets-card max-w-[700px]">
-      <CardHeader
-        :class="[
-          'flex justify-between gap-4 border-b',
-          '@[450px]/budgets-card:flex-row @[450px]/budgets-card:items-center',
-        ]"
-      >
-        <h3 class="text-xl">Budgets</h3>
+  <div class="p-6">
+    <!-- Page Header -->
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">Budgets</h1>
+        <p class="text-muted-foreground mt-1 text-sm">Track spending and monitor financial events</p>
+      </div>
+      <Button @click="openModal">
+        <PlusIcon class="mr-2 size-4" />
+        New Budget
+      </Button>
+    </div>
 
-        <Button class="w-min" @click="openModal">
-          Create budget
-          <PlusIcon class="size-4" />
-        </Button>
-      </CardHeader>
-      <CardContent class="pt-4!">
-        <BudgetList />
-      </CardContent>
-    </Card>
+    <!-- Budget List -->
+    <BudgetList />
 
     <ResponsiveDialog v-model:open="isOpen">
       <template #title> Create budget </template>
