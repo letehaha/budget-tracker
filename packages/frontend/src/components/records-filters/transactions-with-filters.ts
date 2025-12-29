@@ -60,6 +60,8 @@ export const useTransactionsWithFilters = ({
         accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
         categoryIds: filter.categoryIds.length ? filter.categoryIds : undefined,
         categorizationSource: filter.categorizationSource,
+        budgetIds: staticFilters.budgetIds,
+        excludedBudgetIds: staticFilters.excludedBudgetIds,
         ...staticFilters,
       }),
     );
@@ -73,6 +75,7 @@ export const useTransactionsWithFilters = ({
     hasNextPage,
     isFetchingNextPage,
     isFetched,
+    isFetching,
   } = useInfiniteQuery({
     queryKey,
     queryFn: ({ pageParam }) => fetchTransactions({ pageParam, filter: appliedFilters.value }),
@@ -100,6 +103,7 @@ export const useTransactionsWithFilters = ({
     hasNextPage,
     isFetchingNextPage,
     isFetched,
+    isFetching,
     transactionsListRef,
     invalidate,
   };
