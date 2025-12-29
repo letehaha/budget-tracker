@@ -46,6 +46,7 @@
     "express-validator": "7.0.1",
     "express-winston": "4.2.0",
     "ioredis": "^5.8.2",
+    "js-tiktoken": "^1.0.21",
     "jsonwebtoken": "9.0.2",
     "locale": "0.1.0",
     "morgan": "^1.10.1",

@@ -6,7 +6,7 @@ import { AI_FEATURE } from '@bt/shared/types';
 import { resolveAIConfiguration } from '@services/ai';
 import { getModelInfo } from '@services/ai/models-config';
 
-import { STATEMENT_EXTRACTION_SYSTEM_PROMPT } from './extraction-prompt';
+import { STATEMENT_EXTRACTION_SYSTEM_PROMPT, createTextExtractionPrompt } from './extraction-prompt';
 import { estimateTokenCount } from './text-extractor';
 
 /** Average output tokens per transaction (estimated) */
@@ -76,10 +76,10 @@ export async function estimateExtractionCost({
     };
   }
 
-  // Estimate input tokens (system prompt + statement text)
+  // Estimate input tokens (system prompt + user prompt with statement text)
   const systemPromptTokens = estimateTokenCount({ text: STATEMENT_EXTRACTION_SYSTEM_PROMPT });
-  const statementTextTokens = estimateTokenCount({ text });
-  const estimatedInputTokens = systemPromptTokens + statementTextTokens;
+  const userPromptTokens = estimateTokenCount({ text: createTextExtractionPrompt({ text }) });
+  const estimatedInputTokens = systemPromptTokens + userPromptTokens;
 
   // Estimate output tokens based on expected number of transactions
   // Conservative estimate: 15 transactions per page on average

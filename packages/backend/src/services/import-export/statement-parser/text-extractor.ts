@@ -2,7 +2,22 @@
  * Text extraction from various file formats (PDF, CSV, TXT)
  */
 import type { StatementFileType } from '@bt/shared/types';
+import { type Tiktoken, getEncoding } from 'js-tiktoken';
 import pdfParse from 'pdf-parse';
+
+/** Cached tokenizer encoder instance */
+let tokenEncoder: Tiktoken | null = null;
+
+/**
+ * Get or create the token encoder (cached for performance)
+ */
+function getTokenEncoder(): Tiktoken {
+  if (!tokenEncoder) {
+    // cl100k_base is used by GPT-4 and works well for Claude models too
+    tokenEncoder = getEncoding('cl100k_base');
+  }
+  return tokenEncoder;
+}
 
 export interface TextExtractionResult {
   success: boolean;
@@ -123,11 +138,9 @@ export async function extractTextFromFile({
 }
 
 /**
- * Estimate token count from text (rough approximation)
- * Uses ~4 characters per token as a rough estimate
+ * Estimate token count from text using a proper tokenizer
  */
 export function estimateTokenCount({ text }: { text: string }): number {
-  // Average English text is about 4 characters per token
-  // For structured content like bank statements, it might be slightly higher
-  return Math.ceil(text.length / 4);
+  const encoder = getTokenEncoder();
+  return encoder.encode(text).length;
 }
