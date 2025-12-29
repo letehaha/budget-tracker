@@ -72,6 +72,7 @@ interface StatsResponse {
     actualExpense: number;
     balance: number; // Net difference
     utilizationRate: null | number; // Percentage used (0-100)
+    transactionsCount: number;
   };
 }
 

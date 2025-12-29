@@ -11,6 +11,7 @@ interface StatsResponse {
     actualExpense: number;
     balance: number; // Net difference
     utilizationRate: null | number; // Percentage used (0-100)
+    transactionsCount: number;
   };
 }
 
@@ -20,6 +21,7 @@ export const getResponseInitialState = (): StatsResponse => ({
     actualExpense: 0,
     balance: 0, // Net difference
     utilizationRate: null, // Percentage used (0-100)
+    transactionsCount: 0,
   },
 });
 
@@ -53,6 +55,8 @@ export const getBudgetStats = withTransaction(
 
       return acc;
     }, getResponseInitialState());
+
+    result.summary.transactionsCount = transactions.length;
 
     if (budgetDetails.limitAmount) {
       const utilizationRate = (result.summary.actualExpense / budgetDetails.limitAmount) * 100;
