@@ -90,7 +90,7 @@ describe('Delete Portfolio Service E2E', () => {
 
         // Create a temporary account for the holding (needed for backward compatibility)
         // Use USD currency if available, otherwise use the base currency
-        const usdCurrency = global.MODELS_CURRENCIES.find((c: { code: string }) => c.code === 'USD');
+        const usdCurrency = global.MODELS_CURRENCIES!.find((c: { code: string }) => c.code === 'USD');
         const currencyToUse = usdCurrency || global.BASE_CURRENCY;
 
         const investmentAccount = await helpers.createAccount({
@@ -183,7 +183,7 @@ describe('Delete Portfolio Service E2E', () => {
 
         // Create a temporary account for the holding (needed for backward compatibility)
         // Use USD currency if available, otherwise use the base currency
-        const usdCurrency = global.MODELS_CURRENCIES.find((c: { code: string }) => c.code === 'USD');
+        const usdCurrency = global.MODELS_CURRENCIES!.find((c: { code: string }) => c.code === 'USD');
         const currencyToUse = usdCurrency || global.BASE_CURRENCY;
 
         const investmentAccount = await helpers.createAccount({

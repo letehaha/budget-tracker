@@ -24,7 +24,11 @@ const pool = new Pool({
   port: parseInt(process.env.APPLICATION_DB_PORT as string, 10),
   user: process.env.APPLICATION_DB_USERNAME,
   password: process.env.APPLICATION_DB_PASSWORD,
-  database: process.env.APPLICATION_DB_DATABASE,
+  // In test environment, use per-worker database (same as Sequelize)
+  database:
+    process.env.NODE_ENV === 'test' && process.env.JEST_WORKER_ID
+      ? `${process.env.APPLICATION_DB_DATABASE}-${process.env.JEST_WORKER_ID}`
+      : process.env.APPLICATION_DB_DATABASE,
 });
 
 export const auth = betterAuth({

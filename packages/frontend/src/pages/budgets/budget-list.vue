@@ -139,7 +139,7 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
         <Card
           v-for="budget in budgetsList"
           :key="budget.id"
-          class="group relative cursor-pointer transition-all duration-200 hover:border-white/20 hover:bg-white/[0.02]"
+          class="group relative cursor-pointer transition-all duration-200 hover:border-white/20 hover:bg-white/2"
           @click="navigateToBudget({ budgetId: budget.id })"
         >
           <!-- Dropdown Menu -->

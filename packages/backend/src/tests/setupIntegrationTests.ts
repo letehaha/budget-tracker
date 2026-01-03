@@ -284,9 +284,19 @@ beforeEach(async () => {
       await new Promise((resolve) => setTimeout(resolve, staggerDelay));
 
       // Clean up database schema with deadlock retry
+      // NOTE: We must drop ALL tables, not just Sequelize model tables.
+      // better-auth creates ba_* tables that aren't registered as Sequelize models,
+      // so sequelize.drop() won't remove them. We use raw SQL to drop everything.
       await retryWithBackoff(
         async () => {
-          await connection.sequelize.drop({ cascade: true });
+          // Drop ALL tables in public schema (not just Sequelize models)
+          const [tables] = await connection.sequelize.query(`
+            SELECT tablename FROM pg_tables
+            WHERE schemaname = 'public'
+          `);
+          for (const { tablename } of tables as { tablename: string }[]) {
+            await connection.sequelize.query(`DROP TABLE IF EXISTS "${tablename}" CASCADE`);
+          }
           await dropAllEnums(connection.sequelize);
         },
         15,
@@ -407,7 +417,7 @@ beforeEach(async () => {
     console.error('Setup failed:', err);
     throw err;
   }
-}, 30_000); // Increased timeout for first test (schema setup)
+}, 60_000); // Increased timeout for first test (schema setup)
 
 afterAll(async () => {
   try {
