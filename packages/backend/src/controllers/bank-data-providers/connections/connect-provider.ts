@@ -9,7 +9,7 @@ export default createController(
       providerType: z.nativeEnum(BANK_PROVIDER_TYPE),
     }),
     body: z.object({
-      credentials: z.record(z.unknown()),
+      credentials: z.record(z.string(), z.unknown()),
       providerName: z.string().optional(),
     }),
   }),

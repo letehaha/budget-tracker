@@ -11,7 +11,7 @@ import {
   transactionSyncQueue,
   transactionSyncWorker,
 } from '@services/bank-data-providers/monobank/transaction-sync-queue';
-import { extractResponse, makeRequest } from '@tests/helpers';
+import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 import path from 'path';
 import Umzug from 'umzug';
 
@@ -89,7 +89,7 @@ global.BASE_CURRENCY = null;
 // Should be non-USD so that some tests make sense
 global.BASE_CURRENCY_CODE = 'AED';
 global.MODELS_CURRENCIES = null;
-global.APP_AUTH_TOKEN = null;
+global.APP_AUTH_COOKIES = null;
 
 // Track if schema has been set up for this worker
 let schemaInitialized = false;
@@ -308,26 +308,82 @@ beforeEach(async () => {
       await truncateAllTables();
     }
 
-    // Set up test user
-    await makeRequest({
+    // Set up test user for authentication
+    // The better-auth mock returns a user with id 'test-user-id', so we need
+    // to create a corresponding user in the database with that authUserId.
+    const testEmail = 'test1@test.local';
+    const testPassword = 'testpassword123';
+
+    // Import user service to create the database user
+    const userService = await import('@services/user.service');
+    const categoriesService = await import('@services/categories.service');
+    const { DEFAULT_CATEGORIES } = await import('@js/const');
+
+    // Create the app user with the expected authUserId from the mock
+    const testUser = await userService.createUser({
+      username: 'test1',
+      authUserId: 'test-user-id', // This must match what the mock returns
+    });
+
+    // Create default categories for the test user
+    const defaultCategories = DEFAULT_CATEGORIES.main.map((item) => ({
+      ...item,
+      userId: testUser.id,
+    }));
+
+    const categories = await categoriesService.bulkCreate({ data: defaultCategories }, { returning: true });
+
+    // Create subcategories
+    let subcats: Array<{
+      name: string;
+      parentId: number;
+      color: string;
+      userId: number;
+      type: string;
+    }> = [];
+
+    categories.forEach((item) => {
+      const subcategories = DEFAULT_CATEGORIES.subcategories.find((subcat) => subcat.parentName === item.name);
+
+      if (subcategories) {
+        subcats = [
+          ...subcats,
+          ...subcategories.values.map((subItem) => ({
+            ...subItem,
+            parentId: item.id,
+            color: item.color,
+            userId: testUser.id,
+          })),
+        ];
+      }
+    });
+
+    if (subcats.length > 0) {
+      await categoriesService.bulkCreate({ data: subcats });
+    }
+
+    // Set default category
+    const defaultCategory = categories.find((item) => item.name === DEFAULT_CATEGORIES.names.other);
+
+    if (defaultCategory) {
+      await userService.updateUser({
+        id: testUser.id,
+        defaultCategoryId: defaultCategory.id,
+      });
+    }
+
+    // Simulate sign-in to get session cookies from the mock
+    const loginRes = await makeAuthRequest({
       method: 'post',
-      url: '/auth/register',
+      url: '/auth/sign-in/email',
       payload: {
-        username: 'test1',
-        password: 'test1',
+        email: testEmail,
+        password: testPassword,
       },
     });
 
-    const res = await makeRequest({
-      method: 'post',
-      url: '/auth/login',
-      payload: {
-        username: 'test1',
-        password: 'test1',
-      },
-    });
-
-    global.APP_AUTH_TOKEN = extractResponse(res).token;
+    // Extract session cookies from the login response
+    global.APP_AUTH_COOKIES = extractCookies(loginRes);
 
     // Don't waste time, just store base_currency to the global variable to not
     // call this request each time

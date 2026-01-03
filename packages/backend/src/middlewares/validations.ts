@@ -17,12 +17,12 @@ export const validateEndpoint =
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const message = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ');
+        const message = error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ');
         return res.status(ERROR_CODES.ValidationError).json({
           status: API_RESPONSE_STATUS.error,
           response: {
             message,
-            validationErrors: error.errors,
+            validationErrors: error.issues,
             code: API_ERROR_CODES.validationError,
           },
         });

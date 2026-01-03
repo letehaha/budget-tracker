@@ -1,13 +1,17 @@
-import { api } from '@/api/_api';
 import { useAuthStore, useCurrenciesStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { NavigationGuard } from 'vue-router';
 
-export const authPageGuard: NavigationGuard = (to, from, next): void => {
-  const token = localStorage.getItem('user-token') || '';
+export const authPageGuard: NavigationGuard = async (to, from, next): Promise<void> => {
+  const authStore = useAuthStore();
 
-  if (useAuthStore().isLoggedIn || token) {
-    api.setToken(token);
+  // Wait for session to be checked on app startup
+  if (!authStore.isSessionChecked) {
+    await authStore.validateSession();
+  }
+
+  // With better-auth, we use session cookies instead of localStorage tokens
+  if (authStore.isLoggedIn) {
     next('/dashboard');
   } else {
     next();
@@ -25,12 +29,15 @@ export const baseCurrencyExists: NavigationGuard = (to, from, next): void => {
 };
 
 export const redirectRouteGuard: NavigationGuard = async (to, from, next): Promise<void> => {
-  const token = localStorage.getItem('user-token') || '';
   const authStore = useAuthStore();
 
-  if (token) {
-    api.setToken(token);
-    await authStore.setLoggedIn();
+  // Wait for session to be checked on app startup
+  if (!authStore.isSessionChecked) {
+    await authStore.validateSession();
+  }
+
+  // With better-auth, session validation is done via cookies
+  if (authStore.isLoggedIn) {
     next();
   } else {
     next({

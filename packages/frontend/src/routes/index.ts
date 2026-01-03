@@ -139,6 +139,11 @@ const routes = [
             name: ROUTES_NAMES.settingsAi,
             component: () => import('@/pages/settings/subpages/ai/index.vue'),
           },
+          {
+            path: 'security',
+            name: ROUTES_NAMES.settingsSecurity,
+            component: () => import('@/pages/settings/subpages/security/index.vue'),
+          },
         ],
       },
     ],
@@ -162,10 +167,25 @@ const routes = [
         component: () => import('@/pages/auth/register.vue'),
       },
       {
+        path: '/verify-email',
+        name: ROUTES_NAMES.verifyEmail,
+        component: () => import('@/pages/auth/verify-email.vue'),
+      },
+      {
+        path: '/auth/verify-legacy-email',
+        name: ROUTES_NAMES.verifyLegacyEmail,
+        component: () => import('@/pages/auth/verify-legacy-email.vue'),
+      },
+      {
         path: '/welcome',
         name: ROUTES_NAMES.welcome,
         beforeEnter: redirectRouteGuard,
         component: () => import('@/pages/auth/welcome.vue'),
+      },
+      {
+        path: '/auth/callback',
+        name: ROUTES_NAMES.authCallback,
+        component: () => import('@/pages/auth/oauth-callback.vue'),
       },
     ],
   },

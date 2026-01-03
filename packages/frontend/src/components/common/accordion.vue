@@ -26,18 +26,13 @@
             <ChevronRightIcon
               class="text-muted-foreground size-4 shrink-0 transition-transform duration-200"
               :class="[
-                cat.subCategories.length
-                  ? { 'rotate-90': props.expandedCategories.includes(cat.id) }
-                  : 'opacity-30',
+                cat.subCategories.length ? { 'rotate-90': props.expandedCategories.includes(cat.id) } : 'opacity-30',
               ]"
             />
 
             <CategoryCircle :category="cat" />
             <span class="truncate">{{ cat.name }}</span>
-            <span
-              v-if="isInternalCategory(cat)"
-              class="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-xs"
-            >
+            <span v-if="isInternalCategory(cat)" class="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-xs">
               system
             </span>
           </div>

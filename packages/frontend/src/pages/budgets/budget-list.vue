@@ -13,9 +13,6 @@ import {
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Card } from '@/components/lib/ui/card';
 import { useNotificationCenter } from '@/components/notification-center';
-
-import BudgetCardSkeleton from './budget-card-skeleton.vue';
-import BudgetStatsSkeleton from './budget-stats-skeleton.vue';
 import { useFormatCurrency } from '@/composable';
 import { ROUTES_NAMES } from '@/routes';
 import { BudgetModel } from '@bt/shared/types';
@@ -25,15 +22,15 @@ import { ArrowRightIcon, CalendarIcon, MoreVerticalIcon, PencilIcon, Trash2Icon,
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 
+import BudgetCardSkeleton from './budget-card-skeleton.vue';
+import BudgetStatsSkeleton from './budget-stats-skeleton.vue';
+
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 const router = useRouter();
 const queryClient = useQueryClient();
 const { formatBaseCurrency } = useFormatCurrency();
 
-const {
-  data: budgetsList,
-  isPlaceholderData: isBudgetsListPlaceholder,
-} = useQuery({
+const { data: budgetsList, isPlaceholderData: isBudgetsListPlaceholder } = useQuery({
   queryFn: () => loadSystemBudgets(),
   queryKey: VUE_QUERY_CACHE_KEYS.budgetsList,
   staleTime: Infinity,
@@ -203,9 +200,7 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
                     <span v-if="getBudgetStats(budget.id)?.summary?.transactionsCount">
                       {{ getBudgetStats(budget.id)?.summary?.transactionsCount }} transactions
                     </span>
-                    <span v-else class="text-muted-foreground/60 italic">
-                      No transactions yet
-                    </span>
+                    <span v-else class="text-muted-foreground/60 italic"> No transactions yet </span>
                   </template>
                 </div>
               </div>
@@ -242,10 +237,7 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
             </div>
 
             <!-- Stats -->
-            <BudgetStatsSkeleton
-              v-if="isBudgetStatsLoading(budget.id)"
-              :show-utilization="!!budget.limitAmount"
-            />
+            <BudgetStatsSkeleton v-if="isBudgetStatsLoading(budget.id)" :show-utilization="!!budget.limitAmount" />
             <template v-else>
               <div class="border-border/50 mt-auto grid grid-cols-3 gap-2 border-t pt-3">
                 <div>

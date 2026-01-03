@@ -4,7 +4,7 @@ import {
   executeImportController,
   extractController,
 } from '@controllers/statement-parser';
-import { authenticateJwt } from '@middlewares/passport';
+import { authenticateSession } from '@middlewares/better-auth';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -20,7 +20,7 @@ const router = Router({});
  */
 router.post(
   '/text-source/estimate-cost',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(estimateCostController.schema),
   estimateCostController.handler,
 );
@@ -35,7 +35,7 @@ router.post(
  */
 router.post(
   '/text-source/extract',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(extractController.schema),
   extractController.handler,
 );
@@ -50,7 +50,7 @@ router.post(
  */
 router.post(
   '/text-source/detect-duplicates',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(detectDuplicatesController.schema),
   detectDuplicatesController.handler,
 );
@@ -65,7 +65,7 @@ router.post(
  */
 router.post(
   '/text-source/execute',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(executeImportController.schema),
   executeImportController.handler,
 );

@@ -1,5 +1,5 @@
 import { logger } from '@js/utils/logger';
-import { authenticateJwt } from '@middlewares/passport';
+import { authenticateSession } from '@middlewares/better-auth';
 import { Router } from 'express';
 
 import { getUserAccountsSyncStatus } from '../services/bank-data-providers/sync/get-user-sync-status';
@@ -15,7 +15,7 @@ const KEEPALIVE_INTERVAL_MS = 30000; // 30 seconds
  * Establishes a Server-Sent Events connection for real-time updates.
  * Requires authentication via JWT token in Authorization header.
  */
-router.get('/events', authenticateJwt, async (req, res) => {
+router.get('/events', authenticateSession, async (req, res) => {
   const userId = (req.user as { id: number }).id;
   // Reuse requestId from middleware as connection ID for tracing
   const connectionId = (req as { requestId?: string }).requestId ?? 'unknown';

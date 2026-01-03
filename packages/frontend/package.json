@@ -22,6 +22,7 @@
     "not dead"
   ],
   "dependencies": {
+    "@better-auth/passkey": "^1.4.9",
     "@internationalized/date": "^3.10.0",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@popperjs/core": "^2.11.8",
@@ -31,6 +32,7 @@
     "@vuelidate/core": "^2.0.3",
     "@vuelidate/validators": "^2.0.4",
     "@vueuse/core": "^12.2.0",
+    "better-auth": "^1.4.9",
     "class-variance-authority": "0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",

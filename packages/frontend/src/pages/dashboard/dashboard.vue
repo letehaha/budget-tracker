@@ -1,5 +1,8 @@
 <template>
   <section class="flex min-h-full flex-col p-6">
+    <!-- Recovery method suggestion banner -->
+    <RecoveryMethodBanner />
+
     <!-- Main period selector - floating on mobile, normal flow on desktop -->
     <div
       v-if="!hasNoAccounts"
@@ -43,6 +46,7 @@
 </template>
 
 <script lang="ts" setup>
+import RecoveryMethodBanner from '@/components/banners/recovery-method-banner.vue';
 import BalanceTrendWidget from '@/components/widgets/balance-trend.vue';
 import DashboardOnboarding from '@/components/widgets/dashboard-onboarding.vue';
 import SpendingCategoriesWidget from '@/components/widgets/expenses-structure.vue';

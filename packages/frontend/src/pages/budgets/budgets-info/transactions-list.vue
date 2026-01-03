@@ -4,6 +4,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import Button from '@/components/lib/ui/button/Button.vue';
 import Card from '@/components/lib/ui/card/Card.vue';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
+import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { useNotificationCenter } from '@/components/notification-center';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
@@ -14,8 +15,6 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { AlertTriangleIcon, LinkIcon, PlusIcon, WalletIcon, XIcon } from 'lucide-vue-next';
 import { computed, inject, nextTick, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
-
-import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 
 import AddTransactionsDialog from './add-transactions-dialog.vue';
 
@@ -45,7 +44,9 @@ const enableUnlinkingMode = async () => {
   const viewport = scrollAreaViewport?.value?.viewportElement;
   const cardEl = cardRef.value?.$el as HTMLElement;
   if (viewport && cardEl) {
-    const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height') || '64');
+    const headerHeight = parseInt(
+      getComputedStyle(document.documentElement).getPropertyValue('--header-height') || '64',
+    );
     const cardTop = cardEl.offsetTop - headerHeight;
     viewport.scrollTo({ top: cardTop, behavior: 'smooth' });
   }

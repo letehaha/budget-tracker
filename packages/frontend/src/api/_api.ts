@@ -15,10 +15,10 @@ interface ApiRequestConfig {
   method: HTTP_METHOD;
   headers: {
     'Content-Type': string;
-    Authorization?: string;
     [SESSION_ID_HEADER_KEY]: string;
   };
   body?: string;
+  credentials: RequestCredentials;
 }
 
 interface ApiCall {
@@ -29,7 +29,6 @@ interface ApiCall {
   data?: Record<string | number, any>;
   options?: {
     needRaw?: boolean;
-    withoutSignature?: boolean;
   };
 }
 
@@ -43,18 +42,16 @@ const SESSION_ID_KEY = 'session-id';
 console.log('API_HTTP', API_HTTP);
 // eslint-disable-next-line no-console
 console.log('API_VER', API_VER);
-class ApiCaller {
-  authToken: string | null;
 
+/**
+ * API client for making requests to the backend.
+ * Authentication is handled via session cookies (managed by better-auth).
+ */
+class ApiCaller {
   _baseURL: string;
 
   constructor() {
     this._baseURL = import.meta.env.API_HTTP;
-    this.authToken = null;
-  }
-
-  setToken(token: string): void {
-    this.authToken = token;
   }
 
   get<T = Record<string, unknown>>(
@@ -142,7 +139,6 @@ class ApiCaller {
    * @param {string} opts.method - the http method of request
    * @param {boolean} opts.options.needRaw - defines if raw response should be
    * returned, `true` by default
-   * @param {boolean} opts.options.withoutSignature - call API without auth token
    *
    * @private
    */
@@ -155,23 +151,19 @@ class ApiCaller {
     if (additionalParams) {
       additionalParams = `?${additionalParams}`;
     }
-    const userHadToken = !!(this.authToken || window.localStorage.getItem('user-token'));
     const url = `${API_HTTP}${API_VER}${opts.endpoint}${additionalParams}`;
     const config: ApiRequestConfig = {
       method: opts.method,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: this.authToken || window.localStorage.getItem('user-token'),
         'X-Session-ID': window.sessionStorage?.getItem(SESSION_ID_KEY) || '',
       },
+      // Include credentials (cookies) for session-based authentication
+      credentials: 'include',
     };
 
     if (opts.data) {
       config.body = JSON.stringify(opts.data);
-    }
-
-    if (opts.options?.withoutSignature) {
-      delete config.headers.Authorization;
     }
 
     let result: Response;
@@ -237,7 +229,7 @@ class ApiCaller {
 
           addNotification({
             id: 'authorization-error',
-            text: userHadToken ? 'Your session has expired. Please sign in again' : 'Please sign in to continue',
+            text: 'Your session has expired. Please sign in again',
             type: NotificationType.error,
           });
         }
