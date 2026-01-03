@@ -1,8 +1,6 @@
 import { passkey } from '@better-auth/passkey';
-import { DEFAULT_CATEGORIES } from '@js/const';
 import { logger } from '@js/utils/logger';
-import * as categoriesService from '@services/categories.service';
-import * as userService from '@services/user.service';
+import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
 import bcrypt from 'bcryptjs';
 import { betterAuth } from 'better-auth';
 import { Pool } from 'pg';
@@ -218,58 +216,10 @@ export const auth = betterAuth({
           try {
             logger.info(`Creating app user profile for auth user: ${user.id}`);
 
-            // Create the app user linked to the auth user
-            const appUser = await userService.createUser({
+            const appUser = await createUserWithDefaults({
               username: user.name || user.email?.split('@')[0] || 'user',
               authUserId: user.id,
             });
-
-            // Create default categories for the new user
-            const defaultCategories = DEFAULT_CATEGORIES.main.map((item) => ({
-              ...item,
-              userId: appUser.id,
-            }));
-
-            const categories = await categoriesService.bulkCreate({ data: defaultCategories }, { returning: true });
-
-            // Create subcategories
-            let subcats: Array<{
-              name: string;
-              parentId: number;
-              color: string;
-              userId: number;
-              type: string;
-            }> = [];
-
-            categories.forEach((item) => {
-              const subcategories = DEFAULT_CATEGORIES.subcategories.find((subcat) => subcat.parentName === item.name);
-
-              if (subcategories) {
-                subcats = [
-                  ...subcats,
-                  ...subcategories.values.map((subItem) => ({
-                    ...subItem,
-                    parentId: item.id,
-                    color: item.color,
-                    userId: appUser.id,
-                  })),
-                ];
-              }
-            });
-
-            if (subcats.length > 0) {
-              await categoriesService.bulkCreate({ data: subcats });
-            }
-
-            // Set default category
-            const defaultCategory = categories.find((item) => item.name === DEFAULT_CATEGORIES.names.other);
-
-            if (defaultCategory) {
-              await userService.updateUser({
-                id: appUser.id,
-                defaultCategoryId: defaultCategory.id,
-              });
-            }
 
             logger.info(`Successfully created app user profile with id: ${appUser.id}`);
           } catch (error) {

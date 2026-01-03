@@ -295,7 +295,12 @@ beforeEach(async () => {
             WHERE schemaname = 'public'
           `);
           for (const { tablename } of tables as { tablename: string }[]) {
-            await connection.sequelize.query(`DROP TABLE IF EXISTS "${tablename}" CASCADE`);
+            try {
+              await connection.sequelize.query(`DROP TABLE IF EXISTS "${tablename}" CASCADE`);
+            } catch (err) {
+              console.error(`Failed to drop table "${tablename}":`, err);
+              throw err;
+            }
           }
           await dropAllEnums(connection.sequelize);
         },
@@ -324,63 +329,12 @@ beforeEach(async () => {
     const testEmail = 'test1@test.local';
     const testPassword = 'testpassword123';
 
-    // Import user service to create the database user
-    const userService = await import('@services/user.service');
-    const categoriesService = await import('@services/categories.service');
-    const { DEFAULT_CATEGORIES } = await import('@js/const');
-
-    // Create the app user with the expected authUserId from the mock
-    const testUser = await userService.createUser({
+    // Create the app user with default categories using the shared service
+    const { createUserWithDefaults } = await import('@services/user/create-user-with-defaults.service');
+    await createUserWithDefaults({
       username: 'test1',
       authUserId: 'test-user-id', // This must match what the mock returns
     });
-
-    // Create default categories for the test user
-    const defaultCategories = DEFAULT_CATEGORIES.main.map((item) => ({
-      ...item,
-      userId: testUser.id,
-    }));
-
-    const categories = await categoriesService.bulkCreate({ data: defaultCategories }, { returning: true });
-
-    // Create subcategories
-    let subcats: Array<{
-      name: string;
-      parentId: number;
-      color: string;
-      userId: number;
-      type: string;
-    }> = [];
-
-    categories.forEach((item) => {
-      const subcategories = DEFAULT_CATEGORIES.subcategories.find((subcat) => subcat.parentName === item.name);
-
-      if (subcategories) {
-        subcats = [
-          ...subcats,
-          ...subcategories.values.map((subItem) => ({
-            ...subItem,
-            parentId: item.id,
-            color: item.color,
-            userId: testUser.id,
-          })),
-        ];
-      }
-    });
-
-    if (subcats.length > 0) {
-      await categoriesService.bulkCreate({ data: subcats });
-    }
-
-    // Set default category
-    const defaultCategory = categories.find((item) => item.name === DEFAULT_CATEGORIES.names.other);
-
-    if (defaultCategory) {
-      await userService.updateUser({
-        id: testUser.id,
-        defaultCategoryId: defaultCategory.id,
-      });
-    }
 
     // Simulate sign-in to get session cookies from the mock
     const loginRes = await makeAuthRequest({
