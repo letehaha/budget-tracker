@@ -27,7 +27,4 @@ export const authClient = createAuthClient({
 });
 
 // Export commonly used methods for easier imports
-export const { signIn, signUp, signOut, useSession, getSession, changeEmail } = authClient;
-
-// Passkey methods from plugin
-export const { passkey } = authClient;
+export const { signIn, signUp, signOut, getSession } = authClient;

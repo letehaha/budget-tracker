@@ -11,7 +11,7 @@
 import { Button } from '@/components/lib/ui/button';
 import { computed } from 'vue';
 
-export type OAuthProvider = 'google';
+type OAuthProvider = 'google';
 
 interface Props {
   provider: OAuthProvider;
