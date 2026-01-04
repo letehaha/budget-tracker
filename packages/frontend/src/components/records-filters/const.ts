@@ -9,6 +9,7 @@ export interface FiltersStruct {
   excludeRefunds: boolean;
   excludeTransfer: boolean;
   accounts: AccountModel[];
+  budgetIds?: number[] | null;
   excludedBudgetIds?: number[] | null;
   noteIncludes: string;
   categoryIds: number[];

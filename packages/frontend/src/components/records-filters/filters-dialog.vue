@@ -1,6 +1,6 @@
 <template>
   <div class="flex items-center justify-between">
-    <p>Filters:</p>
+    <p class="max-xs:hidden mr-3">Filters:</p>
 
     <ResponsiveDialog :open="open" @update:open="$emit('update:open', $event)">
       <template #trigger>
