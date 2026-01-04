@@ -18,10 +18,10 @@ This middleware provides Redis-based rate limiting for API endpoints.
 import { apiRateLimit, authRateLimit, priceSyncRateLimit } from '@middlewares/rate-limit';
 
 // 5-minute window, 1 attempt per user
-router.post('/expensive-operation', authenticateJwt, priceSyncRateLimit, handler);
+router.post('/expensive-operation', authenticateSession, priceSyncRateLimit, handler);
 
 // 1-minute window, 60 attempts per user
-router.get('/api-data', authenticateJwt, apiRateLimit, handler);
+router.get('/api-data', authenticateSession, apiRateLimit, handler);
 
 // 15-minute window, 5 attempts per IP
 router.post('/auth/login', authRateLimit, handler);
@@ -38,7 +38,7 @@ const customRateLimit = createRateLimit({
   keyGenerator: (req) => `custom:${req.user.id}:${req.path}`,
 });
 
-router.post('/custom-endpoint', authenticateJwt, customRateLimit, handler);
+router.post('/custom-endpoint', authenticateSession, customRateLimit, handler);
 ```
 
 ## Configuration Options

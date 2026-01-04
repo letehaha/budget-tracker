@@ -12,17 +12,9 @@
 
     <div v-else class="space-y-3">
       <!-- Render feature-specific components -->
-      <template v-for="(feature, index) in featuresStatus" :key="feature.feature">
-        <CategorizationFeature
-          v-if="feature.feature === AI_FEATURE.categorization"
-          :feature-status="feature"
-          :default-open="index === 0"
-        />
-        <StatementParsingFeature
-          v-else-if="feature.feature === AI_FEATURE.statementParsing"
-          :feature-status="feature"
-          :default-open="index === 0"
-        />
+      <template v-for="feature in featuresStatus" :key="feature.feature">
+        <CategorizationFeature v-if="feature.feature === AI_FEATURE.categorization" :feature-status="feature" />
+        <StatementParsingFeature v-else-if="feature.feature === AI_FEATURE.statementParsing" :feature-status="feature" />
       </template>
     </div>
   </div>

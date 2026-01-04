@@ -5,7 +5,6 @@ import { NextFunction, Request, Response } from 'express';
 
 /**
  * Middleware to authenticate requests using better-auth sessions.
- * Replaces the JWT-based authenticateJwt middleware.
  *
  * This middleware:
  * 1. Validates the session using better-auth

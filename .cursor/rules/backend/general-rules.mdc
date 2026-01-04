@@ -17,7 +17,7 @@ alwaysApply: true
 ## Middleware
 
 ### Common Middleware
-1. authenticateJwt - Authentication
+1. authenticateSession - Authentication (better-auth sessions)
 2. validateEndpoint - Request validation
 3. requestId - Request tracking
 4. sessionId - Session management

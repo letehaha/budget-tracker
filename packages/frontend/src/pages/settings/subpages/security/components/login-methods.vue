@@ -76,8 +76,9 @@
               <p v-else class="text-muted-foreground text-sm">No password set</p>
             </div>
           </div>
-          <span v-if="hasPassword" class="text-muted-foreground text-sm">Manage in Password tab</span>
-          <Button v-else variant="outline" size="sm" disabled> Set up password </Button>
+          <span class="text-muted-foreground text-sm">
+            {{ hasPassword ? 'Manage in Password tab' : 'Set up in Password tab' }}
+          </span>
         </div>
       </div>
 
@@ -125,10 +126,10 @@
         </div>
       </div>
 
-      <!-- Warning if only one login method -->
-      <p v-if="!canDisconnect" class="text-muted-foreground text-sm">
+      <!-- Warning if only OAuth login method -->
+      <p v-if="googleAccount && !canDisconnect" class="text-muted-foreground text-sm">
         <AlertTriangleIcon class="mr-1 inline size-4" />
-        You need at least one login method. Add another method before removing this one.
+        Add another login method before disconnecting Google.
       </p>
     </template>
   </div>

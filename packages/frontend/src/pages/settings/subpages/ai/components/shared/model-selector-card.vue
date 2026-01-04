@@ -6,6 +6,7 @@
       <div class="min-w-0 flex-1">
         <!-- Title row with badge on mobile -->
         <div class="flex items-center gap-2">
+          <component :is="featureIcon" class="text-muted-foreground size-4 shrink-0" />
           <h4 class="font-medium">{{ featureDisplayInfo.name }}</h4>
           <!-- Key source badge - inline on mobile -->
           <span
@@ -111,7 +112,7 @@
           v-if="!featureStatus.usingUserKey"
           class="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950"
         >
-          <AlertTriangleIcon class="mt-0.5 size-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+          <AlertTriangleIcon class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <p class="text-xs text-amber-700 dark:text-amber-300">
             Using server-provided AI with free-tier rate limiting. Feature availability depends on demand from other
             users. For reliable access, add your own API key in the API Keys tab.
@@ -138,9 +139,10 @@ import {
   AIModelCostTier,
   AIModelInfoWithRecommendation,
   AIModelPricing,
+  AI_FEATURE,
   AI_PROVIDER,
 } from '@bt/shared/types';
-import { AlertTriangleIcon, ChevronDownIcon, ChevronRightIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, ChevronDownIcon, ChevronRightIcon, FileTextIcon, TagIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -154,6 +156,13 @@ const props = defineProps<{
 }>();
 
 const featureDisplayInfo = computed(() => getAIFeatureDisplayInfo({ feature: props.featureStatus.feature }));
+
+const FEATURE_ICONS = {
+  [AI_FEATURE.categorization]: TagIcon,
+  [AI_FEATURE.statementParsing]: FileTextIcon,
+} as const;
+
+const featureIcon = computed(() => FEATURE_ICONS[props.featureStatus.feature]);
 
 const PROVIDER_LABELS: Record<AI_PROVIDER, string> = {
   [AI_PROVIDER.openai]: 'OpenAI',
