@@ -54,11 +54,6 @@ async function connect(): Promise<void> {
     });
   }
 
-  const token = window.localStorage.getItem('user-token');
-  if (!token) {
-    return;
-  }
-
   isConnecting.value = true;
   abortController = new AbortController();
 
@@ -71,9 +66,7 @@ async function connect(): Promise<void> {
     // Start the connection in the background (don't await - it never resolves while open)
     fetchEventSource(url, {
       method: 'GET',
-      headers: {
-        Authorization: token,
-      },
+      credentials: 'include', // Send session cookie for better-auth
       signal: abortController.signal,
       // Keep connection open when tab is hidden. This ensures real-time updates
       // are received even in background tabs. Trade-off: slightly higher battery

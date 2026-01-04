@@ -13,7 +13,7 @@ const KEEPALIVE_INTERVAL_MS = 30000; // 30 seconds
  * SSE Events endpoint
  *
  * Establishes a Server-Sent Events connection for real-time updates.
- * Requires authentication via JWT token in Authorization header.
+ * Requires authentication via session cookie (better-auth).
  */
 router.get('/events', authenticateSession, async (req, res) => {
   const userId = (req.user as { id: number }).id;
