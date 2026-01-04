@@ -189,9 +189,10 @@ if (process.env.NODE_ENV === 'development') {
 
 function initializeBackgroundJobs() {
   const isOfflineMode = process.env.OFFLINE_MODE === 'true';
+  const isTestMode = process.env.NODE_ENV === 'test';
 
-  if (isOfflineMode) {
-    logger.info('[Offline Mode] Skipping background jobs that require internet connection');
+  if (isOfflineMode || isTestMode) {
+    logger.info(`[${isTestMode ? 'Test' : 'Offline'} Mode] Skipping background jobs that require internet connection`);
   } else {
     // Initialize historical exchange rates on startup (non-blocking)
     initializeHistoricalRates();

@@ -11,9 +11,8 @@ import {
   transactionSyncQueue,
   transactionSyncWorker,
 } from '@services/bank-data-providers/monobank/transaction-sync-queue';
+import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
-import path from 'path';
-import Umzug from 'umzug';
 
 import { resetSessionCounter } from './mocks/enablebanking/mock-api';
 import { setupMswServer } from './mocks/setup-mock-server';
@@ -66,48 +65,11 @@ afterAll(() => mswMockServer.close());
 
 global.mswMockServer = mswMockServer;
 
-const umzug = new Umzug({
-  migrations: {
-    // The params that get passed to the migrations
-    params: [connection.sequelize.getQueryInterface(), connection.sequelize.constructor],
-    // The path to the migrations directory
-    path: path.join(__dirname, '../migrations'),
-    pattern: /\.(js|ts)$/,
-    // Add a custom resolver to handle .ts files.
-    // This tells Umzug to use Node's `require` for any matched file.
-    // Because your tests are run with ts-jest, `ts-node` is already
-    // registered and will automatically transpile the .ts file when required.
-    customResolver: (path) => require(path),
-  },
-  storage: 'sequelize',
-  storageOptions: {
-    sequelize: connection.sequelize,
-  },
-});
-
 global.BASE_CURRENCY = null;
 // Should be non-USD so that some tests make sense
 global.BASE_CURRENCY_CODE = 'AED';
 global.MODELS_CURRENCIES = null;
 global.APP_AUTH_COOKIES = null;
-
-// Track if schema has been set up for this worker
-let schemaInitialized = false;
-
-async function dropAllEnums(sequelize) {
-  // Get all ENUM types
-  const enums = await sequelize.query(`
-    SELECT t.typname as enumtype
-    FROM pg_type t
-    JOIN pg_enum e ON t.oid = e.enumtypid
-    GROUP BY t.typname;
-  `);
-
-  // Drop each ENUM
-  for (const enumType of enums[0]) {
-    await sequelize.query(`DROP TYPE "${enumType.enumtype}" CASCADE`);
-  }
-}
 
 /**
  * Tables that contain seed/reference data from migrations and should NOT be truncated.
@@ -276,52 +238,9 @@ beforeEach(async () => {
       await redisClient.del(...keysWithoutPrefix);
     }
 
-    if (!schemaInitialized) {
-      // First test in this worker - need to set up schema from scratch
-      // Dynamic delay based on worker ID to reduce database contention during initial setup
-      const workerId = parseInt(process.env.JEST_WORKER_ID || '1', 10);
-      const staggerDelay = workerId * 200; // 200ms per worker
-      await new Promise((resolve) => setTimeout(resolve, staggerDelay));
-
-      // Clean up database schema with deadlock retry
-      // NOTE: We must drop ALL tables, not just Sequelize model tables.
-      // better-auth creates ba_* tables that aren't registered as Sequelize models,
-      // so sequelize.drop() won't remove them. We use raw SQL to drop everything.
-      await retryWithBackoff(
-        async () => {
-          // Drop ALL tables in public schema (not just Sequelize models)
-          const [tables] = await connection.sequelize.query(`
-            SELECT tablename FROM pg_tables
-            WHERE schemaname = 'public'
-          `);
-          for (const { tablename } of tables as { tablename: string }[]) {
-            try {
-              await connection.sequelize.query(`DROP TABLE IF EXISTS "${tablename}" CASCADE`);
-            } catch (err) {
-              console.error(`Failed to drop table "${tablename}":`, err);
-              throw err;
-            }
-          }
-          await dropAllEnums(connection.sequelize);
-        },
-        15,
-        200,
-      );
-
-      // Run migrations with deadlock retry (this can be slow with TypeScript)
-      await retryWithBackoff(
-        async () => {
-          await umzug.up();
-        },
-        15,
-        200,
-      );
-
-      schemaInitialized = true;
-    } else {
-      // Schema already exists - just truncate tables (much faster!)
-      await truncateAllTables();
-    }
+    // Schema comes from template database (created in setup-e2e-tests.sh).
+    // We just need to truncate data between tests.
+    await truncateAllTables();
 
     // Set up test user for authentication
     // The better-auth mock returns a user with id 'test-user-id', so we need
@@ -330,7 +249,6 @@ beforeEach(async () => {
     const testPassword = 'testpassword123';
 
     // Create the app user with default categories using the shared service
-    const { createUserWithDefaults } = await import('@services/user/create-user-with-defaults.service');
     await createUserWithDefaults({
       username: 'test1',
       authUserId: 'test-user-id', // This must match what the mock returns
@@ -362,16 +280,20 @@ beforeEach(async () => {
       global.BASE_CURRENCY = currencies.find((item: any) => item.code === global.BASE_CURRENCY_CODE);
     }
 
-    await makeRequest({
+    const baseCurrencyRes = await makeRequest({
       method: 'post',
       url: '/user/currencies/base',
       payload: { currencyCode: global.BASE_CURRENCY.code },
     });
+
+    if (baseCurrencyRes.statusCode !== 200) {
+      throw new Error(`Failed to set base currency: ${JSON.stringify(baseCurrencyRes.body)}`);
+    }
   } catch (err) {
     console.error('Setup failed:', err);
     throw err;
   }
-}, 60_000); // Increased timeout for first test (schema setup)
+}, 20_000); // Timeout for test setup (truncate + create user + sign-in)
 
 afterAll(async () => {
   try {
