@@ -11,9 +11,17 @@ import { withTransaction } from '../common/with-transaction';
 export const deleteUser = withTransaction(async ({ userId }: { userId: number }) => {
   try {
     // 1. Clean up BullMQ queue - remove pending sync jobs for this user
-    const pendingJobs = await transactionSyncQueue.getJobs(['waiting', 'active', 'delayed']);
+    // Only target 'waiting' and 'delayed' jobs - 'active' jobs are locked by workers and cannot be removed
+    const pendingJobs = await transactionSyncQueue.getJobs(['waiting', 'delayed']);
     const userJobs = pendingJobs.filter((job) => job.data.userId === userId);
-    await Promise.all(userJobs.map((job) => job.remove()));
+    await Promise.all(
+      userJobs.map((job) =>
+        job.remove().catch(() => {
+          // Job may have become active between getJobs and remove - ignore lock errors
+          logger.warn(`Could not remove job during user deletion. jobId: ${job.id}`);
+        }),
+      ),
+    );
 
     // 2. Clean up Redis cache
     const cache = new CacheClient({ logPrefix: 'user-deletion' });
