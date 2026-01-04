@@ -77,7 +77,7 @@ jobs:
     if: needs.detect-changes.outputs.frontend-only != 'true'
     strategy:
       matrix:
-        task: [lint, 'test']
+        task: [lint, "test"]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/prepare-local-env
@@ -96,8 +96,9 @@ jobs:
           envkey_APPLICATION_DB_DIALECT: postgres
           # docker/test/backend/docker-compose.yml redis' service name
           envkey_APPLICATION_REDIS_HOST: test-redis
-          # TODO: temporary set to 1 due to issues with migrations with +1 worker
-          envkey_JEST_WORKERS_AMOUNT: 1
+          # GitHub runner has 4 CPU
+          # https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+          envkey_JEST_WORKERS_AMOUNT: 4
           envkey_SHOW_LOGS_IN_TESTS: false
           envkey_POLYGON_API_KEY: test
           envkey_ALPHA_VANTAGE_API_KEY: test
