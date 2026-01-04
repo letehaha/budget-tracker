@@ -8,7 +8,7 @@ alwaysApply: true
 ## Template
 ```typescript
 import { Router } from 'express';
-import { authenticateJwt } from '@middlewares/passport';
+import { authenticateSession } from '@middlewares/better-auth';
 import { validateEndpoint } from '@middlewares/validations';
 import { featureController } from '@controllers/feature.controller';
 
@@ -16,7 +16,7 @@ const router = Router();
 
 router.get(
   '/',
-  authenticateJwt,  // Authentication middleware if needed
+  authenticateSession,  // Authentication middleware if needed
   validateEndpoint(featureController.schema),
   featureController.handler
 );

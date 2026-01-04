@@ -26,23 +26,6 @@ export interface UpdateAccountBody extends BodyPayload {
   isEnabled?: AccountModel['isEnabled'];
 }
 
-export interface AuthLoginBody extends BodyPayload {
-  username: string;
-  password: string;
-}
-// Bearer token
-export interface AuthLoginResponse {
-  token: string;
-}
-
-export interface AuthRegisterBody extends BodyPayload {
-  username: string;
-  password: string;
-}
-export interface AuthRegisterResponse {
-  user: UserModel;
-}
-
 export interface GetBalanceHistoryPayload extends QueryPayload {
   accountId?: AccountModel['id'];
   // yyyy-mm-dd
