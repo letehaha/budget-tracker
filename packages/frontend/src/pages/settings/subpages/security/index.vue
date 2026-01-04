@@ -43,6 +43,8 @@
             <PasswordSection />
           </TabsContent>
         </Tabs>
+
+        <DeleteAccountSection />
       </template>
     </CardContent>
   </Card>
@@ -55,6 +57,7 @@ import { KeyRoundIcon, Loader2Icon, LockIcon, MonitorSmartphoneIcon } from 'luci
 import { ref } from 'vue';
 
 import ActiveSessions from './components/active-sessions.vue';
+import DeleteAccountSection from './components/delete-account-section.vue';
 import LoginMethods from './components/login-methods.vue';
 import PasswordSection from './components/password-section.vue';
 
