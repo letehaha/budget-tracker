@@ -60,6 +60,7 @@ import { useElementSize } from '@vueuse/core';
 import {
   ChevronRightIcon,
   CircleDollarSignIcon,
+  KeyRoundIcon,
   LayersIcon,
   ShieldIcon,
   SparklesIcon,
@@ -134,6 +135,12 @@ const baseTabs: Tab[] = [
     label: 'AI',
     to: { name: ROUTES_NAMES.settingsAi },
     icon: SparklesIcon,
+  },
+  {
+    name: 'security',
+    label: 'Security',
+    to: { name: ROUTES_NAMES.settingsSecurity },
+    icon: KeyRoundIcon,
   },
 ];
 

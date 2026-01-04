@@ -13,70 +13,70 @@ import getRefunds from '@controllers/transactions.controller/refunds/get-refunds
 import getRefundsForTransactionById from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';
 import unlinkTransferTransactions from '@controllers/transactions.controller/transfer-linking/unlink-transfer-transactions';
 import updateTransaction from '@controllers/transactions.controller/update-transaction';
+import { authenticateSession } from '@middlewares/better-auth';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
-import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
 const router = Router({});
 
 // Define all named routes level above to avoid matching with /:id
-router.get('/refund', authenticateJwt, validateEndpoint(getRefund.schema), getRefund.handler);
-router.get('/refunds', authenticateJwt, validateEndpoint(getRefunds.schema), getRefunds.handler);
+router.get('/refund', authenticateSession, validateEndpoint(getRefund.schema), getRefund.handler);
+router.get('/refunds', authenticateSession, validateEndpoint(getRefunds.schema), getRefunds.handler);
 router.post(
   '/refund',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(createRefund.schema),
   createRefund.handler,
 );
 router.delete(
   '/refund',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(deleteRefund.schema),
   deleteRefund.handler,
 );
 
-router.get('/', authenticateJwt, validateEndpoint(getTransactions.schema), getTransactions.handler);
-router.get('/:id', authenticateJwt, validateEndpoint(getTransactionById.schema), getTransactionById.handler);
+router.get('/', authenticateSession, validateEndpoint(getTransactions.schema), getTransactions.handler);
+router.get('/:id', authenticateSession, validateEndpoint(getTransactionById.schema), getTransactionById.handler);
 router.get(
   '/:id/refunds',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getRefundsForTransactionById.schema),
   getRefundsForTransactionById.handler,
 );
 router.get(
   '/transfer/:transferId',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getTransactionsByTransferId.schema),
   getTransactionsByTransferId.handler,
 );
 router.post(
   '/',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(createTransaction.schema),
   createTransaction.handler,
 );
 router.put(
   '/unlink',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(unlinkTransferTransactions.schema),
   unlinkTransferTransactions.handler,
 );
-router.put('/link', authenticateJwt, checkBaseCurrencyLock, linkTransactions);
+router.put('/link', authenticateSession, checkBaseCurrencyLock, linkTransactions);
 router.put(
   '/:id',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(updateTransaction.schema),
   updateTransaction.handler,
 );
 router.delete(
   '/:id',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(deleteTransaction.schema),
   deleteTransaction.handler,

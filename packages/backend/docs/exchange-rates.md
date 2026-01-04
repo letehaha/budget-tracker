@@ -74,9 +74,9 @@ frankfurter:
 
 ## Troubleshooting
 
-| Issue                   | Solution                                                                                 |
-| ----------------------- | ---------------------------------------------------------------------------------------- |
-| No rates after startup  | Check logs → Verify services are running → Check `Currencies` table → Restart            |
-| All providers failing   | Check Docker services → Verify network connectivity → Check API keys                     |
-| Missing historical data | Restart server (idempotent) or manually: `await initializeHistoricalRates()`             |
-| FK constraint violation | Currencies must exist in DB first (auto-filtered, check logs)                            |
+| Issue                   | Solution                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| No rates after startup  | Check logs → Verify services are running → Check `Currencies` table → Restart |
+| All providers failing   | Check Docker services → Verify network connectivity → Check API keys          |
+| Missing historical data | Restart server (idempotent) or manually: `await initializeHistoricalRates()`  |
+| FK constraint violation | Currencies must exist in DB first (auto-filtered, check logs)                 |

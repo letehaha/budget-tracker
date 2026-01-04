@@ -14,6 +14,10 @@ export default {
     ],
   },
   moduleNameMapper: {
+    // Mock better-auth ESM modules with our CommonJS compatible versions
+    '^better-auth$': '<rootDir>/src/tests/mocks/better-auth/index.ts',
+    '^better-auth/node$': '<rootDir>/src/tests/mocks/better-auth/node.ts',
+    '^@better-auth/passkey$': '<rootDir>/src/tests/mocks/better-auth/passkey.ts',
     '@bt/shared/(.*)': '<rootDir>/../shared/src/$1',
     '@routes/(.*)': '<rootDir>/src/routes/$1',
     '@middlewares/(.*)': '<rootDir>/src/middlewares/$1',
@@ -26,5 +30,6 @@ export default {
     '@js/(.*)': '<rootDir>/src/js/$1',
     '@services/(.*)': '<rootDir>/src/services/$1',
     '@root/(.*)': '<rootDir>/src/$1',
+    '@config/(.*)': '<rootDir>/src/config/$1',
   },
 };

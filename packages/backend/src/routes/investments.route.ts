@@ -24,8 +24,8 @@ import deleteInvestmentTransactionController from '@controllers/investments/tran
 import getTransactionsController from '@controllers/investments/transactions/get-transactions.controller';
 import updateInvestmentTransactionController from '@controllers/investments/transactions/update-tx.controller';
 import { adminOnly } from '@middlewares/admin-only';
+import { authenticateSession } from '@middlewares/better-auth';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
-import { authenticateJwt } from '@middlewares/passport';
 import { priceSyncRateLimit, securitiesPricesBulkUploadRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
@@ -35,35 +35,35 @@ const router = Router({});
 // Portfolio routes
 router.get(
   '/portfolios',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(listPortfoliosController.schema),
   listPortfoliosController.handler,
 );
 
 router.get(
   '/portfolios/:id',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getPortfolioController.schema),
   getPortfolioController.handler,
 );
 
 router.get(
   '/portfolios/:id/balance',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getPortfolioBalanceController.schema),
   getPortfolioBalanceController.handler,
 );
 
 router.get(
   '/portfolios/:id/summary',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getPortfolioSummaryController.schema),
   getPortfolioSummaryController.handler,
 );
 
 router.put(
   '/portfolios/:id/balance',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(updatePortfolioBalanceController.schema),
   updatePortfolioBalanceController.handler,
@@ -71,7 +71,7 @@ router.put(
 
 router.post(
   '/portfolios/:id/transfer',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(createPortfolioTransferController.schema),
   createPortfolioTransferController.handler,
@@ -79,14 +79,14 @@ router.post(
 
 router.get(
   '/portfolios/:id/transfers',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(listPortfolioTransfersController.schema),
   listPortfolioTransfersController.handler,
 );
 
 router.put(
   '/portfolios/:id',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(updatePortfolioController.schema),
   updatePortfolioController.handler,
@@ -94,7 +94,7 @@ router.put(
 
 router.delete(
   '/portfolios/:id',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(deletePortfolioController.schema),
   deletePortfolioController.handler,
@@ -102,7 +102,7 @@ router.delete(
 
 router.post(
   '/portfolios',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(createPortfolioController.schema),
   createPortfolioController.handler,
@@ -110,19 +110,19 @@ router.post(
 
 router.post(
   '/sync/securities-prices',
-  authenticateJwt,
+  authenticateSession,
   adminOnly,
   priceSyncRateLimit,
   validateEndpoint(securitiesSyncController.schema),
   securitiesSyncController.handler,
 );
 
-router.get('/prices', authenticateJwt, validateEndpoint(getPricesController.schema), getPricesController.handler);
-router.get('/securities', authenticateJwt, validateEndpoint(getAllSecurities.schema), getAllSecurities.handler);
+router.get('/prices', authenticateSession, validateEndpoint(getPricesController.schema), getPricesController.handler);
+router.get('/securities', authenticateSession, validateEndpoint(getAllSecurities.schema), getAllSecurities.handler);
 
 router.get(
   '/securities/search',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(searchSecuritiesController.schema),
   searchSecuritiesController.handler,
 );
@@ -130,7 +130,7 @@ router.get(
 // Admin-only: Get price upload info (accepts currency code)
 router.post(
   '/securities/price-upload-info',
-  authenticateJwt,
+  authenticateSession,
   adminOnly,
   validateEndpoint(getPriceUploadInfoController.schema),
   getPriceUploadInfoController.handler,
@@ -140,7 +140,7 @@ router.post(
 // Note: 1mb limit is set in app.ts for this path
 router.post(
   '/securities/prices/bulk-upload',
-  authenticateJwt,
+  authenticateSession,
   adminOnly,
   securitiesPricesBulkUploadRateLimit,
   validateEndpoint(bulkUploadPricesController.schema),
@@ -149,20 +149,20 @@ router.post(
 
 router.get(
   '/portfolios/:portfolioId/holdings',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getHoldingsController.schema),
   getHoldingsController.handler,
 );
 router.post(
   '/holding',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(createHoldingController.schema),
   createHoldingController.handler,
 );
 router.delete(
   '/holding',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(deleteHoldingController.schema),
   deleteHoldingController.handler,
@@ -170,14 +170,14 @@ router.delete(
 
 router.get(
   '/transactions',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getTransactionsController.schema),
   getTransactionsController.handler,
 );
 
 router.post(
   '/transaction',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(createInvestmentTransactionController.schema),
   createInvestmentTransactionController.handler,
@@ -185,7 +185,7 @@ router.post(
 
 router.delete(
   '/transaction/:transactionId',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(deleteInvestmentTransactionController.schema),
   deleteInvestmentTransactionController.handler,
@@ -193,7 +193,7 @@ router.delete(
 
 router.put(
   '/transaction/:transactionId',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(updateInvestmentTransactionController.schema),
   updateInvestmentTransactionController.handler,

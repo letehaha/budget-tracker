@@ -50,7 +50,7 @@ describe('Balances service', () => {
       let currencyRate = 1;
 
       if (currencyCode) {
-        newCurrency = global.MODELS_CURRENCIES.find((item) => item.code === currencyCode);
+        newCurrency = global.MODELS_CURRENCIES!.find((item) => item.code === currencyCode);
         await helpers.addUserCurrencies({ currencyCodes: [currencyCode] });
         currencyRate = (await helpers.getCurrenciesRates({ codes: ['UAH'] }))[0]!.rate;
       }

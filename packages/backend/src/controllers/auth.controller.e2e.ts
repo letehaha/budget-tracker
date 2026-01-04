@@ -1,162 +1,181 @@
-import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
-import { ErrorResponse, makeRequest } from '@tests/helpers';
+import { makeAuthRequest, makeRequest } from '@tests/helpers';
 
-describe('Auth', () => {
-  describe('Login', () => {
-    it('should return correct error for unexisting user', async () => {
-      const res = await makeRequest<ErrorResponse>({
+/**
+ * Auth Integration Tests
+ *
+ * These tests verify that:
+ * 1. Auth endpoints are correctly routed
+ * 2. Session middleware correctly protects routes
+ * 3. Cookie-based authentication flow works
+ *
+ * Note: better-auth is mocked due to ESM compatibility issues with Jest.
+ * The mock provides basic auth flow simulation. For full auth testing,
+ * manual testing or a different test runner (Vitest) would be needed.
+ */
+describe('Auth Integration', () => {
+  describe('Auth Endpoints Routing', () => {
+    it('should route sign-up endpoint correctly', async () => {
+      const res = await makeAuthRequest({
         method: 'post',
-        url: '/auth/login',
+        url: '/auth/sign-up/email',
         payload: {
-          username: 'unexisting-user',
-          password: 'unexisting-password',
+          email: 'test@test.local',
+          password: 'password123',
+          name: 'Test User',
         },
       });
 
-      expect(res.statusCode).toEqual(404);
-      expect(res.body.status).toEqual(API_RESPONSE_STATUS.error);
-      expect(res.body.response.code).toEqual(API_ERROR_CODES.notFound);
+      // Mock returns 200 with user data
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.user).toBeDefined();
     });
 
-    it('should return successful login response', async () => {
-      await makeRequest({
+    it('should route sign-in endpoint correctly', async () => {
+      const res = await makeAuthRequest({
         method: 'post',
-        url: '/auth/register',
+        url: '/auth/sign-in/email',
         payload: {
-          username: 'test_user',
-          password: 'test_user',
-        },
-      });
-      const res = await makeRequest({
-        method: 'post',
-        url: '/auth/login',
-        payload: {
-          username: 'test_user',
-          password: 'test_user',
+          email: 'test@test.local',
+          password: 'password123',
         },
       });
 
       expect(res.statusCode).toEqual(200);
-      expect(res.body.status).toEqual(API_RESPONSE_STATUS.success);
-      expect(res.body.response.token).toContain('Bearer ');
+      expect(res.body.user).toBeDefined();
+      expect(res.body.session).toBeDefined();
     });
 
-    it('should return error when using invalid password', async () => {
-      await makeRequest({
-        method: 'post',
-        url: '/auth/register',
-        payload: {
-          username: 'test_user',
-          password: 'test_user',
-        },
-      });
-      const res = await makeRequest({
-        method: 'post',
-        url: '/auth/login',
-        payload: {
-          username: 'test_user',
-          password: 'test_user1',
-        },
+    it('should route get-session endpoint correctly', async () => {
+      const res = await makeAuthRequest({
+        method: 'get',
+        url: '/auth/get-session',
       });
 
-      expect(res.statusCode).toEqual(401);
-      expect(res.body.status).toEqual(API_RESPONSE_STATUS.error);
-      expect(res.body.response.code).toEqual(API_ERROR_CODES.invalidCredentials);
+      // Without cookies, should return null session
+      expect(res.statusCode).toEqual(200);
+    });
+
+    it('should route sign-out endpoint correctly', async () => {
+      const res = await makeAuthRequest({
+        method: 'post',
+        url: '/auth/sign-out',
+        headers: { Cookie: 'bt_auth.session_token=test-token' },
+      });
+
+      expect(res.statusCode).toEqual(200);
+    });
+
+    it('should return 404 for unknown auth paths', async () => {
+      const res = await makeAuthRequest({
+        method: 'get',
+        url: '/auth/unknown-endpoint',
+      });
+
+      expect(res.statusCode).toEqual(404);
     });
   });
 
-  describe('Registration', () => {
-    it('should return successful registration', async () => {
-      const res = await makeRequest({
-        method: 'post',
-        url: '/auth/register',
-        payload: {
-          username: 'test_user',
-          password: 'test_user',
-        },
+  describe('Session Middleware', () => {
+    it('should return session data when valid cookie is present', async () => {
+      const res = await makeAuthRequest({
+        method: 'get',
+        url: '/auth/get-session',
+        headers: { Cookie: 'bt_auth.session_token=test-token' },
       });
 
-      expect(res.statusCode).toEqual(201);
-      expect(res.body.status).toEqual(API_RESPONSE_STATUS.success);
-      expect(res.body.response.user.username).toEqual('test_user');
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.user).toBeDefined();
+      expect(res.body.session).toBeDefined();
     });
 
-    it('should return error when register existing user', async () => {
-      await makeRequest({
-        method: 'post',
-        url: '/auth/register',
-        payload: {
-          username: 'test_user',
-          password: 'test_user',
-        },
+    it('should return null session when no cookie is present', async () => {
+      const res = await makeAuthRequest({
+        method: 'get',
+        url: '/auth/get-session',
+        headers: { Cookie: '' },
       });
 
-      const res = await makeRequest({
-        method: 'post',
-        url: '/auth/register',
-        payload: {
-          username: 'test_user',
-          password: 'test_user',
-        },
-      });
-
-      expect(res.statusCode).toEqual(409);
-      expect(res.body.status).toEqual(API_RESPONSE_STATUS.error);
-      expect(res.body.response.code).toEqual(API_ERROR_CODES.userExists);
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.session).toBeNull();
     });
   });
 
-  describe('Validate token', () => {
-    it('should validate token', async () => {
-      await makeRequest({
-        method: 'post',
-        url: '/auth/register',
-        payload: {
-          username: 'test_user',
-          password: 'test_user',
-        },
-      });
+  describe('Protected Routes', () => {
+    it('should reject unauthenticated requests to protected endpoints', async () => {
+      // Clear the global auth cookies to simulate unauthenticated request
+      const originalCookies = global.APP_AUTH_COOKIES;
+      global.APP_AUTH_COOKIES = null;
 
-      await makeRequest({
-        method: 'post',
-        url: '/auth/login',
-        payload: {
-          username: 'test_user',
-          password: 'test_user',
-        },
-      });
+      try {
+        const res = await makeRequest({
+          method: 'get',
+          url: '/user',
+        });
 
-      const validateTokenRes = await makeRequest({
-        method: 'get',
-        url: '/auth/validate-token',
-      });
-
-      expect(validateTokenRes.statusCode).toEqual(200);
+        expect(res.statusCode).toEqual(401);
+      } finally {
+        // Restore cookies
+        global.APP_AUTH_COOKIES = originalCookies;
+      }
     });
 
-    it('Check empty token', async () => {
-      const validateTokenRes = await makeRequest({
+    it('should allow authenticated requests to protected endpoints', async () => {
+      // This uses the global auth cookies set up in beforeEach
+      const res = await makeRequest({
         method: 'get',
-        url: '/auth/validate-token',
-        headers: {
-          Authorization: '',
-        },
+        url: '/user',
       });
 
-      expect(validateTokenRes.statusCode).toEqual(401);
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.response).toBeDefined();
     });
 
-    it('Check invalid token', async () => {
-      const validateTokenRes = await makeRequest({
+    it('should return user data for authenticated requests', async () => {
+      const res = await makeRequest({
         method: 'get',
-        url: '/auth/validate-token',
-        headers: {
-          Authorization: 'Bearer random token',
+        url: '/user',
+      });
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.response.id).toBeDefined();
+      expect(res.body.response.username).toBeDefined();
+    });
+  });
+
+  describe('Cookie Handling', () => {
+    it('should set session cookie on sign-in', async () => {
+      const res = await makeAuthRequest({
+        method: 'post',
+        url: '/auth/sign-in/email',
+        payload: {
+          email: 'cookie.test@test.local',
+          password: 'password123',
         },
       });
 
-      expect(validateTokenRes.statusCode).toEqual(401);
+      expect(res.statusCode).toEqual(200);
+
+      // Check for Set-Cookie header
+      const setCookie = res.headers['set-cookie'];
+      expect(setCookie).toBeDefined();
+      expect(Array.isArray(setCookie) ? setCookie.join('') : setCookie).toContain('bt_auth');
+    });
+
+    it('should clear session cookie on sign-out', async () => {
+      const res = await makeAuthRequest({
+        method: 'post',
+        url: '/auth/sign-out',
+        headers: { Cookie: 'bt_auth.session_token=test-token' },
+      });
+
+      expect(res.statusCode).toEqual(200);
+
+      // Check that cookie is cleared (expires in the past)
+      const setCookie = res.headers['set-cookie'];
+      expect(setCookie).toBeDefined();
+      const cookieStr = Array.isArray(setCookie) ? setCookie.join('') : setCookie;
+      expect(cookieStr).toContain('Expires=');
     });
   });
 });

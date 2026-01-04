@@ -1,11 +1,10 @@
-import { api, authLogin, authRegister } from '@/api';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
-import { ApiErrorResponseError, UnexpectedError } from '@/js/errors';
+import { UnexpectedError } from '@/js/errors';
+import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
 import { useCategoriesStore, useCurrenciesStore, useUserStore } from '@/stores';
-import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
-import { Ref, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 
 import { resetAllDefinedStores } from './setup';
 
@@ -18,81 +17,177 @@ export const useAuthStore = defineStore('auth', () => {
   const queryClient = useQueryClient();
 
   const isLoggedIn = ref(false);
-  const userToken: Ref<string | null> = ref(null);
+  const isSessionChecked = ref(false);
   const isReturningUser = Boolean(localStorage.getItem(HAS_EVER_LOGGED_IN_KEY));
 
-  const login = async ({ password, username }: { password: string; username: string }) => {
-    try {
-      const result = await authLogin({
-        password,
-        username,
-      });
-
-      if (result.token) {
-        api.setToken(result.token);
-
-        await userStore.loadUser();
-        await Promise.all([currenciesStore.loadBaseCurrency(), categoriesStore.loadCategories()]);
-
-        isLoggedIn.value = true;
-        userToken.value = result.token;
-        localStorage.setItem('user-token', result.token);
-        localStorage.setItem(HAS_EVER_LOGGED_IN_KEY, 'true');
-      }
-    } catch (e) {
-      if (e instanceof ApiErrorResponseError) {
-        const possibleErrorCodes: API_ERROR_CODES[] = [API_ERROR_CODES.notFound, API_ERROR_CODES.invalidCredentials];
-
-        if (possibleErrorCodes.includes(e.data.code)) {
-          throw e;
-        }
-      }
-
-      throw new UnexpectedError();
-    }
+  /**
+   * Loads initial data after authentication (currencies, categories)
+   */
+  const loadPostAuthData = async () => {
+    await Promise.all([currenciesStore.loadBaseCurrency(), categoriesStore.loadCategories()]);
   };
 
+  /**
+   * Sets the logged in state and loads necessary data
+   */
   const setLoggedIn = async () => {
-    await Promise.all([currenciesStore.loadBaseCurrency(), categoriesStore.loadCategories()]);
-
+    await loadPostAuthData();
     isLoggedIn.value = true;
   };
 
   /**
-   * Validates the current session by checking if the stored token is still valid.
-   * If the token exists, it attempts to load user data from the backend.
-   * If the token is invalid (401), the API handler will automatically clear it.
-   * This is used on public pages (like landing) to verify auth state without redirecting.
+   * Login with email and password
    */
-  const validateSession = async (): Promise<boolean> => {
-    const token = localStorage.getItem('user-token');
+  const login = async ({ email, password }: { email: string; password: string }) => {
+    const result = await signIn.email({
+      email,
+      password,
+    });
 
-    if (!token) {
-      return false;
+    if (result.error) {
+      throw new UnexpectedError(result.error.message || 'Login failed');
     }
 
+    await userStore.loadUser();
+    await loadPostAuthData();
+
+    isLoggedIn.value = true;
+    localStorage.setItem(HAS_EVER_LOGGED_IN_KEY, 'true');
+  };
+
+  /**
+   * Legacy login with username (for migrated users from old auth system)
+   * Uses @app.migrated email suffix
+   */
+  const legacyLogin = async ({ password, username }: { password: string; username: string }) => {
+    const email = `${username}@app.migrated`;
+
+    const result = await signIn.email({
+      email,
+      password,
+    });
+
+    if (result.error) {
+      throw new UnexpectedError(result.error.message || 'Login failed');
+    }
+
+    await userStore.loadUser();
+    await loadPostAuthData();
+
+    isLoggedIn.value = true;
+    localStorage.setItem(HAS_EVER_LOGGED_IN_KEY, 'true');
+  };
+
+  /**
+   * Login with Google OAuth
+   * @param from - The page to redirect back to on error ('signin' or 'signup')
+   */
+  const loginWithGoogle = async ({ from = 'signin' }: { from?: 'signin' | 'signup' } = {}) => {
+    // Store origin in sessionStorage for redirect after OAuth callback
+    sessionStorage.setItem('oauth_from', from);
+
+    const result = await signIn.social({
+      provider: 'google',
+      callbackURL: `${window.location.origin}/auth/callback`,
+    });
+
+    if (result.error) {
+      throw new UnexpectedError(result.error.message || 'Google login failed');
+    }
+  };
+
+  /**
+   * Login with passkey (WebAuthn)
+   */
+  const loginWithPasskey = async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (authClient as any).signIn.passkey();
+
+    if (result.error) {
+      throw new UnexpectedError(result.error.message || 'Passkey login failed');
+    }
+
+    await userStore.loadUser();
+    await loadPostAuthData();
+
+    isLoggedIn.value = true;
+    localStorage.setItem(HAS_EVER_LOGGED_IN_KEY, 'true');
+  };
+
+  /**
+   * Register a new passkey for the current user
+   */
+  const registerPasskey = async ({ name }: { name?: string } = {}) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (authClient as any).passkey.addPasskey({
+      name: name || 'My Passkey',
+    });
+
+    if (result.error) {
+      throw new UnexpectedError(result.error.message || 'Failed to register passkey');
+    }
+
+    return result;
+  };
+
+  /**
+   * Validates the current session by checking with better-auth.
+   * Sets isSessionChecked to true after validation attempt.
+   */
+  const validateSession = async (): Promise<boolean> => {
     try {
-      api.setToken(token);
+      const session = await getSession();
+
+      if (!session?.data?.session) {
+        isSessionChecked.value = true;
+        return false;
+      }
+
       await userStore.loadUser();
       await setLoggedIn();
+      isSessionChecked.value = true;
       return true;
     } catch {
       isLoggedIn.value = false;
+      isSessionChecked.value = true;
       return false;
     }
   };
 
-  const signup = async ({ password, username }: { password: string; username: string }) => {
-    await authRegister({ password, username });
-    await login({ password, username });
+  /**
+   * Sign up with email and password.
+   * Note: Does NOT auto-login - user must verify email first (if email verification is enabled).
+   * After email verification, user is auto-signed in and redirected to /auth/callback.
+   */
+  const signup = async ({ email, password, name }: { email: string; password: string; name?: string }) => {
+    const result = await signUp.email({
+      email,
+      password,
+      name: name || email.split('@')[0],
+      // Callback URL after email verification - goes to auth callback which validates session
+      callbackURL: `${window.location.origin}/auth/callback`,
+    });
+
+    if (result.error) {
+      throw new UnexpectedError(result.error.message || 'Signup failed');
+    }
+
+    // Don't auto-login - user needs to verify email first
+    // The register page will redirect to verify-email page
   };
 
-  const logout = () => {
-    // Clear authentication first
-    api.setToken('');
-    localStorage.removeItem('user-token');
+  /**
+   * Logout the current user
+   */
+  const logout = async () => {
+    try {
+      await signOut();
+    } catch {
+      // Ignore signout errors, we still want to clear local state
+    }
+
     isMobileSheetOpen.value = false;
-    // Set logged out state before resetting stores to prevent watcher from triggering query invalidation
+    // Set logged out state before resetting stores
     isLoggedIn.value = false;
     // Cancel all queries before resetting stores to prevent refetching
     queryClient.cancelQueries();
@@ -108,12 +203,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     isLoggedIn,
-    userToken,
+    isSessionChecked,
     isReturningUser,
 
     setLoggedIn,
     validateSession,
     login,
+    legacyLogin,
+    loginWithGoogle,
+    loginWithPasskey,
+    registerPasskey,
     signup,
     logout,
   };

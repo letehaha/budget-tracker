@@ -1,5 +1,5 @@
 import * as statsController from '@controllers/stats.controller';
-import { authenticateJwt } from '@middlewares/passport';
+import { authenticateSession } from '@middlewares/better-auth';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -7,37 +7,37 @@ const router = Router({});
 
 router.get(
   '/balance-history',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(statsController.getBalanceHistory.schema),
   statsController.getBalanceHistory.handler,
 );
 router.get(
   '/total-balance',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(statsController.getTotalBalance.schema),
   statsController.getTotalBalance.handler,
 );
 router.get(
   '/expenses-history',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(statsController.getExpensesHistory.schema),
   statsController.getExpensesHistory.handler,
 );
 router.get(
   '/expenses-amount-for-period',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(statsController.getExpensesAmountForPeriod.schema),
   statsController.getExpensesAmountForPeriod.handler,
 );
 router.get(
   '/spendings-by-categories',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(statsController.getSpendingsByCategories.schema),
   statsController.getSpendingsByCategories.handler,
 );
 router.get(
   '/combined-balance-history',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(statsController.getCombinedBalanceHistory.schema),
   statsController.getCombinedBalanceHistory.handler,
 );

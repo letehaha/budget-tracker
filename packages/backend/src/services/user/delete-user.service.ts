@@ -1,4 +1,6 @@
+import { authPool } from '@config/auth';
 import { CacheClient } from '@js/utils/cache';
+import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/Accounts.model';
 import * as Users from '@models/Users.model';
 
@@ -30,8 +32,26 @@ export const deleteUser = withTransaction(async ({ userId }: { userId: number })
     });
     await Promise.all(accounts.map((account) => clearAccountSyncStatus(account.id)));
 
-    // 3. Delete user - all related data is automatically deleted via ON DELETE CASCADE
+    // 3. Get user's authUserId before deleting
+    const user = await Users.default.findByPk(userId, {
+      attributes: ['authUserId'],
+      raw: true,
+    });
+
+    // 4. Delete user from app database - all related data is automatically deleted via ON DELETE CASCADE
     await Users.default.destroy({ where: { id: userId } });
+
+    // 5. Delete user from better-auth tables (ba_user and related tables via CASCADE)
+    if (user?.authUserId) {
+      try {
+        // Delete from ba_user - this will cascade to ba_session, ba_account, ba_passkey, etc.
+        await authPool.query('DELETE FROM ba_user WHERE id = $1', [user.authUserId]);
+        logger.info(`Deleted better-auth user ${user.authUserId} for app user ${userId}`);
+      } catch (authError) {
+        // Log but don't fail - the app user is already deleted
+        logger.error({ message: 'Failed to delete better-auth user', error: authError as Error });
+      }
+    }
   } catch (e) {
     console.error(e);
     throw e;

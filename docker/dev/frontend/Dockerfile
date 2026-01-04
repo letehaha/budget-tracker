@@ -32,4 +32,8 @@ COPY packages/shared ./packages/shared
 COPY packages/frontend ./packages/frontend
 COPY docker/dev ./docker/dev
 
+COPY docker/dev/frontend/docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]
+
 CMD ["npm", "run", "-w", "packages/frontend", "dev"]

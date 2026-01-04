@@ -44,11 +44,7 @@
       </div>
 
       <Transition name="chart-fade" mode="out-in">
-        <highcharts
-          :key="chartKey"
-          v-node-resize-observer="{ callback: onChartResize }"
-          :options="chartOptions"
-        />
+        <highcharts :key="chartKey" v-node-resize-observer="{ callback: onChartResize }" :options="chartOptions" />
       </Transition>
     </template>
   </WidgetWrapper>

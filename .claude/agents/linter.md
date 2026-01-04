@@ -13,17 +13,17 @@ This is a monorepo with separate backend and frontend:
 
 ### Linting (ESLint)
 
-| Scope | Command |
-|-------|---------|
-| All (backend + frontend) | `npm run lint` |
-| Backend only | `npm -w packages/backend run lint` |
-| Frontend only | `npm -w packages/frontend run lint` |
+| Scope                    | Command                             |
+| ------------------------ | ----------------------------------- |
+| All (backend + frontend) | `npm run lint`                      |
+| Backend only             | `npm -w packages/backend run lint`  |
+| Frontend only            | `npm -w packages/frontend run lint` |
 
 ### Type Checking (TypeScript)
 
-| Scope | Command |
-|-------|---------|
-| Backend | `npx tsc --noEmit -p packages/backend/tsconfig.json` |
+| Scope    | Command                                                   |
+| -------- | --------------------------------------------------------- |
+| Backend  | `npx tsc --noEmit -p packages/backend/tsconfig.json`      |
 | Frontend | `npx vue-tsc --noEmit -p packages/frontend/tsconfig.json` |
 
 ## Workflow

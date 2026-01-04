@@ -1,5 +1,5 @@
 import * as accountGroupController from '@controllers/account-groups';
-import { authenticateJwt } from '@middlewares/passport';
+import { authenticateSession } from '@middlewares/better-auth';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -7,56 +7,56 @@ const router = Router();
 
 router.post(
   '/',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(accountGroupController.createAccountGroup.schema),
   accountGroupController.createAccountGroup.handler,
 );
 
 router.get(
   '/',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(accountGroupController.getGroups.schema),
   accountGroupController.getGroups.handler,
 );
 
 router.put(
   '/:groupId',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(accountGroupController.updateGroup.schema),
   accountGroupController.updateGroup.handler,
 );
 
 router.delete(
   '/:groupId',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(accountGroupController.deleteGroup.schema),
   accountGroupController.deleteGroup.handler,
 );
 
 router.post(
   '/:groupId/add-account/:accountId',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(accountGroupController.addAccountToGroup.schema),
   accountGroupController.addAccountToGroup.handler,
 );
 
 router.delete(
   '/:groupId/accounts',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(accountGroupController.removeAccountFromGroup.schema),
   accountGroupController.removeAccountFromGroup.handler,
 );
 
 router.put(
   '/:groupId/move',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(accountGroupController.moveAccountToGroup.schema),
   accountGroupController.moveAccountToGroup.handler,
 );
 
 router.get(
   '/:groupId/accounts',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(accountGroupController.getAccountsInGroup.schema),
   accountGroupController.getAccountsInGroup.handler,
 );

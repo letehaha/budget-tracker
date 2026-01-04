@@ -191,5 +191,4 @@ const handleDeleteCategory = async () => {
     deleteDialogState.category = undefined;
   }
 };
-
 </script>

@@ -17,7 +17,7 @@ import * as providersController from '@controllers/bank-data-providers/providers
 import checkSync from '@controllers/bank-data-providers/sync/check-sync';
 import getSyncStatus from '@controllers/bank-data-providers/sync/get-sync-status';
 import triggerSync from '@controllers/bank-data-providers/sync/trigger-sync';
-import { authenticateJwt } from '@middlewares/passport';
+import { authenticateSession } from '@middlewares/better-auth';
 import { validateEndpoint } from '@middlewares/validations';
 import express from 'express';
 
@@ -26,40 +26,45 @@ const router = express.Router();
 // Provider discovery
 router.get(
   '/',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(providersController.listProviders.schema),
   providersController.listProviders.handler,
 );
 
 // Connection management
-router.get('/connections', authenticateJwt, validateEndpoint(listUserConnections.schema), listUserConnections.handler);
+router.get(
+  '/connections',
+  authenticateSession,
+  validateEndpoint(listUserConnections.schema),
+  listUserConnections.handler,
+);
 router.get(
   '/connections/:connectionId',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getConnectionDetails.schema),
   getConnectionDetails.handler,
 );
 router.post(
   '/:providerType/connect',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(connectProvider.schema),
   connectProvider.handler,
 );
 router.delete(
   '/connections/:connectionId',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(disconnectProvider.schema),
   disconnectProvider.handler,
 );
 router.post(
   '/connections/:connectionId/reauthorize',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(reauthorizeConnection.schema),
   reauthorizeConnection.handler,
 );
 router.patch(
   '/connections/:connectionId',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(updateConnectionDetails.schema),
   updateConnectionDetails.handler,
 );
@@ -67,13 +72,13 @@ router.patch(
 // Account sync flow
 router.get(
   '/connections/:connectionId/available-accounts',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(listExternalAccounts.schema),
   listExternalAccounts.handler,
 );
 router.post(
   '/connections/:connectionId/sync-selected-accounts',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(connectSelectedAccounts.schema),
   connectSelectedAccounts.handler,
 );
@@ -81,40 +86,45 @@ router.post(
 // Transactions sync
 router.post(
   '/connections/:connectionId/sync-transactions',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(syncTransactionsForAccount.schema),
   syncTransactionsForAccount.handler,
 );
 router.post(
   '/connections/:connectionId/load-transactions-for-period',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(loadTransactionsForPeriod.schema),
   loadTransactionsForPeriod.handler,
 );
 router.get(
   '/connections/:connectionId/sync-job-progress',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getSyncJobProgress.schema),
   getSyncJobProgress.handler,
 );
 router.get(
   '/active-sync-jobs',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(listActiveSyncJobs.schema),
   listActiveSyncJobs.handler,
 );
 
 // Bulk account sync endpoints
-router.get('/sync/check', authenticateJwt, validateEndpoint(checkSync.schema), checkSync.handler);
-router.post('/sync/trigger', authenticateJwt, validateEndpoint(triggerSync.schema), triggerSync.handler);
-router.get('/sync/status', authenticateJwt, validateEndpoint(getSyncStatus.schema), getSyncStatus.handler);
+router.get('/sync/check', authenticateSession, validateEndpoint(checkSync.schema), checkSync.handler);
+router.post('/sync/trigger', authenticateSession, validateEndpoint(triggerSync.schema), triggerSync.handler);
+router.get('/sync/status', authenticateSession, validateEndpoint(getSyncStatus.schema), getSyncStatus.handler);
 
 // Enable Banking specific endpoints
-router.post('/enablebanking/countries', authenticateJwt, validateEndpoint(listCountries.schema), listCountries.handler);
-router.post('/enablebanking/banks', authenticateJwt, validateEndpoint(listBanks.schema), listBanks.handler);
+router.post(
+  '/enablebanking/countries',
+  authenticateSession,
+  validateEndpoint(listCountries.schema),
+  listCountries.handler,
+);
+router.post('/enablebanking/banks', authenticateSession, validateEndpoint(listBanks.schema), listBanks.handler);
 router.post(
   '/enablebanking/oauth-callback',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(oauthCallback.schema),
   oauthCallback.handler,
 );

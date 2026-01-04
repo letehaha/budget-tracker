@@ -48,10 +48,13 @@ export const useBaseCurrency = (queryOptions = {}) => {
  */
 export const useSetBaseCurrency = () => {
   const queryClient = useQueryClient();
+  const currenciesStore = useCurrenciesStore();
 
   return useMutation({
     mutationFn: (currencyCode: string) => setBaseUserCurrency(currencyCode),
     onSuccess: () => {
+      // Update Pinia store to ensure route guards work correctly
+      currenciesStore.loadBaseCurrency();
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.baseCurrency });
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.userCurrencies });
     },

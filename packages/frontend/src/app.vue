@@ -3,10 +3,14 @@
     <router-view />
 
     <notifications-center />
+
+    <!-- Dialog for legacy users to migrate to email-based auth -->
+    <LegacyAccountMigrationDialog v-if="isLoggedIn" />
   </main>
 </template>
 
 <script setup lang="ts">
+import LegacyAccountMigrationDialog from '@/components/banners/legacy-account-migration-dialog.vue';
 import NotificationsCenter from '@/components/notification-center/notifications-center.vue';
 import { useAiCategorizationEvents } from '@/composable/use-ai-categorization-events';
 import { useSSE } from '@/composable/use-sse';

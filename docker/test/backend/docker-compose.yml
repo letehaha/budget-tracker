@@ -62,6 +62,9 @@ services:
       - NODE_ENV=test
       # so package `config` will look into the correct place
       - NODE_CONFIG_DIR=./packages/backend/config
+      # Enable experimental ESM support for Jest (required for better-auth)
+      # Increase heap size to 4GB to prevent OOM during large test suites
+      - NODE_OPTIONS=--experimental-vm-modules --max-old-space-size=4096
     env_file: ../../../.env.test
     labels:
       - 'com.docker.compose.project=test'

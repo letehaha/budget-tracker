@@ -12,13 +12,14 @@ export interface UserModel {
   id: number;
   username: string;
   email: string;
-  password: string;
+  password?: string;
   firstName: string;
   lastName: string;
   middleName: string;
   avatar: string;
   totalBalance: number;
   defaultCategoryId: number;
+  authUserId?: string;
   isAdmin?: boolean;
 }
 

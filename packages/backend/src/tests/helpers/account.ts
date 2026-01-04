@@ -116,7 +116,7 @@ export function linkAccountToBankConnection<R extends boolean | undefined = unde
 }
 
 export const createAccountWithNewCurrency = async ({ currency }: { currency: string }) => {
-  const currencyA: Currencies = global.MODELS_CURRENCIES.find((item: Currencies) => item.code === currency);
+  const currencyA: Currencies = global.MODELS_CURRENCIES!.find((item: Currencies) => item.code === currency);
   await addUserCurrencies({ currencyCodes: [currencyA.code] });
 
   const account = await createAccount({

@@ -3,19 +3,19 @@ import './bootstrap';
 import { logger } from '@js/utils/logger';
 import { requestIdMiddleware } from '@middlewares/request-id';
 import { sessionMiddleware } from '@middlewares/session-id';
+import { toNodeHandler } from 'better-auth/node';
 import cors from 'cors';
 import express from 'express';
 import fs from 'fs';
 import https from 'https';
 import locale from 'locale';
 import morgan from 'morgan';
-import passport from 'passport';
 import path from 'path';
 
 import { API_PREFIX } from './config';
+import { auth } from './config/auth';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
-import middlewarePassword from './middlewares/passport';
 import './redis-client';
 import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
@@ -48,8 +48,8 @@ logger.info('Starting application initialization...');
 
 export const app = express();
 
-app.use(passport.initialize());
-middlewarePassword(passport);
+// Authentication is now handled by better-auth (session-based)
+// The better-auth handler is mounted at /api/v1/auth/* below
 
 app.use(requestIdMiddleware);
 
@@ -121,6 +121,12 @@ registerAiCategorizationListeners();
 /**
  *  Routes include
  * */
+
+// Mount better-auth handler for all auth routes
+// This handles: signup, signin, signout, session, oauth callbacks, passkey, etc.
+app.all(`${API_PREFIX}/auth/*`, toNodeHandler(auth));
+
+// Legacy auth routes (will be removed after migration is complete)
 app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/user`, userRoutes);
 app.use(`${API_PREFIX}/users`, usersRoutes);
@@ -183,9 +189,10 @@ if (process.env.NODE_ENV === 'development') {
 
 function initializeBackgroundJobs() {
   const isOfflineMode = process.env.OFFLINE_MODE === 'true';
+  const isTestMode = process.env.NODE_ENV === 'test';
 
-  if (isOfflineMode) {
-    logger.info('[Offline Mode] Skipping background jobs that require internet connection');
+  if (isOfflineMode || isTestMode) {
+    logger.info(`[${isTestMode ? 'Test' : 'Offline'} Mode] Skipping background jobs that require internet connection`);
   } else {
     // Initialize historical exchange rates on startup (non-blocking)
     initializeHistoricalRates();

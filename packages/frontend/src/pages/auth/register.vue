@@ -1,33 +1,55 @@
 <template>
   <div class="flex h-dvh items-center justify-center px-6">
-    <Card class="w-full max-w-[450px]" as="form" @submit.prevent="submit">
+    <Card class="w-full max-w-112.5" as="form" @submit.prevent="submit">
       <CardHeader>
         <h1 class="text-center text-2xl font-semibold tracking-tight">Create an account</h1>
       </CardHeader>
-      <CardContent class="grid gap-7">
-        <input-field
-          v-model="form.username"
-          label="Username"
-          placeholder="ie. johnsnow"
-          :disabled="isFormLoading"
-          :error-message="getFieldErrorMessage('form.username')"
-        />
-        <input-field
-          v-model="form.password"
-          label="Password"
-          type="password"
-          placeholder="Your password"
-          :disabled="isFormLoading"
-          :error-message="getFieldErrorMessage('form.password')"
-        />
-        <input-field
-          v-model="form.verifyPassowrd"
-          label="Verify Password"
-          type="password"
-          placeholder="Verify password"
-          :disabled="isFormLoading"
-          :error-message="getFieldErrorMessage('form.verifyPassowrd')"
-        />
+      <CardContent class="grid gap-5">
+        <!-- OAuth button -->
+        <div class="grid gap-3">
+          <OAuthButton provider="google" mode="signup" :is-loading="isOAuthLoading" @click="handleGoogleSignup">
+            <template #icon>
+              <GoogleIcon />
+            </template>
+          </OAuthButton>
+        </div>
+
+        <AuthDivider text="Or continue with email" />
+
+        <!-- Email credentials form -->
+        <form-wrapper :error="formError" class="grid gap-5">
+          <input-field
+            v-model="form.email"
+            label="Email"
+            type="email"
+            placeholder="your@email.com"
+            :disabled="isFormLoading"
+            :error-message="getFieldErrorMessage('form.email')"
+          />
+          <input-field
+            v-model="form.name"
+            label="Display Name"
+            placeholder="ie. John Snow"
+            :disabled="isFormLoading"
+            :error-message="getFieldErrorMessage('form.name')"
+          />
+          <input-field
+            v-model="form.password"
+            label="Password"
+            type="password"
+            placeholder="Your password"
+            :disabled="isFormLoading"
+            :error-message="getFieldErrorMessage('form.password')"
+          />
+          <input-field
+            v-model="form.verifyPassword"
+            label="Verify Password"
+            type="password"
+            placeholder="Verify password"
+            :disabled="isFormLoading"
+            :error-message="getFieldErrorMessage('form.verifyPassword')"
+          />
+        </form-wrapper>
 
         <div class="flex justify-center">
           <Button type="submit" :disabled="isFormLoading" class="w-full">
@@ -37,7 +59,7 @@
       </CardContent>
 
       <CardFooter class="text-center text-sm">
-        Don't have an account?
+        Already have an account?
 
         <router-link :to="{ name: ROUTES_NAMES.signIn }">
           <Button as="span" variant="link"> Sign in </Button>
@@ -48,39 +70,62 @@
 </template>
 
 <script lang="ts" setup>
+import { AuthDivider, GoogleIcon, OAuthButton } from '@/components/auth';
 import { InputField } from '@/components/fields';
+import FormWrapper from '@/components/fields/form-wrapper.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/lib/ui/card';
-import { useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
 import { ApiErrorResponseError } from '@/js/errors';
-import { minLength, required, sameAs } from '@/js/helpers/validators';
+import { email, minLength, required, sameAs } from '@/js/helpers/validators';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { useMutation } from '@tanstack/vue-query';
-import { computed, reactive } from 'vue';
-import { useRouter } from 'vue-router';
+import { Ref, computed, reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
+const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
-const { addErrorNotification } = useNotificationCenter();
+const isOAuthLoading = ref(false);
+const formError: Ref<string | null> = ref(null);
+
+// Map better-auth error codes to user-friendly messages
+const BETTER_AUTH_ERROR_MESSAGES: Record<string, string> = {
+  USER_ALREADY_EXISTS: 'User with that email already exists.',
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: 'User with that email already exists.',
+  INVALID_EMAIL: 'Please enter a valid email address.',
+  PASSWORD_TOO_SHORT: 'Password is too short.',
+  PASSWORD_TOO_LONG: 'Password is too long.',
+  INVALID_PASSWORD: 'Invalid password.',
+};
 const form = reactive({
-  username: '',
+  email: '',
+  name: '',
   password: '',
-  verifyPassowrd: '',
+  verifyPassword: '',
 });
+
+// Check for OAuth error from callback redirect
+const oauthError = route.query.oauth_error as string | undefined;
+if (oauthError) {
+  formError.value = oauthError;
+  // Clean up the URL without triggering a navigation
+  router.replace({ name: ROUTES_NAMES.signUp });
+}
 
 const { isFormValid, getFieldErrorMessage } = useFormValidation(
   { form },
   {
     form: {
-      username: { required },
+      email: { required, email },
+      name: { required },
       password: {
         required,
         passwordMinLength: minLength(6),
       },
-      verifyPassowrd: {
+      verifyPassword: {
         required,
         passwordMinLength: minLength(6),
         sameAs: sameAs(computed(() => form.password)),
@@ -92,31 +137,57 @@ const { isFormValid, getFieldErrorMessage } = useFormValidation(
     customValidationMessages: {
       passwordMinLength: 'Minimal length is 6.',
       sameAs: "Passwords don't match",
+      email: 'Please enter a valid email address.',
     },
   },
 );
 
 const { mutate: registerUser, isPending: isFormLoading } = useMutation({
-  mutationFn: ({ username, password }: { username: string; password: string }) =>
-    authStore.signup({ username, password }),
+  mutationFn: ({ email: userEmail, password, name }: { email: string; password: string; name: string }) =>
+    authStore.signup({ email: userEmail, password, name }),
   onSuccess: () => {
-    router.push({ name: ROUTES_NAMES.welcome });
+    // Store email in sessionStorage (not URL) to prevent manipulation
+    sessionStorage.setItem('verify_email_address', form.email);
+    router.push({ name: ROUTES_NAMES.verifyEmail });
   },
   onError: (error) => {
+    // Check for our custom API errors
     if (error instanceof ApiErrorResponseError) {
       if (error.data.code === API_ERROR_CODES.userExists) {
-        addErrorNotification('User with that username already exists!');
+        formError.value = 'User with that email already exists.';
         return;
       }
     }
-    addErrorNotification('Unexpected error');
+
+    // Check for better-auth error codes in the message
+    for (const [code, message] of Object.entries(BETTER_AUTH_ERROR_MESSAGES)) {
+      if (error.message?.includes(code)) {
+        formError.value = message;
+        return;
+      }
+    }
+
+    // Fall back to actual error message
+    formError.value = error.message || 'An error occurred. Please try again.';
   },
 });
 
 const submit = () => {
   if (!isFormValid()) return;
 
-  const { password, username } = form;
-  registerUser({ password, username });
+  const { email: userEmail, name, password } = form;
+  registerUser({ email: userEmail, name, password });
+};
+
+const handleGoogleSignup = async () => {
+  try {
+    isOAuthLoading.value = true;
+    await authStore.loginWithGoogle({ from: 'signup' });
+    // OAuth redirect will happen, no need to navigate manually
+  } catch {
+    formError.value = 'Failed to sign up with Google. Please try again.';
+  } finally {
+    isOAuthLoading.value = false;
+  }
 };
 </script>

@@ -1,5 +1,5 @@
 import getExchangeRatesForDate from '@controllers/exchange-rates/rates-for-date.controller';
-import { authenticateJwt } from '@middlewares/passport';
+import { authenticateSession } from '@middlewares/better-auth';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -7,7 +7,7 @@ const router = Router({});
 
 router.get(
   '/:date',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getExchangeRatesForDate.schema),
   getExchangeRatesForDate.handler,
 );

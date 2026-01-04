@@ -30,9 +30,7 @@ export default ({ mode }) => {
     port: process.env.PORT,
     host: process.env.HOST,
     ...(httpsConfig && { https: httpsConfig }),
-    hmr: process.env.HMR_HOST
-      ? { host: process.env.HMR_HOST }
-      : true,
+    hmr: process.env.HMR_HOST ? { host: process.env.HMR_HOST } : true,
   };
 
   return defineConfig({

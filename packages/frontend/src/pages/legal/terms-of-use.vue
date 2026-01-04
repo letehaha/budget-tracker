@@ -58,9 +58,7 @@
         <section>
           <h2 class="text-xl font-semibold">4. Bank Integrations</h2>
           <div class="text-muted-foreground mt-2 space-y-3">
-            <p>
-              If you choose to connect your bank accounts, you acknowledge that:
-            </p>
+            <p>If you choose to connect your bank accounts, you acknowledge that:</p>
             <ul class="mt-2 list-inside list-disc space-y-1">
               <li>You are providing your own API credentials or authorizing access through OAuth</li>
               <li>We act as an intermediary and are not responsible for bank API availability</li>
@@ -105,8 +103,8 @@
           <h2 class="text-xl font-semibold">7. Disclaimer of Warranties</h2>
           <div class="text-muted-foreground mt-2 space-y-3">
             <p>
-              THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. WE DO NOT WARRANT
-              THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR SECURE.
+              THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. WE DO NOT WARRANT THAT
+              THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR SECURE.
             </p>
             <p>
               MoneyMatter is not a financial advisor. The Service is for informational and tracking purposes only. You
@@ -119,8 +117,8 @@
           <h2 class="text-xl font-semibold">8. Limitation of Liability</h2>
           <p class="text-muted-foreground mt-2">
             TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
-            CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF DATA OR FINANCIAL LOSSES, ARISING FROM YOUR USE OF
-            THE SERVICE.
+            CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF DATA OR FINANCIAL LOSSES, ARISING FROM YOUR USE OF THE
+            SERVICE.
           </p>
         </section>
 
@@ -193,7 +191,12 @@ const currentYear = computed(() => new Date().getFullYear());
 
 useHead({
   title: 'Terms of Service - MoneyMatter',
-  meta: [{ name: 'description', content: 'MoneyMatter Terms of Service - Read our terms and conditions for using the service.' }],
+  meta: [
+    {
+      name: 'description',
+      content: 'MoneyMatter Terms of Service - Read our terms and conditions for using the service.',
+    },
+  ],
 });
 
 onMounted(() => {

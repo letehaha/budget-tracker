@@ -24,7 +24,7 @@
               class="hover:bg-muted/50 flex w-full items-center gap-3 p-3 text-left transition-colors"
             >
               <div
-                class="bg-primary text-primary-foreground flex size-6 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+                class="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
               >
                 1
               </div>
@@ -107,7 +107,7 @@
               class="hover:bg-muted/50 flex w-full items-center gap-3 p-3 text-left transition-colors"
             >
               <div
-                class="bg-primary text-primary-foreground flex size-6 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+                class="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
               >
                 2
               </div>
@@ -165,7 +165,7 @@
               class="hover:bg-muted/50 flex w-full items-center gap-3 p-3 text-left transition-colors"
             >
               <div
-                class="bg-primary text-primary-foreground flex size-6 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+                class="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
               >
                 3
               </div>
@@ -198,7 +198,7 @@
 
         <div class="rounded-md border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
           <div class="flex gap-2">
-            <InfoIcon class="mt-0.5 size-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+            <InfoIcon class="mt-0.5 size-5 shrink-0 text-blue-600 dark:text-blue-400" />
             <div>
               <p class="mb-1 font-semibold text-blue-900 dark:text-blue-100">Security Note</p>
               <p class="text-xs text-blue-800 dark:text-blue-200">

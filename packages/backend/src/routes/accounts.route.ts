@@ -7,39 +7,45 @@ import {
 } from '@controllers/accounts.controller';
 import linkAccountToBankConnection from '@controllers/accounts/link-to-bank-connection';
 import unlinkAccountFromBankConnection from '@controllers/accounts/unlink-from-bunk-connection';
+import { authenticateSession } from '@middlewares/better-auth';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
-import { authenticateJwt } from '@middlewares/passport';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
 const router = Router({});
 
-router.get('/', authenticateJwt, validateEndpoint(getAccounts.schema), getAccounts.handler);
-router.get('/:id', authenticateJwt, validateEndpoint(getAccountById.schema), getAccountById.handler);
-router.post('/', authenticateJwt, checkBaseCurrencyLock, validateEndpoint(createAccount.schema), createAccount.handler);
+router.get('/', authenticateSession, validateEndpoint(getAccounts.schema), getAccounts.handler);
+router.get('/:id', authenticateSession, validateEndpoint(getAccountById.schema), getAccountById.handler);
+router.post(
+  '/',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(createAccount.schema),
+  createAccount.handler,
+);
 router.put(
   '/:id',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(updateAccount.schema),
   updateAccount.handler,
 );
 router.delete(
   '/:id',
-  authenticateJwt,
+  authenticateSession,
   checkBaseCurrencyLock,
   validateEndpoint(deleteAccount.schema),
   deleteAccount.handler,
 );
 router.post(
   '/:id/unlink',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(unlinkAccountFromBankConnection.schema),
   unlinkAccountFromBankConnection.handler,
 );
 router.post(
   '/:id/link',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(linkAccountToBankConnection.schema),
   linkAccountToBankConnection.handler,
 );

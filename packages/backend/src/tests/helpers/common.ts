@@ -55,7 +55,8 @@ export async function makeRequest<T = any, R extends boolean | undefined = false
 
   const base = request(app)[method](`${API_PREFIX}${tempUrl}`);
 
-  if (global.APP_AUTH_TOKEN) base.set('Authorization', global.APP_AUTH_TOKEN);
+  // Set session cookies for authentication (better-auth uses cookies)
+  if (global.APP_AUTH_COOKIES) base.set('Cookie', global.APP_AUTH_COOKIES);
   if (Object.keys(headers).length) base.set(headers);
 
   // If not check for non-GET method, MSW will throw "Invariant Violation: Failed to write to a request stream: stream does not exist" error
@@ -63,6 +64,40 @@ export async function makeRequest<T = any, R extends boolean | undefined = false
 
   const result: CustomResponse<T> = await base;
   return (raw ? extractResponse(result) : result) as MakeRequestReturn<T, R>;
+}
+
+/**
+ * Make a raw request to better-auth endpoints.
+ * Returns the raw response including headers for cookie extraction.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function makeAuthRequest<T = any>({
+  url,
+  method,
+  payload = null,
+  headers = {},
+}: Omit<MakeRequestParams<false>, 'raw'>): Promise<request.Response & { body: T }> {
+  const base = request(app)[method](`${API_PREFIX}${url}`);
+
+  if (global.APP_AUTH_COOKIES) base.set('Cookie', global.APP_AUTH_COOKIES);
+  if (Object.keys(headers).length) base.set(headers);
+
+  if (method !== 'get' && payload) base.send(payload);
+
+  return base;
+}
+
+/**
+ * Extract session cookies from a response.
+ * These should be stored in global.APP_AUTH_COOKIES for subsequent requests.
+ */
+export function extractCookies(response: request.Response): string {
+  const setCookieHeader = response.headers['set-cookie'];
+  if (!setCookieHeader) return '';
+
+  // Join all cookies with semicolon for the Cookie header
+  const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
+  return cookies.map((cookie) => cookie.split(';')[0]).join('; ');
 }
 
 export const sleep = (time = 1000) => {
