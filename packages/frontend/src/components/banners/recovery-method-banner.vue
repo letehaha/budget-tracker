@@ -52,12 +52,10 @@ const dismiss = () => {
 
 const checkLoginMethods = async () => {
   try {
-    /* eslint-disable @typescript-eslint/no-explicit-any */
     const [accountsResult, passkeysResult] = await Promise.all([
-      (authClient as any).listAccounts(),
-      (authClient as any).passkey?.listPasskeys?.() || { data: [] },
+      authClient.listAccounts(),
+      authClient.passkey.listUserPasskeys(),
     ]);
-    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     const accounts: Account[] = accountsResult.data || [];
     const passkeys = passkeysResult.data || [];

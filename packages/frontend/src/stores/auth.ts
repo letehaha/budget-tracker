@@ -100,8 +100,7 @@ export const useAuthStore = defineStore('auth', () => {
    * Login with passkey (WebAuthn)
    */
   const loginWithPasskey = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (authClient as any).signIn.passkey();
+    const result = await authClient.signIn.passkey();
 
     if (result.error) {
       throw new UnexpectedError(result.error.message || 'Passkey login failed');
@@ -118,8 +117,7 @@ export const useAuthStore = defineStore('auth', () => {
    * Register a new passkey for the current user
    */
   const registerPasskey = async ({ name }: { name?: string } = {}) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (authClient as any).passkey.addPasskey({
+    const result = await authClient.passkey.addPasskey({
       name: name || 'My Passkey',
     });
 

@@ -82,11 +82,11 @@ interface Session {
   id: string;
   userId: string;
   token: string;
-  ipAddress: string | null;
-  userAgent: string | null;
-  createdAt: string;
-  updatedAt?: string;
-  expiresAt: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt: Date;
   isCurrent?: boolean;
 }
 
@@ -99,8 +99,8 @@ const currentSessionToken = ref<string | null>(null);
 
 const otherSessions = computed(() => sessions.value.filter((s) => !s.isCurrent));
 
-const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr);
+const formatDate = (dateStr: string | Date) => {
+  const date = dateStr instanceof Date ? dateStr : new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
@@ -160,8 +160,7 @@ const loadSessions = async () => {
       currentSessionToken.value = currentSession.data.session.token;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (authClient as any).listSessions();
+    const result = await authClient.listSessions();
     if (result.data) {
       sessions.value = result.data.map((s: Session) => ({
         ...s,

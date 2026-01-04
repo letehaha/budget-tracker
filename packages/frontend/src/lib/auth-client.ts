@@ -21,10 +21,27 @@ const getBaseURL = () => {
   return `${import.meta.env.VITE_APP_API_HTTP}${import.meta.env.VITE_APP_API_VER}/auth`;
 };
 
+// Create auth client with passkey plugin
+// The passkey plugin adds: signIn.passkey, passkey.addPasskey, passkey.listUserPasskeys, etc.
 export const authClient = createAuthClient({
   baseURL: getBaseURL(),
   plugins: [passkeyClient()],
 });
 
-// Export commonly used methods for easier imports
+// Re-export signIn with passkey method for proper typing
+// The passkey plugin extends signIn with the passkey method
 export const { signIn, signUp, signOut, getSession } = authClient;
+
+/**
+ * Set password for OAuth-only accounts.
+ * This endpoint exists on better-auth server but isn't typed on the client.
+ * Requires authenticated session + fresh session (signed in recently).
+ */
+export const setPassword = (
+  authClient as unknown as {
+    setPassword: (params: { newPassword: string }) => Promise<{
+      data?: { status: boolean };
+      error?: { message: string };
+    }>;
+  }
+).setPassword;

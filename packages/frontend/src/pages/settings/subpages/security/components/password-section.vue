@@ -99,7 +99,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
-import { authClient } from '@/lib/auth-client';
+import { authClient, setPassword } from '@/lib/auth-client';
 import { Loader2Icon } from 'lucide-vue-next';
 import { computed, onMounted, reactive, ref } from 'vue';
 
@@ -172,8 +172,7 @@ const isFormValid = computed(() => {
 
 const loadPasswordStatus = async () => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (authClient as any).listAccounts();
+    const result = await authClient.listAccounts();
     if (result.data) {
       hasPassword.value = result.data.some((a: Account) => a.providerId === 'credential');
     }
@@ -192,8 +191,7 @@ const handleSubmit = async () => {
 
     if (hasPassword.value) {
       // Change password
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await (authClient as any).changePassword({
+      const result = await authClient.changePassword({
         currentPassword: form.currentPassword,
         newPassword: form.newPassword,
       });
@@ -205,11 +203,8 @@ const handleSubmit = async () => {
 
       addSuccessNotification('Password changed successfully');
     } else {
-      // Set password (for OAuth-only accounts)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await (authClient as any).setPassword({
-        password: form.newPassword,
-      });
+      // Set password for OAuth-only accounts
+      const result = await setPassword({ newPassword: form.newPassword });
 
       if (result.error) {
         errorMessage.value = result.error.message || 'Failed to set password';
