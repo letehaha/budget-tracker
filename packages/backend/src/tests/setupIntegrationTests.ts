@@ -254,6 +254,30 @@ beforeEach(async () => {
       authUserId: 'test-user-id', // This must match what the mock returns
     });
 
+    // Create better-auth records (ba_*) for test user
+    // Since auth is mocked via MSW, we need to manually create these records
+    // so that cascade deletion tests work correctly and we can execute tests
+    // related to ba_* tables
+    const authUserId = 'test-user-id';
+    await connection.sequelize.query(
+      `INSERT INTO ba_user (id, name, email, "emailVerified", image, "createdAt", "updatedAt")
+       VALUES (:id, 'Test User', :email, true, NULL, NOW(), NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      { replacements: { id: authUserId, email: testEmail } },
+    );
+    await connection.sequelize.query(
+      `INSERT INTO ba_account (id, "userId", "accountId", "providerId", "accessToken", "refreshToken", "accessTokenExpiresAt", "refreshTokenExpiresAt", scope, "idToken", password, "createdAt", "updatedAt")
+       VALUES (:id, :userId, :accountId, 'credential', NULL, NULL, NULL, NULL, NULL, NULL, 'hashed_password', NOW(), NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      { replacements: { id: `${authUserId}-credential`, userId: authUserId, accountId: authUserId } },
+    );
+    await connection.sequelize.query(
+      `INSERT INTO ba_session (id, "userId", token, "expiresAt", "ipAddress", "userAgent", "createdAt", "updatedAt")
+       VALUES (:id, :userId, :token, NOW() + INTERVAL '1 day', '127.0.0.1', 'test-agent', NOW(), NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      { replacements: { id: `${authUserId}-session`, userId: authUserId, token: 'test-session-token' } },
+    );
+
     // Simulate sign-in to get session cookies from the mock
     const loginRes = await makeAuthRequest({
       method: 'post',
