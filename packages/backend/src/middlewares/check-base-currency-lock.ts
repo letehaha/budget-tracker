@@ -18,7 +18,7 @@ export const checkBaseCurrencyLock = async (
   res: Response,
   next: NextFunction,
 ): Promise<void | Response> => {
-  // Assumes user is already authenticated via authenticateJwt middleware
+  // Assumes user is already authenticated via authenticateSession middleware
   const userId = (req.user as Users)?.id;
 
   if (!userId) {

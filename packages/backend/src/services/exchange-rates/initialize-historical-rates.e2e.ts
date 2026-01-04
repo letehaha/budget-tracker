@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from '@jest/globals';
 import ExchangeRates from '@models/ExchangeRates.model';
 import { createOverride } from '@tests/mocks/helpers';
 import { format } from 'date-fns';
@@ -15,13 +15,38 @@ describe('Initialize Historical Rates Service', () => {
   const originalMaxRetries = providerAvailabilityConfig.maxRetries;
   const originalRetryIntervalMs = providerAvailabilityConfig.retryIntervalMs;
 
-  beforeAll(() => {
+  // Store seed exchange rates to restore after tests that destroy them
+  let seedExchangeRates: { baseCode: string; quoteCode: string; rate: number; date: Date }[] = [];
+  let originalSeedCount = 0;
+
+  beforeAll(async () => {
     currencyRatesApiOverride = createOverride(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
     frankfurterOverride = createOverride(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
 
     // Use shorter retry intervals for tests
     providerAvailabilityConfig.maxRetries = 2;
     providerAvailabilityConfig.retryIntervalMs = 100; // 100ms instead of 30s
+
+    // Save all seed exchange rates from the migration
+    seedExchangeRates = (await ExchangeRates.findAll({
+      raw: true,
+    })) as typeof seedExchangeRates;
+    originalSeedCount = seedExchangeRates.length;
+  });
+
+  afterEach(async () => {
+    // Restore seed exchange rates if they were destroyed
+    // This is necessary because some tests destroy all exchange rates,
+    // but the global beforeEach needs them to set the base currency
+    const currentCount = await ExchangeRates.count();
+
+    if (currentCount < originalSeedCount && seedExchangeRates.length > 0) {
+      // Clear any partial data and restore all seed rates
+      await ExchangeRates.destroy({ where: {} });
+      await ExchangeRates.bulkCreate(seedExchangeRates, {
+        ignoreDuplicates: true,
+      });
+    }
   });
 
   afterAll(() => {

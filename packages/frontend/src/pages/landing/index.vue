@@ -435,7 +435,7 @@
                     <span class="text-gray-300"> docker-compose up -d</span>
                   </p>
                   <p class="mt-4 text-gray-500"># Your MoneyMatter instance is now running!</p>
-                  <p class="text-gray-500"># Visit http://localhost:8100</p>
+                  <p class="text-gray-500"># Visit https://localhost:8100</p>
                 </div>
               </div>
             </div>

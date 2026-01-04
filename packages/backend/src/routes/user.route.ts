@@ -30,65 +30,81 @@ import {
   setBaseUserCurrency,
   updateUser,
 } from '@controllers/user.controller';
-import { authenticateJwt } from '@middlewares/passport';
+import { migrateLegacyEmail, verifyLegacyEmailChange } from '@controllers/user/migrate-legacy-email';
+import { authenticateSession } from '@middlewares/better-auth';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
 const router = Router({});
 
-router.get('/', authenticateJwt, validateEndpoint(getUser.schema), getUser.handler);
-router.put('/update', authenticateJwt, validateEndpoint(updateUser.schema), updateUser.handler);
-router.delete('/delete', authenticateJwt, validateEndpoint(deleteUser.schema), deleteUser.handler);
+router.get('/', authenticateSession, validateEndpoint(getUser.schema), getUser.handler);
+router.put('/update', authenticateSession, validateEndpoint(updateUser.schema), updateUser.handler);
+router.delete('/delete', authenticateSession, validateEndpoint(deleteUser.schema), deleteUser.handler);
 
-router.get('/currencies', authenticateJwt, validateEndpoint(getUserCurrencies.schema), getUserCurrencies.handler);
+// Legacy user email migration
+router.post(
+  '/migrate-legacy-email',
+  authenticateSession,
+  validateEndpoint(migrateLegacyEmail.schema),
+  migrateLegacyEmail.handler,
+);
+// Verification endpoint - no auth required (user clicks link from email)
+router.post('/verify-legacy-email', validateEndpoint(verifyLegacyEmailChange.schema), verifyLegacyEmailChange.handler);
+
+router.get('/currencies', authenticateSession, validateEndpoint(getUserCurrencies.schema), getUserCurrencies.handler);
 router.get(
   '/currencies/base',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getUserBaseCurrency.schema),
   getUserBaseCurrency.handler,
 );
 router.get(
   '/currencies/rates',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getCurrenciesExchangeRates.schema),
   getCurrenciesExchangeRates.handler,
 );
 
-router.post('/currencies', authenticateJwt, validateEndpoint(addUserCurrencies.schema), addUserCurrencies.handler);
+router.post('/currencies', authenticateSession, validateEndpoint(addUserCurrencies.schema), addUserCurrencies.handler);
 router.post(
   '/currencies/base',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(setBaseUserCurrency.schema),
   setBaseUserCurrency.handler,
 );
 router.post(
   '/currencies/change-base',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(changeBaseCurrency.schema),
   changeBaseCurrency.handler,
 );
 
-router.put('/currency', authenticateJwt, validateEndpoint(editUserCurrency.schema), editUserCurrency.handler);
+router.put('/currency', authenticateSession, validateEndpoint(editUserCurrency.schema), editUserCurrency.handler);
 router.put(
   '/currency/rates',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(editCurrencyExchangeRate.schema),
   editCurrencyExchangeRate.handler,
 );
 
-router.delete('/currency', authenticateJwt, validateEndpoint(deleteUserCurrency.schema), deleteUserCurrency.handler);
+router.delete(
+  '/currency',
+  authenticateSession,
+  validateEndpoint(deleteUserCurrency.schema),
+  deleteUserCurrency.handler,
+);
 router.delete(
   '/currency/rates',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(removeUserCurrencyExchangeRate.schema),
   removeUserCurrencyExchangeRate.handler,
 );
 
-router.get('/settings', authenticateJwt, validateEndpoint(getUserSettings.schema), getUserSettings.handler);
-router.put('/settings', authenticateJwt, validateEndpoint(updateUserSettings.schema), updateUserSettings.handler);
+router.get('/settings', authenticateSession, validateEndpoint(getUserSettings.schema), getUserSettings.handler);
+router.put('/settings', authenticateSession, validateEndpoint(updateUserSettings.schema), updateUserSettings.handler);
 router.put(
   '/settings/edit-excluded-categories',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(editExcludedCategories.schema),
   editExcludedCategories.handler,
 );
@@ -96,31 +112,31 @@ router.put(
 // AI API Key management
 router.get(
   '/settings/ai/api-keys',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getAiApiKeyStatus.schema),
   getAiApiKeyStatus.handler,
 );
 router.put(
   '/settings/ai/api-keys',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(setAiApiKeyController.schema),
   setAiApiKeyController.handler,
 );
 router.put(
   '/settings/ai/api-keys/default',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(setDefaultAiProviderController.schema),
   setDefaultAiProviderController.handler,
 );
 router.delete(
   '/settings/ai/api-keys',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(deleteAiApiKey.schema),
   deleteAiApiKey.handler,
 );
 router.delete(
   '/settings/ai/api-keys/all',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(deleteAllAiApiKeys.schema),
   deleteAllAiApiKeys.handler,
 );
@@ -128,25 +144,25 @@ router.delete(
 // AI Feature configuration
 router.get(
   '/settings/ai/features',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getFeaturesStatus.schema),
   getFeaturesStatus.handler,
 );
 router.get(
   '/settings/ai/features/:feature',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getFeatureConfigController.schema),
   getFeatureConfigController.handler,
 );
 router.put(
   '/settings/ai/features/:feature',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(setFeatureConfigController.schema),
   setFeatureConfigController.handler,
 );
 router.delete(
   '/settings/ai/features/:feature',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(resetFeatureConfigController.schema),
   resetFeatureConfigController.handler,
 );
@@ -154,7 +170,7 @@ router.delete(
 // AI Models
 router.get(
   '/settings/ai/models',
-  authenticateJwt,
+  authenticateSession,
   validateEndpoint(getAvailableModelsController.schema),
   getAvailableModelsController.handler,
 );

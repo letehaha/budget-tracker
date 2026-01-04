@@ -6,7 +6,9 @@ import Budgets from '@models/Budget.model';
 import Categories from '@models/Categories.model';
 import Transactions from '@models/Transactions.model';
 import UserSettings from '@models/UserSettings.model';
+import Users from '@models/Users.model';
 import UsersCurrencies from '@models/UsersCurrencies.model';
+import { connection } from '@models/index';
 import Portfolios from '@models/investments/Portfolios.model';
 import * as helpers from '@tests/helpers';
 
@@ -406,5 +408,64 @@ describe('User deletion (DELETE /user/delete)', () => {
     // Verify settings are deleted
     const settingsAfter = await UserSettings.findAll({});
     expect(settingsAfter).toHaveLength(0);
+  });
+
+  it('should delete user from better-auth tables (ba_*)', async () => {
+    // Get authUserId before deletion (the mock always returns 'test-user-id')
+    const user = await Users.findOne({ where: {} });
+    expect(user).not.toBeNull();
+    const authUserId = user!.authUserId;
+
+    // Verify ba_user record exists before deletion
+    const [baUserBefore] = await connection.sequelize.query('SELECT id FROM ba_user WHERE id = :authUserId', {
+      replacements: { authUserId },
+    });
+    expect((baUserBefore as { id: string }[]).length).toBe(1);
+
+    // Verify ba_session exists (created during login in beforeEach)
+    const [baSessionBefore] = await connection.sequelize.query(
+      'SELECT id FROM ba_session WHERE "userId" = :authUserId',
+      { replacements: { authUserId } },
+    );
+    expect((baSessionBefore as { id: string }[]).length).toBeGreaterThanOrEqual(1);
+
+    // Verify ba_account exists
+    const [baAccountBefore] = await connection.sequelize.query(
+      'SELECT id FROM ba_account WHERE "userId" = :authUserId',
+      { replacements: { authUserId } },
+    );
+    expect((baAccountBefore as { id: string }[]).length).toBeGreaterThanOrEqual(1);
+
+    // Delete user
+    const deleteRes = await helpers.deleteUserAccount();
+    expect(deleteRes.statusCode).toBe(200);
+    expect(deleteRes.body.status).toBe(API_RESPONSE_STATUS.success);
+
+    // Verify ba_user is deleted
+    const [baUserAfter] = await connection.sequelize.query('SELECT id FROM ba_user WHERE id = :authUserId', {
+      replacements: { authUserId },
+    });
+    expect((baUserAfter as { id: string }[]).length).toBe(0);
+
+    // Verify ba_session is deleted (CASCADE from ba_user)
+    const [baSessionAfter] = await connection.sequelize.query(
+      'SELECT id FROM ba_session WHERE "userId" = :authUserId',
+      { replacements: { authUserId } },
+    );
+    expect((baSessionAfter as { id: string }[]).length).toBe(0);
+
+    // Verify ba_account is deleted (CASCADE from ba_user)
+    const [baAccountAfter] = await connection.sequelize.query(
+      'SELECT id FROM ba_account WHERE "userId" = :authUserId',
+      { replacements: { authUserId } },
+    );
+    expect((baAccountAfter as { id: string }[]).length).toBe(0);
+
+    // Verify ba_passkey is deleted (CASCADE from ba_user)
+    const [baPasskeyAfter] = await connection.sequelize.query(
+      'SELECT id FROM ba_passkey WHERE "userId" = :authUserId',
+      { replacements: { authUserId } },
+    );
+    expect((baPasskeyAfter as { id: string }[]).length).toBe(0);
   });
 });

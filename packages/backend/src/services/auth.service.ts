@@ -16,6 +16,14 @@ export const login = withTransaction(
       const user = await userService.getUserByCredentials({ username });
 
       if (user) {
+        // User must have a password for credential-based login
+        if (!user.password) {
+          throw new Unauthorized({
+            code: API_ERROR_CODES.invalidCredentials,
+            message: 'User email and/or password are invalid!',
+          });
+        }
+
         const isPasswordValid = bcrypt.compareSync(password, user.password);
 
         if (isPasswordValid) {

@@ -15,13 +15,13 @@ const authStore = useAuthStore();
 const { user } = storeToRefs(useUserStore());
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 
-const confirmUsername = ref('');
+const confirmEmail = ref('');
 const isDeleting = ref(false);
 
-const isDeleteDisabled = computed(() => confirmUsername.value !== user.value.username || isDeleting.value);
+const isDeleteDisabled = computed(() => confirmEmail.value !== user.value.email || isDeleting.value);
 
 const handleDeleteAccount = async () => {
-  if (confirmUsername.value !== user.value.username) return;
+  if (confirmEmail.value !== user.value.email) return;
 
   isDeleting.value = true;
   try {
@@ -75,12 +75,12 @@ const handleDeleteAccount = async () => {
         <template #content>
           <div class="mt-4 mb-2 text-left text-sm">
             Please type
-            <ClickToCopy :value="user.username" />
+            <ClickToCopy :value="user.email" />
             to confirm
           </div>
           <InputField
-            v-model="confirmUsername"
-            placeholder="Enter your username"
+            v-model="confirmEmail"
+            placeholder="Enter your email"
             class="border-destructive focus-visible:outline-destructive"
           />
         </template>

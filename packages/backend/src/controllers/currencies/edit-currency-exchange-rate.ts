@@ -5,12 +5,9 @@ import { z } from 'zod';
 
 const isValidCurrencyCode = (code: string) => cc.code(code) !== undefined;
 
-const CurrencyCodeSchema = z.string().refine(
-  (code) => isValidCurrencyCode(code),
-  (code) => ({
-    message: `Invalid currency code: ${code}. Use ISO 4217 Code. For example: USD`,
-  }),
-);
+const CurrencyCodeSchema = z.string().refine((code) => isValidCurrencyCode(code), {
+  message: 'Invalid currency code. Use ISO 4217 Code. For example: USD',
+});
 
 const UpdateExchangeRatePairSchema = z
   .object({

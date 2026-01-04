@@ -62,9 +62,7 @@ const shouldSwapTransactions = computed(() => {
   );
 });
 
-const transaction = computed(() =>
-  shouldSwapTransactions.value ? props.oppositeTransaction : props.transaction,
-);
+const transaction = computed(() => (shouldSwapTransactions.value ? props.oppositeTransaction : props.transaction));
 
 const oppositeTransaction = computed(() =>
   shouldSwapTransactions.value ? props.transaction : props.oppositeTransaction,

@@ -23,10 +23,11 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 if [[ -z "$1" ]]; then
     echo -e "${RED}Error:${NC} Please provide a backup file path"
     echo ""
-    echo "Usage: $0 <backup-file.sql.gz>"
+    echo "Usage: $0 <backup-file.sql[.gz]>"
     echo ""
     echo "Examples:"
     echo "  $0 ./backup.sql.gz"
+    echo "  $0 ./backup.sql"
     echo "  $0 ~/Downloads/db_backup_20251223_222254.sql.gz"
     exit 1
 fi
@@ -40,8 +41,10 @@ if [[ ! -f "$BACKUP_FILE" ]]; then
 fi
 
 # Check if it's a gzipped file
+IS_GZIPPED=true
 if [[ "$BACKUP_FILE" != *.gz ]]; then
-    echo -e "${YELLOW}Warning:${NC} File doesn't have .gz extension. Assuming it's gzipped anyway."
+    IS_GZIPPED=false
+    echo -e "${YELLOW}Note:${NC} File doesn't have .gz extension. Will restore as raw SQL."
 fi
 
 cd "$PROJECT_DIR"
@@ -115,8 +118,13 @@ echo -e "${GREEN}✓${NC} Database created"
 echo ""
 echo -e "${YELLOW}[4/4]${NC} Restoring from backup (this may take a moment)..."
 
-gunzip -c "$BACKUP_FILE" | docker compose -f "$COMPOSE_FILE" exec -T db \
-    psql -U "$APPLICATION_DB_USERNAME" -d "$APPLICATION_DB_DATABASE" --quiet
+if [[ "$IS_GZIPPED" == true ]]; then
+    gunzip -c "$BACKUP_FILE" | docker compose -f "$COMPOSE_FILE" exec -T db \
+        psql -U "$APPLICATION_DB_USERNAME" -d "$APPLICATION_DB_DATABASE" --quiet
+else
+    cat "$BACKUP_FILE" | docker compose -f "$COMPOSE_FILE" exec -T db \
+        psql -U "$APPLICATION_DB_USERNAME" -d "$APPLICATION_DB_DATABASE" --quiet
+fi
 
 echo -e "${GREEN}✓${NC} Backup restored"
 

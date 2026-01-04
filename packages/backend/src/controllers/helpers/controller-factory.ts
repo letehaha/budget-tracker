@@ -29,13 +29,15 @@ export function createController<T extends z.ZodType>(schema: T, handler: Handle
       const req = _req as CustomRequest<T>;
 
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const validated = req.validated as any;
         const result = await handler({
           req: _req,
           res: res,
           user: req.user,
-          params: req.validated.params || {},
-          query: req.validated.query || {},
-          body: req.validated.body || {},
+          params: validated.params || {},
+          query: validated.query || {},
+          body: validated.body || {},
         });
 
         const statusCode = result?.statusCode || 200;

@@ -29,15 +29,17 @@ export const createUser = withTransaction(
     password,
     avatar,
     totalBalance,
+    authUserId,
   }: {
     username: string;
     email?: string;
     firstName?: string;
     lastName?: string;
     middleName?: string;
-    password: string;
+    password?: string;
     avatar?: string;
     totalBalance?: number;
+    authUserId?: string;
   }) => {
     const user = await Users.createUser({
       username,
@@ -48,11 +50,17 @@ export const createUser = withTransaction(
       password,
       avatar,
       totalBalance,
+      authUserId,
     });
 
     return user;
   },
 );
+
+export const getUserByAuthUserId = withTransaction(async ({ authUserId }: { authUserId: string }) => {
+  const user = await Users.getUserByAuthUserId({ authUserId });
+  return user;
+});
 
 export const getUserByCredentials = withTransaction(
   async ({ username, email }: { username?: string; email?: string }) => {

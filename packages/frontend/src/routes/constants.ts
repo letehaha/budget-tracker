@@ -26,6 +26,7 @@ export const ROUTES_NAMES = Object.freeze({
   settingsAccounts: `${ROUTER_LAYOUTS.dashboard}.settings.accounts-groups`,
   settingsDataManagement: `${ROUTER_LAYOUTS.dashboard}.settings.data-management`,
   settingsAi: `${ROUTER_LAYOUTS.dashboard}.settings.ai`,
+  settingsSecurity: `${ROUTER_LAYOUTS.dashboard}.settings.security`,
   settingsAdmin: `${ROUTER_LAYOUTS.dashboard}.settings.admin`,
   importCsv: `${ROUTER_LAYOUTS.dashboard}.import-csv`,
   importStatement: `${ROUTER_LAYOUTS.dashboard}.import-statement`,
@@ -33,7 +34,10 @@ export const ROUTES_NAMES = Object.freeze({
   auth: ROUTER_LAYOUTS.auth,
   signIn: `${ROUTER_LAYOUTS.auth}.sign-in`,
   signUp: `${ROUTER_LAYOUTS.auth}.sign-up`,
+  verifyEmail: `${ROUTER_LAYOUTS.auth}.verify-email`,
+  verifyLegacyEmail: `${ROUTER_LAYOUTS.auth}.verify-legacy-email`,
   welcome: `${ROUTER_LAYOUTS.auth}.welcome`,
+  authCallback: `${ROUTER_LAYOUTS.auth}.callback`,
 
   landing: ROUTER_LAYOUTS.landing,
   privacyPolicy: 'privacy-policy',

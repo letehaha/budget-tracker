@@ -21,7 +21,7 @@ export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
     });
   }
 
-  // Assumes user is already authenticated via authenticateJwt middleware
+  // Assumes user is already authenticated via authenticateSession middleware
   const username = (req.user as Users)?.username;
 
   if (!username) {

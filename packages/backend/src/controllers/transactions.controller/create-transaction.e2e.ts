@@ -35,7 +35,7 @@ describe('Create transaction controller', () => {
   });
   it('should successfully create a transaction for account with currency different from base one', async () => {
     // Create account with non-default currency
-    const currency = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
+    const currency = global.MODELS_CURRENCIES!.find((item) => item.code === 'UAH');
     await helpers.addUserCurrencies({ currencyCodes: ['UAH'] });
 
     const account = await helpers.createAccount({
@@ -114,7 +114,7 @@ describe('Create transaction controller', () => {
   it('should successfully create a transfer transaction between account with base and non-base currency', async () => {
     const accountA = await helpers.createAccount({ raw: true });
 
-    const currencyB = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
+    const currencyB = global.MODELS_CURRENCIES!.find((item) => item.code === 'UAH');
     await helpers.addUserCurrencies({ currencyCodes: ['UAH'] });
 
     const accountB = await helpers.createAccount({
@@ -172,7 +172,7 @@ describe('Create transaction controller', () => {
     });
   });
   it('should successfully create a transfer transaction between accounts with both non-base currencies', async () => {
-    const currencyA = global.MODELS_CURRENCIES.find((item) => item.code === 'EUR');
+    const currencyA = global.MODELS_CURRENCIES!.find((item) => item.code === 'EUR');
     await helpers.addUserCurrencies({ currencyCodes: [currencyA.code] });
     const accountA = await helpers.createAccount({
       payload: {
@@ -182,7 +182,7 @@ describe('Create transaction controller', () => {
       raw: true,
     });
 
-    const currencyB = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
+    const currencyB = global.MODELS_CURRENCIES!.find((item) => item.code === 'UAH');
     await helpers.addUserCurrencies({ currencyCodes: [currencyB.code] });
     const accountB = await helpers.createAccount({
       payload: {

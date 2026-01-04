@@ -17,7 +17,8 @@
       "@js/*": ["js/*"],
       "@root/*": ["./*"],
       "@bt/shared/*": ["../../shared/src/*"],
-      "@services/*": ["services/*"]
+      "@services/*": ["services/*"],
+      "@config/*": ["config/*"]
     },
     "sourceMap": true,
     "noImplicitAny": false,

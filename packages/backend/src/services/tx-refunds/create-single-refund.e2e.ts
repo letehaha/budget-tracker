@@ -47,7 +47,7 @@ describe('Refund Transactions service', () => {
           - refund refAmount LESS than base tx amount
       `, async () => {
         const account = await helpers.createAccount({ raw: true });
-        const currencyB = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
+        const currencyB = global.MODELS_CURRENCIES!.find((item) => item.code === 'UAH');
         const accountB = await helpers.createAccount({
           payload: {
             ...helpers.buildAccountPayload(),
@@ -94,7 +94,7 @@ describe('Refund Transactions service', () => {
           - refund refAmount LESS than base tx amount
       `, async () => {
         const account = await helpers.createAccount({ raw: true });
-        const currencyB = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
+        const currencyB = global.MODELS_CURRENCIES!.find((item) => item.code === 'UAH');
         const accountB = await helpers.createAccount({
           payload: {
             ...helpers.buildAccountPayload(),
@@ -244,7 +244,7 @@ describe('Refund Transactions service', () => {
         const amounts = { tx: 1_000, refund_1: 100, refund_2: 1500 };
 
         const account = await helpers.createAccount({ raw: true });
-        const currencyB = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
+        const currencyB = global.MODELS_CURRENCIES!.find((item) => item.code === 'UAH');
         const accountB = await helpers.createAccount({
           payload: {
             ...helpers.buildAccountPayload(),
@@ -361,7 +361,7 @@ describe('Refund Transactions service', () => {
           payload: {
             ...helpers.buildAccountPayload(),
             // We need to use some currency with higher exchange rate, to achieve expected conditions
-            currencyCode: global.MODELS_CURRENCIES.find((item) => item.code === 'GBP').code,
+            currencyCode: global.MODELS_CURRENCIES!.find((item) => item.code === 'GBP').code,
           },
           raw: true,
         });
@@ -503,7 +503,7 @@ describe('Refund Transactions service', () => {
 
       it('fails when total refund amount exceeds original transaction amount with different currencies', async () => {
         const account = await helpers.createAccount({ raw: true });
-        const currencyB = global.MODELS_CURRENCIES.find((item) => item.code === 'UAH');
+        const currencyB = global.MODELS_CURRENCIES!.find((item) => item.code === 'UAH');
         const accountB = await helpers.createAccount({
           payload: {
             ...helpers.buildAccountPayload(),

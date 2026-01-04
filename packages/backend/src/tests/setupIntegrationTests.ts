@@ -11,9 +11,8 @@ import {
   transactionSyncQueue,
   transactionSyncWorker,
 } from '@services/bank-data-providers/monobank/transaction-sync-queue';
-import { extractResponse, makeRequest } from '@tests/helpers';
-import path from 'path';
-import Umzug from 'umzug';
+import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
+import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 
 import { resetSessionCounter } from './mocks/enablebanking/mock-api';
 import { setupMswServer } from './mocks/setup-mock-server';
@@ -66,48 +65,11 @@ afterAll(() => mswMockServer.close());
 
 global.mswMockServer = mswMockServer;
 
-const umzug = new Umzug({
-  migrations: {
-    // The params that get passed to the migrations
-    params: [connection.sequelize.getQueryInterface(), connection.sequelize.constructor],
-    // The path to the migrations directory
-    path: path.join(__dirname, '../migrations'),
-    pattern: /\.(js|ts)$/,
-    // Add a custom resolver to handle .ts files.
-    // This tells Umzug to use Node's `require` for any matched file.
-    // Because your tests are run with ts-jest, `ts-node` is already
-    // registered and will automatically transpile the .ts file when required.
-    customResolver: (path) => require(path),
-  },
-  storage: 'sequelize',
-  storageOptions: {
-    sequelize: connection.sequelize,
-  },
-});
-
 global.BASE_CURRENCY = null;
 // Should be non-USD so that some tests make sense
 global.BASE_CURRENCY_CODE = 'AED';
 global.MODELS_CURRENCIES = null;
-global.APP_AUTH_TOKEN = null;
-
-// Track if schema has been set up for this worker
-let schemaInitialized = false;
-
-async function dropAllEnums(sequelize) {
-  // Get all ENUM types
-  const enums = await sequelize.query(`
-    SELECT t.typname as enumtype
-    FROM pg_type t
-    JOIN pg_enum e ON t.oid = e.enumtypid
-    GROUP BY t.typname;
-  `);
-
-  // Drop each ENUM
-  for (const enumType of enums[0]) {
-    await sequelize.query(`DROP TYPE "${enumType.enumtype}" CASCADE`);
-  }
-}
+global.APP_AUTH_COOKIES = null;
 
 /**
  * Tables that contain seed/reference data from migrations and should NOT be truncated.
@@ -276,58 +238,58 @@ beforeEach(async () => {
       await redisClient.del(...keysWithoutPrefix);
     }
 
-    if (!schemaInitialized) {
-      // First test in this worker - need to set up schema from scratch
-      // Dynamic delay based on worker ID to reduce database contention during initial setup
-      const workerId = parseInt(process.env.JEST_WORKER_ID || '1', 10);
-      const staggerDelay = workerId * 200; // 200ms per worker
-      await new Promise((resolve) => setTimeout(resolve, staggerDelay));
+    // Schema comes from template database (created in setup-e2e-tests.sh).
+    // We just need to truncate data between tests.
+    await truncateAllTables();
 
-      // Clean up database schema with deadlock retry
-      await retryWithBackoff(
-        async () => {
-          await connection.sequelize.drop({ cascade: true });
-          await dropAllEnums(connection.sequelize);
-        },
-        15,
-        200,
-      );
+    // Set up test user for authentication
+    // The better-auth mock returns a user with id 'test-user-id', so we need
+    // to create a corresponding user in the database with that authUserId.
+    const testEmail = 'test1@test.local';
+    const testPassword = 'testpassword123';
 
-      // Run migrations with deadlock retry (this can be slow with TypeScript)
-      await retryWithBackoff(
-        async () => {
-          await umzug.up();
-        },
-        15,
-        200,
-      );
+    // Create the app user with default categories using the shared service
+    await createUserWithDefaults({
+      username: 'test1',
+      authUserId: 'test-user-id', // This must match what the mock returns
+    });
 
-      schemaInitialized = true;
-    } else {
-      // Schema already exists - just truncate tables (much faster!)
-      await truncateAllTables();
-    }
+    // Create better-auth records (ba_*) for test user
+    // Since auth is mocked via MSW, we need to manually create these records
+    // so that cascade deletion tests work correctly and we can execute tests
+    // related to ba_* tables
+    const authUserId = 'test-user-id';
+    await connection.sequelize.query(
+      `INSERT INTO ba_user (id, name, email, "emailVerified", image, "createdAt", "updatedAt")
+       VALUES (:id, 'Test User', :email, true, NULL, NOW(), NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      { replacements: { id: authUserId, email: testEmail } },
+    );
+    await connection.sequelize.query(
+      `INSERT INTO ba_account (id, "userId", "accountId", "providerId", "accessToken", "refreshToken", "accessTokenExpiresAt", "refreshTokenExpiresAt", scope, "idToken", password, "createdAt", "updatedAt")
+       VALUES (:id, :userId, :accountId, 'credential', NULL, NULL, NULL, NULL, NULL, NULL, 'hashed_password', NOW(), NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      { replacements: { id: `${authUserId}-credential`, userId: authUserId, accountId: authUserId } },
+    );
+    await connection.sequelize.query(
+      `INSERT INTO ba_session (id, "userId", token, "expiresAt", "ipAddress", "userAgent", "createdAt", "updatedAt")
+       VALUES (:id, :userId, :token, NOW() + INTERVAL '1 day', '127.0.0.1', 'test-agent', NOW(), NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      { replacements: { id: `${authUserId}-session`, userId: authUserId, token: 'test-session-token' } },
+    );
 
-    // Set up test user
-    await makeRequest({
+    // Simulate sign-in to get session cookies from the mock
+    const loginRes = await makeAuthRequest({
       method: 'post',
-      url: '/auth/register',
+      url: '/auth/sign-in/email',
       payload: {
-        username: 'test1',
-        password: 'test1',
+        email: testEmail,
+        password: testPassword,
       },
     });
 
-    const res = await makeRequest({
-      method: 'post',
-      url: '/auth/login',
-      payload: {
-        username: 'test1',
-        password: 'test1',
-      },
-    });
-
-    global.APP_AUTH_TOKEN = extractResponse(res).token;
+    // Extract session cookies from the login response
+    global.APP_AUTH_COOKIES = extractCookies(loginRes);
 
     // Don't waste time, just store base_currency to the global variable to not
     // call this request each time
@@ -342,16 +304,20 @@ beforeEach(async () => {
       global.BASE_CURRENCY = currencies.find((item: any) => item.code === global.BASE_CURRENCY_CODE);
     }
 
-    await makeRequest({
+    const baseCurrencyRes = await makeRequest({
       method: 'post',
       url: '/user/currencies/base',
       payload: { currencyCode: global.BASE_CURRENCY.code },
     });
+
+    if (baseCurrencyRes.statusCode !== 200) {
+      throw new Error(`Failed to set base currency: ${JSON.stringify(baseCurrencyRes.body)}`);
+    }
   } catch (err) {
     console.error('Setup failed:', err);
     throw err;
   }
-}, 30_000); // Increased timeout for first test (schema setup)
+}, 20_000); // Timeout for test setup (truncate + create user + sign-in)
 
 afterAll(async () => {
   try {

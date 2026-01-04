@@ -43,3 +43,8 @@ Other instructions:
    - Always: function({ arg1, arg2, arg3 })
 3. When planning the implementation don't limit yourself to 3-4 questions and 1 round.
    Ask as many questions with as many rounds as needed to collect all important information
+4. Use this map of suagents for different tasks:
+   - running any unit or e2e tests – use test-runner
+   - running any linter – use linter
+     – planning doing any websearch – use websearch
+     – if asked to do any code review – use code-change-reviewer

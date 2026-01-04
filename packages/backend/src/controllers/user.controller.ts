@@ -1,4 +1,5 @@
 import { currencyCode } from '@common/lib/zod/custom-types';
+import { authPool } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
 import { ValidationError } from '@js/errors';
 import { ExchangeRatePair, UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
@@ -12,7 +13,16 @@ export const getUser = createController(z.object({}), async ({ user }) => {
 
   const isAdmin = (process.env.ADMIN_USERS as string).split(',').some((i) => i === user.username);
 
-  return { data: { ...userData, isAdmin } };
+  // Fetch email from better-auth's ba_user table
+  let email: string | null = null;
+  if (userData?.authUserId) {
+    const result = await authPool.query('SELECT email FROM ba_user WHERE id = $1', [userData.authUserId]);
+    if (result.rows.length > 0) {
+      email = result.rows[0].email;
+    }
+  }
+
+  return { data: { ...userData, email, isAdmin } };
 });
 
 export const updateUser = createController(

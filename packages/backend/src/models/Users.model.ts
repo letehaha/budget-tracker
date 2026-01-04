@@ -56,8 +56,11 @@ export default class Users extends Model {
   @Column({ allowNull: true, type: DataType.STRING, })
   middleName!: string;
 
-  @Column({ allowNull: false, type: DataType.STRING, })
+  @Column({ allowNull: true, type: DataType.STRING, })
   password!: string;
+
+  @Column({ allowNull: true, type: DataType.STRING, })
+  authUserId!: string;
 
   @Length({ max: 2000 })
   @Column({ allowNull: true, type: DataType.STRING, })
@@ -141,15 +144,17 @@ export const createUser = async ({
   password,
   avatar,
   totalBalance = DETAULT_TOTAL_BALANCE,
+  authUserId,
 }: {
   username: string;
   email?: string;
   firstName?: string;
   lastName?: string;
   middleName?: string;
-  password: string;
+  password?: string;
   avatar?: string;
   totalBalance?: number;
+  authUserId?: string;
 }): Promise<UserModel> => {
   const user = await Users.create({
     username,
@@ -160,6 +165,19 @@ export const createUser = async ({
     password,
     avatar,
     totalBalance,
+    authUserId,
+  });
+
+  return user;
+};
+
+export const getUserByAuthUserId = async ({
+  authUserId,
+}: {
+  authUserId: string;
+}): Promise<UserModel | null> => {
+  const user = await Users.findOne({
+    where: { authUserId },
   });
 
   return user;
