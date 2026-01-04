@@ -3,9 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
 
 export const addCategories = (settings: UserSettingsSchema, categories: number[]) => {
-  const temp = settings.stats.expenses.excludedCategories;
+  const existing = settings.stats.expenses.excludedCategories;
   const updatedUserSettings = cloneDeep(settings);
-  updatedUserSettings.stats.expenses.excludedCategories = [...temp, ...categories];
+  updatedUserSettings.stats.expenses.excludedCategories = [...new Set([...existing, ...categories])];
   return updatedUserSettings;
 };
 

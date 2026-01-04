@@ -142,12 +142,13 @@ const initialValues = reactive({
   excludeFromStats: false,
 });
 
+const hasNameChanged = computed(() => form.name !== initialValues.name);
+const hasColorChanged = computed(() => form.color !== initialValues.color);
+const hasExcludeFromStatsChanged = computed(() => form.excludeFromStats !== initialValues.excludeFromStats);
+const hasCategoryFieldsChanged = computed(() => hasNameChanged.value || hasColorChanged.value);
+
 const hasChanges = computed(() => {
-  return (
-    form.name !== initialValues.name ||
-    form.color !== initialValues.color ||
-    form.excludeFromStats !== initialValues.excludeFromStats
-  );
+  return hasCategoryFieldsChanged.value || hasExcludeFromStatsChanged.value;
 });
 
 const isSubmitDisabled = computed(() => {
@@ -183,29 +184,47 @@ const initializeForm = () => {
   }
 };
 
-watch(isOpen, (open) => {
-  if (open) {
-    initializeForm();
-  }
-});
+watch(
+  isOpen,
+  (open) => {
+    if (open) {
+      initializeForm();
+    }
+  },
+  { immediate: true },
+);
+
+// Re-initialize form when userSettings loads (handles page refresh case)
+watch(
+  () => userSettings.value,
+  () => {
+    if (isOpen.value) {
+      initializeForm();
+    }
+  },
+);
 
 const handleSubmit = async () => {
-  if (!form.name.trim()) return;
+  if (!hasChanges.value) return;
 
   isSubmitting.value = true;
 
   try {
     if (isEditMode.value && props.category) {
-      await editCategory({
-        categoryId: props.category.id,
-        name: form.name.trim(),
-      });
+      if (hasCategoryFieldsChanged.value) {
+        await editCategory({
+          categoryId: props.category.id,
+          name: form.name.trim(),
+        });
+      }
 
-      await updateUserSettings(
-        form.excludeFromStats
-          ? addCategories(userSettings.value!, [props.category.id])
-          : removeCategories(userSettings.value!, [props.category.id]),
-      );
+      if (hasExcludeFromStatsChanged.value) {
+        await updateUserSettings(
+          form.excludeFromStats
+            ? addCategories(userSettings.value!, [props.category.id])
+            : removeCategories(userSettings.value!, [props.category.id]),
+        );
+      }
 
       addSuccessNotification('Category updated');
       await categoriesStore.loadCategories();
