@@ -1,4 +1,5 @@
 import { passkey } from '@better-auth/passkey';
+import { OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
 import bcrypt from 'bcryptjs';
@@ -94,6 +95,13 @@ export const auth = betterAuth({
   },
   account: {
     modelName: 'ba_account',
+    // Allow auto-linking OAuth accounts to existing users with matching verified email
+    // This is the standard behavior for most apps - if someone controls an OAuth account
+    // with a verified email, they're the legitimate owner of that email
+    accountLinking: {
+      enabled: true,
+      trustedProviders: [...OAUTH_PROVIDERS_LIST],
+    },
   },
   verification: {
     modelName: 'ba_verification',
@@ -176,6 +184,11 @@ export const auth = betterAuth({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
       enabled: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID || '',
+      clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+      enabled: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
     },
   },
 

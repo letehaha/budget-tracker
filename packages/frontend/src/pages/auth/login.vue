@@ -8,9 +8,14 @@
         <!-- OAuth and Passkey buttons (only show for non-legacy mode) -->
         <template v-if="!isLegacyMode">
           <div class="grid gap-3">
-            <OAuthButton provider="google" mode="signin" :is-loading="isOAuthLoading" @click="handleGoogleLogin">
+            <OAuthButton :provider="OAUTH_PROVIDER.google" mode="signin" :is-loading="isOAuthLoading" @click="handleOAuthLogin({ provider: OAUTH_PROVIDER.google })">
               <template #icon>
                 <GoogleIcon />
+              </template>
+            </OAuthButton>
+            <OAuthButton :provider="OAUTH_PROVIDER.github" mode="signin" :is-loading="isOAuthLoading" @click="handleOAuthLogin({ provider: OAUTH_PROVIDER.github })">
+              <template #icon>
+                <GithubIcon />
               </template>
             </OAuthButton>
             <PasskeyButton mode="signin" :is-loading="isPasskeyLoading" @click="handlePasskeyLogin" />
@@ -106,7 +111,7 @@
 </template>
 
 <script lang="ts" setup>
-import { AuthDivider, GoogleIcon, OAuthButton, PasskeyButton } from '@/components/auth';
+import { AuthDivider, GithubIcon, GoogleIcon, OAuthButton, PasskeyButton } from '@/components/auth';
 import { InputField } from '@/components/fields';
 import FormWrapper from '@/components/fields/form-wrapper.vue';
 import { Button } from '@/components/lib/ui/button';
@@ -117,14 +122,14 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { email, minLength, required } from '@/js/helpers/validators';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
-import { API_ERROR_CODES } from '@bt/shared/types';
+import { API_ERROR_CODES, OAUTH_PROVIDER } from '@bt/shared/types';
 import { Ref, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
-const { login, legacyLogin, loginWithGoogle, loginWithPasskey } = authStore;
+const { login, legacyLogin, loginWithOAuth, loginWithPasskey } = authStore;
 const { addErrorNotification } = useNotificationCenter();
 
 // Map better-auth error codes to user-friendly messages
@@ -318,13 +323,12 @@ const submitLegacy = async () => {
   }
 };
 
-const handleGoogleLogin = async () => {
+const handleOAuthLogin = async ({ provider }: { provider: OAUTH_PROVIDER }) => {
   try {
     isOAuthLoading.value = true;
-    await loginWithGoogle({ from: 'signin' });
-    // OAuth redirect will happen, no need to navigate manually
+    await loginWithOAuth({ provider, from: 'signin' });
   } catch {
-    addErrorNotification('Failed to sign in with Google. Please try again.');
+    addErrorNotification(`Failed to sign in with ${provider}. Please try again.`);
   } finally {
     isOAuthLoading.value = false;
   }

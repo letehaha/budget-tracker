@@ -25,27 +25,27 @@
         </div>
       </div>
 
-      <!-- Google OAuth -->
-      <div class="border-border rounded-lg border p-4">
+      <!-- OAuth Providers -->
+      <div v-for="provider in OAUTH_PROVIDERS_LIST" :key="provider" class="border-border rounded-lg border p-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="bg-muted flex size-10 items-center justify-center rounded-lg">
-              <GoogleIcon />
+              <component :is="providerConfig[provider].icon" />
             </div>
             <div>
-              <p class="font-medium">Google</p>
-              <p v-if="googleAccount" class="text-muted-foreground text-sm">
-                Connected as {{ googleAccount.email || 'Google Account' }}
+              <p class="font-medium">{{ providerConfig[provider].name }}</p>
+              <p v-if="getAccountByProvider(provider)" class="text-muted-foreground text-sm">
+                Connected as {{ getAccountByProvider(provider)?.email || `${providerConfig[provider].name} Account` }}
               </p>
               <p v-else class="text-muted-foreground text-sm">Not connected</p>
             </div>
           </div>
           <Button
-            v-if="googleAccount"
+            v-if="getAccountByProvider(provider)"
             variant="outline"
             size="sm"
             :disabled="!canDisconnect || isDisconnecting"
-            @click="handleDisconnectGoogle"
+            @click="handleDisconnectOAuth({ provider })"
           >
             <Loader2Icon v-if="isDisconnecting" class="mr-2 size-4 animate-spin" />
             Disconnect
@@ -55,7 +55,7 @@
             variant="outline"
             size="sm"
             :disabled="isConnecting || isLegacyUser"
-            @click="handleConnectGoogle"
+            @click="handleConnectOAuth({ provider })"
           >
             <Loader2Icon v-if="isConnecting" class="mr-2 size-4 animate-spin" />
             Connect
@@ -126,21 +126,22 @@
         </div>
       </div>
 
-      <!-- Warning if only OAuth login method -->
-      <p v-if="googleAccount && !canDisconnect" class="text-muted-foreground text-sm">
+      <!-- Warning if only one login method -->
+      <p v-if="!canDisconnect && hasAnyOAuthAccount" class="text-muted-foreground text-sm">
         <AlertTriangleIcon class="mr-1 inline size-4" />
-        Add another login method before disconnecting Google.
+        Add another login method before disconnecting your OAuth account.
       </p>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { GoogleIcon } from '@/components/auth';
+import { GithubIcon, GoogleIcon } from '@/components/auth';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { authClient, getSession } from '@/lib/auth-client';
 import { useAuthStore } from '@/stores';
+import { OAUTH_PROVIDER, OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import {
   AlertTriangleIcon,
   FingerprintIcon,
@@ -150,7 +151,13 @@ import {
   PlusIcon,
   TrashIcon,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { Component, computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+
+const providerConfig: Record<OAUTH_PROVIDER, { name: string; icon: Component }> = {
+  [OAUTH_PROVIDER.google]: { name: 'Google', icon: GoogleIcon },
+  [OAUTH_PROVIDER.github]: { name: 'GitHub', icon: GithubIcon },
+};
 
 const LEGACY_EMAIL_SUFFIX = '@app.migrated';
 
@@ -167,6 +174,8 @@ interface Account {
   email?: string;
 }
 
+const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 
@@ -181,18 +190,19 @@ const passkeys = ref<Passkey[]>([]);
 const hasPassword = ref(false);
 const userEmail = ref<string | null>(null);
 
-const googleAccount = computed(() => accounts.value.find((a) => a.providerId === 'google'));
+const getAccountByProvider = (provider: OAUTH_PROVIDER) => accounts.value.find((a) => a.providerId === provider);
+
+const hasAnyOAuthAccount = computed(() => OAUTH_PROVIDERS_LIST.some((p) => getAccountByProvider(p)));
 
 // Check if user is a legacy user (email ends with @app.migrated)
 const isLegacyUser = computed(() => userEmail.value?.endsWith(LEGACY_EMAIL_SUFFIX) ?? false);
 
 // Count total login methods
 const loginMethodCount = computed(() => {
-  let count = 0;
-  if (googleAccount.value) count++;
-  if (hasPassword.value) count++;
-  count += passkeys.value.length;
-  return count;
+  const oauthCount = OAUTH_PROVIDERS_LIST.filter((p) => getAccountByProvider(p)).length;
+  const passkeyCount = passkeys.value.length;
+  const passwordCount = hasPassword.value ? 1 : 0;
+  return oauthCount + passkeyCount + passwordCount;
 });
 
 const canDisconnect = computed(() => loginMethodCount.value > 1);
@@ -226,36 +236,38 @@ const loadPasskeys = async () => {
   }
 };
 
-const handleConnectGoogle = async () => {
+const handleConnectOAuth = async ({ provider }: { provider: OAUTH_PROVIDER }) => {
+  const providerName = providerConfig[provider].name;
   try {
     isConnecting.value = true;
-    // Store return URL for after OAuth callback
     sessionStorage.setItem('oauth_return_url', window.location.pathname);
     await authClient.linkSocial({
-      provider: 'google',
+      provider,
       callbackURL: `${window.location.origin}/auth/callback`,
     });
-    // OAuth redirect will happen
   } catch {
-    addErrorNotification('Failed to connect Google account');
+    addErrorNotification(`Failed to connect ${providerName} account`);
   } finally {
     isConnecting.value = false;
   }
 };
 
-const handleDisconnectGoogle = async () => {
-  if (!googleAccount.value || !canDisconnect.value) return;
+const handleDisconnectOAuth = async ({ provider }: { provider: OAUTH_PROVIDER }) => {
+  const account = getAccountByProvider(provider);
+  const providerName = providerConfig[provider].name;
+
+  if (!account || !canDisconnect.value) return;
 
   try {
     isDisconnecting.value = true;
     await authClient.unlinkAccount({
-      providerId: 'google',
-      accountId: googleAccount.value.accountId,
+      providerId: provider,
+      accountId: account.accountId,
     });
-    addSuccessNotification('Google account disconnected');
+    addSuccessNotification(`${providerName} account disconnected`);
     await loadAccounts();
   } catch {
-    addErrorNotification('Failed to disconnect Google account');
+    addErrorNotification(`Failed to disconnect ${providerName} account`);
   } finally {
     isDisconnecting.value = false;
   }
@@ -299,6 +311,14 @@ const loadUserEmail = async () => {
 };
 
 onMounted(async () => {
+  // Check for OAuth error from callback redirect
+  const oauthError = route.query.oauth_error as string | undefined;
+  if (oauthError) {
+    addErrorNotification(oauthError);
+    // Clean up the URL without triggering a navigation
+    router.replace({ query: {} });
+  }
+
   isLoading.value = true;
   await Promise.all([loadAccounts(), loadPasskeys(), loadUserEmail()]);
   isLoading.value = false;
