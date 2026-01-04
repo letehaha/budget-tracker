@@ -16,28 +16,25 @@
       <!-- Password form -->
       <form class="max-w-md space-y-4" @submit.prevent="handleSubmit">
         <!-- Current password (only when changing) -->
-        <div v-if="hasPassword" class="space-y-2">
-          <label for="current-password" class="text-sm font-medium">Current Password</label>
-          <input
-            id="current-password"
-            v-model="form.currentPassword"
-            type="password"
-            :disabled="isSubmitting"
-            class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
-            placeholder="Enter current password"
-          />
-        </div>
+        <InputField
+          v-if="hasPassword"
+          v-model="form.currentPassword"
+          label="Current Password"
+          type="password"
+          :disabled="isSubmitting"
+          placeholder="Enter current password"
+          :error-message="getFieldErrorMessage('form.currentPassword')"
+        />
 
         <!-- New password -->
         <div class="space-y-2">
-          <label for="new-password" class="text-sm font-medium">{{ hasPassword ? 'New Password' : 'Password' }}</label>
-          <input
-            id="new-password"
+          <InputField
             v-model="form.newPassword"
+            :label="hasPassword ? 'New Password' : 'Password'"
             type="password"
             :disabled="isSubmitting"
-            class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Enter new password"
+            :error-message="getFieldErrorMessage('form.newPassword')"
           />
           <!-- Password strength indicator -->
           <div v-if="form.newPassword" class="space-y-1">
@@ -58,26 +55,20 @@
         </div>
 
         <!-- Confirm password -->
-        <div class="space-y-2">
-          <label for="confirm-password" class="text-sm font-medium">Confirm Password</label>
-          <input
-            id="confirm-password"
-            v-model="form.confirmPassword"
-            type="password"
-            :disabled="isSubmitting"
-            class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
-            placeholder="Confirm new password"
-          />
-          <p v-if="form.confirmPassword && form.newPassword !== form.confirmPassword" class="text-destructive text-xs">
-            Passwords do not match
-          </p>
-        </div>
+        <InputField
+          v-model="form.confirmPassword"
+          label="Confirm Password"
+          type="password"
+          :disabled="isSubmitting"
+          placeholder="Confirm new password"
+          :error-message="getFieldErrorMessage('form.confirmPassword')"
+        />
 
         <!-- Error message -->
-        <p v-if="errorMessage" class="text-destructive text-sm">{{ errorMessage }}</p>
+        <p v-if="errorMessage" class="text-destructive-text text-sm">{{ errorMessage }}</p>
 
         <!-- Submit button -->
-        <Button type="submit" :disabled="!isFormValid || isSubmitting">
+        <Button type="submit" :disabled="isSubmitting">
           <Loader2Icon v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
           {{ hasPassword ? 'Change Password' : 'Set Password' }}
         </Button>
@@ -97,11 +88,14 @@
 </template>
 
 <script setup lang="ts">
+import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useFormValidation } from '@/composable';
+import { minLength, required, sameAs } from '@/js/helpers/validators';
 import { authClient, setPassword } from '@/lib/auth-client';
 import { Loader2Icon } from 'lucide-vue-next';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 interface Account {
   id: string;
@@ -115,11 +109,35 @@ const isSubmitting = ref(false);
 const hasPassword = ref(false);
 const errorMessage = ref('');
 
-const form = reactive({
+const form = ref({
   currentPassword: '',
   newPassword: '',
   confirmPassword: '',
 });
+
+const { isFormValid, getFieldErrorMessage, resetValidation } = useFormValidation(
+  { form },
+  {
+    form: {
+      currentPassword: { required },
+      newPassword: {
+        required,
+        minLength: minLength(8),
+      },
+      confirmPassword: {
+        required,
+        sameAsPassword: sameAs(computed(() => form.value.newPassword)),
+      },
+    },
+  },
+  undefined,
+  {
+    customValidationMessages: {
+      minLength: 'Password must be at least 8 characters',
+      sameAsPassword: 'Passwords do not match',
+    },
+  },
+);
 
 const strengthColors: Record<number, string> = {
   0: 'bg-destructive',
@@ -130,8 +148,8 @@ const strengthColors: Record<number, string> = {
 };
 
 const strengthTextColors: Record<number, string> = {
-  0: 'text-destructive',
-  1: 'text-destructive',
+  0: 'text-destructive-text',
+  1: 'text-destructive-text',
   2: 'text-yellow-600',
   3: 'text-green-600',
   4: 'text-green-600',
@@ -146,7 +164,7 @@ const strengthLabels: Record<number, string> = {
 };
 
 const passwordStrength = computed(() => {
-  const password = form.newPassword;
+  const password = form.value.newPassword;
   if (!password) return 0;
 
   let score = 0;
@@ -163,13 +181,6 @@ const passwordStrength = computed(() => {
   return Math.min(score, 4);
 });
 
-const isFormValid = computed(() => {
-  if (!form.newPassword || form.newPassword.length < 8) return false;
-  if (form.newPassword !== form.confirmPassword) return false;
-  if (hasPassword.value && !form.currentPassword) return false;
-  return true;
-});
-
 const loadPasswordStatus = async () => {
   try {
     const result = await authClient.listAccounts();
@@ -182,7 +193,10 @@ const loadPasswordStatus = async () => {
 };
 
 const handleSubmit = async () => {
-  if (!isFormValid.value) return;
+  // Skip current password validation for OAuth-only users
+  if (!isFormValid(hasPassword.value ? 'form' : 'form.newPassword') || !isFormValid('form.confirmPassword')) {
+    return;
+  }
 
   errorMessage.value = '';
 
@@ -192,8 +206,8 @@ const handleSubmit = async () => {
     if (hasPassword.value) {
       // Change password
       const result = await authClient.changePassword({
-        currentPassword: form.currentPassword,
-        newPassword: form.newPassword,
+        currentPassword: form.value.currentPassword,
+        newPassword: form.value.newPassword,
       });
 
       if (result.error) {
@@ -204,7 +218,7 @@ const handleSubmit = async () => {
       addSuccessNotification('Password changed successfully');
     } else {
       // Set password for OAuth-only accounts
-      const result = await setPassword({ newPassword: form.newPassword });
+      const result = await setPassword({ newPassword: form.value.newPassword });
 
       if (result.error) {
         errorMessage.value = result.error.message || 'Failed to set password';
@@ -215,10 +229,11 @@ const handleSubmit = async () => {
       addSuccessNotification('Password set successfully');
     }
 
-    // Clear form
-    form.currentPassword = '';
-    form.newPassword = '';
-    form.confirmPassword = '';
+    // Clear form and reset validation
+    form.value.currentPassword = '';
+    form.value.newPassword = '';
+    form.value.confirmPassword = '';
+    resetValidation();
   } catch {
     errorMessage.value = 'An unexpected error occurred';
     addErrorNotification('Failed to update password');

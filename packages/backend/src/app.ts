@@ -122,12 +122,13 @@ registerAiCategorizationListeners();
  *  Routes include
  * */
 
-// Mount better-auth handler for all auth routes
+// Custom auth routes (set-password, legacy login/register)
+// Must be mounted BEFORE better-auth to take precedence
+app.use(`${API_PREFIX}/auth`, authRoutes);
+
+// Mount better-auth handler for all other auth routes
 // This handles: signup, signin, signout, session, oauth callbacks, passkey, etc.
 app.all(`${API_PREFIX}/auth/*`, toNodeHandler(auth));
-
-// Legacy auth routes (will be removed after migration is complete)
-app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/user`, userRoutes);
 app.use(`${API_PREFIX}/users`, usersRoutes);
 app.use(`${API_PREFIX}/accounts`, accountsRoutes);
