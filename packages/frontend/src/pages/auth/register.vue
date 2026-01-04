@@ -5,11 +5,16 @@
         <h1 class="text-center text-2xl font-semibold tracking-tight">Create an account</h1>
       </CardHeader>
       <CardContent class="grid gap-5">
-        <!-- OAuth button -->
+        <!-- OAuth buttons -->
         <div class="grid gap-3">
-          <OAuthButton provider="google" mode="signup" :is-loading="isOAuthLoading" @click="handleGoogleSignup">
+          <OAuthButton :provider="OAUTH_PROVIDER.google" mode="signup" :is-loading="isOAuthLoading" @click="handleOAuthSignup({ provider: OAUTH_PROVIDER.google })">
             <template #icon>
               <GoogleIcon />
+            </template>
+          </OAuthButton>
+          <OAuthButton :provider="OAUTH_PROVIDER.github" mode="signup" :is-loading="isOAuthLoading" @click="handleOAuthSignup({ provider: OAUTH_PROVIDER.github })">
+            <template #icon>
+              <GithubIcon />
             </template>
           </OAuthButton>
         </div>
@@ -70,7 +75,7 @@
 </template>
 
 <script lang="ts" setup>
-import { AuthDivider, GoogleIcon, OAuthButton } from '@/components/auth';
+import { AuthDivider, GithubIcon, GoogleIcon, OAuthButton } from '@/components/auth';
 import { InputField } from '@/components/fields';
 import FormWrapper from '@/components/fields/form-wrapper.vue';
 import { Button } from '@/components/lib/ui/button';
@@ -80,7 +85,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { email, minLength, required, sameAs } from '@/js/helpers/validators';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
-import { API_ERROR_CODES } from '@bt/shared/types';
+import { API_ERROR_CODES, OAUTH_PROVIDER } from '@bt/shared/types';
 import { useMutation } from '@tanstack/vue-query';
 import { Ref, computed, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -93,8 +98,6 @@ const formError: Ref<string | null> = ref(null);
 
 // Map better-auth error codes to user-friendly messages
 const BETTER_AUTH_ERROR_MESSAGES: Record<string, string> = {
-  USER_ALREADY_EXISTS: 'User with that email already exists.',
-  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: 'User with that email already exists.',
   INVALID_EMAIL: 'Please enter a valid email address.',
   PASSWORD_TOO_SHORT: 'Password is too short.',
   PASSWORD_TOO_LONG: 'Password is too long.',
@@ -179,13 +182,12 @@ const submit = () => {
   registerUser({ email: userEmail, name, password });
 };
 
-const handleGoogleSignup = async () => {
+const handleOAuthSignup = async ({ provider }: { provider: OAUTH_PROVIDER }) => {
   try {
     isOAuthLoading.value = true;
-    await authStore.loginWithGoogle({ from: 'signup' });
-    // OAuth redirect will happen, no need to navigate manually
+    await authStore.loginWithOAuth({ provider, from: 'signup' });
   } catch {
-    formError.value = 'Failed to sign up with Google. Please try again.';
+    formError.value = `Failed to sign up with ${provider}. Please try again.`;
   } finally {
     isOAuthLoading.value = false;
   }

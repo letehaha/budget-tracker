@@ -1,3 +1,14 @@
+/**
+ * Supported OAuth providers for authentication
+ */
+export enum OAUTH_PROVIDER {
+  google = 'google',
+  github = 'github',
+}
+
+// Array of all providers for iteration (e.g., trustedProviders config)
+export const OAUTH_PROVIDERS_LIST = Object.values(OAUTH_PROVIDER);
+
 export enum ACCOUNT_TYPES {
   system = 'system',
   monobank = 'monobank', // monobank provider connection

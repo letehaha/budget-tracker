@@ -2,6 +2,7 @@ import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { UnexpectedError } from '@/js/errors';
 import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
 import { useCategoriesStore, useCurrenciesStore, useUserStore } from '@/stores';
+import { OAUTH_PROVIDER } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
@@ -79,20 +80,26 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   /**
-   * Login with Google OAuth
+   * Login with OAuth provider
+   * @param provider - The OAuth provider
    * @param from - The page to redirect back to on error ('signin' or 'signup')
    */
-  const loginWithGoogle = async ({ from = 'signin' }: { from?: 'signin' | 'signup' } = {}) => {
-    // Store origin in sessionStorage for redirect after OAuth callback
+  const loginWithOAuth = async ({
+    provider,
+    from = 'signin',
+  }: {
+    provider: OAUTH_PROVIDER;
+    from?: 'signin' | 'signup';
+  }) => {
     sessionStorage.setItem('oauth_from', from);
 
     const result = await signIn.social({
-      provider: 'google',
+      provider,
       callbackURL: `${window.location.origin}/auth/callback`,
     });
 
     if (result.error) {
-      throw new UnexpectedError(result.error.message || 'Google login failed');
+      throw new UnexpectedError(result.error.message || `${provider} login failed`);
     }
   };
 
@@ -208,7 +215,7 @@ export const useAuthStore = defineStore('auth', () => {
     validateSession,
     login,
     legacyLogin,
-    loginWithGoogle,
+    loginWithOAuth,
     loginWithPasskey,
     registerPasskey,
     signup,

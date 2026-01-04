@@ -24,14 +24,15 @@ const isLoading = ref(true);
 /**
  * Maps OAuth error codes to user-friendly messages.
  */
-const getErrorMessage = ({ error, isSignup }: { error: string; isSignup: boolean }): string => {
-  const action = isSignup ? 'sign up' : 'sign in';
+const getErrorMessage = ({ error, isLinking }: { error: string; isLinking: boolean }): string => {
+  const action = isLinking ? 'connection' : 'authentication';
+
   const errorMessages: Record<string, string> = {
     access_denied: `You cancelled the ${action}. Please try again.`,
-    invalid_request: 'Invalid authentication request. Please try again.',
+    invalid_request: `Invalid ${action} request. Please try again.`,
     unauthorized_client: 'This application is not authorized. Please contact support.',
-    server_error: 'Authentication server error. Please try again later.',
-    temporarily_unavailable: 'Authentication service is temporarily unavailable. Please try again later.',
+    server_error: `${isLinking ? 'Connection' : 'Authentication'} server error. Please try again later.`,
+    temporarily_unavailable: 'Service is temporarily unavailable. Please try again later.',
   };
 
   return errorMessages[error] || 'Authentication failed. Please try again.';
@@ -69,14 +70,15 @@ onMounted(async () => {
 
   // If there's an OAuth error, redirect back to the originating page with error message
   if (error) {
+    const isLinking = Boolean(returnUrl);
+    const errorMessage = getErrorMessage({ error, isLinking });
+
     // For account linking flows, redirect back to the return URL with error
     if (returnUrl) {
-      router.replace({ path: returnUrl, query: { oauth_error: 'Failed to connect account' } });
+      router.replace({ path: returnUrl, query: { oauth_error: errorMessage } });
       return;
     }
 
-    const isSignup = from === 'signup';
-    const errorMessage = getErrorMessage({ error, isSignup });
     router.replace({
       name: getRedirectRoute(from),
       query: { oauth_error: errorMessage },
