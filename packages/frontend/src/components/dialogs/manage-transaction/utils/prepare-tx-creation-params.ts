@@ -57,7 +57,10 @@ export const prepareTxCreationParams = ({
   };
 
   if (form.refundsTx) {
-    creationParams.refundForTxId = form.refundsTx.id;
+    creationParams.refundForTxId = form.refundsTx.transaction.id;
+    if (form.refundsTx.splitId) {
+      creationParams.refundForSplitId = form.refundsTx.splitId;
+    }
   }
 
   // if (linkedTransaction) {

@@ -27,17 +27,26 @@ const schema = z.object({
       destinationTransactionId: recordId().optional(),
       categoryId: z.union([recordId(), z.undefined()]),
       transferNature: z.nativeEnum(TRANSACTION_TRANSFER_NATURE),
-      refundsTxId: recordId().optional(),
+      refundForTxId: recordId().optional(),
+      refundForSplitId: z.string().uuid().optional(),
       splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').optional(),
     })
     .refine(
       (data) =>
-        !(data.transferNature && data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer && data.refundsTxId),
+        !(
+          data.transferNature &&
+          data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer &&
+          data.refundForTxId
+        ),
       {
-        message: `Non-${TRANSACTION_TRANSFER_NATURE.not_transfer} cannot be used in "transferNature" when "refundsTxId" is used`,
-        path: ['transferNature', 'refundsTxId'],
+        message: `Non-${TRANSACTION_TRANSFER_NATURE.not_transfer} cannot be used in "transferNature" when "refundForTxId" is used`,
+        path: ['transferNature', 'refundForTxId'],
       },
     )
+    .refine((data) => !(data.refundForSplitId && !data.refundForTxId), {
+      message: '"refundForSplitId" can only be provided when "refundForTxId" is specified',
+      path: ['refundForSplitId', 'refundForTxId'],
+    })
     .refine(
       (data) => {
         if (data.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
@@ -128,7 +137,8 @@ export default createController(schema, async ({ user, body }) => {
     categoryId,
     accountType = ACCOUNT_TYPES.system,
     transferNature = TRANSACTION_TRANSFER_NATURE.not_transfer,
-    refundsTxId,
+    refundForTxId,
+    refundForSplitId,
     splits,
   } = body;
   const { id: userId } = user;
@@ -148,7 +158,8 @@ export default createController(schema, async ({ user, body }) => {
     accountType,
     transferNature,
     userId,
-    refundsTxId,
+    refundsTxId: refundForTxId,
+    refundsSplitId: refundForSplitId,
     splits,
   };
 

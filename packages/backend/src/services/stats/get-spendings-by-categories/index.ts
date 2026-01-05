@@ -147,7 +147,17 @@ const groupAndAdjustData = async (params: {
 
     if (refund.splitId) {
       // Refund targets a specific split - use that split's category
-      const targetSplit = splitsByTxId.get(refund.originalTxId!)?.find((s) => s.id === refund.splitId);
+      let targetSplit = splitsByTxId.get(refund.originalTxId!)?.find((s) => s.id === refund.splitId);
+
+      // If split not found in cache (original tx might be outside date range), fetch it directly
+      if (!targetSplit && refund.originalTxId) {
+        targetSplit =
+          (await TransactionSplits.findOne({
+            where: { id: refund.splitId },
+            raw: true,
+          })) ?? undefined;
+      }
+
       wantedCategoryId = targetSplit ? targetSplit.categoryId : pair.base.categoryId;
     } else {
       // Refund applies to whole transaction - use expense transaction's category

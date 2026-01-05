@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import { Button } from '@/components/lib/ui/button';
-import TransactionRecrod from '@/components/transactions-list/transaction-record.vue';
-import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { XIcon } from 'lucide-vue-next';
+import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
+import { useCategoriesStore } from '@/stores';
+import { TRANSACTION_TYPES, TransactionSplitModel } from '@bt/shared/types';
+import { SplitIcon, XIcon } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 
-import { RefundedByAnotherTxs, RefundsAnoterTx } from '../../types';
+import { RefundedByAnotherTxs, RefundsAnoterTx, RefundWithSplit } from '../../types';
 import MarkAsRefundDialog from './mark-as-refund-dialog.vue';
 
 const props = defineProps<{
@@ -16,6 +18,12 @@ const props = defineProps<{
   disabled?: boolean;
   isThereOriginalRefunds: boolean;
   isRecordCreation: boolean;
+  /** Current transaction's splits (for display purposes) */
+  currentTransactionSplits?: TransactionSplitModel[];
+  /** Current form amount (live value from the form) */
+  currentAmount?: number | null;
+  /** Current form's currency code */
+  currentCurrencyCode?: string;
 }>();
 
 const emit = defineEmits<{
@@ -23,16 +31,34 @@ const emit = defineEmits<{
   'update:refundedBy': [value: RefundedByAnotherTxs];
 }>();
 
+const { categoriesMap } = storeToRefs(useCategoriesStore());
+
 const emptyField = () => {
   emit('update:refunds', props.isThereOriginalRefunds && props.refunds ? null : undefined);
   emit('update:refundedBy', props.isThereOriginalRefunds && props.refundedBy ? null : undefined);
 };
 
-const refundTransactions = computed(() => {
+const refundTransactions = computed<RefundWithSplit[]>(() => {
   if (props.refunds) return [props.refunds];
   if (props.refundedBy) return props.refundedBy;
   return [];
 });
+
+// Get split category info for display
+const getSplitInfo = (refund: RefundWithSplit) => {
+  if (!refund.splitId) return null;
+
+  // Find the split in the transaction
+  const split = refund.transaction.splits?.find((s) => s.id === refund.splitId);
+  if (!split) return null;
+
+  const category = categoriesMap.value[split.categoryId];
+  return {
+    name: category?.name ?? 'Unknown',
+    color: category?.color ?? '#666',
+    amount: split.amount,
+  };
+};
 </script>
 
 <template>
@@ -40,8 +66,23 @@ const refundTransactions = computed(() => {
     <p class="text-sm">Linked refunds</p>
     <div class="flex items-start justify-between gap-2">
       <div class="grid w-full gap-1">
-        <template v-for="tx of refundTransactions" :key="tx.id">
-          <TransactionRecrod :tx="tx" />
+        <template v-for="refund of refundTransactions" :key="refund.transaction.id">
+          <div>
+            <TransactionRecord :tx="refund.transaction" />
+            <!-- Show split info if refund targets a specific split -->
+            <template v-if="refund.splitId && getSplitInfo(refund)">
+              <div class="border-border/50 bg-muted/20 ml-4 mt-1 flex items-center gap-2 rounded border px-2 py-1">
+                <SplitIcon class="text-muted-foreground size-3" />
+                <div
+                  class="size-2 shrink-0 rounded-full"
+                  :style="{ backgroundColor: getSplitInfo(refund)!.color }"
+                />
+                <span class="text-muted-foreground text-xs">
+                  Refunds {{ getSplitInfo(refund)!.name }} portion
+                </span>
+              </div>
+            </template>
+          </div>
         </template>
       </div>
 
@@ -58,6 +99,9 @@ const refundTransactions = computed(() => {
       :transaction-type="transactionType"
       :disabled="disabled"
       :is-record-creation="isRecordCreation"
+      :current-transaction-splits="currentTransactionSplits"
+      :current-amount="currentAmount"
+      :current-currency-code="currentCurrencyCode"
       @update:refunds="emit('update:refunds', $event)"
       @update:refunded-by="emit('update:refundedBy', $event)"
     />

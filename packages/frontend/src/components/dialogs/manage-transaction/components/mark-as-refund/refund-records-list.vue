@@ -65,6 +65,7 @@ const fetchTransactions = ({ pageParam, filter }: { pageParam: number; filter: t
       transactionType: props.transactionType,
       excludeTransfer: true,
       excludeRefunds: true,
+      includeSplits: true, // Include splits so we can show split selector
       endDate: isDate(filter.end) ? filter.end.toISOString() : undefined,
       startDate: isDate(filter.start) ? filter.start.toISOString() : undefined,
       amountGte: filter.amountGte,

@@ -175,6 +175,7 @@ export const createTransaction = withTransaction(
     transferNature,
     destinationTransactionId,
     refundsTxId,
+    refundsSplitId,
     splits,
     ...payload
   }: CreateTransactionParams) => {
@@ -263,6 +264,7 @@ export const createTransaction = withTransaction(
           userId,
           originalTxId: refundsTxId,
           refundTxId: baseTransaction!.id,
+          splitId: refundsSplitId,
         });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
         logger.info('Transfer transaction creation');

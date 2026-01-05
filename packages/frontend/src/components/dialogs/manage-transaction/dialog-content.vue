@@ -348,6 +348,9 @@ onUnmounted(() => {
           :transaction-type="refundTransactionsTypeBasedOnFormType"
           :disabled="isFormFieldsDisabled"
           :is-there-original-refunds="Boolean(originalRefunds.length)"
+          :current-transaction-splits="transaction?.splits"
+          :current-amount="form.amount ? Number(form.amount) : null"
+          :current-currency-code="form.account?.currencyCode"
         />
       </FormRow>
     </template>
@@ -468,7 +471,7 @@ onUnmounted(() => {
             <SplitDialog
               v-model:open="isSplitDialogOpen"
               v-model="form.splits"
-              :total-amount="form.amount"
+              :total-amount="form.amount ? Number(form.amount) : null"
               :currency-code="currencyCode"
               :main-category="form.category"
             />

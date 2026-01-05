@@ -67,16 +67,44 @@ export const prepareTxUpdationParams = ({
   if (isOriginalRefundsOverriden) {
     // Make sure that only one non-nullish field is being sent to the API
     if (form.refundsTx && form.refundedByTxs === null) {
-      editionParams.refundsTxId = form.refundsTx ? form.refundsTx.id : null;
+      editionParams.refundsTxId = form.refundsTx ? form.refundsTx.transaction.id : null;
+      editionParams.refundsSplitId = form.refundsTx?.splitId ?? null;
     } else if (form.refundsTx === null && form.refundedByTxs) {
-      editionParams.refundedByTxIds = form.refundedByTxs ? form.refundedByTxs.map((i) => i.id) : null;
+      editionParams.refundedByTxIds = form.refundedByTxs ? form.refundedByTxs.map((i) => i.transaction.id) : null;
+      // Build splitId mapping for refunded-by transactions
+      if (form.refundedByTxs) {
+        const splitMapping: Record<number, string> = {};
+        form.refundedByTxs.forEach((r) => {
+          if (r.splitId) {
+            splitMapping[r.transaction.id] = r.splitId;
+          }
+        });
+        if (Object.keys(splitMapping).length > 0) {
+          editionParams.refundedBySplitIds = splitMapping;
+        }
+      }
     } else if (form.refundsTx === null && form.refundedByTxs === undefined) {
       editionParams.refundsTxId = null;
+      editionParams.refundsSplitId = null;
     } else if (form.refundedByTxs === null && form.refundsTx === undefined) {
       editionParams.refundedByTxIds = null;
+      editionParams.refundedBySplitIds = null;
     } else {
-      editionParams.refundsTxId = form.refundsTx ? form.refundsTx.id : undefined;
-      editionParams.refundedByTxIds = form.refundedByTxs ? form.refundedByTxs.map((i) => i.id) : undefined;
+      editionParams.refundsTxId = form.refundsTx ? form.refundsTx.transaction.id : undefined;
+      editionParams.refundsSplitId = form.refundsTx?.splitId ?? undefined;
+      editionParams.refundedByTxIds = form.refundedByTxs ? form.refundedByTxs.map((i) => i.transaction.id) : undefined;
+      // Build splitId mapping for refunded-by transactions
+      if (form.refundedByTxs) {
+        const splitMapping: Record<number, string> = {};
+        form.refundedByTxs.forEach((r) => {
+          if (r.splitId) {
+            splitMapping[r.transaction.id] = r.splitId;
+          }
+        });
+        if (Object.keys(splitMapping).length > 0) {
+          editionParams.refundedBySplitIds = splitMapping;
+        }
+      }
     }
   }
 

@@ -8,8 +8,18 @@ export enum FORM_TYPES {
   transfer = 'transfer',
 }
 
-export type RefundsAnoterTx = TransactionModel | null | undefined;
-export type RefundedByAnotherTxs = TransactionModel[] | null | undefined;
+/**
+ * Represents a refund relationship with optional split targeting.
+ * When a transaction has splits, refunds should target specific splits.
+ */
+export interface RefundWithSplit {
+  transaction: TransactionModel;
+  /** The split ID this refund targets. Required when the original transaction has splits. */
+  splitId?: string;
+}
+
+export type RefundsAnoterTx = RefundWithSplit | null | undefined;
+export type RefundedByAnotherTxs = RefundWithSplit[] | null | undefined;
 
 /**
  * UI representation of a transaction split for form editing.

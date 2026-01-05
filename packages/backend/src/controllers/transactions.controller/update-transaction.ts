@@ -26,7 +26,12 @@ const bodyZodSchema = z
     transferNature: z.nativeEnum(TRANSACTION_TRANSFER_NATURE).optional(),
     refundedByTxIds: z.array(recordId()).nullish(),
     refundsTxId: recordId().nullish(),
+    refundsSplitId: z.string().uuid().nullish(),
     splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').nullish(),
+  })
+  .refine((data) => !(data.refundsSplitId && !data.refundsTxId), {
+    message: '"refundsSplitId" can only be provided when "refundsTxId" is specified',
+    path: ['refundsSplitId', 'refundsTxId'],
   })
   .refine((data) => !(data.refundedByTxIds !== undefined && data.refundsTxId !== undefined), {
     message: "Both 'refundedByTxIds' and 'refundsTxId' are not allowed simultaneously",
@@ -103,6 +108,7 @@ export default createController(schema, async ({ user, params, body }) => {
     transferNature,
     refundedByTxIds,
     refundsTxId,
+    refundsSplitId,
     splits,
   } = body;
   const { id: userId } = user;
@@ -124,6 +130,7 @@ export default createController(schema, async ({ user, params, body }) => {
       transferNature,
       refundedByTxIds,
       refundsTxId,
+      refundsSplitId,
     }),
     // splits can be null to clear all splits, so don't use removeUndefinedKeys
     ...(splits !== undefined ? { splits } : {}),

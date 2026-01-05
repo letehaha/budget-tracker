@@ -1,8 +1,15 @@
-import { changeBaseCurrency, getAllCurrencies, loadUserBaseCurrency, setBaseUserCurrency } from '@/api/currencies';
+import {
+  changeBaseCurrency,
+  getAllCurrencies,
+  loadUserBaseCurrency,
+  loadUserCurrenciesExchangeRates,
+  setBaseUserCurrency,
+} from '@/api/currencies';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useCurrenciesStore } from '@/stores';
-import { CurrencyModel } from '@bt/shared/types';
+import { CurrencyModel, UserExchangeRatesModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { computed } from 'vue';
 
 /**
  * Query for fetching all system currencies
@@ -78,4 +85,36 @@ export const useChangeBaseCurrency = () => {
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.currencies] });
     },
   });
+};
+
+/**
+ * Query for fetching user's exchange rates.
+ * Returns a map where key is the currency code (baseCode) for easy lookups.
+ */
+export const useExchangeRates = (queryOptions = {}) => {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryFn: loadUserCurrenciesExchangeRates,
+    queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates,
+    staleTime: Infinity,
+    placeholderData: [] as UserExchangeRatesModel[],
+    ...queryOptions,
+  });
+
+  const ratesMap = computed(() =>
+    (query.data.value ?? []).reduce(
+      (acc, rate) => {
+        acc[rate.baseCode] = rate;
+        return acc;
+      },
+      {} as Record<string, UserExchangeRatesModel>,
+    ),
+  );
+
+  return {
+    ...query,
+    ratesMap,
+    invalidate: () => queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates }),
+  };
 };

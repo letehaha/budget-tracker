@@ -91,6 +91,8 @@ export interface CreateTransactionBody {
   transferNature?: TransactionModel['transferNature'];
   // When transaction is being created, it can be marked as a refund for another transaction
   refundForTxId?: number;
+  // When refunding a split specifically (required when original tx has splits)
+  refundForSplitId?: string;
   // Optional splits for multi-category transactions
   splits?: SplitInput[];
 }
@@ -109,8 +111,12 @@ export interface UpdateTransactionBody {
   transferNature?: TransactionModel['transferNature'];
   // Pass tx id if you want to mark which tx it refunds
   refundsTxId?: number | null;
-  // Pass tx ids that will refund the source tx
+  // When refunding a split specifically (required when original tx has splits)
+  refundsSplitId?: string | null;
+  // Pass tx ids that will refund the source tx (with optional splitId for each)
   refundedByTxIds?: number[] | null;
+  // Mapping of refundTxId -> splitId for split-specific refunds
+  refundedBySplitIds?: Record<number, string> | null;
   // Optional splits for multi-category transactions (null to clear all splits)
   splits?: SplitInput[] | null;
 }

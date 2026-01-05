@@ -193,7 +193,7 @@ describe('prepareTxCreationParams', () => {
     it('includes refundForTxId when refundsTx is set', () => {
       const refundedTransaction = createMockTransaction({ id: 50 });
       const form = createBaseForm({
-        refundsTx: refundedTransaction,
+        refundsTx: { transaction: refundedTransaction },
       });
 
       const result = prepareTxCreationParams({

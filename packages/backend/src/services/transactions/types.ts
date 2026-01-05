@@ -11,6 +11,7 @@ export type CreateTransactionParams = Omit<
   destinationAccountId?: number;
   destinationTransactionId?: number;
   refundsTxId?: number;
+  refundsSplitId?: string;
   splits?: SplitInput[];
 };
 
@@ -26,6 +27,7 @@ interface UpdateParams {
   categoryId?: number;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
   refundsTxId?: number | null;
+  refundsSplitId?: string | null;
   refundedByTxIds?: number[] | null;
   splits?: SplitInput[] | null; // null to clear all splits
 }

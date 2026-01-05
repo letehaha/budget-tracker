@@ -36,7 +36,8 @@ export const getRefundInfo = ({
       refundedByTxs: form.value.refundedByTxs,
     };
 
-    return !areSlicesEqual(original, overriden, ['id']);
+    // Compare by transaction id and splitId
+    return !areSlicesEqual(original, overriden, ['transaction.id', 'splitId']);
   });
 
   onMounted(async () => {
@@ -52,10 +53,18 @@ export const getRefundInfo = ({
 
       if (refundedBy.length) {
         initialRefundStatus.value = 'refunded';
-        initialRefundsFormSlice.value.refundedByTxs = refundedBy.map((i) => i.refundTransaction);
+        // Map to RefundWithSplit format
+        initialRefundsFormSlice.value.refundedByTxs = refundedBy.map((i) => ({
+          transaction: i.refundTransaction,
+          splitId: i.splitId ?? undefined,
+        }));
       } else if (refundsTx) {
         initialRefundStatus.value = 'refunds';
-        initialRefundsFormSlice.value.refundsTx = refundsTx.originalTransaction;
+        // Map to RefundWithSplit format
+        initialRefundsFormSlice.value.refundsTx = {
+          transaction: refundsTx.originalTransaction,
+          splitId: refundsTx.splitId ?? undefined,
+        };
       }
     }
     isInitialRefundsDataLoaded.value = true;

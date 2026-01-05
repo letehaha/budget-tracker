@@ -1,3 +1,5 @@
+import { ValidationError } from '@js/errors';
+import RefundTransactions from '@models/RefundTransactions.model';
 import TransactionSplits, {
   CreateSplitPayload,
   bulkCreateSplits,
@@ -23,6 +25,7 @@ interface ManageSplitsParams {
 /**
  * Creates or updates splits for a transaction.
  * Validates splits, deletes existing ones, and creates new ones.
+ * Also handles refund link migration when splits are recreated.
  */
 export const manageSplits = async ({
   transactionId,
@@ -33,8 +36,48 @@ export const manageSplits = async ({
   transactionTime,
   transferNature,
 }: ManageSplitsParams): Promise<TransactionSplits[]> => {
-  // If no splits provided, just delete existing ones
+  // Fetch existing splits
+  const existingSplits = await TransactionSplits.findAll({
+    where: { transactionId, userId },
+  });
+
+  // Build a map of categoryId -> refund info for existing splits
+  const refundsByCategoryId = new Map<
+    number,
+    {
+      totalRefundedRefAmount: number;
+      splitId: string;
+      refundAmounts: { amount: number; currencyCode: string }[];
+    }
+  >();
+
+  // Query refunds for each split that exists
+  for (const existingSplit of existingSplits) {
+    const refunds = await RefundTransactions.findAll({
+      where: { splitId: existingSplit.id, userId },
+      include: [{ model: Transactions, as: 'refundTransaction' }],
+    });
+
+    if (refunds.length > 0) {
+      const totalRefunded = refunds.reduce((sum, r) => sum + Math.abs(r.refundTransaction.refAmount), 0);
+      const refundAmounts = refunds.map((r) => ({
+        amount: Math.abs(r.refundTransaction.amount),
+        currencyCode: r.refundTransaction.currencyCode,
+      }));
+      refundsByCategoryId.set(existingSplit.categoryId, {
+        totalRefundedRefAmount: totalRefunded,
+        splitId: existingSplit.id,
+        refundAmounts,
+      });
+    }
+  }
+
+  // If no splits provided, relink any split-level refunds to main transaction
   if (!splits || splits.length === 0) {
+    // Move refunds from split-level to transaction-level (set splitId to null)
+    for (const { splitId } of refundsByCategoryId.values()) {
+      await RefundTransactions.update({ splitId: null }, { where: { splitId, userId } });
+    }
     await deleteSplitsForTransaction({ transactionId, userId });
     return [];
   }
@@ -77,6 +120,19 @@ export const manageSplits = async ({
         }
       }
 
+      // Validate: if this category had refunds, new refAmount must be >= total refunded
+      const existingRefundInfo = refundsByCategoryId.get(split.categoryId);
+      if (existingRefundInfo && refAmount < existingRefundInfo.totalRefundedRefAmount) {
+        // Format refund amounts in their original currencies for user-friendly display
+        const refundDescriptions = existingRefundInfo.refundAmounts.map(
+          (r) => `${(r.amount / 100).toFixed(2)} ${r.currencyCode}`,
+        );
+        const refundsText = refundDescriptions.join(', ');
+        throw new ValidationError({
+          message: `This split has refunds totaling ${refundsText}. You cannot reduce it below the refunded amount. To reduce further, first unlink the refunds.`,
+        });
+      }
+
       return {
         transactionId,
         userId,
@@ -88,9 +144,35 @@ export const manageSplits = async ({
     }),
   );
 
+  // If a category with refunds is being removed, relink those refunds to main transaction
+  for (const [categoryId, { splitId }] of refundsByCategoryId) {
+    const stillExists = splits.some((s) => s.categoryId === categoryId);
+    if (!stillExists) {
+      // Move refunds from this split to transaction-level (set splitId to null)
+      await RefundTransactions.update({ splitId: null }, { where: { splitId, userId } });
+    }
+  }
+
   // Delete existing splits and create new ones (atomic replacement)
   await deleteSplitsForTransaction({ transactionId, userId });
   const createdSplits = await bulkCreateSplits({ data: splitPayloads });
+
+  // Migrate refund links to new split IDs (match by categoryId)
+  for (const newSplit of createdSplits) {
+    const existingRefundInfo = refundsByCategoryId.get(newSplit.categoryId);
+    if (existingRefundInfo) {
+      // Update all refund records to point to the new split ID
+      await RefundTransactions.update(
+        { splitId: newSplit.id },
+        {
+          where: {
+            splitId: existingRefundInfo.splitId,
+            userId,
+          },
+        },
+      );
+    }
+  }
 
   return createdSplits;
 };
