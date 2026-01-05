@@ -11,6 +11,18 @@ export enum FORM_TYPES {
 export type RefundsAnoterTx = TransactionModel | null | undefined;
 export type RefundedByAnotherTxs = TransactionModel[] | null | undefined;
 
+/**
+ * UI representation of a transaction split for form editing.
+ * Uses FormattedCategory for UI display and optional id for existing splits.
+ */
+export interface FormSplit {
+  /** UUID for existing splits, undefined for new ones */
+  id?: string;
+  category: FormattedCategory;
+  amount: number | null;
+  note?: string | null;
+}
+
 export interface UI_FORM_STRUCT {
   amount: number;
   account: AccountModel;
@@ -23,4 +35,6 @@ export interface UI_FORM_STRUCT {
   targetAmount?: number;
   refundedByTxs: RefundedByAnotherTxs;
   refundsTx: RefundsAnoterTx;
+  /** Optional splits for distributing transaction amount across multiple categories */
+  splits?: FormSplit[];
 }

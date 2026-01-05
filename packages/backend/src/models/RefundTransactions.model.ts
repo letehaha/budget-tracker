@@ -1,5 +1,6 @@
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
 import Transactions from './Transactions.model';
+import TransactionSplits from './TransactionSplits.model';
 import Users from './Users.model';
 
 @Table({
@@ -52,6 +53,17 @@ export default class RefundTransactions extends Model {
   })
   refundTxId!: number;
 
+  // Optional: when set, the refund applies to a specific split rather than the whole transaction
+  @ForeignKey(() => TransactionSplits)
+  @Column({
+    allowNull: true,
+    type: DataType.UUID,
+  })
+  splitId!: string | null;
+
+  @BelongsTo(() => TransactionSplits)
+  split!: TransactionSplits;
+
   @BelongsTo(() => Users)
   user!: Users;
 
@@ -66,12 +78,14 @@ export const createRefundTransaction = async ({
   userId,
   originalTxId,
   refundTxId,
+  splitId,
 }: {
   userId: number;
   originalTxId: number | null;
   refundTxId: number;
+  splitId?: string | null;
 }) => {
-  return RefundTransactions.create({ userId, originalTxId, refundTxId });
+  return RefundTransactions.create({ userId, originalTxId, refundTxId, splitId });
 };
 
 export const getRefundsForTransaction = async ({ originalTxId, userId }: { originalTxId: number; userId: number }) => {
@@ -89,6 +103,7 @@ export const bulkCreateRefundTransactions = (
       userId: number;
       originalTxId: number | null;
       refundTxId: number;
+      splitId?: string | null;
     }>;
   },
   {

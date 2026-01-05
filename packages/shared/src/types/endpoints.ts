@@ -70,6 +70,12 @@ export interface GetTransactionsQuery extends QueryPayload {
 
 export type GetTransactionsResponse = TransactionModel[];
 
+export interface SplitInput {
+  categoryId: number;
+  amount: number;
+  note?: string | null;
+}
+
 export interface CreateTransactionBody {
   amount: TransactionModel['amount'];
   note?: TransactionModel['note'];
@@ -85,6 +91,8 @@ export interface CreateTransactionBody {
   transferNature?: TransactionModel['transferNature'];
   // When transaction is being created, it can be marked as a refund for another transaction
   refundForTxId?: number;
+  // Optional splits for multi-category transactions
+  splits?: SplitInput[];
 }
 
 export interface UpdateTransactionBody {
@@ -103,6 +111,8 @@ export interface UpdateTransactionBody {
   refundsTxId?: number | null;
   // Pass tx ids that will refund the source tx
   refundedByTxIds?: number[] | null;
+  // Optional splits for multi-category transactions (null to clear all splits)
+  splits?: SplitInput[] | null;
 }
 
 export interface UnlinkTransferTransactionsBody {

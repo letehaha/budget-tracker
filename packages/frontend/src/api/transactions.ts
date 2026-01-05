@@ -1,17 +1,32 @@
 import { api } from '@/api/_api';
 import { fromSystemAmount, toSystemAmount } from '@/api/helpers';
-import { TransactionModel } from '@bt/shared/types/db-models';
+import { TransactionModel, TransactionSplitModel } from '@bt/shared/types/db-models';
 import * as endpointsTypes from '@bt/shared/types/endpoints';
 import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types/enums';
 
-export const formatTransactionResponse = (transaction: TransactionModel): TransactionModel => ({
-  ...transaction,
-  amount: fromSystemAmount(transaction.amount),
-  refAmount: fromSystemAmount(transaction.refAmount),
-  cashbackAmount: fromSystemAmount(transaction.cashbackAmount),
-  refCommissionRate: fromSystemAmount(transaction.refCommissionRate),
-  commissionRate: fromSystemAmount(transaction.commissionRate),
-});
+export const formatTransactionResponse = (transaction: TransactionModel): TransactionModel => {
+  const formatted: TransactionModel = {
+    ...transaction,
+    amount: fromSystemAmount(transaction.amount),
+    refAmount: fromSystemAmount(transaction.refAmount),
+    cashbackAmount: fromSystemAmount(transaction.cashbackAmount),
+    refCommissionRate: fromSystemAmount(transaction.refCommissionRate),
+    commissionRate: fromSystemAmount(transaction.commissionRate),
+  };
+
+  // Format split amounts if present
+  if (transaction.splits && transaction.splits.length > 0) {
+    formatted.splits = transaction.splits.map(
+      (split): TransactionSplitModel => ({
+        ...split,
+        amount: fromSystemAmount(split.amount),
+        refAmount: fromSystemAmount(split.refAmount),
+      }),
+    );
+  }
+
+  return formatted;
+};
 
 export const formatTransactionPayload = <
   T extends endpointsTypes.CreateTransactionBody | endpointsTypes.UpdateTransactionBody,
@@ -30,6 +45,14 @@ export const formatTransactionPayload = <
   amountFieldsToPatch.forEach((field) => {
     if (params[field]) params[field] = toSystemAmount(Number(params[field]));
   });
+
+  // Format split amounts to system format
+  if (params.splits && Array.isArray(params.splits)) {
+    params.splits = params.splits.map((split) => ({
+      ...split,
+      amount: toSystemAmount(Number(split.amount)),
+    }));
+  }
 
   return params;
 };
@@ -55,14 +78,21 @@ export const loadTransactions = async (params: {
   endDate?: string;
   amountLte?: number;
   amountGte?: number;
+  includeSplits?: boolean;
 }): Promise<endpointsTypes.GetTransactionsResponse> => {
   const result = await api.get('/transactions', formatTransactionPayload(params));
 
   return result.map((item) => formatTransactionResponse(item));
 };
 
-export const loadTransactionById = async ({ id }: { id: number }): Promise<TransactionModel> => {
-  const result = await api.get(`/transactions/${id}`);
+export const loadTransactionById = async ({
+  id,
+  includeSplits,
+}: {
+  id: number;
+  includeSplits?: boolean;
+}): Promise<TransactionModel> => {
+  const result = await api.get(`/transactions/${id}`, { includeSplits });
 
   return formatTransactionResponse(result);
 };

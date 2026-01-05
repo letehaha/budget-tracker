@@ -7,17 +7,20 @@ const schema = z.object({
   body: z.object({
     originalTxId: recordId().nullable(),
     refundTxId: recordId(),
+    // Optional: when provided, the refund targets a specific split of the original transaction
+    splitId: z.string().uuid().optional(),
   }),
 });
 
 export default createController(schema, async ({ user, body }) => {
   const { id: userId } = user;
-  const { originalTxId, refundTxId } = body;
+  const { originalTxId, refundTxId, splitId } = body;
 
   const data = await createSingleRefund({
     originalTxId,
     refundTxId,
     userId,
+    splitId,
   });
 
   return { data };

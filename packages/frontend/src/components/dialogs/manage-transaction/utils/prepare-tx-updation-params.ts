@@ -1,8 +1,43 @@
 import { editTransaction } from '@/api';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import type { SplitInput } from '@bt/shared/types/endpoints';
 
 import { getDestinationAccount, getDestinationAmount, getTxTypeFromFormType, isOutOfWalletAccount } from '../helpers';
-import { UI_FORM_STRUCT } from '../types';
+import { type FormSplit, UI_FORM_STRUCT } from '../types';
+
+/**
+ * Converts form splits to API split format for updates.
+ * Returns null to clear all splits, undefined to leave unchanged, or array of splits.
+ */
+const formSplitsToApiSplits = ({
+  formSplits,
+  originalHadSplits,
+}: {
+  formSplits: FormSplit[] | undefined;
+  originalHadSplits: boolean;
+}): SplitInput[] | null | undefined => {
+  // No splits in form
+  if (!formSplits || formSplits.length === 0) {
+    // If original had splits and now there are none, send null to clear
+    return originalHadSplits ? null : undefined;
+  }
+
+  // Filter and convert valid splits
+  const validSplits = formSplits
+    .filter((split) => split.category && split.amount !== null && split.amount > 0)
+    .map((split) => ({
+      categoryId: split.category.id,
+      amount: split.amount as number,
+      note: split.note || undefined,
+    }));
+
+  // If we had splits but all were invalid, clear them
+  if (validSplits.length === 0) {
+    return originalHadSplits ? null : undefined;
+  }
+
+  return validSplits;
+};
 
 export const prepareTxUpdationParams = ({
   form,
@@ -111,8 +146,24 @@ export const prepareTxUpdationParams = ({
       editionParams.destinationTransactionId = linkedTransaction.id;
       editionParams.transferNature = TRANSACTION_TRANSFER_NATURE.common_transfer;
     }
+
+    // Clear splits when converting to transfer
+    if (transaction.splits && transaction.splits.length > 0) {
+      editionParams.splits = null;
+    }
   } else {
     editionParams.categoryId = category.id;
+
+    // Handle splits for non-transfer transactions
+    const originalHadSplits = Boolean(transaction.splits && transaction.splits.length > 0);
+    const apiSplits = formSplitsToApiSplits({
+      formSplits: form.splits,
+      originalHadSplits,
+    });
+
+    if (apiSplits !== undefined) {
+      editionParams.splits = apiSplits;
+    }
   }
 
   return editionParams;

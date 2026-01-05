@@ -4,6 +4,598 @@ import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 describe('Refund Transactions service', () => {
+  describe('createSingleRefund with splitId', () => {
+    describe('success cases', () => {
+      it('successfully creates refund targeting specific split', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const categories = await helpers.getCategoriesList();
+
+        // Create transaction with $100 total: $70 primary + $30 split
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.expense,
+            splits: [{ categoryId: categories[1]!.id, amount: 3000 }],
+          }),
+          raw: true,
+        });
+
+        // Get the split ID
+        const transactions = await helpers.getTransactions({
+          raw: true,
+          includeSplits: true,
+        });
+        const split = transactions![0]!.splits![0]!;
+
+        // Create $20 income refund targeting the $30 split
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 2000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        const result = await helpers.createSingleRefund(
+          {
+            originalTxId: expenseTx.id,
+            refundTxId: refundTx.id,
+            splitId: split.id,
+          },
+          true,
+        );
+
+        expect(result.originalTxId).toEqual(expenseTx.id);
+        expect(result.refundTxId).toEqual(refundTx.id);
+        expect(result.splitId).toEqual(split.id);
+      });
+
+      it('successfully creates full refund for split amount', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const categories = await helpers.getCategoriesList();
+
+        // Create transaction with $30 split
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.expense,
+            splits: [{ categoryId: categories[1]!.id, amount: 3000 }],
+          }),
+          raw: true,
+        });
+
+        const transactions = await helpers.getTransactions({
+          raw: true,
+          includeSplits: true,
+        });
+        const split = transactions![0]!.splits![0]!;
+
+        // Create $30 income refund - full split amount
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 3000, // Full split amount
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        const result = await helpers.createSingleRefund(
+          {
+            originalTxId: expenseTx.id,
+            refundTxId: refundTx.id,
+            splitId: split.id,
+          },
+          true,
+        );
+
+        expect(result.originalTxId).toEqual(expenseTx.id);
+        expect(result.splitId).toEqual(split.id);
+      });
+
+      it('successfully creates multiple partial refunds for same split', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const categories = await helpers.getCategoriesList();
+
+        // Create transaction with $50 split
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.expense,
+            splits: [{ categoryId: categories[1]!.id, amount: 5000 }],
+          }),
+          raw: true,
+        });
+
+        const transactions = await helpers.getTransactions({
+          raw: true,
+          includeSplits: true,
+        });
+        const split = transactions![0]!.splits![0]!;
+
+        // First partial refund: $20
+        const [refundTx1] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 2000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        const result1 = await helpers.createSingleRefund(
+          {
+            originalTxId: expenseTx.id,
+            refundTxId: refundTx1.id,
+            splitId: split.id,
+          },
+          true,
+        );
+        expect(result1.splitId).toEqual(split.id);
+
+        // Second partial refund: $20 (total $40, still within $50 split)
+        const [refundTx2] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 2000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        const result2 = await helpers.createSingleRefund(
+          {
+            originalTxId: expenseTx.id,
+            refundTxId: refundTx2.id,
+            splitId: split.id,
+          },
+          true,
+        );
+        expect(result2.splitId).toEqual(split.id);
+      });
+
+      it('allows refunds on both primary and split independently', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const categories = await helpers.getCategoriesList();
+
+        // Create transaction with $100: $70 primary + $30 split
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.expense,
+            splits: [{ categoryId: categories[1]!.id, amount: 3000 }],
+          }),
+          raw: true,
+        });
+
+        const transactions = await helpers.getTransactions({
+          raw: true,
+          includeSplits: true,
+        });
+        const split = transactions![0]!.splits![0]!;
+
+        // Refund $20 on the split
+        const [splitRefund] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 2000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        await helpers.createSingleRefund(
+          {
+            originalTxId: expenseTx.id,
+            refundTxId: splitRefund.id,
+            splitId: split.id,
+          },
+          true,
+        );
+
+        // Refund $50 on the whole transaction (primary amount)
+        const [primaryRefund] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        // This should succeed - no splitId means targeting whole tx
+        const result = await helpers.createSingleRefund(
+          {
+            originalTxId: expenseTx.id,
+            refundTxId: primaryRefund.id,
+          },
+          true,
+        );
+
+        expect(result.originalTxId).toEqual(expenseTx.id);
+        expect(result.splitId).toBeNull();
+      });
+    });
+
+    describe('failure cases', () => {
+      it('fails when refund amount exceeds split amount', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const categories = await helpers.getCategoriesList();
+
+        // Create transaction with $30 split
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.expense,
+            splits: [{ categoryId: categories[1]!.id, amount: 3000 }],
+          }),
+          raw: true,
+        });
+
+        const transactions = await helpers.getTransactions({
+          raw: true,
+          includeSplits: true,
+        });
+        const split = transactions![0]!.splits![0]!;
+
+        // Try to refund $50 on a $30 split
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        const result = await helpers.createSingleRefund({
+          originalTxId: expenseTx.id,
+          refundTxId: refundTx.id,
+          splitId: split.id,
+        });
+
+        expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
+        expect(helpers.extractResponse(result).message).toContain('cannot be greater than the split amount');
+      });
+
+      it('fails when total refunds exceed split amount', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const categories = await helpers.getCategoriesList();
+
+        // Create transaction with $50 split
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.expense,
+            splits: [{ categoryId: categories[1]!.id, amount: 5000 }],
+          }),
+          raw: true,
+        });
+
+        const transactions = await helpers.getTransactions({
+          raw: true,
+          includeSplits: true,
+        });
+        const split = transactions![0]!.splits![0]!;
+
+        // First refund: $30
+        const [refundTx1] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 3000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        await helpers.createSingleRefund({
+          originalTxId: expenseTx.id,
+          refundTxId: refundTx1.id,
+          splitId: split.id,
+        });
+
+        // Second refund: $30 (total $60 would exceed $50 split)
+        const [refundTx2] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 3000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        const result = await helpers.createSingleRefund({
+          originalTxId: expenseTx.id,
+          refundTxId: refundTx2.id,
+          splitId: split.id,
+        });
+
+        expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
+        expect(helpers.extractResponse(result).message).toContain('cannot be greater than the split amount');
+      });
+
+      it('fails when split does not exist', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const categories = await helpers.getCategoriesList();
+
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        // Use a valid UUID format that doesn't exist in the database
+        const fakeUuid = '019b8b00-0000-7000-0000-000000000000';
+        const result = await helpers.createSingleRefund({
+          originalTxId: expenseTx.id,
+          refundTxId: refundTx.id,
+          splitId: fakeUuid,
+        });
+
+        // Should fail with either NotFoundError (404) or ValidationError (422)
+        expect(result.statusCode).toBeGreaterThanOrEqual(400);
+        expect(result.statusCode).toBeLessThan(500);
+      });
+
+      it('fails when split belongs to different transaction', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const categories = await helpers.getCategoriesList();
+
+        // Create first transaction with a split
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.expense,
+            splits: [{ categoryId: categories[1]!.id, amount: 3000 }],
+          }),
+          raw: true,
+        });
+
+        // Create second transaction (no splits)
+        const [expenseTx2] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+
+        // Get split from first transaction
+        const transactions = await helpers.getTransactions({
+          raw: true,
+          includeSplits: true,
+        });
+        const splitFromTx1 = transactions!.find((t) => t.splits && t.splits.length > 0)!.splits![0]!;
+
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 2000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        // Try to use split from tx1 with tx2 as original
+        const result = await helpers.createSingleRefund({
+          originalTxId: expenseTx2.id,
+          refundTxId: refundTx.id,
+          splitId: splitFromTx1.id,
+        });
+
+        expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
+        expect(helpers.extractResponse(result).message).toContain('does not belong to the original transaction');
+      });
+
+      it('fails when splitId provided without originalTxId', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const categories = await helpers.getCategoriesList();
+
+        // Create transaction with split to get a valid splitId
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.expense,
+            splits: [{ categoryId: categories[1]!.id, amount: 3000 }],
+          }),
+          raw: true,
+        });
+
+        const transactions = await helpers.getTransactions({
+          raw: true,
+          includeSplits: true,
+        });
+        const split = transactions![0]!.splits![0]!;
+
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 2000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        // Try to create refund with splitId but null originalTxId
+        const result = await helpers.createSingleRefund({
+          originalTxId: null,
+          refundTxId: refundTx.id,
+          splitId: split.id,
+        });
+
+        expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
+        expect(helpers.extractResponse(result).message).toContain('splitId can only be provided when originalTxId');
+      });
+    });
+
+    describe('unlinking and relinking refunds with splits', () => {
+      it('successfully unlinks and relinks refund to same split', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const categories = await helpers.getCategoriesList();
+
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.expense,
+            splits: [{ categoryId: categories[1]!.id, amount: 3000 }],
+          }),
+          raw: true,
+        });
+
+        const transactions = await helpers.getTransactions({
+          raw: true,
+          includeSplits: true,
+        });
+        const split = transactions![0]!.splits![0]!;
+
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 2000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        // Create refund link
+        await helpers.createSingleRefund({
+          originalTxId: expenseTx.id,
+          refundTxId: refundTx.id,
+          splitId: split.id,
+        });
+
+        // Unlink
+        const unlinkResult = await helpers.deleteRefund({
+          originalTxId: expenseTx.id,
+          refundTxId: refundTx.id,
+        });
+        expect(unlinkResult.statusCode).toBe(200);
+
+        // Relink
+        const result = await helpers.createSingleRefund(
+          {
+            originalTxId: expenseTx.id,
+            refundTxId: refundTx.id,
+            splitId: split.id,
+          },
+          true,
+        );
+
+        expect(result.originalTxId).toEqual(expenseTx.id);
+        expect(result.splitId).toEqual(split.id);
+      });
+
+      it('successfully relinks refund to different split after unlinking', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const categories = await helpers.getCategoriesList();
+
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.expense,
+            splits: [
+              { categoryId: categories[1]!.id, amount: 3000 },
+              { categoryId: categories[2]!.id, amount: 2000 },
+            ],
+          }),
+          raw: true,
+        });
+
+        const transactions = await helpers.getTransactions({
+          raw: true,
+          includeSplits: true,
+        });
+        const split1 = transactions![0]!.splits![0]!;
+        const split2 = transactions![0]!.splits![1]!;
+
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 2000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        // Link to first split
+        await helpers.createSingleRefund({
+          originalTxId: expenseTx.id,
+          refundTxId: refundTx.id,
+          splitId: split1.id,
+        });
+
+        // Unlink
+        await helpers.deleteRefund({
+          originalTxId: expenseTx.id,
+          refundTxId: refundTx.id,
+        });
+
+        // Relink to different split
+        const result = await helpers.createSingleRefund(
+          {
+            originalTxId: expenseTx.id,
+            refundTxId: refundTx.id,
+            splitId: split2.id,
+          },
+          true,
+        );
+
+        expect(result.originalTxId).toEqual(expenseTx.id);
+        expect(result.splitId).toEqual(split2.id);
+      });
+    });
+  });
+
   describe('createSingleRefund', () => {
     describe('success cases', () => {
       it('successfully creates a refund link between two transactions', async () => {

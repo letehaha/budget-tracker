@@ -102,6 +102,17 @@ export interface CategorizationMeta {
   categorizedAt?: string;
 }
 
+export interface TransactionSplitModel {
+  id: string;
+  transactionId: number;
+  userId: number;
+  categoryId: number;
+  amount: number;
+  refAmount: number;
+  note: string | null;
+  category?: CategoryModel;
+}
+
 export interface TransactionModel {
   id: number;
   amount: number;
@@ -134,6 +145,8 @@ export interface TransactionModel {
   refundLinked: boolean;
   /** Metadata about how this transaction was categorized */
   categorizationMeta?: CategorizationMeta | null;
+  /** Optional splits for multi-category transactions */
+  splits?: TransactionSplitModel[];
 }
 
 export interface CurrencyModel {

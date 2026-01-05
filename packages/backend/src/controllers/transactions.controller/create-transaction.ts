@@ -4,6 +4,13 @@ import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
 const recordId = () => z.number().int().positive().finite();
+
+const splitSchema = z.object({
+  categoryId: recordId(),
+  amount: z.number().int().positive('Split amount must be greater than 0').finite(),
+  note: z.string().max(100, 'Split note must not exceed 100 characters').nullish(),
+});
+
 const schema = z.object({
   body: z
     .object({
@@ -21,6 +28,7 @@ const schema = z.object({
       categoryId: z.union([recordId(), z.undefined()]),
       transferNature: z.nativeEnum(TRANSACTION_TRANSFER_NATURE),
       refundsTxId: recordId().optional(),
+      splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').optional(),
     })
     .refine(
       (data) =>
@@ -89,6 +97,19 @@ const schema = z.object({
         message: "'commissionRate' cannot be greater than 'amount",
         path: ['commissionRate', 'amount'],
       },
+    )
+    .refine(
+      (data) => {
+        // Splits are not allowed on transfer transactions
+        if (data.splits && data.splits.length > 0 && data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
+          return false;
+        }
+        return true;
+      },
+      {
+        message: 'Splits cannot be added to transfer transactions',
+        path: ['splits', 'transferNature'],
+      },
     ),
 });
 
@@ -108,6 +129,7 @@ export default createController(schema, async ({ user, body }) => {
     accountType = ACCOUNT_TYPES.system,
     transferNature = TRANSACTION_TRANSFER_NATURE.not_transfer,
     refundsTxId,
+    splits,
   } = body;
   const { id: userId } = user;
 
@@ -127,6 +149,7 @@ export default createController(schema, async ({ user, body }) => {
     transferNature,
     userId,
     refundsTxId,
+    splits,
   };
 
   // TODO: Add validations
