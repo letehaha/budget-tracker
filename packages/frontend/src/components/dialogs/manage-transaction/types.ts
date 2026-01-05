@@ -18,7 +18,7 @@ export type RefundedByAnotherTxs = TransactionModel[] | null | undefined;
 export interface FormSplit {
   /** UUID for existing splits, undefined for new ones */
   id?: string;
-  category: FormattedCategory;
+  category: FormattedCategory | null;
   amount: number | null;
   note?: string | null;
 }

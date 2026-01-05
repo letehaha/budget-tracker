@@ -208,7 +208,7 @@ const emit = defineEmits<{
 
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
-const selectedValue = ref<FormattedCategory | null>(props.modelValue || props.values[0] || null);
+const selectedValue = ref<FormattedCategory | null>(props.modelValue ?? null);
 const inputRef = ref<HTMLInputElement | null>(null);
 const drawerInputRef = ref<HTMLInputElement | null>(null);
 const listRef = ref<HTMLDivElement | null>(null);

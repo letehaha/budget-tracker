@@ -49,7 +49,7 @@ const clearLinkedTransaction = () => {
           <Button class="w-full" :disabled="disabled" size="sm">Link existing transaction</Button>
         </Dialog.DialogTrigger>
 
-        <Dialog.DialogContent>
+        <Dialog.DialogContent class="max-h-[80dvh] overflow-y-auto">
           <Dialog.DialogTitle class="sr-only">Link existing transaction</Dialog.DialogTitle>
           <Dialog.DialogDescription class="sr-only"> Link existing transaction </Dialog.DialogDescription>
           <RecordList :transaction-type="oppositeTransactionType" @select="linkedTransaction = $event" />
