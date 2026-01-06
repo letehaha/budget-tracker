@@ -3,7 +3,7 @@ import Card from '@/components/lib/ui/card/Card.vue';
 </script>
 
 <template>
-  <div class="@container mx-auto max-w-5xl p-6">
+  <div class="@container max-w-5xl p-6">
     <!-- Back Button -->
     <div class="mb-6">
       <div class="bg-muted mb-4 h-8 w-32 animate-pulse rounded" />

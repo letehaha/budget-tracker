@@ -12,9 +12,11 @@ export const VUE_QUERY_GLOBAL_PREFIXES = Object.freeze({
   bankConnectionChange: 'global-query-bank-connection-change',
 
   currencies: 'currencies',
+
+  notifications: 'notifications',
 });
 
-const { transactionChange, securityPriceChange, bankConnectionChange } = VUE_QUERY_GLOBAL_PREFIXES;
+const { transactionChange, securityPriceChange, bankConnectionChange, notifications } = VUE_QUERY_GLOBAL_PREFIXES;
 
 export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // currencies
@@ -77,4 +79,8 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   bankConnectionDetails: [bankConnectionChange, 'bank-connection-details'] as const,
   bankAvailableExternalAccounts: [bankConnectionChange, 'bank-available-external-accounts'] as const,
   bankConnections: [bankConnectionChange, 'bank-connections'] as const,
+
+  // notifications
+  notificationsList: [notifications, 'notifications-list'] as const,
+  notificationsUnreadCount: [notifications, 'notifications-unread-count'] as const,
 });

@@ -1,4 +1,4 @@
-import { AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
+import { AI_FEATURE, AI_PROVIDER, NOTIFICATION_TYPES } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import Users from './Users.model';
 import { z } from 'zod';
@@ -26,6 +26,30 @@ export const ZodAiSettingsSchema = z.object({
   featureConfigs: z.array(ZodAiFeatureConfigSchema).default([]),
 });
 
+/**
+ * Notification preferences per notification type.
+ * Users can enable/disable specific notification types.
+ */
+export const ZodNotificationPreferencesSchema = z.object({
+  enabled: z.boolean().default(true),
+  // Per-type preferences (all enabled by default)
+  types: z
+    .object({
+      [NOTIFICATION_TYPES.budgetAlert]: z.boolean().default(true),
+      [NOTIFICATION_TYPES.system]: z.boolean().default(true),
+      [NOTIFICATION_TYPES.changelog]: z.boolean().default(true),
+    }),
+});
+
+export const DEFAULT_NOTIFICATION_PREFERENCES = {
+  enabled: true,
+  types: {
+    [NOTIFICATION_TYPES.budgetAlert]: true,
+    [NOTIFICATION_TYPES.system]: true,
+    [NOTIFICATION_TYPES.changelog]: true,
+  },
+};
+
 export const ZodSettingsSchema = z.object({
   stats: z.object({
     expenses: z.object({
@@ -33,7 +57,11 @@ export const ZodSettingsSchema = z.object({
     }),
   }),
   ai: ZodAiSettingsSchema.optional(),
+  notifications: ZodNotificationPreferencesSchema.optional(),
 });
+
+// Infer the TypeScript type from the Zod schema
+export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
 export const DEFAULT_SETTINGS: SettingsSchema = {
   stats: {
@@ -42,9 +70,6 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
     },
   },
 };
-
-// Infer the TypeScript type from the Zod schema
-export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
 @Table({
   tableName: 'UserSettings',

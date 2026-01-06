@@ -3,6 +3,9 @@ import {
   ACCOUNT_TYPES,
   CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
+  NotificationPriority,
+  NotificationStatus,
+  NotificationType,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
@@ -188,4 +191,48 @@ export interface BudgetModel {
   endDate?: Date;
   limitAmount?: number;
   autoInclude?: boolean;
+}
+
+/**
+ * Type-specific payload structures for notifications.
+ * Using discriminated union pattern for type safety.
+ */
+export interface BudgetAlertPayload {
+  budgetId: number;
+  budgetName: string;
+  thresholdPercent: number;
+  currentSpent: number;
+  limitAmount: number;
+  currencyCode: string;
+}
+
+export interface SystemNotificationPayload {
+  code?: string;
+  details?: Record<string, unknown>;
+}
+
+export interface ChangelogNotificationPayload {
+  version: string;
+  releaseDate: string;
+  highlights?: string[];
+}
+
+export type NotificationPayload =
+  | BudgetAlertPayload
+  | SystemNotificationPayload
+  | ChangelogNotificationPayload
+  | Record<string, unknown>;
+
+export interface NotificationModel {
+  id: string;
+  userId: number;
+  type: NotificationType;
+  title: string;
+  message: string | null;
+  payload: NotificationPayload;
+  status: NotificationStatus;
+  priority: NotificationPriority;
+  createdAt: Date;
+  readAt: Date | null;
+  expiresAt: Date | null;
 }

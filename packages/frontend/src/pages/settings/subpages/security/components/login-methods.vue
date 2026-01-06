@@ -151,7 +151,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from 'lucide-vue-next';
-import { Component, computed, onMounted, ref } from 'vue';
+import { type Component, computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const providerConfig: Record<OAUTH_PROVIDER, { name: string; icon: Component }> = {

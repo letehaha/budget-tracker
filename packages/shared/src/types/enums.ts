@@ -109,3 +109,38 @@ export enum AI_FEATURE {
   // budgetSuggestions = 'budget_suggestions',
   // receiptParsing = 'receipt_parsing',
 }
+
+/**
+ * Known notification types. Using string literals (not enum) to allow
+ * adding new types without migrations. These are the currently supported types.
+ */
+export const NOTIFICATION_TYPES = {
+  budgetAlert: 'budget_alert',
+  system: 'system',
+  changelog: 'changelog',
+} as const;
+
+export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES] | string;
+
+/**
+ * Notification status
+ */
+export const NOTIFICATION_STATUSES = {
+  unread: 'unread',
+  read: 'read',
+  dismissed: 'dismissed',
+} as const;
+
+export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[keyof typeof NOTIFICATION_STATUSES] | string;
+
+/**
+ * Notification priority levels
+ */
+export const NOTIFICATION_PRIORITIES = {
+  low: 'low',
+  normal: 'normal',
+  high: 'high',
+  urgent: 'urgent',
+} as const;
+
+export type NotificationPriority = (typeof NOTIFICATION_PRIORITIES)[keyof typeof NOTIFICATION_PRIORITIES] | string;
