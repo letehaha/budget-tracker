@@ -1,6 +1,6 @@
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Define the ENUM type for account types
@@ -54,7 +54,7 @@ module.exports = {
     }
   },
   down: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Strict data for recovering, do not edit until you sure
@@ -111,7 +111,7 @@ module.exports = {
           type: Sequelize.INTEGER,
           allowNull: true,
           references: {
-            model: 'AccountTypes',
+            table: 'AccountTypes',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -135,7 +135,7 @@ module.exports = {
           type: Sequelize.INTEGER,
           allowNull: false,
           references: {
-            model: 'AccountTypes',
+            table: 'AccountTypes',
             key: 'id',
           },
           onUpdate: 'CASCADE',

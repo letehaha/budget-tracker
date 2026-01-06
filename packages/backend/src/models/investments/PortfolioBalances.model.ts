@@ -1,57 +1,69 @@
+import { PortfolioBalanceModel } from '@bt/shared/types/investments';
 import {
-  Table,
-  Column,
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
   Model,
-  DataType,
-  ForeignKey,
-  BelongsTo,
-  Index,
-  PrimaryKey,
-} from 'sequelize-typescript';
-import Portfolios from './Portfolios.model';
-import Currencies from '../Currencies.model';
+  NonAttribute,
+} from '@sequelize/core';
+import { Attribute, BelongsTo, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
-import { PortfolioBalanceModel } from "@bt/shared/types/investments";
+import Currencies from '../Currencies.model';
+import Portfolios from './Portfolios.model';
 
 @Table({
   timestamps: true,
   tableName: 'PortfolioBalances',
 })
-export default class PortfolioBalances extends Model implements PortfolioBalanceModel {
+export default class PortfolioBalances
+  extends Model<InferAttributes<PortfolioBalances>, InferCreationAttributes<PortfolioBalances>>
+  implements PortfolioBalanceModel
+{
+  @Attribute(DataTypes.INTEGER)
   @PrimaryKey
-  @ForeignKey(() => Portfolios)
+  @NotNull
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  portfolioId!: number;
+  declare portfolioId: number;
 
+  @Attribute(DataTypes.STRING(3))
   @PrimaryKey
-  @ForeignKey(() => Currencies)
+  @NotNull
   @Index
-  @Column({ type: DataType.STRING(3), allowNull: false })
-  currencyCode!: string;
+  declare currencyCode: string;
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  availableCash!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
+  declare availableCash: string;
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  totalCash!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
+  declare totalCash: string;
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  refAvailableCash!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
+  declare refAvailableCash: string;
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  refTotalCash!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
+  declare refTotalCash: string;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare createdAt: CreationOptional<Date>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare updatedAt: CreationOptional<Date>;
 
   // Associations
-  @BelongsTo(() => Portfolios)
-  portfolio?: Portfolios;
+  @BelongsTo(() => Portfolios, 'portfolioId')
+  declare portfolio?: NonAttribute<Portfolios>;
 
-  @BelongsTo(() => Currencies)
-  currency?: Currencies;
+  @BelongsTo(() => Currencies, 'currencyCode')
+  declare currency?: NonAttribute<Currencies>;
 }

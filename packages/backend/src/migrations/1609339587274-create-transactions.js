@@ -23,7 +23,7 @@ module.exports = {
       },
     });
 
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.addColumn(
@@ -32,7 +32,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'Users',
+            table: 'Users',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -46,7 +46,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'Categories',
+            table: 'Categories',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -60,7 +60,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'TransactionTypes',
+            table: 'TransactionTypes',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -74,7 +74,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'PaymentTypes',
+            table: 'PaymentTypes',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -88,7 +88,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'Accounts',
+            table: 'Accounts',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -102,7 +102,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'Currencies',
+            table: 'Currencies',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -119,7 +119,7 @@ module.exports = {
   down: async (queryInterface) => {
     await queryInterface.dropTable('Transactions');
 
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       await queryInterface.removeColumn('Transactions', 'userId', {
         transaction,

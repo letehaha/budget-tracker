@@ -1,7 +1,11 @@
 {
-  "name": "shared",
+  "name": "@bt/shared",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    "./*": "./src/*"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

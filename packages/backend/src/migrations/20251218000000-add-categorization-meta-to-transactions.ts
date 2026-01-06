@@ -1,11 +1,11 @@
-import { DataTypes, QueryInterface } from 'sequelize';
+import { DataTypes, AbstractQueryInterface } from '@sequelize/core';
 
 /**
  * Migration to add categorizationMeta JSONB field to Transactions table.
  * This field tracks how a transaction was categorized (manual, ai, mcc_rule, user_rule).
  */
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Add categorizationMeta column
     await queryInterface.addColumn('Transactions', 'categorizationMeta', {
       type: DataTypes.JSONB,
@@ -21,7 +21,7 @@ module.exports = {
     });
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Remove index first
     await queryInterface.removeIndex('Transactions', 'transactions_categorization_source_idx');
 

@@ -11,7 +11,7 @@
 
 module.exports = {
   up: async (queryInterface) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1. On system account deletion, delete all associated transactions
@@ -135,7 +135,7 @@ module.exports = {
     }
   },
   down: async (queryInterface) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1. On system account deletion, delete all associated transactions

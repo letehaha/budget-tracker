@@ -1,10 +1,10 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
 import { INVALID_GEMINI_API_KEY, VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import { Op } from 'sequelize';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DOMAIN_EVENTS, eventBus } from '../common/event-bus';
 
@@ -40,7 +40,7 @@ describe('AI Categorization Service E2E', () => {
         const MOCK_TRANSACTION_COUNT = 3;
 
         // Spy on event emission
-        const eventSpy = jest.spyOn(eventBus, 'emit');
+        const eventSpy = vi.spyOn(eventBus, 'emit');
 
         // Connect to Monobank
         const { connectionId } = await helpers.bankDataProviders.connectProvider({

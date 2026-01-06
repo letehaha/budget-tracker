@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import ExchangeRates from '@models/ExchangeRates.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';

@@ -1,28 +1,35 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { type Mock, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AnthropicClient, AnthropicClientModel } from './anthropic-client';
 
-// Mock the Anthropic SDK but import the real APIError class
-jest.mock('@anthropic-ai/sdk');
+// Mock the Anthropic SDK as a class - use a shared mockCreate reference
+const mockCreateRef = { current: null as Mock | null };
 
-const MockedAnthropic = Anthropic as jest.MockedClass<typeof Anthropic>;
-const RealAnthropic = jest.requireActual('@anthropic-ai/sdk') as typeof Anthropic;
+vi.mock('@anthropic-ai/sdk', () => {
+  return {
+    default: class MockAnthropic {
+      messages = {
+        create: (...args: unknown[]) => mockCreateRef.current!(...args),
+      };
+      static APIError = class extends Error {
+        status: number;
+        constructor(status: number, _body: unknown, message: string, _headers: Headers) {
+          super(message);
+          this.status = status;
+        }
+      };
+    },
+  };
+});
 
 describe('AnthropicClient', () => {
-  let mockCreate: jest.Mock;
+  let mockCreate: Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockCreate = jest.fn();
-    MockedAnthropic.mockImplementation(
-      () =>
-        ({
-          messages: { create: mockCreate },
-        }) as unknown as Anthropic,
-    );
-    // Make APIError available on the mocked Anthropic class
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (MockedAnthropic as any).APIError = RealAnthropic.APIError;
+    vi.clearAllMocks();
+    mockCreate = vi.fn();
+    mockCreateRef.current = mockCreate;
   });
 
   describe('sendMessage', () => {
@@ -96,7 +103,7 @@ describe('AnthropicClient', () => {
     });
 
     it('handles 401 error as invalid API key', async () => {
-      const apiError = new RealAnthropic.APIError(401, { message: 'Unauthorized' }, 'Unauthorized', new Headers());
+      const apiError = new Anthropic.APIError(401, { message: 'Unauthorized' }, 'Unauthorized', new Headers());
       mockCreate.mockRejectedValue(apiError);
 
       const client = new AnthropicClient({
@@ -113,7 +120,7 @@ describe('AnthropicClient', () => {
     });
 
     it('handles 429 error as rate limit', async () => {
-      const apiError = new RealAnthropic.APIError(429, { message: 'Rate limited' }, 'Rate limited', new Headers());
+      const apiError = new Anthropic.APIError(429, { message: 'Rate limited' }, 'Rate limited', new Headers());
       mockCreate.mockRejectedValue(apiError);
 
       const client = new AnthropicClient({
@@ -130,7 +137,7 @@ describe('AnthropicClient', () => {
     });
 
     it('handles 500 error as temporarily unavailable', async () => {
-      const apiError = new RealAnthropic.APIError(
+      const apiError = new Anthropic.APIError(
         500,
         { message: 'Internal Server Error' },
         'Internal Server Error',
@@ -152,7 +159,7 @@ describe('AnthropicClient', () => {
     });
 
     it('handles 503 error as temporarily unavailable', async () => {
-      const apiError = new RealAnthropic.APIError(
+      const apiError = new Anthropic.APIError(
         503,
         { message: 'Service Unavailable' },
         'Service Unavailable',
@@ -174,12 +181,7 @@ describe('AnthropicClient', () => {
     });
 
     it('handles other API errors with message', async () => {
-      const apiError = new RealAnthropic.APIError(
-        400,
-        { message: 'Bad Request' },
-        'Invalid request format',
-        new Headers(),
-      );
+      const apiError = new Anthropic.APIError(400, { message: 'Bad Request' }, 'Invalid request format', new Headers());
       mockCreate.mockRejectedValue(apiError);
 
       const client = new AnthropicClient({

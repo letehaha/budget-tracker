@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { until } from '@common/helpers';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
-import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
@@ -13,6 +12,7 @@ import {
 } from '@services/bank-data-providers/monobank/transaction-sync-queue';
 import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from 'vitest';
 
 import { resetSessionCounter } from './mocks/enablebanking/mock-api';
 import { setupMswServer } from './mocks/setup-mock-server';
@@ -21,36 +21,36 @@ import { retryWithBackoff } from './utils/retry-db-operation-with-backoff';
 const mswMockServer = setupMswServer();
 
 // Mock the entire module globally. Mocked implementation will be per-test
-jest.mock('@polygon.io/client-js', () => ({
-  restClient: jest.fn().mockReturnValue({
+vi.mock('@polygon.io/client-js', () => ({
+  restClient: vi.fn().mockReturnValue({
     reference: {
-      tickers: jest.fn(),
-      exchanges: jest.fn(),
+      tickers: vi.fn(),
+      exchanges: vi.fn(),
     },
     stocks: {
-      aggregatesGroupedDaily: jest.fn(),
-      aggregates: jest.fn(),
+      aggregatesGroupedDaily: vi.fn(),
+      aggregates: vi.fn(),
     },
   }),
 }));
 
-jest.mock('alphavantage', () =>
-  jest.fn().mockReturnValue({
+vi.mock('alphavantage', () =>
+  vi.fn().mockReturnValue({
     data: {
-      search: jest.fn(),
-      quote: jest.fn(),
-      daily: jest.fn(),
+      search: vi.fn(),
+      quote: vi.fn(),
+      daily: vi.fn(),
     },
   }),
 );
 
 // Mock the FMP client globally
-jest.mock('../services/investments/data-providers/clients/fmp-client', () => ({
-  FmpClient: jest.fn().mockImplementation(() => ({
-    search: jest.fn(),
-    getQuote: jest.fn(),
-    getHistoricalPrices: jest.fn(),
-    getHistoricalPricesFull: jest.fn(),
+vi.mock('../services/investments/data-providers/clients/fmp-client', () => ({
+  FmpClient: vi.fn().mockImplementation(() => ({
+    search: vi.fn(),
+    getQuote: vi.fn(),
+    getHistoricalPrices: vi.fn(),
+    getHistoricalPricesFull: vi.fn(),
   })),
 }));
 

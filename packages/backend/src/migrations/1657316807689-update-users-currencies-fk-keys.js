@@ -1,6 +1,6 @@
 module.exports = {
   up: async (queryInterface) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.removeConstraint('UsersCurrencies', 'UsersCurrencies_userId_fkey', {
@@ -42,7 +42,7 @@ module.exports = {
     }
   },
   down: async (queryInterface) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.removeConstraint('UsersCurrencies', 'UsersCurrencies_userId_fkey', {

@@ -1,5 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import Balances from '@models/Balances.model';
 import Currencies from '@models/Currencies.model';
 import Transactions from '@models/Transactions.model';

@@ -1,71 +1,85 @@
+import { PORTFOLIO_TYPE, PortfolioModel } from '@bt/shared/types/investments';
 import {
-  Table,
-  Column,
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
   Model,
-  DataType,
-  ForeignKey,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
   BelongsTo,
+  Default,
   HasMany,
   Index,
-} from 'sequelize-typescript';
+  NotNull,
+  PrimaryKey,
+  Table,
+  Unique,
+} from '@sequelize/core/decorators-legacy';
+
 import Users from '../Users.model';
-import PortfolioBalances from './PortfolioBalances.model';
 import Holdings from './Holdings.model';
 import InvestmentTransaction from './InvestmentTransaction.model';
-import { PORTFOLIO_TYPE, PortfolioModel } from '@bt/shared/types/investments';
+import PortfolioBalances from './PortfolioBalances.model';
 
 @Table({
   timestamps: true,
   tableName: 'Portfolios',
 })
-export default class Portfolios extends Model implements PortfolioModel {
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    type: DataType.INTEGER,
-  })
-  id!: number;
+export default class Portfolios
+  extends Model<InferAttributes<Portfolios>, InferCreationAttributes<Portfolios>>
+  implements PortfolioModel
+{
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  @Unique
+  declare id: CreationOptional<number>;
 
-  @Column({ type: DataType.STRING, allowNull: false })
-  name!: string;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare name: string;
 
-  @ForeignKey(() => Users)
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  userId!: number;
+  declare userId: number;
 
+  @Attribute(DataTypes.ENUM(...Object.values(PORTFOLIO_TYPE)))
+  @NotNull
   @Index
-  @Column({
-    type: DataType.ENUM(...Object.values(PORTFOLIO_TYPE)),
-    allowNull: false,
-    defaultValue: PORTFOLIO_TYPE.investment,
-  })
-  portfolioType!: PORTFOLIO_TYPE;
+  @Default(PORTFOLIO_TYPE.investment)
+  declare portfolioType: CreationOptional<PORTFOLIO_TYPE>;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  description!: string | null;
+  @Attribute(DataTypes.TEXT)
+  declare description: string | null;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isEnabled!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(true)
+  declare isEnabled: CreationOptional<boolean>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare createdAt: CreationOptional<Date>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare updatedAt: CreationOptional<Date>;
 
   // Associations
-  @BelongsTo(() => Users)
-  user?: Users;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
-  @HasMany(() => PortfolioBalances)
-  balances?: PortfolioBalances[];
+  @HasMany(() => PortfolioBalances, 'portfolioId')
+  declare balances?: NonAttribute<PortfolioBalances[]>;
 
-  @HasMany(() => Holdings)
-  holdings?: Holdings[];
+  @HasMany(() => Holdings, 'portfolioId')
+  declare holdings?: NonAttribute<Holdings[]>;
 
-  @HasMany(() => InvestmentTransaction)
-  investmentTransactions?: InvestmentTransaction[];
+  @HasMany(() => InvestmentTransaction, 'portfolioId')
+  declare investmentTransactions?: NonAttribute<InvestmentTransaction[]>;
 }

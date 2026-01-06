@@ -3,7 +3,7 @@ module.exports = {
     await queryInterface.addColumn('MonobankTransactions', 'transactionEntityId', {
       type: Sequelize.INTEGER,
       references: {
-        model: 'TransactionEntities',
+        table: 'TransactionEntities',
         key: 'id',
       },
       onUpdate: 'CASCADE',
@@ -12,7 +12,7 @@ module.exports = {
     await queryInterface.addColumn('Transactions', 'transactionEntityId', {
       type: Sequelize.INTEGER,
       references: {
-        model: 'TransactionEntities',
+        table: 'TransactionEntities',
         key: 'id',
       },
       onUpdate: 'CASCADE',

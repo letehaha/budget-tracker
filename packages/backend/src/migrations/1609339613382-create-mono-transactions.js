@@ -1,6 +1,6 @@
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.createTable(
@@ -61,7 +61,7 @@ module.exports = {
           userId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -70,7 +70,7 @@ module.exports = {
           categoryId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'Categories',
+              table: 'Categories',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -79,7 +79,7 @@ module.exports = {
           transactionTypeId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'TransactionTypes',
+              table: 'TransactionTypes',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -88,7 +88,7 @@ module.exports = {
           paymentTypeId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'PaymentTypes',
+              table: 'PaymentTypes',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -97,7 +97,7 @@ module.exports = {
           monoAccountId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'MonobankAccounts',
+              table: 'MonobankAccounts',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -106,7 +106,7 @@ module.exports = {
           currencyId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'Currencies',
+              table: 'Currencies',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -125,7 +125,7 @@ module.exports = {
   down: async (queryInterface) => {
     await queryInterface.dropTable('MonobankTransactions');
 
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       await queryInterface.removeColumn('MonobankTransactions', 'userId', {
         transaction,

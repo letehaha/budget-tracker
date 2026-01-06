@@ -1,4 +1,4 @@
-import { describe, it } from '@jest/globals';
+import { describe, it } from 'vitest';
 
 describe('todo tests', () => {
   it.todo('automatic transaction category detection based on MCC code. For now it works only for Mono transactions');

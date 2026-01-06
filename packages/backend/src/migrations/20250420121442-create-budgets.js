@@ -3,7 +3,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       await queryInterface.createTable(
         'Budgets',
@@ -48,7 +48,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -65,7 +65,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Budgets',
+              table: 'Budgets',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -75,7 +75,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Transactions',
+              table: 'Transactions',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -100,7 +100,7 @@ module.exports = {
   },
 
   down: async (queryInterface) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       const budgetTransactionsExists = await queryInterface.tableExists('BudgetTransactions');
       if (budgetTransactionsExists) {

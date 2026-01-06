@@ -1,6 +1,23 @@
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
-import Securities from "./Securities.model";
-import { SecurityPricingModel } from "@bt/shared/types/investments"
+import { SecurityPricingModel } from '@bt/shared/types/investments';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
+  BelongsTo,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
+
+import Securities from './Securities.model';
 
 /**
  * Represents the dynamic pricing information of financial securities over time.
@@ -21,53 +38,55 @@ import { SecurityPricingModel } from "@bt/shared/types/investments"
     },
   ],
 })
-export default class SecurityPricing extends Model implements SecurityPricingModel {
-  @Column({
-    primaryKey: true,
-    autoIncrement: true,
-    type: DataType.INTEGER,
-  })
-  id!: number;
+export default class SecurityPricing
+  extends Model<InferAttributes<SecurityPricing>, InferCreationAttributes<SecurityPricing>>
+  implements SecurityPricingModel
+{
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
 
-  @ForeignKey(() => Securities)
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  securityId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare securityId: number;
 
   /**
    * The date for which this pricing information is applicable. This field is crucial for tracking
    * the historical prices of securities and allows for analysis of price trends over time.
    */
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  date!: Date;
+  @Attribute(DataTypes.DATEONLY)
+  @NotNull
+  declare date: string;
 
   /**
    * The closing price of the security on the specified date. Closing prices are typically used in
    * financial analysis and reporting as they represent the final price at which the security was traded
    * during the trading session.
    */
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
-  priceClose!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  declare priceClose: string;
 
   /**
    * (Optional) The timestamp indicating the specific time the priceClose was recorded. This is particularly
    * useful when multiple price updates occur within a single day or for real-time price tracking.
    */
-  @Column({ type: DataType.DATE, allowNull: true })
-  priceAsOf!: Date | null;
+  @Attribute(DataTypes.DATE)
+  declare priceAsOf: Date | null;
 
   /**
    * (Optional) A field indicating the source of the pricing information. This could be the name of the
    * data provider or the market/exchange from which the price was obtained. This field helps in
    * tracking the reliability and origin of the data.
    */
-  @Column({ type: DataType.STRING, allowNull: true })
-  source!: string | null;
+  @Attribute(DataTypes.STRING)
+  declare source: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
-  @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsTo(() => Securities)
-  security!: Securities;
+  @BelongsTo(() => Securities, 'securityId')
+  declare security?: NonAttribute<Securities>;
 }

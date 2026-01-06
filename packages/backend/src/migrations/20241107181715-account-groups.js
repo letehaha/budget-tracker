@@ -3,7 +3,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       await queryInterface.createTable(
         'AccountGroups',
@@ -17,7 +17,7 @@ module.exports = {
           userId: {
             type: Sequelize.INTEGER,
             allowNull: false,
-            references: { model: 'Users', key: 'id' },
+            references: { table: 'Users', key: 'id' },
           },
           name: {
             type: Sequelize.STRING,
@@ -26,7 +26,7 @@ module.exports = {
           parentGroupId: {
             type: Sequelize.INTEGER,
             allowNull: true,
-            references: { model: 'AccountGroups', key: 'id' },
+            references: { table: 'AccountGroups', key: 'id' },
           },
           createdAt: {
             allowNull: false,
@@ -52,12 +52,12 @@ module.exports = {
           accountId: {
             type: Sequelize.INTEGER,
             allowNull: false,
-            references: { model: 'Accounts', key: 'id' },
+            references: { table: 'Accounts', key: 'id' },
           },
           groupId: {
             type: Sequelize.INTEGER,
             allowNull: false,
-            references: { model: 'AccountGroups', key: 'id' },
+            references: { table: 'AccountGroups', key: 'id' },
           },
           createdAt: {
             allowNull: false,
@@ -84,7 +84,7 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       await queryInterface.dropTable('AccountGroupings', { transaction });
       await queryInterface.dropTable('AccountGroups', { transaction });

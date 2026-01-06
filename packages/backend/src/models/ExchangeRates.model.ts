@@ -1,5 +1,6 @@
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
-import { Op } from 'sequelize';
+import { DataTypes, InferAttributes, InferCreationAttributes, Model, Op } from '@sequelize/core';
+import { Attribute, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
+
 import Currencies from './Currencies.model';
 
 @Table({
@@ -9,20 +10,31 @@ import Currencies from './Currencies.model';
   tableName: 'ExchangeRates',
   freezeTableName: true,
 })
-export default class ExchangeRates extends Model {
-  @ForeignKey(() => Currencies)
-  @Column({ allowNull: false, type: DataType.STRING(3), primaryKey: true })
-  baseCode!: string;
+export default class ExchangeRates extends Model<
+  InferAttributes<ExchangeRates>,
+  InferCreationAttributes<ExchangeRates>
+> {
+  @Attribute(DataTypes.STRING(3))
+  @PrimaryKey
+  @NotNull
+  @Index
+  declare baseCode: string;
 
-  @ForeignKey(() => Currencies)
-  @Column({ allowNull: false, type: DataType.STRING(3), primaryKey: true })
-  quoteCode!: string;
+  @Attribute(DataTypes.STRING(3))
+  @PrimaryKey
+  @NotNull
+  @Index
+  declare quoteCode: string;
 
-  @Column({ allowNull: false, type: DataType.DATE, primaryKey: true })
-  date!: Date;
+  @Attribute(DataTypes.DATE)
+  @PrimaryKey
+  @NotNull
+  declare date: Date;
 
-  @Column({ allowNull: false, defaultValue: 1, type: DataType.FLOAT })
-  rate!: number;
+  @Attribute(DataTypes.FLOAT)
+  @NotNull
+  @Default(1)
+  declare rate: number;
 }
 
 export async function getRatesForCurrenciesPairs(

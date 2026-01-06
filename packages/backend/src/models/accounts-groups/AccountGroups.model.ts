@@ -1,7 +1,25 @@
 // AccountGroup.model.ts
-import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, BelongsToMany, DataType } from 'sequelize-typescript';
-import Users from '../Users.model';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
+  BelongsTo,
+  BelongsToMany,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
+
 import Accounts from '../Accounts.model';
+import Users from '../Users.model';
 import AccountGrouping from './AccountGrouping.model';
 
 /**
@@ -21,43 +39,39 @@ import AccountGrouping from './AccountGrouping.model';
   timestamps: true,
   freezeTableName: true,
 })
-export default class AccountGroup extends Model {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
+export default class AccountGroup extends Model<InferAttributes<AccountGroup>, InferCreationAttributes<AccountGroup>> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
+
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
+
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare name: string;
+
+  @Attribute(DataTypes.INTEGER)
+  declare parentGroupId: number | null;
+
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
+
+  // Self-referencing associations cannot use decorators in Sequelize v7
+  // They are defined programmatically in models/index.ts after initialization
+  declare parentGroup?: NonAttribute<AccountGroup>;
+  declare childGroups?: NonAttribute<AccountGroup[]>;
+
+  @BelongsToMany(() => Accounts, {
+    through: () => AccountGrouping,
+    foreignKey: 'groupId',
+    otherKey: 'accountId',
   })
-  declare id: number;
-
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  userId!: number;
-
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  name!: string;
-
-  @ForeignKey(() => AccountGroup)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: true,
-  })
-  parentGroupId!: number | null;
-
-  @BelongsTo(() => Users)
-  user!: Users;
-
-  @BelongsTo(() => AccountGroup, 'parentGroupId')
-  parentGroup!: AccountGroup;
-
-  @HasMany(() => AccountGroup, 'parentGroupId')
-  childGroups!: AccountGroup[];
-
-  @BelongsToMany(() => Accounts, () => AccountGrouping)
-  accounts!: Accounts[];
+  declare accounts?: NonAttribute<Accounts[]>;
 }

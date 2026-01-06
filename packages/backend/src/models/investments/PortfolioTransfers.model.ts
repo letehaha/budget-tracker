@@ -1,97 +1,101 @@
+import { PortfolioTransferModel } from '@bt/shared/types/investments';
 import {
-  Table,
-  Column,
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
   Model,
-  DataType,
-  ForeignKey,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
   BelongsTo,
   Index,
-} from 'sequelize-typescript';
-import Users from '../Users.model';
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
+
 import Accounts from '../Accounts.model';
-import Portfolios from './Portfolios.model';
 import Currencies from '../Currencies.model';
-import { PortfolioTransferModel } from '@bt/shared/types/investments';
+import Users from '../Users.model';
+import Portfolios from './Portfolios.model';
 
 @Table({
   timestamps: true,
   tableName: 'PortfolioTransfers',
 })
-export default class PortfolioTransfers extends Model implements PortfolioTransferModel {
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    type: DataType.INTEGER,
-  })
-  id!: number;
+export default class PortfolioTransfers
+  extends Model<InferAttributes<PortfolioTransfers>, InferCreationAttributes<PortfolioTransfers>>
+  implements PortfolioTransferModel
+{
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
 
-  @ForeignKey(() => Users)
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  userId!: number;
+  declare userId: number;
 
-  @ForeignKey(() => Accounts)
+  @Attribute(DataTypes.INTEGER)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  fromAccountId!: number | null;
+  declare fromAccountId: number | null;
 
-  @ForeignKey(() => Portfolios)
+  @Attribute(DataTypes.INTEGER)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  toPortfolioId!: number | null;
+  declare toPortfolioId: number | null;
 
-  @ForeignKey(() => Portfolios)
+  @Attribute(DataTypes.INTEGER)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  fromPortfolioId!: number | null;
+  declare fromPortfolioId: number | null;
 
-  @ForeignKey(() => Accounts)
+  @Attribute(DataTypes.INTEGER)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  toAccountId!: number | null;
+  declare toAccountId: number | null;
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
-  amount!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  declare amount: string;
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
-  refAmount!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  declare refAmount: string;
 
-  @ForeignKey(() => Currencies)
+  @Attribute(DataTypes.STRING(3))
+  @NotNull
   @Index
-  @Column({ type: DataType.STRING(3), allowNull: false })
-  currencyCode!: string;
+  declare currencyCode: string;
 
+  @Attribute(DataTypes.DATEONLY)
+  @NotNull
   @Index
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  date!: string;
+  declare date: string;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  description!: string | null;
+  @Attribute(DataTypes.TEXT)
+  declare description: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
-
-  @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
   // Associations
-  @BelongsTo(() => Users)
-  user?: Users;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
   @BelongsTo(() => Accounts, 'fromAccountId')
-  fromAccount?: Accounts;
+  declare fromAccount?: NonAttribute<Accounts>;
 
   @BelongsTo(() => Accounts, 'toAccountId')
-  toAccount?: Accounts;
+  declare toAccount?: NonAttribute<Accounts>;
 
   @BelongsTo(() => Portfolios, 'fromPortfolioId')
-  fromPortfolio?: Portfolios;
+  declare fromPortfolio?: NonAttribute<Portfolios>;
 
   @BelongsTo(() => Portfolios, 'toPortfolioId')
-  toPortfolio?: Portfolios;
+  declare toPortfolio?: NonAttribute<Portfolios>;
 
-  @BelongsTo(() => Currencies)
-  currency?: Currencies;
+  @BelongsTo(() => Currencies, 'currencyCode')
+  declare currency?: NonAttribute<Currencies>;
 }
