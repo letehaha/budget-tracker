@@ -205,7 +205,7 @@
               Bank Connections
 
               <span
-                class="ml-1 rounded bg-amber-500/20 px-1.5 py-0.5 align-middle text-xs font-medium text-amber-600 dark:text-amber-400"
+                class="ml-1 rounded bg-warning-muted px-1.5 py-0.5 align-middle text-xs font-medium text-warning-text"
               >
                 Beta
               </span>
@@ -302,7 +302,7 @@
             <h3 class="mb-2 text-lg font-semibold">
               Portfolio Tracking
               <span
-                class="ml-1 rounded bg-amber-500/20 px-1.5 py-0.5 align-middle text-xs font-medium text-amber-600 dark:text-amber-400"
+                class="ml-1 rounded bg-warning-muted px-1.5 py-0.5 align-middle text-xs font-medium text-warning-text"
               >
                 Beta
               </span>

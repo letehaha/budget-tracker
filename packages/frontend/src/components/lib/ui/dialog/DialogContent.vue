@@ -35,7 +35,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
   <DialogPortal>
     <DialogOverlay
       :class="[
-        'fixed inset-0 z-(--z-dialog) bg-black/80',
+        'fixed inset-0 z-(--z-dialog) bg-black/40 dark:bg-black/80',
         'data-[state=open]:animate-in data-[state=open]:fade-in-0',
         'data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
       ]"

@@ -23,6 +23,7 @@
   ],
   "dependencies": {
     "@better-auth/passkey": "^1.4.9",
+    "@fontsource/montserrat": "^5.2.8",
     "@internationalized/date": "^3.10.0",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@popperjs/core": "^2.11.8",

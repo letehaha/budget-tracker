@@ -9,7 +9,10 @@ defineProps<{ mobileView?: boolean }>();
 </script>
 
 <template>
-  <component :is="mobileView ? 'div' : Card" class="flex h-full w-[300px] flex-col rounded-none max-md:w-auto">
+  <component
+    :is="mobileView ? 'div' : Card"
+    class="light:bg-background flex h-full w-75 flex-col rounded-none max-md:w-auto"
+  >
     <CardHeader class="h-13 px-4 py-3">
       <div class="text-lg font-medium">MoneyMatter</div>
     </CardHeader>

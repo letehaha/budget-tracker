@@ -25,7 +25,7 @@
                   {{ provider.name }}
                   <span
                     v-if="provider.type === BANK_PROVIDER_TYPE.ENABLE_BANKING"
-                    class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
+                    class="rounded bg-warning-muted px-1.5 py-0.5 text-xs font-medium text-warning-text"
                   >
                     Beta
                   </span>

@@ -35,7 +35,7 @@
               size="icon"
               disabled
             >
-              <CalendarClockIcon class="size-6 text-white" />
+              <CalendarClockIcon class="size-6" />
             </Button>
           </template>
           <template v-else>

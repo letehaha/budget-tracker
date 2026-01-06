@@ -2,7 +2,7 @@
   <div class="space-y-4">
     <!-- Beta disclaimer -->
     <div
-      class="flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400"
+      class="border-warning-border bg-warning-muted text-warning-muted-foreground flex gap-3 rounded-lg border p-4 text-sm"
     >
       <TriangleAlertIcon class="mt-0.5 size-5 shrink-0" />
       <div class="space-y-2">
@@ -20,7 +20,7 @@
         <!-- Help Dialog Trigger -->
         <div class="bg-muted/50 mb-4 rounded-md p-3">
           <div class="flex items-center gap-2">
-            <InfoIcon class="mt-0.5 size-5 flex-shrink-0 text-white" />
+            <InfoIcon class="mt-0.5 size-5 shrink-0" />
 
             <div class="flex-1">
               <p class="text-sm">

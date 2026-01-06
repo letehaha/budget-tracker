@@ -130,9 +130,9 @@
                   2. New fields will appear in the same spot: "Country", "ASPSP", "Usage type"
 
                   <ul class="pl-4 flex flex-col gap-1 mt-1">
-                    <li>2.1 Country: <span class="text-white">Your bank's country</span></li>
-                    <li>2.2 ASPSP: <span class="text-white">Your bank name</span></li>
-                    <li>2.3 Usage type: <span class="text-white">Private</span></li>
+                    <li>2.1 Country: <span class="font-semibold dark:text-white">Your bank's country</span></li>
+                    <li>2.2 ASPSP: <span class="font-semibold dark:text-white">Your bank name</span></li>
+                    <li>2.3 Usage type: <span class="font-semibold dark:text-white">Private</span></li>
                     <li>2.4 Click "Save"</li>
                   </ul>
                 </p>
@@ -140,7 +140,7 @@
                 <p>4. Once you finish auth flow, you will be redirected back to EnableBanking</p>
                 <p>5. Wait until selected accounts are displayed in the Application's card under "Linked accounts" field</p>
 
-                <div class="border p-3 mb-3 rounded border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                <div class="border p-3 mb-3 rounded border-warning-border bg-warning-muted text-warning-muted-foreground">
                   <TriangleAlertIcon class="size-5 inline" />
 
                   It might be the case that some selected accounts are not linked. This is the problem on your bank's side which you cannot

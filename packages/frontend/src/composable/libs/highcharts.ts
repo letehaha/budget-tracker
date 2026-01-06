@@ -96,7 +96,8 @@ export const useHighcharts = () => {
         tooltip: {
           useHTML: true,
           backgroundColor: 'var(--card-tooltip)',
-          borderColor: 'transparent',
+          borderColor: 'var(--border)',
+          borderWidth: 1,
           formatter() {
             return `
           <div class="p-1">
@@ -109,7 +110,12 @@ export const useHighcharts = () => {
           </div>
         `;
           },
-          shadow: false,
+          shadow: {
+            color: 'rgba(0, 0, 0, 0.08)',
+            offsetX: 0,
+            offsetY: 2,
+            width: 8,
+          },
           borderRadius: 8,
           style: {
             color: 'var(--base-text)',

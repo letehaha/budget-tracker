@@ -66,14 +66,14 @@
             </span>
             <template v-if="hasSplits">
               <div
-                class="flex items-center gap-0.5 rounded-sm border border-amber-500/60 px-1 py-0.5 text-xs text-amber-400/90"
+                class="border-warning-text text-warning-text flex items-center gap-0.5 rounded-sm border px-1 py-0.5 text-xs"
               >
                 <SplitIcon :size="10" />
                 <span>{{ transaction.splits.length + 1 }}</span>
               </div>
             </template>
             <template v-if="isRefund">
-              <div class="border-primary rounded-sm border px-1 py-0.5 text-xs text-white/80">Refund</div>
+              <div class="border-primary rounded-sm border px-1 py-0.5 text-xs">Refund</div>
             </template>
           </div>
         </template>
