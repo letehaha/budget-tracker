@@ -1,0 +1,55 @@
+# Dependencies
+node_modules
+npm-debug.log
+.npm
+
+# Git
+.git
+.gitignore
+.gitattributes
+.git-blame-ignore-revs
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Logs
+logs
+*.log
+
+# Testing
+coverage
+.nyc_output
+cypress/videos
+cypress/screenshots
+
+# Environment files (except templates)
+.env.local
+.env.*.local
+
+# Documentation
+*.md
+!README.md
+docs
+
+# CI/CD
+.github
+.husky
+
+# Docker files (not needed in build context)
+Dockerfile
+docker-compose*.yml
+
+# Misc
+.editorconfig
+.prettierrc.json
+manual-categorization.js
