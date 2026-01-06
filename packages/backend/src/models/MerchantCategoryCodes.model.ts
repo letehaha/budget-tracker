@@ -1,6 +1,13 @@
-import { Table, Column, Model, Length, BelongsToMany, DataType } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import { Attribute, AutoIncrement, NotNull, PrimaryKey, Table, Unique } from '@sequelize/core/decorators-legacy';
 
-import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 import Categories from './Categories.model';
 
 @Table({
@@ -8,34 +15,32 @@ import Categories from './Categories.model';
   tableName: 'MerchantCategoryCodes',
   freezeTableName: true,
 })
-export default class MerchantCategoryCodes extends Model {
-  @Column({
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
+export default class MerchantCategoryCodes extends Model<
+  InferAttributes<MerchantCategoryCodes>,
+  InferCreationAttributes<MerchantCategoryCodes>
+> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  @Unique
+  declare id: CreationOptional<number>;
 
-  @Column({ allowNull: false, type: DataType.STRING })
-  code!: number;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare code: string;
 
-  @Column({ allowNull: false, type: DataType.STRING })
-  name!: string;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare name: string;
 
-  @Length({ max: 1000 })
-  @Column({ allowNull: true, type: DataType.STRING })
-  description!: string;
+  @Attribute(DataTypes.STRING(1000))
+  declare description: string | null;
 
-  @BelongsToMany(() => Categories, {
-    as: 'categories',
-    through: () => UserMerchantCategoryCodes,
-  })
-  mccId!: number;
+  // In Sequelize v7, BelongsToMany is defined on Categories model and automatically creates the inverse
+  declare categories?: NonAttribute<Categories[]>;
 }
 
-export const getByCode = async ({ code }) => {
+export const getByCode = async ({ code }: { code: string }) => {
   const mcc = await MerchantCategoryCodes.findOne({
     where: { code },
   });

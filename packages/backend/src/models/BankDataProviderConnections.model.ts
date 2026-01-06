@@ -1,19 +1,27 @@
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-  DataType,
-  HasMany,
-} from 'sequelize-typescript';
-import Users from '@models/Users.model';
-import Accounts from '@models/Accounts.model';
-import {
-  encryptCredentials,
-  decryptCredentials,
-} from '@services/bank-data-providers/utils/credential-encryption';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import Accounts from '@models/Accounts.model';
+import Users from '@models/Users.model';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
+  BelongsTo,
+  Default,
+  HasMany,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+  Unique,
+} from '@sequelize/core/decorators-legacy';
+import { decryptCredentials, encryptCredentials } from '@services/bank-data-providers/utils/credential-encryption';
 
 /**
  * Interface for BankDataProviderConnections attributes
@@ -41,88 +49,62 @@ export interface BankDataProviderConnectionsAttributes {
   tableName: 'BankDataProviderConnections',
   freezeTableName: true,
 })
-export default class BankDataProviderConnections extends Model<BankDataProviderConnectionsAttributes> {
-  @BelongsTo(() => Users, {
-    as: 'user',
-    foreignKey: 'userId',
-  })
-  user!: Users;
+export default class BankDataProviderConnections extends Model<
+  InferAttributes<BankDataProviderConnections>,
+  InferCreationAttributes<BankDataProviderConnections>
+> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  @Unique
+  declare id: CreationOptional<number>;
 
-  @HasMany(() => Accounts, {
-    as: 'accounts',
-    foreignKey: 'bankDataProviderConnectionId',
-  })
-  accounts!: Accounts[];
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @Column({
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
+  // Type of provider: monobank, enable-banking, etc.
+  @Attribute(DataTypes.STRING(50))
+  @NotNull
+  declare providerType: BANK_PROVIDER_TYPE;
 
-  @ForeignKey(() => Users)
-  @Column({
-    allowNull: false,
-    type: DataType.INTEGER,
-  })
-  userId!: number;
+  // User-defined friendly name for this connection
+  @Attribute(DataTypes.STRING(255))
+  @NotNull
+  declare providerName: string;
 
-  @Column({
-    allowNull: false,
-    type: DataType.STRING(50),
-    comment: 'Type of provider: monobank, enable-banking, etc.',
-  })
-  providerType!: BANK_PROVIDER_TYPE;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(true)
+  declare isActive: CreationOptional<boolean>;
 
-  @Column({
-    allowNull: false,
-    type: DataType.STRING(255),
-    comment: 'User-defined friendly name for this connection',
-  })
-  providerName!: string;
+  // Encrypted provider-specific credentials (API keys, tokens, etc.)
+  @Attribute(DataTypes.JSONB)
+  @NotNull
+  declare credentials: string;
 
-  @Column({
-    allowNull: false,
-    defaultValue: true,
-    type: DataType.BOOLEAN,
-  })
-  isActive!: boolean;
+  // Provider-specific metadata (webhooks, client IDs, etc.)
+  @Attribute(DataTypes.JSONB)
+  declare metadata: object | null;
 
-  @Column({
-    allowNull: false,
-    type: DataType.JSONB,
-    comment: 'Encrypted provider-specific credentials (API keys, tokens, etc.)',
-  })
-  credentials!: string; // Stored as encrypted string
+  // Timestamp of last successful sync
+  @Attribute(DataTypes.DATE)
+  declare lastSyncAt: Date | null;
 
-  @Column({
-    allowNull: true,
-    type: DataType.JSONB,
-    comment: 'Provider-specific metadata (webhooks, client IDs, etc.)',
-  })
-  metadata!: object;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare createdAt: CreationOptional<Date>;
 
-  @Column({
-    allowNull: true,
-    type: DataType.DATE,
-    comment: 'Timestamp of last successful sync',
-  })
-  lastSyncAt!: Date | null;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare updatedAt: CreationOptional<Date>;
 
-  @Column({
-    allowNull: false,
-    type: DataType.DATE,
-  })
-  declare createdAt: Date;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
-  @Column({
-    allowNull: false,
-    type: DataType.DATE,
-  })
-  declare updatedAt: Date;
+  @HasMany(() => Accounts, 'bankDataProviderConnectionId')
+  declare accounts?: NonAttribute<Accounts[]>;
 
   // ============================================================================
   // Helper Methods

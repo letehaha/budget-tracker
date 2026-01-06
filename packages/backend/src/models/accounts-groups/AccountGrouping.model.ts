@@ -1,4 +1,13 @@
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import { Attribute, AutoIncrement, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
+
 import Accounts from '../Accounts.model';
 import AccountGroup from './AccountGroups.model';
 
@@ -22,31 +31,29 @@ import AccountGroup from './AccountGroups.model';
     },
   ],
 })
-export default class AccountGrouping extends Model {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
-  declare id: number;
+export default class AccountGrouping extends Model<
+  InferAttributes<AccountGrouping>,
+  InferCreationAttributes<AccountGrouping>
+> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
 
-  @ForeignKey(() => Accounts)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  accountId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare accountId: number;
 
-  @ForeignKey(() => AccountGroup)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  groupId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare groupId: number;
 
-  @BelongsTo(() => Accounts)
-  account!: Accounts;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsTo(() => AccountGroup)
-  group!: AccountGroup;
+  // In Sequelize v7, BelongsTo associations are auto-created by BelongsToMany on AccountGroups model
+  declare account?: NonAttribute<Accounts>;
+  declare group?: NonAttribute<AccountGroup>;
 }

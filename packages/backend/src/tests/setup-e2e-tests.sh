@@ -32,7 +32,7 @@ docker compose -f ../../docker/test/backend/docker-compose.yml exec -T test-db b
 
 echo "Running migrations on template database..."
 docker compose -f ../../docker/test/backend/docker-compose.yml exec -T test-runner \
-  npx ts-node packages/backend/src/tests/run-template-migrations.ts
+  npx tsx packages/backend/src/tests/run-template-migrations.ts
 
 echo "Creating worker databases from template..."
 
@@ -81,9 +81,9 @@ done
 "
 
 echo "Running tests..."
-# Run tests
-docker compose -f ../../docker/test/backend/docker-compose.yml exec -T test-runner \
-  npx jest -c packages/backend/jest.config.e2e.ts --passWithNoTests --forceExit --colors "$@"
+# Run tests from packages/backend directory so vitest resolves paths correctly
+docker compose -f ../../docker/test/backend/docker-compose.yml exec -T -w /app/packages/backend test-runner \
+  npx vitest run --config vitest.config.e2e.ts --passWithNoTests "$@"
 
 # Capture the exit code
 TEST_EXIT_CODE=$?

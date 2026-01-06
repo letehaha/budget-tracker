@@ -1,45 +1,63 @@
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
-import Users from '@models/Users.model';
-import Transactions from '@models/Transactions.model';
-import BudgetTransactions from './BudgetTransactions.model';
 import { BUDGET_STATUSES } from '@bt/shared/types';
+import Transactions from '@models/Transactions.model';
+import Users from '@models/Users.model';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
+  Default,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 
 @Table({
   timestamps: false,
+  tableName: 'Budgets',
 })
-export default class Budgets extends Model {
-  @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  id!: number;
+export default class Budgets extends Model<InferAttributes<Budgets>, InferCreationAttributes<Budgets>> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
 
-  @Column({ allowNull: false, type: DataType.STRING(200) })
-  name!: string;
+  @Attribute(DataTypes.STRING(200))
+  @NotNull
+  declare name: string;
 
-  @Column({ allowNull: false, type: DataType.ENUM({ values: Object.values(BUDGET_STATUSES) }) })
-  status!: BUDGET_STATUSES;
+  @Attribute(DataTypes.ENUM({ values: Object.values(BUDGET_STATUSES) }))
+  @NotNull
+  declare status: BUDGET_STATUSES;
 
-  @Column({ allowNull: true, type: DataType.STRING })
-  categoryName!: string;
+  @Attribute(DataTypes.STRING)
+  declare categoryName: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  startDate!: Date;
+  @Attribute(DataTypes.DATE)
+  declare startDate: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  endDate!: Date;
+  @Attribute(DataTypes.DATE)
+  declare endDate: Date | null;
 
-  @Column({ defaultValue: false, type: DataType.BOOLEAN })
-  autoInclude!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @Default(false)
+  declare autoInclude: CreationOptional<boolean>;
 
-  @Column({ allowNull: true, type: DataType.NUMBER })
-  limitAmount!: number;
+  @Attribute(DataTypes.INTEGER)
+  declare limitAmount: number | null;
 
-  @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @BelongsToMany(() => Transactions, {
-    through: { model: () => BudgetTransactions, unique: false },
-    foreignKey: 'budgetId',
-    otherKey: 'transactionId',
-  })
-  transactions!: number[];
+  // In Sequelize v7, BelongsToMany is defined on Transactions model and automatically creates the inverse
+  declare transactions?: NonAttribute<Transactions[]>;
 }

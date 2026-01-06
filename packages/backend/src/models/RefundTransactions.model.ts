@@ -1,77 +1,76 @@
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
-import Transactions from './Transactions.model';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
+  BelongsTo,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+  Unique,
+} from '@sequelize/core/decorators-legacy';
+
 import TransactionSplits from './TransactionSplits.model';
+import Transactions from './Transactions.model';
 import Users from './Users.model';
 
 @Table({
   tableName: 'RefundTransactions',
   timestamps: true,
   freezeTableName: true,
-  indexes: [
-    {
-      fields: ['userId'],
-    },
-    {
-      fields: ['originalTxId'],
-    },
-    {
-      fields: ['refundTxId'],
-      unique: true,
-    },
-  ],
 })
-export default class RefundTransactions extends Model {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
-  declare id: number;
+export default class RefundTransactions extends Model<
+  InferAttributes<RefundTransactions>,
+  InferCreationAttributes<RefundTransactions>
+> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
 
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @ForeignKey(() => Transactions)
-  @Column({
-    // Can be nullish to support cases like when user has account_A in the system, he receives tx_A,
-    // but in fact it's a refund for some tx_B in an "out of system" account. It is important to
-    // consider that not all user real-life accounts will be present in the system
-    allowNull: true,
-    type: DataType.INTEGER,
-  })
-  originalTxId!: number;
+  // Can be nullish to support cases like when user has account_A in the system, he receives tx_A,
+  // but in fact it's a refund for some tx_B in an "out of system" account. It is important to
+  // consider that not all user real-life accounts will be present in the system
+  @Attribute(DataTypes.INTEGER)
+  @Index
+  declare originalTxId: number | null;
 
-  @ForeignKey(() => Transactions)
-  @Column({
-    allowNull: false,
-    unique: true,
-    type: DataType.INTEGER,
-  })
-  refundTxId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Unique
+  @Index
+  declare refundTxId: number;
 
   // Optional: when set, the refund applies to a specific split rather than the whole transaction
-  @ForeignKey(() => TransactionSplits)
-  @Column({
-    allowNull: true,
-    type: DataType.UUID,
-  })
-  splitId!: string | null;
+  @Attribute(DataTypes.UUID)
+  declare splitId: string | null;
 
-  @BelongsTo(() => TransactionSplits)
-  split!: TransactionSplits;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsTo(() => Users)
-  user!: Users;
+  @BelongsTo(() => TransactionSplits, 'splitId')
+  declare split?: NonAttribute<TransactionSplits>;
+
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
   @BelongsTo(() => Transactions, 'originalTxId')
-  originalTransaction!: Transactions;
+  declare originalTransaction?: NonAttribute<Transactions>;
 
   @BelongsTo(() => Transactions, 'refundTxId')
-  refundTransaction!: Transactions;
+  declare refundTransaction?: NonAttribute<Transactions>;
 }
 
 export const createRefundTransaction = async ({

@@ -1,5 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import Balances from '@models/Balances.model';
 import * as helpers from '@tests/helpers';
 import { format, startOfMonth, subDays } from 'date-fns';

@@ -1,5 +1,5 @@
 import { CategoryModel } from '@bt/shared/types';
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it } from 'vitest';
 import * as helpers from '@tests/helpers';
 
 describe('editExcludedCategories', () => {

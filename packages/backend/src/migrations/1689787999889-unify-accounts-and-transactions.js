@@ -1,6 +1,6 @@
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.addColumn(
@@ -107,7 +107,7 @@ module.exports = {
     }
   },
   down: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.removeColumn('Accounts', 'type', { transaction });
@@ -208,7 +208,7 @@ module.exports = {
           userId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -217,7 +217,7 @@ module.exports = {
           categoryId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'Categories',
+              table: 'Categories',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -226,7 +226,7 @@ module.exports = {
           transactionTypeId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'TransactionTypes',
+              table: 'TransactionTypes',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -235,7 +235,7 @@ module.exports = {
           paymentTypeId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'PaymentTypes',
+              table: 'PaymentTypes',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -244,7 +244,7 @@ module.exports = {
           monoAccountId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'MonobankAccounts',
+              table: 'MonobankAccounts',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -253,7 +253,7 @@ module.exports = {
           currencyId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'Currencies',
+              table: 'Currencies',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -262,7 +262,7 @@ module.exports = {
           transactionEntityId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'TransactionEntities',
+              table: 'TransactionEntities',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -342,13 +342,13 @@ module.exports = {
           },
           name: {
             type: Sequelize.STRING,
-            defaultValue: false,
+            defaultValue: null,
             allowNull: true,
           },
           accountTypeId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'AccountTypes',
+              table: 'AccountTypes',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -357,7 +357,7 @@ module.exports = {
           currencyId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'Currencies',
+              table: 'Currencies',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -366,7 +366,7 @@ module.exports = {
           monoUserId: {
             type: Sequelize.INTEGER,
             references: {
-              model: 'MonobankUsers',
+              table: 'MonobankUsers',
               key: 'id',
             },
             onUpdate: 'CASCADE',

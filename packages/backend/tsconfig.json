@@ -2,8 +2,9 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "strict": true,
-    "target": "es6",
-    "module": "commonjs",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "outDir": "./dist",
     "baseUrl": "./src",
     "paths": {
@@ -29,5 +30,5 @@
     "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "./src/typings"]
   },
   "include": ["src/**/*", "src/tests/global.d.ts", "src/tests/custom-matchers.d.ts"],
-  "exclude": ["config/**/*", "src/migrations/**/*", "dist"]
+  "exclude": ["config/**/*", "dist"]
 }

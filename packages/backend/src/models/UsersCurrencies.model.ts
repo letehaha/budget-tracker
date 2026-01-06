@@ -1,66 +1,70 @@
-import { Op } from 'sequelize';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
-
-import { removeUndefinedKeys } from '@js/helpers';
-import Users from './Users.model';
-import Currencies from './Currencies.model';
 import { NotFoundError } from '@js/errors';
+import { removeUndefinedKeys } from '@js/helpers';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+  Op,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
+  Default,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
+
+import Currencies from './Currencies.model';
+import Users from './Users.model';
 
 @Table({
   timestamps: false,
   tableName: 'UsersCurrencies',
   freezeTableName: true,
 })
-export default class UsersCurrencies extends Model {
-  @Column({
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
+export default class UsersCurrencies extends Model<
+  InferAttributes<UsersCurrencies>,
+  InferCreationAttributes<UsersCurrencies>
+> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
 
-  @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @ForeignKey(() => Currencies)
-  @Column({ allowNull: false, type: DataType.STRING(3) })
-  currencyCode!: string;
-
-  @BelongsTo(() => Users, {
-    as: 'user',
-    foreignKey: 'userId',
-  })
-  @BelongsTo(() => Currencies, {
-    as: 'currency',
-    foreignKey: 'currencyCode',
-  })
+  @Attribute(DataTypes.STRING(3))
+  @NotNull
+  @Index
+  declare currencyCode: string;
 
   // Since base currency is always the same, here we're setting exchange rate
   // between currencyCode to user's base currency
   // TODO: probably deprecated?
-  @Column({
-    allowNull: true,
-    defaultValue: null,
-    type: DataType.INTEGER
-  })
-  exchangeRate!: number;
+  @Attribute(DataTypes.INTEGER)
+  declare exchangeRate: number | null;
 
-  @Column({
-    allowNull: false,
-    defaultValue: false,
-    type: DataType.BOOLEAN
-  })
-  liveRateUpdate!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(false)
+  declare liveRateUpdate: CreationOptional<boolean>;
 
-  @Column({
-    allowNull: false,
-    defaultValue: false,
-    type: DataType.BOOLEAN
-  })
-  isDefaultCurrency!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(false)
+  declare isDefaultCurrency: CreationOptional<boolean>;
+
+  // In Sequelize v7, BelongsTo associations are auto-created by BelongsToMany on Users model
+  declare user?: NonAttribute<Users>;
+  declare currency?: NonAttribute<Currencies>;
 }
 
 export async function getCurrencies({ userId, codes }: { userId: number; codes?: string[] }) {
@@ -88,7 +92,13 @@ export const getBaseCurrency = async ({ userId }: { userId: number }) => {
 };
 
 type getCurrencyOverload = {
-  ({ userId, currencyCode }: { userId: number; currencyCode: string }): Promise<UsersCurrencies & { currency: Currencies }>;
+  ({
+    userId,
+    currencyCode,
+  }: {
+    userId: number;
+    currencyCode: string;
+  }): Promise<UsersCurrencies & { currency: Currencies }>;
   ({
     userId,
     isDefaultCurrency,
@@ -151,7 +161,6 @@ export const addCurrency = async ({
     },
     {
       returning: true,
-      raw: true,
     },
   );
 };

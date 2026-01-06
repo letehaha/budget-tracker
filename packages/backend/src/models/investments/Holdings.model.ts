@@ -1,17 +1,16 @@
+import { HoldingModel } from '@bt/shared/types/investments';
 import {
-  Table,
-  Column,
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
   Model,
-  DataType,
-  ForeignKey,
-  BelongsTo,
-  Index,
-  PrimaryKey,
-} from 'sequelize-typescript';
+  NonAttribute,
+} from '@sequelize/core';
+import { Attribute, BelongsTo, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
-import Securities from './Securities.model';
 import Portfolios from './Portfolios.model';
-import { HoldingModel } from "@bt/shared/types/investments"
+import Securities from './Securities.model';
 
 /**
  * The Holding model represents individual investments within an investment account.
@@ -49,18 +48,21 @@ import { HoldingModel } from "@bt/shared/types/investments"
   timestamps: true,
   tableName: 'Holdings',
 })
-export default class Holdings extends Model implements HoldingModel {
+export default class Holdings
+  extends Model<InferAttributes<Holdings>, InferCreationAttributes<Holdings>>
+  implements HoldingModel
+{
+  @Attribute(DataTypes.INTEGER)
   @PrimaryKey
-  @ForeignKey(() => Portfolios)
+  @NotNull
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  portfolioId!: number;
+  declare portfolioId: number;
 
+  @Attribute(DataTypes.INTEGER)
   @PrimaryKey
-  @ForeignKey(() => Securities)
+  @NotNull
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  securityId!: number;
+  declare securityId: number;
 
   /**
    * The `quantity` field represents the total number of units or shares
@@ -72,8 +74,10 @@ export default class Holdings extends Model implements HoldingModel {
    * Changes in quantity are driven by investment transactions such as buying or
    * selling shares of the security.
    */
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  quantity!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
+  declare quantity: string;
 
   /**
    * The `costBasis` field represents the original value or purchase price of an
@@ -95,13 +99,20 @@ export default class Holdings extends Model implements HoldingModel {
    * It needs to be recalculated when there are new investment transactions that
    * affect the quantity or value of holding.
    */
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  costBasis!: string;
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  refCostBasis!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
+  declare costBasis: string;
 
-  @Column({ type: DataType.STRING, allowNull: false, defaultValue: 'USD' })
-  currencyCode!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
+  declare refCostBasis: string;
+
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  @Default('USD')
+  declare currencyCode: string;
 
   /**
    * Indicates whether a particular holding should be excluded from certain
@@ -109,18 +120,22 @@ export default class Holdings extends Model implements HoldingModel {
    * various reasons, depending on the specific needs or preferences of the user
    * or the application's functionality.
    */
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
-  excluded!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(false)
+  declare excluded: CreationOptional<boolean>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare createdAt: CreationOptional<Date>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsTo(() => Securities)
-  security?: Securities;
+  @BelongsTo(() => Securities, 'securityId')
+  declare security?: NonAttribute<Securities>;
 
-  @BelongsTo(() => Portfolios)
-  portfolio?: Portfolios;
+  @BelongsTo(() => Portfolios, 'portfolioId')
+  declare portfolio?: NonAttribute<Portfolios>;
 }

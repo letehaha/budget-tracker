@@ -1,5 +1,4 @@
 import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import Portfolios from '@models/investments/Portfolios.model';
 import Securities from '@models/investments/Securities.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
@@ -7,28 +6,29 @@ import { restClient } from '@polygon.io/client-js';
 import * as helpers from '@tests/helpers';
 import alpha from 'alphavantage';
 import { subDays } from 'date-fns';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FmpClient } from '../data-providers/clients/fmp-client';
 
 // Mock data provider clients
-const mockedRestClient = jest.mocked(restClient);
+const mockedRestClient = vi.mocked(restClient);
 const mockPolygonApi = mockedRestClient.getMockImplementation()!('test');
-const mockedPolygonAggregates = jest.mocked(mockPolygonApi.stocks.aggregates);
+const mockedPolygonAggregates = vi.mocked(mockPolygonApi.stocks.aggregates);
 
-const mockedAlpha = jest.mocked(alpha);
+const mockedAlpha = vi.mocked(alpha);
 const mockAlphaVantage = mockedAlpha.getMockImplementation()!({ key: 'test' });
-const mockedAlphaDaily = jest.mocked(mockAlphaVantage.data.daily);
+const mockedAlphaDaily = vi.mocked(mockAlphaVantage.data.daily);
 
-const mockedFmpClient = jest.mocked(FmpClient);
-const mockedFmpHistoricalPrices = jest.fn();
+const mockedFmpClient = vi.mocked(FmpClient);
+const mockedFmpHistoricalPrices = vi.fn();
 
 mockedFmpClient.mockImplementation(
   () =>
     ({
       getHistoricalPrices: mockedFmpHistoricalPrices,
-      search: jest.fn(),
-      getQuote: jest.fn(),
-      getHistoricalPricesFull: jest.fn(),
+      search: vi.fn(),
+      getQuote: vi.fn(),
+      getHistoricalPricesFull: vi.fn(),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
 );
@@ -40,7 +40,7 @@ describe('Historical Price Sync Service (via Holdings Creation)', () => {
   let existingSecurity: Securities;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Create investment portfolio
     investmentPortfolio = await helpers.createPortfolio({

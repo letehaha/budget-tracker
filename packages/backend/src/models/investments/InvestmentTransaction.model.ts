@@ -1,16 +1,36 @@
-import { INVESTMENT_TRANSACTION_CATEGORY, InvestmentTransactionModel } from '@bt/shared/types/investments';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { INVESTMENT_TRANSACTION_CATEGORY, InvestmentTransactionModel } from '@bt/shared/types/investments';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
+  BelongsTo,
+  Default,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+  Unique,
+} from '@sequelize/core/decorators-legacy';
 
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
-
-import Securities from './Securities.model';
 import Portfolios from './Portfolios.model';
+import Securities from './Securities.model';
 
 @Table({
   timestamps: true,
   tableName: 'InvestmentTransactions',
 })
-export default class InvestmentTransaction extends Model implements InvestmentTransactionModel {
+export default class InvestmentTransaction
+  extends Model<InferAttributes<InvestmentTransaction>, InferCreationAttributes<InvestmentTransaction>>
+  implements InvestmentTransactionModel
+{
   /**
    * IMPORTANT: Investment transactionType Logic
    *
@@ -33,25 +53,22 @@ export default class InvestmentTransaction extends Model implements InvestmentTr
    * your bank account's perspective - selling securities brings money IN (income).
    */
 
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    type: DataType.INTEGER,
-  })
-  id!: number;
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  @Unique
+  declare id: CreationOptional<number>;
 
-  @ForeignKey(() => Securities)
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  securityId!: number;
+  declare securityId: number;
 
   // New portfolioId field for portfolio migration
-  @ForeignKey(() => Portfolios)
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  portfolioId!: number;
+  declare portfolioId: number;
 
   /**
    * The transaction type representing cash flow direction:
@@ -59,62 +76,75 @@ export default class InvestmentTransaction extends Model implements InvestmentTr
    * - INCOME: Money entering your account (SELL transactions)
    * See class-level documentation above for detailed explanation.
    */
-  @Column({
-    type: DataType.ENUM(...Object.values(TRANSACTION_TYPES)),
-    allowNull: false,
-  })
-  transactionType!: TRANSACTION_TYPES;
+  @Attribute(DataTypes.ENUM(...Object.values(TRANSACTION_TYPES)))
+  @NotNull
+  declare transactionType: TRANSACTION_TYPES;
 
+  @Attribute(DataTypes.DATEONLY)
+  @NotNull
   @Index
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  date!: string;
+  declare date: string;
 
-   /**
+  /**
    * A descriptive name or title for the investment transaction, providing a
    * quick overview of the transaction's nature. Same as `note` in `Transactions`
    */
-  @Column({ type: DataType.STRING(2000), allowNull: true })
-  name!: string | null;
+  @Attribute(DataTypes.STRING(2000))
+  declare name: string | null;
 
   /**
    * The monetary value involved in the transaction. Depending on the context,
    * this could represent the cost, sale proceeds, or other financial values
    * associated with the transaction. Calculated as quantity * price + fees
    */
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
-  amount!: string;
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
-  refAmount!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  declare amount: string;
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  fees!: string;
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  refFees!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  declare refAmount: string;
+
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
+  declare fees: string;
+
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
+  declare refFees: string;
 
   /**
    * * The quantity of the security involved in the transaction. This is crucial
    * for tracking the changes in holdings as a result of the transaction.
    */
-  @Column({ type: DataType.DECIMAL(36, 18), allowNull: false })
-  quantity!: string;
+  @Attribute(DataTypes.DECIMAL(36, 18))
+  @NotNull
+  declare quantity: string;
 
   /**
    * The price per unit of the security at the time of the transaction.
    * This is used to calculate the total transaction amount and update the cost
    * basis of the holding.
    */
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
-  price!: string;
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
-  refPrice!: string;
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  declare price: string;
+
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  declare refPrice: string;
 
   /**
    * The ISO currency code or standard cryptocurrency code representing the currency
    * in which the transaction was conducted. For cryptocurrencies, this code refers to
    * the specific cryptocurrency involved (e.g., BTC for Bitcoin, ETH for Ethereum).
    */
-  @Column({ type: DataType.STRING, allowNull: false, defaultValue: 'USD' })
-  currencyCode!: string;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  @Default('USD')
+  declare currencyCode: string;
 
   /**
    * A category that classifies the nature of the investment transaction.
@@ -126,36 +156,34 @@ export default class InvestmentTransaction extends Model implements InvestmentTr
    * - SELL category → INCOME transactionType (receiving money)
    * See class-level documentation for detailed cash flow logic.
    */
-  @Column({
-    type: DataType.ENUM(...Object.values(INVESTMENT_TRANSACTION_CATEGORY)),
-    allowNull: false,
-  })
-  category!: INVESTMENT_TRANSACTION_CATEGORY;
+  @Attribute(DataTypes.ENUM(...Object.values(INVESTMENT_TRANSACTION_CATEGORY)))
+  @NotNull
+  declare category: INVESTMENT_TRANSACTION_CATEGORY;
 
   /**
    * "transferNature" and "transferId" are used to move funds between different
    * accounts and don't affect income/expense stats.
    */
-  @Column({
-    type: DataType.ENUM(...Object.values(TRANSACTION_TRANSFER_NATURE)),
-    allowNull: false,
-    defaultValue: TRANSACTION_TRANSFER_NATURE.not_transfer,
-  })
-  transferNature!: TRANSACTION_TRANSFER_NATURE;
+  @Attribute(DataTypes.ENUM(...Object.values(TRANSACTION_TRANSFER_NATURE)))
+  @NotNull
+  @Default(TRANSACTION_TRANSFER_NATURE.not_transfer)
+  declare transferNature: CreationOptional<TRANSACTION_TRANSFER_NATURE>;
 
   // (hash, used to connect two transactions)
-  @Column({ type: DataType.STRING, allowNull: true })
-  transferId!: string | null;
+  @Attribute(DataTypes.STRING)
+  declare transferId: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare createdAt: CreationOptional<Date>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsTo(() => Securities)
-  security!: Securities;
+  @BelongsTo(() => Securities, 'securityId')
+  declare security?: NonAttribute<Securities>;
 
-  @BelongsTo(() => Portfolios)
-  portfolio?: Portfolios;
+  @BelongsTo(() => Portfolios, 'portfolioId')
+  declare portfolio?: NonAttribute<Portfolios>;
 }

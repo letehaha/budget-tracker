@@ -1,5 +1,6 @@
-import cls from 'cls-hooked';
-import { Sequelize } from 'sequelize-typescript';
+import { Sequelize } from '@sequelize/core';
+import { PostgresDialect } from '@sequelize/postgres';
+import { AsyncLocalStorage } from 'async_hooks';
 
 import AccountsModel from './Accounts.model';
 import BalancesModel from './Balances.model';
@@ -29,8 +30,8 @@ import PortfoliosModel from './investments/Portfolios.model';
 import SecuritiesModel from './investments/Securities.model';
 import SecurityPricingModel from './investments/SecurityPricing.model';
 
-export const namespace = cls.createNamespace('budget-tracker-namespace');
-Sequelize.useCLS(namespace);
+// Sequelize v7 uses AsyncLocalStorage instead of cls-hooked
+export const transactionStorage = new AsyncLocalStorage<object>();
 
 const connection: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,15 +39,6 @@ const connection: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Sequelize?: any;
 } = {};
-
-const DBConfig: Record<string, unknown> = {
-  host: process.env.APPLICATION_DB_HOST,
-  username: process.env.APPLICATION_DB_USERNAME,
-  password: process.env.APPLICATION_DB_PASSWORD,
-  database: process.env.APPLICATION_DB_DATABASE,
-  port: process.env.APPLICATION_DB_PORT,
-  dialect: process.env.APPLICATION_DB_DIALECT,
-};
 
 const models = [
   UsersModel,
@@ -78,23 +70,45 @@ const models = [
   PortfolioTransfersModel,
 ];
 
+const databaseName =
+  process.env.NODE_ENV === 'test'
+    ? `${process.env.APPLICATION_DB_DATABASE}-${process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID || '1'}`
+    : process.env.APPLICATION_DB_DATABASE!;
+
 const sequelize = new Sequelize({
-  ...DBConfig,
-  database:
-    process.env.NODE_ENV === 'test'
-      ? `${DBConfig.database}-${process.env.JEST_WORKER_ID}`
-      : (DBConfig.database as string),
+  dialect: PostgresDialect,
+  host: process.env.APPLICATION_DB_HOST,
+  user: process.env.APPLICATION_DB_USERNAME,
+  password: process.env.APPLICATION_DB_PASSWORD,
+  database: databaseName,
+  port: Number(process.env.APPLICATION_DB_PORT),
   models,
   pool: {
     max: 50,
     evict: 10000,
   },
-  logging: process.env.DB_QUERY_LOGGING === 'true',
+  logging: process.env.DB_QUERY_LOGGING === 'true' ? console.log : false,
 });
 
 if (process.env.NODE_ENV === 'development') {
-  console.log('DBConfig', DBConfig);
+  console.log('DBConfig', {
+    host: process.env.APPLICATION_DB_HOST,
+    user: process.env.APPLICATION_DB_USERNAME,
+    database: databaseName,
+    port: process.env.APPLICATION_DB_PORT,
+  });
 }
+
+// Setup self-referencing associations that cannot use decorators
+// AccountGroup parent/child self-reference
+AccountGroupsModel.belongsTo(AccountGroupsModel, {
+  foreignKey: 'parentGroupId',
+  as: 'parentGroup',
+});
+AccountGroupsModel.hasMany(AccountGroupsModel, {
+  foreignKey: 'parentGroupId',
+  as: 'childGroups',
+});
 
 connection.sequelize = sequelize;
 connection.Sequelize = Sequelize;

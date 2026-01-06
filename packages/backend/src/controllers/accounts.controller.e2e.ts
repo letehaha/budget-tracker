@@ -1,5 +1,5 @@
 import { ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { addDays } from 'date-fns';

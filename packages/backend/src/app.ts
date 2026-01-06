@@ -14,7 +14,7 @@ import path from 'path';
 
 import { API_PREFIX } from './config';
 import { auth } from './config/auth';
-import { loadCurrencyRatesJob } from './crons/exchange-rates';
+import { loadCurrencyRatesJob } from './crons/exchange-rates/index';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
 import './redis-client';
 import accountGroupsRoutes from './routes/account-groups';
@@ -38,11 +38,11 @@ import testsRoutes from './routes/tests.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
-import { registerAiCategorizationListeners } from './services/ai-categorization';
+import { registerAiCategorizationListeners } from './services/ai-categorization/index';
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
 import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
-import { initializeExchangeRateProviders } from './services/exchange-rates/providers';
-import { supportedLocales } from './translations';
+import { initializeExchangeRateProviders } from './services/exchange-rates/providers/index';
+import { supportedLocales } from './translations/index';
 
 logger.info('Starting application initialization...');
 

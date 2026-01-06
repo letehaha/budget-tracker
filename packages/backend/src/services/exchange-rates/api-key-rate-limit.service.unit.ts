@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { redisClient } from '@root/redis-client';
 import { endOfMonth } from 'date-fns';
 

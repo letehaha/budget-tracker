@@ -1,5 +1,5 @@
 import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import Transactions from '@models/Transactions.model';

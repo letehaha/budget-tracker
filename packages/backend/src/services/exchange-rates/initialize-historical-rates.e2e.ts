@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from '@jest/globals';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import ExchangeRates from '@models/ExchangeRates.model';
 import { createOverride } from '@tests/mocks/helpers';
 import { format } from 'date-fns';

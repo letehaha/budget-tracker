@@ -53,12 +53,12 @@ module.exports = {
       },
       name: {
         type: Sequelize.STRING,
-        defaultValue: false,
+        defaultValue: null,
         allowNull: true,
       },
     });
 
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.addColumn(
@@ -67,7 +67,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'AccountTypes',
+            table: 'AccountTypes',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -81,7 +81,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'Currencies',
+            table: 'Currencies',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -95,7 +95,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'MonobankUsers',
+            table: 'MonobankUsers',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -112,7 +112,7 @@ module.exports = {
   down: async (queryInterface) => {
     await queryInterface.dropTable('MonobankAccounts');
 
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       await queryInterface.removeColumn('MonobankAccounts', 'accountTypeId', {
         transaction,

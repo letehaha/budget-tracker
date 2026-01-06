@@ -1,40 +1,40 @@
 import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import { restClient } from '@polygon.io/client-js';
 import * as helpers from '@tests/helpers';
 import alpha from 'alphavantage';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FmpClient, type FmpSearchResult } from './clients/fmp-client';
 
 // Get mock instances (these are set up globally in setupIntegrationTests.ts)
-const mockedRestClient = jest.mocked(restClient);
+const mockedRestClient = vi.mocked(restClient);
 const mockPolygonApi = mockedRestClient.getMockImplementation()!('test');
-const mockedPolygonGroupedDaily = jest.mocked(mockPolygonApi.stocks.aggregatesGroupedDaily);
+const mockedPolygonGroupedDaily = vi.mocked(mockPolygonApi.stocks.aggregatesGroupedDaily);
 
-const mockedAlpha = jest.mocked(alpha);
+const mockedAlpha = vi.mocked(alpha);
 const mockAlphaVantage = mockedAlpha.getMockImplementation()!({ key: 'test' });
-const mockedAlphaSearch = jest.mocked(mockAlphaVantage.data.search);
+const mockedAlphaSearch = vi.mocked(mockAlphaVantage.data.search);
 
-const mockedFmpClient = jest.mocked(FmpClient);
+const mockedFmpClient = vi.mocked(FmpClient);
 // Create properly typed mock functions
-const mockedFmpSearch = jest.fn<() => Promise<FmpSearchResult[]>>();
+const mockedFmpSearch = vi.fn<() => Promise<FmpSearchResult[]>>();
 
 // Configure the constructor to return our mock instance
 mockedFmpClient.mockImplementation(
   () =>
     ({
       search: mockedFmpSearch,
-      getQuote: jest.fn(),
-      getHistoricalPrices: jest.fn(),
-      getHistoricalPricesFull: jest.fn(),
+      getQuote: vi.fn(),
+      getHistoricalPrices: vi.fn(),
+      getHistoricalPricesFull: vi.fn(),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
 );
 
 describe('GET /investments/securities/search - Composite Provider Integration', () => {
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should route search requests to FMP provider and return properly formatted results', async () => {

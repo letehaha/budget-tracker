@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Op, QueryInterface, Transaction } from 'sequelize';
+import { Op } from '@sequelize/core';
+import type { AbstractAbstractQueryInterface, Transaction } from '@sequelize/core';
 
 // Define constants for enum names to prevent typos
 const ENUM_SECURITY_PROVIDER = 'enum_security_provider';
@@ -12,8 +13,8 @@ const ENUM_TRANSACTION_TYPE = 'enum_transactions_transaction_type'; // exactly f
 const ENUM_TRANSFER_NATURE = 'enum_transfer_nature';
 
 module.exports = {
-  up: async (queryInterface: QueryInterface, Sequelize: any): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  up: async (queryInterface: AbstractAbstractQueryInterface, Sequelize: any): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Create ENUM types first
@@ -51,7 +52,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -113,7 +114,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Portfolios',
+              table: 'Portfolios',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -123,7 +124,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Currencies',
+              table: 'Currencies',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -193,7 +194,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -203,7 +204,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: true,
             references: {
-              model: 'Accounts',
+              table: 'Accounts',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -213,7 +214,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: true,
             references: {
-              model: 'Portfolios',
+              table: 'Portfolios',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -223,7 +224,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: true,
             references: {
-              model: 'Portfolios',
+              table: 'Portfolios',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -233,7 +234,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: true,
             references: {
-              model: 'Accounts',
+              table: 'Accounts',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -251,7 +252,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Currencies',
+              table: 'Currencies',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -283,32 +284,32 @@ module.exports = {
         type: 'check',
         name: 'portfolio_transfers_valid_direction_check',
         where: {
-          [Sequelize.Op.or]: [
+          [Op.or]: [
             // Account to Portfolio
             {
-              [Sequelize.Op.and]: [
-                { fromAccountId: { [Sequelize.Op.ne]: null } },
-                { toPortfolioId: { [Sequelize.Op.ne]: null } },
-                { fromPortfolioId: { [Sequelize.Op.eq]: null } },
-                { toAccountId: { [Sequelize.Op.eq]: null } },
+              [Op.and]: [
+                { fromAccountId: { [Op.ne]: null } },
+                { toPortfolioId: { [Op.ne]: null } },
+                { fromPortfolioId: { [Op.eq]: null } },
+                { toAccountId: { [Op.eq]: null } },
               ],
             },
             // Portfolio to Account
             {
-              [Sequelize.Op.and]: [
-                { fromPortfolioId: { [Sequelize.Op.ne]: null } },
-                { toAccountId: { [Sequelize.Op.ne]: null } },
-                { fromAccountId: { [Sequelize.Op.eq]: null } },
-                { toPortfolioId: { [Sequelize.Op.eq]: null } },
+              [Op.and]: [
+                { fromPortfolioId: { [Op.ne]: null } },
+                { toAccountId: { [Op.ne]: null } },
+                { fromAccountId: { [Op.eq]: null } },
+                { toPortfolioId: { [Op.eq]: null } },
               ],
             },
             // Portfolio to Portfolio
             {
-              [Sequelize.Op.and]: [
-                { fromPortfolioId: { [Sequelize.Op.ne]: null } },
-                { toPortfolioId: { [Sequelize.Op.ne]: null } },
-                { fromAccountId: { [Sequelize.Op.eq]: null } },
-                { toAccountId: { [Sequelize.Op.eq]: null } },
+              [Op.and]: [
+                { fromPortfolioId: { [Op.ne]: null } },
+                { toPortfolioId: { [Op.ne]: null } },
+                { fromAccountId: { [Op.eq]: null } },
+                { toAccountId: { [Op.eq]: null } },
               ],
             },
           ],
@@ -454,7 +455,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Portfolios',
+              table: 'Portfolios',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -464,7 +465,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Securities',
+              table: 'Securities',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -547,7 +548,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Portfolios',
+              table: 'Portfolios',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -557,7 +558,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Securities',
+              table: 'Securities',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -672,7 +673,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Securities',
+              table: 'Securities',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -737,8 +738,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Drop tables in reverse order

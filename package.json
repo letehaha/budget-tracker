@@ -34,6 +34,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-decorators": "^7.28.0",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@vue/compiler-sfc": "^3.5.13",
     "eslint": "7.31.0",

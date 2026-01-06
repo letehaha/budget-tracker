@@ -23,7 +23,7 @@ export default defineConfig({
     outDir: 'dist',
     lib: {
       entry: path.resolve(__dirname, 'src/app.ts'),
-      formats: ['cjs'],
+      formats: ['es'],
     },
     rollupOptions: {
       external: externalDeps,
