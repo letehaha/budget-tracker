@@ -4,6 +4,13 @@ import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
 const recordId = () => z.number().int().positive().finite();
+
+const splitSchema = z.object({
+  categoryId: recordId(),
+  amount: z.number().int().positive('Split amount must be greater than 0').finite(),
+  note: z.string().max(100, 'Split note must not exceed 100 characters').nullish(),
+});
+
 const schema = z.object({
   body: z
     .object({
@@ -20,16 +27,26 @@ const schema = z.object({
       destinationTransactionId: recordId().optional(),
       categoryId: z.union([recordId(), z.undefined()]),
       transferNature: z.nativeEnum(TRANSACTION_TRANSFER_NATURE),
-      refundsTxId: recordId().optional(),
+      refundForTxId: recordId().optional(),
+      refundForSplitId: z.string().uuid().optional(),
+      splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').optional(),
     })
     .refine(
       (data) =>
-        !(data.transferNature && data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer && data.refundsTxId),
+        !(
+          data.transferNature &&
+          data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer &&
+          data.refundForTxId
+        ),
       {
-        message: `Non-${TRANSACTION_TRANSFER_NATURE.not_transfer} cannot be used in "transferNature" when "refundsTxId" is used`,
-        path: ['transferNature', 'refundsTxId'],
+        message: `Non-${TRANSACTION_TRANSFER_NATURE.not_transfer} cannot be used in "transferNature" when "refundForTxId" is used`,
+        path: ['transferNature', 'refundForTxId'],
       },
     )
+    .refine((data) => !(data.refundForSplitId && !data.refundForTxId), {
+      message: '"refundForSplitId" can only be provided when "refundForTxId" is specified',
+      path: ['refundForSplitId', 'refundForTxId'],
+    })
     .refine(
       (data) => {
         if (data.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
@@ -89,6 +106,19 @@ const schema = z.object({
         message: "'commissionRate' cannot be greater than 'amount",
         path: ['commissionRate', 'amount'],
       },
+    )
+    .refine(
+      (data) => {
+        // Splits are not allowed on transfer transactions
+        if (data.splits && data.splits.length > 0 && data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
+          return false;
+        }
+        return true;
+      },
+      {
+        message: 'Splits cannot be added to transfer transactions',
+        path: ['splits', 'transferNature'],
+      },
     ),
 });
 
@@ -107,7 +137,9 @@ export default createController(schema, async ({ user, body }) => {
     categoryId,
     accountType = ACCOUNT_TYPES.system,
     transferNature = TRANSACTION_TRANSFER_NATURE.not_transfer,
-    refundsTxId,
+    refundForTxId,
+    refundForSplitId,
+    splits,
   } = body;
   const { id: userId } = user;
 
@@ -126,7 +158,9 @@ export default createController(schema, async ({ user, body }) => {
     accountType,
     transferNature,
     userId,
-    refundsTxId,
+    refundsTxId: refundForTxId,
+    refundsSplitId: refundForSplitId,
+    splits,
   };
 
   // TODO: Add validations

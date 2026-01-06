@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { withTransaction } from '../common/with-transaction';
 import { createSingleRefund } from '../tx-refunds/create-single-refund.service';
+import { manageSplits } from './splits';
 import { linkTransactions } from './transactions-linking';
 import type { CreateTransactionParams, UpdateTransactionParams } from './types';
 
@@ -174,6 +175,8 @@ export const createTransaction = withTransaction(
     transferNature,
     destinationTransactionId,
     refundsTxId,
+    refundsSplitId,
+    splits,
     ...payload
   }: CreateTransactionParams) => {
     try {
@@ -261,6 +264,7 @@ export const createTransaction = withTransaction(
           userId,
           originalTxId: refundsTxId,
           refundTxId: baseTransaction!.id,
+          splitId: refundsSplitId,
         });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
         logger.info('Transfer transaction creation');
@@ -306,6 +310,19 @@ export const createTransaction = withTransaction(
           ]);
           transactions = [res.baseTx, res.oppositeTx];
         }
+      }
+
+      // Handle splits for non-transfer transactions
+      if (splits && splits.length > 0 && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+        await manageSplits({
+          transactionId: baseTransaction!.id,
+          userId,
+          splits,
+          transactionAmount: amount,
+          transactionCurrencyCode: generalTxCurrency.code,
+          transactionTime: generalTxParams.time,
+          transferNature,
+        });
       }
 
       return transactions;

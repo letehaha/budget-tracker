@@ -1,4 +1,5 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
+import type { FormattedCategory } from '@/common/types';
 import {
   AccountModel,
   CategoryModel,
@@ -7,7 +8,7 @@ import {
   TransactionModel,
 } from '@bt/shared/types';
 
-import { FORM_TYPES, UI_FORM_STRUCT } from './types';
+import { FORM_TYPES, type FormSplit, UI_FORM_STRUCT } from './types';
 
 export const getDestinationAccount = ({
   isRecordExternal,
@@ -63,27 +64,60 @@ export const getTxTypeFromFormType = (formType: FORM_TYPES): TRANSACTION_TYPES =
 
 export const isOutOfWalletAccount = (account: typeof OUT_OF_WALLET_ACCOUNT_MOCK) => account._isOutOfWallet;
 
+/**
+ * Builds a flat map of category id -> FormattedCategory from the nested structure
+ */
+const buildFormattedCategoriesMap = (
+  categories: FormattedCategory[],
+  map: Record<number, FormattedCategory> = {},
+): Record<number, FormattedCategory> => {
+  for (const category of categories) {
+    map[category.id] = category;
+    if (category.subCategories?.length > 0) {
+      buildFormattedCategoriesMap(category.subCategories, map);
+    }
+  }
+  return map;
+};
+
 export const prepopulateForm = ({
   transaction,
   oppositeTransaction,
   categories,
   accounts,
+  formattedCategories,
 }: {
   transaction: TransactionModel | undefined;
   oppositeTransaction: TransactionModel | undefined;
   categories: Record<number, CategoryModel>;
   accounts: Record<number, AccountModel>;
+  formattedCategories: FormattedCategory[];
 }) => {
   if (transaction) {
+    // Build a flat map from formattedCategories for split conversion
+    const formattedCategoriesMap = buildFormattedCategoriesMap(formattedCategories);
+
     const initialFormValues = {
       type: getFormTypeFromTransaction(transaction),
-      category: categories[transaction.categoryId],
+      category: formattedCategoriesMap[transaction.categoryId] || categories[transaction.categoryId],
       time: new Date(transaction.time),
       paymentType: VERBOSE_PAYMENT_TYPES.find((item) => item.value === transaction.paymentType),
       note: transaction.note,
       refundedByTxs: undefined,
       refundsTx: undefined,
     } as UI_FORM_STRUCT;
+
+    // Convert transaction splits to form splits
+    if (transaction.splits && transaction.splits.length > 0) {
+      initialFormValues.splits = transaction.splits.map(
+        (split): FormSplit => ({
+          id: split.id,
+          category: formattedCategoriesMap[split.categoryId],
+          amount: split.amount,
+          note: split.note,
+        }),
+      );
+    }
 
     if (transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
       if (transaction.transactionType === TRANSACTION_TYPES.income) {

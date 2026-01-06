@@ -12,6 +12,7 @@
 <script setup lang="ts">
 import LegacyAccountMigrationDialog from '@/components/banners/legacy-account-migration-dialog.vue';
 import NotificationsCenter from '@/components/notification-center/notifications-center.vue';
+import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useAiCategorizationEvents } from '@/composable/use-ai-categorization-events';
 import { useSSE } from '@/composable/use-sse';
 import { ROUTES_NAMES } from '@/routes';
@@ -28,6 +29,9 @@ const userCurrenciesStore = useCurrenciesStore();
 const { isAppInitialized } = storeToRefs(rootStore);
 const { isLoggedIn } = storeToRefs(authStore);
 const { isBaseCurrencyExists } = storeToRefs(userCurrenciesStore);
+
+// Prefetch exchange rates for components that need them
+useExchangeRates({ enabled: isLoggedIn });
 
 // SSE for real-time updates
 const { disconnect: disconnectSSE } = useSSE();

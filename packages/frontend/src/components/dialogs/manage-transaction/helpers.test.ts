@@ -82,6 +82,7 @@ describe('components/modals/modify-record/helpers', () => {
         oppositeTransaction: undefined,
         accounts: accountsRecord,
         categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
       });
 
       expect(result).toBeUndefined();
@@ -95,6 +96,7 @@ describe('components/modals/modify-record/helpers', () => {
         oppositeTransaction: undefined,
         accounts: accountsRecord,
         categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
       });
 
       expect(result).toMatchObject({
@@ -118,6 +120,7 @@ describe('components/modals/modify-record/helpers', () => {
         oppositeTransaction: undefined,
         accounts: accountsRecord,
         categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
       });
 
       expect(result).toMatchObject({
@@ -147,6 +150,7 @@ describe('components/modals/modify-record/helpers', () => {
         oppositeTransaction,
         accounts: accountsRecord,
         categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
       });
 
       expect(result).toMatchObject({
@@ -173,6 +177,7 @@ describe('components/modals/modify-record/helpers', () => {
         oppositeTransaction: undefined,
         accounts: accountsRecord,
         categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
       });
 
       expect(result).toMatchObject({
@@ -200,6 +205,7 @@ describe('components/modals/modify-record/helpers', () => {
         oppositeTransaction: undefined,
         accounts: accountsRecord,
         categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
       });
 
       expect(result).toMatchObject({
@@ -222,6 +228,7 @@ describe('components/modals/modify-record/helpers', () => {
         oppositeTransaction: undefined,
         accounts: accountsRecord,
         categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
       });
 
       expect(result.note).toBe('Test note for transaction');
@@ -237,6 +244,7 @@ describe('components/modals/modify-record/helpers', () => {
         oppositeTransaction: undefined,
         accounts: accountsRecord,
         categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
       });
 
       expect(result.paymentType).toEqual(VERBOSE_PAYMENT_TYPES.find((p) => p.value === PAYMENT_TYPES.cash));
@@ -253,6 +261,7 @@ describe('components/modals/modify-record/helpers', () => {
         oppositeTransaction: undefined,
         accounts: accountsRecord,
         categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
       });
 
       expect(result.time).toBeInstanceOf(Date);

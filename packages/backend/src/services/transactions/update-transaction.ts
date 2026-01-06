@@ -4,6 +4,7 @@ import { removeUndefinedKeys } from '@js/helpers';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/Accounts.model';
 import RefundTransactions from '@models/RefundTransactions.model';
+import { deleteSplitsForTransaction } from '@models/TransactionSplits.model';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
@@ -13,6 +14,7 @@ import { Op } from 'sequelize';
 import { withTransaction } from '../common/with-transaction';
 import { calcTransferTransactionRefAmount, createOppositeTransaction } from './create-transaction';
 import { getTransactionById } from './get-by-id';
+import { manageSplits } from './splits';
 import { linkTransactions } from './transactions-linking';
 import { type UpdateTransactionParams } from './types';
 
@@ -150,11 +152,16 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
       ),
     );
 
+  // Track pending refund operations to execute AFTER transaction update
+  // This ensures createSingleRefund validates against the NEW refAmount
+  let pendingRefundOperation: (() => Promise<void>) | null = null;
+
   if (newData.refundedByTxIds !== undefined) {
     const refundsShouldBeRemoved = prevData.refundLinked && newData.refundedByTxIds === null;
     const refundsShouldBeSetOrOverriden = Array.isArray(newData.refundedByTxIds) && newData.refundedByTxIds.length;
 
     if (refundsShouldBeRemoved || refundsShouldBeSetOrOverriden) {
+      // Remove old refunds first (before update)
       const previousRefunds = await refundsService.getRefundsForTransactionById({
         userId: newData.userId,
         transactionId: newData.id,
@@ -181,16 +188,19 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
           });
         }
 
-        await Promise.all(
-          newData.refundedByTxIds!.map((id) =>
-            refundsService.createSingleRefund({
-              originalTxId: newData.id,
-              refundTxId: id,
-              userId: newData.userId,
-            }),
-          ),
-        );
         baseTransactionUpdateParams.refundLinked = true;
+        // Defer refund creation until after transaction is updated
+        pendingRefundOperation = async () => {
+          await Promise.all(
+            newData.refundedByTxIds!.map((id) =>
+              refundsService.createSingleRefund({
+                originalTxId: newData.id,
+                refundTxId: id,
+                userId: newData.userId,
+              }),
+            ),
+          );
+        };
       }
     }
   } else if (newData.refundsTxId !== undefined) {
@@ -198,6 +208,7 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
     const refundShouldBeSetOrOverriden = newData.refundsTxId;
 
     if (refundShouldBeRemoved || refundShouldBeSetOrOverriden) {
+      // Remove old refunds first (before update)
       const previousRefunds = await refundsService.getRefundsForTransactionById({
         userId: newData.userId,
         transactionId: newData.id,
@@ -206,17 +217,27 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
 
       if (refundShouldBeRemoved) baseTransactionUpdateParams.refundLinked = false;
       if (refundShouldBeSetOrOverriden) {
-        await refundsService.createSingleRefund({
-          originalTxId: newData.refundsTxId,
-          refundTxId: newData.id,
-          userId: newData.userId,
-        });
         baseTransactionUpdateParams.refundLinked = true;
+        // Defer refund creation until after transaction is updated
+        pendingRefundOperation = async () => {
+          await refundsService.createSingleRefund({
+            originalTxId: newData.refundsTxId!,
+            refundTxId: newData.id,
+            userId: newData.userId,
+            splitId: newData.refundsSplitId ?? undefined,
+          });
+        };
       }
     }
   }
 
+  // Update the transaction first
   const baseTransaction = await Transactions.updateTransactionById(baseTransactionUpdateParams);
+
+  // Now create refund links (validates against the UPDATED refAmount)
+  if (pendingRefundOperation) {
+    await pendingRefundOperation();
+  }
 
   return baseTransaction;
 };
@@ -419,6 +440,44 @@ export const updateTransaction = withTransaction(
         }
       } else if (isDiscardingTransfer(payload, prevData)) {
         await unlinkOppositeTransaction(helperFunctionsArgs);
+      }
+
+      // Handle splits
+      const isTransfer =
+        baseTransaction.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer ||
+        payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+
+      if (payload.splits !== undefined) {
+        if (isTransfer) {
+          // If transaction is or becomes a transfer, delete any existing splits
+          await deleteSplitsForTransaction({
+            transactionId: baseTransaction.id,
+            userId: payload.userId,
+          });
+        } else if (payload.splits === null || payload.splits.length === 0) {
+          // Explicitly clearing splits
+          await deleteSplitsForTransaction({
+            transactionId: baseTransaction.id,
+            userId: payload.userId,
+          });
+        } else {
+          // Update splits
+          await manageSplits({
+            transactionId: baseTransaction.id,
+            userId: payload.userId,
+            splits: payload.splits,
+            transactionAmount: baseTransaction.amount,
+            transactionCurrencyCode: baseTransaction.currencyCode,
+            transactionTime: baseTransaction.time,
+            transferNature: baseTransaction.transferNature,
+          });
+        }
+      } else if (isCreatingTransfer(payload, prevData)) {
+        // If transaction is becoming a transfer, clear any existing splits
+        await deleteSplitsForTransaction({
+          transactionId: baseTransaction.id,
+          userId: payload.userId,
+        });
       }
 
       return updatedTransactions;

@@ -11,6 +11,7 @@ import CurrenciesModel from './Currencies.model';
 import ExchangeRatesModel from './ExchangeRates.model';
 import MerchantCategoryCodesModel from './MerchantCategoryCodes.model';
 import RefundTransactionsModel from './RefundTransactions.model';
+import TransactionSplitsModel from './TransactionSplits.model';
 import TransactionsModel from './Transactions.model';
 import UserExchangeRatesModel from './UserExchangeRates.model';
 import UserMerchantCategoryCodesModel from './UserMerchantCategoryCodes.model';
@@ -67,6 +68,7 @@ const models = [
   BinanceUsersModel,
   BudgetModel,
   BudgetTransactionsModel,
+  TransactionSplitsModel,
   HoldingsModel,
   InvestmentTransactionModel,
   SecuritiesModel,

@@ -193,7 +193,7 @@ describe('prepareTxCreationParams', () => {
     it('includes refundForTxId when refundsTx is set', () => {
       const refundedTransaction = createMockTransaction({ id: 50 });
       const form = createBaseForm({
-        refundsTx: refundedTransaction,
+        refundsTx: { transaction: refundedTransaction },
       });
 
       const result = prepareTxCreationParams({
@@ -203,6 +203,41 @@ describe('prepareTxCreationParams', () => {
       });
 
       expect(result.refundForTxId).toBe(50);
+    });
+
+    it('includes refundForSplitId when refundsTx has splitId', () => {
+      const refundedTransaction = createMockTransaction({ id: 50 });
+      const form = createBaseForm({
+        refundsTx: {
+          transaction: refundedTransaction,
+          splitId: 'split-uuid-123',
+        },
+      });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: false,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result.refundForTxId).toBe(50);
+      expect(result.refundForSplitId).toBe('split-uuid-123');
+    });
+
+    it('does not include refundForSplitId when refundsTx has no splitId', () => {
+      const refundedTransaction = createMockTransaction({ id: 50 });
+      const form = createBaseForm({
+        refundsTx: { transaction: refundedTransaction },
+      });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: false,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result.refundForTxId).toBe(50);
+      expect(result.refundForSplitId).toBeUndefined();
     });
 
     it('does not include refundForTxId when refundsTx is undefined', () => {

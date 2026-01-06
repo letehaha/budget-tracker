@@ -11,6 +11,7 @@ import deleteRefund from '@controllers/transactions.controller/refunds/delete-re
 import getRefund from '@controllers/transactions.controller/refunds/get-refund';
 import getRefunds from '@controllers/transactions.controller/refunds/get-refunds';
 import getRefundsForTransactionById from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';
+import deleteSplit from '@controllers/transactions.controller/splits/delete-split';
 import unlinkTransferTransactions from '@controllers/transactions.controller/transfer-linking/unlink-transfer-transactions';
 import updateTransaction from '@controllers/transactions.controller/update-transaction';
 import { authenticateSession } from '@middlewares/better-auth';
@@ -36,6 +37,15 @@ router.delete(
   checkBaseCurrencyLock,
   validateEndpoint(deleteRefund.schema),
   deleteRefund.handler,
+);
+
+// Split routes
+router.delete(
+  '/splits/:splitId',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(deleteSplit.schema),
+  deleteSplit.handler,
 );
 
 router.get('/', authenticateSession, validateEndpoint(getTransactions.schema), getTransactions.handler);

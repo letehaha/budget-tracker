@@ -440,7 +440,7 @@ describe('prepareTxUpdationParams', () => {
         account: sourceAccount,
         amount: 1500,
         category: USER_CATEGORIES[0],
-        refundsTx: refundTx,
+        refundsTx: { transaction: refundTx },
         refundedByTxs: null,
       };
 
@@ -465,6 +465,7 @@ describe('prepareTxUpdationParams', () => {
         categoryId: formMock.category.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         refundsTxId: refundTx.id,
+        refundsSplitId: null,
       });
     });
 
@@ -478,7 +479,7 @@ describe('prepareTxUpdationParams', () => {
         amount: 1500,
         category: USER_CATEGORIES[0],
         refundsTx: null,
-        refundedByTxs: refundingTxs,
+        refundedByTxs: refundingTxs.map((tx) => ({ transaction: tx })),
       };
 
       expect(

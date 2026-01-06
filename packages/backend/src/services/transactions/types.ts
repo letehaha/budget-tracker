@@ -1,6 +1,8 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import * as Transactions from '@models/Transactions.model';
 
+import { SplitInput } from './splits/types';
+
 export type CreateTransactionParams = Omit<
   Transactions.CreateTransactionPayload,
   'refAmount' | 'transferId' | 'currencyCode' | 'refCurrencyCode'
@@ -9,6 +11,8 @@ export type CreateTransactionParams = Omit<
   destinationAccountId?: number;
   destinationTransactionId?: number;
   refundsTxId?: number;
+  refundsSplitId?: string;
+  splits?: SplitInput[];
 };
 
 interface UpdateParams {
@@ -23,7 +27,9 @@ interface UpdateParams {
   categoryId?: number;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
   refundsTxId?: number | null;
+  refundsSplitId?: string | null;
   refundedByTxIds?: number[] | null;
+  splits?: SplitInput[] | null; // null to clear all splits
 }
 
 interface UpdateTransferParams {

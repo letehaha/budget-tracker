@@ -2,6 +2,7 @@ import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as RefundTransactions from '@models/RefundTransactions.model';
+import * as TransactionSplits from '@models/TransactionSplits.model';
 import * as Transactions from '@models/Transactions.model';
 import { Op } from 'sequelize';
 
@@ -11,6 +12,7 @@ interface CreateSingleRefundParams {
   userId: number;
   originalTxId: number | null;
   refundTxId: number;
+  splitId?: string;
 }
 
 /**
@@ -35,7 +37,12 @@ interface CreateSingleRefundParams {
  * @throws {Error} Throws an error if validation fails or if the operation fails.
  */
 export const createSingleRefund = withTransaction(
-  async ({ userId, originalTxId, refundTxId }: CreateSingleRefundParams): Promise<RefundTransactions.default> => {
+  async ({
+    userId,
+    originalTxId,
+    refundTxId,
+    splitId,
+  }: CreateSingleRefundParams): Promise<RefundTransactions.default> => {
     try {
       // Fetch original and refund transactions
       const [originalTx, refundTx] = await Promise.all([
@@ -53,6 +60,30 @@ export const createSingleRefund = withTransaction(
         throw new NotFoundError({
           message: 'Refund transaction not found',
         });
+      }
+
+      // Validate splitId if provided
+      let targetSplit: TransactionSplits.default | null = null;
+      if (splitId) {
+        if (!originalTxId) {
+          throw new ValidationError({
+            message: 'splitId can only be provided when originalTxId is specified',
+          });
+        }
+
+        targetSplit = await TransactionSplits.getSplitById({ id: splitId, userId });
+
+        if (!targetSplit) {
+          throw new NotFoundError({
+            message: 'Split not found',
+          });
+        }
+
+        if (targetSplit.transactionId !== originalTxId) {
+          throw new ValidationError({
+            message: 'Split does not belong to the original transaction',
+          });
+        }
       }
 
       if (originalTx) {
@@ -75,11 +106,14 @@ export const createSingleRefund = withTransaction(
           });
         }
 
-        // Check if refund amount is not greater than original amount. Check exactly for
-        // refAmount, since transactions might have different currencies
-        if (Math.abs(refundTx.refAmount) > Math.abs(originalTx.refAmount)) {
+        // Check if refund amount is not greater than target amount
+        // When targeting a split, compare against split's refAmount; otherwise use transaction's refAmount
+        const targetRefAmount = targetSplit ? Number(targetSplit.refAmount) : originalTx.refAmount;
+        if (Math.abs(refundTx.refAmount) > Math.abs(targetRefAmount)) {
           throw new ValidationError({
-            message: 'Refund amount cannot be greater than the original transaction amount',
+            message: targetSplit
+              ? 'Refund amount cannot be greater than the split amount'
+              : 'Refund amount cannot be greater than the original transaction amount',
           });
         }
       }
@@ -114,9 +148,14 @@ export const createSingleRefund = withTransaction(
       }
 
       if (originalTxId && originalTx) {
-        // Fetch all existing refunds for the original transaction
+        // Fetch existing refunds - when targeting a split, only count refunds for that split
+        const refundWhereClause: Record<string, unknown> = { originalTxId, userId };
+        if (splitId) {
+          refundWhereClause.splitId = splitId;
+        }
+
         const existingRefunds = await RefundTransactions.default.findAll({
-          where: { originalTxId, userId },
+          where: refundWhereClause,
           include: [{ model: Transactions.default, as: 'refundTransaction' }],
         });
 
@@ -125,10 +164,13 @@ export const createSingleRefund = withTransaction(
           return sum + Math.abs(refund.refundTransaction.refAmount);
         }, Math.abs(refundTx.refAmount));
 
-        // Check if the new refund would exceed the original transaction amount
-        if (totalRefundedAmount > Math.abs(originalTx.refAmount)) {
+        // Check if the new refund would exceed the target amount (split or transaction)
+        const targetRefAmount = targetSplit ? Number(targetSplit.refAmount) : originalTx.refAmount;
+        if (totalRefundedAmount > Math.abs(targetRefAmount)) {
           throw new ValidationError({
-            message: 'Total refund amount cannot be greater than the original transaction amount',
+            message: targetSplit
+              ? 'Total refund amount cannot be greater than the split amount'
+              : 'Total refund amount cannot be greater than the original transaction amount',
           });
         }
       }
@@ -138,6 +180,7 @@ export const createSingleRefund = withTransaction(
         originalTxId,
         refundTxId,
         userId,
+        splitId,
       });
 
       await Transactions.updateTransactions(

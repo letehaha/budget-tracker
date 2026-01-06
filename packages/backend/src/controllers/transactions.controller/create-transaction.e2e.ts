@@ -414,7 +414,7 @@ describe('Create transaction controller', () => {
           accountId: account.id,
           transactionType: TRANSACTION_TYPES.income,
         }),
-        refundsTxId: originalTx.id,
+        refundForTxId: originalTx.id,
       };
       const [refundTx] = await helpers.createTransaction({
         payload: refundTxPayload,
@@ -439,7 +439,7 @@ describe('Create transaction controller', () => {
           accountId: account.id,
           transactionType: TRANSACTION_TYPES.income,
         }),
-        refundsTxId: 99999, // Non-existent ID
+        refundForTxId: 99999, // Non-existent ID
       };
 
       const result = await helpers.createTransaction({
@@ -472,7 +472,7 @@ describe('Create transaction controller', () => {
           accountId: accountA.id,
           transactionType: TRANSACTION_TYPES.income,
         }),
-        refundsTxId: transferTx.id,
+        refundForTxId: transferTx.id,
       };
 
       const result = await helpers.createTransaction({
@@ -498,7 +498,7 @@ describe('Create transaction controller', () => {
           accountId: account.id,
           transactionType: TRANSACTION_TYPES.income,
         }),
-        refundsTxId: originalTx.id,
+        refundForTxId: originalTx.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
       };
 

@@ -162,7 +162,7 @@ watchEffect(() => {
               v-for="virtualRow in virtualRows"
               :key="
                 displayTransactions[virtualRow.index]
-                  ? `${displayTransactions[virtualRow.index].id}-${displayTransactions[virtualRow.index].categoryId}-${displayTransactions[virtualRow.index].refAmount}-${displayTransactions[virtualRow.index].note}-${displayTransactions[virtualRow.index].time}-${displayTransactions[virtualRow.index].transferNature}`
+                  ? `${displayTransactions[virtualRow.index].id}-${displayTransactions[virtualRow.index].categoryId}-${displayTransactions[virtualRow.index].refAmount}-${displayTransactions[virtualRow.index].note}-${displayTransactions[virtualRow.index].time}-${displayTransactions[virtualRow.index].transferNature}-${displayTransactions[virtualRow.index].splits?.length ?? 0}-${displayTransactions[virtualRow.index].refundLinked}`
                   : virtualRow.index
               "
               :style="{
@@ -196,7 +196,7 @@ watchEffect(() => {
       <div v-bind="$attrs" class="grid grid-cols-1 gap-2">
         <template
           v-for="item in displayTransactions"
-          :key="`${item.id}-${item.categoryId}-${item.refAmount}-${item.note}-${item.time}`"
+          :key="`${item.id}-${item.categoryId}-${item.refAmount}-${item.note}-${item.time}-${item.splits?.length ?? 0}`"
         >
           <TransactionRecord :tx="item" @record-click="handlerRecordClick" />
         </template>

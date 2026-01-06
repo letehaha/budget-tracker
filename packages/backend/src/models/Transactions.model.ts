@@ -23,6 +23,7 @@ import {
   DataType,
   BelongsTo,
   BelongsToMany,
+  HasMany,
 } from 'sequelize-typescript';
 import { isExist, removeUndefinedKeys } from '@js/helpers';
 import { ValidationError } from '@js/errors';
@@ -34,18 +35,21 @@ import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
 import Budgets from '@models/Budget.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
+import TransactionSplits from '@models/TransactionSplits.model';
 
 // TODO: replace with scopes
 const prepareTXInclude = ({
   includeUser,
   includeAccount,
   includeCategory,
+  includeSplits,
   includeAll,
   nestedInclude,
 }: {
   includeUser?: boolean;
   includeAccount?: boolean;
   includeCategory?: boolean;
+  includeSplits?: boolean;
   includeAll?: boolean;
   nestedInclude?: boolean;
 }) => {
@@ -59,6 +63,13 @@ const prepareTXInclude = ({
     if (isExist(includeUser)) include.push({ model: Users });
     if (isExist(includeAccount)) include.push({ model: Accounts });
     if (isExist(includeCategory)) include.push({ model: Categories });
+    if (isExist(includeSplits)) {
+      include.push({
+        model: TransactionSplits,
+        as: 'splits',
+        include: [{ model: Categories, as: 'category' }],
+      });
+    }
   }
 
   return include;
@@ -143,6 +154,9 @@ export default class Transactions extends Model {
     otherKey: 'budgetId',
   })
   budgets!: Budgets[];
+
+  @HasMany(() => TransactionSplits)
+  splits!: TransactionSplits[];
 
   @Column({ allowNull: false, defaultValue: TRANSACTION_TYPES.income, type: DataType.ENUM(...Object.values(TRANSACTION_TYPES)), })
   transactionType!: TRANSACTION_TYPES;
@@ -361,6 +375,7 @@ export const findWithFilters = async ({
   includeAccount,
   transactionType,
   includeCategory,
+  includeSplits,
   includeAll,
   nestedInclude,
   isRaw = false,
@@ -387,6 +402,7 @@ export const findWithFilters = async ({
   includeUser?: boolean;
   includeAccount?: boolean;
   includeCategory?: boolean;
+  includeSplits?: boolean;
   includeAll?: boolean;
   nestedInclude?: boolean;
   isRaw: boolean;
@@ -401,7 +417,7 @@ export const findWithFilters = async ({
   attributes?: (keyof Transactions)[];
   categorizationSource?: CATEGORIZATION_SOURCE;
 }) => {
-  const include = prepareTXInclude({ includeUser, includeAccount, includeCategory, includeAll, nestedInclude });
+  const include = prepareTXInclude({ includeUser, includeAccount, includeCategory, includeSplits, includeAll, nestedInclude });
   const queryInclude: Includeable[] = Array.isArray(include) ? include : include ? [include] : [];
 
   const whereClause: WhereOptions<Transactions> = {
@@ -415,9 +431,28 @@ export const findWithFilters = async ({
   };
 
   if (categoryIds && categoryIds.length > 0) {
-    whereClause.categoryId = {
-      [Op.in]: categoryIds,
-    };
+    // Find transactions that have splits with any of the requested category IDs
+    const transactionIdsWithMatchingSplits = await TransactionSplits.findAll({
+      attributes: ['transactionId'],
+      where: {
+        userId,
+        categoryId: { [Op.in]: categoryIds },
+      },
+      raw: true,
+    }).then((results) => [...new Set(results.map((r) => r.transactionId))]);
+
+    if (transactionIdsWithMatchingSplits.length > 0) {
+      // Include transactions where primary category matches OR has splits with matching category
+      whereClause[Op.or as unknown as string] = [
+        { categoryId: { [Op.in]: categoryIds } },
+        { id: { [Op.in]: transactionIdsWithMatchingSplits } },
+      ];
+    } else {
+      // No splits match, just filter by primary categoryId
+      whereClause.categoryId = {
+        [Op.in]: categoryIds,
+      };
+    }
   }
 
   if (accountIds && accountIds.length > 0) {
@@ -501,6 +536,8 @@ export const findWithFilters = async ({
     limit: Number.isFinite(limit) ? limit : undefined,
     order: [['time', order]],
     raw: isRaw,
+    // When raw is true and includeSplits is requested, use nest to preserve nested structure
+    nest: isRaw && includeSplits ? true : undefined,
     attributes,
   });
 
@@ -528,6 +565,7 @@ export const getTransactionById = ({
   includeUser,
   includeAccount,
   includeCategory,
+  includeSplits,
   includeAll,
   nestedInclude,
 }: {
@@ -536,6 +574,7 @@ export const getTransactionById = ({
   includeUser?: boolean;
   includeAccount?: boolean;
   includeCategory?: boolean;
+  includeSplits?: boolean;
   includeAll?: boolean;
   nestedInclude?: boolean;
 }): Promise<Transactions | null> => {
@@ -543,6 +582,7 @@ export const getTransactionById = ({
     includeUser,
     includeAccount,
     includeCategory,
+    includeSplits,
     includeAll,
     nestedInclude,
   });
@@ -559,6 +599,7 @@ export const getTransactionsByTransferId = ({
   includeUser,
   includeAccount,
   includeCategory,
+  includeSplits,
   includeAll,
   nestedInclude,
 }: {
@@ -567,6 +608,7 @@ export const getTransactionsByTransferId = ({
   includeUser?: boolean;
   includeAccount?: boolean;
   includeCategory?: boolean;
+  includeSplits?: boolean;
   includeAll?: boolean;
   nestedInclude?: boolean;
 }) => {
@@ -574,6 +616,7 @@ export const getTransactionsByTransferId = ({
     includeUser,
     includeAccount,
     includeCategory,
+    includeSplits,
     includeAll,
     nestedInclude,
   });

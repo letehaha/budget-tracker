@@ -17,7 +17,7 @@ const { isAppInitialized } = storeToRefs(useRootStore());
 
 const { data: transactions } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.widgetLatestRecords,
-  queryFn: () => apiLoadTransactions({ limit: 20, from: 0 }), // Over-fetch to account for deduplication
+  queryFn: () => apiLoadTransactions({ limit: 20, from: 0, includeSplits: true }), // Over-fetch to account for deduplication
   staleTime: Infinity,
   placeholderData: [],
   enabled: isAppInitialized,

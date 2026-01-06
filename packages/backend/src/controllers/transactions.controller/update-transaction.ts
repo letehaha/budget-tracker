@@ -5,6 +5,12 @@ import { removeUndefinedKeys } from '@js/helpers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
+const splitSchema = z.object({
+  categoryId: recordId(),
+  amount: z.number().int().positive('Split amount must be greater than 0').finite(),
+  note: z.string().max(100, 'Split note must not exceed 100 characters').nullish(),
+});
+
 const bodyZodSchema = z
   .object({
     amount: z.number().int().positive('Amount must be greater than 0').finite().optional(),
@@ -20,6 +26,12 @@ const bodyZodSchema = z
     transferNature: z.nativeEnum(TRANSACTION_TRANSFER_NATURE).optional(),
     refundedByTxIds: z.array(recordId()).nullish(),
     refundsTxId: recordId().nullish(),
+    refundsSplitId: z.string().uuid().nullish(),
+    splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').nullish(),
+  })
+  .refine((data) => !(data.refundsSplitId && !data.refundsTxId), {
+    message: '"refundsSplitId" can only be provided when "refundsTxId" is specified',
+    path: ['refundsSplitId', 'refundsTxId'],
   })
   .refine((data) => !(data.refundedByTxIds !== undefined && data.refundsTxId !== undefined), {
     message: "Both 'refundedByTxIds' and 'refundsTxId' are not allowed simultaneously",
@@ -46,6 +58,26 @@ const bodyZodSchema = z
     {
       message: `For ${TRANSACTION_TRANSFER_NATURE.common_transfer} without "destinationTransactionId" - "destinationAccountId", and "destinationAmount" must be provided`,
       path: ['destinationAccountId', 'destinationAmount', 'destinationTransactionId'],
+    },
+  )
+  .refine(
+    (data) => {
+      // Splits are not allowed on transfer transactions
+      if (data.splits && data.splits.length > 0) {
+        // Explicit transfer via transferNature
+        if (data.transferNature && data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
+          return false;
+        }
+        // Implicit transfer via destination fields
+        if (data.destinationAccountId || data.destinationAmount || data.destinationTransactionId) {
+          return false;
+        }
+      }
+      return true;
+    },
+    {
+      message: 'Splits cannot be added to transfer transactions',
+      path: ['splits', 'transferNature'],
     },
   );
 
@@ -76,6 +108,8 @@ export default createController(schema, async ({ user, params, body }) => {
     transferNature,
     refundedByTxIds,
     refundsTxId,
+    refundsSplitId,
+    splits,
   } = body;
   const { id: userId } = user;
 
@@ -96,7 +130,10 @@ export default createController(schema, async ({ user, params, body }) => {
       transferNature,
       refundedByTxIds,
       refundsTxId,
+      refundsSplitId,
     }),
+    // splits can be null to clear all splits, so don't use removeUndefinedKeys
+    ...(splits !== undefined ? { splits } : {}),
   });
 
   return { data };

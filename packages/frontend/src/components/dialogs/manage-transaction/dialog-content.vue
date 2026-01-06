@@ -8,6 +8,7 @@ import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
+import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
 import {
   ACCOUNT_TYPES,
@@ -17,6 +18,7 @@ import {
   type TransactionModel,
 } from '@bt/shared/types';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
+import { SplitIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -26,6 +28,7 @@ import AccountField from './components/account-field.vue';
 import FormRow from './components/form-row.vue';
 import LinkTransactionSection from './components/link-transaction-section.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
+import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
 import {
   getRefundInfo,
@@ -118,6 +121,15 @@ watchOnce(
 );
 
 const linkedTransaction = ref<TransactionModel | null>(null);
+
+// Split dialog state
+const isSplitDialogOpen = ref(false);
+
+const hasSplits = computed(() => form.value.splits && form.value.splits.length > 0);
+const splitsTotal = computed(() => {
+  if (!form.value.splits) return 0;
+  return form.value.splits.reduce((sum, split) => sum + (split.amount ?? 0), 0);
+});
 
 const isRecordExternal = computed(() => {
   if (!transaction.value) return false;
@@ -300,6 +312,7 @@ onMounted(() => {
       oppositeTransaction: oppositeTransaction.value,
       accounts: accountsRecord.value,
       categories: categoriesMap.value,
+      formattedCategories: formattedCategories.value,
     });
     if (data) form.value = data;
   }
@@ -335,6 +348,9 @@ onUnmounted(() => {
           :transaction-type="refundTransactionsTypeBasedOnFormType"
           :disabled="isFormFieldsDisabled"
           :is-there-original-refunds="Boolean(originalRefunds.length)"
+          :current-transaction-splits="transaction?.splits"
+          :current-amount="form.amount ? Number(form.amount) : null"
+          :current-currency-code="form.account?.currencyCode"
         />
       </FormRow>
     </template>
@@ -412,6 +428,53 @@ onUnmounted(() => {
                 :disabled="isFormFieldsDisabled"
               />
             </form-row>
+
+            <!-- Split button and summary -->
+            <form-row>
+              <template v-if="hasSplits">
+                <!-- Splits summary -->
+                <button
+                  type="button"
+                  class="bg-muted/30 hover:bg-muted/50 border-border group flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors"
+                  :disabled="isFormFieldsDisabled"
+                  @click="isSplitDialogOpen = true"
+                >
+                  <div class="flex items-center gap-2">
+                    <SplitIcon class="text-muted-foreground size-4" />
+                    <span class="text-sm font-medium"> Split into {{ form.splits.length + 1 }} categories </span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-muted-foreground text-sm tabular-nums">
+                      {{ formatUIAmount(splitsTotal, { currency: currencyCode }) }}
+                    </span>
+                    <span class="text-muted-foreground text-xs">Edit</span>
+                  </div>
+                </button>
+              </template>
+              <template v-else>
+                <!-- Add splits button -->
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  class="w-full border-dashed"
+                  :disabled="isFormFieldsDisabled"
+                  @click="isSplitDialogOpen = true"
+                >
+                  <SplitIcon class="mr-2 size-4 opacity-70" />
+                  Split into categories
+                </Button>
+              </template>
+            </form-row>
+
+            <!-- Split Dialog -->
+            <SplitDialog
+              v-model:open="isSplitDialogOpen"
+              v-model="form.splits"
+              :total-amount="form.amount ? Number(form.amount) : null"
+              :currency-code="currencyCode"
+              :main-category="form.category"
+            />
           </template>
 
           <template v-if="isTargetFieldVisible">
@@ -471,7 +534,7 @@ onUnmounted(() => {
         <div class="flex items-center justify-between py-6">
           <Button
             v-if="transaction && accountsRecord[transaction.accountId]?.type === ACCOUNT_TYPES.system"
-            class="min-w-[100px]"
+            class="min-w-25"
             :disabled="isFormFieldsDisabled"
             aria-label="Delete transaction"
             variant="destructive"
@@ -480,7 +543,7 @@ onUnmounted(() => {
             Delete
           </Button>
           <Button
-            class="ml-auto min-w-[120px]"
+            class="ml-auto min-w-30"
             :aria-label="isFormCreation ? 'Create transaction' : 'Edit transaction'"
             :disabled="isFormFieldsDisabled"
             @click="submit"

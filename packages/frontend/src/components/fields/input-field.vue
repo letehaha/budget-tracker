@@ -40,13 +40,14 @@
           :class="
             cn(
               'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+              isTrailIconExist && 'pr-12',
               (computedAttrs.class as string) ?? '',
             )
           "
         />
 
         <template v-if="isTrailIconExist">
-          <div :class="['absolute top-0 right-0 flex h-full items-center px-6', trailingIconCssClass]">
+          <div :class="cn('absolute top-0 right-0 flex h-full items-center px-6', trailingIconCssClass)">
             <slot name="iconTrailing" />
           </div>
         </template>
@@ -158,3 +159,16 @@ onMounted(() => {
   }
 });
 </script>
+
+<style scoped>
+/* Hide number input spinners */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+</style>

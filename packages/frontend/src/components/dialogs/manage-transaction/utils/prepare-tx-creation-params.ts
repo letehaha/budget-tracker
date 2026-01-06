@@ -5,9 +5,25 @@ import {
   TRANSACTION_TYPES,
   // TransactionModel,
 } from '@bt/shared/types';
+import type { SplitInput } from '@bt/shared/types/endpoints';
 
 import { getTxTypeFromFormType } from '../helpers';
-import { UI_FORM_STRUCT } from '../types';
+import { type FormSplit, UI_FORM_STRUCT } from '../types';
+
+/**
+ * Converts form splits to API split format
+ */
+const formSplitsToApiSplits = (splits: FormSplit[] | undefined): SplitInput[] | undefined => {
+  if (!splits || splits.length === 0) return undefined;
+
+  return splits
+    .filter((split) => split.category && split.amount !== null && split.amount > 0)
+    .map((split) => ({
+      categoryId: split.category.id,
+      amount: split.amount as number,
+      note: split.note || undefined,
+    }));
+};
 
 export const prepareTxCreationParams = ({
   form,
@@ -41,7 +57,10 @@ export const prepareTxCreationParams = ({
   };
 
   if (form.refundsTx) {
-    creationParams.refundForTxId = form.refundsTx.id;
+    creationParams.refundForTxId = form.refundsTx.transaction.id;
+    if (form.refundsTx.splitId) {
+      creationParams.refundForSplitId = form.refundsTx.splitId;
+    }
   }
 
   // if (linkedTransaction) {
@@ -57,6 +76,12 @@ export const prepareTxCreationParams = ({
     creationParams.transferNature = TRANSACTION_TRANSFER_NATURE.common_transfer;
   } else {
     creationParams.categoryId = category.id;
+
+    // Add splits for non-transfer transactions
+    const apiSplits = formSplitsToApiSplits(form.splits);
+    if (apiSplits && apiSplits.length > 0) {
+      creationParams.splits = apiSplits;
+    }
   }
 
   // Handle transfer_out_wallet

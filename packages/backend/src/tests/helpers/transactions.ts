@@ -7,7 +7,7 @@ import { startOfDay } from 'date-fns';
 import { Response } from 'express';
 
 import { createAccount } from './account';
-import { makeRequest } from './common';
+import { CustomResponse, makeRequest } from './common';
 
 type BuildTxPartialField = 'amount' | 'time' | 'transferNature' | 'paymentType' | 'transactionType';
 export const buildTransactionPayload = (
@@ -54,14 +54,21 @@ export async function createTransaction({
   });
 }
 
+interface SplitInput {
+  categoryId: number;
+  amount: number;
+  note?: string | null;
+}
+
 interface UpdateTransactionBasePayload {
   id: number;
-  payload?: Partial<ReturnType<typeof buildTransactionPayload>> & {
+  payload?: Omit<Partial<ReturnType<typeof buildTransactionPayload>>, 'splits'> & {
     destinationAmount?: number;
     destinationAccountId?: number;
     destinationTransactionId?: number;
     refundsTxId?: number | null;
     refundedByTxIds?: number[] | null;
+    splits?: SplitInput[] | null;
   };
 }
 
@@ -171,5 +178,13 @@ export function linkTransactions({ raw = false, payload }) {
     url: '/transactions/link',
     payload,
     raw,
+  });
+}
+
+// Split helpers
+export function deleteSplit({ splitId }: { splitId: string }): Promise<CustomResponse<void>> {
+  return makeRequest({
+    method: 'delete',
+    url: `/transactions/splits/${splitId}`,
   });
 }

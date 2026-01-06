@@ -62,6 +62,7 @@ export const useTransactionsWithFilters = ({
         categorizationSource: filter.categorizationSource,
         budgetIds: staticFilters.budgetIds,
         excludedBudgetIds: staticFilters.excludedBudgetIds,
+        includeSplits: true,
         ...staticFilters,
       }),
     );

@@ -73,7 +73,7 @@ describe('Retrieve transactions with filters', () => {
         transactionType: TRANSACTION_TYPES.expense,
         time: dates.refunds,
       }),
-      refundsTxId: refundOriginal.id,
+      refundForTxId: refundOriginal.id,
     };
     const [refundTx] = await helpers.createTransaction({
       payload: refundTxPayload,

@@ -1,7 +1,10 @@
 import type { GetRefundTransactionsParams } from '@services/tx-refunds/get-refunds.service';
 import * as helpers from '@tests/helpers';
 
-export const createSingleRefund = async (payload: { originalTxId: number | null; refundTxId: number }, raw = false) => {
+export const createSingleRefund = async (
+  payload: { originalTxId: number | null; refundTxId: number; splitId?: string },
+  raw = false,
+) => {
   const result = await helpers.makeRequest({
     method: 'post',
     url: '/transactions/refund',
