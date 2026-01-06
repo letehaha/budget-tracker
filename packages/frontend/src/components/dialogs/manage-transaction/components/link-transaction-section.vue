@@ -1,9 +1,9 @@
 <script lang="ts" setup>
+import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
-import * as Dialog from '@/components/lib/ui/dialog';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { TRANSACTION_TYPES, type TransactionModel } from '@bt/shared/types';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 import RecordList from '../record-list.vue';
 import FormRow from './form-row.vue';
@@ -36,25 +36,36 @@ const showUnlinkButton = computed(() => props.isTransferTx && props.oppositeTran
 
 const showLinkedTransaction = computed(() => linkedTransaction.value && props.isTransferTx && !props.isFormCreation);
 
+const isDialogOpen = ref(false);
+
 const clearLinkedTransaction = () => {
   linkedTransaction.value = null;
+};
+
+const handleSelectTransaction = (transaction: TransactionModel) => {
+  linkedTransaction.value = transaction;
+  isDialogOpen.value = false;
 };
 </script>
 
 <template>
   <template v-if="showLinkButton">
     <FormRow>
-      <Dialog.Dialog>
-        <Dialog.DialogTrigger>
+      <ResponsiveDialog
+        v-model:open="isDialogOpen"
+        custom-close
+        dialog-content-class="max-h-[80dvh] overflow-y-auto"
+        drawer-content-class="max-h-[85dvh]"
+      >
+        <template #trigger>
           <Button class="w-full" :disabled="disabled" size="sm">Link existing transaction</Button>
-        </Dialog.DialogTrigger>
+        </template>
 
-        <Dialog.DialogContent class="max-h-[80dvh] overflow-y-auto">
-          <Dialog.DialogTitle class="sr-only">Link existing transaction</Dialog.DialogTitle>
-          <Dialog.DialogDescription class="sr-only"> Link existing transaction </Dialog.DialogDescription>
-          <RecordList :transaction-type="oppositeTransactionType" @select="linkedTransaction = $event" />
-        </Dialog.DialogContent>
-      </Dialog.Dialog>
+        <template #title>Link existing transaction</template>
+        <template #description>Select a transaction to link</template>
+
+        <RecordList :transaction-type="oppositeTransactionType" @select="handleSelectTransaction" />
+      </ResponsiveDialog>
     </FormRow>
   </template>
 

@@ -23,13 +23,13 @@
         </Sheet.Sheet>
       </template>
 
-      <component :is="isMobileView ? ManageTransactionDrawer : ManageTransactionDialog">
+      <ManageTransactionDialog>
         <Button variant="default" class="flex items-center gap-1">
           <PlusIcon class="size-5" />
           <span class="hidden md:block">New Transaction</span>
           <span class="md:hidden">Add</span>
         </Button>
-      </component>
+      </ManageTransactionDialog>
     </div>
 
     <div class="ml-auto flex items-center gap-2">
@@ -104,7 +104,6 @@
 // Theme toggle temporarily disabled - light theme coming soon
 // import { Themes, currentTheme, toggleTheme } from '@/common/utils';
 import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
-import ManageTransactionDrawer from '@/components/dialogs/manage-transaction/drawer-view.vue';
 import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';

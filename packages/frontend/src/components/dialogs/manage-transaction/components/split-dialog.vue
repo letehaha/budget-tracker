@@ -1,21 +1,11 @@
 <script lang="ts" setup>
 import type { FormattedCategory } from '@/common/types';
+import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/lib/ui/dialog';
-import * as Drawer from '@/components/lib/ui/drawer';
-import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
 import { useCategoriesStore } from '@/stores';
-import { createReusableTemplate } from '@vueuse/core';
 import { PlusIcon, SplitIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
@@ -40,13 +30,8 @@ const emit = defineEmits<{
 
 const isOpen = defineModel<boolean>('open', { default: false });
 
-const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
-
 const { formattedCategories } = storeToRefs(useCategoriesStore());
 const categories = computed(() => formattedCategories.value);
-
-// Reusable template for dialog content (shared between desktop and mobile)
-const [DefineDialogContent, ReuseDialogContent] = createReusableTemplate();
 
 // Local state for editing
 const localSplits = ref<LocalSplit[]>([]);
@@ -176,17 +161,21 @@ const handleClearAll = () => {
 </script>
 
 <template>
-  <!-- Define reusable content for both Dialog and Drawer -->
-  <DefineDialogContent>
-    <DialogHeader class="text-left">
-      <DialogTitle class="flex items-center gap-2">
+  <ResponsiveDialog
+    v-model:open="isOpen"
+    custom-close
+    dialog-content-class="max-h-[85vh] overflow-hidden sm:max-w-lg"
+    drawer-content-class="max-h-[85dvh]"
+  >
+    <template #title>
+      <span class="flex items-center gap-2">
         <SplitIcon class="size-5 opacity-70" />
         Split into categories
-      </DialogTitle>
-      <DialogDescription>
-        Distribute this transaction across multiple categories. The main category keeps any unallocated amount.
-      </DialogDescription>
-    </DialogHeader>
+      </span>
+    </template>
+    <template #description>
+      Distribute this transaction across multiple categories. The main category keeps any unallocated amount.
+    </template>
 
     <div class="max-h-[50vh] overflow-y-auto py-4">
       <!-- Main category display -->
@@ -287,26 +276,10 @@ const handleClearAll = () => {
       </div>
     </div>
 
-    <DialogFooter class="flex-col gap-2 sm:flex-row sm:gap-2">
+    <template #footer>
       <Button variant="outline" class="mr-auto w-full sm:w-auto" @click="handleCancel"> Cancel </Button>
       <Button v-if="hasExistingSplits" variant="destructive" @click="handleClearAll"> Remove splits </Button>
       <Button :disabled="!isValid" class="w-full sm:w-auto" @click="handleSave"> Save splits </Button>
-    </DialogFooter>
-  </DefineDialogContent>
-
-  <!-- Desktop: Dialog -->
-  <Dialog v-if="!isMobileView" v-model:open="isOpen">
-    <DialogContent class="max-h-[85vh] overflow-hidden sm:max-w-lg" custom-close>
-      <ReuseDialogContent />
-    </DialogContent>
-  </Dialog>
-
-  <!-- Mobile: Drawer -->
-  <Drawer.Drawer v-else v-model:open="isOpen">
-    <Drawer.DrawerContent class="max-h-[85dvh]">
-      <div class="overflow-y-auto px-4 pt-6 pb-4">
-        <ReuseDialogContent />
-      </div>
-    </Drawer.DrawerContent>
-  </Drawer.Drawer>
+    </template>
+  </ResponsiveDialog>
 </template>
