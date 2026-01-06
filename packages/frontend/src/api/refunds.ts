@@ -3,7 +3,7 @@ import { TransactionModel } from '@bt/shared/types/db-models';
 
 import { formatTransactionResponse } from './transactions';
 
-export type RefundRelationship = {
+type RefundRelationship = {
   id: number;
   originalTxId: number;
   refundTxId: number;

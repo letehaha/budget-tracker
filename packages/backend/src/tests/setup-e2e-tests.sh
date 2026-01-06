@@ -49,7 +49,6 @@ sleep 1
 echo "Verifying template database data..."
 TEMPLATE_ER_COUNT=$(docker compose -f ../../docker/test/backend/docker-compose.yml exec -T test-db \
   psql -U "${APPLICATION_DB_USERNAME}" -d "${TEMPLATE_DB}" -t -c "SELECT COUNT(*) FROM \"ExchangeRates\";" | tr -d '[:space:]')
-echo "Template database ExchangeRates count: '${TEMPLATE_ER_COUNT}'"
 
 # Check if we got a valid number and if it's too low
 if ! [[ "$TEMPLATE_ER_COUNT" =~ ^[0-9]+$ ]]; then

@@ -65,13 +65,9 @@ async function runMigrations() {
     // Debug: Verify critical seed data after migrations
     const [currenciesResult] = await sequelize.query('SELECT COUNT(*) as count FROM "Currencies"');
     const [exchangeRatesResult] = await sequelize.query('SELECT COUNT(*) as count FROM "ExchangeRates"');
-    const [aedRatesResult] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM "ExchangeRates" WHERE "baseCode" = 'AED'`,
-    );
 
     console.log('[DEBUG] Currencies count:', (currenciesResult as { count: string }[])[0]?.count);
     console.log('[DEBUG] ExchangeRates count:', (exchangeRatesResult as { count: string }[])[0]?.count);
-    console.log('[DEBUG] AED ExchangeRates count:', (aedRatesResult as { count: string }[])[0]?.count);
 
     // Close the connection and wait for it to fully complete
     // This is critical because PostgreSQL requires no active connections
