@@ -97,7 +97,7 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
         </div>
       </div>
       <div class="ml-auto flex flex-wrap items-end justify-start gap-2">
-        <span v-if="account.currencyCode !== baseCurrency.currencyCode" class="text-opacity-50 text-white">
+        <span v-if="account.currencyCode !== baseCurrency.currencyCode" class="text-opacity-50">
           ~
           {{ toLocalNumber(account.refCurrentBalance) }}
           {{ baseCurrency.currency.code }}

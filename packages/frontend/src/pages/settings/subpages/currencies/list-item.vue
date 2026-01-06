@@ -18,7 +18,7 @@
           "
         >
           <img class="size-5 shrink-0" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
-          <span class="text-lg font-medium text-white">
+          <span class="text-lg font-medium">
             {{ currency.currency.currency }}
           </span>
 
@@ -29,7 +29,7 @@
             contentClassName="max-w-[320px]"
           >
             <div
-              class="bg-background border-accent flex shrink-0 items-center gap-1 rounded border px-2 py-1 text-xs whitespace-nowrap text-white"
+              class="bg-background border-accent flex shrink-0 items-center gap-1 rounded border px-2 py-1 text-xs whitespace-nowrap"
             >
               Base currency
               <InfoIcon class="size-4" />

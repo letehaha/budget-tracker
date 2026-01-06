@@ -33,7 +33,7 @@
     </div>
 
     <div class="ml-auto flex items-center gap-2">
-      <!-- Theme toggle temporarily disabled - light theme coming soon
+      <!-- Theme toggle temporarily disabled - light theme coming soon -->
       <Button variant="ghost" size="icon" @click="toggleTheme">
         <template v-if="currentTheme === Themes.dark">
           <MoonStar :size="20" />
@@ -42,7 +42,6 @@
           <Sun :size="20" />
         </template>
       </Button>
-      -->
 
       <template v-if="accountsNeedingRelink.length > 0">
         <AccountsRelinkWarning />
@@ -92,7 +91,7 @@
       </template>
 
       <router-link :to="{ name: ROUTES_NAMES.settings }">
-        <Button variant="secondary" class="text-white" size="icon" as="span">
+        <Button variant="secondary" size="icon" as="span">
           <SettingsIcon />
         </Button>
       </router-link>
@@ -102,7 +101,7 @@
 
 <script setup lang="ts">
 // Theme toggle temporarily disabled - light theme coming soon
-// import { Themes, currentTheme, toggleTheme } from '@/common/utils';
+import { Themes, currentTheme, toggleTheme } from '@/common/utils';
 import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
 import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
@@ -119,7 +118,7 @@ import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
 import { formatDistanceToNow } from 'date-fns';
 // MoonStar, Sun removed - theme toggle temporarily disabled
-import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon } from 'lucide-vue-next';
+import { CloudCheckIcon, MenuIcon, MoonStar, PlusIcon, RefreshCcw, SettingsIcon, Sun } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';

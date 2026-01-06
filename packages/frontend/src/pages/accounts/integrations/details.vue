@@ -52,7 +52,7 @@
 
                     <ResponsiveTooltip
                       content="Auto-sync is triggered each time you log in, if more than 12 hours have passed since the last sync. You can also trigger a sync manually from the header at any time."
-                      content-class-name="max-w-[300px] text-sm leading-6 text-white/90"
+                      content-class-name="max-w-[300px] text-sm leading-6"
                     >
                       <InfoIcon class="text-primary size-4 cursor-pointer" />
                     </ResponsiveTooltip>
@@ -90,9 +90,9 @@
               <span
                 class="rounded-full px-2 py-0.5 text-xs font-medium"
                 :class="{
-                  'bg-success text-success-text':
+                  'bg-success dark:text-success-text text-white':
                     !connectionDetails.consent.isExpired && !connectionDetails.consent.isExpiringSoon,
-                  'bg-yellow-500/40 text-white': connectionDetails.consent.isExpiringSoon,
+                  'bg-warning text-white': connectionDetails.consent.isExpiringSoon,
                   'bg-destructive/20 text-destructive-text': connectionDetails.consent.isExpired,
                 }"
               >
@@ -315,7 +315,7 @@
 
                 <span
                   v-if="isAccountConnected(account.externalId)"
-                  class="bg-success rounded px-2 py-0.5 text-xs font-medium text-white"
+                  class="bg-success rounded px-2 py-0.5 text-xs font-medium dark:text-white"
                 >
                   Connected
                 </span>

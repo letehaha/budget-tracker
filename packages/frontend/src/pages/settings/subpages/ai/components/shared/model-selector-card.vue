@@ -110,10 +110,10 @@
         <!-- Server-provided rate limiting warning -->
         <div
           v-if="!featureStatus.usingUserKey"
-          class="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950"
+          class="border-warning-border bg-warning-muted mt-3 flex items-start gap-2 rounded-md border p-3"
         >
-          <AlertTriangleIcon class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-          <p class="text-xs text-amber-700 dark:text-amber-300">
+          <AlertTriangleIcon class="text-warning-text mt-0.5 size-4 shrink-0" />
+          <p class="text-warning-muted-foreground text-xs">
             Using server-provided AI with free-tier rate limiting. Feature availability depends on demand from other
             users. For reliable access, add your own API key in the API Keys tab.
           </p>

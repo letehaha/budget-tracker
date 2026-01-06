@@ -8,7 +8,7 @@
           <Popover.Popover>
             <Popover.PopoverTrigger class="px-1" as-child>
               <Button size="icon-sm" variant="ghost">
-                <CircleOffIcon class="text-warning size-4" />
+                <CircleOffIcon class="text-warning-text size-4" />
               </Button>
             </Popover.PopoverTrigger>
             <Popover.PopoverContent class="max-w-[300px] text-sm">

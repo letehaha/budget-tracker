@@ -4,6 +4,7 @@
 @import 'tw-animate-css';
 
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant light (&:where(.light, .light *));
 @reference;
 
 @theme {
@@ -57,10 +58,16 @@
   --color-success-foreground: var(--success-foreground);
   --color-success-text: var(--success-text);
 
-  --color-warning: rgb(230 126 34);
-  --color-app-income-color: #2ecc71;
-  --color-app-expense-color: #e74c3c;
-  --color-app-transfer-color: #95a5a6;
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-text: var(--warning-text);
+  --color-warning-muted: var(--warning-muted);
+  --color-warning-muted-foreground: var(--warning-muted-foreground);
+  --color-warning-border: var(--warning-border);
+
+  --color-app-income-color: var(--app-income-color);
+  --color-app-expense-color: var(--app-expense-color);
+  --color-app-transfer-color: var(--app-transfer-color);
 
   /* Border radius */
   --radius-lg: var(--radius);
@@ -121,15 +128,15 @@
   }
 }
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
 @layer base {
+  /*
+    The default border color has changed to `currentcolor` in Tailwind CSS v4,
+    so we've added these compatibility styles to make sure everything still
+    looks the same as it did with Tailwind CSS v3.
+
+    If we ever want to remove these styles, we need to add an explicit border
+    color utility to any element that depends on these defaults.
+  */
   *,
   ::after,
   ::before,
@@ -137,78 +144,90 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentcolor);
   }
-}
 
-/*
-  Buttons in tailwind v4 use `cursor: default` instead of `cursor: pointer` to
-  match the default browser behavior. We revert it back.
-*/
-@layer base {
+  /*
+    Buttons in tailwind v4 use `cursor: default` instead of `cursor: pointer` to
+    match the default browser behavior. We revert it back.
+  */
   button:not(:disabled),
   [role='button']:not(:disabled) {
     cursor: pointer;
   }
-}
 
-/*
-  Prevent document-level scrolling. All scrolling should happen inside ScrollArea components.
-  This fixes the "double scroll" issue where html/body can scroll independently.
-*/
-@layer base {
+  /*
+    Prevent document-level scrolling. All scrolling should happen inside ScrollArea components.
+    This fixes the "double scroll" issue where html/body can scroll independently.
+  */
   html,
   body {
     height: 100%;
     overflow: hidden;
   }
-}
 
-@layer base {
+  /* Theme variables - Light mode (default) - Warm Cream palette */
   :root {
     --header-height: 69px;
 
-    --background: rgb(255, 255, 255);
-    --foreground: rgb(8, 8, 10);
+    /* Warm cream background like Komoot */
+    --background: rgb(245, 243, 238);
+    --foreground: rgb(32, 30, 28);
 
-    --base-text: rgb(10, 18, 26);
+    --base-text: rgb(32, 30, 28);
 
+    /* White cards pop against cream background */
     --card: rgb(255, 255, 255);
-    --card-foreground: rgb(8, 8, 10);
+    --card-foreground: rgb(32, 30, 28);
 
-    --card-tooltip: rgb(250, 250, 250);
-    --card-tooltip-foreground: rgb(8, 8, 10);
+    --card-tooltip: rgb(255, 255, 255);
+    --card-tooltip-foreground: rgb(32, 30, 28);
 
     --popover: rgb(255, 255, 255);
-    --popover-foreground: rgb(8, 8, 10);
+    --popover-foreground: rgb(32, 30, 28);
 
     --primary: rgb(144, 116, 219);
-    --primary-foreground: rgb(254, 241, 242);
+    --primary-foreground: rgb(255, 255, 255);
 
-    --secondary: rgb(244, 244, 245);
-    --secondary-foreground: rgb(23, 23, 27);
+    /* Warm neutrals */
+    --secondary: rgb(237, 233, 225);
+    --secondary-foreground: rgb(50, 48, 44);
 
-    --muted: rgb(244, 244, 245);
-    --muted-foreground: rgb(113, 113, 122);
+    --muted: rgb(237, 233, 225);
+    --muted-foreground: rgb(90, 85, 78);
 
-    --accent: rgb(244, 244, 245);
-    --accent-foreground: rgb(23, 23, 27);
+    --accent: rgb(237, 233, 225);
+    --accent-foreground: rgb(50, 48, 44);
 
     --destructive: rgb(238, 68, 68);
-    --destructive-foreground: rgb(249, 249, 249);
+    --destructive-foreground: rgb(255, 255, 255);
     --destructive-text: rgb(185, 28, 28);
 
-    --border: rgb(227, 227, 231);
-    --input: rgb(227, 227, 231);
+    /* Warm-tinted borders */
+    --border: rgb(220, 215, 205);
+    --input: rgb(220, 215, 205);
     --ring: rgb(144, 116, 219);
     --radius: 0.5rem;
 
-    --success: rgb(5, 145, 52);
-    --success-foreground: rgb(10, 18, 26);
-    --success-text: rgb(5, 145, 52);
+    --success: rgb(22, 163, 74);
+    --success-foreground: rgb(255, 255, 255);
+    --success-text: rgb(22, 130, 60);
+
+    --warning: rgb(217, 119, 6);
+    --warning-foreground: rgb(255, 255, 255);
+    --warning-text: rgb(180, 83, 9);
+    --warning-muted: rgb(254, 250, 235);
+    --warning-muted-foreground: rgb(161, 98, 7);
+    --warning-border: rgb(253, 230, 138);
+
+    /* App-specific colors */
+    --app-income-color: rgb(22, 163, 74);
+    --app-expense-color: rgb(220, 38, 38);
+    --app-transfer-color: rgb(107, 114, 128);
 
     /* Custom colors */
-    --error-message: rgb(223, 86, 67);
+    --error-message: rgb(200, 60, 45);
   }
 
+  /* Theme variables - Dark mode */
   :root.dark {
     --background: rgb(11, 9, 8);
     --foreground: rgb(242, 242, 242);
@@ -248,15 +267,27 @@
     --success-foreground: rgb(250, 250, 250);
     --success-text: rgb(46, 204, 113);
 
+    --warning: rgb(120, 53, 15);
+    --warning-foreground: rgb(254, 243, 199);
+    --warning-text: rgb(251, 146, 60);
+    --warning-muted: rgb(69, 26, 3);
+    --warning-muted-foreground: rgb(252, 211, 77);
+    --warning-border: rgb(120, 53, 15);
+
+    /* App-specific colors */
+    --app-income-color: rgb(46, 204, 113);
+    --app-expense-color: rgb(231, 76, 60);
+    --app-transfer-color: rgb(149, 165, 166);
+
     /* Custom colors */
     --error-message: rgb(228, 105, 89);
   }
-}
 
-@layer base {
+  /* Global element styles */
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
