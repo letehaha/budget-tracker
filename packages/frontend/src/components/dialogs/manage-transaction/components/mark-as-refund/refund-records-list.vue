@@ -2,10 +2,10 @@
 import { loadTransactions } from '@/api/transactions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { removeValuesFromObject } from '@/common/utils/remove-values-from-object';
+import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
-import * as Dialog from '@/components/lib/ui/dialog';
 import TransactionRecrod from '@/components/transactions-list/transaction-record.vue';
 import { cn } from '@/lib/utils';
 import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
@@ -102,8 +102,8 @@ const handlerRecordClick = (transaction: TransactionModel) => {
 <template>
   <div class="flex min-h-0 grow flex-col gap-2">
     <div class="flex">
-      <Dialog.Dialog v-model:open="isFiltersDialogOpen">
-        <Dialog.DialogTrigger as-child>
+      <ResponsiveDialog v-model:open="isFiltersDialogOpen" dialog-content-class="max-w-[350px]">
+        <template #trigger>
           <Button variant="ghost" size="icon" class="ml-auto">
             <div class="relative">
               <ListFilterIcon />
@@ -113,44 +113,42 @@ const handlerRecordClick = (transaction: TransactionModel) => {
               </template>
             </div>
           </Button>
-        </Dialog.DialogTrigger>
-        <Dialog.DialogContent class="max-w-[350px]">
-          <Dialog.DialogHeader class="mb-6">
-            <Dialog.DialogTitle> Select filters </Dialog.DialogTitle>
-          </Dialog.DialogHeader>
-          <div class="grid gap-4">
-            <DateField
-              v-model="filters.start"
-              :calendar-options="{
-                maxDate: filters.end,
-              }"
-              label="From date"
-            />
-            <DateField
-              v-model="filters.end"
-              :calendar-options="{
-                minDate: filters.start,
-              }"
-              label="To date"
-            />
+        </template>
 
-            <div class="flex gap-2">
-              <InputField v-model="filters.amountGte" label="Amount from (gte)" placeholder=">= than" />
-              <InputField v-model="filters.amountLte" label="To (lte)" placeholder="<= than" />
-            </div>
+        <template #title>Select filters</template>
 
-            <div class="flex gap-2">
-              <Button variant="secondary" :disabled="isResetButtonDisabled" class="w-full shrink" @click="resetFilters">
-                Reset
-              </Button>
+        <div class="grid gap-4">
+          <DateField
+            v-model="filters.start"
+            :calendar-options="{
+              maxDate: filters.end,
+            }"
+            label="From date"
+          />
+          <DateField
+            v-model="filters.end"
+            :calendar-options="{
+              minDate: filters.start,
+            }"
+            label="To date"
+          />
 
-              <template v-if="isFiltersOutOfSync">
-                <Button variant="default" class="w-full shrink" @click="applyFilters"> Apply </Button>
-              </template>
-            </div>
+          <div class="flex gap-2">
+            <InputField v-model="filters.amountGte" label="Amount from (gte)" placeholder=">= than" />
+            <InputField v-model="filters.amountLte" label="To (lte)" placeholder="<= than" />
           </div>
-        </Dialog.DialogContent>
-      </Dialog.Dialog>
+
+          <div class="flex gap-2">
+            <Button variant="secondary" :disabled="isResetButtonDisabled" class="w-full shrink" @click="resetFilters">
+              Reset
+            </Button>
+
+            <template v-if="isFiltersOutOfSync">
+              <Button variant="default" class="w-full shrink" @click="applyFilters"> Apply </Button>
+            </template>
+          </div>
+        </div>
+      </ResponsiveDialog>
     </div>
 
     <div class="overflow-y-auto">

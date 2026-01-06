@@ -1,14 +1,11 @@
 <script lang="ts" setup>
+import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
-import * as Dialog from '@/components/lib/ui/dialog';
-import * as Drawer from '@/components/lib/ui/drawer';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
-import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES, TransactionModel, TransactionSplitModel } from '@bt/shared/types';
-import { createReusableTemplate } from '@vueuse/core';
 import { CheckIcon, SplitIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
@@ -16,10 +13,6 @@ import { computed, reactive, ref, watch } from 'vue';
 import { RefundedByAnotherTxs, RefundsAnoterTx } from '../../types';
 import MarkAsRefundInfoPopover from './mark-as-refund-info-popover.vue';
 import RecordsList from './refund-records-list.vue';
-
-const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
-const [DefineMainDialogContent, ReuseMainDialogContent] = createReusableTemplate();
-const [DefineSplitDialogContent, ReuseSplitDialogContent] = createReusableTemplate();
 
 const props = defineProps<{
   transactionType: TRANSACTION_TYPES;
@@ -258,21 +251,27 @@ const hasSmallOptions = computed(() => {
 
 <template>
   <div>
-    <!-- Define reusable content for main dialog -->
-    <DefineMainDialogContent>
-      <Dialog.DialogHeader class="mb-4 text-left">
-        <Dialog.DialogTitle>Select transaction</Dialog.DialogTitle>
-        <Dialog.DialogDescription>
-          <template v-if="selectedOption === 'refunds'">
-            <span> Select the original transaction that this entry is refunding. </span>
-          </template>
-          <template v-else-if="selectedOption === 'refunded'">
-            <span> Select transactions which refund current entry. </span>
-          </template>
+    <!-- Trigger button -->
+    <Button class="w-full" :disabled="disabled" variant="secondary" @click="isDialogOpen = true"> Link refund </Button>
 
-          <MarkAsRefundInfoPopover />
-        </Dialog.DialogDescription>
-      </Dialog.DialogHeader>
+    <!-- Main Dialog -->
+    <ResponsiveDialog
+      v-model:open="isDialogOpen"
+      custom-close
+      dialog-content-class="grid max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)]"
+      drawer-content-class="max-h-[85dvh]"
+    >
+      <template #title>Select transaction</template>
+      <template #description>
+        <template v-if="selectedOption === 'refunds'">
+          <span> Select the original transaction that this entry is refunding. </span>
+        </template>
+        <template v-else-if="selectedOption === 'refunded'">
+          <span> Select transactions which refund current entry. </span>
+        </template>
+
+        <MarkAsRefundInfoPopover />
+      </template>
 
       <div class="mb-4 grid gap-2">
         <div class="flex items-center justify-between">
@@ -311,19 +310,24 @@ const hasSmallOptions = computed(() => {
           :selected-transactions="selectedTransactions"
         />
       </div>
-    </DefineMainDialogContent>
+    </ResponsiveDialog>
 
-    <!-- Define reusable content for split selection dialog -->
-    <DefineSplitDialogContent>
-      <Dialog.DialogHeader class="mb-4 text-left">
-        <Dialog.DialogTitle class="flex items-center gap-2">
+    <!-- Split Selection Dialog -->
+    <ResponsiveDialog
+      v-model:open="isSplitDialogOpen"
+      custom-close
+      dialog-content-class="max-w-md"
+      drawer-content-class="max-h-[85dvh]"
+    >
+      <template #title>
+        <span class="flex items-center gap-2">
           <SplitIcon class="text-muted-foreground size-4" />
           Select which part to refund
-        </Dialog.DialogTitle>
-        <Dialog.DialogDescription>
-          This transaction is split across multiple categories. Select which part you want to refund.
-        </Dialog.DialogDescription>
-      </Dialog.DialogHeader>
+        </span>
+      </template>
+      <template #description>
+        This transaction is split across multiple categories. Select which part you want to refund.
+      </template>
 
       <template v-if="pendingTransaction">
         <p v-if="hasSmallOptions && currentAmount" class="text-warning mb-4 text-xs italic">
@@ -412,41 +416,6 @@ const hasSmallOptions = computed(() => {
           <Button :disabled="isSplitConfirmDisabled" @click="confirmSplitSelection"> Confirm </Button>
         </div>
       </template>
-    </DefineSplitDialogContent>
-
-    <!-- Trigger button -->
-    <Button class="w-full" :disabled="disabled" variant="secondary" @click="isDialogOpen = true"> Link refund </Button>
-
-    <!-- Main Dialog: Desktop -->
-    <Dialog.Dialog v-if="!isMobileView" v-model:open="isDialogOpen">
-      <Dialog.DialogContent class="grid max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)]">
-        <ReuseMainDialogContent />
-      </Dialog.DialogContent>
-    </Dialog.Dialog>
-
-    <!-- Main Dialog: Mobile (Drawer) -->
-    <Drawer.Drawer v-else v-model:open="isDialogOpen">
-      <Drawer.DrawerContent class="max-h-[85dvh]">
-        <div class="grid h-full grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden px-4 pt-6 pb-4">
-          <ReuseMainDialogContent />
-        </div>
-      </Drawer.DrawerContent>
-    </Drawer.Drawer>
-
-    <!-- Split Selection Dialog: Desktop -->
-    <Dialog.Dialog v-if="!isMobileView" v-model:open="isSplitDialogOpen">
-      <Dialog.DialogContent class="max-w-md">
-        <ReuseSplitDialogContent />
-      </Dialog.DialogContent>
-    </Dialog.Dialog>
-
-    <!-- Split Selection Dialog: Mobile (Drawer) -->
-    <Drawer.Drawer v-else v-model:open="isSplitDialogOpen">
-      <Drawer.DrawerContent class="max-h-[85dvh]">
-        <div class="overflow-y-auto px-4 pt-6 pb-4">
-          <ReuseSplitDialogContent />
-        </div>
-      </Drawer.DrawerContent>
-    </Drawer.Drawer>
+    </ResponsiveDialog>
   </div>
 </template>

@@ -1,40 +1,27 @@
 <template>
-  <Dialog v-model:open="isOpen">
-    <DialogTrigger as-child>
+  <ResponsiveDialog v-model:open="isOpen" dialog-content-class="sm:max-w-[425px]">
+    <template #trigger>
       <slot />
-    </DialogTrigger>
-    <DialogContent class="sm:max-w-[425px]">
-      <DialogHeader>
-        <DialogTitle>Delete Transaction</DialogTitle>
-        <DialogDescription>
-          Are you sure you want to delete this transaction? This action cannot be undone.
-        </DialogDescription>
-      </DialogHeader>
-      <DialogFooter>
-        <DialogClose as-child>
-          <UiButton variant="ghost">Cancel</UiButton>
-        </DialogClose>
-        <UiButton variant="destructive" :disabled="deleteTransactionMutation.isPending.value" @click="handleDelete">
-          <span v-if="deleteTransactionMutation.isPending.value">Deleting...</span>
-          <span v-else>Delete</span>
-        </UiButton>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
+    </template>
+
+    <template #title>Delete Transaction</template>
+    <template #description>
+      Are you sure you want to delete this transaction? This action cannot be undone.
+    </template>
+
+    <template #footer="{ close }">
+      <UiButton variant="ghost" @click="close">Cancel</UiButton>
+      <UiButton variant="destructive" :disabled="deleteTransactionMutation.isPending.value" @click="handleDelete">
+        <span v-if="deleteTransactionMutation.isPending.value">Deleting...</span>
+        <span v-else>Delete</span>
+      </UiButton>
+    </template>
+  </ResponsiveDialog>
 </template>
 
 <script setup lang="ts">
+import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/lib/ui/dialog';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useDeleteInvestmentTransaction } from '@/composable/data-queries/investment-transactions';
 import { ref } from 'vue';
