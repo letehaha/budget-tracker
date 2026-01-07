@@ -8,3 +8,4 @@ export * from './currencies';
 export * from './budgets';
 export * from './investments';
 export * from './import-export';
+export * from './notifications';

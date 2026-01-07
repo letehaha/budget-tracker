@@ -10,6 +10,7 @@ import CategoriesModel from './Categories.model';
 import CurrenciesModel from './Currencies.model';
 import ExchangeRatesModel from './ExchangeRates.model';
 import MerchantCategoryCodesModel from './MerchantCategoryCodes.model';
+import NotificationsModel from './Notifications.model';
 import RefundTransactionsModel from './RefundTransactions.model';
 import TransactionSplitsModel from './TransactionSplits.model';
 import TransactionsModel from './Transactions.model';
@@ -57,6 +58,7 @@ const models = [
   CurrenciesModel,
   ExchangeRatesModel,
   MerchantCategoryCodesModel,
+  NotificationsModel,
   RefundTransactionsModel,
   TransactionsModel,
   UserExchangeRatesModel,

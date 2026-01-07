@@ -15,6 +15,7 @@ export * from './account-groups';
 export * from './user-settings';
 export * from './budgets';
 export * from './import-export';
+export * from './notifications';
 
 export * from './investments/securities';
 export * from './investments/prices';
