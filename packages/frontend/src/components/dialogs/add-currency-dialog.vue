@@ -5,6 +5,7 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Select from '@/components/lib/ui/select';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useCurrencyName } from '@/composable';
 import { useCurrenciesStore } from '@/stores';
 import { useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
@@ -20,6 +21,7 @@ const queryClient = useQueryClient();
 const currenciesStore = useCurrenciesStore();
 const { systemCurrenciesVerbose } = storeToRefs(currenciesStore);
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { formatCurrencyLabel } = useCurrencyName();
 const formStatus = ref<'default' | 'loading' | 'error'>('default');
 const isOpen = ref(false);
 
@@ -69,7 +71,9 @@ const saveCurrency = async () => {
         </Select.SelectTrigger>
         <Select.SelectContent>
           <template v-for="item of systemCurrenciesVerbose.unlinked" :key="item.code">
-            <Select.SelectItem :value="String(item.code)"> {{ item.code }} – {{ item.currency }} </Select.SelectItem>
+            <Select.SelectItem :value="String(item.code)">
+              {{ formatCurrencyLabel({ code: item.code, fallbackName: item.currency }) }}
+            </Select.SelectItem>
           </template>
         </Select.SelectContent>
       </Select.Select>

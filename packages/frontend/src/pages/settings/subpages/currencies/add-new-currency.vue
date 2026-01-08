@@ -13,7 +13,7 @@
           value-key="code"
           with-search
           :disabled="!filteredCurrencies.length"
-          :label-key="(item: CurrencyModel) => `${item.code} - ${item.currency}`"
+          :label-key="(item: CurrencyModel) => formatCurrencyLabel({ code: item.code, fallbackName: item.currency })"
         />
       </div>
       <Button :disabled="!selectedCurrency || isCurrenciesLoading" class="min-w-[100px]" @click="addCurrency">
@@ -45,6 +45,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent } from '@/components/lib/ui/card';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useCurrencyName } from '@/composable';
 import { useCurrenciesStore } from '@/stores';
 import { CurrencyModel } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -58,6 +59,7 @@ const { addErrorNotification } = useNotificationCenter();
 const { currencies: userCurrencies, systemCurrencies } = storeToRefs(currenciesStore);
 const queryClient = useQueryClient();
 const { t } = useI18n();
+const { formatCurrencyLabel } = useCurrencyName();
 
 const isCurrenciesLoading = ref(false);
 const selectedCurrency = ref<CurrencyModel | null>(null);

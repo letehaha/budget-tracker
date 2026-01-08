@@ -34,7 +34,9 @@
           </Select.SelectTrigger>
           <Select.SelectContent>
             <template v-for="item of systemCurrenciesVerbose.linked" :key="item.code">
-              <Select.SelectItem :value="item.code"> {{ item.code }} - {{ item.currency }} </Select.SelectItem>
+              <Select.SelectItem :value="item.code">
+                {{ formatCurrencyLabel({ code: item.code, fallbackName: item.currency }) }}
+              </Select.SelectItem>
             </template>
           </Select.SelectContent>
         </Select.Select>
@@ -101,6 +103,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
 import * as Select from '@/components/lib/ui/select';
+import { useCurrencyName } from '@/composable';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { useStatementParserStore } from '@/stores/statement-parser';
 import type { AccountModel } from '@bt/shared/types';
@@ -116,6 +119,7 @@ const accountsStore = useAccountsStore();
 const currenciesStore = useCurrenciesStore();
 const { enabledAccounts } = storeToRefs(accountsStore);
 const { systemCurrenciesVerbose } = storeToRefs(currenciesStore);
+const { formatCurrencyLabel } = useCurrencyName();
 
 const showCreateDialog = ref(false);
 

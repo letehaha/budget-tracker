@@ -32,7 +32,7 @@
               </template>
               <template v-for="item of systemCurrenciesVerbose.linked" :key="item.code">
                 <Select.SelectItem :value="String(item.code)">
-                  {{ item.code }} - {{ item.currency }}
+                  {{ formatCurrencyLabel({ code: item.code, fallbackName: item.currency }) }}
                 </Select.SelectItem>
               </template>
             </Select.SelectContent>
@@ -65,6 +65,7 @@ import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { useCurrencyName } from '@/composable';
 import { useCurrenciesStore } from '@/stores';
 import { ACCOUNT_CATEGORIES, type AccountModel } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -85,6 +86,7 @@ const emit = defineEmits<{
 const queryClient = useQueryClient();
 const currenciesStore = useCurrenciesStore();
 const { addNotification } = useNotificationCenter();
+const { formatCurrencyLabel } = useCurrencyName();
 
 const { baseCurrency, systemCurrenciesVerbose } = storeToRefs(currenciesStore);
 

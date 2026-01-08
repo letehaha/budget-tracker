@@ -52,10 +52,31 @@ export default class Currencies extends Model {
   isDisabled!: boolean;
 }
 
+/**
+ * ISO 4217 codes that are not actual currencies (precious metals, testing codes, supranational currencies)
+ * These should be excluded from the currency selection UI
+ */
+const NON_CURRENCY_CODES = [
+  'XAU', // Gold
+  'XAG', // Silver
+  'XPT', // Platinum
+  'XPD', // Palladium
+  'XBA', // European Composite Unit (EURCO)
+  'XBB', // European Monetary Unit (E.M.U.-6)
+  'XBC', // European Unit of Account 9 (E.U.A.-9)
+  'XBD', // European Unit of Account 17 (E.U.A.-17)
+  'XDR', // Special Drawing Rights
+  'XSU', // Sucre
+  'XUA', // ADB Unit of Account
+  'XXX', // No currency
+  'XTS', // Testing code
+];
+
 export const getAllCurrencies = async () => {
   const currencies = await Currencies.findAll({
     where: {
       isDisabled: { [Op.not]: true },
+      code: { [Op.notIn]: NON_CURRENCY_CODES },
     },
   });
 

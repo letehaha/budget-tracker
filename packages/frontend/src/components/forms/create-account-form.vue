@@ -6,6 +6,7 @@ import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { useCurrencyName } from '@/composable';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -24,6 +25,7 @@ const queryClient = useQueryClient();
 const accountsStore = useAccountsStore();
 const currenciesStore = useCurrenciesStore();
 const { addNotification } = useNotificationCenter();
+const { formatCurrencyLabel } = useCurrencyName();
 
 const { baseCurrency, systemCurrenciesVerbose } = storeToRefs(currenciesStore);
 
@@ -99,7 +101,9 @@ const submit = async () => {
           </Select.SelectTrigger>
           <Select.SelectContent>
             <template v-for="item of systemCurrenciesVerbose.linked" :key="item.code">
-              <Select.SelectItem :value="String(item.code)"> {{ item.code }} - {{ item.currency }} </Select.SelectItem>
+              <Select.SelectItem :value="String(item.code)">
+                {{ formatCurrencyLabel({ code: item.code, fallbackName: item.currency }) }}
+              </Select.SelectItem>
             </template>
 
             <AddCurrencyDialog @added="form.currencyCode = String($event)">
