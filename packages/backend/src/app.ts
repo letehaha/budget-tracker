@@ -1,11 +1,12 @@
 import './bootstrap';
 
+import { requestContext } from '@common/request-context';
 import { logger } from '@js/utils/logger';
 import { requestIdMiddleware } from '@middlewares/request-id';
 import { sessionMiddleware } from '@middlewares/session-id';
 import { toNodeHandler } from 'better-auth/node';
 import cors from 'cors';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import fs from 'fs';
 import https from 'https';
 import morgan from 'morgan';
@@ -15,6 +16,7 @@ import { API_PREFIX } from './config';
 import { auth } from './config/auth';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
+import { SUPPORTED_LOCALES } from './i18n';
 import { addI18nextToRequest, detectLanguage } from './i18n/middleware';
 import './redis-client';
 import accountGroupsRoutes from './routes/account-groups';
@@ -130,7 +132,19 @@ app.use(`${API_PREFIX}/auth`, betterAuthExtensionsRoutes);
 
 // Mount better-auth handler for all auth routes
 // This handles: signup, signin, signout, session, oauth callbacks, passkey, etc.
-app.all(`${API_PREFIX}/auth/*`, toNodeHandler(auth));
+// We wrap the handler to preserve AsyncLocalStorage context for locale-aware category creation
+const authHandler = toNodeHandler(auth);
+app.all(`${API_PREFIX}/auth/*`, (req: Request, res: Response) => {
+  // Extract locale from Accept-Language header (same logic as detectLanguage middleware)
+  const supportedLocales = SUPPORTED_LOCALES;
+  const headerLang = req.headers['accept-language']?.split(',')[0]?.split('-')[0];
+  const locale = headerLang && supportedLocales.includes(headerLang) ? headerLang : 'en';
+
+  // Wrap the handler in AsyncLocalStorage context to ensure locale is available in hooks
+  requestContext.run({ locale }, () => {
+    authHandler(req, res);
+  });
+});
 
 app.use(`${API_PREFIX}/user`, userRoutes);
 app.use(`${API_PREFIX}/users`, usersRoutes);

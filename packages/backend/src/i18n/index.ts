@@ -3,11 +3,11 @@ import Backend from 'i18next-fs-backend';
 import path from 'path';
 
 // Supported locales
-const SUPPORTED_LOCALES = ['en', 'uk'];
+export const SUPPORTED_LOCALES = ['en', 'uk'];
 const DEFAULT_LOCALE = 'en';
 
-// Initialize i18next
-i18next.use(Backend).init({
+// Initialize i18next - store the promise to allow awaiting initialization
+export const i18nextReady = i18next.use(Backend).init({
   // Language settings
   lng: DEFAULT_LOCALE,
   fallbackLng: DEFAULT_LOCALE,

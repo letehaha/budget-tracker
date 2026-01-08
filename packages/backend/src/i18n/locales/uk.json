@@ -210,5 +210,111 @@
       "orCopyLink": "Або скопіюйте та вставте це посилання:",
       "expiryNotice": "Термін дії цього посилання закінчується через 1 годину. Якщо ви не запитували цю зміну, можете проігнорувати цей лист."
     }
+  },
+  "defaultCategories": {
+    "main": {
+      "food": "Їжа та напої",
+      "shopping": "Покупки",
+      "housing": "Житло",
+      "transportation": "Транспорт",
+      "vehicle": "Авто",
+      "life": "Життя та розваги",
+      "communication": "Зв'язок, ПК",
+      "financialExpenses": "Фінансові витрати",
+      "investments": "Інвестиції",
+      "income": "Дохід",
+      "other": "Інше"
+    },
+    "subcategories": {
+      "food": {
+        "groceries": "Продукти",
+        "restaurant": "Ресторан, фаст-фуд",
+        "barCafe": "Бар, кафе"
+      },
+      "shopping": {
+        "clothesShoes": "Одяг та взуття",
+        "jewelsAccessories": "Прикраси, аксесуари",
+        "healthBeauty": "Здоров'я та краса",
+        "kids": "Діти",
+        "homeGarden": "Дім, сад",
+        "petsAnimals": "Домашні тварини",
+        "electronicsAccessories": "Електроніка, аксесуари",
+        "giftsJoy": "Подарунки, радість",
+        "stationeryTools": "Канцелярія, інструменти",
+        "freeTime": "Вільний час",
+        "drugstoreChemist": "Аптека, хімія"
+      },
+      "housing": {
+        "rent": "Оренда",
+        "mortgage": "Іпотека",
+        "energyUtilities": "Енергія, комунальні",
+        "services": "Послуги",
+        "maintenanceRepairs": "Обслуговування, ремонт",
+        "propertyInsurance": "Страхування нерухомості"
+      },
+      "transportation": {
+        "publicTransport": "Громадський транспорт",
+        "taxi": "Таксі",
+        "longDistance": "Далекі поїздки",
+        "businessTrips": "Відрядження"
+      },
+      "vehicle": {
+        "fuel": "Пальне",
+        "parking": "Паркування",
+        "vehicleMaintenance": "Обслуговування авто",
+        "rentals": "Оренда",
+        "vehicleInsurance": "Страхування авто",
+        "leasing": "Лізинг"
+      },
+      "life": {
+        "healthCareDoctor": "Медицина, лікар",
+        "wellnessBeauty": "Велнес, краса",
+        "activeSportFitness": "Активний спорт, фітнес",
+        "cultureSportEvents": "Культура, спортивні події",
+        "hobbies": "Хобі",
+        "educationDevelopment": "Освіта, розвиток",
+        "booksAudioSubscriptions": "Книги, аудіо, підписки",
+        "tvStreaming": "ТБ, стрімінг",
+        "holidayTripsHotels": "Відпустка, подорожі, готелі",
+        "charityGifts": "Благодійність, подарунки",
+        "alcoholTobacco": "Алкоголь, тютюн",
+        "lotteryGambling": "Лотерея, азартні ігри"
+      },
+      "communication": {
+        "phoneCellPhone": "Телефон, мобільний",
+        "internet": "Інтернет",
+        "softwareAppsGames": "Програми, додатки, ігри",
+        "postalServices": "Поштові послуги"
+      },
+      "financialExpenses": {
+        "taxes": "Податки",
+        "insurances": "Страхування",
+        "loanInterests": "Кредит, відсотки",
+        "fines": "Штрафи",
+        "advisory": "Консультації",
+        "chargesFees": "Збори, комісії",
+        "childSupport": "Аліменти"
+      },
+      "investments": {
+        "realty": "Нерухомість",
+        "vehiclesChattels": "Транспорт, майно",
+        "financialInvestments": "Фінансові інвестиції",
+        "savings": "Заощадження",
+        "collections": "Колекції"
+      },
+      "income": {
+        "wageInvoices": "Зарплата, рахунки",
+        "interestsDividends": "Відсотки, дивіденди",
+        "sale": "Продаж",
+        "rentalIncome": "Дохід від оренди",
+        "duesGrants": "Внески та гранти",
+        "lendingRenting": "Позики, здача в оренду",
+        "checksCoupons": "Чеки, купони",
+        "lotteryGambling": "Лотерея, азартні ігри",
+        "refunds": "Повернення (податки, покупки)",
+        "freelance": "Фріланс",
+        "gifts": "Подарунки"
+      }
+    }
   }
 }

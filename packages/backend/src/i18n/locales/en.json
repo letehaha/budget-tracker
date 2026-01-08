@@ -210,5 +210,111 @@
       "orCopyLink": "Or copy and paste this link:",
       "expiryNotice": "This link expires in 1 hour. If you didn't request this change, you can safely ignore this email."
     }
+  },
+  "defaultCategories": {
+    "main": {
+      "food": "Food & Drinks",
+      "shopping": "Shopping",
+      "housing": "Housing",
+      "transportation": "Transportation",
+      "vehicle": "Vehicle",
+      "life": "Life & Entertainment",
+      "communication": "Communication, PC",
+      "financialExpenses": "Financial expenses",
+      "investments": "Investments",
+      "income": "Income",
+      "other": "Other"
+    },
+    "subcategories": {
+      "food": {
+        "groceries": "Groceries",
+        "restaurant": "Restaurant, fast-food",
+        "barCafe": "Bar, cafe"
+      },
+      "shopping": {
+        "clothesShoes": "Clothes & shoes",
+        "jewelsAccessories": "Jewels, accessories",
+        "healthBeauty": "Health and beauty",
+        "kids": "Kids",
+        "homeGarden": "Home, garden",
+        "petsAnimals": "Pets, animals",
+        "electronicsAccessories": "Electronics, accessories",
+        "giftsJoy": "Gifts, joy",
+        "stationeryTools": "Stationery, tools",
+        "freeTime": "Free time",
+        "drugstoreChemist": "Drug-store, chemist"
+      },
+      "housing": {
+        "rent": "Rent",
+        "mortgage": "Mortgage",
+        "energyUtilities": "Energy, utilities",
+        "services": "Services",
+        "maintenanceRepairs": "Maintenance, repairs",
+        "propertyInsurance": "Property insurance"
+      },
+      "transportation": {
+        "publicTransport": "Public transport",
+        "taxi": "Taxi",
+        "longDistance": "Long distance",
+        "businessTrips": "Business trips"
+      },
+      "vehicle": {
+        "fuel": "Fuel",
+        "parking": "Parking",
+        "vehicleMaintenance": "Vehicle maintenance",
+        "rentals": "Rentals",
+        "vehicleInsurance": "Vehicle insurance",
+        "leasing": "Leasing"
+      },
+      "life": {
+        "healthCareDoctor": "Health care, doctor",
+        "wellnessBeauty": "Wellness, beauty",
+        "activeSportFitness": "Active sport, fitness",
+        "cultureSportEvents": "Culture, sport events",
+        "hobbies": "Hobbies",
+        "educationDevelopment": "Education, development",
+        "booksAudioSubscriptions": "Books, audio, subscriptions",
+        "tvStreaming": "TV, Streaming",
+        "holidayTripsHotels": "Holiday, trips, hotels",
+        "charityGifts": "Charity, gifts",
+        "alcoholTobacco": "Alcohol, tobacco",
+        "lotteryGambling": "Lottery, gambling"
+      },
+      "communication": {
+        "phoneCellPhone": "Phone, cell phone",
+        "internet": "Internet",
+        "softwareAppsGames": "Software, apps, games",
+        "postalServices": "Postal services"
+      },
+      "financialExpenses": {
+        "taxes": "Taxes",
+        "insurances": "Insurances",
+        "loanInterests": "Loan, interests",
+        "fines": "Fines",
+        "advisory": "Advisory",
+        "chargesFees": "Charges, Fees",
+        "childSupport": "Child Support"
+      },
+      "investments": {
+        "realty": "Realty",
+        "vehiclesChattels": "Vehicles, chattels",
+        "financialInvestments": "Financial investments",
+        "savings": "Savings",
+        "collections": "Collections"
+      },
+      "income": {
+        "wageInvoices": "Wage, invoices",
+        "interestsDividends": "Interests, dividends",
+        "sale": "Sale",
+        "rentalIncome": "Rental income",
+        "duesGrants": "Dues & grants",
+        "lendingRenting": "Lending, renting",
+        "checksCoupons": "Checks, coupons",
+        "lotteryGambling": "Lottery, gambling",
+        "refunds": "Refunds (tax, purchase)",
+        "freelance": "Freelance",
+        "gifts": "Gifts"
+      }
+    }
   }
 }

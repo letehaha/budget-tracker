@@ -2,6 +2,7 @@
  * Mock implementation of better-auth for Jest tests.
  * Re-exports from the actual package where possible, mocks ESM-only parts.
  */
+import { requestContext } from '@common/request-context';
 
 // Types and non-ESM exports can come from actual package
 // For now, provide a basic mock that supports our test scenarios
@@ -38,6 +39,19 @@ interface AuthInstance {
   };
 }
 
+// Session storage for tracking users across signup/session calls
+// Map of session token -> user object
+const sessionStore = new Map<string, { id: string; email: string; name?: string }>();
+
+/**
+ * Extracts the session token value from a cookie string.
+ */
+function extractSessionToken(cookie: string | undefined): string | null {
+  if (!cookie) return null;
+  const match = cookie.match(/bt_auth\.session_token=([^;]+)/);
+  return match?.[1] ?? null;
+}
+
 /**
  * Creates a better-auth instance.
  * This is a simplified mock that provides the essential API shape.
@@ -54,17 +68,37 @@ export function betterAuth(config: BetterAuthConfig): AuthInstance {
       // Basic routing for auth endpoints
       if (path === '/sign-up/email' && request.method === 'POST') {
         const body = await request.json();
-        // In real implementation, this would create a user
+
+        // Extract locale from Accept-Language header for locale-aware signup
+        // Note: supertest sends headers in lowercase
+        const acceptLanguage = request.headers.get('Accept-Language') || request.headers.get('accept-language');
+        const locale = acceptLanguage?.split(',')[0]?.split('-')[0] || 'en';
+
+        const newUser = { id: `test-user-${Date.now()}`, email: body.email, name: body.name };
+        const sessionToken = `test-token-${newUser.id}`;
+
+        // Store session for later lookup
+        sessionStore.set(sessionToken, newUser);
+
+        // Call databaseHooks.user.create.after if provided
+        // This enables locale-aware category creation during signup
+        if (config.databaseHooks?.user?.create?.after) {
+          // Run within AsyncLocalStorage context with the detected locale
+          await requestContext.run({ locale }, async () => {
+            await config.databaseHooks!.user!.create!.after!(newUser);
+          });
+        }
+
         return new Response(
           JSON.stringify({
-            user: { id: 'test-user-id', email: body.email, name: body.name },
-            session: { id: 'test-session-id', token: 'test-token' },
+            user: newUser,
+            session: { id: 'test-session-id', token: sessionToken },
           }),
           {
             status: 200,
             headers: {
               'Content-Type': 'application/json',
-              'Set-Cookie': 'bt_auth.session_token=test-token; Path=/; HttpOnly',
+              'Set-Cookie': `bt_auth.session_token=${sessionToken}; Path=/; HttpOnly`,
             },
           },
         );
@@ -72,16 +106,22 @@ export function betterAuth(config: BetterAuthConfig): AuthInstance {
 
       if (path === '/sign-in/email' && request.method === 'POST') {
         const body = await request.json();
+        const user = { id: 'test-user-id', email: body.email };
+        const sessionToken = 'test-token';
+
+        // Store session for later lookup
+        sessionStore.set(sessionToken, user);
+
         return new Response(
           JSON.stringify({
-            user: { id: 'test-user-id', email: body.email },
-            session: { id: 'test-session-id', token: 'test-token' },
+            user,
+            session: { id: 'test-session-id', token: sessionToken },
           }),
           {
             status: 200,
             headers: {
               'Content-Type': 'application/json',
-              'Set-Cookie': 'bt_auth.session_token=test-token; Path=/; HttpOnly',
+              'Set-Cookie': `bt_auth.session_token=${sessionToken}; Path=/; HttpOnly`,
             },
           },
         );
@@ -89,14 +129,19 @@ export function betterAuth(config: BetterAuthConfig): AuthInstance {
 
       if (path === '/get-session' && request.method === 'GET') {
         const cookie = request.headers.get('Cookie');
-        if (cookie?.includes('bt_auth.session_token')) {
-          return new Response(
-            JSON.stringify({
-              user: { id: 'test-user-id', email: 'test@test.local' },
-              session: { id: 'test-session-id', token: 'test-token' },
-            }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } },
-          );
+        const sessionToken = extractSessionToken(cookie || undefined);
+
+        if (sessionToken) {
+          const user = sessionStore.get(sessionToken);
+          if (user) {
+            return new Response(
+              JSON.stringify({
+                user,
+                session: { id: 'test-session-id', token: sessionToken },
+              }),
+              { status: 200, headers: { 'Content-Type': 'application/json' } },
+            );
+          }
         }
         return new Response(JSON.stringify({ session: null, user: null }), {
           status: 200,
@@ -126,11 +171,16 @@ export function betterAuth(config: BetterAuthConfig): AuthInstance {
         // Check for session cookie in headers
         const headerObj = headers as Record<string, string | undefined>;
         const cookie = headerObj.cookie || headerObj.Cookie;
-        if (cookie?.includes('bt_auth.session_token')) {
-          return {
-            user: { id: 'test-user-id', email: 'test@test.local' },
-            session: { id: 'test-session-id', token: 'test-token' },
-          };
+        const sessionToken = extractSessionToken(cookie);
+
+        if (sessionToken) {
+          const user = sessionStore.get(sessionToken);
+          if (user) {
+            return {
+              user,
+              session: { id: 'test-session-id', token: sessionToken },
+            };
+          }
         }
         return null;
       },

@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { requestContext } from '@common/request-context';
 import { NextFunction, Request, Response } from 'express';
 
-import i18next from './index';
+import i18next, { SUPPORTED_LOCALES } from './index';
 
 /**
  * Middleware to detect and set the user's language preference.
@@ -13,7 +14,7 @@ import i18next from './index';
  */
 export async function detectLanguage(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
-    const supportedLocales = ['en', 'uk'];
+    const supportedLocales = SUPPORTED_LOCALES;
 
     // Extract locale from query param or Accept-Language header
     const queryLang = req.query.lang as string | undefined;
@@ -31,12 +32,18 @@ export async function detectLanguage(req: Request, _res: Response, next: NextFun
     // Change i18next language for this request
     await i18next.changeLanguage(locale);
 
-    next();
+    // Wrap the rest of the request in AsyncLocalStorage context
+    // This allows the locale to be accessed in async chains (e.g., better-auth hooks)
+    requestContext.run({ locale }, () => {
+      next();
+    });
   } catch (error) {
     // If language detection fails, continue with default
     console.error('Error detecting language:', error);
     (req as any).locale = 'en';
-    next();
+    requestContext.run({ locale: 'en' }, () => {
+      next();
+    });
   }
 }
 
