@@ -2023,13 +2023,38 @@
         "selectAction": "Вибрати дію..."
       },
       "transactionTypeMapping": {
+        "title": "Визначення типу транзакції",
+        "methodLabel": "Метод",
+        "methodDescription": "Виберіть як визначати тип транзакції (дохід/витрата)",
+        "columnLabel": "Стовпець типу транзакції",
+        "columnDescription": "Виберіть стовпець CSV, що містить інформацію про тип транзакції",
+        "incomeValuesLabel": "Значення доходу",
+        "expenseValuesLabel": "Значення витрат",
+        "commaSeparatedHint": "Значення, розділені комами",
         "selectMethod": "Вибрати метод...",
         "selectColumn": "Вибрати стовпець...",
         "incomeValuesPlaceholder": "напр., Credit, Deposit, Income",
-        "expenseValuesPlaceholder": "напр., Debit, Withdrawal, Expense"
+        "expenseValuesPlaceholder": "напр., Debit, Withdrawal, Expense",
+        "methodOptions": {
+          "amountSign": "За знаком суми (від'ємна = витрата, додатня = дохід)",
+          "dataSourceColumn": "Зі стовпця (вкажіть значення)"
+        },
+        "amountSignInfo": "ℹ️ Типи транзакцій визначатимуться автоматично: від'ємні суми = витрати, додатні суми = доходи"
       },
       "currencyMapping": {
-        "selectCurrency": "Вибрати валюту..."
+        "title": "Призначення валюти",
+        "optionLabel": "Як ви хочете призначити валюти?",
+        "optionDescription": "Виберіть як призначати валюти імпортованим транзакціям",
+        "columnLabel": "Стовпець валюти",
+        "columnDescription": "Виберіть стовпець CSV, що містить коди валют",
+        "currencyLabel": "Валюта",
+        "currencyDescription": "Всі імпортовані транзакції використовуватимуть цю валюту",
+        "selectCurrency": "Вибрати валюту...",
+        "methodOptions": {
+          "dataSourceColumn": "Зі стовпця CSV",
+          "existingCurrency": "Використовувати одну валюту для всіх транзакцій"
+        },
+        "dataSourceColumnInfo": "ℹ️ Кожна транзакція використовуватиме валюту, вказану у вибраному стовпці CSV"
       },
       "categoryMapping": {
         "selectCategory": "Вибрати категорію..."

@@ -2023,13 +2023,38 @@
         "selectAction": "Select action..."
       },
       "transactionTypeMapping": {
+        "title": "Transaction Type Determination",
+        "methodLabel": "Method",
+        "methodDescription": "Choose how transaction types (income/expense) should be determined",
+        "columnLabel": "Transaction Type Column",
+        "columnDescription": "Select the CSV column that contains transaction type information",
+        "incomeValuesLabel": "Income Values",
+        "expenseValuesLabel": "Expense Values",
+        "commaSeparatedHint": "Comma-separated values",
         "selectMethod": "Select method...",
         "selectColumn": "Select column...",
         "incomeValuesPlaceholder": "e.g., Credit, Deposit, Income",
-        "expenseValuesPlaceholder": "e.g., Debit, Withdrawal, Expense"
+        "expenseValuesPlaceholder": "e.g., Debit, Withdrawal, Expense",
+        "methodOptions": {
+          "amountSign": "From Amount Sign (negative = expense, positive = income)",
+          "dataSourceColumn": "From Column (specify values)"
+        },
+        "amountSignInfo": "ℹ️ Transaction types will be determined automatically: negative amounts = expenses, positive amounts = income"
       },
       "currencyMapping": {
-        "selectCurrency": "Select currency..."
+        "title": "Currency Assignment",
+        "optionLabel": "How do you want to assign currencies?",
+        "optionDescription": "Choose how currencies should be assigned to imported transactions",
+        "columnLabel": "Currency Column",
+        "columnDescription": "Select the CSV column that contains currency codes",
+        "currencyLabel": "Currency",
+        "currencyDescription": "All imported transactions will use this currency",
+        "selectCurrency": "Select currency...",
+        "methodOptions": {
+          "dataSourceColumn": "Map from CSV column",
+          "existingCurrency": "Use same currency for all transactions"
+        },
+        "dataSourceColumnInfo": "ℹ️ Each transaction will use the currency specified in the selected CSV column"
       },
       "categoryMapping": {
         "selectCategory": "Select category..."

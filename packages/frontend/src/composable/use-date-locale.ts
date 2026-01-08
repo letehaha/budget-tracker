@@ -29,7 +29,7 @@ const localeMap: Record<string, DateFnsLocale> = {
 /**
  * Get the date-fns locale object for the current app locale.
  */
-export function getDateFnsLocale(): DateFnsLocale {
+function getDateFnsLocale(): DateFnsLocale {
   const currentLocale = getCurrentLocale();
   return localeMap[currentLocale] ?? enUS;
 }

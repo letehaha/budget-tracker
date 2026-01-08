@@ -24,7 +24,7 @@ export const VERBOSE_PAYMENT_TYPES: VerbosePaymentType[] = [
   { value: PAYMENT_TYPES.webPayment, label: 'common.paymentTypes.webPayment' },
 ];
 
-export const OUT_OF_WALLET_ACCOUNT_NAME_KEY = 'common.outOfWallet';
+const OUT_OF_WALLET_ACCOUNT_NAME_KEY = 'common.outOfWallet';
 
 type OutOfWalletAccountModel = AccountModel & {
   _isOutOfWallet?: boolean;

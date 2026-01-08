@@ -1,6 +1,6 @@
 import { AI_FEATURE } from '@bt/shared/types';
 
-export interface AIFeatureDisplayInfoKeys {
+interface AIFeatureDisplayInfoKeys {
   nameKey: string;
   descriptionKey: string;
 }

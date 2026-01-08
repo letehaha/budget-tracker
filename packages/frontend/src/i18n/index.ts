@@ -8,7 +8,7 @@ const SUPPORTED_LOCALES = ['en', 'uk'] as const;
 const DEFAULT_LOCALE: SupportedLocale = 'en';
 
 // Type for supported locales
-export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 // Type for message schema
 type MessageSchema = typeof enMessages;

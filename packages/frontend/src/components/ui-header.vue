@@ -98,32 +98,7 @@
       <NotificationsPopover />
 
       <!-- Language Switcher -->
-      <Popover.Popover>
-        <Popover.PopoverTrigger as-child>
-          <Button variant="secondary" class="text-white" size="icon">
-            <span class="text-lg">{{ currentLocaleFlag }}</span>
-          </Button>
-        </Popover.PopoverTrigger>
-        <Popover.PopoverContent class="w-52" align="end">
-          <div class="space-y-2">
-            <div class="text-sm font-medium">{{ $t('header.language') }}</div>
-            <div class="space-y-1">
-              <button
-                v-for="locale in availableLocales"
-                :key="locale.value"
-                class="hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors"
-                :class="{
-                  'bg-accent': currentLocale === locale.value,
-                }"
-                @click="handleLocaleChange(locale.value)"
-              >
-                <span class="text-lg">{{ locale.flag }}</span>
-                <span>{{ locale.native }}</span>
-              </button>
-            </div>
-          </div>
-        </Popover.PopoverContent>
-      </Popover.Popover>
+      <LanguageSelector variant="secondary" show-header persist-to-backend />
 
       <router-link :to="{ name: ROUTES_NAMES.settings }">
         <Button variant="secondary" class="text-white" size="icon" as="span">
@@ -138,6 +113,7 @@
 // Theme toggle temporarily disabled - light theme coming soon
 // import { Themes, currentTheme, toggleTheme } from '@/common/utils';
 import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
+import LanguageSelector from '@/components/common/language-selector.vue';
 import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
@@ -151,10 +127,8 @@ import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-
 import { useDateLocale } from '@/composable/use-date-locale';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { getCurrentLocale, setLocale } from '@/i18n';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
-import { LOCALE_NAMES, SUPPORTED_LOCALES, type SupportedLocale } from '@bt/shared/i18n/locales';
 // MoonStar, Sun removed - theme toggle temporarily disabled
 import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -222,28 +196,4 @@ const confirmSync = async () => {
 watch(route, () => {
   isMobileSheetOpen.value = false;
 });
-
-// Language switcher
-const currentLocale = ref<SupportedLocale>(getCurrentLocale() as SupportedLocale);
-
-const currentLocaleFlag = computed(() => LOCALE_NAMES[currentLocale.value].flag);
-
-const availableLocales = [
-  {
-    value: SUPPORTED_LOCALES.ENGLISH,
-    native: LOCALE_NAMES[SUPPORTED_LOCALES.ENGLISH].native,
-    flag: LOCALE_NAMES[SUPPORTED_LOCALES.ENGLISH].flag,
-  },
-  {
-    value: SUPPORTED_LOCALES.UKRAINIAN,
-    native: LOCALE_NAMES[SUPPORTED_LOCALES.UKRAINIAN].native,
-    flag: LOCALE_NAMES[SUPPORTED_LOCALES.UKRAINIAN].flag,
-  },
-];
-
-async function handleLocaleChange(locale: SupportedLocale) {
-  currentLocale.value = locale;
-  await setLocale(locale);
-  // Optionally persist to backend - can be added later
-}
 </script>

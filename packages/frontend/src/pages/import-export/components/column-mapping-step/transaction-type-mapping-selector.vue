@@ -1,7 +1,7 @@
 <template>
   <div class="bg-muted/30 mt-6 rounded-lg border p-4">
     <h3 class="mb-4 text-sm font-semibold">
-      Transaction Type Determination <span class="text-destructive-text">*</span>
+      {{ $t('pages.importExport.transactionTypeMapping.title') }} <span class="text-destructive-text">*</span>
     </h3>
 
     <!-- Method Selection -->
@@ -9,12 +9,12 @@
       <SelectField
         :model-value="selectedMethodObject"
         :values="methodOptions"
-        label="Method"
+        :label="$t('pages.importExport.transactionTypeMapping.methodLabel')"
         :placeholder="$t('pages.importExport.transactionTypeMapping.selectMethod')"
         @update:model-value="handleMethodChange"
       />
       <p class="text-muted-foreground mt-1 text-xs">
-        Choose how transaction types (income/expense) should be determined
+        {{ $t('pages.importExport.transactionTypeMapping.methodDescription') }}
       </p>
     </div>
 
@@ -27,20 +27,21 @@
         <SelectField
           :model-value="transactionTypeColumnObject"
           :values="columnOptions"
-          label="Transaction Type Column"
+          :label="$t('pages.importExport.transactionTypeMapping.columnLabel')"
           :placeholder="$t('pages.importExport.transactionTypeMapping.selectColumn')"
           required
           @update:model-value="handleColumnChange"
         />
         <p class="text-muted-foreground mt-1 text-xs">
-          Select the CSV column that contains transaction type information
+          {{ $t('pages.importExport.transactionTypeMapping.columnDescription') }}
         </p>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2">
         <div>
           <label class="mb-2 block text-sm font-medium">
-            Income Values <span class="text-destructive-text">*</span>
+            {{ $t('pages.importExport.transactionTypeMapping.incomeValuesLabel') }}
+            <span class="text-destructive-text">*</span>
           </label>
           <input
             v-model="incomeValuesInput"
@@ -49,12 +50,15 @@
             :placeholder="$t('pages.importExport.transactionTypeMapping.incomeValuesPlaceholder')"
             class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           />
-          <p class="text-muted-foreground mt-1 text-xs">Comma-separated values</p>
+          <p class="text-muted-foreground mt-1 text-xs">
+            {{ $t('pages.importExport.transactionTypeMapping.commaSeparatedHint') }}
+          </p>
         </div>
 
         <div>
           <label class="mb-2 block text-sm font-medium">
-            Expense Values <span class="text-destructive-text">*</span>
+            {{ $t('pages.importExport.transactionTypeMapping.expenseValuesLabel') }}
+            <span class="text-destructive-text">*</span>
           </label>
           <input
             v-model="expenseValuesInput"
@@ -63,7 +67,9 @@
             :placeholder="$t('pages.importExport.transactionTypeMapping.expenseValuesPlaceholder')"
             class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           />
-          <p class="text-muted-foreground mt-1 text-xs">Comma-separated values</p>
+          <p class="text-muted-foreground mt-1 text-xs">
+            {{ $t('pages.importExport.transactionTypeMapping.commaSeparatedHint') }}
+          </p>
         </div>
       </div>
     </div>
@@ -72,7 +78,7 @@
       v-if="importStore.transactionTypeMapping.method === TransactionTypeOptionValue.amountSign"
       class="bg-primary/10 border-primary mt-4 rounded-lg border p-3 text-sm"
     >
-      ℹ️ Transaction types will be determined automatically: negative amounts = expenses, positive amounts = income
+      {{ $t('pages.importExport.transactionTypeMapping.amountSignInfo') }}
     </p>
   </div>
 </template>
@@ -82,12 +88,14 @@ import SelectField from '@/components/fields/select-field.vue';
 import { useImportExportStore } from '@/stores/import-export';
 import { TransactionTypeOptionValue } from '@bt/shared/types';
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 interface OptionItem {
   label: string;
   value: string;
 }
 
+const { t } = useI18n();
 const importStore = useImportExportStore();
 
 const incomeValuesInput = ref('');
@@ -99,16 +107,16 @@ onMounted(() => {
   expenseValuesInput.value = importStore.transactionTypeMapping.expenseValues.join(', ');
 });
 
-const methodOptions: OptionItem[] = [
+const methodOptions = computed<OptionItem[]>(() => [
   {
-    label: 'From Amount Sign (negative = expense, positive = income)',
+    label: t('pages.importExport.transactionTypeMapping.methodOptions.amountSign'),
     value: TransactionTypeOptionValue.amountSign,
   },
   {
-    label: 'From Column (specify values)',
+    label: t('pages.importExport.transactionTypeMapping.methodOptions.dataSourceColumn'),
     value: TransactionTypeOptionValue.dataSourceColumn,
   },
-];
+]);
 
 const columnOptions = computed<OptionItem[]>(() =>
   importStore.csvHeaders.map((header) => ({
@@ -121,7 +129,7 @@ const selectedMethod = computed(() => importStore.transactionTypeMapping.method)
 
 const selectedMethodObject = computed(() => {
   if (!selectedMethod.value) return null;
-  return methodOptions.find((opt) => opt.value === selectedMethod.value) ?? null;
+  return methodOptions.value.find((opt) => opt.value === selectedMethod.value) ?? null;
 });
 
 const transactionTypeColumn = computed(() => {
