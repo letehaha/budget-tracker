@@ -2,18 +2,28 @@
   <div class="flex h-dvh items-center justify-center px-6">
     <Card class="w-full max-w-112.5" as="form" @submit.prevent="isLegacyMode ? submitLegacy() : submit()">
       <card-header>
-        <h1 class="text-center text-2xl font-semibold tracking-tight">Log in to account</h1>
+        <h1 class="text-center text-2xl font-semibold tracking-tight">{{ $t('auth.login.title') }}</h1>
       </card-header>
       <card-content class="grid gap-5">
         <!-- OAuth and Passkey buttons (only show for non-legacy mode) -->
         <template v-if="!isLegacyMode">
           <div class="grid gap-3">
-            <OAuthButton :provider="OAUTH_PROVIDER.google" mode="signin" :is-loading="isOAuthLoading" @click="handleOAuthLogin({ provider: OAUTH_PROVIDER.google })">
+            <OAuthButton
+              :provider="OAUTH_PROVIDER.google"
+              mode="signin"
+              :is-loading="isOAuthLoading"
+              @click="handleOAuthLogin({ provider: OAUTH_PROVIDER.google })"
+            >
               <template #icon>
                 <GoogleIcon />
               </template>
             </OAuthButton>
-            <OAuthButton :provider="OAUTH_PROVIDER.github" mode="signin" :is-loading="isOAuthLoading" @click="handleOAuthLogin({ provider: OAUTH_PROVIDER.github })">
+            <OAuthButton
+              :provider="OAUTH_PROVIDER.github"
+              mode="signin"
+              :is-loading="isOAuthLoading"
+              @click="handleOAuthLogin({ provider: OAUTH_PROVIDER.github })"
+            >
               <template #icon>
                 <GithubIcon />
               </template>
@@ -21,23 +31,23 @@
             <PasskeyButton mode="signin" :is-loading="isPasskeyLoading" @click="handlePasskeyLogin" />
           </div>
 
-          <AuthDivider text="Or continue with email" />
+          <AuthDivider :text="$t('auth.login.divider')" />
 
           <!-- Email credentials form -->
           <form-wrapper :error="formError" class="grid gap-5">
             <input-field
               v-model="form.email"
               name="email"
-              label="Email"
+              :label="$t('common.labels.email')"
               type="email"
-              placeholder="your@email.com"
+              :placeholder="$t('common.placeholders.email')"
               :disabled="isFormLoading"
               :error-message="getFieldErrorMessage('form.email')"
             />
             <input-field
               v-model="form.password"
-              label="Password"
-              placeholder="Your password"
+              :label="$t('common.labels.password')"
+              :placeholder="$t('common.placeholders.password')"
               type="password"
               :disabled="isFormLoading"
               :error-message="getFieldErrorMessage('form.password')"
@@ -46,14 +56,14 @@
 
           <div class="flex justify-center">
             <Button type="submit" :disabled="isFormLoading" class="w-full">
-              {{ isFormLoading ? 'Loading...' : 'Log in' }}
+              {{ isFormLoading ? $t('common.actions.loading') : $t('auth.login.submitButton') }}
             </Button>
           </div>
 
           <!-- Toggle to legacy mode -->
           <div class="border-t pt-4">
             <Button type="button" variant="outline" class="w-full" @click="switchToLegacyMode">
-              Have a legacy account? Login with username
+              {{ $t('auth.login.toggleLegacy') }}
             </Button>
           </div>
         </template>
@@ -64,15 +74,15 @@
             <input-field
               v-model="legacyForm.username"
               name="legacy-username"
-              label="Username"
-              placeholder="ie. johnsnow"
+              :label="$t('common.labels.username')"
+              :placeholder="$t('common.placeholders.username')"
               :disabled="isLegacyLoading"
               :error-message="getLegacyFieldErrorMessage('legacyForm.username')"
             />
             <input-field
               v-model="legacyForm.password"
-              label="Password"
-              placeholder="Your password"
+              :label="$t('common.labels.password')"
+              :placeholder="$t('common.placeholders.password')"
               type="password"
               :disabled="isLegacyLoading"
               :error-message="getLegacyFieldErrorMessage('legacyForm.password')"
@@ -81,7 +91,7 @@
 
           <div class="flex justify-center">
             <Button type="submit" :disabled="isLegacyLoading" class="w-full">
-              {{ isLegacyLoading ? 'Loading...' : 'Log in with username' }}
+              {{ isLegacyLoading ? $t('common.actions.loading') : $t('auth.login.submitButtonUsername') }}
             </Button>
           </div>
 
@@ -94,16 +104,16 @@
               class="text-muted-foreground w-full"
               @click="switchToEmailMode"
             >
-              Back to email login
+              {{ $t('auth.login.backToEmail') }}
             </Button>
           </div>
         </template>
       </card-content>
       <card-footer class="text-center text-sm">
-        Don't have an account?
+        {{ $t('auth.login.noAccount') }}
 
         <router-link :to="{ name: ROUTES_NAMES.signUp }">
-          <Button as="span" variant="link"> Sign up </Button>
+          <Button as="span" variant="link"> {{ $t('common.actions.signUp') }} </Button>
         </router-link>
       </card-footer>
     </Card>
@@ -124,6 +134,7 @@ import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
 import { API_ERROR_CODES, OAUTH_PROVIDER } from '@bt/shared/types';
 import { Ref, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -131,15 +142,16 @@ const route = useRoute();
 const authStore = useAuthStore();
 const { login, legacyLogin, loginWithOAuth, loginWithPasskey } = authStore;
 const { addErrorNotification } = useNotificationCenter();
+const { t } = useI18n();
 
 // Map better-auth error codes to user-friendly messages
 const BETTER_AUTH_ERROR_MESSAGES: Record<string, string> = {
-  INVALID_EMAIL_OR_PASSWORD: 'Incorrect email or password.',
-  INVALID_PASSWORD: 'Incorrect password.',
-  USER_NOT_FOUND: 'User not found.',
-  EMAIL_NOT_VERIFIED: 'Please verify your email before signing in.',
-  SESSION_EXPIRED: 'Your session has expired. Please sign in again.',
-  CREDENTIAL_ACCOUNT_NOT_FOUND: 'No password set for this account. Try signing in with Google.',
+  INVALID_EMAIL_OR_PASSWORD: t('auth.login.errors.incorrectEmailOrPassword'),
+  INVALID_PASSWORD: t('auth.login.errors.incorrectPassword'),
+  USER_NOT_FOUND: t('auth.login.errors.userNotFound'),
+  EMAIL_NOT_VERIFIED: t('auth.login.errors.emailNotVerified'),
+  SESSION_EXPIRED: t('auth.login.errors.sessionExpired'),
+  CREDENTIAL_ACCOUNT_NOT_FOUND: t('auth.login.errors.noPasswordSet'),
 };
 
 // Toggle between email and legacy login modes
@@ -188,8 +200,8 @@ const { isFormValid, getFieldErrorMessage } = useFormValidation(
   undefined,
   {
     customValidationMessages: {
-      passwordMinLength: 'Minimal length is 6.',
-      email: 'Please enter a valid email address.',
+      passwordMinLength: t('validation.minLength', { length: 6 }),
+      email: t('validation.emailInvalid'),
     },
   },
 );
@@ -209,7 +221,7 @@ const { isFormValid: isLegacyFormValid, getFieldErrorMessage: getLegacyFieldErro
   undefined,
   {
     customValidationMessages: {
-      passwordMinLength: 'Minimal length is 6.',
+      passwordMinLength: t('validation.minLength', { length: 6 }),
     },
   },
 );
@@ -264,11 +276,11 @@ const submit = async () => {
     // Check for our custom API errors
     if (e instanceof ApiErrorResponseError) {
       const errorCodes: Partial<{ [K in API_ERROR_CODES]: string }> = {
-        [API_ERROR_CODES.notFound]: 'Incorrect email or password.',
-        [API_ERROR_CODES.invalidCredentials]: 'Password is invalid.',
+        [API_ERROR_CODES.notFound]: t('auth.login.errors.incorrectEmailOrPassword'),
+        [API_ERROR_CODES.invalidCredentials]: t('auth.login.errors.passwordInvalid'),
       };
 
-      formError.value = errorCodes[e.data.code] || error.message || 'An error occurred.';
+      formError.value = errorCodes[e.data.code] || error.message || t('auth.login.errors.genericError');
       return;
     }
 
@@ -280,7 +292,7 @@ const submit = async () => {
       }
     }
 
-    formError.value = error.message || 'An error occurred. Please try again.';
+    formError.value = error.message || t('auth.login.errors.genericErrorRetry');
   } finally {
     isFormLoading.value = false;
   }
@@ -301,11 +313,11 @@ const submitLegacy = async () => {
     // Check for our custom API errors
     if (e instanceof ApiErrorResponseError) {
       const errorCodes: Partial<{ [K in API_ERROR_CODES]: string }> = {
-        [API_ERROR_CODES.notFound]: 'Incorrect username or password.',
-        [API_ERROR_CODES.invalidCredentials]: 'Password is invalid.',
+        [API_ERROR_CODES.notFound]: t('auth.login.errors.incorrectUsernameOrPassword'),
+        [API_ERROR_CODES.invalidCredentials]: t('auth.login.errors.passwordInvalid'),
       };
 
-      legacyFormError.value = errorCodes[e.data.code] || error.message || 'An error occurred.';
+      legacyFormError.value = errorCodes[e.data.code] || error.message || t('auth.login.errors.genericError');
       return;
     }
 
@@ -317,7 +329,7 @@ const submitLegacy = async () => {
       }
     }
 
-    legacyFormError.value = error.message || 'An error occurred. Please try again.';
+    legacyFormError.value = error.message || t('auth.login.errors.genericErrorRetry');
   } finally {
     isLegacyLoading.value = false;
   }
@@ -328,7 +340,7 @@ const handleOAuthLogin = async ({ provider }: { provider: OAUTH_PROVIDER }) => {
     isOAuthLoading.value = true;
     await loginWithOAuth({ provider, from: 'signin' });
   } catch {
-    addErrorNotification(`Failed to sign in with ${provider}. Please try again.`);
+    addErrorNotification(t('auth.login.errors.oauthFailed', { provider }));
   } finally {
     isOAuthLoading.value = false;
   }
@@ -340,7 +352,7 @@ const handlePasskeyLogin = async () => {
     await loginWithPasskey();
     navigateAfterLogin();
   } catch {
-    addErrorNotification('Failed to sign in with passkey. Please try again.');
+    addErrorNotification(t('auth.login.errors.passkeyFailed'));
   } finally {
     isPasskeyLoading.value = false;
   }

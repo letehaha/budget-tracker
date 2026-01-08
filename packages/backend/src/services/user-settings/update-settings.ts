@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import Categories from '@models/Categories.model';
 import UserSettings, { type SettingsSchema } from '@models/UserSettings.model';
@@ -17,7 +18,7 @@ export const updateUserSettings = withTransaction(
       if (existingCategories.length !== excludedCategories.length) {
         const existingIds = new Set(existingCategories.map((cat) => cat.id));
         throw new ValidationError({
-          message: 'One or more excluded categories not found',
+          message: t({ key: 'userSettings.excludedCategoriesNotFound' }),
           details: {
             invalidCategories: excludedCategories.filter((id) => !existingIds.has(id)),
           },

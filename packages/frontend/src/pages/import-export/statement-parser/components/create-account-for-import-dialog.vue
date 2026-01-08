@@ -4,7 +4,12 @@
     <template #description> Create a new account to import your statement transactions. </template>
 
     <form class="grid gap-6" @submit.prevent="handleSubmit">
-      <InputField v-model="form.name" label="Account name" placeholder="e.g., Main Bank Account" :error="errors.name" />
+      <InputField
+        v-model="form.name"
+        label="Account name"
+        :placeholder="$t('pages.statementParser.accountNamePlaceholder')"
+        :error="errors.name"
+      />
 
       <!--
         Currency field is disabled when defaultCurrency is provided from statement.
@@ -15,7 +20,7 @@
         <FieldLabel label="Currency">
           <Select.Select v-model="form.currencyCode" :disabled="!!props.defaultCurrency">
             <Select.SelectTrigger>
-              <Select.SelectValue placeholder="Select currency" />
+              <Select.SelectValue :placeholder="$t('pages.statementParser.selectCurrency')" />
             </Select.SelectTrigger>
             <Select.SelectContent>
               <!-- Show statement currency first if it exists and is not in linked list -->

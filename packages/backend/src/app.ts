@@ -8,7 +8,6 @@ import cors from 'cors';
 import express from 'express';
 import fs from 'fs';
 import https from 'https';
-import locale from 'locale';
 import morgan from 'morgan';
 import path from 'path';
 
@@ -16,6 +15,7 @@ import { API_PREFIX } from './config';
 import { auth } from './config/auth';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
+import { addI18nextToRequest, detectLanguage } from './i18n/middleware';
 import './redis-client';
 import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
@@ -43,7 +43,6 @@ import { registerAiCategorizationListeners } from './services/ai-categorization'
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
 import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 import { initializeExchangeRateProviders } from './services/exchange-rates/providers';
-import { supportedLocales } from './translations';
 
 logger.info('Starting application initialization...');
 
@@ -111,8 +110,10 @@ app.use(express.urlencoded({ extended: false }));
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
-app.use(locale(supportedLocales));
 app.use(sessionMiddleware);
+// i18next language detection middleware (uses Accept-Language header from frontend)
+app.use(detectLanguage);
+app.use(addI18nextToRequest);
 
 // Initialize data providers and event listeners
 initializeBankProviders();

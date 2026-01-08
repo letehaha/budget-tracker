@@ -1,7 +1,7 @@
 <template>
   <Card>
-    <div v-if="isLoading" class="text-muted-foreground text-center">Loading portfolio summary...</div>
-    <div v-else-if="error" class="text-destructive-text text-center">Failed to load portfolio summary.</div>
+    <div v-if="isLoading" class="text-muted-foreground text-center">{{ $t('portfolioDetail.balance.loading') }}</div>
+    <div v-else-if="error" class="text-destructive-text text-center">{{ $t('portfolioDetail.balance.loadError') }}</div>
     <div v-else-if="summary">
       <!-- Main Portfolio Value - Yahoo Finance Style -->
       <CardHeader class="flex flex-row items-baseline gap-3">
@@ -22,14 +22,18 @@
       <!-- Key Metrics Row -->
       <CardContent class="flex gap-6 border-t pt-6!">
         <div class="text-center">
-          <p class="text-muted-foreground text-xs tracking-wide uppercase">COST BASIS</p>
+          <p class="text-muted-foreground text-xs tracking-wide uppercase">
+            {{ $t('portfolioDetail.balance.metrics.costBasis') }}
+          </p>
           <p class="mt-1 text-sm font-medium">
             {{ formatCurrency(Number(summary.totalCostBasis), summary.currencyCode) }}
           </p>
         </div>
 
         <div class="text-center">
-          <p class="text-muted-foreground text-xs tracking-wide uppercase">UNREALIZED</p>
+          <p class="text-muted-foreground text-xs tracking-wide uppercase">
+            {{ $t('portfolioDetail.balance.metrics.unrealized') }}
+          </p>
           <div :class="getGainColorClass(Number(summary.unrealizedGainPercent))" class="mt-1">
             <p class="text-sm font-medium">
               {{ Number(summary.unrealizedGainValue) >= 0 ? '+' : ''
@@ -43,7 +47,9 @@
         </div>
 
         <div class="text-center">
-          <p class="text-muted-foreground text-xs tracking-wide uppercase">REALIZED</p>
+          <p class="text-muted-foreground text-xs tracking-wide uppercase">
+            {{ $t('portfolioDetail.balance.metrics.realized') }}
+          </p>
           <div :class="getGainColorClass(Number(summary.realizedGainPercent))" class="mt-1">
             <p class="text-sm font-medium">
               {{ Number(summary.realizedGainValue) >= 0 ? '+' : ''
@@ -57,7 +63,9 @@
         </div>
 
         <div class="text-center">
-          <p class="text-muted-foreground text-xs tracking-wide uppercase">TOTAL RETURN</p>
+          <p class="text-muted-foreground text-xs tracking-wide uppercase">
+            {{ $t('portfolioDetail.balance.metrics.totalReturn') }}
+          </p>
           <div :class="getGainColorClass(getTotalGainPercent())" class="mt-1">
             <p class="text-sm font-medium">
               {{ getTotalGainValue() >= 0 ? '+' : '' }}{{ formatCurrency(getTotalGainValue(), summary.currencyCode) }}

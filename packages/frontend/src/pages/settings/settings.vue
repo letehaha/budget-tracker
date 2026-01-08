@@ -19,7 +19,7 @@
         !isCompactLayout && 'lg:w-52',
       ]"
     >
-      <ul class="sticky top-[var(--header-height)] flex flex-col gap-1">
+      <ul class="sticky top-(--header-height) flex flex-col gap-1">
         <li v-for="tab in tabs" :key="tab.name">
           <router-link
             :to="tab.to"
@@ -43,7 +43,9 @@
     <!-- Content Area (wide: always visible, compact: only on child routes) -->
     <div v-if="isOnChildRoute || !isCompactLayout" class="min-w-0 flex-1">
       <!-- Back button (compact layout only) -->
-      <BackLink v-if="isCompactLayout" :to="{ name: ROUTES_NAMES.settings }"> Back to Settings </BackLink>
+      <BackLink v-if="isCompactLayout" :to="{ name: ROUTES_NAMES.settings }">
+        {{ $t('settings.backToSettings') }}
+      </BackLink>
 
       <router-view />
     </div>
@@ -69,6 +71,7 @@ import {
 } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { type Component, computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { RouteLocationRaw, useRoute, useRouter } from 'vue-router';
 
 interface Tab {
@@ -81,6 +84,7 @@ interface Tab {
 const route = useRoute();
 const router = useRouter();
 const { user } = storeToRefs(useUserStore());
+const { t } = useI18n();
 
 const containerRef = ref<HTMLElement | null>(null);
 const { width: containerWidth } = useElementSize(containerRef);
@@ -105,56 +109,56 @@ watch(
   { immediate: true },
 );
 
-const baseTabs: Tab[] = [
+const baseTabs = computed<Tab[]>(() => [
   {
     name: 'currencies',
-    label: 'Currencies',
+    label: t('settings.navigation.currencies'),
     to: { name: ROUTES_NAMES.settingsCurrencies },
     icon: CircleDollarSignIcon,
   },
   {
     name: 'categories',
-    label: 'Categories',
+    label: t('settings.navigation.categories'),
     to: { name: ROUTES_NAMES.settingsCategories },
     icon: TagsIcon,
   },
   {
     name: 'accounts',
-    label: 'Accounts groups',
+    label: t('settings.navigation.accountsGroups'),
     to: { name: ROUTES_NAMES.settingsAccounts },
     icon: LayersIcon,
   },
   {
     name: 'data-management',
-    label: 'Import Data',
+    label: t('settings.navigation.importData'),
     to: { name: ROUTES_NAMES.settingsDataManagement },
     icon: UploadIcon,
   },
   {
     name: 'ai',
-    label: 'AI',
+    label: t('settings.navigation.ai'),
     to: { name: ROUTES_NAMES.settingsAi },
     icon: SparklesIcon,
   },
   {
     name: 'security',
-    label: 'Security',
+    label: t('settings.navigation.security'),
     to: { name: ROUTES_NAMES.settingsSecurity },
     icon: KeyRoundIcon,
   },
-];
+]);
 
-const adminTab: Tab = {
+const adminTab = computed<Tab>(() => ({
   name: 'admin',
-  label: 'Admin',
+  label: t('settings.navigation.admin'),
   to: { name: ROUTES_NAMES.settingsAdmin },
   icon: ShieldIcon,
-};
+}));
 
 const tabs = computed(() => {
-  const allTabs = [...baseTabs];
+  const allTabs = [...baseTabs.value];
   if (showAdminTab.value) {
-    allTabs.push(adminTab);
+    allTabs.push(adminTab.value);
   }
   return allTabs;
 });

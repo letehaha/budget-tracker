@@ -22,7 +22,7 @@
       </div>
 
       <AlertDialog.AlertDialogFooter>
-        <AlertDialog.AlertDialogCancel>Cancel</AlertDialog.AlertDialogCancel>
+        <AlertDialog.AlertDialogCancel>{{ $t('common.actions.cancel') }}</AlertDialog.AlertDialogCancel>
         <AlertDialog.AlertDialogAction variant="destructive" :disabled="isDisconnecting" @click="handleConfirm">
           {{ isDisconnecting ? 'Disconnecting...' : 'Disconnect' }}
         </AlertDialog.AlertDialogAction>

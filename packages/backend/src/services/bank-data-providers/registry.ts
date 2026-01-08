@@ -1,4 +1,5 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { logger } from '@js/utils';
 
 import { BaseBankDataProvider } from './base-provider';
@@ -41,7 +42,7 @@ class BankProviderRegistry {
     const providerType = provider.metadata.type;
 
     if (this.providers.has(providerType)) {
-      throw new Error(`Provider ${providerType} is already registered. Cannot register duplicate providers.`);
+      throw new Error(t({ key: 'errors.providerAlreadyRegistered', variables: { providerType } }));
     }
 
     this.providers.set(providerType, provider);
@@ -58,8 +59,8 @@ class BankProviderRegistry {
     const provider = this.providers.get(type);
 
     if (!provider) {
-      const available = Array.from(this.providers.keys()).join(', ');
-      throw new Error(`Provider ${type} is not registered. Available providers: ${available || 'none'}`);
+      const available = Array.from(this.providers.keys()).join(', ') || 'none';
+      throw new Error(t({ key: 'errors.providerNotRegistered', variables: { providerType: type, available } }));
     }
 
     return provider;
@@ -101,10 +102,7 @@ class BankProviderRegistry {
     const missing = required.filter((type) => !this.has(type));
 
     if (missing.length > 0) {
-      throw new Error(
-        `Missing required bank data providers: ${missing.join(', ')}. ` +
-          `Please ensure these providers are registered at app startup.`,
-      );
+      throw new Error(t({ key: 'errors.missingRequiredProviders', variables: { missing: missing.join(', ') } }));
     }
   }
 

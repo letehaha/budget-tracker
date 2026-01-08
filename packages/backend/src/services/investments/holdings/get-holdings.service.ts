@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Portfolios from '@models/investments/Portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
@@ -16,12 +17,12 @@ const getHoldingsImpl = async ({
   date?: Date;
 }) => {
   if (!portfolioId) {
-    throw new NotFoundError({ message: 'Portfolio ID is required.' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioIdRequired' }) });
   }
 
   const portfolio = await Portfolios.findOne({ where: { id: portfolioId, userId } });
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found.' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   // Get holdings with calculated market values

@@ -1,5 +1,6 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { bankProviderRegistry } from '@services/bank-data-providers/registry';
@@ -21,7 +22,7 @@ export default createController(
     });
 
     if (!connection) {
-      throw new NotFoundError({ message: 'Connection not found' });
+      throw new NotFoundError({ message: t({ key: 'errors.connectionNotFound' }) });
     }
 
     // Get provider
@@ -29,7 +30,9 @@ export default createController(
 
     // Check if provider has reauthorize method (Enable Banking specific)
     if (!('reauthorize' in provider)) {
-      throw new Error(`Provider ${connection.providerType} does not support reauthorization`);
+      throw new Error(
+        t({ key: 'errors.providerNoReauthorization', variables: { providerType: connection.providerType } }),
+      );
     }
 
     // Call provider's reauthorize method
@@ -39,7 +42,7 @@ export default createController(
     return {
       data: {
         authUrl,
-        message: 'Reauthorization started. Please complete the OAuth flow.',
+        message: t({ key: 'bankDataProviders.reauthorizationStarted' }),
       },
     };
   },

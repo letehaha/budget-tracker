@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { i18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import {
   RangeCalendarRoot,
@@ -26,11 +27,20 @@ const props = defineProps<RangeCalendarRootProps & { class?: HTMLAttributes['cla
 
 const emits = defineEmits<RangeCalendarRootEmits>();
 
+// Reactive locale for reka-ui calendar - tracks i18n locale changes
+const calendarLocale = computed(() => {
+  // Access the reactive locale value to ensure reactivity (locale is same as getCurrentLocale())
+  return i18n.global.locale.value;
+});
+
 const delegatedProps = computed(() => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { class: _, ...delegated } = props;
 
-  return delegated;
+  return {
+    ...delegated,
+    locale: calendarLocale.value,
+  };
 });
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);

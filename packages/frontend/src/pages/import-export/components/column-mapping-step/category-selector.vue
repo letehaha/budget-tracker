@@ -8,7 +8,7 @@
         :model-value="selectedOptionObject"
         :values="categoryOptions"
         label="How do you want to assign categories?"
-        placeholder="Select option..."
+        :placeholder="$t('pages.importExport.common.selectOption')"
         @update:model-value="handleOptionChange"
       />
       <p class="text-muted-foreground mt-1 text-xs">
@@ -27,7 +27,7 @@
         :model-value="categoryColumnObject"
         :values="columnOptions"
         label="Category Column"
-        placeholder="Select column..."
+        :placeholder="$t('pages.importExport.common.selectColumn')"
         @update:model-value="handleColumnChange"
       />
       <p class="text-muted-foreground mt-1 text-xs">Select the CSV column that contains category names</p>
@@ -41,7 +41,7 @@
         label="Category"
         label-key="name"
         value-key="id"
-        placeholder="Select category..."
+        :placeholder="$t('pages.importExport.categoryMapping.selectCategory')"
         with-search
         :search-keys="['name']"
         @update:model-value="handleCategorySelect"

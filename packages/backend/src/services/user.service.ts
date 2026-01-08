@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import * as Accounts from '@models/Accounts.model';
 import * as Currencies from '@models/Currencies.model';
@@ -126,14 +127,14 @@ export const setBaseUserCurrency = withTransaction(
     const existingBaseCurrency = await getUserBaseCurrency({ userId });
 
     if (existingBaseCurrency) {
-      throw new ValidationError({ message: 'Base currency already exists!' });
+      throw new ValidationError({ message: t({ key: 'userCurrencies.baseCurrencyExists' }) });
     }
 
     const currency = await Currencies.getCurrency({ code: currencyCode });
 
     if (!currency) {
       throw new ValidationError({
-        message: 'Currency with passed code does not exist.',
+        message: t({ key: 'userCurrencies.currencyCodeNotExist' }),
       });
     }
 
@@ -143,7 +144,7 @@ export const setBaseUserCurrency = withTransaction(
 
     if (!exchangeRate) {
       throw new ValidationError({
-        message: 'No exchange rate for current pair!',
+        message: t({ key: 'userCurrencies.noExchangeRateForPair' }),
       });
     }
 
@@ -180,7 +181,7 @@ export const editUserCurrency = withTransaction(
 
     if (!passedCurrency) {
       throw new ValidationError({
-        message: `Currency with code "${currencyCode}" does not exist.`,
+        message: t({ key: 'userCurrencies.currencyNotExist', variables: { currencyCode } }),
       });
     }
 
@@ -204,7 +205,7 @@ export const setDefaultUserCurrency = withTransaction(
 
     if (!passedCurrency) {
       throw new ValidationError({
-        message: `Currency with code "${currencyCode}" does not exist.`,
+        message: t({ key: 'userCurrencies.currencyNotExist', variables: { currencyCode } }),
       });
     }
 
@@ -242,13 +243,13 @@ export const deleteUserCurrency = withTransaction(
 
     if (!passedCurrency) {
       throw new ValidationError({
-        message: `Currency with code "${currencyCode}" does not exist.`,
+        message: t({ key: 'userCurrencies.currencyNotExist', variables: { currencyCode } }),
       });
     }
 
     if (passedCurrency.isDefaultCurrency) {
       throw new ValidationError({
-        message: 'It is not allowed to delete default currency. Unmake it default first.',
+        message: t({ key: 'userCurrencies.cannotDeleteDefaultCurrency' }),
       });
     }
 
@@ -259,10 +260,10 @@ export const deleteUserCurrency = withTransaction(
 
     if (accounts.length) {
       throw new ValidationError({
-        message: `
-          It is not allowed to delete currency associated with any accounts. Delete accounts first.
-          Accounts names: "${accounts.map((item) => item.name)}".
-        `,
+        message: t({
+          key: 'userCurrencies.cannotDeleteCurrencyWithAccounts',
+          variables: { accountNames: accounts.map((item) => item.name).join(', ') },
+        }),
         details: {
           accounts,
         },
@@ -275,7 +276,7 @@ export const deleteUserCurrency = withTransaction(
     });
 
     if (!defaultCurrency) {
-      throw new UnexpectedError({ message: 'Cannot delete currency. Default currency is not present in the system' });
+      throw new UnexpectedError({ message: t({ key: 'userCurrencies.defaultCurrencyNotPresent' }) });
     }
 
     await Transactions.updateTransactions(

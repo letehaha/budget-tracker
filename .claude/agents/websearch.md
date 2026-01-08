@@ -1,4 +1,5 @@
 ---
+
 name: websearch
 description: MUST use this agent whenever user asks to search the web, look up information online, find documentation, research a topic, check latest updates, find examples online, or lookup API references. Trigger phrases include "search for", "look up", "find online", "google", "search the web", "what is the latest", "find documentation", "research", "check online", "find examples of", "look for articles", "fetch from URL", "get info from website". Use for ANY web search or URL fetching request.
 tools: WebSearch, WebFetch, Read

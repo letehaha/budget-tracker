@@ -3,12 +3,12 @@
     <CardHeader>
       <div class="flex flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-          <CardTitle>Holdings</CardTitle>
+          <CardTitle>{{ $t('portfolioDetail.holdings.title') }}</CardTitle>
           <div class="relative w-64">
             <input
               v-model="filterText"
               type="text"
-              placeholder="Filter by symbol or name..."
+              :placeholder="$t('portfolioDetail.holdings.filterPlaceholder')"
               class="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             />
             <button
@@ -24,7 +24,7 @@
         </div>
 
         <AddSymbolsDialog :portfolio-id="portfolioId" @updated="invalidate">
-          <UiButton size="sm">Add Symbol</UiButton>
+          <UiButton size="sm">{{ $t('portfolioDetail.holdings.addButton') }}</UiButton>
         </AddSymbolsDialog>
       </div>
     </CardHeader>

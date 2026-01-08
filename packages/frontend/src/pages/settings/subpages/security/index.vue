@@ -1,8 +1,8 @@
 <template>
   <Card class="max-w-4xl">
     <CardHeader class="border-b">
-      <h2 class="mb-2 text-2xl font-semibold">Security Settings</h2>
-      <p class="text-sm opacity-80">Manage your login methods, active sessions, and password</p>
+      <h2 class="mb-2 text-2xl font-semibold">{{ $t('settings.security.title') }}</h2>
+      <p class="text-sm opacity-80">{{ $t('settings.security.description') }}</p>
     </CardHeader>
 
     <CardContent class="mt-6 flex flex-col gap-6">
@@ -17,17 +17,17 @@
           <TabsList class="grid w-full grid-cols-3">
             <TabsTrigger value="login-methods" class="flex items-center gap-2">
               <KeyRoundIcon class="size-4" />
-              <span class="hidden sm:inline">Login Methods</span>
-              <span class="sm:hidden">Login</span>
+              <span class="hidden sm:inline">{{ $t('settings.security.tabs.loginMethods') }}</span>
+              <span class="sm:hidden">{{ $t('settings.security.tabs.loginMethodsShort') }}</span>
             </TabsTrigger>
             <TabsTrigger value="sessions" class="flex items-center gap-2">
               <MonitorSmartphoneIcon class="size-4" />
-              <span class="hidden sm:inline">Active Sessions</span>
-              <span class="sm:hidden">Sessions</span>
+              <span class="hidden sm:inline">{{ $t('settings.security.tabs.activeSessions') }}</span>
+              <span class="sm:hidden">{{ $t('settings.security.tabs.activeSessionsShort') }}</span>
             </TabsTrigger>
             <TabsTrigger value="password" class="flex items-center gap-2">
               <LockIcon class="size-4" />
-              Password
+              {{ $t('settings.security.tabs.password') }}
             </TabsTrigger>
           </TabsList>
 

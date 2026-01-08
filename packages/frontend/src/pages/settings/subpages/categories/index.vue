@@ -2,11 +2,11 @@
   <div class="max-w-[500px]">
     <Card class="px-2 py-4">
       <div class="relative mb-4 flex items-center justify-between px-4 py-2">
-        <h3 class="text-lg font-semibold">Categories</h3>
+        <h3 class="text-lg font-semibold">{{ $t('settings.categories.title') }}</h3>
 
         <Button variant="outline" size="sm" class="gap-1.5" @click="openEditDialog()">
           <PlusIcon class="size-4" />
-          Add Category
+          {{ $t('settings.categories.addButton') }}
         </Button>
       </div>
 
@@ -28,7 +28,7 @@
         </template>
         <template v-else>
           <div class="text-muted-foreground py-8 text-center">
-            No categories yet. Create your first category to get started.
+            {{ $t('settings.categories.empty') }}
           </div>
         </template>
       </div>
@@ -46,14 +46,16 @@
     <AlertDialog v-model:open="deleteDialogState.isOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete category?</AlertDialogTitle>
+          <AlertDialogTitle>{{ $t('settings.categories.delete.title') }}</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete "{{ deleteDialogState.category?.name }}". This action cannot be undone.
+            {{ $t('settings.categories.delete.description', { name: deleteDialogState.category?.name }) }}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" @click="handleDeleteCategory"> Delete </AlertDialogAction>
+          <AlertDialogCancel>{{ $t('settings.categories.delete.cancelButton') }}</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" @click="handleDeleteCategory">
+            {{ $t('settings.categories.delete.deleteButton') }}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -84,11 +86,13 @@ import { API_ERROR_CODES } from '@bt/shared/types';
 import { PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 defineOptions({
   name: 'settings-categories',
 });
 
+const { t } = useI18n();
 const categoriesStore = useCategoriesStore();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 
@@ -173,7 +177,7 @@ const handleDeleteCategory = async () => {
   try {
     await apiDeleteCategory({ categoryId: deleteDialogState.category.id });
     await categoriesStore.loadCategories();
-    addSuccessNotification('Category deleted');
+    addSuccessNotification(t('settings.categories.notifications.deleteSuccess'));
 
     if (selectedCategoryId.value === deleteDialogState.category.id) {
       selectedCategoryId.value = null;
@@ -185,7 +189,7 @@ const handleDeleteCategory = async () => {
         return;
       }
     }
-    addErrorNotification('Failed to delete category');
+    addErrorNotification(t('settings.categories.notifications.deleteFailed'));
   } finally {
     deleteDialogState.isOpen = false;
     deleteDialogState.category = undefined;

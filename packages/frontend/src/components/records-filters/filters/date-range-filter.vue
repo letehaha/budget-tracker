@@ -2,8 +2,8 @@
   <div class="grid gap-3">
     <Tabs v-model="mode" class="w-full">
       <TabsList class="grid w-full grid-cols-2">
-        <TabsTrigger value="range">Range</TabsTrigger>
-        <TabsTrigger value="single">Single</TabsTrigger>
+        <TabsTrigger value="range">{{ $t('transactions.filters.dateRange.tabs.range') }}</TabsTrigger>
+        <TabsTrigger value="single">{{ $t('transactions.filters.dateRange.tabs.single') }}</TabsTrigger>
       </TabsList>
     </Tabs>
 
@@ -18,7 +18,7 @@
             <template v-if="hasDateRange">
               {{ formatDateRange }}
             </template>
-            <template v-else> Select date range </template>
+            <template v-else> {{ $t('transactions.filters.dateRange.selectDateRange') }} </template>
           </Button>
         </Popover.PopoverTrigger>
         <Popover.PopoverContent class="w-auto p-0" align="start">
@@ -42,7 +42,7 @@
                 @click="clearRange"
               >
                 <XIcon class="mr-1 size-3" />
-                Clear
+                {{ $t('transactions.filters.dateRange.clear') }}
               </Button>
             </div>
             <div>
@@ -65,7 +65,7 @@
         :calendar-options="{
           maxDate: end ?? today,
         }"
-        label="From date"
+        :label="$t('transactions.filters.dateRange.fromDate')"
         @update:model-value="$emit('update:start', $event)"
       />
       <DateField
@@ -74,7 +74,7 @@
           minDate: start,
           maxDate: today,
         }"
-        label="To date"
+        :label="$t('transactions.filters.dateRange.toDate')"
         @update:model-value="$emit('update:end', $event)"
       />
     </template>
@@ -92,6 +92,7 @@ import { cn } from '@/lib/utils';
 import { endOfDay, format, startOfDay, startOfMonth, subMonths } from 'date-fns';
 import { CalendarIcon, XIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 interface DateRange {
   start: Date;
@@ -116,6 +117,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update:start', 'update:end', 'update:range']);
 
+const { t } = useI18n();
+
 const mode = ref<'range' | 'single'>('range');
 const isPopoverOpen = ref(false);
 const today = new Date();
@@ -124,36 +127,36 @@ const calendarColumns = computed(() => (isMobile.value ? 1 : 2));
 
 const rangeValue = ref<DateRange | null>(props.start && props.end ? { start: props.start, end: props.end } : null);
 
-const presets: Preset[] = [
+const presets = computed<Preset[]>(() => [
   {
-    label: 'This month',
+    label: t('transactions.filters.dateRange.presets.thisMonth'),
     getValue: () => ({
       start: startOfMonth(new Date()),
       end: endOfDay(new Date()),
     }),
   },
   {
-    label: 'Last 3 months',
+    label: t('transactions.filters.dateRange.presets.last3Months'),
     getValue: () => ({
       start: startOfDay(subMonths(new Date(), 3)),
       end: endOfDay(new Date()),
     }),
   },
   {
-    label: 'Last 6 months',
+    label: t('transactions.filters.dateRange.presets.last6Months'),
     getValue: () => ({
       start: startOfDay(subMonths(new Date(), 6)),
       end: endOfDay(new Date()),
     }),
   },
   {
-    label: 'Last 12 months',
+    label: t('transactions.filters.dateRange.presets.last12Months'),
     getValue: () => ({
       start: startOfDay(subMonths(new Date(), 12)),
       end: endOfDay(new Date()),
     }),
   },
-];
+]);
 
 const hasDateRange = computed(() => props.start && props.end);
 

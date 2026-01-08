@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
 import PortfolioBalances from '@models/investments/PortfolioBalances.model';
@@ -44,7 +45,7 @@ const getPortfolioBalanceHistoryImpl = async ({
   });
 
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   // Build where clause for balance query
@@ -119,7 +120,7 @@ const createBalanceSnapshotImpl = async ({ userId, portfolioId, reason = 'manual
   });
 
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   // Get current balances

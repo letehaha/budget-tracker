@@ -53,7 +53,7 @@ const isPopoverOpen = ref(false);
 <template>
   <div class="mb-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-hidden">
     <div class="flex items-center justify-between">
-      <p class="ml-2 text-xs font-medium tracking-wide uppercase">Accounts</p>
+      <p class="ml-2 text-xs font-medium tracking-wide uppercase">{{ $t('sidebar.accountsView.title') }}</p>
 
       <Popover.Popover :open="isPopoverOpen" @update:open="isPopoverOpen = $event">
         <Popover.PopoverTrigger as-child>
@@ -64,11 +64,13 @@ const isPopoverOpen = ref(false);
         <Popover.PopoverContent side="bottom" align="end">
           <div class="grid gap-2">
             <CreateAccountDialog @created="isPopoverOpen = false">
-              <Button type="button" size="sm" variant="secondary"> New account </Button>
+              <Button type="button" size="sm" variant="secondary"> {{ $t('sidebar.accountsView.newAccount') }} </Button>
             </CreateAccountDialog>
 
             <CreateAccountGroupDialog @created="isPopoverOpen = false">
-              <Button type="button" size="sm" variant="secondary"> New accounts group </Button>
+              <Button type="button" size="sm" variant="secondary">
+                {{ $t('sidebar.accountsView.newAccountsGroup') }}
+              </Button>
             </CreateAccountGroupDialog>
           </div>
         </Popover.PopoverContent>
@@ -77,7 +79,7 @@ const isPopoverOpen = ref(false);
 
     <div class="flex-1 overflow-auto">
       <template v-if="isLoading">
-        <div class="text-muted-foreground px-2 py-4 text-sm">Loading...</div>
+        <div class="text-muted-foreground px-2 py-4 text-sm">{{ $t('common.actions.loading') }}</div>
       </template>
       <template v-else>
         <AccountGroupsList :groups="accountGroups" />

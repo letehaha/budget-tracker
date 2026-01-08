@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Budgets from '@models/Budget.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
@@ -18,7 +19,7 @@ export const addTransactionsToBudget = withTransaction(async (payload: AddTransa
     where: { id: budgetId, userId },
   });
   if (!budget) {
-    throw new NotFoundError({ message: 'Budget not found' });
+    throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
   }
 
   const transactions = await Transactions.findAll({
@@ -29,7 +30,7 @@ export const addTransactionsToBudget = withTransaction(async (payload: AddTransa
   });
 
   if (transactions.length !== transactionIds.length) {
-    throw new ValidationError({ message: 'Some transactions IDs are invalid' });
+    throw new ValidationError({ message: t({ key: 'budgets.someTransactionIdsInvalid' }) });
   }
 
   const budgetTransactions = transactionIds.map((transactionId) => ({
@@ -41,6 +42,6 @@ export const addTransactionsToBudget = withTransaction(async (payload: AddTransa
   await BudgetTransactions.bulkCreate(budgetTransactions);
 
   return {
-    message: 'Transactions added successfully',
+    message: t({ key: 'budgets.transactionsAddedSuccessfully' }),
   };
 });

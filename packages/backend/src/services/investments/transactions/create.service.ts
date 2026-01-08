@@ -1,5 +1,6 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
@@ -30,7 +31,7 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
   });
 
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   const holding = await Holdings.findOne({
@@ -39,7 +40,7 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
   });
 
   if (!holding) {
-    throw new NotFoundError({ message: 'Holding not found. Please add the security to the portfolio first.' });
+    throw new NotFoundError({ message: t({ key: 'investments.holdingNotFoundAddSecurity' }) });
   }
 
   // Business rule: Allow selling more than owned (phantom shares treated as zero cost basis)

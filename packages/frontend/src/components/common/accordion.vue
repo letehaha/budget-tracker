@@ -33,7 +33,7 @@
             <CategoryCircle :category="cat" />
             <span class="truncate">{{ cat.name }}</span>
             <span v-if="isInternalCategory(cat)" class="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-xs">
-              system
+              {{ t('common.labels.system') }}
             </span>
           </div>
 
@@ -47,7 +47,7 @@
             <template #default="{ close }">
               <Button variant="ghost" class="w-full justify-start gap-2" size="sm" @click="handleEdit(cat, close)">
                 <PencilIcon class="size-4" />
-                Edit
+                {{ t('common.actions.edit') }}
               </Button>
 
               <Button
@@ -57,8 +57,8 @@
                 size="sm"
                 @click="handleAddSubcategory(cat, close)"
               >
-                <PlusIcon class="size-4" />
-                Add subcategory
+                <PlusIcon class="size-4 shrink-0" />
+                {{ t('common.actions.addSubcategory') }}
               </Button>
 
               <div class="bg-border my-1 h-px" />
@@ -70,7 +70,7 @@
                 @click="handleDelete(cat, close)"
               >
                 <Trash2Icon class="size-4" />
-                Delete
+                {{ t('common.actions.delete') }}
               </Button>
             </template>
           </ResponsiveMenu>
@@ -109,6 +109,9 @@ import { cn } from '@/lib/utils';
 import { CATEGORY_TYPES } from '@bt/shared/types';
 import { ChevronRightIcon, MoreVerticalIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-vue-next';
 import { computed, reactive } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const isInternalCategory = (category: FormattedCategory) => category.type === CATEGORY_TYPES.internal;
 

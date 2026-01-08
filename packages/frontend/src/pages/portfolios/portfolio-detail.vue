@@ -6,25 +6,25 @@
           <ChevronLeftIcon class="size-5" />
         </router-link>
         <h1 v-if="portfolio" class="text-2xl tracking-wider">{{ portfolio.name }}</h1>
-        <h1 v-else-if="isLoading" class="text-2xl tracking-wider">Loading...</h1>
+        <h1 v-else-if="isLoading" class="text-2xl tracking-wider">{{ $t('portfolioDetail.loading') }}</h1>
       </div>
 
       <div v-if="portfolio" class="flex gap-3">
         <PortfolioTransferDialog :portfolio="portfolio" context="portfolio" @success="refetch">
           <UiButton variant="outline">
             <ArrowRightLeftIcon class="mr-2 size-4" />
-            Transfer
+            {{ $t('portfolioDetail.actions.transfer') }}
           </UiButton>
         </PortfolioTransferDialog>
 
         <EditPortfolioDialog :portfolio="portfolio" @updated="refetch">
-          <UiButton variant="outline"> Edit </UiButton>
+          <UiButton variant="outline"> {{ $t('portfolioDetail.actions.edit') }} </UiButton>
         </EditPortfolioDialog>
 
         <DeletePortfolioDialog :portfolio-id="portfolio.id" @deleted="handleDeletion">
           <UiButton variant="destructive">
             <Trash2Icon class="mr-2 size-4" />
-            Delete
+            {{ $t('portfolioDetail.actions.delete') }}
           </UiButton>
         </DeletePortfolioDialog>
       </div>
@@ -39,12 +39,12 @@
     </div>
 
     <div v-else-if="isLoading" class="py-12 text-center">
-      <p class="text-muted-foreground">Loading portfolio details...</p>
+      <p class="text-muted-foreground">{{ $t('portfolioDetail.loadingDetails') }}</p>
     </div>
 
     <div v-else-if="error" class="py-12 text-center">
-      <p class="text-destructive-text mb-4">Failed to load portfolio details.</p>
-      <UiButton @click="refetch">Try Again</UiButton>
+      <p class="text-destructive-text mb-4">{{ $t('portfolioDetail.loadError') }}</p>
+      <UiButton @click="refetch">{{ $t('portfolioDetail.tryAgain') }}</UiButton>
     </div>
   </div>
 </template>

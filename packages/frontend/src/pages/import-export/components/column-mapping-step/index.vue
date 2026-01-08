@@ -1,9 +1,9 @@
 <template>
   <div class="bg-card rounded-lg border p-6">
     <div class="mb-4">
-      <h2 class="text-lg font-semibold">Step 2: Map Columns</h2>
+      <h2 class="text-lg font-semibold">{{ t('pages.importExport.csvImport.columnMapping.stepTitle') }}</h2>
       <p class="text-muted-foreground text-sm">
-        Match your CSV columns to MoneyMatter fields. Preview shown below with first 10 rows.
+        {{ t('pages.importExport.csvImport.columnMapping.description') }}
       </p>
     </div>
 
@@ -11,9 +11,12 @@
     <div class="bg-muted mb-6 rounded-lg p-4">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm font-medium">File: {{ importStore.uploadedFile?.name }}</p>
+          <p class="text-sm font-medium">
+            {{ t('pages.importExport.csvImport.columnMapping.file') }}: {{ importStore.uploadedFile?.name }}
+          </p>
           <p class="text-muted-foreground text-xs">
-            Total rows: {{ importStore.totalRows }} | Delimiter: "{{ importStore.detectedDelimiter }}"
+            {{ t('pages.importExport.csvImport.columnMapping.totalRows') }}: {{ importStore.totalRows }} |
+            {{ t('pages.importExport.csvImport.columnMapping.delimiter') }}: "{{ importStore.detectedDelimiter }}"
           </p>
         </div>
       </div>
@@ -25,9 +28,9 @@
     <!-- Extract Values Button (shown before extraction) -->
     <div v-if="!hasExtracted" class="mt-6 flex justify-end">
       <UiButton @click="handleExtractValues" :disabled="!canExtract || isExtracting">
-        <template v-if="isExtracting"> Extracting values from full dataset... </template>
+        <template v-if="isExtracting">{{ t('pages.importExport.csvImport.columnMapping.extracting') }}</template>
         <template v-else>
-          Next: Extract & Map Values
+          {{ t('pages.importExport.csvImport.columnMapping.nextExtract') }}
           <ChevronRightIcon class="ml-2 size-4" />
         </template>
       </UiButton>
@@ -55,7 +58,7 @@
     <!-- Continue Button (shown after extraction) -->
     <div v-if="hasExtracted" class="mt-6 flex justify-end">
       <UiButton @click="handleContinue" :disabled="!canContinue">
-        Continue to Duplicate Detection
+        {{ t('pages.importExport.csvImport.columnMapping.continueToDuplicates') }}
         <ChevronRightIcon class="ml-2 size-4" />
       </UiButton>
     </div>
@@ -69,10 +72,13 @@ import { useImportExportStore } from '@/stores/import-export';
 import { API_ERROR_CODES, AccountOptionValue, CategoryOptionValue } from '@bt/shared/types';
 import { ChevronRightIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import AccountMappingTable from './account-mapping-table.vue';
 import CategoryMappingTable from './category-mapping-table.vue';
 import ColumnMappingDropdowns from './column-mapping-dropdowns.vue';
+
+const { t } = useI18n();
 
 const importStore = useImportExportStore();
 

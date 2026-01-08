@@ -23,7 +23,6 @@ const props = defineProps<{
 }>();
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
-
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 const accountsStore = useAccountsStore();
 
@@ -153,7 +152,7 @@ const linkingError = computed(() => {
             <Label for="connection-select">Bank Connection</Label>
             <Select.Select v-model="selectedConnectionId" :disabled="isLoadingConnections || !hasConnections">
               <Select.SelectTrigger id="connection-select">
-                <Select.SelectValue placeholder="Select a bank connection" />
+                <Select.SelectValue :placeholder="$t('pages.account.link.selectConnection')" />
               </Select.SelectTrigger>
               <Select.SelectContent>
                 <template v-if="isLoadingConnections">
@@ -180,7 +179,11 @@ const linkingError = computed(() => {
             >
               <Select.SelectTrigger id="account-select">
                 <Select.SelectValue
-                  :placeholder="isLoadingExternalAccounts ? `Loading...` : `Select an external account`"
+                  :placeholder="
+                    isLoadingExternalAccounts
+                      ? $t('pages.account.link.loading')
+                      : $t('pages.account.link.selectExternalAccount')
+                  "
                 />
               </Select.SelectTrigger>
               <Select.SelectContent>

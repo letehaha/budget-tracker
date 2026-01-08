@@ -1,4 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
@@ -189,7 +190,7 @@ const calculatePortfolioValueAtDateImpl = async ({
   });
 
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   // Get user's base currency
@@ -199,7 +200,7 @@ const calculatePortfolioValueAtDateImpl = async ({
   });
 
   if (!userCurrency) {
-    throw new NotFoundError({ message: 'User base currency not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.userBaseCurrencyNotFound' }) });
   }
 
   const baseCurrencyCode = userCurrency.currency.code;

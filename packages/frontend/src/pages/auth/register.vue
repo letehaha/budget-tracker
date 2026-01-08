@@ -2,55 +2,65 @@
   <div class="flex h-dvh items-center justify-center px-6">
     <Card class="w-full max-w-112.5" as="form" @submit.prevent="submit">
       <CardHeader>
-        <h1 class="text-center text-2xl font-semibold tracking-tight">Create an account</h1>
+        <h1 class="text-center text-2xl font-semibold tracking-tight">{{ $t('auth.signup.title') }}</h1>
       </CardHeader>
       <CardContent class="grid gap-5">
         <!-- OAuth buttons -->
         <div class="grid gap-3">
-          <OAuthButton :provider="OAUTH_PROVIDER.google" mode="signup" :is-loading="isOAuthLoading" @click="handleOAuthSignup({ provider: OAUTH_PROVIDER.google })">
+          <OAuthButton
+            :provider="OAUTH_PROVIDER.google"
+            mode="signup"
+            :is-loading="isOAuthLoading"
+            @click="handleOAuthSignup({ provider: OAUTH_PROVIDER.google })"
+          >
             <template #icon>
               <GoogleIcon />
             </template>
           </OAuthButton>
-          <OAuthButton :provider="OAUTH_PROVIDER.github" mode="signup" :is-loading="isOAuthLoading" @click="handleOAuthSignup({ provider: OAUTH_PROVIDER.github })">
+          <OAuthButton
+            :provider="OAUTH_PROVIDER.github"
+            mode="signup"
+            :is-loading="isOAuthLoading"
+            @click="handleOAuthSignup({ provider: OAUTH_PROVIDER.github })"
+          >
             <template #icon>
               <GithubIcon />
             </template>
           </OAuthButton>
         </div>
 
-        <AuthDivider text="Or continue with email" />
+        <AuthDivider :text="$t('auth.signup.divider')" />
 
         <!-- Email credentials form -->
         <form-wrapper :error="formError" class="grid gap-5">
           <input-field
             v-model="form.email"
-            label="Email"
+            :label="$t('common.labels.email')"
             type="email"
-            placeholder="your@email.com"
+            :placeholder="$t('common.placeholders.email')"
             :disabled="isFormLoading"
             :error-message="getFieldErrorMessage('form.email')"
           />
           <input-field
             v-model="form.name"
-            label="Display Name"
-            placeholder="ie. John Snow"
+            :label="$t('auth.signup.labels.displayName')"
+            :placeholder="$t('auth.signup.placeholders.displayName')"
             :disabled="isFormLoading"
             :error-message="getFieldErrorMessage('form.name')"
           />
           <input-field
             v-model="form.password"
-            label="Password"
+            :label="$t('common.labels.password')"
             type="password"
-            placeholder="Your password"
+            :placeholder="$t('common.placeholders.password')"
             :disabled="isFormLoading"
             :error-message="getFieldErrorMessage('form.password')"
           />
           <input-field
             v-model="form.verifyPassword"
-            label="Verify Password"
+            :label="$t('auth.signup.labels.verifyPassword')"
             type="password"
-            placeholder="Verify password"
+            :placeholder="$t('auth.signup.placeholders.verifyPassword')"
             :disabled="isFormLoading"
             :error-message="getFieldErrorMessage('form.verifyPassword')"
           />
@@ -58,16 +68,16 @@
 
         <div class="flex justify-center">
           <Button type="submit" :disabled="isFormLoading" class="w-full">
-            {{ isFormLoading ? 'Loading...' : 'Sign up' }}
+            {{ isFormLoading ? $t('common.actions.loading') : $t('auth.signup.submitButton') }}
           </Button>
         </div>
       </CardContent>
 
       <CardFooter class="text-center text-sm">
-        Already have an account?
+        {{ $t('auth.signup.alreadyHaveAccount') }}
 
         <router-link :to="{ name: ROUTES_NAMES.signIn }">
-          <Button as="span" variant="link"> Sign in </Button>
+          <Button as="span" variant="link"> {{ $t('auth.signup.signInLink') }} </Button>
         </router-link>
       </CardFooter>
     </Card>
@@ -88,6 +98,7 @@ import { useAuthStore } from '@/stores';
 import { API_ERROR_CODES, OAUTH_PROVIDER } from '@bt/shared/types';
 import { useMutation } from '@tanstack/vue-query';
 import { Ref, computed, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
@@ -95,13 +106,14 @@ const router = useRouter();
 const authStore = useAuthStore();
 const isOAuthLoading = ref(false);
 const formError: Ref<string | null> = ref(null);
+const { t } = useI18n();
 
 // Map better-auth error codes to user-friendly messages
 const BETTER_AUTH_ERROR_MESSAGES: Record<string, string> = {
-  INVALID_EMAIL: 'Please enter a valid email address.',
-  PASSWORD_TOO_SHORT: 'Password is too short.',
-  PASSWORD_TOO_LONG: 'Password is too long.',
-  INVALID_PASSWORD: 'Invalid password.',
+  INVALID_EMAIL: t('auth.signup.errors.invalidEmail'),
+  PASSWORD_TOO_SHORT: t('auth.signup.errors.passwordTooShort'),
+  PASSWORD_TOO_LONG: t('auth.signup.errors.passwordTooLong'),
+  INVALID_PASSWORD: t('auth.signup.errors.invalidPassword'),
 };
 const form = reactive({
   email: '',
@@ -138,9 +150,9 @@ const { isFormValid, getFieldErrorMessage } = useFormValidation(
   undefined,
   {
     customValidationMessages: {
-      passwordMinLength: 'Minimal length is 6.',
-      sameAs: "Passwords don't match",
-      email: 'Please enter a valid email address.',
+      passwordMinLength: t('validation.minLength', { length: 6 }),
+      sameAs: t('validation.passwordsNoMatch'),
+      email: t('validation.emailInvalid'),
     },
   },
 );
@@ -157,7 +169,7 @@ const { mutate: registerUser, isPending: isFormLoading } = useMutation({
     // Check for our custom API errors
     if (error instanceof ApiErrorResponseError) {
       if (error.data.code === API_ERROR_CODES.userExists) {
-        formError.value = 'User with that email already exists.';
+        formError.value = t('auth.signup.errors.userExists');
         return;
       }
     }
@@ -171,7 +183,7 @@ const { mutate: registerUser, isPending: isFormLoading } = useMutation({
     }
 
     // Fall back to actual error message
-    formError.value = error.message || 'An error occurred. Please try again.';
+    formError.value = error.message || t('auth.signup.errors.genericErrorRetry');
   },
 });
 
@@ -187,7 +199,7 @@ const handleOAuthSignup = async ({ provider }: { provider: OAUTH_PROVIDER }) => 
     isOAuthLoading.value = true;
     await authStore.loginWithOAuth({ provider, from: 'signup' });
   } catch {
-    formError.value = `Failed to sign up with ${provider}. Please try again.`;
+    formError.value = t('auth.signup.errors.oauthFailed', { provider });
   } finally {
     isOAuthLoading.value = false;
   }

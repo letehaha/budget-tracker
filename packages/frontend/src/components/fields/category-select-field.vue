@@ -24,12 +24,12 @@
           @mousedown.prevent="selectItem(item)"
         >
           <CategoryCircle :category="item" />
-          <span class="flex-grow">{{ item.name }}</span>
+          <span class="grow">{{ item.name }}</span>
         </button>
       </template>
 
       <div v-if="filteredItems.length === 0" class="text-muted-foreground p-4 text-center text-sm">
-        No categories found
+        {{ $t('fields.categorySelect.noCategoriesFound') }}
       </div>
     </div>
   </CategoryListTemplate>
@@ -57,8 +57,8 @@
               $attrs.class ?? '',
             )
           "
-          aria-label="Select category"
-          :title="selectedValue?.name || 'Select category'"
+          :aria-label="$t('fields.categorySelect.selectCategoryLabel')"
+          :title="selectedValue?.name || $t('fields.categorySelect.selectCategoryLabel')"
           @click="openDropdown"
         >
           <CategoryCircle v-if="selectedValue" :category="selectedValue" class="shrink-0" />
@@ -90,7 +90,7 @@
               type="text"
               class="min-w-0 flex-1 bg-transparent outline-none"
               :placeholder="selectedValue?.name || placeholder"
-              aria-label="Search category"
+              :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
               @blur="handleBlur"
             />
 
@@ -98,7 +98,7 @@
               v-if="searchQuery.length"
               type="button"
               class="text-muted-foreground hover:text-foreground shrink-0"
-              aria-label="Clear search"
+              :aria-label="$t('fields.categorySelect.clearSearchLabel')"
               @mousedown.prevent="clearSearch"
             >
               <XIcon class="size-4" />
@@ -127,7 +127,7 @@
     <Drawer.Drawer v-if="isMobile" :open="isOpen" @update:open="handleDrawerOpenChange">
       <Drawer.DrawerContent class="px-4 pb-4">
         <Drawer.DrawerHeader class="px-0 pb-2">
-          <Drawer.DrawerTitle>Select category</Drawer.DrawerTitle>
+          <Drawer.DrawerTitle>{{ $t('fields.categorySelect.selectCategoryLabel') }}</Drawer.DrawerTitle>
         </Drawer.DrawerHeader>
 
         <!-- Search input in drawer -->
@@ -139,15 +139,15 @@
             v-model="searchQuery"
             type="text"
             class="min-w-0 flex-1 bg-transparent outline-none"
-            :placeholder="selectedValue?.name || 'Search...'"
-            aria-label="Search category"
+            :placeholder="selectedValue?.name || $t('fields.categorySelect.searchPlaceholder')"
+            :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
           />
 
           <button
             v-if="searchQuery.length"
             type="button"
             class="text-muted-foreground hover:text-foreground shrink-0"
-            aria-label="Clear search"
+            :aria-label="$t('fields.categorySelect.clearSearchLabel')"
             @click="searchQuery = ''"
           >
             <XIcon class="size-4" />

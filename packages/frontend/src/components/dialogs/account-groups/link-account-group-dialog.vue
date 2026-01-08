@@ -9,8 +9,11 @@ import { AccountModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { CheckIcon, PlusIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import CreateAccountGroupDialog from './create-account-group-dialog.vue';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   account: AccountModel;
@@ -97,7 +100,7 @@ const isGroupChanged = computed(() => currentSelection.value?.name !== selectedG
     <template #trigger>
       <slot />
     </template>
-    <template #title> Link account group </template>
+    <template #title>{{ t('dialogs.linkAccountGroup.title') }}</template>
 
     <div class="grid gap-1">
       <template v-for="group of data" :key="group.id">
@@ -120,15 +123,15 @@ const isGroupChanged = computed(() => currentSelection.value?.name !== selectedG
       <template v-if="isGroupChanged">
         <div class="grid grid-cols-2 gap-2">
           <UiButton variant="secondary" :disabled="isFormPending" @click="selectedGroup = currentSelection">
-            Cancel
+            {{ t('common.actions.cancel') }}
           </UiButton>
-          <UiButton :disabled="isFormPending" @click="saveChanges"> Save </UiButton>
+          <UiButton :disabled="isFormPending" @click="saveChanges">{{ t('common.actions.save') }}</UiButton>
         </div>
       </template>
       <template v-else>
         <CreateAccountGroupDialog>
           <UiButton variant="secondary" class="w-full gap-2">
-            Create new group
+            {{ t('dialogs.linkAccountGroup.createNewGroup') }}
             <PlusIcon class="size-5" />
           </UiButton>
         </CreateAccountGroupDialog>

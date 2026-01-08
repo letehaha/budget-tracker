@@ -5,6 +5,7 @@ import * as helpers from '@tests/helpers';
 describe('Update user settings', () => {
   it('updates empty settings and returns new value right away', async () => {
     const newSettings: SettingsSchema = {
+      locale: 'en',
       stats: { expenses: { excludedCategories: [10] } },
     };
 
@@ -20,30 +21,31 @@ describe('Update user settings', () => {
     expect(useSettings).toStrictEqual(newSettings);
   });
 
-  it.each([{ stats: { expenses: { excludedCategories: [20] } } }, { stats: { expenses: { excludedCategories: [] } } }])(
-    'overrides existing settings',
-    async (newSettings: SettingsSchema) => {
-      await helpers.updateUserSettings({
-        raw: true,
-        settings: { stats: { expenses: { excludedCategories: [10] } } },
-      });
+  it.each([
+    { locale: 'en' as const, stats: { expenses: { excludedCategories: [20] } } },
+    { locale: 'en' as const, stats: { expenses: { excludedCategories: [] } } },
+  ])('overrides existing settings', async (newSettings: SettingsSchema) => {
+    await helpers.updateUserSettings({
+      raw: true,
+      settings: { locale: 'en', stats: { expenses: { excludedCategories: [10] } } },
+    });
 
-      const updatedUserSettings = await helpers.updateUserSettings({
-        raw: true,
-        settings: newSettings,
-      });
+    const updatedUserSettings = await helpers.updateUserSettings({
+      raw: true,
+      settings: newSettings,
+    });
 
-      expect(updatedUserSettings).toStrictEqual(newSettings);
+    expect(updatedUserSettings).toStrictEqual(newSettings);
 
-      const useSettings = await helpers.getUserSettings({ raw: true });
+    const useSettings = await helpers.getUserSettings({ raw: true });
 
-      expect(useSettings).toStrictEqual(newSettings);
-    },
-  );
+    expect(useSettings).toStrictEqual(newSettings);
+  });
 
   it('throws error when excluded categories do not exist', async () => {
     const nonExistentCategoryId = 999;
     const newSettings: SettingsSchema = {
+      locale: 'en',
       stats: {
         expenses: {
           excludedCategories: [nonExistentCategoryId],
@@ -65,6 +67,7 @@ describe('Update user settings', () => {
       raw: true,
     });
     const newSettings: SettingsSchema = {
+      locale: 'en',
       stats: {
         expenses: {
           excludedCategories: [category.id],
@@ -88,6 +91,7 @@ describe('Update user settings', () => {
     });
     const nonExistentId = 999;
     const newSettings: SettingsSchema = {
+      locale: 'en',
       stats: {
         expenses: {
           excludedCategories: [category.id, nonExistentId],
@@ -104,6 +108,7 @@ describe('Update user settings', () => {
 
   it('handles empty excluded categories array', async () => {
     const newSettings: SettingsSchema = {
+      locale: 'en',
       stats: {
         expenses: {
           excludedCategories: [],

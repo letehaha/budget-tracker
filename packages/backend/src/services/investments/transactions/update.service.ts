@@ -1,5 +1,6 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
@@ -30,7 +31,7 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
   });
 
   if (!transaction) {
-    throw new NotFoundError({ message: 'Investment transaction not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.transactionNotFound' }) });
   }
 
   // Store the portfolioId and securityId for recalculation
@@ -42,7 +43,7 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
   });
 
   if (!holding) {
-    throw new NotFoundError({ message: 'Holding not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.holdingNotFound' }) });
   }
 
   // Business rule: Check for sufficient shares when updating to a sell transaction
@@ -66,7 +67,13 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
 
     if (sellQuantity.gt(adjustedHoldingQuantity)) {
       throw new ValidationError({
-        message: `Insufficient shares to sell. After this update, you would have ${adjustedHoldingQuantity.toFixed()} shares but are trying to sell ${sellQuantity.toFixed()} shares.`,
+        message: t({
+          key: 'investments.insufficientSharesToSell',
+          variables: {
+            adjustedQuantity: adjustedHoldingQuantity.toFixed(),
+            sellQuantity: sellQuantity.toFixed(),
+          },
+        }),
       });
     }
   }

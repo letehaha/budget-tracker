@@ -2,6 +2,7 @@ import { createTransaction, editTransaction, linkTransactions } from '@/api';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
 import { getInvalidationQueryKey } from '@/composable/data-queries/opposite-tx-record';
+import { i18n } from '@/i18n';
 import { ApiErrorResponseError } from '@/js/errors';
 import type { TransactionModel } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
@@ -91,7 +92,7 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
       } else {
         // eslint-disable-next-line no-console
         console.error(error);
-        addErrorNotification('Unexpected error!');
+        addErrorNotification(i18n.global.t('transactions.submit.unexpectedError'));
       }
     },
   });

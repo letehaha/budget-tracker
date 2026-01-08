@@ -165,9 +165,11 @@ const theadCellStyles = 'py-2';
 
 <template>
   <div>
-    <div v-if="loading" class="text-center">Loading...</div>
-    <div v-else-if="error" class="text-center text-red-500">Could not load holdings</div>
-    <div v-else-if="!holdings || holdings.length === 0" class="text-center">No holdings yet</div>
+    <div v-if="loading" class="text-center">{{ $t('portfolioDetail.holdingsTable.loading') }}</div>
+    <div v-else-if="error" class="text-center text-red-500">{{ $t('portfolioDetail.holdingsTable.loadError') }}</div>
+    <div v-else-if="!holdings || holdings.length === 0" class="text-center">
+      {{ $t('portfolioDetail.holdingsTable.empty') }}
+    </div>
     <div v-else>
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-muted text-muted-foreground sticky top-[var(--header-height)]">
@@ -175,51 +177,53 @@ const theadCellStyles = 'py-2';
             <th :class="[theadCellStyles, 'w-8 text-left']"></th>
             <th :class="[theadCellStyles, 'px-4 text-left']">
               <button class="flex items-center gap-1" @click="toggleSort('symbol')">
-                Symbol
+                {{ $t('portfolioDetail.holdingsTable.headers.symbol') }}
                 <ArrowUpIcon v-if="sortKey === 'symbol' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'symbol' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
-            <th :class="[theadCellStyles, 'px-4 text-left']">Name</th>
+            <th :class="[theadCellStyles, 'px-4 text-left']">{{ $t('portfolioDetail.holdingsTable.headers.name') }}</th>
             <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('quantity')">
-                Shares
+                {{ $t('portfolioDetail.holdingsTable.headers.shares') }}
                 <ArrowUpIcon v-if="sortKey === 'quantity' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'quantity' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
-            <th :class="[theadCellStyles, 'px-4 text-right']">Price</th>
+            <th :class="[theadCellStyles, 'px-4 text-right']">
+              {{ $t('portfolioDetail.holdingsTable.headers.price') }}
+            </th>
             <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('avgCost')">
-                AC/Share
+                {{ $t('portfolioDetail.holdingsTable.headers.avgCostPerShare') }}
                 <ArrowUpIcon v-if="sortKey === 'avgCost' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'avgCost' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
             <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('totalCost')">
-                Total Cost
+                {{ $t('portfolioDetail.holdingsTable.headers.totalCost') }}
                 <ArrowUpIcon v-if="sortKey === 'totalCost' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'totalCost' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
             <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('value')">
-                Market Value
+                {{ $t('portfolioDetail.holdingsTable.headers.marketValue') }}
                 <ArrowUpIcon v-if="sortKey === 'value' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'value' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
             <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('unrealizedGain')">
-                Unrealized Gain
+                {{ $t('portfolioDetail.holdingsTable.headers.unrealizedGain') }}
                 <ArrowUpIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
             <th :class="[theadCellStyles, 'px-4 text-right']">
               <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('realizedGain')">
-                Realized Gain
+                {{ $t('portfolioDetail.holdingsTable.headers.realizedGain') }}
                 <ArrowUpIcon v-if="sortKey === 'realizedGain' && sortDir === 'asc'" class="size-3" />
                 <ArrowDownIcon v-if="sortKey === 'realizedGain' && sortDir === 'desc'" class="size-3" />
               </button>
@@ -263,7 +267,7 @@ const theadCellStyles = 'py-2';
                   v-if="isLoadingTransactions && !transactionsResponse"
                   class="text-muted-foreground p-4 text-center"
                 >
-                  Loading transactions…
+                  {{ $t('portfolioDetail.holdingsTable.transactions.loading') }}
                 </div>
                 <InvestmentTransactionsList
                   v-else-if="transactionsResponse?.transactions?.length"
@@ -275,8 +279,10 @@ const theadCellStyles = 'py-2';
                   @add-transaction="openTransactionModal(h)"
                 />
                 <div v-else class="text-muted-foreground p-4 text-center">
-                  <p class="mb-4">No transactions found.</p>
-                  <Button variant="secondary" @click="openTransactionModal(h)"> Add first Transaction </Button>
+                  <p class="mb-4">{{ $t('portfolioDetail.holdingsTable.transactions.empty') }}</p>
+                  <Button variant="secondary" @click="openTransactionModal(h)">
+                    {{ $t('portfolioDetail.holdingsTable.transactions.addFirstButton') }}
+                  </Button>
                 </div>
               </td>
             </tr>
@@ -288,8 +294,10 @@ const theadCellStyles = 'py-2';
     <Dialog.Dialog v-model:open="isTransactionModalOpen">
       <Dialog.DialogContent class="sm:max-w-[425px]">
         <Dialog.DialogHeader>
-          <Dialog.DialogTitle>Add Transaction</Dialog.DialogTitle>
-          <Dialog.DialogDescription> Add a new transaction to your portfolio. </Dialog.DialogDescription>
+          <Dialog.DialogTitle>{{ $t('portfolioDetail.holdingsTable.addTransactionDialog.title') }}</Dialog.DialogTitle>
+          <Dialog.DialogDescription>
+            {{ $t('portfolioDetail.holdingsTable.addTransactionDialog.description') }}
+          </Dialog.DialogDescription>
         </Dialog.DialogHeader>
         <InvestmentTransactionForm
           class="mt-4"

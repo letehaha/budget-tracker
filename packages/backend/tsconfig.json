@@ -15,6 +15,7 @@
       "@models/*": ["models/*"],
       "@tests/*": ["tests/*"],
       "@js/*": ["js/*"],
+      "@i18n/*": ["i18n/*"],
       "@root/*": ["./*"],
       "@bt/shared/*": ["../../shared/src/*"],
       "@services/*": ["services/*"],

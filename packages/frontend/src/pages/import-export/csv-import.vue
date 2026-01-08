@@ -1,9 +1,9 @@
 <template>
   <div class="p-6">
     <div class="mb-6">
-      <h1 class="text-2xl tracking-wider">Import Transactions from CSV</h1>
+      <h1 class="text-2xl tracking-wider">{{ t('pages.importExport.csvImport.pageTitle') }}</h1>
       <p class="text-muted-foreground mt-2">
-        Upload your bank CSV export or transaction history file to import transactions into your account.
+        {{ t('pages.importExport.csvImport.pageDescription') }}
       </p>
     </div>
 
@@ -29,8 +29,10 @@
                 <span v-else>1</span>
               </div>
               <div>
-                <h3 class="font-semibold">Upload CSV File</h3>
-                <p class="text-muted-foreground text-sm">Select your CSV file to begin</p>
+                <h3 class="font-semibold">{{ t('pages.importExport.csvImport.steps.uploadTitle') }}</h3>
+                <p class="text-muted-foreground text-sm">
+                  {{ t('pages.importExport.csvImport.steps.uploadDescription') }}
+                </p>
               </div>
             </div>
             <ChevronDownIcon
@@ -67,8 +69,10 @@
                 <span v-else>2</span>
               </div>
               <div>
-                <h3 class="font-semibold">Map Columns</h3>
-                <p class="text-muted-foreground text-sm">Match CSV columns to transaction fields</p>
+                <h3 class="font-semibold">{{ t('pages.importExport.csvImport.steps.mappingTitle') }}</h3>
+                <p class="text-muted-foreground text-sm">
+                  {{ t('pages.importExport.csvImport.steps.mappingDescription') }}
+                </p>
               </div>
             </div>
             <ChevronDownIcon
@@ -107,8 +111,10 @@
                 <span v-else>3</span>
               </div>
               <div>
-                <h3 class="font-semibold">Review Duplicates</h3>
-                <p class="text-muted-foreground text-sm">Check for duplicate transactions</p>
+                <h3 class="font-semibold">{{ t('pages.importExport.csvImport.steps.reviewTitle') }}</h3>
+                <p class="text-muted-foreground text-sm">
+                  {{ t('pages.importExport.csvImport.steps.reviewDescription') }}
+                </p>
               </div>
             </div>
             <ChevronDownIcon
@@ -147,8 +153,10 @@
                 <span v-else>4</span>
               </div>
               <div>
-                <h3 class="font-semibold">Import Complete</h3>
-                <p class="text-muted-foreground text-sm">Review import results</p>
+                <h3 class="font-semibold">{{ t('pages.importExport.csvImport.steps.completeTitle') }}</h3>
+                <p class="text-muted-foreground text-sm">
+                  {{ t('pages.importExport.csvImport.steps.completeDescription') }}
+                </p>
               </div>
             </div>
             <ChevronDownIcon
@@ -170,11 +178,14 @@
 <script setup lang="ts">
 import { useImportExportStore } from '@/stores/import-export';
 import { CheckIcon, ChevronDownIcon, LockIcon } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 import ColumnMappingStep from './components/column-mapping-step/index.vue';
 import FileUploadStep from './components/file-upload-step/index.vue';
 import ImportResultsStep from './components/import-results-step/index.vue';
 import ReviewDuplicatesStep from './components/review-duplicates-step/index.vue';
+
+const { t } = useI18n();
 
 const importStore = useImportExportStore();
 

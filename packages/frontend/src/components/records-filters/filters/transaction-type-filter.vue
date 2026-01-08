@@ -1,6 +1,6 @@
 <template>
   <div>
-    <p class="mb-2">Transaction type:</p>
+    <p class="mb-2">{{ $t('transactions.filters.transactionType.label') }}</p>
 
     <RadioGroup
       :model-value="value"
@@ -10,15 +10,15 @@
     >
       <label class="flex cursor-pointer items-center gap-2">
         <RadioGroupItem :value="null" />
-        <p class="text-sm">Both</p>
+        <p class="text-sm">{{ $t('transactions.filters.transactionType.both') }}</p>
       </label>
       <label class="flex cursor-pointer items-center gap-2">
         <RadioGroupItem :value="TRANSACTION_TYPES.income" />
-        <p class="text-sm">Income</p>
+        <p class="text-sm">{{ $t('transactions.filters.transactionType.income') }}</p>
       </label>
       <label class="flex cursor-pointer items-center gap-2">
         <RadioGroupItem :value="TRANSACTION_TYPES.expense" />
-        <p class="text-sm">Expense</p>
+        <p class="text-sm">{{ $t('transactions.filters.transactionType.expense') }}</p>
       </label>
     </RadioGroup>
   </div>

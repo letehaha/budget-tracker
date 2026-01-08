@@ -67,8 +67,8 @@ watch(
 
 <template>
   <div class="space-y-3">
-    <h3 class="text-sm font-medium">Map Fields</h3>
-    <p class="text-muted-foreground text-xs">Match your file's fields to the required fields below.</p>
+    <h3 class="text-sm font-medium">{{ $t('settings.admin.priceUpload.fieldMapper.title') }}</h3>
+    <p class="text-muted-foreground text-xs">{{ $t('settings.admin.priceUpload.fieldMapper.description') }}</p>
 
     <div class="space-y-2">
       <div
@@ -85,7 +85,7 @@ watch(
           v-model="fieldMapping[required]"
           class="border-border bg-background flex-1 rounded border px-3 py-2 text-sm"
         >
-          <option value="">Select field...</option>
+          <option value="">{{ $t('settings.admin.priceUpload.fieldMapper.selectField') }}</option>
           <option v-for="field in fileFields" :key="field" :value="field">
             {{ field }}
           </option>
@@ -95,14 +95,18 @@ watch(
 
     <!-- Date Format Selection -->
     <div class="border-border space-y-2 rounded border p-3">
-      <label class="text-sm font-medium"> Date Format <span class="text-destructive-text">*</span> </label>
-      <p class="text-muted-foreground text-xs">Select the date format used in your file</p>
+      <label class="text-sm font-medium">
+        {{ $t('settings.admin.priceUpload.fieldMapper.dateFormatLabel') }} <span class="text-destructive-text">*</span>
+      </label>
+      <p class="text-muted-foreground text-xs">
+        {{ $t('settings.admin.priceUpload.fieldMapper.dateFormatDescription') }}
+      </p>
       <select v-model="dateFormat" class="border-border bg-background w-full rounded border px-3 py-2 text-sm">
-        <option value="dd/MM/yyyy">DD/MM/YYYY (e.g., 31/12/2024)</option>
-        <option value="MM/dd/yyyy">MM/DD/YYYY (e.g., 12/31/2024)</option>
-        <option value="yyyy-MM-dd">YYYY-MM-DD (e.g., 2024-12-31)</option>
-        <option value="dd-MM-yyyy">DD-MM-YYYY (e.g., 31-12-2024)</option>
-        <option value="MM-dd-yyyy">MM-DD-YYYY (e.g., 12-31-2024)</option>
+        <option value="dd/MM/yyyy">{{ $t('settings.admin.priceUpload.fieldMapper.dateFormats.ddMMyyyySlash') }}</option>
+        <option value="MM/dd/yyyy">{{ $t('settings.admin.priceUpload.fieldMapper.dateFormats.MMddyyyySlash') }}</option>
+        <option value="yyyy-MM-dd">{{ $t('settings.admin.priceUpload.fieldMapper.dateFormats.yyyyMMddDash') }}</option>
+        <option value="dd-MM-yyyy">{{ $t('settings.admin.priceUpload.fieldMapper.dateFormats.ddMMyyyyDash') }}</option>
+        <option value="MM-dd-yyyy">{{ $t('settings.admin.priceUpload.fieldMapper.dateFormats.MMddyyyyDash') }}</option>
       </select>
     </div>
 
@@ -113,10 +117,10 @@ watch(
       <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
       </svg>
-      All required fields mapped
+      {{ $t('settings.admin.priceUpload.fieldMapper.mappingComplete') }}
     </div>
     <div v-else class="text-muted-foreground flex items-center gap-2 text-xs">
-      Please map all required fields to continue
+      {{ $t('settings.admin.priceUpload.fieldMapper.mappingIncomplete') }}
     </div>
   </div>
 </template>

@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import Categories from '@models/Categories.model';
 
 import {
@@ -33,7 +34,7 @@ export const validateSplits = async ({
   if (transferNature && transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
     errors.push({
       field: 'splits',
-      message: 'Cannot add splits to transfer transactions',
+      message: t({ key: 'transactions.splits.splitsOnTransfer' }),
       code: SPLIT_ERROR_CODES.SPLITS_ON_TRANSFER,
     });
     return errors; // Return early, no point validating further
@@ -43,7 +44,7 @@ export const validateSplits = async ({
   if (splits.length > MAX_SPLITS_PER_TRANSACTION) {
     errors.push({
       field: 'splits',
-      message: `Maximum ${MAX_SPLITS_PER_TRANSACTION} splits allowed per transaction`,
+      message: t({ key: 'transactions.splits.splitLimitExceeded', variables: { max: MAX_SPLITS_PER_TRANSACTION } }),
       code: SPLIT_ERROR_CODES.SPLIT_LIMIT_EXCEEDED,
     });
   }
@@ -59,7 +60,7 @@ export const validateSplits = async ({
     if (split.categoryId === undefined || split.categoryId === null) {
       errors.push({
         field: `${fieldPrefix}.categoryId`,
-        message: 'Category is required for each split',
+        message: t({ key: 'transactions.splits.missingCategory' }),
         code: SPLIT_ERROR_CODES.SPLIT_MISSING_CATEGORY,
       });
     } else {
@@ -69,7 +70,7 @@ export const validateSplits = async ({
     if (split.amount === undefined || split.amount === null) {
       errors.push({
         field: `${fieldPrefix}.amount`,
-        message: 'Amount is required for each split',
+        message: t({ key: 'transactions.splits.missingAmount' }),
         code: SPLIT_ERROR_CODES.SPLIT_MISSING_AMOUNT,
       });
     } else {
@@ -77,7 +78,7 @@ export const validateSplits = async ({
       if (split.amount < 0) {
         errors.push({
           field: `${fieldPrefix}.amount`,
-          message: 'Split amount cannot be negative',
+          message: t({ key: 'transactions.splits.amountNegative' }),
           code: SPLIT_ERROR_CODES.SPLIT_AMOUNT_NEGATIVE,
         });
       }
@@ -85,7 +86,7 @@ export const validateSplits = async ({
       else if (split.amount < MIN_SPLIT_AMOUNT) {
         errors.push({
           field: `${fieldPrefix}.amount`,
-          message: `Split amount must be at least ${MIN_SPLIT_AMOUNT / 100} (system minimum)`,
+          message: t({ key: 'transactions.splits.amountTooSmall', variables: { min: MIN_SPLIT_AMOUNT / 100 } }),
           code: SPLIT_ERROR_CODES.SPLIT_AMOUNT_TOO_SMALL,
         });
       }
@@ -95,7 +96,7 @@ export const validateSplits = async ({
     if (split.note && split.note.length > MAX_SPLIT_NOTE_LENGTH) {
       errors.push({
         field: `${fieldPrefix}.note`,
-        message: `Split note cannot exceed ${MAX_SPLIT_NOTE_LENGTH} characters`,
+        message: t({ key: 'transactions.splits.noteTooLong', variables: { max: MAX_SPLIT_NOTE_LENGTH } }),
         code: SPLIT_ERROR_CODES.SPLIT_NOTE_TOO_LONG,
       });
     }
@@ -118,7 +119,7 @@ export const validateSplits = async ({
       if (split.categoryId && !existingCategoryIds.has(split.categoryId)) {
         errors.push({
           field: `splits[${i}].categoryId`,
-          message: `Category with id ${split.categoryId} not found or does not belong to user`,
+          message: t({ key: 'transactions.splits.invalidCategory', variables: { categoryId: split.categoryId } }),
           code: SPLIT_ERROR_CODES.SPLIT_INVALID_CATEGORY,
         });
       }
@@ -130,7 +131,10 @@ export const validateSplits = async ({
   if (totalSplitAmount > transactionAmount) {
     errors.push({
       field: 'splits',
-      message: `Total split amount (${totalSplitAmount}) exceeds transaction amount (${transactionAmount})`,
+      message: t({
+        key: 'transactions.splits.exceedTotal',
+        variables: { total: totalSplitAmount, transactionAmount },
+      }),
       code: SPLIT_ERROR_CODES.SPLITS_EXCEED_TOTAL,
     });
   }
@@ -148,7 +152,7 @@ export const assertValidSplits = async (params: ValidateSplitsParams): Promise<v
   if (errors.length > 0) {
     const { ValidationError } = await import('@js/errors');
     throw new ValidationError({
-      message: 'Invalid split data',
+      message: t({ key: 'transactions.splits.invalidData' }),
       // @ts-expect-error - extending error with additional data
       errors,
     });

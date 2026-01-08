@@ -17,6 +17,7 @@ import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { AlertTriangleIcon, LinkIcon, PlusIcon, WalletIcon, XIcon } from 'lucide-vue-next';
 import { computed, inject, nextTick, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import AddTransactionsDialog from './add-transactions-dialog.vue';
@@ -29,6 +30,7 @@ const scrollAreaViewport = inject<ReturnType<typeof ref<{ viewportElement: HTMLE
 defineProps<{ isBudgetDataUpdating: boolean; budgetId: number }>();
 
 const { addSuccessNotification } = useNotificationCenter();
+const { t } = useI18n();
 
 const route = useRoute();
 const queryClient = useQueryClient();
@@ -111,7 +113,7 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
 const { isPending: isMutating, mutate } = useMutation({
   mutationFn: removeTransactionsFromBudget,
   onSuccess: () => {
-    addSuccessNotification('Transactions unlinked successfully!');
+    addSuccessNotification(t('budgets.list.unlinkTransactionsSuccess'));
     invalidate();
     isUnlinkingSelectionEnabled.value = false;
     pickedTransactionsIds.clear();
@@ -399,7 +401,7 @@ const toggleSelectAll = () => {
                 />
                 <TransactionRecord :tx="flatTransactions[virtualRow.index]" />
               </label>
-              <div v-else class="flex h-[52px] items-center justify-center">
+              <div v-else class="flex h-13 items-center justify-center">
                 <span class="text-muted-foreground text-sm">Loading more...</span>
               </div>
             </div>

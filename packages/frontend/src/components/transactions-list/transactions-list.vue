@@ -7,9 +7,12 @@ import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, Transact
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { createReusableTemplate } from '@vueuse/core';
 import { computed, defineAsyncComponent, ref, watch, watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { SCROLL_AREA_IDS } from '../lib/ui/scroll-area/types';
 import TransactionRecord from './transaction-record.vue';
+
+const { t } = useI18n();
 
 const ManageTransactionDoalogContent = defineAsyncComponent(
   () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
@@ -180,7 +183,7 @@ watchEffect(() => {
           </div>
 
           <div v-if="!rawList" class="flex h-10 items-center justify-center">
-            <template v-if="!hasNextPage"> No more data to load </template>
+            <template v-if="!hasNextPage">{{ t('transactions.list.noMoreData') }}</template>
           </div>
         </div>
 
@@ -188,7 +191,7 @@ watchEffect(() => {
           v-if="!rawList"
           class="absolute right-0 bottom-0 left-0 flex h-10 items-center justify-center bg-white/5 empty:hidden"
         >
-          <template v-if="isFetchingNextPage">Loading more...</template>
+          <template v-if="isFetchingNextPage">{{ t('transactions.list.loadingMore') }}</template>
         </div>
       </div>
     </template>
@@ -210,8 +213,10 @@ watchEffect(() => {
     <template v-if="isMobile">
       <Drawer.Drawer v-model:open="isDialogVisible">
         <Drawer.DrawerContent custom-indicator>
-          <Drawer.DrawerTitle class="sr-only">Transaction details</Drawer.DrawerTitle>
-          <Drawer.DrawerDescription class="sr-only">View and edit transaction</Drawer.DrawerDescription>
+          <Drawer.DrawerTitle class="sr-only">{{ t('transactions.list.detailsTitle') }}</Drawer.DrawerTitle>
+          <Drawer.DrawerDescription class="sr-only">{{
+            t('transactions.list.detailsDescription')
+          }}</Drawer.DrawerDescription>
           <SlotContent />
         </Drawer.DrawerContent>
       </Drawer.Drawer>
@@ -219,8 +224,10 @@ watchEffect(() => {
     <template v-else>
       <Dialog.Dialog v-model:open="isDialogVisible">
         <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-[900px] p-0">
-          <Dialog.DialogTitle class="sr-only">Transaction details</Dialog.DialogTitle>
-          <Dialog.DialogDescription class="sr-only">View and edit transaction</Dialog.DialogDescription>
+          <Dialog.DialogTitle class="sr-only">{{ t('transactions.list.detailsTitle') }}</Dialog.DialogTitle>
+          <Dialog.DialogDescription class="sr-only">{{
+            t('transactions.list.detailsDescription')
+          }}</Dialog.DialogDescription>
           <SlotContent />
         </Dialog.DialogContent>
       </Dialog.Dialog>

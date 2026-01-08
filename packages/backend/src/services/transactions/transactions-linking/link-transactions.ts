@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Transactions from '@models/Transactions.model';
@@ -17,18 +18,17 @@ const validateTransactionLinking = ({
 }) => {
   if (base.id === opposite.id) {
     throw new ValidationError({
-      message: 'Trying to link the transaction to itself.',
+      message: t({ key: 'transactions.linkSelfNotAllowed' }),
     });
   }
   if (opposite.transactionType === base.transactionType) {
     throw new ValidationError({
-      message: 'Trying to link with the transaction that has the same "transactionType".',
+      message: t({ key: 'transactions.linkSameTypeNotAllowed' }),
     });
   }
   if (opposite.accountId === base.accountId) {
     throw new ValidationError({
-      message:
-        "Trying to link with the transaction within the same account. It's allowed to link only between different accounts",
+      message: t({ key: 'transactions.linkSameAccountNotAllowed' }),
     });
   }
   if (
@@ -37,7 +37,7 @@ const validateTransactionLinking = ({
   ) {
     // TODO: disabled when multiple links are available
     throw new ValidationError({
-      message: 'Trying to link transaction that is already a transfer.',
+      message: t({ key: 'transactions.linkAlreadyTransferNotAllowed' }),
     });
   }
 };
@@ -65,7 +65,7 @@ export const linkTransactions = withTransaction(
 
         if (transactions.length !== 2) {
           throw new ValidationError({
-            message: 'Unexpected error. Cannot link asked transactions.',
+            message: t({ key: 'transactions.linkUnexpectedError' }),
           });
         }
 
@@ -78,7 +78,7 @@ export const linkTransactions = withTransaction(
             opposite,
           });
           throw new ValidationError({
-            message: 'Cannot find base or opposite transactions',
+            message: t({ key: 'transactions.linkCannotFind' }),
           });
         }
 

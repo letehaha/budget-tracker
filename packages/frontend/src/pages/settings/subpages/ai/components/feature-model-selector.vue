@@ -1,20 +1,23 @@
 <template>
   <div class="space-y-4">
     <div>
-      <h3 class="text-lg font-medium">AI Features</h3>
-      <p class="text-muted-foreground text-sm">Configure which model to use for each AI-powered feature</p>
+      <h3 class="text-lg font-medium">{{ $t('settings.ai.features.title') }}</h3>
+      <p class="text-muted-foreground text-sm">{{ $t('settings.ai.features.description') }}</p>
     </div>
 
     <div v-if="isLoading" class="text-muted-foreground flex items-center gap-2 py-4 text-sm">
       <Loader2Icon class="size-4 animate-spin" />
-      Loading features...
+      {{ $t('settings.ai.features.loading') }}
     </div>
 
     <div v-else class="space-y-3">
       <!-- Render feature-specific components -->
       <template v-for="feature in featuresStatus" :key="feature.feature">
         <CategorizationFeature v-if="feature.feature === AI_FEATURE.categorization" :feature-status="feature" />
-        <StatementParsingFeature v-else-if="feature.feature === AI_FEATURE.statementParsing" :feature-status="feature" />
+        <StatementParsingFeature
+          v-else-if="feature.feature === AI_FEATURE.statementParsing"
+          :feature-status="feature"
+        />
       </template>
     </div>
   </div>

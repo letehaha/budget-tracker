@@ -1,8 +1,8 @@
 <template>
   <div class="space-y-6">
     <div>
-      <h3 class="mb-1 text-lg font-medium">Active Sessions</h3>
-      <p class="text-muted-foreground text-sm">Manage devices where you're currently signed in</p>
+      <h3 class="mb-1 text-lg font-medium">{{ $t('settings.security.activeSessions.title') }}</h3>
+      <p class="text-muted-foreground text-sm">{{ $t('settings.security.activeSessions.description') }}</p>
     </div>
 
     <!-- Loading state -->
@@ -30,14 +30,18 @@
                     v-if="session.isCurrent"
                     class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium"
                   >
-                    Current
+                    {{ $t('settings.security.activeSessions.currentBadge') }}
                   </span>
                 </div>
                 <p class="text-muted-foreground text-sm">
-                  {{ session.ipAddress || 'Unknown location' }}
+                  {{ session.ipAddress || $t('settings.security.activeSessions.unknownLocation') }}
                 </p>
                 <p class="text-muted-foreground text-xs">
-                  Last active: {{ formatDate(session.updatedAt || session.createdAt) }}
+                  {{
+                    $t('settings.security.activeSessions.lastActive', {
+                      date: formatDate(session.updatedAt || session.createdAt),
+                    })
+                  }}
                 </p>
               </div>
             </div>
@@ -57,14 +61,14 @@
 
       <!-- No sessions message -->
       <p v-if="sessions.length === 0" class="text-muted-foreground py-8 text-center text-sm">
-        No active sessions found
+        {{ $t('settings.security.activeSessions.noSessions') }}
       </p>
 
       <!-- Revoke all button -->
       <div v-if="otherSessions.length > 0" class="border-t pt-4">
         <Button variant="destructive" @click="handleRevokeAll">
           <LogOutIcon class="mr-2 size-4" />
-          Sign out of all other sessions
+          {{ $t('settings.security.activeSessions.revokeAllButton') }}
         </Button>
       </div>
     </template>
@@ -77,6 +81,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { authClient, getSession } from '@/lib/auth-client';
 import { Loader2Icon, LogOutIcon, MonitorIcon, SmartphoneIcon, TabletIcon } from 'lucide-vue-next';
 import { type Component, computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 interface Session {
   id: string;
@@ -91,6 +96,7 @@ interface Session {
 }
 
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
+const { t } = useI18n();
 
 const isLoading = ref(true);
 const isRevokingSession = ref<string | null>(null);
@@ -107,16 +113,16 @@ const formatDate = (dateStr: string | Date) => {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  if (diffMins < 1) return t('settings.security.activeSessions.timeAgo.justNow');
+  if (diffMins < 60) return t('settings.security.activeSessions.timeAgo.minutesAgo', { count: diffMins });
+  if (diffHours < 24) return t('settings.security.activeSessions.timeAgo.hoursAgo', { count: diffHours });
+  if (diffDays < 7) return t('settings.security.activeSessions.timeAgo.daysAgo', { count: diffDays });
 
   return date.toLocaleDateString();
 };
 
 const parseUserAgent = (userAgent: string | null): string => {
-  if (!userAgent) return 'Unknown Device';
+  if (!userAgent) return t('settings.security.activeSessions.deviceTypes.unknownDevice');
 
   // Simple parsing for common browsers
   if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) {
@@ -136,7 +142,7 @@ const parseUserAgent = (userAgent: string | null): string => {
     return `Edge ${match?.[1] || ''}`;
   }
 
-  return 'Unknown Browser';
+  return t('settings.security.activeSessions.deviceTypes.unknownBrowser');
 };
 
 const getDeviceIcon = (userAgent: string | null): Component => {
@@ -171,7 +177,7 @@ const loadSessions = async () => {
     }
   } catch (e) {
     console.error('Failed to load sessions:', e);
-    addErrorNotification('Failed to load sessions');
+    addErrorNotification(t('settings.security.activeSessions.notifications.loadFailed'));
   }
 };
 
@@ -179,10 +185,10 @@ const handleRevokeSession = async (token: string) => {
   try {
     isRevokingSession.value = token;
     await authClient.revokeSession({ token: token });
-    addSuccessNotification('Session revoked');
+    addSuccessNotification(t('settings.security.activeSessions.notifications.revokeSuccess'));
     await loadSessions();
   } catch {
-    addErrorNotification('Failed to revoke session');
+    addErrorNotification(t('settings.security.activeSessions.notifications.revokeFailed'));
   } finally {
     isRevokingSession.value = null;
   }
@@ -191,10 +197,10 @@ const handleRevokeSession = async (token: string) => {
 const handleRevokeAll = async () => {
   try {
     await authClient.revokeOtherSessions();
-    addSuccessNotification('All other sessions have been signed out');
+    addSuccessNotification(t('settings.security.activeSessions.notifications.revokeAllSuccess'));
     await loadSessions();
   } catch {
-    addErrorNotification('Failed to revoke sessions');
+    addErrorNotification(t('settings.security.activeSessions.notifications.revokeAllFailed'));
   }
 };
 

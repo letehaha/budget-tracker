@@ -1,6 +1,6 @@
 <template>
   <div class="p-6">
-    Analytics
+    {{ $t('analytics.title') }}
 
     <div class="rounded-xl p-4">
       <div class="relative">
@@ -33,6 +33,7 @@ import { useQuery } from '@tanstack/vue-query';
 import { subDays } from 'date-fns';
 import { Chart as Highcharts } from 'highcharts-vue';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 defineOptions({
   name: 'analytics-root',
@@ -40,15 +41,16 @@ defineOptions({
 
 // const Dropdown = defineAsyncComponent(() => import('@/components/common/dropdown.vue'));
 
+const { t } = useI18n();
 const { buildAreaChartConfig } = useHighcharts();
 const currentChartWidth = ref(null);
-const timePeriods = [
-  { value: 7, label: '7 days' },
-  { value: 30, label: '30 days' },
-  { value: 90, label: '90 days' },
-];
+const timePeriods = computed(() => [
+  { value: 7, label: t('analytics.timePeriods.days', { count: 7 }) },
+  { value: 30, label: t('analytics.timePeriods.days', { count: 30 }) },
+  { value: 90, label: t('analytics.timePeriods.days', { count: 90 }) },
+]);
 const isDropdownVisible = ref(false);
-const currentTimePeriod = ref<(typeof timePeriods)[0]>(timePeriods[0]);
+const currentTimePeriod = ref<{ value: number; label: string }>(timePeriods.value[0]);
 
 const { data: balanceHistory } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.analyticsBalanceHistoryTrend, currentTimePeriod],

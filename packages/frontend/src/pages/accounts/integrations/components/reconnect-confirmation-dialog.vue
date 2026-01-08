@@ -16,7 +16,7 @@
           {{ isPending ? 'Preparing...' : 'Continue' }}
         </AlertDialog.AlertDialogAction>
 
-        <AlertDialog.AlertDialogCancel>Cancel</AlertDialog.AlertDialogCancel>
+        <AlertDialog.AlertDialogCancel>{{ $t('common.actions.cancel') }}</AlertDialog.AlertDialogCancel>
       </AlertDialog.AlertDialogFooter>
     </AlertDialog.AlertDialogContent>
   </AlertDialog.AlertDialog>

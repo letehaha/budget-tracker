@@ -1,5 +1,6 @@
 import { identifyCurrentTheme, patchMetaViewportMaxScaleForiOS } from '@/common/utils';
 import { clickOutside, nodeResizeObserver } from '@/directives';
+import { i18n, initializeLocale, loadLanguageAsync } from '@/i18n';
 import { router } from '@/routes';
 import { store } from '@/stores/setup';
 import '@/styles/global.css';
@@ -13,6 +14,13 @@ import './registerServiceWorker';
 identifyCurrentTheme();
 patchMetaViewportMaxScaleForiOS();
 
+// Initialize locale from localStorage/browser
+const initialLocale = initializeLocale();
+if (initialLocale !== 'en') {
+  // Lazy load non-English locale
+  loadLanguageAsync(initialLocale);
+}
+
 const app = createApp(App);
 const head = createHead();
 
@@ -22,6 +30,7 @@ app.directive('node-resize-observer', nodeResizeObserver);
 app.use(router);
 app.use(store);
 app.use(head);
+app.use(i18n); // Register vue-i18n plugin
 
 app.use(VueQueryPlugin);
 

@@ -8,7 +8,7 @@
           )
         "
       >
-        <div class="size-5 flex-shrink-0 rounded-full border" :style="{ backgroundColor: modelValue }" />
+        <div class="size-5 shrink-0 rounded-full border" :style="{ backgroundColor: modelValue }" />
         <span class="text-muted-foreground flex-1">
           {{ modelValue }}
         </span>

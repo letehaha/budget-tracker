@@ -9,11 +9,13 @@ import { useCurrenciesStore } from '@/stores';
 import { useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const emit = defineEmits<{
   added: [value: string];
 }>();
 
+const { t } = useI18n();
 const queryClient = useQueryClient();
 const currenciesStore = useCurrenciesStore();
 const { systemCurrenciesVerbose } = storeToRefs(currenciesStore);
@@ -38,13 +40,13 @@ const saveCurrency = async () => {
       queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates,
     });
     await currenciesStore.loadCurrencies();
-    addSuccessNotification('Currency successfully added!');
+    addSuccessNotification(t('dialogs.addCurrency.notifications.success'));
     formStatus.value = 'default';
     isOpen.value = false;
 
     emit('added', currencyCode);
   } catch {
-    addErrorNotification('Unexpected error. Currency is not added.');
+    addErrorNotification(t('dialogs.addCurrency.notifications.error'));
     formStatus.value = 'error';
   }
 };
@@ -56,23 +58,23 @@ const saveCurrency = async () => {
       <slot />
     </template>
 
-    <template #title> Add new currency </template>
+    <template #title> {{ $t('dialogs.addCurrency.title') }} </template>
 
-    <template #description> Select one currency to add </template>
+    <template #description> {{ $t('dialogs.addCurrency.description') }} </template>
 
     <form class="mt-4 grid gap-6" @submit.prevent="saveCurrency">
       <Select.Select v-model="form.currencyCode" autocomplete="false">
         <Select.SelectTrigger>
-          <Select.SelectValue placeholder="Select currency" />
+          <Select.SelectValue :placeholder="$t('dialogs.addCurrency.selectPlaceholder')" />
         </Select.SelectTrigger>
         <Select.SelectContent>
-          <template v-for="item of systemCurrenciesVerbose.unlinked" :key="item.id">
+          <template v-for="item of systemCurrenciesVerbose.unlinked" :key="item.code">
             <Select.SelectItem :value="String(item.code)"> {{ item.code }} – {{ item.currency }} </Select.SelectItem>
           </template>
         </Select.SelectContent>
       </Select.Select>
 
-      <Button type="submit"> Add </Button>
+      <Button type="submit"> {{ $t('dialogs.addCurrency.addButton') }} </Button>
     </form>
   </ResponsiveDialog>
 </template>

@@ -77,7 +77,7 @@ jobs:
     if: needs.detect-changes.outputs.frontend-only != 'true'
     strategy:
       matrix:
-        task: [lint, "test"]
+        task: [lint, test]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/prepare-local-env

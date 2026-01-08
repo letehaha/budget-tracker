@@ -21,7 +21,7 @@ const onAccountCreation = () => {
       <slot />
     </template>
 
-    <template #title> Create account </template>
+    <template #title> {{ $t('common.dialogs.createAccount') }} </template>
 
     <CreateAccountForm @created="onAccountCreation" />
   </ResponsiveDialog>

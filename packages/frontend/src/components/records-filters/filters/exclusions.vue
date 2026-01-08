@@ -1,18 +1,18 @@
 <template>
   <div>
-    <p class="mb-2">Exlude:</p>
+    <p class="mb-2">{{ $t('transactions.filters.exclude.label') }}</p>
 
     <div class="flex gap-2">
       <label class="flex cursor-pointer items-center gap-2">
         <Checkbox :model-value="excludeRefunds" @update:model-value="$emit('update:exclude-refunds', $event)" />
 
-        Refunds
+        {{ $t('transactions.filters.exclude.refunds') }}
       </label>
 
       <label class="flex cursor-pointer items-center gap-2">
         <Checkbox :model-value="excludeTransfer" @update:model-value="$emit('update:exclude-transfer', $event)" />
 
-        Transfers
+        {{ $t('transactions.filters.exclude.transfers') }}
       </label>
     </div>
   </div>

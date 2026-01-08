@@ -8,6 +8,9 @@ import { NotificationType, useNotificationCenter } from '@/components/notificati
 import { useUpdatePortfolio } from '@/composable/data-queries/portfolios';
 import { PORTFOLIO_TYPE, PortfolioModel } from '@bt/shared/types/investments';
 import { computed, reactive, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 interface Emit {
   (e: 'updated', portfolio: PortfolioModel): void;
@@ -23,6 +26,13 @@ const props = defineProps<{
 const emit = defineEmits<Emit>();
 
 const { addNotification } = useNotificationCenter();
+
+const portfolioTypeLabels: Record<PORTFOLIO_TYPE, string> = {
+  [PORTFOLIO_TYPE.investment]: 'dialogs.createPortfolio.form.portfolioTypes.investment',
+  [PORTFOLIO_TYPE.retirement]: 'dialogs.createPortfolio.form.portfolioTypes.retirement',
+  [PORTFOLIO_TYPE.savings]: 'dialogs.createPortfolio.form.portfolioTypes.savings',
+  [PORTFOLIO_TYPE.other]: 'dialogs.createPortfolio.form.portfolioTypes.other',
+};
 
 const form = reactive({
   name: '',
@@ -64,14 +74,14 @@ const onSubmit = async () => {
     });
 
     addNotification({
-      text: 'Portfolio updated successfully.',
+      text: t('forms.portfolioSettings.notifications.success'),
       type: NotificationType.success,
     });
 
     emit('updated', updated);
   } catch {
     addNotification({
-      text: 'Failed to update portfolio. Please try again.',
+      text: t('forms.portfolioSettings.notifications.error'),
       type: NotificationType.error,
     });
   }
@@ -82,21 +92,21 @@ const onSubmit = async () => {
   <form class="grid w-full max-w-[600px] gap-6" @submit.prevent="onSubmit">
     <InputField
       v-model="form.name"
-      label="Portfolio Name"
-      placeholder="My Investment Portfolio"
+      :label="$t('forms.portfolioSettings.nameLabel')"
+      :placeholder="$t('forms.portfolioSettings.namePlaceholder')"
       :disabled="updateMutation.isPending.value || disabled"
-      :error="!form.name.trim() && 'Name is required'"
+      :error="!form.name.trim() && $t('forms.portfolioSettings.nameRequired')"
     />
 
     <div>
-      <FieldLabel label="Portfolio Type">
+      <FieldLabel :label="$t('forms.portfolioSettings.typeLabel')">
         <Select.Select v-model="form.portfolioType" :disabled="updateMutation.isPending.value || disabled">
           <Select.SelectTrigger>
-            <Select.SelectValue placeholder="Select portfolio type" />
+            <Select.SelectValue :placeholder="$t('forms.portfolioSettings.typePlaceholder')" />
           </Select.SelectTrigger>
           <Select.SelectContent>
             <Select.SelectItem v-for="t in Object.values(PORTFOLIO_TYPE)" :key="t" :value="t">
-              {{ t.charAt(0).toUpperCase() + t.slice(1) }}
+              {{ $t(portfolioTypeLabels[t]) }}
             </Select.SelectItem>
           </Select.SelectContent>
         </Select.Select>
@@ -105,8 +115,8 @@ const onSubmit = async () => {
 
     <TextareaField
       v-model="form.description"
-      label="Description (optional)"
-      placeholder="A brief description of this portfolio..."
+      :label="$t('forms.portfolioSettings.descriptionLabel')"
+      :placeholder="$t('forms.portfolioSettings.descriptionPlaceholder')"
       :disabled="updateMutation.isPending.value || disabled"
     />
 
@@ -117,10 +127,14 @@ const onSubmit = async () => {
         @click="emit('cancel')"
         :disabled="updateMutation.isPending.value || disabled"
       >
-        Cancel
+        {{ $t('forms.portfolioSettings.cancelButton') }}
       </UiButton>
       <UiButton type="submit" class="min-w-[120px]" :disabled="isSubmitDisabled">
-        {{ updateMutation.isPending.value ? 'Saving...' : 'Save Changes' }}
+        {{
+          updateMutation.isPending.value
+            ? $t('forms.portfolioSettings.submitButtonLoading')
+            : $t('forms.portfolioSettings.submitButton')
+        }}
       </UiButton>
     </div>
   </form>

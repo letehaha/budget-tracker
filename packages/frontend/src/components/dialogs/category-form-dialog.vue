@@ -5,37 +5,47 @@
     </template>
 
     <template #title>
-      {{ isEditMode ? 'Edit Category' : 'Add Category' }}
+      {{ isEditMode ? $t('dialogs.categoryForm.title.edit') : $t('dialogs.categoryForm.title.add') }}
     </template>
 
     <template #description>
       <template v-if="parentCategory">
-        Adding subcategory to
-        <span class="font-medium">{{ parentCategory.name }}</span>
+        <span
+          v-html="$t('dialogs.categoryForm.description.addSubcategory', { parentName: parentCategory.name })"
+        ></span>
       </template>
-      <template v-else-if="isEditMode"> Update category name or settings </template>
-      <template v-else> Create a new category </template>
+      <template v-else-if="isEditMode"> {{ $t('dialogs.categoryForm.description.edit') }} </template>
+      <template v-else> {{ $t('dialogs.categoryForm.description.add') }} </template>
     </template>
 
     <form class="mt-4 grid gap-4" @submit.prevent="handleSubmit">
-      <InputField v-model="form.name" label="Category name" placeholder="Enter category name" autofocus />
+      <InputField
+        v-model="form.name"
+        :label="$t('dialogs.categoryForm.nameLabel')"
+        :placeholder="$t('dialogs.categoryForm.namePlaceholder')"
+        autofocus
+      />
 
-      <ColorSelectField v-if="isCreatingTopLevelCategory" v-model="form.color" label="Color" />
+      <ColorSelectField
+        v-if="isCreatingTopLevelCategory"
+        v-model="form.color"
+        :label="$t('dialogs.categoryForm.colorLabel')"
+      />
 
       <div class="flex items-center gap-3">
         <div class="bg-border h-px flex-1" />
-        <span class="text-muted-foreground text-xs">Settings</span>
+        <span class="text-muted-foreground text-xs">{{ $t('dialogs.categoryForm.settingsDivider') }}</span>
         <div class="bg-border h-px flex-1" />
       </div>
 
       <div class="flex items-center gap-3">
         <label class="flex cursor-pointer items-center gap-3">
           <Checkbox v-model="form.excludeFromStats" />
-          <span class="text-sm">Exclude from expense stats</span>
+          <span class="text-sm">{{ $t('dialogs.categoryForm.excludeFromStatsLabel') }}</span>
         </label>
 
         <ResponsiveTooltip
-          content="Transactions in this category won't be counted in spending statistics and reports."
+          :content="$t('dialogs.categoryForm.excludeFromStatsTooltip')"
           content-class-name="max-w-[250px]"
         >
           <InfoIcon class="text-muted-foreground size-4" />
@@ -45,24 +55,28 @@
       <div class="mt-2 flex items-center" :class="isEditMode ? 'justify-between' : 'justify-end'">
         <AlertDialog v-if="isEditMode">
           <AlertDialogTrigger as-child>
-            <Button type="button" variant="destructive" :disabled="isSubmitting"> Delete </Button>
+            <Button type="button" variant="destructive" :disabled="isSubmitting">
+              {{ $t('dialogs.categoryForm.deleteButton') }}
+            </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete category?</AlertDialogTitle>
+              <AlertDialogTitle>{{ $t('dialogs.categoryForm.deleteDialog.title') }}</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete "{{ category?.name }}". This action cannot be undone.
+                {{ $t('dialogs.categoryForm.deleteDialog.description', { categoryName: category?.name }) }}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" @click="handleDelete">Delete</AlertDialogAction>
+              <AlertDialogCancel>{{ $t('dialogs.categoryForm.deleteDialog.cancelButton') }}</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" @click="handleDelete">{{
+                $t('dialogs.categoryForm.deleteDialog.deleteButton')
+              }}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
 
         <Button type="submit" :disabled="isSubmitDisabled">
-          {{ isEditMode ? 'Save' : 'Create' }}
+          {{ isEditMode ? $t('dialogs.categoryForm.saveButton') : $t('dialogs.categoryForm.createButton') }}
         </Button>
       </div>
     </form>
@@ -97,6 +111,7 @@ import { useCategoriesStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { InfoIcon } from 'lucide-vue-next';
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   category?: FormattedCategory;
@@ -121,6 +136,7 @@ const isOpen = computed({
 const internalOpen = ref(false);
 const isSubmitting = ref(false);
 
+const { t } = useI18n();
 const categoriesStore = useCategoriesStore();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 const { data: userSettings, mutateAsync: updateUserSettings } = useUserSettings();
@@ -226,7 +242,7 @@ const handleSubmit = async () => {
         );
       }
 
-      addSuccessNotification('Category updated');
+      addSuccessNotification(t('dialogs.categoryForm.notifications.updated'));
       await categoriesStore.loadCategories();
       emit('saved', { ...props.category, name: form.name.trim() });
     } else {
@@ -252,7 +268,7 @@ const handleSubmit = async () => {
         await updateUserSettings(addCategories(userSettings.value!, [newCategory.id]));
       }
 
-      addSuccessNotification('Category created');
+      addSuccessNotification(t('dialogs.categoryForm.notifications.created'));
       await categoriesStore.loadCategories();
 
       const createdCategory = categoriesStore.categoriesMap[newCategory.id];
@@ -264,9 +280,9 @@ const handleSubmit = async () => {
     isOpen.value = false;
   } catch (err) {
     if (err instanceof ApiErrorResponseError) {
-      addErrorNotification(err.data.message || 'Failed to save category');
+      addErrorNotification(err.data.message || t('dialogs.categoryForm.notifications.saveFailed'));
     } else {
-      addErrorNotification('Unexpected error');
+      addErrorNotification(t('dialogs.categoryForm.notifications.unexpectedError'));
     }
   } finally {
     isSubmitting.value = false;
@@ -281,7 +297,7 @@ const handleDelete = async () => {
   try {
     await apiDeleteCategory({ categoryId: props.category.id });
     await categoriesStore.loadCategories();
-    addSuccessNotification('Category deleted');
+    addSuccessNotification(t('dialogs.categoryForm.notifications.deleted'));
     emit('deleted');
     isOpen.value = false;
   } catch (err) {
@@ -291,7 +307,7 @@ const handleDelete = async () => {
         return;
       }
     }
-    addErrorNotification('Failed to delete category');
+    addErrorNotification(t('dialogs.categoryForm.notifications.deleteFailed'));
   } finally {
     isSubmitting.value = false;
   }

@@ -2,8 +2,8 @@
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <div>
-        <h3 class="text-lg font-medium">API Keys</h3>
-        <p class="text-muted-foreground text-sm">Add your own API keys to use specific providers</p>
+        <h3 class="text-lg font-medium">{{ $t('settings.ai.apiKeyManager.title') }}</h3>
+        <p class="text-muted-foreground text-sm">{{ $t('settings.ai.apiKeyManager.description') }}</p>
       </div>
     </div>
 
@@ -28,20 +28,30 @@
                   v-if="providerInfo.provider === defaultProvider"
                   class="bg-primary/10 text-primary ml-2 rounded-full px-2 py-0.5 text-xs"
                 >
-                  Default
+                  {{ $t('settings.ai.apiKeyManager.badges.default') }}
                 </span>
                 <span
                   v-if="providerInfo.status === 'invalid'"
                   class="bg-destructive/10 text-destructive-text ml-2 rounded-full px-2 py-0.5 text-xs"
                 >
-                  Invalid
+                  {{ $t('settings.ai.apiKeyManager.badges.invalid') }}
                 </span>
               </div>
               <div class="text-muted-foreground text-xs">
                 <template v-if="providerInfo.status === 'invalid'">
-                  Failed {{ formatRelativeDate(new Date(providerInfo.invalidatedAt!)) }}
+                  {{
+                    $t('settings.ai.apiKeyManager.status.failed', {
+                      timeAgo: formatRelativeDate(new Date(providerInfo.invalidatedAt!)),
+                    })
+                  }}
                 </template>
-                <template v-else> Validated {{ formatRelativeDate(new Date(providerInfo.lastValidatedAt)) }} </template>
+                <template v-else>
+                  {{
+                    $t('settings.ai.apiKeyManager.status.validated', {
+                      timeAgo: formatRelativeDate(new Date(providerInfo.lastValidatedAt)),
+                    })
+                  }}
+                </template>
               </div>
             </div>
           </div>
@@ -53,7 +63,7 @@
               :disabled="isSettingDefault"
               @click="handleSetDefault(providerInfo.provider)"
             >
-              Set as Default
+              {{ $t('settings.ai.apiKeyManager.buttons.setDefault') }}
             </Button>
             <Button
               size="sm"
@@ -70,7 +80,7 @@
         <div v-if="providerInfo.status === 'invalid' && providerInfo.lastError" class="mt-2">
           <p class="text-destructive-text text-sm">{{ providerInfo.lastError }}</p>
           <p class="text-muted-foreground mt-1 text-xs">
-            Add a new key below to replace this one, or remove it if you no longer need it.
+            {{ $t('settings.ai.apiKeyManager.invalidKeyHelp') }}
           </p>
         </div>
       </div>
@@ -80,18 +90,25 @@
     <AlertDialog v-model:open="deleteDialogState.isOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove API key?</AlertDialogTitle>
+          <AlertDialogTitle>{{ $t('settings.ai.apiKeyManager.deleteDialog.title') }}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to remove the {{ deleteDialogState.providerLabel }} API key?
+            {{
+              $t('settings.ai.apiKeyManager.deleteDialog.description', { provider: deleteDialogState.providerLabel })
+            }}
             <template v-if="configuredProviders.length > 1">
-              AI features currently using {{ deleteDialogState.providerLabel }} will switch to another available
-              provider.
+              {{
+                $t('settings.ai.apiKeyManager.deleteDialog.descriptionMultiple', {
+                  provider: deleteDialogState.providerLabel,
+                })
+              }}
             </template>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" @click="confirmDeleteKey">Remove</AlertDialogAction>
+          <AlertDialogCancel>{{ $t('settings.ai.apiKeyManager.deleteDialog.cancel') }}</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" @click="confirmDeleteKey">{{
+            $t('settings.ai.apiKeyManager.deleteDialog.remove')
+          }}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -102,19 +119,23 @@
       <template v-if="availableProvidersToAdd.length === 0">
         <div class="text-muted-foreground flex items-center gap-3">
           <CheckCircleIcon class="size-5 text-green-600" />
-          <p class="text-sm">All providers are set up</p>
+          <p class="text-sm">{{ $t('settings.ai.apiKeyManager.allConfigured') }}</p>
         </div>
       </template>
 
       <!-- Add key form -->
       <template v-else>
         <h4 class="mb-4 font-medium">
-          {{ configuredProviders.length > 0 ? 'Add Another Provider' : 'Add API Key' }}
+          {{
+            configuredProviders.length > 0
+              ? $t('settings.ai.apiKeyManager.form.titleAddAnother')
+              : $t('settings.ai.apiKeyManager.form.titleAdd')
+          }}
         </h4>
 
         <form class="flex flex-col gap-4" @submit.prevent="handleSaveKey">
           <div class="flex flex-col gap-2">
-            <label class="text-sm font-medium">Provider</label>
+            <label class="text-sm font-medium">{{ $t('settings.ai.apiKeyManager.form.providerLabel') }}</label>
             <div class="relative">
               <select
                 v-model="selectedProvider"
@@ -136,7 +157,7 @@
 
           <InputField
             v-model="apiKeyInput"
-            label="API Key"
+            :label="$t('settings.ai.apiKeyManager.form.apiKeyLabel')"
             :placeholder="getProviderPlaceholder(selectedProvider)"
             :error-message="validationError"
             @update:model-value="validationError = ''"
@@ -146,11 +167,11 @@
             <Button type="submit" :disabled="!apiKeyInput.trim() || isSettingKey">
               <template v-if="isSettingKey">
                 <Loader2Icon class="mr-2 size-4 animate-spin" />
-                Validating...
+                {{ $t('settings.ai.apiKeyManager.form.buttonSaving') }}
               </template>
               <template v-else>
                 <KeyIcon class="mr-2 size-4" />
-                Save Key
+                {{ $t('settings.ai.apiKeyManager.form.buttonSave') }}
               </template>
             </Button>
           </div>
@@ -175,34 +196,40 @@ import {
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
+import { useDateLocale } from '@/composable/use-date-locale';
 import { ApiErrorResponseError } from '@/js/errors';
 import { AI_PROVIDER } from '@bt/shared/types';
-import { formatDistanceToNow } from 'date-fns';
 import { AlertCircleIcon, CheckCircleIcon, ChevronDownIcon, KeyIcon, Loader2Icon, Trash2Icon } from 'lucide-vue-next';
 import { computed, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-const PROVIDER_CONFIG: Record<AI_PROVIDER, { label: string; placeholder: string; description: string }> = {
-  [AI_PROVIDER.anthropic]: {
-    label: 'Anthropic (Claude)',
-    placeholder: 'sk-ant-...',
-    description: 'Get your API key from console.anthropic.com/settings/keys',
-  },
-  [AI_PROVIDER.openai]: {
-    label: 'OpenAI (GPT)',
-    placeholder: 'sk-...',
-    description: 'Get your API key from platform.openai.com/api-keys',
-  },
-  [AI_PROVIDER.google]: {
-    label: 'Google (Gemini)',
-    placeholder: 'AIza...',
-    description: 'Get your API key from aistudio.google.com/apikey',
-  },
-  [AI_PROVIDER.groq]: {
-    label: 'Groq (Llama, Mixtral)',
-    placeholder: 'gsk_...',
-    description: 'Get your API key from console.groq.com/keys',
-  },
-};
+const { t } = useI18n();
+const { formatDistanceToNow } = useDateLocale();
+
+const PROVIDER_CONFIG = computed<Record<AI_PROVIDER, { label: string; placeholder: string; description: string }>>(
+  () => ({
+    [AI_PROVIDER.anthropic]: {
+      label: t('settings.ai.apiKeyManager.providers.anthropic.label'),
+      placeholder: t('settings.ai.apiKeyManager.providers.anthropic.placeholder'),
+      description: t('settings.ai.apiKeyManager.providers.anthropic.description'),
+    },
+    [AI_PROVIDER.openai]: {
+      label: t('settings.ai.apiKeyManager.providers.openai.label'),
+      placeholder: t('settings.ai.apiKeyManager.providers.openai.placeholder'),
+      description: t('settings.ai.apiKeyManager.providers.openai.description'),
+    },
+    [AI_PROVIDER.google]: {
+      label: t('settings.ai.apiKeyManager.providers.google.label'),
+      placeholder: t('settings.ai.apiKeyManager.providers.google.placeholder'),
+      description: t('settings.ai.apiKeyManager.providers.google.description'),
+    },
+    [AI_PROVIDER.groq]: {
+      label: t('settings.ai.apiKeyManager.providers.groq.label'),
+      placeholder: t('settings.ai.apiKeyManager.providers.groq.placeholder'),
+      description: t('settings.ai.apiKeyManager.providers.groq.description'),
+    },
+  }),
+);
 
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 const {
@@ -233,7 +260,7 @@ const availableProvidersToAdd = computed(() => {
   const configuredSet = new Set(configuredProviders.value.map((p) => p.provider));
   return Object.values(AI_PROVIDER)
     .filter((p) => !configuredSet.has(p))
-    .map((p) => ({ value: p, label: PROVIDER_CONFIG[p].label }));
+    .map((p) => ({ value: p, label: PROVIDER_CONFIG.value[p].label }));
 });
 
 /** Sorted providers: default first, then alphabetically by label */
@@ -243,15 +270,15 @@ const sortedConfiguredProviders = computed(() => {
     if (a.provider === defaultProvider.value) return -1;
     if (b.provider === defaultProvider.value) return 1;
     // Sort rest alphabetically by label
-    const labelA = PROVIDER_CONFIG[a.provider]?.label ?? a.provider;
-    const labelB = PROVIDER_CONFIG[b.provider]?.label ?? b.provider;
+    const labelA = PROVIDER_CONFIG.value[a.provider]?.label ?? a.provider;
+    const labelB = PROVIDER_CONFIG.value[b.provider]?.label ?? b.provider;
     return labelA.localeCompare(labelB);
   });
 });
 
-const getProviderLabel = (provider: AI_PROVIDER) => PROVIDER_CONFIG[provider]?.label ?? provider;
-const getProviderPlaceholder = (provider: AI_PROVIDER) => PROVIDER_CONFIG[provider]?.placeholder ?? '';
-const getProviderDescription = (provider: AI_PROVIDER) => PROVIDER_CONFIG[provider]?.description ?? '';
+const getProviderLabel = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.label ?? provider;
+const getProviderPlaceholder = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.placeholder ?? '';
+const getProviderDescription = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.description ?? '';
 
 const formatRelativeDate = (date: Date) => formatDistanceToNow(date, { addSuffix: true });
 
@@ -265,7 +292,7 @@ const handleSaveKey = async () => {
   try {
     await setApiKey({ apiKey: trimmedKey, provider: selectedProvider.value });
     apiKeyInput.value = '';
-    addSuccessNotification('API key saved and validated successfully');
+    addSuccessNotification(t('settings.ai.apiKeyManager.notifications.saveSuccess'));
 
     // Select next available provider if there's one
     if (availableProvidersToAdd.value.length > 0) {
@@ -276,16 +303,18 @@ const handleSaveKey = async () => {
     validationError.value =
       error instanceof ApiErrorResponseError
         ? error.data.message
-        : 'API key is not working. Please verify the key is correct, has sufficient credits, and has the required permissions.';
+        : t('settings.ai.apiKeyManager.notifications.saveFailed');
   }
 };
 
 const handleSetDefault = async (provider: AI_PROVIDER) => {
   try {
     await setDefaultProvider({ provider });
-    addSuccessNotification(`${getProviderLabel(provider)} set as default`);
+    addSuccessNotification(
+      t('settings.ai.apiKeyManager.notifications.setDefaultSuccess', { provider: getProviderLabel(provider) }),
+    );
   } catch {
-    addErrorNotification('Failed to set default provider');
+    addErrorNotification(t('settings.ai.apiKeyManager.notifications.setDefaultFailed'));
   }
 };
 
@@ -303,9 +332,9 @@ const confirmDeleteKey = async () => {
 
   try {
     await deleteApiKey({ provider });
-    addSuccessNotification(`${providerLabel} API key removed`);
+    addSuccessNotification(t('settings.ai.apiKeyManager.notifications.removeSuccess', { provider: providerLabel }));
   } catch {
-    addErrorNotification('Failed to remove API key');
+    addErrorNotification(t('settings.ai.apiKeyManager.notifications.removeFailed'));
   }
 };
 </script>

@@ -7,6 +7,9 @@ import SettingAccountGroup from '@/pages/account/components/account-group.vue';
 import AccountLinkSection from '@/pages/account/components/account-link-section.vue';
 import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
 import { AccountModel, TransactionModel } from '@bt/shared/types';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 defineProps<{
   account: AccountModel;
@@ -17,8 +20,8 @@ defineProps<{
 <template>
   <Tabs.Tabs default-value="details">
     <Tabs.TabsList class="mt-4 w-full justify-start">
-      <Tabs.TabsTrigger value="details"> Details </Tabs.TabsTrigger>
-      <Tabs.TabsTrigger value="settings"> Settings </Tabs.TabsTrigger>
+      <Tabs.TabsTrigger value="details">{{ t('pages.account.tabs.details') }}</Tabs.TabsTrigger>
+      <Tabs.TabsTrigger value="settings">{{ t('pages.account.tabs.settings') }}</Tabs.TabsTrigger>
     </Tabs.TabsList>
 
     <AccountDetailsTab tab-name="details" :account="account" />

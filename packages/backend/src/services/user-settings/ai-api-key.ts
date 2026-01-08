@@ -1,5 +1,6 @@
 import { AIApiKeyStatus, AIFeatureConfig, AI_PROVIDER } from '@bt/shared/types';
 import { decryptToken, encryptToken } from '@common/utils/encryption';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/UserSettings.model';
 import { getFirstAvailableRecommendedModel, getProviderFromModelId, validateApiKey } from '@services/ai';
@@ -75,7 +76,7 @@ export const setAiApiKey = withTransaction(
       const validationResult = await validateApiKey({ provider, apiKey });
       if (!validationResult.isValid) {
         throw new ValidationError({
-          message: validationResult.error ?? 'API key validation failed',
+          message: validationResult.error ?? t({ key: 'ai.apiKeyValidationFailed' }),
         });
       }
     }
@@ -194,7 +195,7 @@ export const setDefaultAiProvider = withTransaction(
     });
 
     if (!userSettings) {
-      throw new Error('User settings not found');
+      throw new Error(t({ key: 'userSettings.userSettingsNotFound' }));
     }
 
     const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
@@ -203,7 +204,7 @@ export const setDefaultAiProvider = withTransaction(
     // Verify the provider has a key configured
     const hasProvider = currentAiSettings.apiKeys?.some((k) => k.provider === provider);
     if (!hasProvider) {
-      throw new Error(`No API key configured for provider: ${provider}`);
+      throw new Error(t({ key: 'ai.noApiKeyForProvider', variables: { provider } }));
     }
 
     userSettings.settings = {

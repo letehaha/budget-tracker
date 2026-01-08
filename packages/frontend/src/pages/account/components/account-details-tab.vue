@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ACCOUNT_CATEGORIES_VERBOSE } from '@/common/const';
+import { ACCOUNT_CATEGORIES_TRANSLATION_KEYS } from '@/common/const';
 import * as Collapsible from '@/components/lib/ui/collapsible';
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
@@ -9,6 +9,9 @@ import { AccountModel } from '@bt/shared/types';
 import { ChevronDownIcon, ChevronUpIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 defineProps<{
   account: AccountModel;
@@ -23,7 +26,7 @@ const isOpen = ref(false);
   <Tabs.TabsContent :value="tabName">
     <div class="grid gap-4 py-6">
       <div class="flex items-center justify-between gap-2">
-        <span> Credit Limit: </span>
+        <span>{{ t('pages.account.details.creditLimit') }}</span>
 
         {{ toLocalNumber(account.creditLimit) }}
         {{ currenciesMap[account.currencyCode].currency.code }}
@@ -31,24 +34,24 @@ const isOpen = ref(false);
       <Separator />
 
       <div class="flex items-center justify-between gap-2">
-        <span> Initial Balance: </span>
+        <span>{{ t('pages.account.details.initialBalance') }}</span>
 
         {{ toLocalNumber(account.initialBalance) }}
         {{ currenciesMap[account.currencyCode].currency.code }}
       </div>
       <Separator />
       <div class="flex items-center justify-between gap-2">
-        <span> Account Type: </span>
+        <span>{{ t('pages.account.details.accountType') }}</span>
 
         {{ account.type }}
       </div>
       <Separator />
 
       <div class="flex items-center justify-between gap-2">
-        <span> Account Category: </span>
+        <span>{{ t('pages.account.details.accountCategory') }}</span>
 
         <span class="capitalize">
-          {{ ACCOUNT_CATEGORIES_VERBOSE[account.accountCategory] }}
+          {{ t(ACCOUNT_CATEGORIES_TRANSLATION_KEYS[account.accountCategory]) }}
         </span>
       </div>
       <Separator />
@@ -56,12 +59,14 @@ const isOpen = ref(false);
       <Collapsible.Collapsible v-model:open="isOpen">
         <Collapsible.CollapsibleTrigger class="w-full">
           <div class="flex items-center justify-between gap-2">
-            <span> Currency: </span>
+            <span>{{ t('pages.account.details.currency') }}</span>
 
             <div class="flex gap-2">
               {{ currenciesMap[account.currencyCode].currency.code }}
 
-              <span v-if="currenciesMap[account.currencyCode].isDefaultCurrency"> (main) </span>
+              <span v-if="currenciesMap[account.currencyCode].isDefaultCurrency">
+                {{ t('pages.account.details.main') }}
+              </span>
 
               <template v-if="isOpen">
                 <ChevronUpIcon />
@@ -78,7 +83,7 @@ const isOpen = ref(false);
             <Separator />
 
             <div class="flex items-center justify-between gap-2">
-              <span> Exchange Rate: </span>
+              <span>{{ t('pages.account.details.exchangeRate') }}</span>
 
               {{ currenciesMap[account.currencyCode].exchangeRate }}
             </div>
@@ -86,9 +91,13 @@ const isOpen = ref(false);
             <Separator />
 
             <div class="flex items-center justify-between gap-2">
-              <span> Exchange Rate Live Update: </span>
+              <span>{{ t('pages.account.details.exchangeRateLiveUpdate') }}</span>
 
-              {{ currenciesMap[account.currencyCode].liveRateUpdate ? 'Enabled' : 'Disabled' }}
+              {{
+                currenciesMap[account.currencyCode].liveRateUpdate
+                  ? t('pages.account.details.enabled')
+                  : t('pages.account.details.disabled')
+              }}
             </div>
           </div>
         </Collapsible.CollapsibleContent>

@@ -115,7 +115,7 @@ const handlerRecordClick = (transaction: TransactionModel) => {
           </Button>
         </template>
 
-        <template #title>Select filters</template>
+        <template #title>{{ $t('dialogs.manageTransaction.refundRecordsList.filtersDialogTitle') }}</template>
 
         <div class="grid gap-4">
           <DateField
@@ -123,28 +123,38 @@ const handlerRecordClick = (transaction: TransactionModel) => {
             :calendar-options="{
               maxDate: filters.end,
             }"
-            label="From date"
+            :label="$t('dialogs.manageTransaction.refundRecordsList.fromDateLabel')"
           />
           <DateField
             v-model="filters.end"
             :calendar-options="{
               minDate: filters.start,
             }"
-            label="To date"
+            :label="$t('dialogs.manageTransaction.refundRecordsList.toDateLabel')"
           />
 
           <div class="flex gap-2">
-            <InputField v-model="filters.amountGte" label="Amount from (gte)" placeholder=">= than" />
-            <InputField v-model="filters.amountLte" label="To (lte)" placeholder="<= than" />
+            <InputField
+              v-model="filters.amountGte"
+              :label="$t('dialogs.manageTransaction.refundRecordsList.amountFromLabel')"
+              :placeholder="$t('dialogs.manageTransaction.refundRecordsList.amountFromPlaceholder')"
+            />
+            <InputField
+              v-model="filters.amountLte"
+              :label="$t('dialogs.manageTransaction.refundRecordsList.amountToLabel')"
+              :placeholder="$t('dialogs.manageTransaction.refundRecordsList.amountToPlaceholder')"
+            />
           </div>
 
           <div class="flex gap-2">
             <Button variant="secondary" :disabled="isResetButtonDisabled" class="w-full shrink" @click="resetFilters">
-              Reset
+              {{ $t('dialogs.manageTransaction.refundRecordsList.resetButton') }}
             </Button>
 
             <template v-if="isFiltersOutOfSync">
-              <Button variant="default" class="w-full shrink" @click="applyFilters"> Apply </Button>
+              <Button variant="default" class="w-full shrink" @click="applyFilters">
+                {{ $t('dialogs.manageTransaction.refundRecordsList.applyButton') }}
+              </Button>
             </template>
           </div>
         </div>
@@ -162,24 +172,30 @@ const handlerRecordClick = (transaction: TransactionModel) => {
     </div>
 
     <template v-if="hasNextPage">
-      <Button variant="secondary" @click="() => fetchNextPage()"> Load more </Button>
+      <Button variant="secondary" @click="() => fetchNextPage()">
+        {{ $t('dialogs.manageTransaction.refundRecordsList.loadMoreButton') }}
+      </Button>
     </template>
     <template v-else-if="!hasNextPage && transactionsPages?.pages?.flat().length">
-      <p class="mt-4 text-center text-sm">No more transactions to load</p>
+      <p class="mt-4 text-center text-sm">{{ $t('dialogs.manageTransaction.refundRecordsList.noMoreTransactions') }}</p>
     </template>
     <template v-else>
       <p class="mx-auto max-w-[80%] text-center text-sm text-white/80">
         <CircleAlert :size="48" class="m-auto mb-4" />
         <template v-if="transactionType === TRANSACTION_TYPES.income">
-          There's no income transactions in the system that are not already marked as refunds. Create some to proceed
+          {{ $t('dialogs.manageTransaction.refundRecordsList.noIncomeTransactions') }}
         </template>
         <template v-else-if="transactionType === TRANSACTION_TYPES.expense">
-          There's no expense transactions in the system that are not already marked as refunds. Create some to proceed
+          {{ $t('dialogs.manageTransaction.refundRecordsList.noExpenseTransactions') }}
         </template>
-        <template v-else> There's no transactions to select. Create some to proceed </template>
+        <template v-else>
+          {{ $t('dialogs.manageTransaction.refundRecordsList.noTransactions') }}
+        </template>
 
         <template v-if="isAnyFiltersApplied">
-          <Button class="mt-4 w-full" variant="secondary" @click="resetFilters"> Reset filters </Button>
+          <Button class="mt-4 w-full" variant="secondary" @click="resetFilters">
+            {{ $t('dialogs.manageTransaction.refundRecordsList.resetFiltersButton') }}
+          </Button>
         </template>
       </p>
     </template>

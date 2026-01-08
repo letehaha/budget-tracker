@@ -1,12 +1,12 @@
 <template>
   <div class="flex items-center justify-between gap-4">
     <p class="text-sm opacity-90">
-      Currency can only be deleted/disconnected if there's no accounts and/or transactions associated with it.
+      {{ $t('settings.currencies.delete.description') }}
     </p>
 
-    <ui-tooltip :content="isDeletionDisabled ? DISABLED_DELETE_TEXT : ''" position="top">
+    <ui-tooltip :content="isDeletionDisabled ? $t('settings.currencies.delete.disabledTooltip') : ''" position="top">
       <Button variant="destructive" :disabled="isDeletionDisabled || isFormDisabled" @click="deleteCurrency">
-        Delete currency
+        {{ $t('settings.currencies.delete.button') }}
 
         <InfoIcon class="size-4" v-if="isDeletionDisabled" />
       </Button>
@@ -26,13 +26,14 @@ import { useMutation } from '@tanstack/vue-query';
 import { InfoIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { CurrencyWithExchangeRate } from '../types';
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
 const { accountsCurrencyCodes } = storeToRefs(accountsStore);
-const DISABLED_DELETE_TEXT = 'You cannot delete this currency because it is still connected to account(s).';
+const { t } = useI18n();
 
 const props = defineProps<{
   currency: CurrencyWithExchangeRate;
@@ -52,7 +53,7 @@ const { isPending: isDeleting, mutate: deleteCurrency } = useMutation({
     return deleteUserCurrency(props.currency.currencyCode);
   },
   onSuccess: () => {
-    addSuccessNotification('Successfully deleted.');
+    addSuccessNotification(t('settings.currencies.delete.successfullyDeleted'));
     emit('submit');
     emit('trigger-disabled', false);
   },
@@ -64,7 +65,7 @@ const { isPending: isDeleting, mutate: deleteCurrency } = useMutation({
         return;
       }
     }
-    addErrorNotification('Unexpected error. Currency is not deleted.');
+    addErrorNotification(t('settings.currencies.delete.errors.deleteFailed'));
   },
 });
 

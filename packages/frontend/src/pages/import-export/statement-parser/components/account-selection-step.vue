@@ -30,7 +30,7 @@
       <div class="max-w-xs">
         <Select.Select :model-value="store.manualCurrency ?? undefined" @update:model-value="handleCurrencyChange">
           <Select.SelectTrigger>
-            <Select.SelectValue placeholder="Select currency" />
+            <Select.SelectValue :placeholder="$t('pages.statementParser.selectCurrency')" />
           </Select.SelectTrigger>
           <Select.SelectContent>
             <template v-for="item of systemCurrenciesVerbose.linked" :key="item.code">
@@ -49,7 +49,7 @@
           :accounts="enabledAccounts"
           :detected-currency="store.effectiveCurrency"
           :is-new-account="store.isNewAccount"
-          placeholder="Select existing account"
+          :placeholder="$t('pages.statementParser.selectExistingAccount')"
           @update:model-value="selectExistingAccount"
         />
 

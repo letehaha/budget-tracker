@@ -7,23 +7,40 @@
         <!-- Title row with badge on mobile -->
         <div class="flex items-center gap-2">
           <component :is="featureIcon" class="text-muted-foreground size-4 shrink-0" />
-          <h4 class="font-medium">{{ featureDisplayInfo.name }}</h4>
+          <h4 class="font-medium">{{ t(featureDisplayInfo.nameKey) }}</h4>
           <!-- Key source badge - inline on mobile -->
-          <span
-            v-if="featureStatus.usingUserKey"
-            class="rounded-full bg-green-100 px-2 py-0.5 text-xs whitespace-nowrap text-green-700 sm:hidden dark:bg-green-900 dark:text-green-300"
-          >
-            Your key
-          </span>
-          <span
-            v-else
-            class="rounded-full bg-blue-100 px-2 py-0.5 text-xs whitespace-nowrap text-blue-700 sm:hidden dark:bg-blue-900 dark:text-blue-300"
-          >
-            Server
-          </span>
+          <Tooltip.TooltipProvider>
+            <Tooltip.Tooltip>
+              <Tooltip.TooltipTrigger as-child @click.stop>
+                <span
+                  v-if="featureStatus.usingUserKey"
+                  class="inline-flex cursor-help items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs whitespace-nowrap text-green-700 sm:hidden dark:bg-green-900 dark:text-green-300"
+                >
+                  {{ $t('settings.ai.modelSelector.badges.yourKey') }}
+                  <InfoIcon class="size-3" />
+                </span>
+                <span
+                  v-else
+                  class="inline-flex cursor-help items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs whitespace-nowrap text-blue-700 sm:hidden dark:bg-blue-900 dark:text-blue-300"
+                >
+                  {{ $t('settings.ai.modelSelector.badges.server') }}
+                  <InfoIcon class="size-3" />
+                </span>
+              </Tooltip.TooltipTrigger>
+              <Tooltip.TooltipContent class="max-w-70 p-3">
+                <p class="text-sm">
+                  {{
+                    featureStatus.usingUserKey
+                      ? $t('settings.ai.modelSelector.badges.yourKeyTooltip')
+                      : $t('settings.ai.modelSelector.badges.serverTooltip')
+                  }}
+                </p>
+              </Tooltip.TooltipContent>
+            </Tooltip.Tooltip>
+          </Tooltip.TooltipProvider>
         </div>
         <p class="text-muted-foreground text-sm">
-          {{ featureDisplayInfo.description }}
+          {{ t(featureDisplayInfo.descriptionKey) }}
         </p>
       </div>
 
@@ -34,18 +51,35 @@
           {{ selectedModel.name }}
         </span>
         <!-- Key source badge -->
-        <span
-          v-if="featureStatus.usingUserKey"
-          class="rounded-full bg-green-100 px-2 py-0.5 text-xs whitespace-nowrap text-green-700 dark:bg-green-900 dark:text-green-300"
-        >
-          Your key
-        </span>
-        <span
-          v-else
-          class="rounded-full bg-blue-100 px-2 py-0.5 text-xs whitespace-nowrap text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-        >
-          Server
-        </span>
+        <Tooltip.TooltipProvider>
+          <Tooltip.Tooltip>
+            <Tooltip.TooltipTrigger as-child @click.stop>
+              <span
+                v-if="featureStatus.usingUserKey"
+                class="inline-flex cursor-help items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs whitespace-nowrap text-green-700 dark:bg-green-900 dark:text-green-300"
+              >
+                {{ $t('settings.ai.modelSelector.badges.yourKey') }}
+                <InfoIcon class="size-3" />
+              </span>
+              <span
+                v-else
+                class="inline-flex cursor-help items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs whitespace-nowrap text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+              >
+                {{ $t('settings.ai.modelSelector.badges.server') }}
+                <InfoIcon class="size-3" />
+              </span>
+            </Tooltip.TooltipTrigger>
+            <Tooltip.TooltipContent class="max-w-70 p-3">
+              <p class="text-sm">
+                {{
+                  featureStatus.usingUserKey
+                    ? $t('settings.ai.modelSelector.badges.yourKeyTooltip')
+                    : $t('settings.ai.modelSelector.badges.serverTooltip')
+                }}
+              </p>
+            </Tooltip.TooltipContent>
+          </Tooltip.Tooltip>
+        </Tooltip.TooltipProvider>
       </div>
     </CollapsibleTrigger>
 
@@ -57,7 +91,7 @@
         <!-- Model selector -->
         <div class="flex items-end gap-3">
           <div class="flex-1">
-            <label class="mb-1.5 block text-sm font-medium">Model</label>
+            <label class="mb-1.5 block text-sm font-medium">{{ $t('settings.ai.modelSelector.modelLabel') }}</label>
             <div class="relative">
               <select
                 :value="featureStatus.modelId"
@@ -73,7 +107,7 @@
                     :disabled="!hasUserKey(model.provider)"
                   >
                     {{ model.name }} - {{ getCostLabel(model.costTier) }}
-                    {{ !hasUserKey(model.provider) ? '(No API key)' : '' }}
+                    {{ !hasUserKey(model.provider) ? $t('settings.ai.modelSelector.noApiKey') : '' }}
                   </option>
                 </optgroup>
               </select>
@@ -84,7 +118,7 @@
           </div>
 
           <Button v-if="featureStatus.isConfigured" variant="outline" :disabled="isResetting" @click="handleReset">
-            Reset to Default
+            {{ $t('settings.ai.modelSelector.resetButton') }}
           </Button>
         </div>
 
@@ -93,16 +127,16 @@
           <div class="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
             <span>{{ selectedModel.description }}</span>
             <span class="flex items-center gap-1">
-              <span class="font-medium">Context:</span>
+              <span class="font-medium">{{ $t('settings.ai.modelSelector.modelInfo.context') }}</span>
               {{ formatContextWindow(selectedModel.contextWindow) }}
             </span>
             <span class="flex items-center gap-1">
-              <span class="font-medium">Capabilities:</span>
+              <span class="font-medium">{{ $t('settings.ai.modelSelector.modelInfo.capabilities') }}</span>
               {{ formatCapabilities(selectedModel.capabilities) }}
             </span>
             <span v-if="formattedPrice" class="flex items-center gap-1">
-              <span class="font-medium">Est. cost:</span>
-              {{ formattedPrice }} per 100 txns
+              <span class="font-medium">{{ $t('settings.ai.modelSelector.modelInfo.estimatedCost') }}</span>
+              {{ formattedPrice }} {{ $t('settings.ai.modelSelector.modelInfo.per100Transactions') }}
             </span>
           </div>
         </div>
@@ -114,8 +148,7 @@
         >
           <AlertTriangleIcon class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <p class="text-xs text-amber-700 dark:text-amber-300">
-            Using server-provided AI with free-tier rate limiting. Feature availability depends on demand from other
-            users. For reliable access, add your own API key in the API Keys tab.
+            {{ $t('settings.ai.modelSelector.rateLimitWarning') }}
           </p>
         </div>
 
@@ -130,6 +163,7 @@
 import { getAIFeatureDisplayInfo } from '@/common/const';
 import { Button } from '@/components/lib/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
+import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { type ModelGroup } from '@/composable/data-queries/use-feature-models';
@@ -142,8 +176,9 @@ import {
   AI_FEATURE,
   AI_PROVIDER,
 } from '@bt/shared/types';
-import { AlertTriangleIcon, ChevronDownIcon, ChevronRightIcon, FileTextIcon, TagIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, ChevronDownIcon, ChevronRightIcon, FileTextIcon, InfoIcon, TagIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   featureStatus: AIFeatureStatus;
@@ -164,19 +199,21 @@ const FEATURE_ICONS = {
 
 const featureIcon = computed(() => FEATURE_ICONS[props.featureStatus.feature]);
 
-const PROVIDER_LABELS: Record<AI_PROVIDER, string> = {
-  [AI_PROVIDER.openai]: 'OpenAI',
-  [AI_PROVIDER.anthropic]: 'Anthropic',
-  [AI_PROVIDER.google]: 'Google',
-  [AI_PROVIDER.groq]: 'Groq',
-};
+const { t } = useI18n();
 
-const COST_LABELS: Record<AIModelCostTier, string> = {
-  free: 'Free',
-  low: 'Low cost',
-  medium: 'Medium cost',
-  high: 'High cost',
-};
+const PROVIDER_LABELS = computed<Record<AI_PROVIDER, string>>(() => ({
+  [AI_PROVIDER.openai]: t('settings.ai.modelSelector.groupLabels.openai'),
+  [AI_PROVIDER.anthropic]: t('settings.ai.modelSelector.groupLabels.anthropic'),
+  [AI_PROVIDER.google]: t('settings.ai.modelSelector.groupLabels.google'),
+  [AI_PROVIDER.groq]: t('settings.ai.modelSelector.groupLabels.groq'),
+}));
+
+const COST_LABELS = computed<Record<AIModelCostTier, string>>(() => ({
+  free: t('settings.ai.modelSelector.costLabels.free'),
+  low: t('settings.ai.modelSelector.costLabels.low'),
+  medium: t('settings.ai.modelSelector.costLabels.medium'),
+  high: t('settings.ai.modelSelector.costLabels.high'),
+}));
 
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 const {
@@ -196,12 +233,12 @@ const selectedModel = computed(() => {
 
 const getGroupLabel = (provider: AI_PROVIDER | 'recommended') => {
   if (provider === 'recommended') {
-    return '⭐ Recommended';
+    return t('settings.ai.modelSelector.groupLabels.recommended');
   }
-  return PROVIDER_LABELS[provider] ?? provider;
+  return PROVIDER_LABELS.value[provider] ?? provider;
 };
 
-const getCostLabel = (tier: AIModelCostTier) => COST_LABELS[tier] ?? tier;
+const getCostLabel = (tier: AIModelCostTier) => COST_LABELS.value[tier] ?? tier;
 
 const formatContextWindow = (tokens: number) => {
   if (tokens >= 1_000_000) {
@@ -215,12 +252,12 @@ const formatContextWindow = (tokens: number) => {
 
 const formatCapabilities = (capabilities: AIModelCapability[]) => {
   const labels: Record<AIModelCapability, string> = {
-    'text-generation': 'Text',
-    'structured-output': 'Structured',
-    'function-calling': 'Functions',
-    vision: 'Vision',
-    'fast-inference': 'Fast',
-    agents: 'Agents',
+    'text-generation': t('settings.ai.modelSelector.capabilities.textGeneration'),
+    'structured-output': t('settings.ai.modelSelector.capabilities.structuredOutput'),
+    'function-calling': t('settings.ai.modelSelector.capabilities.functionCalling'),
+    vision: t('settings.ai.modelSelector.capabilities.vision'),
+    'fast-inference': t('settings.ai.modelSelector.capabilities.fastInference'),
+    agents: t('settings.ai.modelSelector.capabilities.agents'),
   };
   return capabilities.map((c) => labels[c] ?? c).join(', ');
 };
@@ -247,18 +284,18 @@ const formattedPrice = computed(() => formatPricePer100(selectedModel.value?.pri
 const handleModelChange = async (modelId: string) => {
   try {
     await setFeatureConfig({ feature: props.featureStatus.feature, modelId });
-    addSuccessNotification('Model updated successfully');
+    addSuccessNotification(t('settings.ai.modelSelector.notifications.updateSuccess'));
   } catch {
-    addErrorNotification('Failed to update model');
+    addErrorNotification(t('settings.ai.modelSelector.notifications.updateFailed'));
   }
 };
 
 const handleReset = async () => {
   try {
     await resetFeatureConfig({ feature: props.featureStatus.feature });
-    addSuccessNotification('Reset to default model');
+    addSuccessNotification(t('settings.ai.modelSelector.notifications.resetSuccess'));
   } catch {
-    addErrorNotification('Failed to reset model');
+    addErrorNotification(t('settings.ai.modelSelector.notifications.resetFailed'));
   }
 };
 </script>

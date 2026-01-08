@@ -2,14 +2,14 @@
   <div class="flex gap-2">
     <InputField
       :model-value="amountGte"
-      label="Amount from (gte)"
-      placeholder=">= than"
+      :label="$t('transactions.filters.amountRange.from')"
+      :placeholder="$t('transactions.filters.amountRange.placeholderFrom')"
       @update:model-value="$emit('update:amount-gte', $event)"
     />
     <InputField
       :model-value="amountLte"
-      label="To (lte)"
-      placeholder="<= than"
+      :label="$t('transactions.filters.amountRange.to')"
+      :placeholder="$t('transactions.filters.amountRange.placeholderTo')"
       @update:model-value="$emit('update:amount-lte', $event)"
     />
   </div>

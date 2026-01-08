@@ -48,3 +48,39 @@ Other instructions:
    - running any linter – use linter
      – planning doing any websearch – use websearch
      – if asked to do any code review – use code-change-reviewer
+5. **Tool Selection for Code Search:**
+
+   **Use ast-grep when:**
+
+   - Finding code patterns by **structure** (not just text):
+     - Function calls with specific argument patterns
+     - Class/interface definitions matching criteria
+     - Conditionals without certain clauses (e.g., `if` without `else`)
+   - **i18n migrations**: Distinguishing user-facing text from technical strings
+     - Finds `<h1>Welcome</h1>` (needs i18n) vs `console.log('debug')` (doesn't)
+     - Locates strings not wrapped in `$t()` or `t()`
+   - **Refactoring**: Renaming/restructuring based on syntax tree
+   - **Context-aware searches**: Code in specific syntactic positions
+
+   **Use grep when:**
+
+   - Simple literal searches (variable names, specific constants)
+   - Cross-file-type searches (markdown, JSON, configs, code)
+   - Exploratory searches (don't know exact structure yet)
+   - Finding comments, documentation, string literals
+
+   **Examples:**
+
+   ```bash
+   # ❌ Use ast-grep instead
+   grep -r "useState" --include="*.tsx"  # Finds in comments, strings
+
+   # ✅ Use ast-grep for structural search
+   ast-grep --pattern 'useState($$$)' src/**/*.tsx
+
+   # ✅ Use grep for simple search
+   grep -r "API_ENDPOINT" --include="*.ts"
+
+   # ✅ Use ast-grep for i18n
+   ast-grep --pattern '<button>$TEXT</button>' src/**/*.vue
+   ```

@@ -4,47 +4,58 @@
     <template v-if="currentStep === 1">
       <div class="space-y-4">
         <div>
-          <label class="text-sm font-medium">API Token</label>
+          <label class="text-sm font-medium">{{ t('pages.integrations.monobank.apiTokenLabel') }}</label>
           <input
             v-model="apiToken"
             type="password"
             class="w-full rounded-md border px-3 py-2"
-            placeholder="Enter your Monobank API token"
+            :placeholder="$t('pages.monobank.tokenPlaceholder')"
             @keyup.enter="handleConnectProvider"
           />
 
           <Tooltip.TooltipProvider>
             <Tooltip.Tooltip>
               <Tooltip.TooltipTrigger class="mt-2 flex items-center gap-2">
-                <p class="text-muted-foreground text-xs">You can get your API token from Monobank mobile app</p>
+                <p class="text-muted-foreground text-xs">{{ t('pages.integrations.monobank.tokenHint') }}</p>
                 <InfoIcon class="text-primary size-4" />
               </Tooltip.TooltipTrigger>
-              <Tooltip.TooltipContent class="max-w-[400px] p-4">
+              <Tooltip.TooltipContent class="max-w-100 p-4">
                 <span class="text-sm leading-6 opacity-90">
-                  To obtain a token for personal use please visit
-                  <ExternalLink href="https://api.monobank.ua" />
-                  and follow instructions. Once token is generated, store it somewhere and enter into the field.
+                  <i18n-t keypath="pages.integrations.monobank.tokenInstructions" tag="span">
+                    <template #link>
+                      <ExternalLink href="https://api.monobank.ua" />
+                    </template>
+                  </i18n-t>
                   <br />
-                  <b>Note:</b> Don't worry, the API token is strictly read-only.
+                  <b>{{ t('pages.integrations.monobank.tokenReadOnlyNote') }}</b>
+                  {{ t('pages.integrations.monobank.tokenReadOnlyText') }}
                 </span>
               </Tooltip.TooltipContent>
             </Tooltip.Tooltip>
           </Tooltip.TooltipProvider>
         </div>
         <div>
-          <label class="mb-2 block text-sm font-medium">Connection Name (optional)</label>
+          <label class="mb-2 block text-sm font-medium">{{
+            t('pages.integrations.monobank.connectionNameLabel')
+          }}</label>
           <input
             v-model="connectionName"
             type="text"
             class="w-full rounded-md border px-3 py-2"
-            placeholder="e.g., Personal Account"
+            :placeholder="$t('pages.monobank.accountNamePlaceholder')"
           />
         </div>
         <div class="flex justify-between gap-2">
-          <UiButton variant="outline" @click="$emit('cancel')" :disabled="isLoading"> Back </UiButton>
+          <UiButton variant="outline" @click="$emit('cancel')" :disabled="isLoading">
+            {{ t('pages.integrations.monobank.backButton') }}
+          </UiButton>
 
           <UiButton @click="handleConnectProvider" :disabled="!apiToken || isLoading">
-            {{ isLoading ? 'Connecting...' : 'Connect' }}
+            {{
+              isLoading
+                ? t('pages.integrations.monobank.connectingButton')
+                : t('pages.integrations.monobank.connectButton')
+            }}
           </UiButton>
         </div>
       </div>
@@ -53,10 +64,12 @@
     <!-- Step 2: Select Accounts -->
     <template v-else-if="currentStep === 2">
       <div class="space-y-4">
-        <div v-if="isLoading" class="py-8 text-center">Loading accounts...</div>
+        <div v-if="isLoading" class="py-8 text-center">{{ t('pages.integrations.monobank.loadingAccounts') }}</div>
 
         <template v-else>
-          <div class="text-muted-foreground mb-4 text-sm">Select the accounts you want to sync with MoneyMatter</div>
+          <div class="text-muted-foreground mb-4 text-sm">
+            {{ t('pages.integrations.monobank.selectAccountsHint') }}
+          </div>
 
           <div class="space-y-2">
             <label
@@ -75,10 +88,16 @@
           </div>
 
           <div class="flex justify-between gap-2 pt-4">
-            <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading"> Back </UiButton>
+            <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading">
+              {{ t('pages.integrations.monobank.backButton') }}
+            </UiButton>
 
             <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading">
-              {{ isLoading ? 'Syncing...' : `Sync ${selectedAccountIds.length} account(s)` }}
+              {{
+                isLoading
+                  ? t('pages.integrations.monobank.syncingButton')
+                  : t('pages.integrations.monobank.syncButton', { count: selectedAccountIds.length })
+              }}
             </UiButton>
           </div>
         </template>
@@ -102,6 +121,9 @@ import { useAccountsStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { InfoIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   connected: [];
@@ -145,7 +167,7 @@ const handleConnectProvider = async () => {
     // Move to step 2
     currentStep.value = 2;
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to connect provider';
+    const message = error instanceof Error ? error.message : t('pages.integrations.monobank.errors.connectFailed');
     addErrorNotification(message);
   } finally {
     isLoading.value = false;
@@ -165,12 +187,12 @@ const handleSyncAccounts = async () => {
     // Refresh accounts store
     await accountsStore.refetchAccounts();
 
-    addSuccessNotification(`Successfully synced ${selectedAccountIds.value.length} account(s)`);
+    addSuccessNotification(t('pages.integrations.monobank.syncSuccess', { count: selectedAccountIds.value.length }));
 
     // Emit connected event to close dialog
     emit('connected');
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to sync accounts';
+    const message = error instanceof Error ? error.message : t('pages.integrations.monobank.errors.syncFailed');
     addErrorNotification(message);
   } finally {
     isLoading.value = false;

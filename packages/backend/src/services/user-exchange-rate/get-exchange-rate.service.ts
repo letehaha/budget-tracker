@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError, UnexpectedError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import * as Currencies from '@models/Currencies.model';
@@ -74,7 +75,7 @@ export async function getExchangeRate({
   });
 
   if (!userCurrency) {
-    throw new NotFoundError({ message: 'Asked currency is not connected' });
+    throw new NotFoundError({ message: t({ key: 'currencies.currencyNotConnected' }) });
   }
 
   const userDefaultCurrency = await getBaseCurrency({ userId });
@@ -125,7 +126,14 @@ export async function getExchangeRate({
     (!quoteRate && pair.quoteCode !== API_LAYER_BASE_CURRENCY_CODE)
   ) {
     throw new UnexpectedError({
-      message: `Exchange rate not available for ${pair.baseCode}/${pair.quoteCode} on ${date.toISOString()}`,
+      message: t({
+        key: 'currencies.exchangeRateNotAvailable',
+        variables: {
+          baseCode: pair.baseCode,
+          quoteCode: pair.quoteCode,
+          date: date.toISOString(),
+        },
+      }),
     });
   }
 

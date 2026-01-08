@@ -1,4 +1,5 @@
 import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { BadRequestError, NotFoundError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
@@ -34,7 +35,7 @@ export const connectSelectedAccounts = withTransaction(
 
     if (!connection) {
       throw new NotFoundError({
-        message: 'Connection not found',
+        message: t({ key: 'errors.connectionNotFound' }),
         code: API_ERROR_CODES.notFound,
       });
     }
@@ -49,7 +50,7 @@ export const connectSelectedAccounts = withTransaction(
 
     if (selectedAccounts.length === 0) {
       throw new BadRequestError({
-        message: 'None of the selected account IDs are valid',
+        message: t({ key: 'bankDataProviders.noValidAccountIds' }),
       });
     }
 

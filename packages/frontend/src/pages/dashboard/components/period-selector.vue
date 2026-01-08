@@ -6,7 +6,7 @@
 
     <Popover v-model:open="isCalendarOpen">
       <PopoverTrigger as-child>
-        <ui-button variant="ghost" class="hover:bg-accent min-w-[220px] font-normal">
+        <ui-button variant="ghost" class="hover:bg-accent min-w-55 font-normal">
           <CalendarIcon class="mr-2 size-4" />
           {{ periodSelectorText }}
         </ui-button>
@@ -15,7 +15,9 @@
         <div class="xs:gap-4 flex">
           <!-- Quick actions sidebar -->
           <div class="xs:pr-4 flex flex-col gap-2 border-r pr-2">
-            <div class="text-muted-foreground mb-2 text-sm font-semibold">Quick Select</div>
+            <div class="text-muted-foreground mb-2 text-sm font-semibold">
+              {{ t('dashboard.periodSelector.quickSelect') }}
+            </div>
             <ui-button
               v-for="preset in quickPresets"
               :key="preset.label"
@@ -51,13 +53,14 @@ import Popover from '@/components/lib/ui/popover/Popover.vue';
 import PopoverContent from '@/components/lib/ui/popover/PopoverContent.vue';
 import PopoverTrigger from '@/components/lib/ui/popover/PopoverTrigger.vue';
 import RangeCalendar from '@/components/lib/ui/range-calendar/RangeCalendar.vue';
+import { useDateLocale } from '@/composable/use-date-locale';
 import { CalendarDate, type DateValue } from '@internationalized/date';
 import {
   addDays,
+  format as dateFnsFormat,
   differenceInDays,
   endOfMonth,
   endOfYear,
-  format,
   isSameMonth,
   startOfMonth,
   startOfYear,
@@ -68,8 +71,12 @@ import {
 import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { type DateRange } from 'reka-ui';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { type Period } from '../types';
+
+const { t } = useI18n();
+const { format } = useDateLocale();
 
 interface PeriodPreset {
   label: string;
@@ -121,8 +128,9 @@ watch(
     if (isCurrentMonthPeriod(period)) {
       url.search = '';
     } else {
-      url.searchParams.set('from', format(period.from, 'yyyy-MM-dd'));
-      url.searchParams.set('to', format(period.to, 'yyyy-MM-dd'));
+      // Use non-localized format for URL serialization
+      url.searchParams.set('from', dateFnsFormat(period.from, 'yyyy-MM-dd'));
+      url.searchParams.set('to', dateFnsFormat(period.to, 'yyyy-MM-dd'));
     }
 
     window.history.replaceState(history.state, '', url);
@@ -137,44 +145,44 @@ const calendarValue = computed(() => ({
 }));
 
 // Quick preset buttons
-const quickPresets: PeriodPreset[] = [
+const quickPresets = computed<PeriodPreset[]>(() => [
   {
-    label: 'Current Month',
+    label: t('dashboard.periodSelector.presets.currentMonth'),
     getValue: () => ({
       from: startOfMonth(new Date()),
       to: endOfMonth(new Date()),
     }),
   },
   {
-    label: 'Last 3 Months',
+    label: t('dashboard.periodSelector.presets.last3Months'),
     getValue: () => ({
       from: startOfMonth(subMonths(new Date(), 2)),
       to: endOfMonth(new Date()),
     }),
   },
   {
-    label: 'Last 6 Months',
+    label: t('dashboard.periodSelector.presets.last6Months'),
     getValue: () => ({
       from: startOfMonth(subMonths(new Date(), 5)),
       to: endOfMonth(new Date()),
     }),
   },
   {
-    label: 'Last Year',
+    label: t('dashboard.periodSelector.presets.lastYear'),
     getValue: () => ({
       from: startOfMonth(subMonths(new Date(), 11)),
       to: endOfMonth(new Date()),
     }),
   },
   {
-    label: 'This Year',
+    label: t('dashboard.periodSelector.presets.thisYear'),
     getValue: () => ({
       from: startOfYear(new Date()),
       to: new Date(),
     }),
   },
   {
-    label: 'Previous Year',
+    label: t('dashboard.periodSelector.presets.previousYear'),
     getValue: () => {
       const prevYear = subYears(new Date(), 1);
       return {
@@ -183,7 +191,7 @@ const quickPresets: PeriodPreset[] = [
       };
     },
   },
-];
+]);
 
 const isNextDisabled = computed(() => isSameMonth(new Date(), props.modelValue.to));
 
@@ -193,13 +201,13 @@ const periodSelectorText = computed(() => {
 
   // Check if it's current month up to today
   if (isSameMonth(new Date(), to) && isSameMonth(from, to)) {
-    return 'Current Month';
+    return t('dashboard.periodSelector.presets.currentMonth');
   }
 
   // Check if it's a full year
   const isFullYear = from.getMonth() === 0 && from.getDate() === 1 && to.getMonth() === 11 && to.getDate() === 31;
   if (isFullYear) {
-    return `Year ${from.getFullYear()}`;
+    return t('dashboard.periodSelector.year', { year: from.getFullYear() });
   }
 
   // Check if same month

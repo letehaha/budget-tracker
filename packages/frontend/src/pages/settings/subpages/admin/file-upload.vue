@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const emit = defineEmits<{
   fileLoaded: [data: { content: unknown[]; fileName: string; fileType: 'csv' | 'json' }];
   error: [message: string];
 }>();
 
+const { t } = useI18n();
 const isDragging = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
@@ -62,7 +64,7 @@ async function handleFile(file: File) {
   const fileType = file.name.endsWith('.json') ? 'json' : file.name.endsWith('.csv') ? 'csv' : null;
 
   if (!fileType) {
-    emit('error', 'Unsupported file format. Please upload CSV or JSON file.');
+    emit('error', t('settings.admin.priceUpload.fileUpload.errors.unsupportedFormat'));
     return;
   }
 
@@ -80,7 +82,10 @@ async function handleFile(file: File) {
   } catch (error) {
     emit(
       'error',
-      `Failed to parse ${fileType.toUpperCase()} file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      t('settings.admin.priceUpload.fileUpload.errors.parseFailed', {
+        fileType: fileType.toUpperCase(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }),
     );
   }
 }
@@ -117,7 +122,7 @@ function openFileDialog() {
 
 <template>
   <div class="space-y-2">
-    <h3 class="text-sm font-medium">Upload File</h3>
+    <h3 class="text-sm font-medium">{{ $t('settings.admin.priceUpload.fileUpload.title') }}</h3>
     <div
       class="border-border hover:border-primary flex min-h-[150px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors"
       :class="{ 'border-primary bg-primary/5': isDragging }"
@@ -140,8 +145,8 @@ function openFileDialog() {
           d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
         />
       </svg>
-      <p class="text-foreground mb-1 text-sm font-medium">Click to upload or drag and drop</p>
-      <p class="text-muted-foreground text-xs">CSV or JSON files supported</p>
+      <p class="text-foreground mb-1 text-sm font-medium">{{ $t('settings.admin.priceUpload.fileUpload.dragText') }}</p>
+      <p class="text-muted-foreground text-xs">{{ $t('settings.admin.priceUpload.fileUpload.supportedFormats') }}</p>
       <input ref="fileInputRef" type="file" accept=".csv,.json" class="hidden" @change="onFileChange" />
     </div>
   </div>

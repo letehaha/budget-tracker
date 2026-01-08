@@ -1,12 +1,13 @@
 <template>
   <div class="p-6 pt-4">
-    <BackLink :to="{ name: ROUTES_NAMES.settingsDataManagement }">Back to Settings</BackLink>
+    <BackLink :to="{ name: ROUTES_NAMES.settingsDataManagement }">{{
+      $t('pages.statementParser.backToSettings')
+    }}</BackLink>
 
     <div class="mb-6">
-      <h1 class="text-2xl tracking-wider">Statement Parser</h1>
+      <h1 class="text-2xl tracking-wider">{{ $t('pages.statementParser.pageTitle') }}</h1>
       <p class="text-muted-foreground mt-2">
-        Upload a bank statement (PDF, CSV, or TXT) to extract transactions using AI. Requires an AI API key configured
-        in settings.
+        {{ $t('pages.statementParser.pageDescription') }}
       </p>
     </div>
 
@@ -29,8 +30,8 @@
                 <span v-else>1</span>
               </div>
               <div>
-                <h3 class="font-semibold">Upload & Extract</h3>
-                <p class="text-muted-foreground text-sm">Upload statement and extract transactions with AI</p>
+                <h3 class="font-semibold">{{ $t('pages.statementParser.steps.uploadTitle') }}</h3>
+                <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.steps.uploadDescription') }}</p>
               </div>
             </div>
             <ChevronDownIcon
@@ -62,8 +63,8 @@
                 <span v-else>2</span>
               </div>
               <div>
-                <h3 class="font-semibold">Select Account</h3>
-                <p class="text-muted-foreground text-sm">Choose or create an account for the transactions</p>
+                <h3 class="font-semibold">{{ $t('pages.statementParser.steps.accountTitle') }}</h3>
+                <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.steps.accountDescription') }}</p>
               </div>
             </div>
             <ChevronDownIcon
@@ -101,8 +102,8 @@
                 <span v-else>3</span>
               </div>
               <div>
-                <h3 class="font-semibold">Review Transactions</h3>
-                <p class="text-muted-foreground text-sm">Review and handle duplicate transactions</p>
+                <h3 class="font-semibold">{{ $t('pages.statementParser.steps.reviewTitle') }}</h3>
+                <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.steps.reviewDescription') }}</p>
               </div>
             </div>
             <ChevronDownIcon
@@ -136,8 +137,8 @@
                 <span v-else>{{ store.isNewAccount ? '3' : '4' }}</span>
               </div>
               <div>
-                <h3 class="font-semibold">Import</h3>
-                <p class="text-muted-foreground text-sm">Execute import and view results</p>
+                <h3 class="font-semibold">{{ $t('pages.statementParser.steps.importTitle') }}</h3>
+                <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.steps.importDescription') }}</p>
               </div>
             </div>
             <ChevronDownIcon

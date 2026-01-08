@@ -26,8 +26,8 @@
       <ManageTransactionDialog>
         <Button variant="default" class="flex items-center gap-1">
           <PlusIcon class="size-5" />
-          <span class="hidden md:block">New Transaction</span>
-          <span class="md:hidden">Add</span>
+          <span class="hidden md:block">{{ $t('header.newTransaction') }}</span>
+          <span class="md:hidden">{{ $t('header.add') }}</span>
         </Button>
       </ManageTransactionDialog>
     </div>
@@ -54,20 +54,24 @@
               <template v-if="syncStatus.isSyncing.value">
                 <RefreshCcw class="animate-spin" :size="16" />
                 <span class="font-medium">
-                  <span class="xs:hidden">Syncing</span>
-                  <span class="xs:inline hidden">{{ syncStatus.syncingSummaryText.value || 'Synchronizing...' }}</span>
+                  <span class="xs:hidden">{{ $t('header.sync.syncing') }}</span>
+                  <span class="xs:inline hidden">{{
+                    syncStatus.syncingSummaryText.value || $t('header.sync.synchronizing')
+                  }}</span>
                 </span>
               </template>
               <template v-else-if="hasConnections">
                 <CloudCheckIcon class="text-success-text size-5" />
                 <template v-if="lastSyncRelativeTime">
-                  <span class="xs:block hidden font-medium"> Synced {{ lastSyncRelativeTime }} </span>
-                  <span class="xs:hidden font-medium"> Synced </span>
+                  <span class="xs:block hidden font-medium">
+                    {{ $t('header.sync.syncedTime', { time: lastSyncRelativeTime }) }}
+                  </span>
+                  <span class="xs:hidden font-medium"> {{ $t('header.sync.synced') }} </span>
                 </template>
               </template>
               <template v-else>
                 <CloudCheckIcon class="size-5" />
-                <span class="xs:block hidden font-medium">Connect bank</span>
+                <span class="xs:block hidden font-medium">{{ $t('header.sync.connectBank') }}</span>
               </template>
             </Button>
           </Popover.PopoverTrigger>
@@ -93,6 +97,34 @@
 
       <NotificationsPopover />
 
+      <!-- Language Switcher -->
+      <Popover.Popover>
+        <Popover.PopoverTrigger as-child>
+          <Button variant="secondary" class="text-white" size="icon">
+            <span class="text-lg">{{ currentLocaleFlag }}</span>
+          </Button>
+        </Popover.PopoverTrigger>
+        <Popover.PopoverContent class="w-52" align="end">
+          <div class="space-y-2">
+            <div class="text-sm font-medium">{{ $t('header.language') }}</div>
+            <div class="space-y-1">
+              <button
+                v-for="locale in availableLocales"
+                :key="locale.value"
+                class="hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors"
+                :class="{
+                  'bg-accent': currentLocale === locale.value,
+                }"
+                @click="handleLocaleChange(locale.value)"
+              >
+                <span class="text-lg">{{ locale.flag }}</span>
+                <span>{{ locale.native }}</span>
+              </button>
+            </div>
+          </div>
+        </Popover.PopoverContent>
+      </Popover.Popover>
+
       <router-link :to="{ name: ROUTES_NAMES.settings }">
         <Button variant="secondary" class="text-white" size="icon" as="span">
           <SettingsIcon />
@@ -116,11 +148,13 @@ import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-size';
+import { useDateLocale } from '@/composable/use-date-locale';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
+import { getCurrentLocale, setLocale } from '@/i18n';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
-import { formatDistanceToNow } from 'date-fns';
+import { LOCALE_NAMES, SUPPORTED_LOCALES, type SupportedLocale } from '@bt/shared/i18n/locales';
 // MoonStar, Sun removed - theme toggle temporarily disabled
 import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -141,6 +175,9 @@ const isPopoverOpen = ref(false);
 
 // Use new sync status system
 const syncStatus = useSyncStatus();
+
+// Locale-aware date formatting
+const { formatDistanceToNow } = useDateLocale();
 
 const lastSyncRelativeTime = computed(() => {
   if (!syncStatus.lastSyncTimestamp.value) return null;
@@ -185,4 +222,28 @@ const confirmSync = async () => {
 watch(route, () => {
   isMobileSheetOpen.value = false;
 });
+
+// Language switcher
+const currentLocale = ref<SupportedLocale>(getCurrentLocale() as SupportedLocale);
+
+const currentLocaleFlag = computed(() => LOCALE_NAMES[currentLocale.value].flag);
+
+const availableLocales = [
+  {
+    value: SUPPORTED_LOCALES.ENGLISH,
+    native: LOCALE_NAMES[SUPPORTED_LOCALES.ENGLISH].native,
+    flag: LOCALE_NAMES[SUPPORTED_LOCALES.ENGLISH].flag,
+  },
+  {
+    value: SUPPORTED_LOCALES.UKRAINIAN,
+    native: LOCALE_NAMES[SUPPORTED_LOCALES.UKRAINIAN].native,
+    flag: LOCALE_NAMES[SUPPORTED_LOCALES.UKRAINIAN].flag,
+  },
+];
+
+async function handleLocaleChange(locale: SupportedLocale) {
+  currentLocale.value = locale;
+  await setLocale(locale);
+  // Optionally persist to backend - can be added later
+}
 </script>

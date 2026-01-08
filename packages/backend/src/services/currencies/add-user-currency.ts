@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
@@ -13,7 +14,7 @@ export const addUserCurrencies = withTransaction(
     }[],
   ) => {
     if (!currencies.length || !currencies[0]) {
-      throw new ValidationError({ message: 'Currencies list is empty' });
+      throw new ValidationError({ message: t({ key: 'currencies.listIsEmpty' }) });
     }
 
     const existingCurrencies = await UsersCurrencies.getCurrencies({

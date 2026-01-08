@@ -8,7 +8,7 @@
         :model-value="selectedOptionObject"
         :values="currencyOptions"
         label="How do you want to assign currencies?"
-        placeholder="Select option..."
+        :placeholder="$t('pages.importExport.common.selectOption')"
         @update:model-value="handleOptionChange"
       />
       <p class="text-muted-foreground mt-1 text-xs">
@@ -22,7 +22,7 @@
         :model-value="currencyColumnObject"
         :values="columnOptions"
         label="Currency Column"
-        placeholder="Select column..."
+        :placeholder="$t('pages.importExport.common.selectColumn')"
         @update:model-value="handleColumnChange"
       />
       <p class="text-muted-foreground mt-1 text-xs">Select the CSV column that contains currency codes</p>
@@ -36,7 +36,7 @@
         label="Currency"
         label-key="displayName"
         value-key="code"
-        placeholder="Select currency..."
+        :placeholder="$t('pages.importExport.currencyMapping.selectCurrency')"
         with-search
         :search-keys="['code', 'currency']"
         @update:model-value="handleCurrencySelect"

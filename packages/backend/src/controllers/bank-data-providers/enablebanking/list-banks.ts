@@ -1,4 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { listBanksByCountry } from '@root/services/bank-data-providers/enablebanking/aspsp.service';
 import { z } from 'zod';
@@ -31,6 +32,6 @@ export default createController(schema, async ({ query, body }) => {
       data: { banks },
     };
   } catch (error) {
-    throw new ValidationError({ message: 'Failed to fetch banks. Please check your credentials and country code.' });
+    throw new ValidationError({ message: t({ key: 'bankDataProviders.failedToFetchBanks' }) });
   }
 });

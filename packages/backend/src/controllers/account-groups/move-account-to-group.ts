@@ -1,5 +1,6 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import * as accountGroupService from '@services/account-groups';
 import { z } from 'zod';
@@ -17,7 +18,7 @@ export default createController(
     });
 
     if (updatedCount === 0) {
-      throw new NotFoundError({ message: 'Group or account not found' });
+      throw new NotFoundError({ message: t({ key: 'accounts.groupNotFound' }) });
     }
 
     return { data: updatedGroups[0] };

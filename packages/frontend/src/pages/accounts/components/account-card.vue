@@ -15,7 +15,7 @@
         </div>
       </template>
       <div class="xs:max-w-[calc(100%-60px)] truncate text-base tracking-wide whitespace-nowrap">
-        {{ account.name || 'No name set...' }}
+        {{ account.name || t('accounts.noNameSet') }}
       </div>
     </div>
     <div class="xs:text-lg font-semibold whitespace-nowrap">
@@ -31,7 +31,9 @@ import { useBankConnectionDetails } from '@/composable/data-queries/bank-provide
 import { ROUTES_NAMES } from '@/routes/constants';
 import { AccountModel } from '@bt/shared/types';
 import { toRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const props = defineProps<{ account: AccountModel }>();
 
 const { formatAmountByCurrencyCode } = useFormatCurrency();

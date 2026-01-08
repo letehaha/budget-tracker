@@ -11,23 +11,28 @@
           <Loader2Icon v-else class="text-primary h-8 w-8 animate-spin" />
         </div>
         <h1 class="text-2xl font-semibold tracking-tight">
-          {{ isSuccess ? 'Email verified!' : isError ? 'Verification failed' : 'Verifying...' }}
+          {{
+            isSuccess
+              ? $t('auth.verifyLegacyEmail.success')
+              : isError
+                ? $t('auth.verifyLegacyEmail.failed')
+                : $t('auth.verifyLegacyEmail.verifying')
+          }}
         </h1>
       </CardHeader>
       <CardContent class="text-center">
         <p v-if="isSuccess" class="text-muted-foreground">
-          Your email has been updated to <span class="text-foreground font-medium">{{ newEmail }}</span
-          >. You can now log in with your new email.
+          {{ $t('auth.verifyLegacyEmail.successMessage', { email: newEmail }) }}
         </p>
         <p v-else-if="isError" class="text-destructive">
           {{ errorMessage }}
         </p>
-        <p v-else class="text-muted-foreground">Please wait while we verify your email...</p>
+        <p v-else class="text-muted-foreground">{{ $t('auth.verifyLegacyEmail.verifyingMessage') }}</p>
       </CardContent>
       <CardFooter v-if="isSuccess || isError" class="flex-col gap-3">
         <router-link :to="{ name: ROUTES_NAMES.signIn }" class="w-full">
           <Button class="w-full">
-            {{ isSuccess ? 'Go to Sign In' : 'Back to Sign In' }}
+            {{ isSuccess ? $t('auth.verifyLegacyEmail.goToSignIn') : $t('auth.verifyLegacyEmail.backToSignIn') }}
           </Button>
         </router-link>
       </CardFooter>
@@ -43,9 +48,11 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { CheckCircleIcon, Loader2Icon, XCircleIcon } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
+const { t } = useI18n();
 
 const isSuccess = ref(false);
 const isError = ref(false);
@@ -57,7 +64,7 @@ onMounted(async () => {
 
   if (!token) {
     isError.value = true;
-    errorMessage.value = 'Invalid verification link. No token provided.';
+    errorMessage.value = t('auth.verifyLegacyEmail.noToken');
     return;
   }
 
@@ -68,9 +75,9 @@ onMounted(async () => {
   } catch (e) {
     isError.value = true;
     if (e instanceof ApiErrorResponseError) {
-      errorMessage.value = e.data.message || 'Verification failed. The link may have expired.';
+      errorMessage.value = e.data.message || t('auth.verifyLegacyEmail.linkExpired');
     } else {
-      errorMessage.value = 'Verification failed. Please try again.';
+      errorMessage.value = t('auth.verifyLegacyEmail.genericError');
     }
   }
 });

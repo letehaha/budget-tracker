@@ -3,59 +3,54 @@ import * as Popover from '@/components/lib/ui/popover';
 import * as ScrollArea from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { InfoIcon } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 </script>
 
 <template>
   <Popover.Popover>
     <Popover.PopoverTrigger as-child>
       <div class="text-primary inline-flex cursor-pointer items-center gap-1 hover:underline">
-        How it works? <InfoIcon :size="16" />
+        {{ t('dialogs.manageTransaction.refundInfo.trigger') }} <InfoIcon :size="16" />
       </div>
     </Popover.PopoverTrigger>
-    <Popover.PopoverContent class="w-[500px] overflow-y-auto" side="right">
+    <Popover.PopoverContent class="w-125 overflow-y-auto" side="right">
       <ScrollArea.ScrollArea
         class="*:data-reka-scroll-area-viewport:max-h-[90dvh]"
         :scroll-area-id="SCROLL_AREA_IDS.txRefundInfo"
       >
-        <h3 class="mb-2 text-lg font-bold">About Refund Transactions</h3>
+        <h3 class="mb-2 text-lg font-bold">{{ t('dialogs.manageTransaction.refundInfo.title') }}</h3>
 
         <p class="text-sm text-white/60">
-          This action links the current transaction [expense/income] as a refund to a previous existing transaction.
+          {{ t('dialogs.manageTransaction.refundInfo.description') }}
         </p>
 
-        <h4 class="mt-3 mb-1 font-semibold">How it works:</h4>
+        <h4 class="mt-3 mb-1 font-semibold">{{ t('dialogs.manageTransaction.refundInfo.howItWorks.title') }}</h4>
         <ul class="list-inside list-disc text-sm text-white/60">
-          <li>For an expense refund: Select the original income transaction.</li>
-          <li>For an income refund: Select the original expense transaction.</li>
-          <li>
-            You can mark any transaction as a refund even if there's no "original" transaction in the system. Useful in
-            case you don't have account with the original transaction in the system.
-          </li>
+          <li>{{ t('dialogs.manageTransaction.refundInfo.howItWorks.expenseRefund') }}</li>
+          <li>{{ t('dialogs.manageTransaction.refundInfo.howItWorks.incomeRefund') }}</li>
+          <li>{{ t('dialogs.manageTransaction.refundInfo.howItWorks.noOriginal') }}</li>
         </ul>
 
-        <h4 class="mt-3 mb-1 font-semibold">Benefits:</h4>
+        <h4 class="mt-3 mb-1 font-semibold">{{ t('dialogs.manageTransaction.refundInfo.benefits.title') }}</h4>
         <ul class="list-inside list-disc text-sm text-white/60">
-          <li>Enhances financial accuracy by adjusting spending or income statistics to exclude refunded amounts.</li>
-          <li>Helps track related transactions to improve your feed.</li>
+          <li>{{ t('dialogs.manageTransaction.refundInfo.benefits.accuracy') }}</li>
+          <li>{{ t('dialogs.manageTransaction.refundInfo.benefits.tracking') }}</li>
         </ul>
 
-        <h4 class="mt-3 mb-1 font-semibold">Important Notes:</h4>
+        <h4 class="mt-3 mb-1 font-semibold">{{ t('dialogs.manageTransaction.refundInfo.notes.title') }}</h4>
         <ul class="list-inside list-disc text-sm text-white/60">
-          <li>This link is for record-keeping purposes only.</li>
-          <li>It does not adjust the balance of the original transaction in any way.</li>
-          <li>You can always unlink transactions back.</li>
+          <li>{{ t('dialogs.manageTransaction.refundInfo.notes.recordKeeping') }}</li>
+          <li>{{ t('dialogs.manageTransaction.refundInfo.notes.noBalanceAdjust') }}</li>
+          <li>{{ t('dialogs.manageTransaction.refundInfo.notes.canUnlink') }}</li>
         </ul>
 
-        <h4 class="mt-3 mb-1 font-semibold">Examples:</h4>
+        <h4 class="mt-3 mb-1 font-semibold">{{ t('dialogs.manageTransaction.refundInfo.examples.title') }}</h4>
         <ul class="list-inside list-disc text-sm text-white/60">
-          <li>Refunding a customer payment: Create an expense and link it to the original income.</li>
-          <li>Receiving a refund from a vendor: Create an income and link it to the original expense.</li>
-          <li>
-            Recording a refund without an original transaction: Sometimes you might need to record a refund for a
-            transaction that isn't in your system. For instance, if you're recording a refund for a cash payment that
-            wasn't initially logged, you can still create a refund entry. This helps maintain accurate records even when
-            the original transaction isn't digitally tracked.
-          </li>
+          <li>{{ t('dialogs.manageTransaction.refundInfo.examples.customerPayment') }}</li>
+          <li>{{ t('dialogs.manageTransaction.refundInfo.examples.vendorRefund') }}</li>
+          <li>{{ t('dialogs.manageTransaction.refundInfo.examples.noOriginalTx') }}</li>
         </ul>
       </ScrollArea.ScrollArea>
     </Popover.PopoverContent>

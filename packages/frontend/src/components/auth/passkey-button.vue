@@ -9,6 +9,9 @@
 import { Button } from '@/components/lib/ui/button';
 import { KeyRoundIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 interface Props {
   mode?: 'signin' | 'register';
@@ -25,7 +28,7 @@ const emit = defineEmits<{
 }>();
 
 const buttonText = computed(() => {
-  return props.mode === 'register' ? 'Add Passkey' : 'Sign in with Passkey';
+  return props.mode === 'register' ? t('auth.shared.passkeyButton.register') : t('auth.shared.passkeyButton.signIn');
 });
 
 const handleClick = () => {

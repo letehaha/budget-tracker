@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { buttonVariants } from '@/components/lib/ui/button';
+import { i18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { useVModel } from '@vueuse/core';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
@@ -69,6 +70,12 @@ onMounted(async () => {
   if (modelValue.value instanceof Date && calendarRef.value) calendarRef.value.focusDate(modelValue.value);
 });
 
+// Reactive locale for v-calendar - tracks i18n locale changes
+const calendarLocale = computed(() => {
+  // Access the reactive locale value to ensure reactivity (locale is same as getCurrentLocale())
+  return i18n.global.locale.value;
+});
+
 const $slots = useSlots();
 const vCalendarSlots = computed(() =>
   Object.keys($slots)
@@ -106,6 +113,7 @@ const vCalendarSlots = computed(() =>
       v-model="modelValue"
       v-bind="$attrs"
       :model-modifiers="modelModifiers"
+      :locale="calendarLocale"
       class="calendar"
       trim-weeks
       :transition="'none'"

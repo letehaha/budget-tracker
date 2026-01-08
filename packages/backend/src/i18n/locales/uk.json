@@ -1,0 +1,214 @@
+{
+  "common": {
+    "processAlreadyLocked": "Процес синхронізації для \"{{lockKey}}\" вже заблоковано."
+  },
+  "auth": {
+    "migration": {
+      "userNotLinked": "Користувач не прив'язаний до системи авторизації",
+      "authUserNotFound": "Користувача авторизації не знайдено",
+      "onlyLegacyAccounts": "Тільки застарілі облікові записи можуть використовувати цей ендпоінт. Використовуйте стандартний процес зміни email.",
+      "emailAlreadyInUse": "Email вже використовується",
+      "emailServiceNotConfigured": "Сервіс email не налаштовано",
+      "failedToSendVerification": "Не вдалося надіслати лист підтвердження",
+      "verificationSent": "Лист підтвердження надіслано",
+      "linkExpired": "Термін дії посилання для підтвердження закінчився",
+      "invalidOrExpiredLink": "Недійсне або прострочене посилання для підтвердження"
+    }
+  },
+  "accounts": {
+    "groupNotFound": "Групу або рахунок не знайдено",
+    "accountNotFound": "Рахунок не знайдено!",
+    "accountUpdateFailed": "Оновлення рахунку не вдалося",
+    "accountNoExternalId": "Рахунок не має зовнішнього ID",
+    "accountNoExternalIdMonobank": "Рахунок не має зовнішнього ID від Monobank",
+    "accountNoExternalIdEnableBanking": "Рахунок не має зовнішнього ID від Enable Banking",
+    "accountNotFoundForTransaction": "Рахунок для цієї транзакції не знайдено"
+  },
+  "accountGroups": {
+    "groupNotFound": "Групу не знайдено",
+    "parentGroupNotExist": "Батьківська група з таким id не існує.",
+    "parentGroupDoesNotExist": "Батьківська група не існує.",
+    "operationNotAllowed": "Операція не дозволена",
+    "accountNotFound": "Рахунок з таким id не знайдено.",
+    "accountGroupNotFound": "Групу рахунків з таким id не знайдено."
+  },
+  "transactions": {
+    "missingRequiredFields": "Одне з обов'язкових полів відсутнє: destinationAmount, destinationAccountId.",
+    "refundAndTransferNotAllowed": "Не дозволено створювати транзакцію, яка є одночасно поверненням і переказом",
+    "cannotCreateWithParams": "Не вдалося створити транзакцію з наданими параметрами",
+    "idCannotBeChanged": "id не можна змінити",
+    "editReadonlyFields": "Спроба редагувати поля зовнішнього рахунку, які доступні лише для читання",
+    "changeTypeNotAllowed": "Заборонено змінювати \"transactionType\" для несистемного рахунку",
+    "bothRefundFieldsNotAllowed": "Не можна використовувати одночасно \"refundedByTxIds\" і \"refundsTxId\". Будь ласка, виберіть щось одне.",
+    "refundExceedsOriginal": "Загальна сума повернення не може перевищувати суму оригінальної транзакції",
+    "oppositeTransactionNotFound": "Не вдалося знайти протилежну транзакцію для оновлення",
+    "transactionIdNotExist": "Транзакція з наданим `id` не існує!",
+    "cannotDeleteExternal": "Не дозволено вручну видаляти зовнішні транзакції",
+    "unexpectedDeleteIssue": "Неочікувана помилка при спробі видалити транзакцію",
+    "linkSelfNotAllowed": "Спроба зв'язати транзакцію саму з собою.",
+    "linkSameTypeNotAllowed": "Спроба зв'язати з транзакцією, яка має той самий \"transactionType\".",
+    "linkSameAccountNotAllowed": "Спроба зв'язати з транзакцією в межах того самого рахунку. Дозволено зв'язувати лише між різними рахунками",
+    "linkAlreadyTransferNotAllowed": "Спроба зв'язати транзакцію, яка вже є переказом.",
+    "linkUnexpectedError": "Неочікувана помилка. Не вдалося зв'язати вказані транзакції.",
+    "linkCannotFind": "Не вдалося знайти базову або протилежну транзакцію",
+    "splits": {
+      "splitsOnTransfer": "Не можна додавати розбиття до транзакцій-переказів",
+      "splitLimitExceeded": "Максимально дозволено {{max}} розбиттів на транзакцію",
+      "missingCategory": "Категорія обов'язкова для кожного розбиття",
+      "missingAmount": "Сума обов'язкова для кожного розбиття",
+      "amountNegative": "Сума розбиття не може бути від'ємною",
+      "amountTooSmall": "Сума розбиття повинна бути не менше {{min}} (системний мінімум)",
+      "noteTooLong": "Примітка розбиття не може перевищувати {{max}} символів",
+      "invalidCategory": "Категорію з id {{categoryId}} не знайдено або вона не належить користувачу",
+      "exceedTotal": "Загальна сума розбиттів ({{total}}) перевищує суму транзакції ({{transactionAmount}})",
+      "invalidData": "Недійсні дані розбиття",
+      "splitNotFound": "Розбиття не знайдено",
+      "cannotDeleteWithRefunds": "Не можна видалити розбиття, на яке є повернення",
+      "cannotReduceBelowRefunded": "Це розбиття має повернення на загальну суму {{refundsText}}. Ви не можете зменшити його нижче суми повернень. Щоб зменшити далі, спочатку від'єднайте повернення."
+    }
+  },
+  "budgets": {
+    "budgetNotFound": "Бюджет не знайдено",
+    "someTransactionIdsInvalid": "Деякі ID транзакцій недійсні",
+    "transactionsAddedSuccessfully": "Транзакції успішно додано"
+  },
+  "investments": {
+    "portfolioNotFound": "Портфель не знайдено",
+    "portfolioNameExists": "Портфель з такою назвою вже існує",
+    "portfolioIdRequired": "ID портфеля обов'язковий.",
+    "holdingNotFound": "Актив не знайдено",
+    "holdingNotFoundAddSecurity": "Актив не знайдено. Будь ласка, спочатку додайте цінний папір до портфеля.",
+    "holdingNotFoundForRecalculation": "Актив для перерахунку не знайдено.",
+    "securityAlreadyInPortfolio": "Цей цінний папір вже є в портфелі.",
+    "securityNotFound": "Цінний папір не знайдено.",
+    "currencyForSecurityNotFound": "Валюту для цінного паперу не знайдено.",
+    "currencyNotFound": "Валюту не знайдено",
+    "transactionNotFound": "Інвестиційну транзакцію не знайдено",
+    "userBaseCurrencyNotFound": "Базову валюту користувача не знайдено",
+    "insufficientSharesToSell": "Недостатньо акцій для продажу. Після цього оновлення у вас буде {{adjustedQuantity}} акцій, але ви намагаєтесь продати {{sellQuantity}} акцій.",
+    "sourceAndDestinationMustDiffer": "Вихідний і цільовий портфелі повинні бути різними",
+    "transferAmountMustBePositive": "Сума переказу повинна бути більше нуля",
+    "sourcePortfolioNotFound": "Вихідний портфель не знайдено",
+    "destinationPortfolioNotFound": "Цільовий портфель не знайдено",
+    "cannotDeleteHoldingWithActivePosition": "Не можна видалити актив з активною позицією. Будь ласка, спочатку продайте або перекажіть всі акції."
+  },
+  "errors": {
+    "connectionNotFound": "З'єднання не знайдено",
+    "connectionNotFoundOrNotYours": "З'єднання не знайдено або не належить вам",
+    "providerNoReauthorization": "Провайдер {{providerType}} не підтримує повторну авторизацію",
+    "providerNotFoundInRegistry": "Провайдер {{providerType}} не знайдено в реєстрі",
+    "connectionIdNotFound": "З'єднання банківського провайдера {{connectionId}} не знайдено",
+    "accountIdNotFound": "Рахунок {{accountId}} не знайдено",
+    "providerTypeMismatch": "З'єднання {{connectionId}} призначене для провайдера {{actualType}}, а не {{expectedType}}",
+    "providerAlreadyRegistered": "Провайдер {{providerType}} вже зареєстрований. Не можна реєструвати дублікати провайдерів.",
+    "providerNotRegistered": "Провайдер {{providerType}} не зареєстрований. Доступні провайдери: {{available}}",
+    "missingRequiredProviders": "Відсутні необхідні банківські провайдери: {{missing}}. Переконайтеся, що ці провайдери зареєстровані при запуску програми."
+  },
+  "validation": {
+    "fromDateInvalid": "\"from\" є недійсною датою.",
+    "toDateInvalid": "\"to\" є недійсною датою.",
+    "fromGreaterThanTo": "\"from\" не може бути більше за \"to\".",
+    "dateInvalid": "\"date\" є недійсною датою."
+  },
+  "bankDataProviders": {
+    "reauthorizationStarted": "Повторну авторизацію розпочато. Будь ласка, завершіть процес OAuth.",
+    "connectionEstablished": "З'єднання успішно встановлено",
+    "failedToFetchBanks": "Не вдалося отримати список банків. Перевірте ваші облікові дані та код країни.",
+    "failedToFetchCountries": "Не вдалося отримати список країн. Перевірте ваші облікові дані.",
+    "accountNotLinkedToConnection": "Рахунок не знайдено або не прив'язаний до цього з'єднання",
+    "cannotLoadBeforeLinkDate": "Не можна завантажити транзакції до дати прив'язки рахунку ({{linkedAt}}). Цей рахунок був прив'язаний за стратегією \"лише вперед\" для запобігання дублювання даних.",
+    "dateRangeExceedsLimit": "Діапазон дат не може перевищувати 1 рік.",
+    "fromAfterTo": "Дата \"from\" повинна бути раніше дати \"to\"",
+    "fromMustBeValidDate": "\"from\" повинен бути дійсним рядком дати",
+    "toMustBeValidDate": "\"to\" повинен бути дійсним рядком дати",
+    "onlySupportedForMonobank": "Завантаження транзакцій за період підтримується лише для Monobank",
+    "transactionLoadingQueued": "Завантаження транзакцій додано в чергу. Орієнтовний час: {{minutes}} хв.",
+    "noValidAccountIds": "Жоден з обраних ID рахунків не є дійсним",
+    "monobank": {
+      "invalidCredentialsFormat": "Недійсний формат облікових даних для Monobank",
+      "invalidApiToken": "Недійсний API токен Monobank",
+      "rateLimitExceeded": "Перевищено ліміт запитів до API Monobank. Спробуйте ще раз через хвилину.",
+      "apiError": "Помилка API Monobank: {{message}}",
+      "accountNotFound": "Рахунок {{accountExternalId}} не знайдено в Monobank",
+      "webhookNotImplemented": "handleWebhook ще не реалізовано для Monobank",
+      "unknownCurrencyCode": "Невідомий код валюти: {{numericCode}}"
+    },
+    "enableBanking": {
+      "invalidCredentialsFormat": "Недійсний формат облікових даних для Enable Banking",
+      "invalidRsaKey": "Недійсний формат RSA приватного ключа",
+      "invalidCredentials": "Недійсні облікові дані Enable Banking",
+      "authUrlNotFound": "URL авторизації не знайдено для цього з'єднання",
+      "invalidOAuthState": "Недійсний параметр стану OAuth",
+      "oAuthStateExpired": "Стан OAuth закінчився або недійсний",
+      "oAuthAuthorizationFailed": "Авторизація OAuth не вдалася: {{error}}",
+      "invalidStoredCredentials": "Недійсні збережені облікові дані",
+      "bankInfoNotFound": "Інформацію про банк не знайдено в метаданих з'єднання",
+      "noActiveSession": "Немає активної сесії. Спочатку завершіть процес OAuth.",
+      "noActiveSessionGeneric": "Немає активної сесії",
+      "noBalanceInfo": "Інформація про баланс недоступна",
+      "authenticationFailed": "Автентифікація Enable Banking не вдалася: {{message}}",
+      "apiBadRequestError": "Помилка API Enable Banking: {{message}}",
+      "apiGeneralError": "Помилка API Enable Banking: {{message}}"
+    }
+  },
+  "csvImport": {
+    "headersCannotBeParsed": "Неможливо розпарсити заголовки",
+    "csvFileEmpty": "CSV файл порожній",
+    "csvFileNoHeaders": "CSV файл не містить заголовків",
+    "invalidDateFormat": "Недійсний формат дати: \"{{dateStr}}\". Очікується формат ISO (РРРР-ММ-ДД).",
+    "invalidAmount": "Недійсна сума: \"{{amountStr}}\". Очікується числове значення.",
+    "accountNameEmpty": "Назва рахунку порожня",
+    "currencyCodeEmpty": "Код валюти порожній",
+    "unknownTransactionType": "Невідомий тип транзакції: \"{{typeValue}}\"",
+    "dateColumnNotFound": "Стовпець дати \"{{columnName}}\" не знайдено в CSV",
+    "amountColumnNotFound": "Стовпець суми \"{{columnName}}\" не знайдено в CSV",
+    "invalidDefaultCurrency": "Недійсний код валюти за замовчуванням: \"{{defaultCurrency}}\""
+  },
+  "statementParser": {
+    "invalidFile": "Недійсний файл",
+    "textExtractionFailed": "Не вдалося витягнути текст. PDF може бути сканованим документом. Витягнення з зображень ще не реалізовано.",
+    "failedToExtractText": "Не вдалося витягнути текст з файлу.",
+    "failedToExtractTextPdf": "Не вдалося витягнути текст з PDF. Можливо, це сканований документ.",
+    "fileContentRequired": "Вміст файлу обов'язковий"
+  },
+  "currencies": {
+    "notSupportedForBaseCurrency": "Зміна базової валюти на {{currency}} не підтримується. Підтримуються лише такі валюти: {{supportedCurrencies}}.",
+    "listIsEmpty": "Список валют порожній",
+    "noBaseCurrency": "Користувач не має встановленої базової валюти",
+    "alreadyBaseCurrency": "Обрана валюта вже є базовою",
+    "cannotFindForRefAmount": "Не вдалося знайти валюту для розрахунку референтної суми!",
+    "cannotCalculateRefAmount": "Не вдалося розрахувати референтну суму",
+    "currencyNotConnected": "Запитана валюта не підключена",
+    "exchangeRateNotAvailable": "Курс обміну недоступний для {{baseCode}}/{{quoteCode}} на {{date}}"
+  },
+  "userSettings": {
+    "excludedCategoriesNotFound": "Одну або декілька виключених категорій не знайдено",
+    "userSettingsNotFound": "Налаштування користувача не знайдено"
+  },
+  "userCurrencies": {
+    "baseCurrencyExists": "Базова валюта вже існує!",
+    "currencyCodeNotExist": "Валюта з переданим кодом не існує.",
+    "noExchangeRateForPair": "Немає курсу обміну для поточної пари!",
+    "currencyNotExist": "Валюта з кодом \"{{currencyCode}}\" не існує.",
+    "cannotDeleteDefaultCurrency": "Не дозволено видаляти валюту за замовчуванням. Спочатку зніміть статус за замовчуванням.",
+    "cannotDeleteCurrencyWithAccounts": "Не дозволено видаляти валюту, пов'язану з рахунками. Спочатку видаліть рахунки. Назви рахунків: \"{{accountNames}}\".",
+    "defaultCurrencyNotPresent": "Не можна видалити валюту. Валюта за замовчуванням відсутня в системі"
+  },
+  "ai": {
+    "apiKeyValidationFailed": "Перевірка API ключа не вдалася",
+    "noApiKeyForProvider": "API ключ не налаштовано для провайдера: {{provider}}"
+  },
+  "middleware": {
+    "tooManyRequests": "Забагато запитів. Будь ласка, спробуйте пізніше."
+  },
+  "emails": {
+    "legacyEmailMigration": {
+      "subject": "Підтвердьте вашу нову адресу {{appName}}",
+      "heading": "Підтвердьте вашу нову email адресу",
+      "body": "Ви запросили зміну вашої email адреси на цю. Натисніть кнопку нижче для підтвердження:",
+      "buttonText": "Підтвердити Email",
+      "orCopyLink": "Або скопіюйте та вставте це посилання:",
+      "expiryNotice": "Термін дії цього посилання закінчується через 1 годину. Якщо ви не запитували цю зміну, можете проігнорувати цей лист."
+    }
+  }
+}

@@ -22,10 +22,12 @@
       <div v-if="!store.uploadedFile" class="space-y-4">
         <FileIcon class="text-muted-foreground mx-auto size-12" />
         <div>
-          <p class="text-muted-foreground">Drag and drop your statement file here, or</p>
-          <Button variant="outline" class="mt-2" @click="fileInput?.click()"> Browse Files </Button>
+          <p class="text-muted-foreground">{{ $t('pages.statementParser.uploadExtract.dragDropText') }}</p>
+          <Button variant="outline" class="mt-2" @click="fileInput?.click()">
+            {{ $t('pages.statementParser.uploadExtract.browseButton') }}
+          </Button>
         </div>
-        <p class="text-muted-foreground text-sm">Supported formats: PDF, CSV, TXT (max 10MB)</p>
+        <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.uploadExtract.supportedFormats') }}</p>
       </div>
 
       <div v-else class="space-y-2">
@@ -34,7 +36,7 @@
         <p class="text-muted-foreground text-sm">{{ (store.uploadedFile.size / 1024).toFixed(1) }} KB</p>
         <Button variant="ghost-destructive" size="sm" @click="clearFile">
           <XIcon class="mr-1 size-4" />
-          Remove
+          {{ $t('pages.statementParser.uploadExtract.removeButton') }}
         </Button>
       </div>
     </div>
@@ -48,35 +50,43 @@
       <Button @click="handleEstimate" :disabled="store.isEstimating">
         <template v-if="store.isEstimating">
           <Loader2Icon class="mr-2 size-4 animate-spin" />
-          Analyzing file...
+          {{ extractionStatus }}
         </template>
         <template v-else>
           <CalculatorIcon class="mr-2 size-4" />
-          Analyze File
+          {{ $t('pages.statementParser.uploadExtract.analyzeButton') }}
         </template>
       </Button>
     </div>
 
     <div v-if="store.estimateError" class="bg-destructive/10 text-destructive-text rounded-lg p-3">
       {{ store.estimateError }}
-      <Button variant="ghost" size="sm" class="mt-2" @click="handleEstimate"> Try Again </Button>
+      <Button variant="ghost" size="sm" class="mt-2" @click="handleEstimate">
+        {{ $t('pages.statementParser.uploadExtract.tryAgain') }}
+      </Button>
     </div>
 
     <div v-if="store.costEstimate" class="space-y-4">
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="bg-muted rounded-lg p-3">
-          <p class="text-muted-foreground text-sm">Model</p>
+          <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.uploadExtract.modelLabel') }}</p>
           <p class="font-medium">{{ store.costEstimate.modelName }}</p>
         </div>
         <div class="bg-muted rounded-lg p-3">
-          <p class="text-muted-foreground text-sm">Estimated Cost</p>
+          <p class="text-muted-foreground text-sm">
+            {{ $t('pages.statementParser.uploadExtract.estimatedCostLabel') }}
+          </p>
           <p class="font-medium">
             ${{ store.costEstimate.estimatedCostUsd.toFixed(4) }}
-            <span v-if="store.costEstimate.usingUserKey" class="text-muted-foreground text-sm"> (your API key) </span>
+            <span v-if="store.costEstimate.usingUserKey" class="text-muted-foreground text-sm">
+              {{ $t('pages.statementParser.uploadExtract.yourApiKey') }}
+            </span>
           </p>
         </div>
         <div class="bg-muted rounded-lg p-3">
-          <p class="text-muted-foreground text-sm">Estimated Tokens</p>
+          <p class="text-muted-foreground text-sm">
+            {{ $t('pages.statementParser.uploadExtract.estimatedTokensLabel') }}
+          </p>
           <p class="font-medium">
             ~{{ (store.costEstimate.estimatedInputTokens / 1000).toFixed(1) }}K input, ~{{
               (store.costEstimate.estimatedOutputTokens / 1000).toFixed(1)
@@ -92,7 +102,7 @@
         </template>
         <template v-else>
           <SparklesIcon class="mr-2 size-4" />
-          Extract Transactions
+          {{ $t('pages.statementParser.uploadExtract.extractButton') }}
         </template>
       </Button>
 
@@ -108,7 +118,7 @@
           <span class="text-muted-foreground w-10 text-right text-sm font-medium"> {{ extractionProgress }}% </span>
         </div>
         <p class="text-muted-foreground text-center text-xs">
-          This may take 30-60 seconds depending on the document size
+          {{ $t('pages.statementParser.uploadExtract.progressMessage') }}
         </p>
       </div>
     </div>
@@ -121,20 +131,25 @@
     <div v-if="store.extractionResult" class="space-y-4">
       <div class="bg-muted rounded-lg p-3">
         <p class="text-sm">
-          <span class="text-muted-foreground">Found:</span>
-          <span class="font-medium"> {{ store.extractionResult.transactions.length }} transactions</span>
+          <span class="text-muted-foreground">{{ $t('pages.statementParser.uploadExtract.foundLabel') }}</span>
+          <span class="font-medium">
+            {{ store.extractionResult.transactions.length }}
+            {{ $t('pages.statementParser.uploadExtract.transactions') }}</span
+          >
           <span v-if="store.extractionResult.metadata.bankName" class="ml-2">
-            <span class="text-muted-foreground">from</span>
+            <span class="text-muted-foreground">{{ $t('pages.statementParser.uploadExtract.fromLabel') }}</span>
             {{ store.extractionResult.metadata.bankName }}
           </span>
           <span v-if="store.extractionResult.metadata.currencyCode" class="ml-2">
-            <span class="text-muted-foreground">in</span>
+            <span class="text-muted-foreground">{{ $t('pages.statementParser.uploadExtract.inLabel') }}</span>
             {{ store.extractionResult.metadata.currencyCode }}
           </span>
         </p>
       </div>
 
-      <p class="text-muted-foreground text-center text-sm">Continue to select an account for these transactions.</p>
+      <p class="text-muted-foreground text-center text-sm">
+        {{ $t('pages.statementParser.uploadExtract.continueMessage') }}
+      </p>
     </div>
   </div>
 </template>

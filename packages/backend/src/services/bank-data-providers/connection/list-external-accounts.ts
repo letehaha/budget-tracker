@@ -1,4 +1,5 @@
 import { API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { withTransaction } from '@root/services/common/with-transaction';
@@ -15,7 +16,7 @@ export const listExternalAccounts = withTransaction(
 
     if (!connection) {
       throw new NotFoundError({
-        message: 'Connection not found',
+        message: t({ key: 'errors.connectionNotFound' }),
         code: API_ERROR_CODES.notFound,
       });
     }

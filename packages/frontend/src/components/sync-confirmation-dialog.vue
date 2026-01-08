@@ -2,16 +2,16 @@
   <AlertDialog.AlertDialog :open="open" @update:open="$emit('update:open', $event)">
     <AlertDialog.AlertDialogContent>
       <AlertDialog.AlertDialogHeader>
-        <AlertDialog.AlertDialogTitle>Sync Recently Completed</AlertDialog.AlertDialogTitle>
+        <AlertDialog.AlertDialogTitle>{{ $t('dialogs.syncConfirmation.title') }}</AlertDialog.AlertDialogTitle>
         <AlertDialog.AlertDialogDescription>
-          You synchronized your accounts {{ timeSinceLastSyncText }} ago. Are you sure you want to sync again?
+          {{ $t('dialogs.syncConfirmation.description', { time: timeSinceLastSyncText }) }}
         </AlertDialog.AlertDialogDescription>
       </AlertDialog.AlertDialogHeader>
       <AlertDialog.AlertDialogFooter>
         <AlertDialog.AlertDialogAction variant="default" @click="$emit('confirm')">
-          Sync Anyway
+          {{ $t('dialogs.syncConfirmation.syncAnyway') }}
         </AlertDialog.AlertDialogAction>
-        <AlertDialog.AlertDialogCancel>Cancel</AlertDialog.AlertDialogCancel>
+        <AlertDialog.AlertDialogCancel>{{ $t('dialogs.syncConfirmation.cancel') }}</AlertDialog.AlertDialogCancel>
       </AlertDialog.AlertDialogFooter>
     </AlertDialog.AlertDialogContent>
   </AlertDialog.AlertDialog>
@@ -20,6 +20,9 @@
 <script setup lang="ts">
 import * as AlertDialog from '@/components/lib/ui/alert-dialog';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   open: boolean;
@@ -32,15 +35,15 @@ defineEmits<{
 }>();
 
 const timeSinceLastSyncText = computed(() => {
-  if (!props.lastSyncTimestamp) return 'some time';
+  if (!props.lastSyncTimestamp) return t('dialogs.syncConfirmation.timeUnits.someTime');
 
   const diffMs = Date.now() - props.lastSyncTimestamp;
   const diffMinutes = Math.floor(diffMs / (1000 * 60));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 
   if (diffHours > 0) {
-    return `${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+    return t('dialogs.syncConfirmation.timeUnits.hours', diffHours);
   }
-  return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
+  return t('dialogs.syncConfirmation.timeUnits.minutes', diffMinutes);
 });
 </script>
