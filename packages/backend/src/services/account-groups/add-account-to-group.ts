@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotAllowedError, NotFoundError } from '@js/errors';
 import { logger } from '@js/utils';
 import Accounts from '@models/Accounts.model';
@@ -11,14 +12,14 @@ export const addAccountToGroup = withTransaction(
     const existingAccount = await Accounts.findByPk(accountId);
     if (!existingAccount) {
       throw new NotFoundError({
-        message: 'Account with such id is not found.',
+        message: t({ key: 'accountGroups.accountNotFound' }),
       });
     }
 
     const existingGroup = await AccountGroup.findByPk(groupId);
     if (!existingGroup) {
       throw new NotFoundError({
-        message: 'Account group with such id is not found.',
+        message: t({ key: 'accountGroups.accountGroupNotFound' }),
       });
     }
 
@@ -27,7 +28,7 @@ export const addAccountToGroup = withTransaction(
         accountId,
         groupId,
       });
-      throw new NotAllowedError({ message: 'Operation is not allowed' });
+      throw new NotAllowedError({ message: t({ key: 'accountGroups.operationNotAllowed' }) });
     }
 
     // Remove all other account linkings

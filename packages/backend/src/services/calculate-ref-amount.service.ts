@@ -1,4 +1,5 @@
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
@@ -56,7 +57,7 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
 
       if (!result) {
         throw new ValidationError({
-          message: 'Cannot find currency to calculate ref amount!',
+          message: t({ key: 'currencies.cannotFindForRefAmount' }),
         });
       }
       defaultUserCurrency = result.currency;
@@ -70,7 +71,7 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
 
     if (!baseCode || (quoteCode === undefined && defaultUserCurrency === undefined)) {
       throw new ValidationError({
-        message: 'Cannot calculate ref amount',
+        message: t({ key: 'currencies.cannotCalculateRefAmount' }),
         details: { baseCode, defaultUserCurrency },
       });
     }

@@ -6,10 +6,9 @@
     >
       <TriangleAlertIcon class="mt-0.5 size-5 shrink-0" />
       <div class="space-y-2">
-        <p class="font-semibold">Beta Feature - Developer-Oriented</p>
+        <p class="font-semibold">{{ t('pages.integrations.enableBankingConnector.beta.title') }}</p>
         <p class="opacity-90">
-          This integration requires technical knowledge to set up. You'll need to register your own Enable Banking
-          application and provide API credentials. The setup process and API may change in future updates.
+          {{ t('pages.integrations.enableBankingConnector.beta.description') }}
         </p>
       </div>
     </div>
@@ -20,13 +19,13 @@
         <!-- Help Dialog Trigger -->
         <div class="bg-muted/50 mb-4 rounded-md p-3">
           <div class="flex items-center gap-2">
-            <InfoIcon class="mt-0.5 size-5 flex-shrink-0 text-white" />
+            <InfoIcon class="mt-0.5 size-5 shrink-0 text-white" />
 
             <div class="flex-1">
               <p class="text-sm">
-                Don't have Enable Banking credentials?
+                {{ t('pages.integrations.enableBankingConnector.credentials.helpText') }}
                 <button @click="showHelpDialog = true" class="text-primary font-medium underline">
-                  Learn how to obtain them
+                  {{ t('pages.integrations.enableBankingConnector.credentials.helpLink') }}
                 </button>
               </p>
             </div>
@@ -34,32 +33,44 @@
         </div>
 
         <div>
-          <label class="mb-2 block text-sm font-medium">Application ID</label>
+          <label class="mb-2 block text-sm font-medium">{{
+            t('pages.integrations.enableBankingConnector.credentials.appIdLabel')
+          }}</label>
           <input
             v-model="appId"
             type="text"
             class="w-full rounded-md border px-3 py-2"
-            placeholder="Enter your Enable Banking app_id"
+            :placeholder="$t('pages.integrations.enableBanking.placeholders.appId')"
           />
           <p class="text-muted-foreground mt-1 text-xs">
-            Get from Enable Banking portal after uploading your certificate
+            {{ t('pages.integrations.enableBankingConnector.credentials.appIdHint') }}
           </p>
         </div>
         <div>
-          <label class="mb-2 block text-sm font-medium">Private Key</label>
+          <label class="mb-2 block text-sm font-medium">{{
+            t('pages.integrations.enableBankingConnector.credentials.privateKeyLabel')
+          }}</label>
           <textarea
             v-model="privateKey"
             class="w-full rounded-md border px-3 py-2 font-mono text-xs"
             rows="6"
-            placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+            :placeholder="$t('pages.integrations.enableBanking.placeholders.privateKey')"
           />
-          <p class="text-muted-foreground mt-1 text-xs">Your PEM-encoded RSA private key (stored encrypted)</p>
+          <p class="text-muted-foreground mt-1 text-xs">
+            {{ t('pages.integrations.enableBankingConnector.credentials.privateKeyHint') }}
+          </p>
         </div>
         <div class="flex justify-between gap-2">
-          <UiButton variant="outline" @click="$emit('cancel')" :disabled="isLoading"> Back </UiButton>
+          <UiButton variant="outline" @click="$emit('cancel')" :disabled="isLoading">
+            {{ t('pages.integrations.enableBankingConnector.buttons.back') }}
+          </UiButton>
 
           <UiButton @click="handleLoadBanks" :disabled="!appId || !privateKey || isLoading">
-            {{ isLoading ? 'Loading...' : 'Next' }}
+            {{
+              isLoading
+                ? t('pages.integrations.enableBankingConnector.buttons.loading')
+                : t('pages.integrations.enableBankingConnector.buttons.next')
+            }}
           </UiButton>
         </div>
       </div>
@@ -68,18 +79,24 @@
     <!-- Step 2: Select Country -->
     <template v-else-if="currentStep === 2">
       <div class="space-y-4">
-        <div v-if="isLoading" class="py-8 text-center">Loading countries...</div>
+        <div v-if="isLoading" class="py-8 text-center">
+          {{ t('pages.integrations.enableBankingConnector.steps.loadingCountries') }}
+        </div>
 
         <template v-else>
-          <div class="text-muted-foreground mb-4 text-sm">Select your bank's country</div>
+          <div class="text-muted-foreground mb-4 text-sm">
+            {{ t('pages.integrations.enableBankingConnector.steps.selectCountryHint') }}
+          </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium">Country</label>
+            <label class="mb-2 block text-sm font-medium">{{
+              t('pages.integrations.enableBankingConnector.steps.countryLabel')
+            }}</label>
             <input
               v-model="countryFilter"
               type="text"
               class="w-full rounded-md border px-3 py-2"
-              placeholder="Search countries..."
+              :placeholder="$t('pages.integrations.enableBanking.placeholders.searchCountries')"
             />
           </div>
 
@@ -95,7 +112,9 @@
           </div>
 
           <div class="flex gap-2 pt-4">
-            <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading"> Back </UiButton>
+            <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading">
+              {{ t('pages.integrations.enableBankingConnector.buttons.back') }}
+            </UiButton>
           </div>
         </template>
       </div>
@@ -104,18 +123,24 @@
     <!-- Step 3: Select Bank -->
     <template v-else-if="currentStep === 3">
       <div class="space-y-4">
-        <div v-if="isLoading" class="py-8 text-center">Loading banks...</div>
+        <div v-if="isLoading" class="py-8 text-center">
+          {{ t('pages.integrations.enableBankingConnector.steps.loadingBanks') }}
+        </div>
 
         <template v-else>
-          <div class="text-muted-foreground mb-4 text-sm">Select your bank in {{ selectedCountry }}</div>
+          <div class="text-muted-foreground mb-4 text-sm">
+            {{ t('pages.integrations.enableBankingConnector.steps.selectBankHint', { country: selectedCountry }) }}
+          </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium">Bank</label>
+            <label class="mb-2 block text-sm font-medium">{{
+              t('pages.integrations.enableBankingConnector.steps.bankLabel')
+            }}</label>
             <input
               v-model="bankFilter"
               type="text"
               class="w-full rounded-md border px-3 py-2"
-              placeholder="Search banks..."
+              :placeholder="$t('pages.integrations.enableBanking.placeholders.searchBanks')"
             />
           </div>
 
@@ -132,7 +157,9 @@
           </div>
 
           <div class="flex gap-2 pt-4">
-            <UiButton variant="outline" @click="currentStep = 2" :disabled="isLoading"> Back </UiButton>
+            <UiButton variant="outline" @click="currentStep = 2" :disabled="isLoading">
+              {{ t('pages.integrations.enableBankingConnector.buttons.back') }}
+            </UiButton>
           </div>
         </template>
       </div>
@@ -141,19 +168,27 @@
     <!-- Step 4: Redirect to Bank Authorization -->
     <template v-else-if="currentStep === 4">
       <div class="space-y-4">
-        <div v-if="isLoading" class="py-8 text-center">Connecting to {{ selectedBankName }}...</div>
+        <div v-if="isLoading" class="py-8 text-center">
+          {{ t('pages.integrations.enableBankingConnector.steps.connectingToBank', { bank: selectedBankName }) }}
+        </div>
 
         <template v-else-if="authUrl">
           <div class="text-muted-foreground space-y-4 text-sm">
-            <p>Click the button below to authorize access to your {{ selectedBankName }} account.</p>
+            <p>
+              {{ t('pages.integrations.enableBankingConnector.steps.authDescription', { bank: selectedBankName }) }}
+            </p>
             <p class="text-warning font-medium">
-              You will be redirected to {{ selectedBankName }}'s website to log in and approve the connection.
+              {{ t('pages.integrations.enableBankingConnector.steps.authWarning', { bank: selectedBankName }) }}
             </p>
           </div>
 
           <div class="flex gap-2 pt-4">
-            <UiButton @click="openAuthUrl"> Authorize with {{ selectedBankName }} </UiButton>
-            <UiButton variant="outline" @click="currentStep = 3" :disabled="isLoading"> Back </UiButton>
+            <UiButton @click="openAuthUrl">{{
+              t('pages.integrations.enableBankingConnector.steps.authorizeButton', { bank: selectedBankName })
+            }}</UiButton>
+            <UiButton variant="outline" @click="currentStep = 3" :disabled="isLoading">
+              {{ t('pages.integrations.enableBankingConnector.buttons.back') }}
+            </UiButton>
           </div>
         </template>
       </div>
@@ -162,10 +197,14 @@
     <!-- Step 5: Select Accounts (shown after OAuth callback) -->
     <template v-else-if="currentStep === 5">
       <div class="space-y-4">
-        <div v-if="isLoading" class="py-8 text-center">Loading accounts...</div>
+        <div v-if="isLoading" class="py-8 text-center">
+          {{ t('pages.integrations.enableBankingConnector.steps.loadingAccounts') }}
+        </div>
 
         <template v-else>
-          <div class="text-muted-foreground mb-4 text-sm">Select the accounts you want to sync with MoneyMatter</div>
+          <div class="text-muted-foreground mb-4 text-sm">
+            {{ t('pages.integrations.enableBankingConnector.steps.selectAccountsHint') }}
+          </div>
 
           <div class="space-y-2">
             <label
@@ -185,7 +224,11 @@
 
           <div class="flex gap-2 pt-4">
             <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading">
-              {{ isLoading ? 'Syncing...' : `Sync ${selectedAccountIds.length} account(s)` }}
+              {{
+                isLoading
+                  ? t('pages.integrations.enableBankingConnector.buttons.syncing')
+                  : t('pages.integrations.enableBankingConnector.buttons.sync', { count: selectedAccountIds.length })
+              }}
             </UiButton>
           </div>
         </template>
@@ -213,6 +256,7 @@ import { useAccountsStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { InfoIcon, TriangleAlertIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import InstructionsDialog from './enable-banking/instructions-dialog.vue';
 
@@ -222,6 +266,7 @@ const emit = defineEmits<{
   authStarted: [connectionId: number];
 }>();
 
+const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
 
@@ -274,7 +319,10 @@ const handleLoadBanks = async () => {
     currentStep.value = 2;
     countries.value = await getEnableBankingCountries(appId.value, privateKey.value);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to load countries. Please check your credentials.';
+    const message =
+      error instanceof Error
+        ? error.message
+        : t('pages.integrations.enableBankingConnector.errors.loadCountriesFailed');
     currentStep.value = 1;
     addErrorNotification(message);
   } finally {
@@ -290,7 +338,8 @@ const selectCountry = async (country: string) => {
     currentStep.value = 3;
     banks.value = await getEnableBankingBanks(appId.value, privateKey.value, country);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to load banks';
+    const message =
+      error instanceof Error ? error.message : t('pages.integrations.enableBanking.errors.failedToLoadBanks');
     currentStep.value = 2;
     addErrorNotification(message);
   } finally {
@@ -326,11 +375,12 @@ const selectBank = async (bank: ASPSP) => {
       // Notify parent that auth has started
       emit('authStarted', response.connectionId);
     } else {
-      addErrorNotification('No authorization URL received from server');
+      addErrorNotification(t('pages.integrations.enableBanking.errors.noAuthUrl'));
       currentStep.value = 3;
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to connect provider';
+    const message =
+      error instanceof Error ? error.message : t('pages.integrations.enableBanking.errors.failedToConnectProvider');
     currentStep.value = 3;
     addErrorNotification(message);
   } finally {
@@ -352,7 +402,8 @@ const loadAccounts = async (connId: number) => {
     availableAccounts.value = await getAvailableAccounts(connId);
     currentStep.value = 5;
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to load accounts';
+    const message =
+      error instanceof Error ? error.message : t('pages.integrations.enableBankingConnector.errors.loadAccountsFailed');
     addErrorNotification(message);
   } finally {
     isLoading.value = false;
@@ -372,12 +423,15 @@ const handleSyncAccounts = async () => {
     // Refresh accounts store
     await accountsStore.refetchAccounts();
 
-    addSuccessNotification(`Successfully synced ${selectedAccountIds.value.length} account(s)`);
+    addSuccessNotification(
+      t('pages.integrations.enableBankingConnector.syncSuccess', { count: selectedAccountIds.value.length }),
+    );
 
     // Emit connected event to close dialog
     emit('connected');
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to sync accounts';
+    const message =
+      error instanceof Error ? error.message : t('pages.integrations.enableBankingConnector.errors.syncFailed');
     addErrorNotification(message);
   } finally {
     isLoading.value = false;

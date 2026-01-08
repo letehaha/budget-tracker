@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { ConflictError, NotFoundError } from '@js/errors';
 import { logger } from '@js/utils';
 import { getCurrency } from '@models/Currencies.model';
@@ -17,24 +18,24 @@ interface CreateHoldingParams {
 const createHoldingImpl = async ({ userId, portfolioId, securityId }: CreateHoldingParams) => {
   const portfolio = await Portfolios.findOne({ where: { id: portfolioId, userId } });
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found.' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   const security = await Securities.findByPk(securityId);
   if (!security) {
-    throw new NotFoundError({ message: 'Security not found.' });
+    throw new NotFoundError({ message: t({ key: 'investments.securityNotFound' }) });
   }
 
   // Ensure user has the currency for this security
   const currency = await getCurrency({ code: security.currencyCode.toUpperCase() });
   if (!currency) {
-    throw new NotFoundError({ message: 'Currency for security not found.' });
+    throw new NotFoundError({ message: t({ key: 'investments.currencyForSecurityNotFound' }) });
   }
   await addUserCurrencies([{ userId, currencyCode: currency.code }]);
 
   const existingHolding = await Holdings.findOne({ where: { portfolioId, securityId } });
   if (existingHolding) {
-    throw new ConflictError({ message: 'This security is already in the portfolio.' });
+    throw new ConflictError({ message: t({ key: 'investments.securityAlreadyInPortfolio' }) });
   }
 
   const newHolding = await Holdings.create({

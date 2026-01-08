@@ -1,4 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
@@ -8,7 +9,7 @@ import { Big } from 'big.js';
 const recalculateHoldingImpl = async (holdingId: { portfolioId: number; securityId: number }) => {
   const holding = await Holdings.findOne({ where: holdingId });
   if (!holding) {
-    throw new NotFoundError({ message: 'Holding not found for recalculation.' });
+    throw new NotFoundError({ message: t({ key: 'investments.holdingNotFoundForRecalculation' }) });
   }
 
   const transactions = await InvestmentTransaction.findAll({

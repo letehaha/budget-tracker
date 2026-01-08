@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import RefundTransactions from '@models/RefundTransactions.model';
 import * as TransactionSplits from '@models/TransactionSplits.model';
@@ -22,7 +23,7 @@ export const deleteSplit = withTransaction(async ({ splitId, userId }: DeleteSpl
 
   if (!split) {
     throw new NotFoundError({
-      message: 'Split not found',
+      message: t({ key: 'transactions.splits.splitNotFound' }),
     });
   }
 
@@ -33,7 +34,7 @@ export const deleteSplit = withTransaction(async ({ splitId, userId }: DeleteSpl
 
   if (refundTargetingSplit) {
     throw new ValidationError({
-      message: 'Cannot delete split that has refunds targeting it',
+      message: t({ key: 'transactions.splits.cannotDeleteWithRefunds' }),
     });
   }
 

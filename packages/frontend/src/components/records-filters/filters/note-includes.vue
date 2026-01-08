@@ -1,8 +1,8 @@
 <template>
   <InputField
     :model-value="noteIncludes"
-    label="Note includes (comma-separated):"
-    placeholder="Amazon,nike"
+    :label="$t('transactions.filters.noteIncludes.label')"
+    :placeholder="$t('transactions.filters.noteIncludes.placeholder')"
     @update:model-value="$emit('update:note-includes', $event)"
   />
 </template>

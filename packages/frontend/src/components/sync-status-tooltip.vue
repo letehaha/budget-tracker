@@ -1,11 +1,11 @@
 <template>
-  <div class="max-w-[400px] min-w-[280px] space-y-3 p-2">
-    <p class="mb-2 text-sm">Banks connections sync status</p>
+  <div class="max-w-100 min-w-70 space-y-3 p-2">
+    <p class="mb-2 text-sm">{{ $t('syncStatusTooltip.title') }}</p>
 
     <!-- Just completed: Show success message -->
     <div v-if="showSuccessMessage" class="bg-success text-success-text flex items-center gap-2 rounded-md p-3 text-sm">
       <CheckCircle2 class="size-5 shrink-0" />
-      <span class="font-medium">Synced successfully</span>
+      <span class="font-medium">{{ $t('syncStatusTooltip.syncedSuccessfully') }}</span>
     </div>
 
     <!-- Syncing in progress: Show progress bar + pending/syncing accounts -->
@@ -14,8 +14,12 @@
         <!-- Progress bar -->
         <div class="space-y-2">
           <div class="flex items-center justify-between text-xs">
-            <span class="font-medium">{{ syncProgress.current }} of {{ syncProgress.total }} synced</span>
-            <span class="text-muted-foreground">{{ syncProgress.percentage }}%</span>
+            <span class="font-medium">{{
+              $t('syncStatusTooltip.progress', { current: syncProgress.current, total: syncProgress.total })
+            }}</span>
+            <span class="text-muted-foreground">{{
+              $t('syncStatusTooltip.progressPercentage', { percentage: syncProgress.percentage })
+            }}</span>
           </div>
           <div class="bg-muted h-2 overflow-hidden rounded-full">
             <div
@@ -26,14 +30,14 @@
         </div>
 
         <!-- Active accounts (pending/syncing only) -->
-        <div v-if="activeAccounts.length > 0" class="max-h-[240px] space-y-2 overflow-y-auto">
+        <div v-if="activeAccounts.length > 0" class="max-h-60 space-y-2 overflow-y-auto">
           <div
             v-for="account in activeAccounts"
             :key="account.accountId"
             class="border-border flex items-center justify-between gap-2 rounded border p-2 text-xs"
           >
             <div class="flex-1 truncate">
-              <div class="max-w-[200px] truncate font-medium">{{ account.accountName }}</div>
+              <div class="max-w-50 truncate font-medium">{{ account.accountName }}</div>
               <div class="text-muted-foreground text-[10px]">{{ METAINFO_FROM_TYPE[account.providerType].name }}</div>
             </div>
             <div class="flex shrink-0 items-center gap-1">
@@ -58,18 +62,18 @@
         class="text-muted-foreground flex flex-col items-center gap-2 py-4 text-center text-sm"
       >
         <Building2 class="size-10 opacity-50" />
-        <span>No bank accounts connected</span>
+        <span>{{ $t('syncStatusTooltip.noBankAccounts') }}</span>
 
         <Button as-child size="sm" class="mt-4 w-full">
-          <RouterLink to="/accounts/integrations"> Connect </RouterLink>
+          <RouterLink to="/accounts/integrations">{{ $t('syncStatusTooltip.connectButton') }}</RouterLink>
         </Button>
       </div>
 
       <template v-else-if="accountStatuses.length !== 0">
         <div v-if="lastSyncTimestamp" class="text-muted-foreground text-xs">
-          Last synced: {{ formatLastSyncTime(lastSyncTimestamp) }}
+          {{ $t('syncStatusTooltip.lastSynced') }} {{ formatLastSyncTime(lastSyncTimestamp) }}
         </div>
-        <div v-else class="text-muted-foreground text-xs">Never synced</div>
+        <div v-else class="text-muted-foreground text-xs">{{ $t('syncStatusTooltip.neverSynced') }}</div>
 
         <Button
           class="w-full"
@@ -78,7 +82,7 @@
           @click="$emit('triggerSync')"
         >
           <RefreshCcw :class="{ 'animate-spin': isLoading }" class="mr-2 size-4" />
-          Sync Now
+          {{ $t('syncStatusTooltip.syncNowButton') }}
         </Button>
       </template>
     </div>
@@ -91,6 +95,9 @@ import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Building2, CheckCircle2, Circle, Clock, Loader2, RefreshCcw, XCircle } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   accountStatuses: AccountSyncStatus[];
@@ -145,33 +152,49 @@ const getStatusColor = (status: SyncStatus) => {
 const getStatusText = (status: SyncStatus) => {
   switch (status) {
     case SyncStatus.SYNCING:
-      return 'Syncing';
+      return t('syncStatusTooltip.statuses.syncing');
     case SyncStatus.QUEUED:
-      return 'Queued';
+      return t('syncStatusTooltip.statuses.queued');
     case SyncStatus.COMPLETED:
-      return 'Synced';
+      return t('syncStatusTooltip.statuses.synced');
     case SyncStatus.FAILED:
-      return 'Failed';
+      return t('syncStatusTooltip.statuses.failed');
     default:
-      return 'Idle';
+      return t('syncStatusTooltip.statuses.idle');
   }
 };
 
 const formatLastSyncTime = (timestamp: number) => {
   const diffMs = Date.now() - timestamp;
+  const diffSeconds = Math.floor(diffMs / 1000);
   const diffMinutes = Math.floor(diffMs / (1000 * 60));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffWeeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
+  const diffMonths = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30));
+  const diffYears = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365));
 
+  if (diffYears > 0) {
+    return t('syncStatusTooltip.timeAgo.yearsAgo', diffYears);
+  }
+  if (diffMonths > 0) {
+    return t('syncStatusTooltip.timeAgo.monthsAgo', diffMonths);
+  }
+  if (diffWeeks > 0) {
+    return t('syncStatusTooltip.timeAgo.weeksAgo', diffWeeks);
+  }
   if (diffDays > 0) {
-    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return t('syncStatusTooltip.timeAgo.daysAgo', diffDays);
   }
   if (diffHours > 0) {
-    return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return t('syncStatusTooltip.timeAgo.hoursAgo', diffHours);
   }
   if (diffMinutes > 0) {
-    return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
+    return t('syncStatusTooltip.timeAgo.minutesAgo', diffMinutes);
   }
-  return 'Just now';
+  if (diffSeconds > 5) {
+    return t('syncStatusTooltip.timeAgo.secondsAgo', diffSeconds);
+  }
+  return t('syncStatusTooltip.timeAgo.justNow');
 };
 </script>

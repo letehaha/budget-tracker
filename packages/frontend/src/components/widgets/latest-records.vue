@@ -28,14 +28,14 @@ const isDataEmpty = computed(() => transactions.value.length === 0);
 
 <template>
   <WidgetWrapper higher>
-    <template #title> Latest Transactions </template>
+    <template #title> {{ $t('dashboard.widgets.latestTransactions.title') }} </template>
     <template #action>
       <template v-if="!isDataEmpty">
         <router-link
           :class="buttonVariants({ variant: 'link', size: 'sm', class: 'text-primary block text-center' })"
           :to="{ name: ROUTES_NAMES.transactions }"
         >
-          <span>Show all</span>
+          <span>{{ $t('dashboard.widgets.latestTransactions.showAll') }}</span>
         </router-link>
       </template>
     </template>

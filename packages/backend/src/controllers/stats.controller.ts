@@ -1,5 +1,6 @@
 import { BalanceModel } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import * as statsService from '@services/stats';
@@ -10,14 +11,14 @@ import { createController } from './helpers/controller-factory';
 
 const tryBasicDateValidation = ({ from, to }) => {
   if (from && !isValid(new Date(from))) {
-    throw new ValidationError({ message: '"from" is invalid date.' });
+    throw new ValidationError({ message: t({ key: 'validation.fromDateInvalid' }) });
   }
   if (to && !isValid(new Date(to))) {
-    throw new ValidationError({ message: '"to" is invalid date.' });
+    throw new ValidationError({ message: t({ key: 'validation.toDateInvalid' }) });
   }
   if (from && to && !isEqual(new Date(from), new Date(to)) && !isBefore(new Date(from), new Date(to))) {
     throw new ValidationError({
-      message: '"from" cannot be greater than "to" date.',
+      message: t({ key: 'validation.fromGreaterThanTo' }),
     });
   }
 };
@@ -66,7 +67,7 @@ export const getTotalBalance = createController(totalBalanceSchema, async ({ use
   const { date } = query;
 
   if (!isValid(new Date(date))) {
-    throw new ValidationError({ message: '"date" is invalid date.' });
+    throw new ValidationError({ message: t({ key: 'validation.dateInvalid' }) });
   }
 
   const totalBalance = await statsService.getTotalBalance({

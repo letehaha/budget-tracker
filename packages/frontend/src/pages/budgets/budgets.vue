@@ -21,12 +21,12 @@ const isModalClosed = () => {
     <!-- Page Header -->
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-semibold tracking-tight">Budgets</h1>
-        <p class="text-muted-foreground mt-1 text-sm">Track spending and monitor financial events</p>
+        <h1 class="text-2xl font-semibold tracking-tight">{{ $t('budgets.title') }}</h1>
+        <p class="text-muted-foreground mt-1 text-sm">{{ $t('budgets.description') }}</p>
       </div>
       <Button @click="openModal">
         <PlusIcon class="mr-2 size-4" />
-        New Budget
+        {{ $t('budgets.newBudget') }}
       </Button>
     </div>
 
@@ -34,7 +34,7 @@ const isModalClosed = () => {
     <BudgetList />
 
     <ResponsiveDialog v-model:open="isOpen">
-      <template #title> Create budget </template>
+      <template #title> {{ $t('budgets.createBudget') }} </template>
       <BudgetCreation @create-budget="isModalClosed" />
     </ResponsiveDialog>
   </div>

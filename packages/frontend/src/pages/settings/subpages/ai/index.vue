@@ -1,8 +1,8 @@
 <template>
   <Card class="max-w-4xl">
     <CardHeader class="border-b">
-      <h2 class="mb-2 text-2xl font-semibold">AI Settings</h2>
-      <p class="text-sm opacity-80">Configure AI-powered features like automatic transaction categorization</p>
+      <h2 class="mb-2 text-2xl font-semibold">{{ $t('settings.ai.title') }}</h2>
+      <p class="text-sm opacity-80">{{ $t('settings.ai.description') }}</p>
     </CardHeader>
 
     <CardContent class="mt-6 flex flex-col gap-6">
@@ -17,16 +17,16 @@
           <TabsList class="grid w-full grid-cols-2">
             <TabsTrigger value="ai-features" class="flex items-center gap-2">
               <SparklesIcon class="size-4" />
-              AI Features
+              {{ $t('settings.ai.tabs.features') }}
             </TabsTrigger>
             <TabsTrigger value="api-keys" class="relative flex items-center gap-2">
               <KeyIcon class="size-4" />
-              API Keys
+              {{ $t('settings.ai.tabs.apiKeys') }}
               <!-- Red indicator dot when there are invalid keys -->
               <span
                 v-if="hasInvalidKeys"
                 class="bg-destructive absolute -top-1 -right-1 h-2.5 w-2.5 animate-pulse rounded-full"
-                title="One or more API keys are invalid"
+                :title="$t('settings.ai.tabs.invalidKeysTooltip')"
               />
             </TabsTrigger>
           </TabsList>
@@ -40,18 +40,12 @@
 
             <!-- How it works for API keys -->
             <div class="mt-6 border-t pt-6">
-              <h3 class="mb-2 text-lg font-medium">How API keys work</h3>
+              <h3 class="mb-2 text-lg font-medium">{{ $t('settings.ai.howApiKeysWork.title') }}</h3>
               <ul class="list-disc space-y-2 pl-5 text-sm leading-relaxed opacity-80">
-                <li>By default, AI features use our server's API key at no extra cost to you.</li>
-                <li>
-                  If you add your own API key for a provider, that key will be used instead for models from that
-                  provider.
-                </li>
-                <li>Your API keys are encrypted and stored securely.</li>
-                <li>
-                  You can remove your key anytime to switch back to the server-provided key (rate limits will be applied
-                  based on current demand).
-                </li>
+                <li>{{ $t('settings.ai.howApiKeysWork.points.defaultKey') }}</li>
+                <li>{{ $t('settings.ai.howApiKeysWork.points.ownKey') }}</li>
+                <li>{{ $t('settings.ai.howApiKeysWork.points.encrypted') }}</li>
+                <li>{{ $t('settings.ai.howApiKeysWork.points.removal') }}</li>
               </ul>
             </div>
           </TabsContent>

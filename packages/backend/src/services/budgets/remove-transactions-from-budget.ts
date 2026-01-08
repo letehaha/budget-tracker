@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Budgets from '@models/Budget.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
@@ -18,7 +19,7 @@ export const removeTransactionsFromBudget = withTransaction(async (payload: Remo
   });
 
   if (!budget) {
-    throw new NotFoundError({ message: 'Budget not found' });
+    throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
   }
 
   await BudgetTransactions.destroy({

@@ -20,11 +20,13 @@ import { useQueries, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { differenceInDays, format, isPast, isWithinInterval } from 'date-fns';
 import { ArrowRightIcon, CalendarIcon, MoreVerticalIcon, PencilIcon, Trash2Icon, WalletIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import BudgetCardSkeleton from './budget-card-skeleton.vue';
 import BudgetStatsSkeleton from './budget-stats-skeleton.vue';
 
+const { t } = useI18n();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 const router = useRouter();
 const queryClient = useQueryClient();
@@ -77,9 +79,9 @@ const deleteBudget = async ({ budgetId }: { budgetId: number }) => {
   try {
     await deleteBudgetApi(budgetId);
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
-    addSuccessNotification('Budget deleted successfully!');
+    addSuccessNotification(t('budgets.list.deleteSuccess'));
   } catch {
-    addErrorNotification('Unexpected error!');
+    addErrorNotification(t('budgets.list.deleteError'));
   }
 };
 
@@ -110,31 +112,31 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
 
   // Budget has ended
   if (endDate && isPast(endDate)) {
-    return { status: 'ended' as const, text: 'Ended' };
+    return { status: 'ended' as const, text: t('budgets.list.status.ended') };
   }
 
   // Budget is active (has both dates and we're within the interval)
   if (startDate && endDate && isWithinInterval(now, { start: startDate, end: endDate })) {
     const daysLeft = differenceInDays(endDate, now);
-    if (daysLeft === 0) return { status: 'active' as const, text: 'Last day' };
-    if (daysLeft === 1) return { status: 'active' as const, text: '1 day left' };
-    return { status: 'active' as const, text: `${daysLeft} days left` };
+    if (daysLeft === 0) return { status: 'active' as const, text: t('budgets.list.status.lastDay') };
+    if (daysLeft === 1) return { status: 'active' as const, text: t('budgets.list.status.oneDayLeft') };
+    return { status: 'active' as const, text: t('budgets.list.status.daysLeft', { count: daysLeft }) };
   }
 
   // Budget hasn't started yet
   if (startDate && !isPast(startDate)) {
     const daysUntil = differenceInDays(startDate, now);
-    if (daysUntil === 0) return { status: 'upcoming' as const, text: 'Starts today' };
-    if (daysUntil === 1) return { status: 'upcoming' as const, text: 'Starts tomorrow' };
-    return { status: 'upcoming' as const, text: `Starts in ${daysUntil} days` };
+    if (daysUntil === 0) return { status: 'upcoming' as const, text: t('budgets.list.status.startsToday') };
+    if (daysUntil === 1) return { status: 'upcoming' as const, text: t('budgets.list.status.startsTomorrow') };
+    return { status: 'upcoming' as const, text: t('budgets.list.status.startsInDays', { count: daysUntil }) };
   }
 
   // Only end date set and it's in the future
   if (endDate && !isPast(endDate)) {
     const daysLeft = differenceInDays(endDate, now);
-    if (daysLeft === 0) return { status: 'active' as const, text: 'Last day' };
-    if (daysLeft === 1) return { status: 'active' as const, text: '1 day left' };
-    return { status: 'active' as const, text: `${daysLeft} days left` };
+    if (daysLeft === 0) return { status: 'active' as const, text: t('budgets.list.status.lastDay') };
+    if (daysLeft === 1) return { status: 'active' as const, text: t('budgets.list.status.oneDayLeft') };
+    return { status: 'active' as const, text: t('budgets.list.status.daysLeft', { count: daysLeft }) };
   }
 
   return null;
@@ -166,17 +168,16 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem @click.stop="navigateToBudget({ budgetId: budget.id })">
                   <PencilIcon class="mr-2 size-4" />
-                  Edit
+                  {{ $t('budgets.list.edit') }}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <AlertDialog
-                  title="Do you want to delete this budget?"
+                  :title="$t('budgets.list.deleteDialog.title')"
                   accept-variant="destructive"
                   @accept="deleteBudget({ budgetId: budget.id })"
                 >
                   <template #description>
-                    By clicking "Accept," all associated transactions will be unlinked from the budget but will remain
-                    in the system.
+                    {{ $t('budgets.list.deleteDialog.description') }}
                   </template>
                   <template #trigger>
                     <DropdownMenuItem
@@ -185,7 +186,7 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
                       @click.stop
                     >
                       <Trash2Icon class="mr-2 size-4" />
-                      Delete
+                      {{ $t('budgets.list.delete') }}
                     </DropdownMenuItem>
                   </template>
                 </AlertDialog>
@@ -203,7 +204,9 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
               <div class="mt-auto min-w-0 flex-1">
                 <h3 class="truncate pr-8 font-medium">{{ budget.name }}</h3>
                 <div class="text-muted-foreground flex items-center gap-2 text-sm">
-                  <span v-if="budget.limitAmount">Limit: {{ formatBaseCurrency(budget.limitAmount) }}</span>
+                  <span v-if="budget.limitAmount">{{
+                    $t('budgets.list.limitLabel', { amount: formatBaseCurrency(budget.limitAmount) })
+                  }}</span>
                   <template v-if="isBudgetStatsLoading(budget.id)">
                     <span v-if="budget.limitAmount">·</span>
                     <span class="bg-muted inline-block h-4 w-16 animate-pulse rounded" />
@@ -211,9 +214,15 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
                   <template v-else>
                     <span v-if="budget.limitAmount && getBudgetStats(budget.id)?.summary?.transactionsCount">·</span>
                     <span v-if="getBudgetStats(budget.id)?.summary?.transactionsCount">
-                      {{ getBudgetStats(budget.id)?.summary?.transactionsCount }} transactions
+                      {{
+                        $t('budgets.list.transactionsCount', {
+                          count: getBudgetStats(budget.id)?.summary?.transactionsCount,
+                        })
+                      }}
                     </span>
-                    <span v-else class="text-muted-foreground/60 italic"> No transactions yet </span>
+                    <span v-else class="text-muted-foreground/60 italic">
+                      {{ $t('budgets.list.noTransactions') }}
+                    </span>
                   </template>
                 </div>
               </div>
@@ -246,7 +255,7 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
               <template v-else>
                 <div class="flex items-center gap-1.5">
                   <CalendarIcon class="size-3.5" />
-                  <span class="text-muted-foreground/60 italic">No transactions yet</span>
+                  <span class="text-muted-foreground/60 italic">{{ $t('budgets.list.noTransactions') }}</span>
                 </div>
               </template>
               <span
@@ -269,19 +278,25 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
             <template v-else>
               <div class="border-border/50 mt-auto grid grid-cols-3 gap-2 border-t pt-3">
                 <div>
-                  <div class="text-muted-foreground text-[10px] tracking-wider uppercase">Income</div>
+                  <div class="text-muted-foreground text-[10px] tracking-wider uppercase">
+                    {{ $t('budgets.list.income') }}
+                  </div>
                   <div class="text-success-text text-sm font-medium tabular-nums">
                     {{ formatBaseCurrency(getBudgetStats(budget.id)?.summary?.actualIncome ?? 0) }}
                   </div>
                 </div>
                 <div>
-                  <div class="text-muted-foreground text-[10px] tracking-wider uppercase">Expenses</div>
+                  <div class="text-muted-foreground text-[10px] tracking-wider uppercase">
+                    {{ $t('budgets.list.expenses') }}
+                  </div>
                   <div class="text-app-expense-color text-sm font-medium tabular-nums">
                     {{ formatBaseCurrency(getBudgetStats(budget.id)?.summary?.actualExpense ?? 0) }}
                   </div>
                 </div>
                 <div>
-                  <div class="text-muted-foreground text-[10px] tracking-wider uppercase">Net</div>
+                  <div class="text-muted-foreground text-[10px] tracking-wider uppercase">
+                    {{ $t('budgets.list.net') }}
+                  </div>
                   <div
                     class="text-sm font-medium tabular-nums"
                     :class="
@@ -298,7 +313,7 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
               <!-- Utilization bar (only if limit is set) -->
               <div v-if="budget.limitAmount" class="mt-3">
                 <div class="mb-1 flex items-center justify-between text-xs">
-                  <span class="text-muted-foreground">Used</span>
+                  <span class="text-muted-foreground">{{ $t('budgets.list.used') }}</span>
                   <span
                     :class="[
                       'font-medium tabular-nums',
@@ -337,9 +352,9 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
         <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
           <WalletIcon class="text-muted-foreground size-8" />
         </div>
-        <h3 class="mb-1 font-medium">No budgets yet</h3>
+        <h3 class="mb-1 font-medium">{{ $t('budgets.list.emptyState.title') }}</h3>
         <p class="text-muted-foreground max-w-sm text-sm">
-          Create a budget to start tracking your spending or monitoring specific events.
+          {{ $t('budgets.list.emptyState.description') }}
         </p>
       </div>
     </template>

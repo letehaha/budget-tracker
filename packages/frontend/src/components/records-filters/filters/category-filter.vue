@@ -19,7 +19,7 @@
           <span class="font-medium">
             {{
               isAllSelected
-                ? 'All categories'
+                ? $t('fields.comboboxCategories.unselectedPlaceholder')
                 : `${selectedCategoryIds.length === 1 ? 'category' : 'categories'} selected`
             }}
           </span>
@@ -39,18 +39,18 @@
     </Combobox.ComboboxAnchor>
 
     <Combobox.ComboboxList
-      class="max-h-[400px] w-[var(--reka-combobox-trigger-width)] lg:max-h-[300px]"
+      class="max-h-100 w-(--reka-combobox-trigger-width) lg:max-h-75"
       :side="dropdownSide"
       :avoid-collisions="false"
     >
       <div class="relative w-full items-center p-2 pb-0">
         <Combobox.ComboboxInput
           class="h-9 w-full rounded-md border pl-9 focus-visible:ring-0"
-          placeholder="Search categories..."
+          :placeholder="$t('fields.comboboxCategories.searchPlaceholder')"
         />
         <SearchIcon class="text-muted-foreground absolute top-[60%] left-4 size-5 -translate-y-1/2" />
       </div>
-      <div class="max-h-[340px] overflow-y-auto p-[5px] lg:max-h-[240px]">
+      <div class="max-h-85 overflow-y-auto p-1.25 lg:max-h-60">
         <Combobox.ComboboxEmpty class="text-mauve8 py-2 text-center text-xs font-medium" />
 
         <Combobox.ComboboxGroup>

@@ -79,14 +79,14 @@ watch(isOpen, (open) => {
 <template>
   <Select.Select v-model="selectedKey" :disabled="disabled" @update:open="isOpen = $event">
     <Select.SelectTrigger class="w-full">
-      <Select.SelectValue :placeholder="placeholder ?? 'Select an account'">
+      <Select.SelectValue :placeholder="placeholder ?? $t('pages.statementParser.selectAccount')">
         <template v-if="modelValue">
           <span>{{ modelValue.name }}</span>
           <span class="text-muted-foreground ml-1">({{ modelValue.currencyCode }})</span>
           <span v-if="isNewAccount" class="text-primary ml-1">(newly created)</span>
         </template>
         <template v-else>
-          {{ placeholder ?? 'Select an account' }}
+          {{ placeholder ?? $t('pages.statementParser.selectAccount') }}
         </template>
       </Select.SelectValue>
     </Select.SelectTrigger>
@@ -97,7 +97,7 @@ watch(isOpen, (open) => {
         <InputField
           v-model="searchQuery"
           type="text"
-          placeholder="Search accounts..."
+          :placeholder="$t('pages.statementParser.searchAccounts')"
           trailing-icon-css-class="px-0"
           @keydown.stop
         >

@@ -1,4 +1,5 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { t } from '@i18n/index';
 import { ConflictError } from '@js/errors';
 import Portfolios from '@models/investments/Portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
@@ -27,7 +28,7 @@ const createPortfolioImpl = async ({
   });
 
   if (existingPortfolio) {
-    throw new ConflictError({ message: 'Portfolio with this name already exists' });
+    throw new ConflictError({ message: t({ key: 'investments.portfolioNameExists' }) });
   }
 
   // Create the portfolio

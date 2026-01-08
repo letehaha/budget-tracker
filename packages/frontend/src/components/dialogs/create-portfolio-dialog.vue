@@ -10,7 +10,9 @@ import { useCreatePortfolio } from '@/composable/data-queries/portfolios';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { CheckIcon } from 'lucide-vue-next';
 import { computed, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 
 const isOpen = ref(false);
@@ -22,12 +24,12 @@ const form = reactive({
 });
 
 // Portfolio type options for the select dropdown
-const portfolioTypeOptions = [
-  { value: PORTFOLIO_TYPE.investment, label: 'Investment' },
-  { value: PORTFOLIO_TYPE.retirement, label: 'Retirement' },
-  { value: PORTFOLIO_TYPE.savings, label: 'Savings' },
-  { value: PORTFOLIO_TYPE.other, label: 'Other' },
-];
+const portfolioTypeOptions = computed(() => [
+  { value: PORTFOLIO_TYPE.investment, label: t('dialogs.createPortfolio.form.portfolioTypes.investment') },
+  { value: PORTFOLIO_TYPE.retirement, label: t('dialogs.createPortfolio.form.portfolioTypes.retirement') },
+  { value: PORTFOLIO_TYPE.savings, label: t('dialogs.createPortfolio.form.portfolioTypes.savings') },
+  { value: PORTFOLIO_TYPE.other, label: t('dialogs.createPortfolio.form.portfolioTypes.other') },
+]);
 
 const createPortfolioMutation = useCreatePortfolio();
 
@@ -54,14 +56,14 @@ const createPortfolio = async () => {
     });
 
     addNotification({
-      text: 'Portfolio created successfully.',
+      text: t('dialogs.createPortfolio.notifications.success'),
       type: NotificationType.success,
     });
 
     onPortfolioCreation();
   } catch {
     addNotification({
-      text: 'Failed to create portfolio. Please try again.',
+      text: t('dialogs.createPortfolio.notifications.error'),
       type: NotificationType.error,
     });
   }
@@ -74,23 +76,23 @@ const createPortfolio = async () => {
       <slot />
     </template>
 
-    <template #title>Create Portfolio</template>
+    <template #title>{{ $t('dialogs.createPortfolio.title') }}</template>
 
-    <template #description> Create a new investment portfolio to track your holdings and transactions. </template>
+    <template #description> {{ $t('dialogs.createPortfolio.description') }} </template>
 
     <form class="mt-4 grid gap-6" @submit.prevent="createPortfolio">
       <InputField
         v-model="form.name"
-        label="Portfolio name"
-        placeholder="My Investment Portfolio"
+        :label="$t('dialogs.createPortfolio.form.nameLabel')"
+        :placeholder="$t('dialogs.createPortfolio.form.namePlaceholder')"
         :disabled="createPortfolioMutation.isPending.value"
       />
 
       <div>
-        <FieldLabel label="Portfolio Type">
+        <FieldLabel :label="$t('dialogs.createPortfolio.form.typeLabel')">
           <Select.Select v-model="form.portfolioType" :disabled="createPortfolioMutation.isPending.value">
             <Select.SelectTrigger>
-              <Select.SelectValue placeholder="Select portfolio type" />
+              <Select.SelectValue :placeholder="$t('dialogs.createPortfolio.form.typePlaceholder')" />
             </Select.SelectTrigger>
             <Select.SelectContent>
               <Select.SelectItem v-for="option in portfolioTypeOptions" :key="option.value" :value="option.value">
@@ -103,15 +105,19 @@ const createPortfolio = async () => {
 
       <TextareaField
         v-model="form.description"
-        label="Description (optional)"
-        placeholder="A brief description of this portfolio..."
+        :label="$t('dialogs.createPortfolio.form.descriptionLabel')"
+        :placeholder="$t('dialogs.createPortfolio.form.descriptionPlaceholder')"
         :disabled="createPortfolioMutation.isPending.value"
       />
 
       <div class="flex">
         <UiButton type="submit" class="ml-auto min-w-[120px]" :disabled="isSubmitDisabled">
           <CheckIcon class="size-4" />
-          {{ createPortfolioMutation.isPending.value ? 'Creating...' : 'Create Portfolio' }}
+          {{
+            createPortfolioMutation.isPending.value
+              ? $t('dialogs.createPortfolio.form.submitButtonLoading')
+              : $t('dialogs.createPortfolio.form.submitButton')
+          }}
         </UiButton>
       </div>
     </form>

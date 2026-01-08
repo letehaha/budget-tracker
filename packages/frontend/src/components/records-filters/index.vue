@@ -50,11 +50,13 @@
       class="w-full shrink"
       @click="$emit('reset-filters')"
     >
-      Reset
+      {{ $t('transactions.filters.reset') }}
     </UiButton>
 
     <template v-if="isFiltersOutOfSync">
-      <UiButton variant="default" class="w-full shrink" @click="$emit('apply-filters')"> Apply </UiButton>
+      <UiButton variant="default" class="w-full shrink" @click="$emit('apply-filters')">
+        {{ $t('transactions.filters.apply') }}
+      </UiButton>
     </template>
   </div>
 </template>

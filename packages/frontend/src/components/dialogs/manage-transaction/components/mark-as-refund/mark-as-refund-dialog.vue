@@ -278,7 +278,7 @@ const hasSmallOptions = computed(() => {
           <RadioGroup v-model="selectedOption" default-value="refunds" class="flex gap-6">
             <label class="flex cursor-pointer items-center gap-2">
               <RadioGroupItem value="refunds" />
-              <p class="text-sm">Refunds</p>
+              <p class="text-sm">{{ $t('dialogs.manageTransaction.markAsRefund.refundsLabel') }}</p>
             </label>
             <label
               :class="['flex cursor-pointer items-center gap-2', isRecordCreation && 'cursor-not-allowed opacity-70']"
@@ -288,7 +288,9 @@ const hasSmallOptions = computed(() => {
             </label>
           </RadioGroup>
 
-          <Button :disabled="isSaveDisabled" @click="saveState"> Save </Button>
+          <Button :disabled="isSaveDisabled" @click="saveState">
+            {{ $t('dialogs.manageTransaction.markAsRefund.saveButton') }}
+          </Button>
         </div>
 
         <template v-if="selectedOption === 'refunds'">
@@ -413,7 +415,9 @@ const hasSmallOptions = computed(() => {
         </div>
 
         <div class="mt-6 flex justify-end">
-          <Button :disabled="isSplitConfirmDisabled" @click="confirmSplitSelection"> Confirm </Button>
+          <Button :disabled="isSplitConfirmDisabled" @click="confirmSplitSelection">
+            {{ $t('dialogs.manageTransaction.markAsRefund.confirmButton') }}
+          </Button>
         </div>
       </template>
     </ResponsiveDialog>

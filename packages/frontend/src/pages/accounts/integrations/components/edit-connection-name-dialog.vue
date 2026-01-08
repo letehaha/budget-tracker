@@ -12,13 +12,15 @@
           v-model="localProviderName"
           type="text"
           class="w-full rounded-md border px-3 py-2"
-          placeholder="e.g., Personal Account"
+          :placeholder="$t('pages.connectionName.placeholder')"
           @keyup.enter="handleSave"
         />
       </div>
 
       <DialogFooter class="gap-2 sm:gap-0">
-        <UiButton variant="outline" @click="handleCancel" :disabled="isSaving">Cancel</UiButton>
+        <UiButton variant="outline" @click="handleCancel" :disabled="isSaving">{{
+          $t('common.actions.cancel')
+        }}</UiButton>
         <UiButton @click="handleSave" :disabled="!localProviderName.trim() || isSaving">
           {{ isSaving ? 'Saving...' : 'Save' }}
         </UiButton>

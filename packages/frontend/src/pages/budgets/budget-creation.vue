@@ -9,6 +9,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const BUDGET_DEFAULT_VALUES: {
   id: number | null;
@@ -29,6 +30,7 @@ const BUDGET_DEFAULT_VALUES: {
 } as const;
 
 const emits = defineEmits(['create-budget']);
+const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 
 const queryClient = useQueryClient();
@@ -39,13 +41,13 @@ const { isPending: isMutating, mutate: createBudgetItem } = useMutation({
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
     emits('create-budget');
-    addSuccessNotification('Budget created');
+    addSuccessNotification(t('budgets.creation.success'));
   },
   onError(error) {
     if (error instanceof ApiErrorResponseError) {
       addErrorNotification(error.data.message);
     } else {
-      addErrorNotification('Unexpected error!');
+      addErrorNotification(t('budgets.creation.error'));
     }
   },
 });
@@ -56,37 +58,45 @@ const isSubmitDisabled = computed(() => isMutating.value || !form.value.name);
 
 <template>
   <form class="grid gap-4" @submit.prevent="() => createBudgetItem(form)">
-    <InputField v-model="form.name" label="Budget name" placeholder="Enter the name" />
+    <InputField
+      v-model="form.name"
+      :label="$t('budgets.creation.nameLabel')"
+      :placeholder="$t('budgets.creation.namePlaceholder')"
+    />
     <div class="flex justify-between gap-4">
       <DateField
         v-model="form.startDate"
         :calendar-options="{
           maxDate: form.endDate,
         }"
-        label="From date"
+        :label="$t('budgets.creation.fromDateLabel')"
       />
       <DateField
         v-model="form.endDate"
         :calendar-options="{
           minDate: form.startDate,
         }"
-        label="To date"
+        :label="$t('budgets.creation.toDateLabel')"
       />
     </div>
 
     <div class="flex gap-2">
       <label class="flex cursor-pointer items-center gap-2">
         <Checkbox v-model="form.autoInclude" :disabled="!isDateExist" />
-        Auto include transactions
+        {{ $t('budgets.creation.autoIncludeLabel') }}
       </label>
     </div>
 
     <div>
-      <InputField v-model.number="form.limitAmount" label="Budget limit" placeholder="Enter the limit" />
+      <InputField
+        v-model.number="form.limitAmount"
+        :label="$t('budgets.creation.limitLabel')"
+        :placeholder="$t('budgets.creation.limitPlaceholder')"
+      />
     </div>
 
     <div class="mt-4">
-      <Button :disabled="isSubmitDisabled" type="submit">Add budget</Button>
+      <Button :disabled="isSubmitDisabled" type="submit">{{ $t('budgets.creation.submitButton') }}</Button>
     </div>
   </form>
 </template>

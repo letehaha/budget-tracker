@@ -2,7 +2,7 @@
   <WidgetWrapper :is-fetching="isWidgetDataFetching" class="min-h-[320px]">
     <template #title>
       <div class="flex w-full items-center gap-4">
-        <span>Balance trend</span>
+        <span>{{ $t('dashboard.widgets.balanceTrend.title') }}</span>
         <SelectField
           v-model="selectedBalanceType"
           :values="balanceTypeOptions"
@@ -25,7 +25,7 @@
       <div>
         <div class="mb-1 flex items-center justify-between text-xs">
           <div class="font-medium tracking-tight uppercase">{{ periodLabel }}</div>
-          <div class="tracking-tight">vs previous period</div>
+          <div class="tracking-tight">{{ $t('dashboard.widgets.balanceTrend.vsPreviousPeriod') }}</div>
         </div>
 
         <div class="flex items-center justify-between">
@@ -63,6 +63,7 @@ import { Chart as Highcharts } from 'highcharts-vue';
 import { ChartLineIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import EmptyState from './components/empty-state.vue';
 import LoadingState from './components/loading-state.vue';
@@ -93,13 +94,15 @@ const props = defineProps<{
   selectedPeriod: { from: Date; to: Date };
 }>();
 
-const balanceTypeOptions = [
-  { value: 'total' as const, label: 'Total' },
-  { value: 'accounts' as const, label: 'Accounts' },
-  { value: 'portfolios' as const, label: 'Portfolios' },
-];
+const { t } = useI18n();
+
+const balanceTypeOptions = computed(() => [
+  { value: 'total' as const, label: t('dashboard.widgets.balanceTrend.balanceTypes.total') },
+  { value: 'accounts' as const, label: t('dashboard.widgets.balanceTrend.balanceTypes.accounts') },
+  { value: 'portfolios' as const, label: t('dashboard.widgets.balanceTrend.balanceTypes.portfolios') },
+]);
 const currentChartWidth = ref(0);
-const selectedBalanceType = ref(balanceTypeOptions[0]);
+const selectedBalanceType = ref(balanceTypeOptions.value[0]);
 const { formatBaseCurrency } = useFormatCurrency();
 const { baseCurrency } = storeToRefs(useCurrenciesStore());
 const { buildAreaChartConfig } = useHighcharts();

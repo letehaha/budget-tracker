@@ -8,7 +8,9 @@
       <!-- Step 1: Select Provider -->
       <template v-if="currentStep === 'select-provider'">
         <div class="space-y-2">
-          <p class="text-muted-foreground mt-4 mb-8 text-sm">Choose a bank data provider to connect</p>
+          <p class="text-muted-foreground mt-4 mb-8 text-sm">
+            {{ t('pages.integrations.addDialog.selectProviderHint') }}
+          </p>
 
           <UiButton
             v-for="provider in providers"
@@ -27,11 +29,11 @@
                     v-if="provider.type === BANK_PROVIDER_TYPE.ENABLE_BANKING"
                     class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
                   >
-                    Beta
+                    {{ t('pages.integrations.addDialog.betaBadge') }}
                   </span>
                 </p>
                 <p class="text-sm opacity-70">
-                  {{ METAINFO_FROM_TYPE[provider.type].description }}
+                  {{ t(METAINFO_FROM_TYPE[provider.type].descriptionKey) }}
                 </p>
               </div>
             </div>
@@ -70,9 +72,12 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import EnableBankingConnector from './enable-banking-connector.vue';
 import MonobankConnector from './monobank-connector.vue';
+
+const { t } = useI18n();
 
 interface Props {
   open: boolean;
@@ -93,10 +98,10 @@ const selectedProviderType = ref<string | null>(null);
 
 const dialogTitle = computed(() => {
   if (currentStep.value === 'select-provider') {
-    return 'Add Integration';
+    return t('pages.integrations.addDialog.titleSelect');
   }
   const provider = props.providers.find((p) => p.type === selectedProviderType.value);
-  return `Connect ${provider?.name || 'Provider'}`;
+  return t('pages.integrations.addDialog.titleConnect', { provider: provider?.name || 'Provider' });
 });
 
 const handleSelectProvider = (providerType: string) => {

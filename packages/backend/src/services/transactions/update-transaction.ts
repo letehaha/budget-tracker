@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import { logger } from '@js/utils/logger';
@@ -25,7 +26,8 @@ export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = ['amount', 'time', 't
  * 2. Do now allow editing non-source transaction (TODO: except it's an external one)
  */
 const validateTransaction = async (newData: UpdateTransactionParams, prevData: Transactions.default) => {
-  if (+newData.id !== +prevData.id) throw new ValidationError({ message: 'id cannot be changed' });
+  if (+newData.id !== +prevData.id)
+    throw new ValidationError({ message: t({ key: 'transactions.idCannotBeChanged' }) });
 
   // Check the account type, not the transaction type
   // A system transaction in a monobank account should be treated as external
@@ -36,7 +38,7 @@ const validateTransaction = async (newData: UpdateTransactionParams, prevData: T
 
   if (!account) {
     throw new NotFoundError({
-      message: 'Account not found for this transaction',
+      message: t({ key: 'accounts.accountNotFoundForTransaction' }),
     });
   }
 
@@ -45,21 +47,20 @@ const validateTransaction = async (newData: UpdateTransactionParams, prevData: T
   if (isExternalAccount) {
     if (EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS.some((field) => newData[field] !== undefined)) {
       throw new ValidationError({
-        message: 'Attempt to edit readonly fields of the external account',
+        message: t({ key: 'transactions.editReadonlyFields' }),
       });
     }
   }
 
   if (newData.transactionType && isExternalAccount && newData.transactionType !== prevData.transactionType) {
     throw new ValidationError({
-      message: 'It\'s disallowed to change "transactionType" of the non-system account',
+      message: t({ key: 'transactions.changeTypeNotAllowed' }),
     });
   }
 
   if (newData.refundedByTxIds !== undefined && newData.refundsTxId !== undefined) {
     throw new ValidationError({
-      message:
-        'You cannot use both "refundedByTxIds" and "refundsTxId" simultaneously. Please choose one or the other.',
+      message: t({ key: 'transactions.bothRefundFieldsNotAllowed' }),
     });
   }
 
@@ -184,7 +185,7 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
 
         if (sum > baseTransactionUpdateParams.refAmount) {
           throw new ValidationError({
-            message: 'Total refund amount cannot be greater than the original transaction amount',
+            message: t({ key: 'transactions.refundExceedsOriginal' }),
           });
         }
 
@@ -266,7 +267,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 
   if (!oppositeTx) {
     throw new NotFoundError({
-      message: 'Cannot find opposite tx to make an updation',
+      message: t({ key: 'transactions.oppositeTransactionNotFound' }),
     });
   }
 
@@ -390,7 +391,7 @@ export const updateTransaction = withTransaction(
 
       if (!prevData) {
         throw new NotFoundError({
-          message: 'Transaction with provided `id` does not exist!',
+          message: t({ key: 'transactions.transactionIdNotExist' }),
         });
       }
 

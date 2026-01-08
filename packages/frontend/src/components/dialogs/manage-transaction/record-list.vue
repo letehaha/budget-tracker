@@ -6,10 +6,12 @@
       </div>
     </template>
     <template v-if="hasNextPage">
-      <Button variant="secondary" class="mt-8 w-full" type="button" @click="() => fetchNextPage()">Load more</Button>
+      <Button variant="secondary" class="mt-8 w-full" type="button" @click="() => fetchNextPage()">{{
+        t('dialogs.manageTransaction.recordList.loadMore')
+      }}</Button>
     </template>
     <template v-else>
-      <p class="mt-4 text-center">No more data to load</p>
+      <p class="mt-4 text-center">{{ t('dialogs.manageTransaction.recordList.noMoreData') }}</p>
     </template>
   </div>
 </template>
@@ -21,6 +23,9 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import TransactionRecrod from '@/components/transactions-list/transaction-record.vue';
 import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { useInfiniteQuery } from '@tanstack/vue-query';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   transactionType: TRANSACTION_TYPES;

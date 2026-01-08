@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
@@ -111,13 +112,13 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
 
   if (!oldBaseCurrency) {
     throw new ValidationError({
-      message: 'User does not have a base currency set',
+      message: t({ key: 'currencies.noBaseCurrency' }),
     });
   }
 
   if (oldBaseCurrency.currencyCode === newCurrencyCode) {
     throw new ValidationError({
-      message: 'The selected currency is already a base currency',
+      message: t({ key: 'currencies.alreadyBaseCurrency' }),
     });
   }
 

@@ -6,6 +6,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import { toSystemAmount } from '@js/helpers/system-amount';
 import { logger } from '@js/utils';
@@ -110,14 +111,14 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    */
   async connect(userId: number, credentials: unknown): Promise<number> {
     if (!this.isValidConnectionParams(credentials)) {
-      throw new ValidationError({ message: 'Invalid credentials format for Enable Banking' });
+      throw new ValidationError({ message: t({ key: 'bankDataProviders.enableBanking.invalidCredentialsFormat' }) });
     }
 
     const { appId, privateKey, bankName, bankCountry, redirectUrl, maxConsentValidity } = credentials;
 
     // Validate private key format
     if (!validatePrivateKey(privateKey)) {
-      throw new ValidationError({ message: 'Invalid RSA private key format' });
+      throw new ValidationError({ message: t({ key: 'bankDataProviders.enableBanking.invalidRsaKey' }) });
     }
 
     // Create initial credentials object (without session yet)
@@ -130,7 +131,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const apiClient = new EnableBankingApiClient(initialCredentials);
     const isValid = await this.validateCredentials(initialCredentials);
     if (!isValid) {
-      throw new ForbiddenError({ message: 'Invalid Enable Banking credentials' });
+      throw new ForbiddenError({ message: t({ key: 'bankDataProviders.enableBanking.invalidCredentials' }) });
     }
 
     // Generate OAuth state for CSRF protection
@@ -188,7 +189,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const metadata = connection.metadata as unknown as EnableBankingMetadata;
 
     if (!metadata.authUrl) {
-      throw new BadRequestError({ message: 'Authorization URL not found for this connection' });
+      throw new BadRequestError({ message: t({ key: 'bankDataProviders.enableBanking.authUrlNotFound' }) });
     }
 
     return metadata.authUrl;
@@ -206,17 +207,20 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     // Validate state parameter
     if (!metadata.state || callbackParams.state !== metadata.state) {
-      throw new ValidationError({ message: 'Invalid OAuth state parameter' });
+      throw new ValidationError({ message: t({ key: 'bankDataProviders.enableBanking.invalidOAuthState' }) });
     }
 
     if (!validateState(callbackParams.state, connection.userId)) {
-      throw new ValidationError({ message: 'OAuth state expired or invalid' });
+      throw new ValidationError({ message: t({ key: 'bankDataProviders.enableBanking.oAuthStateExpired' }) });
     }
 
     // Check for OAuth errors
     if (callbackParams.error) {
       throw new BadRequestError({
-        message: `OAuth authorization failed: ${callbackParams.error_description || callbackParams.error}`,
+        message: t({
+          key: 'bankDataProviders.enableBanking.oAuthAuthorizationFailed',
+          variables: { error: callbackParams.error_description || callbackParams.error },
+        }),
       });
     }
 
@@ -367,7 +371,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const credentials = (await this.getDecryptedCredentials(connectionId)) as unknown as EnableBankingCredentials;
 
     if (!metadata.bankName || !metadata.bankCountry) {
-      throw new BadRequestError({ message: 'Bank information not found in connection metadata' });
+      throw new BadRequestError({ message: t({ key: 'bankDataProviders.enableBanking.bankInfoNotFound' }) });
     }
 
     // Mark connection as inactive IMMEDIATELY before any API calls
@@ -476,7 +480,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
   async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {
     if (!this.isValidCredentials(newCredentials)) {
-      throw new ValidationError({ message: 'Invalid credentials format for Enable Banking' });
+      throw new ValidationError({ message: t({ key: 'bankDataProviders.enableBanking.invalidCredentialsFormat' }) });
     }
 
     const connection = await this.getConnection(connectionId);
@@ -485,7 +489,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // Validate new credentials
     const isValid = await this.validateCredentials(newCredentials);
     if (!isValid) {
-      throw new ForbiddenError({ message: 'Invalid Enable Banking credentials' });
+      throw new ForbiddenError({ message: t({ key: 'bankDataProviders.enableBanking.invalidCredentials' }) });
     }
 
     // Get existing session ID if any
@@ -512,7 +516,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const credentials = await this.getValidatedCredentials(connectionId);
 
     if (!credentials.sessionId) {
-      throw new BadRequestError({ message: 'No active session. Please complete OAuth flow first.' });
+      throw new BadRequestError({ message: t({ key: 'bankDataProviders.enableBanking.noActiveSession' }) });
     }
 
     const apiClient = new EnableBankingApiClient(credentials);
@@ -586,7 +590,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const credentials = await this.getValidatedCredentials(connectionId);
 
     if (!credentials.sessionId) {
-      throw new BadRequestError({ message: 'No active session' });
+      throw new BadRequestError({ message: t({ key: 'bankDataProviders.enableBanking.noActiveSessionGeneric' }) });
     }
 
     const apiClient = new EnableBankingApiClient(credentials);
@@ -664,7 +668,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       this.validateProviderType(connection);
 
       if (!account.externalId) {
-        throw new BadRequestError({ message: 'Account does not have external ID from Enable Banking' });
+        throw new BadRequestError({ message: t({ key: 'accounts.accountNoExternalIdEnableBanking' }) });
       }
 
       // Get metadata for API calls and migrations
@@ -825,7 +829,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const credentials = await this.getValidatedCredentials(connectionId);
 
     if (!credentials.sessionId) {
-      throw new BadRequestError({ message: 'No active session' });
+      throw new BadRequestError({ message: t({ key: 'bankDataProviders.enableBanking.noActiveSessionGeneric' }) });
     }
 
     const apiClient = new EnableBankingApiClient(credentials);
@@ -839,7 +843,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       balances[0];
 
     if (!balance) {
-      throw new NotFoundError({ message: 'No balance information available' });
+      throw new NotFoundError({ message: t({ key: 'bankDataProviders.enableBanking.noBalanceInfo' }) });
     }
 
     const balanceFloat = parseFloat(balance.balance_amount.amount);
@@ -856,7 +860,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const account = await this.getSystemAccount(systemAccountId);
 
     if (!account.externalId) {
-      throw new BadRequestError({ message: 'Account does not have external ID' });
+      throw new BadRequestError({ message: t({ key: 'accounts.accountNoExternalId' }) });
     }
 
     // Get uid from metadata for API calls (session-specific)
@@ -971,7 +975,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const credentials = (await this.getDecryptedCredentials(connectionId)) as unknown as EnableBankingCredentials;
 
     if (!this.isValidCredentials(credentials)) {
-      throw new ValidationError({ message: 'Invalid stored credentials' });
+      throw new ValidationError({ message: t({ key: 'bankDataProviders.enableBanking.invalidStoredCredentials' }) });
     }
 
     return credentials;

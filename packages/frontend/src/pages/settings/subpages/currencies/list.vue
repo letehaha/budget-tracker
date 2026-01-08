@@ -10,7 +10,7 @@
       </template>
 
       <template #title>
-        <span> Edit currency </span>
+        <span> {{ $t('settings.currencies.list.editCurrency') }} </span>
       </template>
 
       <template v-if="selectedCurrency">

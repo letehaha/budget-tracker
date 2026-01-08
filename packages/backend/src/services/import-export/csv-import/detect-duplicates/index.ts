@@ -12,6 +12,7 @@ import {
   CurrencyOptionValue,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/Accounts.model';
 import { parse } from 'csv-parse/sync';
@@ -49,7 +50,7 @@ export async function detectDuplicates({
   }) as string[][];
 
   if (records.length === 0) {
-    throw new ValidationError({ message: 'CSV file is empty' });
+    throw new ValidationError({ message: t({ key: 'csvImport.csvFileEmpty' }) });
   }
 
   const headers = records[0]!;
@@ -81,14 +82,14 @@ export async function detectDuplicates({
     const dateStr = row[dateIndex]?.trim() || '';
     const parsedDate = parseDate(dateStr);
     if (!parsedDate) {
-      errors.push(`Invalid date format: "${dateStr}". Expected ISO format (YYYY-MM-DD).`);
+      errors.push(t({ key: 'csvImport.invalidDateFormat', variables: { dateStr } }));
     }
 
     // Parse amount
     const amountStr = row[amountIndex]?.trim() || '';
     const parsedAmount = parseAmount(amountStr);
     if (parsedAmount === null) {
-      errors.push(`Invalid amount: "${amountStr}". Expected numeric value.`);
+      errors.push(t({ key: 'csvImport.invalidAmount', variables: { amountStr } }));
     }
 
     // Get description
@@ -102,7 +103,7 @@ export async function detectDuplicates({
     if (accountIndex !== -1) {
       accountName = row[accountIndex]?.trim() || '';
       if (!accountName) {
-        errors.push('Account name is empty');
+        errors.push(t({ key: 'csvImport.accountNameEmpty' }));
       }
     }
 
@@ -111,7 +112,7 @@ export async function detectDuplicates({
     if (currencyIndex !== -1) {
       currencyCode = row[currencyIndex]?.trim().toUpperCase() || '';
       if (!currencyCode) {
-        errors.push('Currency code is empty');
+        errors.push(t({ key: 'csvImport.currencyCodeEmpty' }));
       }
     }
 
@@ -128,7 +129,7 @@ export async function detectDuplicates({
         } else if (typeOption.expenseValues.includes(typeValue)) {
           transactionType = 'expense';
         } else {
-          errors.push(`Unknown transaction type value: "${typeValue}"`);
+          errors.push(t({ key: 'csvImport.unknownTransactionType', variables: { typeValue } }));
         }
       }
     }

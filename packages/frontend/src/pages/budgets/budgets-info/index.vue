@@ -24,6 +24,7 @@ import {
   WalletIcon,
 } from 'lucide-vue-next';
 import { computed, ref, watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import BudgetDetailSkeleton from './budget-detail-skeleton.vue';
@@ -33,6 +34,7 @@ const route = useRoute();
 const queryClient = useQueryClient();
 const { formatBaseCurrency } = useFormatCurrency();
 const { addSuccessNotification } = useNotificationCenter();
+const { t } = useI18n();
 const budgetData = ref();
 const currentBudgetId = ref<number>(Number(route.params.id));
 const isSettingsOpen = ref(false);
@@ -76,7 +78,7 @@ const saveBudgetChanges = async () => {
       limitAmount: budgetData.value.limitAmount,
     },
   });
-  addSuccessNotification('Budget updated successfully!');
+  addSuccessNotification(t('budgets.list.updateSuccess'));
 };
 
 const handleSaveFromDialog = async () => {
@@ -238,19 +240,19 @@ const utilizationTextColor = computed(() => {
               Settings
             </Button>
           </template>
-          <template #title>Budget Settings</template>
+          <template #title>{{ $t('budgets.settings.title') }}</template>
           <div class="grid gap-4">
             <InputField
               v-model="budgetData.name"
-              label="Budget name"
-              placeholder="Enter budget name"
+              :label="$t('budgets.settings.nameLabel')"
+              :placeholder="$t('budgets.settings.namePlaceholder')"
               class="w-full"
               :disabled="isBudgetDataUpdating"
             />
             <InputField
               v-model="budgetData.limitAmount"
-              label="Budget limit"
-              placeholder="Enter limit amount (optional)"
+              :label="$t('budgets.settings.limitLabel')"
+              :placeholder="$t('budgets.settings.limitPlaceholder')"
               type="number"
               class="w-full"
               :disabled="isBudgetDataUpdating"
@@ -258,7 +260,9 @@ const utilizationTextColor = computed(() => {
             <!-- Read-only date display for mobile -->
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="text-muted-foreground mb-1.5 block text-sm font-medium">Start date</label>
+                <label class="text-muted-foreground mb-1.5 block text-sm font-medium">{{
+                  $t('budgets.settings.startDateLabel')
+                }}</label>
                 <div
                   class="border-input bg-muted/50 text-muted-foreground flex h-10 items-center rounded-md border px-3 text-sm"
                 >
@@ -266,7 +270,9 @@ const utilizationTextColor = computed(() => {
                 </div>
               </div>
               <div>
-                <label class="text-muted-foreground mb-1.5 block text-sm font-medium">End date</label>
+                <label class="text-muted-foreground mb-1.5 block text-sm font-medium">{{
+                  $t('budgets.settings.endDateLabel')
+                }}</label>
                 <div
                   class="border-input bg-muted/50 text-muted-foreground flex h-10 items-center rounded-md border px-3 text-sm"
                 >
@@ -367,7 +373,7 @@ const utilizationTextColor = computed(() => {
       <CollapsibleContent>
         <Card class="p-4">
           <div class="mb-4 flex items-center justify-between">
-            <h3 class="font-medium">Budget Settings</h3>
+            <h3 class="font-medium">{{ $t('budgets.settings.title') }}</h3>
             <CollapsibleTrigger as-child>
               <Button variant="ghost" size="sm">
                 <ChevronDownIcon class="size-4" />
@@ -378,16 +384,16 @@ const utilizationTextColor = computed(() => {
           <div class="grid gap-4 @sm:grid-cols-2">
             <InputField
               v-model="budgetData.name"
-              label="Budget name"
-              placeholder="Enter budget name"
+              :label="$t('budgets.settings.nameLabel')"
+              :placeholder="$t('budgets.settings.namePlaceholder')"
               class="w-full"
               :disabled="isBudgetDataUpdating"
             />
 
             <InputField
               v-model="budgetData.limitAmount"
-              label="Budget limit"
-              placeholder="Enter limit amount (optional)"
+              :label="$t('budgets.settings.limitLabel')"
+              :placeholder="$t('budgets.settings.limitPlaceholder')"
               type="number"
               class="w-full"
               :disabled="isBudgetDataUpdating"
@@ -397,12 +403,12 @@ const utilizationTextColor = computed(() => {
               :model-value="budgetData.startDate ? new Date(budgetData.startDate) : undefined"
               disabled
               :calendar-mode="'date'"
-              label="Start date"
+              :label="$t('budgets.settings.startDateLabel')"
             />
             <DateField
               :model-value="budgetData.endDate ? new Date(budgetData.endDate) : undefined"
               disabled
-              label="End date"
+              :label="$t('budgets.settings.endDateLabel')"
             />
           </div>
 

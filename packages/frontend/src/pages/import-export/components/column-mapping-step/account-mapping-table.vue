@@ -28,7 +28,7 @@
               <SelectField
                 :model-value="getAccountActionObject(sourceAccount.name)"
                 :values="actionOptions"
-                placeholder="Select action..."
+                :placeholder="$t('pages.importExport.common.selectAction')"
                 @update:model-value="handleActionChange(sourceAccount.name, $event)"
               />
             </td>
@@ -39,7 +39,7 @@
                   @update:model-value="handleAccountSelect(sourceAccount.name, String($event))"
                 >
                   <Select.SelectTrigger class="h-9">
-                    <Select.SelectValue placeholder="Select account...">
+                    <Select.SelectValue :placeholder="$t('pages.importExport.accountMapping.selectAccount')">
                       {{ getAccountDisplayValue(sourceAccount.name) }}
                     </Select.SelectValue>
                   </Select.SelectTrigger>

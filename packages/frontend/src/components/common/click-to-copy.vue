@@ -3,12 +3,14 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { cn } from '@/lib/utils';
 import { CheckIcon, CopyIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 defineProps<{
   value: string;
 }>();
 
 const { addErrorNotification } = useNotificationCenter();
+const { t } = useI18n();
 
 const isCopied = ref(false);
 const copyToClipboard = async ({ value }: { value: string }) => {
@@ -19,7 +21,7 @@ const copyToClipboard = async ({ value }: { value: string }) => {
       isCopied.value = false;
     }, 2000);
   } catch {
-    addErrorNotification('Failed to copy to clipboard');
+    addErrorNotification(t('common.errors.copyToClipboardFailed'));
   }
 };
 </script>

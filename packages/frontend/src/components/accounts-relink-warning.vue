@@ -3,20 +3,18 @@
     <Popover.PopoverTrigger as-child>
       <Button variant="destructive" size="sm" class="flex items-center gap-2">
         <AlertTriangleIcon class="size-4" />
-        <span class="hidden sm:inline"
-          >{{ accountsNeedingRelink.length }} account{{ accountsNeedingRelink.length > 1 ? 's' : '' }} need
-          attention</span
-        >
-        <span class="sm:hidden">{{ accountsNeedingRelink.length }}</span>
+        <span class="hidden sm:inline">{{ $t('relinkWarning.buttonLabel', accountsNeedingRelink.length) }}</span>
+        <span class="sm:hidden">{{
+          $t('relinkWarning.buttonLabelShort', { count: accountsNeedingRelink.length })
+        }}</span>
       </Button>
     </Popover.PopoverTrigger>
     <Popover.PopoverContent class="w-96" align="end">
       <div class="space-y-4">
         <div class="space-y-2">
-          <h4 class="text-sm font-semibold">Enable Banking: Action Required</h4>
+          <h4 class="text-sm font-semibold">{{ $t('relinkWarning.title') }}</h4>
           <p class="text-muted-foreground text-xs">
-            These Enable Banking accounts need to be updated due to a data schema change. This is a one-time action to
-            improve synchronization reliability.
+            {{ $t('relinkWarning.description') }}
           </p>
         </div>
 
@@ -30,12 +28,14 @@
               >
                 1
               </span>
-              <p class="text-muted-foreground text-xs">
-                To save your time, firstly try reconnecting the whole bank connection. You can find a
-                <span class="text-foreground font-medium">"Reconnect"</span> button under the
-                <span class="text-foreground font-medium">"Connection Validity"</span>
-                section on each connection page:
-              </p>
+              <i18n-t keypath="relinkWarning.step1Full" tag="p" class="text-muted-foreground text-xs">
+                <template #reconnect>
+                  <span class="text-foreground font-medium">"{{ $t('relinkWarning.reconnectButton') }}"</span>
+                </template>
+                <template #connectionValidity>
+                  <span class="text-foreground font-medium">"{{ $t('relinkWarning.connectionValiditySection') }}"</span>
+                </template>
+              </i18n-t>
             </div>
             <!-- Connection links -->
             <div class="ml-7 flex flex-wrap gap-1">
@@ -46,7 +46,7 @@
                 class="bg-primary/10 text-primary hover:bg-primary/20 inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors"
               >
                 <ExternalLinkIcon class="size-3" />
-                Connection #{{ connectionId }}
+                {{ $t('relinkWarning.connectionLabel', { id: connectionId }) }}
               </router-link>
             </div>
           </div>
@@ -57,17 +57,20 @@
             >
               2
             </span>
-            <p class="text-muted-foreground text-xs">
-              If any accounts remain listed below after reconnection, go to each account and manually
-              <span class="text-foreground font-medium">Unlink</span> then
-              <span class="text-foreground font-medium">Link</span> again.
-            </p>
+            <i18n-t keypath="relinkWarning.step2Full" tag="p" class="text-muted-foreground text-xs">
+              <template #unlink>
+                <span class="text-foreground font-medium">{{ $t('relinkWarning.unlinkAction') }}</span>
+              </template>
+              <template #link>
+                <span class="text-foreground font-medium">{{ $t('relinkWarning.linkAction') }}</span>
+              </template>
+            </i18n-t>
           </div>
         </div>
 
         <Separator.Separator />
 
-        <div class="max-h-[200px] space-y-2 overflow-auto pr-4">
+        <div class="max-h-50 space-y-2 overflow-auto pr-4">
           <router-link
             v-for="account in accountsNeedingRelink"
             :key="account.id"

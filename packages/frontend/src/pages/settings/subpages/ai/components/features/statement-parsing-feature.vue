@@ -1,7 +1,7 @@
 <template>
   <div v-if="isLoadingModels" class="text-muted-foreground flex items-center gap-2 py-4 text-sm">
     <Loader2Icon class="size-4 animate-spin" />
-    Loading models...
+    {{ $t('settings.ai.statementParsing.loading') }}
   </div>
 
   <ModelSelectorCard
@@ -21,14 +21,11 @@
           @click="showModelHint = !showModelHint"
         >
           <LightbulbIcon class="size-3" />
-          What model should I choose?
+          {{ $t('settings.ai.statementParsing.modelHint.trigger') }}
           <ChevronDownIcon class="size-3 transition-transform" :class="{ 'rotate-180': showModelHint }" />
         </button>
         <p v-if="showModelHint" class="bg-muted/50 text-muted-foreground mt-2 rounded-md p-2 text-xs">
-          For statement parsing, <strong>mid-tier models</strong> like Claude Sonnet, Gemini Pro, or GPT-4o are
-          recommended. Statement parsing requires understanding complex document structures and extracting accurate
-          data, which benefits from more capable models. However, cheaper models like Gemini Flash or Claude Haiku can
-          also work well for simpler statements.
+          {{ $t('settings.ai.statementParsing.modelHint.text') }}
         </p>
       </div>
     </template>
@@ -36,14 +33,12 @@
     <template #after-card>
       <!-- How it works for statement parsing -->
       <div class="mt-4 border-t pt-4">
-        <h5 class="mb-2 text-sm font-medium">How it works</h5>
+        <h5 class="mb-2 text-sm font-medium">{{ $t('settings.ai.statementParsing.howItWorks.title') }}</h5>
         <ul class="text-muted-foreground list-disc space-y-1.5 pl-5 text-xs leading-relaxed">
-          <li>Upload a bank statement (PDF, CSV, or TXT) and AI will extract all transactions automatically.</li>
-          <li>
-            The AI analyzes the document structure to identify dates, descriptions, amounts, and transaction types.
-          </li>
-          <li>You can review and correct any extracted data before importing into your account.</li>
-          <li>Cost is estimated before processing, yet it only reflects the approximate cost.</li>
+          <li>{{ $t('settings.ai.statementParsing.howItWorks.points.upload') }}</li>
+          <li>{{ $t('settings.ai.statementParsing.howItWorks.points.analysis') }}</li>
+          <li>{{ $t('settings.ai.statementParsing.howItWorks.points.review') }}</li>
+          <li>{{ $t('settings.ai.statementParsing.howItWorks.points.cost') }}</li>
         </ul>
       </div>
     </template>

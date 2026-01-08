@@ -1,5 +1,6 @@
 import { ApiBaseError } from '@/common/types';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { getCurrentLocale, i18n } from '@/i18n';
 import * as errors from '@/js/errors';
 import { router } from '@/routes';
 import { useAuthStore } from '@/stores';
@@ -16,6 +17,7 @@ interface ApiRequestConfig {
   headers: {
     'Content-Type': string;
     [SESSION_ID_HEADER_KEY]: string;
+    'Accept-Language': string;
   };
   body?: string;
   credentials: RequestCredentials;
@@ -157,6 +159,7 @@ class ApiCaller {
       headers: {
         'Content-Type': 'application/json',
         'X-Session-ID': window.sessionStorage?.getItem(SESSION_ID_KEY) || '',
+        'Accept-Language': getCurrentLocale(), // Send current locale to backend
       },
       // Include credentials (cookies) for session-based authentication
       credentials: 'include',
@@ -176,20 +179,20 @@ class ApiCaller {
       if (e instanceof TypeError && e.toString().includes('Failed to fetch')) {
         addNotification({
           id: 'api-fetching-error',
-          text: 'Failed to fetch data from the server.',
+          text: i18n.global.t('errors.api.failedToFetch'),
           type: NotificationType.error,
         });
 
-        throw new errors.NetworkError('Failed to fetch data from the server.');
+        throw new errors.NetworkError(i18n.global.t('errors.api.failedToFetch'));
       }
 
       addNotification({
         id: 'unexpected-api-error',
-        text: 'Unexpected error.',
+        text: i18n.global.t('errors.api.unexpectedError'),
         type: NotificationType.error,
       });
 
-      throw new errors.UnexpectedError('Unexpected error.', {});
+      throw new errors.UnexpectedError(i18n.global.t('errors.api.unexpectedError'), {});
     }
 
     const sessionId = result.headers.get(SESSION_ID_HEADER_KEY);
@@ -229,7 +232,7 @@ class ApiCaller {
 
           addNotification({
             id: 'authorization-error',
-            text: 'Your session has expired. Please sign in again',
+            text: i18n.global.t('errors.api.sessionExpired'),
             type: NotificationType.error,
           });
         }
@@ -240,7 +243,7 @@ class ApiCaller {
       if (response.code === API_ERROR_CODES.unexpected) {
         addNotification({
           id: 'unexpected-error',
-          text: 'Unexpected error.',
+          text: i18n.global.t('errors.api.unexpectedError'),
           type: NotificationType.error,
         });
       }

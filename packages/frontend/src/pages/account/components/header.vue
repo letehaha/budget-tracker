@@ -13,6 +13,7 @@ import { AccountModel } from '@bt/shared/types';
 import { ArrowRightLeftIcon, Edit2Icon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   account: AccountModel;
@@ -21,6 +22,7 @@ const { currenciesMap, baseCurrency } = storeToRefs(useCurrenciesStore());
 const accountsStore = useAccountsStore();
 const formEditingPopoverOpen = ref(false);
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { t } = useI18n();
 
 const accountNameForm = ref({
   name: props.account.name,
@@ -48,9 +50,9 @@ const updateAccount = async () => {
     });
 
     formEditingPopoverOpen.value = false;
-    addSuccessNotification('Account data changed successfully');
+    addSuccessNotification(t('pages.account.header.updateSuccess'));
   } catch {
-    addErrorNotification('An error occured while trying to update account');
+    addErrorNotification(t('pages.account.header.updateError'));
   }
 };
 
@@ -85,8 +87,8 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
               <form class="grid gap-6" @submit.prevent="updateAccount">
                 <InputField
                   v-model="accountNameForm.name"
-                  label="Account name"
-                  placeholder="Account name"
+                  :label="$t('pages.account.header.nameLabel')"
+                  :placeholder="$t('pages.account.header.namePlaceholder')"
                   :error-message="getFieldErrorMessage('form.name')"
                 />
 

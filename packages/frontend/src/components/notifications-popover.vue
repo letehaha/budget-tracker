@@ -9,8 +9,8 @@ import {
   useNotifications,
   useUnreadNotificationsCount,
 } from '@/composable/data-queries/notifications';
+import { useDateLocale } from '@/composable/use-date-locale';
 import { NOTIFICATION_STATUSES, NOTIFICATION_TYPES, NotificationType } from '@bt/shared/types';
-import { formatDistanceToNow } from 'date-fns';
 import {
   AlertTriangleIcon,
   BellIcon,
@@ -24,6 +24,9 @@ import {
 import { ref } from 'vue';
 
 const isOpen = ref(false);
+
+// Locale-aware date formatting
+const { formatDistanceToNow } = useDateLocale();
 
 // Queries - enabled once popover has been opened, then cached via staleTime
 const { data: notifications, isLoading } = useNotifications();
@@ -117,9 +120,9 @@ const handleDismiss = (id: string) => {
         </span>
       </Button>
     </Popover.PopoverTrigger>
-    <Popover.PopoverContent class="w-[360px] p-0" align="end">
+    <Popover.PopoverContent class="w-90 p-0" align="end">
       <div class="border-border flex items-center justify-between border-b px-4 py-3">
-        <h3 class="text-sm font-semibold">Notifications</h3>
+        <h3 class="text-sm font-semibold">{{ $t('notifications.title') }}</h3>
         <Button
           v-if="unreadCount && unreadCount > 0"
           variant="ghost"
@@ -128,7 +131,7 @@ const handleDismiss = (id: string) => {
           :disabled="markAllAsReadMutation.isPending.value"
           @click="handleMarkAllAsRead"
         >
-          Mark all as read
+          {{ $t('notifications.markAllAsRead') }}
         </Button>
       </div>
 
@@ -138,10 +141,10 @@ const handleDismiss = (id: string) => {
 
       <div v-else-if="!notifications?.length" class="py-8 text-center">
         <BellOffIcon class="text-muted-foreground mx-auto mb-2 size-10 opacity-50" />
-        <p class="text-muted-foreground text-sm">No notifications yet</p>
+        <p class="text-muted-foreground text-sm">{{ $t('notifications.empty') }}</p>
       </div>
 
-      <div v-else class="max-h-[350px] overflow-auto">
+      <div v-else class="max-h-87.5 overflow-auto">
         <div class="divide-border divide-y">
           <div
             v-for="notification in notifications"

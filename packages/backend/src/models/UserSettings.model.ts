@@ -1,4 +1,5 @@
 import { AI_FEATURE, AI_PROVIDER, NOTIFICATION_TYPES } from '@bt/shared/types';
+import { SUPPORTED_LOCALES } from '@bt/shared/i18n/locales';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import Users from './Users.model';
 import { z } from 'zod';
@@ -51,6 +52,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES = {
 };
 
 export const ZodSettingsSchema = z.object({
+  locale: z.enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN]).default(SUPPORTED_LOCALES.ENGLISH),
   stats: z.object({
     expenses: z.object({
       excludedCategories: z.array(z.number().int().positive().finite()),
@@ -64,6 +66,7 @@ export const ZodSettingsSchema = z.object({
 export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
 export const DEFAULT_SETTINGS: SettingsSchema = {
+  locale: SUPPORTED_LOCALES.ENGLISH,
   stats: {
     expenses: {
       excludedCategories: [],

@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
 import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
@@ -28,11 +29,11 @@ const createPortfolioTransferImpl = async ({
 }: CreatePortfolioTransferParams) => {
   // Validate input
   if (fromPortfolioId === toPortfolioId) {
-    throw new ValidationError({ message: 'Source and destination portfolios must be different' });
+    throw new ValidationError({ message: t({ key: 'investments.sourceAndDestinationMustDiffer' }) });
   }
 
   if (new Big(amount).lte(0)) {
-    throw new ValidationError({ message: 'Transfer amount must be greater than zero' });
+    throw new ValidationError({ message: t({ key: 'investments.transferAmountMustBePositive' }) });
   }
 
   // Verify source portfolio exists and user owns it
@@ -41,7 +42,7 @@ const createPortfolioTransferImpl = async ({
   });
 
   if (!sourcePortfolio) {
-    throw new NotFoundError({ message: 'Source portfolio not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.sourcePortfolioNotFound' }) });
   }
 
   // Verify destination portfolio exists and user owns it
@@ -50,13 +51,13 @@ const createPortfolioTransferImpl = async ({
   });
 
   if (!destPortfolio) {
-    throw new NotFoundError({ message: 'Destination portfolio not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.destinationPortfolioNotFound' }) });
   }
 
   // Verify currency exists
   const currency = await Currencies.findByPk(currencyCode);
   if (!currency) {
-    throw new NotFoundError({ message: 'Currency not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.currencyNotFound' }) });
   }
 
   // Calculate reference amount (converted to user's base currency)

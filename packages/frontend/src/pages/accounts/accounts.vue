@@ -1,15 +1,17 @@
 <template>
   <div class="p-6">
     <div class="mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
-      <h1 class="text-2xl tracking-wider">Accounts</h1>
+      <h1 class="text-2xl tracking-wider">{{ $t('accounts.title') }}</h1>
 
       <div class="flex flex-wrap gap-x-4 gap-y-2">
         <CreateAccountDialog>
-          <UiButton variant="outline"> Create account </UiButton>
+          <UiButton variant="outline"> {{ $t('accounts.createAccount') }} </UiButton>
         </CreateAccountDialog>
 
         <UiButton as-child>
-          <router-link :to="{ name: ROUTES_NAMES.accountIntegrations }"> Bank Integrations </router-link>
+          <router-link :to="{ name: ROUTES_NAMES.accountIntegrations }">
+            {{ $t('accounts.bankIntegrations') }}
+          </router-link>
         </UiButton>
       </div>
     </div>
@@ -21,9 +23,9 @@
             <Section :default-open="key === 'hidden' ? false : true">
               <template #trigger-content>
                 <h2 class="xs:text-lg text-base font-semibold">
-                  <template v-if="key === 'hidden'">Hidden accounts</template>
-                  <template v-else-if="key === 'manual'">Manual accounts</template>
-                  <template v-else-if="key === 'integrations'">Connected Accounts</template>
+                  <template v-if="key === 'hidden'">{{ $t('accounts.sections.hidden') }}</template>
+                  <template v-else-if="key === 'manual'">{{ $t('accounts.sections.manual') }}</template>
+                  <template v-else-if="key === 'integrations'">{{ $t('accounts.sections.connected') }}</template>
                 </h2>
               </template>
 
@@ -45,21 +47,21 @@
         <div class="mb-4">
           <LandmarkIcon class="text-muted-foreground mx-auto size-12" />
         </div>
-        <h3 class="text-foreground mb-2 text-lg font-medium">No Accounts Yet</h3>
+        <h3 class="text-foreground mb-2 text-lg font-medium">{{ $t('accounts.empty.title') }}</h3>
         <p class="text-muted-foreground mb-6">
-          Connect your bank or create a manual account to start tracking your finances, balances, and transactions.
+          {{ $t('accounts.empty.description') }}
         </p>
 
         <div class="mx-auto flex max-w-sm flex-col gap-3">
           <UiButton size="lg" @click="openAddIntegrationDialog">
             <LinkIcon class="mr-2 size-5" />
-            Connect Bank Account
+            {{ $t('accounts.empty.connectBank') }}
           </UiButton>
 
           <CreateAccountDialog>
             <UiButton variant="outline">
               <PlusIcon class="mr-2 size-4" />
-              Create Manual Account
+              {{ $t('accounts.empty.createManual') }}
             </UiButton>
           </CreateAccountDialog>
         </div>

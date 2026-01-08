@@ -15,7 +15,10 @@ import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
 import { computed, reactive, ref, watch, watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
+
+const { t } = useI18n();
 
 const route = useRoute();
 const { addErrorNotification } = useNotificationCenter();
@@ -107,7 +110,7 @@ const isMobileView = useWindowBreakpoints(1024);
     </template>
 
     <template #title>
-      <span> Add transactions </span>
+      <span>{{ t('budgets.addTransactionsDialog.title') }}</span>
     </template>
 
     <div class="grid max-h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)]">
@@ -170,15 +173,15 @@ const isMobileView = useWindowBreakpoints(1024);
               />
               <TransactionRecord :tx="flatTransactions[virtualRow.index]" />
             </label>
-            <div v-else class="flex h-[52px] items-center justify-center">Loading more...</div>
+            <div v-else class="flex h-13 items-center justify-center">{{ t('transactions.list.loadingMore') }}</div>
           </div>
         </div>
         <template v-if="!hasNextTransactionsPage">
-          <p class="flex justify-center">No more data to load</p>
+          <p class="flex justify-center">{{ t('transactions.list.noMoreData') }}</p>
         </template>
         <div v-if="isTransactionsPicked" class="sticky -bottom-px flex gap-2">
           <Button type="button" variant="secondary" class="hover:bg-initial mt-8 w-full" @click="addTransactions">
-            Add Selected
+            {{ t('budgets.addTransactionsDialog.addSelected') }}
           </Button>
         </div>
       </div>

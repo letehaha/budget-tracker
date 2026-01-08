@@ -9,6 +9,9 @@ import { useFormValidation } from '@/composable/form-validator';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
 import { required } from '@vuelidate/validators';
 import { computed, reactive, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 interface SecurityOption {
   value: string;
@@ -26,6 +29,12 @@ const emit = defineEmits(['success', 'cancel']);
 const { addNotification } = useNotificationCenter();
 const createTransactionMutation = useCreateInvestmentTransaction();
 
+const transactionTypeMap: Record<string, string> = {
+  [INVESTMENT_TRANSACTION_CATEGORY.buy]: 'forms.investmentTransaction.types.buy',
+  [INVESTMENT_TRANSACTION_CATEGORY.sell]: 'forms.investmentTransaction.types.sell',
+  [INVESTMENT_TRANSACTION_CATEGORY.dividend]: 'forms.investmentTransaction.types.dividend',
+};
+
 const transactionTypes = computed(() =>
   Object.values(INVESTMENT_TRANSACTION_CATEGORY)
     .filter((type) =>
@@ -37,7 +46,7 @@ const transactionTypes = computed(() =>
     )
     .map((type) => ({
       value: type,
-      label: type.charAt(0).toUpperCase() + type.slice(1),
+      label: t(transactionTypeMap[type]),
     })),
 );
 
@@ -73,7 +82,7 @@ const { isFormValid, getFieldErrorMessage, touchField, resetValidation } = useFo
 );
 
 const resetForm = () => {
-  form.type = { value: INVESTMENT_TRANSACTION_CATEGORY.buy, label: 'Buy' };
+  form.type = { value: INVESTMENT_TRANSACTION_CATEGORY.buy, label: t('forms.investmentTransaction.types.buy') };
   form.security = null;
   form.quantity = '';
   form.price = '';
@@ -107,7 +116,7 @@ const onSubmit = async () => {
     });
 
     addNotification({
-      text: 'Transaction created successfully.',
+      text: t('forms.investmentTransaction.notifications.success'),
       type: NotificationType.success,
     });
 
@@ -115,7 +124,7 @@ const onSubmit = async () => {
     emit('success');
   } catch (error) {
     addNotification({
-      text: error instanceof Error ? error.message : 'Failed to create transaction.',
+      text: error instanceof Error ? error.message : t('forms.investmentTransaction.notifications.error'),
       type: NotificationType.error,
     });
   }
@@ -126,7 +135,7 @@ const onSubmit = async () => {
   <form class="grid gap-6" @submit.prevent="onSubmit">
     <SelectField
       v-model="form.type"
-      label="Transaction Type"
+      :label="$t('forms.investmentTransaction.typeLabel')"
       :values="transactionTypes"
       value-key="value"
       label-key="label"
@@ -136,11 +145,11 @@ const onSubmit = async () => {
     <SelectField
       v-if="!securityId"
       v-model="form.security"
-      label="Security"
+      :label="$t('forms.investmentTransaction.securityLabel')"
       :values="securities"
       value-key="value"
       label-key="label"
-      placeholder="Select a security"
+      :placeholder="$t('forms.investmentTransaction.securityPlaceholder')"
       :disabled="createTransactionMutation.isPending.value"
       :error-message="getFieldErrorMessage('form.security')"
       @blur="touchField('form.security')"
@@ -148,10 +157,10 @@ const onSubmit = async () => {
 
     <InputField
       v-model="form.quantity"
-      label="Quantity"
+      :label="$t('forms.investmentTransaction.quantityLabel')"
       type="number"
       step="any"
-      placeholder="0.00"
+      :placeholder="$t('forms.investmentTransaction.quantityPlaceholder')"
       :disabled="createTransactionMutation.isPending.value"
       :error-message="getFieldErrorMessage('form.quantity')"
       @blur="touchField('form.quantity')"
@@ -159,10 +168,10 @@ const onSubmit = async () => {
 
     <InputField
       v-model="form.price"
-      label="Price per Share"
+      :label="$t('forms.investmentTransaction.priceLabel')"
       type="number"
       step="any"
-      placeholder="0.00"
+      :placeholder="$t('forms.investmentTransaction.pricePlaceholder')"
       :disabled="createTransactionMutation.isPending.value"
       :error-message="getFieldErrorMessage('form.price')"
       @blur="touchField('form.price')"
@@ -170,16 +179,16 @@ const onSubmit = async () => {
 
     <InputField
       v-model="form.fees"
-      label="Fees (optional)"
+      :label="$t('forms.investmentTransaction.feesLabel')"
       type="number"
       step="any"
-      placeholder="0.00"
+      :placeholder="$t('forms.investmentTransaction.feesPlaceholder')"
       :disabled="createTransactionMutation.isPending.value"
     />
 
     <DateField
       v-model="form.date"
-      label="Transaction Date"
+      :label="$t('forms.investmentTransaction.dateLabel')"
       :disabled="createTransactionMutation.isPending.value"
       :error-message="getFieldErrorMessage('form.date')"
       @blur="touchField('form.date')"
@@ -192,11 +201,15 @@ const onSubmit = async () => {
         :disabled="createTransactionMutation.isPending.value"
         @click="emit('cancel')"
       >
-        Cancel
+        {{ $t('forms.investmentTransaction.cancelButton') }}
       </UiButton>
 
       <UiButton type="submit" :disabled="createTransactionMutation.isPending.value">
-        {{ createTransactionMutation.isPending.value ? 'Creating...' : 'Create Transaction' }}
+        {{
+          createTransactionMutation.isPending.value
+            ? $t('forms.investmentTransaction.submitButtonLoading')
+            : $t('forms.investmentTransaction.submitButton')
+        }}
       </UiButton>
     </div>
   </form>

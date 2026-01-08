@@ -6,6 +6,9 @@ import { useAccountGroupForAccount } from '@/composable/data-queries/account-gro
 import { AccountModel } from '@bt/shared/types';
 import { EditIcon, InfoIcon } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   account: AccountModel;
@@ -27,7 +30,7 @@ watch(
 <template>
   <div class="flex items-center justify-between gap-2">
     <p class="flex items-center gap-2">
-      Account group
+      {{ t('pages.account.group.label') }}
 
       <Tooltip.TooltipProvider>
         <Tooltip.Tooltip>
@@ -36,7 +39,7 @@ watch(
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent class="max-w-[400px] p-4">
             <span class="text-sm leading-6 opacity-90">
-              Group multiple accounts together to keep your dashboard sidebar organized
+              {{ t('pages.account.group.tooltip') }}
             </span>
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>
@@ -48,7 +51,7 @@ watch(
         {{ accountGroupData.name }}
       </template>
       <template v-else>
-        <span> Not associated </span>
+        <span>{{ t('pages.account.group.notAssociated') }}</span>
       </template>
       <LinkAccountGroup :account="account">
         <UiButton size="icon" variant="secondary">

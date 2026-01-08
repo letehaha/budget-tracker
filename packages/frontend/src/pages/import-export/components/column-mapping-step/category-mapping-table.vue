@@ -25,7 +25,7 @@
               <SelectField
                 :model-value="getCategoryActionObject(categoryName)"
                 :values="actionOptions"
-                placeholder="Select action..."
+                :placeholder="$t('pages.importExport.common.selectAction')"
                 @update:model-value="handleActionChange(categoryName, $event)"
               />
             </td>
@@ -36,7 +36,7 @@
                   @update:model-value="handleCategorySelect(categoryName, String($event))"
                 >
                   <Select.SelectTrigger class="h-9">
-                    <Select.SelectValue placeholder="Select category...">
+                    <Select.SelectValue :placeholder="$t('pages.importExport.categoryMapping.selectCategory')">
                       {{ getCategoryDisplayValue(categoryName) }}
                     </Select.SelectValue>
                   </Select.SelectTrigger>

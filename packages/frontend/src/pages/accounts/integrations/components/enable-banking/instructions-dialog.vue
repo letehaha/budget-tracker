@@ -2,18 +2,17 @@
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-h-[80vh] max-w-2xl overflow-y-auto">
       <DialogHeader class="mb-4">
-        <DialogTitle>How to Obtain Enable Banking Credentials</DialogTitle>
+        <DialogTitle>{{ t('pages.integrations.instructionsDialog.title') }}</DialogTitle>
         <DialogDescription class="sr-only">
-          Step-by-step instructions for registering and configuring Enable Banking credentials
+          {{ t('pages.integrations.instructionsDialog.description') }}
         </DialogDescription>
       </DialogHeader>
 
       <div class="space-y-4 text-sm">
         <div>
-          <h3 class="mb-2 text-base font-semibold">Overview</h3>
+          <h3 class="mb-2 text-base font-semibold">{{ t('pages.integrations.instructionsDialog.overview.title') }}</h3>
           <p class="text-muted-foreground">
-            Enable Banking requires you to register an application and generate security credentials to access banking
-            data. Follow these steps to get your Application ID and Private Key.
+            {{ t('pages.integrations.instructionsDialog.overview.text') }}
           </p>
         </div>
 
@@ -28,7 +27,7 @@
               >
                 1
               </div>
-              <span class="flex-1 font-semibold">Register & Create Application</span>
+              <span class="flex-1 font-semibold">{{ t('pages.integrations.instructionsDialog.step1.title') }}</span>
               <ChevronDownIcon
                 class="size-5 shrink-0 transition-transform duration-200"
                 :class="{ 'rotate-180': isOpen }"
@@ -37,65 +36,80 @@
             <CollapsibleContent>
               <div class="text-muted-foreground space-y-2 border-t px-3 py-3 pl-12">
                 <p>
-                  Visit
-                  <ExternalLink href="https://enablebanking.com" text="enablebanking.com" />
-                  and create an account if you don't have one already.
+                  <i18n-t keypath="pages.integrations.instructionsDialog.step1.intro" tag="span">
+                    <template #link>
+                      <ExternalLink href="https://enablebanking.com" text="enablebanking.com" />
+                    </template>
+                  </i18n-t>
                 </p>
-                <p class="text-foreground pt-2 font-medium">Then create an application:</p>
+                <p class="text-foreground pt-2 font-medium">{{ t('pages.integrations.instructionsDialog.step1.createApp') }}</p>
                 <div class="space-y-1">
-                  <div>1. Log in to the Enable Banking portal</div>
-                  <div>2. Navigate to <ExternalLink href="https://enablebanking.com/cp/applications" /></div>
-                  <div>3. Look at the "Create Application" form</div>
-                  <div>4. Select <strong>"Production"</strong> environment</div>
+                  <div>1. {{ t('pages.integrations.instructionsDialog.step1.steps.login') }}</div>
                   <div>
-                    5. Check the <strong>"Generate private RSA key in the browser"</strong> checkbox. Once application
-                    is created, the .pem key will be saved to your computer automatically as a file.
-                    <strong>If file was not saved</strong> for whatever reason – you will need to recreate the
-                    application
+                    <i18n-t keypath="pages.integrations.instructionsDialog.step1.steps.navigate" tag="span">
+                      <template #link>
+                        <ExternalLink href="https://enablebanking.com/cp/applications" />
+                      </template>
+                    </i18n-t>
+                  </div>
+                  <div>3. {{ t('pages.integrations.instructionsDialog.step1.steps.lookForm') }}</div>
+                  <div>
+                    <i18n-t keypath="pages.integrations.instructionsDialog.step1.steps.selectEnv" tag="span">
+                      <template #strong>
+                        <strong>{{ t('pages.integrations.instructionsDialog.step1.steps.selectEnvStrong') }}</strong>
+                      </template>
+                    </i18n-t>
                   </div>
                   <div>
-                    6. Fill out form with the next values:
+                    <i18n-t keypath="pages.integrations.instructionsDialog.step1.steps.generateKey" tag="span">
+                      <template #strong>
+                        <strong>{{ t('pages.integrations.instructionsDialog.step1.steps.generateKeyStrong') }}</strong>
+                      </template>
+                      <template #warning>
+                        <strong>{{ t('pages.integrations.instructionsDialog.step1.steps.generateKeyWarning') }}</strong>
+                      </template>
+                    </i18n-t>
+                  </div>
+                  <div>
+                    6. {{ t('pages.integrations.instructionsDialog.step1.steps.fillForm') }}
                     <div class="mt-2 flex flex-col gap-1 pl-4">
                       <div class="flex flex-wrap gap-1">
-                        <span class="font-semibold"> Application name: </span>
-                        <ClickToCopy class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]" value="Own testing" />
+                        <span class="font-semibold">{{ t('pages.integrations.instructionsDialog.step1.steps.appName') }}</span>
+                        <ClickToCopy class="w-auto max-w-68.75 min-w-auto sm:max-w-125" value="Own testing" />
                       </div>
                       <div class="flex flex-wrap gap-1">
-                        <span class="font-semibold"> Allowed redirect URLs: </span>
+                        <span class="font-semibold">{{ t('pages.integrations.instructionsDialog.step1.steps.redirectUrls') }}</span>
                         <ClickToCopy
-                          class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]"
+                          class="w-auto max-w-68.75 min-w-auto sm:max-w-125"
                           value="https://moneymatter.app/bank-callback https://moneymatter.app/bank-callback"
                         />
                       </div>
                       <div class="flex flex-wrap gap-1">
-                        <span class="font-semibold"> Application description: </span>
-                        <ClickToCopy class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]" value="testing" />
+                        <span class="font-semibold">{{ t('pages.integrations.instructionsDialog.step1.steps.appDescription') }}</span>
+                        <ClickToCopy class="w-auto max-w-68.75 min-w-auto sm:max-w-125" value="testing" />
                       </div>
                       <div class="flex flex-wrap gap-1">
-                        <span class="font-semibold"> Email for data protection matters: </span>
-                        <ClickToCopy class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]" value="test@gmail.com" />
+                        <span class="font-semibold">{{ t('pages.integrations.instructionsDialog.step1.steps.emailProtection') }}</span>
+                        <ClickToCopy class="w-auto max-w-68.75 min-w-auto sm:max-w-125" value="test@gmail.com" />
                       </div>
                       <div class="flex flex-wrap gap-1">
-                        <span class="font-semibold"> Privacy URL: </span>
+                        <span class="font-semibold">{{ t('pages.integrations.instructionsDialog.step1.steps.privacyUrl') }}</span>
                         <ClickToCopy
-                          class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]"
+                          class="w-auto max-w-68.75 min-w-auto sm:max-w-125"
                           value="https://moneymatter.app/privacy-policy"
                         />
                       </div>
                       <div class="flex flex-wrap gap-1">
-                        <span class="font-semibold"> Terms URL: </span>
+                        <span class="font-semibold">{{ t('pages.integrations.instructionsDialog.step1.steps.termsUrl') }}</span>
                         <ClickToCopy
-                          class="w-auto max-w-[275px] min-w-auto sm:max-w-[500px]"
+                          class="w-auto max-w-68.75 min-w-auto sm:max-w-125"
                           value="https://moneymatter.app/terms-of-use"
                         />
                       </div>
                     </div>
                   </div>
-                  <div>7. Click "Register"</div>
-                  <div>
-                    8. You will be suggested to download a file. It's your RSA key that you must save somewhere since
-                    this is part of your credentials
-                  </div>
+                  <div>7. {{ t('pages.integrations.instructionsDialog.step1.steps.clickRegister') }}</div>
+                  <div>8. {{ t('pages.integrations.instructionsDialog.step1.steps.downloadKey') }}</div>
                 </div>
               </div>
             </CollapsibleContent>
@@ -111,7 +125,7 @@
               >
                 2
               </div>
-              <span class="flex-1 font-semibold">Link Your Bank Accounts</span>
+              <span class="flex-1 font-semibold">{{ t('pages.integrations.instructionsDialog.step2.title') }}</span>
               <ChevronDownIcon
                 class="size-5 shrink-0 transition-transform duration-200"
                 :class="{ 'rotate-180': isOpen }"
@@ -119,41 +133,35 @@
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div class="text-muted-foreground border-t px-3 py-3 pl-12 flex flex-col gap-1">
+                <p>{{ t('pages.integrations.instructionsDialog.step2.intro') }}</p>
+                <p>{{ t('pages.integrations.instructionsDialog.step2.breakdown') }}</p>
+                <p>1. {{ t('pages.integrations.instructionsDialog.step2.steps.clickLink') }}</p>
                 <p>
-                  Before using the application with MoneyMatter, you must first link your bank accounts through the
-                  Enable Banking portal. Look for the "Link accounts" button inside the created application's tile and
-                  follow all the steps required there.
-                </p>
-                <p>Here's the details breakdown:</p>
-                <p>1. Click "Link accounts", wait for spinner to finish loading</p>
-                <p>
-                  2. New fields will appear in the same spot: "Country", "ASPSP", "Usage type"
+                  2. {{ t('pages.integrations.instructionsDialog.step2.steps.newFields') }}
 
                   <ul class="pl-4 flex flex-col gap-1 mt-1">
-                    <li>2.1 Country: <span class="text-white">Your bank's country</span></li>
-                    <li>2.2 ASPSP: <span class="text-white">Your bank name</span></li>
-                    <li>2.3 Usage type: <span class="text-white">Private</span></li>
-                    <li>2.4 Click "Save"</li>
+                    <li>2.1 {{ t('pages.integrations.instructionsDialog.step2.steps.country') }} <span class="text-white">{{ t('pages.integrations.instructionsDialog.step2.steps.countryValue') }}</span></li>
+                    <li>2.2 {{ t('pages.integrations.instructionsDialog.step2.steps.aspsp') }} <span class="text-white">{{ t('pages.integrations.instructionsDialog.step2.steps.aspspValue') }}</span></li>
+                    <li>2.3 {{ t('pages.integrations.instructionsDialog.step2.steps.usageType') }} <span class="text-white">{{ t('pages.integrations.instructionsDialog.step2.steps.usageTypeValue') }}</span></li>
+                    <li>2.4 {{ t('pages.integrations.instructionsDialog.step2.steps.clickSave') }}</li>
                   </ul>
                 </p>
-                <p>3. You will be redirected to your banks' auth page. Login, and select all the accounts you want to connect</p>
-                <p>4. Once you finish auth flow, you will be redirected back to EnableBanking</p>
-                <p>5. Wait until selected accounts are displayed in the Application's card under "Linked accounts" field</p>
+                <p>3. {{ t('pages.integrations.instructionsDialog.step2.steps.redirect') }}</p>
+                <p>4. {{ t('pages.integrations.instructionsDialog.step2.steps.finishAuth') }}</p>
+                <p>5. {{ t('pages.integrations.instructionsDialog.step2.steps.waitAccounts') }}</p>
 
                 <div class="border p-3 mb-3 rounded border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400">
                   <TriangleAlertIcon class="size-5 inline" />
-
-                  It might be the case that some selected accounts are not linked. This is the problem on your bank's side which you cannot
-                  resolve by yourself. You can only wait a few hours/days until issue is resolved. If issue is not resolved, the only way is
-                  to report to EnableBanking.
+                  {{ t('pages.integrations.instructionsDialog.step2.warningNotLinked') }}
                 </div>
 
                 <div class="border rounded border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100">
                   <InfoIcon class="size-5 inline" />
-
-                  In case in the future you would like to connect more accounts, you will need to repeat the flow of linking accounts again.
-                  <strong>Keep in mind</strong> that when adding NEW accounts you still need to select OLD accounts – basically you need to
-                  select ALL accounts you want to be connected.
+                  <i18n-t keypath="pages.integrations.instructionsDialog.step2.infoAddMore" tag="span">
+                    <template #strong>
+                      <strong>{{ t('pages.integrations.instructionsDialog.step2.infoAddMoreStrong') }}</strong>
+                    </template>
+                  </i18n-t>
                 </div>
               </div>
             </CollapsibleContent>
@@ -169,7 +177,7 @@
               >
                 3
               </div>
-              <span class="flex-1 font-semibold">Get Your Credentials</span>
+              <span class="flex-1 font-semibold">{{ t('pages.integrations.instructionsDialog.step3.title') }}</span>
               <ChevronDownIcon
                 class="size-5 shrink-0 transition-transform duration-200"
                 :class="{ 'rotate-180': isOpen }"
@@ -177,18 +185,29 @@
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div class="text-muted-foreground border-t px-3 py-3 pl-12">
-                <p class="mb-2">From the Enable Banking portal:</p>
+                <p class="mb-2">{{ t('pages.integrations.instructionsDialog.step3.intro') }}</p>
                 <ul class="list-inside list-disc space-y-1">
                   <li>
-                    <strong>Application ID:</strong> Copy the <code class="bg-muted rounded px-1">app_id</code> from
-                    your application details
+                    <i18n-t keypath="pages.integrations.instructionsDialog.step3.appId" tag="span">
+                      <template #strong>
+                        <strong>{{ t('pages.integrations.instructionsDialog.step3.appIdStrong') }}</strong>
+                      </template>
+                      <template #code>
+                        <code class="bg-muted rounded px-1">{{ t('pages.integrations.instructionsDialog.step3.appIdCode') }}</code>
+                      </template>
+                    </i18n-t>
                     <br />
-                    Example: <code class="bg-muted rounded px-1"> 0f711c28-1682-27b5-946c-e221168abf79 </code>
+                    {{ t('pages.integrations.instructionsDialog.step3.appIdExample') }} <code class="bg-muted rounded px-1">0f711c28-1682-27b5-946c-e221168abf79</code>
                   </li>
                   <li>
-                    <strong>Private Key:</strong> Open your saved
-                    <code class="bg-muted rounded px-1">private.pem</code> file via some text editor (TextEdit on MacOS
-                    or Notepad on Windows) and copy its entire content (including the BEGIN and END lines)
+                    <i18n-t keypath="pages.integrations.instructionsDialog.step3.privateKey" tag="span">
+                      <template #strong>
+                        <strong>{{ t('pages.integrations.instructionsDialog.step3.privateKeyStrong') }}</strong>
+                      </template>
+                      <template #code>
+                        <code class="bg-muted rounded px-1">{{ t('pages.integrations.instructionsDialog.step3.privateKeyCode') }}</code>
+                      </template>
+                    </i18n-t>
                   </li>
                 </ul>
               </div>
@@ -200,11 +219,9 @@
           <div class="flex gap-2">
             <InfoIcon class="mt-0.5 size-5 shrink-0 text-blue-600 dark:text-blue-400" />
             <div>
-              <p class="mb-1 font-semibold text-blue-900 dark:text-blue-100">Security Note</p>
+              <p class="mb-1 font-semibold text-blue-900 dark:text-blue-100">{{ t('pages.integrations.instructionsDialog.securityNote.title') }}</p>
               <p class="text-xs text-blue-800 dark:text-blue-200">
-                Your private key is stored encrypted in our database and is only used to authenticate with Enable
-                Banking on your behalf. Token is limited to read-only data. Yet, never share your private key with
-                anyone else.
+                {{ t('pages.integrations.instructionsDialog.securityNote.text') }}
               </p>
             </div>
           </div>
@@ -212,7 +229,7 @@
       </div>
 
       <DialogFooter class="mt-6">
-        <UiButton @click="$emit('update:open', false)">Got it</UiButton>
+        <UiButton @click="$emit('update:open', false)">{{ t('pages.integrations.instructionsDialog.gotItButton') }}</UiButton>
       </DialogFooter>
     </DialogContent>
   </Dialog>
@@ -232,6 +249,9 @@ import {
   DialogTitle,
 } from '@/components/lib/ui/dialog';
 import { ChevronDownIcon, InfoIcon, TriangleAlertIcon } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 defineProps<{
   open: boolean;

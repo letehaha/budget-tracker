@@ -4,16 +4,18 @@
       <slot />
     </template>
 
-    <template #title>Delete Transaction</template>
+    <template #title>{{ $t('dialogs.deleteInvestmentTransaction.title') }}</template>
     <template #description>
-      Are you sure you want to delete this transaction? This action cannot be undone.
+      {{ $t('dialogs.deleteInvestmentTransaction.description') }}
     </template>
 
     <template #footer="{ close }">
-      <UiButton variant="ghost" @click="close">Cancel</UiButton>
+      <UiButton variant="ghost" @click="close">{{ $t('dialogs.deleteInvestmentTransaction.cancelButton') }}</UiButton>
       <UiButton variant="destructive" :disabled="deleteTransactionMutation.isPending.value" @click="handleDelete">
-        <span v-if="deleteTransactionMutation.isPending.value">Deleting...</span>
-        <span v-else>Delete</span>
+        <span v-if="deleteTransactionMutation.isPending.value">{{
+          $t('dialogs.deleteInvestmentTransaction.deleteButtonLoading')
+        }}</span>
+        <span v-else>{{ $t('dialogs.deleteInvestmentTransaction.deleteButton') }}</span>
       </UiButton>
     </template>
   </ResponsiveDialog>
@@ -25,6 +27,9 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useDeleteInvestmentTransaction } from '@/composable/data-queries/investment-transactions';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   transactionId: number;
@@ -41,11 +46,11 @@ const isOpen = ref(false);
 const handleDelete = async () => {
   try {
     await deleteTransactionMutation.mutateAsync(props.transactionId);
-    addSuccessNotification('Transaction deleted successfully.');
+    addSuccessNotification(t('dialogs.deleteInvestmentTransaction.notifications.success'));
     isOpen.value = false;
     emit('deleted');
   } catch {
-    addErrorNotification('Failed to delete transaction.');
+    addErrorNotification(t('dialogs.deleteInvestmentTransaction.notifications.error'));
   }
 };
 </script>

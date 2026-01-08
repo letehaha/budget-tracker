@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { until } from '@common/helpers';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
+import { i18nextReady } from '@i18n/index';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
@@ -54,7 +55,11 @@ jest.mock('../services/investments/data-providers/clients/fmp-client', () => ({
   })),
 }));
 
-beforeAll(() => mswMockServer.listen({ onUnhandledRequest: 'bypass' }));
+beforeAll(async () => {
+  mswMockServer.listen({ onUnhandledRequest: 'bypass' });
+  // Wait for i18next to fully load all locale files before tests run
+  await i18nextReady;
+});
 afterEach(() => {
   mswMockServer.resetHandlers();
   // Reset Enable Banking session counter to ensure test isolation
@@ -249,9 +254,11 @@ beforeEach(async () => {
     const testPassword = 'testpassword123';
 
     // Create the app user with default categories using the shared service
+    // Pass 'en' locale explicitly since tests run without AsyncLocalStorage context
     await createUserWithDefaults({
       username: 'test1',
       authUserId: 'test-user-id', // This must match what the mock returns
+      locale: 'en',
     });
 
     // Create better-auth records (ba_*) for test user

@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Budgets from '@models/Budget.model';
 import { withTransaction } from '@services/common/with-transaction';
@@ -18,7 +19,7 @@ export const editBudget = withTransaction(async ({ id, userId, ...params }: Edit
   });
 
   if (!budget) {
-    throw new NotFoundError({ message: 'Budget not found' });
+    throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
   }
 
   await budget.update(params);

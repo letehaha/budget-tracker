@@ -18,6 +18,7 @@ import { AccountModel, PortfolioModel, UserCurrencyModel } from '@bt/shared/type
 import { minValue, required } from '@vuelidate/validators';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 interface Emit {
   (e: 'success'): void;
@@ -37,6 +38,7 @@ const props = defineProps<{
 
 const emit = defineEmits<Emit>();
 
+const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
 const { systemAccounts } = storeToRefs(useAccountsStore());
@@ -75,11 +77,23 @@ const transferType = computed(() => form.transferTypeOption?.value || 'portfolio
 const transferTypeOptions = computed(() => {
   if (props.context === 'portfolio') {
     return [
-      { value: 'portfolio-to-portfolio' as TransferType, label: 'To Another Portfolio' },
-      { value: 'portfolio-to-account' as TransferType, label: 'To Account' },
+      {
+        value: 'portfolio-to-portfolio' as TransferType,
+        label: t('forms.portfolioTransfer.transferTypes.portfolioToPortfolio'),
+      },
+      {
+        value: 'portfolio-to-account' as TransferType,
+        label: t('forms.portfolioTransfer.transferTypes.portfolioToAccount'),
+      },
     ];
   } else {
-    return [{ value: 'account-to-portfolio' as TransferType, label: 'To Portfolio (Coming Soon)', disabled: true }];
+    return [
+      {
+        value: 'account-to-portfolio' as TransferType,
+        label: t('forms.portfolioTransfer.transferTypes.accountToPortfolio'),
+        disabled: true,
+      },
+    ];
   }
 });
 
@@ -142,7 +156,9 @@ const showToAccount = computed(() => transferType.value === 'portfolio-to-accoun
 
 // Dynamic labels based on context
 const amountLabel = computed(() => {
-  return form.selectedCurrency ? `Amount (${form.selectedCurrency.currency.code})` : 'Amount';
+  return form.selectedCurrency
+    ? t('forms.portfolioTransfer.amountLabelWithCurrency', { currency: form.selectedCurrency.currency.code })
+    : t('forms.portfolioTransfer.amountLabel');
 });
 
 // Form validation
@@ -168,8 +184,8 @@ const { isFormValid, getFieldErrorMessage, touchField, resetValidation } = useFo
   {},
   {
     customValidationMessages: {
-      required: 'This field is required',
-      minValue: 'Amount must be greater than 0',
+      required: t('forms.portfolioTransfer.validation.required'),
+      minValue: t('forms.portfolioTransfer.validation.minValue'),
     },
   },
 );
@@ -296,14 +312,14 @@ const confirmTransfer = async () => {
     } else {
       // Account-to-portfolio transfers - disabled until post-MVP implementation
       addNotification({
-        text: 'Account-to-portfolio transfers are coming in a future update!',
+        text: t('forms.portfolioTransfer.notifications.comingSoon'),
         type: NotificationType.info,
       });
       return;
     }
 
     addNotification({
-      text: 'Transfer completed successfully.',
+      text: t('forms.portfolioTransfer.notifications.success'),
       type: NotificationType.success,
     });
 
@@ -312,7 +328,7 @@ const confirmTransfer = async () => {
     emit('success');
   } catch (error) {
     addNotification({
-      text: error instanceof Error ? error.message : 'Transfer failed. Please try again.',
+      text: error instanceof Error ? error.message : t('forms.portfolioTransfer.notifications.error'),
       type: NotificationType.error,
     });
   }
@@ -333,7 +349,7 @@ const isSubmitDisabled = computed(
   <form class="grid w-full max-w-[600px] gap-6" @submit.prevent="onSubmit">
     <SelectField
       v-model="form.transferTypeOption"
-      label="Transfer Type"
+      :label="$t('forms.portfolioTransfer.transferTypeLabel')"
       :values="transferTypeOptions"
       value-key="value"
       label-key="label"
@@ -343,60 +359,60 @@ const isSubmitDisabled = computed(
 
     <!-- Coming Soon Notice for Account Context -->
     <div v-if="props.context === 'account'" class="text-muted-foreground text-sm italic">
-      💡 Account-to-portfolio transfers are coming in a future update!
+      {{ $t('forms.portfolioTransfer.comingSoonNotice') }}
     </div>
 
     <SelectField
       v-if="showFromPortfolio"
       v-model="form.fromPortfolio"
-      label="From Portfolio"
+      :label="$t('forms.portfolioTransfer.fromPortfolioLabel')"
       :values="availableFromPortfolios"
       value-key="id"
       label-key="name"
-      placeholder="Select source portfolio"
+      :placeholder="$t('forms.portfolioTransfer.fromPortfolioPlaceholder')"
       :disabled="createTransferMutation.isPending.value || disabled || props.context === 'portfolio'"
     />
 
     <SelectField
       v-if="showFromAccount"
       v-model="form.fromAccount"
-      label="From Account"
+      :label="$t('forms.portfolioTransfer.fromAccountLabel')"
       :values="availableFromAccounts"
       value-key="id"
       label-key="name"
-      placeholder="Select source account"
+      :placeholder="$t('forms.portfolioTransfer.fromAccountPlaceholder')"
       :disabled="createTransferMutation.isPending.value || disabled || props.context === 'account'"
     />
 
     <SelectField
       v-if="showToPortfolio"
       v-model="form.toPortfolio"
-      label="To Portfolio"
+      :label="$t('forms.portfolioTransfer.toPortfolioLabel')"
       :values="availableToPortfolios"
       value-key="id"
       label-key="name"
-      placeholder="Select destination portfolio"
+      :placeholder="$t('forms.portfolioTransfer.toPortfolioPlaceholder')"
       :disabled="createTransferMutation.isPending.value || disabled"
     />
 
     <SelectField
       v-if="showToAccount"
       v-model="form.toAccount"
-      label="To Account"
+      :label="$t('forms.portfolioTransfer.toAccountLabel')"
       :values="availableToAccounts"
       value-key="id"
       label-key="name"
-      placeholder="Select destination account"
+      :placeholder="$t('forms.portfolioTransfer.toAccountPlaceholder')"
       :disabled="createTransferMutation.isPending.value || disabled"
     />
 
     <SelectField
       v-model="form.selectedCurrency"
-      label="Currency"
+      :label="$t('forms.portfolioTransfer.currencyLabel')"
       :values="currencies || []"
       value-key="currencyCode"
       :label-key="(currency) => currency.currency.code"
-      placeholder="Select currency"
+      :placeholder="$t('forms.portfolioTransfer.currencyPlaceholder')"
       :disabled="createTransferMutation.isPending.value || disabled"
       :error-message="getFieldErrorMessage('form.selectedCurrency')"
     />
@@ -407,7 +423,7 @@ const isSubmitDisabled = computed(
       type="number"
       step="0.01"
       min="0.01"
-      placeholder="0.00"
+      :placeholder="$t('forms.portfolioTransfer.amountPlaceholder')"
       :disabled="createTransferMutation.isPending.value || disabled"
       :error="getFieldErrorMessage('form.amount')"
       @blur="touchField('form.amount')"
@@ -415,7 +431,7 @@ const isSubmitDisabled = computed(
 
     <DateField
       v-model="form.date"
-      label="Date"
+      :label="$t('forms.portfolioTransfer.dateLabel')"
       :disabled="createTransferMutation.isPending.value || disabled"
       :error-message="getFieldErrorMessage('form.date')"
       @blur="touchField('form.date')"
@@ -423,8 +439,8 @@ const isSubmitDisabled = computed(
 
     <TextareaField
       v-model="form.description"
-      label="Description (optional)"
-      placeholder="Add a note about this transfer..."
+      :label="$t('forms.portfolioTransfer.descriptionLabel')"
+      :placeholder="$t('forms.portfolioTransfer.descriptionPlaceholder')"
       :disabled="createTransferMutation.isPending.value || disabled"
     />
 
@@ -435,29 +451,44 @@ const isSubmitDisabled = computed(
         @click="emit('cancel')"
         :disabled="createTransferMutation.isPending.value || disabled"
       >
-        Cancel
+        {{ $t('forms.portfolioTransfer.cancelButton') }}
       </UiButton>
       <UiButton type="submit" class="min-w-[120px]" :disabled="isSubmitDisabled">
-        {{ createTransferMutation.isPending.value ? 'Processing...' : 'Transfer' }}
+        {{
+          createTransferMutation.isPending.value
+            ? $t('forms.portfolioTransfer.submitButtonLoading')
+            : $t('forms.portfolioTransfer.submitButton')
+        }}
       </UiButton>
     </div>
 
     <AlertDialog.AlertDialog v-model:open="showConfirmDialog">
       <AlertDialog.AlertDialogContent>
         <AlertDialog.AlertDialogHeader>
-          <AlertDialog.AlertDialogTitle>Confirm Transfer</AlertDialog.AlertDialogTitle>
+          <AlertDialog.AlertDialogTitle>{{
+            $t('forms.portfolioTransfer.confirmDialog.title')
+          }}</AlertDialog.AlertDialogTitle>
           <AlertDialog.AlertDialogDescription>
-            Are you sure you want to transfer
-            <strong>{{ confirmDialogData?.amount }} {{ confirmDialogData?.currency }}</strong>
-            from <strong>{{ confirmDialogData?.from }}</strong> to <strong>{{ confirmDialogData?.to }}</strong
-            >? <br /><br />
-            This action cannot be undone.
+            <span
+              v-html="
+                $t('forms.portfolioTransfer.confirmDialog.description', {
+                  amount: confirmDialogData?.amount,
+                  currency: confirmDialogData?.currency,
+                  from: confirmDialogData?.from,
+                  to: confirmDialogData?.to,
+                })
+              "
+            ></span>
+            <br /><br />
+            {{ $t('forms.portfolioTransfer.confirmDialog.warning') }}
           </AlertDialog.AlertDialogDescription>
         </AlertDialog.AlertDialogHeader>
         <AlertDialog.AlertDialogFooter>
-          <AlertDialog.AlertDialogCancel>Cancel</AlertDialog.AlertDialogCancel>
+          <AlertDialog.AlertDialogCancel>{{
+            $t('forms.portfolioTransfer.confirmDialog.cancelButton')
+          }}</AlertDialog.AlertDialogCancel>
           <AlertDialog.AlertDialogAction variant="default" @click="confirmTransfer">
-            Confirm Transfer
+            {{ $t('forms.portfolioTransfer.confirmDialog.confirmButton') }}
           </AlertDialog.AlertDialogAction>
         </AlertDialog.AlertDialogFooter>
       </AlertDialog.AlertDialogContent>

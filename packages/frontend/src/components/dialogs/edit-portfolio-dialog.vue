@@ -25,8 +25,8 @@ const handleUpdated = () => {
       <slot />
     </template>
 
-    <template #title>Edit Portfolio</template>
-    <template #description>Update name, type or description of your portfolio.</template>
+    <template #title>{{ $t('dialogs.editPortfolio.title') }}</template>
+    <template #description>{{ $t('dialogs.editPortfolio.description') }}</template>
 
     <PortfolioSettingsForm :portfolio="portfolio" @updated="handleUpdated" @cancel="isOpen = false" />
   </ResponsiveDialog>

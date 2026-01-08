@@ -1,3 +1,4 @@
+import { i18n } from '@/i18n';
 import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { buildSystemExpenseTransaction, buildSystemIncomeTransaction } from '@tests/mocks';
 import { getUahAccount } from '@tests/mocks/accounts';
@@ -30,6 +31,9 @@ describe('Record TypeSelector component', () => {
           isFormCreation: false,
           transaction,
         },
+        global: {
+          plugins: [i18n],
+        },
       });
 
       const buttons = wrapper.findAll('button');
@@ -50,6 +54,9 @@ describe('Record TypeSelector component', () => {
             isFormCreation: false,
             transaction,
             account: getUahAccount(),
+          },
+          global: {
+            plugins: [i18n],
           },
         });
 

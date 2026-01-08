@@ -9,6 +9,9 @@ import { AccountModel } from '@bt/shared/types';
 import { differenceInDays, format, subDays } from 'date-fns';
 import { CalendarIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   account: AccountModel;
@@ -35,7 +38,7 @@ const isLoading = ref(false);
 const loadTransactionsForPeriod = async () => {
   if (!props.account.bankDataProviderConnectionId) {
     addNotification({
-      text: 'This account is not linked to a bank connection',
+      text: t('pages.account.loadTransactions.notLinked'),
       type: NotificationType.error,
     });
     return;
@@ -48,7 +51,7 @@ const loadTransactionsForPeriod = async () => {
     const daysDiff = differenceInDays(end, start);
     if (daysDiff > 365) {
       addNotification({
-        text: 'Date range cannot exceed 1 year',
+        text: t('pages.account.loadTransactions.dateRangeExceeds'),
         type: NotificationType.error,
       });
       return;
@@ -78,7 +81,7 @@ const loadTransactionsForPeriod = async () => {
   } catch (error) {
     const e = error as { data?: { message?: string } };
     addNotification({
-      text: e?.data?.message || 'Failed to load transactions',
+      text: e?.data?.message || t('pages.account.loadTransactions.failed'),
       type: NotificationType.error,
       visibilityTime: 10_000, // 10 seconds for error messages to give user time to read
     });
@@ -90,12 +93,16 @@ const loadTransactionsForPeriod = async () => {
 
 <template>
   <div class="flex items-center justify-between">
-    <p>Load transactions for selected period</p>
+    <p>{{ t('pages.account.loadTransactions.title') }}</p>
 
     <Popover.Popover :open="selectorVisible" @update:open="selectorVisible = $event">
       <Popover.PopoverTrigger as-child>
         <Button :disabled="isLoading || isAccountSyncing" class="min-w-[100px]" size="sm">
-          {{ isLoading || isAccountSyncing ? 'Loading...' : 'Select period' }}
+          {{
+            isLoading || isAccountSyncing
+              ? t('pages.account.loadTransactions.loading')
+              : t('pages.account.loadTransactions.selectPeriod')
+          }}
         </Button>
       </Popover.PopoverTrigger>
 
@@ -116,7 +123,9 @@ const loadTransactionsForPeriod = async () => {
         />
 
         <div class="flex justify-end">
-          <Button :disabled="isLoading" @click="loadTransactionsForPeriod"> Load transactions </Button>
+          <Button :disabled="isLoading" @click="loadTransactionsForPeriod">{{
+            t('pages.account.loadTransactions.loadButton')
+          }}</Button>
         </div>
       </Popover.PopoverContent>
     </Popover.Popover>

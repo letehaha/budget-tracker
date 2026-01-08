@@ -8,7 +8,7 @@
         :model-value="selectedOptionObject"
         :values="accountOptions"
         label="How do you want to assign accounts?"
-        placeholder="Select option..."
+        :placeholder="$t('pages.importExport.common.selectOption')"
         @update:model-value="handleOptionChange"
       />
       <p class="text-muted-foreground mt-1 text-xs">Choose how accounts should be assigned to imported transactions</p>
@@ -20,7 +20,7 @@
         :model-value="accountColumnObject"
         :values="columnOptions"
         label="Account Column"
-        placeholder="Select column..."
+        :placeholder="$t('pages.importExport.common.selectColumn')"
         @update:model-value="handleColumnChange"
       />
       <p class="text-muted-foreground mt-1 text-xs">Select the CSV column that contains account names</p>
@@ -34,7 +34,7 @@
         label="Account"
         label-key="name"
         value-key="id"
-        placeholder="Select account..."
+        :placeholder="$t('pages.importExport.accountMapping.selectAccount')"
         with-search
         :search-keys="['name']"
         @update:model-value="handleAccountSelect"

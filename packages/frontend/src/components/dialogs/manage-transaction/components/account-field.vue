@@ -3,10 +3,10 @@
     <template v-if="isTransferTransaction && !isTransactionLinking">
       <form-row>
         <select-field
-          label="From account"
-          placeholder="Select account"
+          :label="$t('dialogs.manageTransaction.form.fromAccountLabel')"
+          :placeholder="$t('dialogs.manageTransaction.form.selectAccountPlaceholder')"
           :values="accounts"
-          label-key="name"
+          :label-key="getAccountLabel"
           value-key="id"
           with-search
           :disabled="disabled || fromAccountDisabled"
@@ -16,7 +16,9 @@
         >
           <template #select-bottom-content>
             <CreateAccountDialog>
-              <UiButton type="button" class="mt-4 w-full" variant="link"> Add new account + </UiButton>
+              <UiButton type="button" class="mt-4 w-full" variant="link">
+                {{ $t('dialogs.manageTransaction.form.addNewAccountButton') }}
+              </UiButton>
             </CreateAccountDialog>
           </template>
         </select-field>
@@ -24,10 +26,10 @@
 
       <form-row>
         <select-field
-          label="To account"
-          placeholder="Select account"
+          :label="$t('dialogs.manageTransaction.form.toAccountLabel')"
+          :placeholder="$t('dialogs.manageTransaction.form.selectAccountPlaceholder')"
           :values="filteredAccounts"
-          label-key="name"
+          :label-key="getAccountLabel"
           value-key="id"
           with-search
           :disabled="disabled || toAccountDisabled"
@@ -36,7 +38,9 @@
         >
           <template #select-bottom-content>
             <CreateAccountDialog>
-              <UiButton type="button" class="mt-4 w-full" variant="link"> Add new account + </UiButton>
+              <UiButton type="button" class="mt-4 w-full" variant="link">
+                {{ $t('dialogs.manageTransaction.form.addNewAccountButton') }}
+              </UiButton>
             </CreateAccountDialog>
           </template>
         </select-field>
@@ -45,10 +49,10 @@
     <template v-else>
       <form-row>
         <select-field
-          label="Account"
-          placeholder="Select account"
+          :label="$t('dialogs.manageTransaction.form.accountLabel')"
+          :placeholder="$t('dialogs.manageTransaction.form.selectAccountPlaceholder')"
           :values="accounts"
-          label-key="name"
+          :label-key="getAccountLabel"
           value-key="id"
           with-search
           :disabled="disabled || fromAccountDisabled"
@@ -58,7 +62,9 @@
         >
           <template #select-bottom-content>
             <CreateAccountDialog>
-              <UiButton type="button" class="mt-4 w-full" variant="link"> Add new account + </UiButton>
+              <UiButton type="button" class="mt-4 w-full" variant="link">
+                {{ $t('dialogs.manageTransaction.form.addNewAccountButton') }}
+              </UiButton>
             </CreateAccountDialog>
           </template>
         </select-field>
@@ -67,10 +73,17 @@
   </template>
   <template v-else>
     <form-row>
-      <input-field model-value="No account exists" label="Account" readonly :disabled="disabled">
+      <input-field
+        :model-value="$t('dialogs.manageTransaction.form.noAccountExists')"
+        :label="$t('dialogs.manageTransaction.form.accountLabel')"
+        readonly
+        :disabled="disabled"
+      >
         <template #label-right>
           <CreateAccountDialog>
-            <div class="text-primary cursor-pointer hover:underline">Create account</div>
+            <div class="text-primary cursor-pointer hover:underline">
+              {{ $t('dialogs.manageTransaction.form.createAccountLink') }}
+            </div>
           </CreateAccountDialog>
         </template>
       </input-field>
@@ -84,8 +97,19 @@ import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { AccountModel, TRANSACTION_TYPES } from '@bt/shared/types';
+import { useI18n } from 'vue-i18n';
 
 import FormRow from './form-row.vue';
+
+const { t } = useI18n();
+
+// Helper to get account label - translates if it's a translation key (for OUT_OF_WALLET_ACCOUNT_MOCK)
+const getAccountLabel = (account: AccountModel & { _isOutOfWallet?: boolean }) => {
+  if (account._isOutOfWallet) {
+    return t(account.name);
+  }
+  return account.name;
+};
 
 withDefaults(
   defineProps<{

@@ -2,7 +2,7 @@
   <WidgetWrapper :is-fetching="isWidgetDataFetching">
     <template #title>
       <div class="flex items-center gap-2">
-        Expenses Structure
+        {{ $t('dashboard.widgets.expensesStructure.title') }}
 
         <template v-if="hasExcludedStats">
           <Popover.Popover>
@@ -14,11 +14,11 @@
             <Popover.PopoverContent class="max-w-[300px] text-sm">
               <div>
                 <p>
-                  Some categories are excluded.
+                  {{ $t('dashboard.widgets.expensesStructure.excludedCategories.message') }}
                   <router-link to="/settings/categories" class="text-primary hover:underline" as="span">
-                    Update settings
+                    {{ $t('dashboard.widgets.expensesStructure.excludedCategories.updateSettings') }}
                   </router-link>
-                  to change this behavior.
+                  {{ $t('dashboard.widgets.expensesStructure.excludedCategories.changeBehavior') }}
                 </p>
                 <div class="mt-3 grid gap-2">
                   <template v-for="categoryId of excludedCategories" :key="categoryId">
@@ -39,8 +39,8 @@
     <!-- Always show header section to prevent layout jumps -->
     <div>
       <div class="mb-1 flex items-center justify-between text-xs">
-        <div class="font-medium tracking-tight uppercase">Today</div>
-        <div class="tracking-tight">vs previous period</div>
+        <div class="font-medium tracking-tight uppercase">{{ $t('dashboard.widgets.expensesStructure.today') }}</div>
+        <div class="tracking-tight">{{ $t('dashboard.widgets.expensesStructure.vsPreviousPeriod') }}</div>
       </div>
 
       <div class="flex items-center justify-between">
@@ -97,7 +97,7 @@
               class="mt-1 h-6 gap-1 px-2 text-xs"
               @click="navigateToTransactions({ categoryId: selectedCategoryId! })"
             >
-              View
+              {{ $t('dashboard.widgets.expensesStructure.viewButton') }}
               <ExternalLinkIcon class="size-3" />
             </Button>
           </div>

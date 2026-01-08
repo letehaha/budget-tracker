@@ -1,4 +1,5 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { t } from '@i18n/index';
 import { ConflictError, NotFoundError } from '@js/errors';
 import Portfolios from '@models/investments/Portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
@@ -27,7 +28,7 @@ const updatePortfolioImpl = async ({
   });
 
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   // Check if another portfolio with same name already exists for this user (only if name is being updated)
@@ -41,7 +42,7 @@ const updatePortfolioImpl = async ({
     });
 
     if (existingPortfolio) {
-      throw new ConflictError({ message: 'Portfolio with this name already exists' });
+      throw new ConflictError({ message: t({ key: 'investments.portfolioNameExists' }) });
     }
   }
 

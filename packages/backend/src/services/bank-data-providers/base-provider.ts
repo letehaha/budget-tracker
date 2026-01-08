@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
@@ -37,7 +38,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
 
     if (!connection) {
       throw new NotFoundError({
-        message: `Bank data provider connection ${connectionId} not found`,
+        message: t({ key: 'errors.connectionIdNotFound', variables: { connectionId } }),
       });
     }
 
@@ -63,7 +64,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
 
     if (!account) {
       throw new NotFoundError({
-        message: `Account ${systemAccountId} not found`,
+        message: t({ key: 'errors.accountIdNotFound', variables: { accountId: systemAccountId } }),
       });
     }
 
@@ -88,7 +89,14 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
   protected validateProviderType(connection: BankDataProviderConnections): void {
     if (connection.providerType !== this.metadata.type) {
       throw new Error(
-        `Connection ${connection.id} is for provider ${connection.providerType}, not ${this.metadata.type}`,
+        t({
+          key: 'errors.providerTypeMismatch',
+          variables: {
+            connectionId: connection.id,
+            actualType: connection.providerType,
+            expectedType: this.metadata.type,
+          },
+        }),
       );
     }
   }

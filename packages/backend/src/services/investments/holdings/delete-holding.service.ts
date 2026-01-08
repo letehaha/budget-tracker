@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotAllowedError, NotFoundError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
 import Portfolios from '@models/investments/Portfolios.model';
@@ -12,7 +13,7 @@ interface DeleteParams {
 const deleteHoldingImpl = async ({ userId, portfolioId, securityId }: DeleteParams) => {
   const portfolio = await Portfolios.findOne({ where: { id: portfolioId, userId } });
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found.' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   const holding = await Holdings.findOne({
@@ -27,7 +28,7 @@ const deleteHoldingImpl = async ({ userId, portfolioId, securityId }: DeletePara
   // need to confirm that user wants this, and if so - remove holding with(out) all transactions?
   if (parseFloat(holding.quantity) !== 0) {
     throw new NotAllowedError({
-      message: 'Cannot delete a holding with an active position. Please sell or transfer all shares first.',
+      message: t({ key: 'investments.cannotDeleteHoldingWithActivePosition' }),
     });
   }
 

@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { parse } from 'csv-parse/sync';
 
@@ -78,7 +79,7 @@ export function parseCSV({
   }) as string[][];
 
   if (records.length === 0) {
-    throw new ValidationError({ message: 'CSV file is empty' });
+    throw new ValidationError({ message: t({ key: 'csvImport.csvFileEmpty' }) });
   }
 
   // First row is headers
@@ -86,7 +87,7 @@ export function parseCSV({
 
   // Validate headers
   if (!headers || headers.length === 0) {
-    throw new ValidationError({ message: 'CSV file has no headers' });
+    throw new ValidationError({ message: t({ key: 'csvImport.csvFileNoHeaders' }) });
   }
 
   // Convert data rows to objects

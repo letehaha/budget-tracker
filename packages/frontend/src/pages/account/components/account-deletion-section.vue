@@ -8,6 +8,7 @@ import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
 import { AccountModel, TransactionModel } from '@bt/shared/types';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import AccountUnlinkSection from './account-unlink-section.vue';
@@ -20,6 +21,7 @@ const router = useRouter();
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { t } = useI18n();
 const confirmAccountName = ref('');
 const accountHasTransactions = computed(() => props.transactions.length > 0);
 
@@ -31,10 +33,10 @@ const deleteAccount = async () => {
     await accountsStore.deleteAccount({
       id: props.account.id,
     });
-    addSuccessNotification(`Account ${accountName} removed successfully`);
+    addSuccessNotification(t('pages.account.deletion.success', { accountName }));
     router.push({ name: ROUTES_NAMES.accounts });
   } catch {
-    addErrorNotification('An error occured while trying to delete account');
+    addErrorNotification(t('pages.account.deletion.error'));
   }
 };
 </script>
@@ -87,7 +89,7 @@ const deleteAccount = async () => {
 
           <InputField
             v-model="confirmAccountName"
-            placeholder="Type account name to confirm"
+            :placeholder="$t('pages.account.deletion.confirmPlaceholder')"
             class="border-destructive focus-visible:outline-destructive"
           />
         </template>

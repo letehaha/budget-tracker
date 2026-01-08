@@ -22,6 +22,7 @@ import { SplitIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import AccountField from './components/account-field.vue';
@@ -77,6 +78,7 @@ const closeModal = () => {
 };
 
 const route = useRoute();
+const { t } = useI18n();
 watch(() => route.path, closeModal);
 
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
@@ -329,14 +331,20 @@ onUnmounted(() => {
     <FormRow>
       <SelectField
         v-model="form.paymentType"
-        label="Payment Type"
+        :label="$t('dialogs.manageTransaction.form.paymentTypeLabel')"
         :disabled="isFormFieldsDisabled || isRecordExternal"
         :values="VERBOSE_PAYMENT_TYPES"
+        :label-key="(item) => t(item.label)"
         is-value-preselected
       />
     </FormRow>
     <FormRow>
-      <TextareaField v-model="form.note" placeholder="Note" :disabled="isFormFieldsDisabled" label="Note (optional)" />
+      <TextareaField
+        v-model="form.note"
+        :placeholder="$t('dialogs.manageTransaction.form.notePlaceholder')"
+        :disabled="isFormFieldsDisabled"
+        :label="$t('dialogs.manageTransaction.form.noteLabel')"
+      />
     </FormRow>
     <template v-if="!isTransferTx">
       <FormRow>
@@ -368,12 +376,12 @@ onUnmounted(() => {
     <div class="mb-4 flex items-center justify-between px-6 py-3">
       <DialogTitle>
         <span class="text-2xl">
-          {{ isFormCreation ? 'Add Transaction' : 'Edit Transaction' }}
+          {{ isFormCreation ? $t('transactions.form.addTitle') : $t('transactions.form.editTitle') }}
         </span>
       </DialogTitle>
 
       <DialogClose>
-        <Button variant="ghost"> Close </Button>
+        <Button variant="ghost"> {{ $t('dialogs.manageTransaction.form.closeButton') }} </Button>
       </DialogClose>
     </div>
     <div class="relative grid grid-cols-1 md:grid-cols-[450px_minmax(0,1fr)]">
@@ -392,11 +400,11 @@ onUnmounted(() => {
           <form-row>
             <input-field
               v-model="form.amount"
-              label="Amount"
+              :label="$t('dialogs.manageTransaction.form.amountLabel')"
               type="number"
               :disabled="isFormFieldsDisabled || isAmountFieldDisabled"
               only-positive
-              placeholder="Amount"
+              :placeholder="$t('dialogs.manageTransaction.form.amountPlaceholder')"
               autofocus
             >
               <template #iconTrailing>
@@ -422,7 +430,7 @@ onUnmounted(() => {
             <form-row>
               <category-select-field
                 v-model="form.category"
-                label="Category"
+                :label="$t('dialogs.manageTransaction.form.categoryLabel')"
                 :values="formattedCategories"
                 label-key="name"
                 :disabled="isFormFieldsDisabled"
@@ -441,13 +449,17 @@ onUnmounted(() => {
                 >
                   <div class="flex items-center gap-2">
                     <SplitIcon class="text-muted-foreground size-4" />
-                    <span class="text-sm font-medium"> Split into {{ form.splits.length + 1 }} categories </span>
+                    <span class="text-sm font-medium">
+                      {{ $t('dialogs.manageTransaction.form.splitInfo', { count: form.splits.length + 1 }) }}
+                    </span>
                   </div>
                   <div class="flex items-center gap-2">
                     <span class="text-muted-foreground text-sm tabular-nums">
                       {{ formatUIAmount(splitsTotal, { currency: currencyCode }) }}
                     </span>
-                    <span class="text-muted-foreground text-xs">Edit</span>
+                    <span class="text-muted-foreground text-xs">{{
+                      $t('dialogs.manageTransaction.form.editSplit')
+                    }}</span>
                   </div>
                 </button>
               </template>
@@ -462,7 +474,7 @@ onUnmounted(() => {
                   @click="isSplitDialogOpen = true"
                 >
                   <SplitIcon class="mr-2 size-4 opacity-70" />
-                  Split into categories
+                  {{ $t('dialogs.manageTransaction.form.addSplitButton') }}
                 </Button>
               </template>
             </form-row>
@@ -483,8 +495,8 @@ onUnmounted(() => {
                 v-model="form.targetAmount"
                 :disabled="isFormFieldsDisabled || isTargetAmountFieldDisabled"
                 only-positive
-                label="Target amount"
-                placeholder="Target amount"
+                :label="$t('dialogs.manageTransaction.form.targetAmountLabel')"
+                :placeholder="$t('dialogs.manageTransaction.form.targetAmountPlaceholder')"
                 type="number"
               >
                 <template #iconTrailing>
@@ -508,7 +520,7 @@ onUnmounted(() => {
             <date-field
               v-model="form.time"
               :disabled="isFormFieldsDisabled || isRecordExternal"
-              label="Datetime"
+              :label="$t('dialogs.manageTransaction.form.datetimeLabel')"
               :calendar-options="{
                 maxDate: new Date(),
               }"
@@ -519,7 +531,9 @@ onUnmounted(() => {
         <template v-if="isMobileView">
           <Drawer.Drawer>
             <Drawer.DrawerTrigger class="w-full" as-child>
-              <Button variant="secondary" size="default" class="w-full"> More options </Button>
+              <Button variant="secondary" size="default" class="w-full">
+                {{ $t('dialogs.manageTransaction.form.moreOptionsButton') }}
+              </Button>
             </Drawer.DrawerTrigger>
 
             <Drawer.DrawerContent>
@@ -536,19 +550,29 @@ onUnmounted(() => {
             v-if="transaction && accountsRecord[transaction.accountId]?.type === ACCOUNT_TYPES.system"
             class="min-w-25"
             :disabled="isFormFieldsDisabled"
-            aria-label="Delete transaction"
+            :aria-label="$t('dialogs.manageTransaction.form.deleteAriaLabel')"
             variant="destructive"
             @click="deleteTransactionHandler"
           >
-            Delete
+            {{ $t('dialogs.manageTransaction.form.deleteButton') }}
           </Button>
           <Button
             class="ml-auto min-w-30"
-            :aria-label="isFormCreation ? 'Create transaction' : 'Edit transaction'"
+            :aria-label="
+              isFormCreation
+                ? $t('dialogs.manageTransaction.form.createAriaLabel')
+                : $t('dialogs.manageTransaction.form.editAriaLabel')
+            "
             :disabled="isFormFieldsDisabled"
             @click="submit"
           >
-            {{ isLoading ? 'Loading...' : isFormCreation ? 'Create' : 'Edit' }}
+            {{
+              isLoading
+                ? $t('dialogs.manageTransaction.form.loadingButton')
+                : isFormCreation
+                  ? $t('dialogs.manageTransaction.form.createButton')
+                  : $t('dialogs.manageTransaction.form.editButton')
+            }}
           </Button>
         </div>
       </div>

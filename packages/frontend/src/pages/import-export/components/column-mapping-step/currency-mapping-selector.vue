@@ -1,18 +1,20 @@
 <template>
   <div class="bg-muted/30 mt-6 rounded-lg border p-4">
-    <h3 class="mb-4 text-sm font-semibold">Currency Assignment <span class="text-destructive-text">*</span></h3>
+    <h3 class="mb-4 text-sm font-semibold">
+      {{ $t('pages.importExport.currencyMapping.title') }} <span class="text-destructive-text">*</span>
+    </h3>
 
     <!-- Option Selection -->
     <div class="mb-4">
       <SelectField
         :model-value="selectedOptionObject"
         :values="currencyOptions"
-        label="How do you want to assign currencies?"
-        placeholder="Select option..."
+        :label="$t('pages.importExport.currencyMapping.optionLabel')"
+        :placeholder="$t('pages.importExport.common.selectOption')"
         @update:model-value="handleOptionChange"
       />
       <p class="text-muted-foreground mt-1 text-xs">
-        Choose how currencies should be assigned to imported transactions
+        {{ $t('pages.importExport.currencyMapping.optionDescription') }}
       </p>
     </div>
 
@@ -21,11 +23,13 @@
       <SelectField
         :model-value="currencyColumnObject"
         :values="columnOptions"
-        label="Currency Column"
-        placeholder="Select column..."
+        :label="$t('pages.importExport.currencyMapping.columnLabel')"
+        :placeholder="$t('pages.importExport.common.selectColumn')"
         @update:model-value="handleColumnChange"
       />
-      <p class="text-muted-foreground mt-1 text-xs">Select the CSV column that contains currency codes</p>
+      <p class="text-muted-foreground mt-1 text-xs">
+        {{ $t('pages.importExport.currencyMapping.columnDescription') }}
+      </p>
     </div>
 
     <!-- Currency Selection (if existing-currency) -->
@@ -33,22 +37,24 @@
       <SelectField
         :model-value="selectedCurrency"
         :values="currencies"
-        label="Currency"
+        :label="$t('pages.importExport.currencyMapping.currencyLabel')"
         label-key="displayName"
         value-key="code"
-        placeholder="Select currency..."
+        :placeholder="$t('pages.importExport.currencyMapping.selectCurrency')"
         with-search
         :search-keys="['code', 'currency']"
         @update:model-value="handleCurrencySelect"
       />
-      <p class="text-muted-foreground mt-1 text-xs">All imported transactions will use this currency</p>
+      <p class="text-muted-foreground mt-1 text-xs">
+        {{ $t('pages.importExport.currencyMapping.currencyDescription') }}
+      </p>
     </div>
 
     <p
       v-if="selectedOption === CurrencyOptionValue.dataSourceColumn"
       class="bg-primary/10 border-primary mt-4 rounded-lg border p-3 text-sm"
     >
-      ℹ️ Each transaction will use the currency specified in the selected CSV column
+      {{ $t('pages.importExport.currencyMapping.dataSourceColumnInfo') }}
     </p>
   </div>
 </template>
@@ -59,6 +65,7 @@ import SelectField from '@/components/fields/select-field.vue';
 import { useImportExportStore } from '@/stores/import-export';
 import { CurrencyModel, CurrencyOptionValue } from '@bt/shared/types';
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 interface OptionItem {
   label: string;
@@ -69,6 +76,7 @@ interface CurrencyWithDisplay extends CurrencyModel {
   displayName: string;
 }
 
+const { t } = useI18n();
 const importStore = useImportExportStore();
 const currencies = ref<CurrencyWithDisplay[]>([]);
 
@@ -80,16 +88,16 @@ onMounted(async () => {
   }));
 });
 
-const currencyOptions: OptionItem[] = [
+const currencyOptions = computed<OptionItem[]>(() => [
   {
-    label: 'Map from CSV column',
+    label: t('pages.importExport.currencyMapping.methodOptions.dataSourceColumn'),
     value: CurrencyOptionValue.dataSourceColumn,
   },
   {
-    label: 'Use same currency for all transactions',
+    label: t('pages.importExport.currencyMapping.methodOptions.existingCurrency'),
     value: CurrencyOptionValue.existingCurrency,
   },
-];
+]);
 
 const columnOptions = computed<OptionItem[]>(() =>
   importStore.csvHeaders.map((header) => ({
@@ -105,7 +113,7 @@ const selectedOption = computed(() => {
 
 const selectedOptionObject = computed(() => {
   if (!selectedOption.value) return null;
-  return currencyOptions.find((opt) => opt.value === selectedOption.value) ?? null;
+  return currencyOptions.value.find((opt) => opt.value === selectedOption.value) ?? null;
 });
 
 const currencyColumn = computed(() => {

@@ -15,7 +15,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       size="default"
     >
       <LayoutDashboardIcon class="size-5 shrink-0" />
-      <span :class="{ 'max-sm:hidden': bottomNav }"> Dashboard </span>
+      <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.dashboard') }} </span>
     </ui-button>
   </router-link>
 
@@ -27,7 +27,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       size="default"
     >
       <LayersIcon class="size-5 shrink-0" />
-      <span :class="{ 'max-sm:hidden': bottomNav }"> Accounts </span>
+      <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.accounts') }} </span>
     </ui-button>
   </router-link>
 
@@ -39,7 +39,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       size="default"
     >
       <TrendingUpIcon class="size-5 shrink-0" />
-      <span :class="{ 'max-sm:hidden': bottomNav }"> Investments </span>
+      <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.investments') }} </span>
     </ui-button>
   </router-link>
 
@@ -51,7 +51,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       size="default"
     >
       <CreditCardIcon class="size-5 shrink-0" />
-      <span :class="{ 'max-sm:hidden': bottomNav }"> Transactions </span>
+      <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.transactions') }} </span>
     </ui-button>
   </router-link>
 
@@ -63,7 +63,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
       size="default"
     >
       <Wallet class="size-5 shrink-0" />
-      <span :class="{ 'max-sm:hidden': bottomNav }"> Budgets </span>
+      <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.budgets') }} </span>
     </ui-button>
   </router-link>
 </template>

@@ -9,6 +9,6 @@ const logoutHandler = useLogout();
 <template>
   <ui-button variant="secondary" class="mt-auto w-full justify-start gap-2 px-3" @click="logoutHandler">
     <LogOutIcon />
-    <span> Logout </span>
+    <span> {{ $t('navigation.logout') }} </span>
   </ui-button>
 </template>

@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
 import PortfolioBalances from '@models/investments/PortfolioBalances.model';
@@ -31,13 +32,13 @@ const updatePortfolioBalanceImpl = async ({
   });
 
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   // Verify currency exists
   const currency = await Currencies.findByPk(currencyCode);
   if (!currency) {
-    throw new NotFoundError({ message: 'Currency not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.currencyNotFound' }) });
   }
 
   // Find or create portfolio balance record

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
 defineProps<{
   showUtilization?: boolean;
 }>();
@@ -16,7 +20,7 @@ defineProps<{
   <!-- Utilization bar skeleton -->
   <div v-if="showUtilization" class="mt-3">
     <div class="mb-1 flex items-center justify-between text-xs">
-      <span class="text-muted-foreground">Used</span>
+      <span class="text-muted-foreground">{{ t('budgets.list.used') }}</span>
       <span class="bg-muted inline-block h-4 w-8 animate-pulse rounded" />
     </div>
     <div class="bg-muted h-1.5 overflow-hidden rounded-full">

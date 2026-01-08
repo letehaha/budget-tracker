@@ -5,6 +5,7 @@ import {
   AccountWithRelinkStatus,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { NotFoundError, UnexpectedError } from '@js/errors';
 import * as Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
@@ -123,7 +124,7 @@ export const updateAccount = withTransaction(
     const accountData = await Accounts.default.findByPk(id);
 
     if (!accountData) {
-      throw new NotFoundError({ message: 'Account not found!' });
+      throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
     }
 
     const currentBalanceIsChanging =
@@ -168,7 +169,7 @@ export const updateAccount = withTransaction(
     });
 
     if (!result) {
-      throw new UnexpectedError({ message: 'Account updation is not successful' });
+      throw new UnexpectedError({ message: t({ key: 'accounts.accountUpdateFailed' }) });
     }
 
     await Balances.handleAccountChange({

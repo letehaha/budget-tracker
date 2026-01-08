@@ -1,26 +1,26 @@
 <template>
   <div class="p-6">
     <div class="mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
-      <h1 class="text-2xl tracking-wider">Investments</h1>
+      <h1 class="text-2xl tracking-wider">{{ $t('investments.title') }}</h1>
 
       <CreatePortfolioDialog>
         <UiButton>
           <PlusIcon class="mr-2 size-4" />
-          Create Portfolio
+          {{ $t('investments.createButton') }}
         </UiButton>
       </CreatePortfolioDialog>
     </div>
 
     <template v-if="portfoliosQuery.isLoading.value">
       <div class="py-12 text-center">
-        <div class="text-muted-foreground">Loading portfolios...</div>
+        <div class="text-muted-foreground">{{ $t('investments.loading') }}</div>
       </div>
     </template>
 
     <template v-else-if="portfoliosQuery.error.value">
       <div class="py-12 text-center">
-        <div class="text-destructive-text mb-4">Failed to load portfolios</div>
-        <UiButton @click="portfoliosQuery.refetch()">Try Again</UiButton>
+        <div class="text-destructive-text mb-4">{{ $t('investments.loadError') }}</div>
+        <UiButton @click="portfoliosQuery.refetch()">{{ $t('investments.tryAgain') }}</UiButton>
       </div>
     </template>
 
@@ -45,7 +45,7 @@
                       class="flex w-full items-center"
                     >
                       <EyeIcon class="mr-2 size-4" />
-                      View
+                      {{ $t('investments.menu.view') }}
                     </RouterLink>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -55,7 +55,7 @@
                       @select.prevent
                     >
                       <Trash2Icon class="mr-2 size-4" />
-                      Delete
+                      {{ $t('investments.menu.delete') }}
                     </DropdownMenuItem>
                   </DeletePortfolioDialog>
                 </DropdownMenuContent>
@@ -73,7 +73,7 @@
                   v-if="!portfolio.isEnabled"
                   :class="['bg-background absolute top-0 right-0 rounded-tr-md p-1 text-xs leading-none']"
                 >
-                  Hidden
+                  {{ $t('investments.card.hidden') }}
                 </div>
                 <div class="mb-2.5 max-w-[calc(100%-60px)] overflow-hidden text-lg tracking-wide text-ellipsis">
                   {{ portfolio.name }}
@@ -83,10 +83,10 @@
                 <div class="flex flex-col gap-1">
                   <div class="investments__item-balance">
                     <!-- TODO: Portfolio balance formatting -->
-                    Portfolio Balance
+                    {{ $t('investments.card.portfolioBalance') }}
                   </div>
                   <div class="text-muted-foreground text-sm capitalize">
-                    {{ portfolio.portfolioType.replace('_', ' ') }} Portfolio
+                    {{ $t('investments.card.portfolioType', { type: portfolio.portfolioType.replace('_', ' ') }) }}
                   </div>
                   <div v-if="portfolio.description" class="text-muted-foreground truncate text-xs">
                     {{ portfolio.description }}
@@ -104,14 +104,14 @@
         <div class="mb-4">
           <WalletIcon class="text-muted-foreground mx-auto size-12" />
         </div>
-        <h3 class="text-foreground mb-2 text-lg font-medium">No Portfolios Yet</h3>
+        <h3 class="text-foreground mb-2 text-lg font-medium">{{ $t('investments.empty.title') }}</h3>
         <p class="text-muted-foreground mb-4">
-          Create your first investment portfolio to start tracking your holdings, transactions, and performance.
+          {{ $t('investments.empty.description') }}
         </p>
         <CreatePortfolioDialog>
           <UiButton>
             <PlusIcon class="size-4" />
-            Create Your First Portfolio
+            {{ $t('investments.empty.createFirstButton') }}
           </UiButton>
         </CreatePortfolioDialog>
       </div>

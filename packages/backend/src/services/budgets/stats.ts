@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Budgets from '@models/Budget.model';
 import * as Transactions from '@models/Transactions.model';
@@ -33,7 +34,7 @@ export const getBudgetStats = withTransaction(
   async ({ userId, budgetId }: { userId: number; budgetId: number }): Promise<StatsResponse> => {
     const budgetDetails = await Budgets.findByPk(budgetId);
 
-    if (!budgetDetails) throw new NotFoundError({ message: 'Budget not found' });
+    if (!budgetDetails) throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
 
     const transactions: Pick<Transactions.default, 'time' | 'amount' | 'refAmount' | 'transactionType'>[] =
       await Transactions.findWithFilters({

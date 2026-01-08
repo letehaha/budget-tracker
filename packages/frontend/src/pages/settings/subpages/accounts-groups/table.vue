@@ -17,8 +17,11 @@ import { AccountModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { ChevronRight, EditIcon, SaveIcon, Trash2Icon, UngroupIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 type ActiveItemIndex = number;
+
+const { t } = useI18n();
 
 const activeItemIndex = ref<ActiveItemIndex>(null);
 const selectedGroup = ref<AccountGroups>(null);
@@ -54,7 +57,7 @@ const { isPending: isUnlinkingAccount, mutate: unlinkAccount } = useMutation({
     queryClient.invalidateQueries({
       queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
     });
-    addSuccessNotification('Account has been unlinked');
+    addSuccessNotification(t('settings.accountGroups.table.notifications.unlinked'));
   },
 });
 
@@ -64,7 +67,7 @@ const { mutate: deleteAccountMutation } = useMutation({
     queryClient.invalidateQueries({
       queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
     });
-    addSuccessNotification('Group has been deleted');
+    addSuccessNotification(t('settings.accountGroups.table.notifications.deleted'));
   },
 });
 
@@ -140,7 +143,13 @@ const unlinkAccountFromGroup = (id: number) => {
               </div>
 
               <template v-if="openNameEditor[index]">
-                <InputField v-model="activeEditName" autofocus placeholder="Account name" class="w-full" @click.stop />
+                <InputField
+                  v-model="activeEditName"
+                  autofocus
+                  :placeholder="$t('settings.accountGroups.table.placeholder')"
+                  class="w-full"
+                  @click.stop
+                />
               </template>
               <template v-else>
                 <span class="w-min overflow-hidden text-ellipsis whitespace-nowrap">
@@ -156,10 +165,12 @@ const unlinkAccountFromGroup = (id: number) => {
                   variant="default"
                   size="sm"
                   class="gap-1 @[360px]/accounts-groups:min-w-[130px]"
-                  aria-label="Save"
+                  :aria-label="$t('settings.accountGroups.table.saveButton')"
                   @click.stop.prevent="updateGroup(group, index)"
                 >
-                  <span class="hidden @[360px]/accounts-groups:inline"> Save </span>
+                  <span class="hidden @[360px]/accounts-groups:inline">
+                    {{ $t('settings.accountGroups.table.saveButton') }}
+                  </span>
                   <SaveIcon class="size-4" />
                 </Button>
               </template>
@@ -168,28 +179,34 @@ const unlinkAccountFromGroup = (id: number) => {
                   variant="default"
                   size="sm"
                   class="w-min gap-1"
-                  :aria-label="'Edit'"
+                  :aria-label="$t('settings.accountGroups.table.editButton')"
                   @click.stop="toggleGroupNameEdit(index, group)"
                 >
-                  <span class="hidden @[360px]/accounts-groups:inline"> Edit </span>
+                  <span class="hidden @[360px]/accounts-groups:inline">
+                    {{ $t('settings.accountGroups.table.editButton') }}
+                  </span>
                   <EditIcon class="size-4" />
                 </Button>
 
                 <AlertDialog
-                  title="Do you want to delete this account group?"
+                  :title="$t('settings.accountGroups.table.deleteDialog.title')"
                   :accept-disabled="!!deletedElements?.length"
                   accept-variant="destructive"
                   @accept="deleteAccount(group)"
                 >
                   <template #trigger>
                     <Button variant="destructive" size="sm" class="w-min gap-1" @click.stop="toggleDelete(group)">
-                      <span class="hidden @[360px]/accounts-groups:inline"> Delete </span>
+                      <span class="hidden @[360px]/accounts-groups:inline">
+                        {{ $t('settings.accountGroups.table.deleteButton') }}
+                      </span>
                       <Trash2Icon class="size-4" />
                     </Button>
                   </template>
                   <template #description>
                     <div v-if="deletedElements.length">
-                      <div class="mb-2 text-sm">Before deletion please unlink accounts listed below</div>
+                      <div class="mb-2 text-sm">
+                        {{ $t('settings.accountGroups.table.deleteDialog.unlinkWarning') }}
+                      </div>
                       <div v-for="item in deletedElements" :key="item.id" class="px-4 py-2 text-sm">
                         - {{ item.name }}
                       </div>
@@ -227,7 +244,9 @@ const unlinkAccountFromGroup = (id: number) => {
                       variant="destructive"
                       @click="unlinkAccountFromGroup(account.id)"
                     >
-                      <span class="hidden @[360px]/accounts-groups:inline"> Unlink </span>
+                      <span class="hidden @[360px]/accounts-groups:inline">
+                        {{ $t('settings.accountGroups.table.unlinkButton') }}
+                      </span>
                       <UngroupIcon class="size-4" />
                     </Button>
                   </div>
@@ -239,7 +258,9 @@ const unlinkAccountFromGroup = (id: number) => {
       </div>
     </template>
     <template v-else>
-      <div class="bg-card w-full min-w-full rounded-md px-6 py-4 text-center">No group account data</div>
+      <div class="bg-card w-full min-w-full rounded-md px-6 py-4 text-center">
+        {{ $t('settings.accountGroups.table.noData') }}
+      </div>
     </template>
   </div>
 </template>

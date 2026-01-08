@@ -1,15 +1,15 @@
 <template>
   <Card class="max-w-4xl">
     <CardHeader class="border-b">
-      <h2 class="mb-2 text-2xl font-semibold">Admin Panel</h2>
-      <p class="text-sm opacity-80">Administrative tools and system management</p>
+      <h2 class="mb-2 text-2xl font-semibold">{{ $t('settings.admin.title') }}</h2>
+      <p class="text-sm opacity-80">{{ $t('settings.admin.description') }}</p>
     </CardHeader>
 
     <CardContent class="mt-6 flex flex-col gap-6">
       <div>
-        <h3 class="mb-2 text-lg font-medium">Securities Price Sync</h3>
+        <h3 class="mb-2 text-lg font-medium">{{ $t('settings.admin.priceSync.title') }}</h3>
         <p class="mb-4 text-sm leading-relaxed">
-          Manually trigger price synchronization for all securities with holdings
+          {{ $t('settings.admin.priceSync.description') }}
         </p>
 
         <div class="mb-4">
@@ -18,17 +18,19 @@
               v-if="isPriceSyncLoading"
               class="size-4 animate-spin rounded-full border-2 border-white border-t-transparent"
             />
-            {{ isPriceSyncLoading ? 'Syncing...' : 'Trigger Price Sync' }}
+            {{
+              isPriceSyncLoading ? $t('settings.admin.priceSync.buttonLoading') : $t('settings.admin.priceSync.button')
+            }}
           </Button>
         </div>
       </div>
 
       <div>
-        <h3 class="mb-2 text-lg font-medium">Manual Security Price Upload</h3>
-        <p class="mb-4 text-sm leading-relaxed">Upload historical price data for securities via CSV or JSON files</p>
+        <h3 class="mb-2 text-lg font-medium">{{ $t('settings.admin.priceUpload.title') }}</h3>
+        <p class="mb-4 text-sm leading-relaxed">{{ $t('settings.admin.priceUpload.description') }}</p>
 
         <SecurityPriceUpload>
-          <Button>Upload Security Prices</Button>
+          <Button>{{ $t('settings.admin.priceUpload.button') }}</Button>
         </SecurityPriceUpload>
       </div>
     </CardContent>
@@ -43,6 +45,7 @@ import { NotificationType, useNotificationCenter } from '@/components/notificati
 import { useUserStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import SecurityPriceUpload from './security-price-upload.vue';
@@ -50,6 +53,7 @@ import SecurityPriceUpload from './security-price-upload.vue';
 const userStore = useUserStore();
 const router = useRouter();
 const { addNotification } = useNotificationCenter();
+const { t } = useI18n();
 
 const isPriceSyncLoading = ref(false);
 const showAccessDenied = ref(false);
@@ -62,7 +66,7 @@ const triggerPriceSync = async () => {
 
     addNotification({
       id: 'price-sync-success',
-      text: 'Securities prices sync completed successfully',
+      text: t('settings.admin.priceSync.notifications.success'),
       type: NotificationType.success,
     });
   } catch (error) {
@@ -72,10 +76,11 @@ const triggerPriceSync = async () => {
     if (errorData?.code === API_ERROR_CODES.tooManyRequests) {
       const retryAfter = errorData?.details?.retryAfter || 300; // Default 5 minutes
       const minutes = Math.ceil(retryAfter / 60);
+      const time = retryAfter < 60 ? `${retryAfter} seconds` : `${minutes} minutes`;
 
       addNotification({
         id: 'price-sync-rate-limited',
-        text: `Not allowed. Try again in ${retryAfter < 60 ? `${retryAfter} seconds` : `${minutes} minutes`}.`,
+        text: t('settings.admin.priceSync.notifications.rateLimited', { time }),
         type: NotificationType.warning,
       });
     }
@@ -84,13 +89,13 @@ const triggerPriceSync = async () => {
       showAccessDenied.value = true;
       addNotification({
         id: 'admin-access-denied',
-        text: 'Admin privileges required for this action',
+        text: t('settings.admin.priceSync.notifications.adminRequired'),
         type: NotificationType.error,
       });
     } else {
       addNotification({
         id: 'price-sync-error',
-        text: 'Failed to trigger price sync',
+        text: t('settings.admin.priceSync.notifications.failed'),
         type: NotificationType.error,
       });
     }

@@ -2,15 +2,19 @@
 import FormWrapper from '@/components/fields/form-wrapper.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { useCurrencyName } from '@/composable';
 import { useLogout } from '@/composable/actions/logout';
 import { useAllCurrencies, useBaseCurrency, useSetBaseCurrency } from '@/composable/data-queries/currencies';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { CurrencyModel } from '@bt/shared/types';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const logoutHandler = useLogout();
+const { t } = useI18n();
+const { formatCurrencyLabel } = useCurrencyName();
 
 const selectedCurrency = ref<CurrencyModel | null>(null);
 const formError = ref<string | null>(null);
@@ -46,7 +50,7 @@ const currencies = computed(() => {
 
 watch(selectedCurrency, () => (formError.value = null));
 watch(currencies, () => (selectedCurrency.value = currencies.value[0]));
-watch(isErrorLoadingCurrencies, () => (formError.value = 'Unable to load currencies list. Try later'));
+watch(isErrorLoadingCurrencies, () => (formError.value = t('auth.welcome.errors.unableToLoadCurrencies')));
 watch(baseCurrency, (value) => {
   if (value) forwardToDashboard();
 });
@@ -62,7 +66,7 @@ const submitBaseCurrency = () => {
       forwardToDashboard();
     },
     onError: () => {
-      formError.value = 'Unexpected error. Cannot set base currency. Please try later or contact support.';
+      formError.value = t('auth.welcome.errors.unableToSetCurrency');
     },
   });
 };
@@ -70,13 +74,13 @@ const submitBaseCurrency = () => {
 
 <template>
   <div class="flex min-h-screen flex-col px-4">
-    <div class="flex justify-end px-6 py-3">
-      <Button theme="primary" class="sidebar__logout" @click="logoutHandler"> Logout </Button>
+    <div class="flex justify-end px-6 pt-4 pr-40">
+      <Button theme="primary" class="sidebar__logout" @click="logoutHandler"> {{ $t('auth.welcome.logout') }} </Button>
     </div>
 
     <div class="flex flex-auto items-center justify-center">
-      <div class="max-w-[450px]">
-        <h1 class="text-center">Select Base Currency</h1>
+      <div class="max-w-112.5">
+        <h1 class="text-center">{{ $t('auth.welcome.title') }}</h1>
 
         <form-wrapper :error="formError">
           <div class="my-6">
@@ -85,18 +89,21 @@ const submitBaseCurrency = () => {
               v-model="selectedCurrency"
               :values="currencies"
               value-key="code"
-              placeholder="Loading..."
-              label="Base Currency"
+              :placeholder="$t('auth.welcome.placeholders.loading')"
+              :label="$t('auth.welcome.labels.baseCurrency')"
               with-search
               :disabled="isFormDisabled"
-              :label-key="(item) => `${item.code} - ${item.currency}`"
+              :label-key="
+                (item: CurrencyModel) => formatCurrencyLabel({ code: item.code, fallbackName: item.currency })
+              "
             />
           </div>
           <p class="mt-3 mb-14 text-sm">
-            Your base currency should ideally be the one you use most often. All transactions in other currencies will
-            be calculated based on this one.
+            {{ $t('auth.welcome.description') }}
           </p>
-          <Button class="w-full" :disabled="isFormDisabled" @click="submitBaseCurrency"> Confirm Currency </Button>
+          <Button class="w-full" :disabled="isFormDisabled" @click="submitBaseCurrency">
+            {{ $t('auth.welcome.submitButton') }}
+          </Button>
         </form-wrapper>
       </div>
     </div>

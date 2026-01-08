@@ -26,8 +26,8 @@
       <ManageTransactionDialog>
         <Button variant="default" class="flex items-center gap-1">
           <PlusIcon class="size-5" />
-          <span class="hidden md:block">New Transaction</span>
-          <span class="md:hidden">Add</span>
+          <span class="hidden md:block">{{ $t('header.newTransaction') }}</span>
+          <span class="md:hidden">{{ $t('header.add') }}</span>
         </Button>
       </ManageTransactionDialog>
     </div>
@@ -54,20 +54,24 @@
               <template v-if="syncStatus.isSyncing.value">
                 <RefreshCcw class="animate-spin" :size="16" />
                 <span class="font-medium">
-                  <span class="xs:hidden">Syncing</span>
-                  <span class="xs:inline hidden">{{ syncStatus.syncingSummaryText.value || 'Synchronizing...' }}</span>
+                  <span class="xs:hidden">{{ $t('header.sync.syncing') }}</span>
+                  <span class="xs:inline hidden">{{
+                    syncStatus.syncingSummaryText.value || $t('header.sync.synchronizing')
+                  }}</span>
                 </span>
               </template>
               <template v-else-if="hasConnections">
                 <CloudCheckIcon class="text-success-text size-5" />
                 <template v-if="lastSyncRelativeTime">
-                  <span class="xs:block hidden font-medium"> Synced {{ lastSyncRelativeTime }} </span>
-                  <span class="xs:hidden font-medium"> Synced </span>
+                  <span class="xs:block hidden font-medium">
+                    {{ $t('header.sync.syncedTime', { time: lastSyncRelativeTime }) }}
+                  </span>
+                  <span class="xs:hidden font-medium"> {{ $t('header.sync.synced') }} </span>
                 </template>
               </template>
               <template v-else>
                 <CloudCheckIcon class="size-5" />
-                <span class="xs:block hidden font-medium">Connect bank</span>
+                <span class="xs:block hidden font-medium">{{ $t('header.sync.connectBank') }}</span>
               </template>
             </Button>
           </Popover.PopoverTrigger>
@@ -93,6 +97,9 @@
 
       <NotificationsPopover />
 
+      <!-- Language Switcher -->
+      <LanguageSelector variant="secondary" show-header persist-to-backend />
+
       <router-link :to="{ name: ROUTES_NAMES.settings }">
         <Button variant="secondary" class="text-white" size="icon" as="span">
           <SettingsIcon />
@@ -106,6 +113,7 @@
 // Theme toggle temporarily disabled - light theme coming soon
 // import { Themes, currentTheme, toggleTheme } from '@/common/utils';
 import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
+import LanguageSelector from '@/components/common/language-selector.vue';
 import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
@@ -116,11 +124,11 @@ import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-size';
+import { useDateLocale } from '@/composable/use-date-locale';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
-import { formatDistanceToNow } from 'date-fns';
 // MoonStar, Sun removed - theme toggle temporarily disabled
 import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -141,6 +149,9 @@ const isPopoverOpen = ref(false);
 
 // Use new sync status system
 const syncStatus = useSyncStatus();
+
+// Locale-aware date formatting
+const { formatDistanceToNow } = useDateLocale();
 
 const lastSyncRelativeTime = computed(() => {
   if (!syncStatus.lastSyncTimestamp.value) return null;

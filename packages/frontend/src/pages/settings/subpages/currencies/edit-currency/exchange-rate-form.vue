@@ -19,10 +19,10 @@
 
     <div class="flex items-center justify-between gap-4">
       <p class="text-sm opacity-90">
-        Disable live updation to be able to set custom exchange rate.
+        {{ $t('settings.currencies.exchangeRate.disableLiveUpdate') }}
         <br />
         <span class="inline-flex items-center gap-1">
-          <InfoIcon class="text-primary inline size-4" /> When enabled, custom rate is ignored.
+          <InfoIcon class="text-primary inline size-4" /> {{ $t('settings.currencies.exchangeRate.liveUpdateInfo') }}
         </span>
       </p>
 
@@ -30,7 +30,7 @@
         class="flex w-max cursor-pointer items-center aria-disabled:cursor-default"
         :aria-disabled="isFormDisabled"
       >
-        <span class="mr-2.5 w-max">Live update</span>
+        <span class="mr-2.5 w-max">{{ $t('settings.currencies.exchangeRate.liveUpdateLabel') }}</span>
         <Checkbox
           :model-value="isLiveRateEnabled"
           :disabled="isFormDisabled"
@@ -40,7 +40,7 @@
     </div>
 
     <Button v-if="shouldShowSaveButton" class="mt-8 w-full" @click="onSubmitHandler" :disabled="isFormDisabled">
-      Save
+      {{ $t('settings.currencies.exchangeRate.saveButton') }}
     </Button>
   </div>
 </template>
@@ -55,6 +55,7 @@ import { useCurrenciesStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { InfoIcon } from 'lucide-vue-next';
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { CurrencyWithExchangeRate } from '../types';
 
@@ -78,6 +79,7 @@ const emit = defineEmits<{
 
 const currenciesStore = useCurrenciesStore();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { t } = useI18n();
 
 const form = reactive({
   baseRate: props.currency.rate,
@@ -140,13 +142,13 @@ const deleteExchangeRates = async () => {
 
     emit('submit');
 
-    addSuccessNotification('Successfully updated.');
+    addSuccessNotification(t('settings.currencies.exchangeRate.successfullyUpdated'));
   } catch (e) {
     if (e.data.code === API_ERROR_CODES.validationError) {
       addErrorNotification(e.data.message);
       return;
     }
-    addErrorNotification('Unexpected error');
+    addErrorNotification(t('settings.currencies.exchangeRate.errors.unexpectedError'));
   }
 };
 
@@ -168,13 +170,13 @@ const updateExchangeRates = async () => {
 
     emit('submit');
 
-    addSuccessNotification('Successfully updated.');
+    addSuccessNotification(t('settings.currencies.exchangeRate.successfullyUpdated'));
   } catch (e) {
     if (e.data.code === API_ERROR_CODES.validationError) {
       addErrorNotification(e.data.message);
       return;
     }
-    addErrorNotification('Unexpected error. Currency is not updated.');
+    addErrorNotification(t('settings.currencies.exchangeRate.errors.updateFailed'));
   }
 };
 

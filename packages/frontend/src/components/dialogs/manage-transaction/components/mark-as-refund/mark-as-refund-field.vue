@@ -6,9 +6,12 @@ import { TRANSACTION_TYPES, TransactionSplitModel } from '@bt/shared/types';
 import { SplitIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-import { RefundedByAnotherTxs, RefundsAnoterTx, RefundWithSplit } from '../../types';
+import { RefundWithSplit, RefundedByAnotherTxs, RefundsAnoterTx } from '../../types';
 import MarkAsRefundDialog from './mark-as-refund-dialog.vue';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   transactionId: number | undefined;
@@ -54,7 +57,7 @@ const getSplitInfo = (refund: RefundWithSplit) => {
 
   const category = categoriesMap.value[split.categoryId];
   return {
-    name: category?.name ?? 'Unknown',
+    name: category?.name ?? t('common.labels.unknown'),
     color: category?.color ?? '#666',
     amount: split.amount,
   };
@@ -63,7 +66,7 @@ const getSplitInfo = (refund: RefundWithSplit) => {
 
 <template>
   <template v-if="refunds || refundedBy">
-    <p class="text-sm">Linked refunds</p>
+    <p class="text-sm">{{ t('dialogs.manageTransaction.markAsRefund.linkedRefunds') }}</p>
     <div class="flex items-start justify-between gap-2">
       <div class="grid w-full gap-1">
         <template v-for="refund of refundTransactions" :key="refund.transaction.id">
@@ -71,14 +74,11 @@ const getSplitInfo = (refund: RefundWithSplit) => {
             <TransactionRecord :tx="refund.transaction" />
             <!-- Show split info if refund targets a specific split -->
             <template v-if="refund.splitId && getSplitInfo(refund)">
-              <div class="border-border/50 bg-muted/20 ml-4 mt-1 flex items-center gap-2 rounded border px-2 py-1">
+              <div class="border-border/50 bg-muted/20 mt-1 ml-4 flex items-center gap-2 rounded border px-2 py-1">
                 <SplitIcon class="text-muted-foreground size-3" />
-                <div
-                  class="size-2 shrink-0 rounded-full"
-                  :style="{ backgroundColor: getSplitInfo(refund)!.color }"
-                />
+                <div class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: getSplitInfo(refund)!.color }" />
                 <span class="text-muted-foreground text-xs">
-                  Refunds {{ getSplitInfo(refund)!.name }} portion
+                  {{ t('dialogs.manageTransaction.markAsRefund.refundsPortion', { name: getSplitInfo(refund)!.name }) }}
                 </span>
               </div>
             </template>

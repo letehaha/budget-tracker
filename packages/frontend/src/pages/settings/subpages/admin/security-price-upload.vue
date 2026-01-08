@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/vue-query';
 import { format, parse } from 'date-fns';
 import { InfoIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { ExistingPrice } from './composables/use-price-comparison';
 import type { PreviewRow } from './composables/use-price-comparison';
@@ -20,6 +21,7 @@ import FileUpload from './file-upload.vue';
 
 const { isAdmin } = useIsAdmin();
 const { addNotification } = useNotificationCenter();
+const { t } = useI18n();
 
 const isOpen = ref(false);
 const currentStep = ref<'select' | 'upload' | 'map' | 'preview' | 'options' | 'result'>('select');
@@ -57,7 +59,9 @@ const securityPriceUploadInfo = useQuery({
 
 watch(securityPriceUploadInfo.error, (error) => {
   addNotification({
-    text: `Failed to load date info: ${error?.message || 'Unknown error'}`,
+    text: t('settings.admin.priceUpload.notifications.dateInfoLoadFailed', {
+      error: error?.message || 'Unknown error',
+    }),
     type: NotificationType.error,
   });
   currentStep.value = 'select';
@@ -310,12 +314,14 @@ async function submitUpload() {
 
     currentStep.value = 'result';
     addNotification({
-      text: `Successfully uploaded ${result.summary.inserted} price record${result.summary.inserted === 1 ? '' : 's'}`,
+      text: t('settings.admin.priceUpload.notifications.uploadSuccess', {
+        count: result.summary.inserted,
+      }),
       type: NotificationType.success,
     });
   } catch (error) {
     addNotification({
-      text: `Upload failed: ${error?.message || 'Unknown error'}`,
+      text: t('settings.admin.priceUpload.notifications.uploadFailed', { error: error?.message || 'Unknown error' }),
       type: NotificationType.error,
     });
   } finally {
@@ -361,16 +367,25 @@ if (!isAdmin.value) {
       <slot />
     </template>
 
-    <template #title> Upload Security Prices </template>
+    <template #title> {{ $t('settings.admin.priceUpload.dialogTitle') }} </template>
 
     <template #default>
       <div class="grid gap-4">
         <!-- Step 1: Security Selection -->
         <div v-if="currentStep === 'select'" class="space-y-2">
-          <InputField v-model="searchTerm" label="Search symbol or name" placeholder="AAPL" class="max-w-full" />
+          <InputField
+            v-model="searchTerm"
+            :label="$t('settings.admin.priceUpload.selectSecurity.searchLabel')"
+            :placeholder="$t('settings.admin.priceUpload.selectSecurity.searchPlaceholder')"
+            class="max-w-full"
+          />
 
-          <div v-if="query.isLoading.value" class="text-muted-foreground text-sm">Searching…</div>
-          <div v-else-if="query.error.value" class="text-destructive-text text-sm">Failed to search securities.</div>
+          <div v-if="query.isLoading.value" class="text-muted-foreground text-sm">
+            {{ $t('settings.admin.priceUpload.selectSecurity.searching') }}
+          </div>
+          <div v-else-if="query.error.value" class="text-destructive-text text-sm">
+            {{ $t('settings.admin.priceUpload.selectSecurity.failed') }}
+          </div>
           <div v-else>
             <ul class="max-h-60 overflow-y-auto">
               <li
@@ -386,7 +401,7 @@ if (!isAdmin.value) {
               </li>
             </ul>
             <div v-if="debounced && (query.data.value?.length ?? 0) === 0" class="text-muted-foreground text-sm">
-              No results.
+              {{ $t('settings.admin.priceUpload.selectSecurity.noResults') }}
             </div>
           </div>
         </div>
@@ -400,12 +415,12 @@ if (!isAdmin.value) {
               <div class="text-muted-foreground text-xs">{{ selectedSecurity!.name }}</div>
             </div>
             <button type="button" class="text-muted-foreground hover:text-foreground text-sm" @click="startOver">
-              Change
+              {{ $t('settings.admin.priceUpload.selectSecurity.changeButton') }}
             </button>
           </div>
 
           <div v-if="securityPriceUploadInfo.isLoading.value" class="text-muted-foreground text-center text-sm">
-            Loading date range information...
+            {{ $t('settings.admin.priceUpload.dateRangeInfo.loading') }}
           </div>
           <div
             v-else-if="securityPriceUploadInfo.data"
@@ -413,7 +428,11 @@ if (!isAdmin.value) {
           >
             <div>
               <div class="mb-1 font-medium">
-                Available Exchange Rates Date Range ({{ securityPriceUploadInfo.data.value.currencyCode }}):
+                {{
+                  $t('settings.admin.priceUpload.dateRangeInfo.title', {
+                    currency: securityPriceUploadInfo.data.value.currencyCode,
+                  })
+                }}
               </div>
               <div class="text-muted-foreground">
                 {{ new Date(securityPriceUploadInfo.data.value.oldestDate).toLocaleDateString() }} -
@@ -426,12 +445,9 @@ if (!isAdmin.value) {
                 <Tooltip.TooltipTrigger class="flex items-center gap-2">
                   <InfoIcon class="size-6" />
                 </Tooltip.TooltipTrigger>
-                <Tooltip.TooltipContent class="max-w-[400px] p-4">
+                <Tooltip.TooltipContent class="max-w-100 p-4">
                   <span class="text-sm leading-6 opacity-90">
-                    You can upload security prices only for dates for which we have exchange rates available. Otherwise
-                    it won't be possible to convert security price to other currencies. If you need older data, upload
-                    exchange rates first. Otherwise depending on which option you will chose on the next steps records
-                    will be auto-filtered (omitted) or uploading request will fail.
+                    {{ $t('settings.admin.priceUpload.dateRangeInfo.tooltipText') }}
                   </span>
                 </Tooltip.TooltipContent>
               </Tooltip.Tooltip>
@@ -446,13 +462,17 @@ if (!isAdmin.value) {
           <!-- Step 3: Field Mapping -->
           <div v-if="currentStep === 'map'">
             <div class="bg-muted/30 border-border mb-4 flex items-center justify-between rounded border p-3 text-xs">
-              <div><strong>File:</strong> {{ fileName }} ({{ fileData!.length }} records)</div>
+              <div>
+                <strong>{{ $t('settings.admin.priceUpload.fieldMapper.fileInfo') }}</strong> {{ fileName }} ({{
+                  $t('settings.admin.priceUpload.fieldMapper.records', { count: fileData!.length })
+                }})
+              </div>
               <button
                 type="button"
                 class="text-muted-foreground hover:text-foreground text-xs underline"
                 @click="currentStep = 'upload'"
               >
-                Change File
+                {{ $t('settings.admin.priceUpload.fieldMapper.changeFileButton') }}
               </button>
             </div>
             <FieldMapper
@@ -463,7 +483,7 @@ if (!isAdmin.value) {
             />
             <div class="mt-4 flex justify-end">
               <Button :disabled="!isMappingComplete" @click="proceedToPreview" variant="secondary">
-                Continue to Preview
+                {{ $t('settings.admin.priceUpload.fieldMapper.continueButton') }}
               </Button>
             </div>
           </div>
@@ -471,38 +491,44 @@ if (!isAdmin.value) {
           <!-- Step 4: Data Preview -->
           <div v-if="currentStep === 'preview'">
             <div class="bg-muted/30 border-border mb-4 flex items-center justify-between rounded border p-3 text-xs">
-              <div><strong>File:</strong> {{ fileName }} ({{ fileData!.length }} records)</div>
+              <div>
+                <strong>{{ $t('settings.admin.priceUpload.fieldMapper.fileInfo') }}</strong> {{ fileName }} ({{
+                  $t('settings.admin.priceUpload.fieldMapper.records', { count: fileData!.length })
+                }})
+              </div>
               <button
                 type="button"
                 class="text-muted-foreground hover:text-foreground text-xs underline"
                 @click="currentStep = 'upload'"
               >
-                Change File
+                {{ $t('settings.admin.priceUpload.fieldMapper.changeFileButton') }}
               </button>
             </div>
 
             <div v-if="isLoadingExistingPrices" class="text-muted-foreground mb-4 text-center text-sm">
-              Loading existing prices for comparison...
+              {{ $t('settings.admin.priceUpload.preview.loadingExisting') }}
             </div>
 
             <DataPreviewTable :data="previewData" :existing-prices="existingPrices" />
 
             <div class="mt-4 flex justify-end gap-2">
-              <Button variant="outline" @click="currentStep = 'map'">Back to Mapping</Button>
-              <Button @click="proceedToOptions">Continue to Options</Button>
+              <Button variant="outline" @click="currentStep = 'map'">{{
+                $t('settings.admin.priceUpload.preview.backButton')
+              }}</Button>
+              <Button @click="proceedToOptions">{{ $t('settings.admin.priceUpload.preview.continueButton') }}</Button>
             </div>
           </div>
 
           <!-- Step 5: Upload Options -->
           <div v-if="currentStep === 'options'" class="space-y-4">
-            <h3 class="text-sm font-medium">Upload Options</h3>
+            <h3 class="text-sm font-medium">{{ $t('settings.admin.priceUpload.options.title') }}</h3>
 
             <label class="flex items-start gap-3">
               <input v-model="autoFilter" type="checkbox" class="mt-1" />
               <div>
-                <div class="text-sm font-medium">Auto-filter dates outside available range</div>
+                <div class="text-sm font-medium">{{ $t('settings.admin.priceUpload.options.autoFilter.title') }}</div>
                 <div class="text-muted-foreground text-xs">
-                  Automatically remove dates that are outside the available exchange rate range
+                  {{ $t('settings.admin.priceUpload.options.autoFilter.description') }}
                 </div>
               </div>
             </label>
@@ -510,17 +536,23 @@ if (!isAdmin.value) {
             <label class="flex items-start gap-3">
               <input v-model="override" type="checkbox" class="mt-1" />
               <div>
-                <div class="text-sm font-medium">Override existing records</div>
+                <div class="text-sm font-medium">{{ $t('settings.admin.priceUpload.options.override.title') }}</div>
                 <div class="text-muted-foreground text-xs">
-                  Update existing price records instead of skipping duplicates
+                  {{ $t('settings.admin.priceUpload.options.override.description') }}
                 </div>
               </div>
             </label>
 
             <div class="mt-6 flex justify-end gap-2">
-              <Button variant="outline" @click="currentStep = 'preview'">Back</Button>
+              <Button variant="outline" @click="currentStep = 'preview'">{{
+                $t('settings.admin.priceUpload.options.backButton')
+              }}</Button>
               <Button :disabled="isUploading" @click="submitUpload">
-                {{ isUploading ? 'Uploading...' : 'Upload Prices' }}
+                {{
+                  isUploading
+                    ? $t('settings.admin.priceUpload.options.uploadingButton')
+                    : $t('settings.admin.priceUpload.options.uploadButton')
+                }}
               </Button>
             </div>
           </div>
@@ -528,21 +560,40 @@ if (!isAdmin.value) {
           <!-- Step 6: Result -->
           <div v-if="currentStep === 'result'" class="space-y-4">
             <div class="bg-success/20 text-success-text border-success/20 rounded border p-4">
-              <h3 class="mb-2 font-medium">Upload Complete!</h3>
+              <h3 class="mb-2 font-medium">{{ $t('settings.admin.priceUpload.result.title') }}</h3>
               <div class="space-y-1 text-sm">
-                <div>✓ {{ uploadResult!.inserted }} new records inserted</div>
+                <div>
+                  {{
+                    $t('settings.admin.priceUpload.result.inserted', {
+                      count: uploadResult!.inserted,
+                    })
+                  }}
+                </div>
                 <div v-if="uploadResult!.duplicates > 0">
-                  • {{ uploadResult!.duplicates }} duplicates {{ override ? 'updated' : 'skipped' }}
+                  {{
+                    $t('settings.admin.priceUpload.result.duplicates', {
+                      count: uploadResult!.duplicates,
+                      action: override
+                        ? $t('settings.admin.priceUpload.result.duplicatesUpdated')
+                        : $t('settings.admin.priceUpload.result.duplicatesSkipped'),
+                    })
+                  }}
                 </div>
                 <div v-if="uploadResult!.filtered > 0">
-                  • {{ uploadResult!.filtered }} dates filtered (outside range)
+                  {{
+                    $t('settings.admin.priceUpload.result.filtered', {
+                      count: uploadResult!.filtered,
+                    })
+                  }}
                 </div>
               </div>
             </div>
 
             <div class="flex justify-end gap-2">
-              <Button variant="outline" @click="isOpen = false">Close</Button>
-              <Button @click="startOver">Upload More</Button>
+              <Button variant="outline" @click="isOpen = false">{{
+                $t('settings.admin.priceUpload.result.closeButton')
+              }}</Button>
+              <Button @click="startOver">{{ $t('settings.admin.priceUpload.result.uploadMoreButton') }}</Button>
             </div>
           </div>
         </div>

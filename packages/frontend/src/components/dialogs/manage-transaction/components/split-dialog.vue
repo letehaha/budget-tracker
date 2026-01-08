@@ -9,8 +9,11 @@ import { useCategoriesStore } from '@/stores';
 import { PlusIcon, SplitIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { FormSplit } from '../types';
+
+const { t } = useI18n();
 
 interface LocalSplit extends Omit<FormSplit, 'category'> {
   tempId?: string;
@@ -120,19 +123,19 @@ const getSplitError = (index: number): string | null => {
   if (!split) return null;
 
   if (split.amount !== null && split.amount < 0) {
-    return 'Amount must be positive';
+    return t('dialogs.manageTransaction.splitDialog.errors.amountMustBePositive');
   }
 
   // Check for duplicate categories
   if (split.category) {
     const duplicates = localSplits.value.filter((s, i) => i !== index && s.category?.id === split.category?.id);
     if (duplicates.length > 0) {
-      return 'Duplicate category';
+      return t('dialogs.manageTransaction.splitDialog.errors.duplicateCategory');
     }
 
     // Check if using main category
     if (props.mainCategory && split.category.id === props.mainCategory.id) {
-      return 'Cannot use main category in splits';
+      return t('dialogs.manageTransaction.splitDialog.errors.cannotUseMainCategory');
     }
   }
 
@@ -170,21 +173,25 @@ const handleClearAll = () => {
     <template #title>
       <span class="flex items-center gap-2">
         <SplitIcon class="size-5 opacity-70" />
-        Split into categories
+        {{ $t('dialogs.manageTransaction.splitDialog.title') }}
       </span>
     </template>
     <template #description>
-      Distribute this transaction across multiple categories. The main category keeps any unallocated amount.
+      {{ $t('dialogs.manageTransaction.splitDialog.description') }}
     </template>
 
     <div class="max-h-[50vh] overflow-y-auto py-4">
       <!-- Main category display -->
       <div class="bg-muted/40 border-border mb-4 rounded-lg border p-3">
-        <div class="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">Main Category</div>
+        <div class="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">
+          {{ $t('dialogs.manageTransaction.splitDialog.mainCategoryLabel') }}
+        </div>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <div class="size-3 rounded-full" :style="{ backgroundColor: mainCategory?.color || '#666' }" />
-            <span class="font-medium">{{ mainCategory?.name || 'Select category' }}</span>
+            <span class="font-medium">
+              {{ mainCategory?.name || $t('dialogs.manageTransaction.splitDialog.selectCategoryPlaceholder') }}
+            </span>
           </div>
           <span class="text-muted-foreground text-sm tabular-nums">
             {{ formatUIAmount(mainCategoryAmount, { currency: currencyCode }) }}
@@ -204,7 +211,7 @@ const handleClearAll = () => {
               <CategorySelectField
                 :model-value="split.category"
                 :values="categories"
-                placeholder="Select category"
+                :placeholder="$t('dialogs.manageTransaction.splitDialog.selectCategoryPlaceholder')"
                 class="[&_button]:h-10 [&_button]:text-sm"
                 @update:model-value="(cat) => updateSplit(index, { category: cat })"
               />
@@ -215,7 +222,7 @@ const handleClearAll = () => {
               :model-value="split.amount"
               type="number"
               only-positive
-              placeholder="0"
+              :placeholder="$t('dialogs.manageTransaction.splitDialog.amountPlaceholder')"
               trailing-icon-css-class="px-3"
               class="[&_input]:tabular-nums"
               @update:model-value="(val) => updateSplitAmount(index, val)"
@@ -241,25 +248,27 @@ const handleClearAll = () => {
       <!-- Add split button -->
       <Button variant="outline" size="sm" type="button" class="mt-3 w-full border-dashed" @click="addSplit">
         <PlusIcon class="mr-1.5 size-3.5" />
-        Add category
+        {{ $t('dialogs.manageTransaction.splitDialog.addCategoryButton') }}
       </Button>
 
       <!-- Summary -->
       <div class="border-border mt-4 border-t pt-4">
         <div class="flex items-center justify-between text-sm">
-          <span class="text-muted-foreground">Total amount</span>
+          <span class="text-muted-foreground">{{ $t('dialogs.manageTransaction.splitDialog.totalAmountLabel') }}</span>
           <span class="font-medium tabular-nums">
             {{ formatUIAmount(totalAmount ?? 0, { currency: currencyCode }) }}
           </span>
         </div>
         <div class="mt-2 flex items-center justify-between text-sm">
-          <span class="text-muted-foreground">Split total</span>
+          <span class="text-muted-foreground">{{ $t('dialogs.manageTransaction.splitDialog.splitTotalLabel') }}</span>
           <span class="font-medium tabular-nums">
             {{ formatUIAmount(splitsTotal, { currency: currencyCode }) }}
           </span>
         </div>
         <div class="mt-2 flex items-center justify-between text-sm">
-          <span class="text-muted-foreground">Main category keeps</span>
+          <span class="text-muted-foreground">{{
+            $t('dialogs.manageTransaction.splitDialog.mainCategoryKeepsLabel')
+          }}</span>
           <span
             class="font-medium tabular-nums"
             :class="{
@@ -271,15 +280,21 @@ const handleClearAll = () => {
           </span>
         </div>
         <p v-if="mainCategoryAmount < 0" class="text-destructive-text mt-2 text-xs">
-          Split amounts exceed transaction total
+          {{ $t('dialogs.manageTransaction.splitDialog.exceedsTransactionTotal') }}
         </p>
       </div>
     </div>
 
     <template #footer>
-      <Button variant="outline" class="mr-auto w-full sm:w-auto" @click="handleCancel"> Cancel </Button>
-      <Button v-if="hasExistingSplits" variant="destructive" @click="handleClearAll"> Remove splits </Button>
-      <Button :disabled="!isValid" class="w-full sm:w-auto" @click="handleSave"> Save splits </Button>
+      <Button variant="outline" class="mr-auto w-full sm:w-auto" @click="handleCancel">
+        {{ $t('dialogs.manageTransaction.splitDialog.cancelButton') }}
+      </Button>
+      <Button v-if="hasExistingSplits" variant="destructive" @click="handleClearAll">
+        {{ $t('dialogs.manageTransaction.splitDialog.removeSplitsButton') }}
+      </Button>
+      <Button :disabled="!isValid" class="w-full sm:w-auto" @click="handleSave">
+        {{ $t('dialogs.manageTransaction.splitDialog.saveSplitsButton') }}
+      </Button>
     </template>
   </ResponsiveDialog>
 </template>

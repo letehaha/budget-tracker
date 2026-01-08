@@ -8,12 +8,14 @@ import { ROUTES_NAMES } from '@/routes';
 import { useAuthStore, useUserStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const { user } = storeToRefs(useUserStore());
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { t } = useI18n();
 
 const confirmEmail = ref('');
 const isDeleting = ref(false);
@@ -26,11 +28,11 @@ const handleDeleteAccount = async () => {
   isDeleting.value = true;
   try {
     await deleteUserAccount();
-    addSuccessNotification('Your account has been deleted successfully');
+    addSuccessNotification(t('settings.security.deleteAccount.notifications.success'));
     authStore.logout();
     router.push({ name: ROUTES_NAMES.signIn });
   } catch {
-    addErrorNotification('An error occurred while trying to delete your account');
+    addErrorNotification(t('settings.security.deleteAccount.notifications.failed'));
   } finally {
     isDeleting.value = false;
   }
@@ -39,48 +41,56 @@ const handleDeleteAccount = async () => {
 
 <template>
   <div class="border-destructive mt-6 grid gap-4 rounded-xl border p-4">
-    <p class="text-xl font-medium">Danger zone</p>
+    <p class="text-xl font-medium">{{ $t('settings.security.deleteAccount.dangerZone') }}</p>
 
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
       <div>
-        <p class="mb-2 font-bold">Delete your account</p>
-        <p class="text-sm">
-          Once you delete your account, there is no going back. <br />
-          <b>All your data will be permanently erased.</b>
-          Please be certain.
-        </p>
+        <p class="mb-2 font-bold">{{ $t('settings.security.deleteAccount.title') }}</p>
+        <i18n-t keypath="settings.security.deleteAccount.warningFull" tag="p" class="text-sm">
+          <template #strong>
+            <b>{{ $t('settings.security.deleteAccount.warningStrong') }}</b>
+          </template>
+        </i18n-t>
       </div>
 
       <AlertDialog
-        title="Are you absolutely sure?"
+        :title="$t('settings.security.deleteAccount.dialog.title')"
         :accept-disabled="isDeleteDisabled"
         accept-variant="destructive"
-        :accept-label="isDeleting ? 'Deleting...' : 'Delete my account'"
+        :accept-label="
+          isDeleting
+            ? $t('settings.security.deleteAccount.dialog.acceptButtonLoading')
+            : $t('settings.security.deleteAccount.dialog.acceptButton')
+        "
         @accept="handleDeleteAccount"
       >
         <template #trigger>
-          <Button variant="destructive" class="shrink-0"> Delete my account </Button>
+          <Button variant="destructive" class="shrink-0"> {{ $t('settings.security.deleteAccount.button') }} </Button>
         </template>
         <template #description>
           <div class="text-left">
-            This action cannot be undone. This will permanently delete your account and remove all your data including:
+            {{ $t('settings.security.deleteAccount.dialog.description') }}
             <ul class="mt-2 list-inside list-disc text-sm">
-              <li>All accounts and transactions</li>
-              <li>All categories and budgets</li>
-              <li>All investment portfolios</li>
-              <li>All settings and preferences</li>
+              <li>{{ $t('settings.security.deleteAccount.dialog.dataList.accounts') }}</li>
+              <li>{{ $t('settings.security.deleteAccount.dialog.dataList.categories') }}</li>
+              <li>{{ $t('settings.security.deleteAccount.dialog.dataList.portfolios') }}</li>
+              <li>{{ $t('settings.security.deleteAccount.dialog.dataList.settings') }}</li>
             </ul>
           </div>
         </template>
         <template #content>
-          <div class="mt-4 mb-2 text-left text-sm">
-            Please type
-            <ClickToCopy :value="user.email" />
-            to confirm
-          </div>
+          <i18n-t
+            keypath="settings.security.deleteAccount.dialog.confirmFull"
+            tag="div"
+            class="mt-4 mb-2 text-left text-sm"
+          >
+            <template #email>
+              <ClickToCopy :value="user.email" />
+            </template>
+          </i18n-t>
           <InputField
             v-model="confirmEmail"
-            placeholder="Enter your email"
+            :placeholder="$t('settings.security.deleteAccount.dialog.placeholder')"
             class="border-destructive focus-visible:outline-destructive"
           />
         </template>

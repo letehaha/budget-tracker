@@ -1,5 +1,6 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
+import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/Accounts.model';
@@ -111,7 +112,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
 
   if (!destinationAmount || !destinationAccountId) {
     throw new ValidationError({
-      message: `One of required fields are missing: destinationAmount, destinationAccountId.`,
+      message: t({ key: 'transactions.missingRequiredFields' }),
     });
   }
 
@@ -196,7 +197,7 @@ export const createTransaction = withTransaction(
 
       if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
         throw new ValidationError({
-          message: 'It is not allowed to crate a transaction that is a refund and a transfer at the same time',
+          message: t({ key: 'transactions.refundAndTransferNotAllowed' }),
         });
       }
 
@@ -294,7 +295,7 @@ export const createTransaction = withTransaction(
               ids: [[baseTransaction!.id, destinationTransactionId]],
               result,
             });
-            throw new UnexpectedError({ message: 'Cannot create transaction with provided params' });
+            throw new UnexpectedError({ message: t({ key: 'transactions.cannotCreateWithParams' }) });
           }
         } else {
           const res = await createOppositeTransaction([

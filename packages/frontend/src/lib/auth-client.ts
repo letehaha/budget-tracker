@@ -1,3 +1,4 @@
+import { getCurrentLocale } from '@/i18n';
 import { passkeyClient } from '@better-auth/passkey/client';
 import { createAuthClient } from 'better-auth/vue';
 
@@ -26,6 +27,15 @@ const getBaseURL = () => {
 export const authClient = createAuthClient({
   baseURL: getBaseURL(),
   plugins: [passkeyClient()],
+  // Send current locale to backend for locale-aware operations (e.g., category creation)
+  fetchOptions: {
+    headers: {
+      // Use a getter function to get the current locale at request time
+      get 'Accept-Language'() {
+        return getCurrentLocale();
+      },
+    },
+  },
 });
 
 // Re-export signIn with passkey method for proper typing

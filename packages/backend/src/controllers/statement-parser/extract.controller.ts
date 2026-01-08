@@ -1,4 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
+import { t } from '@i18n/index';
 import { UnexpectedError } from '@js/errors';
 import {
   extractTextFromFile,
@@ -17,7 +18,7 @@ export const extractController = createController(
   z.object({
     body: z.object({
       /** Base64 encoded file */
-      fileBase64: z.string().min(1, 'File content is required'),
+      fileBase64: z.string().min(1, t({ key: 'statementParser.fileContentRequired' })),
     }),
   }),
   async ({ user, body }) => {
@@ -37,7 +38,7 @@ export const extractController = createController(
       const validation = validateFileBuffer({ buffer: rawBuffer });
       if (!validation.valid || !validation.fileBuffer || !validation.fileType) {
         throw new UnexpectedError({
-          message: validation.error?.message ?? 'Invalid file',
+          message: validation.error?.message ?? t({ key: 'statementParser.invalidFile' }),
         });
       }
 
@@ -63,8 +64,8 @@ export const extractController = createController(
           message:
             textResult.error ??
             (fileType === 'pdf'
-              ? 'Failed to extract text from PDF. It may be a scanned document.'
-              : 'Failed to extract text from file.'),
+              ? t({ key: 'statementParser.failedToExtractTextPdf' })
+              : t({ key: 'statementParser.failedToExtractText' })),
         });
       }
 

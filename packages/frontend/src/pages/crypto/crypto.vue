@@ -1,8 +1,8 @@
 <template>
   <div class="p-6">
-    <h1>Crypto</h1>
+    <h1>{{ $t('crypto.title') }}</h1>
 
-    <template v-if="isDataLoading"> LOADING... </template>
+    <template v-if="isDataLoading"> {{ $t('crypto.loading') }} </template>
 
     <template v-else>
       <template v-if="isAPIKeysDefined">

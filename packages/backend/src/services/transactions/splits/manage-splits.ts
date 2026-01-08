@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import RefundTransactions from '@models/RefundTransactions.model';
 import TransactionSplits, {
@@ -129,7 +130,7 @@ export const manageSplits = async ({
         );
         const refundsText = refundDescriptions.join(', ');
         throw new ValidationError({
-          message: `This split has refunds totaling ${refundsText}. You cannot reduce it below the refunded amount. To reduce further, first unlink the refunds.`,
+          message: t({ key: 'transactions.splits.cannotReduceBelowRefunded', variables: { refundsText } }),
         });
       }
 

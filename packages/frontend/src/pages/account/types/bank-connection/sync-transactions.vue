@@ -2,12 +2,16 @@
   <div class="flex flex-col gap-2">
     <div class="flex items-center justify-between">
       <div>
-        <p>Sync latest transactions</p>
-        <p class="text-muted-foreground text-sm">Transactions are auto-synced every 12 hours</p>
+        <p>{{ t('pages.account.syncTransactions.title') }}</p>
+        <p class="text-muted-foreground text-sm">{{ t('pages.account.syncTransactions.autoSyncInfo') }}</p>
       </div>
 
       <Button :disabled="isSyncDisabled" class="min-w-[100px]" size="sm" @click="syncTransactionsHandler">
-        {{ isSyncing || isAccountSyncing ? 'Syncing...' : 'Sync' }}
+        {{
+          isSyncing || isAccountSyncing
+            ? t('pages.account.syncTransactions.syncing')
+            : t('pages.account.syncTransactions.syncButton')
+        }}
       </Button>
     </div>
   </div>
@@ -22,6 +26,9 @@ import { useSyncStatus } from '@/composable/use-sync-status';
 import { API_ERROR_CODES, AccountModel } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   account: AccountModel;
@@ -41,7 +48,7 @@ const isAccountSyncing = computed(() => {
 const { mutate: syncMutate, isPending: isSyncing } = useMutation({
   mutationFn: async () => {
     if (!props.account.bankDataProviderConnectionId) {
-      throw new Error('Account is not linked to a bank connection');
+      throw new Error(t('pages.account.syncTransactions.notLinked'));
     }
 
     // Subscribe to SSE for updates
@@ -60,7 +67,7 @@ const { mutate: syncMutate, isPending: isSyncing } = useMutation({
     } else {
       // Immediate sync (EnableBanking) - SSE will notify when complete
       addNotification({
-        text: 'Sync started...',
+        text: t('pages.account.syncTransactions.syncStarted'),
         type: NotificationType.info,
       });
 
@@ -73,13 +80,13 @@ const { mutate: syncMutate, isPending: isSyncing } = useMutation({
     const e = error as { data?: { code?: string; message?: string } };
     if (e?.data?.code === API_ERROR_CODES.forbidden) {
       addNotification({
-        text: e.data.message || 'Access forbidden',
+        text: e.data.message || t('pages.account.syncTransactions.accessForbidden'),
         type: NotificationType.error,
       });
     } else {
       console.error(error);
       addNotification({
-        text: 'Failed to sync transactions',
+        text: t('pages.account.syncTransactions.failed'),
         type: NotificationType.error,
       });
     }
@@ -91,7 +98,7 @@ const isSyncDisabled = computed(() => isSyncing.value || isAccountSyncing.value)
 const syncTransactionsHandler = () => {
   if (!props.account.bankDataProviderConnectionId) {
     addNotification({
-      text: 'This account is not linked to a bank connection',
+      text: t('pages.account.syncTransactions.notLinked'),
       type: NotificationType.error,
     });
     return;

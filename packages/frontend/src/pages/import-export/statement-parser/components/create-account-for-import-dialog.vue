@@ -4,7 +4,12 @@
     <template #description> Create a new account to import your statement transactions. </template>
 
     <form class="grid gap-6" @submit.prevent="handleSubmit">
-      <InputField v-model="form.name" label="Account name" placeholder="e.g., Main Bank Account" :error="errors.name" />
+      <InputField
+        v-model="form.name"
+        label="Account name"
+        :placeholder="$t('pages.statementParser.accountNamePlaceholder')"
+        :error="errors.name"
+      />
 
       <!--
         Currency field is disabled when defaultCurrency is provided from statement.
@@ -15,7 +20,7 @@
         <FieldLabel label="Currency">
           <Select.Select v-model="form.currencyCode" :disabled="!!props.defaultCurrency">
             <Select.SelectTrigger>
-              <Select.SelectValue placeholder="Select currency" />
+              <Select.SelectValue :placeholder="$t('pages.statementParser.selectCurrency')" />
             </Select.SelectTrigger>
             <Select.SelectContent>
               <!-- Show statement currency first if it exists and is not in linked list -->
@@ -27,7 +32,7 @@
               </template>
               <template v-for="item of systemCurrenciesVerbose.linked" :key="item.code">
                 <Select.SelectItem :value="String(item.code)">
-                  {{ item.code }} - {{ item.currency }}
+                  {{ formatCurrencyLabel({ code: item.code, fallbackName: item.currency }) }}
                 </Select.SelectItem>
               </template>
             </Select.SelectContent>
@@ -60,6 +65,7 @@ import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { useCurrencyName } from '@/composable';
 import { useCurrenciesStore } from '@/stores';
 import { ACCOUNT_CATEGORIES, type AccountModel } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -80,6 +86,7 @@ const emit = defineEmits<{
 const queryClient = useQueryClient();
 const currenciesStore = useCurrenciesStore();
 const { addNotification } = useNotificationCenter();
+const { formatCurrencyLabel } = useCurrencyName();
 
 const { baseCurrency, systemCurrenciesVerbose } = storeToRefs(currenciesStore);
 

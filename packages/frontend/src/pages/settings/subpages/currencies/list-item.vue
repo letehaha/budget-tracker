@@ -24,14 +24,14 @@
 
           <ResponsiveTooltip
             v-if="currency.isDefaultCurrency"
-            content="Your base currency. All information on dashboard is displayed in this currency"
+            :content="$t('settings.currencies.list.baseCurrencyTooltip')"
             class="@[0px]/card:absolute @[0px]/card:top-0 @[0px]/card:left-0 @[370px]/card:static"
             contentClassName="max-w-[320px]"
           >
             <div
               class="bg-background border-accent flex shrink-0 items-center gap-1 rounded border px-2 py-1 text-xs whitespace-nowrap text-white"
             >
-              Base currency
+              {{ $t('settings.currencies.list.baseCurrencyBadge') }}
               <InfoIcon class="size-4" />
             </div>
           </ResponsiveTooltip>

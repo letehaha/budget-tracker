@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import AccountGroup from '@models/accounts-groups/AccountGroups.model';
 
@@ -17,7 +18,7 @@ export const createAccountGroup = withTransaction(
       const existingParent = await AccountGroup.findByPk(parentGroupId);
 
       if (!existingParent) {
-        throw new NotFoundError({ message: 'Parent group does not exists.' });
+        throw new NotFoundError({ message: t({ key: 'accountGroups.parentGroupDoesNotExist' }) });
       }
     }
 

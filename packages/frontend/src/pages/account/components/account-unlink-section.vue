@@ -6,6 +6,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   account: AccountModel;
@@ -13,6 +14,7 @@ const props = defineProps<{
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { t } = useI18n();
 const confirmAccountName = ref('');
 const isAccountUnlinking = ref(false);
 
@@ -29,10 +31,10 @@ const unlinkAccount = async () => {
     await accountsStore.unlinkAccountFromBankConnection({
       id: props.account.id,
     });
-    addSuccessNotification(`Account ${accountName} unlinked successfully`);
+    addSuccessNotification(t('pages.account.unlink.success', { accountName }));
     confirmAccountName.value = '';
   } catch {
-    addErrorNotification('An error occured while trying to unlink account');
+    addErrorNotification(t('pages.account.unlink.error'));
     isAccountUnlinking.value = false;
   }
 };
@@ -90,7 +92,7 @@ const unlinkAccount = async () => {
         <p class="mb-2 text-sm">Type the account name to confirm:</p>
         <InputField
           v-model="confirmAccountName"
-          placeholder="Enter account name"
+          :placeholder="$t('pages.account.unlink.confirmPlaceholder')"
           class="border-destructive focus-visible:outline-destructive"
         />
       </template>

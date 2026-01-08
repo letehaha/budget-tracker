@@ -1,11 +1,19 @@
 <template>
   <div>
-    <h3>Please define your API keys</h3>
-    <input-field v-model="form.public" label="Public Key" :error-message="getFieldErrorMessage('form.public')" />
-    <input-field v-model="form.secret" label="Secret Key" :error-message="getFieldErrorMessage('form.secret')" />
+    <h3>{{ t('crypto.apiKeysForm.title') }}</h3>
+    <input-field
+      v-model="form.public"
+      :label="t('crypto.apiKeysForm.publicKey')"
+      :error-message="getFieldErrorMessage('form.public')"
+    />
+    <input-field
+      v-model="form.secret"
+      :label="t('crypto.apiKeysForm.secretKey')"
+      :error-message="getFieldErrorMessage('form.secret')"
+    />
 
     <Button :disabled="isFormLoading" @click="submit">
-      {{ isFormLoading ? 'Loading...' : 'Submit' }}
+      {{ isFormLoading ? t('common.actions.loading') : t('crypto.apiKeysForm.submit') }}
     </Button>
   </div>
 </template>
@@ -17,6 +25,9 @@ import { useFormValidation } from '@/composable';
 import { required } from '@/js/helpers/validators';
 import { useCryptoBinanceStore } from '@/stores';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const cryptoBinanceStore = useCryptoBinanceStore();
 

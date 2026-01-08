@@ -6,12 +6,12 @@
     <div class="flex items-start gap-3">
       <ShieldAlertIcon class="text-primary mt-0.5 size-5 shrink-0" />
       <div class="flex-1">
-        <p class="font-medium">Add a backup login method</p>
+        <p class="font-medium">{{ $t('banners.recoveryMethod.title') }}</p>
         <p class="text-muted-foreground mt-1 text-sm">
-          Protect your account by adding Google sign-in or a passkey. This ensures you can always access your account.
+          {{ $t('banners.recoveryMethod.description') }}
         </p>
         <router-link :to="{ name: ROUTES_NAMES.settingsSecurity }" class="mt-2 inline-block">
-          <Button variant="outline" size="sm"> Go to Security Settings </Button>
+          <Button variant="outline" size="sm">{{ $t('banners.recoveryMethod.actionButton') }}</Button>
         </router-link>
       </div>
       <Button

@@ -1,12 +1,14 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 
+// Translation keys for bank provider metadata
+// Use t() with these keys in components to get translated strings
 export const METAINFO_FROM_TYPE = {
   [BANK_PROVIDER_TYPE.MONOBANK]: {
-    name: 'Monobank',
-    description: 'Ukrainian digital bank',
+    nameKey: 'pages.integrations.providers.monobank.name',
+    descriptionKey: 'pages.integrations.providers.monobank.description',
   },
   [BANK_PROVIDER_TYPE.ENABLE_BANKING]: {
-    name: 'Enable Banking',
-    description: 'Access 6000+ European banks via PSD2 open banking',
+    nameKey: 'pages.integrations.providers.enableBanking.name',
+    descriptionKey: 'pages.integrations.providers.enableBanking.description',
   },
 };

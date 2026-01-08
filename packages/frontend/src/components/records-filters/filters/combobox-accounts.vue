@@ -18,7 +18,9 @@
           </span>
           <span class="font-medium">
             {{
-              isAllSelected ? 'All accounts' : `${selectedAccounts.length === 1 ? 'account' : 'accounts'} selected`
+              isAllSelected
+                ? $t('fields.comboboxAccounts.allAccounts')
+                : `${selectedAccounts.length === 1 ? $t('fields.comboboxAccounts.account') : $t('fields.comboboxAccounts.accountsSelected')}`
             }}</span
           >
         </div>
@@ -44,7 +46,7 @@
       <div class="relative w-full items-center p-2 pb-0">
         <Combobox.ComboboxInput
           class="h-9 w-full rounded-md border pl-9 focus-visible:ring-0"
-          placeholder="Search accounts..."
+          :placeholder="$t('fields.comboboxAccounts.searchPlaceholder')"
         />
         <SearchIcon class="text-muted-foreground absolute top-[60%] left-4 size-5 -translate-y-1/2" />
       </div>

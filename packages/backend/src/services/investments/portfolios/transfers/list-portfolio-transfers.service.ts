@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
 import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
@@ -31,7 +32,7 @@ export async function listPortfolioTransfers({
   });
 
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   // Build date filter if provided

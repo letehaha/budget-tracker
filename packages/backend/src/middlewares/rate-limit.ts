@@ -1,4 +1,5 @@
 import { errorHandler } from '@controllers/helpers';
+import { t } from '@i18n/index';
 import { TooManyRequests } from '@js/errors';
 import Users from '@models/Users.model';
 import { RateLimitService } from '@services/common/rate-limit.service';
@@ -27,7 +28,7 @@ export const createRateLimit = (options: RateLimitOptions) => {
 
       if (!result.allowed) {
         const error = new TooManyRequests({
-          message: 'Too many requests. Please try again later.',
+          message: t({ key: 'middleware.tooManyRequests' }),
           details: {
             retryAfter: result.remainingSeconds || 0,
             resetTime: result.resetTime?.toISOString(),
