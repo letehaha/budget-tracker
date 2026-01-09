@@ -58,6 +58,7 @@
               target="_blank"
               rel="noopener noreferrer"
               class="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm transition-colors"
+              @click="trackGitHubClick('header_nav')"
             >
               GitHub <ExternalLinkIcon class="size-4" />
             </a>
@@ -70,6 +71,7 @@
               target="_blank"
               rel="noopener noreferrer"
               class="border-border hover:bg-accent hidden items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors sm:flex"
+              @click="trackGitHubClick('header_star')"
             >
               <GithubCircleIcon class="size-4 text-white" />
               <span>Star on GitHub</span>
@@ -78,6 +80,7 @@
             <router-link
               :to="{ name: ctaRoute }"
               class="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+              @click="trackCtaClick('header')"
             >
               {{ ctaTextShort }}
             </router-link>
@@ -137,6 +140,7 @@
             <router-link
               :to="{ name: ctaRoute }"
               class="group bg-primary text-primary-foreground shadow-primary/25 hover:bg-primary/90 hover:shadow-primary/30 flex w-full items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-base font-semibold shadow-lg transition-all hover:shadow-xl sm:w-auto"
+              @click="trackCtaClick('hero')"
             >
               {{ ctaText }}
               <ArrowRight class="size-4 transition-transform group-hover:translate-x-0.5" />
@@ -146,6 +150,7 @@
               target="_blank"
               rel="noopener noreferrer"
               class="border-border bg-card hover:bg-accent flex w-full items-center justify-center gap-2 rounded-xl border px-8 py-3.5 text-base font-semibold transition-all sm:w-auto"
+              @click="trackGitHubClick('hero')"
             >
               <GithubCircleIcon class="size-5 text-white" />
               View on GitHub <ExternalLinkIcon class="size-4" />
@@ -400,6 +405,7 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 class="border-border bg-card hover:bg-accent inline-flex items-center gap-2 rounded-lg border px-5 py-2.5 font-medium transition-colors"
+                @click="trackGitHubClick('self_host')"
               >
                 <GithubCircleIcon class="size-5 text-white" />
                 View Setup Guide
@@ -483,6 +489,7 @@
               <router-link
                 :to="{ name: ctaRoute }"
                 class="text-primary flex w-full items-center justify-center gap-2 rounded-xl bg-white px-8 py-3.5 font-semibold shadow-lg transition-all hover:bg-white/90 sm:w-auto"
+                @click="trackCtaClick('cta_section')"
               >
                 {{ isLoggedIn ? 'Go to Dashboard' : 'Get Started Free' }}
                 <ArrowRight class="size-4" />
@@ -492,6 +499,7 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 class="flex w-full items-center justify-center gap-2 rounded-xl border border-white/30 px-8 py-3.5 font-semibold text-white transition-all hover:bg-white/10 sm:w-auto"
+                @click="trackGitHubClick('cta_section')"
               >
                 <GithubCircleIcon class="size-5 text-white" />
                 View on GitHub
@@ -531,6 +539,7 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 class="hover:text-foreground transition-colors"
+                @click="trackGitHubClick('footer')"
               >
                 GitHub
               </a>
@@ -568,6 +577,7 @@
 
 <script setup lang="ts">
 import GithubCircleIcon from '@/components/common/icons/github-circle.vue';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes';
 import { useAuthStore } from '@/stores';
 import { useHead } from '@unhead/vue';
@@ -614,6 +624,24 @@ const ctaTextShort = computed(() => {
   if (isLoggedIn.value) return 'Dashboard';
   return isReturningUser ? 'Sign in' : 'Get Started';
 });
+
+// Analytics tracking
+const trackGitHubClick = (
+  location: 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer',
+) => {
+  trackAnalyticsEvent({
+    event: 'landing_github_clicked',
+    properties: { location },
+  });
+};
+
+const trackCtaClick = (location: 'header' | 'hero' | 'cta_section') => {
+  const action = isLoggedIn.value ? 'go_to_dashboard' : isReturningUser ? 'sign_in' : 'sign_up';
+  trackAnalyticsEvent({
+    event: 'landing_cta_clicked',
+    properties: { location, action },
+  });
+};
 
 const siteUrl = 'https://moneymatter.app';
 const pageTitle = 'MoneyMatter - Take Control of Your Financial Future';

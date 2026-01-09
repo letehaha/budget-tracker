@@ -14,6 +14,14 @@ const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST;
  * are tracked on the backend for reliability - they confirm actual success.
  */
 export type AnalyticsEvent =
+  // Landing page
+  | { event: 'landing_cta_clicked'; properties: { location: 'header' | 'hero' | 'cta_section'; action: string } }
+  | {
+      event: 'landing_github_clicked';
+      properties: { location: 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' };
+    }
+  // Language selector
+  | { event: 'language_changed'; properties: { from_locale: string; to_locale: string } }
   // Onboarding funnel
   | { event: 'onboarding_visited' }
   | { event: 'onboarding_completed'; properties: { base_currency: string } }
