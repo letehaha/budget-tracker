@@ -1,3 +1,4 @@
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import tailwind from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import autoprefixer from 'autoprefixer';
@@ -33,8 +34,24 @@ export default ({ mode }) => {
     hmr: process.env.HMR_HOST ? { host: process.env.HMR_HOST } : true,
   };
 
+  // Only add Sentry plugin in production build when auth token is available
+  const sentryEnabled = mode === 'production' && process.env.SENTRY_AUTH_TOKEN;
+
   return defineConfig({
-    plugins: [vue(), tailwind(), svgLoader()],
+    plugins: [
+      vue(),
+      tailwind(),
+      svgLoader(),
+      sentryEnabled &&
+        sentryVitePlugin({
+          org: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+        }),
+    ].filter(Boolean),
+    build: {
+      sourcemap: true,
+    },
     server: serverConfig,
     resolve: {
       alias: [

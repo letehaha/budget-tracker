@@ -22,6 +22,18 @@ inputs:
     description: 'VITE_SENTRY_DSN - Sentry DSN for error tracking'
     required: false
     default: ''
+  sentry-auth-token:
+    description: 'SENTRY_AUTH_TOKEN - Sentry auth token for source map upload'
+    required: false
+    default: ''
+  sentry-org:
+    description: 'SENTRY_ORG - Sentry organization slug'
+    required: false
+    default: ''
+  sentry-project:
+    description: 'SENTRY_PROJECT - Sentry project slug'
+    required: false
+    default: ''
   docker-hub-username:
     description: 'DOCKER_HUB_USERNAME'
     required: false
@@ -48,6 +60,9 @@ runs:
         envkey_VITE_POSTHOG_KEY: ${{ inputs.posthog-key }}
         envkey_VITE_POSTHOG_HOST: ${{ inputs.posthog-host }}
         envkey_VITE_SENTRY_DSN: ${{ inputs.sentry-dsn }}
+        envkey_SENTRY_AUTH_TOKEN: ${{ inputs.sentry-auth-token }}
+        envkey_SENTRY_ORG: ${{ inputs.sentry-org }}
+        envkey_SENTRY_PROJECT: ${{ inputs.sentry-project }}
         directory: ./
         file_name: .env.production
 

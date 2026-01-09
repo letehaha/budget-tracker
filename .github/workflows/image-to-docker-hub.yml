@@ -45,6 +45,9 @@ jobs:
           posthog-key: ${{ secrets.VITE_POSTHOG_KEY }}
           posthog-host: ${{ secrets.VITE_POSTHOG_HOST }}
           sentry-dsn: ${{ secrets.VITE_SENTRY_DSN }}
+          sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          sentry-org: ${{ secrets.SENTRY_ORG }}
+          sentry-project: ${{ secrets.SENTRY_PROJECT }}
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
           push: 'true'
