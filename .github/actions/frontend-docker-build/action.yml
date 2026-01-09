@@ -10,6 +10,18 @@ inputs:
     description: 'VUE_APP_API_VER'
     required: false
     default: 'v1'
+  posthog-key:
+    description: 'VITE_POSTHOG_KEY - PostHog API key for analytics'
+    required: false
+    default: ''
+  posthog-host:
+    description: 'VITE_POSTHOG_HOST - PostHog host URL'
+    required: false
+    default: 'https://eu.i.posthog.com'
+  sentry-dsn:
+    description: 'VITE_SENTRY_DSN - Sentry DSN for error tracking'
+    required: false
+    default: ''
   docker-hub-username:
     description: 'DOCKER_HUB_USERNAME'
     required: false
@@ -33,6 +45,9 @@ runs:
       with:
         envkey_VITE_APP_API_HTTP: ${{ inputs.api-base-url }}
         envkey_VITE_APP_API_VER: ${{ inputs.vue-app-api-ver }}
+        envkey_VITE_POSTHOG_KEY: ${{ inputs.posthog-key }}
+        envkey_VITE_POSTHOG_HOST: ${{ inputs.posthog-host }}
+        envkey_VITE_SENTRY_DSN: ${{ inputs.sentry-dsn }}
         directory: ./
         file_name: .env.production
 

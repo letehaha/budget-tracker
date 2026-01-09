@@ -42,6 +42,9 @@ jobs:
         with:
           api-base-url: ${{ secrets.API_BASE_URL }}
           vue-app-api-ver: ${{ secrets.VUE_APP_API_VER }}
+          posthog-key: ${{ secrets.VITE_POSTHOG_KEY }}
+          posthog-host: ${{ secrets.VITE_POSTHOG_HOST }}
+          sentry-dsn: ${{ secrets.VITE_SENTRY_DSN }}
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
           push: 'true'
