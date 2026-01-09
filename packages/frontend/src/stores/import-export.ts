@@ -187,6 +187,8 @@ export const useImportExportStore = defineStore('importExport', () => {
 
       importResult.value = response;
 
+      // Note: import_completed is tracked on the backend for reliability
+
       // Invalidate all queries to refetch data after import
       // Import can affect transactions, accounts, categories, currencies, and balances
       queryClient.invalidateQueries();

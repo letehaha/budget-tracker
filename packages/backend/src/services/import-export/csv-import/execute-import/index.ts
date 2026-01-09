@@ -16,6 +16,7 @@ import {
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
+import { trackImportCompleted } from '@js/utils/posthog';
 import * as Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import * as Transactions from '@models/Transactions.model';
@@ -154,6 +155,15 @@ async function executeImportImpl({
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
+  }
+
+  // Track analytics event
+  if (newTransactionIds.length > 0) {
+    trackImportCompleted({
+      userId,
+      importType: 'csv',
+      transactionsCount: newTransactionIds.length,
+    });
   }
 
   return {

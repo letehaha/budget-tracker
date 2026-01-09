@@ -176,9 +176,15 @@
 </template>
 
 <script setup lang="ts">
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useImportExportStore } from '@/stores/import-export';
 import { CheckIcon, ChevronDownIcon, LockIcon } from 'lucide-vue-next';
+import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+onMounted(() => {
+  trackAnalyticsEvent({ event: 'import_opened', properties: { import_type: 'csv' } });
+});
 
 import ColumnMappingStep from './components/column-mapping-step/index.vue';
 import FileUploadStep from './components/file-upload-step/index.vue';

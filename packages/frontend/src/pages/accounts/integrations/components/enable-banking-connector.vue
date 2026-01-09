@@ -423,6 +423,8 @@ const handleSyncAccounts = async () => {
     // Refresh accounts store
     await accountsStore.refetchAccounts();
 
+    // Note: bank_connected is tracked on the backend for reliability
+
     addSuccessNotification(
       t('pages.integrations.enableBankingConnector.syncSuccess', { count: selectedAccountIds.value.length }),
     );

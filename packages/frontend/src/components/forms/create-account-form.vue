@@ -7,6 +7,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useCurrencyName } from '@/composable';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -62,6 +63,13 @@ const submit = async () => {
       accountCategory: form.accountCategory,
       creditLimit: form.creditLimit,
       initialBalance: form.initialBalance,
+    });
+
+    trackAnalyticsEvent({
+      event: 'account_created',
+      properties: {
+        currency: form.currencyCode,
+      },
     });
 
     addNotification({

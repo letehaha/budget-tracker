@@ -22,7 +22,8 @@
     "docker:prod": "docker compose -f ./docker/prod/docker-compose.yml --env-file .env.production build --no-cache && docker compose -f ./docker/prod/docker-compose.yml --env-file .env.production up",
     "prepare": "node -e \"if (process.env.NODE_ENV !== 'production'){process.exit(1)} \" || husky",
     "postinstall": "chmod +x ./post-install.sh && ./post-install.sh",
-    "prettier": "npx prettier --write ."
+    "prettier": "npx prettier --write .",
+    "knip": "npx -w packages/frontend knip"
   },
   "author": "letehaha",
   "license": "ISC",

@@ -1,6 +1,8 @@
 import { identifyCurrentTheme, patchMetaViewportMaxScaleForiOS } from '@/common/utils';
 import { clickOutside, nodeResizeObserver } from '@/directives';
 import { i18n, initializeLocale, loadLanguageAsync } from '@/i18n';
+import { initPostHog } from '@/lib/posthog';
+import { initSentry } from '@/lib/sentry';
 import { router } from '@/routes';
 import { store } from '@/stores/setup';
 import '@/styles/global.css';
@@ -23,6 +25,12 @@ if (initialLocale !== 'en') {
 
 const app = createApp(App);
 const head = createHead();
+
+// Initialize Sentry before mounting (must be early to catch errors)
+initSentry({ app, router });
+
+// Initialize PostHog analytics
+initPostHog();
 
 app.directive('click-outside', clickOutside);
 app.directive('node-resize-observer', nodeResizeObserver);

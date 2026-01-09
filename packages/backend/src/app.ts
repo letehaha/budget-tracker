@@ -2,6 +2,8 @@ import './bootstrap';
 
 import { requestContext } from '@common/request-context';
 import { logger } from '@js/utils/logger';
+import { shutdownPostHog } from '@js/utils/posthog';
+import { Sentry } from '@js/utils/sentry';
 import { requestIdMiddleware } from '@middlewares/request-id';
 import { sessionMiddleware } from '@middlewares/session-id';
 import { toNodeHandler } from 'better-auth/node';
@@ -168,6 +170,12 @@ if (process.env.NODE_ENV === 'test') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);
 }
 
+// Sentry error handler - must be after routes but before other error handlers
+// Only set up in production when Sentry is actually initialized
+if (process.env.NODE_ENV === 'production') {
+  Sentry.setupExpressErrorHandler(app);
+}
+
 logger.info('Attempting to start server...');
 
 let serverInstance: https.Server | ReturnType<typeof app.listen>;
@@ -239,9 +247,11 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-const processUnexpectedExit = () => {
+const processUnexpectedExit = async () => {
   securitiesDailySyncCron.stopCron();
   loadCurrencyRatesJob.stop();
+  // Flush remaining PostHog events before exit
+  await shutdownPostHog();
   process.exit(0);
 };
 

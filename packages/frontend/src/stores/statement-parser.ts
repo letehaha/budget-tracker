@@ -8,6 +8,7 @@ import {
   extractStatementTransactions,
 } from '@/api/import-export';
 import { loadTransactions } from '@/api/transactions';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import type { AccountModel, StatementCostEstimate, StatementExtractionResult } from '@bt/shared/types';
 import type { TransactionModel } from '@bt/shared/types/db-models';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -193,6 +194,11 @@ export const useStatementParserStore = defineStore('statementParser', () => {
       const result = await extractStatementTransactions({ fileBase64: fileBase64.value });
       extractionResult.value = result;
 
+      trackAnalyticsEvent({
+        event: 'ai_feature_used',
+        properties: { feature: 'statement_parser' },
+      });
+
       // Mark step 1 as completed and move to step 2 (account selection)
       if (!completedSteps.value.includes(1)) {
         completedSteps.value.push(1);
@@ -327,6 +333,8 @@ export const useStatementParserStore = defineStore('statementParser', () => {
         skipIndices: skipIndices.value,
       });
       importResult.value = result;
+
+      // Note: import_completed is tracked on the backend for reliability
 
       // Invalidate all queries to refetch data after import
       queryClient.invalidateQueries();

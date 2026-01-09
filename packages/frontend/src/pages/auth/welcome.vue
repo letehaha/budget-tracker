@@ -5,11 +5,16 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import { useCurrencyName } from '@/composable';
 import { useLogout } from '@/composable/actions/logout';
 import { useAllCurrencies, useBaseCurrency, useSetBaseCurrency } from '@/composable/data-queries/currencies';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { CurrencyModel } from '@bt/shared/types';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+
+onMounted(() => {
+  trackAnalyticsEvent({ event: 'onboarding_visited' });
+});
 
 const router = useRouter();
 const logoutHandler = useLogout();
@@ -63,6 +68,10 @@ const submitBaseCurrency = () => {
   formError.value = null;
   setBaseCurrency(selectedCurrency.value.code, {
     onSuccess: () => {
+      trackAnalyticsEvent({
+        event: 'onboarding_completed',
+        properties: { base_currency: selectedCurrency.value!.code },
+      });
       forwardToDashboard();
     },
     onError: () => {

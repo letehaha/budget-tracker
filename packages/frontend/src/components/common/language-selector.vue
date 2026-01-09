@@ -38,6 +38,7 @@ import { api } from '@/api';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import { getCurrentLocale, setLocale } from '@/i18n';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { LOCALE_NAMES, SUPPORTED_LOCALES, type SupportedLocale } from '@bt/shared/i18n/locales';
 import { useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
@@ -85,8 +86,20 @@ const availableLocales = [
 ];
 
 async function handleLocaleChange(locale: SupportedLocale) {
+  const previousLocale = currentLocale.value;
   currentLocale.value = locale;
   await setLocale(locale);
+
+  // Track language change
+  if (previousLocale !== locale) {
+    trackAnalyticsEvent({
+      event: 'language_changed',
+      properties: {
+        from_locale: previousLocale,
+        to_locale: locale,
+      },
+    });
+  }
 
   // Optionally persist to backend for authenticated users
   if (props.persistToBackend) {

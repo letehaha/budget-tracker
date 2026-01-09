@@ -1,13 +1,34 @@
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { UnexpectedError } from '@/js/errors';
 import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
+import { identifyUser, resetUser } from '@/lib/posthog';
+import { clearSentryUser, setSentryUser } from '@/lib/sentry';
 import { useCategoriesStore, useCurrenciesStore, useUserStore } from '@/stores';
-import { OAUTH_PROVIDER } from '@bt/shared/types';
+import { OAUTH_PROVIDER, UserModel } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 
 import { resetAllDefinedStores } from './setup';
+
+/**
+ * Identify user for analytics and error tracking
+ */
+function identifyUserForTracking(user: UserModel) {
+  // PostHog analytics
+  identifyUser({
+    userId: user.id,
+    email: user.email,
+    username: user.username,
+  });
+
+  // Sentry error tracking
+  setSentryUser({
+    userId: user.id,
+    email: user.email,
+    username: user.username,
+  });
+}
 
 const HAS_EVER_LOGGED_IN_KEY = 'has-ever-logged-in';
 
@@ -52,6 +73,11 @@ export const useAuthStore = defineStore('auth', () => {
     await userStore.loadUser();
     await loadPostAuthData();
 
+    // Identify user for analytics and error tracking
+    if (userStore.user) {
+      identifyUserForTracking(userStore.user);
+    }
+
     isLoggedIn.value = true;
     localStorage.setItem(HAS_EVER_LOGGED_IN_KEY, 'true');
   };
@@ -74,6 +100,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     await userStore.loadUser();
     await loadPostAuthData();
+
+    // Identify user for analytics and error tracking
+    if (userStore.user) {
+      identifyUserForTracking(userStore.user);
+    }
 
     isLoggedIn.value = true;
     localStorage.setItem(HAS_EVER_LOGGED_IN_KEY, 'true');
@@ -116,6 +147,11 @@ export const useAuthStore = defineStore('auth', () => {
     await userStore.loadUser();
     await loadPostAuthData();
 
+    // Identify user for analytics and error tracking
+    if (userStore.user) {
+      identifyUserForTracking(userStore.user);
+    }
+
     isLoggedIn.value = true;
     localStorage.setItem(HAS_EVER_LOGGED_IN_KEY, 'true');
   };
@@ -150,6 +186,12 @@ export const useAuthStore = defineStore('auth', () => {
 
       await userStore.loadUser();
       await setLoggedIn();
+
+      // Identify user for analytics and error tracking
+      if (userStore.user) {
+        identifyUserForTracking(userStore.user);
+      }
+
       isSessionChecked.value = true;
       return true;
     } catch {
@@ -190,6 +232,10 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       // Ignore signout errors, we still want to clear local state
     }
+
+    // Reset analytics and error tracking user context
+    resetUser();
+    clearSentryUser();
 
     isMobileSheetOpen.value = false;
     // Set logged out state before resetting stores

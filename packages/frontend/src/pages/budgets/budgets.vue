@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { PlusIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 
@@ -10,6 +11,7 @@ import BudgetList from './budget-list.vue';
 const isOpen = ref(false);
 const openModal = () => {
   isOpen.value = true;
+  trackAnalyticsEvent({ event: 'budget_creation_opened' });
 };
 const isModalClosed = () => {
   isOpen.value = false;
