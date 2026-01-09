@@ -118,6 +118,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore } from '@/stores';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { InfoIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';

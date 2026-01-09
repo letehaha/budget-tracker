@@ -253,6 +253,7 @@ import {
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore } from '@/stores';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { InfoIcon, TriangleAlertIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
