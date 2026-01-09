@@ -1,8 +1,39 @@
 import posthog from 'posthog-js';
-import type { Router } from 'vue-router';
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
 const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST;
+
+// ============================================
+// Event Types
+// ============================================
+
+export type AnalyticsEvent =
+  // Onboarding funnel
+  | { event: 'onboarding_visited' }
+  | { event: 'onboarding_completed'; properties: { base_currency: string } }
+  // Account creation funnel
+  | { event: 'account_creation_opened' }
+  | { event: 'account_created'; properties: { currency: string } }
+  // Bank connection funnel
+  | { event: 'bank_connection_opened'; properties: { provider: string } }
+  | { event: 'bank_connected'; properties: { provider: string; accounts_count: number } }
+  // Transaction creation funnel
+  | { event: 'transaction_creation_opened' }
+  | { event: 'transaction_created'; properties: { transaction_type: 'income' | 'expense' | 'transfer' } }
+  // Budget creation funnel
+  | { event: 'budget_creation_opened' }
+  | { event: 'budget_created' }
+  // Import funnel
+  | { event: 'import_opened'; properties: { import_type: 'csv' | 'statement_parser' } }
+  | { event: 'import_completed'; properties: { import_type: 'csv' | 'statement_parser'; transactions_count: number } }
+  // AI features
+  | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' } }
+  | { event: 'ai_settings_visited' }
+  | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } };
+
+// ============================================
+// Core Functions
+// ============================================
 
 /**
  * Check if PostHog should be enabled.
@@ -26,15 +57,14 @@ export function initPostHog(): void {
 
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST || 'https://eu.i.posthog.com',
-    // Disable automatic pageview capture - we handle it manually via router
+    // Disable automatic pageview capture - we track specific events instead
     capture_pageview: false,
-    // Disable pageleave to reduce events (pageviews are enough for session tracking)
+    // Disable pageleave to reduce events
     capture_pageleave: false,
     // IMPORTANT: Disable autocapture to save quota
     // Autocapture tracks every click, form submit, input change - very expensive
     autocapture: false,
     // Disable session recording to save quota (recordings are expensive)
-    // Enable selectively if needed for debugging specific user issues
     disable_session_recording: true,
     // Respect Do Not Track
     respect_dnt: true,
@@ -46,21 +76,17 @@ export function initPostHog(): void {
 }
 
 /**
- * Set up router integration for automatic pageview tracking.
+ * Track a typed analytics event.
  */
-export function setupPostHogRouterTracking({ router }: { router: Router }): void {
+export function trackAnalyticsEvent(eventData: AnalyticsEvent): void {
   if (!isPostHogEnabled()) {
     return;
   }
 
-  router.afterEach((to) => {
-    // Capture pageview with route info
-    posthog.capture('$pageview', {
-      $current_url: window.location.href,
-      route_name: to.name as string,
-      route_path: to.path,
-    });
-  });
+  const { event, ...rest } = eventData as AnalyticsEvent & { properties?: Record<string, unknown> };
+  const properties = 'properties' in rest ? rest.properties : undefined;
+
+  posthog.capture(event, properties);
 }
 
 /**

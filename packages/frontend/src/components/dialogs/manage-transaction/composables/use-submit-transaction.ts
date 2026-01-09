@@ -4,6 +4,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { getInvalidationQueryKey } from '@/composable/data-queries/opposite-tx-record';
 import { i18n } from '@/i18n';
 import { ApiErrorResponseError } from '@/js/errors';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import type { TransactionModel } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
@@ -81,6 +82,14 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
       if (params.linkedTransaction?.id) {
         queryClient.invalidateQueries({
           queryKey: getInvalidationQueryKey(params.linkedTransaction.id),
+        });
+      }
+
+      if (params.isFormCreation) {
+        const transactionType = params.isTransferTx ? 'transfer' : params.form.amount >= 0 ? 'income' : 'expense';
+        trackAnalyticsEvent({
+          event: 'transaction_created',
+          properties: { transaction_type: transactionType },
         });
       }
 

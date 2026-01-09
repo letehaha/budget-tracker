@@ -252,6 +252,7 @@ import {
 } from '@/api/bank-data-providers';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useAccountsStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { InfoIcon, TriangleAlertIcon } from 'lucide-vue-next';
@@ -422,6 +423,14 @@ const handleSyncAccounts = async () => {
 
     // Refresh accounts store
     await accountsStore.refetchAccounts();
+
+    trackAnalyticsEvent({
+      event: 'bank_connected',
+      properties: {
+        provider: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        accounts_count: selectedAccountIds.value.length,
+      },
+    });
 
     addSuccessNotification(
       t('pages.integrations.enableBankingConnector.syncSuccess', { count: selectedAccountIds.value.length }),

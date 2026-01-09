@@ -198,6 +198,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { ApiErrorResponseError } from '@/js/errors';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { AI_PROVIDER } from '@bt/shared/types';
 import { AlertCircleIcon, CheckCircleIcon, ChevronDownIcon, KeyIcon, Loader2Icon, Trash2Icon } from 'lucide-vue-next';
 import { computed, reactive, ref } from 'vue';
@@ -293,6 +294,11 @@ const handleSaveKey = async () => {
     await setApiKey({ apiKey: trimmedKey, provider: selectedProvider.value });
     apiKeyInput.value = '';
     addSuccessNotification(t('settings.ai.apiKeyManager.notifications.saveSuccess'));
+
+    trackAnalyticsEvent({
+      event: 'ai_key_set',
+      properties: { provider: selectedProvider.value },
+    });
 
     // Select next available provider if there's one
     if (availableProvidersToAdd.value.length > 0) {

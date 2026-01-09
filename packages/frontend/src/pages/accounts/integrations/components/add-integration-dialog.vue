@@ -70,6 +70,7 @@ import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -107,6 +108,10 @@ const dialogTitle = computed(() => {
 const handleSelectProvider = (providerType: string) => {
   selectedProviderType.value = providerType;
   currentStep.value = 'connect-provider';
+  trackAnalyticsEvent({
+    event: 'bank_connection_opened',
+    properties: { provider: providerType },
+  });
 };
 
 const handleProviderConnected = () => {

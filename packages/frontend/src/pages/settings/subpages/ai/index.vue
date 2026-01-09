@@ -59,14 +59,19 @@
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { KeyIcon, Loader2Icon, SparklesIcon } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 
 import ApiKeyManager from './components/api-key-manager.vue';
 import FeatureModelSelector from './components/feature-model-selector.vue';
 
 defineOptions({
   name: 'settings-ai',
+});
+
+onMounted(() => {
+  trackAnalyticsEvent({ event: 'ai_settings_visited' });
 });
 
 const { isLoading, configuredProviders } = useAiSettings();

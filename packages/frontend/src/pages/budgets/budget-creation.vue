@@ -7,6 +7,7 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -40,6 +41,7 @@ const { isPending: isMutating, mutate: createBudgetItem } = useMutation({
   mutationFn: createBudget,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
+    trackAnalyticsEvent({ event: 'budget_created' });
     emits('create-budget');
     addSuccessNotification(t('budgets.creation.success'));
   },
