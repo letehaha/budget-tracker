@@ -58,19 +58,6 @@ export const createUser = withTransaction(
   },
 );
 
-export const getUserByAuthUserId = withTransaction(async ({ authUserId }: { authUserId: string }) => {
-  const user = await Users.getUserByAuthUserId({ authUserId });
-  return user;
-});
-
-export const getUserByCredentials = withTransaction(
-  async ({ username, email }: { username?: string; email?: string }) => {
-    const user = await Users.getUserByCredentials({ username, email });
-
-    return user;
-  },
-);
-
 export const updateUser = withTransaction(
   async ({
     id,

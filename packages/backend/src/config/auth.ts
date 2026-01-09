@@ -1,7 +1,8 @@
 import { passkey } from '@better-auth/passkey';
 import { OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
-import { identifyUser, trackSignup } from '@js/utils/posthog';
+import { type LoginMethod, identifyUser, trackLogin, trackSignup } from '@js/utils/posthog';
+import { getUserByAuthUserId } from '@models/Users.model';
 import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
 import bcrypt from 'bcryptjs';
 import { betterAuth } from 'better-auth';
@@ -261,6 +262,65 @@ export const auth = betterAuth({
             logger.error({ message: 'Failed to create app user profile', error: error as Error });
             throw error;
           }
+        },
+      },
+    },
+    session: {
+      create: {
+        // Identify user in PostHog on login (ensures old users get identified)
+        after: async (session) => {
+          // Fire and forget - don't block login
+          (async () => {
+            try {
+              const appUser = await getUserByAuthUserId({ authUserId: session.userId });
+
+              if (!appUser) {
+                logger.warn(`PostHog: App user not found for authUserId: ${session.userId}`);
+                return;
+              }
+
+              // Get email and login method in parallel
+              const [userResult, accountResult] = await Promise.all([
+                pool.query('SELECT email FROM ba_user WHERE id = $1', [session.userId]),
+                // Get the most recently used account to determine login method
+                pool.query(
+                  'SELECT "providerId" FROM ba_account WHERE "userId" = $1 ORDER BY "updatedAt" DESC LIMIT 1',
+                  [session.userId],
+                ),
+              ]);
+
+              const email = userResult.rows[0]?.email;
+              const providerId = accountResult.rows[0]?.providerId as string | undefined;
+
+              // Map providerId to LoginMethod
+              const providerToMethod: Record<string, LoginMethod> = {
+                credential: 'email',
+                google: 'google',
+                github: 'github',
+                apple: 'apple',
+                passkey: 'passkey',
+              };
+              const method: LoginMethod = providerToMethod[providerId ?? ''] ?? 'email';
+
+              // Identify user (updates properties if already identified)
+              identifyUser({
+                userId: appUser.id,
+                properties: {
+                  email,
+                  username: appUser.username,
+                },
+              });
+
+              // Track login event
+              trackLogin({
+                userId: appUser.id,
+                method,
+                sessionId: session.id,
+              });
+            } catch (error) {
+              logger.error({ message: 'Failed to track login in PostHog', error: error as Error });
+            }
+          })();
         },
       },
     },
