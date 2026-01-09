@@ -1,6 +1,7 @@
 import { passkey } from '@better-auth/passkey';
 import { OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
+import { identifyUser, trackSignup } from '@js/utils/posthog';
 import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
 import bcrypt from 'bcryptjs';
 import { betterAuth } from 'better-auth';
@@ -235,6 +236,27 @@ export const auth = betterAuth({
             });
 
             logger.info(`Successfully created app user profile with id: ${appUser.id}`);
+
+            // Track signup in PostHog
+            identifyUser({
+              userId: appUser.id,
+              properties: {
+                email: user.email,
+                username: appUser.username,
+                createdAt: new Date().toISOString(),
+              },
+            });
+
+            // Determine signup method based on accounts
+            // Note: At this point we don't have easy access to the account type,
+            // so we track it as 'email' by default. OAuth signups will be tracked
+            // separately if needed.
+            trackSignup({
+              userId: appUser.id,
+              email: user.email,
+              username: appUser.username,
+              method: 'email',
+            });
           } catch (error) {
             logger.error({ message: 'Failed to create app user profile', error: error as Error });
             throw error;
