@@ -1,5 +1,6 @@
 import { AI_FEATURE, CATEGORIZATION_SOURCE, getProviderFromModelId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
+import { trackAiCategorization } from '@js/utils/posthog';
 import Accounts from '@models/Accounts.model';
 import { getCategories } from '@models/Categories.model';
 import Transactions from '@models/Transactions.model';
@@ -334,6 +335,17 @@ export async function categorizeTransactions({
   logger.info(
     `AI categorization complete for user ${userId}: ${allResults.successful.length} successful, ${allResults.failed.length} failed`,
   );
+
+  // Track analytics event
+  if (allResults.successful.length > 0) {
+    trackAiCategorization({
+      userId,
+      categorizedCount: allResults.successful.length,
+      failedCount: allResults.failed.length,
+      provider: aiClient.provider,
+      usingUserKey: aiClient.usingUserKey,
+    });
+  }
 
   return allResults;
 }

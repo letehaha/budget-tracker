@@ -56,6 +56,7 @@ export function identifyUser({
 
 /**
  * Track a server-side event.
+ * All backend events are automatically tagged with source: 'be'.
  */
 export function trackEvent({
   userId,
@@ -76,6 +77,7 @@ export function trackEvent({
     distinctId: String(userId),
     event,
     properties: {
+      source: 'be',
       ...properties,
       // Include sessionId for session-based analytics
       ...(sessionId && { $session_id: sessionId }),

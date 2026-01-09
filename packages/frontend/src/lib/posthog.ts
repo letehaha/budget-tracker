@@ -7,6 +7,12 @@ const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST;
 // Event Types
 // ============================================
 
+/**
+ * Frontend analytics events.
+ *
+ * Note: Completion events (bank_connected, import_completed, ai_categorization_completed)
+ * are tracked on the backend for reliability - they confirm actual success.
+ */
 export type AnalyticsEvent =
   // Onboarding funnel
   | { event: 'onboarding_visited' }
@@ -14,19 +20,17 @@ export type AnalyticsEvent =
   // Account creation funnel
   | { event: 'account_creation_opened' }
   | { event: 'account_created'; properties: { currency: string } }
-  // Bank connection funnel
+  // Bank connection funnel (bank_connected tracked on backend)
   | { event: 'bank_connection_opened'; properties: { provider: string } }
-  | { event: 'bank_connected'; properties: { provider: string; accounts_count: number } }
   // Transaction creation funnel
   | { event: 'transaction_creation_opened' }
   | { event: 'transaction_created'; properties: { transaction_type: 'income' | 'expense' | 'transfer' } }
   // Budget creation funnel
   | { event: 'budget_creation_opened' }
   | { event: 'budget_created' }
-  // Import funnel
+  // Import funnel (import_completed tracked on backend)
   | { event: 'import_opened'; properties: { import_type: 'csv' | 'statement_parser' } }
-  | { event: 'import_completed'; properties: { import_type: 'csv' | 'statement_parser'; transactions_count: number } }
-  // AI features
+  // AI features (ai_categorization_completed tracked on backend)
   | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' } }
   | { event: 'ai_settings_visited' }
   | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } };
@@ -77,6 +81,7 @@ export function initPostHog(): void {
 
 /**
  * Track a typed analytics event.
+ * All frontend events are automatically tagged with source: 'fe'.
  */
 export function trackAnalyticsEvent(eventData: AnalyticsEvent): void {
   if (!isPostHogEnabled()) {
@@ -86,7 +91,10 @@ export function trackAnalyticsEvent(eventData: AnalyticsEvent): void {
   const { event, ...rest } = eventData as AnalyticsEvent & { properties?: Record<string, unknown> };
   const properties = 'properties' in rest ? rest.properties : undefined;
 
-  posthog.capture(event, properties);
+  posthog.capture(event, {
+    source: 'fe',
+    ...properties,
+  });
 }
 
 /**

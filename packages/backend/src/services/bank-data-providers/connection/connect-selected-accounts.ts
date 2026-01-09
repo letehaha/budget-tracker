@@ -1,6 +1,7 @@
 import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { BadRequestError, NotFoundError } from '@js/errors';
+import { trackBankConnected } from '@js/utils/posthog';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { getCurrency } from '@models/Currencies.model';
@@ -10,6 +11,11 @@ import { addUserCurrencies } from '@services/currencies/add-user-currency';
 
 import { bankProviderRegistry } from '../registry';
 import { syncTransactionsForAccount } from './sync-transactions-for-account';
+
+const PROVIDER_TO_ANALYTICS_TYPE: Record<BANK_PROVIDER_TYPE, 'monobank' | 'enable_banking'> = {
+  [BANK_PROVIDER_TYPE.MONOBANK]: 'monobank',
+  [BANK_PROVIDER_TYPE.ENABLE_BANKING]: 'enable_banking',
+};
 
 const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
   [BANK_PROVIDER_TYPE.MONOBANK]: ACCOUNT_TYPES.monobank,
@@ -116,6 +122,15 @@ export const connectSelectedAccounts = withTransaction(
         connectionId,
         userId,
         accountId: account.id,
+      });
+    }
+
+    // Track analytics event
+    if (createdAccounts.length > 0) {
+      trackBankConnected({
+        userId,
+        provider: PROVIDER_TO_ANALYTICS_TYPE[connection.providerType as BANK_PROVIDER_TYPE],
+        accountsCount: createdAccounts.length,
       });
     }
 

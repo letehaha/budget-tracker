@@ -334,10 +334,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
       });
       importResult.value = result;
 
-      trackAnalyticsEvent({
-        event: 'import_completed',
-        properties: { import_type: 'statement_parser', transactions_count: result.newTransactionIds.length },
-      });
+      // Note: import_completed is tracked on the backend for reliability
 
       // Invalidate all queries to refetch data after import
       queryClient.invalidateQueries();

@@ -117,9 +117,7 @@ import ExternalLink from '@/components/external-link.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
-import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useAccountsStore } from '@/stores';
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { InfoIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -188,13 +186,7 @@ const handleSyncAccounts = async () => {
     // Refresh accounts store
     await accountsStore.refetchAccounts();
 
-    trackAnalyticsEvent({
-      event: 'bank_connected',
-      properties: {
-        provider: BANK_PROVIDER_TYPE.MONOBANK,
-        accounts_count: selectedAccountIds.value.length,
-      },
-    });
+    // Note: bank_connected is tracked on the backend for reliability
 
     addSuccessNotification(t('pages.integrations.monobank.syncSuccess', { count: selectedAccountIds.value.length }));
 

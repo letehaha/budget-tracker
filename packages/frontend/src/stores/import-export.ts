@@ -1,4 +1,3 @@
-import { trackAnalyticsEvent } from '@/lib/posthog';
 import {
   type AccountMappingConfig,
   type AccountOption,
@@ -188,10 +187,7 @@ export const useImportExportStore = defineStore('importExport', () => {
 
       importResult.value = response;
 
-      trackAnalyticsEvent({
-        event: 'import_completed',
-        properties: { import_type: 'csv', transactions_count: response.summary.imported },
-      });
+      // Note: import_completed is tracked on the backend for reliability
 
       // Invalidate all queries to refetch data after import
       // Import can affect transactions, accounts, categories, currencies, and balances
