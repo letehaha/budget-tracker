@@ -13,7 +13,7 @@ const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST;
  * Note: Completion events (bank_connected, import_completed, ai_categorization_completed)
  * are tracked on the backend for reliability - they confirm actual success.
  */
-export type AnalyticsEvent =
+type AnalyticsEvent =
   // Landing page
   | { event: 'landing_cta_clicked'; properties: { location: 'header' | 'hero' | 'cta_section'; action: string } }
   | {
