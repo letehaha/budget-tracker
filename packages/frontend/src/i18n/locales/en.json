@@ -27,7 +27,7 @@
       "unknown": "Unknown"
     },
     "placeholders": {
-      "email": "your@email.com",
+      "email": "your{'@'}email.com",
       "password": "Your password",
       "username": "ie. johnsnow"
     },
@@ -147,7 +147,7 @@
         "reassurance": "Your email will only be used for login purposes and won't be shared or used for marketing.",
         "usernameWarning": "After migration, you will no longer be able to log in with your username. Use your email instead, or connect OAuth accounts (Google) for easier access.",
         "emailLabel": "Email Address",
-        "emailPlaceholder": "your@email.com",
+        "emailPlaceholder": "your{'@'}email.com",
         "submitButton": "Send Verification Email",
         "submitting": "Sending verification...",
         "signOutButton": "Sign Out",

@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/stores/auth';
 import {
   type AiCategorizationCompletedPayload,
   type SSEEventPayload,
@@ -31,6 +32,12 @@ const eventHandlers = new Map<SSEEventType, Set<SSEEventHandler>>();
  * Returns a promise that resolves when the connection is established
  */
 async function connect(): Promise<void> {
+  // Don't attempt connection if user is not authenticated
+  const authStore = useAuthStore();
+  if (!authStore.isLoggedIn) {
+    return;
+  }
+
   // If already connected, return immediately
   if (isConnected.value) {
     return;
@@ -82,11 +89,12 @@ async function connect(): Promise<void> {
             resolve(); // Resolve the promise when connection opens
           }
         } else if (response.status === 401) {
+          // Session expired between auth check and request - silently disconnect
           isConnecting.value = false;
           disconnect();
           if (!settled) {
             settled = true;
-            reject(new Error('Unauthorized'));
+            resolve();
           }
         } else {
           isConnecting.value = false;
