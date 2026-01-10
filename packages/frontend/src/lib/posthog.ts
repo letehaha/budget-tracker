@@ -84,6 +84,10 @@ export function initPostHog(): void {
     persistence: 'localStorage+cookie',
     // Cross-subdomain cookies
     cross_subdomain_cookie: false,
+    // Silently handle errors (e.g., when blocked by ad blockers)
+    on_request_error: () => {
+      // Silently ignore - user likely has an ad blocker
+    },
   });
 }
 
