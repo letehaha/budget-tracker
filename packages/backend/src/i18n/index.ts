@@ -38,7 +38,7 @@ export const i18nextReady = i18next.use(Backend).init({
   saveMissingTo: 'current',
 
   // Debugging
-  debug: !!process.env.I18N_LOGGING,
+  debug: process.env.I18N_LOGGING === 'true',
 });
 
 export default i18next;
