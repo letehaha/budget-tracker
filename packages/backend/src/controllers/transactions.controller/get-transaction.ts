@@ -50,12 +50,7 @@ const schema = z.object({
           z.array(z.number().int().positive()),
         )
         .optional(),
-      includeUser: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      includeAccount: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      includeCategory: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       includeSplits: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      includeAll: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      nestedInclude: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       excludeTransfer: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       excludeRefunds: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       startDate: z.string().datetime({ message: 'Invalid ISO date string for startDate' }).optional(),
