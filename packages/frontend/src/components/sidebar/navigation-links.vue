@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { ROUTES_NAMES } from '@/routes';
-import { CreditCardIcon, LayersIcon, LayoutDashboardIcon, TrendingUpIcon, Wallet } from 'lucide-vue-next';
+import {
+  ChartColumnIcon,
+  CreditCardIcon,
+  LayersIcon,
+  LayoutDashboardIcon,
+  TrendingUpIcon,
+  Wallet,
+} from 'lucide-vue-next';
 
 withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
 </script>
@@ -31,7 +38,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
     </ui-button>
   </router-link>
 
-  <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.investments }">
+  <router-link v-if="!bottomNav" v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.investments }">
     <ui-button
       :variant="isActive ? 'default' : 'ghost'"
       as="span"
@@ -55,7 +62,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
     </ui-button>
   </router-link>
 
-  <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.budgets }">
+  <router-link v-if="!bottomNav" v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.budgets }">
     <ui-button
       :variant="isActive ? 'default' : 'ghost'"
       as="span"
@@ -64,6 +71,18 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
     >
       <Wallet class="size-5 shrink-0" />
       <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.budgets') }} </span>
+    </ui-button>
+  </router-link>
+
+  <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.analytics }">
+    <ui-button
+      :variant="isActive ? 'default' : 'ghost'"
+      as="span"
+      :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
+      size="default"
+    >
+      <ChartColumnIcon class="size-5 shrink-0" />
+      <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.analytics') }} </span>
     </ui-button>
   </router-link>
 </template>

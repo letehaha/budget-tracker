@@ -140,3 +140,37 @@ export type CreateCategoryResponse = CategoryModel;
 
 export type EditCategoryBody = Partial<Pick<CategoryModel, 'name' | 'color' | 'imageUrl'>>;
 export type EditCategoryResponse = CategoryModel[];
+
+// Cash Flow Analytics
+export type CashFlowGranularity = 'monthly' | 'biweekly' | 'weekly';
+
+export interface GetCashFlowPayload extends QueryPayload {
+  // yyyy-mm-dd (required)
+  from: string;
+  // yyyy-mm-dd (required)
+  to: string;
+  granularity: CashFlowGranularity;
+  accountId?: AccountModel['id'];
+  excludeCategories?: boolean;
+}
+
+export interface CashFlowPeriodData {
+  // yyyy-mm-dd
+  periodStart: string;
+  // yyyy-mm-dd
+  periodEnd: string;
+  income: number;
+  expenses: number;
+  netFlow: number;
+}
+
+export interface GetCashFlowResponse {
+  periods: CashFlowPeriodData[];
+  totals: {
+    income: number;
+    expenses: number;
+    netFlow: number;
+    // percentage (0-100)
+    savingsRate: number;
+  };
+}
