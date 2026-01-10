@@ -75,7 +75,8 @@ app.use(
         return callback(null, true);
       }
 
-      return callback(new Error('Not allowed by CORS'), false);
+      // Silently reject - don't throw error to avoid Sentry noise
+      return callback(null, false);
     },
     credentials: true,
     exposedHeaders: ['x-session-id', 'x-request-id'],
