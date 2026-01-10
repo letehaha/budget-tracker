@@ -48,6 +48,7 @@ export function initSentry({ app, router }: { app: App; router: Router }): void 
   Sentry.init({
     app,
     dsn: SENTRY_DSN,
+    release: import.meta.env.VITE_SENTRY_RELEASE,
     // Use custom transport that silently handles blocked requests
     transport: makeSilentFetchTransport,
     integrations: [

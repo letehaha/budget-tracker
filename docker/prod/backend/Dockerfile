@@ -76,6 +76,10 @@ USER nodejs
 # Set environment to production
 ENV NODE_ENV=production
 
+# Sentry release tracking (passed as build arg)
+ARG SENTRY_RELEASE
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
+
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Run the compiled app

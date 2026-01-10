@@ -24,6 +24,7 @@ export function initSentry(): void {
 
   Sentry.init({
     dsn: SENTRY_DSN,
+    release: process.env.SENTRY_RELEASE,
     environment: process.env.NODE_ENV,
     // Performance monitoring sample rate (10% of transactions)
     tracesSampleRate: 0.1,

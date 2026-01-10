@@ -9,6 +9,10 @@ inputs:
   docker-hub-access-token:
     description: 'DOCKER_HUB_ACCESS_TOKEN'
     required: false
+  sentry-release:
+    description: 'SENTRY_RELEASE - Release version (git SHA) for Sentry'
+    required: false
+    default: ''
   push:
     description: Specifies if docker result should be pushed
     required: false
@@ -41,3 +45,5 @@ runs:
         push: ${{ inputs.push == 'true' }}
         load: ${{ inputs.push != 'true' }}
         tags: ${{ inputs.docker-hub-username }}/budget-tracker-be:latest
+        build-args: |
+          SENTRY_RELEASE=${{ inputs.sentry-release }}
