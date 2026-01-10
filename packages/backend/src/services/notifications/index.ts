@@ -156,14 +156,15 @@ export const dismissNotification = withTransaction(
   },
 );
 
-export const getUnreadCount = withTransaction(async ({ userId }: { userId: number }): Promise<number> => {
+// No transaction needed for read-only count query
+export const getUnreadCount = async ({ userId }: { userId: number }): Promise<number> => {
   return Notifications.count({
     where: {
       userId,
       status: NOTIFICATION_STATUSES.unread,
     },
   });
-});
+};
 
 export const deleteExpiredNotifications = withTransaction(async (): Promise<number> => {
   return Notifications.destroy({
