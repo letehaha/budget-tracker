@@ -58,7 +58,7 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
 import { useElementSize } from '@vueuse/core';
-import { ChevronRightIcon, DollarSignIcon } from 'lucide-vue-next';
+import { ChevronRightIcon, DollarSignIcon, TrendingUpIcon } from 'lucide-vue-next';
 import { type Component, computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RouteLocationRaw, useRoute, useRouter } from 'vue-router';
@@ -102,6 +102,12 @@ const tabs = computed<Tab[]>(() => [
     label: t('analytics.navigation.cashFlow'),
     to: { name: ROUTES_NAMES.analyticsCashFlow },
     icon: DollarSignIcon,
+  },
+  {
+    name: 'trends-comparison',
+    label: t('analytics.navigation.trendsComparison'),
+    to: { name: ROUTES_NAMES.analyticsTrendsComparison },
+    icon: TrendingUpIcon,
   },
 ]);
 </script>

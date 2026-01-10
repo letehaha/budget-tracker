@@ -11,7 +11,13 @@ import { Op } from 'sequelize';
 import { getExpensesHistory } from '../get-expenses-history';
 
 export const getSpendingsByCategories = withTransaction(
-  async (params: { userId: number; accountId?: number; from?: string; to?: string }) => {
+  async (params: {
+    userId: number;
+    accountId?: number;
+    from?: string;
+    to?: string;
+    transactionType?: TRANSACTION_TYPES;
+  }) => {
     const transactions = await getExpensesHistory(params);
     const txIds = transactions.map((i) => i.id);
     const txIdsWithRefunds = transactions.filter((i) => i.refundLinked).map((i) => i.id);

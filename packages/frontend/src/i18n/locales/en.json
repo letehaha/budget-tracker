@@ -512,7 +512,8 @@
       "days": "{count} days"
     },
     "navigation": {
-      "cashFlow": "Cash Flow"
+      "cashFlow": "Cash Flow",
+      "trendsComparison": "Trends Comparison"
     },
     "cashFlow": {
       "title": "Cash Flow",
@@ -552,6 +553,28 @@
         "quickSelect": "Quick Select",
         "year": "Year {year}"
       }
+    },
+    "trends": {
+      "title": "Trends",
+      "metrics": {
+        "expenses": "Expenses",
+        "income": "Income",
+        "savings": "Savings"
+      },
+      "chart": {
+        "selectedPeriod": "Selected period",
+        "comparisonPeriod": "Previous period",
+        "cumulativeNote": "Cumulative total up to this point"
+      },
+      "categoryBreakdown": {
+        "title": "Category Breakdown",
+        "noData": "No data for this period",
+        "viewAll": "View all categories"
+      },
+      "vsPreviousPeriod": "vs previous period",
+      "loadError": "Failed to load data",
+      "noData": "No data available",
+      "noDataHint": "No transactions recorded for this period"
     }
   },
   "crypto": {

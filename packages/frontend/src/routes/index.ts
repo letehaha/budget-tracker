@@ -83,6 +83,11 @@ const routes = [
             name: ROUTES_NAMES.analyticsCashFlow,
             component: () => import('@/pages/analytics/subpages/cash-flow/index.vue'),
           },
+          {
+            path: 'trends-comparison',
+            name: ROUTES_NAMES.analyticsTrendsComparison,
+            component: () => import('@/pages/analytics/subpages/annual-overview/index.vue'),
+          },
         ],
       },
       {

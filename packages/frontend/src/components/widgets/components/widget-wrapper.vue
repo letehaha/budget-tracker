@@ -1,9 +1,11 @@
 <template>
   <Card
-    class="flex max-h-[350px] flex-col"
-    :class="{
-      'max-h-[724px]': higher,
-    }"
+    :class="[
+      cn('flex max-h-87.5 flex-col', $attrs.class),
+      {
+        'max-h-181': higher,
+      },
+    ]"
   >
     <CardHeader>
       <slot name="header">
@@ -31,6 +33,7 @@
 
 <script setup lang="ts">
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
+import { cn } from '@/lib/utils';
 import { Loader2Icon } from 'lucide-vue-next';
 
 withDefaults(

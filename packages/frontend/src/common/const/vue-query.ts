@@ -41,6 +41,8 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // analytics
   analyticsBalanceHistoryTrend: [transactionChange, securityPriceChange, 'analytics-balance-history-trend'] as const,
   analyticsCashFlow: [transactionChange, 'analytics-cash-flow'] as const,
+  analyticsCumulative: [transactionChange, 'analytics-cumulative'] as const,
+  analyticsSpendingsByCategories: [transactionChange, 'analytics-spendings-by-categories'] as const,
 
   recordsPageRecordsList: [transactionChange, 'records-page-records-list'] as const,
 

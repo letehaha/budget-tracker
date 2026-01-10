@@ -47,5 +47,11 @@ router.get(
   validateEndpoint(statsController.getCashFlow.schema),
   statsController.getCashFlow.handler,
 );
+router.get(
+  '/cumulative',
+  authenticateSession,
+  validateEndpoint(statsController.getCumulativeData.schema),
+  statsController.getCumulativeData.handler,
+);
 
 export default router;

@@ -10,8 +10,8 @@ export const ZodAiApiKeySchema = z.object({
   provider: z.nativeEnum(AI_PROVIDER),
   keyEncrypted: z.string(),
   createdAt: z.string().datetime(),
-  status: ZodAiApiKeyStatusSchema,
-  lastValidatedAt: z.string().datetime(),
+  status: ZodAiApiKeyStatusSchema.optional(),
+  lastValidatedAt: z.string().datetime().optional(),
   lastError: z.string().optional(),
   invalidatedAt: z.string().datetime().optional(),
 });

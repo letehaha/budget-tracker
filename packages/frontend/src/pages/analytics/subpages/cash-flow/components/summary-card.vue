@@ -16,7 +16,7 @@
         </Tooltip.Tooltip>
       </Tooltip.TooltipProvider>
     </div>
-    <div class="text-2xl font-semibold">
+    <div class="text-lg font-semibold sm:text-2xl">
       {{ formattedValue }}
     </div>
   </div>
@@ -37,6 +37,8 @@ const props = defineProps<{
   change?: number;
   suffix?: string;
   comparisonPeriodLabel?: string;
+  /** When true, positive change is bad (red) and negative is good (green). Use for expenses. */
+  invertColors?: boolean;
 }>();
 
 const { formatBaseCurrency } = useFormatCurrency();
@@ -52,8 +54,14 @@ const changeInfo = computed(() => {
   if (props.change === undefined || props.change === 0) {
     return { class: 'text-muted-foreground', icon: MinusIcon };
   }
-  return props.change > 0
-    ? { class: 'text-green-500', icon: ArrowUpIcon }
-    : { class: 'text-red-500', icon: ArrowDownIcon };
+
+  const isPositive = props.change > 0;
+  // For expenses, positive change (spending more) is bad, negative (spending less) is good
+  const isGood = props.invertColors ? !isPositive : isPositive;
+
+  return {
+    class: isGood ? 'text-green-500' : 'text-red-500',
+    icon: isPositive ? ArrowUpIcon : ArrowDownIcon,
+  };
 });
 </script>

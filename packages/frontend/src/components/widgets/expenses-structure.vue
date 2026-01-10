@@ -78,40 +78,38 @@
       </EmptyState>
     </template>
     <template v-else>
-      <div class="pt-4">
-        <div ref="chartContainerRef" class="relative h-55 w-full">
-          <svg ref="svgRef" class="h-full w-full"></svg>
+      <div ref="chartContainerRef" class="relative h-55 w-full">
+        <svg ref="svgRef" class="h-full w-full"></svg>
 
-          <!-- Center label: shows Total by default, category info on hover -->
-          <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div class="flex flex-col items-center gap-0.5 text-center">
-              <template v-if="centerLabel.isHovering">
-                <div class="text-muted-foreground text-xs">{{ centerLabel.name }}</div>
-                <div class="text-sm font-medium">{{ centerLabel.amount }}</div>
-              </template>
-              <template v-else>
-                <div class="text-muted-foreground text-xs">{{ $t('common.labels.total') }}</div>
-                <div class="text-sm font-medium">{{ formatBaseCurrency(totalAmount) }}</div>
-              </template>
-            </div>
+        <!-- Center label: shows Total by default, category info on hover -->
+        <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div class="flex flex-col items-center gap-0.5 text-center">
+            <template v-if="centerLabel.isHovering">
+              <div class="text-muted-foreground text-xs">{{ centerLabel.name }}</div>
+              <div class="text-sm font-medium">{{ centerLabel.amount }}</div>
+            </template>
+            <template v-else>
+              <div class="text-muted-foreground text-xs">{{ $t('common.labels.total') }}</div>
+              <div class="text-sm font-medium">{{ formatBaseCurrency(totalAmount) }}</div>
+            </template>
           </div>
+        </div>
 
-          <!-- Touch device overlay: shows navigation button below center label -->
-          <div
-            v-if="isTouch && selectedCategory"
-            class="pointer-events-none absolute inset-0 flex items-center justify-center"
-          >
-            <div class="pointer-events-auto mt-18 flex flex-col items-center">
-              <Button
-                size="sm"
-                variant="outline"
-                class="h-6 gap-1 px-2 text-xs"
-                @click="navigateToTransactions({ categoryId: selectedCategoryId! })"
-              >
-                {{ $t('dashboard.widgets.expensesStructure.viewButton') }}
-                <ExternalLinkIcon class="size-3" />
-              </Button>
-            </div>
+        <!-- Touch device overlay: shows navigation button below center label -->
+        <div
+          v-if="isTouch && selectedCategory"
+          class="pointer-events-none absolute inset-0 flex items-center justify-center"
+        >
+          <div class="pointer-events-auto mt-18 flex flex-col items-center">
+            <Button
+              size="sm"
+              variant="outline"
+              class="h-6 gap-1 px-2 text-xs"
+              @click="navigateToTransactions({ categoryId: selectedCategoryId! })"
+            >
+              {{ $t('dashboard.widgets.expensesStructure.viewButton') }}
+              <ExternalLinkIcon class="size-3" />
+            </Button>
           </div>
         </div>
       </div>

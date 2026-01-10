@@ -174,3 +174,35 @@ export interface GetCashFlowResponse {
     savingsRate: number;
   };
 }
+
+// Cumulative Analytics (Trends Comparison)
+export type CumulativeMetric = 'expenses' | 'income' | 'savings';
+
+export interface GetCumulativePayload extends QueryPayload {
+  // yyyy-mm-dd (required)
+  from: string;
+  // yyyy-mm-dd (required)
+  to: string;
+  metric: CumulativeMetric;
+  accountId?: AccountModel['id'];
+  excludeCategories?: boolean;
+}
+
+export interface CumulativeMonthData {
+  month: number; // 1-12
+  monthLabel: string; // "Jan", "Feb", etc.
+  value: number; // cumulative value up to this month
+  periodValue: number; // value for just this month
+}
+
+export interface CumulativePeriodData {
+  year: number; // Year from the period start date (for reference)
+  data: CumulativeMonthData[];
+  total: number;
+}
+
+export interface GetCumulativeResponse {
+  currentPeriod: CumulativePeriodData;
+  previousPeriod: CumulativePeriodData;
+  percentChange: number; // Period-over-period total change %
+}

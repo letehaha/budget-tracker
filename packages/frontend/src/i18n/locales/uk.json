@@ -76,6 +76,7 @@
     "investments": "Інвестиції",
     "transactions": "Транзакції",
     "budgets": "Бюджети",
+    "analytics": "Аналітика",
     "logout": "Вийти"
   },
   "sidebar": {
@@ -510,7 +511,8 @@
       "days": "{count} днів"
     },
     "navigation": {
-      "cashFlow": "Грошовий потік"
+      "cashFlow": "Грошовий потік",
+      "trendsComparison": "Порівняння трендів"
     },
     "cashFlow": {
       "title": "Грошовий потік",
@@ -550,6 +552,28 @@
         "quickSelect": "Швидкий вибір",
         "year": "Рік {year}"
       }
+    },
+    "trends": {
+      "title": "Тренди",
+      "metrics": {
+        "expenses": "Витрати",
+        "income": "Дохід",
+        "savings": "Заощадження"
+      },
+      "chart": {
+        "selectedPeriod": "Обраний період",
+        "comparisonPeriod": "Попередній період",
+        "cumulativeNote": "Накопичувальна сума до цього моменту"
+      },
+      "categoryBreakdown": {
+        "title": "Розбивка за категоріями",
+        "noData": "Немає даних за цей період",
+        "viewAll": "Переглянути всі категорії"
+      },
+      "vsPreviousPeriod": "проти попереднього періоду",
+      "loadError": "Не вдалося завантажити дані",
+      "noData": "Даних немає",
+      "noDataHint": "За цей період транзакцій не зафіксовано"
     }
   },
   "crypto": {

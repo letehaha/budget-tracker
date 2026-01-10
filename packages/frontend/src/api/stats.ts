@@ -1,6 +1,6 @@
 import { api } from '@/api/_api';
 import { fromSystemAmount } from '@/api/helpers';
-import { endpointsTypes } from '@bt/shared/types';
+import { type TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { format } from 'date-fns';
 
 const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -49,14 +49,16 @@ export const getExpensesAmountForPeriod = async ({ from, to, ...rest }: Params =
 export const getSpendingsByCategories = async ({
   from,
   to,
+  type,
   ...rest
-}: Params = {}): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
-  const params: endpointsTypes.GetBalanceHistoryPayload = {
+}: Params & { type?: TRANSACTION_TYPES } = {}): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
+  const params: endpointsTypes.GetBalanceHistoryPayload & { type?: string } = {
     ...rest,
   };
 
   if (from) params.from = formatDate(from);
   if (to) params.to = formatDate(to);
+  if (type) params.type = type;
 
   const history: endpointsTypes.GetSpendingsByCategoriesReturnType = await api.get(
     '/stats/spendings-by-categories',
@@ -147,5 +149,49 @@ export const getCashFlow = async ({
       expenses: fromSystemAmount(response.totals.expenses),
       netFlow: fromSystemAmount(response.totals.netFlow),
     },
+  };
+};
+
+export interface GetCumulativeDataParams {
+  from: Date;
+  to: Date;
+  metric: endpointsTypes.CumulativeMetric;
+  accountId?: number;
+  excludeCategories?: boolean;
+}
+
+export const getCumulativeData = async ({
+  from,
+  to,
+  metric,
+  accountId,
+  excludeCategories,
+}: GetCumulativeDataParams): Promise<endpointsTypes.GetCumulativeResponse> => {
+  const params: Record<string, string | number | boolean> = {
+    from: formatDate(from),
+    to: formatDate(to),
+    metric,
+  };
+
+  if (accountId !== undefined) params.accountId = accountId;
+  if (excludeCategories !== undefined) params.excludeCategories = excludeCategories;
+
+  const response: endpointsTypes.GetCumulativeResponse = await api.get('/stats/cumulative', params);
+
+  // Convert amounts from system format
+  const convertPeriodData = (periodData: endpointsTypes.CumulativePeriodData): endpointsTypes.CumulativePeriodData => ({
+    ...periodData,
+    data: periodData.data.map((month) => ({
+      ...month,
+      value: fromSystemAmount(month.value),
+      periodValue: fromSystemAmount(month.periodValue),
+    })),
+    total: fromSystemAmount(periodData.total),
+  });
+
+  return {
+    currentPeriod: convertPeriodData(response.currentPeriod),
+    previousPeriod: convertPeriodData(response.previousPeriod),
+    percentChange: response.percentChange,
   };
 };

@@ -39,11 +39,13 @@ export const getExpensesHistory = async ({
   from,
   to,
   accountId,
+  transactionType = TRANSACTION_TYPES.expense,
 }: {
   userId: number;
   accountId?: number;
   from?: string;
   to?: string;
+  transactionType?: TRANSACTION_TYPES;
 }): Promise<GetExpensesHistoryResponseSchema[]> => {
   const dataAttributes: (keyof Transactions.default)[] = [
     'id',
@@ -66,7 +68,7 @@ export const getExpensesHistory = async ({
       accountId,
       userId,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-      transactionType: TRANSACTION_TYPES.expense,
+      transactionType,
       categoryId: {
         [Op.notIn]: excludedCategories,
       },

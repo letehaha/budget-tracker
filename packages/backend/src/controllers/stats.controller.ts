@@ -1,4 +1,4 @@
-import { BalanceModel } from '@bt/shared/types';
+import { BalanceModel, TRANSACTION_TYPES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -109,12 +109,13 @@ const spendingsByCategoriesSchema = z.object({
     from: z.string().optional(),
     to: z.string().optional(),
     accountId: z.string().optional(),
+    type: z.enum(Object.values(TRANSACTION_TYPES)).optional(),
   }),
 });
 
 export const getSpendingsByCategories = createController(spendingsByCategoriesSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, accountId } = query;
+  const { from, to, accountId, type: transactionType } = query;
 
   tryBasicDateValidation({ from, to });
 
@@ -124,6 +125,7 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
       from,
       to,
       accountId: Number(accountId),
+      transactionType,
     }),
   );
 
@@ -203,6 +205,39 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
       from,
       to,
       granularity,
+      accountId: accountId ? Number(accountId) : undefined,
+      excludeCategories,
+    }),
+  );
+
+  return { data: result };
+});
+
+const cumulativeDataSchema = z.object({
+  query: z.object({
+    from: z.string(),
+    to: z.string(),
+    metric: z.enum(['expenses', 'income', 'savings']),
+    accountId: z.string().optional(),
+    excludeCategories: z
+      .string()
+      .optional()
+      .transform((val) => val === 'true'),
+  }),
+});
+
+export const getCumulativeData = createController(cumulativeDataSchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { from, to, metric, accountId, excludeCategories } = query;
+
+  tryBasicDateValidation({ from, to });
+
+  const result = await statsService.getCumulativeData(
+    removeUndefinedKeys({
+      userId,
+      from,
+      to,
+      metric,
       accountId: accountId ? Number(accountId) : undefined,
       excludeCategories,
     }),
