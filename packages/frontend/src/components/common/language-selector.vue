@@ -4,10 +4,10 @@
       <Button :variant="variant" :size="showLabel ? 'default' : 'icon'" :class="buttonClass">
         <template v-if="showLabel">
           <span>{{ currentLocaleNative }}</span>
-          <span class="text-lg">{{ currentLocaleFlag }}</span>
+          <img :src="currentFlagSrc" :alt="currentLocaleNative" class="size-5" />
         </template>
         <template v-else>
-          <span class="text-lg">{{ currentLocaleFlag }}</span>
+          <img :src="currentFlagSrc" :alt="currentLocaleNative" class="size-5" />
         </template>
       </Button>
     </Popover.PopoverTrigger>
@@ -25,7 +25,7 @@
           }"
           @click="handleLocaleChange(locale.value)"
         >
-          <span class="text-lg">{{ locale.flag }}</span>
+          <img :src="locale.flagSrc" :alt="locale.native" class="size-5" />
           <span>{{ locale.native }}</span>
         </button>
       </div>
@@ -69,19 +69,24 @@ const queryClient = useQueryClient();
 
 const currentLocale = ref<SupportedLocale>(getCurrentLocale() as SupportedLocale);
 
-const currentLocaleFlag = computed(() => LOCALE_NAMES[currentLocale.value].flag);
+const FLAG_SRCS: Record<SupportedLocale, string> = {
+  [SUPPORTED_LOCALES.ENGLISH]: '/img/flags/gb.svg',
+  [SUPPORTED_LOCALES.UKRAINIAN]: '/img/flags/ua.svg',
+};
+
+const currentFlagSrc = computed(() => FLAG_SRCS[currentLocale.value]);
 const currentLocaleNative = computed(() => LOCALE_NAMES[currentLocale.value].native);
 
 const availableLocales = [
   {
     value: SUPPORTED_LOCALES.ENGLISH,
     native: LOCALE_NAMES[SUPPORTED_LOCALES.ENGLISH].native,
-    flag: LOCALE_NAMES[SUPPORTED_LOCALES.ENGLISH].flag,
+    flagSrc: FLAG_SRCS[SUPPORTED_LOCALES.ENGLISH],
   },
   {
     value: SUPPORTED_LOCALES.UKRAINIAN,
     native: LOCALE_NAMES[SUPPORTED_LOCALES.UKRAINIAN].native,
-    flag: LOCALE_NAMES[SUPPORTED_LOCALES.UKRAINIAN].flag,
+    flagSrc: FLAG_SRCS[SUPPORTED_LOCALES.UKRAINIAN],
   },
 ];
 

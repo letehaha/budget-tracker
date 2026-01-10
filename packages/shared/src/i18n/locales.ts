@@ -11,16 +11,14 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[keyof typeof SUPPORTED_
 
 export const DEFAULT_LOCALE: SupportedLocale = SUPPORTED_LOCALES.ENGLISH;
 
-export const LOCALE_NAMES: Record<SupportedLocale, { native: string; english: string; flag: string }> = {
+export const LOCALE_NAMES: Record<SupportedLocale, { native: string; english: string }> = {
   [SUPPORTED_LOCALES.ENGLISH]: {
     native: 'English',
     english: 'English',
-    flag: '🇬🇧',
   },
   [SUPPORTED_LOCALES.UKRAINIAN]: {
     native: 'Українська',
     english: 'Ukrainian',
-    flag: '🇺🇦',
   },
 };
 
