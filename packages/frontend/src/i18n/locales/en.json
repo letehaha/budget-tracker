@@ -11,7 +11,8 @@
       "add": "Add",
       "create": "Create",
       "close": "Close",
-      "addSubcategory": "Add subcategory"
+      "addSubcategory": "Add subcategory",
+      "settings": "Settings"
     },
     "errors": {
       "copyToClipboardFailed": "Failed to copy to clipboard"
@@ -75,6 +76,7 @@
     "investments": "Investments",
     "transactions": "Transactions",
     "budgets": "Budgets",
+    "analytics": "Analytics",
     "logout": "Logout"
   },
   "sidebar": {
@@ -504,8 +506,51 @@
   },
   "analytics": {
     "title": "Analytics",
+    "backToAnalytics": "Back to Analytics",
     "timePeriods": {
       "days": "{count} days"
+    },
+    "navigation": {
+      "cashFlow": "Cash Flow"
+    },
+    "cashFlow": {
+      "title": "Cash Flow",
+      "income": "Income",
+      "expenses": "Expenses",
+      "netSavings": "Net Savings",
+      "netFlow": "Net Flow",
+      "savingsRate": "Savings Rate",
+      "loadError": "Failed to load cash flow data",
+      "noData": "No transactions found",
+      "noDataHint": "Try selecting a different period or check if you have any transactions",
+      "excludeCategories": "Apply category exclusions",
+      "excludeCategoriesHint": "Uses exclusions from Settings → Stats",
+      "showTrendLine": "Show trend line",
+      "showTrendLineHint": "Smoothed average of net cash flow",
+      "trendLine": "Trend Line",
+      "vsPreviousPeriod": "vs previous period",
+      "chartTypes": {
+        "stacked": "Stacked",
+        "mirrored": "Mirrored",
+        "grouped": "Grouped"
+      },
+      "granularity": {
+        "monthly": "Monthly",
+        "biweekly": "Bi-weekly",
+        "weekly": "Weekly"
+      },
+      "periods": {
+        "last3Months": "Last 3 months",
+        "last6Months": "Last 6 months",
+        "last12Months": "Last 12 months",
+        "thisYear": "This year",
+        "previousYear": "Previous year",
+        "custom": "Custom"
+      },
+      "periodSelector": {
+        "quickSelect": "Quick Select",
+        "year": "Year {year}"
+      }
     }
   },
   "crypto": {

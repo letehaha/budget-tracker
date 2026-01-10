@@ -1,87 +1,107 @@
 <template>
-  <div class="p-6">
-    {{ $t('analytics.title') }}
+  <div
+    ref="containerRef"
+    :class="
+      cn(
+        'flex min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))] flex-col gap-6 p-6 sm:flex-row',
+        isMobileView
+          ? 'min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))]'
+          : 'min-h-[calc(100dvh-var(--header-height))]',
+        (isOnChildRoute || !isCompactLayout) && 'pt-4',
+      )
+    "
+  >
+    <!-- Sidebar Navigation (wide: always visible, compact: only on root) -->
+    <nav
+      v-if="!isOnChildRoute || !isCompactLayout"
+      :class="[
+        'border-border bg-card/50 w-full shrink-0 rounded-lg border p-2 backdrop-blur-sm',
+        !isCompactLayout && 'lg:w-52',
+      ]"
+    >
+      <ul class="sticky top-(--header-height) flex flex-col gap-1">
+        <li v-for="tab in tabs" :key="tab.name">
+          <router-link
+            :to="tab.to"
+            :class="
+              cn(
+                'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
+                'hover:bg-accent hover:text-foreground',
+                '[&.router-link-exact-active]:bg-accent [&.router-link-exact-active]:text-foreground',
+                isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
+              )
+            "
+          >
+            <component :is="tab.icon" :class="cn('size-4 shrink-0', isCompactLayout && 'md:size-5')" />
+            {{ tab.label }}
+            <ChevronRightIcon v-if="isCompactLayout" class="text-muted-foreground ml-auto size-4" />
+          </router-link>
+        </li>
+      </ul>
+    </nav>
 
-    <div class="rounded-xl p-4">
-      <div class="relative">
-        <button type="button" @click="isDropdownVisible = !isDropdownVisible">
-          {{ currentTimePeriod.label }}
-        </button>
+    <!-- Content Area (wide: always visible, compact: only on child routes) -->
+    <div v-if="isOnChildRoute || !isCompactLayout" class="min-w-0 flex-1">
+      <!-- Back button (compact layout only) -->
+      <BackLink v-if="isCompactLayout" :to="{ name: ROUTES_NAMES.analytics }">
+        {{ $t('analytics.backToAnalytics') }}
+      </BackLink>
 
-        <!-- <dropdown
-          :is-visible="isDropdownVisible"
-          :values="timePeriods"
-          :selected-value="currentTimePeriod"
-          @select="selectPeriod"
-        /> -->
-      </div>
-
-      <highcharts
-        v-node-resize-observer="{ callback: onChartResize }"
-        class="balance-trend-widget__chart"
-        :options="chartOptions"
-      />
+      <router-view />
     </div>
   </div>
 </template>
 
-<script lang="ts" setup>
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { useHighcharts } from '@/composable';
-import { loadBalanceTrendData } from '@/services';
-import { useQuery } from '@tanstack/vue-query';
-import { subDays } from 'date-fns';
-import { Chart as Highcharts } from 'highcharts-vue';
-import { computed, ref } from 'vue';
+<script setup lang="ts">
+import BackLink from '@/components/common/back-link.vue';
+import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
+import { cn } from '@/lib/utils';
+import { ROUTES_NAMES } from '@/routes';
+import { useElementSize } from '@vueuse/core';
+import { ChevronRightIcon, DollarSignIcon } from 'lucide-vue-next';
+import { type Component, computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { RouteLocationRaw, useRoute, useRouter } from 'vue-router';
 
-defineOptions({
-  name: 'analytics-root',
-});
+interface Tab {
+  name: string;
+  label: string;
+  to: RouteLocationRaw;
+  icon: Component;
+}
 
-// const Dropdown = defineAsyncComponent(() => import('@/components/common/dropdown.vue'));
-
+const route = useRoute();
+const router = useRouter();
 const { t } = useI18n();
-const { buildAreaChartConfig } = useHighcharts();
-const currentChartWidth = ref(null);
-const timePeriods = computed(() => [
-  { value: 7, label: t('analytics.timePeriods.days', { count: 7 }) },
-  { value: 30, label: t('analytics.timePeriods.days', { count: 30 }) },
-  { value: 90, label: t('analytics.timePeriods.days', { count: 90 }) },
-]);
-const isDropdownVisible = ref(false);
-const currentTimePeriod = ref<{ value: number; label: string }>(timePeriods.value[0]);
 
-const { data: balanceHistory } = useQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.analyticsBalanceHistoryTrend, currentTimePeriod],
-  queryFn: () =>
-    loadBalanceTrendData({
-      from: subDays(new Date(), currentTimePeriod.value.value),
-    }),
-  staleTime: Infinity,
-  placeholderData: [],
+const containerRef = ref<HTMLElement | null>(null);
+const { width: containerWidth } = useElementSize(containerRef);
+
+const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile, {
+  wait: 50,
 });
 
-const chartOptions = computed(() =>
-  buildAreaChartConfig({
-    chart: { height: 350 },
-    series: [
-      {
-        type: 'area',
-        showInLegend: false,
-        data: balanceHistory.value.map((point) => [new Date(point.date).getTime(), point.amount]),
-      },
-    ],
-  }),
+const isCompactLayout = computed(() => containerWidth.value < 920);
+
+const isOnChildRoute = computed(() => route.name !== ROUTES_NAMES.analytics);
+
+// On wide layout, redirect to cash-flow if on root analytics
+watch(
+  [isCompactLayout, () => route.name],
+  ([compact, routeName]) => {
+    if (!compact && routeName === ROUTES_NAMES.analytics) {
+      router.replace({ name: ROUTES_NAMES.analyticsCashFlow });
+    }
+  },
+  { immediate: true },
 );
 
-const onChartResize = (entries: ResizeObserverEntry[]) => {
-  const entry = entries[0];
-  currentChartWidth.value = entry.contentRect.width;
-};
-
-// const selectPeriod = ({ item }) => {
-//   currentTimePeriod.value = item;
-//   isDropdownVisible.value = false;
-// };
+const tabs = computed<Tab[]>(() => [
+  {
+    name: 'cash-flow',
+    label: t('analytics.navigation.cashFlow'),
+    to: { name: ROUTES_NAMES.analyticsCashFlow },
+    icon: DollarSignIcon,
+  },
+]);
 </script>

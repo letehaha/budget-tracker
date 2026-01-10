@@ -41,5 +41,11 @@ router.get(
   validateEndpoint(statsController.getCombinedBalanceHistory.schema),
   statsController.getCombinedBalanceHistory.handler,
 );
+router.get(
+  '/cash-flow',
+  authenticateSession,
+  validateEndpoint(statsController.getCashFlow.schema),
+  statsController.getCashFlow.handler,
+);
 
 export default router;

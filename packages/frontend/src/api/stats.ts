@@ -107,3 +107,45 @@ export const getCombinedBalanceHistory = async ({ from, to }: { from?: Date; to?
     totalBalance: fromSystemAmount(item.totalBalance),
   }));
 };
+
+export interface GetCashFlowParams {
+  from: Date;
+  to: Date;
+  granularity: endpointsTypes.CashFlowGranularity;
+  accountId?: number;
+  excludeCategories?: boolean;
+}
+
+export const getCashFlow = async ({
+  from,
+  to,
+  granularity,
+  accountId,
+  excludeCategories,
+}: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
+  const params: Record<string, string | number | boolean> = {
+    from: formatDate(from),
+    to: formatDate(to),
+    granularity,
+  };
+
+  if (accountId !== undefined) params.accountId = accountId;
+  if (excludeCategories !== undefined) params.excludeCategories = excludeCategories;
+
+  const response: endpointsTypes.GetCashFlowResponse = await api.get('/stats/cash-flow', params);
+
+  return {
+    periods: response.periods.map((period) => ({
+      ...period,
+      income: fromSystemAmount(period.income),
+      expenses: fromSystemAmount(period.expenses),
+      netFlow: fromSystemAmount(period.netFlow),
+    })),
+    totals: {
+      ...response.totals,
+      income: fromSystemAmount(response.totals.income),
+      expenses: fromSystemAmount(response.totals.expenses),
+      netFlow: fromSystemAmount(response.totals.netFlow),
+    },
+  };
+};

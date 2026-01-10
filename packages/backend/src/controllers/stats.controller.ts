@@ -177,3 +177,36 @@ export const getCombinedBalanceHistory = createController(combinedBalanceHistory
 
   return { data: combinedBalanceHistory };
 });
+
+const cashFlowSchema = z.object({
+  query: z.object({
+    from: z.string(),
+    to: z.string(),
+    granularity: z.enum(['monthly', 'biweekly', 'weekly']),
+    accountId: z.string().optional(),
+    excludeCategories: z
+      .string()
+      .optional()
+      .transform((val) => val === 'true'),
+  }),
+});
+
+export const getCashFlow = createController(cashFlowSchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { from, to, granularity, accountId, excludeCategories } = query;
+
+  tryBasicDateValidation({ from, to });
+
+  const result = await statsService.getCashFlow(
+    removeUndefinedKeys({
+      userId,
+      from,
+      to,
+      granularity,
+      accountId: accountId ? Number(accountId) : undefined,
+      excludeCategories,
+    }),
+  );
+
+  return { data: result };
+});

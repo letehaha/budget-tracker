@@ -504,8 +504,51 @@
   },
   "analytics": {
     "title": "Аналітика",
+    "backToAnalytics": "Назад до аналітики",
     "timePeriods": {
       "days": "{count} днів"
+    },
+    "navigation": {
+      "cashFlow": "Грошовий потік"
+    },
+    "cashFlow": {
+      "title": "Грошовий потік",
+      "income": "Дохід",
+      "expenses": "Витрати",
+      "netSavings": "Чисті заощадження",
+      "netFlow": "Чистий потік",
+      "savingsRate": "Рівень заощаджень",
+      "loadError": "Не вдалося завантажити дані грошового потоку",
+      "noData": "Транзакції не знайдено",
+      "noDataHint": "Спробуйте вибрати інший період або перевірте, чи є у вас транзакції",
+      "excludeCategories": "Застосувати виключення категорій",
+      "excludeCategoriesHint": "Використовує виключення з Налаштування → Статистика",
+      "showTrendLine": "Показати лінію тренду",
+      "showTrendLineHint": "Трендове середнє значення чистого грошового потоку",
+      "trendLine": "Лінія тренду",
+      "vsPreviousPeriod": "проти попереднього періоду",
+      "chartTypes": {
+        "stacked": "Стековий",
+        "mirrored": "Дзеркальний",
+        "grouped": "Групований"
+      },
+      "granularity": {
+        "monthly": "Щомісяця",
+        "biweekly": "Двотижнево",
+        "weekly": "Щотижня"
+      },
+      "periods": {
+        "last3Months": "Останні 3 місяці",
+        "last6Months": "Останні 6 місяців",
+        "last12Months": "Останні 12 місяців",
+        "thisYear": "Цього року",
+        "previousYear": "Минулого року",
+        "custom": "Власний"
+      },
+      "periodSelector": {
+        "quickSelect": "Швидкий вибір",
+        "year": "Рік {year}"
+      }
     }
   },
   "crypto": {

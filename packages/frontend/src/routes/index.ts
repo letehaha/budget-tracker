@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
 import { ROUTES_NAMES } from './constants';
-import { authPageGuard, baseCurrencyExists, devOnly, redirectRouteGuard } from './guards';
+import { authPageGuard, baseCurrencyExists, redirectRouteGuard } from './guards';
 
 export { ROUTES_NAMES } from './constants';
 
@@ -76,8 +76,14 @@ const routes = [
       {
         path: '/analytics',
         name: ROUTES_NAMES.analytics,
-        beforeEnter: [devOnly],
         component: () => import('@/pages/analytics/index.vue'),
+        children: [
+          {
+            path: 'cash-flow',
+            name: ROUTES_NAMES.analyticsCashFlow,
+            component: () => import('@/pages/analytics/subpages/cash-flow/index.vue'),
+          },
+        ],
       },
       {
         path: '/budgets',

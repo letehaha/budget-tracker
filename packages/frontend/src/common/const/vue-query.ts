@@ -38,8 +38,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // widget latest records
   widgetLatestRecords: [transactionChange, 'widget-latest-records'] as const,
 
-  // others
+  // analytics
   analyticsBalanceHistoryTrend: [transactionChange, securityPriceChange, 'analytics-balance-history-trend'] as const,
+  analyticsCashFlow: [transactionChange, 'analytics-cash-flow'] as const,
 
   recordsPageRecordsList: [transactionChange, 'records-page-records-list'] as const,
 
