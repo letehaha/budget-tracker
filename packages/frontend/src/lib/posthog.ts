@@ -68,7 +68,10 @@ export function initPostHog(): void {
   }
 
   posthog.init(POSTHOG_KEY, {
-    api_host: POSTHOG_HOST || 'https://eu.i.posthog.com',
+    // Use reverse proxy to bypass ad blockers (nginx proxies /helper to PostHog)
+    api_host: POSTHOG_HOST || '/helper',
+    // Required when using proxy - keeps dashboard links working
+    ui_host: 'https://eu.posthog.com',
     // Disable automatic pageview capture - we track specific events instead
     capture_pageview: false,
     // Disable pageleave to reduce events
@@ -84,6 +87,10 @@ export function initPostHog(): void {
     persistence: 'localStorage+cookie',
     // Cross-subdomain cookies
     cross_subdomain_cookie: false,
+    // Silently handle errors (e.g., when blocked by ad blockers)
+    on_request_error: () => {
+      // Silently ignore - user likely has an ad blocker
+    },
   });
 }
 

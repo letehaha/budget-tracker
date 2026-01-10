@@ -17,7 +17,7 @@ inputs:
   posthog-host:
     description: 'VITE_POSTHOG_HOST - PostHog host URL'
     required: false
-    default: 'https://eu.i.posthog.com'
+    default: ''
   sentry-dsn:
     description: 'VITE_SENTRY_DSN - Sentry DSN for error tracking'
     required: false

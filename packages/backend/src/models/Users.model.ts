@@ -175,9 +175,11 @@ export const getUserByAuthUserId = async ({
   authUserId,
 }: {
   authUserId: string;
-}): Promise<UserModel | null> => {
+}): Promise<Pick<UserModel, 'id' | 'username'> | null> => {
   const user = await Users.findOne({
     where: { authUserId },
+    attributes: ['id', 'username'],
+    raw: true,
   });
 
   return user;

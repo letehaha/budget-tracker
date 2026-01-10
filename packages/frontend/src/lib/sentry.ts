@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/vue';
+import { makeFetchTransport } from '@sentry/vue';
 import type { App } from 'vue';
 import type { Router } from 'vue-router';
 
@@ -16,6 +17,26 @@ function isSentryEnabled(): boolean {
 }
 
 /**
+ * Custom transport that silently handles errors (e.g., when blocked by ad blockers).
+ * Wraps the default fetch transport and catches any network failures.
+ */
+function makeSilentFetchTransport(options: Parameters<typeof makeFetchTransport>[0]) {
+  const transport = makeFetchTransport(options);
+
+  return {
+    ...transport,
+    send: async (envelope: Parameters<typeof transport.send>[0]) => {
+      try {
+        return await transport.send(envelope);
+      } catch {
+        // Silently ignore transport errors (likely blocked by ad blocker)
+        return { statusCode: 0 };
+      }
+    },
+  };
+}
+
+/**
  * Initialize Sentry error tracking.
  * Should be called before app.mount().
  */
@@ -27,6 +48,8 @@ export function initSentry({ app, router }: { app: App; router: Router }): void 
   Sentry.init({
     app,
     dsn: SENTRY_DSN,
+    // Use custom transport that silently handles blocked requests
+    transport: makeSilentFetchTransport,
     integrations: [
       // Browser tracing for performance monitoring
       Sentry.browserTracingIntegration({ router }),
