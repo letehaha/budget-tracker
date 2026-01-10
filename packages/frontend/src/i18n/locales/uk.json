@@ -24,7 +24,8 @@
       "password": "Пароль",
       "username": "Ім'я користувача",
       "system": "системна",
-      "unknown": "Невідомо"
+      "unknown": "Невідомо",
+      "total": "Взагалом"
     },
     "placeholders": {
       "email": "your{'@'}email.com",

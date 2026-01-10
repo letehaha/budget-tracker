@@ -25,7 +25,8 @@
       "password": "Password",
       "username": "Username",
       "system": "system",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "total": "Total"
     },
     "placeholders": {
       "email": "your{'@'}email.com",
