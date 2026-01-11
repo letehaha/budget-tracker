@@ -203,7 +203,7 @@ import { useFormatCurrency } from '@/composable';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
-import { TRANSACTION_TYPES, type CategoryModel, type endpointsTypes } from '@bt/shared/types';
+import { type CategoryModel, TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { useSessionStorage } from '@vueuse/core';
 import * as d3 from 'd3';
@@ -535,6 +535,9 @@ const renderChart = () => {
   const svg = d3.select(svgRef.value);
   svg.selectAll('*').remove();
 
+  // Add defs element for gradients and filters
+  svg.append('defs');
+
   const width = containerRef.value.clientWidth;
   const height = containerRef.value.clientHeight;
   const isMobile = width < 400;
@@ -775,6 +778,11 @@ const renderChart = () => {
       const visibleSegments = sortedCategories.filter((cat) => getCategoryAmount(cat) > 0);
       const topSegmentId = visibleSegments.length > 0 ? visibleSegments[visibleSegments.length - 1].categoryId : null;
 
+      // Inner shadow height to help distinguish segments with similar colors
+      const shadowHeight = 4;
+      let segmentIndex = 0;
+      let previousSegmentColor: string | null = null;
+
       sortedCategories.forEach((cat) => {
         const catAmount = getCategoryAmount(cat);
         if (catAmount === 0) return; // Skip categories with zero amount
@@ -789,6 +797,7 @@ const renderChart = () => {
           // Use path for top segment with only top corners rounded
           g.append('path')
             .attr('class', 'bar-segment')
+            .attr('data-category-id', cat.categoryId)
             .attr(
               'd',
               createTopRoundedRect({ x: segmentX, y: currentY, width: barWidth, height: catHeight, radius: 4 }),
@@ -797,12 +806,13 @@ const renderChart = () => {
             .style('cursor', 'pointer')
             .on('mouseenter', (event: MouseEvent) => handleStackedMouseEnter(event, period, cat))
             .on('mousemove', handleMouseMove)
-            .on('mouseleave', handleMouseLeave)
+            .on('mouseleave', handleStackedMouseLeave)
             .on('click', (event: MouseEvent) => handleBarClick(event, period, cat.categoryId));
         } else {
           // Regular rect for other segments (no rounding)
           g.append('rect')
             .attr('class', 'bar-segment')
+            .attr('data-category-id', cat.categoryId)
             .attr('x', segmentX)
             .attr('y', currentY)
             .attr('width', barWidth)
@@ -811,9 +821,42 @@ const renderChart = () => {
             .style('cursor', 'pointer')
             .on('mouseenter', (event: MouseEvent) => handleStackedMouseEnter(event, period, cat))
             .on('mousemove', handleMouseMove)
-            .on('mouseleave', handleMouseLeave)
+            .on('mouseleave', handleStackedMouseLeave)
             .on('click', (event: MouseEvent) => handleBarClick(event, period, cat.categoryId));
         }
+
+        // Add inner shadow only between segments with the same color
+        // This helps distinguish same-color segments without affecting different-color boundaries
+        if (segmentIndex > 0 && previousSegmentColor === cat.color) {
+          // Create unique gradient ID for this segment's inner shadow
+          const gradientId = `inner-shadow-${period.periodStart}-${cat.categoryId}`;
+
+          // Define gradient for inner shadow (transparent at top, dark at bottom)
+          const gradient = svg
+            .select('defs')
+            .append('linearGradient')
+            .attr('id', gradientId)
+            .attr('x1', '0%')
+            .attr('y1', '0%')
+            .attr('x2', '0%')
+            .attr('y2', '100%');
+
+          gradient.append('stop').attr('offset', '0%').attr('stop-color', 'rgba(0, 0, 0, 0)');
+          gradient.append('stop').attr('offset', '100%').attr('stop-color', 'rgba(0, 0, 0, 0.3)');
+
+          const actualShadowHeight = Math.min(shadowHeight, catHeight);
+          g.append('rect')
+            .attr('class', 'segment-shadow')
+            .attr('x', segmentX)
+            .attr('y', currentY + catHeight - actualShadowHeight)
+            .attr('width', barWidth)
+            .attr('height', actualShadowHeight)
+            .attr('fill', `url(#${gradientId})`)
+            .style('pointer-events', 'none');
+        }
+
+        previousSegmentColor = cat.color;
+        segmentIndex++;
       });
     });
   } else {
@@ -836,8 +879,7 @@ const renderChart = () => {
       .on('mouseleave', handleMouseLeave)
       .on('click', (event: MouseEvent, d) => {
         // When exactly one category has data, pass its ID for navigation
-        const singleCategoryId =
-          chartCategories.value.length === 1 ? chartCategories.value[0].categoryId : undefined;
+        const singleCategoryId = chartCategories.value.length === 1 ? chartCategories.value[0].categoryId : undefined;
         handleBarClick(event, d, singleCategoryId);
       });
   }
@@ -1005,6 +1047,29 @@ function handleStackedMouseEnter(
   tooltip.periodEnd = period.periodEnd;
   tooltip.visible = true;
   updateTooltipPosition(event);
+
+  // Reduce opacity of other segments to highlight hovered category
+  if (svgRef.value) {
+    const svg = d3.select(svgRef.value);
+    svg
+      .selectAll('.bar-segment')
+      .transition()
+      .duration(150)
+      .style('opacity', function () {
+        const segmentCategoryId = d3.select(this).attr('data-category-id');
+        return segmentCategoryId === String(cat.categoryId) ? 1 : 0.3;
+      });
+  }
+}
+
+function handleStackedMouseLeave() {
+  tooltip.visible = false;
+
+  // Restore opacity of all segments
+  if (svgRef.value) {
+    const svg = d3.select(svgRef.value);
+    svg.selectAll('.bar-segment').transition().duration(150).style('opacity', 1);
+  }
 }
 
 // Handle bar click - navigate on desktop, show tooltip on touch
