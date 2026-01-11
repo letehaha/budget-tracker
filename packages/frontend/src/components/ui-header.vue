@@ -115,7 +115,7 @@ import ManageTransactionDialog from '@/components/dialogs/manage-transaction/ind
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import * as Sheet from '@/components/lib/ui/sheet';
-import NotificationsPopover from '@/components/notifications-popover.vue';
+import NotificationsPopover from '@/components/notifications-popover/index.vue';
 import Sidebar from '@/components/sidebar/index.vue';
 import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';

@@ -1549,7 +1549,10 @@
   "notifications": {
     "title": "Сповіщення",
     "markAllAsRead": "Позначити всі як прочитані",
-    "empty": "Сповіщень ще немає"
+    "empty": "Сповіщень ще немає",
+    "viewOnGitHub": "Переглянути на GitHub",
+    "newVersion": "Нова версія {version}",
+    "newRelease": "Новий реліз"
   },
   "pages": {
     "bankCallback": {
