@@ -56,7 +56,7 @@ import * as d3 from 'd3';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-export type MetricType = 'expenses' | 'income' | 'savings';
+type MetricType = 'expenses' | 'income' | 'savings';
 
 const props = defineProps<{
   currentPeriodData: endpointsTypes.CumulativeMonthData[];
@@ -189,7 +189,8 @@ const renderChart = () => {
     .attr('class', 'x-axis')
     .attr('transform', `translate(0,${innerHeight})`)
     .call(
-      d3.axisBottom(xScale)
+      d3
+        .axisBottom(xScale)
         .tickValues(sortedMonths)
         .tickFormat((d) => monthsInPeriod.get(d as number) || ''),
     )
@@ -302,7 +303,10 @@ const renderChart = () => {
 
   // Create invisible hover areas for each month - spanning full height
   // Combine data from both years to get all unique months
-  const allMonthsData = new Map<number, { current?: endpointsTypes.CumulativeMonthData; previous?: endpointsTypes.CumulativeMonthData }>();
+  const allMonthsData = new Map<
+    number,
+    { current?: endpointsTypes.CumulativeMonthData; previous?: endpointsTypes.CumulativeMonthData }
+  >();
 
   for (const d of props.currentPeriodData) {
     allMonthsData.set(d.month, { current: d });
@@ -403,9 +407,5 @@ onUnmounted(() => {
   }
 });
 
-watch(
-  [() => props.currentPeriodData, () => props.previousPeriodData, () => props.metric],
-  renderChart,
-  { deep: true },
-);
+watch([() => props.currentPeriodData, () => props.previousPeriodData, () => props.metric], renderChart, { deep: true });
 </script>
