@@ -43,6 +43,7 @@ import testsRoutes from './routes/tests.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
+import webhooksRoutes from './routes/webhooks.route';
 import { registerAiCategorizationListeners } from './services/ai-categorization';
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
 import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
@@ -85,6 +86,11 @@ app.use(
 
 logger.info(`CORS configured with origins: ${ALLOWED_ORIGINS}`);
 
+// Paths that need raw body preserved (for signature verification)
+// Note: These paths should include the full path WITH API_PREFIX because
+// this middleware runs before route mounting, so req.path contains full path
+const rawBodyPaths = [`${API_PREFIX}/webhooks/github`];
+
 // Body parser with conditional limits
 app.use((req, res, next) => {
   // Paths that need larger payloads
@@ -100,6 +106,16 @@ app.use((req, res, next) => {
       `${API_PREFIX}/import/text-source/extract`,
     ],
   };
+
+  // For webhook paths, preserve raw body for signature verification
+  // Use req.originalUrl to ensure we match the full path regardless of mounting
+  if (rawBodyPaths.some((p) => req.originalUrl.startsWith(p))) {
+    return express.json({
+      verify: (req, _res, buf) => {
+        (req as Request & { rawBody?: Buffer }).rawBody = buf;
+      },
+    })(req, res, next);
+  }
 
   // Check each limit size and apply if path matches
   for (const [limit, paths] of Object.entries(largePaths)) {
@@ -166,6 +182,7 @@ app.use(`${API_PREFIX}/investments`, investmentsRoutes);
 app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
 app.use(`${API_PREFIX}/import`, statementParserRoutes);
 app.use(`${API_PREFIX}/sse`, sseRoutes);
+app.use(`${API_PREFIX}/webhooks`, webhooksRoutes);
 
 if (process.env.NODE_ENV === 'test') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);

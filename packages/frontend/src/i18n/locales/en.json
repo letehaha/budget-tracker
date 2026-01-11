@@ -1549,7 +1549,10 @@
   "notifications": {
     "title": "Notifications",
     "markAllAsRead": "Mark all as read",
-    "empty": "No notifications yet"
+    "empty": "No notifications yet",
+    "viewOnGitHub": "View on GitHub",
+    "newVersion": "New version {version}",
+    "newRelease": "New release"
   },
   "pages": {
     "bankCallback": {

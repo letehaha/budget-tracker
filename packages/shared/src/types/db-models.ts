@@ -213,8 +213,9 @@ export interface SystemNotificationPayload {
 
 export interface ChangelogNotificationPayload {
   version: string;
+  releaseName: string;
+  releaseUrl: string;
   releaseDate: string;
-  highlights?: string[];
 }
 
 export type NotificationPayload =
