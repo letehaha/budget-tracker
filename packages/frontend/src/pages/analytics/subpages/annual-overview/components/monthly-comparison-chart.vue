@@ -196,15 +196,16 @@
 
 <script setup lang="ts">
 import { getCashFlow } from '@/api';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Combobox from '@/components/lib/ui/combobox';
 import { useFormatCurrency } from '@/composable';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
-import { TRANSACTION_TYPES, type CategoryModel, type endpointsTypes } from '@bt/shared/types';
+import { type CategoryModel, TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
+import { useSessionStorage } from '@vueuse/core';
 import * as d3 from 'd3';
 import { CheckIcon, ChevronDown, SearchIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -245,10 +246,11 @@ const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
 const tooltipRef = ref<HTMLDivElement | null>(null);
 
-// Category multi-select state
-const selectedCategoryIds = ref<number[]>([]);
+// Category multi-select state with session persistence
+const selectedCategoryIds = useSessionStorage<number[]>('trends-comparison-categories', []);
 const searchTerm = ref('');
 const isComboboxOpen = ref(false);
+const sessionOrder = ref<number[]>([]);
 
 const tooltip = reactive({
   visible: false,
@@ -278,9 +280,6 @@ const queryParams = computed(() => ({
   categoryIds: selectedCategoryIds.value.length > 0 ? selectedCategoryIds.value : undefined,
 }));
 
-// Cache for 5 minutes
-const FIVE_MINUTES = 5 * 60 * 1000;
-
 // Fetch cash flow data
 const {
   data: cashFlowData,
@@ -289,15 +288,33 @@ const {
 } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.analyticsCashFlow, 'monthly-comparison', queryParams],
   queryFn: () => getCashFlow(queryParams.value),
-  staleTime: FIVE_MINUTES,
-  gcTime: FIVE_MINUTES * 2,
+  staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
+  gcTime: QUERY_CACHE_STALE_TIME.ANALYTICS * 2,
 });
 
-// Category selection helpers
+// When combobox opens, reorder to show selected categories first
+watch(isComboboxOpen, (open) => {
+  if (open) {
+    const selectedIds = new Set(selectedCategoryIds.value);
+    const selectedFirst = categories.value.filter((c) => selectedIds.has(c.id));
+    const others = categories.value.filter((c) => !selectedIds.has(c.id));
+    sessionOrder.value = [...selectedFirst, ...others].map((c) => c.id);
+  }
+});
+
+// Category selection helpers - show selected categories at top when dropdown is open
+const orderedCategories = computed(() => {
+  if (isComboboxOpen.value && sessionOrder.value.length) {
+    const byId = new Map(categories.value.map((c) => [c.id, c] as const));
+    return sessionOrder.value.map((id) => byId.get(id)!).filter(Boolean);
+  }
+  return categories.value;
+});
+
 const displayedCategories = computed(() => {
   const term = searchTerm.value.trim().toLowerCase();
-  if (!term) return categories.value;
-  return categories.value.filter((c) => c.name.toLowerCase().includes(term));
+  if (!term) return orderedCategories.value;
+  return orderedCategories.value.filter((c) => c.name.toLowerCase().includes(term));
 });
 
 const isCategorySelected = (categoryId: number) => selectedCategoryIds.value.includes(categoryId);
@@ -517,6 +534,9 @@ const renderChart = () => {
   const colors = getColors();
   const svg = d3.select(svgRef.value);
   svg.selectAll('*').remove();
+
+  // Add defs element for gradients and filters
+  svg.append('defs');
 
   const width = containerRef.value.clientWidth;
   const height = containerRef.value.clientHeight;
@@ -758,6 +778,11 @@ const renderChart = () => {
       const visibleSegments = sortedCategories.filter((cat) => getCategoryAmount(cat) > 0);
       const topSegmentId = visibleSegments.length > 0 ? visibleSegments[visibleSegments.length - 1].categoryId : null;
 
+      // Inner shadow height to help distinguish segments with similar colors
+      const shadowHeight = 4;
+      let segmentIndex = 0;
+      let previousSegmentColor: string | null = null;
+
       sortedCategories.forEach((cat) => {
         const catAmount = getCategoryAmount(cat);
         if (catAmount === 0) return; // Skip categories with zero amount
@@ -772,6 +797,7 @@ const renderChart = () => {
           // Use path for top segment with only top corners rounded
           g.append('path')
             .attr('class', 'bar-segment')
+            .attr('data-category-id', cat.categoryId)
             .attr(
               'd',
               createTopRoundedRect({ x: segmentX, y: currentY, width: barWidth, height: catHeight, radius: 4 }),
@@ -780,12 +806,13 @@ const renderChart = () => {
             .style('cursor', 'pointer')
             .on('mouseenter', (event: MouseEvent) => handleStackedMouseEnter(event, period, cat))
             .on('mousemove', handleMouseMove)
-            .on('mouseleave', handleMouseLeave)
+            .on('mouseleave', handleStackedMouseLeave)
             .on('click', (event: MouseEvent) => handleBarClick(event, period, cat.categoryId));
         } else {
           // Regular rect for other segments (no rounding)
           g.append('rect')
             .attr('class', 'bar-segment')
+            .attr('data-category-id', cat.categoryId)
             .attr('x', segmentX)
             .attr('y', currentY)
             .attr('width', barWidth)
@@ -794,9 +821,42 @@ const renderChart = () => {
             .style('cursor', 'pointer')
             .on('mouseenter', (event: MouseEvent) => handleStackedMouseEnter(event, period, cat))
             .on('mousemove', handleMouseMove)
-            .on('mouseleave', handleMouseLeave)
+            .on('mouseleave', handleStackedMouseLeave)
             .on('click', (event: MouseEvent) => handleBarClick(event, period, cat.categoryId));
         }
+
+        // Add inner shadow only between segments with the same color
+        // This helps distinguish same-color segments without affecting different-color boundaries
+        if (segmentIndex > 0 && previousSegmentColor === cat.color) {
+          // Create unique gradient ID for this segment's inner shadow
+          const gradientId = `inner-shadow-${period.periodStart}-${cat.categoryId}`;
+
+          // Define gradient for inner shadow (transparent at top, dark at bottom)
+          const gradient = svg
+            .select('defs')
+            .append('linearGradient')
+            .attr('id', gradientId)
+            .attr('x1', '0%')
+            .attr('y1', '0%')
+            .attr('x2', '0%')
+            .attr('y2', '100%');
+
+          gradient.append('stop').attr('offset', '0%').attr('stop-color', 'rgba(0, 0, 0, 0)');
+          gradient.append('stop').attr('offset', '100%').attr('stop-color', 'rgba(0, 0, 0, 0.3)');
+
+          const actualShadowHeight = Math.min(shadowHeight, catHeight);
+          g.append('rect')
+            .attr('class', 'segment-shadow')
+            .attr('x', segmentX)
+            .attr('y', currentY + catHeight - actualShadowHeight)
+            .attr('width', barWidth)
+            .attr('height', actualShadowHeight)
+            .attr('fill', `url(#${gradientId})`)
+            .style('pointer-events', 'none');
+        }
+
+        previousSegmentColor = cat.color;
+        segmentIndex++;
       });
     });
   } else {
@@ -817,7 +877,11 @@ const renderChart = () => {
       .on('mouseenter', handleMouseEnter)
       .on('mousemove', handleMouseMove)
       .on('mouseleave', handleMouseLeave)
-      .on('click', (event: MouseEvent, d) => handleBarClick(event, d));
+      .on('click', (event: MouseEvent, d) => {
+        // When exactly one category has data, pass its ID for navigation
+        const singleCategoryId = chartCategories.value.length === 1 ? chartCategories.value[0].categoryId : undefined;
+        handleBarClick(event, d, singleCategoryId);
+      });
   }
 
   // MoM change badges with background
@@ -983,6 +1047,29 @@ function handleStackedMouseEnter(
   tooltip.periodEnd = period.periodEnd;
   tooltip.visible = true;
   updateTooltipPosition(event);
+
+  // Reduce opacity of other segments to highlight hovered category
+  if (svgRef.value) {
+    const svg = d3.select(svgRef.value);
+    svg
+      .selectAll('.bar-segment')
+      .transition()
+      .duration(150)
+      .style('opacity', function () {
+        const segmentCategoryId = d3.select(this).attr('data-category-id');
+        return segmentCategoryId === String(cat.categoryId) ? 1 : 0.3;
+      });
+  }
+}
+
+function handleStackedMouseLeave() {
+  tooltip.visible = false;
+
+  // Restore opacity of all segments
+  if (svgRef.value) {
+    const svg = d3.select(svgRef.value);
+    svg.selectAll('.bar-segment').transition().duration(150).style('opacity', 1);
+  }
 }
 
 // Handle bar click - navigate on desktop, show tooltip on touch

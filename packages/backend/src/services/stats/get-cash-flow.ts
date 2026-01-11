@@ -125,7 +125,7 @@ interface CategoryAmounts {
 interface PeriodCategoryData {
   income: number;
   expenses: number;
-  categories: Map<number, CategoryAmounts>; // categoryId -> amounts by type (aggregated by root category)
+  categories: Map<number, CategoryAmounts>; // categoryId -> amounts by type (aggregated by target category)
 }
 
 /**
@@ -148,6 +148,45 @@ const getRootCategoryId = ({
   }
 
   return current.id;
+};
+
+/**
+ * Get the aggregation category ID for a transaction's category.
+ * If targetCategoryIds is provided, finds the closest ancestor (or self) that's in the target set.
+ * Otherwise, returns the root category ID.
+ */
+const getAggregationCategoryId = ({
+  categoryId,
+  categoryMap,
+  targetCategoryIds,
+}: {
+  categoryId: number;
+  categoryMap: Map<number, CategoryInfo>;
+  targetCategoryIds?: Set<number>;
+}): number => {
+  // If no target categories specified, aggregate to root
+  if (!targetCategoryIds) {
+    return getRootCategoryId({ categoryId, categoryMap });
+  }
+
+  // If this category is itself a target, use it
+  if (targetCategoryIds.has(categoryId)) {
+    return categoryId;
+  }
+
+  // Walk up the hierarchy to find an ancestor that's a target
+  let current = categoryMap.get(categoryId);
+  while (current) {
+    if (targetCategoryIds.has(current.id)) {
+      return current.id;
+    }
+    if (current.parentId === null) break;
+    current = categoryMap.get(current.parentId);
+  }
+
+  // Fallback: if no target ancestor found, use the category itself
+  // (this shouldn't happen if filtering is correct, but handles edge cases)
+  return categoryId;
 };
 
 /**
@@ -256,22 +295,22 @@ export const getCashFlow = async ({
   });
 
   // Determine which categories to report in the breakdown
-  // If specific categories selected, use their root categories for aggregation
-  // Otherwise, use all root categories
+  // If specific categories selected, report those exact categories (not aggregated to root)
+  // Otherwise, aggregate to root categories
   let reportCategoryIds: number[];
+  // When specific categories are selected, aggregate to those categories instead of root
+  const aggregateToSelectedCategories = categoryIds && categoryIds.length > 0;
 
-  if (categoryIds && categoryIds.length > 0) {
-    // Get unique root categories for the selected categories
-    const selectedRootIds = new Set<number>();
-    categoryIds.forEach((catId) => {
-      const rootId = getRootCategoryId({ categoryId: catId, categoryMap });
-      selectedRootIds.add(rootId);
-    });
-    reportCategoryIds = Array.from(selectedRootIds);
+  if (aggregateToSelectedCategories) {
+    // Report the exact categories the user selected
+    reportCategoryIds = categoryIds;
   } else {
     // Use all root categories
     reportCategoryIds = rootCategories.map((cat) => cat.id);
   }
+
+  // Create a set of target categories for aggregation (when specific categories are selected)
+  const targetCategoryIds = aggregateToSelectedCategories ? new Set(categoryIds) : undefined;
 
   // Aggregate transactions into buckets
   for (const tx of transactions) {
@@ -289,10 +328,19 @@ export const getCashFlow = async ({
       periodData.expenses += amount;
     }
 
-    // Track per-category amounts by type (aggregated by root category)
+    // Track per-category amounts by type
+    // When specific categories selected: aggregate to those categories
+    // Otherwise: aggregate to root categories
     if (tx.categoryId) {
-      const rootCategoryId = getRootCategoryId({ categoryId: tx.categoryId, categoryMap });
-      const currentAmounts = periodData.categories.get(rootCategoryId) || { incomeAmount: 0, expenseAmount: 0 };
+      const aggregationCategoryId = getAggregationCategoryId({
+        categoryId: tx.categoryId,
+        categoryMap,
+        targetCategoryIds,
+      });
+      const currentAmounts = periodData.categories.get(aggregationCategoryId) || {
+        incomeAmount: 0,
+        expenseAmount: 0,
+      };
 
       if (tx.transactionType === TRANSACTION_TYPES.income) {
         currentAmounts.incomeAmount += amount;
@@ -300,7 +348,7 @@ export const getCashFlow = async ({
         currentAmounts.expenseAmount += amount;
       }
 
-      periodData.categories.set(rootCategoryId, currentAmounts);
+      periodData.categories.set(aggregationCategoryId, currentAmounts);
     }
   }
 

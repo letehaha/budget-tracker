@@ -1,3 +1,12 @@
+/**
+ * Cache duration constants for Vue Query staleTime and gcTime.
+ * Financial data doesn't change frequently, so longer cache times are appropriate.
+ */
+export const QUERY_CACHE_STALE_TIME = {
+  /** 5 minutes - for data that changes infrequently (analytics, stats) */
+  ANALYTICS: 5 * 60 * 1000,
+} as const;
+
 export const VUE_QUERY_GLOBAL_PREFIXES = Object.freeze({
   // This query might be added to other queries so that on transcation create/edit
   // we can call for invalidating all the queries that include that particular one

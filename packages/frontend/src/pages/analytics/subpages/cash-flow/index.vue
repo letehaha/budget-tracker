@@ -112,7 +112,7 @@
 
 <script setup lang="ts">
 import { getCashFlow } from '@/api';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import Label from '@/components/lib/ui/label/Label.vue';
@@ -122,11 +122,13 @@ import PopoverTrigger from '@/components/lib/ui/popover/PopoverTrigger.vue';
 import { useDateLocale } from '@/composable/use-date-locale';
 import type { endpointsTypes } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
+import { useLocalStorage, useSessionStorage } from '@vueuse/core';
 import { differenceInDays, endOfMonth, startOfMonth, subDays, subMonths } from 'date-fns';
 import { Settings2Icon } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { createPeriodSerializer } from '../../utils';
 import CashFlowChart from './components/cash-flow-chart.vue';
 import ChartTypeSwitcher, { type ChartType } from './components/chart-type-switcher.vue';
 import GranularitySelector from './components/granularity-selector.vue';
@@ -140,16 +142,25 @@ const { format } = useDateLocale();
 // Constants
 const DEFAULT_PERIOD_MONTHS = 12;
 
-// State
-const selectedPeriod = ref<Period>({
+// Helper to get default period
+const getDefaultPeriod = (): Period => ({
   from: startOfMonth(subMonths(new Date(), DEFAULT_PERIOD_MONTHS - 1)),
   to: endOfMonth(new Date()),
 });
 
-const selectedGranularity = ref<endpointsTypes.CashFlowGranularity>('monthly');
-const selectedChartType = ref<ChartType>('mirrored');
-const excludeCategories = ref(false);
-const showMovingAverage = ref(true);
+const periodSerializer = createPeriodSerializer({ getDefaultPeriod });
+
+// State with persistence using VueUse
+// localStorage - persists across sessions
+const selectedChartType = useLocalStorage<ChartType>('cash-flow-chart-type', 'mirrored');
+const selectedGranularity = useLocalStorage<endpointsTypes.CashFlowGranularity>('cash-flow-granularity', 'monthly');
+
+// sessionStorage - clears when tab closes
+const selectedPeriod = useSessionStorage<Period>('cash-flow-period', getDefaultPeriod(), {
+  serializer: periodSerializer,
+});
+const excludeCategories = useSessionStorage('cash-flow-exclude-categories', false);
+const showMovingAverage = useSessionStorage('cash-flow-show-moving-avg', true);
 
 // Calculate previous period (same duration, immediately before current period)
 const previousPeriod = computed(() => {
@@ -188,9 +199,6 @@ const previousQueryParams = computed(() => ({
   excludeCategories: excludeCategories.value,
 }));
 
-// Cache for 5 minutes since financial data doesn't change frequently
-const FIVE_MINUTES = 5 * 60 * 1000;
-
 const {
   data: cashFlowData,
   isLoading,
@@ -198,16 +206,16 @@ const {
 } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.analyticsCashFlow, queryParams],
   queryFn: () => getCashFlow(queryParams.value),
-  staleTime: FIVE_MINUTES,
-  gcTime: FIVE_MINUTES * 2,
+  staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
+  gcTime: QUERY_CACHE_STALE_TIME.ANALYTICS * 2,
 });
 
 // Fetch previous period data for trend comparison
 const { data: previousCashFlowData } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.analyticsCashFlow, previousQueryParams],
   queryFn: () => getCashFlow(previousQueryParams.value),
-  staleTime: FIVE_MINUTES,
-  gcTime: FIVE_MINUTES * 2,
+  staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
+  gcTime: QUERY_CACHE_STALE_TIME.ANALYTICS * 2,
 });
 
 // Calculate trend (% change between current period totals and previous period totals)

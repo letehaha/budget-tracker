@@ -114,13 +114,15 @@
 
 <script setup lang="ts">
 import { getCumulativeData, getSpendingsByCategories } from '@/api';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
+import { useSessionStorage } from '@vueuse/core';
 import { differenceInMonths, startOfMonth, subMonths } from 'date-fns';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { createPeriodSerializer } from '../../utils';
 import ChartSkeleton from '../cash-flow/components/chart-skeleton.vue';
 import PeriodSelector, { type Period } from '../cash-flow/components/period-selector.vue';
 import SummaryCard from '../cash-flow/components/summary-card.vue';
@@ -132,12 +134,19 @@ import MonthlyComparisonChart from './components/monthly-comparison-chart.vue';
 
 const { t } = useI18n();
 
-// State - default to last 12 months
-const selectedPeriod = ref<Period>({
+// Helper to get default period
+const getDefaultPeriod = (): Period => ({
   from: subMonths(new Date(), 12),
   to: new Date(),
 });
-const selectedMetric = ref<MetricType>('expenses');
+
+const periodSerializer = createPeriodSerializer({ getDefaultPeriod });
+
+// State with session persistence using VueUse
+const selectedPeriod = useSessionStorage<Period>('trends-comparison-period', getDefaultPeriod(), {
+  serializer: periodSerializer,
+});
+const selectedMetric = useSessionStorage<MetricType>('trends-comparison-metric', 'expenses');
 
 // Computed metric label
 const metricLabel = computed(() => {
@@ -156,9 +165,6 @@ const cumulativeQueryParams = computed(() => ({
   metric: selectedMetric.value,
 }));
 
-// Cache for 5 minutes since financial data doesn't change frequently
-const FIVE_MINUTES = 5 * 60 * 1000;
-
 // Cumulative data query
 const {
   data: cumulativeData,
@@ -167,8 +173,8 @@ const {
 } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.analyticsCumulative, cumulativeQueryParams],
   queryFn: () => getCumulativeData(cumulativeQueryParams.value),
-  staleTime: FIVE_MINUTES,
-  gcTime: FIVE_MINUTES * 2,
+  staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
+  gcTime: QUERY_CACHE_STALE_TIME.ANALYTICS * 2,
 });
 
 // Category breakdown queries (for expenses and income, not savings)
@@ -196,16 +202,16 @@ const previousPeriodDates = computed(() => ({
 const { data: currentPeriodCategories, isLoading: isLoadingCurrentCategories } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.analyticsSpendingsByCategories, 'current', cumulativeQueryParams],
   queryFn: () => getSpendingsByCategories(currentPeriodDates.value),
-  staleTime: FIVE_MINUTES,
-  gcTime: FIVE_MINUTES * 2,
+  staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
+  gcTime: QUERY_CACHE_STALE_TIME.ANALYTICS * 2,
   enabled: computed(() => selectedMetric.value !== 'savings'),
 });
 
 const { data: previousPeriodCategories, isLoading: isLoadingPreviousCategories } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.analyticsSpendingsByCategories, 'previous', cumulativeQueryParams],
   queryFn: () => getSpendingsByCategories(previousPeriodDates.value),
-  staleTime: FIVE_MINUTES,
-  gcTime: FIVE_MINUTES * 2,
+  staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
+  gcTime: QUERY_CACHE_STALE_TIME.ANALYTICS * 2,
   enabled: computed(() => selectedMetric.value !== 'savings'),
 });
 
