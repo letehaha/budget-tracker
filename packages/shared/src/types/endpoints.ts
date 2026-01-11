@@ -151,7 +151,19 @@ export interface GetCashFlowPayload extends QueryPayload {
   to: string;
   granularity: CashFlowGranularity;
   accountId?: AccountModel['id'];
+  // Filter to specific categories (comma-separated IDs). Overrides excludeCategories.
+  categoryIds?: string;
   excludeCategories?: boolean;
+}
+
+// Category breakdown within a period
+export interface CashFlowCategoryData {
+  categoryId: number;
+  name: string;
+  color: string;
+  // Separate amounts by transaction type for proper filtering
+  incomeAmount: number;
+  expenseAmount: number;
 }
 
 export interface CashFlowPeriodData {
@@ -162,6 +174,8 @@ export interface CashFlowPeriodData {
   income: number;
   expenses: number;
   netFlow: number;
+  // Per-category breakdown (only present when categoryIds filter is used)
+  categories?: CashFlowCategoryData[];
 }
 
 export interface GetCashFlowResponse {

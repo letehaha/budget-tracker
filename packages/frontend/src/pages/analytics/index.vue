@@ -90,7 +90,7 @@ watch(
   [isCompactLayout, () => route.name],
   ([compact, routeName]) => {
     if (!compact && routeName === ROUTES_NAMES.analytics) {
-      router.replace({ name: ROUTES_NAMES.analyticsCashFlow });
+      router.replace({ name: ROUTES_NAMES.analyticsTrendsComparison });
     }
   },
   { immediate: true },
@@ -98,16 +98,16 @@ watch(
 
 const tabs = computed<Tab[]>(() => [
   {
-    name: 'cash-flow',
-    label: t('analytics.navigation.cashFlow'),
-    to: { name: ROUTES_NAMES.analyticsCashFlow },
-    icon: DollarSignIcon,
-  },
-  {
     name: 'trends-comparison',
     label: t('analytics.navigation.trendsComparison'),
     to: { name: ROUTES_NAMES.analyticsTrendsComparison },
     icon: TrendingUpIcon,
+  },
+  {
+    name: 'cash-flow',
+    label: t('analytics.navigation.cashFlow'),
+    to: { name: ROUTES_NAMES.analyticsCashFlow },
+    icon: DollarSignIcon,
   },
 ]);
 </script>

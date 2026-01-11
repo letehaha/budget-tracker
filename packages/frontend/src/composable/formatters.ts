@@ -61,6 +61,21 @@ export const useFormatCurrency = () => {
     });
 
   /**
+   * Get the currency symbol for the base currency (e.g., "$", "€", "UAH")
+   */
+  const getCurrencySymbol = () => {
+    const code = baseCurrency.value?.currency?.code || 'USD';
+    // Format a zero amount and extract just the symbol
+    const formatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: code,
+      currencyDisplay: 'narrowSymbol',
+    }).format(0);
+    // Remove the number part to get just the symbol
+    return formatted.replace(/[\d.,\s]/g, '').trim();
+  };
+
+  /**
    * Compact format for sidebar/overview display:
    * - < 10k: show with cents (e.g., "UAH 9,999.99")
    * - >= 10k: show with k/M suffix (e.g., "UAH 26.00k", "UAH 1.23M")
@@ -87,5 +102,6 @@ export const useFormatCurrency = () => {
     formatBaseCurrency,
     formatAmountByCurrencyCode,
     formatCompactAmount,
+    getCurrencySymbol,
   };
 };

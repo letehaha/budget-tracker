@@ -570,6 +570,17 @@
         "noData": "Немає даних за цей період",
         "viewAll": "Переглянути всі категорії"
       },
+      "monthlyComparison": {
+        "title": "Порівняння по місяцях",
+        "allCategories": "Усі категорії",
+        "categorySelected": "{count} категорія",
+        "categoriesSelected": "{count} категорій",
+        "searchCategories": "Пошук категорій...",
+        "average": "Середнє",
+        "total": "Усього",
+        "noChange": "Без змін",
+        "vsLastMonth": "проти попереднього місяця"
+      },
       "vsPreviousPeriod": "проти попереднього періоду",
       "loadError": "Не вдалося завантажити дані",
       "noData": "Даних немає",

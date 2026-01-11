@@ -66,7 +66,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const { format, locale } = useDateLocale();
-const { formatBaseCurrency } = useFormatCurrency();
+const { formatBaseCurrency, getCurrencySymbol } = useFormatCurrency();
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
@@ -311,13 +311,14 @@ const renderChart = () => {
 };
 
 const formatAxisValue = (value: number): string => {
+  const symbol = getCurrencySymbol();
   const absValue = Math.abs(value);
   if (absValue >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
+    return `${symbol}${(value / 1000000).toFixed(1)}M`;
   } else if (absValue >= 1000) {
-    return `${(value / 1000).toFixed(0)}K`;
+    return `${symbol}${(value / 1000).toFixed(0)}K`;
   }
-  return value.toString();
+  return `${symbol}${value}`;
 };
 
 const renderStackedBars = (

@@ -571,6 +571,17 @@
         "noData": "No data for this period",
         "viewAll": "View all categories"
       },
+      "monthlyComparison": {
+        "title": "Monthly Comparison",
+        "allCategories": "All Categories",
+        "categorySelected": "{count} category",
+        "categoriesSelected": "{count} categories",
+        "searchCategories": "Search categories...",
+        "average": "Average",
+        "total": "Total",
+        "noChange": "No change",
+        "vsLastMonth": "vs previous month"
+      },
       "vsPreviousPeriod": "vs previous period",
       "loadError": "Failed to load data",
       "noData": "No data available",

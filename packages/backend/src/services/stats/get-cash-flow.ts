@@ -1,6 +1,7 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
+import Categories from '@models/Categories.model';
 import * as Transactions from '@models/Transactions.model';
 import {
   addDays,
@@ -27,6 +28,7 @@ interface GetCashFlowParams {
   to: string;
   granularity: endpointsTypes.CashFlowGranularity;
   accountId?: number;
+  categoryIds?: number[];
   excludeCategories?: boolean;
 }
 
@@ -108,6 +110,46 @@ const findBucketIndex = ({
   return buckets.findIndex((bucket) => txTime >= bucket.periodStart.getTime() && txTime <= bucket.periodEnd.getTime());
 };
 
+interface CategoryInfo {
+  id: number;
+  name: string;
+  color: string;
+  parentId: number | null;
+}
+
+interface CategoryAmounts {
+  incomeAmount: number;
+  expenseAmount: number;
+}
+
+interface PeriodCategoryData {
+  income: number;
+  expenses: number;
+  categories: Map<number, CategoryAmounts>; // categoryId -> amounts by type (aggregated by root category)
+}
+
+/**
+ * Get the root category ID for a given category
+ */
+const getRootCategoryId = ({
+  categoryId,
+  categoryMap,
+}: {
+  categoryId: number;
+  categoryMap: Map<number, CategoryInfo>;
+}): number => {
+  let current = categoryMap.get(categoryId);
+  if (!current) return categoryId;
+
+  while (current.parentId !== null) {
+    const parent = categoryMap.get(current.parentId);
+    if (!parent) break;
+    current = parent;
+  }
+
+  return current.id;
+};
+
 /**
  * Fetches cash flow data (income vs expenses) for a specified user within a date range,
  * aggregated by the specified granularity.
@@ -118,15 +160,16 @@ export const getCashFlow = async ({
   to,
   granularity,
   accountId,
+  categoryIds,
   excludeCategories = false,
 }: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
   // Generate period buckets
   const buckets = generatePeriodBuckets({ from, to, granularity });
 
   // Initialize period data
-  const periodDataMap: Map<number, { income: number; expenses: number }> = new Map();
+  const periodDataMap: Map<number, PeriodCategoryData> = new Map();
   buckets.forEach((_, index) => {
-    periodDataMap.set(index, { income: 0, expenses: 0 });
+    periodDataMap.set(index, { income: 0, expenses: 0, categories: new Map() });
   });
 
   // Get excluded categories if needed
@@ -136,9 +179,58 @@ export const getCashFlow = async ({
     excludedCategoryIds = settings.stats.expenses.excludedCategories;
   }
 
+  // Fetch ALL user categories to build the hierarchy map
+  const allCategories = await Categories.findAll({
+    where: { userId },
+    attributes: ['id', 'name', 'color', 'parentId'],
+    raw: true,
+  });
+
+  // Build category lookup map
+  const categoryMap: Map<number, CategoryInfo> = new Map();
+  allCategories.forEach((cat) => {
+    categoryMap.set(cat.id, {
+      id: cat.id,
+      name: cat.name,
+      color: cat.color,
+      parentId: cat.parentId,
+    });
+  });
+
+  // Get root categories (those without a parent)
+  const rootCategories = allCategories.filter((cat) => cat.parentId === null);
+
+  // Determine which category IDs to filter by in the query
+  let queryFilterCategoryIds: number[] | undefined;
+
+  if (categoryIds && categoryIds.length > 0) {
+    // User selected specific categories - expand to include all children
+    const expandedCategoryIds = new Set<number>(categoryIds);
+
+    // For each selected category, add all its descendants
+    allCategories.forEach((cat) => {
+      // Check if this category's root or any ancestor is in the selected list
+      let current: CategoryInfo | undefined = categoryMap.get(cat.id);
+      while (current) {
+        if (categoryIds.includes(current.id)) {
+          expandedCategoryIds.add(cat.id);
+          break;
+        }
+        if (current.parentId === null) break;
+        current = categoryMap.get(current.parentId);
+      }
+    });
+
+    queryFilterCategoryIds = Array.from(expandedCategoryIds);
+  }
+
   // Build where clause for categories
   const categoryWhere =
-    excludeCategories && excludedCategoryIds.length > 0 ? { [Op.notIn]: excludedCategoryIds } : undefined;
+    queryFilterCategoryIds && queryFilterCategoryIds.length > 0
+      ? { [Op.in]: queryFilterCategoryIds }
+      : excludeCategories && excludedCategoryIds.length > 0
+        ? { [Op.notIn]: excludedCategoryIds }
+        : undefined;
 
   // Fetch all transactions (both income and expense) in the date range
   const transactions = await Transactions.default.findAll({
@@ -160,8 +252,26 @@ export const getCashFlow = async ({
       },
     ],
     raw: true,
-    attributes: ['time', 'refAmount', 'transactionType'],
+    attributes: ['time', 'refAmount', 'transactionType', 'categoryId'],
   });
+
+  // Determine which categories to report in the breakdown
+  // If specific categories selected, use their root categories for aggregation
+  // Otherwise, use all root categories
+  let reportCategoryIds: number[];
+
+  if (categoryIds && categoryIds.length > 0) {
+    // Get unique root categories for the selected categories
+    const selectedRootIds = new Set<number>();
+    categoryIds.forEach((catId) => {
+      const rootId = getRootCategoryId({ categoryId: catId, categoryMap });
+      selectedRootIds.add(rootId);
+    });
+    reportCategoryIds = Array.from(selectedRootIds);
+  } else {
+    // Use all root categories
+    reportCategoryIds = rootCategories.map((cat) => cat.id);
+  }
 
   // Aggregate transactions into buckets
   for (const tx of transactions) {
@@ -178,18 +288,60 @@ export const getCashFlow = async ({
     } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
       periodData.expenses += amount;
     }
+
+    // Track per-category amounts by type (aggregated by root category)
+    if (tx.categoryId) {
+      const rootCategoryId = getRootCategoryId({ categoryId: tx.categoryId, categoryMap });
+      const currentAmounts = periodData.categories.get(rootCategoryId) || { incomeAmount: 0, expenseAmount: 0 };
+
+      if (tx.transactionType === TRANSACTION_TYPES.income) {
+        currentAmounts.incomeAmount += amount;
+      } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
+        currentAmounts.expenseAmount += amount;
+      }
+
+      periodData.categories.set(rootCategoryId, currentAmounts);
+    }
   }
 
   // Build response periods
   const periods: endpointsTypes.CashFlowPeriodData[] = buckets.map((bucket, index) => {
     const data = periodDataMap.get(index)!;
-    return {
+
+    const period: endpointsTypes.CashFlowPeriodData = {
       periodStart: format(bucket.periodStart, 'yyyy-MM-dd'),
       periodEnd: format(bucket.periodEnd, 'yyyy-MM-dd'),
       income: data.income,
       expenses: data.expenses,
       netFlow: data.income - data.expenses,
     };
+
+    // Always add category breakdown (for stacked bars)
+    // Filter to only include categories that have data in at least one period
+    const categoriesWithData = reportCategoryIds.filter((catId) => {
+      // Check if this category has any data across all periods
+      for (const [, periodData] of periodDataMap) {
+        const amounts = periodData.categories.get(catId);
+        if (amounts && (amounts.incomeAmount !== 0 || amounts.expenseAmount !== 0)) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    period.categories = categoriesWithData.map((catId) => {
+      const catInfo = categoryMap.get(catId) || { name: 'Unknown', color: '#888888' };
+      const amounts = data.categories.get(catId) || { incomeAmount: 0, expenseAmount: 0 };
+      return {
+        categoryId: catId,
+        name: catInfo.name,
+        color: catInfo.color,
+        incomeAmount: amounts.incomeAmount,
+        expenseAmount: amounts.expenseAmount,
+      };
+    });
+
+    return period;
   });
 
   // Calculate totals

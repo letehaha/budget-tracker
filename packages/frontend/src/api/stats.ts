@@ -115,6 +115,7 @@ export interface GetCashFlowParams {
   to: Date;
   granularity: endpointsTypes.CashFlowGranularity;
   accountId?: number;
+  categoryIds?: number[];
   excludeCategories?: boolean;
 }
 
@@ -123,6 +124,7 @@ export const getCashFlow = async ({
   to,
   granularity,
   accountId,
+  categoryIds,
   excludeCategories,
 }: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
   const params: Record<string, string | number | boolean> = {
@@ -132,6 +134,9 @@ export const getCashFlow = async ({
   };
 
   if (accountId !== undefined) params.accountId = accountId;
+  if (categoryIds !== undefined && categoryIds.length > 0) {
+    params.categoryIds = categoryIds.join(',');
+  }
   if (excludeCategories !== undefined) params.excludeCategories = excludeCategories;
 
   const response: endpointsTypes.GetCashFlowResponse = await api.get('/stats/cash-flow', params);
@@ -142,6 +147,12 @@ export const getCashFlow = async ({
       income: fromSystemAmount(period.income),
       expenses: fromSystemAmount(period.expenses),
       netFlow: fromSystemAmount(period.netFlow),
+      // Convert category amounts if present
+      categories: period.categories?.map((cat) => ({
+        ...cat,
+        incomeAmount: fromSystemAmount(cat.incomeAmount),
+        expenseAmount: fromSystemAmount(cat.expenseAmount),
+      })),
     })),
     totals: {
       ...response.totals,

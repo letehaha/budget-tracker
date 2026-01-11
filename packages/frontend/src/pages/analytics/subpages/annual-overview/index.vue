@@ -68,6 +68,13 @@
         </div>
       </div>
 
+      <!-- Monthly Comparison Chart -->
+      <MonthlyComparisonChart
+        :from="selectedPeriod.from"
+        :to="selectedPeriod.to"
+        :metric="selectedMetric"
+      />
+
       <!-- Cumulative Chart Skeleton -->
       <ChartSkeleton v-if="isLoadingCumulative" />
 
@@ -121,6 +128,7 @@ import SummaryCardSkeleton from '../cash-flow/components/summary-card-skeleton.v
 import CategoryBreakdown from './components/category-breakdown.vue';
 import CumulativeChart from './components/cumulative-chart.vue';
 import MetricToggle, { type MetricType } from './components/metric-toggle.vue';
+import MonthlyComparisonChart from './components/monthly-comparison-chart.vue';
 
 const { t } = useI18n();
 

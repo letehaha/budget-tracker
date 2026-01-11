@@ -186,6 +186,18 @@ const cashFlowSchema = z.object({
     to: z.string(),
     granularity: z.enum(['monthly', 'biweekly', 'weekly']),
     accountId: z.string().optional(),
+    // Comma-separated category IDs (e.g., "1,2,3")
+    categoryIds: z
+      .string()
+      .optional()
+      .transform((val) =>
+        val
+          ? val
+              .split(',')
+              .map((id) => Number(id.trim()))
+              .filter((id) => !Number.isNaN(id))
+          : undefined,
+      ),
     excludeCategories: z
       .string()
       .optional()
@@ -195,7 +207,7 @@ const cashFlowSchema = z.object({
 
 export const getCashFlow = createController(cashFlowSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, granularity, accountId, excludeCategories } = query;
+  const { from, to, granularity, accountId, categoryIds, excludeCategories } = query;
 
   tryBasicDateValidation({ from, to });
 
@@ -206,6 +218,7 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
       to,
       granularity,
       accountId: accountId ? Number(accountId) : undefined,
+      categoryIds,
       excludeCategories,
     }),
   );
