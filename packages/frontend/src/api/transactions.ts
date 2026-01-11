@@ -34,7 +34,7 @@ export const formatTransactionPayload = <
   transaction: T,
 ): T => {
   const params = { ...transaction };
-  const timeFieldsToPatch = ['time', 'budgetId', 'startDate', 'endDate'];
+  const timeFieldsToPatch = ['time', 'startDate', 'endDate'];
 
   timeFieldsToPatch.forEach((field) => {
     if (params[field]) params[field] = new Date(params[field]).toISOString();
@@ -80,6 +80,7 @@ export const loadTransactions = async (params: {
   amountGte?: number;
   includeSplits?: boolean;
 }): Promise<endpointsTypes.GetTransactionsResponse> => {
+  console.log('res', formatTransactionPayload(params));
   const result = await api.get('/transactions', formatTransactionPayload(params));
 
   return result.map((item) => formatTransactionResponse(item));

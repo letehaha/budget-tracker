@@ -3,7 +3,7 @@
     <div class="flex w-min max-w-full flex-col gap-4 lg:w-auto lg:flex-row xl:gap-20">
       <template v-if="!isMobileView">
         <Card
-          class="sticky top-(--header-height) h-min max-h-[calc(100vh-var(--header-height)-32px)] min-w-[350px] overflow-auto p-4"
+          class="sticky top-(--header-height) h-min max-h-[calc(100vh-var(--header-height)-32px)] min-w-87.5 overflow-auto p-4"
         >
           <FiltersPanel
             v-model:filters="filters"
@@ -28,7 +28,7 @@
         </FiltersDialog>
       </template>
 
-      <Card class="w-screen max-w-full rounded-md px-2 py-4 sm:max-w-[450px] sm:p-6">
+      <Card class="w-screen max-w-full rounded-md px-2 py-4 sm:max-w-112.5 sm:p-6">
         <template v-if="isFetched && transactionsPages">
           <TransactionsList
             ref="transactionsListRef"

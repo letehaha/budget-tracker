@@ -580,7 +580,11 @@
         "average": "Average",
         "total": "Total",
         "noChange": "No change",
-        "vsLastMonth": "vs previous month"
+        "vsLastMonth": "vs previous month",
+        "viewTransactions": "View transactions"
+      },
+      "cumulativeProgress": {
+        "title": "Cumulative Progress"
       },
       "vsPreviousPeriod": "vs previous period",
       "loadError": "Failed to load data",

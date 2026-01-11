@@ -1,5 +1,9 @@
 <template>
   <div class="flex flex-col">
+    <h3 class="mb-4 text-lg font-semibold">
+      {{ t('analytics.trends.cumulativeProgress.title') }}
+      <span class="text-muted-foreground font-normal">({{ metricLabel }})</span>
+    </h3>
     <div ref="containerRef" class="relative h-80 w-full">
       <svg ref="svgRef" class="h-full w-full"></svg>
 
@@ -72,6 +76,16 @@ const METRIC_COLORS = {
 
 const metricColor = computed(() => METRIC_COLORS[props.metric].main);
 const metricColorFaded = computed(() => METRIC_COLORS[props.metric].faded);
+
+// Metric label for title
+const metricLabel = computed(() => {
+  const labels = {
+    expenses: t('analytics.trends.metrics.expenses'),
+    income: t('analytics.trends.metrics.income'),
+    savings: t('analytics.trends.metrics.savings'),
+  };
+  return labels[props.metric];
+});
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);

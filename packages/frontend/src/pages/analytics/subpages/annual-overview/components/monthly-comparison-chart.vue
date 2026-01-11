@@ -102,14 +102,20 @@
     <template v-else>
       <div class="flex flex-col">
         <div ref="containerRef" class="relative h-80 w-full">
-          <svg ref="svgRef" class="h-full w-full"></svg>
+          <svg ref="svgRef" :class="['h-full w-full', { 'pointer-events-none': isTooltipInteracting }]"></svg>
 
           <!-- Tooltip -->
           <div
             v-show="tooltip.visible"
             ref="tooltipRef"
-            class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 rounded-lg border px-3 py-2 text-sm shadow-lg"
+            :class="[
+              'bg-card-tooltip text-card-tooltip-foreground absolute rounded-lg border px-3 py-2 text-sm shadow-lg',
+              !isTouchDevice || tooltip.isAverage ? 'pointer-events-none z-10' : 'pointer-events-auto z-50',
+            ]"
             :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
+            @mouseenter="isTooltipInteracting = true"
+            @mouseleave="handleTooltipMouseLeave"
+            @touchstart.stop="isTooltipInteracting = true"
           >
             <!-- Average line tooltip -->
             <template v-if="tooltip.isAverage">
@@ -125,7 +131,7 @@
               <!-- Category-specific tooltip with total -->
               <template v-if="tooltip.categoryName">
                 <div class="flex items-center gap-2">
-                  <span class="size-3 rounded-full" :style="{ backgroundColor: tooltip.categoryColor }"></span>
+                  <span class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: tooltip.categoryColor }"></span>
                   <span>{{ tooltip.categoryName }}:</span>
                   <span class="font-medium">{{ formatBaseCurrency(tooltip.value) }}</span>
                 </div>
@@ -148,6 +154,17 @@
                   {{ tooltip.momChange > 0 ? '+' : '' }}{{ tooltip.momChange }}%
                 </span>
               </div>
+              <!-- View transactions link (shown on touch devices) -->
+              <button
+                v-if="isTouchDevice && tooltip.periodStart && tooltip.periodEnd"
+                type="button"
+                class="text-primary mt-2 block w-full text-left text-sm font-medium underline"
+                @touchstart.stop
+                @touchend.stop="handleViewTransactionsClick"
+                @click.stop.prevent="handleViewTransactionsClick"
+              >
+                {{ t('analytics.trends.monthlyComparison.viewTransactions') }} →
+              </button>
             </template>
           </div>
         </div>
@@ -184,14 +201,16 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import * as Combobox from '@/components/lib/ui/combobox';
 import { useFormatCurrency } from '@/composable';
 import { useDateLocale } from '@/composable/use-date-locale';
+import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
-import { type CategoryModel, type endpointsTypes } from '@bt/shared/types';
+import { TRANSACTION_TYPES, type CategoryModel, type endpointsTypes } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import * as d3 from 'd3';
 import { CheckIcon, ChevronDown, SearchIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 
 import ChartSkeleton from '../../cash-flow/components/chart-skeleton.vue';
 
@@ -212,8 +231,15 @@ const props = defineProps<{
 const { t } = useI18n();
 const { format, locale } = useDateLocale();
 const { formatBaseCurrency, getCurrencySymbol } = useFormatCurrency();
+const router = useRouter();
 
 const { categories } = storeToRefs(useCategoriesStore());
+
+// Detect touch device by touch capabilities
+const isTouchDevice = ref(false);
+onMounted(() => {
+  isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+});
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
@@ -234,8 +260,15 @@ const tooltip = reactive({
   momChange: undefined as number | undefined,
   categoryName: undefined as string | undefined,
   categoryColor: undefined as string | undefined,
+  categoryId: undefined as number | undefined,
   isAverage: false,
+  // Navigation data
+  periodStart: undefined as string | undefined,
+  periodEnd: undefined as string | undefined,
 });
+
+// Flag to prevent chart interactions while tooltip link is being clicked
+const isTooltipInteracting = ref(false);
 
 // Query params
 const queryParams = computed(() => ({
@@ -744,9 +777,11 @@ const renderChart = () => {
               createTopRoundedRect({ x: segmentX, y: currentY, width: barWidth, height: catHeight, radius: 4 }),
             )
             .attr('fill', cat.color)
+            .style('cursor', 'pointer')
             .on('mouseenter', (event: MouseEvent) => handleStackedMouseEnter(event, period, cat))
             .on('mousemove', handleMouseMove)
-            .on('mouseleave', handleMouseLeave);
+            .on('mouseleave', handleMouseLeave)
+            .on('click', (event: MouseEvent) => handleBarClick(event, period, cat.categoryId));
         } else {
           // Regular rect for other segments (no rounding)
           g.append('rect')
@@ -756,9 +791,11 @@ const renderChart = () => {
             .attr('width', barWidth)
             .attr('height', catHeight)
             .attr('fill', cat.color)
+            .style('cursor', 'pointer')
             .on('mouseenter', (event: MouseEvent) => handleStackedMouseEnter(event, period, cat))
             .on('mousemove', handleMouseMove)
-            .on('mouseleave', handleMouseLeave);
+            .on('mouseleave', handleMouseLeave)
+            .on('click', (event: MouseEvent) => handleBarClick(event, period, cat.categoryId));
         }
       });
     });
@@ -776,9 +813,11 @@ const renderChart = () => {
       .attr('fill', colors.bar)
       .attr('rx', 4)
       .attr('ry', 4)
+      .style('cursor', 'pointer')
       .on('mouseenter', handleMouseEnter)
       .on('mousemove', handleMouseMove)
-      .on('mouseleave', handleMouseLeave);
+      .on('mouseleave', handleMouseLeave)
+      .on('click', (event: MouseEvent, d) => handleBarClick(event, d));
   }
 
   // MoM change badges with background
@@ -847,7 +886,58 @@ const renderChart = () => {
   });
 };
 
+// Get category ID and all its children IDs
+function getCategoryWithChildrenIds(categoryId: number): number[] {
+  const ids = [categoryId];
+  // Find all categories where parentId matches the given category
+  const children = categories.value.filter((cat) => cat.parentId === categoryId);
+  for (const child of children) {
+    // Recursively get children of children
+    ids.push(...getCategoryWithChildrenIds(child.id));
+  }
+  return ids;
+}
+
+// Navigate to transactions page with filters
+function navigateToTransactions({
+  periodStart,
+  periodEnd,
+  categoryId,
+}: {
+  periodStart: string;
+  periodEnd: string;
+  categoryId?: number;
+}) {
+  const query: Record<string, string | string[]> = {
+    start: periodStart,
+    end: periodEnd,
+  };
+
+  // Add category filter if specified (including all child categories)
+  // Vue Router handles arrays as ?categoryIds[]=1&categoryIds[]=2
+  if (categoryId !== undefined) {
+    const allCategoryIds = getCategoryWithChildrenIds(categoryId);
+    query.categoryIds = allCategoryIds.map(String);
+  }
+
+  // Add transaction type filter based on metric
+  if (props.metric === 'expenses') {
+    query.transactionType = TRANSACTION_TYPES.expense;
+  } else if (props.metric === 'income') {
+    query.transactionType = TRANSACTION_TYPES.income;
+  }
+  // For savings, don't filter by type (shows all)
+
+  router.push({
+    name: ROUTES_NAMES.transactions,
+    query,
+  });
+}
+
 function handleMouseEnter(event: MouseEvent, d: PeriodWithChange) {
+  // Skip if user is interacting with tooltip
+  if (isTooltipInteracting.value) return;
+
   const startDate = new Date(d.periodStart);
   tooltip.period = format(startDate, 'MMMM yyyy');
   tooltip.value = d.value;
@@ -855,7 +945,11 @@ function handleMouseEnter(event: MouseEvent, d: PeriodWithChange) {
   tooltip.momChange = d.momChange;
   tooltip.categoryName = undefined;
   tooltip.categoryColor = undefined;
+  tooltip.categoryId = undefined;
   tooltip.isAverage = false;
+  // Store navigation data
+  tooltip.periodStart = d.periodStart;
+  tooltip.periodEnd = d.periodEnd;
   tooltip.visible = true;
   updateTooltipPosition(event);
 }
@@ -865,6 +959,9 @@ function handleStackedMouseEnter(
   period: PeriodWithChange,
   cat: endpointsTypes.CashFlowCategoryData,
 ) {
+  // Skip if user is interacting with tooltip
+  if (isTooltipInteracting.value) return;
+
   const startDate = new Date(period.periodStart);
   tooltip.period = format(startDate, 'MMMM yyyy');
   tooltip.value = getCategoryAmount(cat);
@@ -879,9 +976,40 @@ function handleStackedMouseEnter(
   tooltip.momChange = period.momChange;
   tooltip.categoryName = cat.name;
   tooltip.categoryColor = cat.color;
+  tooltip.categoryId = cat.categoryId;
   tooltip.isAverage = false;
+  // Store navigation data
+  tooltip.periodStart = period.periodStart;
+  tooltip.periodEnd = period.periodEnd;
   tooltip.visible = true;
   updateTooltipPosition(event);
+}
+
+// Handle bar click - navigate on desktop, show tooltip on touch
+function handleBarClick(event: MouseEvent, d: PeriodWithChange, categoryId?: number) {
+  // Skip if user is interacting with tooltip
+  if (isTooltipInteracting.value) return;
+
+  if (!isTouchDevice.value) {
+    // Desktop: navigate directly
+    navigateToTransactions({
+      periodStart: d.periodStart,
+      periodEnd: d.periodEnd,
+      categoryId,
+    });
+  }
+  // Touch device: tooltip is already shown by mouseenter/touchstart
+}
+
+// Handle "View transactions" click from tooltip (touch devices)
+function handleViewTransactionsClick() {
+  if (tooltip.periodStart && tooltip.periodEnd) {
+    navigateToTransactions({
+      periodStart: tooltip.periodStart,
+      periodEnd: tooltip.periodEnd,
+      categoryId: tooltip.categoryId,
+    });
+  }
 }
 
 function handleAverageLabelMouseEnter(event: MouseEvent, avgValue: number) {
@@ -897,6 +1025,10 @@ function handleMouseMove(event: MouseEvent) {
 
 function handleMouseLeave() {
   tooltip.visible = false;
+}
+
+function handleTooltipMouseLeave() {
+  isTooltipInteracting.value = false;
 }
 
 function updateTooltipPosition(event: MouseEvent) {

@@ -579,7 +579,11 @@
         "average": "Середнє",
         "total": "Усього",
         "noChange": "Без змін",
-        "vsLastMonth": "проти попереднього місяця"
+        "vsLastMonth": "проти попереднього місяця",
+        "viewTransactions": "Переглянути транзакції"
+      },
+      "cumulativeProgress": {
+        "title": "Накопичувальний прогрес"
       },
       "vsPreviousPeriod": "проти попереднього періоду",
       "loadError": "Не вдалося завантажити дані",
