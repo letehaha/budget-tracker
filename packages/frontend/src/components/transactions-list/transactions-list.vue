@@ -80,6 +80,21 @@ const handlerRecordClick = ([baseTx, oppositeTx]: [baseTx: TransactionModel, opp
   dialogProps.value = modalOptions;
 };
 
+const getTransactionKey = (tx: TransactionModel | undefined, index: number): string | number => {
+  if (!tx) return index;
+  return [
+    tx.id,
+    tx.categoryId,
+    tx.refAmount,
+    tx.note,
+    tx.time,
+    tx.transferNature,
+    tx.splits?.length ?? 0,
+    tx.refundLinked,
+    tx.tags?.length ?? 0,
+  ].join('-');
+};
+
 const scrollContainer = useScrollAreaContainer(props.scrollAreaId);
 
 /**
@@ -163,11 +178,7 @@ watchEffect(() => {
           <div :style="{ height: `${totalSize}px` }" class="relative">
             <div
               v-for="virtualRow in virtualRows"
-              :key="
-                displayTransactions[virtualRow.index]
-                  ? `${displayTransactions[virtualRow.index].id}-${displayTransactions[virtualRow.index].categoryId}-${displayTransactions[virtualRow.index].refAmount}-${displayTransactions[virtualRow.index].note}-${displayTransactions[virtualRow.index].time}-${displayTransactions[virtualRow.index].transferNature}-${displayTransactions[virtualRow.index].splits?.length ?? 0}-${displayTransactions[virtualRow.index].refundLinked}`
-                  : virtualRow.index
-              "
+              :key="getTransactionKey(displayTransactions[virtualRow.index], virtualRow.index)"
               :style="{
                 position: 'absolute',
                 top: 0,
@@ -223,7 +234,7 @@ watchEffect(() => {
     </template>
     <template v-else>
       <Dialog.Dialog v-model:open="isDialogVisible">
-        <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-[900px] p-0">
+        <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-225 p-0">
           <Dialog.DialogTitle class="sr-only">{{ t('transactions.list.detailsTitle') }}</Dialog.DialogTitle>
           <Dialog.DialogDescription class="sr-only">{{
             t('transactions.list.detailsDescription')

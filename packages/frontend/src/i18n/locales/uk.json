@@ -432,6 +432,13 @@
       "noteIncludes": {
         "label": "Примітка містить (через кому):",
         "placeholder": "Amazon,nike"
+      },
+      "tags": {
+        "allTags": "Усі теги",
+        "tagSingular": "тег",
+        "tagPlural": "тегів",
+        "selected": "обрано",
+        "searchPlaceholder": "Шукати теги..."
       }
     },
     "list": {
@@ -613,6 +620,7 @@
     "navigation": {
       "currencies": "Валюти",
       "categories": "Категорії",
+      "tags": "Теги",
       "accountsGroups": "Групи рахунків",
       "importData": "Імпорт даних",
       "ai": "ШІ",
@@ -700,6 +708,41 @@
       "notifications": {
         "deleteSuccess": "Категорію видалено",
         "deleteFailed": "Не вдалося видалити категорію"
+      }
+    },
+    "tags": {
+      "title": "Теги",
+      "addButton": "Додати тег",
+      "empty": "Тегів ще немає. Створіть свій перший тег для організації транзакцій.",
+      "form": {
+        "createTitle": "Створити тег",
+        "editTitle": "Редагувати тег",
+        "name": "Назва",
+        "namePlaceholder": "Назва тегу",
+        "color": "Колір",
+        "icon": "Іконка",
+        "iconPlaceholder": "Виберіть іконку",
+        "iconSearchPlaceholder": "Пошук іконок...",
+        "clearIcon": "Очистити іконку",
+        "description": "Опис",
+        "descriptionPlaceholder": "Необов'язковий опис",
+        "saveButton": "Зберегти",
+        "cancelButton": "Скасувати",
+        "previewPlaceholder": "Назва тегу"
+      },
+      "delete": {
+        "title": "Видалити тег?",
+        "description": "Це назавжди видалить \"{name}\" та прибере його з усіх транзакцій. Цю дію неможливо скасувати.",
+        "deleteButton": "Видалити",
+        "cancelButton": "Скасувати"
+      },
+      "notifications": {
+        "createSuccess": "Тег створено",
+        "createFailed": "Не вдалося створити тег",
+        "updateSuccess": "Тег оновлено",
+        "updateFailed": "Не вдалося оновити тег",
+        "deleteSuccess": "Тег видалено",
+        "deleteFailed": "Не вдалося видалити тег"
       }
     },
     "security": {
@@ -1439,6 +1482,7 @@
         "paymentTypeLabel": "Тип платежу",
         "noteLabel": "Примітка (необов'язково)",
         "notePlaceholder": "Примітка",
+        "tagsLabel": "Теги (необов'язково)",
         "amountLabel": "Сума",
         "amountPlaceholder": "Сума",
         "categoryLabel": "Категорія",
@@ -2267,6 +2311,10 @@
     "comboboxCategories": {
       "searchPlaceholder": "Шукати категорії...",
       "unselectedPlaceholder": "Всі категорії"
+    },
+    "tagSelect": {
+      "placeholder": "Виберіть теги...",
+      "noTagsAvailable": "Немає доступних тегів"
     }
   },
   "currencyNames": {

@@ -9,6 +9,8 @@ import {
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  TagReminderPeriod,
+  TagReminderType,
 } from './enums';
 
 export interface UserModel {
@@ -150,6 +152,8 @@ export interface TransactionModel {
   categorizationMeta?: CategorizationMeta | null;
   /** Optional splits for multi-category transactions */
   splits?: TransactionSplitModel[];
+  /** Optional tags associated with the transaction (loaded when includeTags=true) */
+  tags?: TagModel[];
 }
 
 export interface CurrencyModel {
@@ -193,6 +197,29 @@ export interface BudgetModel {
   autoInclude?: boolean;
 }
 
+export interface TagModel {
+  id: number;
+  userId: number;
+  name: string;
+  color: string;
+  icon: string | null;
+  description: string | null;
+  createdAt: Date;
+}
+
+export interface TagReminderModel {
+  id: number;
+  userId: number;
+  tagId: number;
+  type: TagReminderType;
+  period: TagReminderPeriod;
+  amountThreshold: number | null;
+  isEnabled: boolean;
+  lastCheckedAt: Date | null;
+  lastTriggeredAt: Date | null;
+  createdAt: Date;
+}
+
 /**
  * Type-specific payload structures for notifications.
  * Using discriminated union pattern for type safety.
@@ -218,10 +245,22 @@ export interface ChangelogNotificationPayload {
   releaseDate: string;
 }
 
+export interface TagReminderNotificationPayload {
+  tagId: number;
+  tagName: string;
+  reminderType: TagReminderType;
+  period: TagReminderPeriod;
+  thresholdAmount?: number;
+  actualAmount?: number;
+  transactionCount?: number;
+  currencyCode?: string;
+}
+
 export type NotificationPayload =
   | BudgetAlertPayload
   | SystemNotificationPayload
   | ChangelogNotificationPayload
+  | TagReminderNotificationPayload
   | Record<string, unknown>;
 
 export interface NotificationModel {

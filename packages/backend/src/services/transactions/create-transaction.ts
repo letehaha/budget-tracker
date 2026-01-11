@@ -178,6 +178,7 @@ export const createTransaction = withTransaction(
     refundsTxId,
     refundsSplitId,
     splits,
+    tagIds,
     ...payload
   }: CreateTransactionParams) => {
     try {
@@ -324,6 +325,11 @@ export const createTransaction = withTransaction(
           transactionTime: generalTxParams.time,
           transferNature,
         });
+      }
+
+      // Handle tags for the transaction
+      if (tagIds && tagIds.length > 0) {
+        await baseTransaction!.$set('tags', tagIds);
       }
 
       return transactions;

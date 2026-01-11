@@ -95,6 +95,8 @@ export interface CreateTransactionBody {
   refundForSplitId?: string;
   // Optional splits for multi-category transactions
   splits?: SplitInput[];
+  // Optional tag IDs to associate with the transaction
+  tagIds?: number[];
 }
 
 export interface UpdateTransactionBody {
@@ -119,6 +121,8 @@ export interface UpdateTransactionBody {
   refundedBySplitIds?: Record<number, string> | null;
   // Optional splits for multi-category transactions (null to clear all splits)
   splits?: SplitInput[] | null;
+  // Optional tag IDs to associate with the transaction (null to clear all tags)
+  tagIds?: number[] | null;
 }
 
 export interface UnlinkTransferTransactionsBody {

@@ -433,6 +433,13 @@
       "noteIncludes": {
         "label": "Note includes (comma-separated):",
         "placeholder": "Amazon,nike"
+      },
+      "tags": {
+        "allTags": "All tags",
+        "tagSingular": "tag",
+        "tagPlural": "tags",
+        "selected": "selected",
+        "searchPlaceholder": "Search tags..."
       }
     },
     "list": {
@@ -614,6 +621,7 @@
     "navigation": {
       "currencies": "Currencies",
       "categories": "Categories",
+      "tags": "Tags",
       "accountsGroups": "Accounts groups",
       "importData": "Import Data",
       "ai": "AI",
@@ -701,6 +709,41 @@
       "notifications": {
         "deleteSuccess": "Category deleted",
         "deleteFailed": "Failed to delete category"
+      }
+    },
+    "tags": {
+      "title": "Tags",
+      "addButton": "Add Tag",
+      "empty": "No tags yet. Create your first tag to organize your transactions.",
+      "form": {
+        "createTitle": "Create Tag",
+        "editTitle": "Edit Tag",
+        "name": "Name",
+        "namePlaceholder": "Tag name",
+        "color": "Color",
+        "icon": "Icon",
+        "iconPlaceholder": "Select icon",
+        "iconSearchPlaceholder": "Search icons...",
+        "clearIcon": "Clear icon",
+        "description": "Description",
+        "descriptionPlaceholder": "Optional description",
+        "saveButton": "Save",
+        "cancelButton": "Cancel",
+        "previewPlaceholder": "Tag name"
+      },
+      "delete": {
+        "title": "Delete tag?",
+        "description": "This will permanently delete \"{name}\" and remove it from all transactions. This action cannot be undone.",
+        "deleteButton": "Delete",
+        "cancelButton": "Cancel"
+      },
+      "notifications": {
+        "createSuccess": "Tag created",
+        "createFailed": "Failed to create tag",
+        "updateSuccess": "Tag updated",
+        "updateFailed": "Failed to update tag",
+        "deleteSuccess": "Tag deleted",
+        "deleteFailed": "Failed to delete tag"
       }
     },
     "security": {
@@ -1440,6 +1483,7 @@
         "paymentTypeLabel": "Payment Type",
         "noteLabel": "Note (optional)",
         "notePlaceholder": "Note",
+        "tagsLabel": "Tags (optional)",
         "amountLabel": "Amount",
         "amountPlaceholder": "Amount",
         "categoryLabel": "Category",
@@ -2268,6 +2312,10 @@
     "comboboxCategories": {
       "searchPlaceholder": "Search categories...",
       "unselectedPlaceholder": "All categories"
+    },
+    "tagSelect": {
+      "placeholder": "Select tags...",
+      "noTagsAvailable": "No tags available"
     }
   },
   "currencyNames": {

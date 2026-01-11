@@ -12,16 +12,9 @@
 
     <!-- Category list -->
     <div v-else class="space-y-3">
-      <div
-        v-for="category in displayedCategories"
-        :key="category.id"
-        class="group flex items-center gap-3"
-      >
+      <div v-for="category in displayedCategories" :key="category.id" class="group flex items-center gap-3">
         <!-- Color dot -->
-        <span
-          class="size-3 shrink-0 rounded-full"
-          :style="{ backgroundColor: category.color }"
-        ></span>
+        <span class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: category.color }"></span>
 
         <!-- Name and amount -->
         <div class="min-w-0 flex-1">
@@ -34,9 +27,13 @@
                 :class="[
                   'flex items-center gap-0.5 text-xs font-medium',
                   category.change > 0
-                    ? isIncome ? 'text-green-500' : 'text-red-500'
+                    ? isIncome
+                      ? 'text-green-500'
+                      : 'text-red-500'
                     : category.change < 0
-                      ? isIncome ? 'text-red-500' : 'text-green-500'
+                      ? isIncome
+                        ? 'text-red-500'
+                        : 'text-green-500'
                       : 'text-muted-foreground',
                 ]"
                 :title="t('analytics.trends.vsPreviousPeriod')"
@@ -76,7 +73,7 @@
 import { useFormatCurrency } from '@/composable';
 import type { endpointsTypes } from '@bt/shared/types';
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from 'lucide-vue-next';
-import { computed, ref, type Component } from 'vue';
+import { type Component, computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import CategoryListSkeleton from '../../cash-flow/components/category-list-skeleton.vue';

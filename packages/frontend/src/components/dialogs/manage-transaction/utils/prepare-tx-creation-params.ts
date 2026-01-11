@@ -54,6 +54,8 @@ export const prepareTxCreationParams = ({
     transactionType: getTxTypeFromFormType(formTxType),
     paymentType: paymentType.value,
     accountId,
+    // Include tag IDs if any tags are selected
+    ...(form.tagIds && form.tagIds.length > 0 ? { tagIds: form.tagIds } : {}),
   };
 
   if (form.refundsTx) {

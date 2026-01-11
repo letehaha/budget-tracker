@@ -59,10 +59,12 @@ export const useTransactionsWithFilters = ({
         excludeTransfer: filter.excludeTransfer,
         accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
         categoryIds: filter.categoryIds.length ? filter.categoryIds : undefined,
+        tagIds: filter.tagIds.length ? filter.tagIds : undefined,
         categorizationSource: filter.categorizationSource,
         budgetIds: staticFilters.budgetIds,
         excludedBudgetIds: staticFilters.excludedBudgetIds,
         includeSplits: true,
+        includeTags: true,
         ...staticFilters,
       }),
     );

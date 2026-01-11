@@ -194,5 +194,20 @@ export const prepareTxUpdationParams = ({
     }
   }
 
+  // Handle tag IDs - compare original tags with form tags to detect changes
+  const originalTagIds = transaction.tags?.map((t) => t.id) ?? [];
+  const formTagIds = form.tagIds ?? [];
+
+  // Check if tags have changed
+  const tagsChanged =
+    originalTagIds.length !== formTagIds.length ||
+    !originalTagIds.every((id) => formTagIds.includes(id)) ||
+    !formTagIds.every((id) => originalTagIds.includes(id));
+
+  if (tagsChanged) {
+    // Send empty array to clear tags, or the new array of tag IDs
+    editionParams.tagIds = formTagIds.length > 0 ? formTagIds : [];
+  }
+
   return editionParams;
 };

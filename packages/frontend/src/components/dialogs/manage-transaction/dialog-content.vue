@@ -4,12 +4,13 @@ import CategorySelectField from '@/components/fields/category-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
+import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
-import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
+import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore } from '@/stores';
 import {
   ACCOUNT_TYPES,
   PAYMENT_TYPES,
@@ -84,6 +85,9 @@ watch(() => route.path, closeModal);
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const { accountsRecord, systemAccounts } = storeToRefs(useAccountsStore());
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
+const tagsStore = useTagsStore();
+// Load tags when the dialog opens
+tagsStore.loadTags();
 
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
@@ -101,6 +105,7 @@ const form = ref<UI_FORM_STRUCT>({
   type: FORM_TYPES.expense,
   refundedByTxs: undefined,
   refundsTx: undefined,
+  tagIds: [],
 });
 
 const {
@@ -344,6 +349,13 @@ onUnmounted(() => {
         :placeholder="$t('dialogs.manageTransaction.form.notePlaceholder')"
         :disabled="isFormFieldsDisabled"
         :label="$t('dialogs.manageTransaction.form.noteLabel')"
+      />
+    </FormRow>
+    <FormRow>
+      <TagSelectField
+        v-model="form.tagIds"
+        :label="$t('dialogs.manageTransaction.form.tagsLabel')"
+        :disabled="isFormFieldsDisabled"
       />
     </FormRow>
     <template v-if="!isTransferTx">

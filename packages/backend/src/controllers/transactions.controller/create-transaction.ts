@@ -30,6 +30,7 @@ const schema = z.object({
       refundForTxId: recordId().optional(),
       refundForSplitId: z.string().uuid().optional(),
       splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').optional(),
+      tagIds: z.array(recordId()).max(20, 'Maximum 20 tags allowed').optional(),
     })
     .refine(
       (data) =>
@@ -140,6 +141,7 @@ export default createController(schema, async ({ user, body }) => {
     refundForTxId,
     refundForSplitId,
     splits,
+    tagIds,
   } = body;
   const { id: userId } = user;
 
@@ -161,6 +163,7 @@ export default createController(schema, async ({ user, body }) => {
     refundsTxId: refundForTxId,
     refundsSplitId: refundForSplitId,
     splits,
+    tagIds,
   };
 
   // TODO: Add validations

@@ -72,6 +72,27 @@
     "someTransactionIdsInvalid": "Some transactions IDs are invalid",
     "transactionsAddedSuccessfully": "Transactions added successfully"
   },
+  "tags": {
+    "tagNotFound": "Tag not found",
+    "tagNameAlreadyExists": "A tag with this name already exists",
+    "someTransactionIdsInvalid": "Some transaction IDs are invalid",
+    "transactionsAddedSuccessfully": "Transactions added to tag successfully",
+    "transactionsRemovedSuccessfully": "Transactions removed from tag successfully"
+  },
+  "defaultTags": {
+    "want": {
+      "name": "Want",
+      "description": "Nice-to-have purchases and discretionary spending"
+    },
+    "need": {
+      "name": "Need",
+      "description": "Important but not urgent expenses"
+    },
+    "must": {
+      "name": "Must",
+      "description": "Essential expenses that cannot be avoided"
+    }
+  },
   "investments": {
     "portfolioNotFound": "Portfolio not found",
     "portfolioNameExists": "Portfolio with this name already exists",

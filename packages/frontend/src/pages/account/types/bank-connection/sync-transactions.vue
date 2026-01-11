@@ -6,7 +6,7 @@
         <p class="text-muted-foreground text-sm">{{ t('pages.account.syncTransactions.autoSyncInfo') }}</p>
       </div>
 
-      <Button :disabled="isSyncDisabled" class="min-w-[100px]" size="sm" @click="syncTransactionsHandler">
+      <Button :disabled="isSyncDisabled" class="min-w-25" size="sm" @click="syncTransactionsHandler">
         {{
           isSyncing || isAccountSyncing
             ? t('pages.account.syncTransactions.syncing')

@@ -6,6 +6,7 @@ export * from './transactions';
 export * from './stats';
 export * from './currencies';
 export * from './budgets';
+export * from './tags';
 export * from './investments';
 export * from './import-export';
 export * from './notifications';

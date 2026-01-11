@@ -66,6 +66,8 @@ export const loadTransactions = async (params: {
   transactionType?: TRANSACTION_TYPES;
   accountIds?: number[];
   categoryIds?: number[];
+  tagIds?: number[];
+  excludedTagIds?: number[];
   sort?: SORT_DIRECTIONS;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
@@ -74,8 +76,8 @@ export const loadTransactions = async (params: {
   amountLte?: number;
   amountGte?: number;
   includeSplits?: boolean;
+  includeTags?: boolean;
 }): Promise<endpointsTypes.GetTransactionsResponse> => {
-  console.log('res', formatTransactionPayload(params));
   const result = await api.get('/transactions', formatTransactionPayload(params));
 
   return result.map((item) => formatTransactionResponse(item));
@@ -84,11 +86,13 @@ export const loadTransactions = async (params: {
 export const loadTransactionById = async ({
   id,
   includeSplits,
+  includeTags,
 }: {
   id: number;
   includeSplits?: boolean;
+  includeTags?: boolean;
 }): Promise<TransactionModel> => {
-  const result = await api.get(`/transactions/${id}`, { includeSplits });
+  const result = await api.get(`/transactions/${id}`, { includeSplits, includeTags });
 
   return formatTransactionResponse(result);
 };

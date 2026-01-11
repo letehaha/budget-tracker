@@ -72,6 +72,27 @@
     "someTransactionIdsInvalid": "Деякі ID транзакцій недійсні",
     "transactionsAddedSuccessfully": "Транзакції успішно додано"
   },
+  "tags": {
+    "tagNotFound": "Тег не знайдено",
+    "tagNameAlreadyExists": "Тег з такою назвою вже існує",
+    "someTransactionIdsInvalid": "Деякі ID транзакцій недійсні",
+    "transactionsAddedSuccessfully": "Транзакції успішно додано до тегу",
+    "transactionsRemovedSuccessfully": "Транзакції успішно видалено з тегу"
+  },
+  "defaultTags": {
+    "want": {
+      "name": "Хочу",
+      "description": "Бажані покупки та необов'язкові витрати"
+    },
+    "need": {
+      "name": "Потрібно",
+      "description": "Важливі, але не термінові витрати"
+    },
+    "must": {
+      "name": "Обов'язково",
+      "description": "Необхідні витрати, яких не уникнути"
+    }
+  },
   "investments": {
     "portfolioNotFound": "Портфель не знайдено",
     "portfolioNameExists": "Портфель з такою назвою вже існує",

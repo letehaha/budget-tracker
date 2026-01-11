@@ -66,6 +66,7 @@ import {
   LayersIcon,
   ShieldIcon,
   SparklesIcon,
+  TagIcon,
   TagsIcon,
   UploadIcon,
 } from 'lucide-vue-next';
@@ -121,6 +122,12 @@ const baseTabs = computed<Tab[]>(() => [
     label: t('settings.navigation.categories'),
     to: { name: ROUTES_NAMES.settingsCategories },
     icon: TagsIcon,
+  },
+  {
+    name: 'tags',
+    label: t('settings.navigation.tags'),
+    to: { name: ROUTES_NAMES.settingsTags },
+    icon: TagIcon,
   },
   {
     name: 'accounts',

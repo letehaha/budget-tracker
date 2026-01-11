@@ -9,6 +9,7 @@ import {
 } from '@bt/shared/types';
 import { AlertTriangleIcon, InfoIcon, SparklesIcon, WalletIcon, XIcon } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
+
 import ChangelogContent from './changelog-content.vue';
 import DefaultContent from './default-content.vue';
 
@@ -53,7 +54,9 @@ const getIconBg = (type: NotificationType) => {
 const getTitle = (notification: NotificationStruct): string => {
   if (notification.type === NOTIFICATION_TYPES.changelog) {
     const payload = notification.payload as ChangelogNotificationPayload;
-    return payload?.version ? t('notifications.newVersion', { version: payload.version }) : t('notifications.newRelease');
+    return payload?.version
+      ? t('notifications.newVersion', { version: payload.version })
+      : t('notifications.newRelease');
   }
   return notification.title || '';
 };
@@ -107,7 +110,7 @@ const handleDismiss = (event: Event) => {
         <!-- Type-specific content -->
         <ChangelogContent
           v-if="notification.type === NOTIFICATION_TYPES.changelog"
-          :payload="(notification.payload as ChangelogNotificationPayload)"
+          :payload="notification.payload as ChangelogNotificationPayload"
         />
         <DefaultContent v-else :message="notification.message" />
 

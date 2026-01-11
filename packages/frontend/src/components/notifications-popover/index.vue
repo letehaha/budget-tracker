@@ -12,6 +12,7 @@ import {
 import { NOTIFICATION_STATUSES, NOTIFICATION_TYPES } from '@bt/shared/types';
 import { BellIcon, BellOffIcon, Loader2 } from 'lucide-vue-next';
 import { ref } from 'vue';
+
 import NotificationItem from './notification-item.vue';
 
 const isOpen = ref(false);

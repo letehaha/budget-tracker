@@ -36,6 +36,8 @@ import Balances from '@models/Balances.model';
 import Budgets from '@models/Budget.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
 import TransactionSplits from '@models/TransactionSplits.model';
+import Tags from '@models/Tags.model';
+import TransactionTags from '@models/TransactionTags.model';
 
 const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
   const include: Includeable[] = [];
@@ -130,6 +132,13 @@ export default class Transactions extends Model {
     otherKey: 'budgetId',
   })
   budgets!: Budgets[];
+
+  @BelongsToMany(() => Tags, {
+    through: { model: () => TransactionTags, unique: false },
+    foreignKey: 'transactionId',
+    otherKey: 'tagId',
+  })
+  tags!: Tags[];
 
   @HasMany(() => TransactionSplits)
   splits!: TransactionSplits[];
@@ -345,10 +354,13 @@ export const findWithFilters = async ({
   accountIds,
   budgetIds,
   excludedBudgetIds,
+  tagIds,
+  excludedTagIds,
   userId,
   order = SORT_DIRECTIONS.desc,
   transactionType,
   includeSplits,
+  includeTags,
   isRaw = false,
   excludeTransfer,
   excludeRefunds,
@@ -368,9 +380,12 @@ export const findWithFilters = async ({
   accountIds?: number[];
   budgetIds?: number[];
   excludedBudgetIds?: number[];
+  tagIds?: number[];
+  excludedTagIds?: number[];
   userId: number;
   order?: SORT_DIRECTIONS;
   includeSplits?: boolean;
+  includeTags?: boolean;
   isRaw: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
@@ -480,6 +495,67 @@ export const findWithFilters = async ({
     }
   }
 
+  // Filter by tagIds - include only transactions with these tags
+  if (tagIds?.length) {
+    queryInclude.push({
+      model: Tags,
+      through: { attributes: [], where: { tagId: { [Op.in]: tagIds } } },
+      attributes: [],
+      required: true,
+    });
+  }
+
+  // Exclude transactions with specific tags
+  if (excludedTagIds?.length) {
+    const excludedTransactionIds = await TransactionTags.findAll({
+      attributes: ["transactionId"],
+      where: {
+        tagId: {
+          [Op.in]: excludedTagIds
+        }
+      },
+      raw: true,
+    }).then((results) => results.map((r) => r.transactionId));
+
+    if (excludedTransactionIds.length > 0) {
+      // Merge with existing id exclusions if any
+      if (whereClause.id && (whereClause.id as Record<symbol, number[]>)[Op.notIn]) {
+        const existingExclusions = (whereClause.id as Record<symbol, number[]>)[Op.notIn] as number[];
+        whereClause.id = {
+          [Op.notIn]: [...new Set([...existingExclusions, ...excludedTransactionIds])]
+        };
+      } else {
+        whereClause.id = {
+          ...(whereClause.id as object || {}),
+          [Op.notIn]: excludedTransactionIds
+        };
+      }
+    }
+  }
+
+  // Include tags in response if requested
+  // Note: when filtering by tagIds, we add a separate non-required include to get all tags
+  if (includeTags) {
+    // Remove any existing Tags include from tagIds filtering (which was required: true)
+    const tagFilterIndex = queryInclude.findIndex(
+      (inc) => (inc as { model?: unknown }).model === Tags
+    );
+    if (tagFilterIndex !== -1) {
+      queryInclude.splice(tagFilterIndex, 1);
+    }
+
+    // Add tags include for display (with filtering if tagIds provided)
+    queryInclude.push({
+      model: Tags,
+      through: {
+        attributes: [],
+        ...(tagIds?.length ? { where: { tagId: { [Op.in]: tagIds } } } : {}),
+      },
+      attributes: ['id', 'name', 'color', 'icon'],
+      required: !!tagIds?.length,
+    });
+  }
+
   // Add note search condition if provided
   if (noteSearch && noteSearch.length > 0) {
     whereClause.note = {
@@ -501,8 +577,8 @@ export const findWithFilters = async ({
     limit: Number.isFinite(limit) ? limit : undefined,
     order: [['time', order]],
     raw: isRaw,
-    // When raw is true and includeSplits is requested, use nest to preserve nested structure
-    nest: isRaw && includeSplits ? true : undefined,
+    // When raw is true and includeSplits/includeTags is requested, use nest to preserve nested structure
+    nest: isRaw && (includeSplits || includeTags) ? true : undefined,
     attributes,
   });
 

@@ -481,6 +481,17 @@ export const updateTransaction = withTransaction(
         });
       }
 
+      // Handle tags
+      if (payload.tagIds !== undefined) {
+        if (payload.tagIds === null || payload.tagIds.length === 0) {
+          // Clear all tags
+          await baseTransaction.$set('tags', []);
+        } else {
+          // Set new tags
+          await baseTransaction.$set('tags', payload.tagIds);
+        }
+      }
+
       return updatedTransactions;
     } catch (e) {
       logger.error(e as Error);
