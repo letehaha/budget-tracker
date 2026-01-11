@@ -50,10 +50,10 @@
       <template v-else>
         <Popover.Popover v-model:open="isPopoverOpen">
           <Popover.PopoverTrigger as-child>
-            <Button variant="secondary" class="flex items-center gap-2">
+            <Button variant="secondary" :size="isCompactView ? 'icon' : 'default'">
               <template v-if="syncStatus.isSyncing.value">
                 <RefreshCcw class="animate-spin" :size="16" />
-                <span class="font-medium">
+                <span class="hidden font-medium lg:inline">
                   <span class="xs:hidden">{{ $t('header.sync.syncing') }}</span>
                   <span class="xs:inline hidden">{{
                     syncStatus.syncingSummaryText.value || $t('header.sync.synchronizing')
@@ -62,16 +62,13 @@
               </template>
               <template v-else-if="hasConnections">
                 <CloudCheckIcon class="text-success-text size-5" />
-                <template v-if="lastSyncRelativeTime">
-                  <span class="xs:block hidden font-medium">
-                    {{ $t('header.sync.syncedTime', { time: lastSyncRelativeTime }) }}
-                  </span>
-                  <span class="xs:hidden font-medium"> {{ $t('header.sync.synced') }} </span>
-                </template>
+                <span v-if="lastSyncRelativeTime" class="hidden font-medium lg:block">
+                  {{ $t('header.sync.syncedTime', { time: lastSyncRelativeTime }) }}
+                </span>
               </template>
               <template v-else>
                 <CloudCheckIcon class="size-5" />
-                <span class="xs:block hidden font-medium">{{ $t('header.sync.connectBank') }}</span>
+                <span class="hidden font-medium lg:block">{{ $t('header.sync.connectBank') }}</span>
               </template>
             </Button>
           </Popover.PopoverTrigger>
@@ -118,7 +115,7 @@ import ManageTransactionDialog from '@/components/dialogs/manage-transaction/ind
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import * as Sheet from '@/components/lib/ui/sheet';
-import NotificationsPopover from '@/components/notifications-popover.vue';
+import NotificationsPopover from '@/components/notifications-popover/index.vue';
 import Sidebar from '@/components/sidebar/index.vue';
 import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';
@@ -144,6 +141,8 @@ const { elementRef: headerRef } = useCssVarFromElementSize({
 
 const route = useRoute();
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
+// 1024px (lg breakpoint) - used for compact header elements
+const isCompactView = useWindowBreakpoints(1024);
 const showConfirmDialog = ref(false);
 const isPopoverOpen = ref(false);
 

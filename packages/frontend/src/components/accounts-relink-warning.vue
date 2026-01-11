@@ -1,12 +1,9 @@
 <template>
   <Popover.Popover v-if="accountsNeedingRelink.length > 0">
     <Popover.PopoverTrigger as-child>
-      <Button variant="destructive" size="sm" class="flex items-center gap-2">
+      <Button variant="destructive" :size="isCompactView ? 'icon-sm' : 'sm'">
         <AlertTriangleIcon class="size-4" />
-        <span class="hidden sm:inline">{{ $t('relinkWarning.buttonLabel', accountsNeedingRelink.length) }}</span>
-        <span class="sm:hidden">{{
-          $t('relinkWarning.buttonLabelShort', { count: accountsNeedingRelink.length })
-        }}</span>
+        <span class="hidden lg:inline">{{ $t('relinkWarning.buttonLabel', accountsNeedingRelink.length) }}</span>
       </Button>
     </Popover.PopoverTrigger>
     <Popover.PopoverContent class="w-96" align="end">
@@ -99,11 +96,15 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import * as Separator from '@/components/lib/ui/separator';
 import { useSyncStatus } from '@/composable/use-sync-status';
+import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores/accounts';
 import { AlertTriangleIcon, ChevronRightIcon, ExternalLinkIcon, LinkIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, watch } from 'vue';
+
+// 1024px (lg breakpoint) - used for compact header elements
+const isCompactView = useWindowBreakpoints(1024);
 
 const accountsStore = useAccountsStore();
 const { accountsNeedingRelink } = storeToRefs(accountsStore);

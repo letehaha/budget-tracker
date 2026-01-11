@@ -52,28 +52,42 @@ export async function getUserAccountsSyncStatus(userId: number): Promise<{
   const accounts = await getUserBankAccounts(userId);
   const accountIds = accounts.map((a) => a.id);
 
-  const statuses = await getMultipleAccountsSyncStatus(accountIds);
-  const lastSyncAt = await getLastAutoSync(userId);
+  const [statuses, lastSyncAt] = await Promise.all([
+    getMultipleAccountsSyncStatus(accountIds),
+    getLastAutoSync(userId),
+  ]);
 
-  // Enrich statuses with account names and provider types
+  const accountsById = new Map(accounts.map((a) => [a.id, a]));
+  const summary = { total: 0, syncing: 0, queued: 0, completed: 0, failed: 0, idle: 0 };
+
   const enrichedStatuses = statuses.map((status) => {
-    const account = accounts.find((a) => a.id === status.accountId);
+    const account = accountsById.get(status.accountId);
+
+    summary.total++;
+    switch (status.status) {
+      case SyncStatus.SYNCING:
+        summary.syncing++;
+        break;
+      case SyncStatus.QUEUED:
+        summary.queued++;
+        break;
+      case SyncStatus.COMPLETED:
+        summary.completed++;
+        break;
+      case SyncStatus.FAILED:
+        summary.failed++;
+        break;
+      case SyncStatus.IDLE:
+        summary.idle++;
+        break;
+    }
+
     return {
       ...status,
       accountName: account?.name || 'Unknown',
       providerType: account?.bankDataProviderConnection.providerType || 'Unknown',
     };
   });
-
-  // Calculate summary
-  const summary = {
-    total: enrichedStatuses.length,
-    syncing: enrichedStatuses.filter((s) => s.status === SyncStatus.SYNCING).length,
-    queued: enrichedStatuses.filter((s) => s.status === SyncStatus.QUEUED).length,
-    completed: enrichedStatuses.filter((s) => s.status === SyncStatus.COMPLETED).length,
-    failed: enrichedStatuses.filter((s) => s.status === SyncStatus.FAILED).length,
-    idle: enrichedStatuses.filter((s) => s.status === SyncStatus.IDLE).length,
-  };
 
   return {
     lastSyncAt,

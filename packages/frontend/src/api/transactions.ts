@@ -67,11 +67,6 @@ export const loadTransactions = async (params: {
   accountIds?: number[];
   categoryIds?: number[];
   sort?: SORT_DIRECTIONS;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
   startDate?: string;

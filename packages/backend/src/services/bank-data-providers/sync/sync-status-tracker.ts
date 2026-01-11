@@ -131,13 +131,7 @@ export async function setAccountSyncStatus({
  * Automatically clears stale PENDING/SYNCING statuses
  */
 export async function getAccountSyncStatus(accountId: number): Promise<AccountSyncStatus | null> {
-  const defaultStatus: AccountSyncStatus = {
-    accountId,
-    status: SyncStatus.IDLE,
-    startedAt: null,
-    completedAt: null,
-    error: null,
-  };
+  const defaultStatus = createDefaultStatus(accountId);
 
   if (!isRedisReady()) return defaultStatus;
 
@@ -149,31 +143,65 @@ export async function getAccountSyncStatus(accountId: number): Promise<AccountSy
 
   const status: AccountSyncStatus = JSON.parse(data);
 
-  // Check if status is stale (PENDING/QUEUED/SYNCING for too long)
-  if ((status.status === SyncStatus.QUEUED || status.status === SyncStatus.SYNCING) && status.startedAt) {
-    const startedTime = new Date(status.startedAt).getTime();
-    const elapsed = Date.now() - startedTime;
-
-    if (elapsed > STALE_SYNC_THRESHOLD) {
-      // Clear stale status and return IDLE
-      logger.info(`Account ID:${accountId} was queued/syncing for too log. Status was reset.`);
-      if (isRedisReady()) {
-        await redisClient.del(REDIS_KEYS.accountSyncStatus(accountId));
-      }
-      return defaultStatus;
+  if (isStaleStatus(status)) {
+    logger.info(`Account ID:${accountId} was queued/syncing for too long. Status was reset.`);
+    if (isRedisReady()) {
+      await redisClient.del(REDIS_KEYS.accountSyncStatus(accountId));
     }
+    return defaultStatus;
   }
 
   return status;
 }
 
 /**
- * Get sync status for multiple accounts
+ * Get sync status for multiple accounts - uses MGET for batch Redis lookup
  */
 export async function getMultipleAccountsSyncStatus(accountIds: number[]): Promise<AccountSyncStatus[]> {
-  const statuses = await Promise.all(accountIds.map((id) => getAccountSyncStatus(id)));
+  if (accountIds.length === 0) return [];
 
-  return statuses.filter((s): s is AccountSyncStatus => s !== null);
+  if (!isRedisReady()) {
+    return accountIds.map(createDefaultStatus);
+  }
+
+  const keys = accountIds.map((id) => REDIS_KEYS.accountSyncStatus(id));
+  const results = await redisClient.mget(...keys);
+
+  const statuses: AccountSyncStatus[] = [];
+  const keysToDelete: string[] = [];
+
+  for (let i = 0; i < accountIds.length; i++) {
+    const accountId = accountIds[i]!;
+    const data = results[i];
+    const defaultStatus = createDefaultStatus(accountId);
+
+    if (!data) {
+      statuses.push(defaultStatus);
+      continue;
+    }
+
+    try {
+      const status: AccountSyncStatus = JSON.parse(data);
+
+      if (isStaleStatus(status)) {
+        keysToDelete.push(keys[i]!);
+        logger.info(`Account ID:${accountId} was queued/syncing for too long. Status was reset.`);
+        statuses.push(defaultStatus);
+        continue;
+      }
+
+      statuses.push(status);
+    } catch {
+      statuses.push(defaultStatus);
+    }
+  }
+
+  // Batch delete stale keys (if any)
+  if (keysToDelete.length > 0 && isRedisReady()) {
+    await redisClient.del(...keysToDelete);
+  }
+
+  return statuses;
 }
 
 /**
@@ -236,7 +264,7 @@ export async function clearAllSyncStatuses(): Promise<void> {
 
       // Only reset statuses that indicate active syncing
       // These are invalid after a restart since the actual sync process is gone
-      if (status.status === SyncStatus.QUEUED || status.status === SyncStatus.SYNCING) {
+      if (isActiveSync(status.status)) {
         // Reset to IDLE instead of deleting - preserves the key structure
         const resetStatus: AccountSyncStatus = {
           ...status,
@@ -269,4 +297,36 @@ export async function clearAllSyncStatuses(): Promise<void> {
 
   // Note: We DON'T touch userLastAutoSync or accountPriority keys
   // These are historical data and remain valid across restarts
+}
+
+/**
+ * Create a default IDLE status for an account
+ */
+function createDefaultStatus(accountId: number): AccountSyncStatus {
+  return {
+    accountId,
+    status: SyncStatus.IDLE,
+    startedAt: null,
+    completedAt: null,
+    error: null,
+  };
+}
+
+/**
+ * Check if status represents an active sync operation
+ */
+function isActiveSync(status: SyncStatus): boolean {
+  return status === SyncStatus.QUEUED || status === SyncStatus.SYNCING;
+}
+
+/**
+ * Check if a sync status is stale (active for too long)
+ */
+function isStaleStatus(status: AccountSyncStatus): boolean {
+  if (isActiveSync(status.status) && status.startedAt) {
+    const startedTime = new Date(status.startedAt).getTime();
+    const elapsed = Date.now() - startedTime;
+    return elapsed > STALE_SYNC_THRESHOLD;
+  }
+  return false;
 }
