@@ -1,5 +1,5 @@
 <template>
-  <WidgetWrapper :is-fetching="isWidgetDataFetching">
+  <WidgetWrapper :is-fetching="isWidgetDataFetching" class="max-h-auto">
     <template #title>
       <div class="flex items-center gap-2">
         {{ $t('dashboard.widgets.expensesStructure.title') }}
@@ -11,7 +11,7 @@
                 <CircleOffIcon class="text-warning size-4" />
               </Button>
             </Popover.PopoverTrigger>
-            <Popover.PopoverContent class="max-w-[300px] text-sm">
+            <Popover.PopoverContent class="max-w-75 text-sm">
               <div>
                 <p>
                   {{ $t('dashboard.widgets.expensesStructure.excludedCategories.message') }}
@@ -78,23 +78,33 @@
       </EmptyState>
     </template>
     <template v-else>
-      <div class="relative">
-        <highcharts :options="chartOptions" />
+      <div ref="chartContainerRef" class="relative h-55 w-full">
+        <svg ref="svgRef" class="h-full w-full"></svg>
 
-        <!-- Touch device overlay: shows category details + navigation button in center -->
+        <!-- Center label: shows Total by default, category info on hover -->
+        <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div class="flex flex-col items-center gap-0.5 text-center">
+            <template v-if="centerLabel.isHovering">
+              <div class="text-muted-foreground text-xs">{{ centerLabel.name }}</div>
+              <div class="text-sm font-medium">{{ centerLabel.amount }}</div>
+            </template>
+            <template v-else>
+              <div class="text-muted-foreground text-xs">{{ $t('common.labels.total') }}</div>
+              <div class="text-sm font-medium">{{ formatBaseCurrency(totalAmount) }}</div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Touch device overlay: shows navigation button below center label -->
         <div
           v-if="isTouch && selectedCategory"
           class="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
-          <div class="pointer-events-auto mt-4 flex flex-col items-center gap-1 text-center">
-            <div class="text-xs">{{ selectedCategory.name }}</div>
-            <div class="text-sm font-medium">
-              {{ formatBaseCurrency(selectedCategory.amount) }}
-            </div>
+          <div class="pointer-events-auto mt-18 flex flex-col items-center">
             <Button
               size="sm"
               variant="outline"
-              class="mt-1 h-6 gap-1 px-2 text-xs"
+              class="h-6 gap-1 px-2 text-xs"
               @click="navigateToTransactions({ categoryId: selectedCategoryId! })"
             >
               {{ $t('dashboard.widgets.expensesStructure.viewButton') }}
@@ -113,7 +123,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
-import { useFormatCurrency, useHighcharts } from '@/composable';
+import { useFormatCurrency } from '@/composable';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { calculatePercentageDifference } from '@/js/helpers';
 import { ROUTES_NAMES } from '@/routes';
@@ -121,11 +131,11 @@ import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { useMediaQuery } from '@vueuse/core';
+import * as d3 from 'd3';
 import { differenceInDays, subDays } from 'date-fns';
-import { Chart as Highcharts } from 'highcharts-vue';
 import { ChartPieIcon, CircleOffIcon, ExternalLinkIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, onUnmounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import EmptyState from './components/empty-state.vue';
@@ -136,6 +146,13 @@ defineOptions({
   name: 'expenses-structure-widget',
 });
 
+interface ChartDataItem {
+  categoryId: number;
+  name: string;
+  color: string;
+  amount: number;
+}
+
 const props = defineProps<{
   selectedPeriod: { from: Date; to: Date };
 }>();
@@ -145,11 +162,22 @@ const categoriesStore = useCategoriesStore();
 const { categoriesMap } = storeToRefs(categoriesStore);
 const router = useRouter();
 
+// DOM refs
+const chartContainerRef = ref<HTMLDivElement | null>(null);
+const svgRef = ref<SVGSVGElement | null>(null);
+
 // Detect touch-primary devices (coarse pointer = finger/stylus)
 const isTouch = useMediaQuery('(pointer: coarse)');
 
 // Track selected category for touch devices (since there's no hover)
 const selectedCategoryId = ref<number | null>(null);
+
+// Center label state (shown on hover or when selected on touch)
+const centerLabel = reactive({
+  name: '',
+  amount: '',
+  isHovering: false,
+});
 
 const selectedCategory = computed(() => {
   if (!selectedCategoryId.value || !spendingsByCategories.value) return null;
@@ -228,18 +256,20 @@ const expensesDiff = computed(() => {
   return Number(percentage);
 });
 
-const { buildDonutChartConfig } = useHighcharts();
-
-const chartSeries = computed(() =>
-  Object.values(spendingsByCategories.value || {}).map((value) => ({
+const chartData = computed<ChartDataItem[]>(() =>
+  Object.entries(spendingsByCategories.value || {}).map(([id, value]) => ({
+    categoryId: Number(id),
     name: value.name,
     color: value.color,
-    y: value.amount,
+    amount: value.amount,
   })),
 );
 
-const isDataEmpty = computed(() => chartSeries.value.length === 0);
+const isDataEmpty = computed(() => chartData.value.length === 0);
 const hasData = computed(() => currentMonthExpense.value !== undefined && prevMonthExpense.value !== undefined);
+
+// Total amount for center display
+const totalAmount = computed(() => chartData.value.reduce((sum, item) => sum + item.amount, 0));
 
 // Helper function to get all category IDs including subcategories
 const getAllCategoryIds = (rootCategoryId: number): number[] => {
@@ -280,57 +310,158 @@ watch(
   () => props.selectedPeriod,
   () => {
     selectedCategoryId.value = null;
+    centerLabel.isHovering = false;
   },
 );
 
-const chartOptions = computed(() => {
-  const baseConfig = buildDonutChartConfig({
-    chart: { height: 220 },
-    series: [
-      {
-        type: 'pie',
-        data: chartSeries.value,
-      },
-    ],
-  });
+// D3 chart rendering
+const renderChart = () => {
+  if (!svgRef.value || !chartContainerRef.value || chartData.value.length === 0) return;
 
-  // For touch devices, disable the hover events (we handle selection via Vue overlay)
-  // For non-touch devices, keep the hover events for the center label
-  const existingEvents = baseConfig.plotOptions?.pie?.point?.events || {};
-  const mouseEvents = isTouch.value
-    ? { mouseOver: undefined, mouseOut: undefined }
-    : { mouseOver: existingEvents.mouseOver, mouseOut: existingEvents.mouseOut };
+  const svg = d3.select(svgRef.value);
+  svg.selectAll('*').remove();
 
-  return {
-    ...baseConfig,
-    plotOptions: {
-      ...baseConfig.plotOptions,
-      pie: {
-        ...baseConfig.plotOptions?.pie,
-        cursor: 'pointer',
-        point: {
-          ...baseConfig.plotOptions?.pie?.point,
-          events: {
-            ...mouseEvents,
-            click: function (this: Highcharts.Point) {
-              const categoryData = spendingsByCategories.value;
-              // Find the category ID by matching the category name
-              const categoryId = Object.keys(categoryData || {}).find((id) => categoryData[+id]?.name === this.name);
+  const width = chartContainerRef.value.clientWidth;
+  const height = chartContainerRef.value.clientHeight;
 
-              if (categoryId) {
-                if (isTouch.value) {
-                  // On touch devices, select the category to show details + button
-                  selectedCategoryId.value = Number(categoryId);
-                } else {
-                  // On non-touch devices, navigate directly
-                  navigateToTransactions({ categoryId: Number(categoryId) });
-                }
-              }
-            },
-          },
-        },
-      },
-    },
-  };
+  // Reserve space for the outer glow
+  const glowSize = 10;
+  const radius = Math.min(width, height) / 2 - glowSize;
+  const innerRadius = radius * 0.7; // 70% inner radius for donut
+
+  // Create the pie layout
+  const pie = d3
+    .pie<ChartDataItem>()
+    .value((d) => d.amount)
+    .sort(null); // Maintain original order
+
+  // Create the arc generator
+  const arc = d3.arc<d3.PieArcDatum<ChartDataItem>>().innerRadius(innerRadius).outerRadius(radius);
+
+  // Create outer glow arc (larger outer radius for hover effect)
+  const glowArc = d3
+    .arc<d3.PieArcDatum<ChartDataItem>>()
+    .innerRadius(radius) // Start from where main arc ends
+    .outerRadius(radius + glowSize);
+
+  // Center the chart
+  const g = svg.append('g').attr('transform', `translate(${width / 2},${height / 2})`);
+
+  // Group for glow effects (rendered behind main arcs)
+  const glowGroup = g.append('g').attr('class', 'glow-group');
+
+  // Create pie segments
+  const pieData = pie(chartData.value);
+
+  const arcs = g.selectAll('.arc').data(pieData).enter().append('g').attr('class', 'arc');
+
+  // Draw the segments
+  arcs
+    .append('path')
+    .attr('d', arc)
+    .attr('fill', (d) => d.data.color)
+    .attr('stroke', 'transparent')
+    .attr('stroke-width', 1)
+    .style('cursor', 'pointer')
+    .style('transition', 'opacity 0.2s ease')
+    .on('mouseenter', function (_event, d) {
+      if (isTouch.value) return;
+
+      // Fade all other segments
+      g.selectAll('.arc path').style('opacity', 0.3);
+      // Highlight this segment
+      d3.select(this).style('opacity', 1);
+
+      // Add outer glow
+      glowGroup.selectAll('*').remove();
+      glowGroup.append('path').attr('d', glowArc(d)).attr('fill', d.data.color).style('opacity', 0.5);
+
+      // Show category in center label
+      centerLabel.name = d.data.name;
+      centerLabel.amount = formatBaseCurrency(d.data.amount);
+      centerLabel.isHovering = true;
+    })
+    .on('mouseleave', function () {
+      if (isTouch.value) return;
+
+      // Restore all segments
+      g.selectAll('.arc path').style('opacity', 1);
+
+      // Remove glow
+      glowGroup.selectAll('*').remove();
+
+      // Reset to show total
+      centerLabel.isHovering = false;
+    })
+    .on('click', function (_event, d) {
+      if (isTouch.value) {
+        // On touch devices, select the category to show details + button
+        selectedCategoryId.value = d.data.categoryId;
+
+        // Fade all segments except selected
+        g.selectAll('.arc path').style('opacity', 0.3);
+        d3.select(this).style('opacity', 1);
+
+        // Add outer glow
+        glowGroup.selectAll('*').remove();
+        glowGroup.append('path').attr('d', glowArc(d)).attr('fill', d.data.color).style('opacity', 0.5);
+
+        // Show category in center label
+        centerLabel.name = d.data.name;
+        centerLabel.amount = formatBaseCurrency(d.data.amount);
+        centerLabel.isHovering = true;
+      } else {
+        // On non-touch devices, navigate directly
+        navigateToTransactions({ categoryId: d.data.categoryId });
+      }
+    });
+};
+
+// Watch for touch selection changes to update opacity
+watch(selectedCategoryId, (newId) => {
+  if (!svgRef.value || !newId) {
+    // Reset all opacities and remove glow when deselected
+    const svg = d3.select(svgRef.value);
+    svg.selectAll('.arc path').style('opacity', 1);
+    svg.selectAll('.glow-group *').remove();
+    if (!newId) {
+      centerLabel.isHovering = false;
+    }
+  }
 });
+
+// ResizeObserver for responsive chart
+let resizeObserver: ResizeObserver | null = null;
+
+const setupResizeObserver = () => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+  if (chartContainerRef.value) {
+    resizeObserver = new ResizeObserver(() => {
+      renderChart();
+    });
+    resizeObserver.observe(chartContainerRef.value);
+  }
+};
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+});
+
+// Re-render when data or container changes
+watch(
+  [chartData, chartContainerRef],
+  async ([newData, container]) => {
+    if (newData.length > 0 && container) {
+      // Use nextTick to ensure DOM is ready
+      await nextTick();
+      setupResizeObserver();
+      renderChart();
+    }
+  },
+  { immediate: true, deep: true },
+);
 </script>

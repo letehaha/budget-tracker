@@ -46,11 +46,3 @@ export const redirectRouteGuard: NavigationGuard = async (to, from, next): Promi
     });
   }
 };
-
-export const devOnly: NavigationGuard = (to, from, next): void => {
-  if (process.env.NODE_ENV === 'development') {
-    next();
-  } else {
-    next('/');
-  }
-};

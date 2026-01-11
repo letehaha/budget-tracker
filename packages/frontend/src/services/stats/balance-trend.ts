@@ -1,9 +1,4 @@
-import {
-  BalanceHistoryEntity,
-  CombinedBalanceHistoryEntity,
-  getBalanceHistory,
-  getCombinedBalanceHistory,
-} from '@/api';
+import { BalanceHistoryEntity, CombinedBalanceHistoryEntity, getCombinedBalanceHistory } from '@/api';
 import { format } from 'date-fns';
 
 // TODO: optimize implementation
@@ -82,14 +77,6 @@ export function aggregateBalanceTrendData(data: BalanceHistoryEntity[]) {
 
   return toArray;
 }
-
-export const loadBalanceTrendData = async ({ from, to }: { from: Date; to?: Date }) => {
-  const result = await getBalanceHistory({ from, to });
-
-  if (!result?.length) return [];
-
-  return aggregateBalanceTrendData(result);
-};
 
 export const loadCombinedBalanceTrendData = async ({
   from,

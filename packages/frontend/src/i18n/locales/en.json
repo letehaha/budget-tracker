@@ -11,7 +11,8 @@
       "add": "Add",
       "create": "Create",
       "close": "Close",
-      "addSubcategory": "Add subcategory"
+      "addSubcategory": "Add subcategory",
+      "settings": "Settings"
     },
     "errors": {
       "copyToClipboardFailed": "Failed to copy to clipboard"
@@ -24,7 +25,8 @@
       "password": "Password",
       "username": "Username",
       "system": "system",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "total": "Total"
     },
     "placeholders": {
       "email": "your{'@'}email.com",
@@ -75,6 +77,7 @@
     "investments": "Investments",
     "transactions": "Transactions",
     "budgets": "Budgets",
+    "analytics": "Analytics",
     "logout": "Logout"
   },
   "sidebar": {
@@ -504,8 +507,89 @@
   },
   "analytics": {
     "title": "Analytics",
+    "backToAnalytics": "Back to Analytics",
     "timePeriods": {
       "days": "{count} days"
+    },
+    "navigation": {
+      "cashFlow": "Cash Flow",
+      "trendsComparison": "Trends Comparison"
+    },
+    "cashFlow": {
+      "title": "Cash Flow",
+      "income": "Income",
+      "expenses": "Expenses",
+      "netSavings": "Net Savings",
+      "netFlow": "Net Flow",
+      "savingsRate": "Savings Rate",
+      "loadError": "Failed to load cash flow data",
+      "noData": "No transactions found",
+      "noDataHint": "Try selecting a different period or check if you have any transactions",
+      "excludeCategories": "Apply category exclusions",
+      "excludeCategoriesHint": "Uses exclusions from Settings → Stats",
+      "showTrendLine": "Show trend line",
+      "showTrendLineHint": "Smoothed average of net cash flow",
+      "trendLine": "Trend Line",
+      "vsPreviousPeriod": "vs previous period",
+      "chartTypes": {
+        "stacked": "Stacked",
+        "mirrored": "Mirrored",
+        "grouped": "Grouped"
+      },
+      "granularity": {
+        "monthly": "Monthly",
+        "biweekly": "Bi-weekly",
+        "weekly": "Weekly"
+      },
+      "periods": {
+        "last3Months": "Last 3 months",
+        "last6Months": "Last 6 months",
+        "last12Months": "Last 12 months",
+        "thisYear": "This year",
+        "previousYear": "Previous year",
+        "custom": "Custom"
+      },
+      "periodSelector": {
+        "quickSelect": "Quick Select",
+        "year": "Year {year}"
+      }
+    },
+    "trends": {
+      "title": "Trends",
+      "metrics": {
+        "expenses": "Expenses",
+        "income": "Income",
+        "savings": "Savings"
+      },
+      "chart": {
+        "selectedPeriod": "Selected period",
+        "comparisonPeriod": "Previous period",
+        "cumulativeNote": "Cumulative total up to this point"
+      },
+      "categoryBreakdown": {
+        "title": "Category Breakdown",
+        "noData": "No data for this period",
+        "viewAll": "View all categories"
+      },
+      "monthlyComparison": {
+        "title": "Monthly Comparison",
+        "allCategories": "All Categories",
+        "categorySelected": "{count} category",
+        "categoriesSelected": "{count} categories",
+        "searchCategories": "Search categories...",
+        "average": "Average",
+        "total": "Total",
+        "noChange": "No change",
+        "vsLastMonth": "vs previous month",
+        "viewTransactions": "View transactions"
+      },
+      "cumulativeProgress": {
+        "title": "Cumulative Progress"
+      },
+      "vsPreviousPeriod": "vs previous period",
+      "loadError": "Failed to load data",
+      "noData": "No data available",
+      "noDataHint": "No transactions recorded for this period"
     }
   },
   "crypto": {
