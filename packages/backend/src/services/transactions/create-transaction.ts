@@ -5,9 +5,11 @@ import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
+import Tags from '@models/Tags.model';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { v4 as uuidv4 } from 'uuid';
 
 import { withTransaction } from '../common/with-transaction';
@@ -178,6 +180,7 @@ export const createTransaction = withTransaction(
     refundsTxId,
     refundsSplitId,
     splits,
+    tagIds,
     ...payload
   }: CreateTransactionParams) => {
     try {
@@ -324,6 +327,26 @@ export const createTransaction = withTransaction(
           transactionTime: generalTxParams.time,
           transferNature,
         });
+      }
+
+      // Handle tags for the transaction
+      if (tagIds && tagIds.length > 0) {
+        // Validate that all tagIds belong to the current user
+        const userTags = await Tags.findAll({
+          where: { userId, id: tagIds },
+          attributes: ['id'],
+        });
+
+        if (userTags.length !== tagIds.length) {
+          throw new ValidationError({
+            message: t({ key: 'transactions.invalidTagIds' }),
+          });
+        }
+
+        await baseTransaction!.$set('tags', tagIds);
+
+        // Emit event for real-time reminders check (handled by event listener)
+        eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_TAGGED, { tagIds, userId });
       }
 
       return transactions;

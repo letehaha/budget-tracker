@@ -51,6 +51,7 @@
     "linkAlreadyTransferNotAllowed": "Спроба зв'язати транзакцію, яка вже є переказом.",
     "linkUnexpectedError": "Неочікувана помилка. Не вдалося зв'язати вказані транзакції.",
     "linkCannotFind": "Не вдалося знайти базову або протилежну транзакцію",
+    "invalidTagIds": "Один або декілька ID тегів недійсні або не належать цьому користувачу",
     "splits": {
       "splitsOnTransfer": "Не можна додавати розбиття до транзакцій-переказів",
       "splitLimitExceeded": "Максимально дозволено {{max}} розбиттів на транзакцію",
@@ -71,6 +72,47 @@
     "budgetNotFound": "Бюджет не знайдено",
     "someTransactionIdsInvalid": "Деякі ID транзакцій недійсні",
     "transactionsAddedSuccessfully": "Транзакції успішно додано"
+  },
+  "tags": {
+    "tagNotFound": "Тег не знайдено",
+    "tagNameAlreadyExists": "Тег з такою назвою вже існує",
+    "someTransactionIdsInvalid": "Деякі ID транзакцій недійсні",
+    "transactionsAddedSuccessfully": "Транзакції успішно додано до тегу",
+    "transactionsRemovedSuccessfully": "Транзакції успішно видалено з тегу"
+  },
+  "tagReminders": {
+    "reminderNotFound": "Нагадування для тегу не знайдено",
+    "reminderAlreadyExists": "Ідентичне нагадування вже існує для цього тегу",
+    "amountThresholdRequired": "Порогова сума обов'язкова для нагадувань про перевищення суми",
+    "maxRemindersReached": "Досягнуто максимальну кількість нагадувань (50)",
+    "repeatScheduleIncomplete": "repeatEvery та repeatPeriod повинні бути вказані разом або обидва пропущені",
+    "notifications": {
+      "thresholdExceeded": {
+        "title": "Сповіщення про витрати по тегу",
+        "message": "Ваші витрати на \"{{tagName}}\" ({{actualAmount}}) перевищили встановлений поріг {{thresholdAmount}}"
+      },
+      "existenceCheck": {
+        "title": "Підсумок активності тегу",
+        "message_one": "У вас {{count}} транзакція з тегом \"{{tagName}}\"",
+        "message_few": "У вас {{count}} транзакції з тегом \"{{tagName}}\"",
+        "message_many": "У вас {{count}} транзакцій з тегом \"{{tagName}}\"",
+        "message": "У вас {{count}} транзакцій з тегом \"{{tagName}}\""
+      }
+    }
+  },
+  "defaultTags": {
+    "want": {
+      "name": "Хочу",
+      "description": "Бажані покупки та необов'язкові витрати"
+    },
+    "need": {
+      "name": "Потрібно",
+      "description": "Важливі, але не термінові витрати"
+    },
+    "must": {
+      "name": "Обов'язково",
+      "description": "Необхідні витрати, яких не уникнути"
+    }
   },
   "investments": {
     "portfolioNotFound": "Портфель не знайдено",

@@ -5,10 +5,12 @@ import { removeUndefinedKeys } from '@js/helpers';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/Accounts.model';
 import RefundTransactions from '@models/RefundTransactions.model';
+import Tags from '@models/Tags.model';
 import { deleteSplitsForTransaction } from '@models/TransactionSplits.model';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import * as refundsService from '@services/tx-refunds';
 import { Op } from 'sequelize';
 
@@ -479,6 +481,34 @@ export const updateTransaction = withTransaction(
           transactionId: baseTransaction.id,
           userId: payload.userId,
         });
+      }
+
+      // Handle tags
+      if (payload.tagIds !== undefined) {
+        if (payload.tagIds === null || payload.tagIds.length === 0) {
+          // Clear all tags
+          await baseTransaction.$set('tags', []);
+        } else {
+          // Validate that all tagIds belong to the current user
+          const userTags = await Tags.findAll({
+            where: { userId: payload.userId, id: payload.tagIds },
+            attributes: ['id'],
+          });
+
+          if (userTags.length !== payload.tagIds.length) {
+            throw new ValidationError({
+              message: t({ key: 'transactions.invalidTagIds' }),
+            });
+          }
+
+          // Set new tags
+          await baseTransaction.$set('tags', payload.tagIds);
+
+          if (payload.tagIds?.length) {
+            // Emit event for real-time reminders check (handled by event listener)
+            eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_TAGGED, { tagIds: payload.tagIds, userId: payload.userId });
+          }
+        }
       }
 
       return updatedTransactions;

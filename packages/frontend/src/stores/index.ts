@@ -4,6 +4,7 @@ export { useAccountsStore } from './accounts';
 export { useUserStore } from './user';
 export { useCategoriesStore } from './categories/categories';
 export { useAuthStore } from './auth';
+export { useTagsStore } from './tags';
 
 // crypto
 export { useCryptoBinanceStore } from './integrations/crypto/binance';

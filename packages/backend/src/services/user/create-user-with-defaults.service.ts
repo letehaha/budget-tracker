@@ -1,14 +1,16 @@
+import { getTranslatedCategories } from '@common/const/default-categories';
+import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { requestContext } from '@common/request-context';
-import { getTranslatedCategories } from '@js/const';
 import * as categoriesService from '@services/categories.service';
+import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
 
 /**
- * Creates a new app user with default categories and subcategories.
+ * Creates a new app user with default categories, subcategories, and tags.
  * This is the standard way to create a user - used by both the auth hook
  * (when a new user signs up) and the test setup.
  *
- * Categories are created in the user's locale (from Accept-Language header).
+ * Categories and tags are created in the user's locale (from Accept-Language header).
  */
 export async function createUserWithDefaults({
   username,
@@ -87,6 +89,22 @@ export async function createUserWithDefaults({
     await userService.updateUser({
       id: appUser.id,
       defaultCategoryId: defaultCategoryInfo.id,
+    });
+  }
+
+  // Create default tags for the new user
+  const translatedTags = getTranslatedDefaultTags({ locale });
+  const defaultTags = translatedTags.map((tag) => ({
+    name: tag.name,
+    color: tag.color,
+    icon: tag.icon,
+    description: tag.description,
+  }));
+
+  if (defaultTags.length > 0) {
+    await tagsService.bulkCreateTags({
+      userId: appUser.id,
+      tags: defaultTags,
     });
   }
 

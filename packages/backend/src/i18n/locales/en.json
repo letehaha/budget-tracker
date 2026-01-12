@@ -51,6 +51,7 @@
     "linkAlreadyTransferNotAllowed": "Trying to link transaction that is already a transfer.",
     "linkUnexpectedError": "Unexpected error. Cannot link asked transactions.",
     "linkCannotFind": "Cannot find base or opposite transactions",
+    "invalidTagIds": "One or more tag IDs are invalid or do not belong to this user",
     "splits": {
       "splitsOnTransfer": "Cannot add splits to transfer transactions",
       "splitLimitExceeded": "Maximum {{max}} splits allowed per transaction",
@@ -71,6 +72,44 @@
     "budgetNotFound": "Budget not found",
     "someTransactionIdsInvalid": "Some transactions IDs are invalid",
     "transactionsAddedSuccessfully": "Transactions added successfully"
+  },
+  "tags": {
+    "tagNotFound": "Tag not found",
+    "tagNameAlreadyExists": "A tag with this name already exists",
+    "someTransactionIdsInvalid": "Some transaction IDs are invalid",
+    "transactionsAddedSuccessfully": "Transactions added to tag successfully",
+    "transactionsRemovedSuccessfully": "Transactions removed from tag successfully"
+  },
+  "tagReminders": {
+    "reminderNotFound": "Tag reminder not found",
+    "reminderAlreadyExists": "An identical reminder already exists for this tag",
+    "amountThresholdRequired": "Amount threshold is required for amount threshold reminders",
+    "maxRemindersReached": "Maximum number of reminders (50) reached",
+    "repeatScheduleIncomplete": "Both repeatEvery and repeatPeriod must be provided together or both omitted",
+    "notifications": {
+      "thresholdExceeded": {
+        "title": "Tag Spending Alert",
+        "message": "Your spending on \"{{tagName}}\" ({{actualAmount}}) exceeded your threshold of {{thresholdAmount}}"
+      },
+      "existenceCheck": {
+        "title": "Tag Activity Summary",
+        "message": "You have {{count}} transaction(s) tagged with \"{{tagName}}\""
+      }
+    }
+  },
+  "defaultTags": {
+    "want": {
+      "name": "Want",
+      "description": "Nice-to-have purchases and discretionary spending"
+    },
+    "need": {
+      "name": "Need",
+      "description": "Important but not urgent expenses"
+    },
+    "must": {
+      "name": "Must",
+      "description": "Essential expenses that cannot be avoided"
+    }
   },
   "investments": {
     "portfolioNotFound": "Portfolio not found",

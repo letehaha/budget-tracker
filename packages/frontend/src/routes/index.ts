@@ -126,6 +126,11 @@ const routes = [
             component: () => import('@/pages/settings/subpages/categories/index.vue'),
           },
           {
+            path: 'tags',
+            name: ROUTES_NAMES.settingsTags,
+            component: () => import('@/pages/settings/subpages/tags/index.vue'),
+          },
+          {
             path: 'currencies',
             name: ROUTES_NAMES.settingsCurrencies,
             component: () => import('@/pages/settings/subpages/currencies/index.vue'),

@@ -1,0 +1,35 @@
+import { recordId } from '@common/lib/zod/custom-types';
+import { createController } from '@controllers/helpers/controller-factory';
+import * as tagsService from '@services/tags';
+import { z } from 'zod';
+
+const schema = z.object({
+  params: z.object({
+    id: recordId(),
+  }),
+  body: z.object({
+    name: z.string().min(1, 'Name is required').max(100, 'Name must not exceed 100 characters').trim().optional(),
+    color: z
+      .string()
+      .regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex color (e.g., #FF5733)')
+      .transform((v) => v.toLowerCase())
+      .optional(),
+    icon: z.string().max(50, 'Icon name must not exceed 50 characters').nullable().optional(),
+    description: z.string().max(500, 'Description must not exceed 500 characters').nullable().optional(),
+  }),
+});
+
+export default createController(schema, async ({ user, params, body }) => {
+  const { name, color, icon, description } = body;
+
+  const data = await tagsService.updateTag({
+    id: params.id,
+    userId: user.id,
+    name,
+    color,
+    icon,
+    description,
+  });
+
+  return { data };
+});

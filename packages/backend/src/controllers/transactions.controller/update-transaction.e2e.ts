@@ -134,6 +134,7 @@ describe('Update transaction controller', () => {
         ...tx,
         transferId: null,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        updatedAt: expect.toBeAnythingOrNull(),
       });
 
       // Opposite tx should also be unlinked (not deleted)
@@ -425,6 +426,7 @@ describe('Update transaction controller', () => {
             ...txAfter,
             transferNature: expect.toBeAnythingOrNull(),
             transferId: expect.toBeAnythingOrNull(),
+            updatedAt: expect.toBeAnythingOrNull(),
           });
 
           expect(txAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
@@ -588,11 +590,13 @@ describe('Update transaction controller', () => {
           ...tx1,
           transferId: null,
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+          updatedAt: expect.toBeAnythingOrNull(),
         });
         expect(tx2After).toMatchObject({
           ...tx2,
           transferId: null,
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+          updatedAt: expect.toBeAnythingOrNull(),
         });
       },
     );

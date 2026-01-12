@@ -64,17 +64,9 @@
             <span class="text-sm tracking-wider whitespace-nowrap">
               {{ category ? category.name : 'Other' }}
             </span>
-            <template v-if="hasSplits">
-              <div
-                class="flex items-center gap-0.5 rounded-sm border border-amber-500/60 px-1 py-0.5 text-xs text-amber-400/90"
-              >
-                <SplitIcon :size="10" />
-                <span>{{ transaction.splits.length + 1 }}</span>
-              </div>
-            </template>
-            <template v-if="isRefund">
-              <div class="border-primary rounded-sm border px-1 py-0.5 text-xs text-white/80">Refund</div>
-            </template>
+            <SplitIndicator :transaction="transaction" />
+            <RefundIndicator :transaction="transaction" />
+            <TagsIndicator :transaction="transaction" />
           </div>
         </template>
         <span
@@ -114,9 +106,13 @@ import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore } from '@/stores';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { format } from 'date-fns';
-import { ArrowRight, SplitIcon } from 'lucide-vue-next';
+import { ArrowRight } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
+
+import RefundIndicator from './indicators/refund-indicator.vue';
+import SplitIndicator from './indicators/split-indicator.vue';
+import TagsIndicator from './indicators/tags-indicator.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -140,8 +136,6 @@ const isTransferTransaction = computed(() =>
     transaction.transferNature,
   ),
 );
-const isRefund = computed(() => transaction.refundLinked);
-const hasSplits = computed(() => transaction.splits && transaction.splits.length > 0);
 
 const { data: oppositeTransferTransaction, isLoading: isLoadingOpposite } = useOppositeTxRecord(transaction);
 

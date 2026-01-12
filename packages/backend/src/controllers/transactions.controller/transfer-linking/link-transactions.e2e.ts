@@ -56,6 +56,7 @@ describe('link transactions between each other', () => {
         ...txAfter,
         transferNature: expect.toBeAnythingOrNull(),
         transferId: expect.toBeAnythingOrNull(),
+        updatedAt: expect.toBeAnythingOrNull(),
       });
 
       expect(txAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
@@ -71,6 +72,7 @@ describe('link transactions between each other', () => {
         ...txAfter,
         transferNature: expect.toBeAnythingOrNull(),
         transferId: expect.toBeAnythingOrNull(),
+        updatedAt: expect.toBeAnythingOrNull(),
       });
 
       expect(txAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);

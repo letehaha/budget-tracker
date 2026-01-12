@@ -79,6 +79,37 @@ export enum BUDGET_STATUSES {
 }
 
 /**
+ * Tag reminder trigger types
+ */
+export const TAG_REMINDER_TYPES = {
+  amountThreshold: 'amount_threshold',
+  existenceCheck: 'existence_check',
+} as const;
+
+export type TagReminderType = (typeof TAG_REMINDER_TYPES)[keyof typeof TAG_REMINDER_TYPES];
+
+/**
+ * Tag reminder frequency presets
+ */
+export const TAG_REMINDER_FREQUENCIES = {
+  daily: 'daily',
+  weekly: 'weekly',
+  monthly: 'monthly',
+  quarterly: 'quarterly',
+  yearly: 'yearly',
+} as const;
+
+export type TagReminderFrequency = (typeof TAG_REMINDER_FREQUENCIES)[keyof typeof TAG_REMINDER_FREQUENCIES];
+
+/**
+ * Special value for real-time/immediate reminders (no scheduled frequency).
+ * Used in frontend forms to represent `null` frequency.
+ */
+export const TAG_REMINDER_IMMEDIATE = 'immediate' as const;
+
+export type TagReminderFrequencyOrImmediate = TagReminderFrequency | typeof TAG_REMINDER_IMMEDIATE;
+
+/**
  * Source of transaction categorization
  */
 export enum CATEGORIZATION_SOURCE {
@@ -118,6 +149,7 @@ export const NOTIFICATION_TYPES = {
   budgetAlert: 'budget_alert',
   system: 'system',
   changelog: 'changelog',
+  tagReminder: 'tag_reminder',
 } as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES] | string;

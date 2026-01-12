@@ -165,14 +165,14 @@ import { useStatementParserStore } from '@/stores/statement-parser';
 import { CheckIcon, ChevronDownIcon, LockIcon } from 'lucide-vue-next';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
-onMounted(() => {
-  trackAnalyticsEvent({ event: 'import_opened', properties: { import_type: 'statement_parser' } });
-});
-
 import AccountSelectionStep from './components/account-selection-step.vue';
 import ImportResultsStep from './components/import-results-step.vue';
 import TransactionReviewStep from './components/transaction-review-step.vue';
 import UploadExtractStep from './components/upload-extract-step.vue';
+
+onMounted(() => {
+  trackAnalyticsEvent({ event: 'import_opened', properties: { import_type: 'statement_parser' } });
+});
 
 const store = useStatementParserStore();
 

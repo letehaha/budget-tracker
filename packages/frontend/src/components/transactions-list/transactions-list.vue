@@ -80,6 +80,11 @@ const handlerRecordClick = ([baseTx, oppositeTx]: [baseTx: TransactionModel, opp
   dialogProps.value = modalOptions;
 };
 
+const getTransactionKey = (tx: TransactionModel | undefined, index: number): string | number => {
+  if (!tx) return index;
+  return `${tx.id}-${tx.updatedAt}`;
+};
+
 const scrollContainer = useScrollAreaContainer(props.scrollAreaId);
 
 /**
@@ -163,11 +168,7 @@ watchEffect(() => {
           <div :style="{ height: `${totalSize}px` }" class="relative">
             <div
               v-for="virtualRow in virtualRows"
-              :key="
-                displayTransactions[virtualRow.index]
-                  ? `${displayTransactions[virtualRow.index].id}-${displayTransactions[virtualRow.index].categoryId}-${displayTransactions[virtualRow.index].refAmount}-${displayTransactions[virtualRow.index].note}-${displayTransactions[virtualRow.index].time}-${displayTransactions[virtualRow.index].transferNature}-${displayTransactions[virtualRow.index].splits?.length ?? 0}-${displayTransactions[virtualRow.index].refundLinked}`
-                  : virtualRow.index
-              "
+              :key="getTransactionKey(displayTransactions[virtualRow.index], virtualRow.index)"
               :style="{
                 position: 'absolute',
                 top: 0,
@@ -199,7 +200,7 @@ watchEffect(() => {
       <div v-bind="$attrs" class="grid grid-cols-1 gap-2">
         <template
           v-for="item in displayTransactions"
-          :key="`${item.id}-${item.categoryId}-${item.refAmount}-${item.note}-${item.time}-${item.splits?.length ?? 0}`"
+          :key="`${item.id}-${item.updatedAt}`"
         >
           <TransactionRecord :tx="item" @record-click="handlerRecordClick" />
         </template>
@@ -223,7 +224,7 @@ watchEffect(() => {
     </template>
     <template v-else>
       <Dialog.Dialog v-model:open="isDialogVisible">
-        <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-[900px] p-0">
+        <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-225 p-0">
           <Dialog.DialogTitle class="sr-only">{{ t('transactions.list.detailsTitle') }}</Dialog.DialogTitle>
           <Dialog.DialogDescription class="sr-only">{{
             t('transactions.list.detailsDescription')

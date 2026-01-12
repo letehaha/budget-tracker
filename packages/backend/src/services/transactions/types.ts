@@ -13,6 +13,7 @@ export type CreateTransactionParams = Omit<
   refundsTxId?: number;
   refundsSplitId?: string;
   splits?: SplitInput[];
+  tagIds?: number[];
 };
 
 interface UpdateParams {
@@ -30,6 +31,7 @@ interface UpdateParams {
   refundsSplitId?: string | null;
   refundedByTxIds?: number[] | null;
   splits?: SplitInput[] | null; // null to clear all splits
+  tagIds?: number[] | null; // null to clear all tags
 }
 
 interface UpdateTransferParams {

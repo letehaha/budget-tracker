@@ -28,6 +28,7 @@ const bodyZodSchema = z
     refundsTxId: recordId().nullish(),
     refundsSplitId: z.string().uuid().nullish(),
     splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').nullish(),
+    tagIds: z.array(recordId()).max(20, 'Maximum 20 tags allowed').nullish(),
   })
   .refine((data) => !(data.refundsSplitId && !data.refundsTxId), {
     message: '"refundsSplitId" can only be provided when "refundsTxId" is specified',
@@ -110,6 +111,7 @@ export default createController(schema, async ({ user, params, body }) => {
     refundsTxId,
     refundsSplitId,
     splits,
+    tagIds,
   } = body;
   const { id: userId } = user;
 
@@ -134,6 +136,8 @@ export default createController(schema, async ({ user, params, body }) => {
     }),
     // splits can be null to clear all splits, so don't use removeUndefinedKeys
     ...(splits !== undefined ? { splits } : {}),
+    // tagIds can be null to clear all tags, so don't use removeUndefinedKeys
+    ...(tagIds !== undefined ? { tagIds } : {}),
   });
 
   return { data };

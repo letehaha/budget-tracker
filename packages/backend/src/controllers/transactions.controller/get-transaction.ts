@@ -44,6 +44,18 @@ const schema = z.object({
           z.array(z.number().int().positive()),
         )
         .optional(),
+      tagIds: z
+        .preprocess(
+          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
+          z.array(z.number().int().positive()),
+        )
+        .optional(),
+      excludedTagIds: z
+        .preprocess(
+          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
+          z.array(z.number().int().positive()),
+        )
+        .optional(),
       categoryIds: z
         .preprocess(
           (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
@@ -51,6 +63,7 @@ const schema = z.object({
         )
         .optional(),
       includeSplits: z.preprocess((val) => val === 'true', z.boolean()).optional(),
+      includeTags: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       excludeTransfer: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       excludeRefunds: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       startDate: z.string().datetime({ message: 'Invalid ISO date string for startDate' }).optional(),

@@ -626,9 +626,7 @@ const ctaTextShort = computed(() => {
 });
 
 // Analytics tracking
-const trackGitHubClick = (
-  location: 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer',
-) => {
+const trackGitHubClick = (location: 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer') => {
   trackAnalyticsEvent({
     event: 'landing_github_clicked',
     properties: { location },

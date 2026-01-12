@@ -9,6 +9,8 @@ import {
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  TagReminderFrequency,
+  TagReminderType,
 } from './enums';
 
 export interface UserModel {
@@ -150,6 +152,12 @@ export interface TransactionModel {
   categorizationMeta?: CategorizationMeta | null;
   /** Optional splits for multi-category transactions */
   splits?: TransactionSplitModel[];
+  /** Optional tags associated with the transaction (loaded when includeTags=true) */
+  tags?: TagModel[];
+  /** Timestamp when the record was created (defaults to transaction time for existing records) */
+  createdAt: Date;
+  /** Timestamp when the record was last updated */
+  updatedAt: Date;
 }
 
 export interface CurrencyModel {
@@ -193,6 +201,46 @@ export interface BudgetModel {
   autoInclude?: boolean;
 }
 
+export interface TagModel {
+  id: number;
+  userId: number;
+  name: string;
+  color: string;
+  icon: string | null;
+  description: string | null;
+  createdAt: Date;
+  /** Count of reminders associated with this tag (populated on list fetch) */
+  remindersCount?: number;
+}
+
+/**
+ * Type-specific settings for amount threshold reminders
+ */
+export interface AmountThresholdSettings {
+  /** Threshold amount in cents */
+  amountThreshold: number;
+}
+
+export type TagReminderSettings = AmountThresholdSettings | Record<string, unknown>;
+
+export interface TagReminderModel {
+  id: number;
+  userId: number;
+  tagId: number;
+  type: TagReminderType;
+  /** Frequency preset. Null means real-time trigger (immediate when tagged) */
+  frequency: TagReminderFrequency | null;
+  /** Day of month to check (1-31). Only used for monthly/quarterly/yearly. Null = 1st */
+  dayOfMonth: number | null;
+  /** Type-specific settings (e.g., amountThreshold for amount_threshold type) */
+  settings: TagReminderSettings;
+  isEnabled: boolean;
+  lastCheckedAt: Date | null;
+  lastTriggeredAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /**
  * Type-specific payload structures for notifications.
  * Using discriminated union pattern for type safety.
@@ -218,10 +266,32 @@ export interface ChangelogNotificationPayload {
   releaseDate: string;
 }
 
+export interface TagReminderNotificationPayload {
+  tagId: number;
+  tagName: string;
+  tagColor?: string | null;
+  tagIcon?: string | null;
+  reminderType: TagReminderType;
+  /** Schedule info for context in notification */
+  schedule?: {
+    frequency?: TagReminderFrequency | null;
+    dayOfMonth?: number | null;
+  };
+  /** Amount threshold in cents (integers) */
+  thresholdAmount?: number;
+  /** Actual amount spent in cents (integers) */
+  actualAmount?: number;
+  transactionCount?: number;
+  currencyCode?: string;
+  /** IDs of transactions that triggered this reminder */
+  transactionIds?: number[];
+}
+
 export type NotificationPayload =
   | BudgetAlertPayload
   | SystemNotificationPayload
   | ChangelogNotificationPayload
+  | TagReminderNotificationPayload
   | Record<string, unknown>;
 
 export interface NotificationModel {

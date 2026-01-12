@@ -12,7 +12,10 @@ import ExchangeRatesModel from './ExchangeRates.model';
 import MerchantCategoryCodesModel from './MerchantCategoryCodes.model';
 import NotificationsModel from './Notifications.model';
 import RefundTransactionsModel from './RefundTransactions.model';
+import TagRemindersModel from './TagReminders.model';
+import TagsModel from './Tags.model';
 import TransactionSplitsModel from './TransactionSplits.model';
+import TransactionTagsModel from './TransactionTags.model';
 import TransactionsModel from './Transactions.model';
 import UserExchangeRatesModel from './UserExchangeRates.model';
 import UserMerchantCategoryCodesModel from './UserMerchantCategoryCodes.model';
@@ -70,6 +73,9 @@ const models = [
   BinanceUsersModel,
   BudgetModel,
   BudgetTransactionsModel,
+  TagsModel,
+  TagRemindersModel,
+  TransactionTagsModel,
   TransactionSplitsModel,
   HoldingsModel,
   InvestmentTransactionModel,

@@ -18,6 +18,7 @@ import { API_PREFIX } from './config';
 import { auth } from './config/auth';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
+import { tagRemindersCron } from './crons/tag-reminders-check';
 import { SUPPORTED_LOCALES } from './i18n';
 import { addI18nextToRequest, detectLanguage } from './i18n/middleware';
 import './redis-client';
@@ -39,6 +40,8 @@ import investmentsRoutes from './routes/investments.route';
 import notificationsRoutes from './routes/notifications.route';
 import sseRoutes from './routes/sse.route';
 import statsRoutes from './routes/stats.route';
+import tagRemindersRoutes from './routes/tag-reminders.route';
+import tagsRoutes from './routes/tags.route';
 import testsRoutes from './routes/tests.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
@@ -48,6 +51,7 @@ import { registerAiCategorizationListeners } from './services/ai-categorization'
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
 import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 import { initializeExchangeRateProviders } from './services/exchange-rates/providers';
+import { registerTagReminderListeners } from './services/tag-reminders';
 
 logger.info('Starting application initialization...');
 
@@ -140,6 +144,7 @@ app.use(addI18nextToRequest);
 initializeBankProviders();
 initializeExchangeRateProviders();
 registerAiCategorizationListeners();
+registerTagReminderListeners();
 
 /**
  *  Routes include
@@ -177,6 +182,8 @@ app.use(`${API_PREFIX}/stats`, statsRoutes);
 app.use(`${API_PREFIX}/account-group`, accountGroupsRoutes);
 app.use(`${API_PREFIX}/currencies/rates`, exchangeRatesRoutes);
 app.use(`${API_PREFIX}/budgets`, budgetsRoutes);
+app.use(`${API_PREFIX}/tags`, tagsRoutes);
+app.use(`${API_PREFIX}/tag-reminders`, tagRemindersRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
 app.use(`${API_PREFIX}/investments`, investmentsRoutes);
 app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
@@ -246,6 +253,7 @@ function initializeBackgroundJobs() {
 
     if (process.env.NODE_ENV === 'production') {
       securitiesDailySyncCron.startCron();
+      tagRemindersCron.startCron();
     }
   }
 }
@@ -267,6 +275,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const processUnexpectedExit = async () => {
   securitiesDailySyncCron.stopCron();
+  tagRemindersCron.stopCron();
   loadCurrencyRatesJob.stop();
   // Flush remaining PostHog events before exit
   await shutdownPostHog();

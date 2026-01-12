@@ -69,11 +69,7 @@
       </div>
 
       <!-- Monthly Comparison Chart -->
-      <MonthlyComparisonChart
-        :from="selectedPeriod.from"
-        :to="selectedPeriod.to"
-        :metric="selectedMetric"
-      />
+      <MonthlyComparisonChart :from="selectedPeriod.from" :to="selectedPeriod.to" :metric="selectedMetric" />
 
       <!-- Cumulative Chart Skeleton -->
       <ChartSkeleton v-if="isLoadingCumulative" />
@@ -125,8 +121,8 @@ import { useI18n } from 'vue-i18n';
 import { createPeriodSerializer } from '../../utils';
 import ChartSkeleton from '../cash-flow/components/chart-skeleton.vue';
 import PeriodSelector, { type Period } from '../cash-flow/components/period-selector.vue';
-import SummaryCard from '../cash-flow/components/summary-card.vue';
 import SummaryCardSkeleton from '../cash-flow/components/summary-card-skeleton.vue';
+import SummaryCard from '../cash-flow/components/summary-card.vue';
 import CategoryBreakdown from './components/category-breakdown.vue';
 import CumulativeChart from './components/cumulative-chart.vue';
 import MetricToggle, { type MetricType } from './components/metric-toggle.vue';
@@ -189,8 +185,8 @@ const currentPeriodDates = computed(() => ({
 }));
 
 // Calculate period length and get the immediately preceding period (same as cumulative chart)
-const periodLengthMonths = computed(() =>
-  differenceInMonths(startOfMonth(selectedPeriod.value.to), startOfMonth(selectedPeriod.value.from)) + 1,
+const periodLengthMonths = computed(
+  () => differenceInMonths(startOfMonth(selectedPeriod.value.to), startOfMonth(selectedPeriod.value.from)) + 1,
 );
 
 const previousPeriodDates = computed(() => ({

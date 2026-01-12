@@ -15,6 +15,11 @@ export const DOMAIN_EVENTS = {
    * Payload: @type TransactionsSyncedPayload
    */
   TRANSACTIONS_SYNCED: 'transactions:synced',
+  /**
+   * Emitted when transactions are tagged.
+   * Payload: @type TransactionsTaggedPayload
+   */
+  TRANSACTIONS_TAGGED: 'transactions:tagged',
 } as const;
 
 /**
@@ -24,4 +29,9 @@ export interface TransactionsSyncedPayload {
   userId: number;
   accountId: number;
   transactionIds: number[];
+}
+
+export interface TransactionsTaggedPayload {
+  tagIds: number[];
+  userId: number;
 }
