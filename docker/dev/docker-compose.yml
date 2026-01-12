@@ -9,7 +9,7 @@ services:
     volumes:
       - ../../packages/backend:/app/packages/backend
       - ../../packages/shared:/app/packages/shared
-      - ../../node_modules:/app/node_modules
+      - root_node_modules:/app/node_modules
       - backend_node_modules:/app/packages/backend/node_modules
       # Mount SSL certificates for HTTPS
       - ../../docker/dev/certs:/app/docker/dev/certs:ro
@@ -29,6 +29,7 @@ services:
     volumes:
       - ../../packages/frontend:/app/packages/frontend
       - ../../packages/shared:/app/packages/shared
+      - root_node_modules:/app/node_modules
       - frontend_node_modules:/app/packages/frontend/node_modules
       # Mount SSL certificates for HTTPS
       - ../../docker/dev/certs:/app/docker/dev/certs:ro
@@ -109,5 +110,6 @@ volumes:
   db_data:
   redis_data:
   currency_rates_data:
+  root_node_modules:
   backend_node_modules:
   frontend_node_modules:
