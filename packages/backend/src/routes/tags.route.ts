@@ -1,4 +1,11 @@
 import {
+  createReminder,
+  deleteReminder,
+  getReminderById,
+  getRemindersForTag,
+  updateReminder,
+} from '@controllers/tag-reminders';
+import {
   addTransactionsToTag,
   createTag,
   deleteTag,
@@ -30,6 +37,33 @@ router.delete(
   authenticateSession,
   validateEndpoint(removeTransactionsFromTag.schema),
   removeTransactionsFromTag.handler,
+);
+
+// Tag reminders routes
+router.get(
+  '/:tagId/reminders',
+  authenticateSession,
+  validateEndpoint(getRemindersForTag.schema),
+  getRemindersForTag.handler,
+);
+router.get(
+  '/:tagId/reminders/:id',
+  authenticateSession,
+  validateEndpoint(getReminderById.schema),
+  getReminderById.handler,
+);
+router.post('/:tagId/reminders', authenticateSession, validateEndpoint(createReminder.schema), createReminder.handler);
+router.put(
+  '/:tagId/reminders/:id',
+  authenticateSession,
+  validateEndpoint(updateReminder.schema),
+  updateReminder.handler,
+);
+router.delete(
+  '/:tagId/reminders/:id',
+  authenticateSession,
+  validateEndpoint(deleteReminder.schema),
+  deleteReminder.handler,
 );
 
 export default router;

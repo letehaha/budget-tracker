@@ -80,6 +80,23 @@
     "transactionsAddedSuccessfully": "Transactions added to tag successfully",
     "transactionsRemovedSuccessfully": "Transactions removed from tag successfully"
   },
+  "tagReminders": {
+    "reminderNotFound": "Tag reminder not found",
+    "reminderAlreadyExists": "An identical reminder already exists for this tag",
+    "amountThresholdRequired": "Amount threshold is required for amount threshold reminders",
+    "maxRemindersReached": "Maximum number of reminders (50) reached",
+    "repeatScheduleIncomplete": "Both repeatEvery and repeatPeriod must be provided together or both omitted",
+    "notifications": {
+      "thresholdExceeded": {
+        "title": "Tag Spending Alert",
+        "message": "Your spending on \"{{tagName}}\" ({{actualAmount}}) exceeded your threshold of {{thresholdAmount}}"
+      },
+      "existenceCheck": {
+        "title": "Tag Activity Summary",
+        "message": "You have {{count}} transaction(s) tagged with \"{{tagName}}\""
+      }
+    }
+  },
   "defaultTags": {
     "want": {
       "name": "Want",

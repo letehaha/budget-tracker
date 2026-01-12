@@ -8,132 +8,141 @@
       {{ isEditMode ? $t('settings.tags.form.editTitle') : $t('settings.tags.form.createTitle') }}
     </template>
 
-    <form class="mt-4 grid gap-4" @submit.prevent="handleSubmit">
-      <InputField
-        v-model="form.name"
-        :label="$t('settings.tags.form.name')"
-        :placeholder="$t('settings.tags.form.namePlaceholder')"
-        autofocus
-      />
+    <!-- Tabs for edit mode, simple form for create mode -->
+    <template v-if="isEditMode && tag">
+      <Tabs v-model="activeTab" class="mt-4 mb-auto">
+        <TabsList class="grid w-full grid-cols-2">
+          <TabsTrigger value="details">
+            {{ $t('settings.tags.tabs.details') }}
+          </TabsTrigger>
+          <TabsTrigger value="reminders">
+            {{ $t('settings.tags.tabs.reminders') }}
+            <span
+              v-if="reminders.length > 0"
+              class="bg-primary/10 text-primary ml-1.5 inline-flex size-5 items-center justify-center rounded-full text-xs font-medium"
+            >
+              {{ reminders.length }}
+            </span>
+          </TabsTrigger>
+        </TabsList>
 
-      <div class="grid grid-cols-2 gap-4">
-        <ColorSelectField v-model="form.color" :label="$t('settings.tags.form.color')" />
+        <TabsContent value="details" class="min-h-100">
+          <TagDetailsForm
+            :form="form"
+            :is-edit-mode="isEditMode"
+            :is-submitting="isSubmitting"
+            :is-submit-disabled="isSubmitDisabled"
+            :tag="tag"
+            @submit="handleSubmit"
+            @delete="handleDelete"
+          />
+        </TabsContent>
 
-        <!-- Icon Picker -->
-        <FieldLabel :label="$t('settings.tags.form.icon')" only-template>
-          <Popover v-model:open="iconPickerOpen">
-            <PopoverTrigger as-child>
-              <button
-                type="button"
-                :class="
-                  cn(
-                    'border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
-                    !form.icon && 'text-muted-foreground',
-                  )
-                "
-              >
-                <TagIcon v-if="form.icon" :name="form.icon" class="size-4 shrink-0" />
-                <span class="flex-1 truncate text-left">
-                  {{ form.icon || $t('settings.tags.form.iconPlaceholder') }}
-                </span>
-                <ChevronsUpDownIcon class="text-muted-foreground size-4 shrink-0" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent class="w-[320px] p-2" align="start">
-              <IconPickerDropdown
-                :model-value="form.icon"
-                @update:model-value="form.icon = $event"
-                @close="iconPickerOpen = false"
-              />
-            </PopoverContent>
-          </Popover>
-        </FieldLabel>
-      </div>
-
-      <!-- Preview -->
-      <div class="bg-muted/50 flex items-center justify-center gap-4 rounded-lg p-4">
-        <div class="flex size-8 items-center justify-center rounded-full" :style="{ backgroundColor: form.color }">
-          <TagIcon v-if="form.icon" :name="form.icon" class="size-4 text-white" />
-        </div>
-        <span
-          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm font-medium text-white"
-          :style="{ backgroundColor: form.color }"
-        >
-          <TagIcon v-if="form.icon" :name="form.icon" class="size-3.5" />
-          {{ form.name || $t('settings.tags.form.previewPlaceholder') }}
-        </span>
-      </div>
-
-      <TextareaField
-        v-model="form.description"
-        :label="$t('settings.tags.form.description')"
-        :placeholder="$t('settings.tags.form.descriptionPlaceholder')"
-        :rows="2"
-      />
-
-      <div class="mt-2 flex items-center" :class="isEditMode ? 'justify-between' : 'justify-end'">
-        <AlertDialog v-if="isEditMode">
-          <AlertDialogTrigger as-child>
-            <Button type="button" variant="destructive" :disabled="isSubmitting">
-              {{ $t('common.actions.delete') }}
+        <TabsContent value="reminders" class="relative h-100 overflow-auto pb-2">
+          <div class="bg-background sticky top-0 mb-2 flex items-center justify-end py-2">
+            <Button variant="outline" size="sm" class="gap-1.5" @click="openReminderDialog()">
+              <PlusIcon class="size-4" />
+              {{ $t('settings.tags.reminders.addButton') }}
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{{ $t('settings.tags.delete.title') }}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {{ $t('settings.tags.delete.description', { name: tag?.name }) }}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{{ $t('settings.tags.delete.cancelButton') }}</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" @click="handleDelete">
-                {{ $t('settings.tags.delete.deleteButton') }}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          </div>
 
-        <Button type="submit" :disabled="isSubmitDisabled">
-          {{ $t('settings.tags.form.saveButton') }}
-        </Button>
-      </div>
-    </form>
+          <div v-if="isLoadingReminders" class="text-muted-foreground py-4 text-center text-sm">
+            {{ $t('common.actions.loading') }}
+          </div>
+          <div v-else-if="reminders.length === 0" class="text-muted-foreground py-8 text-center text-sm">
+            {{ $t('settings.tags.reminders.empty') }}
+          </div>
+          <div v-else class="grid gap-2">
+            <div
+              v-for="reminder in reminders"
+              :key="reminder.id"
+              class="hover:bg-accent flex cursor-pointer items-center justify-between gap-3 rounded-md border px-3 py-2 transition-colors"
+              @click="openReminderDialog({ reminder })"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="font-medium">{{ getReminderTypeLabel(reminder.type) }}</span>
+                  <span
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
+                    :class="
+                      reminder.isEnabled
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                    "
+                  >
+                    {{
+                      reminder.isEnabled
+                        ? $t('settings.tags.reminders.enabled')
+                        : $t('settings.tags.reminders.disabled')
+                    }}
+                  </span>
+                </div>
+                <p class="text-muted-foreground text-xs">
+                  {{ getReminderScheduleLabel(reminder) }}
+                  <template v-if="getAmountThreshold(reminder)">
+                    &middot; {{ formatCurrency(getAmountThreshold(reminder)!) }}
+                  </template>
+                </p>
+              </div>
+              <ChevronRightIcon class="text-muted-foreground size-4 shrink-0" />
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </template>
+
+    <!-- Simple form for create mode (no tabs) -->
+    <template v-else>
+      <TagDetailsForm
+        :form="form"
+        :is-edit-mode="isEditMode"
+        :is-submitting="isSubmitting"
+        :is-submit-disabled="isSubmitDisabled"
+        class="mt-4"
+        @submit="handleSubmit"
+      />
+    </template>
+  </ResponsiveDialog>
+
+  <!-- Reminder Form Dialog (managed separately to avoid nested dialog issues) -->
+  <ResponsiveDialog v-model:open="isReminderDialogOpen">
+    <template #title>
+      {{
+        editingReminder ? $t('settings.tags.reminders.form.editTitle') : $t('settings.tags.reminders.form.createTitle')
+      }}
+    </template>
+
+    <TagReminderForm
+      v-if="tag"
+      :tag-id="tag.id"
+      :reminder="editingReminder"
+      @saved="handleReminderSaved"
+      @deleted="handleReminderDeleted"
+    />
   </ResponsiveDialog>
 </template>
 
 <script setup lang="ts">
+import * as tagsApi from '@/api/tags';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
-import TagIcon from '@/components/common/icons/tag-icon.vue';
-import ColorSelectField from '@/components/fields/color-select-field.vue';
-import FieldLabel from '@/components/fields/components/field-label.vue';
-import InputField from '@/components/fields/input-field.vue';
-import TextareaField from '@/components/fields/textarea-field.vue';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/lib/ui/alert-dialog';
+import TagDetailsForm from '@/components/dialogs/tag-details-form.vue';
+import TagReminderForm from '@/components/dialogs/tag-reminder-form.vue';
 import { Button } from '@/components/lib/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
-import { cn } from '@/lib/utils';
-import { useTagsStore } from '@/stores';
-import { TagModel } from '@bt/shared/types';
-import { ChevronsUpDownIcon } from 'lucide-vue-next';
-import { computed, defineAsyncComponent, reactive, ref, watch } from 'vue';
+import { useCurrenciesStore, useTagsStore } from '@/stores';
+import {
+  TAG_REMINDER_FREQUENCIES,
+  TAG_REMINDER_TYPES,
+  TagModel,
+  TagReminderFrequency,
+  TagReminderModel,
+  TagReminderType,
+} from '@bt/shared/types';
+import { ChevronRightIcon, PlusIcon } from 'lucide-vue-next';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-const IconPickerDropdown = defineAsyncComponent(
-  () => import('@/components/common/icons/icon-picker-dropdown.vue'),
-);
 
 const props = defineProps<{
   tag?: TagModel;
@@ -156,13 +165,114 @@ const isOpen = computed({
 
 const internalOpen = ref(false);
 const isSubmitting = ref(false);
-const iconPickerOpen = ref(false);
+const activeTab = ref('details');
+
+// Reminder dialog state
+const isReminderDialogOpen = ref(false);
+const editingReminder = ref<TagReminderModel | undefined>(undefined);
+
+const openReminderDialog = ({ reminder }: { reminder?: TagReminderModel } = {}) => {
+  editingReminder.value = reminder;
+  isReminderDialogOpen.value = true;
+};
+
+const closeReminderDialog = () => {
+  isReminderDialogOpen.value = false;
+  editingReminder.value = undefined;
+};
 
 const { t } = useI18n();
 const tagsStore = useTagsStore();
+const currenciesStore = useCurrenciesStore();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 
 const isEditMode = computed(() => !!props.tag);
+
+// Reminders state
+const reminders = ref<TagReminderModel[]>([]);
+const isLoadingReminders = ref(false);
+
+const loadReminders = async () => {
+  if (!props.tag) return;
+
+  isLoadingReminders.value = true;
+  try {
+    reminders.value = await tagsApi.loadRemindersForTag({ tagId: props.tag.id });
+  } catch {
+    // Silently fail - reminders are not critical
+  } finally {
+    isLoadingReminders.value = false;
+  }
+};
+
+const handleReminderSaved = (reminder: TagReminderModel) => {
+  const index = reminders.value.findIndex((r) => r.id === reminder.id);
+  if (index !== -1) {
+    reminders.value[index] = reminder;
+  } else {
+    reminders.value.push(reminder);
+  }
+  closeReminderDialog();
+};
+
+const handleReminderDeleted = () => {
+  closeReminderDialog();
+  loadReminders();
+};
+
+const getReminderTypeLabel = (type: TagReminderType) => {
+  switch (type) {
+    case TAG_REMINDER_TYPES.amountThreshold:
+      return t('settings.tags.reminders.types.amountThreshold');
+    case TAG_REMINDER_TYPES.existenceCheck:
+      return t('settings.tags.reminders.types.existenceCheck');
+    default:
+      return type;
+  }
+};
+
+const getReminderScheduleLabel = (reminder: TagReminderModel) => {
+  // Real-time reminder (no schedule)
+  if (!reminder.frequency) {
+    return t('settings.tags.reminders.frequencies.immediate');
+  }
+
+  // Scheduled reminder
+  return getFrequencyLabel(reminder.frequency);
+};
+
+const getFrequencyLabel = (frequency: TagReminderFrequency) => {
+  switch (frequency) {
+    case TAG_REMINDER_FREQUENCIES.daily:
+      return t('settings.tags.reminders.frequencies.daily');
+    case TAG_REMINDER_FREQUENCIES.weekly:
+      return t('settings.tags.reminders.frequencies.weekly');
+    case TAG_REMINDER_FREQUENCIES.monthly:
+      return t('settings.tags.reminders.frequencies.monthly');
+    case TAG_REMINDER_FREQUENCIES.quarterly:
+      return t('settings.tags.reminders.frequencies.quarterly');
+    case TAG_REMINDER_FREQUENCIES.yearly:
+      return t('settings.tags.reminders.frequencies.yearly');
+    default:
+      return frequency;
+  }
+};
+
+const getAmountThreshold = (reminder: TagReminderModel): number | undefined => {
+  const settings = reminder.settings as { amountThreshold?: number } | undefined;
+  return settings?.amountThreshold;
+};
+
+const formatCurrency = (amount: number) => {
+  const baseCurrency = currenciesStore.baseCurrency;
+  const currencyCode = baseCurrency?.currency?.code || 'USD';
+  // Amount is already in display format (API layer converts from system amount)
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: currencyCode,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
 
 const DEFAULT_TAG_COLOR = '#3b82f6';
 
@@ -227,7 +337,14 @@ watch(
   isOpen,
   (open) => {
     if (open) {
+      activeTab.value = 'details';
       initializeForm();
+      // Load reminders when editing an existing tag
+      if (props.tag) {
+        loadReminders();
+      } else {
+        reminders.value = [];
+      }
     }
   },
   { immediate: true },

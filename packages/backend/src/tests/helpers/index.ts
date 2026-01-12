@@ -17,6 +17,7 @@ export * from './budgets';
 export * from './import-export';
 export * from './notifications';
 export * from './webhooks';
+export * from './tags';
 
 export * from './investments/securities';
 export * from './investments/prices';

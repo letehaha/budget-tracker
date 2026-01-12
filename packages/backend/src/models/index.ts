@@ -12,6 +12,7 @@ import ExchangeRatesModel from './ExchangeRates.model';
 import MerchantCategoryCodesModel from './MerchantCategoryCodes.model';
 import NotificationsModel from './Notifications.model';
 import RefundTransactionsModel from './RefundTransactions.model';
+import TagRemindersModel from './TagReminders.model';
 import TagsModel from './Tags.model';
 import TransactionSplitsModel from './TransactionSplits.model';
 import TransactionTagsModel from './TransactionTags.model';
@@ -73,6 +74,7 @@ const models = [
   BudgetModel,
   BudgetTransactionsModel,
   TagsModel,
+  TagRemindersModel,
   TransactionTagsModel,
   TransactionSplitsModel,
   HoldingsModel,

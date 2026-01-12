@@ -6,12 +6,14 @@ import {
   NOTIFICATION_STATUSES,
   NOTIFICATION_TYPES,
   NotificationType,
+  TagReminderNotificationPayload,
 } from '@bt/shared/types';
-import { AlertTriangleIcon, InfoIcon, SparklesIcon, WalletIcon, XIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, InfoIcon, SparklesIcon, TagIcon, WalletIcon, XIcon } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 import ChangelogContent from './changelog-content.vue';
 import DefaultContent from './default-content.vue';
+import TagReminderContent from './tag-reminder-content.vue';
 
 const props = defineProps<{
   notification: NotificationStruct;
@@ -33,6 +35,8 @@ const getIcon = (type: NotificationType) => {
       return AlertTriangleIcon;
     case NOTIFICATION_TYPES.changelog:
       return SparklesIcon;
+    case NOTIFICATION_TYPES.tagReminder:
+      return TagIcon;
     default:
       return InfoIcon;
   }
@@ -46,6 +50,8 @@ const getIconBg = (type: NotificationType) => {
       return 'bg-blue-500';
     case NOTIFICATION_TYPES.changelog:
       return 'bg-purple-500';
+    case NOTIFICATION_TYPES.tagReminder:
+      return 'bg-amber-500';
     default:
       return 'bg-gray-500';
   }
@@ -111,6 +117,10 @@ const handleDismiss = (event: Event) => {
         <ChangelogContent
           v-if="notification.type === NOTIFICATION_TYPES.changelog"
           :payload="notification.payload as ChangelogNotificationPayload"
+        />
+        <TagReminderContent
+          v-else-if="notification.type === NOTIFICATION_TYPES.tagReminder"
+          :payload="notification.payload as TagReminderNotificationPayload"
         />
         <DefaultContent v-else :message="notification.message" />
 

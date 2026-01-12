@@ -2,6 +2,7 @@ import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Tags from '@models/Tags.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { literal } from 'sequelize';
 
 export interface CreateTagPayload {
   userId: number;
@@ -39,12 +40,28 @@ export interface GetTagsPayload {
 }
 
 export const getTags = async ({ userId }: GetTagsPayload) => {
-  const tags = await Tags.findAll({
+  const tags = (await Tags.findAll({
     where: { userId },
     order: [['createdAt', 'ASC']],
-  });
+    attributes: {
+      include: [
+        [
+          literal(`(
+            SELECT COUNT(*)
+            FROM "TagReminders"
+            WHERE "TagReminders"."tagId" = "Tags"."id"
+          )`),
+          'remindersCount',
+        ],
+      ],
+    },
+    raw: true,
+  })) as (Tags & { remindersCount: string })[];
 
-  return tags;
+  return tags.map((i) => ({
+    ...i,
+    remindersCount: Number(i.remindersCount),
+  }));
 };
 
 export interface GetTagByIdPayload {

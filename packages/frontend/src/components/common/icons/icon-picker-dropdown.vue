@@ -25,46 +25,27 @@
             }"
           >
             <div class="grid grid-cols-8 gap-1 p-1">
-              <Tooltip v-for="iconName in getIconsForRow(row.index)" :key="iconName" :delay-duration="0">
-                <TooltipTrigger as-child>
-                  <button
-                    type="button"
-                    :class="
-                      cn(
-                        'hover:bg-accent flex size-8 items-center justify-center rounded-md transition-colors',
-                        modelValue === iconName && 'bg-accent ring-ring ring-2',
-                      )
-                    "
-                    @click="selectIcon(iconName)"
-                  >
-                    <Icon :icon="`lucide:${iconName}`" class="size-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" :side-offset="4">
-                  {{ iconName }}
-                </TooltipContent>
-              </Tooltip>
+              <template v-for="iconName in getIconsForRow(row.index)" :key="iconName" :delay-duration="0">
+                <Button size="icon-sm" variant="ghost" :title="iconName" @click="selectIcon(iconName)">
+                  <Icon :icon="`lucide:${iconName}`" class="size-4" />
+                </Button>
+              </template>
             </div>
           </div>
         </div>
       </div>
 
-      <button
-        v-if="modelValue"
-        type="button"
-        class="text-muted-foreground hover:text-foreground w-full text-center text-xs"
-        @click="clearIcon"
-      >
+      <Button v-if="modelValue" variant="ghost-destructive" size="sm" @click="clearIcon">
         {{ $t('settings.tags.form.clearIcon') }}
-      </button>
+      </Button>
     </div>
   </TooltipProvider>
 </template>
 
 <script setup lang="ts">
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/lib/ui/tooltip';
+import Button from '@/components/lib/ui/button/Button.vue';
+import { TooltipProvider } from '@/components/lib/ui/tooltip';
 import lucideIcons from '@/data/lucide-icons.json';
-import { cn } from '@/lib/utils';
 import { Icon } from '@iconify/vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { computed, onMounted, ref } from 'vue';

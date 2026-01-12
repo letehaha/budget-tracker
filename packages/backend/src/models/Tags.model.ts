@@ -1,7 +1,8 @@
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, DataType, BelongsToMany, HasMany } from 'sequelize-typescript';
 import Users from '@models/Users.model';
 import Transactions from '@models/Transactions.model';
 import TransactionTags from './TransactionTags.model';
+import TagReminders from './TagReminders.model';
 
 @Table({
   tableName: 'Tags',
@@ -36,4 +37,7 @@ export default class Tags extends Model {
     otherKey: 'transactionId',
   })
   transactions!: Transactions[];
+
+  @HasMany(() => TagReminders, { foreignKey: 'tagId' })
+  reminders!: TagReminders[];
 }

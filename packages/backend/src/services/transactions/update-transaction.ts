@@ -10,6 +10,7 @@ import { deleteSplitsForTransaction } from '@models/TransactionSplits.model';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import * as refundsService from '@services/tx-refunds';
 import { Op } from 'sequelize';
 
@@ -502,6 +503,11 @@ export const updateTransaction = withTransaction(
 
           // Set new tags
           await baseTransaction.$set('tags', payload.tagIds);
+
+          if (payload.tagIds?.length) {
+            // Emit event for real-time reminders check (handled by event listener)
+            eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_TAGGED, { tagIds: payload.tagIds, userId: payload.userId });
+          }
         }
       }
 

@@ -84,15 +84,14 @@ export enum BUDGET_STATUSES {
 export const TAG_REMINDER_TYPES = {
   amountThreshold: 'amount_threshold',
   existenceCheck: 'existence_check',
-  absenceCheck: 'absence_check',
 } as const;
 
 export type TagReminderType = (typeof TAG_REMINDER_TYPES)[keyof typeof TAG_REMINDER_TYPES];
 
 /**
- * Tag reminder periods
+ * Tag reminder frequency presets
  */
-export const TAG_REMINDER_PERIODS = {
+export const TAG_REMINDER_FREQUENCIES = {
   daily: 'daily',
   weekly: 'weekly',
   monthly: 'monthly',
@@ -100,7 +99,15 @@ export const TAG_REMINDER_PERIODS = {
   yearly: 'yearly',
 } as const;
 
-export type TagReminderPeriod = (typeof TAG_REMINDER_PERIODS)[keyof typeof TAG_REMINDER_PERIODS];
+export type TagReminderFrequency = (typeof TAG_REMINDER_FREQUENCIES)[keyof typeof TAG_REMINDER_FREQUENCIES];
+
+/**
+ * Special value for real-time/immediate reminders (no scheduled frequency).
+ * Used in frontend forms to represent `null` frequency.
+ */
+export const TAG_REMINDER_IMMEDIATE = 'immediate' as const;
+
+export type TagReminderFrequencyOrImmediate = TagReminderFrequency | typeof TAG_REMINDER_IMMEDIATE;
 
 /**
  * Source of transaction categorization

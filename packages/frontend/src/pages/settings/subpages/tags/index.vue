@@ -35,6 +35,13 @@
                 {{ tag.description }}
               </p>
             </div>
+            <div
+              v-if="tag.remindersCount && tag.remindersCount > 0"
+              class="text-muted-foreground flex shrink-0 items-center gap-1 text-xs"
+            >
+              <BellIcon class="size-3.5" />
+              <span>{{ tag.remindersCount }}</span>
+            </div>
             <ChevronRightIcon class="text-muted-foreground size-4 shrink-0" />
           </div>
         </template>
@@ -63,7 +70,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Card } from '@/components/lib/ui/card';
 import { useTagsStore } from '@/stores';
 import { TagModel } from '@bt/shared/types';
-import { ChevronRightIcon, PlusIcon } from 'lucide-vue-next';
+import { BellIcon, ChevronRightIcon, PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { onMounted, reactive } from 'vue';
 

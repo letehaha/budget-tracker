@@ -9,7 +9,7 @@ import {
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
-  TagReminderPeriod,
+  TagReminderFrequency,
   TagReminderType,
 } from './enums';
 
@@ -209,19 +209,36 @@ export interface TagModel {
   icon: string | null;
   description: string | null;
   createdAt: Date;
+  /** Count of reminders associated with this tag (populated on list fetch) */
+  remindersCount?: number;
 }
+
+/**
+ * Type-specific settings for amount threshold reminders
+ */
+export interface AmountThresholdSettings {
+  /** Threshold amount in cents */
+  amountThreshold: number;
+}
+
+export type TagReminderSettings = AmountThresholdSettings | Record<string, unknown>;
 
 export interface TagReminderModel {
   id: number;
   userId: number;
   tagId: number;
   type: TagReminderType;
-  period: TagReminderPeriod;
-  amountThreshold: number | null;
+  /** Frequency preset. Null means real-time trigger (immediate when tagged) */
+  frequency: TagReminderFrequency | null;
+  /** Day of month to check (1-31). Only used for monthly/quarterly/yearly. Null = 1st */
+  dayOfMonth: number | null;
+  /** Type-specific settings (e.g., amountThreshold for amount_threshold type) */
+  settings: TagReminderSettings;
   isEnabled: boolean;
   lastCheckedAt: Date | null;
   lastTriggeredAt: Date | null;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 /**
@@ -252,12 +269,22 @@ export interface ChangelogNotificationPayload {
 export interface TagReminderNotificationPayload {
   tagId: number;
   tagName: string;
+  tagColor?: string | null;
+  tagIcon?: string | null;
   reminderType: TagReminderType;
-  period: TagReminderPeriod;
+  /** Schedule info for context in notification */
+  schedule?: {
+    frequency?: TagReminderFrequency | null;
+    dayOfMonth?: number | null;
+  };
+  /** Amount threshold in cents (integers) */
   thresholdAmount?: number;
+  /** Actual amount spent in cents (integers) */
   actualAmount?: number;
   transactionCount?: number;
   currencyCode?: string;
+  /** IDs of transactions that triggered this reminder */
+  transactionIds?: number[];
 }
 
 export type NotificationPayload =

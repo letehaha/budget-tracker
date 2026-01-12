@@ -80,6 +80,26 @@
     "transactionsAddedSuccessfully": "Транзакції успішно додано до тегу",
     "transactionsRemovedSuccessfully": "Транзакції успішно видалено з тегу"
   },
+  "tagReminders": {
+    "reminderNotFound": "Нагадування для тегу не знайдено",
+    "reminderAlreadyExists": "Ідентичне нагадування вже існує для цього тегу",
+    "amountThresholdRequired": "Порогова сума обов'язкова для нагадувань про перевищення суми",
+    "maxRemindersReached": "Досягнуто максимальну кількість нагадувань (50)",
+    "repeatScheduleIncomplete": "repeatEvery та repeatPeriod повинні бути вказані разом або обидва пропущені",
+    "notifications": {
+      "thresholdExceeded": {
+        "title": "Сповіщення про витрати по тегу",
+        "message": "Ваші витрати на \"{{tagName}}\" ({{actualAmount}}) перевищили встановлений поріг {{thresholdAmount}}"
+      },
+      "existenceCheck": {
+        "title": "Підсумок активності тегу",
+        "message_one": "У вас {{count}} транзакція з тегом \"{{tagName}}\"",
+        "message_few": "У вас {{count}} транзакції з тегом \"{{tagName}}\"",
+        "message_many": "У вас {{count}} транзакцій з тегом \"{{tagName}}\"",
+        "message": "У вас {{count}} транзакцій з тегом \"{{tagName}}\""
+      }
+    }
+  },
   "defaultTags": {
     "want": {
       "name": "Хочу",
