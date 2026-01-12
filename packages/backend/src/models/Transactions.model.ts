@@ -87,10 +87,12 @@ export interface TransactionsAttributes {
   cashbackAmount: number; // add to unified
   refundLinked: boolean;
   categorizationMeta: CategorizationMeta | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 @Table({
-  timestamps: false,
+  timestamps: true,
   tableName: 'Transactions',
   freezeTableName: true,
 })
@@ -233,6 +235,10 @@ export default class Transactions extends Model {
     allowNull: true,
   })
   categorizationMeta!: CategorizationMeta | null;
+
+  // Managed by Sequelize (timestamps: true)
+  declare createdAt: Date;
+  declare updatedAt: Date;
 
   // User should set all of requiredFields for transfer transaction
   @BeforeCreate

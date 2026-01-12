@@ -154,6 +154,10 @@ export interface TransactionModel {
   splits?: TransactionSplitModel[];
   /** Optional tags associated with the transaction (loaded when includeTags=true) */
   tags?: TagModel[];
+  /** Timestamp when the record was created (defaults to transaction time for existing records) */
+  createdAt: Date;
+  /** Timestamp when the record was last updated */
+  updatedAt: Date;
 }
 
 export interface CurrencyModel {

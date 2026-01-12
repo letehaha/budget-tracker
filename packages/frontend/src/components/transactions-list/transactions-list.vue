@@ -82,17 +82,7 @@ const handlerRecordClick = ([baseTx, oppositeTx]: [baseTx: TransactionModel, opp
 
 const getTransactionKey = (tx: TransactionModel | undefined, index: number): string | number => {
   if (!tx) return index;
-  return [
-    tx.id,
-    tx.categoryId,
-    tx.refAmount,
-    tx.note,
-    tx.time,
-    tx.transferNature,
-    tx.splits?.length ?? 0,
-    tx.refundLinked,
-    tx.tags?.length ?? 0,
-  ].join('-');
+  return `${tx.id}-${tx.updatedAt}`;
 };
 
 const scrollContainer = useScrollAreaContainer(props.scrollAreaId);
@@ -210,7 +200,7 @@ watchEffect(() => {
       <div v-bind="$attrs" class="grid grid-cols-1 gap-2">
         <template
           v-for="item in displayTransactions"
-          :key="`${item.id}-${item.categoryId}-${item.refAmount}-${item.note}-${item.time}-${item.splits?.length ?? 0}`"
+          :key="`${item.id}-${item.updatedAt}`"
         >
           <TransactionRecord :tx="item" @record-click="handlerRecordClick" />
         </template>

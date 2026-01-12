@@ -1,6 +1,11 @@
 import { DataTypes, QueryInterface, QueryTypes, Transaction } from 'sequelize';
 
-import { DEFAULT_TAG_KEYS, DEFAULT_TAG_STRUCTURE } from '../common/const/default-tags';
+// Inlined to avoid path alias issues in migration context
+const DEFAULT_TAG_STRUCTURE = [
+  { key: 'want', color: '#16a34a', icon: 'sparkles' },
+  { key: 'need', color: '#c35a04', icon: 'target' },
+  { key: 'must', color: '#c11401', icon: 'circle-alert' },
+] as const;
 
 /**
  * Migration to create Tags and TransactionTags tables.
@@ -118,9 +123,9 @@ module.exports = {
         transaction: t,
       });
 
-      const wantTag = DEFAULT_TAG_STRUCTURE.find((i) => i.key === DEFAULT_TAG_KEYS.want)!;
-      const needTag = DEFAULT_TAG_STRUCTURE.find((i) => i.key === DEFAULT_TAG_KEYS.need)!;
-      const mustTag = DEFAULT_TAG_STRUCTURE.find((i) => i.key === DEFAULT_TAG_KEYS.must)!;
+      const wantTag = DEFAULT_TAG_STRUCTURE.find((i) => i.key === 'want')!;
+      const needTag = DEFAULT_TAG_STRUCTURE.find((i) => i.key === 'need')!;
+      const mustTag = DEFAULT_TAG_STRUCTURE.find((i) => i.key === 'must')!;
 
       // Seed default tags for all existing users
       const defaultTags = [
