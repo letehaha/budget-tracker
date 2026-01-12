@@ -5,6 +5,7 @@ import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
+import Tags from '@models/Tags.model';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
@@ -329,6 +330,18 @@ export const createTransaction = withTransaction(
 
       // Handle tags for the transaction
       if (tagIds && tagIds.length > 0) {
+        // Validate that all tagIds belong to the current user
+        const userTags = await Tags.findAll({
+          where: { userId, id: tagIds },
+          attributes: ['id'],
+        });
+
+        if (userTags.length !== tagIds.length) {
+          throw new ValidationError({
+            message: t({ key: 'transactions.invalidTagIds' }),
+          });
+        }
+
         await baseTransaction!.$set('tags', tagIds);
       }
 

@@ -51,6 +51,7 @@
     "linkAlreadyTransferNotAllowed": "Trying to link transaction that is already a transfer.",
     "linkUnexpectedError": "Unexpected error. Cannot link asked transactions.",
     "linkCannotFind": "Cannot find base or opposite transactions",
+    "invalidTagIds": "One or more tag IDs are invalid or do not belong to this user",
     "splits": {
       "splitsOnTransfer": "Cannot add splits to transfer transactions",
       "splitLimitExceeded": "Maximum {{max}} splits allowed per transaction",

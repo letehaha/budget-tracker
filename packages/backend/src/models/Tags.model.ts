@@ -5,7 +5,7 @@ import TransactionTags from './TransactionTags.model';
 
 @Table({
   tableName: 'Tags',
-  timestamps: false,
+  timestamps: true,
 })
 export default class Tags extends Model {
   @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
@@ -27,8 +27,8 @@ export default class Tags extends Model {
   @Column({ allowNull: true, type: DataType.TEXT })
   description!: string | null;
 
-  @Column({ allowNull: false, type: DataType.DATE, defaultValue: DataType.NOW })
-  createdAt!: Date;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 
   @BelongsToMany(() => Transactions, {
     through: { model: () => TransactionTags, unique: false },

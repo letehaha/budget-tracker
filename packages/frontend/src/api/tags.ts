@@ -19,10 +19,6 @@ export const loadTags = async (): Promise<TagModel[]> => {
   return api.get('/tags');
 };
 
-export const loadTagById = async ({ id }: { id: number }): Promise<TagModel> => {
-  return api.get(`/tags/${id}`);
-};
-
 export const createTag = async (payload: CreateTagPayload): Promise<TagModel> => {
   return api.post('/tags', payload);
 };

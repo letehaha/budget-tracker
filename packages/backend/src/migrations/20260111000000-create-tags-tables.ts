@@ -53,6 +53,11 @@ module.exports = {
             allowNull: false,
             defaultValue: DataTypes.NOW,
           },
+          updatedAt: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+          },
         },
         { transaction: t },
       );
@@ -154,6 +159,7 @@ module.exports = {
             icon: tag.icon,
             description: tag.description,
             createdAt: now,
+            updatedAt: now,
           })),
         );
 
