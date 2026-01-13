@@ -27,7 +27,7 @@
           }"
           ref="inputFieldRef"
           :type="type"
-          :value="modelValue"
+          :value="modelValue ?? ''"
           :style="inputFieldStyles"
           :disabled="disabled"
           :tabindex="tabindex"
@@ -78,7 +78,7 @@ enum MODEL_EVENTS {
 
 const props = defineProps<{
   label?: string;
-  modelValue?: string | number;
+  modelValue?: string | number | null;
   type?: string;
   disabled?: boolean;
   tabindex?: string;
@@ -92,7 +92,7 @@ const props = defineProps<{
 }>();
 
 const emits = defineEmits<{
-  (e: MODEL_EVENTS.input, payload: string | number): void;
+  (e: MODEL_EVENTS.input, payload: string | number | null): void;
 }>();
 
 const slots = defineSlots<{
@@ -107,12 +107,19 @@ const attrs = useAttrs();
 
 const onInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
-  const value: string = target.value;
 
   if (props.disabled) return;
-  if (props.modelValue === value) return;
 
-  emits(MODEL_EVENTS.input, value);
+  // For number inputs, convert string to number (or null for empty)
+  if (props.type === 'number') {
+    const numValue = target.value === '' ? null : Number(target.value);
+    if (props.modelValue === numValue) return;
+    emits(MODEL_EVENTS.input, numValue);
+  } else {
+    const value: string = target.value;
+    if (props.modelValue === value) return;
+    emits(MODEL_EVENTS.input, value);
+  }
 };
 
 const onKeypress = (event: KeyboardEvent) => {
