@@ -7,6 +7,7 @@
 
 export * from './transactions.serializer';
 export * from './accounts.serializer';
+export * from './account-groups.serializer';
 export * from './budgets.serializer';
 export * from './balances.serializer';
 export * from './refund-transactions.serializer';

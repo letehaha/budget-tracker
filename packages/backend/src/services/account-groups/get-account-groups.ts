@@ -2,39 +2,35 @@ import Accounts from '@models/Accounts.model';
 import AccountGroup from '@models/accounts-groups/AccountGroups.model';
 import { Op, type WhereOptions } from 'sequelize';
 
-import { withTransaction } from '../common/with-transaction';
+export const getAccountGroups = async ({
+  userId,
+  accountIds = [],
+  hidden = false,
+}: {
+  userId: number;
+  accountIds?: number[];
+  hidden?: boolean;
+}): Promise<AccountGroup[]> => {
+  const accountWhere: WhereOptions<Accounts> = {};
 
-export const getAccountGroups = withTransaction(
-  async ({
-    userId,
-    accountIds = [],
-    hidden = false,
-  }: {
-    userId: number;
-    accountIds?: number[];
-    hidden?: boolean;
-  }): Promise<AccountGroup[]> => {
-    const accountWhere: WhereOptions<Accounts> = {};
+  if (accountIds.length > 0) {
+    accountWhere.id = { [Op.in]: accountIds };
+  }
 
-    if (accountIds.length > 0) {
-      accountWhere.id = { [Op.in]: accountIds };
-    }
+  if (!hidden) {
+    accountWhere.isEnabled = true;
+  }
 
-    if (!hidden) {
-      accountWhere.isEnabled = true;
-    }
-
-    return AccountGroup.findAll({
-      where: { userId },
-      include: [
-        { model: AccountGroup, as: 'childGroups' },
-        {
-          model: Accounts,
-          where: accountWhere,
-          through: { attributes: [] },
-          required: accountIds.length > 0,
-        },
-      ],
-    });
-  },
-);
+  return AccountGroup.findAll({
+    where: { userId },
+    include: [
+      { model: AccountGroup, as: 'childGroups' },
+      {
+        model: Accounts,
+        where: accountWhere,
+        through: { attributes: [] },
+        required: accountIds.length > 0,
+      },
+    ],
+  });
+};

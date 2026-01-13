@@ -1,7 +1,6 @@
 import { api } from '@/api/_api';
 import { AccountGroups } from '@/common/types/models';
 
-// Backend now returns decimals directly, no formatting needed
 export const loadAccountGroups = async (
   payload: { accountIds?: number[]; hidden?: boolean } = {},
 ): Promise<AccountGroups[]> => {

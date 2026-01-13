@@ -7,13 +7,11 @@ import {
   endpointsTypes,
 } from '@bt/shared/types';
 
-// Backend now returns decimals directly, no conversion needed
 export const loadAccounts = async (): Promise<AccountWithRelinkStatus[]> => {
   return api.get('/accounts');
 };
 
 export const createAccount = async (payload: endpointsTypes.CreateAccountBody): Promise<AccountModel> => {
-  // Backend accepts decimals directly
   return api.post('/accounts', {
     ...payload,
     accountCategory: payload.accountCategory || ACCOUNT_CATEGORIES.general,
@@ -26,7 +24,6 @@ export const editAccount = async ({
 }: endpointsTypes.UpdateAccountBody & {
   id: number;
 }): Promise<AccountModel> => {
-  // Backend accepts decimals directly
   return api.put(`/accounts/${id}`, data);
 };
 
