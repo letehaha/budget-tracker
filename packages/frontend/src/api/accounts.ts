@@ -1,5 +1,4 @@
 import { api } from '@/api/_api';
-import { fromSystemAmount, toSystemAmount } from '@/api/helpers';
 import {
   ACCOUNT_CATEGORIES,
   AccountModel,
@@ -8,35 +7,17 @@ import {
   endpointsTypes,
 } from '@bt/shared/types';
 
-export const formatAccount = <T extends AccountModel>(account: T): T =>
-  ({
-    ...account,
-    creditLimit: fromSystemAmount(account.creditLimit),
-    currentBalance: fromSystemAmount(account.currentBalance),
-    initialBalance: fromSystemAmount(account.initialBalance),
-    refCreditLimit: fromSystemAmount(account.refCreditLimit),
-    refCurrentBalance: fromSystemAmount(account.refCurrentBalance),
-    refInitialBalance: fromSystemAmount(account.refInitialBalance),
-  }) as T;
-
+// Backend now returns decimals directly, no conversion needed
 export const loadAccounts = async (): Promise<AccountWithRelinkStatus[]> => {
-  const result: AccountWithRelinkStatus[] = await api.get('/accounts');
-
-  return result.map((item) => formatAccount(item));
+  return api.get('/accounts');
 };
 
 export const createAccount = async (payload: endpointsTypes.CreateAccountBody): Promise<AccountModel> => {
-  const params = payload;
-
-  if (params.creditLimit) params.creditLimit = toSystemAmount(Number(params.creditLimit));
-  if (params.initialBalance) params.initialBalance = toSystemAmount(Number(params.initialBalance));
-
-  const result = await api.post('/accounts', {
-    ...params,
-    accountCategory: params.accountCategory || ACCOUNT_CATEGORIES.general,
+  // Backend accepts decimals directly
+  return api.post('/accounts', {
+    ...payload,
+    accountCategory: payload.accountCategory || ACCOUNT_CATEGORIES.general,
   });
-
-  return result;
 };
 
 export const editAccount = async ({
@@ -45,14 +26,8 @@ export const editAccount = async ({
 }: endpointsTypes.UpdateAccountBody & {
   id: number;
 }): Promise<AccountModel> => {
-  const params = data;
-
-  if (params.creditLimit) params.creditLimit = toSystemAmount(Number(params.creditLimit));
-  if (params.currentBalance) params.currentBalance = toSystemAmount(Number(params.currentBalance));
-
-  const result = await api.put(`/accounts/${id}`, params);
-
-  return formatAccount(result);
+  // Backend accepts decimals directly
+  return api.put(`/accounts/${id}`, data);
 };
 
 export interface DeleteAccountPayload {
@@ -66,8 +41,7 @@ export interface UnlinkAccountFromBankConnectionPayload {
 export const unlinkAccountFromBankConnection = async ({
   id,
 }: UnlinkAccountFromBankConnectionPayload): Promise<AccountModel> => {
-  const result = await api.post(`/accounts/${id}/unlink`);
-  return formatAccount(result);
+  return api.post(`/accounts/${id}/unlink`);
 };
 
 export interface LinkAccountToBankConnectionPayload {
@@ -85,12 +59,8 @@ export const linkAccountToBankConnection = async ({
   balanceAdjustmentTransaction: TransactionModel | null;
   message: string;
 }> => {
-  const result = await api.post(`/accounts/${accountId}/link`, {
+  return api.post(`/accounts/${accountId}/link`, {
     connectionId,
     externalAccountId,
   });
-  return {
-    ...result,
-    account: formatAccount(result.account),
-  };
 };

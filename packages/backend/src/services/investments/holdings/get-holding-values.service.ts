@@ -1,3 +1,4 @@
+import { asCents } from '@bt/shared/types';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Securities from '@models/investments/Securities.model';
@@ -131,7 +132,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       if (userId && parseFloat(marketValue) > 0) {
         try {
           const refAmount = await calculateRefAmount({
-            amount: parseFloat(marketValue),
+            amount: asCents(parseFloat(marketValue)),
             baseCode: holding.currencyCode,
             userId,
             date: date || new Date(),

@@ -1,23 +1,11 @@
 import { api } from '@/api/_api';
 import { AccountGroups } from '@/common/types/models';
 
-import { formatAccount } from './accounts';
-
-const formatAccountGroups = (_groups: AccountGroups | AccountGroups[]): AccountGroups[] => {
-  const groups = Array.isArray(_groups) ? _groups : [_groups];
-  return groups.map((group) => ({
-    ...group,
-    accounts: group.accounts.map(formatAccount),
-    childGroups: formatAccountGroups(group.childGroups),
-  }));
-};
-
+// Backend now returns decimals directly, no formatting needed
 export const loadAccountGroups = async (
   payload: { accountIds?: number[]; hidden?: boolean } = {},
 ): Promise<AccountGroups[]> => {
-  const result: AccountGroups[] = await api.get('/account-group', payload);
-
-  return formatAccountGroups(result);
+  return api.get('/account-group', payload);
 };
 
 export const createAccountsGroup = async (payload: { name: string }): Promise<void> => {

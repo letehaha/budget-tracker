@@ -3,7 +3,9 @@ import {
   AccountExternalData,
   AccountModel,
   AccountWithRelinkStatus,
+  CentsAmount,
   TRANSACTION_TYPES,
+  asCents,
 } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError, UnexpectedError } from '@js/errors';
@@ -129,9 +131,9 @@ export const updateAccount = withTransaction(
 
     const currentBalanceIsChanging =
       payload.currentBalance !== undefined && payload.currentBalance !== accountData.currentBalance;
-    let initialBalance = accountData.initialBalance;
-    let refInitialBalance = accountData.refInitialBalance;
-    let refCurrentBalance = accountData.refCurrentBalance;
+    let initialBalance: CentsAmount = asCents(accountData.initialBalance);
+    let refInitialBalance: CentsAmount = asCents(accountData.refInitialBalance);
+    let refCurrentBalance: CentsAmount = asCents(accountData.refCurrentBalance);
 
     /**
      * If `currentBalance` is changing, it means user want to change current balance
@@ -139,7 +141,7 @@ export const updateAccount = withTransaction(
      * and `currentBalance` on the same diff
      */
     if (currentBalanceIsChanging && payload.currentBalance !== undefined) {
-      const diff = payload.currentBalance - accountData.currentBalance;
+      const diff = asCents(payload.currentBalance - accountData.currentBalance);
       const refDiff = await calculateRefAmount({
         userId: accountData.userId,
         amount: diff,
@@ -153,10 +155,10 @@ export const updateAccount = withTransaction(
       // --- for all accounts
       // change currentBalance => recalculate refCurrentBalance
       if (accountData.type === ACCOUNT_TYPES.system) {
-        initialBalance += diff;
-        refInitialBalance += refDiff;
+        initialBalance = asCents(initialBalance + diff);
+        refInitialBalance = asCents(refInitialBalance + refDiff);
       }
-      refCurrentBalance += refDiff;
+      refCurrentBalance = asCents(refCurrentBalance + refDiff);
     }
 
     const result = await Accounts.updateAccountById({
@@ -287,8 +289,8 @@ export async function updateAccountBalanceForChangedTxImpl({
   await Accounts.updateAccountById({
     id: accountId,
     userId,
-    currentBalance: calculateNewBalance(newAmount, oldAmount, currentBalance),
-    refCurrentBalance: calculateNewBalance(newRefAmount, oldRefAmount, refCurrentBalance),
+    currentBalance: asCents(calculateNewBalance(newAmount, oldAmount, currentBalance)),
+    refCurrentBalance: asCents(calculateNewBalance(newRefAmount, oldRefAmount, refCurrentBalance)),
   });
 }
 

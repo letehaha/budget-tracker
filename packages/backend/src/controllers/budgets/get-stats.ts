@@ -1,5 +1,6 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeBudgetStats } from '@root/serializers';
 import { getBudgetStats } from '@root/services/budgets/stats';
 import { z } from 'zod';
 
@@ -10,8 +11,9 @@ export default createController(
     }),
   }),
   async ({ user, params }) => {
-    const data = await getBudgetStats({ userId: user.id, budgetId: params.id });
+    const stats = await getBudgetStats({ userId: user.id, budgetId: params.id });
 
-    return { data };
+    // Serialize: convert cents to decimal for API response
+    return { data: serializeBudgetStats(stats) };
   },
 );

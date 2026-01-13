@@ -1,4 +1,3 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
 import tailwind from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import autoprefixer from 'autoprefixer';
@@ -12,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // https://vitejs.dev/config/
-export default ({ mode }) => {
+export default async ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, path.resolve(__dirname, '../../'), '') };
 
   const certPath = path.resolve(__dirname, '../../docker/dev/certs/cert.pem');
@@ -37,18 +36,19 @@ export default ({ mode }) => {
   // Only add Sentry plugin in production build when auth token is available
   const sentryEnabled = mode === 'production' && process.env.SENTRY_AUTH_TOKEN;
 
+  // Dynamically import Sentry plugin only when needed
+  let sentryPlugin = null;
+  if (sentryEnabled) {
+    const { sentryVitePlugin } = await import('@sentry/vite-plugin');
+    sentryPlugin = sentryVitePlugin({
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    });
+  }
+
   return defineConfig({
-    plugins: [
-      vue(),
-      tailwind(),
-      svgLoader(),
-      sentryEnabled &&
-        sentryVitePlugin({
-          org: process.env.SENTRY_ORG,
-          project: process.env.SENTRY_PROJECT,
-          authToken: process.env.SENTRY_AUTH_TOKEN,
-        }),
-    ].filter(Boolean),
+    plugins: [vue(), tailwind(), svgLoader(), sentryPlugin].filter(Boolean),
     build: {
       sourcemap: true,
     },

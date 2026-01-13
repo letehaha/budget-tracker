@@ -1219,7 +1219,7 @@ describe('Execute Import endpoint', () => {
       const createdTx = transactions.find((tx) => tx.id === result.newTransactionIds[0]);
 
       expect(createdTx).toBeDefined();
-      expect(createdTx?.amount).toBe(10050);
+      expect(createdTx?.amount).toBe(100.5);
       expect(createdTx?.note).toBe('Test transaction');
       expect(createdTx?.accountId).toBe(account.id);
       expect(createdTx?.categoryId).toBe(categoryId);

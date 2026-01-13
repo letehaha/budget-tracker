@@ -1,8 +1,9 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, parseToCents } from '@bt/shared/types';
 import { currencyCode } from '@common/lib/zod/custom-types';
 import { NotFoundError, Unauthorized, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
+import { serializeAccount, serializeAccounts } from '@root/serializers';
 import * as accountsService from '@services/accounts.service';
 import { z } from 'zod';
 
@@ -11,7 +12,8 @@ import { createController } from './helpers/controller-factory';
 export const getAccounts = createController(z.object({}), async ({ user }) => {
   const { id: userId } = user;
   const accounts = await accountsService.getAccounts({ userId });
-  return { data: accounts };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeAccounts(accounts) };
 });
 
 export const getAccountById = createController(
@@ -25,7 +27,8 @@ export const getAccountById = createController(
     const { id: userId } = user;
 
     const account = await accountsService.getAccountById({ userId, id });
-    return { data: account };
+    // Serialize: convert cents to decimal for API response
+    return { data: account ? serializeAccount(account) : null };
   },
 );
 
@@ -36,6 +39,7 @@ export const createAccount = createController(
       currencyCode: currencyCode(),
       name: z.string(),
       type: z.nativeEnum(ACCOUNT_TYPES).default(ACCOUNT_TYPES.system),
+      // Amount fields now accept decimals - conversion to cents happens below
       initialBalance: z.number().optional().default(0),
       creditLimit: z.number().optional().default(0),
     }),
@@ -50,17 +54,19 @@ export const createAccount = createController(
       });
     }
 
+    // Convert decimal amounts to cents
     const account = await accountsService.createAccount({
       accountCategory,
       currencyCode,
       name,
       type,
-      creditLimit,
-      initialBalance,
+      creditLimit: parseToCents(creditLimit),
+      initialBalance: parseToCents(initialBalance),
       userId,
     });
 
-    return { data: account };
+    // Serialize: convert cents to decimal for API response
+    return { data: account ? serializeAccount(account) : null };
   },
 );
 
@@ -72,6 +78,7 @@ export const updateAccount = createController(
     body: z.object({
       accountCategory: z.nativeEnum(ACCOUNT_CATEGORIES).optional(),
       name: z.string().optional(),
+      // Amount fields now accept decimals - conversion to cents happens below
       creditLimit: z.number().optional(),
       isEnabled: z.boolean().optional(),
       currentBalance: z.number().optional(),
@@ -98,19 +105,21 @@ export const updateAccount = createController(
       }
     }
 
+    // Convert decimal amounts to cents
     const result = await accountsService.updateAccount({
       id,
       userId,
       ...removeUndefinedKeys({
         isEnabled,
         accountCategory,
-        currentBalance: currentBalance !== undefined ? Number(currentBalance) : undefined,
+        currentBalance: currentBalance !== undefined ? parseToCents(currentBalance) : undefined,
         name,
-        creditLimit: creditLimit !== undefined ? Number(creditLimit) : undefined,
+        creditLimit: creditLimit !== undefined ? parseToCents(creditLimit) : undefined,
       }),
     });
 
-    return { data: result };
+    // Serialize: convert cents to decimal for API response
+    return { data: result ? serializeAccount(result) : null };
   },
 );
 

@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+packages/*/node_modules
+
+# Build artifacts
+dist
+build
+.next
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Environment
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage
+.nyc_output
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose*.yml

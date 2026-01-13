@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES, asCents } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
@@ -245,7 +245,7 @@ const localCalculateRefAmount = async ({
     date: new Date(exchangeRateParams.date),
   });
 
-  return calculateRefAmountFromParams({ amount, rate, useFloorAbs });
+  return calculateRefAmountFromParams({ amount: asCents(amount), rate, useFloorAbs });
 };
 
 /**

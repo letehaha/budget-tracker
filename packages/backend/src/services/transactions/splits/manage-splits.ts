@@ -1,3 +1,4 @@
+import { asCents } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import RefundTransactions from '@models/RefundTransactions.model';
@@ -113,7 +114,7 @@ export const manageSplits = async ({
           // Calculate refAmount based on exchange rate
           refAmount = await calculateRefAmount({
             userId,
-            amount: split.amount,
+            amount: asCents(split.amount),
             baseCode: transactionCurrencyCode,
             quoteCode: baseCurrency.code,
             date: transactionTime,
@@ -138,8 +139,8 @@ export const manageSplits = async ({
         transactionId,
         userId,
         categoryId: split.categoryId,
-        amount: split.amount,
-        refAmount,
+        amount: asCents(split.amount),
+        refAmount: asCents(refAmount),
         note: split.note || null,
       };
     }),

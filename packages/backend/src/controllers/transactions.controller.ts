@@ -1,5 +1,6 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeTransaction, serializeTransactions } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
@@ -17,13 +18,14 @@ export const getTransactionById = createController(
     const { id: userId } = user;
     const { includeSplits } = query;
 
-    const data = await transactionsService.getTransactionById({
+    const transaction = await transactionsService.getTransactionById({
       id,
       userId,
       includeSplits,
     });
 
-    return { data };
+    // Serialize: convert cents to decimal for API response
+    return { data: transaction ? serializeTransaction(transaction) : null };
   },
 );
 
@@ -37,12 +39,13 @@ export const getTransactionsByTransferId = createController(
     const { transferId } = params;
     const { id: userId } = user;
 
-    const data = await transactionsService.getTransactionsByTransferId({
+    const transactions = await transactionsService.getTransactionsByTransferId({
       transferId,
       userId,
     });
 
-    return { data };
+    // Serialize: convert cents to decimal for API response
+    return { data: serializeTransactions(transactions) };
   },
 );
 

@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { TRANSACTION_TYPES, asCents } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
@@ -130,19 +130,19 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
     if (holding) {
       const [refAmount, refPrice, refFees] = await Promise.all([
         calculateRefAmount({
-          amount: parseFloat(amount),
+          amount: asCents(parseFloat(amount)),
           userId,
           date: newDate,
           baseCode: holding.currencyCode,
         }),
         calculateRefAmount({
-          amount: parseFloat(newPrice),
+          amount: asCents(parseFloat(newPrice)),
           userId,
           date: newDate,
           baseCode: holding.currencyCode,
         }),
         calculateRefAmount({
-          amount: parseFloat(newFees),
+          amount: asCents(parseFloat(newFees)),
           userId,
           date: newDate,
           baseCode: holding.currencyCode,

@@ -1,12 +1,5 @@
 import { api } from '@/api/_api';
-import { fromSystemAmount } from '@/api/helpers';
-import {
-  NOTIFICATION_TYPES,
-  NotificationModel,
-  NotificationStatus,
-  NotificationType,
-  TagReminderNotificationPayload,
-} from '@bt/shared/types';
+import { NotificationModel, NotificationStatus, NotificationType } from '@bt/shared/types';
 
 interface GetNotificationsParams {
   status?: NotificationStatus;
@@ -17,27 +10,10 @@ interface GetNotificationsParams {
 
 export type NotificationStruct = Omit<NotificationModel, 'userId'>;
 
-/**
- * Converts notification payload amounts from system amount (cents) to display amount.
- */
-function convertNotificationFromApi(notification: NotificationStruct): NotificationStruct {
-  if (notification.type === NOTIFICATION_TYPES.tagReminder && notification.payload) {
-    const payload = notification.payload as TagReminderNotificationPayload;
-    return {
-      ...notification,
-      payload: {
-        ...payload,
-        actualAmount: payload.actualAmount !== undefined ? fromSystemAmount(payload.actualAmount) : undefined,
-        thresholdAmount: payload.thresholdAmount !== undefined ? fromSystemAmount(payload.thresholdAmount) : undefined,
-      },
-    };
-  }
-  return notification;
-}
-
+// Backend now returns decimals directly, no conversion needed
 export const getNotifications = async (params: GetNotificationsParams = {}): Promise<NotificationStruct[]> => {
   const result: { data: NotificationStruct[] } = await api.get('/notifications', params);
-  return result.data.map(convertNotificationFromApi);
+  return result.data;
 };
 
 export const getUnreadCount = async (): Promise<number> => {

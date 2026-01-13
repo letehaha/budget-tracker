@@ -1,33 +1,10 @@
 import { api } from '@/api/_api';
-import { fromSystemAmount, toSystemAmount } from '@/api/helpers';
-import { TransactionModel, TransactionSplitModel } from '@bt/shared/types/db-models';
+import { TransactionModel } from '@bt/shared/types/db-models';
 import * as endpointsTypes from '@bt/shared/types/endpoints';
 import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types/enums';
 
-export const formatTransactionResponse = (transaction: TransactionModel): TransactionModel => {
-  const formatted: TransactionModel = {
-    ...transaction,
-    amount: fromSystemAmount(transaction.amount),
-    refAmount: fromSystemAmount(transaction.refAmount),
-    cashbackAmount: fromSystemAmount(transaction.cashbackAmount),
-    refCommissionRate: fromSystemAmount(transaction.refCommissionRate),
-    commissionRate: fromSystemAmount(transaction.commissionRate),
-  };
-
-  // Format split amounts if present
-  if (transaction.splits && transaction.splits.length > 0) {
-    formatted.splits = transaction.splits.map(
-      (split): TransactionSplitModel => ({
-        ...split,
-        amount: fromSystemAmount(split.amount),
-        refAmount: fromSystemAmount(split.refAmount),
-      }),
-    );
-  }
-
-  return formatted;
-};
-
+// Backend now returns decimals directly, no conversion needed
+// Only format time fields for API consistency
 export const formatTransactionPayload = <
   T extends endpointsTypes.CreateTransactionBody | endpointsTypes.UpdateTransactionBody,
 >(
@@ -39,20 +16,6 @@ export const formatTransactionPayload = <
   timeFieldsToPatch.forEach((field) => {
     if (params[field]) params[field] = new Date(params[field]).toISOString();
   });
-
-  const amountFieldsToPatch = ['amount', 'destinationAmount', 'amountLte', 'amountGte'];
-
-  amountFieldsToPatch.forEach((field) => {
-    if (params[field]) params[field] = toSystemAmount(Number(params[field]));
-  });
-
-  // Format split amounts to system format
-  if (params.splits && Array.isArray(params.splits)) {
-    params.splits = params.splits.map((split) => ({
-      ...split,
-      amount: toSystemAmount(Number(split.amount)),
-    }));
-  }
 
   return params;
 };
@@ -78,9 +41,7 @@ export const loadTransactions = async (params: {
   includeSplits?: boolean;
   includeTags?: boolean;
 }): Promise<endpointsTypes.GetTransactionsResponse> => {
-  const result = await api.get('/transactions', formatTransactionPayload(params));
-
-  return result.map((item) => formatTransactionResponse(item));
+  return api.get('/transactions', formatTransactionPayload(params));
 };
 
 export const loadTransactionById = async ({
@@ -92,15 +53,11 @@ export const loadTransactionById = async ({
   includeSplits?: boolean;
   includeTags?: boolean;
 }): Promise<TransactionModel> => {
-  const result = await api.get(`/transactions/${id}`, { includeSplits, includeTags });
-
-  return formatTransactionResponse(result);
+  return api.get(`/transactions/${id}`, { includeSplits, includeTags });
 };
 
 export const loadTransactionsByTransferId = async (transferId: string): Promise<TransactionModel[]> => {
-  const result = await api.get(`/transactions/transfer/${transferId}`);
-
-  return result.map((item) => formatTransactionResponse(item));
+  return api.get(`/transactions/transfer/${transferId}`);
 };
 
 export const createTransaction = async (params: endpointsTypes.CreateTransactionBody) => {
@@ -135,7 +92,5 @@ export const unlinkTransactions = async (payload: endpointsTypes.UnlinkTransferT
 };
 
 export const getTransactionByBudgetId = async (budgetId: number): Promise<TransactionModel[]> => {
-  const result = await api.get(`/transactions/budget/${budgetId}`);
-
-  return result.map((item) => formatTransactionResponse(item));
+  return api.get(`/transactions/budget/${budgetId}`);
 };

@@ -46,7 +46,7 @@ describe('Statement Parser - Detect Duplicates endpoint', () => {
       // Create existing transaction
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5, // API expects decimal amount
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
         note: 'Existing note',
@@ -57,7 +57,7 @@ describe('Statement Parser - Detect Duplicates endpoint', () => {
         {
           date: '2024-01-15 10:30:00',
           description: 'Grocery shopping',
-          amount: 10050,
+          amount: 10050, // Statement parser expects cents
           type: 'expense',
         },
       ];

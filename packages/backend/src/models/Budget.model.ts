@@ -2,7 +2,7 @@ import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'seque
 import Users from '@models/Users.model';
 import Transactions from '@models/Transactions.model';
 import BudgetTransactions from './BudgetTransactions.model';
-import { BUDGET_STATUSES } from '@bt/shared/types';
+import { BUDGET_STATUSES, CentsAmount } from '@bt/shared/types';
 
 @Table({
   timestamps: false,
@@ -30,7 +30,7 @@ export default class Budgets extends Model {
   autoInclude!: boolean;
 
   @Column({ allowNull: true, type: DataType.NUMBER })
-  limitAmount!: number;
+  limitAmount!: CentsAmount;
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false, type: DataType.INTEGER })

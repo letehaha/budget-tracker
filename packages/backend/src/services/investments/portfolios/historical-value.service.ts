@@ -1,3 +1,4 @@
+import { asCents } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
@@ -240,7 +241,7 @@ const calculatePortfolioValueAtDateImpl = async ({
 
       // Convert to base currency
       const marketValueInBase = await calculateRefAmount({
-        amount: marketValueInSecurityCurrency,
+        amount: asCents(marketValueInSecurityCurrency),
         userId,
         date,
         baseCode: holding.currencyCode,

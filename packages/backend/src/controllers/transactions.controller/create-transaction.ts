@@ -1,28 +1,32 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { deserializeCreateTransaction, serializeTransactionTuple } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
 const recordId = () => z.number().int().positive().finite();
 
+// Amount fields now accept decimals (e.g., 100.50) - conversion to cents happens in deserializer
+const amountSchema = () => z.number().positive('Amount must be greater than 0').finite();
+
 const splitSchema = z.object({
   categoryId: recordId(),
-  amount: z.number().int().positive('Split amount must be greater than 0').finite(),
+  amount: amountSchema(), // decimal input
   note: z.string().max(100, 'Split note must not exceed 100 characters').nullish(),
 });
 
 const schema = z.object({
   body: z
     .object({
-      amount: z.number().int().positive('Amount must be greater than 0').finite(),
-      commissionRate: z.number().int().positive('Amount must be greater than 0').finite().optional(),
+      amount: amountSchema(), // decimal input
+      commissionRate: amountSchema().optional(),
       note: z.string().max(1000, 'The string must not exceed 1000 characters.').nullish(),
       time: z.string().datetime({ message: 'Invalid ISO date string' }).optional(),
       transactionType: z.nativeEnum(TRANSACTION_TYPES),
       paymentType: z.nativeEnum(PAYMENT_TYPES),
       accountId: recordId(),
       accountType: z.nativeEnum(ACCOUNT_TYPES).optional(),
-      destinationAmount: z.number().int().positive('Amount must be greater than 0').finite().optional(),
+      destinationAmount: amountSchema().optional(), // decimal input
       destinationAccountId: recordId().optional(),
       destinationTransactionId: recordId().optional(),
       categoryId: z.union([recordId(), z.undefined()]),
@@ -124,53 +128,18 @@ const schema = z.object({
 });
 
 export default createController(schema, async ({ user, body }) => {
-  const {
-    amount,
-    commissionRate,
-    destinationAmount,
-    destinationTransactionId,
-    note,
-    time,
-    transactionType,
-    paymentType,
-    accountId,
-    destinationAccountId,
-    categoryId,
-    accountType = ACCOUNT_TYPES.system,
-    transferNature = TRANSACTION_TRANSFER_NATURE.not_transfer,
-    refundForTxId,
-    refundForSplitId,
-    splits,
-    tagIds,
-  } = body;
   const { id: userId } = user;
 
-  const params = {
-    amount,
-    commissionRate,
-    destinationTransactionId,
-    destinationAmount,
-    note: note || undefined,
-    time: time ? new Date(time) : undefined,
-    transactionType,
-    paymentType,
-    accountId,
-    destinationAccountId,
-    categoryId,
-    accountType,
-    transferNature,
-    userId,
-    refundsTxId: refundForTxId,
-    refundsSplitId: refundForSplitId,
-    splits,
-    tagIds,
-  };
+  // Deserialize: convert decimal amounts to cents
+  const params = deserializeCreateTransaction(body, userId);
 
   // TODO: Add validations
   // 1. Amount and destinationAmount with same currency should be equal
   // 2. That transactions here might be created only with system account type
 
-  const data = await transactionsService.createTransaction(params);
+  const transactions = await transactionsService.createTransaction(params);
 
-  return { data };
+  // Serialize: convert cents to decimal for API response
+  // createTransaction returns [baseTx, oppositeTx?] tuple
+  return { data: serializeTransactionTuple(transactions) };
 });

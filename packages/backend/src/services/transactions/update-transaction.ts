@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, CentsAmount, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, asCents } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -102,14 +102,14 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
   const transactionType = isSystemAccount ? newData.transactionType : prevData.transactionType;
 
   const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams & {
-    amount: number;
-    refAmount: number;
+    amount: CentsAmount;
+    refAmount: CentsAmount;
     currencyCode: string;
     time: Date;
   } = {
     id: newData.id,
-    amount: newData.amount ?? prevData.amount,
-    refAmount: newData.amount ?? prevData.refAmount,
+    amount: newData.amount !== undefined ? asCents(newData.amount) : asCents(prevData.amount),
+    refAmount: newData.amount !== undefined ? asCents(newData.amount) : asCents(prevData.refAmount),
     note: newData.note,
     time: newData.time ?? prevData.time,
     userId: newData.userId,
@@ -276,8 +276,8 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
   let updateOppositeTxParams = removeUndefinedKeys({
     id: oppositeTx.id,
     userId,
-    amount: destinationAmount,
-    refAmount: baseTransaction.refAmount,
+    amount: destinationAmount !== undefined ? asCents(destinationAmount) : undefined,
+    refAmount: asCents(baseTransaction.refAmount),
     transactionType: TRANSACTION_TYPES.income,
     accountId: destinationAccountId,
     note,
@@ -309,7 +309,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     date: baseTransaction.time,
   });
 
-  updateOppositeTxParams.refAmount = oppositeRefAmount;
+  updateOppositeTxParams.refAmount = asCents(oppositeRefAmount);
   baseTransaction = updatedBaseTransaction;
 
   const destinationTransaction = await Transactions.updateTransactionById(updateOppositeTxParams);

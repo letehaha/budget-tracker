@@ -1,3 +1,4 @@
+import { asCents } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
@@ -80,14 +81,14 @@ const updatePortfolioBalanceImpl = async ({
 
   // Calculate reference amounts (converted to user's base currency)
   const refAvailableCash = await calculateRefAmount({
-    amount: parseFloat(newAvailableCash),
+    amount: asCents(parseFloat(newAvailableCash)),
     baseCode: currency.code,
     userId,
     date: new Date(),
   });
 
   const refTotalCash = await calculateRefAmount({
-    amount: parseFloat(newTotalCash),
+    amount: asCents(parseFloat(newTotalCash)),
     baseCode: currency.code,
     userId,
     date: new Date(),

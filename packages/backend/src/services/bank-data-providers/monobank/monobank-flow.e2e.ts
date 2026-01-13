@@ -500,8 +500,8 @@ describe('Monobank Data Provider E2E', () => {
 
       const account = await helpers.getAccount({ id: createdAccount.id, raw: true });
 
-      expect(account.currentBalance).toBe(selectedExternal.balance);
-      expect(account.initialBalance).toBe(selectedExternal.balance);
+      expect(account.currentBalance).toBe(selectedExternal.balance / 100);
+      expect(account.initialBalance).toBe(selectedExternal.balance / 100);
       expect(account.currencyCode).toBe(selectedExternal.currency);
     });
 

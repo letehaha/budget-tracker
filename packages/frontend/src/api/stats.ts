@@ -1,5 +1,4 @@
 import { api } from '@/api/_api';
-import { fromSystemAmount } from '@/api/helpers';
 import { type TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { format } from 'date-fns';
 
@@ -17,6 +16,7 @@ export interface BalanceHistoryEntity {
   accountId: number;
 }
 
+// Backend now returns decimals directly, no conversion needed
 export const getBalanceHistory = async ({ from, to, ...rest }: Params = {}): Promise<BalanceHistoryEntity[]> => {
   const params: endpointsTypes.GetBalanceHistoryPayload = {
     ...rest,
@@ -25,12 +25,7 @@ export const getBalanceHistory = async ({ from, to, ...rest }: Params = {}): Pro
   if (from) params.from = formatDate(from);
   if (to) params.to = formatDate(to);
 
-  const history: BalanceHistoryEntity[] = await api.get('/stats/balance-history', params);
-
-  return history.map((item) => ({
-    ...item,
-    amount: fromSystemAmount(item.amount),
-  }));
+  return api.get('/stats/balance-history', params);
 };
 
 export const getExpensesAmountForPeriod = async ({ from, to, ...rest }: Params = {}): Promise<number> => {
@@ -41,9 +36,7 @@ export const getExpensesAmountForPeriod = async ({ from, to, ...rest }: Params =
   if (from) params.from = formatDate(from);
   if (to) params.to = formatDate(to);
 
-  const amount: number = await api.get('/stats/expenses-amount-for-period', params);
-
-  return fromSystemAmount(amount);
+  return api.get('/stats/expenses-amount-for-period', params);
 };
 
 export const getSpendingsByCategories = async ({
@@ -60,29 +53,15 @@ export const getSpendingsByCategories = async ({
   if (to) params.to = formatDate(to);
   if (type) params.type = type;
 
-  const history: endpointsTypes.GetSpendingsByCategoriesReturnType = await api.get(
-    '/stats/spendings-by-categories',
-    params,
-  );
-
-  Object.keys(history).forEach((id) => {
-    const record = history[+id];
-    if (record) {
-      record.amount = fromSystemAmount(record.amount);
-    }
-  });
-
-  return history;
+  return api.get('/stats/spendings-by-categories', params);
 };
 
-export const getTotalBalance = async ({ date }: { date: Date }) => {
+export const getTotalBalance = async ({ date }: { date: Date }): Promise<number> => {
   const params = {
     date: formatDate(date),
   };
 
-  const balance: number = await api.get('/stats/total-balance', params);
-
-  return fromSystemAmount(balance);
+  return api.get('/stats/total-balance', params);
 };
 
 export interface CombinedBalanceHistoryEntity {
@@ -100,14 +79,7 @@ export const getCombinedBalanceHistory = async ({ from, to }: { from?: Date; to?
   if (from) params.from = formatDate(from);
   if (to) params.to = formatDate(to);
 
-  const history: CombinedBalanceHistoryEntity[] = await api.get('/stats/combined-balance-history', params);
-
-  return history.map((item) => ({
-    ...item,
-    accountsBalance: fromSystemAmount(item.accountsBalance),
-    portfoliosBalance: fromSystemAmount(item.portfoliosBalance),
-    totalBalance: fromSystemAmount(item.totalBalance),
-  }));
+  return api.get('/stats/combined-balance-history', params);
 };
 
 export interface GetCashFlowParams {
@@ -139,28 +111,7 @@ export const getCashFlow = async ({
   }
   if (excludeCategories !== undefined) params.excludeCategories = excludeCategories;
 
-  const response: endpointsTypes.GetCashFlowResponse = await api.get('/stats/cash-flow', params);
-
-  return {
-    periods: response.periods.map((period) => ({
-      ...period,
-      income: fromSystemAmount(period.income),
-      expenses: fromSystemAmount(period.expenses),
-      netFlow: fromSystemAmount(period.netFlow),
-      // Convert category amounts if present
-      categories: period.categories?.map((cat) => ({
-        ...cat,
-        incomeAmount: fromSystemAmount(cat.incomeAmount),
-        expenseAmount: fromSystemAmount(cat.expenseAmount),
-      })),
-    })),
-    totals: {
-      ...response.totals,
-      income: fromSystemAmount(response.totals.income),
-      expenses: fromSystemAmount(response.totals.expenses),
-      netFlow: fromSystemAmount(response.totals.netFlow),
-    },
-  };
+  return api.get('/stats/cash-flow', params);
 };
 
 export interface GetCumulativeDataParams {
@@ -187,22 +138,5 @@ export const getCumulativeData = async ({
   if (accountId !== undefined) params.accountId = accountId;
   if (excludeCategories !== undefined) params.excludeCategories = excludeCategories;
 
-  const response: endpointsTypes.GetCumulativeResponse = await api.get('/stats/cumulative', params);
-
-  // Convert amounts from system format
-  const convertPeriodData = (periodData: endpointsTypes.CumulativePeriodData): endpointsTypes.CumulativePeriodData => ({
-    ...periodData,
-    data: periodData.data.map((month) => ({
-      ...month,
-      value: fromSystemAmount(month.value),
-      periodValue: fromSystemAmount(month.periodValue),
-    })),
-    total: fromSystemAmount(periodData.total),
-  });
-
-  return {
-    currentPeriod: convertPeriodData(response.currentPeriod),
-    previousPeriod: convertPeriodData(response.previousPeriod),
-    percentChange: response.percentChange,
-  };
+  return api.get('/stats/cumulative', params);
 };

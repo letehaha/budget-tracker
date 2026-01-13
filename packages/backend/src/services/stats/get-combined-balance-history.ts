@@ -1,5 +1,4 @@
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
-import { toSystemAmount } from '@js/helpers/system-amount';
+import { INVESTMENT_TRANSACTION_CATEGORY, parseToCents } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import ExchangeRates from '@models/ExchangeRates.model';
 import UserExchangeRates from '@models/UserExchangeRates.model';
@@ -288,7 +287,7 @@ const calculatePortfolioBalanceHistory = async ({
       }
     }
 
-    portfolioValuesByDate.set(dateStr, toSystemAmount(totalValueForDate));
+    portfolioValuesByDate.set(dateStr, parseToCents(totalValueForDate));
   }
 
   return portfolioValuesByDate;

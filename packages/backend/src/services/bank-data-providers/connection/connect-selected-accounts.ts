@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_ERROR_CODES, BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { BadRequestError, NotFoundError } from '@js/errors';
 import { trackBankConnected } from '@js/utils/posthog';
@@ -84,7 +84,7 @@ export const connectSelectedAccounts = withTransaction(
         await addUserCurrencies([{ userId, currencyCode: currency.code }]);
 
         const accountRefBalance = await calculateRefAmount({
-          amount: providerAccount.balance,
+          amount: asCents(providerAccount.balance),
           userId,
           date: new Date(),
           baseCode: providerAccount.currency,

@@ -65,7 +65,7 @@ describe('Generic Detect Duplicates Service', () => {
       // Create transaction that doesn't match
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 99999,
+        amount: 999.99,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2020-01-01').toISOString(),
       });
@@ -87,7 +87,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -113,7 +113,7 @@ describe('Generic Detect Duplicates Service', () => {
       // Create matching transactions
       const tx1 = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -121,7 +121,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const tx2 = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 5000,
+        amount: 50.0,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-16').toISOString(),
       });
@@ -129,7 +129,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const tx3 = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 250000,
+        amount: 2500.0,
         transactionType: TRANSACTION_TYPES.income,
         time: new Date('2024-01-17').toISOString(),
       });
@@ -155,7 +155,7 @@ describe('Generic Detect Duplicates Service', () => {
       // Create INCOME with same date and amount as EXPENSE in check list
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.income, // Different type
         time: new Date('2024-01-15').toISOString(),
       });
@@ -177,7 +177,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10051, // 1 cent difference
+        amount: 100.51, // 1 cent difference
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -199,7 +199,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-14').toISOString(), // 1 day before
       });
@@ -222,7 +222,7 @@ describe('Generic Detect Duplicates Service', () => {
       // Create transaction at 23:59 on same day
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15T23:59:59').toISOString(),
       });
@@ -245,7 +245,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15T14:00:00').toISOString(),
       });
@@ -271,7 +271,7 @@ describe('Generic Detect Duplicates Service', () => {
       // Create transaction on the last date
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 250000,
+        amount: 2500.0,
         transactionType: TRANSACTION_TYPES.income,
         time: new Date('2024-01-17T18:00:00').toISOString(),
       });
@@ -294,7 +294,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 2000,
+        amount: 20.0,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-02-15').toISOString(),
       });
@@ -321,7 +321,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 5000,
+        amount: 50.0,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-31T23:59:59').toISOString(),
       });
@@ -345,7 +345,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
         note: 'Test note for matching',
@@ -387,7 +387,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -430,7 +430,7 @@ describe('Generic Detect Duplicates Service', () => {
       // Create transaction in account1
       const txPayload = helpers.buildTransactionPayload({
         accountId: account1.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -455,7 +455,7 @@ describe('Generic Detect Duplicates Service', () => {
       // Create same transaction in both accounts
       const tx1 = helpers.buildTransactionPayload({
         accountId: account1.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
         note: 'Account 1 transaction',
@@ -464,7 +464,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const tx2 = helpers.buildTransactionPayload({
         accountId: account2.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
         note: 'Account 2 transaction',
@@ -503,7 +503,7 @@ describe('Generic Detect Duplicates Service', () => {
       for (let i = 0; i < 10; i++) {
         const txPayload = helpers.buildTransactionPayload({
           accountId: account.id,
-          amount: 1000 * (i + 1),
+          amount: 10 * (i + 1),
           transactionType: TRANSACTION_TYPES.expense,
           time: new Date(`2024-01-${String(i + 1).padStart(2, '0')}`).toISOString(),
         });
@@ -536,7 +536,7 @@ describe('Generic Detect Duplicates Service', () => {
       for (let i = 0; i < 2; i++) {
         const txPayload = helpers.buildTransactionPayload({
           accountId: account.id,
-          amount: 5000,
+          amount: 50.0,
           transactionType: TRANSACTION_TYPES.expense,
           time: new Date('2024-01-15').toISOString(),
           note: `Transaction ${i + 1}`,
@@ -561,7 +561,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
         note: '', // Empty note
