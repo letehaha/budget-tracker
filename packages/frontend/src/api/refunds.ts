@@ -13,7 +13,6 @@ type RefundRelationship = {
 
 type GetRefundsResponse = RefundRelationship[];
 
-// Backend now returns decimals directly, no formatting needed
 export const getRefundsForTransaction = async (params: { transactionId: number }): Promise<GetRefundsResponse> => {
   return api.get(`/transactions/${params.transactionId}/refunds`, params);
 };

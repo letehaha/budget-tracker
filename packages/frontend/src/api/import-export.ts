@@ -112,7 +112,6 @@ export interface StatementDetectDuplicatesResponse {
   }>;
 }
 
-// Backend now accepts decimals directly, no conversion needed
 export const detectStatementDuplicates = async (
   payload: StatementDetectDuplicatesRequest,
 ): Promise<StatementDetectDuplicatesResponse> => {
@@ -140,7 +139,6 @@ export interface StatementExecuteImportResponse {
   batchId: string;
 }
 
-// Backend now accepts decimals directly, no conversion needed
 export const executeStatementImport = async (
   payload: StatementExecuteImportRequest,
 ): Promise<StatementExecuteImportResponse> => {

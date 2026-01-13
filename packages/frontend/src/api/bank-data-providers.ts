@@ -105,7 +105,6 @@ export const listConnections = async (): Promise<BankConnection[]> => {
   return response.connections;
 };
 
-// Backend now returns decimals directly, no conversion needed
 export const getConnectionDetails = async (connectionId: number): Promise<BankConnectionDetails> => {
   const response = await api.get<{ connection: BankConnectionDetails }>(
     `/bank-data-providers/connections/${connectionId}`,
@@ -151,7 +150,6 @@ export const updateConnectionDetails = async (
   return response;
 };
 
-// Backend now returns decimals directly, no conversion needed
 export const getAvailableAccounts = async (connectionId: number): Promise<AvailableAccount[]> => {
   const response = await api.get<{ accounts: AvailableAccount[] }>(
     `/bank-data-providers/connections/${connectionId}/available-accounts`,

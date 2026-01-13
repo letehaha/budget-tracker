@@ -75,7 +75,6 @@ interface UpdateTagReminderPayload {
   isEnabled?: boolean;
 }
 
-// Backend now returns decimals directly, no conversion needed
 export const loadRemindersForTag = async ({ tagId }: { tagId: number }): Promise<TagReminderModel[]> => {
   return api.get<TagReminderModel[]>(`/tags/${tagId}/reminders`);
 };
@@ -87,7 +86,6 @@ export const createReminder = async ({
   tagId: number;
   payload: CreateTagReminderPayload;
 }): Promise<TagReminderModel> => {
-  // Backend accepts decimals directly
   return api.post(`/tags/${tagId}/reminders`, payload);
 };
 
@@ -100,7 +98,6 @@ export const updateReminder = async ({
   id: number;
   payload: UpdateTagReminderPayload;
 }): Promise<TagReminderModel> => {
-  // Backend accepts decimals directly
   return api.put(`/tags/${tagId}/reminders/${id}`, payload);
 };
 

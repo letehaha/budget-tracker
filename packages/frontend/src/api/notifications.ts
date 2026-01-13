@@ -10,7 +10,6 @@ interface GetNotificationsParams {
 
 export type NotificationStruct = Omit<NotificationModel, 'userId'>;
 
-// Backend now returns decimals directly, no conversion needed
 export const getNotifications = async (params: GetNotificationsParams = {}): Promise<NotificationStruct[]> => {
   const result: { data: NotificationStruct[] } = await api.get('/notifications', params);
   return result.data;

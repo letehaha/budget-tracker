@@ -16,7 +16,6 @@ export interface BalanceHistoryEntity {
   accountId: number;
 }
 
-// Backend now returns decimals directly, no conversion needed
 export const getBalanceHistory = async ({ from, to, ...rest }: Params = {}): Promise<BalanceHistoryEntity[]> => {
   const params: endpointsTypes.GetBalanceHistoryPayload = {
     ...rest,
