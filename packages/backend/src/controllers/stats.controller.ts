@@ -3,6 +3,16 @@ import { recordId } from '@common/lib/zod/custom-types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
+import {
+  serializeBalanceHistory,
+  serializeCashFlow,
+  serializeCombinedBalanceHistory,
+  serializeCumulativeData,
+  serializeExpensesAmountForPeriod,
+  serializeExpensesHistory,
+  serializeSpendingsByCategories,
+  serializeTotalBalance,
+} from '@root/serializers';
 import * as statsService from '@services/stats';
 import { isBefore, isEqual, isValid } from 'date-fns';
 import { z } from 'zod';
@@ -53,7 +63,8 @@ export const getBalanceHistory = createController(balanceHistorySchema, async ({
     });
   }
 
-  return { data: balanceHistory };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeBalanceHistory(balanceHistory) };
 });
 
 const totalBalanceSchema = z.object({
@@ -75,7 +86,8 @@ export const getTotalBalance = createController(totalBalanceSchema, async ({ use
     date,
   });
 
-  return { data: totalBalance };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeTotalBalance(totalBalance) };
 });
 
 const expensesHistorySchema = z.object({
@@ -101,7 +113,8 @@ export const getExpensesHistory = createController(expensesHistorySchema, async 
     }),
   );
 
-  return { data: result };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeExpensesHistory(result) };
 });
 
 const spendingsByCategoriesSchema = z.object({
@@ -129,7 +142,8 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
     }),
   );
 
-  return { data: result };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeSpendingsByCategories(result) };
 });
 
 const expensesAmountSchema = z.object({
@@ -155,7 +169,8 @@ export const getExpensesAmountForPeriod = createController(expensesAmountSchema,
     }),
   );
 
-  return { data: result };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeExpensesAmountForPeriod(result) };
 });
 
 const combinedBalanceHistorySchema = z.object({
@@ -177,7 +192,8 @@ export const getCombinedBalanceHistory = createController(combinedBalanceHistory
     to,
   });
 
-  return { data: combinedBalanceHistory };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeCombinedBalanceHistory(combinedBalanceHistory) };
 });
 
 const cashFlowSchema = z.object({
@@ -223,7 +239,8 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
     }),
   );
 
-  return { data: result };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeCashFlow(result) };
 });
 
 const cumulativeDataSchema = z.object({
@@ -256,5 +273,6 @@ export const getCumulativeData = createController(cumulativeDataSchema, async ({
     }),
   );
 
-  return { data: result };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeCumulativeData(result) };
 });

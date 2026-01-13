@@ -1,4 +1,4 @@
-import { SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, asCents } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -274,7 +274,7 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountLte: 1000,
+        amountLte: asCents(1000),
         raw: true,
       });
 
@@ -287,7 +287,7 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountGte: 5000,
+        amountGte: asCents(5000),
         raw: true,
       });
 
@@ -300,8 +300,8 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountGte: 2000,
-        amountLte: 5000,
+        amountGte: asCents(2000),
+        amountLte: asCents(5000),
         raw: true,
       });
 
@@ -315,8 +315,8 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountLte: 2000,
-        amountGte: 5000,
+        amountLte: asCents(2000),
+        amountGte: asCents(5000),
       });
 
       expect(res.statusCode).toBe(ERROR_CODES.ValidationError);

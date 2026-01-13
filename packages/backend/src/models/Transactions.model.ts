@@ -2,6 +2,7 @@ import {
   ACCOUNT_TYPES,
   CategorizationMeta,
   CATEGORIZATION_SOURCE,
+  CentsAmount,
   PAYMENT_TYPES,
   SORT_DIRECTIONS,
   TRANSACTION_TRANSFER_NATURE,
@@ -55,9 +56,9 @@ const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
 
 export interface TransactionsAttributes {
   id: number;
-  amount: number;
-  // Amount in currency of base currency
-  refAmount: number;
+  amount: CentsAmount;
+  /** Amount in user's base currency */
+  refAmount: CentsAmount;
   note: string;
   time: Date;
   userId: number;
@@ -82,9 +83,9 @@ export interface TransactionsAttributes {
     hold?: boolean;
     receiptId?: string;
   } & Record<string, unknown>;
-  commissionRate: number; // should be comission calculated as refAmount
-  refCommissionRate: number; // should be comission calculated as refAmount
-  cashbackAmount: number; // add to unified
+  commissionRate: CentsAmount;
+  refCommissionRate: CentsAmount;
+  cashbackAmount: CentsAmount;
   refundLinked: boolean;
   categorizationMeta: CategorizationMeta | null;
   createdAt: Date;
@@ -107,11 +108,11 @@ export default class Transactions extends Model {
   declare id: number;
 
   @Column({ allowNull: false, defaultValue: 0, type: DataType.NUMBER })
-  amount!: number;
+  amount!: CentsAmount;
 
   // Amount in curreny of account
   @Column({ allowNull: false, defaultValue: 0, type: DataType.NUMBER })
-  refAmount!: number;
+  refAmount!: CentsAmount;
 
   @Length({ max: 2000 })
   @Column({ allowNull: true, type: DataType.STRING })
@@ -203,21 +204,21 @@ export default class Transactions extends Model {
     allowNull: false,
     defaultValue: 0,
   })
-  commissionRate!: number;
+  commissionRate!: CentsAmount;
 
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
     defaultValue: 0,
   })
-  refCommissionRate!: number;
+  refCommissionRate!: CentsAmount;
 
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
     defaultValue: 0,
   })
-  cashbackAmount!: number;
+  cashbackAmount!: CentsAmount;
 
   // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
   // optimization purposes. All the related refund information is tored in the "RefundTransactions"
@@ -397,8 +398,10 @@ export const findWithFilters = async ({
   excludeRefunds?: boolean;
   startDate?: string;
   endDate?: string;
-  amountGte?: number;
-  amountLte?: number;
+  /** Filter: amount >= this value (in cents) */
+  amountGte?: CentsAmount;
+  /** Filter: amount <= this value (in cents) */
+  amountLte?: CentsAmount;
   categoryIds?: number[];
   noteSearch?: string[]; // array of keywords
   attributes?: (keyof Transactions)[];
@@ -696,8 +699,8 @@ export const createTransaction = async ({ userId, ...rest }: CreateTransactionPa
 export interface UpdateTransactionByIdParams {
   id: number;
   userId: number;
-  amount?: number;
-  refAmount?: number;
+  amount?: CentsAmount;
+  refAmount?: CentsAmount;
   note?: string | null;
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
@@ -732,7 +735,7 @@ export const updateTransactionById = async (
 
 export const updateTransactions = (
   payload: {
-    amount?: number;
+    amount?: CentsAmount;
     note?: string;
     time?: Date;
     transactionType?: TRANSACTION_TYPES;

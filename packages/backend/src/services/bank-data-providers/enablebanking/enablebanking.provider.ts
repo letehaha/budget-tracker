@@ -5,10 +5,11 @@ import {
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  asCents,
+  parseToCents,
 } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
-import { toSystemAmount } from '@js/helpers/system-amount';
 import { logger } from '@js/utils';
 import Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
@@ -540,7 +541,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
         // Convert balance from string to system amount (cents as integer)
         const balanceFloat = primaryBalance?.balance_amount ? parseFloat(primaryBalance.balance_amount.amount) : 0;
-        const balanceSystemAmount = toSystemAmount(balanceFloat);
+        const balanceSystemAmount = parseToCents(balanceFloat);
 
         return {
           externalId: details.identification_hash,
@@ -607,7 +608,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     return transactions.map((tx) => {
       const isExpense = tx.credit_debit_indicator === CreditDebitIndicator.DBIT;
       const amountFloat = parseFloat(tx.transaction_amount.amount);
-      const amountSystemAmount = toSystemAmount(amountFloat);
+      const amountSystemAmount = parseToCents(amountFloat);
       const merchantName = tx.debtor?.name || tx.creditor?.name || 'Unknown';
 
       // Generate unique hash from transaction data
@@ -767,11 +768,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         const [createdTx] = await createTransaction({
           originalId: tx.externalId,
           note: tx.description,
-          amount: Math.abs(tx.amount), // Ensure positive value
+          amount: asCents(Math.abs(tx.amount)), // Ensure positive value
           time: tx.date,
           externalData: tx.metadata,
-          commissionRate: 0,
-          cashbackAmount: 0,
+          commissionRate: asCents(0),
+          cashbackAmount: asCents(0),
           accountId: account.id,
           userId: connection.userId,
           transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
@@ -847,7 +848,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     }
 
     const balanceFloat = parseFloat(balance.balance_amount.amount);
-    const balanceSystemAmount = toSystemAmount(balanceFloat);
+    const balanceSystemAmount = parseToCents(balanceFloat);
 
     return {
       amount: balanceSystemAmount,
@@ -882,7 +883,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     // Calculate ref balance (in user's base currency)
     const refBalance = await calculateRefAmount({
-      amount: balance,
+      amount: asCents(balance),
       userId: account.userId,
       date: today,
       baseCode: account.currencyCode,

@@ -198,10 +198,7 @@ watchEffect(() => {
     </template>
     <template v-else>
       <div v-bind="$attrs" class="grid grid-cols-1 gap-2">
-        <template
-          v-for="item in displayTransactions"
-          :key="`${item.id}-${item.updatedAt}`"
-        >
+        <template v-for="item in displayTransactions" :key="`${item.id}-${item.updatedAt}`">
           <TransactionRecord :tx="item" @record-click="handlerRecordClick" />
         </template>
       </div>

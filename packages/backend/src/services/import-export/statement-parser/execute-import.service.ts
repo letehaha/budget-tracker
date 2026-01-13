@@ -6,6 +6,7 @@ import type {
 } from '@bt/shared/types';
 import {
   ACCOUNT_TYPES,
+  CentsAmount,
   ImportSource,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
@@ -128,9 +129,10 @@ async function executeImportImpl({
       }
 
       // Calculate refAmount
+      // Note: tx.amount is already in cents (ExtractedTransaction uses cents)
       const refAmount = await calculateRefAmount({
         userId,
-        amount: tx.amount,
+        amount: tx.amount as CentsAmount,
         baseCode: currencyCode,
         date: txDate,
       });
@@ -144,7 +146,7 @@ async function executeImportImpl({
       // Create transaction
       const transaction = await Transactions.createTransaction({
         userId,
-        amount: tx.amount,
+        amount: tx.amount as CentsAmount,
         refAmount,
         note: tx.description,
         time: txDate,

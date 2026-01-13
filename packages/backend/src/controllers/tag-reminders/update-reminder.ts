@@ -1,6 +1,7 @@
 import { TAG_REMINDER_FREQUENCIES, TAG_REMINDER_TYPES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { deserializeUpdateTagReminder, serializeTagReminder } from '@root/serializers';
 import * as tagRemindersService from '@services/tag-reminders';
 import { z } from 'zod';
 
@@ -22,9 +23,10 @@ const schema = z.object({
       .nullable()
       .optional(),
     dayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
+    // amountThreshold now accepts decimal values - conversion to cents happens in deserializer
     settings: z
       .object({
-        amountThreshold: z.number().int().min(1).optional(),
+        amountThreshold: z.number().min(0.01).optional(),
       })
       .optional(),
     isEnabled: z.boolean().optional(),
@@ -33,18 +35,21 @@ const schema = z.object({
 
 export default createController(schema, async ({ user, params, body }) => {
   const { id, tagId } = params;
-  const { type, frequency, dayOfMonth, settings, isEnabled } = body;
 
-  const data = await tagRemindersService.updateReminder({
+  // Deserialize: convert decimal amounts to cents
+  const deserialized = deserializeUpdateTagReminder(body);
+
+  const reminder = await tagRemindersService.updateReminder({
     id,
     userId: user.id,
     tagId,
-    type,
-    frequency,
-    dayOfMonth,
-    settings,
-    isEnabled,
+    type: deserialized.type,
+    frequency: deserialized.frequency,
+    dayOfMonth: deserialized.dayOfMonth,
+    settings: deserialized.settings,
+    isEnabled: deserialized.isEnabled,
   });
 
-  return { data };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeTagReminder(reminder) };
 });

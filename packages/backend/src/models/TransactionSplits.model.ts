@@ -8,6 +8,7 @@ import {
   Length,
   BeforeCreate,
 } from 'sequelize-typescript';
+import { CentsAmount } from '@bt/shared/types';
 import { v7 as uuidv7 } from 'uuid';
 import Categories from './Categories.model';
 import Transactions from './Transactions.model';
@@ -67,19 +68,19 @@ export default class TransactionSplits extends Model {
   })
   categoryId!: number;
 
-  // Amount in account currency (same as transaction.amount), stored as amount*100
+  /** Amount in account currency (same as transaction.amount) */
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
   })
-  amount!: number;
+  amount!: CentsAmount;
 
-  // Amount in base currency (same as transaction.refAmount), stored as amount*100
+  /** Amount in base currency (same as transaction.refAmount) */
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
   })
-  refAmount!: number;
+  refAmount!: CentsAmount;
 
   // Optional per-split note, max 100 chars
   @Length({ max: 100 })
@@ -105,8 +106,8 @@ export interface CreateSplitPayload {
   transactionId: number;
   userId: number;
   categoryId: number;
-  amount: number;
-  refAmount: number;
+  amount: CentsAmount;
+  refAmount: CentsAmount;
   note?: string | null;
 }
 

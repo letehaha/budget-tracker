@@ -9,7 +9,7 @@ import {
   HasMany,
 } from 'sequelize-typescript';
 import { Op } from 'sequelize';
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, CentsAmount, type AccountExternalData } from '@bt/shared/types';
 import Users from '@models/Users.model';
 import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
@@ -19,12 +19,12 @@ import BankDataProviderConnections from '@models/BankDataProviderConnections.mod
 export interface AccountsAttributes {
   id: number;
   name: string;
-  initialBalance: number;
-  refInitialBalance: number;
-  currentBalance: number;
-  refCurrentBalance: number;
-  creditLimit: number;
-  refCreditLimit: number;
+  initialBalance: CentsAmount;
+  refInitialBalance: CentsAmount;
+  currentBalance: CentsAmount;
+  refCurrentBalance: CentsAmount;
+  creditLimit: CentsAmount;
+  refCreditLimit: CentsAmount;
   type: ACCOUNT_TYPES;
   accountCategory: ACCOUNT_CATEGORIES;
   currencyCode: string;
@@ -73,42 +73,42 @@ export default class Accounts extends Model {
     defaultValue: 0,
     type: DataType.INTEGER,
   })
-  initialBalance!: number;
+  initialBalance!: CentsAmount;
 
   @Column({
     allowNull: false,
     defaultValue: 0,
     type: DataType.INTEGER,
   })
-  refInitialBalance!: number;
+  refInitialBalance!: CentsAmount;
 
   @Column({
     allowNull: false,
     defaultValue: 0,
     type: DataType.INTEGER,
   })
-  currentBalance!: number;
+  currentBalance!: CentsAmount;
 
   @Column({
     allowNull: false,
     defaultValue: 0,
     type: DataType.INTEGER,
   })
-  refCurrentBalance!: number;
+  refCurrentBalance!: CentsAmount;
 
   @Column({
     allowNull: false,
     defaultValue: 0,
     type: DataType.INTEGER,
   })
-  creditLimit!: number;
+  creditLimit!: CentsAmount;
 
   @Column({
     allowNull: false,
     defaultValue: 0,
     type: DataType.INTEGER,
   })
-  refCreditLimit!: number;
+  refCreditLimit!: CentsAmount;
 
   @Column({
     type: DataType.STRING,

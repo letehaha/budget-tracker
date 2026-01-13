@@ -1,8 +1,6 @@
 import { api } from '@/api/_api';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 
-import { fromSystemAmount } from './helpers';
-
 export interface BankProvider {
   type: BANK_PROVIDER_TYPE;
   name: string;
@@ -107,18 +105,12 @@ export const listConnections = async (): Promise<BankConnection[]> => {
   return response.connections;
 };
 
+// Backend now returns decimals directly, no conversion needed
 export const getConnectionDetails = async (connectionId: number): Promise<BankConnectionDetails> => {
   const response = await api.get<{ connection: BankConnectionDetails }>(
     `/bank-data-providers/connections/${connectionId}`,
   );
-
-  return {
-    ...response.connection,
-    accounts: response.connection.accounts.map((acc) => ({
-      ...acc,
-      currentBalance: fromSystemAmount(acc.currentBalance),
-    })),
-  };
+  return response.connection;
 };
 
 export const connectProvider = async (
@@ -159,18 +151,12 @@ export const updateConnectionDetails = async (
   return response;
 };
 
+// Backend now returns decimals directly, no conversion needed
 export const getAvailableAccounts = async (connectionId: number): Promise<AvailableAccount[]> => {
   const response = await api.get<{ accounts: AvailableAccount[] }>(
     `/bank-data-providers/connections/${connectionId}/available-accounts`,
   );
-  return response.accounts.map((item) => ({
-    ...item,
-    balance: fromSystemAmount(item.balance),
-    metadata: {
-      ...item.metadata,
-      creditLimit: fromSystemAmount(item.metadata.creditLimit),
-    },
-  }));
+  return response.accounts;
 };
 
 export const syncSelectedAccounts = async (

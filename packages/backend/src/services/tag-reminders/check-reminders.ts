@@ -4,6 +4,8 @@ import {
   TAG_REMINDER_FREQUENCIES,
   TAG_REMINDER_TYPES,
   TagReminderNotificationPayload,
+  asCents,
+  toDecimal,
 } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { logger } from '@js/utils/logger';
@@ -250,7 +252,13 @@ async function createReminderNotification({
     // Default to USD if not found
   }
 
-  const amountThreshold = (reminder.settings as AmountThresholdSettings)?.amountThreshold;
+  // Amount threshold is stored in cents, convert to decimal for display
+  const amountThresholdCents = (reminder.settings as AmountThresholdSettings)?.amountThreshold;
+  const amountThreshold = amountThresholdCents ? toDecimal(asCents(amountThresholdCents)) : undefined;
+
+  // Total amount from transactions is in cents, convert to decimal for display
+  const actualAmount = checkResult.totalAmount ? toDecimal(asCents(checkResult.totalAmount)) : undefined;
+
   const tag = reminder.tag;
 
   const payload: TagReminderNotificationPayload = {
@@ -263,8 +271,8 @@ async function createReminderNotification({
       frequency: reminder.frequency,
       dayOfMonth: reminder.dayOfMonth,
     },
-    thresholdAmount: amountThreshold ?? undefined,
-    actualAmount: checkResult.totalAmount,
+    thresholdAmount: amountThreshold,
+    actualAmount,
     transactionCount: checkResult.transactionCount,
     currencyCode,
     transactionIds: checkResult.transactionIds,

@@ -1,5 +1,12 @@
-import { ACCOUNT_TYPES, CATEGORIZATION_SOURCE, SORT_DIRECTIONS, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  CATEGORIZATION_SOURCE,
+  SORT_DIRECTIONS,
+  TRANSACTION_TYPES,
+  parseToCents,
+} from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeTransactions } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
@@ -68,6 +75,7 @@ const schema = z.object({
       excludeRefunds: z.preprocess((val) => val === 'true', z.boolean()).optional(),
       startDate: z.string().datetime({ message: 'Invalid ISO date string for startDate' }).optional(),
       endDate: z.string().datetime({ message: 'Invalid ISO date string for endDate' }).optional(),
+      // Amount filters now accept decimals from API
       amountLte: z.preprocess((val) => Number(val), z.number().positive()).optional(),
       amountGte: z.preprocess((val) => Number(val), z.number().positive()).optional(),
       noteSearch: z
@@ -99,10 +107,17 @@ const schema = z.object({
 export default createController(schema, async ({ user, query }) => {
   const { id: userId } = user;
 
-  const data = await transactionsService.getTransactions({
+  // Convert decimal amount filters to cents for DB query
+  const amountGte = query.amountGte !== undefined ? parseToCents(query.amountGte) : undefined;
+  const amountLte = query.amountLte !== undefined ? parseToCents(query.amountLte) : undefined;
+
+  const transactions = await transactionsService.getTransactions({
     ...query,
+    amountGte,
+    amountLte,
     userId,
   });
 
-  return { data };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeTransactions(transactions) };
 });

@@ -1,5 +1,4 @@
 import { api } from '@/api/_api';
-import { fromSystemAmount, toSystemAmount } from '@/api/helpers';
 import {
   TagModel,
   TagReminderFrequency,
@@ -7,40 +6,6 @@ import {
   TagReminderSettings,
   TagReminderType,
 } from '@bt/shared/types';
-
-/**
- * Converts reminder's amountThreshold from system amount (cents) to display amount.
- */
-function convertReminderFromApi(reminder: TagReminderModel): TagReminderModel {
-  const settings = reminder.settings as { amountThreshold?: number } | undefined;
-  if (settings?.amountThreshold !== undefined) {
-    return {
-      ...reminder,
-      settings: {
-        ...settings,
-        amountThreshold: fromSystemAmount(settings.amountThreshold),
-      },
-    };
-  }
-  return reminder;
-}
-
-/**
- * Converts reminder payload's amountThreshold to system amount (cents) for API.
- */
-function convertReminderPayloadToApi<T extends { settings?: TagReminderSettings }>(payload: T): T {
-  const settings = payload.settings as { amountThreshold?: number } | undefined;
-  if (settings?.amountThreshold !== undefined) {
-    return {
-      ...payload,
-      settings: {
-        ...settings,
-        amountThreshold: toSystemAmount(settings.amountThreshold),
-      },
-    };
-  }
-  return payload;
-}
 
 export interface CreateTagPayload {
   name: string;
@@ -110,9 +75,9 @@ interface UpdateTagReminderPayload {
   isEnabled?: boolean;
 }
 
+// Backend now returns decimals directly, no conversion needed
 export const loadRemindersForTag = async ({ tagId }: { tagId: number }): Promise<TagReminderModel[]> => {
-  const reminders = await api.get<TagReminderModel[]>(`/tags/${tagId}/reminders`);
-  return reminders.map(convertReminderFromApi);
+  return api.get<TagReminderModel[]>(`/tags/${tagId}/reminders`);
 };
 
 export const createReminder = async ({
@@ -122,8 +87,8 @@ export const createReminder = async ({
   tagId: number;
   payload: CreateTagReminderPayload;
 }): Promise<TagReminderModel> => {
-  const reminder: TagReminderModel = await api.post(`/tags/${tagId}/reminders`, convertReminderPayloadToApi(payload));
-  return convertReminderFromApi(reminder);
+  // Backend accepts decimals directly
+  return api.post(`/tags/${tagId}/reminders`, payload);
 };
 
 export const updateReminder = async ({
@@ -135,11 +100,8 @@ export const updateReminder = async ({
   id: number;
   payload: UpdateTagReminderPayload;
 }): Promise<TagReminderModel> => {
-  const reminder: TagReminderModel = await api.put(
-    `/tags/${tagId}/reminders/${id}`,
-    convertReminderPayloadToApi(payload),
-  );
-  return convertReminderFromApi(reminder);
+  // Backend accepts decimals directly
+  return api.put(`/tags/${tagId}/reminders/${id}`, payload);
 };
 
 export const deleteReminder = async ({ tagId, id }: { tagId: number; id: number }): Promise<void> => {

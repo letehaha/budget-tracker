@@ -1,6 +1,7 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeRefundTransactions } from '@root/serializers';
 import { type GetRefundTransactionsParams, getRefundTransactions } from '@services/tx-refunds/get-refunds.service';
 import { z } from 'zod';
 
@@ -28,9 +29,10 @@ export default createController(schema, async ({ user, query }) => {
 
   const { rows: refundTransactions, meta } = await getRefundTransactions(filters);
 
+  // Serialize: convert cents to decimal for API response
   return {
     data: {
-      data: refundTransactions,
+      data: serializeRefundTransactions(refundTransactions),
       meta,
     },
   };

@@ -1,3 +1,4 @@
+import { CentsAmount, asCents } from '@bt/shared/types';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -33,7 +34,7 @@ const refAmountCache = new CacheClient<string>({
  * const refAmount = await calculateRefAmount({ amount: 100, userId: 42, baseCode: 'USD', quoteCode: 'EUR' });
  * const refAmountForDefaultUserCurrency = await calculateRefAmount({ amount: 100, userId: 42, baseCode: 'USD' });
  */
-async function calculateRefAmountImpl(params: Params): Promise<number> {
+async function calculateRefAmountImpl(params: Params): Promise<CentsAmount> {
   const { baseCode, quoteCode, userId, amount } = params;
 
   // **REDIS CACHE CHECK** - Cache the final converted amount
@@ -43,7 +44,7 @@ async function calculateRefAmountImpl(params: Params): Promise<number> {
   const cachedAmount = await refAmountCache.read();
 
   if (cachedAmount !== null) {
-    return parseFloat(cachedAmount);
+    return asCents(parseFloat(cachedAmount));
   }
 
   try {
@@ -102,11 +103,12 @@ export const calculateRefAmountFromParams = ({
   rate,
   useFloorAbs = true,
 }: {
-  amount: number;
+  /** Amount in cents (CentsAmount branded type) */
+  amount: CentsAmount;
   rate: number;
   // For example in investments we're using raw float numbers, so it makes no sense to use it
   useFloorAbs?: boolean;
-}) => {
+}): CentsAmount => {
   const isNegative = amount < 0;
 
   // Use Banker's Rounding (round half to even) per IEEE 754 and IFRS/GAAP standards.
@@ -116,11 +118,12 @@ export const calculateRefAmountFromParams = ({
   const refAmount = amount === 0 ? 0 : useFloorAbs ? roundHalfToEven(Math.abs(amount) * rate) : amount * rate;
   const finalAmount = isNegative ? refAmount * -1 : refAmount;
 
-  return finalAmount;
+  return asCents(finalAmount);
 };
 
 type Params = {
-  amount: number;
+  /** Amount in cents (CentsAmount branded type) */
+  amount: CentsAmount;
   userId: number;
   date: Date | string;
   baseCode: string;

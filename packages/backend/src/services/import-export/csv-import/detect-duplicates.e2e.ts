@@ -194,7 +194,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create a transaction that will match CSV data
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050, // 100.50 in cents
+        amount: 100.5, // Amount in decimal format (API expects decimals)
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -234,7 +234,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create a transaction with INCOME type (CSV has expense)
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050, // Same amount as CSV
+        amount: 100.5, // Same amount as CSV
         transactionType: TRANSACTION_TYPES.income, // Different type
         time: new Date('2024-01-15').toISOString(),
       });
@@ -268,7 +268,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create a transaction in account1
       const txPayload = helpers.buildTransactionPayload({
         accountId: account1.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -303,7 +303,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create a matching transaction
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -340,7 +340,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create transaction in accountA
       const txPayload = helpers.buildTransactionPayload({
         accountId: accountA.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -374,7 +374,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create transactions in existing account
       const tx1Payload = helpers.buildTransactionPayload({
         accountId: existingAccount.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -422,7 +422,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create matching transactions in both accounts
       const tx1Payload = helpers.buildTransactionPayload({
         accountId: account1.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -430,7 +430,7 @@ describe('Detect Duplicates endpoint', () => {
 
       const tx2Payload = helpers.buildTransactionPayload({
         accountId: account2.id,
-        amount: 20000,
+        amount: 200.0,
         transactionType: TRANSACTION_TYPES.income,
         time: new Date('2024-01-16').toISOString(),
       });
@@ -466,7 +466,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create multiple matching transactions
       const tx1Payload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -474,7 +474,7 @@ describe('Detect Duplicates endpoint', () => {
 
       const tx2Payload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 5000,
+        amount: 50.0,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-16').toISOString(),
       });
@@ -510,7 +510,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create transaction that doesn't match CSV data
       const txPayload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 99999,
+        amount: 999.99,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2020-01-01').toISOString(),
       });
@@ -544,7 +544,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create transaction in account1 matching Checking Account CSV row
       const tx1Payload = helpers.buildTransactionPayload({
         accountId: account1.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -553,7 +553,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create transaction in account3 matching Credit Card CSV row (75.00 = 7500 cents)
       const tx3Payload = helpers.buildTransactionPayload({
         accountId: account3.id,
-        amount: 7500,
+        amount: 75.0,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-18').toISOString(),
       });
@@ -590,7 +590,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create exact match
       const tx1Payload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });
@@ -599,7 +599,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create same amount but different date (not a duplicate)
       const tx2Payload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 10050,
+        amount: 100.5,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-02-15').toISOString(),
       });
@@ -608,7 +608,7 @@ describe('Detect Duplicates endpoint', () => {
       // Create same date but different amount (not a duplicate)
       const tx3Payload = helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: 99999,
+        amount: 999.99,
         transactionType: TRANSACTION_TYPES.expense,
         time: new Date('2024-01-15').toISOString(),
       });

@@ -1,58 +1,34 @@
 import { api } from '@/api/_api';
 import { BudgetModel } from '@bt/shared/types';
 
-import { fromSystemAmount, toSystemAmount } from './helpers';
-
 interface editBudgetParamsParams {
   name?: string;
   limitAmount?: number;
 }
 
+// Backend now returns decimals directly, no conversion needed
 export const loadSystemBudgets = async (): Promise<BudgetModel[]> => {
-  const result = await api.get('/budgets');
-
-  const updatedResult = result.map((budget: BudgetModel) => {
-    if (budget.limitAmount) {
-      return {
-        ...budget,
-        limitAmount: fromSystemAmount(Number(budget.limitAmount)),
-      };
-    }
-    return budget;
-  });
-
-  return updatedResult;
+  return api.get('/budgets');
 };
 
 export const loadBudgetById = async (id: number): Promise<BudgetModel> => {
-  const result = await api.get(`/budgets/${id}`);
-
-  if (result.limitAmount) result.limitAmount = fromSystemAmount(Number(result.limitAmount));
-
-  return result;
+  return api.get(`/budgets/${id}`);
 };
 
 export const createBudget = async (payload: Omit<BudgetModel, 'id' | 'userId'>): Promise<BudgetModel> => {
-  const params = payload;
-
-  if (params.limitAmount > 0) {
-    params.limitAmount = toSystemAmount(Number(params.limitAmount));
-  } else {
-    params.limitAmount = null;
-  }
-  const result = await api.post('/budgets', params);
-
-  return result;
+  // Backend accepts decimals directly
+  const params = {
+    ...payload,
+    limitAmount: payload.limitAmount && payload.limitAmount > 0 ? payload.limitAmount : null,
+  };
+  return api.post('/budgets', params);
 };
 
 export const deleteBudget = async (budgetId: number) => api.delete(`/budgets/${budgetId}`);
 
 export const editBudget = async ({ budgetId, payload }: { budgetId: number; payload: editBudgetParamsParams }) => {
-  const params = payload;
-
-  if (params.limitAmount) params.limitAmount = toSystemAmount(Number(params.limitAmount));
-
-  await api.put(`/budgets/${budgetId}`, params);
+  // Backend accepts decimals directly
+  await api.put(`/budgets/${budgetId}`, payload);
 };
 
 export const addTransactionsToBudget = async (budgetId: number, params: unknown) =>
@@ -78,12 +54,7 @@ interface StatsResponse {
   };
 }
 
+// Backend now returns decimals directly, no conversion needed
 export const loadBudgetStats = async ({ budgetId }: { budgetId: number }): Promise<StatsResponse> => {
-  const data = await api.get(`/budgets/${budgetId}/stats`);
-
-  data.summary.actualExpense = fromSystemAmount(data.summary.actualExpense);
-  data.summary.actualIncome = fromSystemAmount(data.summary.actualIncome);
-  data.summary.balance = fromSystemAmount(data.summary.balance);
-
-  return data;
+  return api.get(`/budgets/${budgetId}/stats`);
 };

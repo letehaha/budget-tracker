@@ -4,6 +4,7 @@ import {
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  asCents,
 } from '@bt/shared/types';
 import { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
 import { logger } from '@js/utils/logger';
@@ -133,7 +134,7 @@ async function createMonobankTransaction(
   const [createdTx] = await transactionsService.createTransaction({
     originalId: data.id,
     note: data.description,
-    amount: Math.abs(data.amount),
+    amount: asCents(Math.abs(data.amount)),
     time: new Date(data.time * 1000),
     externalData: {
       operationAmount: data.operationAmount,
@@ -141,8 +142,8 @@ async function createMonobankTransaction(
       balance: data.balance,
       hold: data.hold,
     },
-    commissionRate: data.commissionRate,
-    cashbackAmount: data.cashbackAmount,
+    commissionRate: asCents(data.commissionRate),
+    cashbackAmount: asCents(data.cashbackAmount),
     accountId,
     userId,
     transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
@@ -274,7 +275,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
             );
 
             if (balanceFromExternalData !== undefined) {
-              accountDataToUpdate.currentBalance = balanceFromExternalData;
+              accountDataToUpdate.currentBalance = asCents(balanceFromExternalData);
             } else {
               logger.error(
                 "[Monobank transactions sync]: latest monobank transaction doesn't have balance in externalData",

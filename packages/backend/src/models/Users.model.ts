@@ -83,14 +83,6 @@ export const getUsers = async () => {
   return users;
 };
 
-export const getUserById = async ({ id }: { id: number }): Promise<UserModel | null> => {
-  const user = await Users.findOne({
-    where: { id },
-  });
-
-  return user;
-};
-
 export const getUserDefaultCategory = async ({ id }: { id: number }) => {
   const user = await Users.findOne({
     where: { id },
@@ -111,25 +103,6 @@ export const getUserCurrencies = async ({ userId }: { userId: number }) => {
         through: { attributes: [] },
       },
     ],
-  });
-
-  return user;
-};
-
-export const getUserByCredentials = async ({
-  username,
-  email,
-}: {
-  username?: string;
-  email?: string;
-}): Promise<UserModel | null> => {
-  const where: Record<string, unknown> = {};
-
-  if (username) where.username = username;
-  if (email) where.email = email;
-
-  const user = await Users.scope('withPassword').findOne({
-    where,
   });
 
   return user;
