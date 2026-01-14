@@ -5,23 +5,30 @@
  * - Serializers: DB (cents) → API (decimal)
  * - Deserializers: API (decimal) → DB (cents)
  */
-import { type CentsAmount, type DecimalAmount, asCents, parseToCents, toDecimal } from '@bt/shared/types';
+import { BUDGET_TYPES, type CentsAmount, type DecimalAmount, asCents, parseToCents, toDecimal } from '@bt/shared/types';
 import type Budgets from '@models/Budget.model';
 
 // ============================================================================
 // Response Types (API format with DecimalAmount)
 // ============================================================================
 
+export interface BudgetCategoryResponse {
+  id: number;
+  name: string;
+  color: string;
+  parentId: number | null;
+}
+
 export interface BudgetApiResponse {
   id: number;
   name: string;
   status: string;
-  categoryName: string | null;
+  type: BUDGET_TYPES;
   startDate: Date | null;
   endDate: Date | null;
   autoInclude: boolean;
   limitAmount: DecimalAmount | null;
-  userId: number;
+  categories: BudgetCategoryResponse[];
 }
 
 // ============================================================================
@@ -31,7 +38,8 @@ export interface BudgetApiResponse {
 export interface CreateBudgetRequest {
   name: string;
   status?: string;
-  categoryName?: string | null;
+  type?: BUDGET_TYPES;
+  categoryIds?: number[];
   startDate?: string | null;
   endDate?: string | null;
   autoInclude?: boolean;
@@ -41,7 +49,7 @@ export interface CreateBudgetRequest {
 export interface UpdateBudgetRequest {
   name?: string;
   status?: string;
-  categoryName?: string | null;
+  categoryIds?: number[];
   startDate?: string | null;
   endDate?: string | null;
   autoInclude?: boolean;
@@ -55,7 +63,8 @@ export interface UpdateBudgetRequest {
 export interface CreateBudgetInternal {
   name: string;
   status?: string;
-  categoryName?: string | null;
+  type?: BUDGET_TYPES;
+  categoryIds?: number[];
   startDate?: Date | null;
   endDate?: Date | null;
   autoInclude?: boolean;
@@ -66,7 +75,7 @@ export interface CreateBudgetInternal {
 export interface UpdateBudgetInternal {
   name?: string;
   status?: string;
-  categoryName?: string | null;
+  categoryIds?: number[];
   startDate?: Date | null;
   endDate?: Date | null;
   autoInclude?: boolean;
@@ -81,16 +90,23 @@ export interface UpdateBudgetInternal {
  * Serialize a budget from DB format to API response
  */
 export function serializeBudget(budget: Budgets): BudgetApiResponse {
+  const categories: BudgetCategoryResponse[] = (budget.categories || []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    color: c.color,
+    parentId: c.parentId,
+  }));
+
   return {
     id: budget.id,
     name: budget.name,
     status: budget.status,
-    categoryName: budget.categoryName,
+    type: budget.type,
     startDate: budget.startDate,
     endDate: budget.endDate,
     autoInclude: budget.autoInclude,
     limitAmount: budget.limitAmount !== null ? toDecimal(asCents(budget.limitAmount)) : null,
-    userId: budget.userId,
+    categories,
   };
 }
 
@@ -112,7 +128,8 @@ export function deserializeCreateBudget(req: CreateBudgetRequest, userId: number
   return {
     name: req.name,
     status: req.status,
-    categoryName: req.categoryName,
+    type: req.type,
+    categoryIds: req.categoryIds,
     startDate: req.startDate ? new Date(req.startDate) : undefined,
     endDate: req.endDate ? new Date(req.endDate) : undefined,
     autoInclude: req.autoInclude,
@@ -128,7 +145,7 @@ export function deserializeUpdateBudget(req: UpdateBudgetRequest): UpdateBudgetI
   return {
     name: req.name,
     status: req.status,
-    categoryName: req.categoryName,
+    categoryIds: req.categoryIds,
     startDate: req.startDate ? new Date(req.startDate) : req.startDate === null ? null : undefined,
     endDate: req.endDate ? new Date(req.endDate) : req.endDate === null ? null : undefined,
     autoInclude: req.autoInclude,

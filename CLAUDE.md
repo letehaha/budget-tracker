@@ -84,3 +84,10 @@ Other instructions:
    # ✅ Use ast-grep for i18n
    ast-grep --pattern '<button>$TEXT</button>' src/**/*.vue
    ```
+
+6. **i18n Files - DO NOT EDIT UNLESS EXPLICITLY ASKED**
+   - i18n locale files are BLOCKED from reading (hook saves tokens)
+   - **NEVER** proactively add/update translations when implementing features
+   - **ONLY** edit i18n files when the user explicitly asks for translation work
+   - When asked, use the `i18n-editor` subagent
+   - If a feature needs translations, mention it in your response and let the user decide when to add them

@@ -12,6 +12,7 @@ const schema = z.object({
   body: z
     .object({
       name: z.string().min(1, 'Name is required').max(200, 'Name must not exceed 200 characters').trim().optional(),
+      categoryIds: z.array(z.number().int().positive()).optional(),
       startDate: z.string().datetime().optional(),
       endDate: z.string().datetime().optional(),
       autoInclude: z.boolean().optional().default(false),
@@ -25,13 +26,14 @@ const schema = z.object({
 });
 
 export default createController(schema, async ({ user, params, body }) => {
-  const { name, startDate, endDate, limitAmount, autoInclude } = body;
+  const { name, categoryIds, startDate, endDate, limitAmount, autoInclude } = body;
 
   // Convert decimal limitAmount to cents
   const budget = await editBudgetService.editBudget({
     id: params.id,
     userId: user.id,
     name,
+    categoryIds,
     startDate,
     endDate,
     limitAmount: limitAmount !== undefined ? parseToCents(limitAmount) : undefined,

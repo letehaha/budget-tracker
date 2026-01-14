@@ -1,3 +1,4 @@
+import { BUDGET_TYPES } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Budgets from '@models/Budget.model';
@@ -20,6 +21,11 @@ export const addTransactionsToBudget = withTransaction(async (payload: AddTransa
   });
   if (!budget) {
     throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
+  }
+
+  // Category budgets auto-track transactions by category - manual linking is not allowed
+  if (budget.type === BUDGET_TYPES.category) {
+    throw new ValidationError({ message: t({ key: 'budgets.cannotManuallyLinkToCategoryBudget' }) });
   }
 
   const transactions = await Transactions.findAll({

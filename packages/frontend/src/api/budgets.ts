@@ -4,6 +4,7 @@ import { BudgetModel } from '@bt/shared/types';
 interface editBudgetParamsParams {
   name?: string;
   limitAmount?: number;
+  categoryIds?: number[];
 }
 
 export const loadSystemBudgets = async (): Promise<BudgetModel[]> => {
@@ -39,7 +40,7 @@ export const removeTransactionsFromBudget = async ({
   payload: { transactionIds: number[] };
 }) => api.delete(`/budgets/${budgetId}/transactions`, { data: payload });
 
-interface StatsResponse {
+export interface StatsResponse {
   summary: {
     actualIncome: number;
     actualExpense: number;
@@ -53,4 +54,38 @@ interface StatsResponse {
 
 export const loadBudgetStats = async ({ budgetId }: { budgetId: number }): Promise<StatsResponse> => {
   return api.get(`/budgets/${budgetId}/stats`);
+};
+
+export interface CategoryBudgetTransaction {
+  id: number;
+  time: string;
+  transactionType: 'income' | 'expense';
+  refAmount: number;
+  amount: number;
+  note: string | null;
+  categoryId: number | null;
+  accountId: number;
+  effectiveCategory?: {
+    id: number;
+    name: string;
+    color: string;
+  };
+  effectiveRefAmount?: number;
+}
+
+interface CategoryBudgetTransactionsResponse {
+  transactions: CategoryBudgetTransaction[];
+  total: number;
+}
+
+export const loadCategoryBudgetTransactions = async ({
+  budgetId,
+  from = 0,
+  limit = 50,
+}: {
+  budgetId: number;
+  from?: number;
+  limit?: number;
+}): Promise<CategoryBudgetTransactionsResponse> => {
+  return api.get(`/budgets/${budgetId}/category-transactions`, { from, limit });
 };

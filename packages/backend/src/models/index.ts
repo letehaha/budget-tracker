@@ -5,6 +5,7 @@ import AccountsModel from './Accounts.model';
 import BalancesModel from './Balances.model';
 import BankDataProviderConnectionsModel from './BankDataProviderConnections.model';
 import BudgetModel from './Budget.model';
+import BudgetCategoriesModel from './BudgetCategories.model';
 import BudgetTransactionsModel from './BudgetTransactions.model';
 import CategoriesModel from './Categories.model';
 import CurrenciesModel from './Currencies.model';
@@ -72,6 +73,7 @@ const models = [
   AccountGroupsModel,
   BinanceUsersModel,
   BudgetModel,
+  BudgetCategoriesModel,
   BudgetTransactionsModel,
   TagsModel,
   TagRemindersModel,

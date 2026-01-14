@@ -1,4 +1,4 @@
-import { BudgetModel } from '@bt/shared/types';
+import { BUDGET_TYPES, BudgetModel } from '@bt/shared/types';
 import addTransactionsToBudget from '@controllers/budgets/add-transaction-to-budget';
 import removeTransactionsFromBudget from '@controllers/budgets/remove-transaction-from-budget';
 import * as getBudgetService from '@root/services/budget.service';
@@ -12,6 +12,8 @@ interface TestCreateBudgetPayload {
   id?: number;
   name: string;
   status?: string;
+  type?: BUDGET_TYPES;
+  categoryIds?: number[];
   startDate?: string | Date | null;
   endDate?: string | Date | null;
   autoInclude?: boolean;
@@ -20,6 +22,7 @@ interface TestCreateBudgetPayload {
 
 interface EditBudgetPayload {
   name?: string;
+  categoryIds?: number[];
   startDate?: string;
   endDate?: string;
   limitAmount?: number;

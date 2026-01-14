@@ -71,7 +71,10 @@
   "budgets": {
     "budgetNotFound": "Бюджет не знайдено",
     "someTransactionIdsInvalid": "Деякі ID транзакцій недійсні",
-    "transactionsAddedSuccessfully": "Транзакції успішно додано"
+    "transactionsAddedSuccessfully": "Транзакції успішно додано",
+    "cannotManuallyLinkToCategoryBudget": "Неможливо вручну прив'язати транзакції до бюджетів на основі категорій. Транзакції відстежуються автоматично за категорією.",
+    "someCategoryIdsInvalid": "Деякі ID категорій недійсні або не існують",
+    "notCategoryBudget": "Цей ендпоінт доступний тільки для бюджетів на основі категорій"
   },
   "tags": {
     "tagNotFound": "Тег не знайдено",

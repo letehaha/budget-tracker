@@ -1,7 +1,12 @@
+import { BUDGET_TYPES } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Budgets from '@models/Budget.model';
+import BudgetCategories from '@models/BudgetCategories.model';
+import Categories from '@models/Categories.model';
 import { withTransaction } from '@services/common/with-transaction';
+
+import { expandCategoryIds } from './utils/expand-category-ids';
 
 export interface EditBudgetPayload {
   id: number;
@@ -11,9 +16,10 @@ export interface EditBudgetPayload {
   endDate?: string;
   limitAmount?: number;
   autoInclude?: boolean;
+  categoryIds?: number[];
 }
 
-export const editBudget = withTransaction(async ({ id, userId, ...params }: EditBudgetPayload) => {
+export const editBudget = withTransaction(async ({ id, userId, categoryIds, ...params }: EditBudgetPayload) => {
   const budget = await Budgets.findOne({
     where: { id, userId },
   });
@@ -24,12 +30,33 @@ export const editBudget = withTransaction(async ({ id, userId, ...params }: Edit
 
   await budget.update(params);
 
+  // Update categories if provided and budget is category-based
+  if (categoryIds !== undefined && budget.type === BUDGET_TYPES.category) {
+    // Remove existing category links
+    await BudgetCategories.destroy({ where: { budgetId: id } });
+
+    // Add new category links (with expansion)
+    if (categoryIds.length > 0) {
+      const expandedCategoryIds = await expandCategoryIds({ userId, categoryIds });
+
+      if (expandedCategoryIds.length) {
+        await BudgetCategories.bulkCreate(
+          expandedCategoryIds.map((categoryId) => ({
+            budgetId: id,
+            categoryId,
+          })),
+        );
+      }
+    }
+  }
+
   const updatedBudget = await Budgets.findOne({
     where: { id, userId },
-    attributes: {
-      exclude: ['userId', 'categoryName'],
-    },
-    raw: true,
+    attributes: { exclude: ['userId'] },
+    include:
+      budget.type === BUDGET_TYPES.category
+        ? [{ model: Categories, as: 'categories', attributes: ['id', 'name', 'color', 'parentId'] }]
+        : [],
   });
 
   return updatedBudget;

@@ -479,6 +479,7 @@
       "limitLabel": "Ліміт: {amount}",
       "transactionsCount": "{count} транзакцій",
       "noTransactions": "Транзакцій ще немає",
+      "noTimePeriod": "Без періоду",
       "status": {
         "ended": "Завершено",
         "lastDay": "Останній день",
@@ -509,6 +510,32 @@
     "addTransactionsDialog": {
       "title": "Додати транзакції до бюджету",
       "addSelected": "Додати вибрані"
+    },
+    "categoryBudget": {
+      "backToBudgets": "Назад до бюджетів",
+      "trackedCategories": "Відстежувані категорії",
+      "editCategories": "Редагувати категорії",
+      "categoriesCount": "{count} категорій відстежується",
+      "autoTrackedInfo": "Транзакції автоматично відстежуються на основі категорій",
+      "transactionsTitle": "Транзакції",
+      "transactionsCount": "{count} транзакцій",
+      "noTransactions": "Ще немає транзакцій",
+      "noTransactionsDescription": "Транзакції, що відповідають вашим відстежуваним категоріям, з'являться тут автоматично.",
+      "categoryBreakdown": "Розбивка за категоріями",
+      "loadMore": "Завантажити більше",
+      "edit": "Редагувати",
+      "editTitle": "Редагувати бюджет",
+      "showMore": "Показати більше",
+      "showLess": "Показати менше",
+      "settings": {
+        "title": "Налаштування бюджету",
+        "categoriesLabel": "Відстежувані категорії",
+        "categoriesDescription": "Оберіть категорії для автоматичного відстеження"
+      }
+    },
+    "manualBudget": {
+      "edit": "Редагувати",
+      "editTitle": "Редагування бюджету"
     }
   },
   "analytics": {

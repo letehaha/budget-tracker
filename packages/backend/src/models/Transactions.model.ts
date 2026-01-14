@@ -163,6 +163,9 @@ export default class Transactions extends Model {
   @Column({ allowNull: true, type: DataType.INTEGER })
   categoryId!: number;
 
+  @BelongsTo(() => Categories)
+  category!: Categories;
+
   @ForeignKey(() => Currencies)
   @Column({ allowNull: true, type: DataType.STRING(3) })
   currencyCode!: string;

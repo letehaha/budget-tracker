@@ -78,6 +78,11 @@ export enum BUDGET_STATUSES {
   closed = 'closed',
 }
 
+export enum BUDGET_TYPES {
+  manual = 'manual',
+  category = 'category',
+}
+
 /**
  * Tag reminder trigger types
  */
