@@ -73,7 +73,8 @@ export const getBudgetStats = withTransaction(
     result.summary.transactionsCount = transactions.length;
 
     if (budgetDetails.limitAmount) {
-      const utilizationRate = (result.summary.actualExpense / budgetDetails.limitAmount) * 100;
+      const netSpending = Math.max(0, -result.summary.balance);
+      const utilizationRate = (netSpending / budgetDetails.limitAmount) * 100;
       result.summary.utilizationRate = utilizationRate;
     }
 

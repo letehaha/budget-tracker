@@ -57,6 +57,7 @@
   --color-success-text: var(--success-text);
 
   --color-warning: rgb(230 126 34);
+  --color-warning-text: var(--warning-text);
   --color-app-income-color: #2ecc71;
   --color-app-expense-color: #e74c3c;
   --color-app-transfer-color: #95a5a6;
@@ -204,6 +205,8 @@
     --success-foreground: rgb(10, 18, 26);
     --success-text: rgb(5, 145, 52);
 
+    --warning-text: rgb(230, 126, 34);
+
     /* Custom colors */
     --error-message: rgb(223, 86, 67);
   }
@@ -246,6 +249,8 @@
     --success: rgb(16, 59, 49);
     --success-foreground: rgb(250, 250, 250);
     --success-text: rgb(46, 204, 113);
+
+    --warning-text: rgb(243, 156, 18);
 
     /* Custom colors */
     --error-message: rgb(228, 105, 89);

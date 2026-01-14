@@ -349,7 +349,7 @@ const utilizationTextColor = computed(() => {
         <div>
           <p class="text-muted-foreground text-sm font-medium">Budget Utilization</p>
           <p class="mt-1 text-sm">
-            <span class="font-medium">{{ formatBaseCurrency(stats.expenses) }}</span>
+            <span class="font-medium">{{ formatBaseCurrency(Math.max(0, -stats.balance)) }}</span>
             <span class="text-muted-foreground"> of </span>
             <span class="font-medium">{{ formatBaseCurrency(budgetData.limitAmount) }}</span>
             <span class="text-muted-foreground"> limit</span>
