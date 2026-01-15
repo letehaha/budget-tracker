@@ -459,6 +459,13 @@
       "error": "Unexpected error!",
       "nameLabel": "Budget name",
       "namePlaceholder": "Enter the name",
+      "typeLabel": "Budget type",
+      "typeManual": "Manual",
+      "typeManualDescription": "Manually add transactions to this budget",
+      "typeCategory": "Category-based",
+      "typeCategoryDescription": "Auto-track spending by categories",
+      "categoriesLabel": "Categories to track",
+      "categoriesRequired": "Select at least one category",
       "fromDateLabel": "From date",
       "toDateLabel": "To date",
       "autoIncludeLabel": "Auto include transactions",
@@ -467,6 +474,8 @@
       "submitButton": "Add budget"
     },
     "list": {
+      "tabCategory": "Category Budgets",
+      "tabManual": "Manual Budgets",
       "edit": "Edit",
       "delete": "Delete",
       "deleteSuccess": "Budget deleted successfully!",
@@ -479,7 +488,10 @@
       },
       "limitLabel": "Limit: {amount}",
       "transactionsCount": "{count} transactions",
+      "categoriesCount": "{count} categories",
       "noTransactions": "No transactions yet",
+      "noTimePeriod": "No time period",
+      "autoTracked": "Auto-tracked",
       "status": {
         "ended": "Ended",
         "lastDay": "Last day",
@@ -510,6 +522,32 @@
     "addTransactionsDialog": {
       "title": "Add Transactions to Budget",
       "addSelected": "Add Selected"
+    },
+    "categoryBudget": {
+      "backToBudgets": "Back to Budgets",
+      "trackedCategories": "Tracked Categories",
+      "editCategories": "Edit Categories",
+      "categoriesCount": "{count} categories tracked",
+      "autoTrackedInfo": "Transactions are automatically tracked based on categories",
+      "transactionsTitle": "Transactions",
+      "transactionsCount": "{count} transactions",
+      "noTransactions": "No transactions yet",
+      "noTransactionsDescription": "Transactions matching your tracked categories will appear here automatically.",
+      "categoryBreakdown": "Category Breakdown",
+      "loadMore": "Load more",
+      "edit": "Edit",
+      "editTitle": "Edit Budget",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "settings": {
+        "title": "Budget Settings",
+        "categoriesLabel": "Tracked Categories",
+        "categoriesDescription": "Select categories to auto-track"
+      }
+    },
+    "manualBudget": {
+      "edit": "Edit",
+      "editTitle": "Edit Budget"
     }
   },
   "analytics": {
@@ -2394,6 +2432,11 @@
     "tagSelect": {
       "placeholder": "Select tags...",
       "noTagsAvailable": "No tags available"
+    },
+    "categoryMultiSelect": {
+      "placeholder": "Select categories...",
+      "searchPlaceholder": "Search categories...",
+      "noCategoriesFound": "No categories found"
     }
   },
   "currencyNames": {

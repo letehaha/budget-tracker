@@ -1,4 +1,4 @@
-import { BudgetModel } from '@bt/shared/types';
+import { BUDGET_TYPES, BudgetModel } from '@bt/shared/types';
 import addTransactionsToBudget from '@controllers/budgets/add-transaction-to-budget';
 import removeTransactionsFromBudget from '@controllers/budgets/remove-transaction-from-budget';
 import * as getBudgetService from '@root/services/budget.service';
@@ -12,6 +12,8 @@ interface TestCreateBudgetPayload {
   id?: number;
   name: string;
   status?: string;
+  type?: BUDGET_TYPES;
+  categoryIds?: number[];
   startDate?: string | Date | null;
   endDate?: string | Date | null;
   autoInclude?: boolean;
@@ -20,6 +22,7 @@ interface TestCreateBudgetPayload {
 
 interface EditBudgetPayload {
   name?: string;
+  categoryIds?: number[];
   startDate?: string;
   endDate?: string;
   limitAmount?: number;
@@ -157,6 +160,49 @@ export async function getStats<R extends boolean | undefined = undefined>({ id, 
   return makeRequest<Awaited<ReturnType<typeof getBudgetStats>> | null, R>({
     method: 'get',
     url: `/budgets/${id}/stats`,
+    raw,
+  });
+}
+
+interface CategoryBudgetTransactionsResponse {
+  transactions: Array<{
+    id: number;
+    time: Date;
+    transactionType: string;
+    refAmount: number;
+    amount: number;
+    note: string | null;
+    categoryId: number | null;
+    accountId: number;
+    effectiveCategory?: {
+      id: number;
+      name: string;
+      color: string;
+    };
+    effectiveRefAmount?: number;
+  }>;
+  total: number;
+}
+
+export async function getCategoryBudgetTransactions<R extends boolean | undefined = undefined>({
+  id,
+  from,
+  limit,
+  raw,
+}: {
+  id: number;
+  from?: number;
+  limit?: number;
+  raw?: R;
+}) {
+  const queryParams = new URLSearchParams();
+  if (from !== undefined) queryParams.set('from', String(from));
+  if (limit !== undefined) queryParams.set('limit', String(limit));
+  const queryString = queryParams.toString();
+
+  return makeRequest<CategoryBudgetTransactionsResponse, R>({
+    method: 'get',
+    url: `/budgets/${id}/category-transactions${queryString ? `?${queryString}` : ''}`,
     raw,
   });
 }

@@ -145,3 +145,6 @@ dev-debug.log
 scripts/local/*
 
 docs/prds/*
+
+# i18n hook bypass flag
+.claude/i18n-bypass

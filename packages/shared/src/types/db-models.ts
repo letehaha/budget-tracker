@@ -1,6 +1,7 @@
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
+  BUDGET_TYPES,
   CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
   NotificationPriority,
@@ -195,10 +196,23 @@ export interface BudgetModel {
   userId: number;
   status: string;
   name: string;
+  type: BUDGET_TYPES;
   startDate?: Date;
   endDate?: Date;
   limitAmount?: number;
   autoInclude?: boolean;
+  /**
+   * Category IDs for category-based budgets.
+   * Use for CREATE/UPDATE requests - the backend will expand parent IDs to include children.
+   * Not populated in GET responses (use `categories` array instead).
+   */
+  categoryIds?: number[];
+  /**
+   * Full category objects for category-based budgets.
+   * Populated in GET responses when budget has associated categories.
+   * Read-only - for mutations, use `categoryIds`.
+   */
+  categories?: CategoryModel[];
 }
 
 export interface TagModel {
