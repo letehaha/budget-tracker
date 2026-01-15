@@ -1,16 +1,22 @@
 <template>
-  <template
-    :is="asButton ? 'button' : 'div'"
+  <div
     :class="[
       'grid w-full cursor-pointer rounded-md px-2 py-1 [content-visibility:auto]',
-      shouldShowGroupedTransfer || isLoadingGroupedTransfer
-        ? 'grid-cols-[minmax(0,1fr)_max-content] items-end gap-3'
-        : 'grid-cols-[minmax(0,1fr)_max-content] items-center gap-2',
+      showCheckbox
+        ? 'grid-cols-[auto_minmax(0,1fr)_max-content] items-center gap-2'
+        : shouldShowGroupedTransfer || isLoadingGroupedTransfer
+          ? 'grid-cols-[minmax(0,1fr)_max-content] items-end gap-3'
+          : 'grid-cols-[minmax(0,1fr)_max-content] items-center gap-2',
     ]"
-    :type="asButton ? 'button' : undefined"
     aria-haspopup="true"
     @click="transactionEmit"
   >
+    <!-- Selection checkbox -->
+    <label v-if="showCheckbox" class="-my-1 -ml-2 flex items-center justify-center self-stretch px-3" @click.stop>
+      <Checkbox v-if="isSelectable" v-model="checkedModel" />
+      <div v-else class="size-4" />
+    </label>
+
     <div class="flex items-center gap-2 overflow-hidden">
       <template v-if="!isTransferTransaction && category">
         <CategoryCircle :category="category" />
@@ -96,11 +102,12 @@
         {{ formateDate(transaction.time) }}
       </div>
     </div>
-  </template>
+  </div>
 </template>
 
 <script lang="ts" setup>
 import CategoryCircle from '@/components/common/category-circle.vue';
+import { Checkbox } from '@/components/lib/ui/checkbox';
 import { useOppositeTxRecord } from '@/composable/data-queries/opposite-tx-record';
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore } from '@/stores';
@@ -118,8 +125,18 @@ const props = withDefaults(
   defineProps<{
     tx: TransactionModel;
     asButton?: boolean;
+    showCheckbox?: boolean;
+    isSelected?: boolean;
+    isSelectable?: boolean;
+    index?: number;
   }>(),
-  { asButton: true },
+  {
+    asButton: true,
+    showCheckbox: true,
+    isSelected: false,
+    isSelectable: true,
+    index: 0,
+  },
 );
 
 const { categoriesMap } = storeToRefs(useCategoriesStore());
@@ -128,6 +145,7 @@ const { accountsRecord } = storeToRefs(accountsStore);
 
 const emit = defineEmits<{
   'record-click': [[value: TransactionModel, oppositeTx: TransactionModel]];
+  'selection-change': [{ value: boolean; id: number; index: number }];
 }>();
 
 const transaction = reactive(props.tx);
@@ -175,6 +193,19 @@ const formateDate = (date: string | number | Date) => format(new Date(date), 'd 
 const transactionEmit = () => {
   emit('record-click', [transaction, oppositeTransferTransaction.value]);
 };
+
+// Computed with get/set for v-model binding
+const checkedModel = computed({
+  get: () => props.isSelected,
+  set: (value: boolean | 'indeterminate') => {
+    if (!props.isSelectable) return;
+    emit('selection-change', {
+      value: value === true,
+      id: transaction.id,
+      index: props.index,
+    });
+  },
+});
 
 const formattedAmount = computed(() => {
   let amount = transaction.amount;

@@ -1,0 +1,43 @@
+import { bulkUpdateTransactions } from '@/api/transactions';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { useNotificationCenter } from '@/components/notification-center';
+import { i18n } from '@/i18n';
+import { ApiErrorResponseError } from '@/js/errors';
+import { useMutation, useQueryClient } from '@tanstack/vue-query';
+
+interface BulkUpdateParams {
+  transactionIds: number[];
+  categoryId?: number;
+  tagIds?: number[];
+  tagMode?: 'add' | 'replace' | 'remove';
+  note?: string;
+}
+
+export function useBulkUpdateCategory({ onSuccess }: { onSuccess?: () => void } = {}) {
+  const queryClient = useQueryClient();
+  const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
+
+  return useMutation({
+    mutationFn: async (params: BulkUpdateParams) => {
+      return bulkUpdateTransactions(params);
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({
+        queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange],
+      });
+
+      addSuccessNotification(i18n.global.t('transactions.bulkEdit.successMessage', { count: result.updatedCount }));
+
+      onSuccess?.();
+    },
+    onError: (error) => {
+      if (error instanceof ApiErrorResponseError) {
+        addErrorNotification(error.data.message);
+      } else {
+        // eslint-disable-next-line no-console
+        console.error(error);
+        addErrorNotification(i18n.global.t('transactions.bulkEdit.unexpectedError'));
+      }
+    },
+  });
+}

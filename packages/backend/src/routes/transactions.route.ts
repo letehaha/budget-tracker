@@ -3,6 +3,7 @@ import {
   getTransactionsByTransferId,
   linkTransactions,
 } from '@controllers/transactions.controller';
+import bulkUpdate from '@controllers/transactions.controller/bulk-update';
 import createTransaction from '@controllers/transactions.controller/create-transaction';
 import deleteTransaction from '@controllers/transactions.controller/delete-transaction';
 import getTransactions from '@controllers/transactions.controller/get-transaction';
@@ -77,6 +78,13 @@ router.put(
   unlinkTransferTransactions.handler,
 );
 router.put('/link', authenticateSession, checkBaseCurrencyLock, linkTransactions);
+router.put(
+  '/bulk',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(bulkUpdate.schema),
+  bulkUpdate.handler,
+);
 router.put(
   '/:id',
   authenticateSession,

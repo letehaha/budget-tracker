@@ -2,6 +2,8 @@
 import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { useScrollAreaContainer } from '@/composable/scroll-area-container';
+import { useTransactionSelection } from '@/composable/transaction-selection';
+import { useBulkUpdateCategory } from '@/composable/use-bulk-update-category';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { useVirtualizer } from '@tanstack/vue-virtual';
@@ -10,6 +12,8 @@ import { computed, defineAsyncComponent, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { SCROLL_AREA_IDS } from '../lib/ui/scroll-area/types';
+import BulkEditDialog, { type BulkEditFormValues } from './bulk-edit-dialog.vue';
+import BulkEditToolbar from './bulk-edit-toolbar.vue';
 import TransactionRecord from './transaction-record.vue';
 
 const { t } = useI18n();
@@ -28,6 +32,7 @@ const props = withDefaults(
     scrollAreaId?: SCROLL_AREA_IDS;
     rawList?: boolean; // whenever we don't need to show anything except actual records
     maxDisplay?: number; // maximum number of items to display after deduplication
+    enableBulkEdit?: boolean;
   }>(),
   {
     isTransactionRecord: false,
@@ -35,6 +40,7 @@ const props = withDefaults(
     isFetchingNextPage: false,
     paginate: true,
     scrollAreaId: SCROLL_AREA_IDS.dashboard,
+    enableBulkEdit: false,
   },
 );
 const emits = defineEmits(['fetch-next-page']);
@@ -130,6 +136,52 @@ const displayTransactions = computed(() => {
   return props.maxDisplay ? deduplicated.slice(0, props.maxDisplay) : deduplicated;
 });
 
+// Bulk edit selection
+const {
+  selectedCount,
+  isAllSelected,
+  isTransactionSelectable,
+  isTransactionSelected,
+  toggleTransaction,
+  selectAll,
+  clearSelection,
+  getSelectedTransactionIds,
+} = useTransactionSelection({
+  getTransactions: () => displayTransactions.value,
+});
+
+const handleSelectAllToggle = (checked: boolean) => {
+  if (checked) {
+    selectAll();
+  } else {
+    clearSelection();
+  }
+};
+
+const bulkUpdateMutation = useBulkUpdateCategory({
+  onSuccess: () => {
+    clearSelection();
+    isBulkEditDialogOpen.value = false;
+  },
+});
+
+const isBulkEditDialogOpen = ref(false);
+
+const handleOpenBulkEditDialog = () => {
+  isBulkEditDialogOpen.value = true;
+};
+
+const handleBulkApply = (values: BulkEditFormValues) => {
+  const transactionIds = getSelectedTransactionIds();
+
+  bulkUpdateMutation.mutate({
+    transactionIds,
+    ...(values.categoryId !== undefined && { categoryId: values.categoryId }),
+    ...(values.tagIds !== undefined && { tagIds: values.tagIds, tagMode: values.tagMode }),
+    ...(values.note !== undefined && { note: values.note }),
+  });
+};
+
 const virtualizer = useVirtualizer(
   computed(() => ({
     count: displayTransactions.value.length + (props.hasNextPage ? 1 : 0),
@@ -162,6 +214,25 @@ watchEffect(() => {
 
 <template>
   <div>
+    <!-- Bulk edit toolbar -->
+    <BulkEditToolbar
+      v-if="enableBulkEdit"
+      :selected-count="selectedCount"
+      :is-all-selected="isAllSelected"
+      :is-loading="bulkUpdateMutation.isPending.value"
+      @cancel="clearSelection"
+      @edit="handleOpenBulkEditDialog"
+      @select-all="handleSelectAllToggle"
+    />
+
+    <!-- Bulk edit dialog -->
+    <BulkEditDialog
+      v-model:open="isBulkEditDialogOpen"
+      :selected-count="selectedCount"
+      :is-loading="bulkUpdateMutation.isPending.value"
+      @apply="handleBulkApply"
+    />
+
     <template v-if="paginate">
       <div class="relative">
         <div v-bind="$attrs" v-if="transactions" class="w-full">
@@ -178,7 +249,15 @@ watchEffect(() => {
               }"
             >
               <template v-if="displayTransactions[virtualRow.index]">
-                <TransactionRecord :tx="displayTransactions[virtualRow.index]" @record-click="handlerRecordClick" />
+                <TransactionRecord
+                  :tx="displayTransactions[virtualRow.index]"
+                  :show-checkbox="enableBulkEdit"
+                  :is-selected="isTransactionSelected(displayTransactions[virtualRow.index].id)"
+                  :is-selectable="isTransactionSelectable(displayTransactions[virtualRow.index])"
+                  :index="virtualRow.index"
+                  @record-click="handlerRecordClick"
+                  @selection-change="toggleTransaction"
+                />
               </template>
             </div>
           </div>
@@ -198,8 +277,16 @@ watchEffect(() => {
     </template>
     <template v-else>
       <div v-bind="$attrs" class="grid grid-cols-1 gap-2">
-        <template v-for="item in displayTransactions" :key="`${item.id}-${item.updatedAt}`">
-          <TransactionRecord :tx="item" @record-click="handlerRecordClick" />
+        <template v-for="(item, index) in displayTransactions" :key="`${item.id}-${item.updatedAt}`">
+          <TransactionRecord
+            :tx="item"
+            :show-checkbox="enableBulkEdit"
+            :is-selected="isTransactionSelected(item.id)"
+            :is-selectable="isTransactionSelectable(item)"
+            :index="index"
+            @record-click="handlerRecordClick"
+            @selection-change="toggleTransaction"
+          />
         </template>
       </div>
     </template>
