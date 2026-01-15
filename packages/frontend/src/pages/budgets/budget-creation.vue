@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
 import { trackAnalyticsEvent } from '@/lib/posthog';
+import { cn } from '@/lib/utils';
 import { BUDGET_TYPES } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
@@ -104,10 +105,12 @@ const onBudgetTypeChange = (type: BUDGET_TYPES) => {
       <Label class="mb-2 block text-sm font-medium">{{ $t('budgets.creation.typeLabel') }}</Label>
       <RadioGroup :model-value="form.type" class="grid grid-cols-2 gap-3" @update:model-value="onBudgetTypeChange">
         <Label
-          :class="[
-            'border-input hover:bg-accent hover:text-accent-foreground flex cursor-pointer flex-col gap-1 rounded-md border p-3 transition-colors',
-            form.type === BUDGET_TYPES.manual && 'border-primary bg-primary/5',
-          ]"
+          :class="
+            cn(
+              'border-input hover:bg-accent hover:text-accent-foreground flex cursor-pointer flex-col gap-1 rounded-md border p-3 transition-colors',
+              form.type === BUDGET_TYPES.manual && 'border-primary bg-primary/5',
+            )
+          "
         >
           <div class="flex items-center gap-2">
             <RadioGroupItem :value="BUDGET_TYPES.manual" />
@@ -116,10 +119,12 @@ const onBudgetTypeChange = (type: BUDGET_TYPES) => {
           <span class="text-muted-foreground pl-6 text-xs">{{ $t('budgets.creation.typeManualDescription') }}</span>
         </Label>
         <Label
-          :class="[
-            'border-input hover:bg-accent hover:text-accent-foreground flex cursor-pointer flex-col gap-1 rounded-md border p-3 transition-colors',
-            form.type === BUDGET_TYPES.category && 'border-primary bg-primary/5',
-          ]"
+          :class="
+            cn(
+              'border-input hover:bg-accent hover:text-accent-foreground flex cursor-pointer flex-col gap-1 rounded-md border p-3 transition-colors',
+              form.type === BUDGET_TYPES.category && 'border-primary bg-primary/5',
+            )
+          "
         >
           <div class="flex items-center gap-2">
             <RadioGroupItem :value="BUDGET_TYPES.category" />

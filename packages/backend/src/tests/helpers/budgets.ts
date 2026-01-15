@@ -163,3 +163,46 @@ export async function getStats<R extends boolean | undefined = undefined>({ id, 
     raw,
   });
 }
+
+interface CategoryBudgetTransactionsResponse {
+  transactions: Array<{
+    id: number;
+    time: Date;
+    transactionType: string;
+    refAmount: number;
+    amount: number;
+    note: string | null;
+    categoryId: number | null;
+    accountId: number;
+    effectiveCategory?: {
+      id: number;
+      name: string;
+      color: string;
+    };
+    effectiveRefAmount?: number;
+  }>;
+  total: number;
+}
+
+export async function getCategoryBudgetTransactions<R extends boolean | undefined = undefined>({
+  id,
+  from,
+  limit,
+  raw,
+}: {
+  id: number;
+  from?: number;
+  limit?: number;
+  raw?: R;
+}) {
+  const queryParams = new URLSearchParams();
+  if (from !== undefined) queryParams.set('from', String(from));
+  if (limit !== undefined) queryParams.set('limit', String(limit));
+  const queryString = queryParams.toString();
+
+  return makeRequest<CategoryBudgetTransactionsResponse, R>({
+    method: 'get',
+    url: `/budgets/${id}/category-transactions${queryString ? `?${queryString}` : ''}`,
+    raw,
+  });
+}
