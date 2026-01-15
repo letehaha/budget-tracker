@@ -134,6 +134,25 @@ export interface LinkTransactionsBody {
   ids: [baseTxId: number, destinationTxId: number][];
 }
 
+export type BulkUpdateTagMode = 'add' | 'replace' | 'remove';
+
+export interface BulkUpdateTransactionsBody {
+  transactionIds: number[];
+  categoryId?: number;
+  tagIds?: number[];
+  tagMode?: BulkUpdateTagMode;
+  note?: string;
+}
+
+export interface BulkUpdateTransactionsResponse {
+  updatedCount: number;
+  updatedIds: number[];
+}
+
+// Backward compatibility aliases
+export type BulkUpdateTransactionsCategoryBody = BulkUpdateTransactionsBody;
+export type BulkUpdateTransactionsCategoryResponse = BulkUpdateTransactionsResponse;
+
 export type CreateCategoryBody = {
   name: CategoryModel['name'];
   color?: CategoryModel['color'];

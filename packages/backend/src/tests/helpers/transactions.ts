@@ -188,3 +188,32 @@ export function deleteSplit({ splitId }: { splitId: string }): Promise<CustomRes
     url: `/transactions/splits/${splitId}`,
   });
 }
+
+// Bulk update helpers
+interface BulkUpdateTransactionsPayload {
+  transactionIds: number[];
+  categoryId?: number;
+  tagIds?: number[];
+  tagMode?: 'add' | 'replace' | 'remove';
+  note?: string;
+}
+
+interface BulkUpdateResult {
+  updatedCount: number;
+  updatedIds: number[];
+}
+
+export function bulkUpdateTransactions<R extends boolean | undefined = undefined>({
+  payload,
+  raw,
+}: {
+  payload: BulkUpdateTransactionsPayload;
+  raw?: R;
+}) {
+  return makeRequest<BulkUpdateResult, R>({
+    method: 'put',
+    url: '/transactions/bulk',
+    payload,
+    raw,
+  });
+}

@@ -92,3 +92,12 @@ export const unlinkTransactions = async (payload: endpointsTypes.UnlinkTransferT
 export const getTransactionByBudgetId = async (budgetId: number): Promise<TransactionModel[]> => {
   return api.get(`/transactions/budget/${budgetId}`);
 };
+
+export const bulkUpdateTransactions = async (
+  payload: endpointsTypes.BulkUpdateTransactionsBody,
+): Promise<endpointsTypes.BulkUpdateTransactionsResponse> => {
+  return api.put('/transactions/bulk', payload);
+};
+
+// Backward compatibility alias
+export const bulkUpdateTransactionsCategory = bulkUpdateTransactions;
