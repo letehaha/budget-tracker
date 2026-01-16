@@ -7,26 +7,26 @@ import * as helpers from '@tests/helpers';
 
 describe('Statement Parser - Execute Import endpoint', () => {
   /**
-   * Helper to create extracted transactions in system format.
+   * Helper to create extracted transactions in decimal format (as AI outputs them).
    */
   const createExtractedTransactions = (overrides: Partial<ExtractedTransaction>[] = []): ExtractedTransaction[] => {
     const defaults: ExtractedTransaction[] = [
       {
         date: '2024-01-15 10:30:00',
         description: 'Grocery shopping',
-        amount: 10050, // 100.50 in system format (cents)
+        amount: 100.5, // AI outputs decimal format
         type: 'expense',
       },
       {
         date: '2024-01-16 14:20:00',
         description: 'Coffee shop',
-        amount: 5000, // 50.00 in system format
+        amount: 50, // AI outputs decimal format
         type: 'expense',
       },
       {
         date: '2024-01-17 09:00:00',
         description: 'Salary deposit',
-        amount: 250000, // 2500.00 in system format
+        amount: 2500, // AI outputs decimal format
         type: 'income',
       },
     ];
@@ -595,7 +595,7 @@ describe('Statement Parser - Execute Import endpoint', () => {
             {
               date: '2024-01-15',
               description: 'Large but valid amount',
-              amount: 999_999_999, // Just under 1 billion threshold
+              amount: 9_999_999, // Large amount under threshold (in decimal format)
               type: 'income',
             },
           ],
@@ -859,6 +859,138 @@ describe('Statement Parser - Execute Import endpoint', () => {
     });
   });
 
+  /**
+   * Tests verifying that AI-extracted decimal amounts are correctly converted to cents.
+   * AI outputs amounts in human-readable decimal format (e.g., 35 for UAH 35.00).
+   */
+  describe('AI extraction decimal amount handling', () => {
+    it('should correctly store amounts as AI outputs them (decimal format)', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // AI outputs amounts in decimal format (human-readable currency values)
+      const transactions: ExtractedTransaction[] = [
+        {
+          date: '2024-01-15 10:00:00',
+          description: 'Small purchase',
+          amount: 35,
+          type: 'expense',
+        },
+        {
+          date: '2024-01-16 14:00:00',
+          description: 'Large transfer',
+          amount: 66495.56,
+          type: 'income',
+        },
+        {
+          date: '2024-01-17 09:30:00',
+          description: 'Coffee',
+          amount: 85.5,
+          type: 'expense',
+        },
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(3);
+      expect(result.summary.errors).toHaveLength(0);
+
+      const allTransactions = await helpers.getTransactions({ raw: true });
+      const importedTxs = allTransactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+
+      const smallPurchase = importedTxs.find((tx) => tx.note === 'Small purchase');
+      const largeTransfer = importedTxs.find((tx) => tx.note === 'Large transfer');
+      const coffee = importedTxs.find((tx) => tx.note === 'Coffee');
+
+      expect(smallPurchase?.amount).toBe(35.0);
+      expect(largeTransfer?.amount).toBe(66495.56);
+      expect(coffee?.amount).toBe(85.5);
+    });
+
+    it('should correctly update account balance with AI decimal amounts', async () => {
+      const initialBalance = 1000;
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance }),
+        raw: true,
+      });
+
+      const transactions: ExtractedTransaction[] = [
+        {
+          date: '2024-01-15',
+          description: 'Expense in decimal format',
+          amount: 250.5,
+          type: 'expense',
+        },
+        {
+          date: '2024-01-16',
+          description: 'Income in decimal format',
+          amount: 500,
+          type: 'income',
+        },
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(2);
+
+      // Initial: 1000.00 - Expense: 250.50 + Income: 500.00 = 1249.50
+      const accountAfter = await helpers.getAccount({ id: account.id, raw: true });
+      expect(accountAfter.currentBalance).toBe(1249.5);
+    });
+
+    it('should handle whole number amounts from AI correctly', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const transactions: ExtractedTransaction[] = [
+        {
+          date: '2024-01-15',
+          description: 'Round amount expense',
+          amount: 100,
+          type: 'expense',
+        },
+        {
+          date: '2024-01-16',
+          description: 'Large round income',
+          amount: 50000,
+          type: 'income',
+        },
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(2);
+
+      const allTransactions = await helpers.getTransactions({ raw: true });
+      const importedTxs = allTransactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+
+      const roundExpense = importedTxs.find((tx) => tx.note === 'Round amount expense');
+      const largeIncome = importedTxs.find((tx) => tx.note === 'Large round income');
+
+      expect(roundExpense?.amount).toBe(100);
+      expect(largeIncome?.amount).toBe(50000);
+    });
+  });
+
   describe('account balance updates', () => {
     it('should correctly update account balance after importing expenses', async () => {
       // Create account with initial balance
@@ -872,11 +1004,11 @@ describe('Statement Parser - Execute Import endpoint', () => {
       const accountBefore = await helpers.getAccount({ id: account.id, raw: true });
       expect(accountBefore.currentBalance).toBe(1000);
 
-      // Import expense transactions (amounts in cents)
+      // Import expense transactions (amounts in decimal format as AI outputs)
       const transactions: ExtractedTransaction[] = [
-        { date: '2025-12-01', description: 'Expense 1', amount: 10000, type: 'expense' }, // $100.00
-        { date: '2025-12-02', description: 'Expense 2', amount: 25000, type: 'expense' }, // $250.00
-        { date: '2025-12-03', description: 'Expense 3', amount: 15000, type: 'expense' }, // $150.00
+        { date: '2025-12-01', description: 'Expense 1', amount: 100, type: 'expense' },
+        { date: '2025-12-02', description: 'Expense 2', amount: 250, type: 'expense' },
+        { date: '2025-12-03', description: 'Expense 3', amount: 150, type: 'expense' },
       ];
 
       const result = await helpers.statementExecuteImport({
@@ -904,10 +1036,10 @@ describe('Statement Parser - Execute Import endpoint', () => {
         raw: true,
       });
 
-      // Import income transactions (amounts in cents)
+      // Import income transactions (amounts in decimal format as AI outputs)
       const transactions: ExtractedTransaction[] = [
-        { date: '2025-12-01', description: 'Salary', amount: 200000, type: 'income' }, // $2000.00
-        { date: '2025-12-15', description: 'Bonus', amount: 50000, type: 'income' }, // $500.00
+        { date: '2025-12-01', description: 'Salary', amount: 2000, type: 'income' },
+        { date: '2025-12-15', description: 'Bonus', amount: 500, type: 'income' },
       ];
 
       const result = await helpers.statementExecuteImport({
@@ -935,13 +1067,13 @@ describe('Statement Parser - Execute Import endpoint', () => {
         raw: true,
       });
 
-      // Import mixed transactions (amounts in cents)
+      // Import mixed transactions (amounts in decimal format as AI outputs)
       const transactions: ExtractedTransaction[] = [
-        { date: '2025-12-01', description: 'Salary', amount: 300000, type: 'income' }, // $3000.00
-        { date: '2025-12-05', description: 'Rent', amount: 150000, type: 'expense' }, // $1500.00
-        { date: '2025-12-10', description: 'Freelance', amount: 50000, type: 'income' }, // $500.00
-        { date: '2025-12-15', description: 'Groceries', amount: 30000, type: 'expense' }, // $300.00
-        { date: '2025-12-20', description: 'Utilities', amount: 20000, type: 'expense' }, // $200.00
+        { date: '2025-12-01', description: 'Salary', amount: 3000, type: 'income' },
+        { date: '2025-12-05', description: 'Rent', amount: 1500, type: 'expense' },
+        { date: '2025-12-10', description: 'Freelance', amount: 500, type: 'income' },
+        { date: '2025-12-15', description: 'Groceries', amount: 300, type: 'expense' },
+        { date: '2025-12-20', description: 'Utilities', amount: 200, type: 'expense' },
       ];
 
       const result = await helpers.statementExecuteImport({
@@ -972,10 +1104,10 @@ describe('Statement Parser - Execute Import endpoint', () => {
       });
 
       const transactions: ExtractedTransaction[] = [
-        { date: '2025-12-01', description: 'Expense 1', amount: 10000, type: 'expense' }, // index 0 - skip ($100)
-        { date: '2025-12-02', description: 'Expense 2', amount: 20000, type: 'expense' }, // index 1 - import ($200)
-        { date: '2025-12-03', description: 'Income 1', amount: 50000, type: 'income' }, // index 2 - skip ($500)
-        { date: '2025-12-04', description: 'Expense 3', amount: 15000, type: 'expense' }, // index 3 - import ($150)
+        { date: '2025-12-01', description: 'Expense 1', amount: 100, type: 'expense' }, // index 0 - skip
+        { date: '2025-12-02', description: 'Expense 2', amount: 200, type: 'expense' }, // index 1 - import
+        { date: '2025-12-03', description: 'Income 1', amount: 500, type: 'income' }, // index 2 - skip
+        { date: '2025-12-04', description: 'Expense 3', amount: 150, type: 'expense' }, // index 3 - import
       ];
 
       const result = await helpers.statementExecuteImport({
@@ -1003,9 +1135,9 @@ describe('Statement Parser - Execute Import endpoint', () => {
         raw: true,
       });
 
-      // Import expense larger than balance (amount in cents)
+      // Import expense larger than balance (amount in decimal format)
       const transactions: ExtractedTransaction[] = [
-        { date: '2025-12-01', description: 'Big expense', amount: 50000, type: 'expense' }, // $500.00
+        { date: '2025-12-01', description: 'Big expense', amount: 500, type: 'expense' },
       ];
 
       const result = await helpers.statementExecuteImport({
@@ -1044,10 +1176,10 @@ describe('Statement Parser - Execute Import endpoint', () => {
       const accountMid = await helpers.getAccount({ id: account.id, raw: true });
       expect(accountMid.currentBalance).toBe(700); // $1000 - $300
 
-      // Import more transactions (amounts in cents)
+      // Import more transactions (amounts in decimal format as AI outputs)
       const transactions: ExtractedTransaction[] = [
-        { date: '2025-12-15', description: 'New expense', amount: 20000, type: 'expense' }, // $200.00
-        { date: '2025-12-20', description: 'New income', amount: 50000, type: 'income' }, // $500.00
+        { date: '2025-12-15', description: 'New expense', amount: 200, type: 'expense' },
+        { date: '2025-12-20', description: 'New income', amount: 500, type: 'income' },
       ];
 
       const result = await helpers.statementExecuteImport({
