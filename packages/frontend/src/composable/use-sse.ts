@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/stores/auth';
 import {
-  type AiCategorizationCompletedPayload,
+  type AiCategorizationProgressPayload,
   type SSEEventPayload,
   type SSEEventType,
   SSE_EVENT_TYPES,
@@ -10,7 +10,7 @@ import { EventSourceMessage, fetchEventSource } from '@microsoft/fetch-event-sou
 import { onUnmounted, ref } from 'vue';
 
 // Re-export types for consumers of this composable
-export { SSE_EVENT_TYPES, type AiCategorizationCompletedPayload, type SyncStatusChangedPayload };
+export { SSE_EVENT_TYPES, type AiCategorizationProgressPayload, type SyncStatusChangedPayload };
 
 type SSEEventHandler<T extends SSEEventPayload = SSEEventPayload> = (data: T) => void;
 

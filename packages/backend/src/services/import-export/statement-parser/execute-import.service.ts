@@ -17,6 +17,7 @@ import { trackImportCompleted } from '@js/utils/posthog';
 import * as Accounts from '@models/Accounts.model';
 import * as Transactions from '@models/Transactions.model';
 import * as Users from '@models/Users.model';
+import { queueCategorizationJob } from '@services/ai-categorization';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { v4 as uuidv4 } from 'uuid';
@@ -195,4 +196,23 @@ async function executeImportImpl({
   };
 }
 
-export const executeImport = withTransaction(executeImportImpl);
+const executeImportWithTransaction = withTransaction(executeImportImpl);
+
+/**
+ * Execute statement import and queue AI categorization for imported transactions.
+ * The categorization is queued AFTER the DB transaction commits successfully.
+ */
+export async function executeImport(params: ExecuteImportParams): Promise<StatementExecuteImportResponse> {
+  const result = await executeImportWithTransaction(params);
+
+  // Queue AI categorization for the newly imported transactions
+  // This happens AFTER the DB transaction commits successfully
+  if (result.newTransactionIds.length > 0) {
+    await queueCategorizationJob({
+      userId: params.userId,
+      transactionIds: result.newTransactionIds,
+    });
+  }
+
+  return result;
+}

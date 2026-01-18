@@ -8,17 +8,20 @@
  * SSE Event Types - event names sent via Server-Sent Events
  */
 export const SSE_EVENT_TYPES = {
-  AI_CATEGORIZATION_COMPLETED: 'ai_categorization_completed',
+  AI_CATEGORIZATION_PROGRESS: 'ai_categorization_progress',
   SYNC_STATUS_CHANGED: 'bank_connections_sync_status_changed',
 } as const;
 
 export type SSEEventType = (typeof SSE_EVENT_TYPES)[keyof typeof SSE_EVENT_TYPES];
 
 /**
- * Payload for AI_CATEGORIZATION_COMPLETED event
+ * Payload for AI_CATEGORIZATION_PROGRESS event
+ * Sent during categorization to track progress
  */
-export interface AiCategorizationCompletedPayload {
-  categorizedCount: number;
+export interface AiCategorizationProgressPayload {
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  processedCount: number;
+  totalCount: number;
   failedCount: number;
 }
 
@@ -54,4 +57,4 @@ export interface SyncStatusChangedPayload {
 /**
  * Union type for all SSE event payloads
  */
-export type SSEEventPayload = AiCategorizationCompletedPayload | SyncStatusChangedPayload;
+export type SSEEventPayload = AiCategorizationProgressPayload | SyncStatusChangedPayload;

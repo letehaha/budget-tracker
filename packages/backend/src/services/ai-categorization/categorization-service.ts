@@ -1,10 +1,11 @@
-import { AI_FEATURE, CATEGORIZATION_SOURCE, getProviderFromModelId } from '@bt/shared/types';
+import { AI_FEATURE, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES, getProviderFromModelId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
 import Accounts from '@models/Accounts.model';
 import { getCategories } from '@models/Categories.model';
 import Transactions from '@models/Transactions.model';
 import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
+import { sseManager } from '@services/common/sse';
 import { markApiKeyInvalid, markApiKeyValid } from '@services/user-settings/ai-api-key';
 import { generateText } from 'ai';
 
@@ -17,14 +18,20 @@ import { parseCategorizationResponse } from './utils/parse-response';
 const INVALID_KEY_ERROR_MESSAGE =
   'API key is not working. Please verify the key is correct, has sufficient credits, and has the required permissions.';
 
-// Not strong meaning here, just a value to avoid huge payloads
-const BATCH_SIZE = 200;
+// Batch size of 500 provides ~17.5k tokens per batch (average case)
+// Well within safe limits for AI models while providing good progress feedback
+const BATCH_SIZE = 500;
 
 interface CategorizeBatchResult extends CategorizationBatchResult {
   /** True if the error was an auth error (invalid key) */
   isAuthError?: boolean;
   /** True if the error was a temporary error (rate limit, server error) */
   isTemporaryError?: boolean;
+  /** Token usage for this batch */
+  tokenUsage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
 }
 
 /**
@@ -54,11 +61,20 @@ async function categorizeBatch({
       prompt: userMessage,
     });
 
-    if (usage) {
-      logger.info(
-        `AI categorization API call (${aiClient.modelId}): ${usage.inputTokens ?? 0} input, ${usage.outputTokens ?? 0} output tokens`,
-      );
-    }
+    // Log detailed token usage for batch size analysis
+    const inputTokens = usage?.inputTokens ?? 0;
+    const outputTokens = usage?.outputTokens ?? 0;
+    const totalTokens = inputTokens + outputTokens;
+    const tokensPerTransaction = transactions.length > 0 ? Math.round(totalTokens / transactions.length) : 0;
+
+    logger.info('[AI Categorization] Batch completed', {
+      modelId: aiClient.modelId,
+      transactionCount: transactions.length,
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      tokensPerTransaction,
+    });
 
     const validCategoryIds = new Set(categories.map((c) => c.id));
     const validTransactionIds = new Set(transactions.map((t) => t.id));
@@ -75,6 +91,10 @@ async function categorizeBatch({
     return {
       successful: results,
       failed,
+      tokenUsage: {
+        inputTokens,
+        outputTokens,
+      },
     };
   } catch (error) {
     logger.error({ message: 'AI categorization batch failed', error: error as Error });
@@ -184,10 +204,14 @@ async function getUncategorizedTransactions({
 export async function categorizeTransactions({
   userId,
   transactionIds,
+  totalTransactionCount,
 }: {
   userId: number;
   transactionIds: number[];
+  /** Total transactions to process (for progress tracking). If not provided, uses transactionIds.length */
+  totalTransactionCount?: number;
 }): Promise<CategorizationBatchResult> {
+  const totalCount = totalTransactionCount ?? transactionIds.length;
   // Create AI client for categorization feature
   // This handles user preferences, API key resolution, and server fallback
   let aiClient = await createAIClient({
@@ -238,6 +262,13 @@ export async function categorizeTransactions({
     successful: [],
     failed: [],
     errors: [],
+  };
+
+  // Track token usage across all batches for analysis
+  const totalTokenUsage = {
+    inputTokens: 0,
+    outputTokens: 0,
+    batchCount: 0,
   };
 
   // Track if we've already tried fallback (to avoid infinite loops)
@@ -330,11 +361,48 @@ export async function categorizeTransactions({
     if (batchResult.errors) {
       allResults.errors!.push(...batchResult.errors);
     }
+
+    // Accumulate token usage
+    if (batchResult.tokenUsage) {
+      totalTokenUsage.inputTokens += batchResult.tokenUsage.inputTokens;
+      totalTokenUsage.outputTokens += batchResult.tokenUsage.outputTokens;
+      totalTokenUsage.batchCount += 1;
+    }
+
+    // Emit progress event after each batch
+    sseManager.sendToUser({
+      userId,
+      event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
+      data: {
+        status: 'processing' as const,
+        processedCount: allResults.successful.length + allResults.failed.length,
+        totalCount,
+        failedCount: allResults.failed.length,
+      },
+    });
   }
 
-  logger.info(
-    `AI categorization complete for user ${userId}: ${allResults.successful.length} successful, ${allResults.failed.length} failed`,
-  );
+  // Log summary with token usage for batch size optimization analysis
+  const totalTransactionsProcessed = allResults.successful.length + allResults.failed.length;
+  const totalTokens = totalTokenUsage.inputTokens + totalTokenUsage.outputTokens;
+  const avgTokensPerTransaction =
+    totalTransactionsProcessed > 0 ? Math.round(totalTokens / totalTransactionsProcessed) : 0;
+
+  logger.info('[AI Categorization] Job completed', {
+    userId,
+    modelId: aiClient.modelId,
+    provider: aiClient.provider,
+    usingUserKey: aiClient.usingUserKey,
+    transactionsProcessed: totalTransactionsProcessed,
+    successfulCount: allResults.successful.length,
+    failedCount: allResults.failed.length,
+    batchCount: totalTokenUsage.batchCount,
+    batchSize: BATCH_SIZE,
+    totalInputTokens: totalTokenUsage.inputTokens,
+    totalOutputTokens: totalTokenUsage.outputTokens,
+    totalTokens,
+    avgTokensPerTransaction,
+  });
 
   // Track analytics event
   if (allResults.successful.length > 0) {

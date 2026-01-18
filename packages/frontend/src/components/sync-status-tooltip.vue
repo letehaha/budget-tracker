@@ -55,8 +55,56 @@
       </div>
     </div>
 
+    <!-- AI Categorization Section -->
+    <div
+      v-if="isCategorizing || categorizationJustCompleted"
+      class="border-border space-y-2 border-t pt-3"
+    >
+      <div class="flex items-center gap-2">
+        <SparklesIcon class="text-primary size-4" />
+        <span class="text-sm font-medium">{{ $t('header.categorization.title') }}</span>
+      </div>
+
+      <template v-if="categorizationJustCompleted && categorizationStatus?.status === 'completed'">
+        <div class="text-success-text flex items-center gap-2 text-xs">
+          <CheckCircle2 class="size-4" />
+          <span>{{ $t('header.categorization.completedShort') }}</span>
+        </div>
+      </template>
+
+      <template v-else-if="categorizationJustCompleted && categorizationStatus?.status === 'failed'">
+        <div class="flex items-center gap-2 text-xs text-red-500">
+          <XCircle class="size-4" />
+          <span>{{ $t('header.categorization.failedShort') }}</span>
+        </div>
+      </template>
+
+      <template v-else-if="isCategorizing && categorizationStatus">
+        <!-- Progress bar -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-muted-foreground">
+              {{ categorizationStatus.processedCount }} / {{ categorizationStatus.totalCount }}
+              {{ $t('header.categorization.transactions') }}
+            </span>
+            <span class="text-muted-foreground">{{ categorizationProgress }}%</span>
+          </div>
+          <div class="bg-muted h-1.5 overflow-hidden rounded-full">
+            <div
+              class="bg-primary h-full transition-all duration-300"
+              :style="{ width: `${categorizationProgress}%` }"
+            />
+          </div>
+        </div>
+
+        <div v-if="categorizationStatus.status === 'queued'" class="text-muted-foreground text-xs">
+          {{ $t('header.categorization.queued') }}
+        </div>
+      </template>
+    </div>
+
     <!-- Default view: Show last sync time and sync button -->
-    <div v-else class="space-y-3">
+    <div v-if="!isSyncing && !showSuccessMessage" class="space-y-3">
       <div
         v-if="accountStatuses.length === 0"
         class="text-muted-foreground flex flex-col items-center gap-2 py-4 text-center text-sm"
@@ -93,7 +141,8 @@
 import { type AccountSyncStatus, SyncStatus } from '@/api/bank-data-providers';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import Button from '@/components/lib/ui/button/Button.vue';
-import { Building2, CheckCircle2, Circle, Clock, Loader2, RefreshCcw, XCircle } from 'lucide-vue-next';
+import type { AiCategorizationProgressPayload } from '@bt/shared/types';
+import { Building2, CheckCircle2, Circle, Clock, Loader2, RefreshCcw, SparklesIcon, XCircle } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -106,6 +155,11 @@ const props = defineProps<{
   isLoading?: boolean;
   isSyncing?: boolean;
   showSuccessMessage?: boolean;
+  // AI Categorization props
+  categorizationStatus?: AiCategorizationProgressPayload | null;
+  isCategorizing?: boolean;
+  categorizationProgress?: number;
+  categorizationJustCompleted?: boolean;
 }>();
 
 defineEmits<{
