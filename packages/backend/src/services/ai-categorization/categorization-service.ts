@@ -1,10 +1,11 @@
-import { AI_FEATURE, CATEGORIZATION_SOURCE, getProviderFromModelId } from '@bt/shared/types';
+import { AI_FEATURE, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES, getProviderFromModelId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
 import Accounts from '@models/Accounts.model';
 import { getCategories } from '@models/Categories.model';
 import Transactions from '@models/Transactions.model';
 import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
+import { sseManager } from '@services/common/sse';
 import { markApiKeyInvalid, markApiKeyValid } from '@services/user-settings/ai-api-key';
 import { generateText } from 'ai';
 
@@ -17,8 +18,9 @@ import { parseCategorizationResponse } from './utils/parse-response';
 const INVALID_KEY_ERROR_MESSAGE =
   'API key is not working. Please verify the key is correct, has sufficient credits, and has the required permissions.';
 
-// Not strong meaning here, just a value to avoid huge payloads
-const BATCH_SIZE = 200;
+// Batch size of 500 provides ~17.5k tokens per batch (average case)
+// Well within safe limits for AI models while providing good progress feedback
+const BATCH_SIZE = 500;
 
 interface CategorizeBatchResult extends CategorizationBatchResult {
   /** True if the error was an auth error (invalid key) */
@@ -184,10 +186,14 @@ async function getUncategorizedTransactions({
 export async function categorizeTransactions({
   userId,
   transactionIds,
+  totalTransactionCount,
 }: {
   userId: number;
   transactionIds: number[];
+  /** Total transactions to process (for progress tracking). If not provided, uses transactionIds.length */
+  totalTransactionCount?: number;
 }): Promise<CategorizationBatchResult> {
+  const totalCount = totalTransactionCount ?? transactionIds.length;
   // Create AI client for categorization feature
   // This handles user preferences, API key resolution, and server fallback
   let aiClient = await createAIClient({
@@ -330,6 +336,18 @@ export async function categorizeTransactions({
     if (batchResult.errors) {
       allResults.errors!.push(...batchResult.errors);
     }
+
+    // Emit progress event after each batch
+    sseManager.sendToUser({
+      userId,
+      event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
+      data: {
+        status: 'processing' as const,
+        processedCount: allResults.successful.length + allResults.failed.length,
+        totalCount,
+        failedCount: allResults.failed.length,
+      },
+    });
   }
 
   logger.info(

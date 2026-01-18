@@ -64,7 +64,11 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
       `[AI Categorization Worker] Processing job for user ${userId}, ${transactionIds.length} transactions, attempt ${job.attemptsMade + 1}`,
     );
 
-    const result = await categorizeTransactions({ userId, transactionIds });
+    const result = await categorizeTransactions({
+      userId,
+      transactionIds,
+      totalTransactionCount: transactionIds.length,
+    });
 
     if (result.failed.length > 0) {
       logger.warn(`[AI Categorization Worker] ${result.failed.length} transactions failed for user ${userId}`);
@@ -87,12 +91,16 @@ categorizationWorker.on('completed', (job, result) => {
   logger.info(`[AI Categorization Worker] Job ${job.id} completed: ${JSON.stringify(result)}`);
 
   // Notify connected clients via SSE
-  const { userId } = job.data;
+  const { userId, transactionIds } = job.data;
+
+  // Send progress event with completed status
   sseManager.sendToUser({
     userId,
-    event: SSE_EVENT_TYPES.AI_CATEGORIZATION_COMPLETED,
+    event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
     data: {
-      categorizedCount: result.successful,
+      status: 'completed' as const,
+      processedCount: result.successful + result.failed,
+      totalCount: transactionIds.length,
       failedCount: result.failed,
     },
   });
@@ -100,6 +108,21 @@ categorizationWorker.on('completed', (job, result) => {
 
 categorizationWorker.on('failed', (job, err) => {
   logger.error({ message: `[AI Categorization Worker] Job ${job?.id} failed`, error: err });
+
+  // Send failed progress event
+  if (job) {
+    const { userId, transactionIds } = job.data;
+    sseManager.sendToUser({
+      userId,
+      event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
+      data: {
+        status: 'failed' as const,
+        processedCount: 0,
+        totalCount: transactionIds.length,
+        failedCount: transactionIds.length,
+      },
+    });
+  }
 });
 
 categorizationWorker.on('error', (err) => {
@@ -137,6 +160,18 @@ export async function queueCategorizationJob({
       jobId,
     },
   );
+
+  // Send queued event to notify frontend that categorization is scheduled
+  sseManager.sendToUser({
+    userId,
+    event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
+    data: {
+      status: 'queued' as const,
+      processedCount: 0,
+      totalCount: transactionIds.length,
+      failedCount: 0,
+    },
+  });
 
   logger.info(`[AI Categorization] Queued ${transactionIds.length} transactions for user ${userId}, job: ${jobId}`);
 

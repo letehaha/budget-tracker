@@ -98,6 +98,16 @@
       "syncedTime": "Synced {time}",
       "connectBank": "Connect bank",
       "syncingAccounts": "Syncing {count} accounts"
+    },
+    "categorization": {
+      "title": "AI Categorization",
+      "categorizing": "Categorizing...",
+      "completed": "AI categorized {count} transaction | AI categorized {count} transactions",
+      "completedShort": "Categorization complete",
+      "failed": "Categorization failed",
+      "failedShort": "Failed",
+      "queued": "Waiting to start...",
+      "transactions": "transactions"
     }
   },
   "syncStatusTooltip": {
@@ -1202,7 +1212,7 @@
       "textSource": {
         "title": "Import from any Text Source",
         "description": "Parse and import transactions from bank statements, emails, or any text source. Uses AI to automatically extract transaction data.",
-        "button": "Import from Text"
+        "button": "Import from Text (PDF, CSV, TXT, etc)"
       },
       "csv": {
         "title": "Import CSV",

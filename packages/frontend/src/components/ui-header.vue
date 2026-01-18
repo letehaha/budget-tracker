@@ -60,6 +60,12 @@
                   }}</span>
                 </span>
               </template>
+              <template v-else-if="categorizationStatus.isCategorizing.value">
+                <SparklesIcon class="text-primary animate-pulse" :size="16" />
+                <span class="hidden font-medium lg:inline">
+                  {{ $t('header.categorization.categorizing') }}
+                </span>
+              </template>
               <template v-else-if="hasConnections">
                 <CloudCheckIcon class="text-success-text size-5" />
                 <span v-if="lastSyncRelativeTime" class="hidden font-medium lg:block">
@@ -80,6 +86,10 @@
               :is-loading="syncStatus.isLoading.value"
               :is-syncing="syncStatus.isSyncing.value"
               :show-success-message="syncStatus.showSuccessMessage.value"
+              :categorization-status="categorizationStatus.categorizationStatus.value"
+              :is-categorizing="categorizationStatus.isCategorizing.value"
+              :categorization-progress="categorizationStatus.progress.value"
+              :categorization-just-completed="categorizationStatus.justCompleted.value"
               @trigger-sync="handleSyncClick"
             />
           </Popover.PopoverContent>
@@ -120,6 +130,7 @@ import Sidebar from '@/components/sidebar/index.vue';
 import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
+import { useCategorizationStatus } from '@/composable/use-categorization-status';
 import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-size';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { useSyncStatus } from '@/composable/use-sync-status';
@@ -127,7 +138,7 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
 // MoonStar, Sun removed - theme toggle temporarily disabled
-import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon } from 'lucide-vue-next';
+import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon, SparklesIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -148,6 +159,9 @@ const isPopoverOpen = ref(false);
 
 // Use new sync status system
 const syncStatus = useSyncStatus();
+
+// AI categorization status
+const categorizationStatus = useCategorizationStatus();
 
 // Locale-aware date formatting
 const { formatDistanceToNow } = useDateLocale();
