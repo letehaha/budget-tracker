@@ -27,6 +27,11 @@ interface CategorizeBatchResult extends CategorizationBatchResult {
   isAuthError?: boolean;
   /** True if the error was a temporary error (rate limit, server error) */
   isTemporaryError?: boolean;
+  /** Token usage for this batch */
+  tokenUsage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
 }
 
 /**
@@ -56,11 +61,20 @@ async function categorizeBatch({
       prompt: userMessage,
     });
 
-    if (usage) {
-      logger.info(
-        `AI categorization API call (${aiClient.modelId}): ${usage.inputTokens ?? 0} input, ${usage.outputTokens ?? 0} output tokens`,
-      );
-    }
+    // Log detailed token usage for batch size analysis
+    const inputTokens = usage?.inputTokens ?? 0;
+    const outputTokens = usage?.outputTokens ?? 0;
+    const totalTokens = inputTokens + outputTokens;
+    const tokensPerTransaction = transactions.length > 0 ? Math.round(totalTokens / transactions.length) : 0;
+
+    logger.info('[AI Categorization] Batch completed', {
+      modelId: aiClient.modelId,
+      transactionCount: transactions.length,
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      tokensPerTransaction,
+    });
 
     const validCategoryIds = new Set(categories.map((c) => c.id));
     const validTransactionIds = new Set(transactions.map((t) => t.id));
@@ -77,6 +91,10 @@ async function categorizeBatch({
     return {
       successful: results,
       failed,
+      tokenUsage: {
+        inputTokens,
+        outputTokens,
+      },
     };
   } catch (error) {
     logger.error({ message: 'AI categorization batch failed', error: error as Error });
@@ -246,6 +264,13 @@ export async function categorizeTransactions({
     errors: [],
   };
 
+  // Track token usage across all batches for analysis
+  const totalTokenUsage = {
+    inputTokens: 0,
+    outputTokens: 0,
+    batchCount: 0,
+  };
+
   // Track if we've already tried fallback (to avoid infinite loops)
   let hasTriedFallback = false;
 
@@ -337,6 +362,13 @@ export async function categorizeTransactions({
       allResults.errors!.push(...batchResult.errors);
     }
 
+    // Accumulate token usage
+    if (batchResult.tokenUsage) {
+      totalTokenUsage.inputTokens += batchResult.tokenUsage.inputTokens;
+      totalTokenUsage.outputTokens += batchResult.tokenUsage.outputTokens;
+      totalTokenUsage.batchCount += 1;
+    }
+
     // Emit progress event after each batch
     sseManager.sendToUser({
       userId,
@@ -350,9 +382,27 @@ export async function categorizeTransactions({
     });
   }
 
-  logger.info(
-    `AI categorization complete for user ${userId}: ${allResults.successful.length} successful, ${allResults.failed.length} failed`,
-  );
+  // Log summary with token usage for batch size optimization analysis
+  const totalTransactionsProcessed = allResults.successful.length + allResults.failed.length;
+  const totalTokens = totalTokenUsage.inputTokens + totalTokenUsage.outputTokens;
+  const avgTokensPerTransaction =
+    totalTransactionsProcessed > 0 ? Math.round(totalTokens / totalTransactionsProcessed) : 0;
+
+  logger.info('[AI Categorization] Job completed', {
+    userId,
+    modelId: aiClient.modelId,
+    provider: aiClient.provider,
+    usingUserKey: aiClient.usingUserKey,
+    transactionsProcessed: totalTransactionsProcessed,
+    successfulCount: allResults.successful.length,
+    failedCount: allResults.failed.length,
+    batchCount: totalTokenUsage.batchCount,
+    batchSize: BATCH_SIZE,
+    totalInputTokens: totalTokenUsage.inputTokens,
+    totalOutputTokens: totalTokenUsage.outputTokens,
+    totalTokens,
+    avgTokensPerTransaction,
+  });
 
   // Track analytics event
   if (allResults.successful.length > 0) {
