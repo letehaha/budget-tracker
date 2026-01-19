@@ -46,7 +46,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3125,
-    name: 'Veniche',
+    name: 'Vehicle',
     imageUrl: null,
     color: '#8e44ad',
     type: CATEGORY_TYPES.custom,
@@ -126,7 +126,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3133,
-    name: 'Restaurane, fast-food',
+    name: 'Restaurants, fast-food',
     imageUrl: null,
     color: '#e74c3c',
     type: CATEGORY_TYPES.custom,
@@ -376,7 +376,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3158,
-    name: 'Vaniche maintenance',
+    name: 'Vehicle maintenance',
     imageUrl: null,
     color: '#8e44ad',
     type: CATEGORY_TYPES.custom,
@@ -396,7 +396,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3160,
-    name: 'Venicle insurance',
+    name: 'Vehicle insurance',
     imageUrl: null,
     color: '#8e44ad',
     type: CATEGORY_TYPES.custom,
@@ -416,7 +416,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3162,
-    name: 'Helth care, doctor',
+    name: 'Health care, doctor',
     imageUrl: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
@@ -656,7 +656,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3186,
-    name: 'Venicles, chattels',
+    name: 'Vehicles, chattels',
     imageUrl: null,
     color: '#fda7df',
     type: CATEGORY_TYPES.custom,
