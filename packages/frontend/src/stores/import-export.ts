@@ -17,6 +17,8 @@ import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
+import { useOnboardingStore } from './onboarding';
+
 interface ColumnMapping {
   date: string | null;
   amount: string | null;
@@ -188,6 +190,10 @@ export const useImportExportStore = defineStore('importExport', () => {
       importResult.value = response;
 
       // Note: import_completed is tracked on the backend for reliability
+
+      // Mark onboarding task as complete
+      const onboardingStore = useOnboardingStore();
+      onboardingStore.completeTask('import-csv');
 
       // Invalidate all queries to refetch data after import
       // Import can affect transactions, accounts, categories, currencies, and balances

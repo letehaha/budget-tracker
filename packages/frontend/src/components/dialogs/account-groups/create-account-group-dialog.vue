@@ -4,6 +4,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { useOnboardingStore } from '@/stores/onboarding';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 
@@ -22,6 +23,11 @@ const { isPending: isMutating, mutate } = useMutation({
     queryClient.invalidateQueries({
       queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
     });
+
+    // Mark onboarding task as complete
+    const onboardingStore = useOnboardingStore();
+    onboardingStore.completeTask('create-account-group');
+
     isOpen.value = false;
     form.value.name = '';
     emit('created');

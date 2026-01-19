@@ -328,6 +328,114 @@
       "importFile": {
         "title": "Import from File",
         "description": "Import transactions from bank statements (PDF) or CSV files"
+      },
+      "quickStart": {
+        "categories": {
+          "getting-started": {
+            "title": "Getting Started"
+          },
+          "advanced-transactions": {
+            "title": "Advanced Transactions"
+          },
+          "organization": {
+            "title": "Organize Your Finances"
+          },
+          "bank-import": {
+            "title": "Connect & Import"
+          },
+          "analytics": {
+            "title": "Explore Analytics"
+          },
+          "ai-settings": {
+            "title": "AI Features"
+          }
+        },
+        "tasks": {
+          "create-account": {
+            "title": "Create your first account",
+            "description": "Add a bank account or wallet to track"
+          },
+          "add-transaction": {
+            "title": "Add your first transaction",
+            "description": "Record an income or expense"
+          },
+          "create-transfer": {
+            "title": "Create a transfer",
+            "description": "Move money between your accounts"
+          },
+          "link-refund": {
+            "title": "Link a refund",
+            "description": "Connect refunds to original purchases"
+          },
+          "link-transactions": {
+            "title": "Link existing transactions",
+            "description": "Connect related transactions together"
+          },
+          "split-transaction": {
+            "title": "Split a transaction",
+            "description": "Divide expenses across categories"
+          },
+          "mark-transfer-out": {
+            "title": "Mark transfer out of wallet",
+            "description": "Track money leaving your accounts"
+          },
+          "create-category": {
+            "title": "Create a custom category",
+            "description": "Organize your transactions by type"
+          },
+          "create-tag": {
+            "title": "Create a tag",
+            "description": "Add tags to group related transactions"
+          },
+          "create-budget": {
+            "title": "Set up a budget",
+            "description": "Create spending limits for categories"
+          },
+          "create-account-group": {
+            "title": "Create an account group",
+            "description": "Organize accounts by type or purpose"
+          },
+          "setup-tag-reminder": {
+            "title": "Set up a tag reminder",
+            "description": "Get notified about recurring expenses"
+          },
+          "connect-bank": {
+            "title": "Connect a bank account",
+            "description": "Sync transactions automatically"
+          },
+          "import-csv": {
+            "title": "Import from any text source",
+            "description": "Import from CSV, PDF, or bank statements"
+          },
+          "view-annual-overview": {
+            "title": "Check annual overview",
+            "description": "See yearly trends and patterns"
+          },
+          "view-cash-flow": {
+            "title": "View cash flow analytics",
+            "description": "Understand your income vs expenses"
+          },
+          "review-ai-features": {
+            "title": "Review AI features",
+            "description": "Explore available AI capabilities"
+          },
+          "configure-ai": {
+            "title": "Set your own API key",
+            "description": "Use your AI API key for the unlimited and uninterrupted access"
+          }
+        },
+        "ui": {
+          "title": "Quick Start",
+          "subtitle": "Use our Quick Start guide to learn about everything MoneyMatter can do for you.",
+          "dismissButton": "Dismiss permanently",
+          "dismissConfirmTitle": "Dismiss Quick Start?",
+          "dismissConfirmDescription": "You can always reopen the Quick Start guide from settings if you change your mind.",
+          "dismissConfirmButton": "Dismiss",
+          "triggerTooltip": "Quick Start - {count} tasks remaining",
+          "srDescription": "Complete these tasks to get started with the app",
+          "progressText": "{completed} of {total} complete",
+          "categoryProgress": "{completed} of {total} complete"
+        }
       }
     },
     "widgets": {
@@ -701,6 +809,7 @@
       "tags": "Tags",
       "accountsGroups": "Accounts groups",
       "importData": "Import Data",
+      "preferences": "Preferences",
       "ai": "AI",
       "security": "Security",
       "admin": "Admin"
@@ -1220,6 +1329,16 @@
         "title": "Import CSV",
         "description": "Import transactions from a CSV file. You can map columns, handle duplicates, and create new accounts or categories as needed.",
         "button": "Import CSV File"
+      }
+    },
+    "preferences": {
+      "title": "Preferences",
+      "description": "Customize your app experience",
+      "quickStart": {
+        "title": "Quick Start Guide",
+        "description": "The Quick Start guide helps you learn about the app's features. You can reopen it anytime if you previously dismissed it.",
+        "button": "Reopen Quick Start",
+        "activeLabel": "Currently active"
       }
     },
     "admin": {

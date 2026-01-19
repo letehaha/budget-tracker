@@ -27,7 +27,7 @@
           }"
           ref="inputFieldRef"
           :type="type"
-          :value="modelValue ?? ''"
+          :value="displayValue"
           :style="inputFieldStyles"
           :disabled="disabled"
           :tabindex="tabindex"
@@ -65,9 +65,8 @@
 </template>
 
 <script lang="ts" setup>
-import { KEYBOARD_CODES } from '@/common/types';
 import { cn } from '@/lib/utils';
-import { HTMLAttributes, computed, onMounted, ref, useAttrs } from 'vue';
+import { HTMLAttributes, computed, onMounted, ref, useAttrs, watch } from 'vue';
 
 import FieldError from './components/field-error.vue';
 import FieldLabel from './components/field-label.vue';
@@ -105,13 +104,56 @@ const slots = defineSlots<{
 }>();
 const attrs = useAttrs();
 
+// For number inputs, we need to track the raw string value separately
+// to preserve intermediate states like "1234.0" while typing "1234.03"
+const rawNumberInput = ref<string>('');
+
+// Determines if a string represents an incomplete decimal number
+// (ends with decimal point or trailing zeros after decimal that would be lost in Number conversion)
+const isIncompleteDecimal = (value: string): boolean => {
+  if (!value) return false;
+  // Ends with decimal point (e.g., "1234.")
+  if (value.endsWith('.')) return true;
+  // Has decimal point and ends with zero (e.g., "1234.0", "1234.00", "1234.10")
+  if (value.includes('.') && value.endsWith('0')) return true;
+  return false;
+};
+
+// The value to display in the input
+const displayValue = computed(() => {
+  if (props.type === 'number') {
+    // If we have a raw input that's an incomplete decimal, show it
+    if (rawNumberInput.value && isIncompleteDecimal(rawNumberInput.value)) {
+      return rawNumberInput.value;
+    }
+    // Otherwise show the model value
+    return props.modelValue ?? '';
+  }
+  return props.modelValue ?? '';
+});
+
+// Sync rawNumberInput when modelValue changes externally
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (props.type === 'number') {
+      // Only update raw input if it's not an incomplete decimal being typed
+      const numericRaw = rawNumberInput.value === '' ? null : Number(rawNumberInput.value);
+      if (numericRaw !== newValue) {
+        rawNumberInput.value = newValue != null ? String(newValue) : '';
+      }
+    }
+  },
+);
+
 const onInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
 
   if (props.disabled) return;
 
-  // For number inputs, convert string to number (or null for empty)
+  // For number inputs, preserve raw value to handle intermediate decimal states
   if (props.type === 'number') {
+    rawNumberInput.value = target.value;
     const numValue = target.value === '' ? null : Number(target.value);
     if (props.modelValue === numValue) return;
     emits(MODEL_EVENTS.input, numValue);
@@ -126,12 +168,14 @@ const onKeypress = (event: KeyboardEvent) => {
   if (props.disabled) return;
 
   if (props.type === 'number') {
-    if (event.keyCode === KEYBOARD_CODES.keyE) {
+    // Prevent scientific notation (e.g., 1e5)
+    if (event.key === 'e' || event.key === 'E') {
       event.preventDefault();
     }
   }
   if (props.onlyPositive) {
-    if ([KEYBOARD_CODES.minus, KEYBOARD_CODES.equal, KEYBOARD_CODES.plus].includes(event.keyCode)) {
+    // Prevent negative numbers
+    if (['-', '+', '='].includes(event.key)) {
       event.preventDefault();
     }
   }

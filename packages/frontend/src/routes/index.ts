@@ -146,6 +146,11 @@ const routes = [
             component: () => import('@/pages/settings/subpages/data-management/index.vue'),
           },
           {
+            path: 'preferences',
+            name: ROUTES_NAMES.settingsPreferences,
+            component: () => import('@/pages/settings/subpages/preferences/index.vue'),
+          },
+          {
             path: 'admin',
             name: ROUTES_NAMES.settingsAdmin,
             component: () => import('@/pages/settings/subpages/admin/index.vue'),

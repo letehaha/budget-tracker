@@ -6,4 +6,5 @@ export enum SCROLL_AREA_IDS {
   txRefundInfo = 'scroll-area-tx-refund-info',
   accountTransactions = 'scroll-area-account-transactions',
   accountsRelinkWarning = 'scroll-area-accounts-relink-warning',
+  quickStart = 'scroll-area-quick-start',
 }

@@ -64,6 +64,7 @@ import {
   CircleDollarSignIcon,
   KeyRoundIcon,
   LayersIcon,
+  SettingsIcon,
   ShieldIcon,
   SparklesIcon,
   TagIcon,
@@ -140,6 +141,12 @@ const baseTabs = computed<Tab[]>(() => [
     label: t('settings.navigation.importData'),
     to: { name: ROUTES_NAMES.settingsDataManagement },
     icon: UploadIcon,
+  },
+  {
+    name: 'preferences',
+    label: t('settings.navigation.preferences'),
+    to: { name: ROUTES_NAMES.settingsPreferences },
+    icon: SettingsIcon,
   },
   {
     name: 'ai',

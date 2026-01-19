@@ -130,6 +130,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/lib/ui/switch';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
+import { useOnboardingStore } from '@/stores/onboarding';
 import {
   TAG_REMINDER_FREQUENCIES,
   TAG_REMINDER_IMMEDIATE,
@@ -328,6 +329,11 @@ const handleSubmit = async () => {
         tagId: props.tagId,
         payload,
       });
+
+      // Mark onboarding task as complete
+      const onboardingStore = useOnboardingStore();
+      onboardingStore.completeTask('setup-tag-reminder');
+
       addSuccessNotification(t('settings.tags.reminders.notifications.createSuccess'));
       emit('saved', newReminder);
     }

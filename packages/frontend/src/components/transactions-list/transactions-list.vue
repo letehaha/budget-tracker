@@ -216,7 +216,7 @@ watchEffect(() => {
   <div>
     <!-- Bulk edit toolbar -->
     <BulkEditToolbar
-      v-if="enableBulkEdit"
+      v-if="enableBulkEdit && displayTransactions.length > 0"
       :selected-count="selectedCount"
       :is-all-selected="isAllSelected"
       :is-loading="bulkUpdateMutation.isPending.value"

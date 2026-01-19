@@ -15,6 +15,8 @@ import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
+import { useOnboardingStore } from './onboarding';
+
 /**
  * Statement Parser Store
  *
@@ -335,6 +337,10 @@ export const useStatementParserStore = defineStore('statementParser', () => {
       importResult.value = result;
 
       // Note: import_completed is tracked on the backend for reliability
+
+      // Mark onboarding task as complete
+      const onboardingStore = useOnboardingStore();
+      onboardingStore.completeTask('import-csv');
 
       // Invalidate all queries to refetch data after import
       queryClient.invalidateQueries();

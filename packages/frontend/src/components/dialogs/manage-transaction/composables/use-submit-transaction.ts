@@ -1,10 +1,12 @@
 import { createTransaction, editTransaction, linkTransactions } from '@/api';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { OUT_OF_WALLET_ACCOUNT_MOCK } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
 import { getInvalidationQueryKey } from '@/composable/data-queries/opposite-tx-record';
 import { i18n } from '@/i18n';
 import { ApiErrorResponseError } from '@/js/errors';
 import { trackAnalyticsEvent } from '@/lib/posthog';
+import { useOnboardingStore } from '@/stores/onboarding';
 import type { TransactionModel } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
@@ -85,12 +87,45 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
         });
       }
 
+      // Mark onboarding tasks as complete
+      const onboardingStore = useOnboardingStore();
+
       if (params.isFormCreation) {
         const transactionType = params.isTransferTx ? 'transfer' : params.form.amount >= 0 ? 'income' : 'expense';
         trackAnalyticsEvent({
           event: 'transaction_created',
           properties: { transaction_type: transactionType },
         });
+
+        onboardingStore.completeTask('add-transaction');
+
+        // Mark transfer task if this was a transfer
+        if (params.isTransferTx) {
+          onboardingStore.completeTask('create-transfer');
+        }
+      }
+
+      // Mark link-transactions task when linking existing transactions
+      if (params.linkedTransaction) {
+        onboardingStore.completeTask('link-transactions');
+      }
+
+      // Mark link-refund task when refund relationships are set
+      if (params.form.refundsTx || (params.form.refundedByTxs && params.form.refundedByTxs.length > 0)) {
+        onboardingStore.completeTask('link-refund');
+      }
+
+      // Mark split-transaction task when transaction has splits
+      if (params.form.splits && params.form.splits.length > 0) {
+        onboardingStore.completeTask('split-transaction');
+      }
+
+      // Mark transfer-out-of-wallet task when source or destination is "out of wallet"
+      if (
+        params.form.account?.id === OUT_OF_WALLET_ACCOUNT_MOCK.id ||
+        params.form.toAccount?.id === OUT_OF_WALLET_ACCOUNT_MOCK.id
+      ) {
+        onboardingStore.completeTask('mark-transfer-out');
       }
 
       onSuccess();

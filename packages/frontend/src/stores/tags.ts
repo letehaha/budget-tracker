@@ -3,6 +3,8 @@ import { TagModel } from '@bt/shared/types';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
+import { useOnboardingStore } from './onboarding';
+
 export const useTagsStore = defineStore('tags', () => {
   const tags = ref<TagModel[]>([]);
   const isLoading = ref(false);
@@ -29,6 +31,11 @@ export const useTagsStore = defineStore('tags', () => {
   const createTag = async (payload: tagsApi.CreateTagPayload) => {
     const newTag = await tagsApi.createTag(payload);
     tags.value.push(newTag);
+
+    // Mark onboarding task as complete
+    const onboardingStore = useOnboardingStore();
+    onboardingStore.completeTask('create-tag');
+
     return newTag;
   };
 

@@ -13,6 +13,7 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { defineStore, storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 
+import { useOnboardingStore } from './onboarding';
 import { useUserStore } from './user';
 
 export const useAccountsStore = defineStore('accounts', () => {
@@ -54,6 +55,10 @@ export const useAccountsStore = defineStore('accounts', () => {
     try {
       await apiCreateAccount(payload);
       await refetchAccounts();
+
+      // Mark onboarding task as complete
+      const onboardingStore = useOnboardingStore();
+      onboardingStore.completeTask('create-account');
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(e);

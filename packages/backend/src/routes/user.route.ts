@@ -17,6 +17,7 @@ import {
 } from '@controllers/user-settings/ai-feature-settings';
 import editExcludedCategories from '@controllers/user-settings/edit-exclude-categories';
 import getUserSettings from '@controllers/user-settings/get-settings';
+import { getOnboarding, updateOnboarding } from '@controllers/user-settings/onboarding';
 import updateUserSettings from '@controllers/user-settings/update-settings';
 import {
   deleteUser,
@@ -107,6 +108,15 @@ router.put(
   authenticateSession,
   validateEndpoint(editExcludedCategories.schema),
   editExcludedCategories.handler,
+);
+
+// Onboarding (Quick Start)
+router.get('/settings/onboarding', authenticateSession, validateEndpoint(getOnboarding.schema), getOnboarding.handler);
+router.put(
+  '/settings/onboarding',
+  authenticateSession,
+  validateEndpoint(updateOnboarding.schema),
+  updateOnboarding.handler,
 );
 
 // AI API Key management

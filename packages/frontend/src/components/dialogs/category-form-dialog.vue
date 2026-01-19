@@ -107,7 +107,7 @@ import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { addCategories, removeCategories, useUserSettings } from '@/composable/data-queries/user-settings';
 import { ApiErrorResponseError } from '@/js/errors';
-import { useCategoriesStore } from '@/stores';
+import { useCategoriesStore, useOnboardingStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { InfoIcon } from 'lucide-vue-next';
 import { computed, reactive, ref, watch } from 'vue';
@@ -270,6 +270,10 @@ const handleSubmit = async () => {
 
       addSuccessNotification(t('dialogs.categoryForm.notifications.created'));
       await categoriesStore.loadCategories();
+
+      // Mark onboarding task as complete
+      const onboardingStore = useOnboardingStore();
+      onboardingStore.completeTask('create-category');
 
       const createdCategory = categoriesStore.categoriesMap[newCategory.id];
       if (createdCategory) {

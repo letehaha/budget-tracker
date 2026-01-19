@@ -132,7 +132,7 @@ const props = withDefaults(
   }>(),
   {
     asButton: true,
-    showCheckbox: true,
+    showCheckbox: false,
     isSelected: false,
     isSelectable: true,
     index: 0,
