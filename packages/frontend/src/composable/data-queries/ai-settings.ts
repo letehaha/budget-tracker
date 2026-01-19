@@ -9,6 +9,7 @@ import {
   setAiFeatureConfig,
   setDefaultAiProvider,
 } from '@/api/ai-settings';
+import { useOnboardingStore } from '@/stores/onboarding';
 import { AI_FEATURE } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed } from 'vue';
@@ -42,6 +43,10 @@ export const useAiSettings = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.apiKeyStatus });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.featuresStatus });
+
+      // Mark onboarding task as complete
+      const onboardingStore = useOnboardingStore();
+      onboardingStore.completeTask('configure-ai');
     },
   });
 

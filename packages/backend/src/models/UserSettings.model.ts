@@ -42,6 +42,21 @@ export const ZodNotificationPreferencesSchema = z.object({
     }),
 });
 
+// Onboarding state schema for Quick Start feature
+export const ZodOnboardingStateSchema = z.object({
+  completedTasks: z.array(z.string()).default([]),
+  isDismissed: z.boolean().default(false),
+  dismissedAt: z.string().datetime().nullable().default(null),
+});
+
+export type OnboardingStateSchema = z.infer<typeof ZodOnboardingStateSchema>;
+
+export const DEFAULT_ONBOARDING_STATE: OnboardingStateSchema = {
+  completedTasks: [],
+  isDismissed: false,
+  dismissedAt: null,
+};
+
 export const DEFAULT_NOTIFICATION_PREFERENCES = {
   enabled: true,
   types: {
@@ -60,6 +75,7 @@ export const ZodSettingsSchema = z.object({
   }),
   ai: ZodAiSettingsSchema.optional(),
   notifications: ZodNotificationPreferencesSchema.optional(),
+  onboarding: ZodOnboardingStateSchema.optional(),
 });
 
 // Infer the TypeScript type from the Zod schema

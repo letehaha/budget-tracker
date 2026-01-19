@@ -1,5 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import * as tagsService from '@services/tags';
+import * as onboardingService from '@services/user-settings/onboarding';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -24,6 +25,9 @@ export default createController(schema, async ({ user, body }) => {
     icon: icon ?? null,
     description: description ?? null,
   });
+
+  // Mark onboarding task as complete (fire and forget)
+  onboardingService.markTaskComplete({ userId: user.id, taskId: 'create-tag' }).catch(() => {});
 
   return { data };
 });

@@ -12,6 +12,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { cn } from '@/lib/utils';
+import { useOnboardingStore } from '@/stores/onboarding';
 import { BUDGET_TYPES } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
@@ -52,6 +53,11 @@ const { isPending: isMutating, mutate: createBudgetItem } = useMutation({
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
     trackAnalyticsEvent({ event: 'budget_created' });
+
+    // Mark onboarding task as complete
+    const onboardingStore = useOnboardingStore();
+    onboardingStore.completeTask('create-budget');
+
     emits('create-budget');
     addSuccessNotification(t('budgets.creation.success'));
   },

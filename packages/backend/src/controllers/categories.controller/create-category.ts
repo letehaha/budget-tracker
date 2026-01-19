@@ -1,6 +1,7 @@
 import { CATEGORY_TYPES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as categoriesService from '@root/services/categories/create-category';
+import * as onboardingService from '@services/user-settings/onboarding';
 import { z } from 'zod';
 
 const CreateCategoryPayloadSchema = z
@@ -40,6 +41,9 @@ export default createController(schema, async ({ user, body }) => {
     parentId,
     userId,
   });
+
+  // Mark onboarding task as complete (fire and forget)
+  onboardingService.markTaskComplete({ userId, taskId: 'create-category' }).catch(() => {});
 
   return { data };
 });
