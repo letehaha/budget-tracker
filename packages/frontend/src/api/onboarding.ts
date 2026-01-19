@@ -1,6 +1,6 @@
 import { api } from '@/api/_api';
 
-export interface OnboardingState {
+interface OnboardingState {
   completedTasks: string[];
   isDismissed: boolean;
   dismissedAt: string | null;
