@@ -12,14 +12,31 @@
       </div>
 
       <template v-else>
-        <!-- Tabs for Models and API Keys -->
-        <Tabs default-value="ai-features" class="w-full">
-          <TabsList class="grid w-full grid-cols-2">
-            <TabsTrigger value="ai-features" class="flex items-center gap-2">
+        <!-- Navigation tabs using router-links -->
+        <div class="border-b">
+          <nav class="-mb-px flex gap-4">
+            <router-link
+              :to="{ name: ROUTES_NAMES.settingsAiFeatures }"
+              class="flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors"
+              :class="[
+                isActiveRoute(ROUTES_NAMES.settingsAiFeatures)
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground',
+              ]"
+            >
               <SparklesIcon class="size-4" />
               {{ $t('settings.ai.tabs.features') }}
-            </TabsTrigger>
-            <TabsTrigger value="api-keys" class="relative flex items-center gap-2">
+            </router-link>
+
+            <router-link
+              :to="{ name: ROUTES_NAMES.settingsAiKeys }"
+              class="relative flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors"
+              :class="[
+                isActiveRoute(ROUTES_NAMES.settingsAiKeys)
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground',
+              ]"
+            >
               <KeyIcon class="size-4" />
               {{ $t('settings.ai.tabs.apiKeys') }}
               <!-- Red indicator dot when there are invalid keys -->
@@ -28,28 +45,12 @@
                 class="bg-destructive absolute -top-1 -right-1 h-2.5 w-2.5 animate-pulse rounded-full"
                 :title="$t('settings.ai.tabs.invalidKeysTooltip')"
               />
-            </TabsTrigger>
-          </TabsList>
+            </router-link>
+          </nav>
+        </div>
 
-          <TabsContent value="ai-features" class="mt-6">
-            <FeatureModelSelector />
-          </TabsContent>
-
-          <TabsContent value="api-keys" class="mt-6">
-            <ApiKeyManager />
-
-            <!-- How it works for API keys -->
-            <div class="mt-6 border-t pt-6">
-              <h3 class="mb-2 text-lg font-medium">{{ $t('settings.ai.howApiKeysWork.title') }}</h3>
-              <ul class="list-disc space-y-2 pl-5 text-sm leading-relaxed opacity-80">
-                <li>{{ $t('settings.ai.howApiKeysWork.points.defaultKey') }}</li>
-                <li>{{ $t('settings.ai.howApiKeysWork.points.ownKey') }}</li>
-                <li>{{ $t('settings.ai.howApiKeysWork.points.encrypted') }}</li>
-                <li>{{ $t('settings.ai.howApiKeysWork.points.removal') }}</li>
-              </ul>
-            </div>
-          </TabsContent>
-        </Tabs>
+        <!-- Router view for child routes -->
+        <router-view />
       </template>
     </CardContent>
   </Card>
@@ -57,14 +58,12 @@
 
 <script setup lang="ts">
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { trackAnalyticsEvent } from '@/lib/posthog';
+import { ROUTES_NAMES } from '@/routes';
 import { KeyIcon, Loader2Icon, SparklesIcon } from 'lucide-vue-next';
 import { computed, onMounted } from 'vue';
-
-import ApiKeyManager from './components/api-key-manager.vue';
-import FeatureModelSelector from './components/feature-model-selector.vue';
+import { useRoute } from 'vue-router';
 
 defineOptions({
   name: 'settings-ai',
@@ -74,8 +73,11 @@ onMounted(() => {
   trackAnalyticsEvent({ event: 'ai_settings_visited' });
 });
 
+const route = useRoute();
 const { isLoading, configuredProviders } = useAiSettings();
 
 /** True if any API key has invalid status */
 const hasInvalidKeys = computed(() => configuredProviders.value.some((p) => p.status === 'invalid'));
+
+const isActiveRoute = (routeName: string) => route.name === routeName;
 </script>

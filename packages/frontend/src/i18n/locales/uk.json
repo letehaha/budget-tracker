@@ -1085,22 +1085,22 @@
           "anthropic": {
             "label": "Anthropic (Claude)",
             "placeholder": "sk-ant-...",
-            "description": "Отримайте API ключ на console.anthropic.com/settings/keys"
+            "description": "Отримайте API ключ на"
           },
           "openai": {
             "label": "OpenAI (GPT)",
             "placeholder": "sk-...",
-            "description": "Отримайте API ключ на platform.openai.com/api-keys"
+            "description": "Отримайте API ключ на"
           },
           "google": {
             "label": "Google (Gemini)",
             "placeholder": "AIza...",
-            "description": "Отримайте API ключ на aistudio.google.com/apikey"
+            "description": "Отримайте API ключ на"
           },
           "groq": {
             "label": "Groq (Llama, Mixtral)",
             "placeholder": "gsk_...",
-            "description": "Отримайте API ключ на console.groq.com/keys"
+            "description": "Отримайте API ключ на"
           }
         },
         "notifications": {
@@ -1191,7 +1191,9 @@
           "updateFailed": "Не вдалося оновити модель",
           "resetSuccess": "Скинуто до моделі за замовчуванням",
           "resetFailed": "Не вдалося скинути модель"
-        }
+        },
+        "addKeyHint": "Додайте власний API ключ, щоб обрати з усіх доступних моделей.",
+        "addKeyHintLink": "Додати API ключ →"
       }
     },
     "dataManagement": {
@@ -2378,7 +2380,23 @@
         "transactions": "транзакцій",
         "fromLabel": "з",
         "inLabel": "в",
-        "continueMessage": "Продовжуйте, щоб вибрати рахунок для цих транзакцій."
+        "continueMessage": "Продовжуйте, щоб вибрати рахунок для цих транзакцій.",
+        "tokenWarning": {
+          "medium": {
+            "title": "Виявлено великий файл",
+            "description": "Обробка може зайняти 1-2 хвилини. Будь ласка, зачекайте."
+          },
+          "high": {
+            "title": "Виявлено дуже великий файл",
+            "description": "Обробка може зайняти кілька хвилин через розмір файлу."
+          },
+          "extreme": {
+            "title": "Надзвичайно великий файл",
+            "description": "Обробка може зайняти 5+ хвилин. Розгляньте можливість розділити файл на менші частини для швидшої обробки."
+          }
+        },
+        "freeApiWarning": "Ви використовуєте безкоштовний доступ до AI з денними лімітами. Для безперебійної і швидкої роботи додайте власний API ключ.",
+        "addApiKeyLink": "Додати API ключ у налаштуваннях →"
       },
       "transactionReview": {
         "checkingDuplicates": "Перевірка дублікатів...",

@@ -67,6 +67,11 @@
     </div>
 
     <div v-if="store.costEstimate" class="space-y-4">
+      <CostEstimateWarnings
+        :estimated-input-tokens="store.costEstimate.estimatedInputTokens"
+        :using-user-key="store.costEstimate.usingUserKey"
+      />
+
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="bg-muted rounded-lg p-3">
           <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.uploadExtract.modelLabel') }}</p>
@@ -95,16 +100,19 @@
         </div>
       </div>
 
-      <Button class="w-full" :disabled="store.isExtracting" @click="handleExtract">
-        <template v-if="store.isExtracting">
-          <Loader2Icon class="mr-2 size-4 animate-spin" />
-          {{ extractionStatus }}
-        </template>
-        <template v-else>
-          <SparklesIcon class="mr-2 size-4" />
-          {{ $t('pages.statementParser.uploadExtract.extractButton') }}
-        </template>
-      </Button>
+      <div class="flex items-center gap-3">
+        <Button class="flex-1" :disabled="store.isExtracting" @click="handleExtract">
+          <template v-if="store.isExtracting">
+            <Loader2Icon class="mr-2 size-4 animate-spin" />
+            {{ extractionStatus }}
+          </template>
+          <template v-else>
+            <SparklesIcon class="mr-2 size-4" />
+            {{ $t('pages.statementParser.uploadExtract.extractButton') }}
+          </template>
+        </Button>
+        <ApiKeySourceBadge :using-user-key="store.costEstimate.usingUserKey" />
+      </div>
 
       <!-- Extraction Progress -->
       <div v-if="store.isExtracting" class="space-y-3">
@@ -155,19 +163,13 @@
 </template>
 
 <script setup lang="ts">
+import ApiKeySourceBadge from '@/components/common/api-key-source-badge.vue';
 import { Button } from '@/components/lib/ui/button';
 import { useStatementParserStore } from '@/stores/statement-parser';
-import {
-  CalculatorIcon,
-  FileIcon,
-  FileSpreadsheetIcon,
-  FileTextIcon,
-  Loader2Icon,
-  SparklesIcon,
-  XIcon,
-} from 'lucide-vue-next';
+import { CalculatorIcon, FileIcon, FileSpreadsheetIcon, FileTextIcon, Loader2Icon, SparklesIcon, XIcon } from 'lucide-vue-next';
 import { onUnmounted, ref } from 'vue';
 
+import CostEstimateWarnings from './cost-estimate-warnings.vue';
 import { validateStatementFile } from '../utils/file-validation';
 
 const store = useStatementParserStore();

@@ -122,6 +122,14 @@
           </Button>
         </div>
 
+        <!-- Add API key hint for model selection -->
+        <p v-if="!featureStatus.usingUserKey" class="text-warning-text mt-2 text-xs">
+          {{ $t('settings.ai.modelSelector.addKeyHint') }}
+          <router-link :to="{ name: ROUTES_NAMES.settingsAiKeys }" class="text-primary hover:underline">
+            {{ $t('settings.ai.modelSelector.addKeyHintLink') }}
+          </router-link>
+        </p>
+
         <!-- Model info -->
         <div v-if="selectedModel" class="bg-muted/50 mt-3 rounded-md p-3">
           <div class="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
@@ -167,6 +175,7 @@ import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { type ModelGroup } from '@/composable/data-queries/use-feature-models';
+import { ROUTES_NAMES } from '@/routes';
 import {
   AIFeatureStatus,
   AIModelCapability,

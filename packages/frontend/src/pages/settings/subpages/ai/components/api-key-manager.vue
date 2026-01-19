@@ -152,6 +152,14 @@
             </div>
             <p class="text-muted-foreground text-xs">
               {{ getProviderDescription(selectedProvider) }}
+              <a
+                :href="getProviderApiKeyUrl(selectedProvider)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-primary hover:underline"
+              >
+                {{ getProviderApiKeyUrlLabel(selectedProvider) }}
+              </a>
             </p>
           </div>
 
@@ -207,30 +215,44 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const { formatDistanceToNow } = useDateLocale();
 
-const PROVIDER_CONFIG = computed<Record<AI_PROVIDER, { label: string; placeholder: string; description: string }>>(
-  () => ({
-    [AI_PROVIDER.anthropic]: {
-      label: t('settings.ai.apiKeyManager.providers.anthropic.label'),
-      placeholder: t('settings.ai.apiKeyManager.providers.anthropic.placeholder'),
-      description: t('settings.ai.apiKeyManager.providers.anthropic.description'),
-    },
-    [AI_PROVIDER.openai]: {
-      label: t('settings.ai.apiKeyManager.providers.openai.label'),
-      placeholder: t('settings.ai.apiKeyManager.providers.openai.placeholder'),
-      description: t('settings.ai.apiKeyManager.providers.openai.description'),
-    },
-    [AI_PROVIDER.google]: {
-      label: t('settings.ai.apiKeyManager.providers.google.label'),
-      placeholder: t('settings.ai.apiKeyManager.providers.google.placeholder'),
-      description: t('settings.ai.apiKeyManager.providers.google.description'),
-    },
-    [AI_PROVIDER.groq]: {
-      label: t('settings.ai.apiKeyManager.providers.groq.label'),
-      placeholder: t('settings.ai.apiKeyManager.providers.groq.placeholder'),
-      description: t('settings.ai.apiKeyManager.providers.groq.description'),
-    },
-  }),
-);
+interface ProviderConfigItem {
+  label: string;
+  placeholder: string;
+  description: string;
+  apiKeyUrl: string;
+  apiKeyUrlLabel: string;
+}
+
+const PROVIDER_CONFIG = computed<Record<AI_PROVIDER, ProviderConfigItem>>(() => ({
+  [AI_PROVIDER.anthropic]: {
+    label: t('settings.ai.apiKeyManager.providers.anthropic.label'),
+    placeholder: t('settings.ai.apiKeyManager.providers.anthropic.placeholder'),
+    description: t('settings.ai.apiKeyManager.providers.anthropic.description'),
+    apiKeyUrl: 'https://console.anthropic.com/settings/keys',
+    apiKeyUrlLabel: 'console.anthropic.com',
+  },
+  [AI_PROVIDER.openai]: {
+    label: t('settings.ai.apiKeyManager.providers.openai.label'),
+    placeholder: t('settings.ai.apiKeyManager.providers.openai.placeholder'),
+    description: t('settings.ai.apiKeyManager.providers.openai.description'),
+    apiKeyUrl: 'https://platform.openai.com/api-keys',
+    apiKeyUrlLabel: 'platform.openai.com',
+  },
+  [AI_PROVIDER.google]: {
+    label: t('settings.ai.apiKeyManager.providers.google.label'),
+    placeholder: t('settings.ai.apiKeyManager.providers.google.placeholder'),
+    description: t('settings.ai.apiKeyManager.providers.google.description'),
+    apiKeyUrl: 'https://aistudio.google.com/app/apikey',
+    apiKeyUrlLabel: 'aistudio.google.com',
+  },
+  [AI_PROVIDER.groq]: {
+    label: t('settings.ai.apiKeyManager.providers.groq.label'),
+    placeholder: t('settings.ai.apiKeyManager.providers.groq.placeholder'),
+    description: t('settings.ai.apiKeyManager.providers.groq.description'),
+    apiKeyUrl: 'https://console.groq.com/keys',
+    apiKeyUrlLabel: 'console.groq.com',
+  },
+}));
 
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 const {
@@ -280,6 +302,8 @@ const sortedConfiguredProviders = computed(() => {
 const getProviderLabel = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.label ?? provider;
 const getProviderPlaceholder = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.placeholder ?? '';
 const getProviderDescription = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.description ?? '';
+const getProviderApiKeyUrl = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.apiKeyUrl ?? '';
+const getProviderApiKeyUrlLabel = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.apiKeyUrlLabel ?? '';
 
 const formatRelativeDate = (date: Date) => formatDistanceToNow(date, { addSuffix: true });
 

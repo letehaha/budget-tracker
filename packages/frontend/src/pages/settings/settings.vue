@@ -27,7 +27,7 @@
               cn(
                 'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
                 'hover:bg-accent hover:text-foreground',
-                '[&.router-link-exact-active]:bg-accent [&.router-link-exact-active]:text-foreground',
+                '[&.router-link-active]:bg-accent [&.router-link-active]:text-foreground',
                 isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
               )
             "

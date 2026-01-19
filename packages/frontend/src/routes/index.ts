@@ -154,6 +154,19 @@ const routes = [
             path: 'ai',
             name: ROUTES_NAMES.settingsAi,
             component: () => import('@/pages/settings/subpages/ai/index.vue'),
+            redirect: { name: ROUTES_NAMES.settingsAiFeatures },
+            children: [
+              {
+                path: 'features',
+                name: ROUTES_NAMES.settingsAiFeatures,
+                component: () => import('@/pages/settings/subpages/ai/pages/features.vue'),
+              },
+              {
+                path: 'keys',
+                name: ROUTES_NAMES.settingsAiKeys,
+                component: () => import('@/pages/settings/subpages/ai/pages/keys.vue'),
+              },
+            ],
           },
           {
             path: 'security',
