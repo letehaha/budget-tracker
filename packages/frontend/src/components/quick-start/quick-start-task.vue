@@ -1,8 +1,7 @@
 <script lang="ts" setup>
-import { Checkbox } from '@/components/lib/ui/checkbox';
 import { cn } from '@/lib/utils';
 import type { OnboardingTask } from '@/stores/onboarding';
-import { CheckIcon } from 'lucide-vue-next';
+import { CheckIcon, CircleIcon } from 'lucide-vue-next';
 
 const props = defineProps<{
   task: OnboardingTask;
@@ -25,27 +24,30 @@ const handleClick = () => {
     type="button"
     :class="
       cn(
-        'flex w-full items-start gap-3 rounded-lg p-3 text-left transition-colors',
-        isCompleted ? 'bg-muted/50 cursor-default' : 'hover:bg-muted cursor-pointer',
+        'flex w-full items-center gap-2 rounded py-1.5 pl-2 text-left transition-colors',
+        isCompleted ? 'cursor-default' : 'hover:bg-muted/50 cursor-pointer',
       )
     "
     :disabled="isCompleted"
     @click="handleClick"
   >
-    <div class="mt-0.5 shrink-0">
+    <!-- Checkbox circle -->
+    <div class="shrink-0">
       <div
         v-if="isCompleted"
         class="bg-primary text-primary-foreground flex size-5 items-center justify-center rounded-full"
       >
         <CheckIcon class="size-3" />
       </div>
-      <Checkbox v-else :checked="false" disabled class="size-5 cursor-pointer" />
+      <CircleIcon v-else class="text-muted-foreground/50 size-5" />
     </div>
+
+    <!-- Title and description -->
     <div class="min-w-0 flex-1">
-      <p :class="cn('text-sm font-medium', isCompleted && 'text-muted-foreground line-through')">
+      <span :class="cn('text-sm', isCompleted && 'text-muted-foreground line-through')">
         {{ task.title }}
-      </p>
-      <p v-if="task.description" class="text-muted-foreground mt-0.5 text-xs">
+      </span>
+      <p v-if="task.description" class="text-muted-foreground text-xs">
         {{ task.description }}
       </p>
     </div>

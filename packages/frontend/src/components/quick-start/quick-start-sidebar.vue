@@ -6,7 +6,10 @@ import type { OnboardingTask } from '@/stores/onboarding';
 import { useOnboardingStore } from '@/stores/onboarding';
 import { ChevronLeftIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+
+const { t } = useI18n();
 
 import QuickStartCategory from './quick-start-category.vue';
 import QuickStartFooter from './quick-start-footer.vue';
@@ -110,7 +113,7 @@ const strokeDasharray = (progress: number) => {
         class="text-muted-foreground whitespace-nowrap text-xs font-medium"
         style="writing-mode: vertical-rl; text-orientation: mixed"
       >
-        Quick Start
+        {{ t('dashboard.onboarding.quickStart.ui.title') }}
       </span>
     </button>
 
@@ -124,7 +127,7 @@ const strokeDasharray = (progress: number) => {
       />
 
       <ScrollArea class="flex-1" :scroll-area-id="SCROLL_AREA_IDS.quickStart">
-        <div class="space-y-1 p-2">
+        <div class="space-y-0.5 px-3 py-2">
           <QuickStartCategory
             v-for="category in categories"
             :key="category.id"

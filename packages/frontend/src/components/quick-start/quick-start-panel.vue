@@ -7,7 +7,10 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import type { OnboardingTask } from '@/stores/onboarding';
 import { useOnboardingStore } from '@/stores/onboarding';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+
+const { t } = useI18n();
 
 import QuickStartCategory from './quick-start-category.vue';
 import QuickStartFooter from './quick-start-footer.vue';
@@ -61,8 +64,8 @@ const handleOpenChange = (open: boolean) => {
   <!-- Desktop: Sheet -->
   <Sheet v-if="!isMobile" :open="isPanelOpen" @update:open="handleOpenChange">
     <SheetContent side="right" class="flex w-80 flex-col p-0 sm:max-w-80">
-      <SheetTitle class="sr-only">Quick Start</SheetTitle>
-      <SheetDescription class="sr-only">Complete these tasks to get started with the app</SheetDescription>
+      <SheetTitle class="sr-only">{{ t('dashboard.onboarding.quickStart.ui.title') }}</SheetTitle>
+      <SheetDescription class="sr-only">{{ t('dashboard.onboarding.quickStart.ui.srDescription') }}</SheetDescription>
 
       <QuickStartHeader
         :progress="progressPercentage"
@@ -72,7 +75,7 @@ const handleOpenChange = (open: boolean) => {
       />
 
       <ScrollArea class="flex-1" :scroll-area-id="SCROLL_AREA_IDS.quickStart">
-        <div class="space-y-1 p-2">
+        <div class="space-y-0.5 px-3 py-2">
           <QuickStartCategory
             v-for="category in categories"
             :key="category.id"
@@ -94,8 +97,8 @@ const handleOpenChange = (open: boolean) => {
   <!-- Mobile: Drawer -->
   <Drawer v-else :open="isPanelOpen" @update:open="handleOpenChange">
     <DrawerContent class="max-h-[85vh]">
-      <DrawerTitle class="sr-only">Quick Start</DrawerTitle>
-      <DrawerDescription class="sr-only">Complete these tasks to get started with the app</DrawerDescription>
+      <DrawerTitle class="sr-only">{{ t('dashboard.onboarding.quickStart.ui.title') }}</DrawerTitle>
+      <DrawerDescription class="sr-only">{{ t('dashboard.onboarding.quickStart.ui.srDescription') }}</DrawerDescription>
 
       <QuickStartHeader
         :progress="progressPercentage"
@@ -105,7 +108,7 @@ const handleOpenChange = (open: boolean) => {
       />
 
       <ScrollArea class="flex-1 overflow-auto" :scroll-area-id="SCROLL_AREA_IDS.quickStart">
-        <div class="space-y-1 p-2">
+        <div class="space-y-0.5 px-3 py-2">
           <QuickStartCategory
             v-for="category in categories"
             :key="category.id"

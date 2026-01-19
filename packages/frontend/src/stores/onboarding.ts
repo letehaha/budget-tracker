@@ -2,6 +2,7 @@ import {
   getOnboardingState as fetchOnboardingStateApi,
   updateOnboardingState as updateOnboardingStateApi,
 } from '@/api/onboarding';
+import { i18n } from '@/i18n';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
@@ -20,159 +21,93 @@ export interface OnboardingCategory {
   tasks: OnboardingTask[];
 }
 
-// Define all onboarding categories and tasks
-const ONBOARDING_CATEGORIES: OnboardingCategory[] = [
+// Raw category/task structure (without translations)
+interface RawTask {
+  id: string;
+  route?: string;
+}
+
+interface RawCategory {
+  id: string;
+  icon: string;
+  tasks: RawTask[];
+}
+
+// Define all onboarding categories and tasks (IDs and routes only)
+const RAW_CATEGORIES: RawCategory[] = [
   {
     id: 'getting-started',
-    title: 'Getting Started',
     icon: 'rocket',
     tasks: [
-      {
-        id: 'create-account',
-        title: 'Create your first account',
-        description: 'Add a bank account or wallet to track',
-        route: ROUTES_NAMES.accounts,
-      },
-      {
-        id: 'add-transaction',
-        title: 'Add your first transaction',
-        description: 'Record an income or expense',
-        route: ROUTES_NAMES.transactions,
-      },
+      { id: 'create-account', route: ROUTES_NAMES.accounts },
+      { id: 'add-transaction', route: ROUTES_NAMES.transactions },
     ],
   },
   {
     id: 'advanced-transactions',
-    title: 'Advanced Transactions',
     icon: 'layers',
     tasks: [
-      {
-        id: 'create-transfer',
-        title: 'Create a transfer',
-        description: 'Move money between your accounts',
-        route: ROUTES_NAMES.transactions,
-      },
-      {
-        id: 'link-refund',
-        title: 'Link a refund',
-        description: 'Connect refunds to original purchases',
-        route: ROUTES_NAMES.transactions,
-      },
-      {
-        id: 'link-transactions',
-        title: 'Link existing transactions',
-        description: 'Connect related transactions together',
-        route: ROUTES_NAMES.transactions,
-      },
-      {
-        id: 'split-transaction',
-        title: 'Split a transaction',
-        description: 'Divide expenses across categories',
-        route: ROUTES_NAMES.transactions,
-      },
-      {
-        id: 'mark-transfer-out',
-        title: 'Mark transfer out of wallet',
-        description: 'Track money leaving your accounts',
-        route: ROUTES_NAMES.transactions,
-      },
+      { id: 'create-transfer', route: ROUTES_NAMES.transactions },
+      { id: 'link-refund', route: ROUTES_NAMES.transactions },
+      { id: 'link-transactions', route: ROUTES_NAMES.transactions },
+      { id: 'split-transaction', route: ROUTES_NAMES.transactions },
+      { id: 'mark-transfer-out', route: ROUTES_NAMES.transactions },
     ],
   },
   {
     id: 'organization',
-    title: 'Organize Your Finances',
     icon: 'folder',
     tasks: [
-      {
-        id: 'create-category',
-        title: 'Create a custom category',
-        description: 'Organize your transactions by type',
-        route: ROUTES_NAMES.settingsCategories,
-      },
-      {
-        id: 'create-tag',
-        title: 'Create a tag',
-        description: 'Add tags to group related transactions',
-        route: ROUTES_NAMES.settingsTags,
-      },
-      {
-        id: 'create-budget',
-        title: 'Set up a budget',
-        description: 'Create spending limits for categories',
-        route: ROUTES_NAMES.budgets,
-      },
-      {
-        id: 'create-account-group',
-        title: 'Create an account group',
-        description: 'Organize accounts by type or purpose',
-        route: ROUTES_NAMES.settingsAccounts,
-      },
-      {
-        id: 'setup-tag-reminder',
-        title: 'Set up a tag reminder',
-        description: 'Get notified about recurring expenses',
-        route: ROUTES_NAMES.settingsTags,
-      },
+      { id: 'create-category', route: ROUTES_NAMES.settingsCategories },
+      { id: 'create-tag', route: ROUTES_NAMES.settingsTags },
+      { id: 'create-budget', route: ROUTES_NAMES.budgets },
+      { id: 'create-account-group', route: ROUTES_NAMES.settingsAccounts },
+      { id: 'setup-tag-reminder', route: ROUTES_NAMES.settingsTags },
     ],
   },
   {
     id: 'bank-import',
-    title: 'Connect & Import',
     icon: 'link',
     tasks: [
-      {
-        id: 'connect-bank',
-        title: 'Connect a bank account',
-        description: 'Sync transactions automatically',
-        route: ROUTES_NAMES.accountIntegrations,
-      },
-      {
-        id: 'import-csv',
-        title: 'Import from any text source',
-        description: 'Import from CSV, PDF, or bank statements',
-        route: ROUTES_NAMES.settingsDataManagement,
-      },
+      { id: 'connect-bank', route: ROUTES_NAMES.accountIntegrations },
+      { id: 'import-csv', route: ROUTES_NAMES.settingsDataManagement },
     ],
   },
   {
     id: 'analytics',
-    title: 'Explore Analytics',
     icon: 'chart',
     tasks: [
-      {
-        id: 'view-annual-overview',
-        title: 'Check annual overview',
-        description: 'See yearly trends and patterns',
-        route: ROUTES_NAMES.analytics,
-      },
-      {
-        id: 'view-cash-flow',
-        title: 'View cash flow analytics',
-        description: 'Understand your income vs expenses',
-        route: ROUTES_NAMES.analyticsCashFlow,
-      },
+      { id: 'view-annual-overview', route: ROUTES_NAMES.analytics },
+      { id: 'view-cash-flow', route: ROUTES_NAMES.analyticsCashFlow },
     ],
   },
   {
     id: 'ai-settings',
-    title: 'AI Features',
     icon: 'sparkles',
     tasks: [
-      {
-        id: 'review-ai-features',
-        title: 'Review AI features',
-        description: 'Explore available AI capabilities',
-        route: ROUTES_NAMES.settingsAiFeatures,
-      },
-      {
-        id: 'configure-ai',
-        title: 'Set your own API key',
-        description: 'Use your API key for AI features',
-        route: ROUTES_NAMES.settingsAiKeys,
-      },
+      { id: 'review-ai-features', route: ROUTES_NAMES.settingsAiFeatures },
+      { id: 'configure-ai', route: ROUTES_NAMES.settingsAiKeys },
     ],
   },
 ];
+
+// Helper to get translated category
+const translateCategory = (raw: RawCategory): OnboardingCategory => {
+  const t = i18n.global.t;
+  const prefix = 'dashboard.onboarding.quickStart';
+
+  return {
+    id: raw.id,
+    icon: raw.icon,
+    title: t(`${prefix}.categories.${raw.id}.title`),
+    tasks: raw.tasks.map((task) => ({
+      id: task.id,
+      route: task.route,
+      title: t(`${prefix}.tasks.${task.id}.title`),
+      description: t(`${prefix}.tasks.${task.id}.description`),
+    })),
+  };
+};
 
 export const useOnboardingStore = defineStore('onboarding', () => {
   // State
@@ -185,9 +120,9 @@ export const useOnboardingStore = defineStore('onboarding', () => {
   const isInitialized = ref(false);
 
   // Getters
-  const categories = computed(() => ONBOARDING_CATEGORIES);
+  const categories = computed(() => RAW_CATEGORIES.map(translateCategory));
 
-  const allTasks = computed(() => ONBOARDING_CATEGORIES.flatMap((c) => c.tasks));
+  const allTasks = computed(() => RAW_CATEGORIES.flatMap((c) => c.tasks));
 
   const totalTasks = computed(() => allTasks.value.length);
 
@@ -206,7 +141,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
   const isTaskCompleted = (taskId: string): boolean => completedTasks.value.includes(taskId);
 
   const getCategoryProgress = (categoryId: string): { completed: number; total: number } => {
-    const category = ONBOARDING_CATEGORIES.find((c) => c.id === categoryId);
+    const category = RAW_CATEGORIES.find((c) => c.id === categoryId);
     if (!category) return { completed: 0, total: 0 };
     const completed = category.tasks.filter((t) => isTaskCompleted(t.id)).length;
     return { completed, total: category.tasks.length };
@@ -234,7 +169,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
         isPanelOpen.value = true;
 
         // Expand the first category that has incomplete tasks
-        const firstIncompleteCategory = ONBOARDING_CATEGORIES.find((category) => {
+        const firstIncompleteCategory = RAW_CATEGORIES.find((category) => {
           const hasIncompleteTasks = category.tasks.some((task) => !completedTasks.value.includes(task.id));
           return hasIncompleteTasks;
         });

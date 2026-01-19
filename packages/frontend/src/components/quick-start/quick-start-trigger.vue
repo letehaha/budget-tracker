@@ -4,6 +4,9 @@ import { cn } from '@/lib/utils';
 import { useOnboardingStore } from '@/stores/onboarding';
 import { RocketIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const onboardingStore = useOnboardingStore();
 const { progressPercentage, remainingCount, shouldShowTrigger } = storeToRefs(onboardingStore);
@@ -80,7 +83,7 @@ const strokeDasharray = (progress: number) => {
         </button>
       </TooltipTrigger>
       <TooltipContent side="left">
-        <p>Quick Start - {{ remainingCount }} tasks remaining</p>
+        <p>{{ t('dashboard.onboarding.quickStart.ui.triggerTooltip', { count: remainingCount }) }}</p>
       </TooltipContent>
     </Tooltip>
   </TooltipProvider>
