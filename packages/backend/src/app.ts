@@ -16,6 +16,7 @@ import path from 'path';
 
 import { API_PREFIX } from './config';
 import { auth } from './config/auth';
+import { demoCleanupCron } from './crons/demo-cleanup';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
 import { tagRemindersCron } from './crons/tag-reminders-check';
@@ -33,6 +34,7 @@ import budgetsRoutes from './routes/budgets.route';
 import categoriesRoutes from './routes/categories.route';
 import binanceRoutes from './routes/crypto/binance.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
+import demoRoutes from './routes/demo.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
 import csvImportExportRoutes from './routes/import-export/csv.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
@@ -154,6 +156,10 @@ registerTagReminderListeners();
 // Must be mounted BEFORE better-auth handler to take precedence
 app.use(`${API_PREFIX}/auth`, betterAuthExtensionsRoutes);
 
+// Demo mode route - creates temporary demo users with seeded data
+// Rate limited to prevent abuse
+app.use(`${API_PREFIX}/demo`, demoRoutes);
+
 // Mount better-auth handler for all auth routes
 // This handles: signup, signin, signout, session, oauth callbacks, passkey, etc.
 // We wrap the handler to preserve AsyncLocalStorage context for locale-aware category creation
@@ -251,6 +257,9 @@ function initializeBackgroundJobs() {
 
     loadCurrencyRatesJob.start();
 
+    // Demo cleanup runs in all environments (dev and prod)
+    demoCleanupCron.startCron();
+
     if (process.env.NODE_ENV === 'production') {
       securitiesDailySyncCron.startCron();
       tagRemindersCron.startCron();
@@ -274,6 +283,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 const processUnexpectedExit = async () => {
+  demoCleanupCron.stopCron();
   securitiesDailySyncCron.stopCron();
   tagRemindersCron.stopCron();
   loadCurrencyRatesJob.stop();

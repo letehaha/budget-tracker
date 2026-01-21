@@ -4,8 +4,10 @@ import {
 } from '@/api/onboarding';
 import { i18n } from '@/i18n';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { defineStore } from 'pinia';
+import { defineStore, storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
+
+import { useUserStore } from './user';
 
 export interface OnboardingTask {
   id: string;
@@ -25,6 +27,8 @@ export interface OnboardingCategory {
 interface RawTask {
   id: string;
   route?: string;
+  /** If true, this task is hidden for demo users */
+  demoHidden?: boolean;
 }
 
 interface RawCategory {
@@ -69,7 +73,7 @@ const RAW_CATEGORIES: RawCategory[] = [
     id: 'bank-import',
     icon: 'link',
     tasks: [
-      { id: 'connect-bank', route: ROUTES_NAMES.accountIntegrations },
+      { id: 'connect-bank', route: ROUTES_NAMES.accountIntegrations, demoHidden: true },
       { id: 'import-csv', route: ROUTES_NAMES.settingsDataManagement },
     ],
   },
@@ -91,16 +95,19 @@ const RAW_CATEGORIES: RawCategory[] = [
   },
 ];
 
-// Helper to get translated category
-const translateCategory = (raw: RawCategory): OnboardingCategory => {
+// Helper to get translated category (with optional demo filtering)
+const translateCategory = ({ raw, isDemo }: { raw: RawCategory; isDemo: boolean }): OnboardingCategory => {
   const t = i18n.global.t;
   const prefix = 'dashboard.onboarding.quickStart';
+
+  // Filter out demo-hidden tasks when in demo mode
+  const filteredTasks = isDemo ? raw.tasks.filter((task) => !task.demoHidden) : raw.tasks;
 
   return {
     id: raw.id,
     icon: raw.icon,
     title: t(`${prefix}.categories.${raw.id}.title`),
-    tasks: raw.tasks.map((task) => ({
+    tasks: filteredTasks.map((task) => ({
       id: task.id,
       route: task.route,
       title: t(`${prefix}.tasks.${task.id}.title`),
@@ -110,6 +117,10 @@ const translateCategory = (raw: RawCategory): OnboardingCategory => {
 };
 
 export const useOnboardingStore = defineStore('onboarding', () => {
+  // External stores
+  const userStore = useUserStore();
+  const { isDemo } = storeToRefs(userStore);
+
   // State
   const completedTasks = ref<string[]>([]);
   const isDismissed = ref(false);
@@ -119,10 +130,22 @@ export const useOnboardingStore = defineStore('onboarding', () => {
   const isLoading = ref(false);
   const isInitialized = ref(false);
 
-  // Getters
-  const categories = computed(() => RAW_CATEGORIES.map(translateCategory));
+  // Helper to get filtered categories (excludes demo-hidden tasks in demo mode)
+  const getFilteredCategories = () =>
+    RAW_CATEGORIES.map((raw) => translateCategory({ raw, isDemo: isDemo.value })).filter(
+      (category) => category.tasks.length > 0,
+    );
 
-  const allTasks = computed(() => RAW_CATEGORIES.flatMap((c) => c.tasks));
+  // Helper to get filtered raw tasks (for counting)
+  const getFilteredRawTasks = () => {
+    const tasks = RAW_CATEGORIES.flatMap((c) => c.tasks);
+    return isDemo.value ? tasks.filter((t) => !t.demoHidden) : tasks;
+  };
+
+  // Getters
+  const categories = computed(() => getFilteredCategories());
+
+  const allTasks = computed(() => getFilteredRawTasks());
 
   const totalTasks = computed(() => allTasks.value.length);
 

@@ -3,7 +3,7 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
       <h1 class="text-2xl tracking-wider">{{ $t('investments.title') }}</h1>
 
-      <CreatePortfolioDialog>
+      <CreatePortfolioDialog v-if="!isDemo">
         <UiButton>
           <PlusIcon class="mr-2 size-4" />
           {{ $t('investments.createButton') }}
@@ -11,7 +11,23 @@
       </CreatePortfolioDialog>
     </div>
 
-    <template v-if="portfoliosQuery.isLoading.value">
+    <!-- Demo mode restriction -->
+    <template v-if="isDemo">
+      <div class="py-12 text-center">
+        <div class="mb-4">
+          <LockIcon class="text-muted-foreground mx-auto size-12" />
+        </div>
+        <h3 class="text-foreground mb-2 text-lg font-medium">{{ $t('demo.investmentsRestricted.title') }}</h3>
+        <p class="text-muted-foreground mb-4">
+          {{ $t('demo.investmentsRestricted.description') }}
+        </p>
+        <router-link :to="{ name: ROUTES_NAMES.signUp }">
+          <UiButton>{{ $t('demo.signUpToUnlock') }}</UiButton>
+        </router-link>
+      </div>
+    </template>
+
+    <template v-else-if="portfoliosQuery.isLoading.value">
       <div class="py-12 text-center">
         <div class="text-muted-foreground">{{ $t('investments.loading') }}</div>
       </div>
@@ -134,9 +150,13 @@ import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { EyeIcon, MoreVerticalIcon, PlusIcon, Trash2Icon, WalletIcon } from 'lucide-vue-next';
+import { useUserStore } from '@/stores';
+import { EyeIcon, LockIcon, MoreVerticalIcon, PlusIcon, Trash2Icon, WalletIcon } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 
+const userStore = useUserStore();
+const { isDemo } = storeToRefs(userStore);
 const portfoliosQuery = usePortfolios();
 
 // Extract portfolios data and sort by enabled status

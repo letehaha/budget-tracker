@@ -145,16 +145,15 @@
               {{ ctaText }}
               <ArrowRight class="size-4 transition-transform group-hover:translate-x-0.5" />
             </router-link>
-            <a
-              href="https://github.com/letehaha/budget-tracker"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="border-border bg-card hover:bg-accent flex w-full items-center justify-center gap-2 rounded-xl border px-8 py-3.5 text-base font-semibold transition-all sm:w-auto"
-              @click="trackGitHubClick('hero')"
+            <button
+              v-if="!isLoggedIn"
+              :disabled="isDemoLoading"
+              class="border-primary/50 text-primary hover:bg-primary/10 flex w-full items-center justify-center gap-2 rounded-xl border-2 px-8 py-3.5 text-base font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              @click="handleTryDemo"
             >
-              <GithubCircleIcon class="size-5 text-white" />
-              View on GitHub <ExternalLinkIcon class="size-4" />
-            </a>
+              <PlayCircle class="size-5" />
+              Try Demo
+            </button>
           </div>
 
           <!-- App Preview Placeholder -->
@@ -572,13 +571,17 @@
         </div>
       </div>
     </footer>
+
+    <!-- Demo loading overlay -->
+    <DemoLoadingOverlay :is-visible="isDemoLoading" />
   </div>
 </template>
 
 <script setup lang="ts">
 import GithubCircleIcon from '@/components/common/icons/github-circle.vue';
+import DemoLoadingOverlay from '@/components/demo/demo-loading-overlay.vue';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import { ROUTES_NAMES } from '@/routes';
+import { router, ROUTES_NAMES } from '@/routes';
 import { useAuthStore } from '@/stores';
 import { useHead } from '@unhead/vue';
 import {
@@ -591,6 +594,7 @@ import {
   Globe,
   Landmark,
   Lightbulb,
+  PlayCircle,
   ShieldCheck,
   Sparkles,
   Tag,
@@ -598,16 +602,36 @@ import {
   Upload,
 } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const authStore = useAuthStore();
 const { isLoggedIn } = storeToRefs(authStore);
 const { isReturningUser } = authStore;
 
-// Validate session on landing page to check if stored token is still valid
+const isDemoLoading = ref(false);
+
+const handleTryDemo = async () => {
+  if (isDemoLoading.value) return;
+
+  isDemoLoading.value = true;
+  trackAnalyticsEvent({
+    event: 'demo_started',
+    properties: { location: 'hero' },
+  });
+
+  try {
+    await authStore.startDemo();
+    router.push({ name: ROUTES_NAMES.home });
+  } catch (error) {
+    console.error('Failed to start demo:', error);
+    isDemoLoading.value = false;
+  }
+};
+
+// Validate session on landing page to check if user has a valid session
+// This handles both regular users (with stored token) and demo users (with session cookie)
 onMounted(async () => {
-  const token = localStorage.getItem('user-token');
-  if (token && !isLoggedIn.value) {
+  if (!isLoggedIn.value) {
     await authStore.validateSession();
   }
 });

@@ -1,5 +1,7 @@
 <template>
-  <div ref="headerRef" class="shadow-header border-border flex items-center justify-between border-b px-6 py-3">
+  <div ref="headerRef">
+    <DemoBanner />
+    <div class="shadow-header border-border flex items-center justify-between border-b px-6 py-3">
     <div class="flex items-center gap-4">
       <template v-if="isMobileView">
         <Sheet.Sheet :open="isMobileSheetOpen" @update:open="isMobileSheetOpen = $event">
@@ -113,6 +115,7 @@
         </Button>
       </router-link>
     </div>
+    </div>
   </div>
 </template>
 
@@ -121,6 +124,7 @@
 // import { Themes, currentTheme, toggleTheme } from '@/common/utils';
 import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
 import LanguageSelector from '@/components/common/language-selector.vue';
+import DemoBanner from '@/components/demo/demo-banner.vue';
 import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';

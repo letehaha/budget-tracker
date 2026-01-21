@@ -59,16 +59,17 @@
             <Loader2Icon v-if="isDisconnecting" class="mr-2 size-4 animate-spin" />
             {{ $t('settings.security.loginMethods.oauth.disconnect') }}
           </Button>
-          <Button
-            v-else
-            variant="outline"
-            size="sm"
-            :disabled="isConnecting || isLegacyUser"
-            @click="handleConnectOAuth({ provider })"
-          >
-            <Loader2Icon v-if="isConnecting" class="mr-2 size-4 animate-spin" />
-            {{ $t('settings.security.loginMethods.oauth.connect') }}
-          </Button>
+          <DemoRestricted v-else>
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="isConnecting || isLegacyUser || isDemo"
+              @click="handleConnectOAuth({ provider })"
+            >
+              <Loader2Icon v-if="isConnecting" class="mr-2 size-4 animate-spin" />
+              {{ $t('settings.security.loginMethods.oauth.connect') }}
+            </Button>
+          </DemoRestricted>
         </div>
       </div>
 
@@ -117,11 +118,18 @@
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" :disabled="isAddingPasskey || isLegacyUser" @click="handleAddPasskey">
-            <Loader2Icon v-if="isAddingPasskey" class="mr-2 size-4 animate-spin" />
-            <PlusIcon v-else class="mr-2 size-4" />
-            {{ $t('settings.security.loginMethods.passkeys.addButton') }}
-          </Button>
+          <DemoRestricted>
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="isAddingPasskey || isLegacyUser || isDemo"
+              @click="handleAddPasskey"
+            >
+              <Loader2Icon v-if="isAddingPasskey" class="mr-2 size-4 animate-spin" />
+              <PlusIcon v-else class="mr-2 size-4" />
+              {{ $t('settings.security.loginMethods.passkeys.addButton') }}
+            </Button>
+          </DemoRestricted>
         </div>
 
         <!-- List of passkeys -->
@@ -162,10 +170,11 @@
 
 <script setup lang="ts">
 import { GithubIcon, GoogleIcon } from '@/components/auth';
+import DemoRestricted from '@/components/demo/demo-restricted.vue';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { authClient, getSession } from '@/lib/auth-client';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useUserStore } from '@/stores';
 import { OAUTH_PROVIDER, OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import {
   AlertTriangleIcon,
@@ -176,6 +185,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { type Component, computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -203,6 +213,8 @@ interface Account {
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const userStore = useUserStore();
+const { isDemo } = storeToRefs(userStore);
 const { t } = useI18n();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 

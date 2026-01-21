@@ -20,6 +20,9 @@ type AnalyticsEvent =
       event: 'landing_github_clicked';
       properties: { location: 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' };
     }
+  // Demo mode
+  | { event: 'demo_started'; properties: { location: 'hero' } }
+  | { event: 'demo_signup_clicked'; properties: { location: 'banner' } }
   // Language selector
   | { event: 'language_changed'; properties: { from_locale: string; to_locale: string } }
   // Onboarding funnel

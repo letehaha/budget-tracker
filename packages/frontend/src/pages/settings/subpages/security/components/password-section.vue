@@ -17,6 +17,17 @@
     </div>
 
     <template v-else>
+      <!-- Demo mode restriction notice -->
+      <div
+        v-if="isDemo"
+        class="bg-muted/50 text-muted-foreground flex items-center gap-3 rounded-lg border p-4"
+      >
+        <AlertCircle class="size-5 shrink-0" />
+        <p class="text-sm">
+          {{ $t('demo.passwordChangeRestricted') }}
+        </p>
+      </div>
+
       <!-- Password form -->
       <form class="max-w-md space-y-4" @submit.prevent="handleSubmit">
         <!-- Current password (only when changing) -->
@@ -25,7 +36,7 @@
           v-model="form.currentPassword"
           :label="$t('settings.security.passwordSection.labels.currentPassword')"
           type="password"
-          :disabled="isSubmitting"
+          :disabled="isSubmitting || isDemo"
           :placeholder="$t('settings.security.passwordSection.placeholders.currentPassword')"
           :error-message="getFieldErrorMessage('form.currentPassword')"
         />
@@ -40,7 +51,7 @@
                 : $t('settings.security.passwordSection.labels.password')
             "
             type="password"
-            :disabled="isSubmitting"
+            :disabled="isSubmitting || isDemo"
             :placeholder="$t('settings.security.passwordSection.placeholders.newPassword')"
             :error-message="getFieldErrorMessage('form.newPassword')"
           />
@@ -67,7 +78,7 @@
           v-model="form.confirmPassword"
           :label="$t('settings.security.passwordSection.labels.confirmPassword')"
           type="password"
-          :disabled="isSubmitting"
+          :disabled="isSubmitting || isDemo"
           :placeholder="$t('settings.security.passwordSection.placeholders.confirmPassword')"
           :error-message="getFieldErrorMessage('form.confirmPassword')"
         />
@@ -76,7 +87,7 @@
         <p v-if="errorMessage" class="text-destructive-text text-sm">{{ errorMessage }}</p>
 
         <!-- Submit button -->
-        <Button type="submit" :disabled="isSubmitting">
+        <Button type="submit" :disabled="isSubmitting || isDemo">
           <Loader2Icon v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
           {{
             hasPassword
@@ -106,7 +117,9 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
 import { minLength, required, sameAs } from '@/js/helpers/validators';
 import { authClient, setPassword } from '@/lib/auth-client';
-import { Loader2Icon } from 'lucide-vue-next';
+import { useUserStore } from '@/stores';
+import { AlertCircle, Loader2Icon } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -117,6 +130,8 @@ interface Account {
 
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 const { t } = useI18n();
+const userStore = useUserStore();
+const { isDemo } = storeToRefs(userStore);
 
 const isLoading = ref(true);
 const isSubmitting = ref(false);

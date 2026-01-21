@@ -32,16 +32,46 @@ interface BetterAuthConfig {
   };
 }
 
+interface SignInEmailParams {
+  body: { email: string; password: string; rememberMe?: boolean };
+  headers?: unknown;
+  asResponse?: boolean;
+}
+
 interface AuthInstance {
   handler: (request: Request) => Promise<Response>;
   api: {
     getSession: (params: { headers: unknown }) => Promise<{ user: unknown; session: unknown } | null>;
+    signInEmail: (params: SignInEmailParams) => Promise<Response>;
   };
 }
 
 // Session storage for tracking users across signup/session calls
 // Map of session token -> user object
 const sessionStore = new Map<string, { id: string; email: string; name?: string }>();
+
+/**
+ * Register a session in the mock session store.
+ * Useful for tests that create sessions outside the normal auth flow (e.g., demo users).
+ */
+export function registerMockSession(sessionToken: string, user: { id: string; email: string; name?: string }): void {
+  sessionStore.set(sessionToken, user);
+}
+
+/**
+ * Clear a session from the mock session store.
+ */
+export function clearMockSession(sessionToken: string): void {
+  sessionStore.delete(sessionToken);
+}
+
+/**
+ * Clear all sessions from the mock session store.
+ * Useful for test cleanup.
+ */
+export function clearAllMockSessions(): void {
+  sessionStore.clear();
+}
 
 /**
  * Extracts the session token value from a cookie string.
@@ -183,6 +213,43 @@ export function betterAuth(config: BetterAuthConfig): AuthInstance {
           }
         }
         return null;
+      },
+
+      signInEmail: async ({ body, asResponse }: SignInEmailParams) => {
+        // Look up user by email - in tests, we assume the user exists
+        // The demo flow creates the user in the database before calling signInEmail
+        const sessionToken = `demo-token-${Date.now()}`;
+        const user = { id: `auth-user-for-${body.email}`, email: body.email };
+
+        // Store session for later lookup
+        sessionStore.set(sessionToken, user);
+
+        const responseData = {
+          redirect: false,
+          token: sessionToken,
+          url: null,
+          user,
+        };
+
+        if (asResponse) {
+          return new Response(JSON.stringify(responseData), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Set-Cookie': `bt_auth.session_token=${sessionToken}; Path=/; HttpOnly`,
+            },
+          });
+        }
+
+        // If not asResponse, this would normally return just the data
+        // but our interface expects Response for simplicity
+        return new Response(JSON.stringify(responseData), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Set-Cookie': `bt_auth.session_token=${sessionToken}; Path=/; HttpOnly`,
+          },
+        });
       },
     },
   };

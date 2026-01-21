@@ -1,4 +1,18 @@
 /**
+ * User roles for access control and feature gating.
+ * - admin: Full access to all features including admin panel
+ * - common: Regular registered user
+ * - demo: Temporary demo user (auto-deleted after 6 hours)
+ */
+export const USER_ROLES = {
+  admin: 'admin',
+  common: 'common',
+  demo: 'demo',
+} as const;
+
+export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
+
+/**
  * Supported OAuth providers for authentication
  */
 export enum OAUTH_PROVIDER {
