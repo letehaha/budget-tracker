@@ -12,6 +12,7 @@ import {
   TRANSACTION_TYPES,
   TagReminderFrequency,
   TagReminderType,
+  UserRole,
 } from './enums';
 
 export interface UserModel {
@@ -26,6 +27,9 @@ export interface UserModel {
   totalBalance: number;
   defaultCategoryId: number;
   authUserId?: string;
+  /** User role for access control. Defaults to 'common' for regular users. */
+  role: UserRole;
+  /** @deprecated Use role === 'admin' instead */
   isAdmin?: boolean;
 }
 

@@ -1934,6 +1934,35 @@
       }
     }
   },
+  "demo": {
+    "loadingOverlay": {
+      "title": "Building your personal playground",
+      "messages": [
+        "Crunching numbers just for you...",
+        "Crafting your personal accounts...",
+        "Sprinkling in realistic transactions...",
+        "Fine-tuning your dashboard...",
+        "Almost there, putting final touches..."
+      ],
+      "timeoutMessage": "This is taking longer than expected. You can reload and try again, or wait a bit more."
+    },
+    "featureNotAvailable": "This feature is not available in demo mode",
+    "bankConnectionsRestricted": {
+      "title": "Bank Connections",
+      "description": "Bank connections are not available in demo mode"
+    },
+    "signUpToUnlock": "Sign up to unlock this feature",
+    "passwordChangeRestricted": "Password changes are not available in demo mode",
+    "banner": {
+      "message": "You're exploring a demo{time}. {signUpLink} to keep your data permanently.",
+      "resets": "resets in {time}",
+      "signUp": "Sign up",
+      "timeFormat": {
+        "hoursMinutes": "{hours}h {minutes}m",
+        "minutes": "{minutes}m"
+      }
+    }
+  },
   "errors": {
     "api": {
       "failedToFetch": "Failed to fetch data from the server.",

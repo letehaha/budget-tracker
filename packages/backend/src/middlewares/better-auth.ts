@@ -33,9 +33,9 @@ export const authenticateSession = async (req: Request, res: Response, next: Nex
     // Look up the app user by authUserId
     const user = (await Users.findOne({
       where: { authUserId: session.user.id },
-      attributes: ['username', 'id', 'authUserId'],
+      attributes: ['username', 'id', 'authUserId', 'role'],
       raw: true,
-    })) as Pick<Users, 'username' | 'id' | 'authUserId'> | null;
+    })) as Pick<Users, 'username' | 'id' | 'authUserId' | 'role'> | null;
 
     if (!user) {
       return res.status(401).json({

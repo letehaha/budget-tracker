@@ -1,4 +1,4 @@
-import { UserModel } from '@bt/shared/types';
+import { UserModel, USER_ROLES, UserRole } from '@bt/shared/types';
 import { Table, Column, Model, DefaultScope, Scopes, BelongsToMany, Length, DataType } from 'sequelize-typescript';
 
 import UsersCurrencies from './UsersCurrencies.model';
@@ -75,6 +75,20 @@ export default class Users extends Model {
 
   @Column({ allowNull: true, type: DataType.NUMBER, })
   defaultCategoryId!: number;
+
+  @Column({
+    allowNull: false,
+    type: DataType.STRING(20),
+    defaultValue: USER_ROLES.common,
+  })
+  role!: UserRole;
+
+  @Column({
+    allowNull: false,
+    type: DataType.DATE,
+    defaultValue: DataType.NOW,
+  })
+  createdAt!: Date;
 }
 
 export const getUsers = async () => {
@@ -118,6 +132,7 @@ export const createUser = async ({
   avatar,
   totalBalance = DETAULT_TOTAL_BALANCE,
   authUserId,
+  role = USER_ROLES.common,
 }: {
   username: string;
   email?: string;
@@ -128,6 +143,7 @@ export const createUser = async ({
   avatar?: string;
   totalBalance?: number;
   authUserId?: string;
+  role?: UserRole;
 }): Promise<UserModel> => {
   const user = await Users.create({
     username,
@@ -139,6 +155,7 @@ export const createUser = async ({
     avatar,
     totalBalance,
     authUserId,
+    role,
   });
 
   return user;

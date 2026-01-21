@@ -10,10 +10,14 @@ const [UseTemplate, SlotContent] = createReusableTemplate();
 // Detect touch-primary devices (coarse pointer = finger/stylus)
 const isTouch = useMediaQuery('(pointer: coarse)');
 
-defineProps<{
-  content?: string;
-  contentClassName?: string;
-}>();
+withDefaults(
+  defineProps<{
+    content?: string;
+    contentClassName?: string;
+    delayDuration?: number;
+  }>(),
+  { delayDuration: 300 },
+);
 </script>
 
 <template>
@@ -38,7 +42,7 @@ defineProps<{
 
   <!-- Non-touch devices: Tooltip (hover to show) -->
   <template v-else>
-    <Tooltip.TooltipProvider>
+    <Tooltip.TooltipProvider :delay-duration="delayDuration">
       <Tooltip.Tooltip>
         <Tooltip.TooltipTrigger as-child :class="$attrs.class">
           <slot />
