@@ -58,12 +58,15 @@ const { t, tm } = useI18n();
 // Use tm() to get array of translations
 const messages = computed(() => tm('demo.loadingOverlay.messages') as string[]);
 const TIMEOUT_MESSAGE = computed(() => t('demo.loadingOverlay.timeoutMessage'));
-const MESSAGE_INTERVAL_MS = 2000;
-const TIMEOUT_THRESHOLD_MS = 20000;
+
+// Duration in ms for each message phase (accounts setup, transactions, budgets, etc.)
+// These timings reflect actual backend processing times
+const MESSAGE_DURATIONS_MS = [4000, 15000, 5000, 5000];
+const TIMEOUT_THRESHOLD_MS = 30000;
 
 const currentMessageIndex = ref(0);
 const showTimeoutMessage = ref(false);
-let messageInterval: ReturnType<typeof setInterval> | null = null;
+const messageTimers: ReturnType<typeof setTimeout>[] = [];
 let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
 const currentMessage = computed(() => {
@@ -73,13 +76,22 @@ const currentMessage = computed(() => {
 });
 
 const startTimers = () => {
-  // Progress through messages, stop at the last one
-  messageInterval = setInterval(() => {
-    const messagesList = messages.value as string[];
-    if (currentMessageIndex.value < messagesList.length - 1) {
-      currentMessageIndex.value++;
-    }
-  }, MESSAGE_INTERVAL_MS);
+  // Schedule each message transition based on cumulative time
+  let cumulativeTime = 0;
+  const messagesList = messages.value as string[];
+
+  for (let i = 0; i < messagesList.length - 1; i++) {
+    const duration = MESSAGE_DURATIONS_MS[i] || 5000; // Default 5s if not specified
+    cumulativeTime += duration;
+
+    const timer = setTimeout(() => {
+      if (currentMessageIndex.value < messagesList.length - 1) {
+        currentMessageIndex.value = i + 1;
+      }
+    }, cumulativeTime);
+
+    messageTimers.push(timer);
+  }
 
   // Show timeout message after threshold
   timeoutTimer = setTimeout(() => {
@@ -88,10 +100,10 @@ const startTimers = () => {
 };
 
 const clearTimers = () => {
-  if (messageInterval) {
-    clearInterval(messageInterval);
-    messageInterval = null;
-  }
+  // Clear all message transition timers
+  messageTimers.forEach((timer) => clearTimeout(timer));
+  messageTimers.length = 0;
+
   if (timeoutTimer) {
     clearTimeout(timeoutTimer);
     timeoutTimer = null;

@@ -2,6 +2,7 @@ import { builtinModules } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 import pkg from './package.json';
@@ -17,7 +18,19 @@ const externalDeps = [
 ];
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [
+    tsconfigPaths(),
+    // Copy i18n locale files to dist so they're available at runtime
+    // In the bundle, __dirname resolves to dist/, so locales must be at dist/locales/
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'src/i18n/locales/*.json',
+          dest: 'locales',
+        },
+      ],
+    }),
+  ],
   build: {
     target: 'node23',
     outDir: 'dist',

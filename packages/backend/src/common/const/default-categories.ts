@@ -1,5 +1,6 @@
 import { CATEGORY_TYPES } from '@bt/shared/types';
 import { t } from '@i18n/index';
+import { logger } from '@js/utils/logger';
 
 /**
  * Keys for category translation lookup.
@@ -166,6 +167,15 @@ export const DEFAULT_CATEGORY_STRUCTURE = Object.freeze({
  * Returns category structure with names resolved via i18n.
  */
 export function getTranslatedCategories({ locale }: { locale: string }) {
+  // Debug: log first translation to verify i18n is working
+  const testKey = 'defaultCategories.main.food';
+  const testTranslation = t({ key: testKey, locale });
+  if (testTranslation === testKey) {
+    logger.warn(`i18n translation failed: "${testKey}" returned key instead of translation. Locale: ${locale}`);
+  } else {
+    logger.info(`i18n working: "${testKey}" -> "${testTranslation}"`);
+  }
+
   return {
     main: DEFAULT_CATEGORY_STRUCTURE.main.map((cat) => ({
       name: t({ key: `defaultCategories.main.${cat.key}`, locale }),

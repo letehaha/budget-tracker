@@ -12,6 +12,7 @@ import {
 import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { faker } from '@faker-js/faker';
+import { i18nextReady } from '@i18n/index';
 import { logger } from '@js/utils/logger';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as accountsService from '@services/accounts.service';
@@ -57,6 +58,9 @@ interface SeedDemoDataParams {
  */
 export async function seedDemoData({ userId }: SeedDemoDataParams): Promise<void> {
   logger.info(`Seeding demo data for user ${userId}...`);
+
+  // Ensure i18n is fully loaded before using translations
+  await i18nextReady;
 
   // 1. Set up currencies for the user
   await setupCurrencies({ userId });
@@ -530,7 +534,7 @@ async function generateTransactions({
   logger.info(`Creating ${transactions.length} demo transactions...`);
 
   // Create transactions in batches to avoid overwhelming the database
-  const batchSize = 100;
+  const batchSize = 500;
   for (let i = 0; i < transactions.length; i += batchSize) {
     const batch = transactions.slice(i, i + batchSize);
     await Promise.all(

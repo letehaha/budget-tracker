@@ -1,6 +1,7 @@
 import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { requestContext } from '@common/request-context';
+import { i18nextReady } from '@i18n/index';
 import * as categoriesService from '@services/categories.service';
 import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
@@ -21,6 +22,9 @@ export async function createUserWithDefaults({
   authUserId: string;
   locale?: string;
 }) {
+  // Ensure i18n is fully loaded before using translations
+  await i18nextReady;
+
   // Get locale from parameter, AsyncLocalStorage, or default to 'en'
   const locale = providedLocale || requestContext.getLocale();
 
