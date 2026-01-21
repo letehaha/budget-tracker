@@ -27,7 +27,7 @@ const tooltipMessage = computed(() => props.message || t('demo.featureNotAvailab
 </script>
 
 <template>
-  <ResponsiveTooltip :delay-duration="100" v-if="shouldShowTooltip" :content="tooltipMessage">
+  <ResponsiveTooltip v-if="shouldShowTooltip" :delay-duration="100" :content="tooltipMessage">
     <span class="inline-block">
       <slot />
     </span>

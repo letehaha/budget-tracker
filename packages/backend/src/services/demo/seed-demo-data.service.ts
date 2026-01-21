@@ -238,7 +238,6 @@ async function generateTransactions({
   const startDate = subMonths(endDate, DEMO_CONFIG.historyMonths);
 
   const mainAccount = accounts.find((a) => a.name === 'Main Checking')!;
-  // Note: savingsAccount exists for balance tracking but no demo transactions are generated for it
   const travelCard = accounts.find((a) => a.name === 'Travel Card')!;
   const cashAccount = accounts.find((a) => a.name === 'Cash')!;
 

@@ -71,21 +71,17 @@ export async function cleanupExpiredDemoUsers(): Promise<number> {
 
     logger.info(`Found ${expiredUsers.length} expired demo users to clean up`);
 
-    // Clean up each expired user
-    for (const user of expiredUsers) {
-      try {
-        await cleanupDemoUser({ userId: user.id });
-      } catch (error) {
-        // Log but continue with other users
-        logger.error({
-          message: `Failed to cleanup expired demo user ${user.id}`,
-          error: error as Error,
-        });
-      }
+    // Clean up expired users in parallel
+    const results = await Promise.allSettled(expiredUsers.map((user) => cleanupDemoUser({ userId: user.id })));
+
+    const failedCount = results.filter((r) => r.status === 'rejected').length;
+    if (failedCount > 0) {
+      logger.error(`Failed to cleanup ${failedCount} expired demo users`);
     }
 
-    logger.info(`Cleaned up ${expiredUsers.length} expired demo users`);
-    return expiredUsers.length;
+    const successCount = expiredUsers.length - failedCount;
+    logger.info(`Cleaned up ${successCount} expired demo users`);
+    return successCount;
   } catch (error) {
     logger.error({ message: 'Failed to cleanup expired demo users', error: error as Error });
     throw error;

@@ -56,15 +56,17 @@ onUnmounted(() => {
   }
 });
 
+// Calculate expiry timestamp once
+const expiresAt = computed(() => {
+  const demoSession = authStore.getDemoSession();
+  if (!demoSession) return null;
+  return demoSession.startedAt + DEMO_EXPIRY_HOURS * 60 * 60 * 1000;
+});
+
 // Check if demo has expired
 const isExpired = computed(() => {
-  if (!isDemo.value) return false;
-
-  const demoSession = authStore.getDemoSession();
-  if (!demoSession) return false;
-
-  const expiresAt = demoSession.startedAt + DEMO_EXPIRY_HOURS * 60 * 60 * 1000;
-  return now.value >= expiresAt;
+  if (!isDemo.value || !expiresAt.value) return false;
+  return now.value >= expiresAt.value;
 });
 
 // Auto-logout when demo expires
@@ -80,11 +82,9 @@ watch(
 );
 
 const timeRemaining = computed(() => {
-  const demoSession = authStore.getDemoSession();
-  if (!demoSession) return null;
+  if (!expiresAt.value) return null;
 
-  const expiresAt = demoSession.startedAt + DEMO_EXPIRY_HOURS * 60 * 60 * 1000;
-  const remaining = expiresAt - now.value;
+  const remaining = expiresAt.value - now.value;
 
   if (remaining <= 0) return null;
 

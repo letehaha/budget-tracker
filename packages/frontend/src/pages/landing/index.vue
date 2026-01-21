@@ -624,6 +624,7 @@ const handleTryDemo = async () => {
     router.push({ name: ROUTES_NAMES.home });
   } catch (error) {
     console.error('Failed to start demo:', error);
+  } finally {
     isDemoLoading.value = false;
   }
 };
