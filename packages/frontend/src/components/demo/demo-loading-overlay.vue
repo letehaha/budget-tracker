@@ -61,8 +61,8 @@ const TIMEOUT_MESSAGE = computed(() => t('demo.loadingOverlay.timeoutMessage'));
 
 // Duration in ms for each message phase (accounts setup, transactions, budgets, etc.)
 // These timings reflect actual backend processing times
-const MESSAGE_DURATIONS_MS = [4000, 15000, 5000, 5000];
-const TIMEOUT_THRESHOLD_MS = 30000;
+const MESSAGE_DURATIONS_MS = [4000, 7000, 15000, 5000];
+const TIMEOUT_THRESHOLD_MS = 60_000;
 
 const currentMessageIndex = ref(0);
 const showTimeoutMessage = ref(false);
