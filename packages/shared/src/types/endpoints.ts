@@ -243,3 +243,19 @@ export interface GetCumulativeResponse {
   previousPeriod: CumulativePeriodData;
   percentChange: number; // Period-over-period total change %
 }
+
+// Refund Recommendations
+// Either transactionId OR (transactionType + originAmount + accountId) must be provided
+export interface GetRefundRecommendationsQuery extends QueryPayload {
+  // Option 1: Provide transaction ID - backend derives everything
+  transactionId?: number;
+  // Option 2: Provide form data for new transactions
+  // The transaction type to search for (opposite of current tx)
+  transactionType?: TRANSACTION_TYPES;
+  // Origin transaction amount (in decimal, not cents)
+  originAmount?: number;
+  // Account ID to derive currency for refAmount calculation
+  accountId?: number;
+}
+
+export type GetRefundRecommendationsResponse = TransactionModel[];

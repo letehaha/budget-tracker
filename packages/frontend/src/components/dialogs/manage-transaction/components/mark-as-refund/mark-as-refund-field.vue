@@ -27,6 +27,8 @@ const props = defineProps<{
   currentAmount?: number | null;
   /** Current form's currency code */
   currentCurrencyCode?: string;
+  /** Current account ID (for recommendations) */
+  currentAccountId?: number | null;
 }>();
 
 const emit = defineEmits<{
@@ -102,6 +104,8 @@ const getSplitInfo = (refund: RefundWithSplit) => {
       :current-transaction-splits="currentTransactionSplits"
       :current-amount="currentAmount"
       :current-currency-code="currentCurrencyCode"
+      :current-account-id="currentAccountId"
+      :current-transaction-id="transactionId"
       @update:refunds="emit('update:refunds', $event)"
       @update:refunded-by="emit('update:refundedBy', $event)"
     />

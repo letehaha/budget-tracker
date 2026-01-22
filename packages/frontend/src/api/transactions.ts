@@ -101,3 +101,9 @@ export const bulkUpdateTransactions = async (
 
 // Backward compatibility alias
 export const bulkUpdateTransactionsCategory = bulkUpdateTransactions;
+
+export const loadRefundRecommendations = async (
+  params: { transactionId: number } | { transactionType: TRANSACTION_TYPES; originAmount: number; accountId: number },
+): Promise<endpointsTypes.GetRefundRecommendationsResponse> => {
+  return api.get('/transactions/refund-recommendations', params);
+};

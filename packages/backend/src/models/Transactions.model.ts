@@ -378,6 +378,8 @@ export const findWithFilters = async ({
   endDate,
   amountGte,
   amountLte,
+  refAmountGte,
+  refAmountLte,
   categoryIds,
   noteSearch,
   attributes,
@@ -405,6 +407,10 @@ export const findWithFilters = async ({
   amountGte?: CentsAmount;
   /** Filter: amount <= this value (in cents) */
   amountLte?: CentsAmount;
+  /** Filter: refAmount >= this value (in cents) - for cross-currency matching */
+  refAmountGte?: CentsAmount;
+  /** Filter: refAmount <= this value (in cents) - for cross-currency matching */
+  refAmountLte?: CentsAmount;
   categoryIds?: number[];
   noteSearch?: string[]; // array of keywords
   attributes?: (keyof Transactions)[];
@@ -476,6 +482,19 @@ export const findWithFilters = async ({
       whereClause.amount[Op.gte] = amountGte;
     } else if (amountLte) {
       whereClause.amount[Op.lte] = amountLte;
+    }
+  }
+
+  if (refAmountGte || refAmountLte) {
+    whereClause.refAmount = {};
+    if (refAmountGte && refAmountLte) {
+      whereClause.refAmount = {
+        [Op.between]: [refAmountGte, refAmountLte],
+      };
+    } else if (refAmountGte) {
+      whereClause.refAmount[Op.gte] = refAmountGte;
+    } else if (refAmountLte) {
+      whereClause.refAmount[Op.lte] = refAmountLte;
     }
   }
 

@@ -10,6 +10,7 @@ import getTransactions from '@controllers/transactions.controller/get-transactio
 import createRefund from '@controllers/transactions.controller/refunds/create-refund';
 import deleteRefund from '@controllers/transactions.controller/refunds/delete-refund';
 import getRefund from '@controllers/transactions.controller/refunds/get-refund';
+import getRefundRecommendations from '@controllers/transactions.controller/refunds/get-refund-recommendations';
 import getRefunds from '@controllers/transactions.controller/refunds/get-refunds';
 import getRefundsForTransactionById from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';
 import deleteSplit from '@controllers/transactions.controller/splits/delete-split';
@@ -25,6 +26,12 @@ const router = Router({});
 // Define all named routes level above to avoid matching with /:id
 router.get('/refund', authenticateSession, validateEndpoint(getRefund.schema), getRefund.handler);
 router.get('/refunds', authenticateSession, validateEndpoint(getRefunds.schema), getRefunds.handler);
+router.get(
+  '/refund-recommendations',
+  authenticateSession,
+  validateEndpoint(getRefundRecommendations.schema),
+  getRefundRecommendations.handler,
+);
 router.post(
   '/refund',
   authenticateSession,

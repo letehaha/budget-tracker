@@ -1797,7 +1797,9 @@
         "noIncomeTransactions": "There's no income transactions in the system that are not already marked as refunds. Create some to proceed",
         "noExpenseTransactions": "There's no expense transactions in the system that are not already marked as refunds. Create some to proceed",
         "noTransactions": "There's no transactions to select. Create some to proceed",
-        "resetFiltersButton": "Reset filters"
+        "resetFiltersButton": "Reset filters",
+        "recommendedLabel": "Recommended",
+        "allTransactionsLabel": "All transactions"
       },
       "splitDialog": {
         "title": "Split into categories",

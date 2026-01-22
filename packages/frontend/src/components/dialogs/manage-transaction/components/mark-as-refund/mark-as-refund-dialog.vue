@@ -26,6 +26,10 @@ const props = defineProps<{
   currentAmount?: number | null;
   /** Current form's currency code */
   currentCurrencyCode?: string;
+  /** Current account ID (for recommendations) */
+  currentAccountId?: number | null;
+  /** Current transaction ID (for recommendations when editing) */
+  currentTransactionId?: number;
 }>();
 
 const emit = defineEmits<{
@@ -310,6 +314,9 @@ const hasSmallOptions = computed(() => {
           :transaction-type="transactionType"
           :on-select="onSelectValue"
           :selected-transactions="selectedTransactions"
+          :origin-amount="currentAmount"
+          :origin-account-id="currentAccountId"
+          :origin-transaction-id="currentTransactionId"
         />
       </div>
     </ResponsiveDialog>
