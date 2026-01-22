@@ -51,6 +51,7 @@
 
 <script setup lang="ts">
 import { useFormatCurrency } from '@/composable';
+import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import type { endpointsTypes } from '@bt/shared/types';
 import * as d3 from 'd3';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
@@ -98,6 +99,12 @@ const tooltip = reactive({
   monthLabel: '',
   currentValue: 0,
   previousValue: 0,
+});
+
+const { updateTooltipPosition } = useChartTooltipPosition({
+  containerRef,
+  tooltipRef,
+  tooltip,
 });
 
 const getMargins = ({ width }: { width: number }) => {
@@ -363,29 +370,6 @@ function handleMouseMove(event: MouseEvent) {
 
 function handleMouseLeave() {
   tooltip.visible = false;
-}
-
-function updateTooltipPosition(event: MouseEvent) {
-  if (!containerRef.value || !tooltipRef.value) return;
-
-  const containerRect = containerRef.value.getBoundingClientRect();
-  const tooltipRect = tooltipRef.value.getBoundingClientRect();
-
-  let x = event.clientX - containerRect.left + 10;
-  let y = event.clientY - containerRect.top - 10;
-
-  if (x + tooltipRect.width > containerRect.width) {
-    x = event.clientX - containerRect.left - tooltipRect.width - 10;
-  }
-  if (y + tooltipRect.height > containerRect.height) {
-    y = event.clientY - containerRect.top - tooltipRect.height - 10;
-  }
-  if (y < 0) {
-    y = 10;
-  }
-
-  tooltip.x = x;
-  tooltip.y = y;
 }
 
 let resizeObserver: ResizeObserver | null = null;
