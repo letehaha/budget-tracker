@@ -362,6 +362,7 @@ export const findWithFilters = async ({
   limit = 20,
   accountType,
   accountIds,
+  excludeAccountIds,
   budgetIds,
   excludedBudgetIds,
   tagIds,
@@ -390,6 +391,8 @@ export const findWithFilters = async ({
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
   accountIds?: number[];
+  /** Filter: exclude transactions from these account IDs */
+  excludeAccountIds?: number[];
   budgetIds?: number[];
   excludedBudgetIds?: number[];
   tagIds?: number[];
@@ -456,6 +459,13 @@ export const findWithFilters = async ({
   if (accountIds && accountIds.length > 0) {
     whereClause.accountId = {
       [Op.in]: accountIds,
+    };
+  }
+
+  if (excludeAccountIds && excludeAccountIds.length > 0) {
+    whereClause.accountId = {
+      ...(whereClause.accountId as object | undefined),
+      [Op.notIn]: excludeAccountIds,
     };
   }
 

@@ -526,6 +526,9 @@ onUnmounted(() => {
             :opposite-transaction="oppositeTransaction"
             :transaction-type="transaction?.transactionType"
             :disabled="isFormFieldsDisabled"
+            :origin-transaction-id="transaction?.id"
+            :origin-amount="form.amount ? Number(form.amount) : null"
+            :origin-account-id="form.account?.id"
             @unlink="unlinkTransactions"
           />
 

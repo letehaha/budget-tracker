@@ -259,3 +259,5 @@ export interface GetRefundRecommendationsQuery extends QueryPayload {
 }
 
 export type GetRefundRecommendationsResponse = TransactionModel[];
+
+export type GetTransferRecommendationsResponse = TransactionModel[];

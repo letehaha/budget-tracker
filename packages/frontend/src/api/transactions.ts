@@ -107,3 +107,9 @@ export const loadRefundRecommendations = async (
 ): Promise<endpointsTypes.GetRefundRecommendationsResponse> => {
   return api.get('/transactions/refund-recommendations', params);
 };
+
+export const loadTransferRecommendations = async (
+  params: { transactionId: number } | { transactionType: TRANSACTION_TYPES; originAmount: number; accountId: number },
+): Promise<endpointsTypes.GetTransferRecommendationsResponse> => {
+  return api.get('/transactions/transfer-recommendations', params);
+};

@@ -14,6 +14,7 @@ import getRefundRecommendations from '@controllers/transactions.controller/refun
 import getRefunds from '@controllers/transactions.controller/refunds/get-refunds';
 import getRefundsForTransactionById from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';
 import deleteSplit from '@controllers/transactions.controller/splits/delete-split';
+import getTransferRecommendations from '@controllers/transactions.controller/transfer-linking/get-transfer-recommendations';
 import unlinkTransferTransactions from '@controllers/transactions.controller/transfer-linking/unlink-transfer-transactions';
 import updateTransaction from '@controllers/transactions.controller/update-transaction';
 import { authenticateSession } from '@middlewares/better-auth';
@@ -31,6 +32,12 @@ router.get(
   authenticateSession,
   validateEndpoint(getRefundRecommendations.schema),
   getRefundRecommendations.handler,
+);
+router.get(
+  '/transfer-recommendations',
+  authenticateSession,
+  validateEndpoint(getTransferRecommendations.schema),
+  getTransferRecommendations.handler,
 );
 router.post(
   '/refund',
