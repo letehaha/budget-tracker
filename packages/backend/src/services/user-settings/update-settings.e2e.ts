@@ -80,7 +80,9 @@ describe('Update user settings', () => {
       settings: newSettings,
     });
 
-    expect(updatedSettings).toStrictEqual(newSettings);
+    // Use toMatchObject because addCustomCategory marks an onboarding task complete,
+    // which adds an onboarding object to settings that we want to ignore in this test
+    expect(updatedSettings).toMatchObject(newSettings);
   });
 
   it('handles mixed valid and invalid category IDs', async () => {

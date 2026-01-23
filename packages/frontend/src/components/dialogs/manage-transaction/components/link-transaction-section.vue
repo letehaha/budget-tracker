@@ -6,7 +6,7 @@ import { TRANSACTION_TYPES, type TransactionModel } from '@bt/shared/types';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import RecordList from '../record-list.vue';
+import TransferRecordsList from './transfer-records-list.vue';
 import FormRow from './form-row.vue';
 
 const { t } = useI18n();
@@ -17,6 +17,12 @@ interface Props {
   oppositeTransaction?: TransactionModel;
   transactionType?: TRANSACTION_TYPES;
   disabled: boolean;
+  /** Origin transaction ID (for recommendations when editing) */
+  originTransactionId?: number;
+  /** Origin transaction amount for recommendations */
+  originAmount?: number | null;
+  /** Origin account ID for recommendations */
+  originAccountId?: number | null;
 }
 
 const props = defineProps<Props>();
@@ -69,7 +75,13 @@ const handleSelectTransaction = (transaction: TransactionModel) => {
         <template #title>{{ t('dialogs.manageTransaction.linkSection.title') }}</template>
         <template #description>{{ t('dialogs.manageTransaction.linkSection.description') }}</template>
 
-        <RecordList :transaction-type="oppositeTransactionType" @select="handleSelectTransaction" />
+        <TransferRecordsList
+          :transaction-type="oppositeTransactionType"
+          :origin-transaction-id="props.originTransactionId"
+          :origin-amount="props.originAmount"
+          :origin-account-id="props.originAccountId"
+          @select="handleSelectTransaction"
+        />
       </ResponsiveDialog>
     </FormRow>
   </template>

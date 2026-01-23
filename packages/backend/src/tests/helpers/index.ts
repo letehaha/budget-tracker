@@ -6,6 +6,7 @@ export * from './common';
 export { bankDataProviders, enablebanking, monobank };
 export * from './account';
 export * from './refunds';
+export * from './transfers';
 export * from './stats';
 export * from './categories';
 export * from './currencies';

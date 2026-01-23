@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { useFormatCurrency } from '@/composable';
+import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useDateLocale } from '@/composable/use-date-locale';
 import type { endpointsTypes } from '@bt/shared/types';
 import * as d3 from 'd3';
@@ -80,6 +81,12 @@ const tooltip = reactive({
   income: 0,
   expenses: 0,
   netFlow: 0,
+});
+
+const { updateTooltipPosition } = useChartTooltipPosition({
+  containerRef,
+  tooltipRef,
+  tooltip,
 });
 
 // Responsive margins based on container width
@@ -476,30 +483,6 @@ function handleMouseMove(event: MouseEvent) {
 
 function handleMouseLeave() {
   tooltip.visible = false;
-}
-
-function updateTooltipPosition(event: MouseEvent) {
-  if (!containerRef.value || !tooltipRef.value) return;
-
-  const containerRect = containerRef.value.getBoundingClientRect();
-  const tooltipRect = tooltipRef.value.getBoundingClientRect();
-
-  let x = event.clientX - containerRect.left + 10;
-  let y = event.clientY - containerRect.top - 10;
-
-  // Keep tooltip within container bounds
-  if (x + tooltipRect.width > containerRect.width) {
-    x = event.clientX - containerRect.left - tooltipRect.width - 10;
-  }
-  if (y + tooltipRect.height > containerRect.height) {
-    y = event.clientY - containerRect.top - tooltipRect.height - 10;
-  }
-  if (y < 0) {
-    y = 10;
-  }
-
-  tooltip.x = x;
-  tooltip.y = y;
 }
 
 // ResizeObserver for responsive chart

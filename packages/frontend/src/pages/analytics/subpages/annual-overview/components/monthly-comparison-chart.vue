@@ -200,6 +200,7 @@ import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Combobox from '@/components/lib/ui/combobox';
 import { useFormatCurrency } from '@/composable';
+import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
@@ -271,6 +272,12 @@ const tooltip = reactive({
 
 // Flag to prevent chart interactions while tooltip link is being clicked
 const isTooltipInteracting = ref(false);
+
+const { updateTooltipPosition } = useChartTooltipPosition({
+  containerRef,
+  tooltipRef,
+  tooltip,
+});
 
 // Query params
 const queryParams = computed(() => ({
@@ -1116,29 +1123,6 @@ function handleMouseLeave() {
 
 function handleTooltipMouseLeave() {
   isTooltipInteracting.value = false;
-}
-
-function updateTooltipPosition(event: MouseEvent) {
-  if (!containerRef.value || !tooltipRef.value) return;
-
-  const containerRect = containerRef.value.getBoundingClientRect();
-  const tooltipRect = tooltipRef.value.getBoundingClientRect();
-
-  let x = event.clientX - containerRect.left + 10;
-  let y = event.clientY - containerRect.top - 10;
-
-  if (x + tooltipRect.width > containerRect.width) {
-    x = event.clientX - containerRect.left - tooltipRect.width - 10;
-  }
-  if (y + tooltipRect.height > containerRect.height) {
-    y = event.clientY - containerRect.top - tooltipRect.height - 10;
-  }
-  if (y < 0) {
-    y = 10;
-  }
-
-  tooltip.x = x;
-  tooltip.y = y;
 }
 
 // ResizeObserver for responsive chart
