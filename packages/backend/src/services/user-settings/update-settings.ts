@@ -32,7 +32,17 @@ export const updateUserSettings = withTransaction(
     });
 
     if (!created) {
-      existingSettings.settings = settings;
+      // Extract onboarding from incoming settings to prevent overwriting.
+      // Onboarding has its own dedicated endpoint (/user/settings/onboarding),
+      // so we should preserve the existing onboarding state to avoid race conditions
+      // where stale frontend data overwrites settings updated via other endpoints.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { onboarding: _incomingOnboarding, ...settingsWithoutOnboarding } = settings;
+
+      existingSettings.settings = {
+        ...existingSettings.settings,
+        ...settingsWithoutOnboarding,
+      };
       existingSettings.changed('settings', true);
       await existingSettings.save();
     }
