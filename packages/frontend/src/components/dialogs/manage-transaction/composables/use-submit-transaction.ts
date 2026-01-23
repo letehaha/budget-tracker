@@ -1,6 +1,5 @@
 import { createTransaction, editTransaction, linkTransactions } from '@/api';
-import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
-import { OUT_OF_WALLET_ACCOUNT_MOCK } from '@/common/const';
+import { OUT_OF_WALLET_ACCOUNT_MOCK, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
 import { getInvalidationQueryKey } from '@/composable/data-queries/opposite-tx-record';
 import { i18n } from '@/i18n';
@@ -11,7 +10,13 @@ import type { TransactionModel } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
 import type { UI_FORM_STRUCT } from '../types';
-import { prepareTxCreationParams, prepareTxUpdationParams } from '../utils';
+import {
+  applyOptimisticTransactionUpdate,
+  buildOptimisticTransaction,
+  prepareTxCreationParams,
+  prepareTxUpdationParams,
+  rollbackOptimisticUpdate,
+} from '../utils';
 
 interface SubmitTransactionParams {
   form: UI_FORM_STRUCT;
@@ -23,6 +28,10 @@ interface SubmitTransactionParams {
   transaction?: TransactionModel;
   linkedTransaction?: TransactionModel | null;
   oppositeTransaction?: TransactionModel;
+}
+
+interface OptimisticUpdateContext {
+  previousQueries: Map<string, unknown>;
 }
 
 export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
@@ -67,6 +76,33 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
           }),
         );
       }
+    },
+    onMutate: async (params): Promise<OptimisticUpdateContext | undefined> => {
+      const { form, isFormCreation, transaction, isRecordExternal, linkedTransaction } = params;
+
+      // Only apply optimistic updates for edits (not creation or linking)
+      if (isFormCreation || linkedTransaction || !transaction) {
+        return undefined;
+      }
+
+      // Cancel any outgoing refetches to prevent overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+
+      // Build the optimistically updated transaction
+      const updatedTransaction = buildOptimisticTransaction({
+        form,
+        transaction,
+        isRecordExternal,
+      });
+
+      // Apply optimistic update to all relevant caches
+      const context = applyOptimisticTransactionUpdate({
+        queryClient,
+        transactionId: transaction.id,
+        updatedTransaction,
+      });
+
+      return context;
     },
     onSuccess: (_, params) => {
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
@@ -130,7 +166,12 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
 
       onSuccess();
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      // Rollback optimistic update on error
+      if (context) {
+        rollbackOptimisticUpdate({ queryClient, context });
+      }
+
       if (error instanceof ApiErrorResponseError) {
         addErrorNotification(error.data.message);
       } else {
