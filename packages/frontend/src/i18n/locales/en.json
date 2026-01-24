@@ -12,7 +12,10 @@
       "create": "Create",
       "close": "Close",
       "addSubcategory": "Add subcategory",
-      "settings": "Settings"
+      "settings": "Settings",
+      "confirm": "Confirm",
+      "viewTransactions": "View transactions",
+      "viewAnalytics": "View analytics"
     },
     "errors": {
       "copyToClipboardFailed": "Failed to copy to clipboard"

@@ -26,6 +26,22 @@ export const editCategory = async ({
   return result;
 };
 
-export const deleteCategory = async ({ categoryId }: { categoryId: number }) => {
-  await api.delete(`/categories/${categoryId}`);
+export const deleteCategory = async ({
+  categoryId,
+  replaceWithCategoryId,
+}: {
+  categoryId: number;
+  replaceWithCategoryId?: number;
+}) => {
+  await api.delete(`/categories/${categoryId}`, {
+    data: replaceWithCategoryId ? { replaceWithCategoryId } : undefined,
+  });
+};
+
+export const getCategoryTransactionCount = async ({
+  categoryId,
+}: {
+  categoryId: number;
+}): Promise<{ transactionCount: number }> => {
+  return api.get(`/categories/${categoryId}/transaction-count`);
 };

@@ -107,7 +107,10 @@
                     :disabled="!hasUserKey(model.provider)"
                   >
                     {{ model.name }} - {{ getCostLabel(model.costTier) }}
-                    {{ !hasUserKey(model.provider) ? $t('settings.ai.modelSelector.noApiKey') : '' }}
+
+                    <template v-if="!hasUserKey(model.provider)">
+                      {{ $t('settings.ai.modelSelector.noApiKey') }}
+                    </template>
                   </option>
                 </optgroup>
               </select>
