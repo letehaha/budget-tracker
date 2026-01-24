@@ -23,8 +23,9 @@ export default class Categories extends Model {
   @Column({ allowNull: false, type: DataType.STRING })
   name!: string;
 
-  @Column({ allowNull: true, type: DataType.STRING })
-  imageUrl!: string;
+  // Lucide-icons icon name
+  @Column({ allowNull: true, type: DataType.STRING(50) })
+  icon!: string | null;
 
   @Column({ allowNull: false, type: DataType.STRING })
   color!: string;
@@ -62,7 +63,7 @@ export const getCategories = async ({ userId }: { userId: number }) => {
 export interface CreateCategoryPayload {
   userId: number;
   name?: string;
-  imageUrl?: string;
+  icon?: string | null;
   color?: string;
   parentId?: number;
   type?: CATEGORY_TYPES;
@@ -97,7 +98,7 @@ export interface EditCategoryPayload {
   userId: number;
   categoryId: number;
   name?: string;
-  imageUrl?: string;
+  icon?: string | null;
   color?: string;
 }
 

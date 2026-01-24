@@ -1892,6 +1892,8 @@
       "nameLabel": "Назва категорії",
       "namePlaceholder": "Введіть назву категорії",
       "colorLabel": "Колір",
+      "iconLabel": "Іконка",
+      "iconPlaceholder": "Виберіть іконку",
       "settingsDivider": "Налаштування",
       "excludeFromStatsLabel": "Виключити зі статистики витрат",
       "excludeFromStatsTooltip": "Транзакції в цій категорії не враховуватимуться в статистиці витрат та звітах.",

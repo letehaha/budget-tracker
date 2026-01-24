@@ -6,7 +6,7 @@ import { buildCategoryList } from './build-category-list';
 describe('buildCategoryList', () => {
   const baseCategory = {
     color: '#FF0000',
-    imageUrl: null,
+    icon: null,
     type: CATEGORY_TYPES.custom,
     userId: 1,
   };
@@ -32,7 +32,7 @@ describe('buildCategoryList', () => {
     ]);
   });
 
-  it('strips color and imageUrl fields', () => {
+  it('strips color and icon fields', () => {
     const categories: CategoryModel[] = [
       {
         ...baseCategory,
@@ -40,14 +40,14 @@ describe('buildCategoryList', () => {
         name: 'Entertainment',
         parentId: null,
         color: '#00FF00',
-        imageUrl: 'https://example.com/icon.png',
+        icon: 'heart',
       },
     ];
 
     const result = buildCategoryList(categories);
 
     expect(result[0]).not.toHaveProperty('color');
-    expect(result[0]).not.toHaveProperty('imageUrl');
+    expect(result[0]).not.toHaveProperty('icon');
   });
 
   it('preserves parentId relationships', () => {

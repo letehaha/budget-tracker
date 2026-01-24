@@ -42,6 +42,7 @@ export async function createUserWithDefaults({
     name: item.name,
     type: item.type,
     color: item.color,
+    icon: item.icon,
     userId: appUser.id,
   }));
 
@@ -61,6 +62,7 @@ export async function createUserWithDefaults({
     name: string;
     parentId: number;
     color: string;
+    icon?: string;
     userId: number;
     type: string;
   }> = [];
@@ -73,6 +75,7 @@ export async function createUserWithDefaults({
         subcats.push({
           name: subItem.name,
           type: subItem.type,
+          icon: subItem.icon,
           parentId: parentCategory.id,
           color: parentCategory.color,
           userId: appUser.id,
