@@ -1904,6 +1904,8 @@
       "nameLabel": "Category name",
       "namePlaceholder": "Enter category name",
       "colorLabel": "Color",
+      "iconLabel": "Icon",
+      "iconPlaceholder": "Select icon",
       "settingsDivider": "Settings",
       "excludeFromStatsLabel": "Exclude from expense stats",
       "excludeFromStatsTooltip": "Transactions in this category won't be counted in spending statistics and reports.",
