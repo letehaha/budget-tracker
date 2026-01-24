@@ -1,5 +1,5 @@
 <template>
-  <Icon v-if="name" :icon="`lucide:${name}`" :class="props.class" />
+  <Icon v-if="name" :icon="`fluent:${name}`" :class="props.class" />
 </template>
 
 <script setup lang="ts">

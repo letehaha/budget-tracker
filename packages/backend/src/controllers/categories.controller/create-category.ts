@@ -7,7 +7,7 @@ import { z } from 'zod';
 const CreateCategoryPayloadSchema = z
   .object({
     name: z.string().min(1).max(200, 'The name must not exceed 200 characters'),
-    imageUrl: z.string().url().max(500, 'The URL must not exceed 500 characters').optional(),
+    icon: z.string().max(50, 'Icon name must not exceed 50 characters').nullable().optional(),
     type: z.enum(Object.values(CATEGORY_TYPES) as [string, ...string[]]).default(CATEGORY_TYPES.custom),
   })
   .and(
@@ -32,11 +32,11 @@ const schema = z.object({
 
 export default createController(schema, async ({ user, body }) => {
   const { id: userId } = user;
-  const { name, imageUrl, color, parentId } = body;
+  const { name, icon, color, parentId } = body;
 
   const data = await categoriesService.createCategory({
     name,
-    imageUrl,
+    icon,
     color,
     parentId,
     userId,

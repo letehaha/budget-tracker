@@ -156,12 +156,12 @@ export type BulkUpdateTransactionsCategoryResponse = BulkUpdateTransactionsRespo
 export type CreateCategoryBody = {
   name: CategoryModel['name'];
   color?: CategoryModel['color'];
-  imageUrl?: CategoryModel['imageUrl'];
+  icon?: CategoryModel['icon'];
   parentId?: CategoryModel['parentId'];
 };
 export type CreateCategoryResponse = CategoryModel;
 
-export type EditCategoryBody = Partial<Pick<CategoryModel, 'name' | 'color' | 'imageUrl'>>;
+export type EditCategoryBody = Partial<Pick<CategoryModel, 'name' | 'color' | 'icon'>>;
 export type EditCategoryResponse = CategoryModel[];
 
 // Cash Flow Analytics

@@ -7,7 +7,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3121,
     name: 'Food and Drinks',
-    imageUrl: null,
+    icon: null,
     color: '#e74c3c',
     type: CATEGORY_TYPES.custom,
     parentId: null,
@@ -17,7 +17,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3122,
     name: 'Shopping',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: null,
@@ -27,7 +27,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3123,
     name: 'Housing',
-    imageUrl: null,
+    icon: null,
     color: '#e67e22',
     type: CATEGORY_TYPES.custom,
     parentId: null,
@@ -37,7 +37,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3124,
     name: 'Transportation',
-    imageUrl: null,
+    icon: null,
     color: '#95a5a6',
     type: CATEGORY_TYPES.custom,
     parentId: null,
@@ -47,7 +47,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3125,
     name: 'Vehicle',
-    imageUrl: null,
+    icon: null,
     color: '#8e44ad',
     type: CATEGORY_TYPES.custom,
     parentId: null,
@@ -57,7 +57,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3126,
     name: 'Life & Entertainment',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: null,
@@ -67,7 +67,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3127,
     name: 'Communication, PC',
-    imageUrl: null,
+    icon: null,
     color: '#2980b9',
     type: CATEGORY_TYPES.custom,
     parentId: null,
@@ -77,7 +77,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3128,
     name: 'Financial expenses',
-    imageUrl: null,
+    icon: null,
     color: '#16a085',
     type: CATEGORY_TYPES.custom,
     parentId: null,
@@ -87,7 +87,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3129,
     name: 'Investments',
-    imageUrl: null,
+    icon: null,
     color: '#fda7df',
     type: CATEGORY_TYPES.custom,
     parentId: null,
@@ -97,7 +97,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3130,
     name: 'Income',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: null,
@@ -107,7 +107,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3131,
     name: 'Other',
-    imageUrl: null,
+    icon: null,
     color: '#7f8c8d',
     type: CATEGORY_TYPES.internal,
     parentId: null,
@@ -117,7 +117,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3132,
     name: 'Groceries',
-    imageUrl: null,
+    icon: null,
     color: '#e74c3c',
     type: CATEGORY_TYPES.custom,
     parentId: 3121,
@@ -127,7 +127,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3133,
     name: 'Restaurants, fast-food',
-    imageUrl: null,
+    icon: null,
     color: '#e74c3c',
     type: CATEGORY_TYPES.custom,
     parentId: 3121,
@@ -137,7 +137,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3134,
     name: 'Bar, cafe',
-    imageUrl: null,
+    icon: null,
     color: '#e74c3c',
     type: CATEGORY_TYPES.custom,
     parentId: 3121,
@@ -147,7 +147,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3135,
     name: 'Clothes & shoes',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
@@ -157,7 +157,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3136,
     name: 'Jewels, accessories',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
@@ -167,7 +167,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3137,
     name: 'Health and beauty',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
@@ -177,7 +177,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3138,
     name: 'Kids',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
@@ -187,7 +187,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3139,
     name: 'Home, garden',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
@@ -197,7 +197,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3140,
     name: 'Pets, animals',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
@@ -207,7 +207,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3141,
     name: 'Electronics, accessories',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
@@ -217,7 +217,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3142,
     name: 'Gifts, joy',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
@@ -227,7 +227,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3143,
     name: 'Stationery, tools',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
@@ -237,7 +237,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3144,
     name: 'Free time',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
@@ -247,7 +247,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3145,
     name: 'Drug-store, chemist',
-    imageUrl: null,
+    icon: null,
     color: '#3498db',
     type: CATEGORY_TYPES.custom,
     parentId: 3122,
@@ -257,7 +257,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3146,
     name: 'Rent',
-    imageUrl: null,
+    icon: null,
     color: '#e67e22',
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
@@ -267,7 +267,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3147,
     name: 'Mortgage',
-    imageUrl: null,
+    icon: null,
     color: '#e67e22',
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
@@ -277,7 +277,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3148,
     name: 'Energy, utilities',
-    imageUrl: null,
+    icon: null,
     color: '#e67e22',
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
@@ -287,7 +287,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3149,
     name: 'Services',
-    imageUrl: null,
+    icon: null,
     color: '#e67e22',
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
@@ -297,7 +297,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3150,
     name: 'Maintenance, repairs',
-    imageUrl: null,
+    icon: null,
     color: '#e67e22',
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
@@ -307,7 +307,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3151,
     name: 'Property insurance',
-    imageUrl: null,
+    icon: null,
     color: '#e67e22',
     type: CATEGORY_TYPES.custom,
     parentId: 3123,
@@ -317,7 +317,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3152,
     name: 'Public transport',
-    imageUrl: null,
+    icon: null,
     color: '#95a5a6',
     type: CATEGORY_TYPES.custom,
     parentId: 3124,
@@ -327,7 +327,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3153,
     name: 'Taxi',
-    imageUrl: null,
+    icon: null,
     color: '#95a5a6',
     type: CATEGORY_TYPES.custom,
     parentId: 3124,
@@ -337,7 +337,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3154,
     name: 'Long distance',
-    imageUrl: null,
+    icon: null,
     color: '#95a5a6',
     type: CATEGORY_TYPES.custom,
     parentId: 3124,
@@ -347,7 +347,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3155,
     name: 'Business trips',
-    imageUrl: null,
+    icon: null,
     color: '#95a5a6',
     type: CATEGORY_TYPES.custom,
     parentId: 3124,
@@ -357,7 +357,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3156,
     name: 'Fuel',
-    imageUrl: null,
+    icon: null,
     color: '#8e44ad',
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
@@ -367,7 +367,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3157,
     name: 'Parking',
-    imageUrl: null,
+    icon: null,
     color: '#8e44ad',
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
@@ -377,7 +377,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3158,
     name: 'Vehicle maintenance',
-    imageUrl: null,
+    icon: null,
     color: '#8e44ad',
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
@@ -387,7 +387,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3159,
     name: 'Rentals',
-    imageUrl: null,
+    icon: null,
     color: '#8e44ad',
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
@@ -397,7 +397,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3160,
     name: 'Vehicle insurance',
-    imageUrl: null,
+    icon: null,
     color: '#8e44ad',
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
@@ -407,7 +407,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3161,
     name: 'Leasing',
-    imageUrl: null,
+    icon: null,
     color: '#8e44ad',
     type: CATEGORY_TYPES.custom,
     parentId: 3125,
@@ -417,7 +417,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3162,
     name: 'Health care, doctor',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -427,7 +427,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3163,
     name: 'Wellness, beauty',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -437,7 +437,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3164,
     name: 'Active sport, fitness',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -447,7 +447,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3165,
     name: 'Culture, sport events',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -457,7 +457,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3166,
     name: 'Hobbies',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -467,7 +467,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3167,
     name: 'Education, development',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -477,7 +477,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3168,
     name: 'Books, audio, subscriptions',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -487,7 +487,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3169,
     name: 'TV, Streaming',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -497,7 +497,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3170,
     name: 'Holiday, trips, hotels',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -507,7 +507,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3171,
     name: 'Charity, gifts',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -517,7 +517,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3172,
     name: 'Alcohol, tobacco',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -527,7 +527,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3173,
     name: 'Lottery, gambling',
-    imageUrl: null,
+    icon: null,
     color: '#2ecc71',
     type: CATEGORY_TYPES.custom,
     parentId: 3126,
@@ -537,7 +537,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3174,
     name: 'Phone, cell phone',
-    imageUrl: null,
+    icon: null,
     color: '#2980b9',
     type: CATEGORY_TYPES.custom,
     parentId: 3127,
@@ -547,7 +547,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3175,
     name: 'Internet',
-    imageUrl: null,
+    icon: null,
     color: '#2980b9',
     type: CATEGORY_TYPES.custom,
     parentId: 3127,
@@ -557,7 +557,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3176,
     name: 'Software, apps, games',
-    imageUrl: null,
+    icon: null,
     color: '#2980b9',
     type: CATEGORY_TYPES.custom,
     parentId: 3127,
@@ -567,7 +567,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3177,
     name: 'Postal services',
-    imageUrl: null,
+    icon: null,
     color: '#2980b9',
     type: CATEGORY_TYPES.custom,
     parentId: 3127,
@@ -577,7 +577,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3178,
     name: 'Taxes',
-    imageUrl: null,
+    icon: null,
     color: '#16a085',
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
@@ -587,7 +587,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3179,
     name: 'Insurances',
-    imageUrl: null,
+    icon: null,
     color: '#16a085',
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
@@ -597,7 +597,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3180,
     name: 'Loan, interests',
-    imageUrl: null,
+    icon: null,
     color: '#16a085',
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
@@ -607,7 +607,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3181,
     name: 'Fines',
-    imageUrl: null,
+    icon: null,
     color: '#16a085',
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
@@ -617,7 +617,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3182,
     name: 'Advisory',
-    imageUrl: null,
+    icon: null,
     color: '#16a085',
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
@@ -627,7 +627,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3183,
     name: 'Charges, Fees',
-    imageUrl: null,
+    icon: null,
     color: '#16a085',
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
@@ -637,7 +637,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3184,
     name: 'Child Support',
-    imageUrl: null,
+    icon: null,
     color: '#16a085',
     type: CATEGORY_TYPES.custom,
     parentId: 3128,
@@ -647,7 +647,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3185,
     name: 'Realty',
-    imageUrl: null,
+    icon: null,
     color: '#fda7df',
     type: CATEGORY_TYPES.custom,
     parentId: 3129,
@@ -657,7 +657,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3186,
     name: 'Vehicles, chattels',
-    imageUrl: null,
+    icon: null,
     color: '#fda7df',
     type: CATEGORY_TYPES.custom,
     parentId: 3129,
@@ -667,7 +667,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3187,
     name: 'Financial investments',
-    imageUrl: null,
+    icon: null,
     color: '#fda7df',
     type: CATEGORY_TYPES.custom,
     parentId: 3129,
@@ -677,7 +677,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3188,
     name: 'Savings',
-    imageUrl: null,
+    icon: null,
     color: '#fda7df',
     type: CATEGORY_TYPES.custom,
     parentId: 3129,
@@ -687,7 +687,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3189,
     name: 'Collections',
-    imageUrl: null,
+    icon: null,
     color: '#fda7df',
     type: CATEGORY_TYPES.custom,
     parentId: 3129,
@@ -697,7 +697,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3190,
     name: 'Wage, invoices',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
@@ -707,7 +707,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3191,
     name: 'Interests, dividends',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
@@ -717,7 +717,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3192,
     name: 'Sale',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
@@ -727,7 +727,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3193,
     name: 'Rental income',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
@@ -737,7 +737,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3194,
     name: 'Dues & grants',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
@@ -747,7 +747,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3195,
     name: 'Lending, renting',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
@@ -757,7 +757,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3196,
     name: 'Checks, coupons',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
@@ -767,7 +767,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3197,
     name: 'Lottery, gambling',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
@@ -777,7 +777,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3198,
     name: 'Refunds (tax, purchase)',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
@@ -787,7 +787,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3199,
     name: 'Freelance',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: 3130,
@@ -797,7 +797,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3200,
     name: 'Gifts',
-    imageUrl: null,
+    icon: null,
     color: '#f1c40f',
     type: CATEGORY_TYPES.custom,
     parentId: 3130,

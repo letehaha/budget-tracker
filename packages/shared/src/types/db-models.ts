@@ -36,7 +36,7 @@ export interface UserModel {
 export interface CategoryModel {
   color: string;
   id: number;
-  imageUrl: null | string;
+  icon: null | string;
   name: string;
   parentId: null | number;
   type: CATEGORY_TYPES;

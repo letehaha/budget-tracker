@@ -32,7 +32,7 @@ interface BaseUpdationPayload {
   categoryId: number;
   name?: string;
   color?: string;
-  imageUrl?: string;
+  icon?: string | null;
 }
 export async function editCustomCategory({ raw, ...params }: BaseUpdationPayload & { raw?: false }): Promise<Response>;
 export async function editCustomCategory({

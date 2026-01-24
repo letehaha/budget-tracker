@@ -27,7 +27,7 @@
             <div class="grid grid-cols-8 gap-1 p-1">
               <template v-for="iconName in getIconsForRow(row.index)" :key="iconName" :delay-duration="0">
                 <Button size="icon-sm" variant="ghost" :title="iconName" @click="selectIcon(iconName)">
-                  <Icon :icon="`lucide:${iconName}`" class="size-4" />
+                  <Icon :icon="`fluent:${iconName}`" class="size-4" />
                 </Button>
               </template>
             </div>
@@ -45,7 +45,7 @@
 <script setup lang="ts">
 import Button from '@/components/lib/ui/button/Button.vue';
 import { TooltipProvider } from '@/components/lib/ui/tooltip';
-import lucideIcons from '@/data/lucide-icons.json';
+import fluentFilledIcons from '@/data/fluent-filled-icons.json';
 import { Icon } from '@iconify/vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { computed, onMounted, ref } from 'vue';
@@ -67,9 +67,9 @@ const scrollContainerRef = ref<HTMLElement | null>(null);
 const searchInputRef = ref<HTMLInputElement | null>(null);
 
 const filteredIcons = computed(() => {
-  if (!search.value.trim()) return lucideIcons;
+  if (!search.value.trim()) return fluentFilledIcons;
   const searchLower = search.value.toLowerCase().trim();
-  return lucideIcons.filter((name: string) => name.includes(searchLower));
+  return fluentFilledIcons.filter((name: string) => name.includes(searchLower));
 });
 
 const rowCount = computed(() => Math.ceil(filteredIcons.value.length / ICONS_PER_ROW));

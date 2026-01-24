@@ -71,14 +71,14 @@ let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
 const currentMessage = computed(() => {
   if (showTimeoutMessage.value) return TIMEOUT_MESSAGE.value;
-  const messagesList = messages.value as string[];
+  const messagesList = messages.value;
   return messagesList[currentMessageIndex.value];
 });
 
 const startTimers = () => {
   // Schedule each message transition based on cumulative time
   let cumulativeTime = 0;
-  const messagesList = messages.value as string[];
+  const messagesList = messages.value;
 
   for (let i = 0; i < messagesList.length - 1; i++) {
     const duration = MESSAGE_DURATIONS_MS[i] || 5000; // Default 5s if not specified
