@@ -268,7 +268,7 @@
         "add": "Додати категорію"
       },
       "description": {
-        "addSubcategory": "Додавання підкатегорії до <span class=\"font-medium\">{parentName}</span>",
+        "addSubcategory": "Додавання підкатегорії до {parentName}",
         "edit": "Оновіть назву категорії або налаштування",
         "add": "Створіть нову категорію"
       },

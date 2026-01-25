@@ -268,7 +268,7 @@
         "add": "Add Category"
       },
       "description": {
-        "addSubcategory": "Adding subcategory to <span class=\"font-medium\">{parentName}</span>",
+        "addSubcategory": "Adding subcategory to {parentName}",
         "edit": "Update category name or settings",
         "add": "Create a new category"
       },

@@ -42,13 +42,9 @@ export default typescriptEslint.config(
       // Detect missing keys in locale files
       '@intlify/vue-i18n/no-missing-keys': 'error',
       // Warn about unused keys (can be noisy, set to warn)
-      '@intlify/vue-i18n/no-unused-keys': [
-        'warn',
-        {
-          extensions: ['.ts', '.vue'],
-          enableFix: false,
-        },
-      ],
+      // NOTE: Many keys are dynamically accessed (currencyNames, accountCategories, paymentTypes)
+      // and the linter cannot detect these usages. Disabling the rule for now.
+      '@intlify/vue-i18n/no-unused-keys': 'off',
     },
     settings: {
       'vue-i18n': {

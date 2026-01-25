@@ -69,7 +69,7 @@
       "submitButtonLoading": "Обробка...",
       "confirmDialog": {
         "title": "Підтвердити переказ",
-        "description": "Ви впевнені, що хочете переказати <strong>{amount} {currency}</strong> з <strong>{from}</strong> на <strong>{to}</strong>?",
+        "description": "Ви впевнені, що хочете переказати {amount} {currency} з {from} на {to}?",
         "warning": "Цю дію неможливо скасувати.",
         "cancelButton": "Скасувати",
         "confirmButton": "Підтвердити переказ"

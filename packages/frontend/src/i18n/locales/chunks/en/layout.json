@@ -128,7 +128,7 @@
       "emailPrivacy": "Your email will only be used for login purposes and won't be shared or used for marketing.",
       "usernameLoginAfterMigration": "After migration, you will no longer be able to log in with your username. Use your email instead, or connect OAuth accounts (Google) for easier access.",
       "emailAddressLabel": "Email Address",
-      "emailPlaceholder": "your@email.com",
+      "emailPlaceholder": "your{'@'}email.com",
       "sendingVerification": "Sending verification...",
       "sendVerificationEmail": "Send Verification Email",
       "signOut": "Sign Out"

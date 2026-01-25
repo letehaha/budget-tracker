@@ -69,7 +69,7 @@
       "submitButtonLoading": "Processing...",
       "confirmDialog": {
         "title": "Confirm Transfer",
-        "description": "Are you sure you want to transfer <strong>{amount} {currency}</strong> from <strong>{from}</strong> to <strong>{to}</strong>?",
+        "description": "Are you sure you want to transfer {amount} {currency} from {from} to {to}?",
         "warning": "This action cannot be undone.",
         "cancelButton": "Cancel",
         "confirmButton": "Confirm Transfer"
