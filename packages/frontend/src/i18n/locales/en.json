@@ -270,7 +270,9 @@
           "signIn": "Failed to sign in. Please try again.",
           "signUp": "Failed to sign up. Please try again.",
           "link": "Failed to link account. Please try again."
-        }
+        },
+        "unauthorizedClient": "This application is not authorized to use this authentication method",
+        "temporarilyUnavailable": "The authentication service is temporarily unavailable. Please try again later."
       }
     },
     "welcome": {
@@ -698,6 +700,22 @@
     "manualBudget": {
       "edit": "Edit",
       "editTitle": "Edit Budget"
+    },
+    "transactionsList": {
+      "selectionModeWarning": "Selection mode — choose transactions to unlink",
+      "selectAll": "Select all",
+      "selected": "{count} selected",
+      "unlink": "Unlink",
+      "cancel": "Cancel",
+      "unlinkSelected": "Unlink Selected",
+      "noMatchingTransactions": "No matching transactions",
+      "noTransactionsLinked": "No transactions linked",
+      "filterAdjustmentHint": "Try adjusting your filters to see more transactions.",
+      "addTransactionsHint": "Add transactions to this budget to start tracking your spending.",
+      "resetFilters": "Reset Filters",
+      "addTransactions": "Add Transactions",
+      "add": "Add",
+      "loadingMore": "Loading more..."
     }
   },
   "analytics": {
@@ -897,7 +915,8 @@
       },
       "notifications": {
         "deleteSuccess": "Category deleted",
-        "deleteFailed": "Failed to delete category"
+        "deleteFailed": "Failed to delete category",
+        "checkFailed": "Failed to check category"
       }
     },
     "tags": {
@@ -1682,6 +1701,19 @@
       "title": "Link account group",
       "createNewGroup": "Create new group"
     },
+    "reassignCategory": {
+      "title": "Reassign Transactions",
+      "description": "This category has {count} transaction(s). Select a new category for \"{categoryName}\" transactions before deleting.",
+      "newCategoryLabel": "New category",
+      "newCategoryPlaceholder": "Select a category",
+      "cancelButton": "Cancel",
+      "reassignButton": "Reassign & Delete",
+      "reassignButtonLoading": "Reassigning...",
+      "notifications": {
+        "success": "{count} transaction(s) reassigned to {newCategoryName}",
+        "error": "Failed to reassign transactions"
+      }
+    },
     "syncConfirmation": {
       "title": "Sync Recently Completed",
       "description": "You synchronized your accounts {time} ago. Are you sure you want to sync again?",
@@ -1825,11 +1857,25 @@
         }
       },
       "markAsRefund": {
+        "linkRefund": "Link refund",
+        "selectTransaction": "Select transaction",
+        "selectRefundingTransaction": "Select the original transaction that this entry is refunding.",
+        "selectRefundedByTransactions": "Select transactions which refund current entry.",
         "refundsLabel": "Refunds",
+        "refundedByLabel": "Refunded by",
         "saveButton": "Save",
         "confirmButton": "Confirm",
         "linkedRefunds": "Linked refunds",
-        "refundsPortion": "Refunds {name} portion"
+        "refundsPortion": "Refunds {name} portion",
+        "selectOnlyOne": "* you can select only one transaction",
+        "selectMultipleWithLimit": "* you can select multiple transactions, but their total amount cannot be greater than the original transaction amount",
+        "selectWhichPartToRefund": "Select which part to refund",
+        "transactionSplitInfo": "This transaction is split across multiple categories. Select which part you want to refund.",
+        "amountTooSmallWarning": "Options smaller than your refund amount",
+        "amountDisabled": "are disabled.",
+        "amountMayBeSmaller": "Some options may be smaller than your refund amount",
+        "finalValidationWarning": "Final validation will use converted amounts.",
+        "mainCategoryLabel": "(main)"
       },
       "refundInfo": {
         "trigger": "How it works?",
@@ -1858,6 +1904,25 @@
           "vendorRefund": "Receiving a refund from a vendor: Create an income and link it to the original expense.",
           "noOriginalTx": "Recording a refund without an original transaction: Sometimes you might need to record a refund for a transaction that isn't in your system. For instance, if you're recording a refund for a cash payment that wasn't initially logged, you can still create a refund entry. This helps maintain accurate records even when the original transaction isn't digitally tracked."
         }
+      },
+      "transferRecordsList": {
+        "filtersDialogTitle": "Filters",
+        "fromDateLabel": "From date",
+        "toDateLabel": "To date",
+        "amountFromLabel": "Amount from",
+        "amountFromPlaceholder": "Min",
+        "amountToLabel": "Amount to",
+        "amountToPlaceholder": "Max",
+        "resetButton": "Reset",
+        "applyButton": "Apply",
+        "recommendedLabel": "Recommended",
+        "allTransactionsLabel": "All transactions",
+        "loadMoreButton": "Load more",
+        "noMoreTransactions": "No more transactions",
+        "noIncomeTransactions": "No income transactions found. Try adjusting the filters.",
+        "noExpenseTransactions": "No expense transactions found. Try adjusting the filters.",
+        "noTransactions": "No transactions found. Try adjusting the filters.",
+        "resetFiltersButton": "Reset filters"
       }
     },
     "portfolioTransfer": {
@@ -1941,6 +2006,26 @@
       }
     }
   },
+  "components": {
+    "legacyAccountMigrationDialog": {
+      "checkEmail": "Check your email",
+      "verificationSentDescription": "We've sent a verification link to {email}. Please click the link to confirm your new email address.",
+      "loginAgainAfterVerification": "After verification, you'll need to log in again with your new email.",
+      "signingOut": "Signing out...",
+      "signOutAndLogin": "Sign Out & Log in with new email",
+      "updateLoginMethod": "Update your login method",
+      "legacyLoginWarning": "Your account uses a legacy username-based login. Please add an email address to continue using your account.",
+      "actionRequired": "Action required",
+      "migrationWarning": "Without updating your login method, your account data may become corrupted or inaccessible in future updates.",
+      "emailPrivacy": "Your email will only be used for login purposes and won't be shared or used for marketing.",
+      "usernameLoginAfterMigration": "After migration, you will no longer be able to log in with your username. Use your email instead, or connect OAuth accounts (Google) for easier access.",
+      "emailAddressLabel": "Email Address",
+      "emailPlaceholder": "your@email.com",
+      "sendingVerification": "Sending verification...",
+      "sendVerificationEmail": "Send Verification Email",
+      "signOut": "Sign Out"
+    }
+  },
   "demo": {
     "loadingOverlay": {
       "title": "Building your personal playground",
@@ -1960,6 +2045,10 @@
     },
     "signUpToUnlock": "Sign up to unlock this feature",
     "passwordChangeRestricted": "Password changes are not available in demo mode",
+    "investmentsRestricted": {
+      "title": "Investments Unavailable in Demo",
+      "description": "The investments feature is not available in demo mode. Please sign up for a full account to access investments tracking."
+    },
     "banner": {
       "message": "You're exploring a demo{time}. {signUpLink} to keep your data permanently.",
       "resets": "resets in {time}",
@@ -2030,17 +2119,68 @@
       "unlink": {
         "success": "Account {accountName} unlinked successfully",
         "error": "An error occured while trying to unlink account",
-        "confirmPlaceholder": "Enter account name"
+        "confirmPlaceholder": "Enter account name",
+        "title": "Unlink account from bank connection",
+        "description": "This will convert the account to a system account and preserve all transaction data.",
+        "autoSyncWarning": "The account will no longer sync automatically.",
+        "manualUpdatesOnly": "Only manual updates will work.",
+        "note": "Note:",
+        "reconnectionInfo": "You can reconnect this account to a bank connection later from the Settings tab. After reconnection syncing will start from the latest transaction date.",
+        "confirmTitle": "Are you sure you want to unlink?",
+        "unlinkingButton": "Unlinking...",
+        "unlinkButton": "Unlink from bank",
+        "dialogDescription": "This action will disconnect your account from its bank connection and convert it to a system account.",
+        "whatWillHappen": "What will happen:",
+        "willBecomeSystemType": "Account will become a \"system\" type (manual updates only)",
+        "transactionsPreserved": "All existing transactions will be preserved",
+        "syncWillStop": "Automatic syncing will stop",
+        "connectionHistorySaved": "Connection history will be saved for potential future reconnection",
+        "confirmAccountName": "Type the account name to confirm:"
       },
       "deletion": {
         "success": "Account {accountName} removed successfully",
         "error": "An error occured while trying to delete account",
-        "confirmPlaceholder": "Type account name to confirm"
+        "confirmPlaceholder": "Type account name to confirm",
+        "dangerZone": "Danger zone",
+        "title": "Delete this account",
+        "description": "Once you delete the account, there is no going back.",
+        "transactionsWarning": "All the transactions will be deleted.",
+        "certaintyWarning": "Please be certain.",
+        "confirmTitle": "Are you absolutely sure?",
+        "deleteButton": "Delete this account",
+        "cannotUndo": "This action cannot be undone.",
+        "transactionCount": "You have {count} transactions associated with this account, they will also be deleted.",
+        "deleteConfirm": "Do you really want to delete this account?",
+        "noTransactions": "You have zero transactions associated.",
+        "accountNameLabel": "Account name (click to copy)"
       },
       "link": {
         "selectConnection": "Select a bank connection",
         "selectExternalAccount": "Select an external account",
-        "loading": "Loading..."
+        "loading": "Loading...",
+        "title": "Link account to bank connection",
+        "description": "Connect this system account to a bank connection for automatic transaction syncing.",
+        "whatWillHappen": "What will happen:",
+        "listItem1": "Account will become linked to the selected bank connection",
+        "listItem2": "Existing transactions will be converted to bank type (preserving all data)",
+        "listItem3": "If balances differ, an adjustment transaction will be created",
+        "listItem4": "Future transactions will sync automatically",
+        "dialogTitle": "Link Account to Bank Connection",
+        "acceptLabel": "Link Account",
+        "linking": "Linking...",
+        "linkButton": "Link to bank",
+        "dialogDescription": "Select a bank connection and the corresponding external account to link.",
+        "connectionLabel": "Bank Connection",
+        "loadingConnections": "Loading connections...",
+        "noConnections": "No connections available",
+        "accountLabel": "External Account",
+        "loadingAccounts": "Loading accounts...",
+        "noExternalAccounts": "No external accounts available",
+        "mismatchWarning": "⚠️ Cannot Link Account",
+        "balanceComparison": "Current Balance Comparison:",
+        "systemAccount": "System Account:",
+        "externalAccount": "External Account:",
+        "adjustmentNote": "If balances differ, an adjustment transaction will be created automatically."
       },
       "tabs": {
         "details": "Details",
@@ -2102,6 +2242,24 @@
       "rightPanel": {
         "transactions": "Transactions",
         "analyticsSoon": "Analytics (soon)"
+      }
+    },
+    "budgets": {
+      "transactionsList": {
+        "selectionModeWarning": "Selection mode — choose transactions to unlink",
+        "selectAll": "Select all",
+        "selected": "{count} selected",
+        "unlink": "Unlink",
+        "cancel": "Cancel",
+        "unlinkSelected": "Unlink Selected",
+        "noMatchingTransactions": "No matching transactions",
+        "noTransactionsLinked": "No transactions linked",
+        "filterAdjustmentHint": "Try adjusting your filters to see more transactions.",
+        "addTransactionsHint": "Add transactions to this budget to start tracking your spending.",
+        "resetFilters": "Reset Filters",
+        "addTransactions": "Add Transactions",
+        "add": "Add",
+        "loadingMore": "Loading more..."
       }
     },
     "integrations": {

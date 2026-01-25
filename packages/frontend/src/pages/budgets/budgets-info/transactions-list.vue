@@ -179,7 +179,7 @@ const toggleSelectAll = () => {
       >
         <AlertTriangleIcon class="text-warning-text size-4 shrink-0" />
         <span class="text-warning-text text-xs font-medium @md:text-sm">
-          Selection mode — choose transactions to unlink
+          {{ t('pages.budgets.transactionsList.selectionModeWarning') }}
         </span>
       </div>
 
@@ -196,7 +196,7 @@ const toggleSelectAll = () => {
                   :indeterminate="isSomeSelected"
                   @update:model-value="toggleSelectAll"
                 />
-                <span class="text-muted-foreground text-sm">Select all</span>
+                <span class="text-muted-foreground text-sm">{{ t('pages.budgets.transactionsList.selectAll') }}</span>
               </label>
 
               <!-- Selection Counter Badge -->
@@ -208,7 +208,7 @@ const toggleSelectAll = () => {
                     : 'bg-muted text-muted-foreground'
                 "
               >
-                {{ pickedTransactionsIds.size }} selected
+                {{ t('pages.budgets.transactionsList.selected', { count: pickedTransactionsIds.size }) }}
               </span>
             </div>
             <div class="flex items-center gap-2">
@@ -220,11 +220,11 @@ const toggleSelectAll = () => {
                 class="flex-1"
               >
                 <LinkIcon class="mr-2 size-4" />
-                Unlink
+                {{ t('pages.budgets.transactionsList.unlink') }}
               </Button>
               <Button :disabled="isMutating" @click="cancelUnlinking" variant="outline" size="sm" class="flex-1">
                 <XIcon class="mr-2 size-4" />
-                Cancel
+                {{ t('pages.budgets.transactionsList.cancel') }}
               </Button>
             </div>
           </div>
@@ -239,7 +239,7 @@ const toggleSelectAll = () => {
                   :indeterminate="isSomeSelected"
                   @update:model-value="toggleSelectAll"
                 />
-                <span class="text-muted-foreground text-sm">Select all</span>
+                <span class="text-muted-foreground text-sm">{{ t('pages.budgets.transactionsList.selectAll') }}</span>
               </label>
 
               <!-- Selection Counter Badge -->
@@ -251,7 +251,7 @@ const toggleSelectAll = () => {
                     : 'bg-muted text-muted-foreground'
                 "
               >
-                {{ pickedTransactionsIds.size }} selected
+                {{ t('pages.budgets.transactionsList.selected', { count: pickedTransactionsIds.size }) }}
               </span>
             </div>
             <div class="flex items-center gap-2">
@@ -262,11 +262,11 @@ const toggleSelectAll = () => {
                 size="sm"
               >
                 <LinkIcon class="mr-2 size-4" />
-                Unlink Selected
+                {{ t('pages.budgets.transactionsList.unlinkSelected') }}
               </Button>
               <Button :disabled="isMutating" @click="cancelUnlinking" variant="ghost" size="sm">
                 <XIcon class="mr-2 size-4" />
-                Cancel
+                {{ t('pages.budgets.transactionsList.cancel') }}
               </Button>
             </div>
           </div>
@@ -297,13 +297,13 @@ const toggleSelectAll = () => {
                 size="sm"
               >
                 <LinkIcon class="size-4" />
-                <span>Unlink</span>
+                <span>{{ t('pages.budgets.transactionsList.unlink') }}</span>
               </Button>
               <AddTransactionsDialog>
                 <Button :disabled="isBudgetDataUpdating" size="sm">
                   <PlusIcon class="size-4" />
-                  <span class="hidden @sm:inline">Add Transactions</span>
-                  <span class="@sm:hidden">Add</span>
+                  <span class="hidden @sm:inline">{{ t('pages.budgets.transactionsList.addTransactions') }}</span>
+                  <span class="@sm:hidden">{{ t('pages.budgets.transactionsList.add') }}</span>
                 </Button>
               </AddTransactionsDialog>
             </div>
@@ -337,23 +337,29 @@ const toggleSelectAll = () => {
                 <WalletIcon class="text-muted-foreground size-8" />
               </div>
               <h3 class="mb-1 font-medium">
-                {{ isAnyFiltersApplied ? 'No matching transactions' : 'No transactions linked' }}
+                {{
+                  isAnyFiltersApplied
+                    ? t('pages.budgets.transactionsList.noMatchingTransactions')
+                    : t('pages.budgets.transactionsList.noTransactionsLinked')
+                }}
               </h3>
               <p class="text-muted-foreground mb-4 max-w-sm text-sm">
                 {{
                   isAnyFiltersApplied
-                    ? 'Try adjusting your filters to see more transactions.'
-                    : 'Add transactions to this budget to start tracking your spending.'
+                    ? t('pages.budgets.transactionsList.filterAdjustmentHint')
+                    : t('pages.budgets.transactionsList.addTransactionsHint')
                 }}
               </p>
               <template v-if="isAnyFiltersApplied">
-                <Button size="sm" variant="outline" @click="resetFilters">Reset Filters</Button>
+                <Button size="sm" variant="outline" @click="resetFilters">{{
+                  t('pages.budgets.transactionsList.resetFilters')
+                }}</Button>
               </template>
               <template v-else>
                 <AddTransactionsDialog>
                   <Button size="sm">
                     <PlusIcon class="mr-2 size-4" />
-                    Add Transactions
+                    {{ t('pages.budgets.transactionsList.addTransactions') }}
                   </Button>
                 </AddTransactionsDialog>
               </template>
@@ -402,7 +408,7 @@ const toggleSelectAll = () => {
                 <TransactionRecord :tx="flatTransactions[virtualRow.index]" />
               </label>
               <div v-else class="flex h-13 items-center justify-center">
-                <span class="text-muted-foreground text-sm">Loading more...</span>
+                <span class="text-muted-foreground text-sm">{{ t('pages.budgets.transactionsList.loadingMore') }}</span>
               </div>
             </div>
           </div>
