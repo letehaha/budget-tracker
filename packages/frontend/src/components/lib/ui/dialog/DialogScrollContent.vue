@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 import {
   DialogClose,
   DialogContent,
@@ -55,7 +58,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
         <DialogClose class="hover:bg-secondary absolute top-3 right-3 rounded-md p-0.5 transition-colors">
           <X class="size-4" />
-          <span class="sr-only">Close</span>
+          <span class="sr-only">{{ t('common.ui.close') }}</span>
         </DialogClose>
       </DialogContent>
     </DialogOverlay>

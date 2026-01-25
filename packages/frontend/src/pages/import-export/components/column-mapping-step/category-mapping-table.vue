@@ -1,17 +1,23 @@
 <template>
   <div>
-    <h3 class="mb-3 text-sm font-semibold">Category Mapping</h3>
+    <h3 class="mb-3 text-sm font-semibold">{{ t('pages.importExport.categoryMappingTable.title') }}</h3>
     <p class="text-muted-foreground mb-4 text-sm">
-      Map CSV category names to your existing categories or create new ones.
+      {{ t('pages.importExport.categoryMappingTable.description') }}
     </p>
 
     <div class="overflow-x-auto rounded-lg border">
       <table class="w-full text-sm">
         <thead class="bg-muted/50">
           <tr>
-            <th class="border-b px-4 py-3 text-left font-medium">CSV Category Name</th>
-            <th class="border-b px-4 py-3 text-left font-medium">Action</th>
-            <th class="border-b px-4 py-3 text-left font-medium">Target Category</th>
+            <th class="border-b px-4 py-3 text-left font-medium">
+              {{ t('pages.importExport.categoryMappingTable.csvCategoryName') }}
+            </th>
+            <th class="border-b px-4 py-3 text-left font-medium">
+              {{ t('pages.importExport.categoryMappingTable.action') }}
+            </th>
+            <th class="border-b px-4 py-3 text-left font-medium">
+              {{ t('pages.importExport.categoryMappingTable.targetCategory') }}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -50,7 +56,12 @@
                       <span :class="{ 'text-muted-foreground': isCategoryMapped(category.id, categoryName) }">
                         {{ category.name }}
                         <span v-if="isCategoryMapped(category.id, categoryName)" class="text-muted-foreground text-xs">
-                          — mapped to "{{ getMappedToCategoryName(category.id) }}"
+                          —
+                          {{
+                            t('pages.importExport.categoryMappingTable.mappedTo', {
+                              name: getMappedToCategoryName(category.id),
+                            })
+                          }}
                         </span>
                       </span>
                     </Select.SelectItem>
@@ -58,7 +69,7 @@
                 </Select.Select>
               </div>
               <div v-else-if="getCategoryAction(categoryName) === 'create-new'" class="text-muted-foreground text-sm">
-                New category "{{ categoryName }}" will be created
+                {{ t('pages.importExport.categoryMappingTable.willBeCreated', { name: categoryName }) }}
               </div>
               <div v-else class="text-muted-foreground text-sm">—</div>
             </td>
@@ -76,6 +87,9 @@ import { useCategoriesStore } from '@/stores';
 import { useImportExportStore } from '@/stores/import-export';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 interface OptionItem {
   label: string;
@@ -86,10 +100,10 @@ const importStore = useImportExportStore();
 const categoriesStore = useCategoriesStore();
 const { categories } = storeToRefs(categoriesStore);
 
-const actionOptions: OptionItem[] = [
-  { label: 'Create New Category', value: 'create-new' },
-  { label: 'Map to Existing Category', value: 'link-existing' },
-];
+const actionOptions = computed<OptionItem[]>(() => [
+  { label: t('pages.importExport.categoryMappingTable.actions.createNew'), value: 'create-new' },
+  { label: t('pages.importExport.categoryMappingTable.actions.mapToExisting'), value: 'link-existing' },
+]);
 
 onMounted(async () => {
   // Ensure categories are loaded
@@ -118,7 +132,7 @@ const getCategoryAction = (categoryName: string): string => {
 const getCategoryActionObject = (categoryName: string): OptionItem | null => {
   const action = getCategoryAction(categoryName);
   if (!action) return null;
-  return actionOptions.find((opt) => opt.value === action) ?? null;
+  return actionOptions.value.find((opt) => opt.value === action) ?? null;
 };
 
 const handleActionChange = (categoryName: string, option: OptionItem | null) => {
@@ -155,9 +169,9 @@ const getCategoryDisplayValue = (categoryName: string): string => {
   const mapping = importStore.categoryMapping[categoryName];
   if (mapping?.action === 'link-existing' && mapping.categoryId) {
     const category = categories.value.find((cat) => cat.id === mapping.categoryId);
-    return category ? category.name : 'Select category...';
+    return category ? category.name : t('pages.importExport.categoryMappingTable.selectCategory');
   }
-  return 'Select category...';
+  return t('pages.importExport.categoryMappingTable.selectCategory');
 };
 
 const isCategoryMapped = (categoryId: number, currentCategoryName: string): boolean => {

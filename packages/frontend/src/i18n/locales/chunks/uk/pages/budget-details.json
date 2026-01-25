@@ -1,0 +1,44 @@
+{
+  "pages": {
+    "budgets": {
+      "transactionsList": {
+        "selectionModeWarning": "Режим вибору — виберіть транзакції для відв'язання",
+        "selectAll": "Вибрати все",
+        "selected": "{count} вибрано",
+        "unlink": "Відв'язати",
+        "cancel": "Скасувати",
+        "unlinkSelected": "Відв'язати вибрані",
+        "noMatchingTransactions": "Немає відповідних транзакцій",
+        "noTransactionsLinked": "Жодних транзакцій не пов'язано",
+        "filterAdjustmentHint": "Спробуйте скорегувати фільтри, щоб побачити більше транзакцій.",
+        "addTransactionsHint": "Додайте транзакції до цього бюджету, щоб почати відстежувати свої витрати.",
+        "resetFilters": "Скинути фільтри",
+        "addTransactions": "Додати транзакції",
+        "add": "Додати",
+        "loadingMore": "Завантаження більше..."
+      }
+    },
+    "budgetDetails": {
+      "notSet": "Не встановлено",
+      "saving": "Збереження...",
+      "saveChanges": "Зберегти зміни",
+      "loading": "Завантаження...",
+      "uncategorized": "Без категорії",
+      "stats": {
+        "income": "Доходи",
+        "expenses": "Витрати",
+        "netBalance": "Баланс"
+      },
+      "utilization": {
+        "title": "Використання бюджету",
+        "of": "з",
+        "limit": "ліміту",
+        "na": "Н/Д"
+      },
+      "backToBudgets": "Назад до бюджетів",
+      "noTransactionsYet": "Транзакцій ще немає",
+      "transactions": "Транзакції",
+      "transactionsLinked": "{count} транзакція прив'язана до цього бюджету | {count} транзакції прив'язані до цього бюджету | {count} транзакцій прив'язано до цього бюджету"
+    }
+  }
+}

@@ -15,7 +15,8 @@
             {{ t('pages.importExport.csvImport.columnMapping.file') }}: {{ importStore.uploadedFile?.name }}
           </p>
           <p class="text-muted-foreground text-xs">
-            {{ t('pages.importExport.csvImport.columnMapping.totalRows') }}: {{ importStore.totalRows }} |
+            {{ t('pages.importExport.csvImport.columnMapping.totalRows') }}: {{ importStore.totalRows }}
+            <span class="mx-1">|</span>
             {{ t('pages.importExport.csvImport.columnMapping.delimiter') }}: "{{ importStore.detectedDelimiter }}"
           </p>
         </div>
@@ -38,7 +39,7 @@
 
     <!-- Currency Mismatch Warning -->
     <div v-if="importStore.currencyMismatchWarning" class="bg-warning/20 border-warning mt-4 rounded-lg border p-4">
-      <p class="text-warning-foreground text-sm">⚠️ {{ importStore.currencyMismatchWarning }}</p>
+      <p class="text-warning-foreground text-sm"><span>⚠️</span> {{ importStore.currencyMismatchWarning }}</p>
     </div>
 
     <!-- Account Mapping Table (shown after extract is called) -->

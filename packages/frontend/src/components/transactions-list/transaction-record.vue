@@ -68,7 +68,7 @@
         <template v-else>
           <div class="flex items-center gap-2">
             <span class="text-sm tracking-wider whitespace-nowrap">
-              {{ category ? category.name : 'Other' }}
+              {{ category ? category.name : t('common.ui.other') }}
             </span>
             <SplitIndicator :transaction="transaction" />
             <RefundIndicator :transaction="transaction" />
@@ -116,6 +116,9 @@ import { format } from 'date-fns';
 import { ArrowRight } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 import RefundIndicator from './indicators/refund-indicator.vue';
 import SplitIndicator from './indicators/split-indicator.vue';

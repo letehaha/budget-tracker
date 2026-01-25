@@ -90,7 +90,7 @@ const handleSave = () => {
         <div
           class="border-input bg-muted/50 text-muted-foreground flex h-10 items-center rounded-md border px-3 text-sm"
         >
-          {{ formatDate(formData.startDate) || 'Not set' }}
+          {{ formatDate(formData.startDate) || t('pages.budgetDetails.notSet') }}
         </div>
       </div>
       <div>
@@ -100,14 +100,14 @@ const handleSave = () => {
         <div
           class="border-input bg-muted/50 text-muted-foreground flex h-10 items-center rounded-md border px-3 text-sm"
         >
-          {{ formatDate(formData.endDate) || 'Not set' }}
+          {{ formatDate(formData.endDate) || t('pages.budgetDetails.notSet') }}
         </div>
       </div>
     </div>
     <div class="flex justify-end">
       <Button @click="handleSave" :disabled="isLoading">
-        <template v-if="isLoading">Saving...</template>
-        <template v-else>Save Changes</template>
+        <template v-if="isLoading">{{ t('pages.budgetDetails.saving') }}</template>
+        <template v-else>{{ t('pages.budgetDetails.saveChanges') }}</template>
       </Button>
     </div>
   </div>

@@ -63,7 +63,9 @@
         class="text-primary mt-2 w-full py-2 text-center text-sm hover:underline"
         @click="showAll = true"
       >
-        {{ t('analytics.trends.categoryBreakdown.viewAll') }} ({{ sortedCategories.length - defaultDisplayCount }} more)
+        {{ t('analytics.trends.categoryBreakdown.viewAll') }} ({{
+          t('analytics.trends.categoryBreakdown.moreCount', { count: sortedCategories.length - defaultDisplayCount })
+        }})
       </button>
     </div>
   </div>

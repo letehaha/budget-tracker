@@ -9,7 +9,7 @@
           <span>{{ transaction.splits.length + 1 }}</span>
         </div>
       </TooltipTrigger>
-      <TooltipContent>Split</TooltipContent>
+      <TooltipContent>{{ t('common.ui.split') }}</TooltipContent>
     </Tooltip>
   </TooltipProvider>
 </template>
@@ -19,6 +19,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { TransactionModel } from '@bt/shared/types';
 import { SplitIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   transaction: TransactionModel;

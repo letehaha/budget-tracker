@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "navigation": {
+      "currencies": "Валюти",
+      "categories": "Категорії",
+      "tags": "Теги",
+      "accountsGroups": "Групи рахунків",
+      "importData": "Імпорт даних",
+      "preferences": "Налаштування",
+      "ai": "ШІ",
+      "security": "Безпека",
+      "admin": "Адміністратор"
+    },
+    "backToSettings": "Назад до налаштувань"
+  }
+}

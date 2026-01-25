@@ -72,14 +72,14 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
 
         <div class="flex items-center gap-1">
           <PortfolioTransferDialog :account="account" context="account">
-            <Button variant="ghost" size="icon" title="Transfer to Portfolio">
+            <Button variant="ghost" size="icon" :title="t('pages.account.header.transferToPortfolio')">
               <ArrowRightLeftIcon :size="20" />
             </Button>
           </PortfolioTransferDialog>
 
           <Popover.Popover :open="formEditingPopoverOpen" @update:open="formEditingPopoverOpen = $event">
             <Popover.PopoverTrigger>
-              <Button variant="ghost" size="icon" title="Edit Account Name">
+              <Button variant="ghost" size="icon" :title="t('pages.account.header.editAccountName')">
                 <Edit2Icon :size="20" />
               </Button>
             </Popover.PopoverTrigger>
@@ -92,7 +92,9 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
                   :error-message="getFieldErrorMessage('form.name')"
                 />
 
-                <Button type="submit" :disabled="accountNameForm.name === account.name"> Save </Button>
+                <Button type="submit" :disabled="accountNameForm.name === account.name">
+                  {{ t('pages.account.header.save') }}
+                </Button>
               </form>
             </Popover.PopoverContent>
           </Popover.Popover>

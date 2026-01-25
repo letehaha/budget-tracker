@@ -1,0 +1,18 @@
+{
+  "settings": {
+    "dataManagement": {
+      "title": "Import Data",
+      "description": "Import your financial data from various sources",
+      "textSource": {
+        "title": "Import from any Text Source",
+        "description": "Parse and import transactions from bank statements, emails, or any text source. Uses AI to automatically extract transaction data.",
+        "button": "Import from Text (PDF, CSV, TXT, etc)"
+      },
+      "csv": {
+        "title": "Import CSV",
+        "description": "Import transactions from a CSV file. You can map columns, handle duplicates, and create new accounts or categories as needed.",
+        "button": "Import CSV File"
+      }
+    }
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "forms": {
+    "investmentTransaction": {
+      "typeLabel": "Transaction Type",
+      "types": {
+        "buy": "Buy",
+        "sell": "Sell",
+        "dividend": "Dividend"
+      },
+      "securityLabel": "Security",
+      "securityPlaceholder": "Select a security",
+      "quantityLabel": "Quantity",
+      "quantityPlaceholder": "0.00",
+      "priceLabel": "Price per Share",
+      "pricePlaceholder": "0.00",
+      "feesLabel": "Fees (optional)",
+      "feesPlaceholder": "0.00",
+      "dateLabel": "Transaction Date",
+      "cancelButton": "Cancel",
+      "submitButton": "Create Transaction",
+      "submitButtonLoading": "Creating...",
+      "notifications": {
+        "success": "Transaction created successfully.",
+        "error": "Failed to create transaction."
+      }
+    },
+    "portfolioSettings": {
+      "nameLabel": "Portfolio Name",
+      "namePlaceholder": "My Investment Portfolio",
+      "nameRequired": "Name is required",
+      "typeLabel": "Portfolio Type",
+      "typePlaceholder": "Select portfolio type",
+      "descriptionLabel": "Description (optional)",
+      "descriptionPlaceholder": "A brief description of this portfolio...",
+      "cancelButton": "Cancel",
+      "submitButton": "Save Changes",
+      "submitButtonLoading": "Saving...",
+      "notifications": {
+        "success": "Portfolio updated successfully.",
+        "error": "Failed to update portfolio. Please try again."
+      }
+    },
+    "portfolioTransfer": {
+      "transferTypeLabel": "Transfer Type",
+      "transferTypes": {
+        "portfolioToPortfolio": "To Another Portfolio",
+        "portfolioToAccount": "To Account",
+        "accountToPortfolio": "To Portfolio (Coming Soon)"
+      },
+      "comingSoonNotice": "💡 Account-to-portfolio transfers are coming in a future update!",
+      "fromPortfolioLabel": "From Portfolio",
+      "fromPortfolioPlaceholder": "Select source portfolio",
+      "fromAccountLabel": "From Account",
+      "fromAccountPlaceholder": "Select source account",
+      "toPortfolioLabel": "To Portfolio",
+      "toPortfolioPlaceholder": "Select destination portfolio",
+      "toAccountLabel": "To Account",
+      "toAccountPlaceholder": "Select destination account",
+      "currencyLabel": "Currency",
+      "currencyPlaceholder": "Select currency",
+      "amountLabel": "Amount",
+      "amountLabelWithCurrency": "Amount ({currency})",
+      "amountPlaceholder": "0.00",
+      "dateLabel": "Date",
+      "descriptionLabel": "Description (optional)",
+      "descriptionPlaceholder": "Add a note about this transfer...",
+      "cancelButton": "Cancel",
+      "submitButton": "Transfer",
+      "submitButtonLoading": "Processing...",
+      "confirmDialog": {
+        "title": "Confirm Transfer",
+        "description": "Are you sure you want to transfer <strong>{amount} {currency}</strong> from <strong>{from}</strong> to <strong>{to}</strong>?",
+        "warning": "This action cannot be undone.",
+        "cancelButton": "Cancel",
+        "confirmButton": "Confirm Transfer"
+      },
+      "validation": {
+        "required": "This field is required",
+        "minValue": "Amount must be greater than 0"
+      },
+      "notifications": {
+        "comingSoon": "Account-to-portfolio transfers are coming in a future update!",
+        "success": "Transfer completed successfully.",
+        "error": "Transfer failed. Please try again."
+      }
+    },
+    "createAccount": {
+      "nameLabel": "Account name",
+      "namePlaceholder": "Account name",
+      "currencyLabel": "Currency",
+      "currencyPlaceholder": "Select currency",
+      "addCurrencyButton": "Add new currency +",
+      "initialBalanceLabel": "Initial balance",
+      "initialBalancePlaceholder": "Initial balance",
+      "accountCategoryLabel": "Account Category",
+      "accountCategoryPlaceholder": "Select account category",
+      "creditLimitLabel": "Credit limit",
+      "creditLimitPlaceholder": "Credit limit",
+      "submitButton": "Create",
+      "submitButtonLoading": "Creating...",
+      "notifications": {
+        "success": "Created successfully.",
+        "error": "Unexpected error."
+      }
+    }
+  },
+  "fields": {
+    "categorySelect": {
+      "noCategoriesFound": "No categories found",
+      "selectCategoryLabel": "Select category",
+      "searchCategoryLabel": "Search category",
+      "clearSearchLabel": "Clear search",
+      "searchPlaceholder": "Search..."
+    },
+    "select": {
+      "selectOption": "Select an option",
+      "searchPlaceholder": "Search..."
+    },
+    "comboboxAccounts": {
+      "allAccounts": "All accounts",
+      "account": "account",
+      "accountsSelected": "accounts selected",
+      "searchPlaceholder": "Search accounts..."
+    },
+    "comboboxCategories": {
+      "searchPlaceholder": "Search categories...",
+      "unselectedPlaceholder": "All categories"
+    },
+    "tagSelect": {
+      "placeholder": "Select tags...",
+      "noTagsAvailable": "No tags available"
+    },
+    "categoryMultiSelect": {
+      "placeholder": "Select categories...",
+      "searchPlaceholder": "Search categories...",
+      "noCategoriesFound": "No categories found"
+    }
+  }
+}

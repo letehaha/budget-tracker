@@ -152,7 +152,9 @@
               class="hover:bg-accent w-full rounded-md border p-3 text-left transition-colors"
             >
               <div class="font-medium">{{ bank.name }}</div>
-              <div v-if="bank.bic" class="text-muted-foreground text-xs">BIC: {{ bank.bic }}</div>
+              <div v-if="bank.bic" class="text-muted-foreground text-xs">
+                {{ t('pages.integrations.enableBankingConnector.credentials.bicLabel') }} {{ bank.bic }}
+              </div>
             </button>
           </div>
 

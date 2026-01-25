@@ -2,9 +2,11 @@
   <AlertDialog.AlertDialog v-model:open="isOpen">
     <AlertDialog.AlertDialogContent>
       <AlertDialog.AlertDialogHeader>
-        <AlertDialog.AlertDialogTitle>Disconnect Integration</AlertDialog.AlertDialogTitle>
+        <AlertDialog.AlertDialogTitle>
+          {{ t('pages.integrations.dialogs.disconnect.title') }}
+        </AlertDialog.AlertDialogTitle>
         <AlertDialog.AlertDialogDescription>
-          Are you sure you want to disconnect this integration? This action cannot be undone.
+          {{ t('pages.integrations.dialogs.disconnect.description') }}
         </AlertDialog.AlertDialogDescription>
       </AlertDialog.AlertDialogHeader>
 
@@ -13,9 +15,9 @@
           <Checkbox v-model="removeAssociatedAccounts" />
 
           <div class="flex flex-col gap-1">
-            <span class="text-sm font-medium">Also remove associated accounts</span>
+            <span class="text-sm font-medium">{{ t('pages.integrations.dialogs.disconnect.removeAccounts') }}</span>
             <span class="text-muted-foreground text-xs">
-              This will permanently delete all accounts linked to this integration
+              {{ t('pages.integrations.dialogs.disconnect.removeAccountsHint') }}
             </span>
           </div>
         </label>
@@ -24,7 +26,11 @@
       <AlertDialog.AlertDialogFooter>
         <AlertDialog.AlertDialogCancel>{{ $t('common.actions.cancel') }}</AlertDialog.AlertDialogCancel>
         <AlertDialog.AlertDialogAction variant="destructive" :disabled="isDisconnecting" @click="handleConfirm">
-          {{ isDisconnecting ? 'Disconnecting...' : 'Disconnect' }}
+          {{
+            isDisconnecting
+              ? t('pages.integrations.dialogs.disconnect.disconnecting')
+              : t('pages.integrations.dialogs.disconnect.disconnect')
+          }}
         </AlertDialog.AlertDialogAction>
       </AlertDialog.AlertDialogFooter>
     </AlertDialog.AlertDialogContent>
@@ -35,6 +41,9 @@
 import * as AlertDialog from '@/components/lib/ui/alert-dialog';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   open: boolean;

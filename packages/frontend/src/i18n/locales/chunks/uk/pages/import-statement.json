@@ -1,0 +1,161 @@
+{
+  "pages": {
+    "statementParser": {
+      "pageTitle": "Парсер виписок",
+      "pageDescription": "Завантажте банківську виписку (PDF, CSV або TXT) для вилучення транзакцій за допомогою ШІ. API ключ ШІ додається в налаштуваннях.",
+      "backToSettings": "Назад до налаштувань",
+      "steps": {
+        "uploadTitle": "Завантажити та вилучити",
+        "uploadDescription": "Завантажте виписку та вилучіть транзакції за допомогою ШІ",
+        "accountTitle": "Вибрати рахунок",
+        "accountDescription": "Виберіть або створіть рахунок для транзакцій",
+        "reviewTitle": "Переглянути транзакції",
+        "reviewDescription": "Перегляньте та обробіть дубльовані транзакції",
+        "importTitle": "Імпорт",
+        "importDescription": "Виконайте імпорт та перегляньте результати"
+      },
+      "selectCurrency": "Вибрати валюту",
+      "selectExistingAccount": "Вибрати існуючий рахунок",
+      "accountNamePlaceholder": "напр., Основний банківський рахунок",
+      "selectAccount": "Виберіть рахунок",
+      "searchAccounts": "Шукати рахунки...",
+      "uploadExtract": {
+        "dragDropText": "Перетягніть файл виписки сюди, або",
+        "browseButton": "Вибрати файл",
+        "supportedFormats": "Підтримувані формати: PDF, CSV, TXT (макс. 10МБ)",
+        "removeButton": "Видалити",
+        "analyzingFile": "Аналіз файлу...",
+        "analyzeButton": "Аналізувати файл",
+        "tryAgain": "Спробувати ще раз",
+        "modelLabel": "Модель",
+        "estimatedCostLabel": "Орієнтовна вартість",
+        "yourApiKey": "(ваш API ключ)",
+        "estimatedTokensLabel": "Орієнтовні токени",
+        "extractButton": "Вилучити транзакції",
+        "progressMessage": "Це може зайняти 30-60 секунд залежно від розміру документа",
+        "foundLabel": "Знайдено:",
+        "transactions": "транзакцій",
+        "fromLabel": "з",
+        "inLabel": "в",
+        "continueMessage": "Продовжуйте, щоб вибрати рахунок для цих транзакцій.",
+        "tokenWarning": {
+          "medium": {
+            "title": "Виявлено великий файл",
+            "description": "Обробка може зайняти 1-2 хвилини. Будь ласка, зачекайте."
+          },
+          "high": {
+            "title": "Виявлено дуже великий файл",
+            "description": "Обробка може зайняти кілька хвилин через розмір файлу."
+          },
+          "extreme": {
+            "title": "Надзвичайно великий файл",
+            "description": "Обробка може зайняти 5+ хвилин. Розгляньте можливість розділити файл на менші частини для швидшої обробки."
+          }
+        },
+        "freeApiWarning": "Ви використовуєте безкоштовний доступ до AI з денними лімітами. Для безперебійної і швидкої роботи додайте власний API ключ.",
+        "addApiKeyLink": "Додати API ключ у налаштуваннях →",
+        "status": {
+          "sendingFile": "Відправка файлу до AI...",
+          "readingDocument": "AI читає документ...",
+          "analyzingStructure": "Аналіз структури виписки...",
+          "extractingData": "Вилучення даних транзакцій...",
+          "processingTransactions": "Обробка транзакцій...",
+          "finalizing": "Завершення вилучення...",
+          "almostDone": "Майже готово..."
+        },
+        "tokenFormat": "{inputTokens}K входу, ~{outputTokens}K виходу",
+        "fileSize": "{size} КБ"
+      },
+      "accountSelect": {
+        "newlyCreated": "(щойно створено)",
+        "differentCurrency": "Різна валюта",
+        "linkedToBanks": "Пов'язано з банками",
+        "linkedToBanksTooltip": "Наразі імпорт виписок обмежений лише системними рахунками.",
+        "noAccountsFound": "Рахунків не знайдено",
+        "currencyAccounts": "Рахунки {currency}"
+      },
+      "accountSelection": {
+        "transactions": "Транзакції:",
+        "bank": "Банк:",
+        "currency": "Валюта:",
+        "currencyNotDetected": "Не вдалося визначити валюту виписки. Будь ласка, виберіть валюту вручну:",
+        "currencyMismatch": "Валюта виписки ({statementCurrency}) відрізняється від валюти рахунку ({accountCurrency}). Транзакції будуть імпортовані з використанням валюти рахунку.",
+        "createNew": "Створити нову",
+        "back": "Назад",
+        "importTransactions": "Імпортувати транзакції",
+        "checkForDuplicates": "Перевірити дублікати"
+      },
+      "createAccountDialog": {
+        "title": "Створити рахунок для імпорту",
+        "description": "Створіть новий рахунок для імпорту транзакцій виписки.",
+        "accountNameLabel": "Назва рахунку",
+        "currencyLabel": "Валюта",
+        "fromStatement": "(з виписки)",
+        "currencyLocked": "Валюта заблокована для відповідності виписці ({currency}).",
+        "currencyWillBeAdded": "Примітка: {currency} буде додано до ваших валют.",
+        "cancel": "Скасувати",
+        "creating": "Створення...",
+        "createAccount": "Створити рахунок",
+        "validation": {
+          "nameRequired": "Назва рахунку обов'язкова",
+          "currencyRequired": "Будь ласка, виберіть валюту"
+        },
+        "success": "Рахунок успішно створено",
+        "error": "Не вдалося створити рахунок"
+      },
+      "transactionReview": {
+        "checkingDuplicates": "Перевірка дублікатів...",
+        "extractedLabel": "Вилучено:",
+        "duplicatesLabel": "Потенційні дублікати:",
+        "willImportLabel": "Буде імпортовано:",
+        "alreadyInAccountLabel": "Вже на рахунку:",
+        "timelineTitle": "Часова шкала транзакцій",
+        "legendNew": "Нова",
+        "legendDuplicate": "Дублікат",
+        "legendExisting": "Існуюча",
+        "statusDup": "Дубл",
+        "statusImport": "Імпорт",
+        "statusExists": "Існує",
+        "duplicateInfoSkipped": "{count} транзакцій буде пропущено як дублікати.",
+        "duplicateInfoOverridden": "{count} дублікатів перевизначено і буде імпортовано.",
+        "toggleInfo": "Натисніть на рядок для перемикання:",
+        "toggleWillImport": "буде імпортовано,",
+        "toggleWillSkip": "буде пропущено.",
+        "backButton": "Назад",
+        "continueButton": "Перейти до імпорту",
+        "transactionCount": "({count} транзакцій)"
+      },
+      "importResults": {
+        "readyTitle": "Готово до імпорту",
+        "readyDescription": "Перегляньте підсумок нижче та натисніть \"Імпортувати транзакції\", щоб продовжити.",
+        "accountLabel": "Рахунок:",
+        "toImportLabel": "Транзакцій для імпорту:",
+        "toSkipLabel": "Транзакцій для пропуску:",
+        "backButton": "Назад",
+        "importButton": "Імпортувати {count} транзакцій",
+        "importingTitle": "Імпорт транзакцій",
+        "importingDescription": "Будь ласка, зачекайте, поки ми імпортуємо ваші транзакції...",
+        "failedTitle": "Імпорт не вдався",
+        "startOverButton": "Почати спочатку",
+        "tryAgainButton": "Спробувати ще раз",
+        "completeTitle": "Імпорт завершено!",
+        "completeWithIssuesTitle": "Імпорт завершено з проблемами",
+        "successDescription": "Ваші транзакції успішно імпортовано.",
+        "partialDescription": "Деякі транзакції не вдалося імпортувати.",
+        "importedLabel": "Імпортовано:",
+        "skippedLabel": "Пропущено:",
+        "errorsTitle": "Помилки імпорту",
+        "transactionNumberHeader": "Транзакція #",
+        "errorHeader": "Помилка",
+        "batchIdLabel": "ID пакета імпорту:",
+        "batchIdDescription": "Ви можете використовувати цей ID для пошуку та керування всіма імпортованими транзакціями.",
+        "viewTransactionsButton": "Переглянути транзакції",
+        "startNewImportButton": "Почати новий імпорт"
+      }
+    },
+    "monobank": {
+      "tokenPlaceholder": "Введіть ваш API токен Monobank",
+      "accountNamePlaceholder": "напр., Особистий рахунок"
+    }
+  }
+}

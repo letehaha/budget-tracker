@@ -1,0 +1,103 @@
+{
+  "transactions": {
+    "form": {
+      "addTitle": "Add Transaction",
+      "editTitle": "Edit Transaction"
+    },
+    "delete": {
+      "success": "Successfully removed",
+      "error": "Failed to delete transaction!"
+    },
+    "submit": {
+      "unexpectedError": "Unexpected error!"
+    },
+    "unlink": {
+      "error": "Failed to unlink transactions!"
+    },
+    "filters": {
+      "filtersLabel": "Filters:",
+      "selectFilters": "Select filters",
+      "reset": "Reset",
+      "apply": "Apply",
+      "dateRange": {
+        "tabs": {
+          "range": "Range",
+          "single": "Single"
+        },
+        "selectDateRange": "Select date range",
+        "fromDate": "From date",
+        "toDate": "To date",
+        "clear": "Clear",
+        "presets": {
+          "thisMonth": "This month",
+          "last3Months": "Last 3 months",
+          "last6Months": "Last 6 months",
+          "last12Months": "Last 12 months"
+        }
+      },
+      "transactionType": {
+        "label": "Transaction type:",
+        "both": "Both",
+        "income": "Income",
+        "expense": "Expense"
+      },
+      "amountRange": {
+        "from": "Amount from (gte)",
+        "to": "To (lte)",
+        "placeholderFrom": ">= than",
+        "placeholderTo": "<= than"
+      },
+      "exclude": {
+        "label": "Exlude:",
+        "refunds": "Refunds",
+        "transfers": "Transfers"
+      },
+      "noteIncludes": {
+        "label": "Note includes (comma-separated):",
+        "placeholder": "Amazon,nike"
+      },
+      "tags": {
+        "allTags": "All tags",
+        "tagSingular": "tag",
+        "tagPlural": "tags",
+        "selected": "selected",
+        "searchPlaceholder": "Search tags..."
+      }
+    },
+    "list": {
+      "noMoreData": "No more data to load",
+      "loadingMore": "Loading more...",
+      "detailsTitle": "Transaction details",
+      "detailsDescription": "View and edit transaction"
+    },
+    "bulkEdit": {
+      "selectAll": "Select all",
+      "editButton": "Edit",
+      "deleteButton": "Delete",
+      "selectedCount": "{count} selected",
+      "dialogTitle": "Edit {count} transactions",
+      "dialogDescription": "Changes will be applied to all selected transactions. Only filled fields will be updated.",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Select category...",
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "Select tags...",
+      "noteLabel": "Note",
+      "notePlaceholder": "Enter note...",
+      "applyButton": "Apply changes",
+      "applyingButton": "Applying...",
+      "confirmTitle": "Confirm changes",
+      "confirmDescription": "You are about to update {count} transactions:",
+      "confirmCategoryLabel": "Category",
+      "confirmTagsLabel": "Tags",
+      "confirmNoteLabel": "Note",
+      "cancelButton": "Cancel",
+      "confirmApplyButton": "Apply",
+      "successMessage": "Successfully updated {count} transactions",
+      "unexpectedError": "An unexpected error occurred",
+      "tagModeLabel": "Tag action",
+      "tagModeAdd": "Add to existing tags",
+      "tagModeReplace": "Replace all tags",
+      "tagModeRemove": "Remove these tags"
+    }
+  }
+}

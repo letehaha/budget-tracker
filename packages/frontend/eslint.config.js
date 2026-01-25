@@ -6,7 +6,7 @@ import globals from 'globals';
 import typescriptEslint from 'typescript-eslint';
 
 export default typescriptEslint.config(
-  { ignores: ['*.d.ts', '**/coverage', '**/dist', '**/landing/**', '**/legal/**'] },
+  { ignores: ['*.d.ts', '**/coverage', '**/dist', '**/landing/**', '**/legal/**', 'vite.config.js'] },
   {
     extends: [
       eslint.configs.recommended,
@@ -34,9 +34,9 @@ export default typescriptEslint.config(
       '@intlify/vue-i18n/no-raw-text': [
         'warn',
         {
-          ignorePattern: '^[-#:()&/+•→←↓↑=.,;!?%$@0-9"\'\\s]+$',
+          ignorePattern: '^[-#:()&/+•·→←↓↑=.,;—!~🏦ℹ️⚠️|?%$@0-9"\'\\s]+$',
           ignoreNodes: ['md-icon', 'v-icon'],
-          ignoreText: ['EUR', 'USD', 'UAH', '*', '', 'MoneyMatter'],
+          ignoreText: ['EUR', 'USD', 'UAH', '*', '', 'MoneyMatter', '0f711c28-1682-27b5-946c-e221168abf79'],
         },
       ],
       // Detect missing keys in locale files
@@ -52,7 +52,7 @@ export default typescriptEslint.config(
     },
     settings: {
       'vue-i18n': {
-        localeDir: './src/i18n/locales/*.json',
+        localeDir: './src/i18n/locales/chunks/{en,uk}/**/*.json',
         messageSyntaxVersion: '^11.0.0',
       },
     },

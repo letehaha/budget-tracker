@@ -1,0 +1,113 @@
+{
+  "settings": {
+    "tags": {
+      "title": "Теги",
+      "addButton": "Додати тег",
+      "empty": "Тегів ще немає. Створіть свій перший тег для організації транзакцій.",
+      "tabs": {
+        "details": "Деталі",
+        "reminders": "Нагадування"
+      },
+      "form": {
+        "createTitle": "Створити тег",
+        "editTitle": "Редагувати тег",
+        "name": "Назва",
+        "namePlaceholder": "Назва тегу",
+        "color": "Колір",
+        "icon": "Іконка",
+        "iconPlaceholder": "Виберіть іконку",
+        "iconSearchPlaceholder": "Пошук іконок...",
+        "clearIcon": "Очистити іконку",
+        "description": "Опис",
+        "descriptionPlaceholder": "Необов'язковий опис",
+        "saveButton": "Зберегти",
+        "cancelButton": "Скасувати",
+        "previewPlaceholder": "Назва тегу"
+      },
+      "delete": {
+        "title": "Видалити тег?",
+        "description": "Це назавжди видалить \"{name}\" та прибере його з усіх транзакцій. Цю дію неможливо скасувати.",
+        "deleteButton": "Видалити",
+        "cancelButton": "Скасувати"
+      },
+      "notifications": {
+        "createSuccess": "Тег створено",
+        "createFailed": "Не вдалося створити тег",
+        "updateSuccess": "Тег оновлено",
+        "updateFailed": "Не вдалося оновити тег",
+        "deleteSuccess": "Тег видалено",
+        "deleteFailed": "Не вдалося видалити тег"
+      },
+      "reminders": {
+        "title": "Нагадування",
+        "addButton": "Додати нагадування",
+        "empty": "Нагадувань ще немає. Створіть нагадування, щоб отримувати сповіщення про активність цього тегу.",
+        "enabled": "Увімкнено",
+        "disabled": "Вимкнено",
+        "form": {
+          "createTitle": "Створити нагадування",
+          "editTitle": "Редагувати нагадування",
+          "type": "Тип нагадування",
+          "typePlaceholder": "Виберіть тип",
+          "amountThreshold": "Порогова сума",
+          "amountThresholdPlaceholder": "Введіть порогову суму",
+          "amountThresholdHint": "Отримуйте сповіщення, коли витрати на цей тег перевищують цю суму",
+          "scheduleType": "Коли перевіряти",
+          "triggerImmediate": "В реальному часі",
+          "triggerScheduled": "За розкладом",
+          "immediateHint": "Перевіряти одразу при додаванні транзакцій (раз на 24 год)",
+          "scheduledHint": "Перевіряти за розкладом (напр., щомісяця 1-го числа)",
+          "frequency": "Частота",
+          "frequencyPlaceholder": "Виберіть частоту",
+          "dayOfMonth": "День місяця",
+          "dayOfMonthPlaceholder": "Виберіть день",
+          "anyDay": "Будь-який день",
+          "dayOfMonthHint": "Для місяців з меншою кількістю днів буде використано останній день",
+          "isEnabled": "Увімкнено",
+          "saveButton": "Зберегти",
+          "cancelButton": "Скасувати"
+        },
+        "types": {
+          "amountThreshold": "Порогова сума",
+          "amountThresholdDescription": "Сповіщати, коли витрати перевищують певну суму",
+          "existenceCheck": "Перевірка активності",
+          "existenceCheckDescription": "Сповіщати, коли є транзакції з цим тегом"
+        },
+        "periods": {
+          "day": "День",
+          "week": "Тиждень",
+          "month": "Місяць",
+          "year": "Рік"
+        },
+        "frequencies": {
+          "immediate": "Негайно",
+          "immediateDescription": "Спрацьовує при додаванні транзакцій (раз на 24 год)",
+          "daily": "Щодня",
+          "dailyDescription": "Перевіряти кожного дня",
+          "weekly": "Щотижня",
+          "weeklyDescription": "Перевіряти кожного понеділка",
+          "monthly": "Щомісяця",
+          "monthlyDescription": "Перевіряти певного дня кожного місяця",
+          "quarterly": "Щокварталу",
+          "quarterlyDescription": "Перевіряти кожні 3 місяці (Січ, Квіт, Лип, Жовт)",
+          "yearly": "Щороку",
+          "yearlyDescription": "Перевіряти раз на рік у січні"
+        },
+        "delete": {
+          "title": "Видалити нагадування?",
+          "description": "Це назавжди видалить це нагадування. Цю дію неможливо скасувати.",
+          "deleteButton": "Видалити",
+          "cancelButton": "Скасувати"
+        },
+        "notifications": {
+          "createSuccess": "Нагадування створено",
+          "createFailed": "Не вдалося створити нагадування",
+          "updateSuccess": "Нагадування оновлено",
+          "updateFailed": "Не вдалося оновити нагадування",
+          "deleteSuccess": "Нагадування видалено",
+          "deleteFailed": "Не вдалося видалити нагадування"
+        }
+      }
+    }
+  }
+}

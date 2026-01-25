@@ -1,0 +1,110 @@
+{
+  "budgets": {
+    "title": "Бюджети",
+    "description": "Відстежуйте витрати та контролюйте фінансові події",
+    "newBudget": "Новий бюджет",
+    "createBudget": "Створити бюджет",
+    "creation": {
+      "success": "Бюджет створено",
+      "error": "Неочікувана помилка!",
+      "nameLabel": "Назва бюджету",
+      "namePlaceholder": "Введіть назву",
+      "fromDateLabel": "Від дати",
+      "toDateLabel": "До дати",
+      "autoIncludeLabel": "Автоматично включати транзакції",
+      "limitLabel": "Ліміт бюджету",
+      "limitPlaceholder": "Введіть ліміт",
+      "submitButton": "Додати бюджет"
+    },
+    "list": {
+      "tabCategory": "Бюджети за категоріями",
+      "tabManual": "Ручні бюджети",
+      "edit": "Редагувати",
+      "delete": "Видалити",
+      "deleteSuccess": "Бюджет успішно видалено!",
+      "deleteError": "Неочікувана помилка!",
+      "updateSuccess": "Бюджет успішно оновлено!",
+      "unlinkTransactionsSuccess": "Транзакції успішно відв'язано!",
+      "deleteDialog": {
+        "title": "Бажаєте видалити цей бюджет?",
+        "description": "Натиснувши \"Прийняти\", усі пов'язані транзакції будуть відв'язані від бюджету, але залишаться в системі."
+      },
+      "limitLabel": "Ліміт: {amount}",
+      "transactionsCount": "{count} транзакцій",
+      "noTransactions": "Транзакцій ще немає",
+      "noTimePeriod": "Без періоду",
+      "status": {
+        "ended": "Завершено",
+        "lastDay": "Останній день",
+        "oneDayLeft": "Залишився 1 день",
+        "daysLeft": "Залишилося {count} днів",
+        "startsToday": "Починається сьогодні",
+        "startsTomorrow": "Починається завтра",
+        "startsInDays": "Починається через {count} днів"
+      },
+      "income": "Дохід",
+      "expenses": "Витрати",
+      "net": "Чистий",
+      "used": "Використано",
+      "emptyState": {
+        "title": "Бюджетів ще немає",
+        "description": "Створіть бюджет, щоб почати відстежувати свої витрати або контролювати конкретні події."
+      }
+    },
+    "settings": {
+      "title": "Налаштування бюджету",
+      "nameLabel": "Назва бюджету",
+      "namePlaceholder": "Введіть назву бюджету",
+      "limitLabel": "Ліміт бюджету",
+      "limitPlaceholder": "Введіть суму ліміту (необов'язково)",
+      "startDateLabel": "Дата початку",
+      "endDateLabel": "Дата закінчення"
+    },
+    "addTransactionsDialog": {
+      "title": "Додати транзакції до бюджету",
+      "addSelected": "Додати вибрані"
+    },
+    "categoryBudget": {
+      "backToBudgets": "Назад до бюджетів",
+      "trackedCategories": "Відстежувані категорії",
+      "editCategories": "Редагувати категорії",
+      "categoriesCount": "{count} категорій відстежується",
+      "autoTrackedInfo": "Транзакції автоматично відстежуються на основі категорій",
+      "transactionsTitle": "Транзакції",
+      "transactionsCount": "{count} транзакцій",
+      "noTransactions": "Ще немає транзакцій",
+      "noTransactionsDescription": "Транзакції, що відповідають вашим відстежуваним категоріям, з'являться тут автоматично.",
+      "categoryBreakdown": "Розбивка за категоріями",
+      "loadMore": "Завантажити більше",
+      "edit": "Редагувати",
+      "editTitle": "Редагувати бюджет",
+      "showMore": "Показати більше",
+      "showLess": "Показати менше",
+      "settings": {
+        "title": "Налаштування бюджету",
+        "categoriesLabel": "Відстежувані категорії",
+        "categoriesDescription": "Оберіть категорії для автоматичного відстеження"
+      }
+    },
+    "manualBudget": {
+      "edit": "Редагувати",
+      "editTitle": "Редагування бюджету"
+    },
+    "transactionsList": {
+      "selectionModeWarning": "Режим вибору — виберіть транзакції для відв'язання",
+      "selectAll": "Вибрати все",
+      "selected": "{count} вибрано",
+      "unlink": "Відв'язати",
+      "cancel": "Скасувати",
+      "unlinkSelected": "Відв'язати вибрані",
+      "noMatchingTransactions": "Немає відповідних транзакцій",
+      "noTransactionsLinked": "Жодних транзакцій не пов'язано",
+      "filterAdjustmentHint": "Спробуйте скорегувати фільтри, щоб побачити більше транзакцій.",
+      "addTransactionsHint": "Додайте транзакції до цього бюджету, щоб почати відстежувати свої витрати.",
+      "resetFilters": "Скинути фільтри",
+      "addTransactions": "Додати транзакції",
+      "add": "Додати",
+      "loadingMore": "Завантаження більше..."
+    }
+  }
+}

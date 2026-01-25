@@ -1,0 +1,67 @@
+{
+  "portfolioDetail": {
+    "loading": "Завантаження...",
+    "loadingDetails": "Завантаження деталей портфеля...",
+    "loadError": "Не вдалося завантажити деталі портфеля.",
+    "tryAgain": "Спробувати ще раз",
+    "actions": {
+      "transfer": "Переказ",
+      "edit": "Редагувати",
+      "delete": "Видалити"
+    },
+    "balance": {
+      "loading": "Завантаження підсумку портфеля...",
+      "loadError": "Не вдалося завантажити підсумок портфеля.",
+      "metrics": {
+        "costBasis": "Базова вартість",
+        "unrealized": "Нереалізований",
+        "realized": "Реалізований",
+        "totalReturn": "Загальний дохід"
+      }
+    },
+    "holdings": {
+      "title": "Утримання",
+      "filterPlaceholder": "Фільтрувати за символом або назвою...",
+      "addButton": "Додати символ"
+    },
+    "holdingsTable": {
+      "loading": "Завантаження...",
+      "loadError": "Не вдалося завантажити утримання",
+      "empty": "Утримань ще немає",
+      "headers": {
+        "symbol": "Символ",
+        "name": "Назва",
+        "shares": "Акції",
+        "price": "Ціна",
+        "avgCostPerShare": "СВ/Акція",
+        "totalCost": "Загальна вартість",
+        "marketValue": "Ринкова вартість",
+        "unrealizedGain": "Нереалізований прибуток",
+        "realizedGain": "Реалізований прибуток"
+      },
+      "transactions": {
+        "loading": "Завантаження транзакцій…",
+        "empty": "Транзакцій не знайдено.",
+        "addFirstButton": "Додати першу транзакцію"
+      },
+      "addTransactionDialog": {
+        "title": "Додати транзакцію",
+        "description": "Додайте нову транзакцію до вашого портфеля."
+      }
+    },
+    "transactionsList": {
+      "title": "Транзакції",
+      "addButton": "Додати транзакцію",
+      "deleteButton": "Видалити",
+      "headers": {
+        "date": "Дата",
+        "type": "Тип",
+        "quantity": "Кількість",
+        "price": "Ціна",
+        "fees": "Комісії",
+        "amount": "Сума",
+        "actions": "Дії"
+      }
+    }
+  }
+}

@@ -197,7 +197,9 @@
                       </template>
                     </i18n-t>
                     <br />
-                    {{ t('pages.integrations.instructionsDialog.step3.appIdExample') }} <code class="bg-muted rounded px-1">0f711c28-1682-27b5-946c-e221168abf79</code>
+                    {{ t('pages.integrations.instructionsDialog.step3.appIdExample') }} <code class="bg-muted rounded px-1">
+                      0f711c28-1682-27b5-946c-e221168abf79
+                    </code>
                   </li>
                   <li>
                     <i18n-t keypath="pages.integrations.instructionsDialog.step3.privateKey" tag="span">

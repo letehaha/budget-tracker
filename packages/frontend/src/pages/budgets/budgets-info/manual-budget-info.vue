@@ -10,14 +10,7 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
-import {
-  ArrowRightIcon,
-  CalendarIcon,
-  ChevronLeftIcon,
-  PencilIcon,
-  Trash2Icon,
-  WalletIcon,
-} from 'lucide-vue-next';
+import { ArrowRightIcon, CalendarIcon, ChevronLeftIcon, PencilIcon, Trash2Icon, WalletIcon } from 'lucide-vue-next';
 import { ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -102,7 +95,7 @@ watchEffect(() => {
         ]"
       >
         <ChevronLeftIcon class="size-4" />
-        Back to Budgets
+        {{ t('pages.budgetDetails.backToBudgets') }}
       </router-link>
 
       <!-- Hero Header -->
@@ -139,7 +132,7 @@ watchEffect(() => {
               <span v-else-if="transactionDateRange.first">{{ transactionDateRange.first }}</span>
               <span v-else-if="transactionDateRange.last">{{ transactionDateRange.last }}</span>
             </div>
-            <p v-else class="text-muted-foreground mt-1 text-sm">No transactions yet</p>
+            <p v-else class="text-muted-foreground mt-1 text-sm">{{ t('pages.budgetDetails.noTransactionsYet') }}</p>
           </div>
         </div>
 
@@ -192,8 +185,8 @@ watchEffect(() => {
                 </div>
               </div>
               <Button @click="handleSaveFromDialog" :disabled="isBudgetDataUpdating" class="w-full">
-                <template v-if="isBudgetDataUpdating">Saving...</template>
-                <template v-else>Save Changes</template>
+                <template v-if="isBudgetDataUpdating">{{ t('common.actions.saving') }}</template>
+                <template v-else>{{ t('common.actions.saveChanges') }}</template>
               </Button>
             </div>
           </ResponsiveDialog>
@@ -230,10 +223,9 @@ watchEffect(() => {
     <div>
       <div class="mb-4 flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-medium">Transactions</h2>
+          <h2 class="text-lg font-medium">{{ t('pages.budgetDetails.transactions') }}</h2>
           <p class="text-muted-foreground text-sm">
-            {{ stats.transactionsCount }} transaction{{ stats.transactionsCount !== 1 ? 's' : '' }} linked to this
-            budget
+            {{ t('pages.budgetDetails.transactionsLinked', stats.transactionsCount) }}
           </p>
         </div>
       </div>

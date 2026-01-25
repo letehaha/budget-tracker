@@ -1,0 +1,198 @@
+{
+  "common": {
+    "actions": {
+      "loading": "Loading...",
+      "signUp": "Sign up",
+      "save": "Save",
+      "cancel": "Cancel",
+      "accept": "Accept",
+      "delete": "Delete",
+      "edit": "Edit",
+      "add": "Add",
+      "create": "Create",
+      "close": "Close",
+      "addSubcategory": "Add subcategory",
+      "settings": "Settings",
+      "confirm": "Confirm",
+      "viewTransactions": "View transactions",
+      "viewAnalytics": "View analytics",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "scrollToTop": "Top"
+    },
+    "ui": {
+      "close": "Close",
+      "actions": "Actions",
+      "chooseAction": "Choose an action",
+      "other": "Other",
+      "refund": "Refund",
+      "split": "Split"
+    },
+    "errors": {
+      "copyToClipboardFailed": "Failed to copy to clipboard"
+    },
+    "notifications": {
+      "languagePreferenceSaved": "Language preference saved"
+    },
+    "labels": {
+      "email": "Email",
+      "password": "Password",
+      "username": "Username",
+      "system": "system",
+      "unknown": "Unknown",
+      "total": "Total"
+    },
+    "placeholders": {
+      "email": "your{'@'}email.com",
+      "password": "Your password",
+      "username": "ie. johnsnow"
+    },
+    "dialogs": {
+      "createAccount": "Create account"
+    },
+    "accountCategories": {
+      "general": "General",
+      "cash": "Cash",
+      "currentAccount": "Current account",
+      "creditCard": "Credit card",
+      "saving": "Saving account",
+      "bonus": "Bonus",
+      "insurance": "Insurance",
+      "investment": "Investment",
+      "loan": "Loan",
+      "mortgage": "Mortgage",
+      "overdraft": "Overdraft",
+      "crypto": "Crypto"
+    },
+    "paymentTypes": {
+      "creditCard": "Credit Card",
+      "bankTransfer": "Bank Transfer",
+      "cash": "Cash",
+      "debitCard": "Debit Card",
+      "mobilePayment": "Mobile Payment",
+      "voucher": "Voucher",
+      "webPayment": "Web Payment"
+    },
+    "outOfWallet": "Out of wallet",
+    "aiFeatures": {
+      "categorization": {
+        "name": "Transaction Categorization",
+        "description": "Automatically categorize transactions based on their description and merchant"
+      },
+      "statementParsing": {
+        "name": "Statement Parser",
+        "description": "Extract transactions from bank statements (PDF, CSV, TXT) using AI"
+      }
+    }
+  },
+  "validation": {
+    "minLength": "Minimal length is {length}.",
+    "emailInvalid": "Please enter a valid email address.",
+    "passwordsNoMatch": "Passwords don't match"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllAsRead": "Mark all as read",
+    "empty": "No notifications yet",
+    "viewOnGitHub": "View on GitHub",
+    "newVersion": "New version {version}",
+    "newRelease": "New release",
+    "tagReminder": {
+      "thresholdMessage": "spent {amount} (threshold: {threshold})",
+      "existenceMessage": "{count} transaction | {count} transactions"
+    }
+  },
+  "currencyNames": {
+    "UAH": "Ukrainian Hryvnia",
+    "USD": "US Dollar",
+    "EUR": "Euro",
+    "GBP": "British Pound Sterling",
+    "JPY": "Japanese Yen",
+    "CHF": "Swiss Franc",
+    "CAD": "Canadian Dollar",
+    "AUD": "Australian Dollar",
+    "NZD": "New Zealand Dollar",
+    "CNY": "Chinese Yuan",
+    "HKD": "Hong Kong Dollar",
+    "SGD": "Singapore Dollar",
+    "SEK": "Swedish Krona",
+    "NOK": "Norwegian Krone",
+    "DKK": "Danish Krone",
+    "PLN": "Polish Zloty",
+    "CZK": "Czech Koruna",
+    "HUF": "Hungarian Forint",
+    "RON": "Romanian Leu",
+    "BGN": "Bulgarian Lev",
+    "HRK": "Croatian Kuna",
+    "RSD": "Serbian Dinar",
+    "TRY": "Turkish Lira",
+    "RUB": "Russian Ruble",
+    "BYN": "Belarusian Ruble",
+    "KZT": "Kazakhstani Tenge",
+    "INR": "Indian Rupee",
+    "IDR": "Indonesian Rupiah",
+    "MYR": "Malaysian Ringgit",
+    "PHP": "Philippine Peso",
+    "THB": "Thai Baht",
+    "VND": "Vietnamese Dong",
+    "KRW": "South Korean Won",
+    "TWD": "New Taiwan Dollar",
+    "BRL": "Brazilian Real",
+    "MXN": "Mexican Peso",
+    "ARS": "Argentine Peso",
+    "CLP": "Chilean Peso",
+    "COP": "Colombian Peso",
+    "PEN": "Peruvian Sol",
+    "ZAR": "South African Rand",
+    "EGP": "Egyptian Pound",
+    "AED": "UAE Dirham",
+    "SAR": "Saudi Riyal",
+    "ILS": "Israeli New Shekel",
+    "QAR": "Qatari Riyal",
+    "KWD": "Kuwaiti Dinar",
+    "BHD": "Bahraini Dinar",
+    "OMR": "Omani Rial",
+    "JOD": "Jordanian Dinar",
+    "MAD": "Moroccan Dirham",
+    "NGN": "Nigerian Naira",
+    "KES": "Kenyan Shilling",
+    "GHS": "Ghanaian Cedi",
+    "XOF": "CFA Franc BCEAO",
+    "XAF": "CFA Franc BEAC",
+    "BTC": "Bitcoin",
+    "ETH": "Ethereum"
+  },
+  "demo": {
+    "loadingOverlay": {
+      "title": "Building your personal playground",
+      "messages": [
+        "Crunching numbers just for you...",
+        "Crafting your personal accounts...",
+        "Sprinkling in realistic transactions...",
+        "Fine-tuning your dashboard...",
+        "Almost there, putting final touches..."
+      ],
+      "timeoutMessage": "This is taking longer than expected. You can reload and try again, or wait a bit more."
+    },
+    "featureNotAvailable": "This feature is not available in demo mode",
+    "bankConnectionsRestricted": {
+      "title": "Bank Connections",
+      "description": "Bank connections are not available in demo mode"
+    },
+    "signUpToUnlock": "Sign up to unlock this feature",
+    "passwordChangeRestricted": "Password changes are not available in demo mode",
+    "investmentsRestricted": {
+      "title": "Investments Unavailable in Demo",
+      "description": "The investments feature is not available in demo mode. Please sign up for a full account to access investments tracking."
+    },
+    "banner": {
+      "message": "You're exploring a demo{time}. {signUpLink} to keep your data permanently.",
+      "resets": "resets in {time}",
+      "signUp": "Sign up",
+      "timeFormat": {
+        "hoursMinutes": "{hours}h {minutes}m",
+        "minutes": "{minutes}m"
+      }
+    }
+  }
+}

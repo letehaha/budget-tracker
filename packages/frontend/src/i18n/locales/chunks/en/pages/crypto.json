@@ -1,0 +1,19 @@
+{
+  "crypto": {
+    "title": "Crypto",
+    "loading": "LOADING...",
+    "apiKeysForm": {
+      "title": "API Keys",
+      "publicKey": "Public Key",
+      "secretKey": "Secret Key",
+      "submit": "Submit"
+    },
+    "generalList": {
+      "total": "Total",
+      "asset": "Asset",
+      "totalColumn": "Total",
+      "price": "Price",
+      "holdings": "Holdings"
+    }
+  }
+}

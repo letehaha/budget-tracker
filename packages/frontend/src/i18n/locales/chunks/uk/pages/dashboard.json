@@ -1,0 +1,43 @@
+{
+  "dashboard": {
+    "widgets": {
+      "balanceTrend": {
+        "title": "Тренд балансу",
+        "balanceTypes": {
+          "total": "Загалом",
+          "accounts": "Рахунки",
+          "portfolios": "Портфелі"
+        },
+        "vsPreviousPeriod": "до попереднього періоду"
+      },
+      "expensesStructure": {
+        "title": "Структура витрат",
+        "excludedCategories": {
+          "message": "Деякі категорії виключено.",
+          "updateSettings": "Оновіть налаштування",
+          "changeBehavior": ", щоб змінити цю поведінку."
+        },
+        "today": "Сьогодні",
+        "vsPreviousPeriod": "до попереднього періоду",
+        "viewButton": "Переглянути"
+      },
+      "latestTransactions": {
+        "title": "Останні транзакції",
+        "showAll": "Показати всі"
+      },
+      "emptyState": "Немає даних за вибраний період часу."
+    },
+    "periodSelector": {
+      "quickSelect": "Швидкий вибір",
+      "year": "{year}",
+      "presets": {
+        "currentMonth": "Поточний місяць",
+        "last3Months": "Останні 3 місяці",
+        "last6Months": "Останні 6 місяців",
+        "lastYear": "Останні 12 місяців",
+        "thisYear": "Цей рік",
+        "previousYear": "Минулий рік"
+      }
+    }
+  }
+}

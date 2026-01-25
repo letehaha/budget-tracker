@@ -1,0 +1,67 @@
+{
+  "portfolioDetail": {
+    "loading": "Loading...",
+    "loadingDetails": "Loading portfolio details...",
+    "loadError": "Failed to load portfolio details.",
+    "tryAgain": "Try Again",
+    "actions": {
+      "transfer": "Transfer",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "balance": {
+      "loading": "Loading portfolio summary...",
+      "loadError": "Failed to load portfolio summary.",
+      "metrics": {
+        "costBasis": "Cost Basis",
+        "unrealized": "Unrealized",
+        "realized": "Realized",
+        "totalReturn": "Total Return"
+      }
+    },
+    "holdings": {
+      "title": "Holdings",
+      "filterPlaceholder": "Filter by symbol or name...",
+      "addButton": "Add Symbol"
+    },
+    "holdingsTable": {
+      "loading": "Loading...",
+      "loadError": "Could not load holdings",
+      "empty": "No holdings yet",
+      "headers": {
+        "symbol": "Symbol",
+        "name": "Name",
+        "shares": "Shares",
+        "price": "Price",
+        "avgCostPerShare": "AC/Share",
+        "totalCost": "Total Cost",
+        "marketValue": "Market Value",
+        "unrealizedGain": "Unrealized Gain",
+        "realizedGain": "Realized Gain"
+      },
+      "transactions": {
+        "loading": "Loading transactions…",
+        "empty": "No transactions found.",
+        "addFirstButton": "Add first Transaction"
+      },
+      "addTransactionDialog": {
+        "title": "Add Transaction",
+        "description": "Add a new transaction to your portfolio."
+      }
+    },
+    "transactionsList": {
+      "title": "Transactions",
+      "addButton": "Add transaction",
+      "deleteButton": "Delete",
+      "headers": {
+        "date": "Date",
+        "type": "Type",
+        "quantity": "Quantity",
+        "price": "Price",
+        "fees": "Fees",
+        "amount": "Amount",
+        "actions": "Actions"
+      }
+    }
+  }
+}

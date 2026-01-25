@@ -1,19 +1,26 @@
 <template>
   <div>
-    <h3 class="mb-3 text-sm font-semibold">Account Mapping</h3>
+    <h3 class="mb-3 text-sm font-semibold">{{ t('pages.importExport.accountMappingTable.title') }}</h3>
     <p class="text-muted-foreground mb-4 text-sm">
-      Map CSV account names to your existing accounts or create new ones. Only accounts with matching currency will be
-      shown.
+      {{ t('pages.importExport.accountMappingTable.description') }}
     </p>
 
     <div class="overflow-x-auto rounded-lg border">
       <table class="w-full text-sm">
         <thead class="bg-muted/50">
           <tr>
-            <th class="border-b px-4 py-3 text-left font-medium">CSV Account Name</th>
-            <th class="border-b px-4 py-3 text-left font-medium">Currency</th>
-            <th class="border-b px-4 py-3 text-left font-medium">Action</th>
-            <th class="border-b px-4 py-3 text-left font-medium">Target Account</th>
+            <th class="border-b px-4 py-3 text-left font-medium">
+              {{ t('pages.importExport.accountMappingTable.csvAccountName') }}
+            </th>
+            <th class="border-b px-4 py-3 text-left font-medium">
+              {{ t('pages.importExport.accountMappingTable.currency') }}
+            </th>
+            <th class="border-b px-4 py-3 text-left font-medium">
+              {{ t('pages.importExport.accountMappingTable.action') }}
+            </th>
+            <th class="border-b px-4 py-3 text-left font-medium">
+              {{ t('pages.importExport.accountMappingTable.targetAccount') }}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -56,7 +63,12 @@
                           v-if="isAccountMapped(account.id, sourceAccount.name)"
                           class="text-muted-foreground text-xs"
                         >
-                          — mapped to "{{ getMappedToAccountName(account.id) }}"
+                          —
+                          {{
+                            t('pages.importExport.accountMappingTable.mappedTo', {
+                              name: getMappedToAccountName(account.id),
+                            })
+                          }}
                         </span>
                       </span>
                     </Select.SelectItem>
@@ -66,15 +78,21 @@
                   v-if="getFilteredAccounts(sourceAccount.currency).length === 0"
                   class="text-destructive-text mt-1 text-xs"
                 >
-                  No accounts available with matching currency ({{ sourceAccount.currency }})
+                  {{
+                    t('pages.importExport.accountMappingTable.noMatchingCurrency', { currency: sourceAccount.currency })
+                  }}
                 </p>
               </div>
               <div
                 v-else-if="getAccountAction(sourceAccount.name) === 'create-new'"
                 class="text-muted-foreground text-sm"
               >
-                New account "{{ sourceAccount.name }}" will be created with
-                {{ sourceAccount.currency || 'default' }} currency
+                {{
+                  t('pages.importExport.accountMappingTable.willBeCreated', {
+                    name: sourceAccount.name,
+                    currency: sourceAccount.currency || t('pages.importExport.accountMappingTable.defaultCurrency'),
+                  })
+                }}
               </div>
               <div v-else class="text-muted-foreground text-sm">—</div>
             </td>
@@ -92,6 +110,9 @@ import { useAccountsStore } from '@/stores/accounts';
 import { useImportExportStore } from '@/stores/import-export';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 interface OptionItem {
   label: string;
@@ -102,10 +123,10 @@ const importStore = useImportExportStore();
 const accountsStore = useAccountsStore();
 const { accounts } = storeToRefs(accountsStore);
 
-const actionOptions: OptionItem[] = [
-  { label: 'Create New Account', value: 'create-new' },
-  { label: 'Map to Existing Account', value: 'link-existing' },
-];
+const actionOptions = computed<OptionItem[]>(() => [
+  { label: t('pages.importExport.accountMappingTable.actions.createNew'), value: 'create-new' },
+  { label: t('pages.importExport.accountMappingTable.actions.mapToExisting'), value: 'link-existing' },
+]);
 
 // Create a reverse mapping to find which CSV account name maps to which system account ID
 const accountIdToCSVName = computed(() => {
@@ -127,7 +148,7 @@ const getAccountAction = (accountName: string): string => {
 const getAccountActionObject = (accountName: string): OptionItem | null => {
   const action = getAccountAction(accountName);
   if (!action) return null;
-  return actionOptions.find((opt) => opt.value === action) ?? null;
+  return actionOptions.value.find((opt) => opt.value === action) ?? null;
 };
 
 const handleActionChange = (accountName: string, option: OptionItem | null) => {
@@ -164,9 +185,11 @@ const getAccountDisplayValue = (accountName: string): string => {
   const mapping = importStore.accountMapping[accountName];
   if (mapping?.action === 'link-existing' && mapping.accountId) {
     const account = accounts.value.find((acc) => acc.id === mapping.accountId);
-    return account ? `${account.name} (${account.currencyCode})` : 'Select account...';
+    return account
+      ? `${account.name} (${account.currencyCode})`
+      : t('pages.importExport.accountMappingTable.selectAccount');
   }
-  return 'Select account...';
+  return t('pages.importExport.accountMappingTable.selectAccount');
 };
 
 const isAccountMapped = (accountId: number, currentAccountName: string): boolean => {

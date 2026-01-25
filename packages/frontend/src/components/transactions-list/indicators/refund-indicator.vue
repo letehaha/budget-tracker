@@ -6,7 +6,7 @@
           <RotateCcwIcon class="size-4" />
         </div>
       </TooltipTrigger>
-      <TooltipContent>Refund</TooltipContent>
+      <TooltipContent>{{ t('common.ui.refund') }}</TooltipContent>
     </Tooltip>
   </TooltipProvider>
 </template>
@@ -16,6 +16,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { TransactionModel } from '@bt/shared/types';
 import { RotateCcwIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   transaction: TransactionModel;

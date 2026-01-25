@@ -1,0 +1,30 @@
+{
+  "settings": {
+    "accountGroups": {
+      "title": "Керування групами рахунків",
+      "addButton": "Додати нову групу",
+      "createDialog": {
+        "title": "Створити групу",
+        "nameLabel": "Назва групи",
+        "namePlaceholder": "Інвестиції",
+        "createButton": "Створити"
+      },
+      "table": {
+        "placeholder": "Назва рахунку",
+        "saveButton": "Зберегти",
+        "editButton": "Редагувати",
+        "deleteButton": "Видалити",
+        "unlinkButton": "Відв'язати",
+        "noData": "Немає даних груп рахунків",
+        "deleteDialog": {
+          "title": "Бажаєте видалити цю групу рахунків?",
+          "unlinkWarning": "Перед видаленням, будь ласка, відв'яжіть рахунки, перелічені нижче"
+        },
+        "notifications": {
+          "unlinked": "Рахунок відв'язано",
+          "deleted": "Групу видалено"
+        }
+      }
+    }
+  }
+}

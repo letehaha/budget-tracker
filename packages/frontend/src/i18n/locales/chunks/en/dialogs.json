@@ -1,0 +1,312 @@
+{
+  "dialogs": {
+    "linkAccountGroup": {
+      "title": "Link account group",
+      "createNewGroup": "Create new group"
+    },
+    "reassignCategory": {
+      "title": "Reassign Transactions",
+      "description": "This category has {count} transaction(s). Select a new category for \"{categoryName}\" transactions before deleting.",
+      "newCategoryLabel": "New category",
+      "newCategoryPlaceholder": "Select a category",
+      "cancelButton": "Cancel",
+      "reassignButton": "Reassign & Delete",
+      "reassignButtonLoading": "Reassigning...",
+      "notifications": {
+        "success": "{count} transaction(s) reassigned to {newCategoryName}",
+        "error": "Failed to reassign transactions"
+      }
+    },
+    "syncConfirmation": {
+      "title": "Sync Recently Completed",
+      "description": "You synchronized your accounts {time} ago. Are you sure you want to sync again?",
+      "syncAnyway": "Sync Anyway",
+      "cancel": "Cancel",
+      "timeUnits": {
+        "someTime": "some time",
+        "hours": "{count} hour | {count} hours",
+        "minutes": "{count} minute | {count} minutes"
+      }
+    },
+    "createPortfolio": {
+      "title": "Create Portfolio",
+      "description": "Create a new investment portfolio to track your holdings and transactions.",
+      "form": {
+        "nameLabel": "Portfolio name",
+        "namePlaceholder": "My Investment Portfolio",
+        "typeLabel": "Portfolio Type",
+        "typePlaceholder": "Select portfolio type",
+        "portfolioTypes": {
+          "investment": "Investment",
+          "retirement": "Retirement",
+          "savings": "Savings",
+          "other": "Other"
+        },
+        "descriptionLabel": "Description (optional)",
+        "descriptionPlaceholder": "A brief description of this portfolio...",
+        "submitButton": "Create Portfolio",
+        "submitButtonLoading": "Creating..."
+      },
+      "notifications": {
+        "success": "Portfolio created successfully.",
+        "error": "Failed to create portfolio. Please try again."
+      }
+    },
+    "editPortfolio": {
+      "title": "Edit Portfolio",
+      "description": "Update name, type or description of your portfolio."
+    },
+    "deletePortfolio": {
+      "title": "Delete Portfolio",
+      "description": "Are you sure you want to delete this portfolio? This action cannot be undone.",
+      "cancelButton": "Cancel",
+      "deleteButton": "Delete",
+      "deleteButtonLoading": "Deleting...",
+      "notifications": {
+        "success": "Portfolio deleted successfully.",
+        "error": "Failed to delete portfolio."
+      }
+    },
+    "manageTransaction": {
+      "title": "Manage transaction",
+      "description": "Create or edit a transaction",
+      "linkSection": {
+        "linkButton": "Link existing transaction",
+        "title": "Link existing transaction",
+        "description": "Select a transaction to link",
+        "unlinkButton": "Unlink transactions",
+        "cancelLinkingAriaLabel": "Cancel linking"
+      },
+      "typeSelector": {
+        "expense": "Expense",
+        "income": "Income",
+        "transfer": "Transfer",
+        "selectExpense": "Select expense",
+        "selectIncome": "Select income",
+        "selectTransfer": "Select transfer"
+      },
+      "recordList": {
+        "loadMore": "Load more",
+        "noMoreData": "No more data to load"
+      },
+      "form": {
+        "paymentTypeLabel": "Payment Type",
+        "noteLabel": "Note (optional)",
+        "notePlaceholder": "Note",
+        "tagsLabel": "Tags (optional)",
+        "amountLabel": "Amount",
+        "amountPlaceholder": "Amount",
+        "categoryLabel": "Category",
+        "targetAmountLabel": "Target amount",
+        "targetAmountPlaceholder": "Target amount",
+        "datetimeLabel": "Datetime",
+        "splitInfo": "Split into {count} categories",
+        "editSplit": "Edit",
+        "addSplitButton": "Split into categories",
+        "moreOptionsButton": "More options",
+        "closeButton": "Close",
+        "deleteButton": "Delete",
+        "deleteAriaLabel": "Delete transaction",
+        "createAriaLabel": "Create transaction",
+        "editAriaLabel": "Edit transaction",
+        "loadingButton": "Loading...",
+        "createButton": "Create",
+        "editButton": "Edit",
+        "fromAccountLabel": "From account",
+        "toAccountLabel": "To account",
+        "accountLabel": "Account",
+        "selectAccountPlaceholder": "Select account",
+        "noAccountExists": "No account exists",
+        "addNewAccountButton": "Add new account +",
+        "createAccountLink": "Create account"
+      },
+      "refundRecordsList": {
+        "filtersDialogTitle": "Select filters",
+        "fromDateLabel": "From date",
+        "toDateLabel": "To date",
+        "amountFromLabel": "Amount from (gte)",
+        "amountFromPlaceholder": ">= than",
+        "amountToLabel": "To (lte)",
+        "amountToPlaceholder": "<= than",
+        "resetButton": "Reset",
+        "applyButton": "Apply",
+        "loadMoreButton": "Load more",
+        "noMoreTransactions": "No more transactions to load",
+        "noIncomeTransactions": "There's no income transactions in the system that are not already marked as refunds. Create some to proceed",
+        "noExpenseTransactions": "There's no expense transactions in the system that are not already marked as refunds. Create some to proceed",
+        "noTransactions": "There's no transactions to select. Create some to proceed",
+        "resetFiltersButton": "Reset filters",
+        "recommendedLabel": "Recommended",
+        "allTransactionsLabel": "All transactions"
+      },
+      "splitDialog": {
+        "title": "Split into categories",
+        "description": "Distribute this transaction across multiple categories. The main category keeps any unallocated amount.",
+        "mainCategoryLabel": "Main Category",
+        "selectCategoryPlaceholder": "Select category",
+        "amountPlaceholder": "0",
+        "addCategoryButton": "Add category",
+        "totalAmountLabel": "Total amount",
+        "splitTotalLabel": "Split total",
+        "mainCategoryKeepsLabel": "Main category keeps",
+        "exceedsTransactionTotal": "Split amounts exceed transaction total",
+        "cancelButton": "Cancel",
+        "removeSplitsButton": "Remove splits",
+        "saveSplitsButton": "Save splits",
+        "errors": {
+          "amountMustBePositive": "Amount must be positive",
+          "duplicateCategory": "Duplicate category",
+          "cannotUseMainCategory": "Cannot use main category in splits"
+        }
+      },
+      "markAsRefund": {
+        "linkRefund": "Link refund",
+        "selectTransaction": "Select transaction",
+        "selectRefundingTransaction": "Select the original transaction that this entry is refunding.",
+        "selectRefundedByTransactions": "Select transactions which refund current entry.",
+        "refundsLabel": "Refunds",
+        "refundedByLabel": "Refunded by",
+        "saveButton": "Save",
+        "confirmButton": "Confirm",
+        "linkedRefunds": "Linked refunds",
+        "refundsPortion": "Refunds {name} portion",
+        "selectOnlyOne": "* you can select only one transaction",
+        "selectMultipleWithLimit": "* you can select multiple transactions, but their total amount cannot be greater than the original transaction amount",
+        "selectWhichPartToRefund": "Select which part to refund",
+        "transactionSplitInfo": "This transaction is split across multiple categories. Select which part you want to refund.",
+        "amountTooSmallWarning": "Options smaller than your refund amount",
+        "amountDisabled": "are disabled.",
+        "amountMayBeSmaller": "Some options may be smaller than your refund amount",
+        "finalValidationWarning": "Final validation will use converted amounts.",
+        "mainCategoryLabel": "(main)"
+      },
+      "refundInfo": {
+        "trigger": "How it works?",
+        "title": "About Refund Transactions",
+        "description": "This action links the current transaction [expense/income] as a refund to a previous existing transaction.",
+        "howItWorks": {
+          "title": "How it works:",
+          "expenseRefund": "For an expense refund: Select the original income transaction.",
+          "incomeRefund": "For an income refund: Select the original expense transaction.",
+          "noOriginal": "You can mark any transaction as a refund even if there's no \"original\" transaction in the system. Useful in case you don't have account with the original transaction in the system."
+        },
+        "benefits": {
+          "title": "Benefits:",
+          "accuracy": "Enhances financial accuracy by adjusting spending or income statistics to exclude refunded amounts.",
+          "tracking": "Helps track related transactions to improve your feed."
+        },
+        "notes": {
+          "title": "Important Notes:",
+          "recordKeeping": "This link is for record-keeping purposes only.",
+          "noBalanceAdjust": "It does not adjust the balance of the original transaction in any way.",
+          "canUnlink": "You can always unlink transactions back."
+        },
+        "examples": {
+          "title": "Examples:",
+          "customerPayment": "Refunding a customer payment: Create an expense and link it to the original income.",
+          "vendorRefund": "Receiving a refund from a vendor: Create an income and link it to the original expense.",
+          "noOriginalTx": "Recording a refund without an original transaction: Sometimes you might need to record a refund for a transaction that isn't in your system. For instance, if you're recording a refund for a cash payment that wasn't initially logged, you can still create a refund entry. This helps maintain accurate records even when the original transaction isn't digitally tracked."
+        }
+      },
+      "transferRecordsList": {
+        "filtersDialogTitle": "Filters",
+        "fromDateLabel": "From date",
+        "toDateLabel": "To date",
+        "amountFromLabel": "Amount from",
+        "amountFromPlaceholder": "Min",
+        "amountToLabel": "Amount to",
+        "amountToPlaceholder": "Max",
+        "resetButton": "Reset",
+        "applyButton": "Apply",
+        "recommendedLabel": "Recommended",
+        "allTransactionsLabel": "All transactions",
+        "loadMoreButton": "Load more",
+        "noMoreTransactions": "No more transactions",
+        "noIncomeTransactions": "No income transactions found. Try adjusting the filters.",
+        "noExpenseTransactions": "No expense transactions found. Try adjusting the filters.",
+        "noTransactions": "No transactions found. Try adjusting the filters.",
+        "resetFiltersButton": "Reset filters"
+      }
+    },
+    "portfolioTransfer": {
+      "portfolio": {
+        "title": "Transfer from Portfolio",
+        "description": "Transfer funds from this portfolio to another portfolio or account."
+      },
+      "account": {
+        "title": "Transfer from Account",
+        "description": "Transfer funds from this account to a portfolio."
+      }
+    },
+    "addSymbols": {
+      "title": "Add Symbols",
+      "searchLabel": "Search symbol or name",
+      "searchPlaceholder": "AAPL",
+      "searching": "Searching…",
+      "searchError": "Failed to search securities.",
+      "addedIndicator": "(Added)",
+      "noResults": "No results.",
+      "notifications": {
+        "success": "Holding added.",
+        "error": "Failed to add holding."
+      }
+    },
+    "deleteInvestmentTransaction": {
+      "title": "Delete Transaction",
+      "description": "Are you sure you want to delete this transaction? This action cannot be undone.",
+      "cancelButton": "Cancel",
+      "deleteButton": "Delete",
+      "deleteButtonLoading": "Deleting...",
+      "notifications": {
+        "success": "Transaction deleted successfully.",
+        "error": "Failed to delete transaction."
+      }
+    },
+    "categoryForm": {
+      "title": {
+        "edit": "Edit Category",
+        "add": "Add Category"
+      },
+      "description": {
+        "addSubcategory": "Adding subcategory to <span class=\"font-medium\">{parentName}</span>",
+        "edit": "Update category name or settings",
+        "add": "Create a new category"
+      },
+      "nameLabel": "Category name",
+      "namePlaceholder": "Enter category name",
+      "colorLabel": "Color",
+      "iconLabel": "Icon",
+      "iconPlaceholder": "Select icon",
+      "settingsDivider": "Settings",
+      "excludeFromStatsLabel": "Exclude from expense stats",
+      "excludeFromStatsTooltip": "Transactions in this category won't be counted in spending statistics and reports.",
+      "deleteButton": "Delete",
+      "saveButton": "Save",
+      "createButton": "Create",
+      "deleteDialog": {
+        "title": "Delete category?",
+        "description": "This will permanently delete \"{categoryName}\". This action cannot be undone.",
+        "cancelButton": "Cancel",
+        "deleteButton": "Delete"
+      },
+      "notifications": {
+        "updated": "Category updated",
+        "created": "Category created",
+        "deleted": "Category deleted",
+        "saveFailed": "Failed to save category",
+        "deleteFailed": "Failed to delete category",
+        "unexpectedError": "Unexpected error"
+      }
+    },
+    "addCurrency": {
+      "title": "Add new currency",
+      "description": "Select one currency to add",
+      "selectPlaceholder": "Select currency",
+      "addButton": "Add",
+      "notifications": {
+        "success": "Currency successfully added!",
+        "error": "Unexpected error. Currency is not added."
+      }
+    }
+  }
+}

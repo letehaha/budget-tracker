@@ -1,0 +1,103 @@
+{
+  "transactions": {
+    "form": {
+      "addTitle": "Додати транзакцію",
+      "editTitle": "Редагувати транзакцію"
+    },
+    "delete": {
+      "success": "Успішно видалено",
+      "error": "Не вдалося видалити транзакцію!"
+    },
+    "submit": {
+      "unexpectedError": "Неочікувана помилка!"
+    },
+    "unlink": {
+      "error": "Не вдалося відв'язати транзакції!"
+    },
+    "filters": {
+      "filtersLabel": "Фільтри:",
+      "selectFilters": "Вибрати фільтри",
+      "reset": "Скинути",
+      "apply": "Застосувати",
+      "dateRange": {
+        "tabs": {
+          "range": "Діапазон",
+          "single": "Дати окремо"
+        },
+        "selectDateRange": "Виберіть діапазон дат",
+        "fromDate": "Від дати",
+        "toDate": "До дати",
+        "clear": "Очистити",
+        "presets": {
+          "thisMonth": "Цей місяць",
+          "last3Months": "Останні 3 місяці",
+          "last6Months": "Останні 6 місяців",
+          "last12Months": "Останні 12 місяців"
+        }
+      },
+      "transactionType": {
+        "label": "Тип транзакції:",
+        "both": "Всі",
+        "income": "Доходи",
+        "expense": "Витрати"
+      },
+      "amountRange": {
+        "from": "Сума від (включно)",
+        "to": "Сума до (включно)",
+        "placeholderFrom": ">= ніж",
+        "placeholderTo": "<= ніж"
+      },
+      "exclude": {
+        "label": "Сховати:",
+        "refunds": "Повернення",
+        "transfers": "Перекази"
+      },
+      "noteIncludes": {
+        "label": "Примітка містить (через кому):",
+        "placeholder": "Amazon,nike"
+      },
+      "tags": {
+        "allTags": "Усі теги",
+        "tagSingular": "тег",
+        "tagPlural": "тегів",
+        "selected": "обрано",
+        "searchPlaceholder": "Шукати теги..."
+      }
+    },
+    "list": {
+      "noMoreData": "Більше даних немає",
+      "loadingMore": "Завантаження...",
+      "detailsTitle": "Деталі транзакції",
+      "detailsDescription": "Перегляд та редагування транзакції"
+    },
+    "bulkEdit": {
+      "selectAll": "Вибрати всі",
+      "editButton": "Редагувати",
+      "deleteButton": "Видалити",
+      "selectedCount": "Вибрано: {count}",
+      "dialogTitle": "Редагувати {count} транзакцій",
+      "dialogDescription": "Зміни буде застосовано до всіх вибраних транзакцій. Оновлені будуть лише заповнені поля.",
+      "categoryLabel": "Категорія",
+      "categoryPlaceholder": "Оберіть категорію...",
+      "tagsLabel": "Теги",
+      "tagsPlaceholder": "Оберіть теги...",
+      "noteLabel": "Примітка",
+      "notePlaceholder": "Введіть примітку...",
+      "applyButton": "Застосувати зміни",
+      "applyingButton": "Застосування...",
+      "confirmTitle": "Підтвердження змін",
+      "confirmDescription": "Ви збираєтесь оновити {count} транзакцій:",
+      "confirmCategoryLabel": "Категорія",
+      "confirmTagsLabel": "Теги",
+      "confirmNoteLabel": "Примітка",
+      "cancelButton": "Скасувати",
+      "confirmApplyButton": "Застосувати",
+      "successMessage": "Успішно оновлено {count} транзакцій",
+      "unexpectedError": "Виникла неочікувана помилка",
+      "tagModeLabel": "Дія з тегами",
+      "tagModeAdd": "Додати до існуючих тегів",
+      "tagModeReplace": "Замінити всі теги",
+      "tagModeRemove": "Видалити ці теги"
+    }
+  }
+}
