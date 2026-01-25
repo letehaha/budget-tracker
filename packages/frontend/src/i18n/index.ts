@@ -111,7 +111,7 @@ export const i18n: I18n<Record<string, unknown>, {}, {}, SupportedLocale, false>
 /**
  * Load a specific chunk for a locale
  */
-export async function loadChunk({ locale, chunk }: { locale: string; chunk: I18nChunkName }): Promise<void> {
+async function loadChunk({ locale, chunk }: { locale: string; chunk: I18nChunkName }): Promise<void> {
   const localeChunks = loadedChunks.get(locale) ?? new Set<I18nChunkName>();
 
   // Skip if already loaded
@@ -179,7 +179,7 @@ export async function loadChunksForRoute({ route }: { route: RouteLocationNormal
 /**
  * Reload all loaded chunks when locale changes
  */
-export async function reloadChunksForLocale({ locale }: { locale: string }): Promise<void> {
+async function reloadChunksForLocale({ locale }: { locale: string }): Promise<void> {
   const currentLocale = i18n.global.locale.value;
   const currentChunks = loadedChunks.get(currentLocale);
 
@@ -191,13 +191,6 @@ export async function reloadChunksForLocale({ locale }: { locale: string }): Pro
 
   // Load all previously loaded chunks for the new locale
   await loadChunks({ locale, chunks: Array.from(currentChunks) });
-}
-
-/**
- * Check if a chunk is loaded for a locale
- */
-export function isChunkLoaded({ locale, chunk }: { locale: string; chunk: I18nChunkName }): boolean {
-  return loadedChunks.get(locale)?.has(chunk) ?? false;
 }
 
 /**
@@ -240,12 +233,4 @@ export function initializeLocale(): string {
     DEFAULT_LOCALE;
 
   return locale;
-}
-
-/**
- * Legacy function for backwards compatibility - loads all chunks for a locale
- * @deprecated Use loadChunks or setLocale instead
- */
-export async function loadLanguageAsync(locale: string): Promise<void> {
-  await setLocale(locale);
 }

@@ -3,7 +3,8 @@
  */
 
 // All available chunk names
-export const I18N_CHUNKS = [
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const I18N_CHUNKS = [
   // Core - always or frequently loaded
   'common',
   'layout',
@@ -59,7 +60,7 @@ declare module 'vue-router' {
 export type LoadedChunksMap = Map<string, Set<I18nChunkName>>;
 
 // Type for chunk loader function
-export type ChunkLoader = () => Promise<{ default: Record<string, unknown> }>;
+type ChunkLoader = () => Promise<{ default: Record<string, unknown> }>;
 
 // Type for chunk registry (maps locale -> chunk name -> loader)
 export type ChunkRegistry = Record<string, Partial<Record<I18nChunkName, ChunkLoader>>>;
