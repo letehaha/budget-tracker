@@ -212,7 +212,7 @@ import { CheckIcon, ChevronDown, SearchIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 import ChartSkeleton from '../../cash-flow/components/chart-skeleton.vue';
 
@@ -233,6 +233,7 @@ const props = defineProps<{
 const { t } = useI18n();
 const { format, locale } = useDateLocale();
 const { formatBaseCurrency, getCurrencySymbol } = useFormatCurrency();
+const route = useRoute();
 const router = useRouter();
 
 const { categories } = storeToRefs(useCategoriesStore());
@@ -241,6 +242,22 @@ const { categories } = storeToRefs(useCategoriesStore());
 const isTouchDevice = ref(false);
 onMounted(() => {
   isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  // Initialize category selection from query params if present
+  if (route.query.categoryIds) {
+    const categoryIds = Array.isArray(route.query.categoryIds)
+      ? route.query.categoryIds.map((id) => Number(id))
+      : [Number(route.query.categoryIds)];
+
+    // Only set valid category IDs (filter out NaN)
+    const validIds = categoryIds.filter((id) => !isNaN(id));
+    if (validIds.length > 0) {
+      selectedCategoryIds.value = validIds;
+    }
+
+    // Clear query params from URL (replace to preserve back navigation)
+    router.replace({ query: {} });
+  }
 });
 
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -1080,7 +1097,7 @@ function handleStackedMouseLeave() {
 }
 
 // Handle bar click - navigate on desktop, show tooltip on touch
-function handleBarClick(event: MouseEvent, d: PeriodWithChange, categoryId?: number) {
+function handleBarClick(_event: MouseEvent, d: PeriodWithChange, categoryId?: number) {
   // Skip if user is interacting with tooltip
   if (isTooltipInteracting.value) return;
 

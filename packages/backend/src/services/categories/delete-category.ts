@@ -1,10 +1,15 @@
-import { NotFoundError, ValidationError } from '@js/errors';
+import { API_ERROR_CODES } from '@bt/shared/types';
+import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import * as Categories from '@models/Categories.model';
-import Transactions from '@models/Transactions.model';
+import Transactions, * as TransactionsModel from '@models/Transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { editExcludedCategories } from '@services/user-settings/edit-excluded-categories';
 
-export const deleteCategory = withTransaction(async (payload: Categories.DeleteCategoryPayload) => {
+export interface DeleteCategoryPayload extends Categories.DeleteCategoryPayload {
+  replaceWithCategoryId?: number;
+}
+
+export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayload) => {
   const rootCategory = await Categories.default.findOne({
     where: { id: payload.categoryId },
   });
@@ -26,18 +31,37 @@ export const deleteCategory = withTransaction(async (payload: Categories.DeleteC
     });
   }
 
-  const relatedTransaction = await Transactions.findOne({
+  const transactionCount = await Transactions.count({
     where: {
       userId: payload.userId,
       categoryId: payload.categoryId,
     },
   });
 
-  if (relatedTransaction) {
-    throw new ValidationError({
-      message:
-        'You cannot delete category that has any transactions linked. You need to delete or change category of all linked transactions.',
+  if (transactionCount > 0) {
+    if (!payload.replaceWithCategoryId) {
+      throw new ConflictError({
+        code: API_ERROR_CODES.categoryHasTransactions,
+        message: 'Category has linked transactions that need to be reassigned.',
+        details: { transactionCount },
+      });
+    }
+
+    const replacementCategory = await Categories.default.findOne({
+      where: { id: payload.replaceWithCategoryId, userId: payload.userId },
     });
+
+    if (!replacementCategory) {
+      throw new NotFoundError({
+        message: 'Replacement category does not exist.',
+      });
+    }
+
+    await TransactionsModel.updateTransactions(
+      { categoryId: payload.replaceWithCategoryId },
+      { userId: payload.userId, categoryId: payload.categoryId },
+      { individualHooks: false },
+    );
   }
 
   await editExcludedCategories({
@@ -45,8 +69,5 @@ export const deleteCategory = withTransaction(async (payload: Categories.DeleteC
     removeIds: [payload.categoryId],
   });
 
-  // When deleting, make all transactions related to that category being related
-  // to parentId if exists. If no parent, then to Other category (or maybe create Unknown)
-  // Disallow deleting parent if children exist (for now)
   await Categories.deleteCategory(payload);
 });

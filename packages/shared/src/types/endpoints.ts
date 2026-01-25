@@ -164,6 +164,14 @@ export type CreateCategoryResponse = CategoryModel;
 export type EditCategoryBody = Partial<Pick<CategoryModel, 'name' | 'color' | 'icon'>>;
 export type EditCategoryResponse = CategoryModel[];
 
+export interface DeleteCategoryBody {
+  replaceWithCategoryId?: number;
+}
+
+export interface DeleteCategoryConflictResponse {
+  transactionCount: number;
+}
+
 // Cash Flow Analytics
 export type CashFlowGranularity = 'monthly' | 'biweekly' | 'weekly';
 

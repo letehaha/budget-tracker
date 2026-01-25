@@ -76,7 +76,7 @@ watch(
         :key="required"
         class="border-border flex items-center gap-3 rounded border p-3"
       >
-        <div class="min-w-[100px] font-medium">
+        <div class="min-w-25 font-medium">
           {{ required }}
           <span class="text-destructive-text">*</span>
         </div>

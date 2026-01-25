@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-[500px]">
+  <div class="max-w-125">
     <Card class="px-2 py-4">
       <div class="relative mb-4 flex items-center justify-between px-4 py-2">
         <h3 class="text-lg font-semibold">{{ $t('settings.categories.title') }}</h3>
@@ -24,6 +24,8 @@
             @edit="openEditDialog"
             @add-subcategory="openAddSubcategoryDialog"
             @delete="openDeleteConfirmation"
+            @view-transactions="viewCategoryTransactions"
+            @view-analytics="viewCategoryAnalytics"
           />
         </template>
         <template v-else>
@@ -59,14 +61,22 @@
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <ReassignCategoryDialog
+      v-model:open="reassignDialogState.isOpen"
+      :category="reassignDialogState.category"
+      :transaction-count="reassignDialogState.transactionCount"
+      @deleted="handleReassignDeleted"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { deleteCategory as apiDeleteCategory } from '@/api';
+import { deleteCategory as apiDeleteCategory, getCategoryTransactionCount } from '@/api';
 import { type FormattedCategory } from '@/common/types';
 import Accordion from '@/components/common/accordion.vue';
 import CategoryFormDialog from '@/components/dialogs/category-form-dialog.vue';
+import ReassignCategoryDialog from '@/components/dialogs/reassign-category-dialog.vue';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -81,18 +91,21 @@ import { Button } from '@/components/lib/ui/button';
 import { Card } from '@/components/lib/ui/card';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
+import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 
 defineOptions({
   name: 'settings-categories',
 });
 
 const { t } = useI18n();
+const router = useRouter();
 const categoriesStore = useCategoriesStore();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 
@@ -122,6 +135,16 @@ const deleteDialogState = reactive<{
   category: undefined,
 });
 
+const reassignDialogState = reactive<{
+  isOpen: boolean;
+  category?: FormattedCategory;
+  transactionCount: number;
+}>({
+  isOpen: false,
+  category: undefined,
+  transactionCount: 0,
+});
+
 const toggleCategory = (category: FormattedCategory) => {
   const categoryId = category.id;
   const index = expandedCategories.value.indexOf(categoryId);
@@ -141,6 +164,20 @@ const toggleCategory = (category: FormattedCategory) => {
 
 const selectCategory = (category: FormattedCategory) => {
   selectedCategoryId.value = category.id;
+};
+
+const viewCategoryTransactions = (category: FormattedCategory) => {
+  router.push({
+    name: ROUTES_NAMES.transactions,
+    query: { categoryIds: String(category.id) },
+  });
+};
+
+const viewCategoryAnalytics = (category: FormattedCategory) => {
+  router.push({
+    name: ROUTES_NAMES.analyticsTrendsComparison,
+    query: { categoryIds: String(category.id) },
+  });
 };
 
 const openEditDialog = (category?: FormattedCategory) => {
@@ -166,9 +203,21 @@ const handleCategoryDeleted = () => {
   selectedCategoryId.value = null;
 };
 
-const openDeleteConfirmation = (category: FormattedCategory) => {
-  deleteDialogState.category = category;
-  deleteDialogState.isOpen = true;
+const openDeleteConfirmation = async (category: FormattedCategory) => {
+  try {
+    const { transactionCount } = await getCategoryTransactionCount({ categoryId: category.id });
+
+    if (transactionCount > 0) {
+      reassignDialogState.category = category;
+      reassignDialogState.transactionCount = transactionCount;
+      reassignDialogState.isOpen = true;
+    } else {
+      deleteDialogState.category = category;
+      deleteDialogState.isOpen = true;
+    }
+  } catch {
+    addErrorNotification(t('settings.categories.notifications.checkFailed'));
+  }
 };
 
 const handleDeleteCategory = async () => {
@@ -194,5 +243,14 @@ const handleDeleteCategory = async () => {
     deleteDialogState.isOpen = false;
     deleteDialogState.category = undefined;
   }
+};
+
+const handleReassignDeleted = () => {
+  if (reassignDialogState.category && selectedCategoryId.value === reassignDialogState.category.id) {
+    selectedCategoryId.value = null;
+  }
+  reassignDialogState.isOpen = false;
+  reassignDialogState.category = undefined;
+  reassignDialogState.transactionCount = 0;
 };
 </script>

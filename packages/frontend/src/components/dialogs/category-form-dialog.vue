@@ -84,29 +84,7 @@
         </ResponsiveTooltip>
       </div>
 
-      <div class="mt-2 flex items-center" :class="isEditMode ? 'justify-between' : 'justify-end'">
-        <AlertDialog v-if="isEditMode">
-          <AlertDialogTrigger as-child>
-            <Button type="button" variant="destructive" :disabled="isSubmitting">
-              {{ $t('dialogs.categoryForm.deleteButton') }}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{{ $t('dialogs.categoryForm.deleteDialog.title') }}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {{ $t('dialogs.categoryForm.deleteDialog.description', { categoryName: category?.name }) }}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{{ $t('dialogs.categoryForm.deleteDialog.cancelButton') }}</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" @click="handleDelete">{{
-                $t('dialogs.categoryForm.deleteDialog.deleteButton')
-              }}</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
+      <div class="mt-2 flex justify-end">
         <Button type="submit" :disabled="isSubmitDisabled">
           {{ isEditMode ? $t('dialogs.categoryForm.saveButton') : $t('dialogs.categoryForm.createButton') }}
         </Button>
@@ -116,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { deleteCategory as apiDeleteCategory, createCategory, editCategory } from '@/api';
+import { createCategory, editCategory } from '@/api';
 import { type FormattedCategory } from '@/common/types';
 import { removeNullishValues } from '@/common/utils/remove-keys';
 import TagIcon from '@/components/common/icons/tag-icon.vue';
@@ -125,26 +103,14 @@ import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import ColorSelectField from '@/components/fields/color-select-field.vue';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/lib/ui/alert-dialog';
 import { Button } from '@/components/lib/ui/button';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { useNotificationCenter } from '@/components/notification-center';
-import { cn } from '@/lib/utils';
 import { addCategories, removeCategories, useUserSettings } from '@/composable/data-queries/user-settings';
 import { ApiErrorResponseError } from '@/js/errors';
+import { cn } from '@/lib/utils';
 import { useCategoriesStore, useOnboardingStore } from '@/stores';
-import { API_ERROR_CODES } from '@bt/shared/types';
 import { ChevronsUpDownIcon, InfoIcon } from 'lucide-vue-next';
 import { computed, defineAsyncComponent, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -159,7 +125,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   saved: [category: FormattedCategory];
-  deleted: [];
   'update:open': [value: boolean];
 }>();
 
@@ -337,30 +302,6 @@ const handleSubmit = async () => {
     } else {
       addErrorNotification(t('dialogs.categoryForm.notifications.unexpectedError'));
     }
-  } finally {
-    isSubmitting.value = false;
-  }
-};
-
-const handleDelete = async () => {
-  if (!props.category) return;
-
-  isSubmitting.value = true;
-
-  try {
-    await apiDeleteCategory({ categoryId: props.category.id });
-    await categoriesStore.loadCategories();
-    addSuccessNotification(t('dialogs.categoryForm.notifications.deleted'));
-    emit('deleted');
-    isOpen.value = false;
-  } catch (err) {
-    if (err instanceof ApiErrorResponseError) {
-      if (err.data.code === API_ERROR_CODES.validationError) {
-        addErrorNotification(err.data.message);
-        return;
-      }
-    }
-    addErrorNotification(t('dialogs.categoryForm.notifications.deleteFailed'));
   } finally {
     isSubmitting.value = false;
   }

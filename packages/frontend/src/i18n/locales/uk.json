@@ -11,7 +11,11 @@
       "add": "Додати",
       "create": "Створити",
       "close": "Закрити",
-      "addSubcategory": "Додати підкатегорію"
+      "addSubcategory": "Додати підкатегорію",
+      "settings": "Налаштування",
+      "confirm": "Підтвердити",
+      "viewTransactions": "Переглянути транзакції",
+      "viewAnalytics": "Переглянути аналітику"
     },
     "errors": {
       "copyToClipboardFailed": "Не вдалося скопіювати до буфера обміну"
