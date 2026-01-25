@@ -83,7 +83,19 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
   },
 ];
 
-export const getEurAccount = () => ACCOUNTS.find((item) => item.name === eurAccountName);
-export const getUsdAccount = () => ACCOUNTS.find((item) => item.name === usdAccountName);
-export const getUahAccount = () => ACCOUNTS.find((item) => item.name === uahAccountName);
-export const getUah2Account = () => ACCOUNTS.find((item) => item.name === uah2AccountName);
+export const getEurAccount = (overrides?: Partial<AccountWithRelinkStatus>) => ({
+  ...ACCOUNTS.find((item) => item.name === eurAccountName),
+  ...overrides,
+});
+export const getUsdAccount = (overrides?: Partial<AccountWithRelinkStatus>) => ({
+  ...ACCOUNTS.find((item) => item.name === usdAccountName),
+  ...overrides,
+});
+export const getUahAccount = (overrides?: Partial<AccountWithRelinkStatus>) => ({
+  ...ACCOUNTS.find((item) => item.name === uahAccountName),
+  ...overrides,
+});
+export const getUah2Account = (overrides?: Partial<AccountWithRelinkStatus>) => ({
+  ...ACCOUNTS.find((item) => item.name === uah2AccountName),
+  ...overrides,
+});
