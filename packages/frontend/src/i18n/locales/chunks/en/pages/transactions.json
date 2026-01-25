@@ -73,7 +73,6 @@
     "bulkEdit": {
       "selectAll": "Select all",
       "editButton": "Edit",
-      "deleteButton": "Delete",
       "selectedCount": "{count} selected",
       "dialogTitle": "Edit {count} transactions",
       "dialogDescription": "Changes will be applied to all selected transactions. Only filled fields will be updated.",

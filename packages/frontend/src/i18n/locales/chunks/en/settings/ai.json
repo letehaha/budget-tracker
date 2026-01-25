@@ -8,15 +8,6 @@
         "apiKeys": "API Keys",
         "invalidKeysTooltip": "One or more API keys are invalid"
       },
-      "howApiKeysWork": {
-        "title": "How API keys work",
-        "points": {
-          "defaultKey": "By default, AI features use our server's API key at no extra cost to you.",
-          "ownKey": "If you add your own API key for a provider, that key will be used instead for models from that provider.",
-          "encrypted": "Your API keys are encrypted and stored securely.",
-          "removal": "You can remove your key anytime to switch back to the server-provided key (rate limits will be applied based on current demand)."
-        }
-      },
       "apiKeyManager": {
         "title": "API Keys",
         "description": "Add your own API keys to use specific providers",
@@ -29,8 +20,7 @@
           "validated": "Validated {timeAgo}"
         },
         "buttons": {
-          "setDefault": "Set as Default",
-          "delete": "Delete"
+          "setDefault": "Set as Default"
         },
         "invalidKeyHelp": "Add a new key below to replace this one, or remove it if you no longer need it.",
         "deleteDialog": {

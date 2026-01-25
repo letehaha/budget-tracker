@@ -1,16 +1,13 @@
 {
   "analytics": {
-    "title": "Analytics",
     "backToAnalytics": "Back to Analytics",
     "timePeriods": {
-      "days": "{count} days"
     },
     "navigation": {
       "cashFlow": "Cash Flow",
       "trendsComparison": "Trends Comparison"
     },
     "cashFlow": {
-      "title": "Cash Flow",
       "income": "Income",
       "expenses": "Expenses",
       "netSavings": "Net Savings",
@@ -40,8 +37,7 @@
         "last6Months": "Last 6 months",
         "last12Months": "Last 12 months",
         "thisYear": "This year",
-        "previousYear": "Previous year",
-        "custom": "Custom"
+        "previousYear": "Previous year"
       },
       "periodSelector": {
         "quickSelect": "Quick Select",
@@ -49,7 +45,6 @@
       }
     },
     "trends": {
-      "title": "Trends",
       "metrics": {
         "expenses": "Expenses",
         "income": "Income",
@@ -74,7 +69,6 @@
         "searchCategories": "Search categories...",
         "average": "Average",
         "total": "Total",
-        "noChange": "No change",
         "vsLastMonth": "vs previous month",
         "viewTransactions": "View transactions"
       },

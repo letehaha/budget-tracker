@@ -42,9 +42,35 @@ export default typescriptEslint.config(
       // Detect missing keys in locale files
       '@intlify/vue-i18n/no-missing-keys': 'error',
       // Warn about unused keys (can be noisy, set to warn)
-      // NOTE: Many keys are dynamically accessed (currencyNames, accountCategories, paymentTypes)
-      // and the linter cannot detect these usages. Disabling the rule for now.
-      '@intlify/vue-i18n/no-unused-keys': 'off',
+      '@intlify/vue-i18n/no-unused-keys': [
+        'warn',
+        {
+          extensions: ['.ts', '.vue'],
+          enableFix: false,
+          // Ignore dynamically accessed keys that the linter cannot trace
+          // These are accessed via computed key patterns like t(`currencyNames.${code}`)
+          // Pattern format: "/regex/" as string
+          ignores: [
+            // formatters.ts: t(`currencyNames.${code}`)
+            '/^currencyNames\\./',
+            // account-categories-verbose.ts: maps ACCOUNT_CATEGORIES to translation keys
+            '/^common\\.accountCategories\\./',
+            // const/index.ts: PAYMENT_TYPES_VERBOSE array
+            '/^common\\.paymentTypes\\./',
+            // ai-features.ts: AI_FEATURES config
+            '/^common\\.aiFeatures\\./',
+            // oauth-callback.vue: t(`auth.oauthCallback.errors.${error}.${actionKey}`)
+            '/^auth\\.oauthCallback\\.errors\\./',
+            // demo loading overlay: accessed by array index
+            '/^demo\\.loadingOverlay\\.messages\\[/',
+            // onboarding.ts: t(`${prefix}.categories.${id}.title`) and t(`${prefix}.tasks.${id}.title`)
+            '/^dashboard\\.onboarding\\.quickStart\\.categories\\./',
+            '/^dashboard\\.onboarding\\.quickStart\\.tasks\\./',
+            // bank-providers.ts: provider nameKey and descriptionKey
+            '/^pages\\.integrations\\.providers\\./',
+          ],
+        },
+      ],
     },
     settings: {
       'vue-i18n': {

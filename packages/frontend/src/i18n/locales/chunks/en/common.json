@@ -8,9 +8,6 @@
       "accept": "Accept",
       "delete": "Delete",
       "edit": "Edit",
-      "add": "Add",
-      "create": "Create",
-      "close": "Close",
       "addSubcategory": "Add subcategory",
       "settings": "Settings",
       "confirm": "Confirm",
@@ -32,7 +29,6 @@
       "copyToClipboardFailed": "Failed to copy to clipboard"
     },
     "notifications": {
-      "languagePreferenceSaved": "Language preference saved"
     },
     "labels": {
       "email": "Email",
@@ -73,7 +69,6 @@
       "voucher": "Voucher",
       "webPayment": "Web Payment"
     },
-    "outOfWallet": "Out of wallet",
     "aiFeatures": {
       "categorization": {
         "name": "Transaction Categorization",
@@ -176,8 +171,7 @@
     },
     "featureNotAvailable": "This feature is not available in demo mode",
     "bankConnectionsRestricted": {
-      "title": "Bank Connections",
-      "description": "Bank connections are not available in demo mode"
+      "title": "Bank Connections"
     },
     "signUpToUnlock": "Sign up to unlock this feature",
     "passwordChangeRestricted": "Password changes are not available in demo mode",

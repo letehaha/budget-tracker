@@ -86,8 +86,6 @@
         "selectTransfer": "Select transfer"
       },
       "recordList": {
-        "loadMore": "Load more",
-        "noMoreData": "No more data to load"
       },
       "form": {
         "paymentTypeLabel": "Payment Type",
@@ -280,21 +278,12 @@
       "settingsDivider": "Settings",
       "excludeFromStatsLabel": "Exclude from expense stats",
       "excludeFromStatsTooltip": "Transactions in this category won't be counted in spending statistics and reports.",
-      "deleteButton": "Delete",
       "saveButton": "Save",
       "createButton": "Create",
-      "deleteDialog": {
-        "title": "Delete category?",
-        "description": "This will permanently delete \"{categoryName}\". This action cannot be undone.",
-        "cancelButton": "Cancel",
-        "deleteButton": "Delete"
-      },
       "notifications": {
         "updated": "Category updated",
         "created": "Category created",
-        "deleted": "Category deleted",
         "saveFailed": "Failed to save category",
-        "deleteFailed": "Failed to delete category",
         "unexpectedError": "Unexpected error"
       }
     },

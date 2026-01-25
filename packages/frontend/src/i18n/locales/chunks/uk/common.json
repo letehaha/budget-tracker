@@ -8,9 +8,6 @@
       "accept": "Прийняти",
       "delete": "Видалити",
       "edit": "Редагувати",
-      "add": "Додати",
-      "create": "Створити",
-      "close": "Закрити",
       "addSubcategory": "Додати підкатегорію",
       "settings": "Налаштування",
       "confirm": "Підтвердити",
@@ -32,7 +29,6 @@
       "copyToClipboardFailed": "Не вдалося скопіювати до буфера обміну"
     },
     "notifications": {
-      "languagePreferenceSaved": "Налаштування мови збережено"
     },
     "labels": {
       "email": "Електронна пошта",
@@ -73,7 +69,6 @@
       "voucher": "Ваучер",
       "webPayment": "Інтернет-платіж"
     },
-    "outOfWallet": "Поза гаманцем",
     "aiFeatures": {
       "categorization": {
         "name": "Категоризація транзакцій",
@@ -176,8 +171,7 @@
     },
     "featureNotAvailable": "Цей функціонал недоступний у режимі демо",
     "bankConnectionsRestricted": {
-      "title": "Підключення банків",
-      "description": "Підключення банків недоступне в режимі демо"
+      "title": "Підключення банків"
     },
     "signUpToUnlock": "Зареєструйтесь, щоб розблокувати цей функціонал",
     "passwordChangeRestricted": "Зміна пароля недоступна в режимі демо",

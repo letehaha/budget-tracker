@@ -73,7 +73,6 @@
     "bulkEdit": {
       "selectAll": "Вибрати всі",
       "editButton": "Редагувати",
-      "deleteButton": "Видалити",
       "selectedCount": "Вибрано: {count}",
       "dialogTitle": "Редагувати {count} транзакцій",
       "dialogDescription": "Зміни буде застосовано до всіх вибраних транзакцій. Оновлені будуть лише заповнені поля.",

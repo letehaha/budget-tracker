@@ -163,21 +163,8 @@
         },
         "gotItButton": "Зрозуміло"
       },
-      "common": {
-        "integrationLabel": "Інтеграція",
-        "typeLabel": "Тип",
-        "statusLabel": "Статус",
-        "actionsLabel": "Дії",
-        "cancelButton": "Скасувати",
-        "backButton": "Назад",
-        "countryLabel": "Країна",
-        "bankLabel": "Банк"
-      },
       "enableBanking": {
         "instructions": {
-          "overviewTitle": "Огляд",
-          "usageType": "Тип використання",
-          "usageTypePrivate": "Приватний"
         },
         "placeholders": {
           "appId": "Введіть ваш Enable Banking app_id",

@@ -86,8 +86,6 @@
         "selectTransfer": "Вибрати переказ"
       },
       "recordList": {
-        "loadMore": "Завантажити більше",
-        "noMoreData": "Більше даних немає"
       },
       "form": {
         "paymentTypeLabel": "Тип платежу",
@@ -280,21 +278,12 @@
       "settingsDivider": "Налаштування",
       "excludeFromStatsLabel": "Виключити зі статистики витрат",
       "excludeFromStatsTooltip": "Транзакції в цій категорії не враховуватимуться в статистиці витрат та звітах.",
-      "deleteButton": "Видалити",
       "saveButton": "Зберегти",
       "createButton": "Створити",
-      "deleteDialog": {
-        "title": "Видалити категорію?",
-        "description": "Це назавжди видалить \"{categoryName}\". Цю дію неможливо скасувати.",
-        "cancelButton": "Скасувати",
-        "deleteButton": "Видалити"
-      },
       "notifications": {
         "updated": "Категорію оновлено",
         "created": "Категорію створено",
-        "deleted": "Категорію видалено",
         "saveFailed": "Не вдалося зберегти категорію",
-        "deleteFailed": "Не вдалося видалити категорію",
         "unexpectedError": "Неочікувана помилка"
       }
     },

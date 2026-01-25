@@ -61,7 +61,6 @@
       }
     },
     "settings": {
-      "title": "Budget Settings",
       "nameLabel": "Budget name",
       "namePlaceholder": "Enter budget name",
       "limitLabel": "Budget limit",
@@ -76,7 +75,6 @@
     "categoryBudget": {
       "backToBudgets": "Back to Budgets",
       "trackedCategories": "Tracked Categories",
-      "editCategories": "Edit Categories",
       "categoriesCount": "{count} categories tracked",
       "autoTrackedInfo": "Transactions are automatically tracked based on categories",
       "transactionsTitle": "Transactions",
@@ -84,36 +82,18 @@
       "noTransactions": "No transactions yet",
       "noTransactionsDescription": "Transactions matching your tracked categories will appear here automatically.",
       "categoryBreakdown": "Category Breakdown",
-      "loadMore": "Load more",
       "edit": "Edit",
       "editTitle": "Edit Budget",
       "showMore": "Show more",
       "showLess": "Show less",
+      "loadMore": "Load more",
       "settings": {
-        "title": "Budget Settings",
-        "categoriesLabel": "Tracked Categories",
-        "categoriesDescription": "Select categories to auto-track"
+        "categoriesLabel": "Tracked Categories"
       }
     },
     "manualBudget": {
       "edit": "Edit",
       "editTitle": "Edit Budget"
-    },
-    "transactionsList": {
-      "selectionModeWarning": "Selection mode — choose transactions to unlink",
-      "selectAll": "Select all",
-      "selected": "{count} selected",
-      "unlink": "Unlink",
-      "cancel": "Cancel",
-      "unlinkSelected": "Unlink Selected",
-      "noMatchingTransactions": "No matching transactions",
-      "noTransactionsLinked": "No transactions linked",
-      "filterAdjustmentHint": "Try adjusting your filters to see more transactions.",
-      "addTransactionsHint": "Add transactions to this budget to start tracking your spending.",
-      "resetFilters": "Reset Filters",
-      "addTransactions": "Add Transactions",
-      "add": "Add",
-      "loadingMore": "Loading more..."
     }
   }
 }

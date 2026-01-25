@@ -22,7 +22,6 @@
     "sync": {
       "syncing": "Syncing",
       "synchronizing": "Synchronizing...",
-      "synced": "Synced",
       "syncedTime": "Synced {time}",
       "connectBank": "Connect bank",
       "syncingAccounts": "Syncing {count} accounts"
@@ -73,37 +72,10 @@
       "actionButton": "Go to Security Settings"
     },
     "legacyAccountMigration": {
-      "verificationSent": {
-        "title": "Check your email",
-        "description": "We've sent a verification link to {email}. Please click the link to confirm your new email address.",
-        "note": "After verification, you'll need to log in again with your new email.",
-        "signOutButton": "Sign Out & Log in with new email",
-        "signingOut": "Signing out..."
-      },
-      "form": {
-        "title": "Update your login method",
-        "description": "Your account uses a legacy username-based login. Please add an email address to continue using your account.",
-        "actionRequired": "Action required",
-        "warning": "Without updating your login method, your account data may become corrupted or inaccessible in future updates.",
-        "reassurance": "Your email will only be used for login purposes and won't be shared or used for marketing.",
-        "usernameWarning": "After migration, you will no longer be able to log in with your username. Use your email instead, or connect OAuth accounts (Google) for easier access.",
-        "emailLabel": "Email Address",
-        "emailPlaceholder": "your{'@'}email.com",
-        "submitButton": "Send Verification Email",
-        "submitting": "Sending verification...",
-        "signOutButton": "Sign Out",
-        "emailValidation": "Please enter a valid email address.",
-        "sendVerificationError": "Failed to send verification email"
-      },
-      "errors": {
-        "sendVerificationFailed": "Failed to send verification email. Please try again.",
-        "signOutFailed": "Failed to sign out. Please try again."
-      }
     }
   },
   "relinkWarning": {
     "buttonLabel": "{count} account needs attention | {count} accounts need attention",
-    "buttonLabelShort": "{count}",
     "title": "Enable Banking: Action Required",
     "description": "These Enable Banking accounts need to be updated due to a data schema change. This is a one-time action to improve synchronization reliability.",
     "step1Full": "To save your time, firstly try reconnecting the whole bank connection. You can find a {reconnect} button under the {connectionValidity} section on each connection page:",

@@ -1,16 +1,13 @@
 {
   "analytics": {
-    "title": "Аналітика",
     "backToAnalytics": "Назад до аналітики",
     "timePeriods": {
-      "days": "{count} днів"
     },
     "navigation": {
       "cashFlow": "Грошовий потік",
       "trendsComparison": "Порівняння трендів"
     },
     "cashFlow": {
-      "title": "Грошовий потік",
       "income": "Дохід",
       "expenses": "Витрати",
       "netSavings": "Чисті заощадження",
@@ -40,8 +37,7 @@
         "last6Months": "Останні 6 місяців",
         "last12Months": "Останні 12 місяців",
         "thisYear": "Цього року",
-        "previousYear": "Минулого року",
-        "custom": "Власний"
+        "previousYear": "Минулого року"
       },
       "periodSelector": {
         "quickSelect": "Швидкий вибір",
@@ -49,7 +45,6 @@
       }
     },
     "trends": {
-      "title": "Тренди",
       "metrics": {
         "expenses": "Витрати",
         "income": "Дохід",
@@ -74,7 +69,6 @@
         "searchCategories": "Пошук категорій...",
         "average": "Середнє",
         "total": "Усього",
-        "noChange": "Без змін",
         "vsLastMonth": "проти попереднього місяця",
         "viewTransactions": "Переглянути транзакції"
       },

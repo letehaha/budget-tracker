@@ -24,7 +24,6 @@
         "browseButton": "Вибрати файл",
         "supportedFormats": "Підтримувані формати: PDF, CSV, TXT (макс. 10МБ)",
         "removeButton": "Видалити",
-        "analyzingFile": "Аналіз файлу...",
         "analyzeButton": "Аналізувати файл",
         "tryAgain": "Спробувати ще раз",
         "modelLabel": "Модель",

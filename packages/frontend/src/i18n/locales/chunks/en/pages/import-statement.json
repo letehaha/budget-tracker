@@ -24,7 +24,6 @@
         "browseButton": "Browse Files",
         "supportedFormats": "Supported formats: PDF, CSV, TXT (max 10MB)",
         "removeButton": "Remove",
-        "analyzingFile": "Analyzing file...",
         "analyzeButton": "Analyze File",
         "tryAgain": "Try Again",
         "modelLabel": "Model",

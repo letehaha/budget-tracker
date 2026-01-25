@@ -163,21 +163,8 @@
         },
         "gotItButton": "Got it"
       },
-      "common": {
-        "integrationLabel": "Integration",
-        "typeLabel": "Type",
-        "statusLabel": "Status",
-        "actionsLabel": "Actions",
-        "cancelButton": "Cancel",
-        "backButton": "Back",
-        "countryLabel": "Country",
-        "bankLabel": "Bank"
-      },
       "enableBanking": {
         "instructions": {
-          "overviewTitle": "Overview",
-          "usageType": "Usage type",
-          "usageTypePrivate": "Private"
         },
         "placeholders": {
           "appId": "Enter your Enable Banking app_id",
