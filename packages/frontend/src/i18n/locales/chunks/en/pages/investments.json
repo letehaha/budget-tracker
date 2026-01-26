@@ -1,0 +1,23 @@
+{
+  "investments": {
+    "title": "Investments",
+    "createButton": "Create Portfolio",
+    "loading": "Loading portfolios...",
+    "loadError": "Failed to load portfolios",
+    "tryAgain": "Try Again",
+    "menu": {
+      "view": "View",
+      "delete": "Delete"
+    },
+    "card": {
+      "hidden": "Hidden",
+      "portfolioBalance": "Portfolio Balance",
+      "portfolioType": "{type} Portfolio"
+    },
+    "empty": {
+      "title": "No Portfolios Yet",
+      "description": "Create your first investment portfolio to start tracking your holdings, transactions, and performance.",
+      "createFirstButton": "Create Your First Portfolio"
+    }
+  }
+}

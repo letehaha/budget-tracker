@@ -2,12 +2,12 @@
   <Dialog v-model:open="isOpen">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Edit Connection Name</DialogTitle>
-        <DialogDescription> Give your connection a custom name to easily identify it. </DialogDescription>
+        <DialogTitle>{{ t('pages.integrations.dialogs.editName.title') }}</DialogTitle>
+        <DialogDescription>{{ t('pages.integrations.dialogs.editName.description') }}</DialogDescription>
       </DialogHeader>
 
       <div class="py-4">
-        <label class="mb-2 block text-sm font-medium">Connection Name</label>
+        <label class="mb-2 block text-sm font-medium">{{ t('pages.integrations.dialogs.editName.label') }}</label>
         <input
           v-model="localProviderName"
           type="text"
@@ -22,7 +22,9 @@
           $t('common.actions.cancel')
         }}</UiButton>
         <UiButton @click="handleSave" :disabled="!localProviderName.trim() || isSaving">
-          {{ isSaving ? 'Saving...' : 'Save' }}
+          {{
+            isSaving ? t('pages.integrations.dialogs.editName.saving') : t('pages.integrations.dialogs.editName.save')
+          }}
         </UiButton>
       </DialogFooter>
     </DialogContent>
@@ -40,6 +42,9 @@ import {
   DialogTitle,
 } from '@/components/lib/ui/dialog';
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   open: boolean;

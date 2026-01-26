@@ -43,7 +43,7 @@ const deleteAccount = async () => {
 
 <template>
   <div class="border-destructive @container/danger-zone mt-4 grid gap-4 rounded-xl border p-4 sm:-mx-4">
-    <p class="text-xl font-medium">Danger zone</p>
+    <p class="text-xl font-medium">{{ t('pages.account.deletion.dangerZone') }}</p>
 
     <AccountUnlinkSection :account="account" />
 
@@ -51,39 +51,39 @@ const deleteAccount = async () => {
 
     <div class="flex flex-col justify-between gap-2 @[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center">
       <div>
-        <p class="mb-2 font-bold">Delete this account</p>
+        <p class="mb-2 font-bold">{{ t('pages.account.deletion.title') }}</p>
         <p class="text-xs">
-          Once you delete the account, there is no going back. <br />
-          <b>All the transactions will be deleted.</b>
-          Please be certain.
+          {{ t('pages.account.deletion.description') }} <br />
+          <b>{{ t('pages.account.deletion.transactionsWarning') }}</b>
+          {{ t('pages.account.deletion.certaintyWarning') }}
         </p>
       </div>
 
       <AlertDialog
-        title="Are you absolutely sure?"
+        :title="t('pages.account.deletion.confirmTitle')"
         :accept-disabled="confirmAccountName !== account.name"
         accept-variant="destructive"
         @accept="deleteAccount"
       >
         <template #trigger>
-          <Button variant="destructive"> Delete this account </Button>
+          <Button variant="destructive"> {{ t('pages.account.deletion.deleteButton') }} </Button>
         </template>
         <template #description>
           <template v-if="accountHasTransactions">
-            This action cannot be undone.
+            {{ t('pages.account.deletion.cannotUndo') }}
             <strong>
-              You have {{ transactions.length }} transactions associated with this account, they will also be deleted.
+              {{ t('pages.account.deletion.transactionCount', { count: transactions.length }) }}
             </strong>
-            Do you really want to delete this account?
+            {{ t('pages.account.deletion.deleteConfirm') }}
           </template>
           <template v-else>
-            This action cannot be undone. Do you really want to delete this account?
-            <strong> You have zero transactions associated. </strong>
+            {{ t('pages.account.deletion.cannotUndo') }} {{ t('pages.account.deletion.deleteConfirm') }}
+            <strong> {{ t('pages.account.deletion.noTransactions') }} </strong>
           </template>
         </template>
         <template #content>
           <div class="mb-3">
-            <p class="text-muted-foreground mb-1 text-xs">Account name (click to copy)</p>
+            <p class="text-muted-foreground mb-1 text-xs">{{ t('pages.account.deletion.accountNameLabel') }}</p>
             <ClickToCopy :value="account.name" />
           </div>
 

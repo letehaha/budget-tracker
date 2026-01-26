@@ -1,0 +1,151 @@
+{
+  "settings": {
+    "security": {
+      "title": "Security Settings",
+      "description": "Manage your login methods, active sessions, and password",
+      "tabs": {
+        "loginMethods": "Login Methods",
+        "loginMethodsShort": "Login",
+        "activeSessions": "Active Sessions",
+        "activeSessionsShort": "Sessions",
+        "password": "Password"
+      },
+      "loginMethods": {
+        "title": "Login Methods",
+        "description": "Manage how you sign in to your account",
+        "legacyWarning": {
+          "title": "Legacy account detected",
+          "description": "Your account uses a legacy username-based login. Please add an email address to your account before connecting OAuth providers or passkeys."
+        },
+        "oauth": {
+          "connectedAs": "Connected as {email}",
+          "accountName": "{provider} Account",
+          "notConnected": "Not connected",
+          "disconnect": "Disconnect",
+          "connect": "Connect"
+        },
+        "password": {
+          "title": "Password",
+          "passwordSet": "Password is set",
+          "noPassword": "No password set",
+          "manageInTab": "Manage in Password tab",
+          "setupInTab": "Set up in Password tab"
+        },
+        "passkeys": {
+          "title": "Passkeys",
+          "noPasskeys": "No passkeys registered",
+          "passkeyCount": "{count} passkey(s) registered",
+          "addButton": "Add Passkey",
+          "passkeyName": "Passkey",
+          "added": "Added {date}"
+        },
+        "warningOneMethod": "Add another login method before disconnecting your OAuth account.",
+        "notifications": {
+          "oauthConnectFailed": "Failed to connect {provider} account",
+          "oauthDisconnectSuccess": "{provider} account disconnected",
+          "oauthDisconnectFailed": "Failed to disconnect {provider} account",
+          "passkeyAddSuccess": "Passkey added successfully",
+          "passkeyAddFailed": "Failed to add passkey. Make sure your device supports passkeys.",
+          "passkeyRemoveSuccess": "Passkey removed",
+          "passkeyRemoveFailed": "Failed to remove passkey"
+        }
+      },
+      "activeSessions": {
+        "title": "Active Sessions",
+        "description": "Manage devices where you're currently signed in",
+        "currentBadge": "Current",
+        "unknownLocation": "Unknown location",
+        "lastActive": "Last active: {date}",
+        "noSessions": "No active sessions found",
+        "revokeAllButton": "Sign out of all other sessions",
+        "deviceTypes": {
+          "unknownDevice": "Unknown Device",
+          "unknownBrowser": "Unknown Browser"
+        },
+        "timeAgo": {
+          "justNow": "Just now",
+          "minutesAgo": "{count} minute ago | {count} minutes ago",
+          "hoursAgo": "{count} hour ago | {count} hours ago",
+          "daysAgo": "{count} day ago | {count} days ago"
+        },
+        "notifications": {
+          "loadFailed": "Failed to load sessions",
+          "revokeSuccess": "Session revoked",
+          "revokeFailed": "Failed to revoke session",
+          "revokeAllSuccess": "All other sessions have been signed out",
+          "revokeAllFailed": "Failed to revoke sessions"
+        }
+      },
+      "passwordSection": {
+        "title": "Password",
+        "descriptionChange": "Change your password",
+        "descriptionSet": "Set up a password for your account",
+        "labels": {
+          "currentPassword": "Current Password",
+          "newPassword": "New Password",
+          "password": "Password",
+          "confirmPassword": "Confirm Password"
+        },
+        "placeholders": {
+          "currentPassword": "Enter current password",
+          "newPassword": "Enter new password",
+          "confirmPassword": "Confirm new password"
+        },
+        "buttons": {
+          "change": "Change Password",
+          "set": "Set Password"
+        },
+        "strength": {
+          "veryWeak": "Very weak",
+          "weak": "Weak",
+          "fair": "Fair",
+          "strong": "Strong",
+          "veryStrong": "Very strong"
+        },
+        "requirements": {
+          "title": "Password requirements",
+          "minLength": "Minimum 8 characters",
+          "mixedCase": "Mix of uppercase and lowercase letters recommended",
+          "specialChars": "Include numbers and special characters for stronger security"
+        },
+        "validation": {
+          "minLength": "Password must be at least 8 characters",
+          "passwordsNoMatch": "Passwords do not match"
+        },
+        "notifications": {
+          "changeSuccess": "Password changed successfully",
+          "changeFailed": "Failed to change password",
+          "setSuccess": "Password set successfully",
+          "setFailed": "Failed to set password",
+          "unexpectedError": "An unexpected error occurred",
+          "updateFailed": "Failed to update password"
+        }
+      },
+      "deleteAccount": {
+        "dangerZone": "Danger zone",
+        "title": "Delete your account",
+        "warningFull": "Once you delete your account, there is no going back. {strong} Please be certain.",
+        "warningStrong": "All your data will be permanently erased.",
+        "button": "Delete my account",
+        "dialog": {
+          "title": "Are you absolutely sure?",
+          "description": "This action cannot be undone. This will permanently delete your account and remove all your data including:",
+          "dataList": {
+            "accounts": "All accounts and transactions",
+            "categories": "All categories and budgets",
+            "portfolios": "All investment portfolios",
+            "settings": "All settings and preferences"
+          },
+          "confirmFull": "Please type {email} to confirm",
+          "placeholder": "Enter your email",
+          "acceptButton": "Delete my account",
+          "acceptButtonLoading": "Deleting..."
+        },
+        "notifications": {
+          "success": "Your account has been deleted successfully",
+          "failed": "An error occurred while trying to delete your account"
+        }
+      }
+    }
+  }
+}

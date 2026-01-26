@@ -347,7 +347,7 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
         <div class="p-3 @md:p-4">
           <template v-if="isLoadingTransactions">
             <div class="flex items-center justify-center py-12">
-              <div class="text-muted-foreground text-sm">Loading...</div>
+              <div class="text-muted-foreground text-sm">{{ t('pages.budgetDetails.loading') }}</div>
             </div>
           </template>
           <template v-else-if="transactions.length > 0">
@@ -369,7 +369,9 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
                     <span v-if="tx.effectiveCategory" class="truncate text-sm font-medium">
                       {{ tx.effectiveCategory.name }}
                     </span>
-                    <span v-else class="text-muted-foreground truncate text-sm">Uncategorized</span>
+                    <span v-else class="text-muted-foreground truncate text-sm">
+                      {{ t('pages.budgetDetails.uncategorized') }}
+                    </span>
                   </div>
                   <div class="text-muted-foreground flex items-center gap-2 text-xs">
                     <span>{{ formatTransactionDate(tx.time) }}</span>

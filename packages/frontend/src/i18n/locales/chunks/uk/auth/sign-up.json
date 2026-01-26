@@ -1,0 +1,39 @@
+{
+  "auth": {
+    "signup": {
+      "title": "Створити обліковий запис",
+      "divider": "Або продовжити з електронною поштою",
+      "submitButton": "Зареєструватися",
+      "alreadyHaveAccount": "Вже маєте обліковий запис?",
+      "signInLink": "Увійти",
+      "labels": {
+        "displayName": "Відображуване ім'я",
+        "verifyPassword": "Підтвердіть пароль"
+      },
+      "placeholders": {
+        "displayName": "напр. John Snow",
+        "verifyPassword": "Підтвердіть пароль"
+      },
+      "errors": {
+        "invalidEmail": "Будь ласка, введіть дійсну адресу електронної пошти.",
+        "passwordTooShort": "Пароль занадто короткий.",
+        "passwordTooLong": "Пароль занадто довгий.",
+        "invalidPassword": "Недійсний пароль.",
+        "userExists": "Користувач з такою електронною поштою вже існує.",
+        "genericErrorRetry": "Сталася помилка. Будь ласка, спробуйте ще раз.",
+        "oauthFailed": "Не вдалося зареєструватися через {provider}. Будь ласка, спробуйте ще раз."
+      }
+    },
+    "shared": {
+      "divider": "Або продовжити через",
+      "passkeyButton": {
+        "signIn": "Увійти з ключем доступу",
+        "register": "Додати ключ доступу"
+      },
+      "oauthButton": {
+        "signIn": "Увійти через {provider}",
+        "signUp": "Зареєструватися через {provider}"
+      }
+    }
+  }
+}

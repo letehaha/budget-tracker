@@ -1,0 +1,236 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "accounts": "Accounts",
+    "investments": "Investments",
+    "transactions": "Transactions",
+    "budgets": "Budgets",
+    "analytics": "Analytics",
+    "logout": "Logout"
+  },
+  "sidebar": {
+    "accountsView": {
+      "title": "Accounts",
+      "newAccount": "New account",
+      "newAccountsGroup": "New accounts group"
+    }
+  },
+  "header": {
+    "newTransaction": "New Transaction",
+    "add": "Add",
+    "language": "Language",
+    "sync": {
+      "syncing": "Syncing",
+      "synchronizing": "Synchronizing...",
+      "syncedTime": "Synced {time}",
+      "connectBank": "Connect bank",
+      "syncingAccounts": "Syncing {count} accounts"
+    },
+    "categorization": {
+      "title": "AI Categorization",
+      "categorizing": "Categorizing...",
+      "completed": "AI categorized {count} transaction | AI categorized {count} transactions",
+      "completedShort": "Categorization complete",
+      "failed": "Categorization failed",
+      "failedShort": "Failed",
+      "queued": "Waiting to start...",
+      "transactions": "transactions"
+    }
+  },
+  "syncStatusTooltip": {
+    "title": "Banks connections sync status",
+    "syncedSuccessfully": "Synced successfully",
+    "progress": "{current} of {total} synced",
+    "progressPercentage": "{percentage}%",
+    "statuses": {
+      "syncing": "Syncing",
+      "queued": "Queued",
+      "synced": "Synced",
+      "failed": "Failed",
+      "idle": "Idle"
+    },
+    "lastSynced": "Last synced:",
+    "neverSynced": "Never synced",
+    "syncNowButton": "Sync Now",
+    "noBankAccounts": "No bank accounts connected",
+    "connectButton": "Connect",
+    "timeAgo": {
+      "justNow": "Just now",
+      "secondsAgo": "{count} second ago | {count} seconds ago",
+      "minutesAgo": "{count} minute ago | {count} minutes ago",
+      "hoursAgo": "{count} hour ago | {count} hours ago",
+      "daysAgo": "{count} day ago | {count} days ago",
+      "weeksAgo": "{count} week ago | {count} weeks ago",
+      "monthsAgo": "{count} month ago | {count} months ago",
+      "yearsAgo": "{count} year ago | {count} years ago"
+    }
+  },
+  "banners": {
+    "recoveryMethod": {
+      "title": "Add a backup login method",
+      "description": "Protect your account by adding Google sign-in or a passkey. This ensures you can always access your account.",
+      "actionButton": "Go to Security Settings"
+    },
+    "legacyAccountMigration": {
+    }
+  },
+  "relinkWarning": {
+    "buttonLabel": "{count} account needs attention | {count} accounts need attention",
+    "title": "Enable Banking: Action Required",
+    "description": "These Enable Banking accounts need to be updated due to a data schema change. This is a one-time action to improve synchronization reliability.",
+    "step1Full": "To save your time, firstly try reconnecting the whole bank connection. You can find a {reconnect} button under the {connectionValidity} section on each connection page:",
+    "reconnectButton": "Reconnect",
+    "connectionValiditySection": "Connection Validity",
+    "connectionLabel": "Connection #{id}",
+    "step2Full": "If any accounts remain listed below after reconnection, go to each account and manually {unlink} then {link} again.",
+    "unlinkAction": "Unlink",
+    "linkAction": "Link"
+  },
+  "components": {
+    "legacyAccountMigrationDialog": {
+      "checkEmail": "Check your email",
+      "verificationSentDescription": "We've sent a verification link to {email}. Please click the link to confirm your new email address.",
+      "loginAgainAfterVerification": "After verification, you'll need to log in again with your new email.",
+      "signingOut": "Signing out...",
+      "signOutAndLogin": "Sign Out & Log in with new email",
+      "updateLoginMethod": "Update your login method",
+      "legacyLoginWarning": "Your account uses a legacy username-based login. Please add an email address to continue using your account.",
+      "actionRequired": "Action required",
+      "migrationWarning": "Without updating your login method, your account data may become corrupted or inaccessible in future updates.",
+      "emailPrivacy": "Your email will only be used for login purposes and won't be shared or used for marketing.",
+      "usernameLoginAfterMigration": "After migration, you will no longer be able to log in with your username. Use your email instead, or connect OAuth accounts (Google) for easier access.",
+      "emailAddressLabel": "Email Address",
+      "emailPlaceholder": "your{'@'}email.com",
+      "sendingVerification": "Sending verification...",
+      "sendVerificationEmail": "Send Verification Email",
+      "signOut": "Sign Out"
+    }
+  },
+  "dashboard": {
+    "onboarding": {
+      "title": "Welcome to MoneyMatter",
+      "subtitle": "Get started by setting up your first account",
+      "createManualAccount": {
+        "title": "Create Manual Account",
+        "description": "Track cash, savings, or any account manually"
+      },
+      "connectBank": {
+        "title": "Connect Your Bank",
+        "description": "Automatically sync transactions from your bank"
+      },
+      "divider": "or import existing data",
+      "importFile": {
+        "title": "Import from File",
+        "description": "Import transactions from bank statements (PDF) or CSV files"
+      },
+      "quickStart": {
+        "categories": {
+          "getting-started": {
+            "title": "Getting Started"
+          },
+          "advanced-transactions": {
+            "title": "Advanced Transactions"
+          },
+          "organization": {
+            "title": "Organize Your Finances"
+          },
+          "bank-import": {
+            "title": "Connect & Import"
+          },
+          "analytics": {
+            "title": "Explore Analytics"
+          },
+          "ai-settings": {
+            "title": "AI Features"
+          }
+        },
+        "tasks": {
+          "create-account": {
+            "title": "Create your first account",
+            "description": "Add a bank account or wallet to track"
+          },
+          "add-transaction": {
+            "title": "Add your first transaction",
+            "description": "Record an income or expense"
+          },
+          "create-transfer": {
+            "title": "Create a transfer",
+            "description": "Move money between your accounts"
+          },
+          "link-refund": {
+            "title": "Link a refund",
+            "description": "Connect refunds to original purchases"
+          },
+          "link-transactions": {
+            "title": "Link existing transactions",
+            "description": "Connect related transactions together"
+          },
+          "split-transaction": {
+            "title": "Split a transaction",
+            "description": "Divide expenses across categories"
+          },
+          "mark-transfer-out": {
+            "title": "Mark transfer out of wallet",
+            "description": "Track money leaving your accounts"
+          },
+          "create-category": {
+            "title": "Create a custom category",
+            "description": "Organize your transactions by type"
+          },
+          "create-tag": {
+            "title": "Create a tag",
+            "description": "Add tags to group related transactions"
+          },
+          "create-budget": {
+            "title": "Set up a budget",
+            "description": "Create spending limits for categories"
+          },
+          "create-account-group": {
+            "title": "Create an account group",
+            "description": "Organize accounts by type or purpose"
+          },
+          "setup-tag-reminder": {
+            "title": "Set up a tag reminder",
+            "description": "Get notified about recurring expenses"
+          },
+          "connect-bank": {
+            "title": "Connect a bank account",
+            "description": "Sync transactions automatically"
+          },
+          "import-csv": {
+            "title": "Import from any text source",
+            "description": "Import from CSV, PDF, or bank statements"
+          },
+          "view-annual-overview": {
+            "title": "Check annual overview",
+            "description": "See yearly trends and patterns"
+          },
+          "view-cash-flow": {
+            "title": "View cash flow analytics",
+            "description": "Understand your income vs expenses"
+          },
+          "review-ai-features": {
+            "title": "Review AI features",
+            "description": "Explore available AI capabilities"
+          },
+          "configure-ai": {
+            "title": "Set your own API key",
+            "description": "Use your AI API key for the unlimited and uninterrupted access"
+          }
+        },
+        "ui": {
+          "title": "Quick Start",
+          "subtitle": "Use our Quick Start guide to learn about everything MoneyMatter can do for you.",
+          "dismissButton": "Dismiss permanently",
+          "dismissConfirmTitle": "Dismiss Quick Start?",
+          "dismissConfirmDescription": "You can always reopen the Quick Start guide from settings if you change your mind.",
+          "dismissConfirmButton": "Dismiss",
+          "triggerTooltip": "Quick Start - {count} tasks remaining",
+          "srDescription": "Complete these tasks to get started with the app",
+          "progressText": "{completed} of {total} complete",
+          "categoryProgress": "{completed} of {total} complete"
+        }
+      }
+    }
+  }
+}

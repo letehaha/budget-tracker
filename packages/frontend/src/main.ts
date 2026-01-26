@@ -1,6 +1,6 @@
 import { identifyCurrentTheme, patchMetaViewportMaxScaleForiOS } from '@/common/utils';
 import { clickOutside, nodeResizeObserver } from '@/directives';
-import { i18n, initializeLocale, loadLanguageAsync } from '@/i18n';
+import { i18n, initializeLocale, loadChunks } from '@/i18n';
 import { initPostHog } from '@/lib/posthog';
 import { initSentry } from '@/lib/sentry';
 import { router } from '@/routes';
@@ -18,28 +18,37 @@ patchMetaViewportMaxScaleForiOS();
 
 // Initialize locale from localStorage/browser
 const initialLocale = initializeLocale();
-if (initialLocale !== 'en') {
-  // Lazy load non-English locale
-  loadLanguageAsync(initialLocale);
-}
 
-const app = createApp(App);
-const head = createHead();
+// Load common chunk for the initial locale (if not English, English is preloaded)
+// The route guard will load page-specific chunks on navigation
+const initI18n = async () => {
+  if (initialLocale !== 'en') {
+    // For non-English locales, load the common chunk
+    await loadChunks({ locale: initialLocale, chunks: ['common'] });
+    i18n.global.locale.value = initialLocale as 'en' | 'uk';
+  }
+};
 
-// Initialize Sentry before mounting (must be early to catch errors)
-initSentry({ app, router });
+// Initialize i18n before mounting
+initI18n().then(() => {
+  const app = createApp(App);
+  const head = createHead();
 
-// Initialize PostHog analytics
-initPostHog();
+  // Initialize Sentry before mounting (must be early to catch errors)
+  initSentry({ app, router });
 
-app.directive('click-outside', clickOutside);
-app.directive('node-resize-observer', nodeResizeObserver);
+  // Initialize PostHog analytics
+  initPostHog();
 
-app.use(router);
-app.use(store);
-app.use(head);
-app.use(i18n); // Register vue-i18n plugin
+  app.directive('click-outside', clickOutside);
+  app.directive('node-resize-observer', nodeResizeObserver);
 
-app.use(VueQueryPlugin);
+  app.use(router);
+  app.use(store);
+  app.use(head);
+  app.use(i18n); // Register vue-i18n plugin
 
-app.mount('#app');
+  app.use(VueQueryPlugin);
+
+  app.mount('#app');
+});

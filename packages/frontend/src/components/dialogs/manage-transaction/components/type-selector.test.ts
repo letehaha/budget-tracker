@@ -1,11 +1,18 @@
-import { i18n } from '@/i18n';
+import dialogsEn from '@/i18n/locales/chunks/en/dialogs.json';
 import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { buildSystemExpenseTransaction, buildSystemIncomeTransaction } from '@tests/mocks';
 import { getUahAccount } from '@tests/mocks/accounts';
 import { mount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
 
 import { getFormTypeFromTransaction } from '../helpers';
 import TypeSelectorVue from './type-selector.vue';
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'en',
+  messages: { en: dialogsEn },
+});
 
 describe('Record TypeSelector component', () => {
   describe('editing form', () => {
@@ -30,6 +37,7 @@ describe('Record TypeSelector component', () => {
           selectedTransactionType: getFormTypeFromTransaction(transaction),
           isFormCreation: false,
           transaction,
+          account: getUahAccount({ type: ACCOUNT_TYPES.monobank }),
         },
         global: {
           plugins: [i18n],

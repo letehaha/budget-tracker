@@ -1,12 +1,12 @@
 <template>
   <ResponsiveDialog v-model:open="isOpen">
-    <template #title>Create Account for Import</template>
-    <template #description> Create a new account to import your statement transactions. </template>
+    <template #title>{{ t('pages.statementParser.createAccountDialog.title') }}</template>
+    <template #description>{{ t('pages.statementParser.createAccountDialog.description') }}</template>
 
     <form class="grid gap-6" @submit.prevent="handleSubmit">
       <InputField
         v-model="form.name"
-        label="Account name"
+        :label="t('pages.statementParser.createAccountDialog.accountNameLabel')"
         :placeholder="$t('pages.statementParser.accountNamePlaceholder')"
         :error="errors.name"
       />
@@ -17,7 +17,7 @@
         the account must match the statement currency for proper transaction import.
       -->
       <div>
-        <FieldLabel label="Currency">
+        <FieldLabel :label="t('pages.statementParser.createAccountDialog.currencyLabel')">
           <Select.Select v-model="form.currencyCode" :disabled="!!props.defaultCurrency">
             <Select.SelectTrigger>
               <Select.SelectValue :placeholder="$t('pages.statementParser.selectCurrency')" />
@@ -26,7 +26,7 @@
               <!-- Show statement currency first if it exists and is not in linked list -->
               <template v-if="props.defaultCurrency && !isCurrencyLinked">
                 <Select.SelectItem :value="props.defaultCurrency">
-                  {{ props.defaultCurrency }} (from statement)
+                  {{ props.defaultCurrency }} {{ t('pages.statementParser.createAccountDialog.fromStatement') }}
                 </Select.SelectItem>
                 <div class="my-1 border-t" />
               </template>
@@ -39,17 +39,23 @@
           </Select.Select>
         </FieldLabel>
         <p v-if="props.defaultCurrency" class="text-muted-foreground mt-1 text-xs">
-          Currency is locked to match the statement ({{ props.defaultCurrency }}).
+          {{ t('pages.statementParser.createAccountDialog.currencyLocked', { currency: props.defaultCurrency }) }}
         </p>
         <p v-if="props.defaultCurrency && !isCurrencyLinked" class="mt-1 text-xs text-yellow-600">
-          Note: {{ props.defaultCurrency }} will be added to your currencies.
+          {{ t('pages.statementParser.createAccountDialog.currencyWillBeAdded', { currency: props.defaultCurrency }) }}
         </p>
       </div>
 
       <div class="flex gap-3">
-        <Button type="button" variant="outline" class="flex-1" @click="isOpen = false"> Cancel </Button>
+        <Button type="button" variant="outline" class="flex-1" @click="isOpen = false">
+          {{ t('pages.statementParser.createAccountDialog.cancel') }}
+        </Button>
         <Button type="submit" class="flex-1" :disabled="isLoading || !form.currencyCode">
-          {{ isLoading ? 'Creating...' : 'Create Account' }}
+          {{
+            isLoading
+              ? t('pages.statementParser.createAccountDialog.creating')
+              : t('pages.statementParser.createAccountDialog.createAccount')
+          }}
         </Button>
       </div>
     </form>
@@ -71,6 +77,9 @@ import { ACCOUNT_CATEGORIES, type AccountModel } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   open?: boolean;
@@ -154,13 +163,13 @@ async function handleSubmit() {
   errors.name = '';
 
   if (!form.name.trim()) {
-    errors.name = 'Account name is required';
+    errors.name = t('pages.statementParser.createAccountDialog.validation.nameRequired');
     return;
   }
 
   if (!form.currencyCode) {
     addNotification({
-      text: 'Please select a currency',
+      text: t('pages.statementParser.createAccountDialog.validation.currencyRequired'),
       type: NotificationType.error,
     });
     return;
@@ -182,7 +191,7 @@ async function handleSubmit() {
     });
 
     addNotification({
-      text: 'Account created successfully',
+      text: t('pages.statementParser.createAccountDialog.success'),
       type: NotificationType.success,
     });
 
@@ -190,7 +199,7 @@ async function handleSubmit() {
     isOpen.value = false;
   } catch (error) {
     addNotification({
-      text: error instanceof Error ? error.message : 'Failed to create account',
+      text: error instanceof Error ? error.message : t('pages.statementParser.createAccountDialog.error'),
       type: NotificationType.error,
     });
   } finally {

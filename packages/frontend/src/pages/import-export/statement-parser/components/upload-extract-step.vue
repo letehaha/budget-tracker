@@ -33,7 +33,9 @@
       <div v-else class="space-y-2">
         <component :is="getFileIcon()" class="text-primary mx-auto size-12" />
         <p class="font-medium">{{ store.uploadedFile.name }}</p>
-        <p class="text-muted-foreground text-sm">{{ (store.uploadedFile.size / 1024).toFixed(1) }} KB</p>
+        <p class="text-muted-foreground text-sm">
+          {{ t('pages.statementParser.uploadExtract.fileSize', { size: (store.uploadedFile.size / 1024).toFixed(1) }) }}
+        </p>
         <Button variant="ghost-destructive" size="sm" @click="clearFile">
           <XIcon class="mr-1 size-4" />
           {{ $t('pages.statementParser.uploadExtract.removeButton') }}
@@ -93,9 +95,12 @@
             {{ $t('pages.statementParser.uploadExtract.estimatedTokensLabel') }}
           </p>
           <p class="font-medium">
-            ~{{ (store.costEstimate.estimatedInputTokens / 1000).toFixed(1) }}K input, ~{{
-              (store.costEstimate.estimatedOutputTokens / 1000).toFixed(1)
-            }}K output
+            {{
+              t('pages.statementParser.uploadExtract.tokenFormat', {
+                inputTokens: (store.costEstimate.estimatedInputTokens / 1000).toFixed(1),
+                outputTokens: (store.costEstimate.estimatedOutputTokens / 1000).toFixed(1),
+              })
+            }}
           </p>
         </div>
       </div>
@@ -166,12 +171,22 @@
 import ApiKeySourceBadge from '@/components/common/api-key-source-badge.vue';
 import { Button } from '@/components/lib/ui/button';
 import { useStatementParserStore } from '@/stores/statement-parser';
-import { CalculatorIcon, FileIcon, FileSpreadsheetIcon, FileTextIcon, Loader2Icon, SparklesIcon, XIcon } from 'lucide-vue-next';
+import {
+  CalculatorIcon,
+  FileIcon,
+  FileSpreadsheetIcon,
+  FileTextIcon,
+  Loader2Icon,
+  SparklesIcon,
+  XIcon,
+} from 'lucide-vue-next';
 import { onUnmounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-import CostEstimateWarnings from './cost-estimate-warnings.vue';
 import { validateStatementFile } from '../utils/file-validation';
+import CostEstimateWarnings from './cost-estimate-warnings.vue';
 
+const { t } = useI18n();
 const store = useStatementParserStore();
 
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -262,18 +277,18 @@ async function handleEstimate() {
 }
 
 async function handleExtract() {
-  extractionStatus.value = 'Sending file to AI...';
+  extractionStatus.value = t('pages.statementParser.uploadExtract.status.sendingFile');
   startProgressAnimation();
 
   // Status updates with extended timings for AI processing
   // AI extraction typically takes 20-60 seconds
   const statusUpdates = [
-    { delay: 3000, message: 'AI is reading the document...' },
-    { delay: 8000, message: 'Analyzing statement structure...' },
-    { delay: 15000, message: 'Extracting transaction data...' },
-    { delay: 25000, message: 'Processing transactions...' },
-    { delay: 40000, message: 'Finalizing extraction...' },
-    { delay: 55000, message: 'Almost done...' },
+    { delay: 3000, message: t('pages.statementParser.uploadExtract.status.readingDocument') },
+    { delay: 8000, message: t('pages.statementParser.uploadExtract.status.analyzingStructure') },
+    { delay: 15000, message: t('pages.statementParser.uploadExtract.status.extractingData') },
+    { delay: 25000, message: t('pages.statementParser.uploadExtract.status.processingTransactions') },
+    { delay: 40000, message: t('pages.statementParser.uploadExtract.status.finalizing') },
+    { delay: 55000, message: t('pages.statementParser.uploadExtract.status.almostDone') },
   ];
 
   statusTimeouts = [];

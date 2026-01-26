@@ -10,9 +10,11 @@
 
     <template #description>
       <template v-if="parentCategory">
-        <span
-          v-html="$t('dialogs.categoryForm.description.addSubcategory', { parentName: parentCategory.name })"
-        ></span>
+        <i18n-t keypath="dialogs.categoryForm.description.addSubcategory" tag="span">
+          <template #parentName>
+            <strong>{{ parentCategory.name }}</strong>
+          </template>
+        </i18n-t>
       </template>
       <template v-else-if="isEditMode"> {{ $t('dialogs.categoryForm.description.edit') }} </template>
       <template v-else> {{ $t('dialogs.categoryForm.description.add') }} </template>

@@ -1,18 +1,20 @@
 <template>
   <div class="bg-muted/30 mt-6 rounded-lg border p-4">
-    <h3 class="mb-4 text-sm font-semibold">Category Assignment <span class="text-destructive-text">*</span></h3>
+    <h3 class="mb-4 text-sm font-semibold">
+      {{ t('pages.importExport.categoryAssignment.title') }} <span class="text-destructive-text">*</span>
+    </h3>
 
     <!-- Option Selection -->
     <div class="mb-4">
       <SelectField
         :model-value="selectedOptionObject"
         :values="categoryOptions"
-        label="How do you want to assign categories?"
+        :label="t('pages.importExport.categoryAssignment.howToAssign')"
         :placeholder="$t('pages.importExport.common.selectOption')"
         @update:model-value="handleOptionChange"
       />
       <p class="text-muted-foreground mt-1 text-xs">
-        Choose how categories should be assigned to imported transactions
+        {{ t('pages.importExport.categoryAssignment.description') }}
       </p>
     </div>
 
@@ -26,11 +28,13 @@
       <SelectField
         :model-value="categoryColumnObject"
         :values="columnOptions"
-        label="Category Column"
+        :label="t('pages.importExport.categoryAssignment.categoryColumn')"
         :placeholder="$t('pages.importExport.common.selectColumn')"
         @update:model-value="handleColumnChange"
       />
-      <p class="text-muted-foreground mt-1 text-xs">Select the CSV column that contains category names</p>
+      <p class="text-muted-foreground mt-1 text-xs">
+        {{ t('pages.importExport.categoryAssignment.columnDescription') }}
+      </p>
     </div>
 
     <!-- Category Selection (if existing-category) -->
@@ -38,7 +42,7 @@
       <SelectField
         :model-value="selectedCategory"
         :values="categories"
-        label="Category"
+        :label="t('pages.importExport.categoryAssignment.categoryLabel')"
         label-key="name"
         value-key="id"
         :placeholder="$t('pages.importExport.categoryMapping.selectCategory')"
@@ -46,7 +50,9 @@
         :search-keys="['name']"
         @update:model-value="handleCategorySelect"
       />
-      <p class="text-muted-foreground mt-1 text-xs">All imported transactions will be assigned to this category</p>
+      <p class="text-muted-foreground mt-1 text-xs">
+        {{ t('pages.importExport.categoryAssignment.singleCategoryDescription') }}
+      </p>
     </div>
 
     <p
@@ -57,10 +63,10 @@
       class="bg-primary/10 border-primary mt-4 rounded-lg border p-3 text-sm"
     >
       <template v-if="selectedOption === CategoryOptionValue.mapDataSourceColumn">
-        ℹ️ You'll map each CSV category to your existing categories on the next step
+        ℹ️ {{ t('pages.importExport.categoryAssignment.mapOnNextStep') }}
       </template>
       <template v-else-if="selectedOption === CategoryOptionValue.createNewCategories">
-        ℹ️ New high-level categories will be created automatically from unique values in your CSV file
+        ℹ️ {{ t('pages.importExport.categoryAssignment.createFromCSV') }}
       </template>
     </p>
   </div>
@@ -73,6 +79,9 @@ import { useImportExportStore } from '@/stores/import-export';
 import { CategoryModel, CategoryOptionValue } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 interface OptionItem {
   label: string;
@@ -90,20 +99,20 @@ onMounted(async () => {
   }
 });
 
-const categoryOptions: OptionItem[] = [
+const categoryOptions = computed<OptionItem[]>(() => [
   {
-    label: 'Map each CSV category to existing categories (on next step)',
+    label: t('pages.importExport.categoryAssignment.options.mapToExisting'),
     value: CategoryOptionValue.mapDataSourceColumn,
   },
   {
-    label: 'Create new categories from CSV values',
+    label: t('pages.importExport.categoryAssignment.options.createNew'),
     value: CategoryOptionValue.createNewCategories,
   },
   {
-    label: 'Assign all to single existing category',
+    label: t('pages.importExport.categoryAssignment.options.assignToSingle'),
     value: CategoryOptionValue.existingCategory,
   },
-];
+]);
 
 const columnOptions = computed<OptionItem[]>(() =>
   importStore.csvHeaders.map((header) => ({
@@ -119,7 +128,7 @@ const selectedOption = computed(() => {
 
 const selectedOptionObject = computed(() => {
   if (!selectedOption.value) return null;
-  return categoryOptions.find((opt) => opt.value === selectedOption.value) ?? null;
+  return categoryOptions.value.find((opt) => opt.value === selectedOption.value) ?? null;
 });
 
 const categoryColumn = computed(() => {

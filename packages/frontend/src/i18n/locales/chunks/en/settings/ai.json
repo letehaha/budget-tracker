@@ -1,0 +1,158 @@
+{
+  "settings": {
+    "ai": {
+      "title": "AI Settings",
+      "description": "Configure AI-powered features like automatic transaction categorization",
+      "tabs": {
+        "features": "AI Features",
+        "apiKeys": "API Keys",
+        "invalidKeysTooltip": "One or more API keys are invalid"
+      },
+      "apiKeyManager": {
+        "title": "API Keys",
+        "description": "Add your own API keys to use specific providers",
+        "badges": {
+          "default": "Default",
+          "invalid": "Invalid"
+        },
+        "status": {
+          "failed": "Failed {timeAgo}",
+          "validated": "Validated {timeAgo}"
+        },
+        "buttons": {
+          "setDefault": "Set as Default"
+        },
+        "invalidKeyHelp": "Add a new key below to replace this one, or remove it if you no longer need it.",
+        "deleteDialog": {
+          "title": "Remove API key?",
+          "description": "Are you sure you want to remove the {provider} API key?",
+          "descriptionMultiple": "AI features currently using {provider} will switch to another available provider.",
+          "cancel": "Cancel",
+          "remove": "Remove"
+        },
+        "allConfigured": "All providers are set up",
+        "form": {
+          "titleAdd": "Add API Key",
+          "titleAddAnother": "Add Another Provider",
+          "providerLabel": "Provider",
+          "apiKeyLabel": "API Key",
+          "buttonSaving": "Validating...",
+          "buttonSave": "Save Key"
+        },
+        "providers": {
+          "anthropic": {
+            "label": "Anthropic (Claude)",
+            "placeholder": "sk-ant-...",
+            "description": "Get your API key from"
+          },
+          "openai": {
+            "label": "OpenAI (GPT)",
+            "placeholder": "sk-...",
+            "description": "Get your API key from"
+          },
+          "google": {
+            "label": "Google (Gemini)",
+            "placeholder": "AIza...",
+            "description": "Get your API key from"
+          },
+          "groq": {
+            "label": "Groq (Llama, Mixtral)",
+            "placeholder": "gsk_...",
+            "description": "Get your API key from"
+          }
+        },
+        "notifications": {
+          "saveSuccess": "API key saved and validated successfully",
+          "saveFailed": "API key is not working. Please verify the key is correct, has sufficient credits, and has the required permissions.",
+          "setDefaultSuccess": "{provider} set as default",
+          "setDefaultFailed": "Failed to set default provider",
+          "removeSuccess": "{provider} API key removed",
+          "removeFailed": "Failed to remove API key"
+        }
+      },
+      "features": {
+        "title": "AI Features",
+        "description": "Configure which model to use for each AI-powered feature",
+        "loading": "Loading features..."
+      },
+      "categorization": {
+        "modelHint": {
+          "trigger": "What model should I choose?",
+          "text": "For transaction categorization, low-cost models like Gemini Flash, Claude Haiku, or GPT-4o Mini are recommended. Categorization is a straightforward task that doesn't require expensive reasoning models. Using cheaper models lets you process more transactions at lower cost."
+        },
+        "howItWorks": {
+          "title": "How it works",
+          "points": {
+            "autoSync": "When you sync transactions from your bank, uncategorized transactions are automatically sent to AI for categorization.",
+            "analysis": "The AI analyzes transaction descriptions and merchant names to suggest appropriate categories from your existing category list.",
+            "override": "You can always manually override AI-suggested categories."
+          }
+        },
+        "loading": "Loading models..."
+      },
+      "statementParsing": {
+        "modelHint": {
+          "trigger": "What model should I choose?",
+          "text": "For statement parsing, mid-tier models like Claude Sonnet, Gemini Pro, or GPT-4o are recommended. Statement parsing requires understanding complex document structures and extracting accurate data, which benefits from more capable models. However, cheaper models like Gemini Flash or Claude Haiku can also work well for simpler statements."
+        },
+        "howItWorks": {
+          "title": "How it works",
+          "points": {
+            "upload": "Upload a bank statement (PDF, CSV, or TXT) and AI will extract all transactions automatically.",
+            "analysis": "The AI analyzes the document structure to identify dates, descriptions, amounts, and transaction types.",
+            "review": "You can review and correct any extracted data before importing into your account.",
+            "cost": "Cost is estimated before processing, yet it only reflects the approximate cost."
+          }
+        },
+        "loading": "Loading models..."
+      },
+      "modelSelector": {
+        "badges": {
+          "yourKey": "Your key",
+          "yourKeyTooltip": "This feature uses your personal API key. You have full control over usage and costs, with no rate limits from our server.",
+          "server": "Server",
+          "serverTooltip": "This feature uses our server's shared API key. It's free but may have rate limits during high demand. Add your own API key for unlimited access."
+        },
+        "modelLabel": "Model",
+        "resetButton": "Reset to Default",
+        "noApiKey": "(No API key)",
+        "modelInfo": {
+          "context": "Context:",
+          "capabilities": "Capabilities:",
+          "estimatedCost": "Est. cost:",
+          "per100Transactions": "per 100 txns"
+        },
+        "rateLimitWarning": "Using server-provided AI with free-tier rate limiting. Feature availability depends on demand from other users. For reliable access, add your own API key in the API Keys tab.",
+        "groupLabels": {
+          "recommended": "⭐ Recommended",
+          "openai": "OpenAI",
+          "anthropic": "Anthropic",
+          "google": "Google",
+          "groq": "Groq"
+        },
+        "costLabels": {
+          "free": "Free",
+          "low": "Low cost",
+          "medium": "Medium cost",
+          "high": "High cost"
+        },
+        "capabilities": {
+          "textGeneration": "Text",
+          "structuredOutput": "Structured",
+          "functionCalling": "Functions",
+          "vision": "Vision",
+          "fastInference": "Fast",
+          "agents": "Agents"
+        },
+        "notifications": {
+          "updateSuccess": "Model updated successfully",
+          "updateFailed": "Failed to update model",
+          "resetSuccess": "Reset to default model",
+          "resetFailed": "Failed to reset model"
+        },
+        "addKeyHint": "Add your own API key to select from all available models.",
+        "addKeyHintLink": "Add API key →"
+      }
+    }
+  }
+}

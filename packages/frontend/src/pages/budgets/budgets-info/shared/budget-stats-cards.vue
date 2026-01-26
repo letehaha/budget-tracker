@@ -2,6 +2,9 @@
 import Card from '@/components/lib/ui/card/Card.vue';
 import { useFormatCurrency } from '@/composable';
 import { TrendingDownIcon, TrendingUpIcon, WalletIcon } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 defineProps<{
   stats: {
@@ -20,7 +23,7 @@ const { formatBaseCurrency } = useFormatCurrency();
     <Card class="p-4">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-muted-foreground text-sm font-medium">Income</p>
+          <p class="text-muted-foreground text-sm font-medium">{{ t('pages.budgetDetails.stats.income') }}</p>
           <p class="text-success-text mt-1 text-2xl font-semibold tabular-nums">
             {{ formatBaseCurrency(stats.income) }}
           </p>
@@ -35,7 +38,7 @@ const { formatBaseCurrency } = useFormatCurrency();
     <Card class="p-4">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-muted-foreground text-sm font-medium">Expenses</p>
+          <p class="text-muted-foreground text-sm font-medium">{{ t('pages.budgetDetails.stats.expenses') }}</p>
           <p class="text-app-expense-color mt-1 text-2xl font-semibold tabular-nums">
             {{ formatBaseCurrency(stats.expenses) }}
           </p>
@@ -50,7 +53,7 @@ const { formatBaseCurrency } = useFormatCurrency();
     <Card class="p-4">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-muted-foreground text-sm font-medium">Net Balance</p>
+          <p class="text-muted-foreground text-sm font-medium">{{ t('pages.budgetDetails.stats.netBalance') }}</p>
           <p
             class="mt-1 text-2xl font-semibold tabular-nums"
             :class="stats.balance >= 0 ? 'text-success-text' : 'text-app-expense-color'"

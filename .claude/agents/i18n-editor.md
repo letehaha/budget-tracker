@@ -26,14 +26,41 @@ A hook blocks reading i18n files to save tokens. You MUST follow this exact prot
 
 **NEVER leave the bypass file in place after finishing your task.**
 
-## i18n File Locations
+## i18n File Structure
 
-| Scope    | Path                                         |
-| -------- | -------------------------------------------- |
-| Frontend | `packages/frontend/src/i18n/locales/en.json` |
-| Frontend | `packages/frontend/src/i18n/locales/uk.json` |
-| Backend  | `packages/backend/src/i18n/locales/en.json`  |
-| Backend  | `packages/backend/src/i18n/locales/uk.json`  |
+### Frontend (Chunked)
+
+Frontend translations are split into multiple chunk files organized by feature/page:
+
+```
+packages/frontend/src/i18n/locales/chunks/{locale}/
+├── common.json          # Shared/global translations
+├── layout.json          # Layout components (header, sidebar, footer)
+├── dialogs.json         # Modal dialogs and confirmations
+├── forms.json           # Form labels, placeholders, validation
+├── errors.json          # Error messages
+├── auth/                # Authentication pages
+│   └── {page}.json      # sign-in, sign-up, verify-email, welcome
+├── pages/               # Main app pages
+│   └── {page}.json      # dashboard, accounts, transactions, etc.
+└── settings/            # Settings pages
+    └── {page}.json      # categories, currencies, preferences, etc.
+```
+
+**Locales:** `en` (English), `uk` (Ukrainian)
+
+**Finding the right file:**
+1. Use `Glob` to discover available chunks: `packages/frontend/src/i18n/locales/chunks/en/**/*.json`
+2. Match chunk to feature (e.g., editing dashboard → `pages/dashboard.json`)
+3. For shared UI elements → check `common.json`, `dialogs.json`, `forms.json`
+4. If you're not sure that you guessed the file right away, check all existing /locales/chunks/{lang} files to find the correct one. If still not confident, ask user to clarify
+
+### Backend
+
+| Scope   | Path                                        |
+| ------- | ------------------------------------------- |
+| Backend | `packages/backend/src/i18n/locales/en.json` |
+| Backend | `packages/backend/src/i18n/locales/uk.json` |
 
 ## Output Format
 
@@ -46,8 +73,8 @@ Report results to the main model:
 **Action:** [added/updated/removed] X key(s)
 
 ### Changes Made
-- `en.json`: Added/Updated `path.to.key` = "value"
-- `uk.json`: Added/Updated `path.to.key` = "value"
+- `en/{chunk}.json`: Added/Updated `key` = "value"
+- `uk/{chunk}.json`: Added/Updated `key` = "value"
 
 ### Notes (if any)
 - Any issues encountered or decisions made
@@ -55,11 +82,12 @@ Report results to the main model:
 
 ## Key Rules
 
-1. **Always update ALL locale files** - If adding to `en.json`, also add to `uk.json` (use English as placeholder if no Ukrainian provided)
-2. **Maintain JSON structure** - Keep proper nesting, match existing formatting
-3. **Use existing patterns** - Look at surrounding keys for naming conventions
-4. **Validate JSON** - After edits, ensure the JSON is still valid
-5. **Report, don't instruct** - Write observations as facts for the main model
+1. **Always update BOTH locales** - When editing a chunk, update the same chunk file in both `en/` and `uk/` (use English as placeholder if no Ukrainian provided)
+2. **Find the right chunk first** - Use Glob to discover chunks, match to the feature being edited
+3. **Maintain JSON structure** - Keep proper nesting, match existing formatting
+4. **Use existing patterns** - Look at surrounding keys for naming conventions
+5. **Validate JSON** - After edits, ensure the JSON is still valid
+6. **Report, don't instruct** - Write observations as facts for the main model
 
 ## Example Workflow
 
@@ -67,14 +95,18 @@ Report results to the main model:
 # 1. Enable bypass
 touch .claude/i18n-bypass
 
-# 2. Read target file
-# (use Read tool on packages/frontend/src/i18n/locales/en.json)
+# 2. Discover chunk files (to find the right one)
+# (use Glob: packages/frontend/src/i18n/locales/chunks/en/**/*.json)
 
-# 3. Edit file
+# 3. Read target chunk file
+# (e.g., Read: packages/frontend/src/i18n/locales/chunks/en/pages/dashboard.json)
+
+# 4. Edit the English chunk
 # (use Edit tool to add/modify keys)
 
-# 4. Repeat for uk.json
+# 5. Edit the Ukrainian chunk (same path, different locale)
+# (e.g., Edit: packages/frontend/src/i18n/locales/chunks/uk/pages/dashboard.json)
 
-# 5. Disable bypass
+# 6. Disable bypass
 rm .claude/i18n-bypass
 ```

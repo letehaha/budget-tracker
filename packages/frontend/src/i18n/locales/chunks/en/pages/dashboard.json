@@ -1,0 +1,43 @@
+{
+  "dashboard": {
+    "widgets": {
+      "balanceTrend": {
+        "title": "Balance trend",
+        "balanceTypes": {
+          "total": "Total",
+          "accounts": "Accounts",
+          "portfolios": "Portfolios"
+        },
+        "vsPreviousPeriod": "vs previous period"
+      },
+      "expensesStructure": {
+        "title": "Expenses Structure",
+        "excludedCategories": {
+          "message": "Some categories are excluded.",
+          "updateSettings": "Update settings",
+          "changeBehavior": "to change this behavior."
+        },
+        "today": "Today",
+        "vsPreviousPeriod": "vs previous period",
+        "viewButton": "View"
+      },
+      "latestTransactions": {
+        "title": "Latest Transactions",
+        "showAll": "Show all"
+      },
+      "emptyState": "There are no data in selected time interval."
+    },
+    "periodSelector": {
+      "quickSelect": "Quick Select",
+      "year": "{year}",
+      "presets": {
+        "currentMonth": "Current Month",
+        "last3Months": "Last 3 Months",
+        "last6Months": "Last 6 Months",
+        "lastYear": "Last 12 Months",
+        "thisYear": "This Year",
+        "previousYear": "Previous Year"
+      }
+    }
+  }
+}

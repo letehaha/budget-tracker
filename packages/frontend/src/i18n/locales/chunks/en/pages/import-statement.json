@@ -1,0 +1,160 @@
+{
+  "pages": {
+    "statementParser": {
+      "pageTitle": "Statement Parser",
+      "pageDescription": "Upload a bank statement (PDF, CSV, or TXT) to extract transactions using AI. Requires an AI API key configured in settings.",
+      "backToSettings": "Back to Settings",
+      "steps": {
+        "uploadTitle": "Upload & Extract",
+        "uploadDescription": "Upload statement and extract transactions with AI",
+        "accountTitle": "Select Account",
+        "accountDescription": "Choose or create an account for the transactions",
+        "reviewTitle": "Review Transactions",
+        "reviewDescription": "Review and handle duplicate transactions",
+        "importTitle": "Import",
+        "importDescription": "Execute import and view results"
+      },
+      "selectCurrency": "Select currency",
+      "selectExistingAccount": "Select existing account",
+      "accountNamePlaceholder": "e.g., Main Bank Account",
+      "selectAccount": "Select an account",
+      "searchAccounts": "Search accounts...",
+      "uploadExtract": {
+        "dragDropText": "Drag and drop your statement file here, or",
+        "browseButton": "Browse Files",
+        "supportedFormats": "Supported formats: PDF, CSV, TXT (max 10MB)",
+        "removeButton": "Remove",
+        "analyzeButton": "Analyze File",
+        "tryAgain": "Try Again",
+        "modelLabel": "Model",
+        "estimatedCostLabel": "Estimated Cost",
+        "yourApiKey": "(your API key)",
+        "estimatedTokensLabel": "Estimated Tokens",
+        "extractButton": "Extract Transactions",
+        "progressMessage": "This may take 30-60 seconds depending on the document size",
+        "foundLabel": "Found:",
+        "transactions": "transactions",
+        "fromLabel": "from",
+        "inLabel": "in",
+        "continueMessage": "Continue to select an account for these transactions.",
+        "tokenWarning": {
+          "medium": {
+            "title": "Large file detected",
+            "description": "Processing may take 1-2 minutes. Please be patient."
+          },
+          "high": {
+            "title": "Very large file detected",
+            "description": "Processing may take several minutes due to the file size."
+          },
+          "extreme": {
+            "title": "Extremely large file",
+            "description": "Processing may take 5+ minutes. Consider splitting the file into smaller parts for faster processing."
+          }
+        },
+        "freeApiWarning": "You're using free AI access which has daily rate limits. For the fast and uninterrupted service, add your own API key.",
+        "addApiKeyLink": "Add your API key in settings →",
+        "status": {
+          "sendingFile": "Sending file to AI...",
+          "readingDocument": "AI is reading the document...",
+          "analyzingStructure": "Analyzing statement structure...",
+          "extractingData": "Extracting transaction data...",
+          "processingTransactions": "Processing transactions...",
+          "finalizing": "Finalizing extraction...",
+          "almostDone": "Almost done..."
+        },
+        "tokenFormat": "{inputTokens}K input, ~{outputTokens}K output",
+        "fileSize": "{size} KB"
+      },
+      "accountSelect": {
+        "newlyCreated": "(newly created)",
+        "differentCurrency": "Different Currency",
+        "linkedToBanks": "Linked to Banks",
+        "linkedToBanksTooltip": "For now, statement import is limited to system accounts only.",
+        "noAccountsFound": "No accounts found",
+        "currencyAccounts": "{currency} Accounts"
+      },
+      "accountSelection": {
+        "transactions": "Transactions:",
+        "bank": "Bank:",
+        "currency": "Currency:",
+        "currencyNotDetected": "Could not detect statement currency. Please select the currency manually:",
+        "currencyMismatch": "The statement currency ({statementCurrency}) differs from the account currency ({accountCurrency}). Transactions will be imported using the account currency.",
+        "createNew": "Create New",
+        "back": "Back",
+        "importTransactions": "Import Transactions",
+        "checkForDuplicates": "Check for Duplicates"
+      },
+      "createAccountDialog": {
+        "title": "Create Account for Import",
+        "description": "Create a new account to import your statement transactions.",
+        "accountNameLabel": "Account name",
+        "currencyLabel": "Currency",
+        "fromStatement": "(from statement)",
+        "currencyLocked": "Currency is locked to match the statement ({currency}).",
+        "currencyWillBeAdded": "Note: {currency} will be added to your currencies.",
+        "cancel": "Cancel",
+        "creating": "Creating...",
+        "createAccount": "Create Account",
+        "validation": {
+          "nameRequired": "Account name is required",
+          "currencyRequired": "Please select a currency"
+        },
+        "success": "Account created successfully",
+        "error": "Failed to create account"
+      },
+      "transactionReview": {
+        "checkingDuplicates": "Checking for duplicates...",
+        "extractedLabel": "Extracted:",
+        "duplicatesLabel": "Potential Duplicates:",
+        "willImportLabel": "Will Import:",
+        "alreadyInAccountLabel": "Already in Account:",
+        "timelineTitle": "Transaction Timeline",
+        "legendNew": "New",
+        "legendDuplicate": "Duplicate",
+        "legendExisting": "Existing",
+        "statusDup": "Dup",
+        "statusImport": "Import",
+        "statusExists": "Exists",
+        "duplicateInfoSkipped": "{count} transactions will be skipped as duplicates.",
+        "duplicateInfoOverridden": "{count} duplicates have been overridden and will be imported.",
+        "toggleInfo": "Click on a row to toggle:",
+        "toggleWillImport": "will import,",
+        "toggleWillSkip": "will skip.",
+        "backButton": "Back",
+        "continueButton": "Continue to Import",
+        "transactionCount": "({count} transactions)"
+      },
+      "importResults": {
+        "readyTitle": "Ready to Import",
+        "readyDescription": "Review the summary below and click \"Import Transactions\" to proceed.",
+        "accountLabel": "Account:",
+        "toImportLabel": "Transactions to import:",
+        "toSkipLabel": "Transactions to skip:",
+        "backButton": "Back",
+        "importButton": "Import {count} Transactions",
+        "importingTitle": "Importing Transactions",
+        "importingDescription": "Please wait while we import your transactions...",
+        "failedTitle": "Import Failed",
+        "startOverButton": "Start Over",
+        "tryAgainButton": "Try Again",
+        "completeTitle": "Import Complete!",
+        "completeWithIssuesTitle": "Import Completed with Issues",
+        "successDescription": "Your transactions have been successfully imported.",
+        "partialDescription": "Some transactions could not be imported.",
+        "importedLabel": "Imported:",
+        "skippedLabel": "Skipped:",
+        "errorsTitle": "Import Errors",
+        "transactionNumberHeader": "Transaction #",
+        "errorHeader": "Error",
+        "batchIdLabel": "Import Batch ID:",
+        "batchIdDescription": "You can use this ID to find and manage all imported transactions.",
+        "viewTransactionsButton": "View Transactions",
+        "startNewImportButton": "Start New Import"
+      }
+    },
+    "monobank": {
+      "tokenPlaceholder": "Enter your Monobank API token",
+      "accountNamePlaceholder": "e.g., Personal Account"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "navigation": {
+      "currencies": "Currencies",
+      "categories": "Categories",
+      "tags": "Tags",
+      "accountsGroups": "Accounts groups",
+      "importData": "Import Data",
+      "preferences": "Preferences",
+      "ai": "AI",
+      "security": "Security",
+      "admin": "Admin"
+    },
+    "backToSettings": "Back to Settings"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "crypto": {
+    "title": "Криптовалюта",
+    "loading": "ЗАВАНТАЖЕННЯ...",
+    "apiKeysForm": {
+      "title": "API ключі",
+      "publicKey": "Публічний ключ",
+      "secretKey": "Секретний ключ",
+      "submit": "Надіслати"
+    },
+    "generalList": {
+      "total": "Всього",
+      "asset": "Актив",
+      "totalColumn": "Всього",
+      "price": "Ціна",
+      "holdings": "Володіння"
+    }
+  }
+}

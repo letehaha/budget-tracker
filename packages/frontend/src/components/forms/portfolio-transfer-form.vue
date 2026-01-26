@@ -346,7 +346,7 @@ const isSubmitDisabled = computed(
 </script>
 
 <template>
-  <form class="grid w-full max-w-[600px] gap-6" @submit.prevent="onSubmit">
+  <form class="grid w-full max-w-150 gap-6" @submit.prevent="onSubmit">
     <SelectField
       v-model="form.transferTypeOption"
       :label="$t('forms.portfolioTransfer.transferTypeLabel')"
@@ -453,7 +453,7 @@ const isSubmitDisabled = computed(
       >
         {{ $t('forms.portfolioTransfer.cancelButton') }}
       </UiButton>
-      <UiButton type="submit" class="min-w-[120px]" :disabled="isSubmitDisabled">
+      <UiButton type="submit" class="min-w-30" :disabled="isSubmitDisabled">
         {{
           createTransferMutation.isPending.value
             ? $t('forms.portfolioTransfer.submitButtonLoading')
@@ -469,16 +469,20 @@ const isSubmitDisabled = computed(
             $t('forms.portfolioTransfer.confirmDialog.title')
           }}</AlertDialog.AlertDialogTitle>
           <AlertDialog.AlertDialogDescription>
-            <span
-              v-html="
-                $t('forms.portfolioTransfer.confirmDialog.description', {
-                  amount: confirmDialogData?.amount,
-                  currency: confirmDialogData?.currency,
-                  from: confirmDialogData?.from,
-                  to: confirmDialogData?.to,
-                })
-              "
-            ></span>
+            <i18n-t keypath="forms.portfolioTransfer.confirmDialog.description" tag="span">
+              <template #amount>
+                <strong>{{ confirmDialogData?.amount }}</strong>
+              </template>
+              <template #currency>
+                <strong>{{ confirmDialogData?.currency }}</strong>
+              </template>
+              <template #from>
+                <strong>{{ confirmDialogData?.from }}</strong>
+              </template>
+              <template #to>
+                <strong>{{ confirmDialogData?.to }}</strong>
+              </template>
+            </i18n-t>
             <br /><br />
             {{ $t('forms.portfolioTransfer.confirmDialog.warning') }}
           </AlertDialog.AlertDialogDescription>

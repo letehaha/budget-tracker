@@ -2,18 +2,27 @@
   <AlertDialog.AlertDialog v-model:open="isOpen">
     <AlertDialog.AlertDialogContent>
       <AlertDialog.AlertDialogHeader>
-        <AlertDialog.AlertDialogTitle>Reconnect Integration</AlertDialog.AlertDialogTitle>
+        <AlertDialog.AlertDialogTitle>
+          {{ t('pages.integrations.dialogs.reconnect.title') }}
+        </AlertDialog.AlertDialogTitle>
         <AlertDialog.AlertDialogDescription>
-          By starting the reconnection flow,
-          <span class="text-destructive-text font-semibold"
-            >your current connection will immediately become invalid</span
-          >. You must finish the flow to make the connection active again.
+          <i18n-t keypath="pages.integrations.dialogs.reconnect.description" tag="span">
+            <template #warning>
+              <span class="text-destructive-text font-semibold">
+                {{ t('pages.integrations.dialogs.reconnect.warning') }}
+              </span>
+            </template>
+          </i18n-t>
         </AlertDialog.AlertDialogDescription>
       </AlertDialog.AlertDialogHeader>
 
       <AlertDialog.AlertDialogFooter>
         <AlertDialog.AlertDialogAction variant="destructive" :disabled="isPending" @click="handleConfirm">
-          {{ isPending ? 'Preparing...' : 'Continue' }}
+          {{
+            isPending
+              ? t('pages.integrations.dialogs.reconnect.preparing')
+              : t('pages.integrations.dialogs.reconnect.continue')
+          }}
         </AlertDialog.AlertDialogAction>
 
         <AlertDialog.AlertDialogCancel>{{ $t('common.actions.cancel') }}</AlertDialog.AlertDialogCancel>
@@ -25,6 +34,9 @@
 <script lang="ts" setup>
 import * as AlertDialog from '@/components/lib/ui/alert-dialog';
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   open: boolean;

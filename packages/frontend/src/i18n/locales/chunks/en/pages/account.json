@@ -1,0 +1,146 @@
+{
+  "pages": {
+    "account": {
+      "loading": "Loading account...",
+      "notFound": "Account not found",
+      "notFoundDescription": "The account you're looking for doesn't exist or has been deleted.",
+      "goToAccounts": "Go to Accounts",
+      "header": {
+        "updateSuccess": "Account data changed successfully",
+        "updateError": "An error occured while trying to update account",
+        "nameLabel": "Account name",
+        "namePlaceholder": "Account name",
+        "transferToPortfolio": "Transfer to Portfolio",
+        "editAccountName": "Edit Account Name",
+        "save": "Save"
+      },
+      "unlink": {
+        "success": "Account {accountName} unlinked successfully",
+        "error": "An error occured while trying to unlink account",
+        "confirmPlaceholder": "Enter account name",
+        "title": "Unlink account from bank connection",
+        "description": "This will convert the account to a system account and preserve all transaction data.",
+        "autoSyncWarning": "The account will no longer sync automatically.",
+        "manualUpdatesOnly": "Only manual updates will work.",
+        "note": "Note:",
+        "reconnectionInfo": "You can reconnect this account to a bank connection later from the Settings tab. After reconnection syncing will start from the latest transaction date.",
+        "confirmTitle": "Are you sure you want to unlink?",
+        "unlinkingButton": "Unlinking...",
+        "unlinkButton": "Unlink from bank",
+        "dialogDescription": "This action will disconnect your account from its bank connection and convert it to a system account.",
+        "whatWillHappen": "What will happen:",
+        "willBecomeSystemType": "Account will become a \"system\" type (manual updates only)",
+        "transactionsPreserved": "All existing transactions will be preserved",
+        "syncWillStop": "Automatic syncing will stop",
+        "connectionHistorySaved": "Connection history will be saved for potential future reconnection",
+        "confirmAccountName": "Type the account name to confirm:"
+      },
+      "deletion": {
+        "success": "Account {accountName} removed successfully",
+        "error": "An error occured while trying to delete account",
+        "confirmPlaceholder": "Type account name to confirm",
+        "dangerZone": "Danger zone",
+        "title": "Delete this account",
+        "description": "Once you delete the account, there is no going back.",
+        "transactionsWarning": "All the transactions will be deleted.",
+        "certaintyWarning": "Please be certain.",
+        "confirmTitle": "Are you absolutely sure?",
+        "deleteButton": "Delete this account",
+        "cannotUndo": "This action cannot be undone.",
+        "transactionCount": "You have {count} transactions associated with this account, they will also be deleted.",
+        "deleteConfirm": "Do you really want to delete this account?",
+        "noTransactions": "You have zero transactions associated.",
+        "accountNameLabel": "Account name (click to copy)"
+      },
+      "link": {
+        "selectConnection": "Select a bank connection",
+        "selectExternalAccount": "Select an external account",
+        "loading": "Loading...",
+        "title": "Link account to bank connection",
+        "description": "Connect this system account to a bank connection for automatic transaction syncing.",
+        "whatWillHappen": "What will happen:",
+        "listItem1": "Account will become linked to the selected bank connection",
+        "listItem2": "Existing transactions will be converted to bank type (preserving all data)",
+        "listItem3": "If balances differ, an adjustment transaction will be created",
+        "listItem4": "Future transactions will sync automatically",
+        "dialogTitle": "Link Account to Bank Connection",
+        "acceptLabel": "Link Account",
+        "linking": "Linking...",
+        "linkButton": "Link to bank",
+        "dialogDescription": "Select a bank connection and the corresponding external account to link.",
+        "connectionLabel": "Bank Connection",
+        "loadingConnections": "Loading connections...",
+        "noConnections": "No connections available",
+        "accountLabel": "External Account",
+        "loadingAccounts": "Loading accounts...",
+        "noExternalAccounts": "No external accounts available",
+        "mismatchWarning": "⚠️ Cannot Link Account",
+        "balanceComparison": "Current Balance Comparison:",
+        "systemAccount": "System Account:",
+        "externalAccount": "External Account:",
+        "adjustmentNote": "If balances differ, an adjustment transaction will be created automatically."
+      },
+      "tabs": {
+        "details": "Details",
+        "settings": "Settings"
+      },
+      "details": {
+        "creditLimit": "Credit Limit:",
+        "initialBalance": "Initial Balance:",
+        "accountType": "Account Type:",
+        "accountCategory": "Account Category:",
+        "currency": "Currency:",
+        "main": "(main)",
+        "exchangeRate": "Exchange Rate:",
+        "exchangeRateLiveUpdate": "Exchange Rate Live Update:",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "group": {
+        "label": "Account group",
+        "tooltip": "Group multiple accounts together to keep your dashboard sidebar organized",
+        "notAssociated": "Not associated"
+      },
+      "visibility": {
+        "label": "Hidden:",
+        "tooltip": "Hidden accounts are not visible on the Dashboard, won't affect statistics, and won't be automatically synced via bank connection until re-enabled.",
+        "updateSuccess": "Updated successfully",
+        "unexpectedError": "Unexpected error"
+      },
+      "loadTransactions": {
+        "title": "Load transactions for selected period",
+        "notLinked": "This account is not linked to a bank connection",
+        "dateRangeExceeds": "Date range cannot exceed 1 year",
+        "loading": "Loading...",
+        "selectPeriod": "Select period",
+        "loadButton": "Load transactions",
+        "failed": "Failed to load transactions"
+      },
+      "syncTransactions": {
+        "title": "Sync latest transactions",
+        "autoSyncInfo": "Transactions are auto-synced every 12 hours",
+        "syncing": "Syncing...",
+        "syncButton": "Sync",
+        "notLinked": "This account is not linked to a bank connection",
+        "syncStarted": "Sync started...",
+        "accessForbidden": "Access forbidden",
+        "failed": "Failed to sync transactions"
+      },
+      "relinkWarning": {
+        "title": "Enable Banking: Account needs update",
+        "description": "This account needs to be updated due to a data schema change. First, try reconnecting via",
+        "connectionValidity": "Connection Validity",
+        "in": "in",
+        "connectionSettings": "Connection Settings",
+        "settings": "Settings",
+        "ifPersists": ". If the issue persists, use",
+        "unlink": "Unlink",
+        "belowThenLink": "below, then link it again."
+      },
+      "rightPanel": {
+        "transactions": "Transactions",
+        "analyticsSoon": "Analytics (soon)"
+      }
+    }
+  }
+}

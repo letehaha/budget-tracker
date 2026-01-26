@@ -1,0 +1,301 @@
+{
+  "dialogs": {
+    "linkAccountGroup": {
+      "title": "Прив'язати групу рахунків",
+      "createNewGroup": "Створити нову групу"
+    },
+    "reassignCategory": {
+      "title": "Перепризначити транзакції",
+      "description": "Ця категорія має {count} транзакцій. Виберіть нову категорію для транзакцій \"{categoryName}\" перед видаленням.",
+      "newCategoryLabel": "Нова категорія",
+      "newCategoryPlaceholder": "Виберіть категорію",
+      "cancelButton": "Скасувати",
+      "reassignButton": "Перепризначити та видалити",
+      "reassignButtonLoading": "Перепризначення...",
+      "notifications": {
+        "success": "{count} транзакцій перепризначено до {newCategoryName}",
+        "error": "Не вдалося перепризначити транзакції"
+      }
+    },
+    "syncConfirmation": {
+      "title": "Синхронізацію нещодавно завершено",
+      "description": "Ви синхронізували свої рахунки {time} тому. Ви впевнені, що хочете синхронізувати знову?",
+      "syncAnyway": "Все одно синхронізувати",
+      "cancel": "Скасувати",
+      "timeUnits": {
+        "someTime": "деякий час",
+        "hours": "{count} годину | {count} години | {count} годин",
+        "minutes": "{count} хвилину | {count} хвилини | {count} хвилин"
+      }
+    },
+    "createPortfolio": {
+      "title": "Створити портфель",
+      "description": "Створіть новий інвестиційний портфель для відстеження ваших утримань та транзакцій.",
+      "form": {
+        "nameLabel": "Назва портфеля",
+        "namePlaceholder": "Мій інвестиційний портфель",
+        "typeLabel": "Тип портфеля",
+        "typePlaceholder": "Виберіть тип портфеля",
+        "portfolioTypes": {
+          "investment": "Інвестиційний",
+          "retirement": "Пенсійний",
+          "savings": "Накопичувальний",
+          "other": "Інший"
+        },
+        "descriptionLabel": "Опис (необов'язково)",
+        "descriptionPlaceholder": "Короткий опис цього портфеля...",
+        "submitButton": "Створити портфель",
+        "submitButtonLoading": "Створення..."
+      },
+      "notifications": {
+        "success": "Портфель успішно створено.",
+        "error": "Не вдалося створити портфель. Спробуйте ще раз."
+      }
+    },
+    "editPortfolio": {
+      "title": "Редагувати портфель",
+      "description": "Оновіть назву, тип або опис вашого портфеля."
+    },
+    "deletePortfolio": {
+      "title": "Видалити портфель",
+      "description": "Ви впевнені, що хочете видалити цей портфель? Цю дію неможливо скасувати.",
+      "cancelButton": "Скасувати",
+      "deleteButton": "Видалити",
+      "deleteButtonLoading": "Видалення...",
+      "notifications": {
+        "success": "Портфель успішно видалено.",
+        "error": "Не вдалося видалити портфель."
+      }
+    },
+    "manageTransaction": {
+      "title": "Керування транзакцією",
+      "description": "Створіть або відредагуйте транзакцію",
+      "linkSection": {
+        "linkButton": "Прив'язати існуючу транзакцію",
+        "title": "Прив'язати існуючу транзакцію",
+        "description": "Виберіть транзакцію для прив'язки",
+        "unlinkButton": "Відв'язати транзакції",
+        "cancelLinkingAriaLabel": "Скасувати прив'язку"
+      },
+      "typeSelector": {
+        "expense": "Витрата",
+        "income": "Дохід",
+        "transfer": "Переказ",
+        "selectExpense": "Вибрати витрату",
+        "selectIncome": "Вибрати дохід",
+        "selectTransfer": "Вибрати переказ"
+      },
+      "recordList": {
+      },
+      "form": {
+        "paymentTypeLabel": "Тип платежу",
+        "noteLabel": "Примітка (необов'язково)",
+        "notePlaceholder": "Примітка",
+        "tagsLabel": "Теги (необов'язково)",
+        "amountLabel": "Сума",
+        "amountPlaceholder": "Сума",
+        "categoryLabel": "Категорія",
+        "targetAmountLabel": "Цільова сума",
+        "targetAmountPlaceholder": "Цільова сума",
+        "datetimeLabel": "Дата і час",
+        "splitInfo": "Розділено на {count} категорій",
+        "editSplit": "Редагувати",
+        "addSplitButton": "Розділити на категорії",
+        "moreOptionsButton": "Більше опцій",
+        "closeButton": "Закрити",
+        "deleteButton": "Видалити",
+        "deleteAriaLabel": "Видалити транзакцію",
+        "createAriaLabel": "Створити транзакцію",
+        "editAriaLabel": "Редагувати транзакцію",
+        "loadingButton": "Завантаження...",
+        "createButton": "Створити",
+        "editButton": "Редагувати",
+        "fromAccountLabel": "З рахунку",
+        "toAccountLabel": "На рахунок",
+        "accountLabel": "Рахунок",
+        "selectAccountPlaceholder": "Виберіть рахунок",
+        "noAccountExists": "Рахунків не існує",
+        "addNewAccountButton": "Додати новий рахунок +",
+        "createAccountLink": "Створити рахунок"
+      },
+      "refundRecordsList": {
+        "filtersDialogTitle": "Вибрати фільтри",
+        "fromDateLabel": "Від дати",
+        "toDateLabel": "До дати",
+        "amountFromLabel": "Сума від (більше або дорівнює)",
+        "amountFromPlaceholder": ">= ніж",
+        "amountToLabel": "До (менше або дорівнює)",
+        "amountToPlaceholder": "<= ніж",
+        "resetButton": "Скинути",
+        "applyButton": "Застосувати",
+        "loadMoreButton": "Завантажити більше",
+        "noMoreTransactions": "Більше транзакцій немає",
+        "noIncomeTransactions": "У системі немає транзакцій доходу, які ще не позначені як повернення. Створіть їх, щоб продовжити",
+        "noExpenseTransactions": "У системі немає транзакцій витрат, які ще не позначені як повернення. Створіть їх, щоб продовжити",
+        "noTransactions": "Немає транзакцій для вибору. Створіть їх, щоб продовжити",
+        "resetFiltersButton": "Скинути фільтри",
+        "recommendedLabel": "Рекомендовані",
+        "allTransactionsLabel": "Усі транзакції"
+      },
+      "splitDialog": {
+        "title": "Розділити на категорії",
+        "description": "Розподіліть цю транзакцію між кількома категоріями. Основна категорія зберігає будь-яку нерозподілену суму.",
+        "mainCategoryLabel": "Основна категорія",
+        "selectCategoryPlaceholder": "Вибрати категорію",
+        "amountPlaceholder": "0",
+        "addCategoryButton": "Додати категорію",
+        "totalAmountLabel": "Загальна сума",
+        "splitTotalLabel": "Сума розподілу",
+        "mainCategoryKeepsLabel": "Основна категорія зберігає",
+        "exceedsTransactionTotal": "Суми розподілу перевищують загальну суму транзакції",
+        "cancelButton": "Скасувати",
+        "removeSplitsButton": "Видалити розподіл",
+        "saveSplitsButton": "Зберегти розподіл",
+        "errors": {
+          "amountMustBePositive": "Сума повинна бути додатною",
+          "duplicateCategory": "Дублікат категорії",
+          "cannotUseMainCategory": "Неможливо використовувати основну категорію в розподілах"
+        }
+      },
+      "markAsRefund": {
+        "linkRefund": "Прив'язати повернення",
+        "selectTransaction": "Виберіть транзакцію",
+        "selectRefundingTransaction": "Виберіть оригінальну транзакцію, яку повертає цей запис.",
+        "selectRefundedByTransactions": "Виберіть транзакції, які повертають поточний запис.",
+        "refundsLabel": "Повернення",
+        "refundedByLabel": "Повернено",
+        "saveButton": "Зберегти",
+        "confirmButton": "Підтвердити",
+        "linkedRefunds": "Прив'язані повернення",
+        "refundsPortion": "Повертає частину {name}",
+        "selectOnlyOne": "* ви можете вибрати лише одну транзакцію",
+        "selectMultipleWithLimit": "* ви можете вибрати кілька транзакцій, але їх загальна сума не може перевищувати суму оригінальної транзакції",
+        "selectWhichPartToRefund": "Виберіть яку частину повернути",
+        "transactionSplitInfo": "Ця транзакція розділена на кілька категорій. Виберіть яку частину ви хочете повернути.",
+        "amountTooSmallWarning": "Параметри менші за вашу суму повернення",
+        "amountDisabled": "вимкнені.",
+        "amountMayBeSmaller": "Деякі параметри можуть бути менші за вашу суму повернення",
+        "finalValidationWarning": "Остаточна валідація буде використовувати конвертовані суми.",
+        "mainCategoryLabel": "(основна)"
+      },
+      "refundInfo": {
+        "trigger": "Як це працює?",
+        "title": "Про транзакції повернення",
+        "description": "Ця дія прив'язує поточну транзакцію [витрата/дохід] як повернення до попередньої існуючої транзакції.",
+        "howItWorks": {
+          "title": "Як це працює:",
+          "expenseRefund": "Для повернення витрати: Виберіть оригінальну транзакцію доходу.",
+          "incomeRefund": "Для повернення доходу: Виберіть оригінальну транзакцію витрати.",
+          "noOriginal": "Ви можете позначити будь-яку транзакцію як повернення, навіть якщо \"оригінальної\" транзакції немає в системі. Корисно, якщо у вас немає рахунку з оригінальною транзакцією в системі."
+        },
+        "benefits": {
+          "title": "Переваги:",
+          "accuracy": "Підвищує фінансову точність, коригуючи статистику витрат або доходів для виключення повернених сум.",
+          "tracking": "Допомагає відстежувати пов'язані транзакції для покращення вашої стрічки."
+        },
+        "notes": {
+          "title": "Важливі примітки:",
+          "recordKeeping": "Цей зв'язок призначений лише для ведення обліку.",
+          "noBalanceAdjust": "Він не коригує баланс оригінальної транзакції жодним чином.",
+          "canUnlink": "Ви завжди можете відв'язати транзакції назад."
+        },
+        "examples": {
+          "title": "Приклади:",
+          "customerPayment": "Повернення оплати клієнту: Створіть витрату та прив'яжіть її до оригінального доходу.",
+          "vendorRefund": "Отримання повернення від постачальника: Створіть дохід та прив'яжіть його до оригінальної витрати.",
+          "noOriginalTx": "Запис повернення без оригінальної транзакції: Іноді вам може знадобитися записати повернення для транзакції, якої немає у вашій системі. Наприклад, якщо ви записуєте повернення готівкового платежу, який спочатку не був зафіксований, ви все одно можете створити запис повернення. Це допомагає вести точний облік, навіть коли оригінальна транзакція не відстежується в цифровому вигляді."
+        }
+      },
+      "transferRecordsList": {
+        "filtersDialogTitle": "Фільтри",
+        "fromDateLabel": "Від дати",
+        "toDateLabel": "До дати",
+        "amountFromLabel": "Сума від",
+        "amountFromPlaceholder": "Мін",
+        "amountToLabel": "Сума до",
+        "amountToPlaceholder": "Макс",
+        "resetButton": "Скинути",
+        "applyButton": "Застосувати",
+        "recommendedLabel": "Рекомендовані",
+        "allTransactionsLabel": "Всі транзакції",
+        "loadMoreButton": "Завантажити більше",
+        "noMoreTransactions": "Більше немає транзакцій",
+        "noIncomeTransactions": "Не знайдено транзакцій доходу. Спробуйте змінити фільтри.",
+        "noExpenseTransactions": "Не знайдено транзакцій витрат. Спробуйте змінити фільтри.",
+        "noTransactions": "Не знайдено транзакцій. Спробуйте змінити фільтри.",
+        "resetFiltersButton": "Скинути фільтри"
+      }
+    },
+    "portfolioTransfer": {
+      "portfolio": {
+        "title": "Переказ з портфеля",
+        "description": "Переказати кошти з цього портфеля на інший портфель або рахунок."
+      },
+      "account": {
+        "title": "Переказ з рахунку",
+        "description": "Переказати кошти з цього рахунку на портфель."
+      }
+    },
+    "addSymbols": {
+      "title": "Додати символи",
+      "searchLabel": "Шукати за символом або назвою",
+      "searchPlaceholder": "AAPL",
+      "searching": "Пошук…",
+      "searchError": "Не вдалося знайти цінні папери.",
+      "addedIndicator": "(Додано)",
+      "noResults": "Результатів немає.",
+      "notifications": {
+        "success": "Утримання додано.",
+        "error": "Не вдалося додати утримання."
+      }
+    },
+    "deleteInvestmentTransaction": {
+      "title": "Видалити транзакцію",
+      "description": "Ви впевнені, що хочете видалити цю транзакцію? Цю дію неможливо скасувати.",
+      "cancelButton": "Скасувати",
+      "deleteButton": "Видалити",
+      "deleteButtonLoading": "Видалення...",
+      "notifications": {
+        "success": "Транзакцію успішно видалено.",
+        "error": "Не вдалося видалити транзакцію."
+      }
+    },
+    "categoryForm": {
+      "title": {
+        "edit": "Редагувати категорію",
+        "add": "Додати категорію"
+      },
+      "description": {
+        "addSubcategory": "Додавання підкатегорії до {parentName}",
+        "edit": "Оновіть назву категорії або налаштування",
+        "add": "Створіть нову категорію"
+      },
+      "nameLabel": "Назва категорії",
+      "namePlaceholder": "Введіть назву категорії",
+      "colorLabel": "Колір",
+      "iconLabel": "Іконка",
+      "iconPlaceholder": "Виберіть іконку",
+      "settingsDivider": "Налаштування",
+      "excludeFromStatsLabel": "Виключити зі статистики витрат",
+      "excludeFromStatsTooltip": "Транзакції в цій категорії не враховуватимуться в статистиці витрат та звітах.",
+      "saveButton": "Зберегти",
+      "createButton": "Створити",
+      "notifications": {
+        "updated": "Категорію оновлено",
+        "created": "Категорію створено",
+        "saveFailed": "Не вдалося зберегти категорію",
+        "unexpectedError": "Неочікувана помилка"
+      }
+    },
+    "addCurrency": {
+      "title": "Додати нову валюту",
+      "description": "Виберіть одну валюту для додавання",
+      "selectPlaceholder": "Вибрати валюту",
+      "addButton": "Додати",
+      "notifications": {
+        "success": "Валюту успішно додано!",
+        "error": "Неочікувана помилка. Валюту не додано."
+      }
+    }
+  }
+}

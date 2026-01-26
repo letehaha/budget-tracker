@@ -6,6 +6,9 @@ import * as Select from '@/components/lib/ui/select';
 import type { AccountModel } from '@bt/shared/types';
 import { InfoIcon, XIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   modelValue: AccountModel | null;
@@ -83,7 +86,9 @@ watch(isOpen, (open) => {
         <template v-if="modelValue">
           <span>{{ modelValue.name }}</span>
           <span class="text-muted-foreground ml-1">({{ modelValue.currencyCode }})</span>
-          <span v-if="isNewAccount" class="text-primary ml-1">(newly created)</span>
+          <span v-if="isNewAccount" class="text-primary ml-1">
+            {{ t('pages.statementParser.accountSelect.newlyCreated') }}
+          </span>
         </template>
         <template v-else>
           {{ placeholder ?? $t('pages.statementParser.selectAccount') }}
@@ -114,7 +119,7 @@ watch(isOpen, (open) => {
       <!-- Selectable accounts (matching currency, not linked to bank) -->
       <Select.SelectGroup v-if="selectableAccounts.length > 0">
         <Select.SelectLabel v-if="detectedCurrency" class="text-muted-foreground text-xs">
-          {{ detectedCurrency }} Accounts
+          {{ t('pages.statementParser.accountSelect.currencyAccounts', { currency: detectedCurrency }) }}
         </Select.SelectLabel>
         <Select.SelectItem
           v-for="account in selectableAccounts"
@@ -125,7 +130,9 @@ watch(isOpen, (open) => {
           <span>
             {{ account.name }}
             <span class="text-muted-foreground ml-1">{{ account.currencyCode }}</span>
-            <span v-if="isNewAccount && modelValue?.id === account.id" class="text-primary ml-1">(newly created)</span>
+            <span v-if="isNewAccount && modelValue?.id === account.id" class="text-primary ml-1">
+              {{ t('pages.statementParser.accountSelect.newlyCreated') }}
+            </span>
           </span>
         </Select.SelectItem>
       </Select.SelectGroup>
@@ -134,7 +141,9 @@ watch(isOpen, (open) => {
       <template v-if="differentCurrencyAccounts.length > 0">
         <Select.SelectSeparator v-if="selectableAccounts.length > 0" />
         <Select.SelectGroup>
-          <Select.SelectLabel class="text-muted-foreground text-xs"> Different Currency </Select.SelectLabel>
+          <Select.SelectLabel class="text-muted-foreground text-xs">
+            {{ t('pages.statementParser.accountSelect.differentCurrency') }}
+          </Select.SelectLabel>
           <Select.SelectItem
             v-for="account in differentCurrencyAccounts"
             :key="account.id"
@@ -155,8 +164,8 @@ watch(isOpen, (open) => {
         <Select.SelectSeparator v-if="selectableAccounts.length > 0 || differentCurrencyAccounts.length > 0" />
         <Select.SelectGroup>
           <Select.SelectLabel class="text-muted-foreground flex items-center gap-1 text-xs">
-            Linked to Banks
-            <ResponsiveTooltip content="For now, statement import is limited to system accounts only.">
+            {{ t('pages.statementParser.accountSelect.linkedToBanks') }}
+            <ResponsiveTooltip :content="t('pages.statementParser.accountSelect.linkedToBanksTooltip')">
               <InfoIcon class="size-3 cursor-help" />
             </ResponsiveTooltip>
           </Select.SelectLabel>
@@ -182,7 +191,7 @@ watch(isOpen, (open) => {
         "
         class="text-muted-foreground py-4 text-center text-sm"
       >
-        No accounts found
+        {{ t('pages.statementParser.accountSelect.noAccountsFound') }}
       </div>
     </Select.SelectContent>
   </Select.Select>
