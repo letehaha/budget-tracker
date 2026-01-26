@@ -68,6 +68,8 @@ export default typescriptEslint.config(
             '/^dashboard\\.onboarding\\.quickStart\\.tasks\\./',
             // bank-providers.ts: provider nameKey and descriptionKey
             '/^pages\\.integrations\\.providers\\./',
+            // const/index.ts: OUT_OF_WALLET_ACCOUNT_MOCK.name
+            '/^common\\.outOfWallet$/',
           ],
         },
       ],
