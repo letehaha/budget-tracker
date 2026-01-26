@@ -3,12 +3,6 @@
     "accountGroups": {
       "title": "Керування групами рахунків",
       "addButton": "Додати нову групу",
-      "createDialog": {
-        "title": "Створити групу",
-        "nameLabel": "Назва групи",
-        "namePlaceholder": "Інвестиції",
-        "createButton": "Створити"
-      },
       "table": {
         "placeholder": "Назва рахунку",
         "saveButton": "Зберегти",

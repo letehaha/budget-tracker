@@ -47,19 +47,19 @@ const createGroup = async () => {
     </template>
 
     <template #title>
-      <span>{{ $t('settings.accountGroups.createDialog.title') }}</span>
+      <span>{{ $t('dialogs.accountGroups.createDialog.title') }}</span>
     </template>
 
     <form class="mt-4" @submit.prevent="createGroup">
       <InputField
         v-model="form.name"
-        :label="$t('settings.accountGroups.createDialog.nameLabel')"
-        :placeholder="$t('settings.accountGroups.createDialog.namePlaceholder')"
+        :label="$t('dialogs.accountGroups.createDialog.nameLabel')"
+        :placeholder="$t('dialogs.accountGroups.createDialog.namePlaceholder')"
       />
 
       <div class="mt-4 flex">
         <UiButton class="mt-3 w-full" :disabled="isSubmitDisabled">
-          {{ $t('settings.accountGroups.createDialog.createButton') }}
+          {{ $t('dialogs.accountGroups.createDialog.createButton') }}
         </UiButton>
       </div>
     </form>

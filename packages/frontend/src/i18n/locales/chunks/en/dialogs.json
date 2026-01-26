@@ -87,8 +87,7 @@
         "selectIncome": "Select income",
         "selectTransfer": "Select transfer"
       },
-      "recordList": {
-      },
+      "recordList": {},
       "form": {
         "paymentTypeLabel": "Payment Type",
         "noteLabel": "Note (optional)",
@@ -297,6 +296,14 @@
       "notifications": {
         "success": "Currency successfully added!",
         "error": "Unexpected error. Currency is not added."
+      }
+    },
+    "accountGroups": {
+      "createDialog": {
+        "title": "Create group",
+        "nameLabel": "Group name",
+        "namePlaceholder": "Investments",
+        "createButton": "Create"
       }
     }
   }

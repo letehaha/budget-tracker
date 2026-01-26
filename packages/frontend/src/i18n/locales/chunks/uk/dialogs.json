@@ -87,8 +87,7 @@
         "selectIncome": "Вибрати дохід",
         "selectTransfer": "Вибрати переказ"
       },
-      "recordList": {
-      },
+      "recordList": {},
       "form": {
         "paymentTypeLabel": "Тип платежу",
         "noteLabel": "Примітка (необов'язково)",
@@ -297,6 +296,14 @@
       "notifications": {
         "success": "Валюту успішно додано!",
         "error": "Неочікувана помилка. Валюту не додано."
+      }
+    },
+    "accountGroups": {
+      "createDialog": {
+        "title": "Створити групу",
+        "nameLabel": "Назва групи",
+        "namePlaceholder": "Інвестиції",
+        "createButton": "Створити"
       }
     }
   }
