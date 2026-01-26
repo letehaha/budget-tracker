@@ -1,5 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
-import { ZodOnboardingStateSchema } from '@models/UserSettings.model';
+import { ZodOnboardingStateUpdateSchema } from '@models/UserSettings.model';
 import * as onboardingService from '@services/user-settings/onboarding';
 import { z } from 'zod';
 
@@ -33,7 +33,7 @@ export const getOnboarding = createController(z.object({}), async ({ user }) => 
  */
 export const updateOnboarding = createController(
   z.object({
-    body: ZodOnboardingStateSchema.partial(),
+    body: ZodOnboardingStateUpdateSchema,
   }),
   async ({ user, body }) => {
     const { id: userId } = user;

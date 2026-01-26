@@ -208,7 +208,8 @@ export const useOnboardingStore = defineStore('onboarding', () => {
   };
 
   const completeTask = async (taskId: string) => {
-    if (completedTasks.value.includes(taskId)) return;
+    // Skip if already completed or if onboarding is dismissed
+    if (completedTasks.value.includes(taskId) || isDismissed.value) return;
 
     // Optimistically update UI
     completedTasks.value = [...completedTasks.value, taskId];

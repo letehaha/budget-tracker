@@ -49,6 +49,13 @@ export const ZodOnboardingStateSchema = z.object({
   dismissedAt: z.string().datetime().nullable().default(null),
 });
 
+// Schema for partial updates - no defaults so only provided fields are included
+export const ZodOnboardingStateUpdateSchema = z.object({
+  completedTasks: z.array(z.string()).optional(),
+  isDismissed: z.boolean().optional(),
+  dismissedAt: z.string().datetime().nullable().optional(),
+});
+
 export type OnboardingStateSchema = z.infer<typeof ZodOnboardingStateSchema>;
 
 export const DEFAULT_ONBOARDING_STATE: OnboardingStateSchema = {
