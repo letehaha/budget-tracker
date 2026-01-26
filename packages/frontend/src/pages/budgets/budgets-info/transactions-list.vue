@@ -386,10 +386,10 @@ const toggleSelectAll = () => {
               <label
                 v-if="flatTransactions[virtualRow.index]"
                 :class="[
-                  'grid cursor-pointer grid-cols-[min-content_minmax(0,1fr)] items-center gap-2 rounded-lg p-2 transition-colors @md:gap-3',
+                  'grid cursor-pointer grid-cols-[min-content_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 transition-colors',
                   { 'select-none': isShiftKeyPressed },
                   pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)
-                    ? 'bg-warning-text/10 hover:bg-warning-text/15'
+                    ? 'bg-warning-text/10 hover:bg-warning-text/20'
                     : 'hover:bg-muted/50',
                 ]"
               >

@@ -64,7 +64,10 @@ const addTransactions = async () => {
     await addTransactionsToBudget(currentBudgetId.value, data);
     invalidate();
     queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.budgetStats, currentBudgetId] });
-    queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.budgetAddingTransactionList, currentBudgetId] });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetAddingTransactionList });
+    queryClient.invalidateQueries({
+      predicate: (query) => query.queryKey.includes(currentBudgetId.value),
+    });
   } catch (err) {
     addErrorNotification(err.data.message);
   }
@@ -179,8 +182,11 @@ const isMobileView = useWindowBreakpoints(1024);
         <template v-if="!hasNextTransactionsPage">
           <p class="flex justify-center">{{ t('transactions.list.noMoreData') }}</p>
         </template>
-        <div v-if="isTransactionsPicked" class="sticky -bottom-px flex gap-2">
-          <Button type="button" variant="secondary" class="hover:bg-initial mt-8 w-full" @click="addTransactions">
+        <div v-if="isTransactionsPicked" class="sticky -bottom-px flex gap-2 pt-8">
+          <Button type="button" variant="outline" class="w-full" @click="resetSelection">
+            {{ t('budgets.addTransactionsDialog.clearSelection') }}
+          </Button>
+          <Button type="button" class="w-full" @click="addTransactions">
             {{ t('budgets.addTransactionsDialog.addSelected') }}
           </Button>
         </div>

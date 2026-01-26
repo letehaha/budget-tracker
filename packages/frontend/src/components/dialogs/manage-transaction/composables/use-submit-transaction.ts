@@ -177,7 +177,7 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
       } else {
         // eslint-disable-next-line no-console
         console.error(error);
-        addErrorNotification(i18n.global.t('transactions.submit.unexpectedError'));
+        addErrorNotification(i18n.global.t('common.transactions.submit.unexpectedError'));
       }
     },
   });

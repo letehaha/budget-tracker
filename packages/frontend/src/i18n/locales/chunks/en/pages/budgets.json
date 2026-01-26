@@ -70,7 +70,8 @@
     },
     "addTransactionsDialog": {
       "title": "Add Transactions to Budget",
-      "addSelected": "Add Selected"
+      "addSelected": "Add Selected",
+      "clearSelection": "Clear selection"
     },
     "categoryBudget": {
       "backToBudgets": "Back to Budgets",

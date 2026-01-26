@@ -61,7 +61,8 @@
     },
     "addTransactionsDialog": {
       "title": "Додати транзакції до бюджету",
-      "addSelected": "Додати вибрані"
+      "addSelected": "Додати вибрані",
+      "clearSelection": "Очистити вибір"
     },
     "categoryBudget": {
       "backToBudgets": "Назад до бюджетів",
