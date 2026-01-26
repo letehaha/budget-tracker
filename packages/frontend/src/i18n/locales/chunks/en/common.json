@@ -78,7 +78,8 @@
         "name": "Statement Parser",
         "description": "Extract transactions from bank statements (PDF, CSV, TXT) using AI"
       }
-    }
+    },
+    "outOfWallet": "Out of Wallet"
   },
   "validation": {
     "minLength": "Minimal length is {length}.",

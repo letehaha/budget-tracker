@@ -141,7 +141,20 @@ const routes = [
         path: '/settings',
         name: ROUTES_NAMES.settings,
         component: () => import('@/pages/settings/settings.vue'),
-        meta: { i18nChunks: ['settings/index'] as I18nChunkName[] },
+        meta: {
+          i18nChunks: [
+            'settings/index',
+            'settings/categories',
+            'settings/tags',
+            'settings/currencies',
+            'settings/accounts-groups',
+            'settings/data-management',
+            'settings/preferences',
+            'settings/ai',
+            'settings/security',
+            'settings/admin',
+          ] as I18nChunkName[],
+        },
         children: [
           {
             path: 'categories',
