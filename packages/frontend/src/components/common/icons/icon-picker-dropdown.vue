@@ -10,7 +10,7 @@
         @input="resetScroll"
       />
 
-      <div ref="scrollContainerRef" class="max-h-50 overflow-y-auto rounded-md border">
+      <div ref="scrollContainerRef" class="max-h-60 overflow-y-auto rounded-md border">
         <div :style="{ height: `${totalSize}px`, width: '100%', position: 'relative' }">
           <div
             v-for="row in virtualRows"
@@ -24,10 +24,10 @@
               transform: `translateY(${row.start}px)`,
             }"
           >
-            <div class="grid grid-cols-8 gap-1 p-1">
+            <div class="grid grid-cols-7 gap-1 p-1">
               <template v-for="iconName in getIconsForRow(row.index)" :key="iconName" :delay-duration="0">
-                <Button size="icon-sm" variant="ghost" :title="iconName" @click="selectIcon(iconName)">
-                  <Icon :icon="`fluent:${iconName}`" class="size-4" />
+                <Button size="icon" variant="ghost" :title="iconName" @click="selectIcon(iconName)">
+                  <Icon :icon="`fluent:${iconName}`" class="size-8" />
                 </Button>
               </template>
             </div>
@@ -50,8 +50,8 @@ import { Icon } from '@iconify/vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { computed, onMounted, ref } from 'vue';
 
-const ICONS_PER_ROW = 8;
-const ROW_HEIGHT = 36;
+const ICONS_PER_ROW = 7;
+const ROW_HEIGHT = 48;
 
 defineProps<{
   modelValue?: string;
