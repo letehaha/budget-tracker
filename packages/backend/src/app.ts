@@ -36,6 +36,7 @@ import binanceRoutes from './routes/crypto/binance.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
 import demoRoutes from './routes/demo.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
+import githubRoutes from './routes/github.route';
 import csvImportExportRoutes from './routes/import-export/csv.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
 import investmentsRoutes from './routes/investments.route';
@@ -196,6 +197,7 @@ app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
 app.use(`${API_PREFIX}/import`, statementParserRoutes);
 app.use(`${API_PREFIX}/sse`, sseRoutes);
 app.use(`${API_PREFIX}/webhooks`, webhooksRoutes);
+app.use(`${API_PREFIX}/github`, githubRoutes);
 
 if (process.env.NODE_ENV === 'test') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);
