@@ -389,7 +389,7 @@ onUnmounted(() => {
     <div class="mb-4 flex items-center justify-between px-6 py-3">
       <DialogTitle>
         <span class="text-2xl">
-          {{ isFormCreation ? $t('transactions.form.addTitle') : $t('transactions.form.editTitle') }}
+          {{ isFormCreation ? $t('dialogs.manageTransaction.addTitle') : $t('dialogs.manageTransaction.editTitle') }}
         </span>
       </DialogTitle>
 

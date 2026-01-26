@@ -68,6 +68,8 @@
       }
     },
     "manageTransaction": {
+      "addTitle": "Додати транзакцію",
+      "editTitle": "Редагувати транзакцію",
       "title": "Керування транзакцією",
       "description": "Створіть або відредагуйте транзакцію",
       "linkSection": {

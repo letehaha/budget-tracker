@@ -1,19 +1,5 @@
 {
   "transactions": {
-    "form": {
-      "addTitle": "Add Transaction",
-      "editTitle": "Edit Transaction"
-    },
-    "delete": {
-      "success": "Successfully removed",
-      "error": "Failed to delete transaction!"
-    },
-    "submit": {
-      "unexpectedError": "Unexpected error!"
-    },
-    "unlink": {
-      "error": "Failed to unlink transactions!"
-    },
     "filters": {
       "filtersLabel": "Filters:",
       "selectFilters": "Select filters",

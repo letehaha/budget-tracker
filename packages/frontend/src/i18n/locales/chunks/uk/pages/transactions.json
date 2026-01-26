@@ -1,19 +1,5 @@
 {
   "transactions": {
-    "form": {
-      "addTitle": "Додати транзакцію",
-      "editTitle": "Редагувати транзакцію"
-    },
-    "delete": {
-      "success": "Успішно видалено",
-      "error": "Не вдалося видалити транзакцію!"
-    },
-    "submit": {
-      "unexpectedError": "Неочікувана помилка!"
-    },
-    "unlink": {
-      "error": "Не вдалося відв'язати транзакції!"
-    },
     "filters": {
       "filtersLabel": "Фільтри:",
       "selectFilters": "Вибрати фільтри",

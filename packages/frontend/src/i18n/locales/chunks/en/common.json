@@ -79,6 +79,18 @@
         "description": "Extract transactions from bank statements (PDF, CSV, TXT) using AI"
       }
     },
+    "transactions": {
+      "delete": {
+        "success": "Successfully removed",
+        "error": "Failed to delete transaction!"
+      },
+      "submit": {
+        "unexpectedError": "Unexpected error!"
+      },
+      "unlink": {
+        "error": "Failed to unlink transactions!"
+      }
+    },
     "outOfWallet": "Out of Wallet"
   },
   "validation": {

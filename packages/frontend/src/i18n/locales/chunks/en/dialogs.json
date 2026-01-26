@@ -68,6 +68,8 @@
       }
     },
     "manageTransaction": {
+      "addTitle": "Add Transaction",
+      "editTitle": "Edit Transaction",
       "title": "Manage transaction",
       "description": "Create or edit a transaction",
       "linkSection": {
