@@ -1,7 +1,7 @@
 <template>
   <div class="orbs-container pointer-events-none fixed inset-0 z-0 overflow-hidden">
     <!-- Noise texture overlay to reduce gradient banding -->
-    <svg class="absolute inset-0 z-10 size-full opacity-[0.1] mix-blend-overlay" xmlns="http://www.w3.org/2000/svg">
+    <svg class="absolute inset-0 z-10 size-full opacity-[0.05] mix-blend-overlay" xmlns="http://www.w3.org/2000/svg">
       <filter id="noise">
         <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" stitchTiles="stitch" />
         <feColorMatrix type="saturate" values="0" />

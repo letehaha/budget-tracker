@@ -1,9 +1,12 @@
-# 🏗️ Stage 1️⃣: Build
-FROM node:23.11.0-alpine AS build-stage
+# 🏗️ Stage 1️⃣: Build (with Puppeteer/Chrome for prerendering)
+FROM ghcr.io/puppeteer/puppeteer:24.2.0 AS build-stage
+
+# Switch to root for installing dependencies
+USER root
 WORKDIR /app
 
 # Install build dependencies for native modules (node-gyp)
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 # Copy root-level package files and post-install script
 COPY package*.json ./
@@ -27,6 +30,9 @@ COPY docker/prod ./docker/prod
 
 # Set working directory to frontend before build
 WORKDIR /app/packages/frontend
+
+# Enable prerendering (Chrome is available in this Puppeteer image)
+ENV ENABLE_PRERENDER=true
 RUN npm run build
 
 # 🚀 Stage 2️⃣: Production

@@ -1,5 +1,6 @@
 import { i18nChunkGuard } from '@/i18n/route-guard';
 import type { I18nChunkName } from '@/i18n/types';
+import type { RouteRecordRaw } from 'vue-router';
 import { createRouter, createWebHistory } from 'vue-router';
 
 import { ROUTES_NAMES } from './constants';
@@ -7,7 +8,7 @@ import { authPageGuard, baseCurrencyExists, redirectRouteGuard } from './guards'
 
 export { ROUTES_NAMES } from './constants';
 
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: ROUTES_NAMES.landing,

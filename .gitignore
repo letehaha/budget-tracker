@@ -122,6 +122,9 @@ jspm_packages/
 # vuepress build output
 .vuepress/dist
 
+# vite-ssg temp files
+.vite-ssg-temp
+
 # Serverless directories
 .serverless/
 

@@ -30,25 +30,35 @@ const initI18n = async () => {
 };
 
 // Initialize i18n before mounting
-initI18n().then(() => {
-  const app = createApp(App);
-  const head = createHead();
+initI18n()
+  .catch((err) => {
+    console.warn('i18n initialization failed, using defaults:', err);
+  })
+  .finally(() => {
+    const app = createApp(App);
+    const head = createHead();
 
-  // Initialize Sentry before mounting (must be early to catch errors)
-  initSentry({ app, router });
+    // Initialize Sentry before mounting (must be early to catch errors)
+    initSentry({ app, router });
 
-  // Initialize PostHog analytics
-  initPostHog();
+    // Initialize PostHog analytics
+    initPostHog();
 
-  app.directive('click-outside', clickOutside);
-  app.directive('node-resize-observer', nodeResizeObserver);
+    app.directive('click-outside', clickOutside);
+    app.directive('node-resize-observer', nodeResizeObserver);
 
-  app.use(router);
-  app.use(store);
-  app.use(head);
-  app.use(i18n); // Register vue-i18n plugin
+    app.use(router);
+    app.use(store);
+    app.use(head);
+    app.use(i18n); // Register vue-i18n plugin
 
-  app.use(VueQueryPlugin);
+    app.use(VueQueryPlugin);
 
-  app.mount('#app');
-});
+    app.mount('#app');
+
+    // Dispatch event for prerender plugin to know when app is rendered
+    // Use nextTick to ensure Vue has finished initial render
+    setTimeout(() => {
+      document.dispatchEvent(new Event('app-rendered'));
+    }, 100);
+  });

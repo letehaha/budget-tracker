@@ -17,7 +17,9 @@
           style="animation-delay: 0.2s"
         >
           Your finances. Your server.
-          <span class="hero-gradient-text inline-block bg-clip-text text-transparent"> Zero data harvesting. </span>
+          <span class="hero-gradient-text inline-block bg-clip-text leading-tight text-transparent">
+            Zero data harvesting.
+          </span>
         </h1>
 
         <!-- Subheadline -->
@@ -25,8 +27,8 @@
           class="hero-fade-in text-muted-foreground mx-auto mt-6 max-w-2xl text-lg sm:text-xl"
           style="animation-delay: 0.35s"
         >
-          Free, open-source budget tracking that respects your privacy. Self-host for complete control, or use our
-          cloud — either way, your data is never sold or shared.
+          Free, open-source budget tracking that respects your privacy. Self-host for complete control, or use our cloud
+          — either way, your data is never sold or shared.
         </p>
 
         <!-- CTA Buttons -->

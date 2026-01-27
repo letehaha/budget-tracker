@@ -47,8 +47,29 @@ export default async ({ mode }) => {
     });
   }
 
+  // Configure prerender plugin for static pages (landing, legal pages)
+  // Only prerender when ENABLE_PRERENDER=true (set in Docker build where Chrome is available)
+  // This prevents CI builds from failing when Chrome/Puppeteer isn't installed
+  let prerenderPlugin = null;
+  if (mode === 'production' && process.env.ENABLE_PRERENDER === 'true') {
+    const [{ default: prerender }, { default: PuppeteerRenderer }] = await Promise.all([
+      import('@prerenderer/rollup-plugin'),
+      import('@prerenderer/renderer-puppeteer'),
+    ]);
+    prerenderPlugin = prerender({
+      routes: ['/', '/privacy-policy', '/terms-of-use'],
+      renderer: new PuppeteerRenderer({
+        // Wait 3 seconds for Vue to render the page
+        // This is more reliable than waiting for a custom event
+        renderAfterTime: 3000,
+        timeout: 60000,
+        headless: true,
+      }),
+    });
+  }
+
   return defineConfig({
-    plugins: [vue(), tailwind(), svgLoader(), sentryPlugin].filter(Boolean),
+    plugins: [vue(), tailwind(), svgLoader(), sentryPlugin, prerenderPlugin].filter(Boolean),
     build: {
       sourcemap: true,
     },

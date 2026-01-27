@@ -82,9 +82,12 @@ const handleTryDemo = async () => {
 
 // Validate session on landing page to check if user has a valid session
 // This handles both regular users (with stored token) and demo users (with session cookie)
-onMounted(async () => {
+// Note: Not awaited to avoid blocking page render (important for prerendering)
+onMounted(() => {
   if (!isLoggedIn.value) {
-    await authStore.validateSession();
+    authStore.validateSession().catch(() => {
+      // Silently ignore - user is simply not logged in
+    });
   }
 });
 
@@ -121,7 +124,7 @@ const siteUrl = 'https://moneymatter.app';
 const pageTitle = 'MoneyMatter - Take Control of Your Financial Future';
 const pageDescription =
   'Track expenses, connect your banks, set budgets, and own your data. MoneyMatter is the open-source personal finance app that puts you in charge.';
-const ogImage = `${siteUrl}/img/og-image.png`;
+const ogImage = `${siteUrl}/img/og-image.jpg`;
 
 useHead({
   title: pageTitle,
