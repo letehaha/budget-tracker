@@ -41,8 +41,6 @@
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "date-fns": "^3.6.0",
-    "highcharts": "^11.4.6",
-    "highcharts-vue": "^2.0.1",
     "lodash-es": "^4.17.21",
     "lucide-vue-next": "0.559.0",
     "pinia": "^2.3.0",

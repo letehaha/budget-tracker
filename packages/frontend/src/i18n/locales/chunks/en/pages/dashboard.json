@@ -8,6 +8,12 @@
           "accounts": "Accounts",
           "portfolios": "Portfolios"
         },
+        "tooltip": {
+          "accounts": "Accounts:",
+          "portfolios": "Portfolios:",
+          "total": "Total:"
+        },
+        "today": "Today",
         "vsPreviousPeriod": "vs previous period"
       },
       "expensesStructure": {

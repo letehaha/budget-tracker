@@ -40,6 +40,9 @@ const config: KnipConfig = {
 
     // peerDependency of v-calendar
     '@popperjs/core',
+
+    // used in CSS
+    '@fontsource/montserrat',
   ],
   // ignoreBinaries: ["eslint"],
   rules: {
