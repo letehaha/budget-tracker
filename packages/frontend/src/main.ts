@@ -41,16 +41,7 @@ initI18n()
     // Initialize Sentry before mounting (must be early to catch errors)
     initSentry({ app, router });
 
-    // Defer PostHog initialization to after first paint for better LCP
-    // Uses requestIdleCallback for non-critical analytics loading
-    const initAnalytics = () => {
-      initPostHog();
-    };
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(initAnalytics, { timeout: 3000 });
-    } else {
-      setTimeout(initAnalytics, 1000);
-    }
+    initPostHog();
 
     app.directive('click-outside', clickOutside);
     app.directive('node-resize-observer', nodeResizeObserver);
