@@ -1,3 +1,10 @@
+/* Montserrat font via fontsource - only weights used in the app */
+@import '@fontsource/montserrat/300.css'; /* font-light */
+@import '@fontsource/montserrat/400.css'; /* font-normal */
+@import '@fontsource/montserrat/500.css'; /* font-medium */
+@import '@fontsource/montserrat/600.css'; /* font-semibold */
+@import '@fontsource/montserrat/700.css'; /* font-bold */
+
 @import 'tailwindcss';
 @import './calendar.css';
 @import 'tw-animate-css';
@@ -275,10 +282,3 @@
   display: none;
   -webkit-appearance: none;
 }
-
-/* Montserrat font via fontsource - only weights used in the app */
-@import '@fontsource/montserrat/300.css'; /* font-light */
-@import '@fontsource/montserrat/400.css'; /* font-normal */
-@import '@fontsource/montserrat/500.css'; /* font-medium */
-@import '@fontsource/montserrat/600.css'; /* font-semibold */
-@import '@fontsource/montserrat/700.css'; /* font-bold */
