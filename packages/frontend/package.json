@@ -22,6 +22,7 @@
     "not dead"
   ],
   "dependencies": {
+    "@fontsource/montserrat": "^5.1.0",
     "@better-auth/passkey": "^1.4.9",
     "@iconify/vue": "^5.0.0",
     "@internationalized/date": "^3.10.0",
