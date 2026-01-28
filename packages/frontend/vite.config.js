@@ -72,6 +72,19 @@ export default async ({ mode }) => {
     plugins: [vue(), tailwind(), svgLoader(), sentryPlugin, prerenderPlugin].filter(Boolean),
     build: {
       sourcemap: true,
+      rollupOptions: {
+        output: {
+          // Split large vendor libraries into separate chunks
+          manualChunks: {
+            // Charting library - only loaded by dashboard widgets
+            highcharts: ['highcharts'],
+            // Analytics - can be deferred
+            posthog: ['posthog-js'],
+            // Error tracking - separate but still loaded early
+            sentry: ['@sentry/vue'],
+          },
+        },
+      },
     },
     server: serverConfig,
     resolve: {

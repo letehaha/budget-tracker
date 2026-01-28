@@ -4,7 +4,7 @@
       <div class="flex h-16 items-center justify-between">
         <!-- Logo -->
         <div class="flex items-center gap-2">
-          <img src="/img/logo.svg" class="size-8" />
+          <img src="/img/logo.svg" alt="MoneyMatter logo" class="size-8" />
 
           <span class="text-xl font-bold">MoneyMatter</span>
         </div>
