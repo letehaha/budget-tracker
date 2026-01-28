@@ -11,5 +11,6 @@ export interface GitHubActivityData {
 type GitHubActivityResponse = GitHubActivityData | { data: null; cached: false; computing: true };
 
 export async function fetchGitHubActivity(): Promise<GitHubActivityResponse> {
-  return api.get<GitHubActivityResponse>('/github/activity');
+  // Silent mode: don't show error toasts for non-critical landing page data
+  return api.get('/github/activity', undefined, { silent: true });
 }

@@ -83,8 +83,10 @@ const handleTryDemo = async () => {
 // Validate session on landing page to check if user has a valid session
 // This handles both regular users (with stored token) and demo users (with session cookie)
 // Note: Not awaited to avoid blocking page render (important for prerendering)
+// Skip during prerendering (no backend available)
 onMounted(() => {
-  if (!isLoggedIn.value) {
+  const isPrerendering = navigator.userAgent.includes('HeadlessChrome');
+  if (!isLoggedIn.value && !isPrerendering) {
     authStore.validateSession().catch(() => {
       // Silently ignore - user is simply not logged in
     });

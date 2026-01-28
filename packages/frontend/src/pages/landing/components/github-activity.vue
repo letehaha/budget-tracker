@@ -95,6 +95,10 @@ async function loadActivity(retryCount = 0): Promise<void> {
 }
 
 onMounted(() => {
-  loadActivity();
+  // Skip during prerendering (no backend available)
+  const isPrerendering = navigator.userAgent.includes('HeadlessChrome');
+  if (!isPrerendering) {
+    loadActivity();
+  }
 });
 </script>

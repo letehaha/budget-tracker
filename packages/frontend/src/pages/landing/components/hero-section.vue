@@ -132,16 +132,16 @@ defineEmits<{
   }
 }
 
-/* Hero content fade in animation */
+/* Hero content slide-up animation (no opacity to avoid flash on prerendered pages) */
 .hero-fade-in {
-  opacity: 0;
-  transform: translateY(20px);
-  animation: fade-in-up 0.8s ease-out forwards;
+  animation: slide-up 0.8s ease-out both;
 }
 
-@keyframes fade-in-up {
+@keyframes slide-up {
+  from {
+    transform: translateY(20px);
+  }
   to {
-    opacity: 1;
     transform: translateY(0);
   }
 }

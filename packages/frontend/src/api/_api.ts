@@ -31,6 +31,8 @@ interface ApiCall {
   data?: Record<string | number, any>;
   options?: {
     needRaw?: boolean;
+    /** When true, suppresses error toast notifications for failed requests */
+    silent?: boolean;
   };
 }
 
@@ -173,26 +175,41 @@ class ApiCaller {
 
     const { addNotification } = useNotificationCenter();
 
+    const isSilent = opts.options?.silent ?? false;
+
+    // Helper to get translated text with fallback (in case i18n isn't loaded yet)
+    const t = (key: string, fallback: string) => {
+      const translated = i18n.global.t(key);
+      // If translation returns the key itself, use fallback
+      return translated === key ? fallback : translated;
+    };
+
     try {
       result = await fetch(url, config);
     } catch (e) {
       if (e instanceof TypeError && e.toString().includes('Failed to fetch')) {
-        addNotification({
-          id: 'api-fetching-error',
-          text: i18n.global.t('errors.api.failedToFetch'),
-          type: NotificationType.error,
-        });
+        const message = t('errors.api.failedToFetch', 'Failed to connect to server');
+        if (!isSilent) {
+          addNotification({
+            id: 'api-fetching-error',
+            text: message,
+            type: NotificationType.error,
+          });
+        }
 
-        throw new errors.NetworkError(i18n.global.t('errors.api.failedToFetch'));
+        throw new errors.NetworkError(message);
       }
 
-      addNotification({
-        id: 'unexpected-api-error',
-        text: i18n.global.t('errors.api.unexpectedError'),
-        type: NotificationType.error,
-      });
+      const message = t('errors.api.unexpectedError', 'An unexpected error occurred');
+      if (!isSilent) {
+        addNotification({
+          id: 'unexpected-api-error',
+          text: message,
+          type: NotificationType.error,
+        });
+      }
 
-      throw new errors.UnexpectedError(i18n.global.t('errors.api.unexpectedError'), {});
+      throw new errors.UnexpectedError(message, {});
     }
 
     const sessionId = result.headers.get(SESSION_ID_HEADER_KEY);
@@ -232,7 +249,7 @@ class ApiCaller {
 
           addNotification({
             id: 'authorization-error',
-            text: i18n.global.t('errors.api.sessionExpired'),
+            text: t('errors.api.sessionExpired', 'Your session has expired'),
             type: NotificationType.error,
           });
         }
@@ -243,7 +260,7 @@ class ApiCaller {
       if (response.code === API_ERROR_CODES.unexpected) {
         addNotification({
           id: 'unexpected-error',
-          text: i18n.global.t('errors.api.unexpectedError'),
+          text: t('errors.api.unexpectedError', 'An unexpected error occurred'),
           type: NotificationType.error,
         });
       }
