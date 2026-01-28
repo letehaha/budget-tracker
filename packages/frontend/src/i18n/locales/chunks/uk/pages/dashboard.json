@@ -8,6 +8,12 @@
           "accounts": "Рахунки",
           "portfolios": "Портфелі"
         },
+        "tooltip": {
+          "accounts": "Рахунки:",
+          "portfolios": "Портфелі:",
+          "total": "Загалом:"
+        },
+        "today": "Сьогодні",
         "vsPreviousPeriod": "до попереднього періоду"
       },
       "expensesStructure": {

@@ -1,5 +1,5 @@
 <template>
-  <WidgetWrapper :is-fetching="isWidgetDataFetching" class="min-h-[320px]">
+  <WidgetWrapper :is-fetching="isWidgetDataFetching" class="min-h-80">
     <template #title>
       <div class="flex w-full items-center gap-4">
         <span>{{ $t('dashboard.widgets.balanceTrend.title') }}</span>
@@ -8,7 +8,7 @@
           :values="balanceTypeOptions"
           value-key="value"
           label-key="label"
-          class="w-[140px] text-xs"
+          class="w-35 text-xs"
           :disabled="isWidgetDataFetching"
         />
       </div>
@@ -22,29 +22,63 @@
       </EmptyState>
     </template>
     <template v-else>
-      <div>
-        <div class="mb-1 flex items-center justify-between text-xs">
-          <div class="font-medium tracking-tight uppercase">{{ periodLabel }}</div>
-          <div class="tracking-tight">{{ $t('dashboard.widgets.balanceTrend.vsPreviousPeriod') }}</div>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <div class="text-lg font-bold tracking-wider">
+      <!-- Stats row - two columns with space between -->
+      <div class="mb-4 flex items-start justify-between gap-4">
+        <!-- Left: Primary value -->
+        <div>
+          <div class="text-xl font-bold tracking-wide">
             {{ formatBaseCurrency(displayBalance.current) }}
           </div>
+          <div class="text-muted-foreground mt-0.5 text-xs font-medium tracking-tight uppercase">
+            {{ periodLabel }}
+          </div>
+        </div>
+
+        <!-- Right: Comparison -->
+        <div class="text-right">
           <div
+            class="text-base font-semibold"
             :class="{
               'text-app-expense-color': balancesDiff < 0,
               'text-success-text': balancesDiff > 0,
             }"
           >
-            {{ `${balancesDiff}%` }}
+            {{ balancesDiff > 0 ? '+' : '' }}{{ balancesDiff }}%
+          </div>
+          <div class="text-muted-foreground mt-0.5 text-xs tracking-tight">
+            {{ $t('dashboard.widgets.balanceTrend.vsPreviousPeriod') }}
           </div>
         </div>
       </div>
 
       <Transition name="chart-fade" mode="out-in">
-        <highcharts :key="chartKey" v-node-resize-observer="{ callback: onChartResize }" :options="chartOptions" />
+        <div :key="chartKey" ref="containerRef" class="relative h-44 w-full">
+          <svg ref="svgRef" class="h-full w-full"></svg>
+
+          <!-- Tooltip -->
+          <div
+            v-show="tooltip.visible"
+            ref="tooltipRef"
+            class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 min-w-37.5 rounded-lg border px-3 py-2 text-sm shadow-lg"
+            :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
+          >
+            <div class="mb-1 font-medium">{{ tooltip.date }}</div>
+            <div>
+              {{ $t('dashboard.widgets.balanceTrend.tooltip.accounts') }}
+              {{ formatLargeNumber(tooltip.accountsBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
+            </div>
+            <div>
+              {{ $t('dashboard.widgets.balanceTrend.tooltip.portfolios') }}
+              {{
+                formatLargeNumber(tooltip.portfoliosBalance, { isFiat: true, currency: baseCurrency?.currency?.code })
+              }}
+            </div>
+            <div class="font-medium">
+              {{ $t('dashboard.widgets.balanceTrend.tooltip.total') }}
+              {{ formatLargeNumber(tooltip.totalBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
+            </div>
+          </div>
+        </div>
       </Transition>
     </template>
   </WidgetWrapper>
@@ -53,16 +87,17 @@
 <script lang="ts" setup>
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import SelectField from '@/components/fields/select-field.vue';
-import { useFormatCurrency, useHighcharts } from '@/composable';
+import { useFormatCurrency } from '@/composable';
+import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
+import * as d3 from 'd3';
 import { differenceInDays, format, isSameMonth, min, startOfDay, subDays } from 'date-fns';
-import { Chart as Highcharts } from 'highcharts-vue';
 import { ChartLineIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import EmptyState from './components/empty-state.vue';
@@ -70,7 +105,15 @@ import LoadingState from './components/loading-state.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
 // Calculate it manually so chart will always have first and last ticks (dates)
-function generateDateSteps(datesToShow = 5, fromDate: Date, toDate: Date) {
+function generateDateSteps({
+  datesToShow = 5,
+  fromDate,
+  toDate,
+}: {
+  datesToShow?: number;
+  fromDate: Date;
+  toDate: Date;
+}) {
   const start = startOfDay(fromDate).getTime();
   const end = startOfDay(toDate).getTime();
   const duration = end - start;
@@ -101,11 +144,30 @@ const balanceTypeOptions = computed(() => [
   { value: 'accounts' as const, label: t('dashboard.widgets.balanceTrend.balanceTypes.accounts') },
   { value: 'portfolios' as const, label: t('dashboard.widgets.balanceTrend.balanceTypes.portfolios') },
 ]);
-const currentChartWidth = ref(0);
 const selectedBalanceType = ref(balanceTypeOptions.value[0]);
-const { formatBaseCurrency } = useFormatCurrency();
+const { formatBaseCurrency, getCurrencySymbol } = useFormatCurrency();
 const { baseCurrency } = storeToRefs(useCurrenciesStore());
-const { buildAreaChartConfig } = useHighcharts();
+
+// D3 chart refs
+const containerRef = ref<HTMLDivElement | null>(null);
+const svgRef = ref<SVGSVGElement | null>(null);
+const tooltipRef = ref<HTMLDivElement | null>(null);
+
+const tooltip = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  date: '',
+  accountsBalance: 0,
+  portfoliosBalance: 0,
+  totalBalance: 0,
+});
+
+const { updateTooltipPosition } = useChartTooltipPosition({
+  containerRef,
+  tooltipRef,
+  tooltip,
+});
 
 // We store actual and prev period separately, so when new data is loading, we
 // can still show the old period, to avoid UI flickering
@@ -188,7 +250,7 @@ const periodLabel = computed(() => {
 
   // Current month - show "Today"
   if (isSameMonth(now, to) && isSameMonth(from, to)) {
-    return 'Today';
+    return t('dashboard.widgets.balanceTrend.today');
   }
 
   // Specific month (not current) - show "November 2025"
@@ -210,113 +272,264 @@ const periodLabel = computed(() => {
   return `${format(from, 'MMM d, yyyy')} - ${format(to, 'MMM d, yyyy')}`;
 });
 
-const chartOptions = computed(() => {
-  const pixelsPerTick = 120;
-  const ticksAmount = currentChartWidth.value ? Math.round(currentChartWidth.value / pixelsPerTick) : 5;
+// Chart data based on selected balance type
+const chartData = computed(() => {
+  if (!balanceHistory.value) return [];
 
+  return balanceHistory.value.map((point) => {
+    const value =
+      selectedBalanceType.value.value === 'total'
+        ? point.totalBalance
+        : selectedBalanceType.value.value === 'accounts'
+          ? point.accountsBalance
+          : point.portfoliosBalance;
+
+    return {
+      date: startOfDay(new Date(point.date)).getTime(),
+      value,
+      accountsBalance: point.accountsBalance,
+      portfoliosBalance: point.portfoliosBalance,
+      totalBalance: point.totalBalance,
+    };
+  });
+});
+
+// Get colors from CSS variables
+const getColors = () => {
+  const style = getComputedStyle(document.documentElement);
+  return {
+    primary: style.getPropertyValue('--primary').trim() || 'rgb(139, 92, 246)',
+    text: style.getPropertyValue('--base-text').trim() || 'rgb(255, 255, 255)',
+    grid: 'color-mix(in srgb, var(--primary) 10%, transparent)',
+  };
+};
+
+const formatAxisValue = (value: number): string => {
+  const symbol = getCurrencySymbol();
+  const absValue = Math.abs(value);
+  if (absValue >= 1000000) {
+    return `${symbol}${(value / 1000000).toFixed(1)}M`;
+  } else if (absValue >= 1000) {
+    return `${symbol}${(value / 1000).toFixed(0)}k`;
+  }
+  return `${symbol}${value}`;
+};
+
+const renderChart = () => {
+  if (!svgRef.value || !containerRef.value || chartData.value.length === 0) return;
+
+  const colors = getColors();
+  const svg = d3.select(svgRef.value);
+  svg.selectAll('*').remove();
+
+  const width = containerRef.value.clientWidth;
+  const height = containerRef.value.clientHeight;
+  const isMobile = width < 500;
+
+  // Increased margins: more space at bottom for x-axis, right for last label
+  const margin = {
+    top: 10,
+    right: isMobile ? 30 : 40,
+    bottom: 35,
+    left: isMobile ? 45 : 55,
+  };
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  // Calculate x-axis ticks - limit to 6-7 max
+  const pixelsPerTick = isMobile ? 80 : 120;
+  const ticksAmount = Math.min(7, Math.max(2, Math.round(innerWidth / pixelsPerTick)));
   const fromDate = actualDataPeriod.value.from;
   const toDate = actualDataPeriod.value.to;
+  const xAxisTicks = generateDateSteps({ datesToShow: ticksAmount, fromDate, toDate });
 
-  const xAxisTicks = generateDateSteps(ticksAmount, fromDate, toDate);
+  // X scale
+  const xScale = d3
+    .scaleLinear()
+    .domain([xAxisTicks[0], xAxisTicks[xAxisTicks.length - 1]])
+    .range([0, innerWidth]);
 
-  const config = buildAreaChartConfig({
-    chart: {
-      height: 200,
-      marginTop: 20,
-      animation: false,
-    },
-    legend: {
-      itemStyle: {
-        color: 'rgba(255,255,255,.9)',
-      },
-    },
-    plotOptions: {
-      area: {
-        animation: false,
-      },
-      series: {
-        animation: false,
-      },
-    },
-    tooltip: {
-      formatter() {
-        const date = new Date(this.x).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        });
+  // Y scale - limit to 5 ticks
+  const yValues = chartData.value.map((d) => d.value);
+  const yMin = d3.min(yValues) || 0;
+  const yMax = d3.max(yValues) || 0;
+  const yPadding = (yMax - yMin) * 0.1 || 1000;
+  const yScale = d3
+    .scaleLinear()
+    .domain([yMin - yPadding, yMax + yPadding])
+    .nice(5)
+    .range([innerHeight, 0]);
 
-        // Find the corresponding data point to get accounts and portfolios breakdown
-        // Use startOfDay to match the data point timestamps (same as series data)
-        const dataPoint = balanceHistory.value?.find((point) => startOfDay(new Date(point.date)).getTime() === this.x);
+  // Calculate exactly 5 tick values
+  const yDomain = yScale.domain();
+  const yTickCount = 5;
+  const yTickStep = (yDomain[1] - yDomain[0]) / (yTickCount - 1);
+  const yTickValues = Array.from({ length: yTickCount }, (_, i) => yDomain[0] + i * yTickStep);
 
-        if (!dataPoint) return '';
+  // Grid lines - exactly 5 ticks
+  g.append('g')
+    .attr('class', 'grid')
+    .call(
+      d3
+        .axisLeft(yScale)
+        .tickValues(yTickValues)
+        .tickSize(-innerWidth)
+        .tickFormat(() => ''),
+    )
+    .call((grid) => {
+      grid.select('.domain').remove();
+      grid.selectAll('.tick line').attr('stroke', colors.grid).attr('stroke-opacity', 0.5);
+    });
 
-        let tooltipHtml = `<strong>${date}</strong><br/>`;
+  // Create gradient for area fill
+  const gradientId = `area-gradient-${chartKey.value}`;
+  const defs = svg.append('defs');
+  const gradient = defs
+    .append('linearGradient')
+    .attr('id', gradientId)
+    .attr('x1', '0%')
+    .attr('y1', '0%')
+    .attr('x2', '0%')
+    .attr('y2', '100%');
 
-        tooltipHtml += `Accounts: ${formatLargeNumber(dataPoint.accountsBalance, {
-          isFiat: true,
-          currency: baseCurrency.value?.currency?.code,
-        })}<br/>`;
-        tooltipHtml += `Portfolios: ${formatLargeNumber(dataPoint.portfoliosBalance, {
-          isFiat: true,
-          currency: baseCurrency.value?.currency?.code,
-        })}<br/>`;
-        tooltipHtml += `<strong>Total: ${formatLargeNumber(dataPoint.totalBalance, {
-          isFiat: true,
-          currency: baseCurrency.value?.currency?.code,
-        })}</strong>`;
+  gradient.append('stop').attr('offset', '0%').attr('stop-color', 'var(--primary)').attr('stop-opacity', 0.3);
 
-        return `<div class="text-sm">${tooltipHtml}</div>`;
-      },
-    },
-    xAxis: {
-      tickPositions: xAxisTicks,
-      labels: {
-        formatter() {
-          const date = new Date(this.value);
-          return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-          });
-        },
-      },
-      type: 'datetime',
-      min: xAxisTicks[0],
-      max: xAxisTicks[xAxisTicks.length - 1],
-    },
-    yAxis: {
-      tickAmount: 5,
-      labels: {
-        formatter() {
-          return formatLargeNumber(this.value, {
-            isFiat: true,
-            currency: baseCurrency.value?.currency?.code,
-          });
-        },
-      },
-    },
-    series: [
-      {
-        type: 'area',
-        showInLegend: false,
-        fillOpacity: 0.6,
-        data: (balanceHistory.value || []).map((point) => {
-          const value =
-            selectedBalanceType.value.value === 'total'
-              ? point.totalBalance
-              : selectedBalanceType.value.value === 'accounts'
-                ? point.accountsBalance
-                : point.portfoliosBalance;
-          // Use startOfDay to match the x-axis tick calculation (local timezone)
-          return [startOfDay(new Date(point.date)).getTime(), value];
+  gradient.append('stop').attr('offset', '100%').attr('stop-color', 'var(--primary)').attr('stop-opacity', 0);
+
+  // Area generator
+  const area = d3
+    .area<(typeof chartData.value)[0]>()
+    .x((d) => xScale(d.date))
+    .y0(innerHeight)
+    .y1((d) => yScale(d.value))
+    .curve(d3.curveMonotoneX);
+
+  // Line generator
+  const line = d3
+    .line<(typeof chartData.value)[0]>()
+    .x((d) => xScale(d.date))
+    .y((d) => yScale(d.value))
+    .curve(d3.curveMonotoneX);
+
+  // Draw area
+  g.append('path').datum(chartData.value).attr('class', 'area').attr('fill', `url(#${gradientId})`).attr('d', area);
+
+  // Draw line
+  g.append('path')
+    .datum(chartData.value)
+    .attr('class', 'line')
+    .attr('fill', 'none')
+    .attr('stroke', 'var(--primary)')
+    .attr('stroke-width', 2)
+    .attr('d', line);
+
+  // X axis with tick indicators
+  g.append('g')
+    .attr('class', 'x-axis')
+    .attr('transform', `translate(0,${innerHeight})`)
+    .call(
+      d3
+        .axisBottom(xScale)
+        .tickValues(xAxisTicks)
+        .tickSize(6)
+        .tickFormat((d) => {
+          const date = new Date(d as number);
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }),
-      },
-    ],
-  });
+    )
+    .call((axis) => {
+      axis.select('.domain').attr('stroke', colors.grid);
+      axis.selectAll('.tick line').attr('stroke', colors.grid);
+      axis.selectAll('.tick text').attr('fill', colors.text).attr('font-size', '11px').attr('dy', '1em');
+    });
 
-  return config;
-});
+  // Y axis - exactly 5 ticks using same values as grid
+  g.append('g')
+    .attr('class', 'y-axis')
+    .call(
+      d3
+        .axisLeft(yScale)
+        .tickValues(yTickValues)
+        .tickFormat((d) => formatAxisValue(d as number)),
+    )
+    .call((axis) => {
+      axis.select('.domain').remove();
+      axis.selectAll('.tick line').remove();
+      axis.selectAll('.tick text').attr('fill', colors.text).attr('font-size', '11px').attr('dx', '-0.3em');
+    });
+
+  // Invisible overlay for mouse tracking
+  const bisect = d3.bisector<(typeof chartData.value)[0], number>((d) => d.date).left;
+
+  // Hover dot (hidden by default)
+  const hoverDot = g
+    .append('circle')
+    .attr('class', 'hover-dot')
+    .attr('r', 5)
+    .attr('fill', 'var(--primary)')
+    .attr('stroke', 'var(--card)')
+    .attr('stroke-width', 2)
+    .style('opacity', 0);
+
+  // Vertical line (hidden by default)
+  const hoverLine = g
+    .append('line')
+    .attr('class', 'hover-line')
+    .attr('stroke', 'var(--primary)')
+    .attr('stroke-width', 1)
+    .attr('stroke-dasharray', '4,4')
+    .attr('y1', 0)
+    .attr('y2', innerHeight)
+    .style('opacity', 0);
+
+  g.append('rect')
+    .attr('class', 'overlay')
+    .attr('width', innerWidth)
+    .attr('height', innerHeight)
+    .attr('fill', 'transparent')
+    .attr('cursor', 'crosshair')
+    .on('mouseenter', () => {
+      hoverDot.style('opacity', 1);
+      hoverLine.style('opacity', 0.5);
+    })
+    .on('mousemove', (event: MouseEvent) => {
+      const [mouseX] = d3.pointer(event);
+      const x0 = xScale.invert(mouseX);
+      const index = bisect(chartData.value, x0, 1);
+      const d0 = chartData.value[index - 1];
+      const d1 = chartData.value[index];
+
+      if (!d0) return;
+
+      const d = d1 && x0 - d0.date > d1.date - x0 ? d1 : d0;
+
+      // Update hover dot position
+      hoverDot.attr('cx', xScale(d.date)).attr('cy', yScale(d.value));
+
+      // Update hover line position
+      hoverLine.attr('x1', xScale(d.date)).attr('x2', xScale(d.date));
+
+      // Update tooltip
+      tooltip.date = new Date(d.date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      tooltip.accountsBalance = d.accountsBalance;
+      tooltip.portfoliosBalance = d.portfoliosBalance;
+      tooltip.totalBalance = d.totalBalance;
+      tooltip.visible = true;
+
+      updateTooltipPosition(event);
+    })
+    .on('mouseleave', () => {
+      tooltip.visible = false;
+      hoverDot.style('opacity', 0);
+      hoverLine.style('opacity', 0);
+    });
+};
 
 const displayBalance = computed(() => {
   if (!balanceHistory.value || balanceHistory.value.length === 0) return { current: 0, previous: 0 };
@@ -359,10 +572,51 @@ const balancesDiff = computed<number>(() => {
   return Number(percentage);
 });
 
-const onChartResize = (entries: ResizeObserverEntry[]) => {
-  const entry = entries[0];
-  currentChartWidth.value = entry.contentRect.width;
+// ResizeObserver for responsive chart
+let resizeObserver: ResizeObserver | null = null;
+
+const setupResizeObserver = () => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+
+  if (containerRef.value) {
+    resizeObserver = new ResizeObserver(() => {
+      renderChart();
+    });
+    resizeObserver.observe(containerRef.value);
+  }
 };
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+});
+
+// Watch for data changes and re-render chart
+// Use flush: 'post' to ensure DOM is updated before rendering
+watch(
+  [chartData, () => actualDataPeriod.value],
+  async () => {
+    await nextTick();
+    setupResizeObserver();
+    renderChart();
+  },
+  { deep: true, flush: 'post' },
+);
+
+// Also watch for when container becomes available (after loading state)
+watch(
+  () => containerRef.value,
+  async (newVal) => {
+    if (newVal) {
+      await nextTick();
+      setupResizeObserver();
+      renderChart();
+    }
+  },
+);
 </script>
 
 <style scoped>

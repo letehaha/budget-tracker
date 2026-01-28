@@ -36,35 +36,39 @@
       </div>
     </template>
 
-    <!-- Always show header section to prevent layout jumps -->
-    <div>
-      <div class="mb-1 flex items-center justify-between text-xs">
-        <div class="font-medium tracking-tight uppercase">{{ $t('dashboard.widgets.expensesStructure.today') }}</div>
-        <div class="tracking-tight">{{ $t('dashboard.widgets.expensesStructure.vsPreviousPeriod') }}</div>
-      </div>
-
-      <div class="flex items-center justify-between">
-        <div class="text-lg font-bold tracking-wider">
+    <!-- Stats row - two columns with space between -->
+    <div class="mb-4 flex items-start justify-between gap-4">
+      <!-- Left: Primary value -->
+      <div>
+        <div class="text-xl font-bold tracking-wide">
           <template v-if="isWidgetDataFetching && !hasData">
-            <div class="bg-muted h-7 w-24 animate-pulse rounded" />
+            <div class="bg-muted h-8 w-32 animate-pulse rounded" />
           </template>
           <template v-else>
             {{ formatBaseCurrency(-(currentMonthExpense || 0)) }}
           </template>
         </div>
+        <div class="text-muted-foreground mt-0.5 text-xs font-medium tracking-tight uppercase">
+          {{ periodLabel }}
+        </div>
+      </div>
 
+      <!-- Right: Comparison -->
+      <div class="text-right">
         <div
+          class="text-base font-semibold"
           :class="{
             'text-destructive-text': expensesDiff > 0,
             'text-success-text': expensesDiff < 0,
           }"
         >
           <template v-if="isWidgetDataFetching && !hasData">
-            <div class="bg-muted h-5 w-12 animate-pulse rounded" />
+            <div class="bg-muted ml-auto h-6 w-16 animate-pulse rounded" />
           </template>
-          <template v-else>
-            {{ `${expensesDiff}%` }}
-          </template>
+          <template v-else> {{ expensesDiff > 0 ? '+' : '' }}{{ expensesDiff }}% </template>
+        </div>
+        <div class="text-muted-foreground mt-0.5 text-xs tracking-tight">
+          {{ $t('dashboard.widgets.expensesStructure.vsPreviousPeriod') }}
         </div>
       </div>
     </div>
@@ -132,10 +136,11 @@ import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { useMediaQuery } from '@vueuse/core';
 import * as d3 from 'd3';
-import { differenceInDays, subDays } from 'date-fns';
+import { differenceInDays, format, isSameMonth, subDays } from 'date-fns';
 import { ChartPieIcon, CircleOffIcon, ExternalLinkIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, nextTick, onUnmounted, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import EmptyState from './components/empty-state.vue';
@@ -157,6 +162,7 @@ const props = defineProps<{
   selectedPeriod: { from: Date; to: Date };
 }>();
 
+const { t } = useI18n();
 const { formatBaseCurrency } = useFormatCurrency();
 const categoriesStore = useCategoriesStore();
 const { categoriesMap } = storeToRefs(categoriesStore);
@@ -193,6 +199,33 @@ const excludedCategories = computed(() =>
   userSettings.value ? userSettings.value.stats.expenses.excludedCategories : [],
 );
 const hasExcludedStats = computed(() => excludedCategories.value.length);
+
+const periodLabel = computed(() => {
+  const from = props.selectedPeriod.from;
+  const to = props.selectedPeriod.to;
+  const now = new Date();
+
+  // Current month - show "Today"
+  if (isSameMonth(now, to) && isSameMonth(from, to)) {
+    return t('dashboard.widgets.expensesStructure.today');
+  }
+
+  // Specific month (not current) - show "November 2025"
+  if (isSameMonth(from, to)) {
+    return format(to, 'MMMM yyyy');
+  }
+
+  // Check if it's a month-aligned range
+  const isFromMonthStart = from.getDate() === 1;
+  const endOfToMonth = new Date(to.getFullYear(), to.getMonth() + 1, 0);
+  const isToMonthEnd = to.getDate() === endOfToMonth.getDate();
+
+  if (isFromMonthStart && isToMonthEnd) {
+    return `${format(from, 'MMM yyyy')} - ${format(to, 'MMM yyyy')}`;
+  }
+
+  return `${format(from, 'MMM d, yyyy')} - ${format(to, 'MMM d, yyyy')}`;
+});
 
 watch(
   () => props.selectedPeriod,

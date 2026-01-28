@@ -14,7 +14,6 @@
         <!-- Headline -->
         <h1
           class="hero-fade-in hero-title mx-auto max-w-5xl text-3xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
-          style="animation-delay: 0.2s"
         >
           Your finances. Your server.
           <span class="hero-gradient-text inline-block bg-clip-text leading-tight text-transparent">
@@ -83,7 +82,24 @@
               </div>
             </div>
             <!-- App screenshot -->
-            <img src="/img/dashboard-desktop.png" alt="MoneyMatter dashboard" class="w-full" />
+            <picture>
+              <source
+                media="(max-width: 639px)"
+                srcset="/img/landing/dashboard-screenshot/dashboard-mobile@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-mobile@2x.webp 2x"
+              />
+              <source
+                srcset="/img/landing/dashboard-screenshot/dashboard-desktop@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-desktop@2x.webp 2x"
+              />
+              <img
+                src="/img/landing/dashboard-screenshot/dashboard-desktop@1x.webp"
+                alt="MoneyMatter dashboard"
+                width="1022"
+                height="600"
+                class="w-full"
+                loading="eager"
+                fetchpriority="high"
+              />
+            </picture>
           </div>
 
           <!-- GitHub Activity -->
