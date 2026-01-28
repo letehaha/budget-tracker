@@ -4,6 +4,9 @@ services:
       context: ../../
       dockerfile: docker/prod/backend/Dockerfile
     container_name: prod-budget-tracker-app
+    # Mount SSL certificates for local HTTPS testing (optional - ignored on VPS where Traefik handles SSL)
+    volumes:
+      - ../../docker/dev/certs:/app/docker/dev/certs:ro
     ports: ['${APPLICATION_PORT}:${APPLICATION_PORT}']
     depends_on: ['db', 'redis', 'frankfurter', 'currency-rates-api']
     env_file: ../../.env.production

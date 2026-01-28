@@ -36,6 +36,7 @@ import binanceRoutes from './routes/crypto/binance.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
 import demoRoutes from './routes/demo.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
+import githubRoutes from './routes/github.route';
 import csvImportExportRoutes from './routes/import-export/csv.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
 import investmentsRoutes from './routes/investments.route';
@@ -196,6 +197,7 @@ app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
 app.use(`${API_PREFIX}/import`, statementParserRoutes);
 app.use(`${API_PREFIX}/sse`, sseRoutes);
 app.use(`${API_PREFIX}/webhooks`, webhooksRoutes);
+app.use(`${API_PREFIX}/github`, githubRoutes);
 
 if (process.env.NODE_ENV === 'test') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);
@@ -211,17 +213,12 @@ logger.info('Attempting to start server...');
 
 let serverInstance: https.Server | ReturnType<typeof app.listen>;
 
-// Use HTTPS in development, HTTP in test mode
-if (process.env.NODE_ENV === 'development') {
-  const certPath = path.join(__dirname, '../../../docker/dev/certs/cert.pem');
-  const keyPath = path.join(__dirname, '../../../docker/dev/certs/key.pem');
+const certPath = path.join(__dirname, '../../../docker/dev/certs/cert.pem');
+const keyPath = path.join(__dirname, '../../../docker/dev/certs/key.pem');
+const certsExist = fs.existsSync(certPath) && fs.existsSync(keyPath);
 
-  if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
-    logger.error(`SSL certificates not found at ${certPath} and ${keyPath}`);
-    logger.error('Please run: cd docker/dev/certs && mkcert localhost 127.0.0.1 ::1');
-    process.exit(1);
-  }
-
+// Use HTTPS when certs exist (dev or prod), HTTP for tests or when no certs
+if (process.env.NODE_ENV !== 'test' && certsExist) {
   const httpsOptions = {
     key: fs.readFileSync(keyPath),
     cert: fs.readFileSync(certPath),
@@ -233,10 +230,20 @@ if (process.env.NODE_ENV === 'development') {
     logger.info(`API Prefix: ${API_PREFIX}`);
     initializeBackgroundJobs();
   });
+} else if (process.env.NODE_ENV !== 'test' && !certsExist) {
+  // Non-test mode without certs - warn but allow HTTP (for CI/CD or reverse proxy setups)
+  logger.warn(`SSL certificates not found at ${certPath} and ${keyPath}`);
+  logger.warn('Running in HTTP mode. For HTTPS, run: cd docker/dev/certs && mkcert localhost 127.0.0.1 ::1');
+
+  serverInstance = app.listen(app.get('port'), () => {
+    logger.info(`[OK] HTTP Server is running on http://localhost:${app.get('port')}`);
+    logger.info(`API Prefix: ${API_PREFIX}`);
+    initializeBackgroundJobs();
+  });
 } else {
   // Test mode uses HTTP for simplicity
   // Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
-  serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
+  serverInstance = app.listen(0, () => {
     logger.info(
       `[OK] ${String(process.env.NODE_ENV).toUpperCase()} server is running on http://localhost:${app.get('port')}`,
     );
