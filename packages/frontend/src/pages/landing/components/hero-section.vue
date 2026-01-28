@@ -82,15 +82,24 @@
               </div>
             </div>
             <!-- App screenshot -->
-            <img
-              src="/img/dashboard-desktop.png"
-              alt="MoneyMatter dashboard"
-              width="1022"
-              height="600"
-              class="w-full"
-              loading="eager"
-              fetchpriority="high"
-            />
+            <picture>
+              <source
+                media="(max-width: 639px)"
+                srcset="/img/landing/dashboard-screenshot/dashboard-mobile@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-mobile@2x.webp 2x"
+              />
+              <source
+                srcset="/img/landing/dashboard-screenshot/dashboard-desktop@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-desktop@2x.webp 2x"
+              />
+              <img
+                src="/img/landing/dashboard-screenshot/dashboard-desktop@1x.webp"
+                alt="MoneyMatter dashboard"
+                width="1022"
+                height="600"
+                class="w-full"
+                loading="eager"
+                fetchpriority="high"
+              />
+            </picture>
           </div>
 
           <!-- GitHub Activity -->
