@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit && vite build && node scripts/post-build-prerender.js",
     "lint": "eslint -c ./eslint.config.js .",
     "dev": "vite --host",
     "prod": "vite --mode production",
