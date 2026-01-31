@@ -11,8 +11,9 @@
     },
     "card": {
       "hidden": "Hidden",
-      "portfolioBalance": "Portfolio Balance",
-      "portfolioType": "{type} Portfolio"
+      "portfolioType": "{type} Portfolio",
+      "totalValue": "Total Value",
+      "costBasis": "Cost basis"
     },
     "empty": {
       "title": "No Portfolios Yet",

@@ -7,7 +7,16 @@ import { useGetHoldingTransactions } from '@/composable/data-queries/investment-
 import { useFormatCurrency } from '@/composable/formatters';
 import { useCurrenciesStore } from '@/stores/currencies';
 import type { HoldingModel } from '@bt/shared/types/investments';
-import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon, ChevronRightIcon } from 'lucide-vue-next';
+import {
+  AlertCircleIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  PackageOpenIcon,
+  PlusIcon,
+  ReceiptIcon,
+} from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
@@ -165,130 +174,231 @@ const theadCellStyles = 'py-2';
 
 <template>
   <div>
-    <div v-if="loading" class="text-center">{{ $t('portfolioDetail.holdingsTable.loading') }}</div>
-    <div v-else-if="error" class="text-center text-red-500">{{ $t('portfolioDetail.holdingsTable.loadError') }}</div>
-    <div v-else-if="!holdings || holdings.length === 0" class="text-center">
-      {{ $t('portfolioDetail.holdingsTable.empty') }}
+    <!-- Loading State with Skeleton -->
+    <div v-if="loading" class="py-8">
+      <div class="space-y-1">
+        <!-- Skeleton Header -->
+        <div class="flex items-center gap-4 border-b pb-2">
+          <div class="h-4 w-8"></div>
+          <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
+          <div class="bg-muted h-4 w-32 animate-pulse rounded"></div>
+          <div class="bg-muted ml-auto h-4 w-16 animate-pulse rounded"></div>
+          <div class="bg-muted h-4 w-16 animate-pulse rounded"></div>
+          <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
+          <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
+          <div class="bg-muted h-8 w-20 animate-pulse rounded"></div>
+          <div class="bg-muted h-8 w-20 animate-pulse rounded"></div>
+        </div>
+        <!-- Skeleton Rows -->
+        <div v-for="i in 5" :key="i" class="flex items-center gap-4 py-3">
+          <div class="bg-muted h-8 w-8 animate-pulse rounded"></div>
+          <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
+          <div class="bg-muted h-4 w-32 animate-pulse rounded"></div>
+          <div class="bg-muted ml-auto h-4 w-16 animate-pulse rounded"></div>
+          <div class="bg-muted h-4 w-16 animate-pulse rounded"></div>
+          <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
+          <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
+          <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
+          <!-- Unrealized Gain - double height for value + percentage -->
+          <div class="flex h-10 flex-col justify-center gap-1">
+            <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
+            <div class="bg-muted h-3 w-16 animate-pulse rounded"></div>
+          </div>
+          <!-- Realized Gain - double height for value + percentage -->
+          <div class="flex h-10 flex-col justify-center gap-1">
+            <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
+            <div class="bg-muted h-3 w-16 animate-pulse rounded"></div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div v-else>
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-muted text-muted-foreground sticky top-[var(--header-height)]">
-          <tr class="text-sm">
-            <th :class="[theadCellStyles, 'w-8 text-left']"></th>
-            <th :class="[theadCellStyles, 'px-4 text-left']">
-              <button class="flex items-center gap-1" @click="toggleSort('symbol')">
-                {{ $t('portfolioDetail.holdingsTable.headers.symbol') }}
-                <ArrowUpIcon v-if="sortKey === 'symbol' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'symbol' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, 'px-4 text-left']">{{ $t('portfolioDetail.holdingsTable.headers.name') }}</th>
-            <th :class="[theadCellStyles, 'px-4 text-right']">
-              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('quantity')">
-                {{ $t('portfolioDetail.holdingsTable.headers.shares') }}
-                <ArrowUpIcon v-if="sortKey === 'quantity' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'quantity' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, 'px-4 text-right']">
-              {{ $t('portfolioDetail.holdingsTable.headers.price') }}
-            </th>
-            <th :class="[theadCellStyles, 'px-4 text-right']">
-              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('avgCost')">
-                {{ $t('portfolioDetail.holdingsTable.headers.avgCostPerShare') }}
-                <ArrowUpIcon v-if="sortKey === 'avgCost' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'avgCost' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, 'px-4 text-right']">
-              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('totalCost')">
-                {{ $t('portfolioDetail.holdingsTable.headers.totalCost') }}
-                <ArrowUpIcon v-if="sortKey === 'totalCost' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'totalCost' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, 'px-4 text-right']">
-              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('value')">
-                {{ $t('portfolioDetail.holdingsTable.headers.marketValue') }}
-                <ArrowUpIcon v-if="sortKey === 'value' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'value' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, 'px-4 text-right']">
-              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('unrealizedGain')">
-                {{ $t('portfolioDetail.holdingsTable.headers.unrealizedGain') }}
-                <ArrowUpIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, 'px-4 text-right']">
-              <button class="flex w-full items-center justify-end gap-1" @click="toggleSort('realizedGain')">
-                {{ $t('portfolioDetail.holdingsTable.headers.realizedGain') }}
-                <ArrowUpIcon v-if="sortKey === 'realizedGain' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'realizedGain' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-          </tr>
-        </thead>
-        <tbody class="divide-border divide-y">
-          <template v-for="h in sortedHoldings" :key="h.securityId">
-            <tr class="hover:bg-muted/20 text-sm">
-              <td>
-                <Button variant="ghost" size="icon" @click="toggleExpand(h.securityId)">
-                  <ChevronDownIcon v-if="expandedHoldingId === h.securityId" class="size-4" />
-                  <ChevronRightIcon v-else class="size-4" />
-                </Button>
-              </td>
-              <td :class="[cellStyles, 'px-4 font-medium']">{{ h.security?.symbol }}</td>
-              <td :class="[cellStyles, 'max-w-[150px] truncate px-4']">{{ h.security?.name }}</td>
-              <td :class="[cellStyles, 'px-4 text-right']">{{ Number(h.quantity).toLocaleString() }}</td>
-              <td :class="[cellStyles, 'px-4 text-right']">{{ formatCurrency(getPrice(h), h.currencyCode) }}</td>
-              <td :class="[cellStyles, 'px-4 text-right']">{{ formatCurrency(getAverageCost(h), h.currencyCode) }}</td>
-              <td :class="[cellStyles, 'px-4 text-right']">{{ formatCurrency(getTotalCost(h), h.currencyCode) }}</td>
-              <td :class="[cellStyles, 'px-4 text-right']">
-                {{ formatCurrency(Number(h.marketValue || 0), h.currencyCode) }}
-              </td>
-              <td :class="[cellStyles, 'px-4 text-right']">
-                <div :class="getGainColorClass(getUnrealizedGain(h).percent)">
-                  <div class="font-medium">{{ formatCurrency(getUnrealizedGain(h).value, h.currencyCode) }}</div>
-                  <div class="text-sm">{{ getUnrealizedGain(h).percent.toFixed(2) }}%</div>
-                </div>
-              </td>
-              <td :class="[cellStyles, 'px-4 text-right']">
-                <div :class="getGainColorClass(getRealizedGain(h).percent)">
-                  <div class="font-medium">{{ formatCurrency(getRealizedGain(h).value, h.currencyCode) }}</div>
-                  <div class="text-sm">{{ getRealizedGain(h).percent.toFixed(2) }}%</div>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="expandedHoldingId === h.securityId">
-              <td colspan="10">
-                <div
-                  v-if="isLoadingTransactions && !transactionsResponse"
-                  class="text-muted-foreground p-4 text-center"
+
+    <!-- Error State -->
+    <div v-else-if="error" class="py-12 text-center">
+      <div class="bg-destructive/10 mx-auto mb-3 flex size-12 items-center justify-center rounded-full">
+        <AlertCircleIcon class="text-destructive size-6" />
+      </div>
+      <p class="text-destructive mb-2 font-medium">{{ $t('portfolioDetail.holdingsTable.loadError') }}</p>
+      <p class="text-muted-foreground text-sm">{{ $t('portfolioDetail.holdingsTable.tryAgainLater') }}</p>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="!holdings || holdings.length === 0" class="py-12 text-center">
+      <div class="bg-muted mx-auto mb-4 flex size-12 items-center justify-center rounded-full">
+        <PackageOpenIcon class="text-muted-foreground size-6" />
+      </div>
+      <p class="text-foreground mb-2 font-medium">{{ $t('portfolioDetail.holdingsTable.empty') }}</p>
+      <p class="text-muted-foreground mb-4 text-sm">{{ $t('portfolioDetail.holdingsTable.emptyDescription') }}</p>
+      <Button variant="outline" @click="openTransactionModal()">
+        <PlusIcon class="mr-2 size-4" />
+        {{ $t('portfolioDetail.holdingsTable.addFirstHolding') }}
+      </Button>
+    </div>
+
+    <!-- Holdings Table -->
+    <div v-else class="relative">
+      <div>
+        <table class="w-full">
+          <thead class="bg-muted text-muted-foreground sticky top-[var(--header-height)] z-10">
+            <tr class="text-xs font-medium tracking-wider uppercase">
+              <th :class="[theadCellStyles, 'w-10 text-left']"></th>
+              <th :class="[theadCellStyles, 'px-3 text-left']">
+                <button
+                  class="hover:text-foreground flex items-center gap-1 transition-colors"
+                  @click="toggleSort('symbol')"
                 >
-                  {{ $t('portfolioDetail.holdingsTable.transactions.loading') }}
-                </div>
-                <InvestmentTransactionsList
-                  v-else-if="transactionsResponse?.transactions?.length"
-                  :transactions="transactionsResponse.transactions"
-                  :total="transactionsResponse.total"
-                  :limit="transactionsResponse.limit"
-                  :page="currentPage"
-                  @page-change="handlePageChange"
-                  @add-transaction="openTransactionModal(h)"
-                />
-                <div v-else class="text-muted-foreground p-4 text-center">
-                  <p class="mb-4">{{ $t('portfolioDetail.holdingsTable.transactions.empty') }}</p>
-                  <Button variant="secondary" @click="openTransactionModal(h)">
-                    {{ $t('portfolioDetail.holdingsTable.transactions.addFirstButton') }}
-                  </Button>
-                </div>
-              </td>
+                  {{ $t('portfolioDetail.holdingsTable.headers.symbol') }}
+                  <ArrowUpIcon v-if="sortKey === 'symbol' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'symbol' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, 'px-3 text-left']">
+                {{ $t('portfolioDetail.holdingsTable.headers.name') }}
+              </th>
+              <th :class="[theadCellStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('quantity')"
+                >
+                  {{ $t('portfolioDetail.holdingsTable.headers.shares') }}
+                  <ArrowUpIcon v-if="sortKey === 'quantity' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'quantity' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, 'px-3 text-right']">
+                {{ $t('portfolioDetail.holdingsTable.headers.price') }}
+              </th>
+              <th :class="[theadCellStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('avgCost')"
+                >
+                  {{ $t('portfolioDetail.holdingsTable.headers.avgCostPerShare') }}
+                  <ArrowUpIcon v-if="sortKey === 'avgCost' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'avgCost' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('totalCost')"
+                >
+                  {{ $t('portfolioDetail.holdingsTable.headers.totalCost') }}
+                  <ArrowUpIcon v-if="sortKey === 'totalCost' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'totalCost' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('value')"
+                >
+                  {{ $t('portfolioDetail.holdingsTable.headers.marketValue') }}
+                  <ArrowUpIcon v-if="sortKey === 'value' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'value' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('unrealizedGain')"
+                >
+                  {{ $t('portfolioDetail.holdingsTable.headers.unrealizedGain') }}
+                  <ArrowUpIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('realizedGain')"
+                >
+                  {{ $t('portfolioDetail.holdingsTable.headers.realizedGain') }}
+                  <ArrowUpIcon v-if="sortKey === 'realizedGain' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'realizedGain' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
             </tr>
-          </template>
-        </tbody>
-      </table>
+          </thead>
+          <tbody class="divide-border divide-y">
+            <template v-for="h in sortedHoldings" :key="h.securityId">
+              <tr class="hover:bg-muted/30 text-sm transition-colors">
+                <td :class="[cellStyles, 'py-1']">
+                  <Button variant="ghost" size="icon" class="size-8" @click="toggleExpand(h.securityId)">
+                    <ChevronDownIcon v-if="expandedHoldingId === h.securityId" class="size-4" />
+                    <ChevronRightIcon v-else class="size-4" />
+                  </Button>
+                </td>
+                <td :class="[cellStyles, 'px-3 font-semibold']">{{ h.security?.symbol }}</td>
+                <td :class="[cellStyles, 'text-muted-foreground max-w-[200px] truncate px-3']">
+                  {{ h.security?.name }}
+                </td>
+                <td :class="[cellStyles, 'px-3 text-right tabular-nums']">{{ Number(h.quantity).toLocaleString() }}</td>
+                <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
+                  {{ formatCurrency(getPrice(h), h.currencyCode) }}
+                </td>
+                <td :class="[cellStyles, 'text-muted-foreground px-3 text-right tabular-nums']">
+                  {{ formatCurrency(getAverageCost(h), h.currencyCode) }}
+                </td>
+                <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
+                  {{ formatCurrency(getTotalCost(h), h.currencyCode) }}
+                </td>
+                <td :class="[cellStyles, 'px-3 text-right font-medium tabular-nums']">
+                  {{ formatCurrency(Number(h.marketValue || 0), h.currencyCode) }}
+                </td>
+                <td :class="[cellStyles, 'px-3 text-right']">
+                  <div :class="getGainColorClass(getUnrealizedGain(h).percent)" class="tabular-nums">
+                    <div class="font-semibold">{{ formatCurrency(getUnrealizedGain(h).value, h.currencyCode) }}</div>
+                    <div class="text-xs">{{ getUnrealizedGain(h).percent.toFixed(2) }}%</div>
+                  </div>
+                </td>
+                <td :class="[cellStyles, 'px-3 text-right']">
+                  <div :class="getGainColorClass(getRealizedGain(h).percent)" class="tabular-nums">
+                    <div class="font-semibold">{{ formatCurrency(getRealizedGain(h).value, h.currencyCode) }}</div>
+                    <div class="text-xs">{{ getRealizedGain(h).percent.toFixed(2) }}%</div>
+                  </div>
+                </td>
+              </tr>
+              <!-- Expanded Transaction Details -->
+              <tr v-if="expandedHoldingId === h.securityId" class="bg-muted/20">
+                <td colspan="10" class="p-0">
+                  <div class="border-primary/20 ml-4 border-l-2">
+                    <div v-if="isLoadingTransactions && !transactionsResponse" class="p-6 text-center">
+                      <div
+                        class="border-primary/20 mx-auto mb-3 size-8 animate-spin rounded-full border-2 border-t-transparent"
+                      ></div>
+                      <p class="text-muted-foreground text-sm">
+                        {{ $t('portfolioDetail.holdingsTable.transactions.loading') }}
+                      </p>
+                    </div>
+                    <InvestmentTransactionsList
+                      v-else-if="transactionsResponse?.transactions?.length"
+                      :transactions="transactionsResponse.transactions"
+                      :total="transactionsResponse.total"
+                      :limit="transactionsResponse.limit"
+                      :page="currentPage"
+                      @page-change="handlePageChange"
+                      @add-transaction="openTransactionModal(h)"
+                    />
+                    <div v-else class="p-6 text-center">
+                      <div class="bg-muted mx-auto mb-3 flex size-10 items-center justify-center rounded-full">
+                        <ReceiptIcon class="text-muted-foreground size-5" />
+                      </div>
+                      <p class="text-muted-foreground mb-3 text-sm">
+                        {{ $t('portfolioDetail.holdingsTable.transactions.empty') }}
+                      </p>
+                      <Button variant="outline" size="sm" @click="openTransactionModal(h)">
+                        <PlusIcon class="mr-2 size-4" />
+                        {{ $t('portfolioDetail.holdingsTable.transactions.addFirstButton') }}
+                      </Button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <Dialog.Dialog v-model:open="isTransactionModalOpen">

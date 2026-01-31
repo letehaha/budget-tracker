@@ -12,7 +12,8 @@
     "card": {
       "hidden": "Прихований",
       "portfolioBalance": "Баланс портфеля",
-      "portfolioType": "Портфель {type}"
+      "portfolioType": "Портфель {type}",
+      "costBasis": "Собівартість"
     },
     "empty": {
       "title": "Портфелів ще немає",

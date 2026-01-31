@@ -3,7 +3,9 @@
     "investmentTransaction": {
       "typeLabel": "Тип транзакції",
       "types": {
-        "buy": "Купівля"
+        "buy": "Купівля",
+        "sell": "Продаж",
+        "dividend": "Дивіденди"
       },
       "securityLabel": "Цінний папір",
       "securityPlaceholder": "Виберіть цінний папір",
