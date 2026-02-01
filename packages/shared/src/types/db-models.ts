@@ -8,6 +8,10 @@ import {
   NotificationStatus,
   NotificationType,
   PAYMENT_TYPES,
+  SUBSCRIPTION_FREQUENCIES,
+  SUBSCRIPTION_LINK_STATUS,
+  SUBSCRIPTION_MATCH_SOURCE,
+  SUBSCRIPTION_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TagReminderFrequency,
@@ -108,6 +112,8 @@ export interface CategorizationMeta {
   source: CATEGORIZATION_SOURCE;
   /** Rule ID for user_rule categorization */
   ruleId?: number;
+  /** Subscription ID for subscription_rule categorization */
+  subscriptionId?: string;
   /** ISO timestamp when categorization was applied */
   categorizedAt?: string;
 }
@@ -324,4 +330,48 @@ export interface NotificationModel {
   createdAt: Date;
   readAt: Date | null;
   expiresAt: Date | null;
+}
+
+/**
+ * Matching rule for subscription auto-matching.
+ * Rules are evaluated with AND logic (all must pass).
+ */
+export interface SubscriptionMatchingRule {
+  field: 'note' | 'amount' | 'transactionType' | 'accountId';
+  operator: 'contains_any' | 'between' | 'equals';
+  value: string[] | { min: number; max: number } | string | number;
+  /** Currency code for amount rules (enables cross-currency matching) */
+  currencyCode?: string;
+}
+
+export interface SubscriptionMatchingRules {
+  rules: SubscriptionMatchingRule[];
+}
+
+export interface SubscriptionModel {
+  id: string;
+  userId: number;
+  name: string;
+  type: SUBSCRIPTION_TYPES;
+  /** Expected amount in cents */
+  expectedAmount: number | null;
+  expectedCurrencyCode: string | null;
+  frequency: SUBSCRIPTION_FREQUENCIES;
+  startDate: string;
+  endDate: string | null;
+  accountId: number | null;
+  categoryId: number | null;
+  matchingRules: SubscriptionMatchingRules;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubscriptionTransactionModel {
+  subscriptionId: string;
+  transactionId: number;
+  matchSource: SUBSCRIPTION_MATCH_SOURCE;
+  matchedAt: Date;
+  status: SUBSCRIPTION_LINK_STATUS;
 }

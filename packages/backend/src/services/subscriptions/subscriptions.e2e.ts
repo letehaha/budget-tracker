@@ -1,0 +1,564 @@
+import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { describe, expect, it } from '@jest/globals';
+import * as helpers from '@tests/helpers';
+
+describe('Subscriptions', () => {
+  describe('CRUD', () => {
+    it('creates a subscription', async () => {
+      const sub = await helpers.createSubscription({
+        name: 'Netflix',
+        expectedAmount: 1599,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      expect(sub.name).toBe('Netflix');
+      expect(sub.frequency).toBe(SUBSCRIPTION_FREQUENCIES.monthly);
+      expect(sub.isActive).toBe(true);
+    });
+
+    it('creates a subscription with all optional fields', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const sub = await helpers.createSubscription({
+        name: 'Spotify',
+        type: SUBSCRIPTION_TYPES.subscription,
+        expectedAmount: 999,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-15',
+        endDate: '2026-01-15',
+        accountId: account.id,
+        categoryId: 1,
+        matchingRules: {
+          rules: [{ field: 'note', operator: 'contains_any', value: ['spotify'] }],
+        },
+        notes: 'Family plan',
+        raw: true,
+      });
+
+      expect(sub.name).toBe('Spotify');
+      expect(sub.expectedAmount).toBe(999);
+      expect(sub.accountId).toBe(account.id);
+      expect(sub.categoryId).toBe(1);
+      expect(sub.notes).toBe('Family plan');
+    });
+
+    it('lists subscriptions', async () => {
+      await helpers.createSubscription({
+        name: 'Sub A',
+        expectedAmount: 1000,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+      await helpers.createSubscription({
+        name: 'Sub B',
+        expectedAmount: 500,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.weekly,
+        startDate: '2025-02-01',
+        raw: true,
+      });
+
+      const list = await helpers.getSubscriptions({ raw: true });
+      expect(list.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('gets subscription by id', async () => {
+      const sub = await helpers.createSubscription({
+        name: 'Detail Sub',
+        expectedAmount: 1599,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(detail.name).toBe('Detail Sub');
+      expect(detail.transactions).toBeDefined();
+      expect(detail.nextExpectedDate).toBeDefined();
+    });
+
+    it('updates a subscription', async () => {
+      const sub = await helpers.createSubscription({
+        name: 'Original',
+        expectedAmount: 999,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const updated = await helpers.updateSubscription({
+        id: sub.id,
+        name: 'Updated',
+        frequency: SUBSCRIPTION_FREQUENCIES.quarterly,
+        raw: true,
+      });
+
+      expect(updated.name).toBe('Updated');
+      expect(updated.frequency).toBe(SUBSCRIPTION_FREQUENCIES.quarterly);
+    });
+
+    it('deletes a subscription', async () => {
+      const sub = await helpers.createSubscription({
+        name: 'To Delete',
+        expectedAmount: 999,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const res = await helpers.deleteSubscription({ id: sub.id });
+      expect(res.statusCode).toBe(200);
+
+      const getRes = await helpers.getSubscriptionById({ id: sub.id });
+      expect(getRes.statusCode).toBe(404);
+    });
+  });
+
+  describe('Transaction Linking', () => {
+    it('manually links transactions to a subscription', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const sub = await helpers.createSubscription({
+        name: 'Link Test',
+        expectedAmount: 1500,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1500,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-01-15T10:00:00Z',
+        }),
+        raw: true,
+      });
+
+      const linkRes = await helpers.linkTransactionsToSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      expect(linkRes.linked).toBe(1);
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(detail.transactions.length).toBe(1);
+      expect(detail.transactions[0]!.id).toBe(tx.id);
+    });
+
+    it('prevents linking a transaction to two subscriptions', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const sub1 = await helpers.createSubscription({
+        name: 'Sub 1',
+        expectedAmount: 1500,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+      const sub2 = await helpers.createSubscription({
+        name: 'Sub 2',
+        expectedAmount: 1500,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1500,
+        }),
+        raw: true,
+      });
+
+      await helpers.linkTransactionsToSubscription({
+        id: sub1.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      const res = await helpers.linkTransactionsToSubscription({
+        id: sub2.id,
+        transactionIds: [tx.id],
+      });
+
+      expect(res.statusCode).toBe(409);
+    });
+
+    it('unlinks transactions (soft-unlink with status)', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const sub = await helpers.createSubscription({
+        name: 'Unlink Test',
+        expectedAmount: 1500,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1500,
+        }),
+        raw: true,
+      });
+
+      await helpers.linkTransactionsToSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      const unlinkRes = await helpers.unlinkTransactionsFromSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      expect(unlinkRes.unlinked).toBe(1);
+
+      // After unlinking, the transaction should not appear in subscription details
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(detail.transactions.length).toBe(0);
+    });
+
+    it('re-links previously unlinked transactions', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const sub = await helpers.createSubscription({
+        name: 'Relink Test',
+        expectedAmount: 1500,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1500,
+        }),
+        raw: true,
+      });
+
+      // Link → Unlink → Re-link
+      await helpers.linkTransactionsToSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      await helpers.unlinkTransactionsFromSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      const reLinkRes = await helpers.linkTransactionsToSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      expect(reLinkRes.linked).toBe(1);
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(detail.transactions.length).toBe(1);
+    });
+
+    it('unlinked transactions are excluded from suggestions', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1500,
+          note: 'netflix payment',
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-06-15T10:00:00Z',
+        }),
+        raw: true,
+      });
+
+      const sub = await helpers.createSubscription({
+        name: 'Netflix',
+        expectedAmount: 1500,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        matchingRules: {
+          rules: [{ field: 'note', operator: 'contains_any', value: ['netflix'] }],
+        },
+        raw: true,
+      });
+
+      // Link then unlink
+      await helpers.linkTransactionsToSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+      await helpers.unlinkTransactionsFromSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      // Suggest matches should NOT include the unlinked transaction
+      const suggestions = await helpers.getSuggestedMatches({ id: sub.id, raw: true });
+      const suggestedIds = suggestions.map((s: { id: number }) => s.id);
+      expect(suggestedIds).not.toContain(tx.id);
+    });
+  });
+
+  describe('Subscription list counts', () => {
+    it('linkedTransactionsCount excludes unlinked transactions', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const sub = await helpers.createSubscription({
+        name: 'Count Test',
+        expectedAmount: 1000,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const [tx1] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 1000 }),
+        raw: true,
+      });
+      const [tx2] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 2000 }),
+        raw: true,
+      });
+
+      await helpers.linkTransactionsToSubscription({
+        id: sub.id,
+        transactionIds: [tx1.id, tx2.id],
+        raw: true,
+      });
+
+      // Unlink one
+      await helpers.unlinkTransactionsFromSubscription({
+        id: sub.id,
+        transactionIds: [tx1.id],
+        raw: true,
+      });
+
+      const list = await helpers.getSubscriptions({ raw: true });
+      const found = list.find((s: { id: string }) => s.id === sub.id);
+      expect((found as Record<string, unknown>).linkedTransactionsCount).toBe(1);
+    });
+  });
+
+  describe('Suggest historical matches', () => {
+    it('suggests transactions matching rules', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1500,
+          note: 'NETFLIX subscription',
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-06-10T10:00:00Z',
+        }),
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 2000,
+          note: 'Grocery store',
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-06-11T10:00:00Z',
+        }),
+        raw: true,
+      });
+
+      const sub = await helpers.createSubscription({
+        name: 'Netflix',
+        expectedAmount: 1500,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        matchingRules: {
+          rules: [{ field: 'note', operator: 'contains_any', value: ['netflix'] }],
+        },
+        raw: true,
+      });
+
+      const suggestions = await helpers.getSuggestedMatches({ id: sub.id, raw: true });
+      expect(suggestions.length).toBeGreaterThanOrEqual(1);
+      expect(suggestions.every((s: { note: string | null }) => s.note?.toLowerCase().includes('netflix'))).toBe(true);
+    });
+  });
+
+  describe('Auto-matching on transaction creation', () => {
+    it('auto-matches a new transaction to subscription via rules', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const sub = await helpers.createSubscription({
+        name: 'Netflix',
+        expectedAmount: 1599,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        matchingRules: {
+          rules: [{ field: 'note', operator: 'contains_any', value: ['netflix'] }],
+        },
+        raw: true,
+      });
+
+      // Create a transaction with matching note
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1599,
+          note: 'Netflix monthly payment',
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(detail.transactions.length).toBe(1);
+      expect(detail.transactions[0]!.note).toContain('Netflix');
+    });
+
+    it('does not auto-match when note does not match rules', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const sub = await helpers.createSubscription({
+        name: 'Netflix',
+        expectedAmount: 1599,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        matchingRules: {
+          rules: [{ field: 'note', operator: 'contains_any', value: ['netflix'] }],
+        },
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1599,
+          note: 'Spotify premium',
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(detail.transactions.length).toBe(0);
+    });
+
+    it('applies subscription category to auto-matched transaction', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const category = await helpers.addCustomCategory({ raw: true, name: 'Entertainment', color: '#FF5733' });
+
+      const sub = await helpers.createSubscription({
+        name: 'Netflix',
+        expectedAmount: 1599,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        categoryId: category.id,
+        matchingRules: {
+          rules: [{ field: 'note', operator: 'contains_any', value: ['netflix'] }],
+        },
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1599,
+          note: 'Netflix payment',
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(detail.transactions.length).toBe(1);
+      expect(detail.transactions[0]!.categoryId).toBe(category.id);
+    });
+
+    it('does not re-match a transaction that was previously unlinked', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const sub = await helpers.createSubscription({
+        name: 'Netflix',
+        expectedAmount: 1599,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        matchingRules: {
+          rules: [{ field: 'note', operator: 'contains_any', value: ['netflix'] }],
+        },
+        raw: true,
+      });
+
+      // Create and auto-match
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1599,
+          note: 'Netflix payment',
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      // Verify it was matched
+      let detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(detail.transactions.length).toBe(1);
+
+      // Unlink it
+      await helpers.unlinkTransactionsFromSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(detail.transactions.length).toBe(0);
+
+      // Create another transaction — the unlinked one should stay unlinked,
+      // but a new matching transaction should still be matched
+      const [tx2] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1599,
+          note: 'Netflix payment 2',
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      // Should only contain the new tx, not the previously unlinked one
+      expect(detail.transactions.length).toBe(1);
+      expect(detail.transactions[0]!.id).toBe(tx2.id);
+    });
+  });
+});

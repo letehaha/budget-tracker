@@ -349,6 +349,19 @@ export const createTransaction = withTransaction(
         eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_TAGGED, { tagIds, userId });
       }
 
+      // Try to match the transaction to a subscription (non-critical)
+      if (transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+        try {
+          const { matchTransactionToSubscriptions } = await import('@services/subscriptions');
+          await matchTransactionToSubscriptions({ transaction: baseTransaction!, userId });
+        } catch (error) {
+          logger.error({
+            message: 'Failed to match transaction to subscriptions',
+            error: error as Error,
+          });
+        }
+      }
+
       return transactions;
     } catch (e) {
       if (process.env.NODE_ENV !== 'test') {

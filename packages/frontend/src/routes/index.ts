@@ -109,16 +109,51 @@ const routes: RouteRecordRaw[] = [
         ],
       },
       {
+        path: '/planned',
+        name: ROUTES_NAMES.planned,
+        component: () => import('@/pages/planned/index.vue'),
+        redirect: { name: ROUTES_NAMES.plannedSubscriptions },
+        meta: { i18nChunks: ['pages/planned'] as I18nChunkName[] },
+        children: [
+          {
+            path: 'subscriptions',
+            name: ROUTES_NAMES.plannedSubscriptions,
+            component: () => import('@/pages/planned/subscriptions/index.vue'),
+          },
+          {
+            path: 'subscriptions/:id',
+            name: ROUTES_NAMES.plannedSubscriptionDetails,
+            component: () => import('@/pages/planned/subscriptions/subscription-details.vue'),
+          },
+          {
+            path: 'budgets',
+            name: ROUTES_NAMES.plannedBudgets,
+            component: () => import('@/pages/budgets/budgets.vue'),
+            meta: { i18nChunks: ['pages/budgets'] as I18nChunkName[] },
+          },
+          {
+            path: 'budgets/:id',
+            name: ROUTES_NAMES.plannedBudgetDetails,
+            component: () => import('@/pages/budgets/budgets-info/index.vue'),
+            meta: {
+              i18nChunks: ['pages/budgets', 'pages/budget-details', 'pages/transactions'] as I18nChunkName[],
+            },
+          },
+        ],
+      },
+      // Backward-compat redirects for old budget URLs
+      {
         path: '/budgets',
         name: ROUTES_NAMES.budgets,
-        component: () => import('@/pages/budgets/budgets.vue'),
-        meta: { i18nChunks: ['pages/budgets'] as I18nChunkName[] },
+        redirect: { name: ROUTES_NAMES.plannedBudgets },
       },
       {
         path: '/budgets/:id',
         name: ROUTES_NAMES.budgetsInfo,
-        component: () => import('@/pages/budgets/budgets-info/index.vue'),
-        meta: { i18nChunks: ['pages/budgets', 'pages/budget-details', 'pages/transactions'] as I18nChunkName[] },
+        redirect: (to) => ({
+          name: ROUTES_NAMES.plannedBudgetDetails,
+          params: { id: to.params.id },
+        }),
       },
       {
         path: '/transactions',

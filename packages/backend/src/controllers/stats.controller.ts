@@ -1,5 +1,5 @@
 import { BalanceModel, TRANSACTION_TYPES } from '@bt/shared/types';
-import { recordId } from '@common/lib/zod/custom-types';
+import { booleanQuery, recordId } from '@common/lib/zod/custom-types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -214,10 +214,7 @@ const cashFlowSchema = z.object({
               .filter((id) => !Number.isNaN(id))
           : undefined,
       ),
-    excludeCategories: z
-      .string()
-      .optional()
-      .transform((val) => val === 'true'),
+    excludeCategories: booleanQuery().optional(),
   }),
 });
 
@@ -249,10 +246,7 @@ const cumulativeDataSchema = z.object({
     to: z.string(),
     metric: z.enum(['expenses', 'income', 'savings']),
     accountId: z.string().optional(),
-    excludeCategories: z
-      .string()
-      .optional()
-      .transform((val) => val === 'true'),
+    excludeCategories: booleanQuery().optional(),
   }),
 });
 

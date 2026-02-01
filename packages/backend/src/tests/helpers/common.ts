@@ -6,7 +6,7 @@ import request from 'supertest';
 
 interface MakeRequestParams<T> {
   url: string;
-  method: 'get' | 'post' | 'put' | 'delete';
+  method: 'get' | 'post' | 'put' | 'patch' | 'delete';
   payload?: object | null;
   headers?: object;
   raw?: T;

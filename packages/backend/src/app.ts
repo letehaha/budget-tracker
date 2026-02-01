@@ -43,6 +43,7 @@ import investmentsRoutes from './routes/investments.route';
 import notificationsRoutes from './routes/notifications.route';
 import sseRoutes from './routes/sse.route';
 import statsRoutes from './routes/stats.route';
+import subscriptionsRoutes from './routes/subscriptions.route';
 import tagRemindersRoutes from './routes/tag-reminders.route';
 import tagsRoutes from './routes/tags.route';
 import testsRoutes from './routes/tests.route';
@@ -54,6 +55,7 @@ import { registerAiCategorizationListeners } from './services/ai-categorization'
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
 import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 import { initializeExchangeRateProviders } from './services/exchange-rates/providers';
+import { registerSubscriptionMatchingListeners } from './services/subscriptions';
 import { registerTagReminderListeners } from './services/tag-reminders';
 
 logger.info('Starting application initialization...');
@@ -148,6 +150,7 @@ initializeBankProviders();
 initializeExchangeRateProviders();
 registerAiCategorizationListeners();
 registerTagReminderListeners();
+registerSubscriptionMatchingListeners();
 
 /**
  *  Routes include
@@ -189,6 +192,7 @@ app.use(`${API_PREFIX}/stats`, statsRoutes);
 app.use(`${API_PREFIX}/account-group`, accountGroupsRoutes);
 app.use(`${API_PREFIX}/currencies/rates`, exchangeRatesRoutes);
 app.use(`${API_PREFIX}/budgets`, budgetsRoutes);
+app.use(`${API_PREFIX}/subscriptions`, subscriptionsRoutes);
 app.use(`${API_PREFIX}/tags`, tagsRoutes);
 app.use(`${API_PREFIX}/tag-reminders`, tagRemindersRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationsRoutes);

@@ -744,6 +744,7 @@ export interface UpdateTransactionByIdParams {
   transferNature?: TRANSACTION_TRANSFER_NATURE;
   transferId?: string | null;
   refundLinked?: boolean;
+  categorizationMeta?: CategorizationMeta | null;
 }
 
 export const updateTransactionById = async (
