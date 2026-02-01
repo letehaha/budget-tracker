@@ -35,6 +35,15 @@ Examples:
 
 Always test through the actual API endpoints to ensure full integration testing.
 
+**CRITICAL: Running Tests**
+- **NEVER** use `npx jest` directly. Always use the npm scripts.
+- **ALWAYS** use the `test-runner` subagent to run tests. The main agent must NEVER run tests directly.
+- Backend e2e tests: `npm run test:e2e` from `packages/backend/`
+- To run a specific test file: `npm run test:e2e -- --testPathPattern='<pattern>'`
+- Example: `npm run test:e2e -- --testPathPattern='subscriptions/subscriptions.e2e'`
+- **NEVER** run e2e tests in parallel (no concurrent test-runner agents for e2e). The Docker-based test environment does not support parallel runs. To test multiple files, combine them in a single `--testPathPattern` regex.
+- Example (multiple files): `npm run test:e2e -- --testPathPattern='subscriptions/(subscriptions|matching-disambiguation).e2e'`
+
 Other instructions:
 
 1. File names should always be in kebab-case
@@ -85,9 +94,17 @@ Other instructions:
    ast-grep --pattern '<button>$TEXT</button>' src/**/*.vue
    ```
 
-6. **i18n Files - DO NOT EDIT UNLESS EXPLICITLY ASKED**
+6. **Money Convention: Cents in DB, Decimals in API**
+   - The database stores all monetary amounts in **cents** (integers)
+   - All API responses MUST return monetary amounts as **decimals** (not cents)
+     For example:
+     - When returning transaction data: use `serializeTransactions()` / `serializeTransaction()` from `@root/serializers/transactions.serializer`
+     - When serializing manually (e.g. from BelongsToMany includes): convert each money field with `toDecimal(asCents(value))` from `@bt/shared/types`
+     - Money fields on transactions: `amount`, `refAmount`, `commissionRate`, `refCommissionRate`, `cashbackAmount`
+7. **i18n Files - DO NOT EDIT UNLESS EXPLICITLY ASKED**
    - i18n locale files are BLOCKED from reading (hook saves tokens)
    - **NEVER** proactively add/update translations when implementing features
    - **ONLY** edit i18n files when the user explicitly asks for translation work
    - When asked, use the `i18n-editor` subagent
    - If a feature needs translations, mention it in your response and let the user decide when to add them
+8. For Chrome extenstion use Brave browser, not Chrome

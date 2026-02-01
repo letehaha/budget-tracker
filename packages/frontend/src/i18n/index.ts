@@ -43,6 +43,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/crypto': () => import('./locales/chunks/en/pages/crypto.json'),
     'pages/import-csv': () => import('./locales/chunks/en/pages/import-csv.json'),
     'pages/import-statement': () => import('./locales/chunks/en/pages/import-statement.json'),
+    'pages/planned': () => import('./locales/chunks/en/pages/planned.json'),
     // Settings chunks
     'settings/index': () => import('./locales/chunks/en/settings/index.json'),
     'settings/categories': () => import('./locales/chunks/en/settings/categories.json'),
@@ -81,6 +82,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/crypto': () => import('./locales/chunks/uk/pages/crypto.json'),
     'pages/import-csv': () => import('./locales/chunks/uk/pages/import-csv.json'),
     'pages/import-statement': () => import('./locales/chunks/uk/pages/import-statement.json'),
+    'pages/planned': () => import('./locales/chunks/uk/pages/planned.json'),
     // Settings chunks
     'settings/index': () => import('./locales/chunks/uk/settings/index.json'),
     'settings/categories': () => import('./locales/chunks/uk/settings/categories.json'),

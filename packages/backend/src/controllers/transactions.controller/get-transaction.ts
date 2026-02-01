@@ -5,6 +5,7 @@ import {
   TRANSACTION_TYPES,
   parseToCents,
 } from '@bt/shared/types';
+import { booleanQuery } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeTransactions } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
@@ -69,10 +70,10 @@ const schema = z.object({
           z.array(z.number().int().positive()),
         )
         .optional(),
-      includeSplits: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      includeTags: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      excludeTransfer: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      excludeRefunds: z.preprocess((val) => val === 'true', z.boolean()).optional(),
+      includeSplits: booleanQuery().optional(),
+      includeTags: booleanQuery().optional(),
+      excludeTransfer: booleanQuery().optional(),
+      excludeRefunds: booleanQuery().optional(),
       startDate: z.string().datetime({ message: 'Invalid ISO date string for startDate' }).optional(),
       endDate: z.string().datetime({ message: 'Invalid ISO date string for endDate' }).optional(),
       // Amount filters now accept decimals from API

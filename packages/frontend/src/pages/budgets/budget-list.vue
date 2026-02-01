@@ -59,7 +59,7 @@ const isBudgetStatsLoading = (budgetId: number) => {
 };
 
 const navigateToBudget = ({ budgetId }: { budgetId: number }) => {
-  router.push({ name: ROUTES_NAMES.budgetsInfo, params: { id: budgetId } });
+  router.push({ name: ROUTES_NAMES.plannedBudgetDetails, params: { id: budgetId } });
 };
 
 const deleteBudget = async ({ budgetId }: { budgetId: number }) => {

@@ -136,6 +136,7 @@ export enum CATEGORIZATION_SOURCE {
   ai = 'ai',
   mccRule = 'mcc_rule',
   userRule = 'user_rule',
+  subscriptionRule = 'subscription_rule',
 }
 
 /**
@@ -195,3 +196,40 @@ export const NOTIFICATION_PRIORITIES = {
 } as const;
 
 export type NotificationPriority = (typeof NOTIFICATION_PRIORITIES)[keyof typeof NOTIFICATION_PRIORITIES] | string;
+
+/**
+ * Subscription types
+ */
+export enum SUBSCRIPTION_TYPES {
+  subscription = 'subscription',
+  bill = 'bill',
+}
+
+/**
+ * Subscription frequency presets
+ */
+export enum SUBSCRIPTION_FREQUENCIES {
+  weekly = 'weekly',
+  biweekly = 'biweekly',
+  monthly = 'monthly',
+  quarterly = 'quarterly',
+  semiAnnual = 'semi_annual',
+  annual = 'annual',
+}
+
+/**
+ * Source of how a transaction was linked to a subscription
+ */
+export enum SUBSCRIPTION_MATCH_SOURCE {
+  manual = 'manual',
+  rule = 'rule',
+  ai = 'ai',
+}
+
+/**
+ * Status of a subscription–transaction link
+ */
+export enum SUBSCRIPTION_LINK_STATUS {
+  active = 'active',
+  unlinked = 'unlinked',
+}

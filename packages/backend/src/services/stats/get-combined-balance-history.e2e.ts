@@ -2,7 +2,7 @@ import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import Balances from '@models/Balances.model';
 import * as helpers from '@tests/helpers';
-import { format, startOfMonth, subDays } from 'date-fns';
+import { format, subDays } from 'date-fns';
 
 import { CombinedBalanceHistoryItem } from './get-combined-balance-history';
 
@@ -150,8 +150,8 @@ describe('[Stats] Combined balance history', () => {
 
     await Balances.update({ date: yesterday }, { where: { accountId: account.id } });
 
-    // Get combined balance history for the last month (which should include today)
-    const fromDate = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+    // Get combined balance history for a range that includes both yesterday and today
+    const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
     const toDate = format(new Date(), 'yyyy-MM-dd');
 
     const data = await helpers.getCombinedBalanceHistory({

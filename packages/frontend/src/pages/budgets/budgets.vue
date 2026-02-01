@@ -19,7 +19,7 @@ const isModalClosed = () => {
 </script>
 
 <template>
-  <div class="p-6">
+  <div>
     <!-- Page Header -->
     <div class="mb-6 flex items-center justify-between">
       <div>
