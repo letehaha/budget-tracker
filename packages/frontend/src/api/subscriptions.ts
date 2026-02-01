@@ -7,7 +7,7 @@ export interface SubscriptionListItem extends SubscriptionModel {
   category?: { id: number; name: string; color: string; icon: string | null } | null;
 }
 
-export interface SubscriptionDetail extends SubscriptionModel {
+interface SubscriptionDetail extends SubscriptionModel {
   nextExpectedDate: string | null;
   account?: { id: number; name: string; currencyCode: string } | null;
   category?: { id: number; name: string; color: string; icon: string | null } | null;
