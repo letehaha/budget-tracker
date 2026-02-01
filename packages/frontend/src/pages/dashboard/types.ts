@@ -1,4 +1,1 @@
-export interface Period {
-  from: Date;
-  to: Date;
-}
+export type { Period } from '@/composable/use-period-navigation';

@@ -120,7 +120,8 @@ import { useI18n } from 'vue-i18n';
 
 import { createPeriodSerializer } from '../../utils';
 import ChartSkeleton from '../cash-flow/components/chart-skeleton.vue';
-import PeriodSelector, { type Period } from '../cash-flow/components/period-selector.vue';
+import type { Period } from '@/composable/use-period-navigation';
+import PeriodSelector from '../cash-flow/components/period-selector.vue';
 import SummaryCardSkeleton from '../cash-flow/components/summary-card-skeleton.vue';
 import SummaryCard from '../cash-flow/components/summary-card.vue';
 import CategoryBreakdown from './components/category-breakdown.vue';
