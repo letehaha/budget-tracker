@@ -132,7 +132,7 @@ import { createPeriodSerializer } from '../../utils';
 import CashFlowChart from './components/cash-flow-chart.vue';
 import ChartTypeSwitcher, { type ChartType } from './components/chart-type-switcher.vue';
 import GranularitySelector from './components/granularity-selector.vue';
-import type { Period } from './components/period-selector.vue';
+import type { Period } from '@/composable/use-period-navigation';
 import PeriodSelector from './components/period-selector.vue';
 import SummaryCard from './components/summary-card.vue';
 

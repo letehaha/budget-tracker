@@ -54,6 +54,7 @@ import PopoverContent from '@/components/lib/ui/popover/PopoverContent.vue';
 import PopoverTrigger from '@/components/lib/ui/popover/PopoverTrigger.vue';
 import RangeCalendar from '@/components/lib/ui/range-calendar/RangeCalendar.vue';
 import { useDateLocale } from '@/composable/use-date-locale';
+import { type Period, usePeriodNavigation } from '@/composable/use-period-navigation';
 import { CalendarDate, type DateValue } from '@internationalized/date';
 import {
   addDays,
@@ -63,7 +64,6 @@ import {
   isSameMonth,
   startOfMonth,
   startOfYear,
-  subDays,
   subMonths,
   subYears,
 } from 'date-fns';
@@ -71,11 +71,6 @@ import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { type DateRange } from 'reka-ui';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-export interface Period {
-  from: Date;
-  to: Date;
-}
 
 // Maximum period allowed is 3 years
 const MAX_PERIOD_YEARS = 3;
@@ -182,23 +177,20 @@ const periodSelectorText = computed(() => {
   return `${format(from, 'dd MMM yyyy')} - ${format(to, 'dd MMM yyyy')}`;
 });
 
-// Calculate period duration to shift by the same amount
-const periodDurationDays = computed(() => differenceInDays(props.modelValue.to, props.modelValue.from) + 1);
+const { prevPeriod, nextPeriod } = usePeriodNavigation({
+  period: () => props.modelValue,
+});
 
 const updatePeriod = (period: Period) => {
   emit('update:modelValue', period);
 };
 
 const selectPrevPeriod = () => {
-  const from = subDays(props.modelValue.from, periodDurationDays.value);
-  const to = subDays(props.modelValue.from, 1);
-  updatePeriod({ from, to });
+  updatePeriod(prevPeriod.value);
 };
 
 const selectNextPeriod = () => {
-  const from = addDays(props.modelValue.to, 1);
-  const to = addDays(props.modelValue.to, periodDurationDays.value);
-  updatePeriod({ from, to });
+  updatePeriod(nextPeriod.value);
 };
 
 const handleDateRangeSelect = (range: DateRange) => {

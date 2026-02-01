@@ -1,4 +1,4 @@
-import type { Period } from '../subpages/cash-flow/components/period-selector.vue';
+import type { Period } from '@/composable/use-period-navigation';
 
 /**
  * Creates a serializer for Period objects to use with VueUse storage composables.
