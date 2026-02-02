@@ -1,10 +1,6 @@
 {
   "planned": {
     "backToPlanned": "Назад до Запланованого",
-    "navigation": {
-      "subscriptions": "Підписки",
-      "budgets": "Бюджети"
-    },
     "subscriptions": {
       "title": "Підписки та рахунки",
       "description": "Відстежуйте регулярні платежі та рахунки",

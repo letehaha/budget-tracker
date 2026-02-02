@@ -1,10 +1,6 @@
 {
   "planned": {
     "backToPlanned": "Back to Planned",
-    "navigation": {
-      "subscriptions": "Subscriptions",
-      "budgets": "Budgets"
-    },
     "subscriptions": {
       "title": "Subscriptions & Bills",
       "description": "Track recurring payments and bills",

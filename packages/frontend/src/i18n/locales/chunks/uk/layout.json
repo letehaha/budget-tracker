@@ -6,8 +6,12 @@
     "transactions": "Транзакції",
     "budgets": "Бюджети",
     "analytics": "Аналітика",
-    "planned": "Заплановане",
-    "logout": "Вийти"
+    "logout": "Вийти",
+    "planned": {
+      "planned": "Заплановане",
+      "subscriptions": "Підписки",
+      "budgets": "Бюджети"
+    }
   },
   "sidebar": {
     "accountsView": {
@@ -72,8 +76,7 @@
       "description": "Захистіть свій обліковий запис, додавши вхід через Google або ключ доступу. Це гарантує, що ви завжди зможете отримати доступ до свого облікового запису.",
       "actionButton": "Перейти до налаштувань безпеки"
     },
-    "legacyAccountMigration": {
-    }
+    "legacyAccountMigration": {}
   },
   "relinkWarning": {
     "buttonLabel": "{count} рахунок потребує уваги | {count} рахунки потребують уваги | {count} рахунків потребують уваги",

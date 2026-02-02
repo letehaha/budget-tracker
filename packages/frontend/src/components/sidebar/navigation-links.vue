@@ -97,7 +97,7 @@ watch(
         size="default"
       >
         <CalendarClockIcon :class="['size-4 shrink-0', isPlannedRoute && 'text-primary']" />
-        <span>{{ $t('navigation.planned') }}</span>
+        <span>{{ $t('navigation.planned.planned') }}</span>
         <ChevronRightIcon
           :class="['ml-auto size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isPlannedOpen }]"
         />
@@ -113,7 +113,7 @@ watch(
             size="sm"
           >
             <RepeatIcon :class="['size-4 shrink-0', isActive && 'text-primary']" />
-            <span>{{ $t('planned.navigation.subscriptions') }}</span>
+            <span>{{ $t('navigation.planned.subscriptions') }}</span>
           </ui-button>
         </router-link>
         <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.plannedBudgets }">
@@ -124,7 +124,7 @@ watch(
             size="sm"
           >
             <WalletIcon :class="['size-4 shrink-0', isActive && 'text-primary']" />
-            <span>{{ $t('planned.navigation.budgets') }}</span>
+            <span>{{ $t('navigation.planned.budgets') }}</span>
           </ui-button>
         </router-link>
       </div>
