@@ -35,7 +35,14 @@ Examples:
 
 Always test through the actual API endpoints to ensure full integration testing.
 
+**Bug Fix Workflow: Test-First Approach**
+
+- When a bug is reported, do **NOT** start by trying to fix it.
+- **First**, write a test that reproduces the bug (the test should fail) if it's suitable. For backend use e2e tests, for frontend if it's a util/composable write unit-test.
+- **Then**, use subagents to fix the bug and prove it with a passing test.
+
 **CRITICAL: Running Tests**
+
 - **NEVER** use `npx jest` directly. Always use the npm scripts.
 - **ALWAYS** use the `test-runner` subagent to run tests. The main agent must NEVER run tests directly.
 - Backend e2e tests: `npm run test:e2e` from `packages/backend/`
