@@ -6,6 +6,8 @@
   ],
   "scripts": {
     "lint": "npm -w packages/backend run lint && npm -w packages/frontend run lint",
+    "landing:dev": "npm -w packages/landing run dev",
+    "landing:build": "npm -w packages/landing run build",
     "test": "cross-env NODE_ENV=test npm -w packages/backend run test && npm -w packages/frontend run test",
     "generate-ssl-certs": "chmod +x ./scripts/generate-ssl-certs.sh && ./scripts/generate-ssl-certs.sh",
     "docker:dev": "docker compose -f ./docker/dev/docker-compose.yml --env-file .env.development up",

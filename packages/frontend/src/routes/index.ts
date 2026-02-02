@@ -10,22 +10,6 @@ export { ROUTES_NAMES } from './constants';
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/',
-    name: ROUTES_NAMES.landing,
-    component: () => import('@/pages/landing/index.vue'),
-    // Landing page uses common chunk only (loaded at startup)
-  },
-  {
-    path: '/privacy-policy',
-    name: ROUTES_NAMES.privacyPolicy,
-    component: () => import('@/pages/legal/privacy-policy.vue'),
-  },
-  {
-    path: '/terms-of-use',
-    name: ROUTES_NAMES.termsOfUse,
-    component: () => import('@/pages/legal/terms-of-use.vue'),
-  },
-  {
     path: '/app',
     name: ROUTES_NAMES.dashboard,
     component: () => import('@/layouts/dashboard.vue'),

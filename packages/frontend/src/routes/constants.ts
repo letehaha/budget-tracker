@@ -1,7 +1,6 @@
 const ROUTER_LAYOUTS = Object.freeze({
   auth: 'auth',
   dashboard: 'dashboard',
-  landing: 'landing',
 });
 
 export const ROUTES_NAMES = Object.freeze({
@@ -49,8 +48,4 @@ export const ROUTES_NAMES = Object.freeze({
   verifyLegacyEmail: `${ROUTER_LAYOUTS.auth}.verify-legacy-email`,
   welcome: `${ROUTER_LAYOUTS.auth}.welcome`,
   authCallback: `${ROUTER_LAYOUTS.auth}.callback`,
-
-  landing: ROUTER_LAYOUTS.landing,
-  privacyPolicy: 'privacy-policy',
-  termsOfUse: 'terms-of-use',
 });

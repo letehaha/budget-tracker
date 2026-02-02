@@ -1,0 +1,70 @@
+---
+import BaseLayout from '@/layouts/base-layout.astro';
+import BackgroundOrbs from '@/components/background-orbs.astro';
+import LandingHeader from '@/components/landing-header.astro';
+import HeroSection from '@/components/hero-section.astro';
+import ComparisonSection from '@/components/comparison-section.astro';
+import FeaturesSection from '@/components/features-section.astro';
+import SelfHostSection from '@/components/self-host-section.astro';
+import CtaSection from '@/components/cta-section.astro';
+import LandingFooter from '@/components/landing-footer.astro';
+
+import TryDemoButton from '@/components/try-demo-button.vue';
+import GitHubActivity from '@/components/github-activity.vue';
+---
+
+<BaseLayout
+  title="MoneyMatter - Take Control of Your Financial Future"
+  description="Track expenses, connect your banks, set budgets, and own your data. MoneyMatter is the open-source personal finance app that puts you in charge."
+  canonicalUrl="https://moneymatter.app"
+>
+  <div class="bg-background text-foreground landing-page min-h-screen">
+    <BackgroundOrbs />
+    <LandingHeader />
+
+    <HeroSection>
+      <TryDemoButton slot="try-demo" client:load />
+      <GitHubActivity slot="github-activity" client:visible />
+    </HeroSection>
+
+    <ComparisonSection />
+    <FeaturesSection />
+    <SelfHostSection />
+    <CtaSection />
+    <LandingFooter />
+  </div>
+</BaseLayout>
+
+<script>
+  import { initPostHog, trackAnalyticsEvent } from '@/lib/posthog';
+
+  // Initialize PostHog
+  initPostHog();
+
+  // Attach click tracking to all [data-track] elements
+  document.querySelectorAll('[data-track]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const event = el.getAttribute('data-track');
+      const location = el.getAttribute('data-track-location');
+
+      if (event === 'landing_cta_clicked' && location) {
+        trackAnalyticsEvent({
+          event: 'landing_cta_clicked',
+          properties: { location: location as 'header' | 'hero' | 'cta_section', action: 'sign_up' },
+        });
+      } else if (event === 'landing_github_clicked' && location) {
+        trackAnalyticsEvent({
+          event: 'landing_github_clicked',
+          properties: { location: location as 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' },
+        });
+      }
+    });
+  });
+</script>
+
+<style>
+  .landing-page {
+    font-family: 'Montserrat', system-ui, sans-serif;
+    overflow-y: auto;
+  }
+</style>
