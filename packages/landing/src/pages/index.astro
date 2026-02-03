@@ -50,7 +50,7 @@ import GitHubActivity from '@/components/github-activity.vue';
       if (event === 'landing_cta_clicked' && location) {
         trackAnalyticsEvent({
           event: 'landing_cta_clicked',
-          properties: { location: location as 'header' | 'hero' | 'cta_section', action: 'sign_up' },
+          properties: { location: location as 'header' | 'hero' | 'cta_section' | 'self_host', action: 'sign_up' },
         });
       } else if (event === 'landing_github_clicked' && location) {
         trackAnalyticsEvent({

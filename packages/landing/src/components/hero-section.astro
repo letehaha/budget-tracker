@@ -117,10 +117,10 @@
   .hero-gradient-text {
     background-image: linear-gradient(90deg, #8b5cf6 0%, #a855f7 25%, #ec4899 50%, #a855f7 75%, #8b5cf6 100%) !important;
     background-size: 200% 100% !important;
-    animation: gradient-shift 2.5s ease-in-out infinite;
+    animation: hero-gradient-shift 2.5s ease-in-out infinite;
   }
 
-  @keyframes gradient-shift {
+  @keyframes hero-gradient-shift {
     0%,
     100% {
       background-position: 0% 50%;
@@ -132,10 +132,10 @@
 
   /* Hero content slide-up animation */
   .hero-fade-in {
-    animation: slide-up 0.8s ease-out both;
+    animation: hero-slide-up 0.8s ease-out both;
   }
 
-  @keyframes slide-up {
+  @keyframes hero-slide-up {
     from {
       transform: translateY(20px);
     }

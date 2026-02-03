@@ -160,23 +160,23 @@
 
   .hero-orb-1 {
     animation:
-      float-1 12s infinite,
-      pulse 4s ease-in-out infinite;
+      orb-float-1 12s infinite,
+      orb-pulse 4s ease-in-out infinite;
   }
 
   .hero-orb-2 {
     animation:
-      float-2 15s infinite,
-      pulse 5s ease-in-out infinite 1s;
+      orb-float-2 15s infinite,
+      orb-pulse 5s ease-in-out infinite 1s;
   }
 
   .hero-orb-3 {
     animation:
-      float-3 13s infinite,
-      pulse 6s ease-in-out infinite 2s;
+      orb-float-3 13s infinite,
+      orb-pulse 6s ease-in-out infinite 2s;
   }
 
-  @keyframes float-1 {
+  @keyframes orb-float-1 {
     0%,
     100% {
       transform: translate(0, 0);
@@ -189,7 +189,7 @@
     }
   }
 
-  @keyframes float-2 {
+  @keyframes orb-float-2 {
     0%,
     100% {
       transform: translate(0, 0);
@@ -199,7 +199,7 @@
     }
   }
 
-  @keyframes float-3 {
+  @keyframes orb-float-3 {
     0%,
     100% {
       transform: translate(0, 0);
@@ -212,7 +212,7 @@
     }
   }
 
-  @keyframes pulse {
+  @keyframes orb-pulse {
     0%,
     100% {
       opacity: 0.5;

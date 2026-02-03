@@ -2,12 +2,12 @@
 import LegalLayout from '@/layouts/legal-layout.astro';
 
 const lastUpdated = 'December 21, 2025';
-const currentYear = new Date().getFullYear();
 ---
 
 <LegalLayout
   title="Privacy Policy - MoneyMatter"
   description="MoneyMatter Privacy Policy - Learn how we collect, use, and protect your data."
+  crossLinks={[{ href: '/terms-of-use', label: 'Terms of Service' }]}
 >
   <h1 class="mb-2 text-3xl font-bold tracking-tight sm:text-4xl">Privacy Policy</h1>
   <p class="text-muted-foreground mb-8">Last updated: {lastUpdated}</p>
@@ -142,13 +142,4 @@ const currentYear = new Date().getFullYear();
       </p>
     </section>
   </div>
-
-  <!-- Footer -->
-  <footer class="border-border/40 mt-12 border-t py-8">
-    <div class="text-muted-foreground flex flex-wrap items-center justify-center gap-4 text-sm">
-      <a href="/" class="hover:text-foreground transition-colors">Home</a>
-      <a href="/terms-of-use" class="hover:text-foreground transition-colors">Terms of Service</a>
-      <span>&copy; {currentYear} MoneyMatter</span>
-    </div>
-  </footer>
 </LegalLayout>

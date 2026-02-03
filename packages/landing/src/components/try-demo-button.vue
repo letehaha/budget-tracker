@@ -31,6 +31,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { trackAnalyticsEvent } from '../lib/posthog';
 import DemoLoadingOverlay from './demo-loading-overlay.vue';
 
 const isDemoLoading = ref(false);
@@ -39,6 +40,7 @@ async function handleTryDemo() {
   if (isDemoLoading.value) return;
 
   isDemoLoading.value = true;
+  trackAnalyticsEvent({ event: 'demo_started', properties: { location: 'hero' } });
 
   try {
     const response = await fetch('/api/v1/demo', {
