@@ -1,3 +1,16 @@
+---
+import CheckIcon from './icons/check-icon.astro';
+import XIcon from './icons/x-icon.astro';
+import DollarSignIcon from './icons/dollar-sign-icon.astro';
+import CodeIcon from './icons/code-icon.astro';
+import ServerIcon from './icons/server-icon.astro';
+import ShieldCheckIcon from './icons/shield-check-icon.astro';
+import TrendingUpIcon from './icons/trending-up-icon.astro';
+import LightbulbIcon from './icons/lightbulb-icon.astro';
+import TagIcon from './icons/tag-icon.astro';
+import DownloadIcon from './icons/download-icon.astro';
+---
+
 <section class="relative z-10 py-16 sm:py-24">
   <div class="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
     <div class="mx-auto max-w-2xl text-center">
@@ -20,8 +33,7 @@
           <tr>
             <td class="px-6 py-3">
               <div class="flex items-center gap-2">
-                <!-- DollarSign -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground size-4 shrink-0"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <DollarSignIcon class="text-muted-foreground shrink-0" />
                 <span class="font-medium">Price</span>
               </div>
             </td>
@@ -32,32 +44,29 @@
           <tr>
             <td class="px-6 py-3">
               <div class="flex items-center gap-2">
-                <!-- Code2 -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground size-4 shrink-0"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+                <CodeIcon class="text-muted-foreground shrink-0" />
                 <span class="font-medium">Open Source</span>
               </div>
             </td>
-            <td class="px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text mx-auto size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></td>
-            <td class="px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text mx-auto size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></td>
-            <td class="bg-primary/5 px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary mx-auto size-4"><path d="M20 6 9 17l-5-5"/></svg></td>
+            <td class="px-6 py-3 text-center"><XIcon class="text-destructive-text mx-auto" /></td>
+            <td class="px-6 py-3 text-center"><XIcon class="text-destructive-text mx-auto" /></td>
+            <td class="bg-primary/5 px-6 py-3 text-center"><CheckIcon class="text-primary mx-auto" /></td>
           </tr>
           <tr>
             <td class="px-6 py-3">
               <div class="flex items-center gap-2">
-                <!-- Server -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground size-4 shrink-0"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+                <ServerIcon class="text-muted-foreground shrink-0" />
                 <span class="font-medium">Self-Hostable</span>
               </div>
             </td>
-            <td class="px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text mx-auto size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></td>
-            <td class="px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text mx-auto size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></td>
-            <td class="bg-primary/5 px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary mx-auto size-4"><path d="M20 6 9 17l-5-5"/></svg></td>
+            <td class="px-6 py-3 text-center"><XIcon class="text-destructive-text mx-auto" /></td>
+            <td class="px-6 py-3 text-center"><XIcon class="text-destructive-text mx-auto" /></td>
+            <td class="bg-primary/5 px-6 py-3 text-center"><CheckIcon class="text-primary mx-auto" /></td>
           </tr>
           <tr>
             <td class="px-6 py-3">
               <div class="flex items-center gap-2">
-                <!-- ShieldCheck -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground size-4 shrink-0"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                <ShieldCheckIcon class="text-muted-foreground shrink-0" />
                 <span class="font-medium">Data Privacy</span>
               </div>
             </td>
@@ -68,50 +77,46 @@
           <tr>
             <td class="px-6 py-3">
               <div class="flex items-center gap-2">
-                <!-- TrendingUp -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground size-4 shrink-0"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                <TrendingUpIcon class="text-muted-foreground shrink-0" />
                 <span class="font-medium">Investment Tracking</span>
               </div>
             </td>
-            <td class="px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text mx-auto size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></td>
-            <td class="px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text mx-auto size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></td>
-            <td class="bg-primary/5 px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary mx-auto size-4"><path d="M20 6 9 17l-5-5"/></svg></td>
+            <td class="px-6 py-3 text-center"><XIcon class="text-destructive-text mx-auto" /></td>
+            <td class="px-6 py-3 text-center"><XIcon class="text-destructive-text mx-auto" /></td>
+            <td class="bg-primary/5 px-6 py-3 text-center"><CheckIcon class="text-primary mx-auto" /></td>
           </tr>
           <tr>
             <td class="px-6 py-3">
               <div class="flex items-center gap-2">
-                <!-- Lightbulb -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground size-4 shrink-0"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                <LightbulbIcon class="text-muted-foreground shrink-0" />
                 <span class="font-medium">AI Categorization</span>
               </div>
             </td>
-            <td class="px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text mx-auto size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></td>
-            <td class="px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text mx-auto size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></td>
-            <td class="bg-primary/5 px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary mx-auto size-4"><path d="M20 6 9 17l-5-5"/></svg></td>
+            <td class="px-6 py-3 text-center"><XIcon class="text-destructive-text mx-auto" /></td>
+            <td class="px-6 py-3 text-center"><XIcon class="text-destructive-text mx-auto" /></td>
+            <td class="bg-primary/5 px-6 py-3 text-center"><CheckIcon class="text-primary mx-auto" /></td>
           </tr>
           <tr>
             <td class="px-6 py-3">
               <div class="flex items-center gap-2">
-                <!-- Tag -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground size-4 shrink-0"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+                <TagIcon class="text-muted-foreground shrink-0" />
                 <span class="font-medium">Custom Categories</span>
               </div>
             </td>
             <td class="text-muted-foreground px-6 py-3 text-center">Limited</td>
-            <td class="px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary mx-auto size-4"><path d="M20 6 9 17l-5-5"/></svg></td>
-            <td class="bg-primary/5 px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary mx-auto size-4"><path d="M20 6 9 17l-5-5"/></svg></td>
+            <td class="px-6 py-3 text-center"><CheckIcon class="text-primary mx-auto" /></td>
+            <td class="bg-primary/5 px-6 py-3 text-center"><CheckIcon class="text-primary mx-auto" /></td>
           </tr>
           <tr>
             <td class="px-6 py-3">
               <div class="flex items-center gap-2">
-                <!-- Download -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground size-4 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                <DownloadIcon class="text-muted-foreground shrink-0" />
                 <span class="font-medium">Export Data</span>
               </div>
             </td>
             <td class="text-muted-foreground px-6 py-3 text-center">Limited</td>
-            <td class="px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary mx-auto size-4"><path d="M20 6 9 17l-5-5"/></svg></td>
-            <td class="bg-primary/5 px-6 py-3 text-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary mx-auto size-4"><path d="M20 6 9 17l-5-5"/></svg></td>
+            <td class="px-6 py-3 text-center"><CheckIcon class="text-primary mx-auto" /></td>
+            <td class="bg-primary/5 px-6 py-3 text-center"><CheckIcon class="text-primary mx-auto" /></td>
           </tr>
         </tbody>
       </table>
@@ -122,7 +127,7 @@
       <!-- Price -->
       <div class="border-border/50 bg-card rounded-xl border p-4">
         <div class="mb-3 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 opacity-70"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <DollarSignIcon class="opacity-70" />
           <span class="font-semibold">Price</span>
         </div>
         <div class="space-y-2 text-sm">
@@ -144,21 +149,21 @@
       <!-- Open Source -->
       <div class="border-border/50 bg-card rounded-xl border p-4">
         <div class="mb-3 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 opacity-70"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+          <CodeIcon class="opacity-70" />
           <span class="font-semibold">Open Source</span>
         </div>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
             <span>Mint & others</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <XIcon class="text-destructive-text" />
           </div>
           <div class="flex items-center justify-between">
             <span>YNAB</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <XIcon class="text-destructive-text" />
           </div>
           <div class="bg-primary/10 -mx-4 flex items-center justify-between rounded-lg px-4 py-2">
             <span class="text-primary font-medium">MoneyMatter</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4"><path d="M20 6 9 17l-5-5"/></svg>
+            <CheckIcon class="text-primary" />
           </div>
         </div>
       </div>
@@ -166,21 +171,21 @@
       <!-- Self-Hostable -->
       <div class="border-border/50 bg-card rounded-xl border p-4">
         <div class="mb-3 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 opacity-70"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+          <ServerIcon class="opacity-70" />
           <span class="font-semibold">Self-Hostable</span>
         </div>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
             <span>Mint & others</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <XIcon class="text-destructive-text" />
           </div>
           <div class="flex items-center justify-between">
             <span>YNAB</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <XIcon class="text-destructive-text" />
           </div>
           <div class="bg-primary/10 -mx-4 flex items-center justify-between rounded-lg px-4 py-2">
             <span class="text-primary font-medium">MoneyMatter</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4"><path d="M20 6 9 17l-5-5"/></svg>
+            <CheckIcon class="text-primary" />
           </div>
         </div>
       </div>
@@ -188,7 +193,7 @@
       <!-- Data Privacy -->
       <div class="border-border/50 bg-card rounded-xl border p-4">
         <div class="mb-3 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 opacity-70"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+          <ShieldCheckIcon class="opacity-70" />
           <span class="font-semibold">Data Privacy</span>
         </div>
         <div class="space-y-2 text-sm">
@@ -210,21 +215,21 @@
       <!-- Investment Tracking -->
       <div class="border-border/50 bg-card rounded-xl border p-4">
         <div class="mb-3 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 opacity-70"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          <TrendingUpIcon class="opacity-70" />
           <span class="font-semibold">Investment Tracking</span>
         </div>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
             <span>Mint & others</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <XIcon class="text-destructive-text" />
           </div>
           <div class="flex items-center justify-between">
             <span>YNAB</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <XIcon class="text-destructive-text" />
           </div>
           <div class="bg-primary/10 -mx-4 flex items-center justify-between rounded-lg px-4 py-2">
             <span class="text-primary font-medium">MoneyMatter</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4"><path d="M20 6 9 17l-5-5"/></svg>
+            <CheckIcon class="text-primary" />
           </div>
         </div>
       </div>
@@ -232,21 +237,21 @@
       <!-- AI Categorization -->
       <div class="border-border/50 bg-card rounded-xl border p-4">
         <div class="mb-3 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 opacity-70"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+          <LightbulbIcon class="opacity-70" />
           <span class="font-semibold">AI Categorization</span>
         </div>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
             <span>Mint & others</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <XIcon class="text-destructive-text" />
           </div>
           <div class="flex items-center justify-between">
             <span>YNAB</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-destructive-text size-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <XIcon class="text-destructive-text" />
           </div>
           <div class="bg-primary/10 -mx-4 flex items-center justify-between rounded-lg px-4 py-2">
             <span class="text-primary font-medium">MoneyMatter</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4"><path d="M20 6 9 17l-5-5"/></svg>
+            <CheckIcon class="text-primary" />
           </div>
         </div>
       </div>
@@ -254,7 +259,7 @@
       <!-- Custom Categories -->
       <div class="border-border/50 bg-card rounded-xl border p-4">
         <div class="mb-3 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 opacity-70"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+          <TagIcon class="opacity-70" />
           <span class="font-semibold">Custom Categories</span>
         </div>
         <div class="space-y-2 text-sm">
@@ -264,11 +269,11 @@
           </div>
           <div class="flex items-center justify-between">
             <span>YNAB</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4"><path d="M20 6 9 17l-5-5"/></svg>
+            <CheckIcon class="text-primary" />
           </div>
           <div class="bg-primary/10 -mx-4 flex items-center justify-between rounded-lg px-4 py-2">
             <span class="text-primary font-medium">MoneyMatter</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4"><path d="M20 6 9 17l-5-5"/></svg>
+            <CheckIcon class="text-primary" />
           </div>
         </div>
       </div>
@@ -276,7 +281,7 @@
       <!-- Export Data -->
       <div class="border-border/50 bg-card rounded-xl border p-4">
         <div class="mb-3 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 opacity-70"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          <DownloadIcon class="opacity-70" />
           <span class="font-semibold">Export Data</span>
         </div>
         <div class="space-y-2 text-sm">
@@ -286,11 +291,11 @@
           </div>
           <div class="flex items-center justify-between">
             <span>YNAB</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4"><path d="M20 6 9 17l-5-5"/></svg>
+            <CheckIcon class="text-primary" />
           </div>
           <div class="bg-primary/10 -mx-4 flex items-center justify-between rounded-lg px-4 py-2">
             <span class="text-primary font-medium">MoneyMatter</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4"><path d="M20 6 9 17l-5-5"/></svg>
+            <CheckIcon class="text-primary" />
           </div>
         </div>
       </div>
