@@ -1,3 +1,4 @@
+import { logger } from '@js/utils';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 
 import { withTransaction } from '../common/with-transaction';
@@ -14,7 +15,7 @@ export const getUserExchangeRates = withTransaction(async ({ userId }: { userId:
   const userBaseCurrency = await UsersCurrencies.getBaseCurrency({ userId });
   const userCurrencies = await UsersCurrencies.getCurrencies({ userId });
 
-  const exchangeRates = await Promise.all(
+  const results = await Promise.allSettled(
     userCurrencies.map((item) =>
       getExchangeRate({
         userId,
@@ -24,6 +25,18 @@ export const getUserExchangeRates = withTransaction(async ({ userId }: { userId:
       }),
     ),
   );
+
+  const exchangeRates: Awaited<ReturnType<typeof getExchangeRate>>[] = [];
+  results.forEach((result, i) => {
+    if (result.status === 'fulfilled') {
+      exchangeRates.push(result.value);
+    } else {
+      logger.error(
+        `[getUserExchangeRates] Rate unavailable for ${userCurrencies[i]!.currencyCode}/${userBaseCurrency.currencyCode}`,
+        { error: result.reason instanceof Error ? result.reason.message : String(result.reason) },
+      );
+    }
+  });
 
   return exchangeRates;
 });

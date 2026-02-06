@@ -86,6 +86,17 @@ watch(
     });
   }, 300),
 );
+
+// Sync filtered values when props.values changes (e.g., async-loaded data)
+watch(
+  () => props.values,
+  (newValues) => {
+    if (!searchQuery.value) {
+      debouncedFilteredValues.value = newValues;
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>

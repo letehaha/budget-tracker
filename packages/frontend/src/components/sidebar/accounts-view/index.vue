@@ -15,15 +15,20 @@ import { computed, provide, ref } from 'vue';
 
 import AccountGroupsList from './account-groups-list.vue';
 import AccountsList from './accounts-list.vue';
+import AccountsSkeleton from './accounts-skeleton.vue';
 import { useActiveAccountGroups } from './helpers/use-active-account-groups';
 
-const { enabledAccounts } = storeToRefs(useAccountsStore());
-const { data: accountGroups, isLoading } = useQuery({
+const accountsStore = useAccountsStore();
+const { enabledAccounts, isAccountsFetched } = storeToRefs(accountsStore);
+const { data: accountGroups, isLoading: isGroupsLoading } = useQuery({
   queryFn: () => loadAccountGroups(),
   queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
   staleTime: Infinity,
   placeholderData: [],
 });
+
+// Wait for both accounts and groups to load to prevent layout shift
+const isLoading = computed(() => !isAccountsFetched.value || isGroupsLoading.value);
 
 const accountGroupsContext = useActiveAccountGroups(accountGroups);
 provide('accountGroupsContext', accountGroupsContext);
@@ -79,7 +84,7 @@ const isPopoverOpen = ref(false);
 
     <div class="flex-1 overflow-auto">
       <template v-if="isLoading">
-        <div class="text-muted-foreground px-2 py-4 text-sm">{{ $t('common.actions.loading') }}</div>
+        <AccountsSkeleton />
       </template>
       <template v-else>
         <AccountGroupsList :groups="accountGroups" />

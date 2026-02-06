@@ -408,6 +408,51 @@ describe('Subscriptions', () => {
       expect(suggestions.length).toBeGreaterThanOrEqual(1);
       expect(suggestions.every((s: { note: string | null }) => s.note?.toLowerCase().includes('netflix'))).toBe(true);
     });
+
+    it('suggests cross-currency transactions matching amount rules after conversion', async () => {
+      // Test exchange rate in seeded data: 1 USD ≈ 41.43 UAH
+      const UAH_PER_USD = 41.429899;
+
+      // Create an account in UAH (different from the subscription's rule currency)
+      const { account } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
+
+      // Transaction: $9.99 equivalent in UAH = ~413.89 UAH
+      const uahAmount = Math.round(999 * UAH_PER_USD) / 100; // Convert USD cents to UAH decimal
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: uahAmount,
+          note: 'APPLE.COM/BILL',
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-06-10T10:00:00Z',
+        }),
+        raw: true,
+      });
+
+      // Create subscription with amount rule in USD (900-1100 cents = $9-$11)
+      // The transaction is in UAH but should match after conversion
+      const sub = await helpers.createSubscription({
+        name: 'Apple TV',
+        expectedAmount: 999, // $9.99 in cents
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        matchingRules: {
+          rules: [
+            { field: 'note', operator: 'contains_any', value: ['apple'] },
+            { field: 'amount', operator: 'between', value: { min: 900, max: 1100 }, currencyCode: 'USD' },
+          ],
+        },
+        raw: true,
+      });
+
+      // The historical match suggestions should include the UAH transaction
+      // after converting its amount to USD and seeing it falls within 900-1100 cents
+      const suggestions = await helpers.getSuggestedMatches({ id: sub.id, raw: true });
+      const suggestedIds = suggestions.map((s: { id: number }) => s.id);
+
+      expect(suggestedIds).toContain(tx.id);
+    });
   });
 
   describe('Auto-matching on transaction creation', () => {
