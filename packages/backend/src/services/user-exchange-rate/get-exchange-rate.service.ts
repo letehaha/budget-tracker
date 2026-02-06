@@ -1,5 +1,6 @@
 import { t } from '@i18n/index';
 import { NotFoundError, UnexpectedError } from '@js/errors';
+import { logger } from '@js/utils';
 import { CacheClient } from '@js/utils/cache';
 import * as Currencies from '@models/Currencies.model';
 import * as ExchangeRates from '@models/ExchangeRates.model';
@@ -39,7 +40,6 @@ export async function getExchangeRate({
     };
   }
 
-  // Now do the expensive operations only on cache miss
   const pair = { baseCode, quoteCode };
 
   // If base and qoute are the same currency, early return with `1`
@@ -125,6 +125,9 @@ export async function getExchangeRate({
     (!baseRate && pair.baseCode !== API_LAYER_BASE_CURRENCY_CODE) ||
     (!quoteRate && pair.quoteCode !== API_LAYER_BASE_CURRENCY_CODE)
   ) {
+    logger.error(
+      `[getExchangeRate] Rate unavailable: pair=${pair.baseCode}/${pair.quoteCode}, date=${date.toISOString()}`,
+    );
     throw new UnexpectedError({
       message: t({
         key: 'currencies.exchangeRateNotAvailable',
@@ -188,14 +191,38 @@ const loadRate = async (code: string, rateDate: Date): Promise<ExchangeRateRetur
     raw: true,
   });
 
-  if (!result) return null;
+  if (result) {
+    return {
+      baseCode: result.baseCode,
+      quoteCode: result.quoteCode,
+      rate: result.rate,
+      date: result.date,
+    };
+  }
 
-  return {
-    baseCode: result.baseCode,
-    quoteCode: result.quoteCode,
-    rate: result.rate,
-    date: result.date,
-  };
+  // Fallback: find the most recent rate regardless of date
+  const fallback = await ExchangeRates.default.findOne({
+    where: {
+      baseCode: API_LAYER_BASE_CURRENCY_CODE,
+      quoteCode: code,
+    },
+    order: [['date', 'DESC']],
+    raw: true,
+  });
+
+  if (fallback) {
+    logger.info(
+      `[loadRate] Using fallback rate for ${code} from ${fallback.date} (requested ${rateDate.toISOString()})`,
+    );
+    return {
+      baseCode: fallback.baseCode,
+      quoteCode: fallback.quoteCode,
+      rate: fallback.rate,
+      date: fallback.date,
+    };
+  }
+
+  return null;
 };
 
 type ExchangeRateParams = {
