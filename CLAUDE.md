@@ -107,3 +107,4 @@ Other instructions:
    - When asked, use the `i18n-editor` subagent
    - If a feature needs translations, mention it in your response and let the user decide when to add them
 8. For Chrome extenstion use Brave browser, not Chrome
+9. **Frontend env vars (`VITE_*`) must also be added to CI** — they are inlined at build time. Add as input + envkey in `.github/actions/frontend-docker-build/action.yml`, then pass the secret in `.github/workflows/image-to-docker-hub.yml`.

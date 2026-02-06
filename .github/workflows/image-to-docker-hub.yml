@@ -42,6 +42,7 @@ jobs:
         with:
           api-base-url: ${{ secrets.API_BASE_URL }}
           vue-app-api-ver: ${{ secrets.VUE_APP_API_VER }}
+          logo-dev-token: ${{ secrets.VITE_LOGO_DEV_TOKEN }}
           posthog-key: ${{ secrets.VITE_POSTHOG_KEY }}
           posthog-host: ${{ secrets.VITE_POSTHOG_HOST }}
           sentry-dsn: ${{ secrets.VITE_SENTRY_DSN }}

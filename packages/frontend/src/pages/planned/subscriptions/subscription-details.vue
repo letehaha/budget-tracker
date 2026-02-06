@@ -18,11 +18,7 @@ import TransactionRecord from '@/components/transactions-list/transaction-record
 import { useFormatCurrency } from '@/composable/formatters';
 import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
-import {
-  SUBSCRIPTION_MATCH_SOURCE,
-  type SubscriptionModel,
-  type TransactionModel,
-} from '@bt/shared/types';
+import { SUBSCRIPTION_MATCH_SOURCE, type SubscriptionModel, type TransactionModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { format } from 'date-fns';
 import {
@@ -41,6 +37,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
+import SubscriptionServiceLogo from './components/subscription-service-logo.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
 import { formatFrequency, formatMatchSource } from './utils';
 
@@ -97,9 +94,8 @@ const { mutate: updateSub } = useMutation({
     addSuccessNotification(t('planned.subscriptions.updateSuccess'));
   },
   onError(error) {
-    const message = error instanceof ApiErrorResponseError
-      ? error.data.message
-      : t('planned.subscriptions.updateError');
+    const message =
+      error instanceof ApiErrorResponseError ? error.data.message : t('planned.subscriptions.updateError');
     editFormRef.value?.setError({ error: message });
   },
 });
@@ -202,6 +198,7 @@ const getMatchSourceClass = ({ source }: { source: string }): string =>
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
         <div class="flex items-center gap-3">
+          <SubscriptionServiceLogo :name="subscription.name" size="lg" />
           <h1 class="text-2xl font-semibold tracking-tight">{{ subscription.name }}</h1>
           <SubscriptionTypeBadge :type="subscription.type" size="md" />
           <span
@@ -248,7 +245,10 @@ const getMatchSourceClass = ({ source }: { source: string }): string =>
             variant="ghost"
             size="sm"
             class="w-full justify-start"
-            @click="isActionsOpen = false; isEditDialogOpen = true"
+            @click="
+              isActionsOpen = false;
+              isEditDialogOpen = true;
+            "
           >
             <EditIcon class="size-4" />
             {{ $t('planned.subscriptions.edit') }}
@@ -257,7 +257,10 @@ const getMatchSourceClass = ({ source }: { source: string }): string =>
             variant="ghost"
             size="sm"
             class="w-full justify-start"
-            @click="isActionsOpen = false; handleToggleActive()"
+            @click="
+              isActionsOpen = false;
+              handleToggleActive();
+            "
           >
             <CirclePauseIcon v-if="subscription.isActive" class="size-4" />
             <RepeatIcon v-else class="size-4" />
@@ -271,7 +274,10 @@ const getMatchSourceClass = ({ source }: { source: string }): string =>
             variant="ghost-destructive"
             size="sm"
             class="w-full justify-start"
-            @click="isActionsOpen = false; isDeleteDialogOpen = true"
+            @click="
+              isActionsOpen = false;
+              isDeleteDialogOpen = true;
+            "
           >
             <Trash2Icon class="size-4" />
             {{ $t('planned.subscriptions.deleteSubscription') }}

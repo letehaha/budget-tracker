@@ -10,18 +10,23 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import Tabs from '@/components/lib/ui/tabs/Tabs.vue';
+import TabsList from '@/components/lib/ui/tabs/TabsList.vue';
+import TabsTrigger from '@/components/lib/ui/tabs/TabsTrigger.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable/formatters';
 import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
+import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { CirclePauseIcon, PlusIcon, RepeatIcon, Trash2Icon } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
+import SubscriptionServiceLogo from './components/subscription-service-logo.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
 import SubscriptionsSummary from './components/subscriptions-summary.vue';
 import { formatFrequency } from './utils';
@@ -35,11 +40,19 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
 const isCreateDialogOpen = ref(false);
 const createFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(null);
 const deleteTarget = ref<SubscriptionListItem | null>(null);
+const activeFilter = ref<string>('all');
+
 const { data: subscriptions, isPlaceholderData } = useQuery({
   queryFn: () => loadSubscriptions(),
   queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList,
   staleTime: Infinity,
   placeholderData: [],
+});
+
+const filteredSubscriptions = computed(() => {
+  if (!subscriptions.value) return [];
+  if (activeFilter.value === 'all') return subscriptions.value;
+  return subscriptions.value.filter((s) => s.type === activeFilter.value);
 });
 
 const { mutate: createSub } = useMutation({
@@ -108,7 +121,20 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
       </Button>
     </div>
 
-    <SubscriptionsSummary />
+    <!-- Filter Tabs -->
+    <Tabs v-model="activeFilter" default-value="all" class="mb-3 sm:mb-4">
+      <TabsList>
+        <TabsTrigger value="all">{{ $t('planned.subscriptions.summary.filterAll') }}</TabsTrigger>
+        <TabsTrigger :value="SUBSCRIPTION_TYPES.subscription">{{
+          $t('planned.subscriptions.summary.filterSubscriptions')
+        }}</TabsTrigger>
+        <TabsTrigger :value="SUBSCRIPTION_TYPES.bill">{{
+          $t('planned.subscriptions.summary.filterBills')
+        }}</TabsTrigger>
+      </TabsList>
+    </Tabs>
+
+    <SubscriptionsSummary :active-filter="activeFilter" class="mb-3 sm:mb-6" />
 
     <!-- Loading Skeleton -->
     <div v-if="isPlaceholderData" class="divide-border border-border divide-y rounded-lg border">
@@ -121,9 +147,12 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
     </div>
 
     <!-- Subscription List -->
-    <div v-else-if="subscriptions?.length" class="divide-border border-border @container divide-y rounded-lg border">
+    <div
+      v-else-if="filteredSubscriptions.length"
+      class="divide-border border-border @container divide-y rounded-lg border"
+    >
       <div
-        v-for="subscription in subscriptions"
+        v-for="subscription in filteredSubscriptions"
         :key="subscription.id"
         :class="
           cn(
@@ -134,7 +163,10 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
         @click="navigateToDetail({ subscription })"
       >
         <!-- Name -->
-        <h3 class="min-w-0 truncate font-medium">{{ subscription.name }}</h3>
+        <div class="flex min-w-0 items-center gap-2">
+          <SubscriptionServiceLogo :name="subscription.name" size="sm" />
+          <h3 class="min-w-0 truncate font-medium">{{ subscription.name }}</h3>
+        </div>
 
         <!-- Type badge -->
         <div class="flex shrink-0 items-center justify-end gap-1.5">

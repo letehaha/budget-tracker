@@ -86,7 +86,17 @@
         "currencyCode": "Код валюти",
         "transactionType": "Тип транзакції",
         "account": "Рахунок",
-        "addRule": "Додати правило"
+        "addRule": "Додати правило",
+        "fieldOptions": {
+          "note": "Нотатка",
+          "amount": "Сума",
+          "transactionType": "Тип транзакції",
+          "account": "Рахунок"
+        },
+        "transactionTypeOptions": {
+          "income": "Дохід",
+          "expense": "Видатки"
+        }
       },
       "createSuccess": "Підписку успішно створено",
       "createError": "Не вдалося створити підписку",

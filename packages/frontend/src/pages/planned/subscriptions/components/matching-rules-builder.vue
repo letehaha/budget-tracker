@@ -9,6 +9,9 @@ import type { CurrencyModel, SubscriptionMatchingRule } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { PlusIcon, Trash2Icon } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   modelValue: SubscriptionMatchingRule[];
@@ -27,17 +30,17 @@ const getSelectedCurrency = ({ rule }: { rule: SubscriptionMatchingRule }) => {
   return currencies.value.find((c) => c.code === rule.currencyCode) ?? null;
 };
 
-const FIELD_OPTIONS = [
-  { label: 'Note', value: 'note' },
-  { label: 'Amount', value: 'amount' },
-  { label: 'Transaction Type', value: 'transactionType' },
-  { label: 'Account', value: 'accountId' },
-] as const;
+const FIELD_OPTIONS = computed(() => [
+  { label: t('planned.subscriptions.rules.fieldOptions.note'), value: 'note' },
+  { label: t('planned.subscriptions.rules.fieldOptions.amount'), value: 'amount' },
+  { label: t('planned.subscriptions.rules.fieldOptions.transactionType'), value: 'transactionType' },
+  { label: t('planned.subscriptions.rules.fieldOptions.account'), value: 'accountId' },
+]);
 
-const TRANSACTION_TYPE_OPTIONS = [
-  { label: 'Income', value: TRANSACTION_TYPES.income },
-  { label: 'Expense', value: TRANSACTION_TYPES.expense },
-];
+const TRANSACTION_TYPE_OPTIONS = computed(() => [
+  { label: t('planned.subscriptions.rules.transactionTypeOptions.income'), value: TRANSACTION_TYPES.income },
+  { label: t('planned.subscriptions.rules.transactionTypeOptions.expense'), value: TRANSACTION_TYPES.expense },
+]);
 
 const accountOptions = computed(() =>
   accountsStore.enabledAccounts.map((a) => ({
@@ -173,7 +176,7 @@ const updateAmountMax = ({ index, rule, v }: { index: number; rule: Subscription
       <!-- Field selector -->
       <SelectField
         :model-value="FIELD_OPTIONS.find((o) => o.value === rule.field) ?? null"
-        :values="[...FIELD_OPTIONS]"
+        :values="FIELD_OPTIONS"
         label-key="label"
         value-key="value"
         :label="$t('planned.subscriptions.rules.fieldLabel')"
@@ -185,7 +188,7 @@ const updateAmountMax = ({ index, rule, v }: { index: number; rule: Subscription
       <template v-if="rule.field === 'note'">
         <div class="mt-3 space-y-2">
           <p class="text-muted-foreground text-xs">{{ $t('planned.subscriptions.rules.noteDescription') }}</p>
-          <div v-for="(keyword, ki) in (rule.value as string[])" :key="ki" class="flex items-center gap-2">
+          <div v-for="(keyword, ki) in rule.value as string[]" :key="ki" class="flex items-center gap-2">
             <InputField
               :model-value="keyword"
               :placeholder="$t('planned.subscriptions.rules.keywordPlaceholder')"
