@@ -1,6 +1,7 @@
 import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionModel, TransactionModel } from '@bt/shared/types';
 import type { createSubscription as apiCreateSubscription } from '@services/subscriptions/create-subscription';
 import type { getSubscriptions as apiGetSubscriptions } from '@services/subscriptions/get-subscriptions';
+import type { getSubscriptionsSummary as apiGetSubscriptionsSummary } from '@services/subscriptions/get-subscriptions-summary';
 import type { linkTransactionsToSubscription as apiLinkTransactions } from '@services/subscriptions/link-transactions';
 import type { suggestHistoricalMatches as apiSuggestMatches } from '@services/subscriptions/suggest-historical-matches';
 import type { unlinkTransactionsFromSubscription as apiUnlinkTransactions } from '@services/subscriptions/unlink-transactions';
@@ -170,6 +171,24 @@ export async function getSuggestedMatches<R extends boolean | undefined = undefi
   return makeRequest<Awaited<ReturnType<typeof apiSuggestMatches>>, R>({
     method: 'get',
     url: `/subscriptions/${id}/suggest-matches`,
+    raw,
+  });
+}
+
+export async function getSubscriptionsSummary<R extends boolean | undefined = undefined>({
+  raw,
+  type,
+}: {
+  raw?: R;
+  type?: string;
+} = {}) {
+  const query: Record<string, string> = {};
+  if (type) query.type = type;
+
+  return makeRequest<Awaited<ReturnType<typeof apiGetSubscriptionsSummary>>, R>({
+    method: 'get',
+    url: '/subscriptions/summary',
+    payload: Object.keys(query).length ? query : undefined,
     raw,
   });
 }

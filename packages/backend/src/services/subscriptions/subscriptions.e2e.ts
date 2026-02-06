@@ -455,6 +455,127 @@ describe('Subscriptions', () => {
     });
   });
 
+  describe('Summary', () => {
+    describe('GET /subscriptions/summary', () => {
+      it('returns summary with correct monthly and yearly cost', async () => {
+        await helpers.createSubscription({
+          name: 'Netflix',
+          expectedAmount: 1500,
+          expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        const summary = await helpers.getSubscriptionsSummary({ raw: true });
+
+        expect(summary.activeCount).toBe(1);
+        expect(summary.estimatedMonthlyCost).toBe(15);
+        expect(summary.projectedYearlyCost).toBe(180);
+        expect(summary.currencyCode).toBe(global.BASE_CURRENCY_CODE);
+      });
+
+      it('returns zeros when no active subscriptions exist', async () => {
+        const summary = await helpers.getSubscriptionsSummary({ raw: true });
+
+        expect(summary.activeCount).toBe(0);
+        expect(summary.estimatedMonthlyCost).toBe(0);
+        expect(summary.projectedYearlyCost).toBe(0);
+      });
+
+      it('returns validation error for invalid type query param', async () => {
+        const res = await helpers.getSubscriptionsSummary({ type: 'invalid_type' });
+        expect(res.statusCode).toBe(422);
+      });
+
+      it('filters by subscription type', async () => {
+        await helpers.createSubscription({
+          name: 'Netflix',
+          type: SUBSCRIPTION_TYPES.subscription,
+          expectedAmount: 1500,
+          expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+        await helpers.createSubscription({
+          name: 'Electricity',
+          type: SUBSCRIPTION_TYPES.bill,
+          expectedAmount: 10000,
+          expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        const all = await helpers.getSubscriptionsSummary({ raw: true });
+        expect(all.activeCount).toBe(2);
+        expect(all.estimatedMonthlyCost).toBe(115);
+
+        const subsOnly = await helpers.getSubscriptionsSummary({
+          type: SUBSCRIPTION_TYPES.subscription,
+          raw: true,
+        });
+        expect(subsOnly.activeCount).toBe(1);
+        expect(subsOnly.estimatedMonthlyCost).toBe(15);
+
+        const billsOnly = await helpers.getSubscriptionsSummary({
+          type: SUBSCRIPTION_TYPES.bill,
+          raw: true,
+        });
+        expect(billsOnly.activeCount).toBe(1);
+        expect(billsOnly.estimatedMonthlyCost).toBe(100);
+      });
+
+      it('excludes inactive subscriptions', async () => {
+        const sub = await helpers.createSubscription({
+          name: 'Paused Sub',
+          expectedAmount: 2000,
+          expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        await helpers.toggleSubscriptionActive({ id: sub.id, isActive: false, raw: true });
+
+        const summary = await helpers.getSubscriptionsSummary({ raw: true });
+        expect(summary.activeCount).toBe(0);
+        expect(summary.estimatedMonthlyCost).toBe(0);
+      });
+
+      it('excludes subscriptions without expectedAmount', async () => {
+        await helpers.createSubscription({
+          name: 'No Amount Sub',
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        const summary = await helpers.getSubscriptionsSummary({ raw: true });
+        expect(summary.activeCount).toBe(0);
+        expect(summary.estimatedMonthlyCost).toBe(0);
+      });
+
+      it('normalizes annual frequency to monthly', async () => {
+        await helpers.createSubscription({
+          name: 'Annual Sub',
+          expectedAmount: 12000,
+          expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+          frequency: SUBSCRIPTION_FREQUENCIES.annual,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        const summary = await helpers.getSubscriptionsSummary({ raw: true });
+        expect(summary.activeCount).toBe(1);
+        // 12000 cents = $120/year → $10/month
+        expect(summary.estimatedMonthlyCost).toBe(10);
+        expect(summary.projectedYearlyCost).toBe(120);
+      });
+    });
+  });
+
   describe('Auto-matching on transaction creation', () => {
     it('auto-matches a new transaction to subscription via rules', async () => {
       const account = await helpers.createAccount({ raw: true });

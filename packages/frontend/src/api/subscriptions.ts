@@ -94,3 +94,21 @@ export const unlinkTransactionsFromSubscription = async ({
 export const loadSuggestedMatches = async ({ id }: { id: string }): Promise<TransactionModel[]> => {
   return api.get(`/subscriptions/${id}/suggest-matches`);
 };
+
+interface SubscriptionsSummary {
+  estimatedMonthlyCost: number;
+  projectedYearlyCost: number;
+  activeCount: number;
+  currencyCode: string;
+}
+
+export const loadSubscriptionsSummary = async ({
+  type,
+}: {
+  type?: string;
+} = {}): Promise<SubscriptionsSummary> => {
+  const query: Record<string, string> = {};
+  if (type) query.type = type;
+
+  return api.get('/subscriptions/summary', query);
+};

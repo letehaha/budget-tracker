@@ -114,6 +114,17 @@
       "emptyState": {
         "title": "Ще немає підписок",
         "description": "Додайте першу підписку або рахунок, щоб почати відстежувати регулярні платежі"
+      },
+      "summary": {
+        "filterAll": "Усі",
+        "filterSubscriptions": "Підписки",
+        "filterBills": "Рахунки",
+        "monthlyCost": "~{amount}/міс",
+        "yearlyProjected": "прогнозовано {amount}",
+        "perYear": "{amount}/рік",
+        "acrossSubscriptions": "серед {count} активної підписки | серед {count} активних підписок",
+        "acrossBills": "серед {count} активного рахунку | серед {count} активних рахунків",
+        "acrossAll": "серед {count} активних підписок і рахунків"
       }
     }
   }

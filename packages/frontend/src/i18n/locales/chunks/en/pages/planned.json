@@ -114,6 +114,17 @@
       "emptyState": {
         "title": "No subscriptions yet",
         "description": "Add your first subscription or bill to start tracking recurring payments"
+      },
+      "summary": {
+        "filterAll": "All",
+        "filterSubscriptions": "Subscriptions",
+        "filterBills": "Bills",
+        "monthlyCost": "~{amount}/mo",
+        "yearlyProjected": "{amount} projected",
+        "perYear": "{amount}/yr",
+        "acrossSubscriptions": "across {count} active subscription | across {count} active subscriptions",
+        "acrossBills": "across {count} active bill | across {count} active bills",
+        "acrossAll": "across {count} active subscriptions & bills"
       }
     }
   }
