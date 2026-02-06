@@ -86,7 +86,17 @@
         "currencyCode": "Currency code",
         "transactionType": "Transaction type",
         "account": "Account",
-        "addRule": "Add Rule"
+        "addRule": "Add Rule",
+        "fieldOptions": {
+          "note": "Note",
+          "amount": "Amount",
+          "transactionType": "Transaction Type",
+          "account": "Account"
+        },
+        "transactionTypeOptions": {
+          "income": "Income",
+          "expense": "Expense"
+        }
       },
       "createSuccess": "Subscription created successfully",
       "createError": "Failed to create subscription",

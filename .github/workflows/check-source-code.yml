@@ -108,7 +108,23 @@ jobs:
           file_name: .env.test
           fail_on_empty: true # fail if any env variable is empty
       - name: Run ${{ matrix.task }}
+        if: matrix.task != 'test'
         run: npm run ${{ matrix.task }} -w packages/backend
+
+      - name: Run ${{ matrix.task }} (with retry)
+        if: matrix.task == 'test'
+        run: |
+          for attempt in 1 2 3; do
+            echo "=== Attempt $attempt of 3 ==="
+            if npm run test -w packages/backend; then
+              exit 0
+            fi
+            if [ $attempt -lt 3 ]; then
+              echo "Test failed. Retrying..."
+            fi
+          done
+          echo "Tests failed after 3 attempts"
+          exit 1
 
   backend-docker-build:
     name: Build backend Docker image

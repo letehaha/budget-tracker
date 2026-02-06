@@ -22,6 +22,10 @@ inputs:
     description: 'VITE_SENTRY_DSN - Sentry DSN for error tracking'
     required: false
     default: ''
+  logo-dev-token:
+    description: 'VITE_LOGO_DEV_TOKEN - Logo.dev CDN publishable token for subscription logos'
+    required: false
+    default: ''
   sentry-auth-token:
     description: 'SENTRY_AUTH_TOKEN - Sentry auth token for source map upload'
     required: false
@@ -63,6 +67,7 @@ runs:
         envkey_VITE_APP_API_VER: ${{ inputs.vue-app-api-ver }}
         envkey_VITE_POSTHOG_KEY: ${{ inputs.posthog-key }}
         envkey_VITE_POSTHOG_HOST: ${{ inputs.posthog-host }}
+        envkey_VITE_LOGO_DEV_TOKEN: ${{ inputs.logo-dev-token }}
         envkey_VITE_SENTRY_DSN: ${{ inputs.sentry-dsn }}
         envkey_SENTRY_AUTH_TOKEN: ${{ inputs.sentry-auth-token }}
         envkey_SENTRY_ORG: ${{ inputs.sentry-org }}

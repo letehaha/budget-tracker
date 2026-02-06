@@ -188,6 +188,10 @@
             "title": "Set up a budget",
             "description": "Create spending limits for categories"
           },
+          "create-subscription": {
+            "title": "Create a subscription",
+            "description": "Set up recurring payments to track your subscriptions"
+          },
           "create-account-group": {
             "title": "Create an account group",
             "description": "Organize accounts by type or purpose"

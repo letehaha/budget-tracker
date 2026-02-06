@@ -28,6 +28,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import MatchingRulesBuilder from './matching-rules-builder.vue';
+import SubscriptionServiceLogo from './subscription-service-logo.vue';
 
 const props = defineProps<{
   initialValues?: SubscriptionModel;
@@ -256,13 +257,18 @@ const handleSubmit = () => {
     </div>
 
     <!-- Name -->
-    <InputField
-      v-model="form.name"
-      :label="$t('planned.subscriptions.form.nameLabel')"
-      :placeholder="$t('planned.subscriptions.form.namePlaceholder')"
-      :error-message="getFieldErrorMessage('form.name')"
-      @blur="touchField('form.name')"
-    />
+    <div class="flex items-start gap-3">
+      <SubscriptionServiceLogo :name="form.name" class="mt-6 size-8" />
+
+      <InputField
+        v-model="form.name"
+        :label="$t('planned.subscriptions.form.nameLabel')"
+        :placeholder="$t('planned.subscriptions.form.namePlaceholder')"
+        :error-message="getFieldErrorMessage('form.name')"
+        class="flex-1"
+        @blur="touchField('form.name')"
+      />
+    </div>
 
     <!-- Type -->
     <div>
