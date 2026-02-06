@@ -23,6 +23,7 @@ import { useRouter } from 'vue-router';
 
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
+import SubscriptionsSummary from './components/subscriptions-summary.vue';
 import { formatFrequency } from './utils';
 
 const { t } = useI18n();
@@ -45,6 +46,7 @@ const { mutate: createSub } = useMutation({
   mutationFn: createSubscription,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
     isCreateDialogOpen.value = false;
     addSuccessNotification(t('planned.subscriptions.createSuccess'));
   },
@@ -59,6 +61,7 @@ const handleToggleActive = async ({ subscription }: { subscription: Subscription
   try {
     await toggleSubscriptionActive({ id: subscription.id, isActive: !subscription.isActive });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
   } catch {
     addErrorNotification(t('planned.subscriptions.toggleError'));
   }
@@ -69,6 +72,7 @@ const confirmDelete = async () => {
   try {
     await deleteSubscription({ id: deleteTarget.value.id });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
     addSuccessNotification(t('planned.subscriptions.deleteSuccess'));
   } catch {
     addErrorNotification(t('planned.subscriptions.deleteError'));
@@ -93,16 +97,18 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
 <template>
   <div>
     <!-- Page Header -->
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div class="mb-4 flex items-center justify-between gap-2 sm:mb-6 sm:gap-4">
       <div>
-        <h1 class="text-2xl font-semibold tracking-tight">{{ $t('planned.subscriptions.title') }}</h1>
-        <p class="text-muted-foreground mt-1 text-sm">{{ $t('planned.subscriptions.description') }}</p>
+        <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">{{ $t('planned.subscriptions.title') }}</h1>
+        <p class="text-muted-foreground mt-1 hidden text-sm sm:block">{{ $t('planned.subscriptions.description') }}</p>
       </div>
-      <Button @click="isCreateDialogOpen = true" class="ml-auto">
-        <PlusIcon class="mr-2 size-4" />
+      <Button size="sm" @click="isCreateDialogOpen = true" class="shrink-0">
+        <PlusIcon class="mr-1 size-4 sm:mr-2" />
         {{ $t('planned.subscriptions.addSubscription') }}
       </Button>
     </div>
+
+    <SubscriptionsSummary />
 
     <!-- Loading Skeleton -->
     <div v-if="isPlaceholderData" class="divide-border border-border divide-y rounded-lg border">
@@ -131,7 +137,7 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
         <h3 class="min-w-0 truncate font-medium">{{ subscription.name }}</h3>
 
         <!-- Type badge -->
-        <div class="flex shrink-0 items-center gap-1.5">
+        <div class="flex shrink-0 items-center justify-end gap-1.5">
           <SubscriptionTypeBadge :type="subscription.type" />
           <span
             v-if="!subscription.isActive"

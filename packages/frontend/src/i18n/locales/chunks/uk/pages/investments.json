@@ -2,7 +2,6 @@
   "investments": {
     "title": "Інвестиції",
     "createButton": "Створити портфель",
-    "loading": "Завантаження портфелів...",
     "loadError": "Не вдалося завантажити портфелі",
     "tryAgain": "Спробувати ще раз",
     "menu": {
@@ -11,7 +10,6 @@
     },
     "card": {
       "hidden": "Прихований",
-      "portfolioBalance": "Баланс портфеля",
       "portfolioType": "Портфель {type}",
       "costBasis": "Собівартість"
     },

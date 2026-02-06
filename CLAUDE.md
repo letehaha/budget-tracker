@@ -18,6 +18,14 @@ Examples:
 
 Always test through the actual API endpoints to ensure full integration testing.
 
+**CRITICAL: E2E Tests Required for New Backend Endpoints**
+
+- Every new backend endpoint (route + controller + service) **MUST** include an e2e test before the work is considered complete.
+- **Auto-trigger**: After implementing a new endpoint, automatically write e2e tests as the next step — don't wait to be asked.
+- Minimum coverage: **happy path**, **empty state**, and at least one **error case**.
+- Follow the `e2e-test-creator` skill conventions (`.claude/skills/e2e-test-creator/SKILL.md`) for structure and patterns.
+- Suggest running the tests to the user, but wait for confirmation before executing.
+
 **Bug Fix Workflow: Test-First Approach**
 
 - When a bug is reported, do **NOT** start by trying to fix it.

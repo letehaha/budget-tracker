@@ -1,6 +1,5 @@
 {
   "planned": {
-    "backToPlanned": "Назад до Запланованого",
     "subscriptions": {
       "title": "Підписки та рахунки",
       "description": "Відстежуйте регулярні платежі та рахунки",
@@ -29,15 +28,9 @@
       "suggestMatchesDescription": "Транзакції, що відповідають правилам вашої підписки",
       "noSuggestedMatches": "Збігів не знайдено",
       "linkSelected": "Прив'язати {count} обраних",
-      "noNote": "Без нотатки",
       "matchingRulesTitle": "Правила зіставлення",
       "addMatchingRules": "Додати правила зіставлення",
       "updateMatchingRules": "Оновити правила зіставлення",
-      "filter": {
-        "all": "Усі",
-        "active": "Активні",
-        "inactive": "Неактивні"
-      },
       "frequency": {
         "weekly": "Щотижня",
         "biweekly": "Раз на два тижні",
@@ -114,6 +107,17 @@
       "emptyState": {
         "title": "Ще немає підписок",
         "description": "Додайте першу підписку або рахунок, щоб почати відстежувати регулярні платежі"
+      },
+      "summary": {
+        "filterAll": "Усі",
+        "filterSubscriptions": "Підписки",
+        "filterBills": "Рахунки",
+        "monthlyCost": "~{amount}/міс",
+        "yearlyProjected": "прогнозовано {amount}",
+        "perYear": "{amount}/рік",
+        "acrossSubscriptions": "серед {count} активної підписки | серед {count} активних підписок",
+        "acrossBills": "серед {count} активного рахунку | серед {count} активних рахунків",
+        "acrossAll": "серед {count} активних підписок і рахунків"
       }
     }
   }

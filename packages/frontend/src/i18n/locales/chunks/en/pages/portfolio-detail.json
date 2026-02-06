@@ -13,7 +13,6 @@
     },
     "balance": {
       "totalValue": "Total Value",
-      "loading": "Loading portfolio summary...",
       "loadError": "Failed to load portfolio summary.",
       "metrics": {
         "costBasis": "Cost Basis",
@@ -29,7 +28,6 @@
       "addButton": "Add Symbol"
     },
     "holdingsTable": {
-      "loading": "Loading...",
       "loadError": "Could not load holdings",
       "empty": "No holdings yet",
       "headers": {
@@ -59,15 +57,13 @@
     "transactionsList": {
       "title": "Transactions",
       "addButton": "Add transaction",
-      "deleteButton": "Delete",
       "headers": {
         "date": "Date",
         "type": "Type",
         "quantity": "Quantity",
         "price": "Price",
         "fees": "Fees",
-        "amount": "Amount",
-        "actions": "Actions"
+        "amount": "Amount"
       },
       "categories": {
         "buy": "Buy",
