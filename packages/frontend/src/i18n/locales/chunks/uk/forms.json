@@ -110,6 +110,7 @@
       "selectCategoryLabel": "Вибрати категорію",
       "searchCategoryLabel": "Шукати категорію",
       "clearSearchLabel": "Очистити пошук",
+      "clearSelectionLabel": "Очистити вибір",
       "searchPlaceholder": "Пошук..."
     },
     "select": {

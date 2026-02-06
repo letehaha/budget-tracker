@@ -14,7 +14,7 @@ import { useFormValidation } from '@/composable/form-validator';
 import { useCurrencyName } from '@/composable/formatters';
 import { helpers, required } from '@/js/helpers/validators';
 import { cn } from '@/lib/utils';
-import { useAccountsStore, useCategoriesStore } from '@/stores';
+import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
 import {
   type CurrencyModel,
   SUBSCRIPTION_FREQUENCIES,
@@ -42,7 +42,9 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
+const currenciesStore = useCurrenciesStore();
 const { formattedCategories } = storeToRefs(categoriesStore);
+const { baseCurrency } = storeToRefs(currenciesStore);
 const { currencies } = usePrioritizedCurrencies();
 const { formatCurrencyLabel } = useCurrencyName();
 
@@ -100,7 +102,7 @@ const getInitialState = (): FormState => {
     name: '',
     type: SUBSCRIPTION_TYPES.subscription,
     expectedAmount: null,
-    expectedCurrencyCode: '',
+    expectedCurrencyCode: baseCurrency.value?.currencyCode ?? '',
     frequency: SUBSCRIPTION_FREQUENCIES.monthly,
     startDate: new Date(),
     endDate: null,
