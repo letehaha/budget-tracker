@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 
 import AccountsView from './accounts-view/index.vue';
+import FeedbackDialog from './feedback-dialog.vue';
 import LogounButton from './logout-button.vue';
 import NavigationLinks from './navigation-links.vue';
 
@@ -22,6 +23,8 @@ defineProps<{ mobileView?: boolean }>();
 
       <AccountsView />
 
+      <hr class="bg-border h-px w-full" />
+      <FeedbackDialog />
       <LogounButton />
     </CardContent>
   </component>

@@ -44,7 +44,15 @@ type AnalyticsEvent =
   // AI features (ai_categorization_completed tracked on backend)
   | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' } }
   | { event: 'ai_settings_visited' }
-  | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } };
+  | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } }
+  // Feedback
+  | {
+      event: 'user_feedback_submitted';
+      properties: {
+        feedback_type: 'bug' | 'feature_request' | 'other';
+        message: string;
+      };
+    };
 
 // ============================================
 // Core Functions

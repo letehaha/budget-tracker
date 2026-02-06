@@ -305,6 +305,25 @@
         "namePlaceholder": "Інвестиції",
         "createButton": "Створити"
       }
+    },
+    "feedback": {
+      "sidebarButton": "Feedback",
+      "title": "Send feedback",
+      "description": "Help us improve by sharing your thoughts",
+      "typeLabel": "Type",
+      "types": {
+        "bug": "Bug report",
+        "featureRequest": "Feature request",
+        "other": "Other"
+      },
+      "messageLabel": "Message",
+      "messagePlaceholder": "Describe what happened or what you'd like to see...",
+      "cancelButton": "Cancel",
+      "submitButton": "Send feedback",
+      "notifications": {
+        "success": "Thanks for your feedback!",
+        "error": "Failed to send feedback. Please try again."
+      }
     }
   }
 }
