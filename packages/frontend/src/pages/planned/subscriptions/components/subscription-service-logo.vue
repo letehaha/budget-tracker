@@ -7,7 +7,7 @@ const props = defineProps<{
   size?: 'sm' | 'md' | 'lg';
 }>();
 
-const SIZE_MAP = { sm: 20, md: 28, lg: 40 } as const;
+const SIZE_MAP = { sm: 20, md: 30, lg: 40 } as const;
 
 const hasError = ref(false);
 const isLoading = ref(false);
@@ -38,11 +38,7 @@ const handleError = () => {
 
 <template>
   <!-- Skeleton -->
-  <div
-    v-if="logoUrl && isLoading"
-    class="bg-muted shrink-0 animate-pulse rounded"
-    :style="{ width: `${sizeInPx}px`, height: `${sizeInPx}px` }"
-  />
+  <div v-if="logoUrl && isLoading" :class="['bg-muted shrink-0 animate-pulse rounded', $attrs.class]" />
   <img
     v-if="logoUrl && !hasError"
     v-show="!isLoading"
@@ -50,7 +46,7 @@ const handleError = () => {
     :alt="service?.name"
     :width="sizeInPx"
     :height="sizeInPx"
-    class="shrink-0 rounded bg-white"
+    :class="['shrink-0 rounded bg-white', $attrs.class]"
     @load="handleLoad"
     @error="handleError"
   />

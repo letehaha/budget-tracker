@@ -258,7 +258,8 @@ const handleSubmit = () => {
 
     <!-- Name -->
     <div class="flex items-start gap-3">
-      <SubscriptionServiceLogo :name="form.name" size="md" class="mt-8" />
+      <SubscriptionServiceLogo :name="form.name" class="mt-6 size-8" />
+
       <InputField
         v-model="form.name"
         :label="$t('planned.subscriptions.form.nameLabel')"
