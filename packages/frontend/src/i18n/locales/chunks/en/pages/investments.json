@@ -2,7 +2,6 @@
   "investments": {
     "title": "Investments",
     "createButton": "Create Portfolio",
-    "loading": "Loading portfolios...",
     "loadError": "Failed to load portfolios",
     "tryAgain": "Try Again",
     "menu": {
@@ -12,7 +11,6 @@
     "card": {
       "hidden": "Hidden",
       "portfolioType": "{type} Portfolio",
-      "totalValue": "Total Value",
       "costBasis": "Cost basis"
     },
     "empty": {

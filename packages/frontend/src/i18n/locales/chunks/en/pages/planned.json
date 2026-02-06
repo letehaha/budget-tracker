@@ -1,6 +1,5 @@
 {
   "planned": {
-    "backToPlanned": "Back to Planned",
     "subscriptions": {
       "title": "Subscriptions & Bills",
       "description": "Track recurring payments and bills",
@@ -29,15 +28,9 @@
       "suggestMatchesDescription": "Transactions that match your subscription rules",
       "noSuggestedMatches": "No matching transactions found",
       "linkSelected": "Link {count} selected",
-      "noNote": "No note",
       "matchingRulesTitle": "Matching Rules",
       "addMatchingRules": "Add matching rules",
       "updateMatchingRules": "Update matching rules",
-      "filter": {
-        "all": "All",
-        "active": "Active",
-        "inactive": "Inactive"
-      },
       "frequency": {
         "weekly": "Weekly",
         "biweekly": "Biweekly",

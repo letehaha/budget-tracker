@@ -1,6 +1,6 @@
 import eslint from '@eslint/js';
-import eslintConfigPrettier from 'eslint-config-prettier';
 import vueI18n from '@intlify/eslint-plugin-vue-i18n';
+import eslintConfigPrettier from 'eslint-config-prettier';
 import eslintPluginVue from 'eslint-plugin-vue';
 import globals from 'globals';
 import typescriptEslint from 'typescript-eslint';
@@ -70,6 +70,12 @@ export default typescriptEslint.config(
             '/^pages\\.integrations\\.providers\\./',
             // const/index.ts: OUT_OF_WALLET_ACCOUNT_MOCK.name
             '/^common\\.outOfWallet$/',
+            // investment-transaction-form.vue: transactionTypeMap[type] dynamic lookup
+            '/^forms\\.investmentTransaction\\.types\\./',
+            // investment-transactions-list.vue: t(`portfolioDetail.transactionsList.categories.${tx.category}`)
+            '/^portfolioDetail\\.transactionsList\\.categories\\./',
+            // planned/index.vue: nestedRouteMap config
+            '/^planned\\.subscriptions\\.backToList$/',
           ],
         },
       ],
