@@ -1,7 +1,7 @@
 import { identifyCurrentTheme, patchMetaViewportMaxScaleForiOS } from '@/common/utils';
 import { clickOutside, nodeResizeObserver } from '@/directives';
 import { i18n, initializeLocale, loadChunks } from '@/i18n';
-import { initPostHog } from '@/lib/posthog';
+import { initPostHog, trackPageviews } from '@/lib/posthog';
 import { initSentry } from '@/lib/sentry';
 import { router } from '@/routes';
 import { store } from '@/stores/setup';
@@ -42,6 +42,7 @@ initI18n()
     initSentry({ app, router });
 
     initPostHog();
+    trackPageviews({ router });
 
     app.directive('click-outside', clickOutside);
     app.directive('node-resize-observer', nodeResizeObserver);

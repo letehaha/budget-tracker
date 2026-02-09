@@ -1,4 +1,5 @@
 import posthog from 'posthog-js';
+import type { Router } from 'vue-router';
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
 const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST;
@@ -158,4 +159,22 @@ export function resetUser(): void {
   }
 
   posthog.reset();
+}
+
+/**
+ * Track $pageview events on SPA route changes.
+ * Since capture_pageview is disabled (to avoid duplicate on initial load),
+ * we manually capture pageviews via router.afterEach.
+ */
+export function trackPageviews({ router }: { router: Router }): void {
+  if (!isPostHogEnabled()) {
+    return;
+  }
+
+  router.afterEach((to) => {
+    posthog.capture('$pageview', {
+      $current_url: window.location.href,
+      $pathname: to.path,
+    });
+  });
 }
