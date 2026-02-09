@@ -1,31 +1,26 @@
 <template>
   <Card
     :class="[
-      cn('flex max-h-87.5 flex-col', $attrs.class),
-      {
-        'max-h-181': higher,
-      },
+      cn('flex flex-col', $attrs.class),
+      isDashboard ? 'h-full' : { 'max-h-87.5': !higher, 'max-h-181': higher },
     ]"
   >
-    <CardHeader>
+    <CardHeader :class="isDashboard ? 'sm:py-3' : ''">
       <slot name="header">
-        <div class="grid grid-cols-[minmax(0,1fr)_max-content_20px] items-center justify-between gap-1">
+        <div class="grid grid-cols-[minmax(0,1fr)_max-content] items-center justify-between gap-1">
           <h3>
             <slot name="title" />
           </h3>
 
-          <div>
+          <div class="flex items-center gap-1">
             <slot name="action" />
+            <Loader2Icon v-if="isFetching" class="size-5 animate-spin text-white opacity-50" />
           </div>
-
-          <template v-if="isFetching">
-            <Loader2Icon class="size-5 animate-spin text-white opacity-50" />
-          </template>
         </div>
       </slot>
     </CardHeader>
 
-    <CardContent class="h-full">
+    <CardContent :class="isDashboard ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'h-full overflow-y-auto'">
       <slot />
     </CardContent>
   </Card>
@@ -35,6 +30,7 @@
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { cn } from '@/lib/utils';
 import { Loader2Icon } from 'lucide-vue-next';
+import { inject } from 'vue';
 
 withDefaults(
   defineProps<{
@@ -45,4 +41,6 @@ withDefaults(
     isFetching: false,
   },
 );
+
+const isDashboard = inject<boolean>('dashboard-widget-stretch', false);
 </script>

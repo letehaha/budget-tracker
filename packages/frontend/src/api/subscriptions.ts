@@ -95,6 +95,24 @@ export const loadSuggestedMatches = async ({ id }: { id: string }): Promise<Tran
   return api.get(`/subscriptions/${id}/suggest-matches`);
 };
 
+interface UpcomingPayment {
+  subscriptionId: string;
+  subscriptionName: string;
+  expectedAmount: number;
+  expectedCurrencyCode: string | null;
+  nextPaymentDate: string | null;
+  frequency: string;
+  categoryName: string | null;
+  categoryColor: string | null;
+}
+
+export const loadUpcomingPayments = async ({ limit }: { limit?: number } = {}): Promise<UpcomingPayment[]> => {
+  const query: Record<string, string> = {};
+  if (limit !== undefined) query.limit = String(limit);
+
+  return api.get('/subscriptions/upcoming', query);
+};
+
 interface SubscriptionsSummary {
   estimatedMonthlyCost: number;
   projectedYearlyCost: number;

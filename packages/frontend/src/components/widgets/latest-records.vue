@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { loadTransactions as apiLoadTransactions } from '@/api/transactions';
+import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { buttonVariants } from '@/components/lib/ui/button';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
@@ -8,12 +9,20 @@ import { useRootStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
 import { ListIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed } from 'vue';
+import type { Ref } from 'vue';
+import { computed, inject } from 'vue';
 
 import EmptyState from './components/empty-state.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
 const { isAppInitialized } = storeToRefs(useRootStore());
+const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
+
+const maxDisplay = computed(() => {
+  const config = widgetConfigRef?.value;
+  if (!config) return 10;
+  return (config.rowSpan ?? 1) >= 2 ? 11 : 5;
+});
 
 const { data: transactions } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.widgetLatestRecords,
@@ -27,7 +36,7 @@ const isDataEmpty = computed(() => transactions.value.length === 0);
 </script>
 
 <template>
-  <WidgetWrapper higher>
+  <WidgetWrapper>
     <template #title> {{ $t('dashboard.widgets.latestTransactions.title') }} </template>
     <template #action>
       <template v-if="!isDataEmpty">
@@ -45,7 +54,7 @@ const isDataEmpty = computed(() => transactions.value.length === 0);
       </EmptyState>
     </template>
     <template v-else>
-      <TransactionsList raw-list class="gap-1" :transactions="transactions || []" :max-display="10" />
+      <TransactionsList raw-list class="gap-1" :transactions="transactions || []" :max-display="maxDisplay" />
     </template>
   </WidgetWrapper>
 </template>

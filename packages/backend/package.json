@@ -13,7 +13,7 @@
     "migrate:undo": "cross-env NODE_ENV=production npx sequelize-cli db:migrate:undo",
     "migrate:generate": "cross-env NODE_ENV=development npx sequelize-cli migration:generate",
     "test": "cross-env NODE_ENV=test npm run test:unit && npm run test:e2e",
-    "test:unit": "cross-env NODE_ENV=test jest -c jest.config.unit.ts --passWithNoTests --forceExit --detectOpenHandles",
+    "test:unit": "cross-env NODE_ENV=test TZ=UTC jest -c jest.config.unit.ts --passWithNoTests --forceExit --detectOpenHandles",
     "test:e2e": "cross-env NODE_ENV=test chmod +x ./src/tests/setup-e2e-tests.sh && ./src/tests/setup-e2e-tests.sh",
     "lint": "eslint ."
   },

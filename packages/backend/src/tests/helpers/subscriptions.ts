@@ -192,3 +192,24 @@ export async function getSubscriptionsSummary<R extends boolean | undefined = un
     raw,
   });
 }
+
+export async function getUpcomingPayments<R extends boolean | undefined = undefined>({
+  raw,
+  limit,
+}: {
+  raw?: R;
+  limit?: number;
+} = {}) {
+  const query: Record<string, string> = {};
+  if (limit !== undefined) query.limit = String(limit);
+
+  return makeRequest<
+    Awaited<ReturnType<typeof import('@services/subscriptions/get-upcoming-payments').getUpcomingPayments>>,
+    R
+  >({
+    method: 'get',
+    url: '/subscriptions/upcoming',
+    payload: Object.keys(query).length ? query : undefined,
+    raw,
+  });
+}

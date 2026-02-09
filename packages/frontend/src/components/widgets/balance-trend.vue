@@ -52,14 +52,14 @@
       </div>
 
       <Transition name="chart-fade" mode="out-in">
-        <div :key="chartKey" ref="containerRef" class="relative h-44 w-full">
+        <div :key="chartKey" ref="containerRef" class="relative min-h-44 w-full flex-1">
           <svg ref="svgRef" class="h-full w-full"></svg>
 
           <!-- Tooltip -->
           <div
             v-show="tooltip.visible"
             ref="tooltipRef"
-            class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 min-w-37.5 rounded-lg border px-3 py-2 text-sm shadow-lg"
+            class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none fixed z-50 min-w-37.5 rounded-lg border px-3 py-2 text-sm shadow-lg"
             :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
           >
             <div class="mb-1 font-medium">{{ tooltip.date }}</div>
@@ -167,6 +167,7 @@ const { updateTooltipPosition } = useChartTooltipPosition({
   containerRef,
   tooltipRef,
   tooltip,
+  strategy: 'fixed',
 });
 
 // We store actual and prev period separately, so when new data is loading, we

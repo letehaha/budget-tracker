@@ -1,6 +1,34 @@
 {
   "dashboard": {
+    "editMode": {
+      "customize": "Налаштувати",
+      "addWidgets": "Додати віджети",
+      "emptyState": "Натисніть Налаштувати, щоб додати віджети"
+    },
     "widgets": {
+      "registry": {
+        "balanceTrend": {
+          "name": "Тренд балансу",
+          "description": "Відстежуйте загальний баланс з часом"
+        },
+        "spendingCategories": {
+          "name": "Категорії витрат",
+          "description": "Дізнайтеся, куди йдуть ваші гроші"
+        },
+        "latestRecords": {
+          "name": "Останні записи",
+          "description": "Перегляньте найновіші транзакції"
+        },
+        "subscriptions": {
+          "name": "Підписки та рахунки",
+          "description": "Щомісячні витрати та найближчі платежі"
+        }
+      },
+      "subscriptions": {
+        "title": "Підписки та рахунки",
+        "activeSummary": "{count} активних",
+        "perYear": "/рік"
+      },
       "balanceTrend": {
         "title": "Тренд балансу",
         "balanceTypes": {

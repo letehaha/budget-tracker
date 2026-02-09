@@ -15,7 +15,9 @@
       "viewAnalytics": "Переглянути аналітику",
       "saving": "Збереження...",
       "saveChanges": "Зберегти зміни",
-      "scrollToTop": "Вгору"
+      "scrollToTop": "Вгору",
+      "done": "Готово",
+      "viewAll": "Переглянути все"
     },
     "ui": {
       "close": "Закрити",
@@ -28,8 +30,7 @@
     "errors": {
       "copyToClipboardFailed": "Не вдалося скопіювати до буфера обміну"
     },
-    "notifications": {
-    },
+    "notifications": {},
     "labels": {
       "email": "Електронна пошта",
       "password": "Пароль",

@@ -443,20 +443,28 @@ describe('Update transaction controller', () => {
         const oppositeTxType =
           txType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income;
 
-        await helpers.monobank.pair();
-        const { account, transactions } = await helpers.monobank.mockTransactions();
+        const account = await helpers.createAccount({ raw: true });
 
-        // Explicitly filter by account to ensure both transactions are from the same account
-        const tx1 = transactions.find((item) => item.transactionType === txType && item.accountId === account.id);
-        const tx2 = transactions.find(
-          (item) => item.transactionType === oppositeTxType && item.accountId === account.id,
-        );
+        const [tx1] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            transactionType: txType,
+          }),
+          raw: true,
+        });
+        const [tx2] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            transactionType: oppositeTxType,
+          }),
+          raw: true,
+        });
 
         const result = await helpers.updateTransaction({
-          id: tx1!.id,
+          id: tx1.id,
           payload: {
             transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-            destinationTransactionId: tx2!.id,
+            destinationTransactionId: tx2.id,
           },
         });
         expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
