@@ -15,7 +15,9 @@
       "viewAnalytics": "View analytics",
       "saving": "Saving...",
       "saveChanges": "Save Changes",
-      "scrollToTop": "Top"
+      "scrollToTop": "Top",
+      "done": "Done",
+      "viewAll": "View all"
     },
     "ui": {
       "close": "Close",
@@ -28,8 +30,7 @@
     "errors": {
       "copyToClipboardFailed": "Failed to copy to clipboard"
     },
-    "notifications": {
-    },
+    "notifications": {},
     "labels": {
       "email": "Email",
       "password": "Password",

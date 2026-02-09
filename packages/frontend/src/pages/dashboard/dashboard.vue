@@ -20,37 +20,48 @@
         ])
       "
     >
-      <PeriodSelector v-model="currentPeriod" />
+      <div class="grid grid-cols-[1fr_auto_1fr] items-center">
+        <div />
+        <PeriodSelector v-model="currentPeriod" />
+        <DashboardEditToolbar
+          class="hidden justify-self-end md:flex"
+          :is-edit-mode="gridRef?.isEditMode ?? false"
+          @enter="gridRef?.enterEditMode()"
+          @save="gridRef?.saveLayout()"
+          @cancel="gridRef?.cancelEdit()"
+        />
+      </div>
     </div>
 
     <template v-if="hasNoAccounts">
       <DashboardOnboarding />
     </template>
     <template v-else>
-      <div
-        :class="[
-          `grid gap-6 max-md:pb-4`,
-          `xl:grid-cols-[minmax(0,1fr)_420px] xl:[grid-template-areas:'balance-trend_latest-records'_'spending-categories_latest-records']`,
-          `md:grid-cols-2 md:[grid-template-areas:'balance-trend_balance-trend'_'spending-categories_latest-records']`,
-          `grid-cols-1 [grid-template-areas:'balance-trend'_'spending-categories'_'latest-records']`,
-        ]"
-      >
-        <BalanceTrendWidget :selected-period="currentPeriod" class="[grid-area:balance-trend]" />
+      <!-- Mobile: "Customize" button above grid (hidden during edit mode) -->
+      <DashboardEditToolbar
+        v-if="!(gridRef?.isEditMode ?? false)"
+        class="mb-4 justify-center md:hidden"
+        :is-edit-mode="false"
+        @enter="gridRef?.enterEditMode()"
+      />
 
-        <SpendingCategoriesWidget :selected-period="currentPeriod" class="[grid-area:spending-categories]" />
+      <DashboardGrid ref="gridRef" :current-period="currentPeriod" />
 
-        <LatestRecordsWidget class="[grid-area:latest-records] lg:max-w-[420px]" />
-      </div>
+      <!-- Mobile: sticky "Done/Cancel" bar at bottom during edit mode -->
+      <DashboardEditToolbar
+        v-if="gridRef?.isEditMode"
+        class="bg-background/90 sticky bottom-0 z-30 -mx-6 justify-center border-t px-6 py-3 backdrop-blur-sm md:hidden"
+        :is-edit-mode="true"
+        @save="gridRef?.saveLayout()"
+        @cancel="gridRef?.cancelEdit()"
+      />
     </template>
   </section>
 </template>
 
 <script lang="ts" setup>
 import RecoveryMethodBanner from '@/components/banners/recovery-method-banner.vue';
-import BalanceTrendWidget from '@/components/widgets/balance-trend.vue';
 import DashboardOnboarding from '@/components/widgets/dashboard-onboarding.vue';
-import SpendingCategoriesWidget from '@/components/widgets/expenses-structure.vue';
-import LatestRecordsWidget from '@/components/widgets/latest-records.vue';
 import { useSafariDetection } from '@/composable/detect-safari';
 import { cn } from '@/lib/utils';
 import { useAccountsStore } from '@/stores';
@@ -59,6 +70,8 @@ import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
+import DashboardEditToolbar from './components/dashboard-edit-toolbar.vue';
+import DashboardGrid from './components/dashboard-grid.vue';
 import PeriodSelector from './components/period-selector.vue';
 import { type Period } from './types';
 
@@ -73,6 +86,8 @@ const hasNoAccounts = computed(() => isAccountsFetched.value && accounts.value.l
 defineOptions({
   name: 'page-dashboard',
 });
+
+const gridRef = ref<InstanceType<typeof DashboardGrid> | null>(null);
 
 // Get initial period from URL or default to current month
 const getInitialPeriod = (): Period => {

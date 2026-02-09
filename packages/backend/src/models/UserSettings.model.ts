@@ -73,6 +73,16 @@ export const DEFAULT_NOTIFICATION_PREFERENCES = {
   },
 };
 
+export const ZodDashboardWidgetSchema = z.object({
+  widgetId: z.string(),
+  colSpan: z.number().int().min(1).max(3).default(1),
+  rowSpan: z.number().int().min(1).max(2).default(1),
+});
+
+export const ZodDashboardSettingsSchema = z.object({
+  widgets: z.array(ZodDashboardWidgetSchema).default([]),
+});
+
 export const ZodSettingsSchema = z.object({
   locale: z.enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN]).default(SUPPORTED_LOCALES.ENGLISH),
   stats: z.object({
@@ -83,6 +93,7 @@ export const ZodSettingsSchema = z.object({
   ai: ZodAiSettingsSchema.optional(),
   notifications: ZodNotificationPreferencesSchema.optional(),
   onboarding: ZodOnboardingStateSchema.optional(),
+  dashboard: ZodDashboardSettingsSchema.optional(),
 });
 
 // Infer the TypeScript type from the Zod schema
