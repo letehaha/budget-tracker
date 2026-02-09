@@ -52,12 +52,16 @@ export function createSessionHooks({ pool }: { pool: Pool }) {
             };
             const method: LoginMethod = providerToMethod[providerId ?? ''] ?? 'email';
 
+            const isDemo = appUser.role === USER_ROLES.demo;
+
             // Identify user (updates properties if already identified)
             identifyUser({
               userId: appUser.id,
               properties: {
                 email,
                 username: appUser.username,
+                is_demo: isDemo,
+                user_role: appUser.role,
               },
             });
 
