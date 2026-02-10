@@ -31,10 +31,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+
 import { trackAnalyticsEvent } from '../lib/posthog';
 import DemoLoadingOverlay from './demo-loading-overlay.vue';
 
 const isDemoLoading = ref(false);
+
+const API_BASE = import.meta.env.VITE_APP_API_HTTP || '';
+const API_VER = import.meta.env.VITE_APP_API_VER || '/api/v1';
 
 async function handleTryDemo() {
   if (isDemoLoading.value) return;
@@ -43,7 +47,7 @@ async function handleTryDemo() {
   trackAnalyticsEvent({ event: 'demo_started', properties: { location: 'hero' } });
 
   try {
-    const response = await fetch('/api/v1/demo', {
+    const response = await fetch(`${API_BASE}${API_VER}/demo`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
