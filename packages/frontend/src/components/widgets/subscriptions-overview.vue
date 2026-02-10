@@ -22,7 +22,7 @@ import WidgetWrapper from './components/widget-wrapper.vue';
 const { t } = useI18n();
 
 const { isAppInitialized } = storeToRefs(useRootStore());
-const { formatBaseCurrency } = useFormatCurrency();
+const { formatBaseCurrency, formatAmountByCurrencyCode } = useFormatCurrency();
 const { formatDistanceToNow } = useDateLocale();
 const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
 
@@ -97,7 +97,11 @@ const formatNextDate = (dateStr: string | null) => {
             <p class="text-muted-foreground text-xs">{{ formatNextDate(payment.nextPaymentDate) }}</p>
           </div>
           <span class="text-sm font-medium tabular-nums">
-            {{ formatBaseCurrency(payment.expectedAmount) }}
+            {{
+              payment.expectedCurrencyCode
+                ? formatAmountByCurrencyCode(payment.expectedAmount, payment.expectedCurrencyCode)
+                : formatBaseCurrency(payment.expectedAmount)
+            }}
           </span>
         </div>
       </div>
