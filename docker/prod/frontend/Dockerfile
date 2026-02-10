@@ -1,20 +1,16 @@
-# 🏗️ Stage 1️⃣: Build (with Puppeteer/Chrome for prerendering)
-FROM ghcr.io/puppeteer/puppeteer:24.2.0 AS build-stage
+# 🏗️ Stage 1️⃣: Build
+FROM node:23.11.0 AS build-stage
 
-# Switch to root for installing dependencies
-USER root
 WORKDIR /app
-
-# Install build dependencies for native modules (node-gyp)
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 # Copy root-level package files and post-install script
 COPY package*.json ./
 COPY post-install.sh ./
 RUN chmod +x ./post-install.sh
 
-# Copy frontend package files
+# Copy package files for workspaces
 COPY packages/frontend/package*.json ./packages/frontend/
+COPY packages/landing/package*.json ./packages/landing/
 
 # Install dependencies
 RUN npm ci
@@ -26,23 +22,25 @@ COPY .env.production ./
 COPY tsconfig.json ./
 COPY packages/shared ./packages/shared
 COPY packages/frontend ./packages/frontend
-COPY docker/prod ./docker/prod
+COPY packages/landing ./packages/landing
 
-# Set working directory to frontend before build
+# Build frontend SPA
 WORKDIR /app/packages/frontend
+RUN npm run build
 
-# Enable prerendering (Chrome is available in this Puppeteer image)
-ENV ENABLE_PRERENDER=true
+# Build Astro landing
+WORKDIR /app/packages/landing
 RUN npm run build
 
 # 🚀 Stage 2️⃣: Production
 FROM nginx:1.27-alpine AS production-stage
 
-# Create app directory with proper permissions
-RUN mkdir /app && chown nginx:nginx /app
+# Create app directories with proper permissions
+RUN mkdir /app /landing && chown nginx:nginx /app /landing
 
 # Copy built assets
 COPY --from=build-stage --chown=nginx:nginx /app/packages/frontend/dist /app
+COPY --from=build-stage --chown=nginx:nginx /app/packages/landing/dist /landing
 COPY --chown=nginx:nginx packages/frontend/nginx.conf /etc/nginx/nginx.conf
 
 # Use non-root user

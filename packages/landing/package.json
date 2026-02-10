@@ -1,0 +1,25 @@
+{
+  "name": "@bt/landing",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/vue": "^5.0.0",
+    "@fontsource/montserrat": "^5.1.0",
+    "@iconify-json/lucide": "^1.2.0",
+    "astro": "^5.0.0",
+    "astro-icon": "^1.1.0",
+    "lucide-vue-next": "^0.469.0",
+    "posthog-js": "^1.194.4",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "tailwindcss": "^4.1.0"
+  }
+}

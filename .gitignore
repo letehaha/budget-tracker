@@ -151,3 +151,6 @@ docs/prds/*
 
 # i18n hook bypass flag
 .claude/i18n-bypass
+
+# Astro generated files
+packages/landing/.astro/

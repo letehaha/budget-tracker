@@ -1,5 +1,5 @@
 <template>
-  <Teleport to="body">
+  <Teleport to="body" :disabled="!isMounted">
     <Transition name="fade">
       <div
         v-if="isVisible"
@@ -19,7 +19,7 @@
         </div>
 
         <!-- Main message -->
-        <h2 class="text-foreground mb-3 text-2xl font-bold">{{ t('demo.loadingOverlay.title') }}</h2>
+        <h2 class="text-foreground mb-3 text-2xl font-bold">Building your demo...</h2>
 
         <!-- Animated status messages -->
         <div class="text-muted-foreground h-6 text-center text-sm">
@@ -46,21 +46,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
   isVisible: boolean;
 }>();
 
-const { t, tm } = useI18n();
+// Disable Teleport during SSR to avoid hydration mismatch
+const isMounted = ref(false);
+onMounted(() => {
+  isMounted.value = true;
+});
 
-// Use tm() to get array of translations
-const messages = computed(() => tm('demo.loadingOverlay.messages') as string[]);
-const TIMEOUT_MESSAGE = computed(() => t('demo.loadingOverlay.timeoutMessage'));
+const MESSAGES = [
+  'Setting up your accounts...',
+  'Creating sample transactions...',
+  'Configuring budgets & categories...',
+  'Preparing analytics dashboard...',
+  'Almost ready...',
+];
 
-// Duration in ms for each message phase (accounts setup, transactions, budgets, etc.)
-// These timings reflect actual backend processing times
+const TIMEOUT_MESSAGE = 'This is taking longer than usual. Please wait...';
 const MESSAGE_DURATIONS_MS = [4000, 7000, 15000, 5000];
 const TIMEOUT_THRESHOLD_MS = 60_000;
 
@@ -70,22 +76,19 @@ const messageTimers: ReturnType<typeof setTimeout>[] = [];
 let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
 const currentMessage = computed(() => {
-  if (showTimeoutMessage.value) return TIMEOUT_MESSAGE.value;
-  const messagesList = messages.value;
-  return messagesList[currentMessageIndex.value];
+  if (showTimeoutMessage.value) return TIMEOUT_MESSAGE;
+  return MESSAGES[currentMessageIndex.value];
 });
 
 const startTimers = () => {
-  // Schedule each message transition based on cumulative time
   let cumulativeTime = 0;
-  const messagesList = messages.value;
 
-  for (let i = 0; i < messagesList.length - 1; i++) {
-    const duration = MESSAGE_DURATIONS_MS[i] || 5000; // Default 5s if not specified
+  for (let i = 0; i < MESSAGES.length - 1; i++) {
+    const duration = MESSAGE_DURATIONS_MS[i] || 5000;
     cumulativeTime += duration;
 
     const timer = setTimeout(() => {
-      if (currentMessageIndex.value < messagesList.length - 1) {
+      if (currentMessageIndex.value < MESSAGES.length - 1) {
         currentMessageIndex.value = i + 1;
       }
     }, cumulativeTime);
@@ -93,14 +96,12 @@ const startTimers = () => {
     messageTimers.push(timer);
   }
 
-  // Show timeout message after threshold
   timeoutTimer = setTimeout(() => {
     showTimeoutMessage.value = true;
   }, TIMEOUT_THRESHOLD_MS);
 };
 
 const clearTimers = () => {
-  // Clear all message transition timers
   messageTimers.forEach((timer) => clearTimeout(timer));
   messageTimers.length = 0;
 
@@ -116,7 +117,6 @@ const resetState = () => {
   clearTimers();
 };
 
-// Watch visibility to start/stop timers and reset state
 watch(
   () => props.isVisible,
   (visible) => {

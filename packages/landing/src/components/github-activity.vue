@@ -32,7 +32,8 @@
 </template>
 
 <script setup lang="ts">
-import { type GitHubActivityData, fetchGitHubActivity } from '@/api/github';
+import { fetchGitHubActivity } from '@/lib/github-api';
+import type { GitHubActivityData } from '@/lib/github-api';
 import { onMounted, ref } from 'vue';
 
 const activity = ref<GitHubActivityData | null>(null);
@@ -75,17 +76,14 @@ async function loadActivity(retryCount = 0): Promise<void> {
   try {
     const response = await fetchGitHubActivity();
 
-    // Check if response is the "computing" state (has data: null property)
     if ('data' in response && response.data === null) {
       if (retryCount < MAX_RETRIES) {
         await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
         return loadActivity(retryCount + 1);
       }
-      // Max retries reached, leave activity as null
       return;
     }
 
-    // Response is GitHubActivityData directly
     activity.value = response as GitHubActivityData;
   } catch (error) {
     console.error('Failed to fetch GitHub activity:', error);
@@ -95,10 +93,6 @@ async function loadActivity(retryCount = 0): Promise<void> {
 }
 
 onMounted(() => {
-  // Skip during prerendering (no backend available)
-  const isPrerendering = navigator.userAgent.includes('HeadlessChrome');
-  if (!isPrerendering) {
-    loadActivity();
-  }
+  loadActivity();
 });
 </script>
