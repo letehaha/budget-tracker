@@ -99,4 +99,6 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // subscriptions
   subscriptionsList: [transactionChange, 'subscriptions-list'] as const,
   subscriptionDetails: [transactionChange, 'subscription-details'] as const,
+  subscriptionsSummary: [transactionChange, 'subscriptions-summary'] as const,
+  widgetSubscriptionsUpcoming: [transactionChange, 'widget-subscriptions-upcoming'] as const,
 });

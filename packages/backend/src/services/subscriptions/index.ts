@@ -8,3 +8,5 @@ export { unlinkTransactionsFromSubscription } from './unlink-transactions';
 export { suggestHistoricalMatches } from './suggest-historical-matches';
 export { matchTransactionToSubscriptions } from './matching-engine';
 export { registerSubscriptionMatchingListeners } from './event-listeners';
+export { getSubscriptionsSummary } from './get-subscriptions-summary';
+export { getUpcomingPayments } from './get-upcoming-payments';

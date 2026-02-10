@@ -1,26 +1,9 @@
 # Project Rules & Conventions
 
-**CRITICAL**: Claude Code MUST follow all project rules defined in `.cursor/rules/*` files:
+## Context Files
 
-- **Rule Files Location:** `.cursor/rules/` directory
-- **Rule Format:** All `.mdc` files in this directory contain mandatory project rules
-- **Priority:** These rules take precedence over default Claude Code behavior
-- **Scope:** Apply to ALL code-related work
-
-**Key Rule Files:**
-
-- `cursor_rules.mdc` - Core project conventions and coding standards
-- `self_improve.mdc` - Pattern recognition and improvement guidelines
-- Any additional `.mdc` files in the rules directory
-
-**Implementation:**
-
-1. **Before any code work:** Read ALL `.mdc` files in `.cursor/rules/`
-2. **During development:** Follow these rules consistently
-3. **Code review:** Ensure all changes comply with project rules
-4. **Consistency:** Apply rules across all files and features uniformly
-
-**Note:** Project rules in `.cursor/rules/*` are not suggestions - they are mandatory coding standards for this codebase.
+- **Backend work**: Read `.claude/docs/backend-conventions.md` before writing backend code
+- **Frontend work**: Read `.claude/docs/frontend-conventions.md` before writing frontend code
 
 ## Testing Patterns
 
@@ -35,7 +18,23 @@ Examples:
 
 Always test through the actual API endpoints to ensure full integration testing.
 
+**CRITICAL: E2E Tests Required for New Backend Endpoints**
+
+- Every new backend endpoint (route + controller + service) **MUST** include an e2e test before the work is considered complete.
+- **Auto-trigger**: After implementing a new endpoint, automatically write e2e tests as the next step — don't wait to be asked.
+- Minimum coverage: **happy path**, **empty state**, and at least one **error case**.
+- Follow the `e2e-test-creator` skill conventions (`.claude/skills/e2e-test-creator/SKILL.md`) for structure and patterns.
+- Suggest running the tests to the user, but wait for confirmation before executing.
+
+**Bug Fix Workflow: Test-First Approach**
+
+- When a bug is reported, do **NOT** start by trying to fix it.
+- **First**, write a test that reproduces the bug (the test should fail) if it's suitable. For backend use e2e tests, for frontend if it's a util/composable write unit-test.
+- **Then**, use subagents to fix the bug and prove it with a passing test.
+
 **CRITICAL: Running Tests**
+
+- **Do NOT run tests automatically** unless the user explicitly requests it. Tests can be slow and expensive (Docker containers, database setup). You can suggest running tests, but wait for user confirmation.
 - **NEVER** use `npx jest` directly. Always use the npm scripts.
 - **ALWAYS** use the `test-runner` subagent to run tests. The main agent must NEVER run tests directly.
 - Backend e2e tests: `npm run test:e2e` from `packages/backend/`
@@ -108,3 +107,4 @@ Other instructions:
    - When asked, use the `i18n-editor` subagent
    - If a feature needs translations, mention it in your response and let the user decide when to add them
 8. For Chrome extenstion use Brave browser, not Chrome
+9. **Frontend env vars (`VITE_*`) must also be added to CI** — they are inlined at build time. Add as input + envkey in `.github/actions/frontend-docker-build/action.yml`, then pass the secret in `.github/workflows/image-to-docker-hub.yml`.

@@ -165,10 +165,10 @@ export const getUserByAuthUserId = async ({
   authUserId,
 }: {
   authUserId: string;
-}): Promise<Pick<UserModel, 'id' | 'username'> | null> => {
+}): Promise<Pick<UserModel, 'id' | 'username' | 'role'> | null> => {
   const user = await Users.findOne({
     where: { authUserId },
-    attributes: ['id', 'username'],
+    attributes: ['id', 'username', 'role'],
     raw: true,
   });
 

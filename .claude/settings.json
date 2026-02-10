@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path' | while read -r f; do case \"$f\" in *.ts) npx prettier --write \"$f\";; esac; done"
+            "command": "jq -r '.tool_input.file_path' | while read -r f; do case \"$f\" in *.ts|*.tsx|*.js|*.jsx|*.vue|*.json|*.css|*.scss) npx prettier --write \"$f\";; esac; done"
           }
         ]
       }
@@ -26,6 +26,12 @@
       {
         "matcher": "",
         "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-unused-code.sh",
+            "timeout": 120,
+            "statusMessage": "Checking for unused code with knip..."
+          },
           {
             "type": "command",
             "command": "terminal-notifier -title \"✅ Claude Code\" -message \"The task has been completed\""

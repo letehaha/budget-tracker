@@ -1,10 +1,5 @@
 {
   "planned": {
-    "backToPlanned": "Back to Planned",
-    "navigation": {
-      "subscriptions": "Subscriptions",
-      "budgets": "Budgets"
-    },
     "subscriptions": {
       "title": "Subscriptions & Bills",
       "description": "Track recurring payments and bills",
@@ -33,15 +28,9 @@
       "suggestMatchesDescription": "Transactions that match your subscription rules",
       "noSuggestedMatches": "No matching transactions found",
       "linkSelected": "Link {count} selected",
-      "noNote": "No note",
       "matchingRulesTitle": "Matching Rules",
       "addMatchingRules": "Add matching rules",
       "updateMatchingRules": "Update matching rules",
-      "filter": {
-        "all": "All",
-        "active": "Active",
-        "inactive": "Inactive"
-      },
       "frequency": {
         "weekly": "Weekly",
         "biweekly": "Biweekly",
@@ -97,7 +86,17 @@
         "currencyCode": "Currency code",
         "transactionType": "Transaction type",
         "account": "Account",
-        "addRule": "Add Rule"
+        "addRule": "Add Rule",
+        "fieldOptions": {
+          "note": "Note",
+          "amount": "Amount",
+          "transactionType": "Transaction Type",
+          "account": "Account"
+        },
+        "transactionTypeOptions": {
+          "income": "Income",
+          "expense": "Expense"
+        }
       },
       "createSuccess": "Subscription created successfully",
       "createError": "Failed to create subscription",
@@ -118,6 +117,17 @@
       "emptyState": {
         "title": "No subscriptions yet",
         "description": "Add your first subscription or bill to start tracking recurring payments"
+      },
+      "summary": {
+        "filterAll": "All",
+        "filterSubscriptions": "Subscriptions",
+        "filterBills": "Bills",
+        "monthlyCost": "~{amount}/mo",
+        "yearlyProjected": "{amount} projected",
+        "perYear": "{amount}/yr",
+        "acrossSubscriptions": "across {count} active subscription | across {count} active subscriptions",
+        "acrossBills": "across {count} active bill | across {count} active bills",
+        "acrossAll": "across {count} active subscriptions & bills"
       }
     }
   }

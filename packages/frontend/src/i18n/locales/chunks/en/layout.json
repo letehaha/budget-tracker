@@ -4,10 +4,13 @@
     "accounts": "Accounts",
     "investments": "Investments",
     "transactions": "Transactions",
-    "budgets": "Budgets",
     "analytics": "Analytics",
-    "planned": "Planned",
-    "logout": "Logout"
+    "logout": "Logout",
+    "planned": {
+      "planned": "Planned",
+      "subscriptions": "Subscriptions",
+      "budgets": "Budgets"
+    }
   },
   "sidebar": {
     "accountsView": {
@@ -72,8 +75,7 @@
       "description": "Protect your account by adding Google sign-in or a passkey. This ensures you can always access your account.",
       "actionButton": "Go to Security Settings"
     },
-    "legacyAccountMigration": {
-    }
+    "legacyAccountMigration": {}
   },
   "relinkWarning": {
     "buttonLabel": "{count} account needs attention | {count} accounts need attention",
@@ -185,6 +187,10 @@
           "create-budget": {
             "title": "Set up a budget",
             "description": "Create spending limits for categories"
+          },
+          "create-subscription": {
+            "title": "Create a subscription",
+            "description": "Set up recurring payments to track your subscriptions"
           },
           "create-account-group": {
             "title": "Create an account group",

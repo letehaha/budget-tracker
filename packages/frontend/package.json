@@ -22,8 +22,8 @@
     "not dead"
   ],
   "dependencies": {
-    "@fontsource/montserrat": "^5.1.0",
     "@better-auth/passkey": "^1.4.9",
+    "@fontsource/montserrat": "^5.1.0",
     "@iconify/vue": "^5.0.0",
     "@internationalized/date": "^3.10.0",
     "@microsoft/fetch-event-source": "^2.0.1",
@@ -41,6 +41,7 @@
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "date-fns": "^3.6.0",
+    "fuse.js": "^7.1.0",
     "lodash-es": "^4.17.21",
     "lucide-vue-next": "0.559.0",
     "pinia": "^2.3.0",
@@ -51,6 +52,7 @@
     "v-calendar": "^3.1.2",
     "vaul-vue": "^0.4.1",
     "vue": "3.5.25",
+    "vue-draggable-plus": "^0.6.1",
     "vue-i18n": "^11.2.8",
     "vue-router": "4.6.3"
   },

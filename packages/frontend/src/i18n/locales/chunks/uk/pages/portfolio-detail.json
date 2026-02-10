@@ -13,7 +13,6 @@
     },
     "balance": {
       "totalValue": "Загальна вартість",
-      "loading": "Завантаження підсумку портфеля...",
       "loadError": "Не вдалося завантажити підсумок портфеля.",
       "metrics": {
         "costBasis": "Базова вартість",
@@ -29,7 +28,6 @@
       "addButton": "Додати символ"
     },
     "holdingsTable": {
-      "loading": "Завантаження...",
       "loadError": "Не вдалося завантажити утримання",
       "empty": "Утримань ще немає",
       "headers": {
@@ -59,15 +57,13 @@
     "transactionsList": {
       "title": "Транзакції",
       "addButton": "Додати транзакцію",
-      "deleteButton": "Видалити",
       "headers": {
         "date": "Дата",
         "type": "Тип",
         "quantity": "Кількість",
         "price": "Ціна",
         "fees": "Комісії",
-        "amount": "Сума",
-        "actions": "Дії"
+        "amount": "Сума"
       },
       "categories": {
         "buy": "Купівля",

@@ -4,10 +4,13 @@
     "accounts": "Рахунки",
     "investments": "Інвестиції",
     "transactions": "Транзакції",
-    "budgets": "Бюджети",
     "analytics": "Аналітика",
-    "planned": "Заплановане",
-    "logout": "Вийти"
+    "logout": "Вийти",
+    "planned": {
+      "planned": "Заплановане",
+      "subscriptions": "Підписки",
+      "budgets": "Бюджети"
+    }
   },
   "sidebar": {
     "accountsView": {
@@ -72,8 +75,7 @@
       "description": "Захистіть свій обліковий запис, додавши вхід через Google або ключ доступу. Це гарантує, що ви завжди зможете отримати доступ до свого облікового запису.",
       "actionButton": "Перейти до налаштувань безпеки"
     },
-    "legacyAccountMigration": {
-    }
+    "legacyAccountMigration": {}
   },
   "relinkWarning": {
     "buttonLabel": "{count} рахунок потребує уваги | {count} рахунки потребують уваги | {count} рахунків потребують уваги",
@@ -185,6 +187,10 @@
           "create-budget": {
             "title": "Встановіть бюджет",
             "description": "Створіть обмеження видатків для категорій"
+          },
+          "create-subscription": {
+            "title": "Створіть підписку",
+            "description": "Встановіть повторювані платежі для відстеження ваших підписок"
           },
           "create-account-group": {
             "title": "Створіть групу рахунків",

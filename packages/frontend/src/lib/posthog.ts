@@ -1,4 +1,5 @@
 import posthog from 'posthog-js';
+import type { Router } from 'vue-router';
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
 const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST;
@@ -38,7 +39,15 @@ type AnalyticsEvent =
   // AI features (ai_categorization_completed tracked on backend)
   | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' } }
   | { event: 'ai_settings_visited' }
-  | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } };
+  | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } }
+  // Feedback
+  | {
+      event: 'user_feedback_submitted';
+      properties: {
+        feedback_type: 'bug' | 'feature_request' | 'other';
+        message: string;
+      };
+    };
 
 // ============================================
 // Core Functions
@@ -144,4 +153,22 @@ export function resetUser(): void {
   }
 
   posthog.reset();
+}
+
+/**
+ * Track $pageview events on SPA route changes.
+ * Since capture_pageview is disabled (to avoid duplicate on initial load),
+ * we manually capture pageviews via router.afterEach.
+ */
+export function trackPageviews({ router }: { router: Router }): void {
+  if (!isPostHogEnabled()) {
+    return;
+  }
+
+  router.afterEach((to) => {
+    posthog.capture('$pageview', {
+      $current_url: window.location.href,
+      $pathname: to.path,
+    });
+  });
 }

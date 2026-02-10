@@ -5,7 +5,7 @@ import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-clie
 import { identifyUser, resetUser } from '@/lib/posthog';
 import { clearSentryUser, setSentryUser } from '@/lib/sentry';
 import { useCategoriesStore, useCurrenciesStore, useUserStore } from '@/stores';
-import { OAUTH_PROVIDER, UserModel } from '@bt/shared/types';
+import { OAUTH_PROVIDER, USER_ROLES, UserModel } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
@@ -16,11 +16,17 @@ import { resetAllDefinedStores } from './setup';
  * Identify user for analytics and error tracking
  */
 function identifyUserForTracking(user: UserModel) {
+  const isDemo = user.role === USER_ROLES.demo;
+
   // PostHog analytics
   identifyUser({
     userId: user.id,
     email: user.email,
     username: user.username,
+    properties: {
+      is_demo: isDemo,
+      user_role: user.role,
+    },
   });
 
   // Sentry error tracking

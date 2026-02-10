@@ -110,6 +110,7 @@
       "selectCategoryLabel": "Select category",
       "searchCategoryLabel": "Search category",
       "clearSearchLabel": "Clear search",
+      "clearSelectionLabel": "Clear selection",
       "searchPlaceholder": "Search..."
     },
     "select": {

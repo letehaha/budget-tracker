@@ -10,19 +10,25 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import Tabs from '@/components/lib/ui/tabs/Tabs.vue';
+import TabsList from '@/components/lib/ui/tabs/TabsList.vue';
+import TabsTrigger from '@/components/lib/ui/tabs/TabsTrigger.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable/formatters';
 import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
+import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { CirclePauseIcon, PlusIcon, RepeatIcon, Trash2Icon } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
+import SubscriptionServiceLogo from './components/subscription-service-logo.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
+import SubscriptionsSummary from './components/subscriptions-summary.vue';
 import { formatFrequency } from './utils';
 
 const { t } = useI18n();
@@ -34,6 +40,8 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
 const isCreateDialogOpen = ref(false);
 const createFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(null);
 const deleteTarget = ref<SubscriptionListItem | null>(null);
+const activeFilter = ref<string>('all');
+
 const { data: subscriptions, isPlaceholderData } = useQuery({
   queryFn: () => loadSubscriptions(),
   queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList,
@@ -41,10 +49,17 @@ const { data: subscriptions, isPlaceholderData } = useQuery({
   placeholderData: [],
 });
 
+const filteredSubscriptions = computed(() => {
+  if (!subscriptions.value) return [];
+  if (activeFilter.value === 'all') return subscriptions.value;
+  return subscriptions.value.filter((s) => s.type === activeFilter.value);
+});
+
 const { mutate: createSub } = useMutation({
   mutationFn: createSubscription,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
     isCreateDialogOpen.value = false;
     addSuccessNotification(t('planned.subscriptions.createSuccess'));
   },
@@ -59,6 +74,7 @@ const handleToggleActive = async ({ subscription }: { subscription: Subscription
   try {
     await toggleSubscriptionActive({ id: subscription.id, isActive: !subscription.isActive });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
   } catch {
     addErrorNotification(t('planned.subscriptions.toggleError'));
   }
@@ -69,6 +85,7 @@ const confirmDelete = async () => {
   try {
     await deleteSubscription({ id: deleteTarget.value.id });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
     addSuccessNotification(t('planned.subscriptions.deleteSuccess'));
   } catch {
     addErrorNotification(t('planned.subscriptions.deleteError'));
@@ -93,16 +110,31 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
 <template>
   <div>
     <!-- Page Header -->
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div class="mb-4 flex items-center justify-between gap-2 sm:mb-6 sm:gap-4">
       <div>
-        <h1 class="text-2xl font-semibold tracking-tight">{{ $t('planned.subscriptions.title') }}</h1>
-        <p class="text-muted-foreground mt-1 text-sm">{{ $t('planned.subscriptions.description') }}</p>
+        <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">{{ $t('planned.subscriptions.title') }}</h1>
+        <p class="text-muted-foreground mt-1 hidden text-sm sm:block">{{ $t('planned.subscriptions.description') }}</p>
       </div>
-      <Button @click="isCreateDialogOpen = true" class="ml-auto">
-        <PlusIcon class="mr-2 size-4" />
+      <Button size="sm" @click="isCreateDialogOpen = true" class="shrink-0">
+        <PlusIcon class="mr-1 size-4 sm:mr-2" />
         {{ $t('planned.subscriptions.addSubscription') }}
       </Button>
     </div>
+
+    <!-- Filter Tabs -->
+    <Tabs v-model="activeFilter" default-value="all" class="mb-3 sm:mb-4">
+      <TabsList>
+        <TabsTrigger value="all">{{ $t('planned.subscriptions.summary.filterAll') }}</TabsTrigger>
+        <TabsTrigger :value="SUBSCRIPTION_TYPES.subscription">{{
+          $t('planned.subscriptions.summary.filterSubscriptions')
+        }}</TabsTrigger>
+        <TabsTrigger :value="SUBSCRIPTION_TYPES.bill">{{
+          $t('planned.subscriptions.summary.filterBills')
+        }}</TabsTrigger>
+      </TabsList>
+    </Tabs>
+
+    <SubscriptionsSummary :active-filter="activeFilter" class="mb-3 sm:mb-6" />
 
     <!-- Loading Skeleton -->
     <div v-if="isPlaceholderData" class="divide-border border-border divide-y rounded-lg border">
@@ -115,9 +147,12 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
     </div>
 
     <!-- Subscription List -->
-    <div v-else-if="subscriptions?.length" class="divide-border border-border @container divide-y rounded-lg border">
+    <div
+      v-else-if="filteredSubscriptions.length"
+      class="divide-border border-border @container divide-y rounded-lg border"
+    >
       <div
-        v-for="subscription in subscriptions"
+        v-for="subscription in filteredSubscriptions"
         :key="subscription.id"
         :class="
           cn(
@@ -128,10 +163,13 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
         @click="navigateToDetail({ subscription })"
       >
         <!-- Name -->
-        <h3 class="min-w-0 truncate font-medium">{{ subscription.name }}</h3>
+        <div class="flex min-w-0 items-center gap-2">
+          <SubscriptionServiceLogo :name="subscription.name" size="sm" />
+          <h3 class="min-w-0 truncate font-medium">{{ subscription.name }}</h3>
+        </div>
 
         <!-- Type badge -->
-        <div class="flex shrink-0 items-center gap-1.5">
+        <div class="flex shrink-0 items-center justify-end gap-1.5">
           <SubscriptionTypeBadge :type="subscription.type" />
           <span
             v-if="!subscription.isActive"

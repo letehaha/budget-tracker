@@ -14,7 +14,7 @@ import { useFormValidation } from '@/composable/form-validator';
 import { useCurrencyName } from '@/composable/formatters';
 import { helpers, required } from '@/js/helpers/validators';
 import { cn } from '@/lib/utils';
-import { useAccountsStore, useCategoriesStore } from '@/stores';
+import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
 import {
   type CurrencyModel,
   SUBSCRIPTION_FREQUENCIES,
@@ -28,6 +28,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import MatchingRulesBuilder from './matching-rules-builder.vue';
+import SubscriptionServiceLogo from './subscription-service-logo.vue';
 
 const props = defineProps<{
   initialValues?: SubscriptionModel;
@@ -42,7 +43,9 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
+const currenciesStore = useCurrenciesStore();
 const { formattedCategories } = storeToRefs(categoriesStore);
+const { baseCurrency } = storeToRefs(currenciesStore);
 const { currencies } = usePrioritizedCurrencies();
 const { formatCurrencyLabel } = useCurrencyName();
 
@@ -100,7 +103,7 @@ const getInitialState = (): FormState => {
     name: '',
     type: SUBSCRIPTION_TYPES.subscription,
     expectedAmount: null,
-    expectedCurrencyCode: '',
+    expectedCurrencyCode: baseCurrency.value?.currencyCode ?? '',
     frequency: SUBSCRIPTION_FREQUENCIES.monthly,
     startDate: new Date(),
     endDate: null,
@@ -254,13 +257,18 @@ const handleSubmit = () => {
     </div>
 
     <!-- Name -->
-    <InputField
-      v-model="form.name"
-      :label="$t('planned.subscriptions.form.nameLabel')"
-      :placeholder="$t('planned.subscriptions.form.namePlaceholder')"
-      :error-message="getFieldErrorMessage('form.name')"
-      @blur="touchField('form.name')"
-    />
+    <div class="flex items-start gap-3">
+      <SubscriptionServiceLogo :name="form.name" class="mt-6 size-8" />
+
+      <InputField
+        v-model="form.name"
+        :label="$t('planned.subscriptions.form.nameLabel')"
+        :placeholder="$t('planned.subscriptions.form.namePlaceholder')"
+        :error-message="getFieldErrorMessage('form.name')"
+        class="flex-1"
+        @blur="touchField('form.name')"
+      />
+    </div>
 
     <!-- Type -->
     <div>
