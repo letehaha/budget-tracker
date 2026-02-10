@@ -237,22 +237,13 @@ class ApiCaller {
       if (response.code === API_ERROR_CODES.unauthorized) {
         useAuthStore().logout();
 
-        // Public pages where we don't show notification or redirect
-        // Use window.location.pathname instead of router.currentRoute because during
-        // navigation guards, currentRoute may not yet reflect the actual destination
-        const publicPaths = ['/', '/privacy-policy', '/terms-of-use'];
-        const currentPath = window.location.pathname;
-        const isOnPublicPage = publicPaths.includes(currentPath);
+        router.push('/sign-in');
 
-        if (!isOnPublicPage) {
-          router.push('/sign-in');
-
-          addNotification({
-            id: 'authorization-error',
-            text: t('errors.api.sessionExpired', 'Your session has expired'),
-            type: NotificationType.error,
-          });
-        }
+        addNotification({
+          id: 'authorization-error',
+          text: t('errors.api.sessionExpired', 'Your session has expired'),
+          type: NotificationType.error,
+        });
 
         throw new errors.AuthError(response.statusText, response);
       }

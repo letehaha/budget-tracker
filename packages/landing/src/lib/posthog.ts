@@ -1,7 +1,7 @@
 import posthog from 'posthog-js';
 
-const POSTHOG_KEY = import.meta.env.PUBLIC_POSTHOG_KEY;
-const POSTHOG_HOST = import.meta.env.PUBLIC_POSTHOG_HOST;
+const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
+const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST;
 
 type LandingAnalyticsEvent =
   | {

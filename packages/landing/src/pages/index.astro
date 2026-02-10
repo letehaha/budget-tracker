@@ -16,7 +16,7 @@ import GitHubActivity from '@/components/github-activity.vue';
 <BaseLayout
   title="MoneyMatter - Take Control of Your Financial Future"
   description="Track expenses, connect your banks, set budgets, and own your data. MoneyMatter is the open-source personal finance app that puts you in charge."
-  canonicalUrl="https://moneymatter.app"
+  canonicalUrl={Astro.site?.origin || 'https://moneymatter.app'}
 >
   <div class="bg-background text-foreground landing-page min-h-screen">
     <BackgroundOrbs />

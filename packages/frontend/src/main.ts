@@ -54,10 +54,4 @@ initI18n()
     app.use(VueQueryPlugin);
 
     app.mount('#app');
-
-    // Dispatch event for prerender plugin to know when app is rendered
-    // Use nextTick to ensure Vue has finished initial render
-    setTimeout(() => {
-      document.dispatchEvent(new Event('app-rendered'));
-    }, 100);
   });

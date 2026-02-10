@@ -107,7 +107,7 @@ const triggerPriceSync = async () => {
 // Check admin access on mount
 onMounted(() => {
   if (!userStore.user) {
-    router.push('/');
+    router.push('/sign-in');
   }
 });
 </script>

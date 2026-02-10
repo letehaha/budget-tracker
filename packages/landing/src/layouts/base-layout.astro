@@ -15,7 +15,7 @@ const {
   noindex = false,
 } = Astro.props;
 
-const siteUrl = 'https://moneymatter.app';
+const siteUrl = Astro.site?.origin || 'https://moneymatter.app';
 const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
 ---
 
