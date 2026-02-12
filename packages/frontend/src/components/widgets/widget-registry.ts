@@ -6,7 +6,7 @@ export interface WidgetSize {
   label: string;
 }
 
-export interface WidgetConfigOption {
+interface WidgetConfigOption {
   key: string;
   label: string;
   choices: { value: string; label: string }[];

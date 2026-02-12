@@ -1,7 +1,7 @@
 import { api } from '@/api/_api';
 import { SUBSCRIPTION_CANDIDATE_STATUS, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
 
-export interface SubscriptionCandidatePossibleMatch {
+interface SubscriptionCandidatePossibleMatch {
   id: string;
   name: string;
 }
@@ -24,7 +24,7 @@ export interface SubscriptionCandidate {
   isOutdated: boolean;
 }
 
-export interface DetectCandidatesResponse {
+interface DetectCandidatesResponse {
   candidates: SubscriptionCandidate[];
   lastRunAt: string | null;
   isFromCache: boolean;
@@ -32,17 +32,6 @@ export interface DetectCandidatesResponse {
 
 export const detectSubscriptionCandidates = async (): Promise<DetectCandidatesResponse> => {
   return api.get('/subscriptions/detect-candidates');
-};
-
-export const loadSubscriptionCandidates = async ({
-  status,
-}: {
-  status?: SUBSCRIPTION_CANDIDATE_STATUS;
-} = {}): Promise<SubscriptionCandidate[]> => {
-  const query: Record<string, string> = {};
-  if (status) query.status = status;
-
-  return api.get('/subscriptions/candidates', query);
 };
 
 export const acceptSubscriptionCandidate = async ({
