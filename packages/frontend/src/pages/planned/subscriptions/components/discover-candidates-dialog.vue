@@ -82,6 +82,8 @@ const { mutate: doLink, isPending: isLinking } = useMutation({
   onSuccess() {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionCandidates });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
     addSuccessNotification(t('planned.subscriptions.candidates.linkSuccess'));
     linkingId.value = null;
   },
@@ -146,6 +148,7 @@ const { mutate: createSub } = useMutation({
   onSuccess: (createdSubscription) => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
     isCreateDialogOpen.value = false;
     prefillValues.value = null;
     addSuccessNotification(t('planned.subscriptions.createSuccess'));

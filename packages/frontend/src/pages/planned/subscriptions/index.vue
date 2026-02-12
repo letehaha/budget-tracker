@@ -62,6 +62,7 @@ const { mutate: createSub } = useMutation({
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
     isCreateDialogOpen.value = false;
     addSuccessNotification(t('planned.subscriptions.createSuccess'));
   },
@@ -77,6 +78,7 @@ const handleToggleActive = async ({ subscription }: { subscription: Subscription
     await toggleSubscriptionActive({ id: subscription.id, isActive: !subscription.isActive });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
   } catch {
     addErrorNotification(t('planned.subscriptions.toggleError'));
   }
@@ -88,6 +90,7 @@ const confirmDelete = async () => {
     await deleteSubscription({ id: deleteTarget.value.id });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
     addSuccessNotification(t('planned.subscriptions.deleteSuccess'));
   } catch {
     addErrorNotification(t('planned.subscriptions.deleteError'));
