@@ -26,8 +26,14 @@
       },
       "subscriptions": {
         "title": "Підписки та рахунки",
+        "titleSubscriptions": "Підписки",
+        "titleBills": "Рахунки",
         "activeSummary": "{count} активних",
-        "perYear": "/рік"
+        "perYear": "/рік",
+        "configType": "Показати",
+        "configTypeAll": "Все",
+        "configTypeSubscriptions": "Підписки",
+        "configTypeBills": "Рахунки"
       },
       "balanceTrend": {
         "title": "Тренд балансу",

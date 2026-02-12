@@ -8,6 +8,7 @@ import {
   NotificationStatus,
   NotificationType,
   PAYMENT_TYPES,
+  SUBSCRIPTION_CANDIDATE_STATUS,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_LINK_STATUS,
   SUBSCRIPTION_MATCH_SOURCE,
@@ -374,4 +375,23 @@ export interface SubscriptionTransactionModel {
   matchSource: SUBSCRIPTION_MATCH_SOURCE;
   matchedAt: Date;
   status: SUBSCRIPTION_LINK_STATUS;
+}
+
+export interface SubscriptionCandidateModel {
+  id: string;
+  userId: number;
+  suggestedName: string;
+  detectedFrequency: SUBSCRIPTION_FREQUENCIES;
+  /** Average amount in cents */
+  averageAmount: number;
+  currencyCode: string;
+  accountId: number | null;
+  sampleTransactionIds: number[];
+  occurrenceCount: number;
+  confidenceScore: number;
+  medianIntervalDays: number;
+  status: SUBSCRIPTION_CANDIDATE_STATUS;
+  subscriptionId: string | null;
+  detectedAt: Date;
+  resolvedAt: Date | null;
 }

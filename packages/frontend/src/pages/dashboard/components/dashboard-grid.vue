@@ -23,6 +23,7 @@ const {
   removeWidget,
   addWidget,
   resizeWidget,
+  updateWidgetConfig,
 } = useDashboardLayout();
 
 defineExpose({
@@ -61,6 +62,7 @@ const GRID_CLASSES =
         :current-period="currentPeriod"
         @remove="(widgetId) => removeWidget({ widgetId })"
         @resize="(widgetId, colSpan, rowSpan) => resizeWidget({ widgetId, colSpan, rowSpan })"
+        @config-change="(widgetId, key, value) => updateWidgetConfig({ widgetId, key, value })"
       />
     </VueDraggable>
 

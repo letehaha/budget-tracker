@@ -294,11 +294,11 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
-  // TODO: how to deal better
-  // {
-  //   path: '/:pathMatch(.*)',
-  //   redirect: '/',
-  // },
+  // In production, "/" is served by Astro (via nginx). In dev, redirect to the app.
+  {
+    path: '/',
+    redirect: { name: ROUTES_NAMES.dashboard },
+  },
 ];
 
 export const router = createRouter({

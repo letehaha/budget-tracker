@@ -4,6 +4,7 @@ export interface DashboardWidgetConfig {
   widgetId: string;
   colSpan: number;
   rowSpan?: number;
+  config?: Record<string, unknown>;
 }
 
 export interface UserSettingsSchema {

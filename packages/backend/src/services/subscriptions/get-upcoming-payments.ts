@@ -1,4 +1,4 @@
-import { SUBSCRIPTION_LINK_STATUS, asCents, toDecimal } from '@bt/shared/types';
+import { SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_TYPES, asCents, toDecimal } from '@bt/shared/types';
 import Categories from '@models/Categories.model';
 import Subscriptions from '@models/Subscriptions.model';
 import Transactions from '@models/Transactions.model';
@@ -9,15 +9,19 @@ import { computeNextExpectedDate } from './get-subscriptions';
 interface GetUpcomingPaymentsParams {
   userId: number;
   limit?: number;
+  type?: SUBSCRIPTION_TYPES;
 }
 
-export const getUpcomingPayments = async ({ userId, limit = 5 }: GetUpcomingPaymentsParams) => {
+export const getUpcomingPayments = async ({ userId, limit = 5, type }: GetUpcomingPaymentsParams) => {
+  const where: Record<string, unknown> = {
+    userId,
+    isActive: true,
+    expectedAmount: { [Op.ne]: null },
+  };
+  if (type) where.type = type;
+
   const subscriptions = await Subscriptions.findAll({
-    where: {
-      userId,
-      isActive: true,
-      expectedAmount: { [Op.ne]: null },
-    },
+    where,
     include: [
       { model: Categories, attributes: ['id', 'name', 'color'] },
       {

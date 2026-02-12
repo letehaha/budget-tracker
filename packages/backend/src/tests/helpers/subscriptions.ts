@@ -1,7 +1,18 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionModel, TransactionModel } from '@bt/shared/types';
+import {
+  SUBSCRIPTION_CANDIDATE_STATUS,
+  SUBSCRIPTION_FREQUENCIES,
+  SUBSCRIPTION_TYPES,
+  SubscriptionModel,
+  TransactionModel,
+} from '@bt/shared/types';
+import type { acceptCandidate as apiAcceptCandidate } from '@services/subscriptions/accept-candidate';
 import type { createSubscription as apiCreateSubscription } from '@services/subscriptions/create-subscription';
+import type { detectCandidates as apiDetectCandidates } from '@services/subscriptions/detect-candidates';
+import type { dismissCandidate as apiDismissCandidate } from '@services/subscriptions/dismiss-candidate';
+import type { getCandidates as apiGetCandidates } from '@services/subscriptions/get-candidates';
 import type { getSubscriptions as apiGetSubscriptions } from '@services/subscriptions/get-subscriptions';
 import type { getSubscriptionsSummary as apiGetSubscriptionsSummary } from '@services/subscriptions/get-subscriptions-summary';
+import type { linkCandidateToSubscription as apiLinkCandidate } from '@services/subscriptions/link-candidate';
 import type { linkTransactionsToSubscription as apiLinkTransactions } from '@services/subscriptions/link-transactions';
 import type { suggestHistoricalMatches as apiSuggestMatches } from '@services/subscriptions/suggest-historical-matches';
 import type { unlinkTransactionsFromSubscription as apiUnlinkTransactions } from '@services/subscriptions/unlink-transactions';
@@ -196,12 +207,15 @@ export async function getSubscriptionsSummary<R extends boolean | undefined = un
 export async function getUpcomingPayments<R extends boolean | undefined = undefined>({
   raw,
   limit,
+  type,
 }: {
   raw?: R;
   limit?: number;
+  type?: string;
 } = {}) {
   const query: Record<string, string> = {};
   if (limit !== undefined) query.limit = String(limit);
+  if (type) query.type = type;
 
   return makeRequest<
     Awaited<ReturnType<typeof import('@services/subscriptions/get-upcoming-payments').getUpcomingPayments>>,
@@ -210,6 +224,84 @@ export async function getUpcomingPayments<R extends boolean | undefined = undefi
     method: 'get',
     url: '/subscriptions/upcoming',
     payload: Object.keys(query).length ? query : undefined,
+    raw,
+  });
+}
+
+// Subscription candidate helpers
+
+export async function detectSubscriptionCandidates<R extends boolean | undefined = undefined>({
+  raw,
+}: { raw?: R } = {}) {
+  return makeRequest<Awaited<ReturnType<typeof apiDetectCandidates>>, R>({
+    method: 'get',
+    url: '/subscriptions/detect-candidates',
+    raw,
+  });
+}
+
+export async function getSubscriptionCandidates<R extends boolean | undefined = undefined>({
+  raw,
+  status,
+}: {
+  raw?: R;
+  status?: SUBSCRIPTION_CANDIDATE_STATUS;
+} = {}) {
+  const query: Record<string, string> = {};
+  if (status) query.status = status;
+
+  return makeRequest<Awaited<ReturnType<typeof apiGetCandidates>>, R>({
+    method: 'get',
+    url: '/subscriptions/candidates',
+    payload: Object.keys(query).length ? query : undefined,
+    raw,
+  });
+}
+
+export async function acceptSubscriptionCandidate<R extends boolean | undefined = undefined>({
+  id,
+  subscriptionId,
+  raw,
+}: {
+  id: string;
+  subscriptionId?: string;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiAcceptCandidate>>, R>({
+    method: 'post',
+    url: `/subscriptions/candidates/${id}/accept`,
+    payload: subscriptionId ? { subscriptionId } : undefined,
+    raw,
+  });
+}
+
+export async function dismissSubscriptionCandidate<R extends boolean | undefined = undefined>({
+  id,
+  raw,
+}: {
+  id: string;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiDismissCandidate>>, R>({
+    method: 'post',
+    url: `/subscriptions/candidates/${id}/dismiss`,
+    raw,
+  });
+}
+
+export async function linkSubscriptionCandidate<R extends boolean | undefined = undefined>({
+  id,
+  subscriptionId,
+  raw,
+}: {
+  id: string;
+  subscriptionId: string;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiLinkCandidate>>, R>({
+    method: 'post',
+    url: `/subscriptions/candidates/${id}/link`,
+    payload: { subscriptionId },
     raw,
   });
 }

@@ -93,13 +93,14 @@ Other instructions:
    ast-grep --pattern '<button>$TEXT</button>' src/**/*.vue
    ```
 
-6. **Money Convention: Cents in DB, Decimals in API**
+6. **Money Convention: Cents in DB, Decimals in API, Decimals in Frontend**
    - The database stores all monetary amounts in **cents** (integers)
    - All API responses MUST return monetary amounts as **decimals** (not cents)
      For example:
      - When returning transaction data: use `serializeTransactions()` / `serializeTransaction()` from `@root/serializers/transactions.serializer`
      - When serializing manually (e.g. from BelongsToMany includes): convert each money field with `toDecimal(asCents(value))` from `@bt/shared/types`
      - Money fields on transactions: `amount`, `refAmount`, `commissionRate`, `refCommissionRate`, `cashbackAmount`
+   - **Frontend ALWAYS works with decimals.** The API returns decimals, forms accept decimals, and the frontend sends decimals back. **NEVER** manually convert between cents and decimals in frontend code. The only cents↔decimal conversion happens in the backend serializers/deserializers.
 7. **i18n Files - DO NOT EDIT UNLESS EXPLICITLY ASKED**
    - i18n locale files are BLOCKED from reading (hook saves tokens)
    - **NEVER** proactively add/update translations when implementing features

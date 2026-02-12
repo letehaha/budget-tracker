@@ -26,8 +26,14 @@
       },
       "subscriptions": {
         "title": "Subscriptions & Bills",
+        "titleSubscriptions": "Subscriptions",
+        "titleBills": "Bills",
         "activeSummary": "{count} active",
-        "perYear": "/yr"
+        "perYear": "/yr",
+        "configType": "Show",
+        "configTypeAll": "All",
+        "configTypeSubscriptions": "Subscriptions",
+        "configTypeBills": "Bills"
       },
       "balanceTrend": {
         "title": "Balance trend",

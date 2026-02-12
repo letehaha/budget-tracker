@@ -20,11 +20,12 @@ import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
 import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { CirclePauseIcon, PlusIcon, RepeatIcon, Trash2Icon } from 'lucide-vue-next';
+import { CirclePauseIcon, PlusIcon, RepeatIcon, SearchIcon, Trash2Icon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import DiscoverCandidatesDialog from './components/discover-candidates-dialog.vue';
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
 import SubscriptionServiceLogo from './components/subscription-service-logo.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
@@ -38,6 +39,7 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const isCreateDialogOpen = ref(false);
+const isDiscoverDialogOpen = ref(false);
 const createFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(null);
 const deleteTarget = ref<SubscriptionListItem | null>(null);
 const activeFilter = ref<string>('all');
@@ -115,10 +117,16 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
         <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">{{ $t('planned.subscriptions.title') }}</h1>
         <p class="text-muted-foreground mt-1 hidden text-sm sm:block">{{ $t('planned.subscriptions.description') }}</p>
       </div>
-      <Button size="sm" @click="isCreateDialogOpen = true" class="shrink-0">
-        <PlusIcon class="mr-1 size-4 sm:mr-2" />
-        {{ $t('planned.subscriptions.addSubscription') }}
-      </Button>
+      <div class="flex shrink-0 gap-2">
+        <Button variant="outline" size="sm" @click="isDiscoverDialogOpen = true">
+          <SearchIcon class="mr-1 size-4 sm:mr-2" />
+          {{ $t('planned.subscriptions.candidates.discover') }}
+        </Button>
+        <Button size="sm" @click="isCreateDialogOpen = true">
+          <PlusIcon class="mr-1 size-4 sm:mr-2" />
+          {{ $t('planned.subscriptions.addSubscription') }}
+        </Button>
+      </div>
     </div>
 
     <!-- Filter Tabs -->
@@ -281,5 +289,8 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
       <template #title>{{ $t('planned.subscriptions.deleteConfirmTitle') }}</template>
       <template #description>{{ $t('planned.subscriptions.deleteConfirmDescription') }}</template>
     </ResponsiveAlertDialog>
+
+    <!-- Discover Candidates Dialog -->
+    <DiscoverCandidatesDialog v-model:open="isDiscoverDialogOpen" />
   </div>
 </template>

@@ -128,6 +128,30 @@
         "acrossSubscriptions": "across {count} active subscription | across {count} active subscriptions",
         "acrossBills": "across {count} active bill | across {count} active bills",
         "acrossAll": "across {count} active subscriptions & bills"
+      },
+      "candidates": {
+        "discover": "Discover",
+        "title": "Discover Subscriptions",
+        "description": "We analyze your transaction history to find recurring payments that might be subscriptions.",
+        "lastScanned": "Last scanned {time}",
+        "emptyTitle": "No new subscriptions found",
+        "emptyDescription": "We couldn't find any new recurring payment patterns in your transaction history.",
+        "accept": "Accept",
+        "dismiss": "Dismiss",
+        "occurrences": "{count} occurrences",
+        "acceptError": "Failed to accept candidate",
+        "dismissed": "Candidate dismissed",
+        "dismissError": "Failed to dismiss candidate",
+        "close": "Close",
+        "possibleMatch": "Similar to existing: {name}",
+        "linkToExisting": "Link to existing",
+        "linkSuccess": "Candidate linked to existing subscription",
+        "linkError": "Failed to link candidate",
+        "outdatedWarning": "These subscriptions haven't been active for 2+ billing cycles and may no longer be recurring.",
+        "viewTransactions": "View transactions",
+        "sampleTransactionsTitle": "Sample transactions",
+        "sampleTransactionsDescription": "These are sample transactions that triggered this subscription detection.",
+        "noTransactionsFound": "No transactions found"
       }
     }
   }

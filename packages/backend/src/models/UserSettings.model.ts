@@ -77,6 +77,7 @@ export const ZodDashboardWidgetSchema = z.object({
   widgetId: z.string(),
   colSpan: z.number().int().min(1).max(3).default(1),
   rowSpan: z.number().int().min(1).max(2).default(1),
+  config: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const ZodDashboardSettingsSchema = z.object({

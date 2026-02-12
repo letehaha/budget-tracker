@@ -7,3 +7,4 @@ export * from './get-by-transfer-id';
 export * from './get-transaction-by-some-id';
 export * from './transactions-linking';
 export * from './bulk-update';
+export * from './get-by-ids';
