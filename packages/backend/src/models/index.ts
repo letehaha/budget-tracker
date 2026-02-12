@@ -13,6 +13,7 @@ import ExchangeRatesModel from './ExchangeRates.model';
 import MerchantCategoryCodesModel from './MerchantCategoryCodes.model';
 import NotificationsModel from './Notifications.model';
 import RefundTransactionsModel from './RefundTransactions.model';
+import SubscriptionCandidatesModel from './SubscriptionCandidates.model';
 import SubscriptionTransactionsModel from './SubscriptionTransactions.model';
 import SubscriptionsModel from './Subscriptions.model';
 import TagRemindersModel from './TagReminders.model';
@@ -90,6 +91,7 @@ const models = [
   PortfolioTransfersModel,
   SubscriptionsModel,
   SubscriptionTransactionsModel,
+  SubscriptionCandidatesModel,
 ];
 
 const sequelize = new Sequelize({

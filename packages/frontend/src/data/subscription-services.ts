@@ -129,6 +129,7 @@ export const SUBSCRIPTION_SERVICES: SubscriptionServiceEntry[] = [
   { id: 'datadog', name: 'Datadog', aliases: [], domain: 'datadoghq.com' },
   { id: 'sentry', name: 'Sentry', aliases: [], domain: 'sentry.io' },
   { id: 'postman', name: 'Postman', aliases: [], domain: 'postman.com' },
+  { id: 'strapi', name: 'Strapi', aliases: ['strapi cloud'], domain: 'strapi.io' },
 
   // AI & ML Tools
   { id: 'chatgpt', name: 'ChatGPT', aliases: ['openai', 'chatgpt plus', 'gpt plus'], domain: 'openai.com' },
@@ -263,6 +264,7 @@ export const SUBSCRIPTION_SERVICES: SubscriptionServiceEntry[] = [
   { id: 'grubhub', name: 'Grubhub+', aliases: ['grubhub', 'grubhub plus'], domain: 'grubhub.com' },
   { id: 'instacart', name: 'Instacart+', aliases: ['instacart', 'instacart plus'], domain: 'instacart.com' },
   { id: 'gopuff', name: 'Gopuff Fam', aliases: ['gopuff'], domain: 'gopuff.com' },
+  { id: 'glovo', name: 'Glovo', aliases: ['glovo prime', 'glovoapp'], domain: 'glovoapp.com' },
   { id: 'hellofresh', name: 'HelloFresh', aliases: [], domain: 'hellofresh.com' },
   { id: 'blue-apron', name: 'Blue Apron', aliases: [], domain: 'blueapron.com' },
   { id: 'home-chef', name: 'Home Chef', aliases: [], domain: 'homechef.com' },
@@ -286,6 +288,9 @@ export const SUBSCRIPTION_SERVICES: SubscriptionServiceEntry[] = [
   { id: 'patreon', name: 'Patreon', aliases: [], domain: 'patreon.com' },
   { id: 'onlyfans', name: 'OnlyFans', aliases: [], domain: 'onlyfans.com' },
   { id: 'ko-fi', name: 'Ko-fi', aliases: ['kofi'], domain: 'ko-fi.com' },
+
+  // Telecom & Mobile
+  { id: 'orange', name: 'Orange', aliases: ['orange mobile', 'orange telecom', 'orange polska'], domain: 'orange.com' },
 
   // Transportation
   { id: 'uber-one', name: 'Uber One', aliases: ['uber'], domain: 'uber.com' },

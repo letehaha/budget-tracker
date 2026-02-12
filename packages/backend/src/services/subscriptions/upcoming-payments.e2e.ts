@@ -1,4 +1,4 @@
-import { SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -156,6 +156,86 @@ describe('GET /subscriptions/upcoming', () => {
   it('returns 422 for invalid limit', async () => {
     const result = await helpers.getUpcomingPayments({ limit: 0 });
     expect(result.statusCode).toBe(422);
+  });
+
+  it('filters by type=subscription', async () => {
+    await helpers.createSubscription({
+      name: 'My Subscription',
+      type: SUBSCRIPTION_TYPES.subscription,
+      expectedAmount: 1000,
+      expectedCurrencyCode: 'USD',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: '2025-01-01',
+      raw: true,
+    });
+    await helpers.createSubscription({
+      name: 'My Bill',
+      type: SUBSCRIPTION_TYPES.bill,
+      expectedAmount: 2000,
+      expectedCurrencyCode: 'USD',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: '2025-01-01',
+      raw: true,
+    });
+
+    const result = await helpers.getUpcomingPayments({ type: SUBSCRIPTION_TYPES.subscription, raw: true });
+
+    expect(result.length).toBe(1);
+    expect(result[0]!.subscriptionName).toBe('My Subscription');
+  });
+
+  it('filters by type=bill', async () => {
+    await helpers.createSubscription({
+      name: 'My Subscription',
+      type: SUBSCRIPTION_TYPES.subscription,
+      expectedAmount: 1000,
+      expectedCurrencyCode: 'USD',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: '2025-01-01',
+      raw: true,
+    });
+    await helpers.createSubscription({
+      name: 'My Bill',
+      type: SUBSCRIPTION_TYPES.bill,
+      expectedAmount: 2000,
+      expectedCurrencyCode: 'USD',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: '2025-01-01',
+      raw: true,
+    });
+
+    const result = await helpers.getUpcomingPayments({ type: SUBSCRIPTION_TYPES.bill, raw: true });
+
+    expect(result.length).toBe(1);
+    expect(result[0]!.subscriptionName).toBe('My Bill');
+  });
+
+  it('returns all types when type is not specified', async () => {
+    await helpers.createSubscription({
+      name: 'My Subscription',
+      type: SUBSCRIPTION_TYPES.subscription,
+      expectedAmount: 1000,
+      expectedCurrencyCode: 'USD',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: '2025-01-01',
+      raw: true,
+    });
+    await helpers.createSubscription({
+      name: 'My Bill',
+      type: SUBSCRIPTION_TYPES.bill,
+      expectedAmount: 2000,
+      expectedCurrencyCode: 'USD',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: '2025-01-01',
+      raw: true,
+    });
+
+    const result = await helpers.getUpcomingPayments({ raw: true });
+
+    expect(result.length).toBe(2);
+    const names = result.map((r) => r.subscriptionName);
+    expect(names).toContain('My Subscription');
+    expect(names).toContain('My Bill');
   });
 
   it('includes category info when subscription has a category', async () => {

@@ -7,6 +7,7 @@ import bulkUpdate from '@controllers/transactions.controller/bulk-update';
 import createTransaction from '@controllers/transactions.controller/create-transaction';
 import deleteTransaction from '@controllers/transactions.controller/delete-transaction';
 import getTransactions from '@controllers/transactions.controller/get-transaction';
+import getTransactionsByIds from '@controllers/transactions.controller/get-transactions-by-ids';
 import createRefund from '@controllers/transactions.controller/refunds/create-refund';
 import deleteRefund from '@controllers/transactions.controller/refunds/delete-refund';
 import getRefund from '@controllers/transactions.controller/refunds/get-refund';
@@ -64,6 +65,7 @@ router.delete(
 );
 
 router.get('/', authenticateSession, validateEndpoint(getTransactions.schema), getTransactions.handler);
+router.get('/by-ids', authenticateSession, validateEndpoint(getTransactionsByIds.schema), getTransactionsByIds.handler);
 router.get('/:id', authenticateSession, validateEndpoint(getTransactionById.schema), getTransactionById.handler);
 router.get(
   '/:id/refunds',

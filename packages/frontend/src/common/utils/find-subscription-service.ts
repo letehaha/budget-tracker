@@ -10,12 +10,8 @@ const fuse = new Fuse(SUBSCRIPTION_SERVICES, {
 export function findServiceByName({ name }: { name: string }): SubscriptionServiceEntry | null {
   if (!name.trim()) return null;
 
-  console.log('name', name);
-
   const results = fuse.search(name);
   if (!results.length) return null;
-
-  console.log('results', results);
 
   const best = results[0]!;
   if (best.score !== undefined && best.score > 0.3) return null;

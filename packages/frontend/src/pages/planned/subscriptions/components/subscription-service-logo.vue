@@ -2,6 +2,8 @@
 import { findServiceByName, getServiceLogoUrl } from '@/common/utils/find-subscription-service';
 import { computed, ref, watch } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<{
   name: string;
   size?: 'sm' | 'md' | 'lg';

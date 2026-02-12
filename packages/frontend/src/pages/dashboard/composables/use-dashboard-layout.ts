@@ -63,6 +63,13 @@ export function useDashboardLayout() {
     }
   };
 
+  const updateWidgetConfig = ({ widgetId, key, value }: { widgetId: string; key: string; value: unknown }) => {
+    const widget = draftWidgets.value.find((w) => w.widgetId === widgetId);
+    if (widget) {
+      widget.config = { ...widget.config, [key]: value };
+    }
+  };
+
   return {
     isEditMode,
     activeWidgets,
@@ -75,5 +82,6 @@ export function useDashboardLayout() {
     removeWidget,
     addWidget,
     resizeWidget,
+    updateWidgetConfig,
   };
 }

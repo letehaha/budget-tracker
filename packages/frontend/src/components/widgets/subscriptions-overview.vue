@@ -28,17 +28,27 @@ const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-wid
 
 const isOnDashboard = computed(() => !!widgetConfigRef?.value);
 const displayLimit = computed(() => (isOnDashboard.value ? 4 : 5));
+const widgetType = computed(() => {
+  const cfg = widgetConfigRef?.value?.config;
+  return (cfg?.type as string) || undefined;
+});
+
+const TITLE_KEYS: Record<string, string> = {
+  subscription: 'dashboard.widgets.subscriptions.titleSubscriptions',
+  bill: 'dashboard.widgets.subscriptions.titleBills',
+};
+const widgetTitle = computed(() => t(TITLE_KEYS[widgetType.value ?? ''] ?? 'dashboard.widgets.subscriptions.title'));
 
 const { data: summary, isFetching: isSummaryFetching } = useQuery({
-  queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary,
-  queryFn: () => loadSubscriptionsSummary(),
+  queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.subscriptionsSummary, widgetType.value ?? 'all']),
+  queryFn: () => loadSubscriptionsSummary({ type: widgetType.value }),
   staleTime: Infinity,
   enabled: isAppInitialized,
 });
 
 const { data: upcoming, isFetching: isUpcomingFetching } = useQuery({
-  queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming,
-  queryFn: () => loadUpcomingPayments({ limit: 5 }),
+  queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming, widgetType.value ?? 'all']),
+  queryFn: () => loadUpcomingPayments({ limit: 5, type: widgetType.value }),
   staleTime: Infinity,
   placeholderData: [],
   enabled: isAppInitialized,
@@ -55,7 +65,7 @@ const formatNextDate = (dateStr: string | null) => {
 
 <template>
   <WidgetWrapper :is-fetching="isFetching">
-    <template #title> {{ $t('dashboard.widgets.subscriptions.title') }} </template>
+    <template #title> {{ widgetTitle }} </template>
     <template #action>
       <router-link
         :to="{ name: ROUTES_NAMES.plannedSubscriptions }"

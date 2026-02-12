@@ -19,6 +19,7 @@ import { auth } from './config/auth';
 import { demoCleanupCron } from './crons/demo-cleanup';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
+import { subscriptionCandidateDetectionCron } from './crons/subscription-candidate-detection';
 import { tagRemindersCron } from './crons/tag-reminders-check';
 import { SUPPORTED_LOCALES } from './i18n';
 import { addI18nextToRequest, detectLanguage } from './i18n/middleware';
@@ -274,6 +275,7 @@ function initializeBackgroundJobs() {
     if (process.env.NODE_ENV === 'production') {
       securitiesDailySyncCron.startCron();
       tagRemindersCron.startCron();
+      subscriptionCandidateDetectionCron.startCron();
     }
   }
 }
@@ -297,6 +299,7 @@ const processUnexpectedExit = async () => {
   demoCleanupCron.stopCron();
   securitiesDailySyncCron.stopCron();
   tagRemindersCron.stopCron();
+  subscriptionCandidateDetectionCron.stopCron();
   loadCurrencyRatesJob.stop();
   // Flush remaining PostHog events before exit
   await shutdownPostHog();

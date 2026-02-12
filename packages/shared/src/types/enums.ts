@@ -233,3 +233,12 @@ export enum SUBSCRIPTION_LINK_STATUS {
   active = 'active',
   unlinked = 'unlinked',
 }
+
+/**
+ * Status of a subscription candidate (auto-detected recurring pattern)
+ */
+export enum SUBSCRIPTION_CANDIDATE_STATUS {
+  pending = 'pending',
+  accepted = 'accepted',
+  dismissed = 'dismissed',
+}

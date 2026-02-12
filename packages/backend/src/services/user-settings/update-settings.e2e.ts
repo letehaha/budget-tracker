@@ -125,4 +125,47 @@ describe('Update user settings', () => {
 
     expect(updatedSettings).toStrictEqual(newSettings);
   });
+
+  it('saves and returns dashboard widgets with custom config field', async () => {
+    const newSettings: SettingsSchema = {
+      locale: 'en',
+      stats: { expenses: { excludedCategories: [] } },
+      dashboard: {
+        widgets: [
+          { widgetId: 'subscriptions-overview', colSpan: 1, rowSpan: 1, config: { type: 'subscription' } },
+          { widgetId: 'balance-trend', colSpan: 2, rowSpan: 1 },
+        ],
+      },
+    };
+
+    const updatedSettings = await helpers.updateUserSettings({
+      raw: true,
+      settings: newSettings,
+    });
+
+    expect(updatedSettings).toStrictEqual(newSettings);
+
+    // Verify it persists on re-fetch
+    const fetchedSettings = await helpers.getUserSettings({ raw: true });
+    expect(fetchedSettings.dashboard?.widgets[0]?.config).toStrictEqual({ type: 'subscription' });
+    expect(fetchedSettings.dashboard?.widgets[1]?.config).toBeUndefined();
+  });
+
+  it('saves dashboard widget without config field (backwards compatible)', async () => {
+    const newSettings: SettingsSchema = {
+      locale: 'en',
+      stats: { expenses: { excludedCategories: [] } },
+      dashboard: {
+        widgets: [{ widgetId: 'balance-trend', colSpan: 2, rowSpan: 1 }],
+      },
+    };
+
+    const updatedSettings = await helpers.updateUserSettings({
+      raw: true,
+      settings: newSettings,
+    });
+
+    expect(updatedSettings).toStrictEqual(newSettings);
+    expect(updatedSettings.dashboard?.widgets[0]?.config).toBeUndefined();
+  });
 });

@@ -1,5 +1,6 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
 import Transactions from '@models/Transactions.model';
+import type { TransactionApiResponse } from '@root/serializers/transactions.serializer';
 import * as transactionsService from '@services/transactions';
 import type { getTransactionsByTransferId as apiGetTransactionsByTransferId } from '@services/transactions/get-by-transfer-id';
 import type { getTransactions as apiGetTransactions } from '@services/transactions/get-transactions';
@@ -186,6 +187,22 @@ export function deleteSplit({ splitId }: { splitId: string }): Promise<CustomRes
   return makeRequest({
     method: 'delete',
     url: `/transactions/splits/${splitId}`,
+  });
+}
+
+// Get by IDs helpers
+export function getTransactionsByIds<R extends boolean | undefined = undefined>({
+  ids,
+  raw,
+}: {
+  ids: number[];
+  raw?: R;
+}) {
+  return makeRequest<TransactionApiResponse[], R>({
+    method: 'get',
+    url: '/transactions/by-ids',
+    payload: { ids: ids.join(',') },
+    raw,
   });
 }
 

@@ -80,6 +80,8 @@ const isSuggestLoading = ref(false);
 const invalidateQueries = () => {
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionDetails });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
+  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
+  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
 };
 
 const { mutate: updateSub } = useMutation({
@@ -114,6 +116,8 @@ const handleDelete = async () => {
   try {
     await deleteSubscription({ id: subscriptionId.value });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
     addSuccessNotification(t('planned.subscriptions.deleteSuccess'));
     router.push({ name: ROUTES_NAMES.plannedSubscriptions });
   } catch {

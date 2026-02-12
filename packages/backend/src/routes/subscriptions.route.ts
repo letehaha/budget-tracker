@@ -1,5 +1,9 @@
+import acceptCandidate from '@controllers/subscriptions/accept-candidate';
 import createSubscription from '@controllers/subscriptions/create-subscription';
 import deleteSubscription from '@controllers/subscriptions/delete-subscription';
+import detectCandidates from '@controllers/subscriptions/detect-candidates';
+import dismissCandidate from '@controllers/subscriptions/dismiss-candidate';
+import getCandidates from '@controllers/subscriptions/get-candidates';
 import { getSubscriptionById, getSubscriptions } from '@controllers/subscriptions/get-subscriptions';
 import getSubscriptionsSummary from '@controllers/subscriptions/get-subscriptions-summary';
 import getUpcomingPayments from '@controllers/subscriptions/get-upcoming-payments';
@@ -22,6 +26,27 @@ router.get(
   getSubscriptionsSummary.handler,
 );
 router.get('/upcoming', authenticateSession, validateEndpoint(getUpcomingPayments.schema), getUpcomingPayments.handler);
+
+// Subscription candidate detection routes (must be before /:id)
+router.get(
+  '/detect-candidates',
+  authenticateSession,
+  validateEndpoint(detectCandidates.schema),
+  detectCandidates.handler,
+);
+router.get('/candidates', authenticateSession, validateEndpoint(getCandidates.schema), getCandidates.handler);
+router.post(
+  '/candidates/:id/accept',
+  authenticateSession,
+  validateEndpoint(acceptCandidate.schema),
+  acceptCandidate.handler,
+);
+router.post(
+  '/candidates/:id/dismiss',
+  authenticateSession,
+  validateEndpoint(dismissCandidate.schema),
+  dismissCandidate.handler,
+);
 router.get('/:id', authenticateSession, validateEndpoint(getSubscriptionById.schema), getSubscriptionById.handler);
 
 router.post('/', authenticateSession, validateEndpoint(createSubscription.schema), createSubscription.handler);

@@ -5,8 +5,11 @@ import type { WidgetSize } from '@/components/widgets/widget-registry';
 import { WIDGET_REGISTRY } from '@/components/widgets/widget-registry';
 import { GripVerticalIcon, XIcon } from 'lucide-vue-next';
 import { computed, defineAsyncComponent, provide, toRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { Period } from '../types';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   widgetConfig: DashboardWidgetConfig;
@@ -17,6 +20,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   remove: [widgetId: string];
   resize: [widgetId: string, colSpan: number, rowSpan: number];
+  'config-change': [widgetId: string, key: string, value: unknown];
 }>();
 
 provide('dashboard-widget-stretch', true);
@@ -50,6 +54,11 @@ const componentProps = computed(() => {
 
 const isSizeActive = (size: WidgetSize) =>
   props.widgetConfig.colSpan === size.colSpan && (props.widgetConfig.rowSpan ?? 1) === size.rowSpan;
+
+const isConfigChoiceActive = ({ key, value }: { key: string; value: string }) => {
+  const current = props.widgetConfig.config?.[key] ?? '';
+  return current === value;
+};
 </script>
 
 <template>
@@ -70,19 +79,42 @@ const isSizeActive = (size: WidgetSize) =>
           <GripVerticalIcon class="text-muted-foreground size-6" />
         </div>
 
-        <!-- Size buttons -->
-        <div v-if="def.allowedSizes.length > 1" class="flex items-center gap-0.5 rounded-md border p-0.5">
-          <button
-            v-for="size in def.allowedSizes"
-            :key="`${size.colSpan}x${size.rowSpan}`"
-            :class="[
-              'rounded px-2 py-0.5 text-xs transition-colors',
-              isSizeActive(size) ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground',
-            ]"
-            @click="emit('resize', widgetConfig.widgetId, size.colSpan, size.rowSpan)"
+        <div class="flex items-center gap-2">
+          <!-- Size buttons -->
+          <div v-if="def.allowedSizes.length > 1" class="flex items-center gap-0.5 rounded-md border p-0.5">
+            <button
+              v-for="size in def.allowedSizes"
+              :key="`${size.colSpan}x${size.rowSpan}`"
+              :class="[
+                'rounded px-2 py-0.5 text-xs transition-colors',
+                isSizeActive(size) ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground',
+              ]"
+              @click="emit('resize', widgetConfig.widgetId, size.colSpan, size.rowSpan)"
+            >
+              {{ size.label }}
+            </button>
+          </div>
+
+          <!-- Config option buttons -->
+          <div
+            v-for="option in def.configOptions ?? []"
+            :key="option.key"
+            class="flex items-center gap-0.5 rounded-md border p-0.5"
           >
-            {{ size.label }}
-          </button>
+            <button
+              v-for="choice in option.choices"
+              :key="choice.value"
+              :class="[
+                'rounded px-2 py-0.5 text-xs transition-colors',
+                isConfigChoiceActive({ key: option.key, value: choice.value })
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted text-muted-foreground',
+              ]"
+              @click="emit('config-change', widgetConfig.widgetId, option.key, choice.value)"
+            >
+              {{ t(choice.label) }}
+            </button>
+          </div>
         </div>
 
         <Button variant="destructive" size="icon-sm" @click="emit('remove', widgetConfig.widgetId)">

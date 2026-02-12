@@ -6,6 +6,12 @@ export interface WidgetSize {
   label: string;
 }
 
+interface WidgetConfigOption {
+  key: string;
+  label: string;
+  choices: { value: string; label: string }[];
+}
+
 export interface WidgetDefinition {
   id: string;
   name: string;
@@ -15,6 +21,7 @@ export interface WidgetDefinition {
   allowedSizes: WidgetSize[];
   component: () => Promise<{ default: Component }>;
   needsPeriod: boolean;
+  configOptions?: WidgetConfigOption[];
 }
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
@@ -70,6 +77,17 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
     ],
     component: () => import('@/components/widgets/subscriptions-overview.vue'),
     needsPeriod: false,
+    configOptions: [
+      {
+        key: 'type',
+        label: 'dashboard.widgets.subscriptions.configType',
+        choices: [
+          { value: '', label: 'dashboard.widgets.subscriptions.configTypeAll' },
+          { value: 'subscription', label: 'dashboard.widgets.subscriptions.configTypeSubscriptions' },
+          { value: 'bill', label: 'dashboard.widgets.subscriptions.configTypeBills' },
+        ],
+      },
+    ],
   },
 };
 

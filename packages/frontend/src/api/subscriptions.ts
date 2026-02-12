@@ -106,9 +106,12 @@ interface UpcomingPayment {
   categoryColor: string | null;
 }
 
-export const loadUpcomingPayments = async ({ limit }: { limit?: number } = {}): Promise<UpcomingPayment[]> => {
+export const loadUpcomingPayments = async ({ limit, type }: { limit?: number; type?: string } = {}): Promise<
+  UpcomingPayment[]
+> => {
   const query: Record<string, string> = {};
   if (limit !== undefined) query.limit = String(limit);
+  if (type) query.type = type;
 
   return api.get('/subscriptions/upcoming', query);
 };
