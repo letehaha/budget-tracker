@@ -1,8 +1,8 @@
-import { SUBSCRIPTION_CANDIDATE_STATUS, asCents, toDecimal } from '@bt/shared/types';
+import { SUBSCRIPTION_CANDIDATE_STATUS } from '@bt/shared/types';
 import SubscriptionCandidates from '@models/SubscriptionCandidates.model';
 import Subscriptions from '@models/Subscriptions.model';
 
-import { isFuzzyNameMatch } from './detect-candidates-utils';
+import { serializeCandidate } from './serialize-candidate';
 
 interface GetCandidatesParams {
   userId: number;
@@ -27,28 +27,5 @@ export async function getCandidates({ userId, status }: GetCandidatesParams) {
     }),
   ]);
 
-  return candidates.map((c) => {
-    const json = c.toJSON() as SubscriptionCandidates;
-
-    let possibleMatch: { id: string; name: string } | null = null;
-    for (const sub of userSubscriptions) {
-      if (isFuzzyNameMatch({ a: json.suggestedName, b: sub.name })) {
-        possibleMatch = { id: sub.id, name: sub.name };
-        break;
-      }
-    }
-
-    let isOutdated = false;
-    if (json.lastOccurrenceAt && json.medianIntervalDays > 0) {
-      const daysSinceLastOccurrence = (Date.now() - new Date(json.lastOccurrenceAt).getTime()) / (1000 * 60 * 60 * 24);
-      isOutdated = daysSinceLastOccurrence > json.medianIntervalDays * 2;
-    }
-
-    return {
-      ...json,
-      averageAmount: toDecimal(asCents(json.averageAmount)),
-      possibleMatch,
-      isOutdated,
-    };
-  });
+  return candidates.map((c) => serializeCandidate({ candidate: c, userSubscriptions }));
 }

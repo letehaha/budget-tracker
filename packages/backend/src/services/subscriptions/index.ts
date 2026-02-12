@@ -12,6 +12,5 @@ export { getSubscriptionsSummary } from './get-subscriptions-summary';
 export { getUpcomingPayments } from './get-upcoming-payments';
 export { detectCandidates } from './detect-candidates';
 export { getCandidates } from './get-candidates';
-export { acceptCandidate } from './accept-candidate';
+export { resolveCandidate } from './resolve-candidate';
 export { dismissCandidate } from './dismiss-candidate';
-export { linkCandidateToSubscription } from './link-candidate';

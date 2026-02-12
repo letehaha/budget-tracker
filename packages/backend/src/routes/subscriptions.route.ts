@@ -7,7 +7,6 @@ import getCandidates from '@controllers/subscriptions/get-candidates';
 import { getSubscriptionById, getSubscriptions } from '@controllers/subscriptions/get-subscriptions';
 import getSubscriptionsSummary from '@controllers/subscriptions/get-subscriptions-summary';
 import getUpcomingPayments from '@controllers/subscriptions/get-upcoming-payments';
-import linkCandidate from '@controllers/subscriptions/link-candidate';
 import linkTransactions from '@controllers/subscriptions/link-transactions';
 import suggestMatches from '@controllers/subscriptions/suggest-matches';
 import toggleActive from '@controllers/subscriptions/toggle-active';
@@ -48,8 +47,6 @@ router.post(
   validateEndpoint(dismissCandidate.schema),
   dismissCandidate.handler,
 );
-router.post('/candidates/:id/link', authenticateSession, validateEndpoint(linkCandidate.schema), linkCandidate.handler);
-
 router.get('/:id', authenticateSession, validateEndpoint(getSubscriptionById.schema), getSubscriptionById.handler);
 
 router.post('/', authenticateSession, validateEndpoint(createSubscription.schema), createSubscription.handler);

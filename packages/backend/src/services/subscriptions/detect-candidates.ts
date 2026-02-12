@@ -3,14 +3,12 @@ import {
   SUBSCRIPTION_LINK_STATUS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
-  asCents,
-  toDecimal,
 } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import SubscriptionCandidates from '@models/SubscriptionCandidates.model';
 import Subscriptions from '@models/Subscriptions.model';
 import Transactions from '@models/Transactions.model';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 
 import {
   TransactionForGrouping,
@@ -22,11 +20,11 @@ import {
   computeMedian,
   findMostCommonNote,
   groupTransactionsBySignature,
-  isFuzzyNameMatch,
   mapIntervalToFrequency,
   normalizeNote,
   splitByAmountBuckets,
 } from './detect-candidates-utils';
+import { type SerializedCandidate, serializeCandidate } from './serialize-candidate';
 
 const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 const LOOKBACK_MONTHS = 12;
@@ -40,74 +38,10 @@ interface DetectCandidatesParams {
   userId: number;
 }
 
-interface PossibleMatch {
-  id: string;
-  name: string;
-}
-
-interface SerializedCandidate {
-  id: string;
-  suggestedName: string;
-  detectedFrequency: string;
-  averageAmount: number;
-  currencyCode: string;
-  accountId: number | null;
-  sampleTransactionIds: number[];
-  occurrenceCount: number;
-  confidenceScore: number;
-  medianIntervalDays: number;
-  status: string;
-  detectedAt: Date;
-  possibleMatch: PossibleMatch | null;
-  isOutdated: boolean;
-}
-
 interface DetectCandidatesResult {
   candidates: SerializedCandidate[];
   lastRunAt: string | null;
   isFromCache: boolean;
-}
-
-function serializeCandidate({
-  candidate,
-  userSubscriptions,
-}: {
-  candidate: SubscriptionCandidates;
-  userSubscriptions: Subscriptions[];
-}): SerializedCandidate {
-  const json = candidate.toJSON() as SubscriptionCandidates;
-
-  let possibleMatch: PossibleMatch | null = null;
-  for (const sub of userSubscriptions) {
-    if (isFuzzyNameMatch({ a: json.suggestedName, b: sub.name })) {
-      possibleMatch = { id: sub.id, name: sub.name };
-      break;
-    }
-  }
-
-  // A candidate is outdated if the last occurrence is older than 2× the median interval
-  let isOutdated = false;
-  if (json.lastOccurrenceAt && json.medianIntervalDays > 0) {
-    const daysSinceLastOccurrence = (Date.now() - new Date(json.lastOccurrenceAt).getTime()) / (1000 * 60 * 60 * 24);
-    isOutdated = daysSinceLastOccurrence > json.medianIntervalDays * 2;
-  }
-
-  return {
-    id: json.id,
-    suggestedName: json.suggestedName,
-    detectedFrequency: json.detectedFrequency,
-    averageAmount: toDecimal(asCents(json.averageAmount)),
-    currencyCode: json.currencyCode,
-    accountId: json.accountId,
-    sampleTransactionIds: json.sampleTransactionIds,
-    occurrenceCount: json.occurrenceCount,
-    confidenceScore: json.confidenceScore,
-    medianIntervalDays: json.medianIntervalDays,
-    status: json.status,
-    detectedAt: json.detectedAt,
-    possibleMatch,
-    isOutdated,
-  };
 }
 
 /**
@@ -166,12 +100,11 @@ export async function detectCandidates({ userId }: DetectCandidatesParams): Prom
  * analyzes patterns, and saves candidates.
  */
 export async function runDetection({ userId }: { userId: number }): Promise<SubscriptionCandidates[]> {
-  // Step 1: Fetch qualifying transactions (last 12 months)
+  // Fetch qualifying transactions (last 12 months)
   const sinceDate = new Date();
   sinceDate.setMonth(sinceDate.getMonth() - LOOKBACK_MONTHS);
 
   // Get transaction IDs already linked to active subscriptions
-  const { QueryTypes } = await import('sequelize');
   const linkedTxIds: { transactionId: number }[] = await SubscriptionCandidates.sequelize!.query(
     `SELECT "transactionId" FROM "SubscriptionTransactions" WHERE "status" = :status`,
     {
@@ -195,17 +128,15 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
     raw: true,
   });
 
-  // Filter out linked transactions in-memory
-  const transactions: TransactionForGrouping[] = (rawTransactions as unknown as TransactionForGrouping[]).filter(
-    (tx) => !linkedSet.has(tx.id),
-  );
+  // Filter out linked transactions in-memory (raw: true returns plain objects)
+  const transactions = (rawTransactions as TransactionForGrouping[]).filter((tx) => !linkedSet.has(tx.id));
 
   if (transactions.length === 0) {
     logger.info(`[detect-candidates] No qualifying transactions for user ${userId}`);
     return [];
   }
 
-  // Step 2: Group by signature
+  // Group by signature
   let groups = groupTransactionsBySignature({
     transactions,
     minOccurrences: MIN_OCCURRENCES,
@@ -216,7 +147,7 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
     return [];
   }
 
-  // Step 8 (early skip): Check existing candidates and skip known groups
+  // Check existing candidates and skip known groups
   const existingCandidates = await SubscriptionCandidates.findAll({
     where: { userId },
     attributes: ['suggestedName', 'accountId', 'currencyCode'],
@@ -247,7 +178,7 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
     return [];
   }
 
-  // Steps 4-7: Analyze each group
+  // Analyze each group for amount/timing regularity
   const candidateData: Array<{
     group: TransactionGroup;
     transactions: TransactionForGrouping[];
@@ -267,7 +198,7 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
   candidateData.sort((a, b) => b.confidenceScore - a.confidenceScore);
   const topCandidates = candidateData.slice(0, MAX_CANDIDATES_PER_RUN);
 
-  // Step 10: Save candidates
+  // Save candidates
   const now = new Date();
   const created: SubscriptionCandidates[] = [];
 
@@ -321,7 +252,7 @@ function analyzeGroup({ group }: { group: TransactionGroup }): {
 } | null {
   let txs = group.transactions;
 
-  // Step 4: Amount consistency check
+  // Amount consistency check
   const amounts = txs.map((tx) => Math.abs(tx.amount));
   const amountCV = computeCV({ values: amounts });
 
@@ -336,7 +267,7 @@ function analyzeGroup({ group }: { group: TransactionGroup }): {
     txs = qualifyingBuckets.sort((a, b) => b.length - a.length)[0]!;
   }
 
-  // Step 5: Timing regularity
+  // Timing regularity
   const dates = txs.map((tx) => new Date(tx.time));
   const intervals = computeIntervals({ dates });
 
@@ -347,7 +278,7 @@ function analyzeGroup({ group }: { group: TransactionGroup }): {
 
   if (intervalCV > INTERVAL_CV_THRESHOLD) return null;
 
-  // Step 7: Score
+  // Compute confidence score
   const confidenceScore = computeConfidenceScore({
     occurrenceCount: txs.length,
     intervalCV,

@@ -7,14 +7,20 @@ import { Op } from 'sequelize';
 
 import { findSubscriptionOrThrow } from './helpers';
 
-interface AcceptCandidateParams {
+interface ResolveCandidateParams {
   userId: number;
   candidateId: string;
   subscriptionId?: string;
 }
 
-export const acceptCandidate = withTransaction(
-  async ({ userId, candidateId, subscriptionId }: AcceptCandidateParams) => {
+/**
+ * Shared logic for accepting or linking a candidate:
+ * - Find and validate the candidate
+ * - Optionally link sample transactions to a subscription
+ * - Mark the candidate as accepted
+ */
+export const resolveCandidate = withTransaction(
+  async ({ userId, candidateId, subscriptionId }: ResolveCandidateParams) => {
     const candidate = await SubscriptionCandidates.findOne({
       where: { id: candidateId, userId },
     });
@@ -29,7 +35,6 @@ export const acceptCandidate = withTransaction(
       });
     }
 
-    // If a subscriptionId is provided, link the candidate's sample transactions
     if (subscriptionId) {
       const subscription = await findSubscriptionOrThrow({ id: subscriptionId, userId });
 

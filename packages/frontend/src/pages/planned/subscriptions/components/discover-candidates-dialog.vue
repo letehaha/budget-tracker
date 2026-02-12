@@ -4,7 +4,6 @@ import {
   acceptSubscriptionCandidate,
   detectSubscriptionCandidates,
   dismissSubscriptionCandidate,
-  linkCandidateToSubscription,
 } from '@/api/subscription-candidates';
 import { createSubscription } from '@/api/subscriptions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
@@ -78,7 +77,7 @@ const { mutate: doDismiss, isPending: isDismissing } = useMutation({
 });
 
 const { mutate: doLink, isPending: isLinking } = useMutation({
-  mutationFn: linkCandidateToSubscription,
+  mutationFn: acceptSubscriptionCandidate,
   onSuccess() {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionCandidates });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });

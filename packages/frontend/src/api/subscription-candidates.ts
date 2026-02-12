@@ -58,13 +58,3 @@ export const acceptSubscriptionCandidate = async ({
 export const dismissSubscriptionCandidate = async ({ id }: { id: string }): Promise<{ id: string; status: string }> => {
   return api.post(`/subscriptions/candidates/${id}/dismiss`);
 };
-
-export const linkCandidateToSubscription = async ({
-  id,
-  subscriptionId,
-}: {
-  id: string;
-  subscriptionId: string;
-}): Promise<{ id: string; status: string }> => {
-  return api.post(`/subscriptions/candidates/${id}/link`, { subscriptionId });
-};

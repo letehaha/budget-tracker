@@ -393,5 +393,6 @@ export interface SubscriptionCandidateModel {
   status: SUBSCRIPTION_CANDIDATE_STATUS;
   subscriptionId: string | null;
   detectedAt: Date;
+  lastOccurrenceAt: Date | null;
   resolvedAt: Date | null;
 }

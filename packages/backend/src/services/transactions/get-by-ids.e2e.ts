@@ -63,24 +63,24 @@ describe('GET /transactions/by-ids', () => {
     expect(result[0]!.id).toBe(tx1.id);
   });
 
-  it('should return 400 when ids contain non-numeric values', async () => {
+  it('should return 422 when ids contain non-numeric values', async () => {
     const res = await helpers.makeRequest({
       method: 'get',
       url: '/transactions/by-ids',
       payload: { ids: 'abc,def' },
     });
 
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(422);
     expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
   });
 
-  it('should return 400 when ids query param is missing', async () => {
+  it('should return 422 when ids query param is missing', async () => {
     const res = await helpers.makeRequest({
       method: 'get',
       url: '/transactions/by-ids',
     });
 
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(422);
     expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
   });
 });

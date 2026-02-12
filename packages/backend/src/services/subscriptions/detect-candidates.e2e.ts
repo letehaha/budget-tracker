@@ -607,7 +607,7 @@ describe('Subscription Candidate Detection', () => {
     });
   });
 
-  describe('Link candidate to existing subscription', () => {
+  describe('Accept candidate with subscription linking', () => {
     it('links a candidate to an existing subscription', async () => {
       const account = await helpers.createAccount({ raw: true });
 
@@ -634,7 +634,7 @@ describe('Subscription Candidate Detection', () => {
       });
 
       // Link the candidate to the subscription
-      const result = await helpers.linkSubscriptionCandidate({
+      const result = await helpers.acceptSubscriptionCandidate({
         id: candidate.id,
         subscriptionId: sub.id,
         raw: true,
@@ -671,7 +671,7 @@ describe('Subscription Candidate Detection', () => {
         raw: true,
       });
 
-      await helpers.linkSubscriptionCandidate({
+      await helpers.acceptSubscriptionCandidate({
         id: candidate.id,
         subscriptionId: sub.id,
         raw: true,
@@ -731,7 +731,7 @@ describe('Subscription Candidate Detection', () => {
           raw: true,
         });
 
-        const result = await helpers.linkSubscriptionCandidate({
+        const result = await helpers.acceptSubscriptionCandidate({
           id: candidate.id,
           subscriptionId: targetSub.id,
           raw: true,
@@ -741,7 +741,7 @@ describe('Subscription Candidate Detection', () => {
       }
     });
 
-    it('returns 404 when linking a non-existent candidate', async () => {
+    it('returns 404 when accepting a non-existent candidate with subscriptionId', async () => {
       const account = await helpers.createAccount({ raw: true });
 
       const sub = await helpers.createSubscription({
@@ -753,7 +753,7 @@ describe('Subscription Candidate Detection', () => {
         raw: true,
       });
 
-      const res = await helpers.linkSubscriptionCandidate({
+      const res = await helpers.acceptSubscriptionCandidate({
         id: '01942b94-0000-7000-8000-000000000000',
         subscriptionId: sub.id,
       });
@@ -761,7 +761,7 @@ describe('Subscription Candidate Detection', () => {
       expect(res.statusCode).toBe(404);
     });
 
-    it('returns 409 when linking an already accepted candidate', async () => {
+    it('returns 409 when accepting an already accepted candidate', async () => {
       const account = await helpers.createAccount({ raw: true });
 
       await createRecurringTransactions({
@@ -788,7 +788,7 @@ describe('Subscription Candidate Detection', () => {
       });
 
       // Try to link already accepted candidate
-      const res = await helpers.linkSubscriptionCandidate({
+      const res = await helpers.acceptSubscriptionCandidate({
         id: candidate.id,
         subscriptionId: sub.id,
       });
@@ -796,7 +796,7 @@ describe('Subscription Candidate Detection', () => {
       expect(res.statusCode).toBe(409);
     });
 
-    it('returns 404 when linking to a non-existent subscription', async () => {
+    it('returns 404 when accepting with a non-existent subscriptionId', async () => {
       const account = await helpers.createAccount({ raw: true });
 
       await createRecurringTransactions({
@@ -810,7 +810,7 @@ describe('Subscription Candidate Detection', () => {
       const detection = await helpers.detectSubscriptionCandidates({ raw: true });
       const candidate = detection.candidates[0]!;
 
-      const res = await helpers.linkSubscriptionCandidate({
+      const res = await helpers.acceptSubscriptionCandidate({
         id: candidate.id,
         subscriptionId: '01942b94-0000-7000-8000-000000000000',
       });

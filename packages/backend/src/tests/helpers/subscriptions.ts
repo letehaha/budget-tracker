@@ -5,15 +5,14 @@ import {
   SubscriptionModel,
   TransactionModel,
 } from '@bt/shared/types';
-import type { acceptCandidate as apiAcceptCandidate } from '@services/subscriptions/accept-candidate';
 import type { createSubscription as apiCreateSubscription } from '@services/subscriptions/create-subscription';
 import type { detectCandidates as apiDetectCandidates } from '@services/subscriptions/detect-candidates';
 import type { dismissCandidate as apiDismissCandidate } from '@services/subscriptions/dismiss-candidate';
 import type { getCandidates as apiGetCandidates } from '@services/subscriptions/get-candidates';
 import type { getSubscriptions as apiGetSubscriptions } from '@services/subscriptions/get-subscriptions';
 import type { getSubscriptionsSummary as apiGetSubscriptionsSummary } from '@services/subscriptions/get-subscriptions-summary';
-import type { linkCandidateToSubscription as apiLinkCandidate } from '@services/subscriptions/link-candidate';
 import type { linkTransactionsToSubscription as apiLinkTransactions } from '@services/subscriptions/link-transactions';
+import type { resolveCandidate as apiResolveCandidate } from '@services/subscriptions/resolve-candidate';
 import type { suggestHistoricalMatches as apiSuggestMatches } from '@services/subscriptions/suggest-historical-matches';
 import type { unlinkTransactionsFromSubscription as apiUnlinkTransactions } from '@services/subscriptions/unlink-transactions';
 
@@ -267,7 +266,7 @@ export async function acceptSubscriptionCandidate<R extends boolean | undefined 
   subscriptionId?: string;
   raw?: R;
 }) {
-  return makeRequest<Awaited<ReturnType<typeof apiAcceptCandidate>>, R>({
+  return makeRequest<Awaited<ReturnType<typeof apiResolveCandidate>>, R>({
     method: 'post',
     url: `/subscriptions/candidates/${id}/accept`,
     payload: subscriptionId ? { subscriptionId } : undefined,
@@ -285,23 +284,6 @@ export async function dismissSubscriptionCandidate<R extends boolean | undefined
   return makeRequest<Awaited<ReturnType<typeof apiDismissCandidate>>, R>({
     method: 'post',
     url: `/subscriptions/candidates/${id}/dismiss`,
-    raw,
-  });
-}
-
-export async function linkSubscriptionCandidate<R extends boolean | undefined = undefined>({
-  id,
-  subscriptionId,
-  raw,
-}: {
-  id: string;
-  subscriptionId: string;
-  raw?: R;
-}) {
-  return makeRequest<Awaited<ReturnType<typeof apiLinkCandidate>>, R>({
-    method: 'post',
-    url: `/subscriptions/candidates/${id}/link`,
-    payload: { subscriptionId },
     raw,
   });
 }

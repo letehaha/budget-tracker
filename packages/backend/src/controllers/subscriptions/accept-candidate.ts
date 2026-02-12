@@ -1,5 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
-import * as subscriptionsService from '@services/subscriptions';
+import { resolveCandidate } from '@services/subscriptions/resolve-candidate';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -14,7 +14,7 @@ const schema = z.object({
 });
 
 export default createController(schema, async ({ user, params, body }) => {
-  const result = await subscriptionsService.acceptCandidate({
+  const result = await resolveCandidate({
     userId: user.id,
     candidateId: params.id,
     subscriptionId: body?.subscriptionId,

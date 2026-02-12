@@ -24,6 +24,12 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
+
+function confidenceClass({ score }: { score: number }): string {
+  if (score >= 0.7) return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+  if (score >= 0.4) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+  return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
+}
 </script>
 
 <template>
@@ -59,13 +65,7 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
       <!-- Confidence indicator -->
       <div
         class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-        :class="
-          candidate.confidenceScore >= 0.7
-            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-            : candidate.confidenceScore >= 0.4
-              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-              : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
-        "
+        :class="confidenceClass({ score: candidate.confidenceScore })"
       >
         {{ Math.round(candidate.confidenceScore * 100) }}%
       </div>

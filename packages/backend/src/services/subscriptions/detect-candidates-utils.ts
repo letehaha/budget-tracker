@@ -182,14 +182,6 @@ export function computeMedian({ values }: { values: number[] }): number {
 }
 
 /**
- * Compute the median interval (in days) between a set of transaction dates.
- */
-export function computeMedianInterval({ dates }: { dates: Date[] }): number {
-  const intervals = computeIntervals({ dates });
-  return computeMedian({ values: intervals });
-}
-
-/**
  * Map a median interval (days) to the closest subscription frequency.
  */
 export function mapIntervalToFrequency({ medianDays }: { medianDays: number }): SUBSCRIPTION_FREQUENCIES {
