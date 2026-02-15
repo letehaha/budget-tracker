@@ -10,38 +10,6 @@ import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 // ============================================================================
 
 /**
- * Types of credential fields that providers can require
- */
-export enum CredentialFieldType {
-  TEXT = 'text',
-  PASSWORD = 'password',
-  URL = 'url',
-  EMAIL = 'email',
-}
-
-// ============================================================================
-// Provider Configuration
-// ============================================================================
-
-/**
- * Defines a credential field that a provider requires
- */
-export interface ProviderCredentialField {
-  /** Internal field name (e.g., 'apiToken', 'apiKey') */
-  name: string;
-  /** Field type for UI rendering */
-  type: CredentialFieldType;
-  /** User-facing label */
-  label: string;
-  /** Placeholder text for input */
-  placeholder?: string;
-  /** Whether this field is required */
-  required: boolean;
-  /** Help text to guide users */
-  helpText?: string;
-}
-
-/**
  * Feature capabilities of a provider
  */
 export interface ProviderFeatures {
@@ -77,8 +45,6 @@ export interface ProviderMetadata {
   documentationUrl?: string;
   /** Provider feature capabilities */
   features: ProviderFeatures;
-  /** Credential fields required by this provider */
-  credentialFields: ProviderCredentialField[];
 }
 
 // ============================================================================

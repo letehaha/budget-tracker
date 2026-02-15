@@ -43,8 +43,6 @@ describe('LunchFlow Data Provider E2E', () => {
       const lunchflowProvider = providers.find((p: { type: string }) => p.type === BANK_PROVIDER_TYPE.LUNCHFLOW)!;
       expect(lunchflowProvider).toBeDefined();
       expect(lunchflowProvider.name).toBe('Lunch Flow');
-      expect(lunchflowProvider.credentialFields).toBeDefined();
-      expect(Array.isArray(lunchflowProvider.credentialFields)).toBe(true);
 
       // Step 2: Connect to LunchFlow
       const connectResult = await helpers.bankDataProviders.connectProvider({
@@ -149,17 +147,6 @@ describe('LunchFlow Data Provider E2E', () => {
       const lunchflowProvider = providers.find((p: { type: string }) => p.type === BANK_PROVIDER_TYPE.LUNCHFLOW)!;
       expect(lunchflowProvider).toBeDefined();
       expect(lunchflowProvider.name).toBe('Lunch Flow');
-    });
-
-    it('should include credential fields for LunchFlow', async () => {
-      const { providers } = await helpers.bankDataProviders.getSupportedBankProviders({ raw: true });
-
-      const lunchflowProvider = providers.find((p: { type: string }) => p.type === BANK_PROVIDER_TYPE.LUNCHFLOW)!;
-      expect(lunchflowProvider.credentialFields.length).toBeGreaterThan(0);
-
-      const apiKeyField = lunchflowProvider.credentialFields.find((f: { name: string }) => f.name === 'apiKey');
-      expect(apiKeyField).toBeDefined();
-      expect(apiKeyField!.required).toBe(true);
     });
   });
 

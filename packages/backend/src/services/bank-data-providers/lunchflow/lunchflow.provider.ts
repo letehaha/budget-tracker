@@ -16,7 +16,6 @@ import Transactions from '@models/Transactions.model';
 import { getUserDefaultCategory } from '@models/Users.model';
 import {
   BaseBankDataProvider,
-  CredentialFieldType,
   DateRange,
   ProviderAccount,
   ProviderBalance,
@@ -55,16 +54,6 @@ export class LunchFlowProvider extends BaseBankDataProvider {
       defaultSyncInterval: 12 * 60 * 60 * 1000, // 12 hours
       minSyncInterval: 5 * 60 * 1000, // 5 minutes
     },
-    credentialFields: [
-      {
-        name: 'apiKey',
-        type: CredentialFieldType.PASSWORD,
-        label: 'API Key',
-        placeholder: 'Enter your LunchFlow API key',
-        required: true,
-        helpText: 'Get your API key from the LunchFlow dashboard: Settings → API Destinations',
-      },
-    ],
   };
 
   // ============================================================================

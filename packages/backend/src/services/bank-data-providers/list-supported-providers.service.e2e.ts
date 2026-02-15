@@ -20,16 +20,6 @@ describe('Bank Data Providers controller', () => {
       expect(provider).toHaveProperty('name');
       expect(provider).toHaveProperty('description');
       expect(provider).toHaveProperty('features');
-      expect(provider).toHaveProperty('credentialFields');
-
-      // Verify credentialFields structure
-      expect(Array.isArray(provider.credentialFields)).toBe(true);
-      if (provider.credentialFields.length > 0) {
-        expect(provider.credentialFields[0]).toHaveProperty('name');
-        expect(provider.credentialFields[0]).toHaveProperty('label');
-        expect(provider.credentialFields[0]).toHaveProperty('type');
-        expect(provider.credentialFields[0]).toHaveProperty('required');
-      }
     });
 
     it('should include MONOBANK provider in the list', async () => {
@@ -43,15 +33,6 @@ describe('Bank Data Providers controller', () => {
 
       expect(monobankProvider).toBeDefined();
       expect(monobankProvider.name).toBe('Monobank');
-      expect(monobankProvider.credentialFields).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: 'apiToken',
-            type: 'password',
-            required: true,
-          }),
-        ]),
-      );
     });
   });
 });

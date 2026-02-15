@@ -19,13 +19,6 @@ export interface BankProvider {
     defaultSyncInterval: number;
     minSyncInterval: number;
   };
-  credentialFields: Array<{
-    key: string;
-    label: string;
-    type: 'text' | 'password';
-    required: boolean;
-    helpText?: string;
-  }>;
 }
 
 export interface BankConnection {
