@@ -1,3 +1,4 @@
+import { asCents, toDecimal } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
@@ -48,6 +49,7 @@ export interface ConnectionDetailsResponse {
     isExpired: boolean;
     isExpiringSoon: boolean; // Less than 7 days remaining
   };
+  deactivationReason?: string | null;
 }
 
 export async function getConnectionDetails(params: GetConnectionDetailsParams): Promise<ConnectionDetailsResponse> {
@@ -126,10 +128,11 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
       id: account.id,
       name: account.name,
       externalId: account.externalId,
-      currentBalance: account.currentBalance,
+      currentBalance: toDecimal(asCents(account.currentBalance)),
       currencyCode: account.currencyCode,
       type: account.type,
     })),
     consent: consentInfo,
+    deactivationReason: metadata?.deactivationReason || null,
   };
 }

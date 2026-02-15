@@ -139,7 +139,6 @@
         "accept": "Accept",
         "dismiss": "Dismiss",
         "occurrences": "{count} occurrences",
-        "acceptError": "Failed to accept candidate",
         "dismissed": "Candidate dismissed",
         "dismissError": "Failed to dismiss candidate",
         "close": "Close",

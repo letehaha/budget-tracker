@@ -1,4 +1,4 @@
-import { API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { API_ERROR_CODES, BANK_PROVIDER_TYPE, asCents, toDecimal } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
@@ -28,7 +28,7 @@ export const listExternalAccounts = withTransaction(
       externalId: acc.externalId,
       name: acc.name,
       type: acc.type,
-      balance: acc.balance,
+      balance: toDecimal(asCents(acc.balance)),
       currency: acc.currency,
       metadata: acc.metadata,
     }));

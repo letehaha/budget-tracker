@@ -76,6 +76,8 @@ export default typescriptEslint.config(
             '/^portfolioDetail\\.transactionsList\\.categories\\./',
             // planned/index.vue: nestedRouteMap config
             '/^planned\\.subscriptions\\.backToList$/',
+            // subscriptions-overview.vue: TITLE_KEYS object with dynamic access via widgetType
+            '/^dashboard\\.widgets\\.subscriptions\\./',
           ],
         },
       ],

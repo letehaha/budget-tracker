@@ -173,15 +173,13 @@
   },
   "demo": {
     "loadingOverlay": {
-      "title": "Building your personal playground",
       "messages": [
         "Crunching numbers just for you...",
         "Crafting your personal accounts...",
         "Sprinkling in realistic transactions...",
         "Fine-tuning your dashboard...",
         "Almost there, putting final touches..."
-      ],
-      "timeoutMessage": "This is taking longer than expected. You can reload and try again, or wait a bit more."
+      ]
     },
     "featureNotAvailable": "This feature is not available in demo mode",
     "bankConnectionsRestricted": {

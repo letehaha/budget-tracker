@@ -191,6 +191,13 @@
       "authenticationFailed": "Enable Banking authentication failed: {{message}}",
       "apiBadRequestError": "Enable Banking API error: {{message}}",
       "apiGeneralError": "Enable Banking API error: {{message}}"
+    },
+    "lunchflow": {
+      "invalidCredentialsFormat": "Invalid LunchFlow credentials format. Please provide a valid API key.",
+      "invalidApiKey": "Invalid LunchFlow API key. Please check your credentials.",
+      "accountNoExternalId": "Account has no external ID for LunchFlow sync.",
+      "accountNotFound": "LunchFlow account not found.",
+      "apiError": "LunchFlow API error: {{message}}"
     }
   },
   "csvImport": {

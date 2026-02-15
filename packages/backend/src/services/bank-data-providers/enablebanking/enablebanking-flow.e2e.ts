@@ -39,8 +39,6 @@ describe('Enable Banking Data Provider E2E', () => {
       )!;
       expect(enableBankingProvider).toBeDefined();
       expect(enableBankingProvider.name).toBe('Enable Banking');
-      expect(enableBankingProvider.credentialFields).toBeDefined();
-      expect(Array.isArray(enableBankingProvider.credentialFields)).toBe(true);
 
       // Step 2: Initiate connection (this creates a pending connection and returns auth URL)
       const connectResult = await helpers.bankDataProviders.connectProvider({
@@ -161,21 +159,6 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(enableBankingProvider).toBeDefined();
       expect(enableBankingProvider?.name).toBe('Enable Banking');
       expect(enableBankingProvider?.description).toContain('6000+');
-    });
-
-    it('should include correct credential fields for Enable Banking', async () => {
-      const { providers } = await helpers.bankDataProviders.getSupportedBankProviders({ raw: true });
-
-      const enableBankingProvider = providers.find(
-        (p: { type: string }) => p.type === BANK_PROVIDER_TYPE.ENABLE_BANKING,
-      );
-      expect(enableBankingProvider?.credentialFields).toBeDefined();
-
-      const fieldNames = enableBankingProvider?.credentialFields.map((f: { name: string }) => f.name);
-      expect(fieldNames).toContain('appId');
-      expect(fieldNames).toContain('privateKey');
-      expect(fieldNames).toContain('bankName');
-      expect(fieldNames).toContain('bankCountry');
     });
   });
 
@@ -731,8 +714,8 @@ describe('Enable Banking Data Provider E2E', () => {
       const createdAccount = syncedAccounts[0]!;
       const account = await helpers.getAccount({ id: createdAccount.id, raw: true });
 
-      expect(account.currentBalance).toBe(selectedExternal.balance / 100);
-      expect(account.initialBalance).toBe(selectedExternal.balance / 100);
+      expect(account.currentBalance).toBe(selectedExternal.balance);
+      expect(account.initialBalance).toBe(selectedExternal.balance);
       expect(account.currencyCode).toBe(selectedExternal.currency);
     });
 

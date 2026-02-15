@@ -6,35 +6,6 @@
       "emptyState": "Click Customize to add widgets"
     },
     "widgets": {
-      "registry": {
-        "balanceTrend": {
-          "name": "Balance Trend",
-          "description": "Track your total balance over time"
-        },
-        "spendingCategories": {
-          "name": "Spending Categories",
-          "description": "See where your money goes by category"
-        },
-        "latestRecords": {
-          "name": "Latest Records",
-          "description": "View your most recent transactions"
-        },
-        "subscriptions": {
-          "name": "Subscriptions & Bills",
-          "description": "Monthly costs and upcoming payments"
-        }
-      },
-      "subscriptions": {
-        "title": "Subscriptions & Bills",
-        "titleSubscriptions": "Subscriptions",
-        "titleBills": "Bills",
-        "activeSummary": "{count} active",
-        "perYear": "/yr",
-        "configType": "Show",
-        "configTypeAll": "All",
-        "configTypeSubscriptions": "Subscriptions",
-        "configTypeBills": "Bills"
-      },
       "balanceTrend": {
         "title": "Balance trend",
         "balanceTypes": {
@@ -64,6 +35,13 @@
       "latestTransactions": {
         "title": "Latest Transactions",
         "showAll": "Show all"
+      },
+      "subscriptions": {
+        "title": "Subscriptions",
+        "titleSubscriptions": "Subscriptions",
+        "titleBills": "Bills",
+        "activeSummary": "{count} active",
+        "perYear": " per year"
       },
       "emptyState": "There are no data in selected time interval."
     },

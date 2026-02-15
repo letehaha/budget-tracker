@@ -194,6 +194,13 @@
       "authenticationFailed": "Автентифікація Enable Banking не вдалася: {{message}}",
       "apiBadRequestError": "Помилка API Enable Banking: {{message}}",
       "apiGeneralError": "Помилка API Enable Banking: {{message}}"
+    },
+    "lunchflow": {
+      "invalidCredentialsFormat": "Невірний формат облікових даних LunchFlow. Будь ласка, надайте дійсний API-ключ.",
+      "invalidApiKey": "Невірний API-ключ LunchFlow. Будь ласка, перевірте ваші облікові дані.",
+      "accountNoExternalId": "Обліковий запис не має зовнішнього ID для синхронізації LunchFlow.",
+      "accountNotFound": "Обліковий запис LunchFlow не знайдено.",
+      "apiError": "Помилка API LunchFlow: {{message}}"
     }
   },
   "csvImport": {

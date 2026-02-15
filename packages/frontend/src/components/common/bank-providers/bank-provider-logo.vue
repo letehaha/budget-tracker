@@ -10,7 +10,7 @@ import { Themes, currentTheme } from '@/common/utils';
 import { cn } from '@/lib/utils';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 
-const logos = {
+const logos: Record<BANK_PROVIDER_TYPE, { icon: { dark: string; light: string } }> = {
   [BANK_PROVIDER_TYPE.ENABLE_BANKING]: {
     icon: {
       dark: 'https://cdn.brandfetch.io/idJpLeYSIH/w/994/h/1041/theme/light/logo.png?c=1bxid64Mup7aczewSAYMX&t=1762089232186',
@@ -23,6 +23,12 @@ const logos = {
       dark: 'https://cdn.brandfetch.io/id-CBRc8NA/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1674203441813',
       light:
         'https://cdn.brandfetch.io/id-CBRc8NA/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1674203441813',
+    },
+  },
+  [BANK_PROVIDER_TYPE.LUNCHFLOW]: {
+    icon: {
+      dark: 'https://cdn.brandfetch.io/lunchflow.app/w/400/h/400/theme/light/icon.jpeg',
+      light: 'https://cdn.brandfetch.io/lunchflow.app/w/400/h/400/theme/dark/icon.jpeg',
     },
   },
 };

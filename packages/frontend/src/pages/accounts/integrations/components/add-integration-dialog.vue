@@ -53,12 +53,11 @@
           @connected="handleProviderConnected"
           @cancel="handleCancel"
         />
-        <!-- Add other provider components here -->
-        <!-- <OtherProviderConnector
-          v-else-if="selectedProviderType === 'other-provider'"
+        <LunchFlowConnector
+          v-else-if="selectedProviderType === BANK_PROVIDER_TYPE.LUNCHFLOW"
           @connected="handleProviderConnected"
           @cancel="handleCancel"
-        /> -->
+        />
       </template>
     </DialogContent>
   </Dialog>
@@ -76,6 +75,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import EnableBankingConnector from './enable-banking-connector.vue';
+import LunchFlowConnector from './lunchflow-connector.vue';
 import MonobankConnector from './monobank-connector.vue';
 
 const { t } = useI18n();
