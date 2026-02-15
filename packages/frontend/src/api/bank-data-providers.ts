@@ -76,6 +76,7 @@ interface BankConnectionDetails {
     isExpired: boolean;
     isExpiringSoon: boolean;
   };
+  deactivationReason?: string | null;
 }
 
 export interface AvailableAccount {
@@ -144,7 +145,7 @@ export const reauthorizeConnection = async (connectionId: number): Promise<{ aut
 
 export const updateConnectionDetails = async (
   connectionId: number,
-  details: { providerName: string },
+  details: { providerName?: string; credentials?: Record<string, unknown> },
 ): Promise<{ message: string; connection: BankConnectionDetails }> => {
   const response = await api.patch(`/bank-data-providers/connections/${connectionId}`, details);
   return response;

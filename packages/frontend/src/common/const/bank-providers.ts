@@ -11,4 +11,8 @@ export const METAINFO_FROM_TYPE = {
     nameKey: 'pages.integrations.providers.enableBanking.name',
     descriptionKey: 'pages.integrations.providers.enableBanking.description',
   },
+  [BANK_PROVIDER_TYPE.LUNCHFLOW]: {
+    nameKey: 'pages.integrations.providers.lunchflow.name',
+    descriptionKey: 'pages.integrations.providers.lunchflow.description',
+  },
 };

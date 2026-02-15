@@ -87,3 +87,30 @@ export type WithCentsFields<T, K extends keyof T> = Omit<T, K> & {
 export type WithDecimalFields<T, K extends keyof T> = Omit<T, K> & {
   [P in K]: DecimalAmount;
 };
+
+/**
+ * Recursively checks that type T does NOT contain any instances of ForbiddenType.
+ * If a forbidden type is found, it converts that field to `never`, causing a
+ * compile-time error.
+ *
+ * This is used to ensure controller responses never leak CentsAmount values.
+ *
+ * @example
+ * type BadResponse = { amount: CentsAmount };
+ * type GoodResponse = { amount: DecimalAmount };
+ *
+ * type CheckBad = AssertNoDeep<BadResponse, CentsAmount>;
+ * // ❌ amount: never — TypeScript error: CentsAmount is not assignable to never
+ *
+ * type CheckGood = AssertNoDeep<GoodResponse, CentsAmount>;
+ * // ✅ amount: DecimalAmount — compiles
+ */
+export type AssertNoDeep<T, ForbiddenType> = T extends ForbiddenType
+  ? never
+  : T extends Array<infer U>
+    ? Array<AssertNoDeep<U, ForbiddenType>>
+    : T extends object
+      ? {
+          [K in keyof T]: AssertNoDeep<T[K], ForbiddenType>;
+        }
+      : T;

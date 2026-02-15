@@ -1,7 +1,8 @@
 import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_ERROR_CODES, BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { BadRequestError, NotFoundError } from '@js/errors';
-import { trackBankConnected } from '@js/utils/posthog';
+import { logger } from '@js/utils';
+import { type BankProvider, trackBankConnected } from '@js/utils/posthog';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { getCurrency } from '@models/Currencies.model';
@@ -12,17 +13,23 @@ import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import { bankProviderRegistry } from '../registry';
 import { syncTransactionsForAccount } from './sync-transactions-for-account';
 
-const PROVIDER_TO_ANALYTICS_TYPE: Record<BANK_PROVIDER_TYPE, 'monobank' | 'enable_banking'> = {
+const PROVIDER_TO_ANALYTICS_TYPE: Record<BANK_PROVIDER_TYPE, BankProvider> = {
   [BANK_PROVIDER_TYPE.MONOBANK]: 'monobank',
   [BANK_PROVIDER_TYPE.ENABLE_BANKING]: 'enable_banking',
+  [BANK_PROVIDER_TYPE.LUNCHFLOW]: 'lunchflow',
 };
 
 const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
   [BANK_PROVIDER_TYPE.MONOBANK]: ACCOUNT_TYPES.monobank,
   [BANK_PROVIDER_TYPE.ENABLE_BANKING]: ACCOUNT_TYPES.enableBanking,
+  [BANK_PROVIDER_TYPE.LUNCHFLOW]: ACCOUNT_TYPES.lunchflow,
 };
 
-export const connectSelectedAccounts = withTransaction(
+/**
+ * Create accounts in the database within a transaction.
+ * Returns created accounts so sync can happen after the transaction commits.
+ */
+const createAccountsForConnection = withTransaction(
   async ({
     connectionId,
     userId,
@@ -91,9 +98,14 @@ export const connectSelectedAccounts = withTransaction(
         });
 
         // Create new account
+        const accountName =
+          providerAccount.name ||
+          [providerAccount.metadata?.institutionName, providerAccount.currency].filter(Boolean).join(' ') ||
+          providerAccount.externalId;
+
         const newAccount = await Accounts.create({
           userId,
-          name: providerAccount.name,
+          name: accountName,
           type: PROVIDER_TO_ACCOUNT_TYPE[connection.providerType as BANK_PROVIDER_TYPE],
           accountCategory: ACCOUNT_CATEGORIES.general,
           currencyCode: providerAccount.currency,
@@ -115,16 +127,6 @@ export const connectSelectedAccounts = withTransaction(
     // Update connection's last sync timestamp
     await connection.update({ lastSyncAt: new Date() });
 
-    // Trigger automatic transaction sync for all connected accounts
-    // This runs after account creation to ensure all accounts are synced with their historical transactions
-    for (const account of createdAccounts) {
-      await syncTransactionsForAccount({
-        connectionId,
-        userId,
-        accountId: account.id,
-      });
-    }
-
     // Track analytics event
     if (createdAccounts.length > 0) {
       trackBankConnected({
@@ -137,3 +139,44 @@ export const connectSelectedAccounts = withTransaction(
     return createdAccounts;
   },
 );
+
+/**
+ * Connect selected external accounts and trigger initial transaction sync.
+ * Account creation is transactional; sync happens after commit so failures
+ * don't roll back account creation.
+ */
+export const connectSelectedAccounts = async ({
+  connectionId,
+  userId,
+  accountExternalIds,
+}: {
+  connectionId: number;
+  userId: number;
+  accountExternalIds: string[];
+}): Promise<Accounts[]> => {
+  // Step 1: Create accounts in a transaction
+  const createdAccounts = await createAccountsForConnection({
+    connectionId,
+    userId,
+    accountExternalIds,
+  });
+
+  // Step 2: Trigger sync AFTER the transaction commits.
+  // Sync errors should not affect account creation.
+  for (const account of createdAccounts) {
+    try {
+      await syncTransactionsForAccount({
+        connectionId,
+        userId,
+        accountId: account.id,
+      });
+    } catch (error) {
+      logger.error({
+        message: `[connectSelectedAccounts] Initial transaction sync failed for account ${account.id}, will retry on next sync`,
+        error: error as Error,
+      });
+    }
+  }
+
+  return createdAccounts;
+};

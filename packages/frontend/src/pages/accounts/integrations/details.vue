@@ -92,6 +92,59 @@
         </Collapsible>
       </Card>
 
+      <!-- Auth Failure Banner (for LunchFlow and other API key providers) -->
+      <Card v-if="isDeactivatedDueToAuth" class="border-destructive mb-6">
+        <CardContent class="p-6">
+          <div class="space-y-4">
+            <div class="text-destructive-text bg-destructive/20 rounded-lg p-4">
+              <p class="font-semibold">{{ $t('pages.integrations.authFailure.title') }}</p>
+              <p class="mt-1 text-sm">
+                {{ $t('pages.integrations.authFailure.description') }}
+              </p>
+            </div>
+            <div class="flex gap-3">
+              <UiButton variant="default" @click="isUpdateCredentialsDialogOpen = true">
+                {{ $t('pages.integrations.authFailure.updateButton') }}
+              </UiButton>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Update Credentials Dialog -->
+      <Dialog v-model:open="isUpdateCredentialsDialogOpen">
+        <DialogContent class="max-w-md">
+          <DialogHeader class="mb-4">
+            <DialogTitle>{{ $t('pages.integrations.updateCredentials.title') }}</DialogTitle>
+          </DialogHeader>
+          <div class="space-y-4">
+            <div>
+              <label class="mb-2 block text-sm font-medium">
+                {{ $t('pages.integrations.updateCredentials.apiKeyLabel') }}
+              </label>
+              <input
+                v-model="newApiKey"
+                type="password"
+                class="w-full rounded-md border px-3 py-2"
+                :placeholder="$t('pages.integrations.updateCredentials.apiKeyPlaceholder')"
+              />
+            </div>
+          </div>
+          <DialogFooter class="mt-6 grid gap-3 sm:grid-cols-2">
+            <UiButton variant="outline" @click="isUpdateCredentialsDialogOpen = false">
+              {{ $t('common.actions.cancel') }}
+            </UiButton>
+            <UiButton :disabled="!newApiKey || isUpdatingCredentials" @click="handleUpdateCredentials">
+              {{
+                isUpdatingCredentials
+                  ? $t('pages.integrations.updateCredentials.updatingButton')
+                  : $t('pages.integrations.updateCredentials.updateButton')
+              }}
+            </UiButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <!-- Consent Validity Card (for Enable Banking) -->
       <Card
         v-if="connectionDetails.consent"
@@ -501,7 +554,9 @@ const isFetchAccountsDialogOpen = ref(false);
 const isDisconnectDialogOpen = ref(false);
 const isEditNameDialogOpen = ref(false);
 const isReconnectDialogOpen = ref(false);
+const isUpdateCredentialsDialogOpen = ref(false);
 const selectedAccountIds = ref<string[]>([]);
+const newApiKey = ref('');
 
 // Collapsible states
 const isConnectionDetailsOpen = ref(true);
@@ -510,6 +565,38 @@ const isConnectionValidityOpen = ref(false);
 const isReconnectPending = ref(false);
 
 const { data: connectionDetails, isLoading, error } = useBankConnectionDetails({ connectionId: connectionId });
+
+const isDeactivatedDueToAuth = computed(
+  () =>
+    connectionDetails.value &&
+    !connectionDetails.value.isActive &&
+    connectionDetails.value.deactivationReason === 'auth_failure',
+);
+
+// Mutation for updating credentials
+const { mutate: updateCredentialsMutation, isPending: isUpdatingCredentials } = useMutation({
+  mutationFn: (credentials: Record<string, unknown>) => updateConnectionDetails(connectionId.value, { credentials }),
+  onSuccess: () => {
+    addSuccessNotification(t('pages.integrations.updateCredentials.success'));
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange);
+      },
+    });
+    isUpdateCredentialsDialogOpen.value = false;
+    newApiKey.value = '';
+  },
+  onError: (error) => {
+    const message = error instanceof Error ? error.message : t('pages.integrations.updateCredentials.failed');
+    addErrorNotification(message);
+  },
+});
+
+const handleUpdateCredentials = () => {
+  if (!newApiKey.value) return;
+  updateCredentialsMutation({ apiKey: newApiKey.value });
+};
 
 // Initialize connection validity open state based on consent status
 watch(

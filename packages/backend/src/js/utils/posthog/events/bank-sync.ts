@@ -1,6 +1,6 @@
 import { trackEvent } from '../index';
 
-export type BankProvider = 'monobank' | 'enable_banking';
+export type BankProvider = 'monobank' | 'enable_banking' | 'lunchflow';
 
 /**
  * Track bank connection completion.

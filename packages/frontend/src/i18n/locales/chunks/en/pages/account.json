@@ -114,7 +114,8 @@
         "loading": "Loading...",
         "selectPeriod": "Select period",
         "loadButton": "Load transactions",
-        "failed": "Failed to load transactions"
+        "failed": "Failed to load transactions",
+        "notSupportedByProvider": "Not supported by this provider"
       },
       "syncTransactions": {
         "title": "Sync latest transactions",

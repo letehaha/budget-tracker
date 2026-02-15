@@ -103,7 +103,6 @@ export const calculateRefAmountFromParams = ({
   rate,
   useFloorAbs = true,
 }: {
-  /** Amount in cents (CentsAmount branded type) */
   amount: CentsAmount;
   rate: number;
   // For example in investments we're using raw float numbers, so it makes no sense to use it

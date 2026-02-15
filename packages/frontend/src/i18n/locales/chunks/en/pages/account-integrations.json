@@ -29,6 +29,10 @@
         "enableBanking": {
           "name": "Enable Banking",
           "description": "Access 6000+ European banks via PSD2 open banking"
+        },
+        "lunchflow": {
+          "name": "Lunch Flow",
+          "description": "Sync transactions from 20,000+ banks worldwide via LunchFlow"
         }
       },
       "monobank": {
@@ -164,8 +168,7 @@
         "gotItButton": "Got it"
       },
       "enableBanking": {
-        "instructions": {
-        },
+        "instructions": {},
         "placeholders": {
           "appId": "Enter your Enable Banking app_id",
           "privateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
@@ -176,6 +179,26 @@
           "noAuthUrl": "No authorization URL received from server",
           "failedToLoadBanks": "Failed to load banks",
           "failedToConnectProvider": "Failed to connect provider"
+        }
+      },
+      "lunchflow": {
+        "apiKeyLabel": "API Key",
+        "apiKeyPlaceholder": "Enter your LunchFlow API key",
+        "apiKeyHint": "Where do I find my API key?",
+        "apiKeyInstructions": "Go to your {link} → Settings → API Destinations to find your API key",
+        "backButton": "Back",
+        "connectingButton": "Connecting...",
+        "connectButton": "Connect",
+        "loadingAccounts": "Loading accounts...",
+        "accountsPreviewHint": "Found {count} account(s). All accounts will be imported.",
+        "importingButton": "Importing...",
+        "importButton": "Import {count} account(s)",
+        "importSuccess": "Successfully imported {count} account(s)",
+        "skipButton": "Skip",
+        "skipTooltip": "Skip importing to connect only specific accounts later, or to relink existing accounts from their settings.",
+        "errors": {
+          "connectFailed": "Failed to connect to LunchFlow",
+          "importFailed": "Failed to import accounts"
         }
       },
       "notifications": {
@@ -283,6 +306,20 @@
           "preparing": "Preparing...",
           "continue": "Continue"
         }
+      },
+      "authFailure": {
+        "title": "Authentication Failed",
+        "description": "Your credentials have expired. Please update them to continue syncing transactions.",
+        "updateButton": "Update Credentials"
+      },
+      "updateCredentials": {
+        "title": "Update Credentials",
+        "apiKeyLabel": "API Key",
+        "apiKeyPlaceholder": "Enter your API key",
+        "updatingButton": "Updating...",
+        "updateButton": "Update",
+        "success": "Credentials updated successfully",
+        "failed": "Failed to update credentials"
       }
     },
     "connectionName": {

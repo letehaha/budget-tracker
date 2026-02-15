@@ -29,6 +29,10 @@
         "enableBanking": {
           "name": "Enable Banking",
           "description": "Доступ до 6000+ європейських банків через PSD2 open banking"
+        },
+        "lunchflow": {
+          "name": "Lunch Flow",
+          "description": "Синхронізація транзакцій з 20 000+ банків по всьому світу через LunchFlow"
         }
       },
       "monobank": {
@@ -164,8 +168,7 @@
         "gotItButton": "Зрозуміло"
       },
       "enableBanking": {
-        "instructions": {
-        },
+        "instructions": {},
         "placeholders": {
           "appId": "Введіть ваш Enable Banking app_id",
           "privateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
@@ -176,6 +179,26 @@
           "noAuthUrl": "URL авторизації не отримано від сервера",
           "failedToLoadBanks": "Не вдалося завантажити банки",
           "failedToConnectProvider": "Не вдалося підключити провайдера"
+        }
+      },
+      "lunchflow": {
+        "apiKeyLabel": "API-ключ",
+        "apiKeyPlaceholder": "Введіть ваш API-ключ LunchFlow",
+        "apiKeyHint": "Де знайти мій API-ключ?",
+        "apiKeyInstructions": "Перейдіть до вашого {link} → Налаштування → API Destinations, щоб знайти ваш API-ключ",
+        "backButton": "Назад",
+        "connectingButton": "Підключення...",
+        "connectButton": "Підключити",
+        "loadingAccounts": "Завантаження облікових записів...",
+        "accountsPreviewHint": "Знайдено {count} обліковий(-их) запис(-ів). Усі облікові записи будуть імпортовані.",
+        "importingButton": "Імпортування...",
+        "importButton": "Імпортувати {count} обліковий(-их) запис(-ів)",
+        "importSuccess": "Успішно імпортовано {count} обліковий(-их) запис(-ів)",
+        "skipButton": "Пропустити",
+        "skipTooltip": "Пропустіть імпорт, щоб пізніше підключити лише потрібні акаунти або перепідключити існуючі через їхні налаштування.",
+        "errors": {
+          "connectFailed": "Не вдалося підключитися до LunchFlow",
+          "importFailed": "Не вдалося імпортувати облікові записи"
         }
       },
       "notifications": {
@@ -283,6 +306,20 @@
           "preparing": "Підготовка...",
           "continue": "Продовжити"
         }
+      },
+      "authFailure": {
+        "title": "Автентифікація не вдалась",
+        "description": "Ваші облікові дані закінчилися. Будь ласка, оновіть їх, щоб продовжити синхронізацію транзакцій.",
+        "updateButton": "Оновити облікові дані"
+      },
+      "updateCredentials": {
+        "title": "Оновити облікові дані",
+        "apiKeyLabel": "API-ключ",
+        "apiKeyPlaceholder": "Введіть ваш API-ключ",
+        "updatingButton": "Оновлення...",
+        "updateButton": "Оновити",
+        "success": "Облікові дані успішно оновлено",
+        "failed": "Не вдалося оновити облікові дані"
       }
     },
     "connectionName": {
