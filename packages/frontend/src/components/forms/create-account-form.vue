@@ -126,6 +126,7 @@ const submit = async () => {
 
     <input-field
       v-model="form.initialBalance"
+      type="number"
       :label="$t('forms.createAccount.initialBalanceLabel')"
       :placeholder="$t('forms.createAccount.initialBalancePlaceholder')"
     />
@@ -147,6 +148,7 @@ const submit = async () => {
 
     <input-field
       v-model="form.creditLimit"
+      type="number"
       :label="$t('forms.createAccount.creditLimitLabel')"
       :placeholder="$t('forms.createAccount.creditLimitPlaceholder')"
     />

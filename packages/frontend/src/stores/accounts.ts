@@ -52,17 +52,12 @@ export const useAccountsStore = defineStore('accounts', () => {
   const accountsNeedingRelink = computed(() => accounts.value.filter((item) => item.needsRelink));
 
   const createAccount = async (payload: Parameters<typeof apiCreateAccount>[0]) => {
-    try {
-      await apiCreateAccount(payload);
-      await refetchAccounts();
+    await apiCreateAccount(payload);
+    await refetchAccounts();
 
-      // Mark onboarding task as complete
-      const onboardingStore = useOnboardingStore();
-      onboardingStore.completeTask('create-account');
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
-    }
+    // Mark onboarding task as complete
+    const onboardingStore = useOnboardingStore();
+    onboardingStore.completeTask('create-account');
   };
 
   const editAccount = async ({ id, ...data }: Parameters<typeof apiEditAccount>[0]) => {
