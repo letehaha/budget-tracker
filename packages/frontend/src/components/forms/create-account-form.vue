@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { createAccount } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { ACCOUNT_CATEGORIES_TRANSLATION_KEYS } from '@/common/const/account-categories-verbose';
 import FieldLabel from '@/components/fields/components/field-label.vue';
@@ -9,10 +10,11 @@ import { NotificationType, useNotificationCenter } from '@/components/notificati
 import { useCurrencyName } from '@/composable';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
+import { useOnboardingStore } from '@/stores/onboarding';
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
-import { useQueryClient } from '@tanstack/vue-query';
+import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
-import { computed, defineAsyncComponent, reactive, ref } from 'vue';
+import { computed, defineAsyncComponent, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
@@ -51,13 +53,13 @@ const form = reactive<{
   creditLimit: 0,
 });
 
-const isLoading = ref(false);
+const createAccountMutation = useMutation({ mutationFn: createAccount });
 
 const submit = async () => {
-  try {
-    isLoading.value = true;
+  if (createAccountMutation.isPending.value) return;
 
-    await accountsStore.createAccount({
+  try {
+    await createAccountMutation.mutateAsync({
       currencyCode: form.currencyCode,
       name: form.name,
       accountCategory: form.accountCategory,
@@ -81,14 +83,15 @@ const submit = async () => {
       queryKey: VUE_QUERY_CACHE_KEYS.allAccounts,
     });
 
+    await accountsStore.refetchAccounts();
+    useOnboardingStore().completeTask('create-account');
+
     emit('created');
   } catch {
     addNotification({
       text: t('forms.createAccount.notifications.error'),
       type: NotificationType.error,
     });
-  } finally {
-    isLoading.value = false;
   }
 };
 </script>
@@ -154,8 +157,12 @@ const submit = async () => {
     />
 
     <div class="flex">
-      <ui-button type="submit" class="ml-auto min-w-30" :disabled="isLoading">
-        {{ isLoading ? $t('forms.createAccount.submitButtonLoading') : $t('forms.createAccount.submitButton') }}
+      <ui-button type="submit" class="ml-auto min-w-30" :disabled="createAccountMutation.isPending.value">
+        {{
+          createAccountMutation.isPending.value
+            ? $t('forms.createAccount.submitButtonLoading')
+            : $t('forms.createAccount.submitButton')
+        }}
       </ui-button>
     </div>
   </form>
