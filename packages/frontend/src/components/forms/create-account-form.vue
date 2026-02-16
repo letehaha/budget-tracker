@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { createAccount } from '@/api';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { ACCOUNT_CATEGORIES_TRANSLATION_KEYS } from '@/common/const/account-categories-verbose';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -9,7 +9,7 @@ import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useCurrencyName } from '@/composable';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import { useAccountsStore, useCurrenciesStore } from '@/stores';
+import { useCurrenciesStore } from '@/stores';
 import { useOnboardingStore } from '@/stores/onboarding';
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
@@ -25,7 +25,6 @@ const emit = defineEmits(['created']);
 const { t } = useI18n();
 const route = useRoute();
 const queryClient = useQueryClient();
-const accountsStore = useAccountsStore();
 const currenciesStore = useCurrenciesStore();
 const { addNotification } = useNotificationCenter();
 const { formatCurrencyLabel } = useCurrencyName();
@@ -80,10 +79,12 @@ const submit = async () => {
     });
 
     queryClient.invalidateQueries({
-      queryKey: VUE_QUERY_CACHE_KEYS.allAccounts,
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange);
+      },
     });
 
-    await accountsStore.refetchAccounts();
     useOnboardingStore().completeTask('create-account');
 
     emit('created');

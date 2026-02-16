@@ -1,8 +1,9 @@
 import * as api from '@/api';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import * as Select from '@/components/lib/ui/select';
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { createTestingPinia } from '@pinia/testing';
-import { VueQueryPlugin } from '@tanstack/vue-query';
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import * as dataMocks from '@tests/mocks';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -47,6 +48,10 @@ const mountComponent = async ({ routeQuery = {} }: { routeQuery?: Record<string,
   const router = createTestRouter({ query: routeQuery });
   await router.isReady();
 
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
   const wrapper = mount(CreateAccountForm, {
     global: {
       plugins: [
@@ -61,14 +66,14 @@ const mountComponent = async ({ routeQuery = {} }: { routeQuery?: Record<string,
             },
           },
         }),
-        VueQueryPlugin,
+        [VueQueryPlugin, { queryClient }],
         router,
         i18n,
       ],
     },
   });
 
-  return { wrapper };
+  return { wrapper, queryClient };
 };
 
 // Helper to simulate typing in a number input by dispatching a raw input event,
@@ -283,7 +288,32 @@ describe('CreateAccountForm', () => {
     });
   });
 
-  describe('5. Double-submit guard', () => {
+  describe('5. Accounts and analytics are refetched after creation', () => {
+    it('invalidates all transactionChange queries after successful creation', async () => {
+      const { wrapper, queryClient } = await mountComponent();
+      const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      await submitForm({ wrapper });
+
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+        predicate: expect.any(Function),
+      });
+
+      // Verify the predicate matches transactionChange queries
+      const { predicate } = invalidateQueriesSpy.mock.calls[0][0] as { predicate: (query: unknown) => boolean };
+
+      // Should match queries containing transactionChange (accounts, analytics, balance trend, etc.)
+      expect(predicate({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts })).toBe(true);
+      expect(predicate({ queryKey: VUE_QUERY_CACHE_KEYS.widgetBalanceTrend })).toBe(true);
+      expect(predicate({ queryKey: VUE_QUERY_CACHE_KEYS.analyticsBalanceHistoryTrend })).toBe(true);
+
+      // Should NOT match queries without transactionChange
+      expect(predicate({ queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates })).toBe(false);
+      expect(predicate({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList })).toBe(false);
+    });
+  });
+
+  describe('6. Double-submit guard', () => {
     it('does not call createAccount again when Enter is pressed during loading', async () => {
       // Make createAccount return a promise that never resolves during the test
       let resolveCreateAccount: (value: unknown) => void;
