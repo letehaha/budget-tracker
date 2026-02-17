@@ -1,7 +1,6 @@
 import {
   DeleteAccountPayload,
   UnlinkAccountFromBankConnectionPayload,
-  createAccount as apiCreateAccount,
   deleteAccount as apiDeleteAccount,
   editAccount as apiEditAccount,
   loadAccounts as apiLoadAccounts,
@@ -13,7 +12,6 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { defineStore, storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 
-import { useOnboardingStore } from './onboarding';
 import { useUserStore } from './user';
 
 export const useAccountsStore = defineStore('accounts', () => {
@@ -50,15 +48,6 @@ export const useAccountsStore = defineStore('accounts', () => {
    * These are Enable Banking accounts where externalId doesn't match identification_hash.
    */
   const accountsNeedingRelink = computed(() => accounts.value.filter((item) => item.needsRelink));
-
-  const createAccount = async (payload: Parameters<typeof apiCreateAccount>[0]) => {
-    await apiCreateAccount(payload);
-    await refetchAccounts();
-
-    // Mark onboarding task as complete
-    const onboardingStore = useOnboardingStore();
-    onboardingStore.completeTask('create-account');
-  };
 
   const editAccount = async ({ id, ...data }: Parameters<typeof apiEditAccount>[0]) => {
     try {
@@ -127,7 +116,6 @@ export const useAccountsStore = defineStore('accounts', () => {
     loadAccounts: refetchAccounts,
     refetchAccounts,
 
-    createAccount,
     editAccount,
     deleteAccount,
     unlinkAccountFromBankConnection,

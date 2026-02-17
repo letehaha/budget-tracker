@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { createAccount } from '@/api';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { ACCOUNT_CATEGORIES_TRANSLATION_KEYS } from '@/common/const/account-categories-verbose';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -8,11 +9,12 @@ import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useCurrencyName } from '@/composable';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import { useAccountsStore, useCurrenciesStore } from '@/stores';
+import { useCurrenciesStore } from '@/stores';
+import { useOnboardingStore } from '@/stores/onboarding';
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
-import { useQueryClient } from '@tanstack/vue-query';
+import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
-import { computed, defineAsyncComponent, reactive, ref } from 'vue';
+import { computed, defineAsyncComponent, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
@@ -23,7 +25,6 @@ const emit = defineEmits(['created']);
 const { t } = useI18n();
 const route = useRoute();
 const queryClient = useQueryClient();
-const accountsStore = useAccountsStore();
 const currenciesStore = useCurrenciesStore();
 const { addNotification } = useNotificationCenter();
 const { formatCurrencyLabel } = useCurrencyName();
@@ -51,13 +52,13 @@ const form = reactive<{
   creditLimit: 0,
 });
 
-const isLoading = ref(false);
+const createAccountMutation = useMutation({ mutationFn: createAccount });
 
 const submit = async () => {
-  try {
-    isLoading.value = true;
+  if (createAccountMutation.isPending.value) return;
 
-    await accountsStore.createAccount({
+  try {
+    await createAccountMutation.mutateAsync({
       currencyCode: form.currencyCode,
       name: form.name,
       accountCategory: form.accountCategory,
@@ -78,8 +79,13 @@ const submit = async () => {
     });
 
     queryClient.invalidateQueries({
-      queryKey: VUE_QUERY_CACHE_KEYS.allAccounts,
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange);
+      },
     });
+
+    useOnboardingStore().completeTask('create-account');
 
     emit('created');
   } catch {
@@ -87,8 +93,6 @@ const submit = async () => {
       text: t('forms.createAccount.notifications.error'),
       type: NotificationType.error,
     });
-  } finally {
-    isLoading.value = false;
   }
 };
 </script>
@@ -154,8 +158,12 @@ const submit = async () => {
     />
 
     <div class="flex">
-      <ui-button type="submit" class="ml-auto min-w-30" :disabled="isLoading">
-        {{ isLoading ? $t('forms.createAccount.submitButtonLoading') : $t('forms.createAccount.submitButton') }}
+      <ui-button type="submit" class="ml-auto min-w-30" :disabled="createAccountMutation.isPending.value">
+        {{
+          createAccountMutation.isPending.value
+            ? $t('forms.createAccount.submitButtonLoading')
+            : $t('forms.createAccount.submitButton')
+        }}
       </ui-button>
     </div>
   </form>

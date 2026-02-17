@@ -41,7 +41,7 @@ export const unlinkAccountFromBankConnection = async ({
   return api.post(`/accounts/${id}/unlink`);
 };
 
-export interface LinkAccountToBankConnectionPayload {
+interface LinkAccountToBankConnectionPayload {
   accountId: number;
   connectionId: number;
   externalAccountId: string;

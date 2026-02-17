@@ -11,12 +11,12 @@ import type {
   StatementFileType,
 } from '@bt/shared/types';
 
-export interface ParseCsvRequest {
+interface ParseCsvRequest {
   fileContent: string;
   delimiter?: string;
 }
 
-export interface ParseCsvResponse {
+interface ParseCsvResponse {
   headers: string[];
   preview: Record<string, string>[];
   detectedDelimiter: string;
@@ -28,7 +28,7 @@ export const parseCsv = async (payload: ParseCsvRequest): Promise<ParseCsvRespon
   return result;
 };
 
-export interface ExtractUniqueValuesRequest {
+interface ExtractUniqueValuesRequest {
   fileContent: string;
   delimiter: string;
   columnMapping: ColumnMappingConfig;
@@ -53,7 +53,7 @@ export const executeImport = async (payload: ExecuteImportRequest): Promise<Exec
 
 // Statement Parser API (supports PDF, CSV, TXT)
 
-export interface StatementCostEstimateRequest {
+interface StatementCostEstimateRequest {
   fileBase64: string;
 }
 
@@ -81,7 +81,7 @@ export const estimateStatementCost = async (
   return result;
 };
 
-export interface StatementExtractRequest {
+interface StatementExtractRequest {
   fileBase64: string;
 }
 
@@ -94,7 +94,7 @@ export const extractStatementTransactions = async (
 
 // Statement Parser - Duplicate Detection
 
-export interface StatementDetectDuplicatesRequest {
+interface StatementDetectDuplicatesRequest {
   accountId: number;
   transactions: StatementExtractionResult['transactions'];
 }
@@ -120,7 +120,7 @@ export const detectStatementDuplicates = async (
 
 // Statement Parser - Execute Import
 
-export interface StatementExecuteImportRequest {
+interface StatementExecuteImportRequest {
   accountId: number;
   transactions: StatementExtractionResult['transactions'];
   skipIndices: number[];
