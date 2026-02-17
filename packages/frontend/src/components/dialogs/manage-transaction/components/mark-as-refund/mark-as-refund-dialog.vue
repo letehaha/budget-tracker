@@ -264,6 +264,7 @@ const hasSmallOptions = computed(() => {
     <ResponsiveDialog
       v-model:open="isDialogOpen"
       custom-close
+      no-internal-scroll
       dialog-content-class="grid max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)]"
       drawer-content-class="max-h-[85dvh]"
     >

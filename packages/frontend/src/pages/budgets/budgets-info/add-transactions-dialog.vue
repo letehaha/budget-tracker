@@ -117,7 +117,7 @@ const isMobileView = useWindowBreakpoints(1024);
     </template>
 
     <div class="grid max-h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)]">
-      <div class="relative overflow-y-auto px-1">
+      <div class="relative min-h-0 overflow-y-auto px-1">
         <template v-if="isMobileView">
           <RecordsFiltersDialog v-model:open="isFiltersDialogOpen" :isAnyFiltersApplied="isAnyFiltersApplied">
             <div class="relative max-h-[calc(100vh-var(--header-height)-32px)] overflow-auto">
@@ -142,7 +142,7 @@ const isMobileView = useWindowBreakpoints(1024);
         </template>
       </div>
 
-      <div v-if="transactionsPages" ref="parentRef" class="relative max-h-[60vh] w-full overflow-y-auto md:max-h-full">
+      <div v-if="transactionsPages" ref="parentRef" class="relative max-h-[60vh] min-h-0 w-full overflow-y-auto">
         <div :style="{ height: `${totalSize}px`, position: 'relative' }">
           <div
             v-for="virtualRow in virtualRows"

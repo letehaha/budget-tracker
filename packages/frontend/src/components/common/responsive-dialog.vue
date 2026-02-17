@@ -16,6 +16,9 @@ const props = defineProps<{
   dialogContentClass?: HTMLAttributes['class'];
   drawerContentClass?: HTMLAttributes['class'];
   customClose?: boolean;
+  /** When true, disables the internal scroll wrapper (display: contents).
+   * Use when the dialog content manages its own scrolling layout. */
+  noInternalScroll?: boolean;
 }>();
 
 const emit = defineEmits(['update:open']);
@@ -56,11 +59,11 @@ const onScrollAreaMounted = (el: unknown) => {
 
   <UseScrollArea>
     <div
-      :ref="(el) => onScrollAreaMounted(el)"
-      class="scrollable-area min-h-0 flex-1 overflow-y-auto"
-      :data-can-scroll-up="canScrollUp"
-      :data-can-scroll-down="canScrollDown"
-      @scroll="onScroll"
+      :ref="(el) => !props.noInternalScroll && onScrollAreaMounted(el)"
+      :class="[props.noInternalScroll ? 'contents' : 'scrollable-area min-h-0 flex-1 overflow-y-auto']"
+      :data-can-scroll-up="!props.noInternalScroll ? canScrollUp : undefined"
+      :data-can-scroll-down="!props.noInternalScroll ? canScrollDown : undefined"
+      @scroll="!props.noInternalScroll && onScroll($event)"
     >
       <SlotContent />
     </div>
