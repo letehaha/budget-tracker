@@ -14,6 +14,7 @@ const { t } = useI18n();
 const props = defineProps<{
   widgetConfig: DashboardWidgetConfig;
   isEditMode: boolean;
+  canRemove: boolean;
   currentPeriod: Period;
 }>();
 
@@ -117,7 +118,12 @@ const isConfigChoiceActive = ({ key, value }: { key: string; value: string }) =>
           </div>
         </div>
 
-        <Button variant="destructive" size="icon-sm" @click="emit('remove', widgetConfig.widgetId)">
+        <Button
+          variant="destructive"
+          size="icon-sm"
+          :disabled="!canRemove"
+          @click="emit('remove', widgetConfig.widgetId)"
+        >
           <XIcon class="size-3.5" />
         </Button>
       </div>

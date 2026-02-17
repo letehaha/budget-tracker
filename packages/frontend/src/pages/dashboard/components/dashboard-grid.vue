@@ -59,6 +59,7 @@ const GRID_CLASSES =
         :key="widget.widgetId"
         :widget-config="widget"
         :is-edit-mode="true"
+        :can-remove="draftWidgets.length > 1"
         :current-period="currentPeriod"
         @remove="(widgetId) => removeWidget({ widgetId })"
         @resize="(widgetId, colSpan, rowSpan) => resizeWidget({ widgetId, colSpan, rowSpan })"
@@ -73,6 +74,7 @@ const GRID_CLASSES =
         :key="widget.widgetId"
         :widget-config="widget"
         :is-edit-mode="false"
+        :can-remove="false"
         :current-period="currentPeriod"
       />
     </div>
