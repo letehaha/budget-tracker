@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { Button } from '@/components/lib/ui/button';
+import WidgetSkeleton from '@/components/widgets/components/widget-skeleton.vue';
 import type { WidgetSize } from '@/components/widgets/widget-registry';
 import { WIDGET_REGISTRY } from '@/components/widgets/widget-registry';
 import { GripVerticalIcon, XIcon } from 'lucide-vue-next';
@@ -31,7 +32,10 @@ const def = computed(() => WIDGET_REGISTRY[props.widgetConfig.widgetId]);
 
 const asyncComponent = computed(() => {
   if (!def.value) return null;
-  return defineAsyncComponent(def.value.component);
+  return defineAsyncComponent({
+    loader: def.value.component,
+    loadingComponent: WidgetSkeleton,
+  });
 });
 
 const COL_SPAN_CLASSES: Record<number, string> = {
