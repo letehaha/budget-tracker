@@ -38,6 +38,8 @@
       "monobank": {
         "apiTokenLabel": "API Token",
         "connectionNameLabel": "Connection Name (optional)",
+        "tokenPlaceholder": "Enter your Monobank API token",
+        "accountNamePlaceholder": "e.g., Personal Account",
         "tokenHint": "You can get your API token from Monobank mobile app",
         "tokenInstructions": "To obtain a token for personal use please visit {link} and follow instructions. Once token is generated, store it somewhere and enter into the field.",
         "tokenReadOnlyNote": "Note:",
@@ -320,6 +322,17 @@
         "updateButton": "Update",
         "success": "Credentials updated successfully",
         "failed": "Failed to update credentials"
+      },
+      "labels": {
+        "free": "Free",
+        "paid": "Paid",
+        "easySetup": "Easy to setup",
+        "veryDifficultSetup": "Very difficult to setup"
+      },
+      "tooltips": {
+        "monobank": "Requires manually copying an API token from the Monobank mobile app",
+        "enableBanking": "Since smooth integration requires several thousands $ per month to be paid, it's only possible to connect by creating own EnableBanking dev account, and setting up \"test\" application with real connection to own banks, storing certificates and keys and uploading them here. Moderate technical knowledge required",
+        "lunchflow": "Just connect your banks on the LunchFlow side, then create and paste your LunchFlow API key"
       }
     },
     "connectionName": {

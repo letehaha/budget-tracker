@@ -35,6 +35,23 @@
                 <p class="text-sm opacity-70">
                   {{ t(METAINFO_FROM_TYPE[provider.type].descriptionKey) }}
                 </p>
+                <div class="mt-2 flex items-center gap-2">
+                  <span :class="pricingBadgeClass(METAINFO_FROM_TYPE[provider.type].pricing)">
+                    {{ t(METAINFO_FROM_TYPE[provider.type].pricingLabelKey) }}
+                  </span>
+                  <ResponsiveTooltip
+                    :content="t(METAINFO_FROM_TYPE[provider.type].difficultyTooltipKey)"
+                    content-class-name="w-screen max-w-105 text-balance"
+                  >
+                    <span
+                      :class="difficultyBadgeClass(METAINFO_FROM_TYPE[provider.type].difficulty)"
+                      class="inline-flex items-center gap-1"
+                    >
+                      {{ t(METAINFO_FROM_TYPE[provider.type].difficultyLabelKey) }}
+                      <InfoIcon class="size-3" />
+                    </span>
+                  </ResponsiveTooltip>
+                </div>
               </div>
             </div>
           </UiButton>
@@ -65,12 +82,14 @@
 
 <script lang="ts" setup>
 import type { BankProvider } from '@/api/bank-data-providers';
-import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
+import { type DifficultyType, METAINFO_FROM_TYPE, type PricingType } from '@/common/const/bank-providers';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { InfoIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -104,6 +123,22 @@ const dialogTitle = computed(() => {
   const provider = props.providers.find((p) => p.type === selectedProviderType.value);
   return t('pages.integrations.addDialog.titleConnect', { provider: provider?.name || 'Provider' });
 });
+
+const BADGE_BASE = 'rounded px-1.5 py-0.5 text-xs font-medium';
+
+const pricingBadgeClass = (pricing: PricingType) => {
+  if (pricing === 'free') {
+    return `${BADGE_BASE} bg-success/20 text-success-text`;
+  }
+  return `${BADGE_BASE} bg-warning/20 text-warning-text`;
+};
+
+const difficultyBadgeClass = (difficulty: DifficultyType) => {
+  if (difficulty === 'easy') {
+    return `${BADGE_BASE} bg-success/20 text-success-text`;
+  }
+  return `${BADGE_BASE} bg-destructive/20 text-destructive-text`;
+};
 
 const handleSelectProvider = (providerType: string) => {
   selectedProviderType.value = providerType;
