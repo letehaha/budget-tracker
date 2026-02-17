@@ -37,13 +37,35 @@
         "showAll": "Показати всі"
       },
       "subscriptions": {
-        "title": "Підписки",
+        "title": "Підписки та рахунки",
         "titleSubscriptions": "Підписки",
         "titleBills": "Рахунки",
+        "configType": "Тип",
+        "configTypeAll": "Всі",
+        "configTypeSubscriptions": "Підписки",
+        "configTypeBills": "Рахунки",
         "activeSummary": "{count} активна",
         "perYear": " на рік"
       },
-      "emptyState": "Немає даних за вибраний період часу."
+      "emptyState": "Немає даних за вибраний період часу.",
+      "registry": {
+        "balanceTrend": {
+          "name": "Тренд балансу",
+          "description": "Відстежуйте баланс з часом"
+        },
+        "spendingCategories": {
+          "name": "Витрати за категоріями",
+          "description": "Подивіться, куди йдуть гроші"
+        },
+        "latestRecords": {
+          "name": "Останні записи",
+          "description": "Ваші останні транзакції"
+        },
+        "subscriptions": {
+          "name": "Підписки та рахунки",
+          "description": "Огляд регулярних платежів"
+        }
+      }
     },
     "periodSelector": {
       "quickSelect": "Швидкий вибір",

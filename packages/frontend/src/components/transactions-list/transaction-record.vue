@@ -76,7 +76,7 @@
           </div>
         </template>
         <span
-          v-if="!shouldShowGroupedTransfer"
+          v-if="!shouldShowGroupedTransfer && !isLoadingGroupedTransfer"
           class="line-clamp-1 text-sm tracking-wider [word-break:break-word] opacity-40"
         >
           {{ transaction.note }}
@@ -118,11 +118,11 @@ import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n();
-
 import RefundIndicator from './indicators/refund-indicator.vue';
 import SplitIndicator from './indicators/split-indicator.vue';
 import TagsIndicator from './indicators/tags-indicator.vue';
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{

@@ -37,13 +37,35 @@
         "showAll": "Show all"
       },
       "subscriptions": {
-        "title": "Subscriptions",
+        "title": "Subscriptions & Bills",
         "titleSubscriptions": "Subscriptions",
         "titleBills": "Bills",
+        "configType": "Type",
+        "configTypeAll": "All",
+        "configTypeSubscriptions": "Subscriptions",
+        "configTypeBills": "Bills",
         "activeSummary": "{count} active",
         "perYear": " per year"
       },
-      "emptyState": "There are no data in selected time interval."
+      "emptyState": "There are no data in selected time interval.",
+      "registry": {
+        "balanceTrend": {
+          "name": "Balance Trend",
+          "description": "Track your balance over time"
+        },
+        "spendingCategories": {
+          "name": "Spending by Categories",
+          "description": "See where your money goes"
+        },
+        "latestRecords": {
+          "name": "Latest Records",
+          "description": "Your most recent transactions"
+        },
+        "subscriptions": {
+          "name": "Subscriptions & Bills",
+          "description": "Overview of recurring payments"
+        }
+      }
     },
     "periodSelector": {
       "quickSelect": "Quick Select",
