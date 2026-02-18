@@ -4,6 +4,9 @@ on:
   pull_request:
     types: [closed, unlabeled]
 
+permissions:
+  pull-requests: write
+
 env:
   PR_NUMBER: ${{ github.event.pull_request.number }}
 

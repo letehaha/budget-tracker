@@ -4,6 +4,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
 
+permissions:
+  pull-requests: write
+
 concurrency:
   group: preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -51,34 +54,6 @@ jobs:
 
             :x: **Deploy failed** — VPS has less than 2GB free disk space. Please clean up before retrying.
 
-      # ── Detect first deploy vs update ─────────────────────────────────
-      - name: Check if first deploy
-        id: check-first-deploy
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
-          envs: PR_NUMBER,VPS_PREVIEW_BASE_PATH
-          script: |
-            if [ -f "$VPS_PREVIEW_BASE_PATH/pr-$PR_NUMBER/.env" ]; then
-              echo "UPDATE"
-            else
-              echo "FIRST_DEPLOY"
-            fi
-        env:
-          VPS_PREVIEW_BASE_PATH: ${{ secrets.VPS_PREVIEW_BASE_PATH }}
-
-      - name: Validate deploy type detected
-        if: >-
-          !contains(steps.check-first-deploy.outputs.stdout, 'FIRST_DEPLOY')
-          && !contains(steps.check-first-deploy.outputs.stdout, 'UPDATE')
-        run: |
-          echo "ERROR: Could not determine deploy type."
-          echo "stdout: ${{ steps.check-first-deploy.outputs.stdout }}"
-          exit 1
-
       # ── Build and push Docker images ──────────────────────────────────
       - name: Build and push frontend image
         uses: ./.github/actions/frontend-docker-build
@@ -99,6 +74,18 @@ jobs:
           push: 'true'
 
       # ── Copy compose file to VPS ──────────────────────────────────────
+      - name: Create PR directory on VPS
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          VPS_PREVIEW_BASE_PATH: ${{ secrets.VPS_PREVIEW_BASE_PATH }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+          envs: PR_NUMBER,VPS_PREVIEW_BASE_PATH
+          script: mkdir -p "$VPS_PREVIEW_BASE_PATH/pr-$PR_NUMBER"
+
       - name: Copy compose file to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -110,9 +97,8 @@ jobs:
           target: ${{ secrets.VPS_PREVIEW_BASE_PATH }}/pr-${{ env.PR_NUMBER }}/
           strip_components: 2
 
-      # ── Deploy (first deploy) ─────────────────────────────────────────
-      - name: First deploy — generate env, restore DB, start stack
-        if: contains(steps.check-first-deploy.outputs.stdout, 'FIRST_DEPLOY')
+      # ── Deploy ────────────────────────────────────────────────────────
+      - name: Deploy preview environment
         uses: appleboy/ssh-action@v1.2.5
         env:
           VPS_PREVIEW_BASE_PATH: ${{ secrets.VPS_PREVIEW_BASE_PATH }}
@@ -132,130 +118,119 @@ jobs:
           envs: PR_NUMBER,VPS_PREVIEW_BASE_PATH,PREVIEW_DB_PASSWORD,PREVIEW_JWT_SECRET,PREVIEW_SESSION_SECRET,PREVIEW_BETTER_AUTH_SECRET,R2_ENDPOINT,R2_ACCESS_KEY_ID,R2_SECRET_ACCESS_KEY,R2_BUCKET
           command_timeout: 10m
           script: |
-            set -e
-            PR_DIR="$VPS_PREVIEW_BASE_PATH/pr-$PR_NUMBER"
-            mkdir -p "$PR_DIR"
-            cd "$PR_DIR"
+            set -eo pipefail
+            cd "$VPS_PREVIEW_BASE_PATH/pr-$PR_NUMBER"
 
             # Ensure backup file is cleaned up on failure
             BACKUP_FILE="/tmp/preview-pr-${PR_NUMBER}-backup.sql.gz"
             trap "rm -f '$BACKUP_FILE'" EXIT
 
-            # Discover shared service container names dynamically
-            CURRENCY_RATES_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E 'currency-rates-api' | head -1)
-            FRANKFURTER_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E 'frankfurter' | head -1)
-
-            if [ -z "$CURRENCY_RATES_CONTAINER" ] || [ -z "$FRANKFURTER_CONTAINER" ]; then
-              echo "ERROR: Could not find shared service containers"
-              echo "  currency-rates-api: ${CURRENCY_RATES_CONTAINER:-NOT FOUND}"
-              echo "  frankfurter: ${FRANKFURTER_CONTAINER:-NOT FOUND}"
-              exit 1
-            fi
-
-            echo "Found shared services:"
-            echo "  currency-rates-api: $CURRENCY_RATES_CONTAINER"
-            echo "  frankfurter: $FRANKFURTER_CONTAINER"
-
-            # Generate .env file
-            cat > .env <<ENVEOF
-NODE_ENV=production
-APPLICATION_HOST=0.0.0.0
-APPLICATION_PORT=8080
-APPLICATION_JWT_SECRET=$PREVIEW_JWT_SECRET
-APPLICATION_DB_HOST=preview-pr-${PR_NUMBER}-db
-APPLICATION_DB_PORT=5432
-APPLICATION_DB_USERNAME=preview
-APPLICATION_DB_PASSWORD=$PREVIEW_DB_PASSWORD
-APPLICATION_DB_DATABASE=budget_tracker_preview
-APPLICATION_DB_DIALECT=postgres
-APPLICATION_REDIS_HOST=preview-pr-${PR_NUMBER}-redis
-ALLOWED_ORIGINS=https://pr-${PR_NUMBER}.preview.moneymatter.app
-APP_SESSION_ID_SECRET=$PREVIEW_SESSION_SECRET
-BETTER_AUTH_SECRET=$PREVIEW_BETTER_AUTH_SECRET
-BETTER_AUTH_URL=https://pr-${PR_NUMBER}.preview.moneymatter.app
-AUTH_RP_ID=pr-${PR_NUMBER}.preview.moneymatter.app
-AUTH_ORIGIN=https://pr-${PR_NUMBER}.preview.moneymatter.app
-AUTH_RP_NAME=MoneyMatter-Preview
-CURRENCY_RATES_API_URL=http://${CURRENCY_RATES_CONTAINER}:8080
-FRANKFURTER_BASE_URL=http://${FRANKFURTER_CONTAINER}:8080
-PREVIEW_DB_PASSWORD=$PREVIEW_DB_PASSWORD
-ENVEOF
-
-            # Export vars for docker compose env substitution
             export PR_NUMBER PREVIEW_DB_PASSWORD
 
-            # Start DB + Redis first
-            docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER up -d db redis
+            # ── Detect first deploy vs update ──
+            if [ -f .env ]; then
+              echo "=== UPDATE DEPLOY ==="
 
-            # Wait for DB to be healthy
-            echo "Waiting for database to be healthy..."
-            for i in $(seq 1 30); do
-              if docker exec preview-pr-${PR_NUMBER}-db pg_isready -U preview -d budget_tracker_preview > /dev/null 2>&1; then
-                echo "Database is ready!"
-                break
-              fi
-              if [ "$i" = "30" ]; then
-                echo "ERROR: Database failed to start within 150s"
+              # Pull new images
+              docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER pull frontend backend
+
+              # Restart only frontend and backend (DB stays untouched)
+              docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER up -d --no-deps frontend backend
+
+              echo "Preview environment updated successfully!"
+            else
+              echo "=== FIRST DEPLOY ==="
+
+              # Discover shared service container names dynamically
+              CURRENCY_RATES_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E 'currency-rates-api' | head -1)
+              FRANKFURTER_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E 'frankfurter' | head -1)
+
+              if [ -z "$CURRENCY_RATES_CONTAINER" ] || [ -z "$FRANKFURTER_CONTAINER" ]; then
+                echo "ERROR: Could not find shared service containers"
+                echo "  currency-rates-api: ${CURRENCY_RATES_CONTAINER:-NOT FOUND}"
+                echo "  frankfurter: ${FRANKFURTER_CONTAINER:-NOT FOUND}"
                 exit 1
               fi
-              sleep 5
-            done
 
-            # Download latest R2 backup and restore
-            echo "Downloading latest database backup from R2..."
-            LATEST_BACKUP=$(AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
-              AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
-              aws s3 ls "s3://${R2_BUCKET}/backups/" \
-                --endpoint-url "$R2_ENDPOINT" \
-              | sort | tail -1 | awk '{print $4}')
+              echo "Found shared services:"
+              echo "  currency-rates-api: $CURRENCY_RATES_CONTAINER"
+              echo "  frankfurter: $FRANKFURTER_CONTAINER"
 
-            if [ -z "$LATEST_BACKUP" ]; then
-              echo "WARNING: No backup found in R2. Starting with empty database."
-            else
-              echo "Restoring backup: $LATEST_BACKUP"
-              AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
-              AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
-              aws s3 cp "s3://${R2_BUCKET}/backups/${LATEST_BACKUP}" "$BACKUP_FILE" \
-                --endpoint-url "$R2_ENDPOINT"
+              # Generate .env file
+              printf '%s\n' \
+                "NODE_ENV=production" \
+                "APPLICATION_HOST=0.0.0.0" \
+                "APPLICATION_PORT=8080" \
+                "APPLICATION_JWT_SECRET=$PREVIEW_JWT_SECRET" \
+                "APPLICATION_DB_HOST=preview-pr-${PR_NUMBER}-db" \
+                "APPLICATION_DB_PORT=5432" \
+                "APPLICATION_DB_USERNAME=preview" \
+                "APPLICATION_DB_PASSWORD=$PREVIEW_DB_PASSWORD" \
+                "APPLICATION_DB_DATABASE=budget_tracker_preview" \
+                "APPLICATION_DB_DIALECT=postgres" \
+                "APPLICATION_REDIS_HOST=preview-pr-${PR_NUMBER}-redis" \
+                "ALLOWED_ORIGINS=https://pr-${PR_NUMBER}.preview.moneymatter.app" \
+                "APP_SESSION_ID_SECRET=$PREVIEW_SESSION_SECRET" \
+                "BETTER_AUTH_SECRET=$PREVIEW_BETTER_AUTH_SECRET" \
+                "BETTER_AUTH_URL=https://pr-${PR_NUMBER}.preview.moneymatter.app" \
+                "AUTH_RP_ID=pr-${PR_NUMBER}.preview.moneymatter.app" \
+                "AUTH_ORIGIN=https://pr-${PR_NUMBER}.preview.moneymatter.app" \
+                "AUTH_RP_NAME=MoneyMatter-Preview" \
+                "CURRENCY_RATES_API_URL=http://${CURRENCY_RATES_CONTAINER}:8080" \
+                "FRANKFURTER_BASE_URL=http://${FRANKFURTER_CONTAINER}:8080" \
+                "PREVIEW_DB_PASSWORD=$PREVIEW_DB_PASSWORD" \
+                > .env
 
-              gunzip -c "$BACKUP_FILE" | \
-                docker exec -i preview-pr-${PR_NUMBER}-db psql -U preview -d budget_tracker_preview
+              # Start DB + Redis first
+              docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER up -d db redis
 
-              echo "Database restore completed!"
+              # Wait for DB to be healthy
+              echo "Waiting for database to be healthy..."
+              for i in $(seq 1 30); do
+                if docker exec preview-pr-${PR_NUMBER}-db pg_isready -U preview -d budget_tracker_preview > /dev/null 2>&1; then
+                  echo "Database is ready!"
+                  break
+                fi
+                if [ "$i" = "30" ]; then
+                  echo "ERROR: Database failed to start within 150s"
+                  exit 1
+                fi
+                sleep 5
+              done
+
+              # Download latest valid R2 backup and restore (skip files < 1KB)
+              echo "Downloading latest database backup from R2..."
+              LATEST_BACKUP=$(AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+                AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+                aws s3 ls "s3://${R2_BUCKET}/backups/" \
+                  --endpoint-url "$R2_ENDPOINT" \
+                | sort | awk '$3 > 1024 {file=$4} END {print file}')
+
+              if [ -z "$LATEST_BACKUP" ]; then
+                echo "WARNING: No backup found in R2. Starting with empty database."
+              else
+                echo "Restoring backup: $LATEST_BACKUP"
+                AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+                AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+                aws s3 cp "s3://${R2_BUCKET}/backups/${LATEST_BACKUP}" "$BACKUP_FILE" \
+                  --endpoint-url "$R2_ENDPOINT"
+
+                # Drop and recreate DB to ensure clean restore
+                docker exec -i preview-pr-${PR_NUMBER}-db psql -U preview -d postgres \
+                  -c "DROP DATABASE IF EXISTS budget_tracker_preview;" \
+                  -c "CREATE DATABASE budget_tracker_preview OWNER preview;"
+
+                gunzip -c "$BACKUP_FILE" | \
+                  docker exec -i preview-pr-${PR_NUMBER}-db psql -U preview -d budget_tracker_preview
+
+                echo "Database restore completed!"
+              fi
+
+              # Start the full stack (backend will auto-run migrations)
+              docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER up -d
+
+              echo "Preview environment deployed successfully!"
             fi
-
-            # Start the full stack (backend will auto-run migrations)
-            docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER up -d
-
-            echo "Preview environment deployed successfully!"
-
-      # ── Deploy (update) ───────────────────────────────────────────────
-      - name: Update deploy — pull new images, restart frontend + backend
-        if: contains(steps.check-first-deploy.outputs.stdout, 'UPDATE')
-        uses: appleboy/ssh-action@v1.2.5
-        env:
-          VPS_PREVIEW_BASE_PATH: ${{ secrets.VPS_PREVIEW_BASE_PATH }}
-          PREVIEW_DB_PASSWORD: ${{ secrets.PREVIEW_DB_PASSWORD }}
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
-          envs: PR_NUMBER,VPS_PREVIEW_BASE_PATH,PREVIEW_DB_PASSWORD
-          command_timeout: 5m
-          script: |
-            set -e
-            cd "$VPS_PREVIEW_BASE_PATH/pr-$PR_NUMBER"
-
-            export PR_NUMBER PREVIEW_DB_PASSWORD
-
-            # Pull new images
-            docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER pull frontend backend
-
-            # Restart only frontend and backend (DB stays untouched)
-            docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER up -d --no-deps frontend backend
-
-            echo "Preview environment updated successfully!"
 
       # ── Comment on PR ─────────────────────────────────────────────────
       - name: Comment on PR with preview URLs
