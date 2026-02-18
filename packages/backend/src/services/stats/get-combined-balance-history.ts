@@ -142,7 +142,7 @@ const calculatePortfolioBalanceHistory = async ({
   const pricesBySecurityAndDate = new Map<string, number>(); // "securityId_date" -> price
   for (const price of securityPrices) {
     const dateStr = String(price.date);
-    const priceValue = parseFloat(String(price.priceClose));
+    const priceValue = price.priceClose.toNumber();
 
     if (!pricesBySecurity.has(price.securityId)) {
       pricesBySecurity.set(price.securityId, []);
@@ -245,8 +245,8 @@ const calculatePortfolioBalanceHistory = async ({
         if (tx.date > dateStr) break;
 
         const securityId = tx.securityId;
-        const quantity = parseFloat(String(tx.quantity));
-        const totalAmount = parseFloat(String(tx.refAmount)) + parseFloat(String(tx.refFees));
+        const quantity = tx.quantity.toNumber();
+        const totalAmount = tx.refAmount.toNumber() + tx.refFees.toNumber();
 
         if (!holdings.has(securityId)) {
           holdings.set(securityId, {

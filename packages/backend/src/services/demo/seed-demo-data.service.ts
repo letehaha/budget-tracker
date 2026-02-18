@@ -573,7 +573,7 @@ async function createBudgets({
         userId,
         name: budgetConfig.name,
         status: BUDGET_STATUSES.active,
-        limitAmount: budgetConfig.limitAmount,
+        limitAmount: Money.fromCents(budgetConfig.limitAmount),
         categoryIds: [categoryId],
       });
     }

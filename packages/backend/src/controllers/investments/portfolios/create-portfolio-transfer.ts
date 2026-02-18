@@ -1,4 +1,5 @@
 import { currencyCode } from '@common/lib/zod/custom-types';
+import { INVESTMENT_DECIMAL_SCALE } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { createPortfolioTransfer } from '@services/investments/portfolios/transfers';
 import { z } from 'zod';
@@ -34,8 +35,8 @@ export default createController(schema, async ({ user, params, body }) => {
   return {
     data: {
       ...json,
-      amount: transfer.amount.toDecimalString(10),
-      refAmount: transfer.refAmount.toDecimalString(10),
+      amount: transfer.amount.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+      refAmount: transfer.refAmount.toDecimalString(INVESTMENT_DECIMAL_SCALE),
     },
   };
 });

@@ -31,7 +31,6 @@ export default createController(schema, async ({ user, body }) => {
   const { id: userId } = user;
   const { name, type, categoryIds, startDate, endDate, autoInclude, limitAmount } = body;
 
-  // Convert decimal limitAmount to cents
   const budget = await budgetsService.createBudget({
     name,
     userId,
@@ -41,8 +40,7 @@ export default createController(schema, async ({ user, body }) => {
     startDate: startDate ? new Date(startDate) : undefined,
     endDate: endDate ? new Date(endDate) : undefined,
     autoInclude,
-    limitAmount:
-      limitAmount !== undefined && limitAmount !== null ? Money.fromDecimal(limitAmount).toCents() : limitAmount,
+    limitAmount: limitAmount !== undefined && limitAmount !== null ? Money.fromDecimal(limitAmount) : limitAmount,
   });
 
   // Serialize: convert cents to decimal for API response

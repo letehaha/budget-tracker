@@ -1,4 +1,4 @@
-import { Money } from '@common/types/money';
+import { INVESTMENT_DECIMAL_SCALE, Money } from '@common/types/money';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Securities from '@models/investments/Securities.model';
@@ -6,7 +6,6 @@ import SecurityPricing from '@models/investments/SecurityPricing.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withDeduplication } from '@services/common/with-deduplication';
 import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
-import { Big } from 'big.js';
 import { Op, WhereOptions } from 'sequelize';
 
 interface GetHoldingValuesParams {
@@ -115,7 +114,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
 
   for (const holding of holdings) {
     const price = pricesBySecurityId[holding.securityId];
-    const quantity = new Big(holding.quantity.toDecimalString(10));
+    const quantity = holding.quantity.toBig();
 
     let marketValue = '0';
     let refMarketValue = '0';
@@ -123,9 +122,9 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     let priceDate: Date | undefined;
 
     if (price) {
-      latestPrice = price.priceClose.toDecimalString(10);
+      latestPrice = price.priceClose.toDecimalString(INVESTMENT_DECIMAL_SCALE);
       priceDate = price.date;
-      const priceClose = new Big(price.priceClose.toDecimalString(10));
+      const priceClose = price.priceClose.toBig();
       marketValue = quantity.times(priceClose).toFixed(10);
 
       // Calculate reference market value if userId provided
@@ -137,7 +136,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
             userId,
             date: date || new Date(),
           });
-          refMarketValue = refAmount.toDecimalString(10);
+          refMarketValue = refAmount.toDecimalString(INVESTMENT_DECIMAL_SCALE);
         } catch (error) {
           // If reference conversion fails, keep as 0
           refMarketValue = '0';
@@ -153,18 +152,18 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       securityTransactions.map((tx) => ({
         date: tx.date,
         category: tx.category,
-        quantity: tx.quantity.toDecimalString(10),
-        price: tx.price.toDecimalString(10),
-        fees: tx.fees.toDecimalString(10),
+        quantity: tx.quantity.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+        price: tx.price.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+        fees: tx.fees.toDecimalString(INVESTMENT_DECIMAL_SCALE),
       })),
     );
 
     holdingValues.push({
       portfolioId: holding.portfolioId,
       securityId: holding.securityId,
-      quantity: holding.quantity.toDecimalString(10),
-      costBasis: holding.costBasis.toDecimalString(10),
-      refCostBasis: holding.refCostBasis.toDecimalString(10),
+      quantity: holding.quantity.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+      costBasis: holding.costBasis.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+      refCostBasis: holding.refCostBasis.toDecimalString(INVESTMENT_DECIMAL_SCALE),
       currencyCode: holding.currencyCode,
       excluded: holding.excluded,
       security: holding.security,

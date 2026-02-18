@@ -43,7 +43,8 @@ function checkNeedsRelink(account: Accounts.default): boolean {
 }
 
 /**
- * Add needsRelink flag to accounts
+ * Add needsRelink flag to accounts.
+ * Uses Object.assign (not spread) to preserve the Sequelize model prototype and Money getters.
  */
 function addNeedsRelinkFlag(accounts: Accounts.default[]): AccountWithRelinkStatus[] {
   return accounts.map((account) =>

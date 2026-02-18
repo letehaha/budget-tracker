@@ -1,4 +1,5 @@
 import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import Budgets from '@models/Budget.model';
@@ -21,7 +22,7 @@ export interface CreateBudgetPayload {
   startDate?: Date | null;
   endDate?: Date | null;
   autoInclude?: boolean;
-  limitAmount?: number | null;
+  limitAmount?: Money | null;
 }
 
 const prepareTransactionFilters = (payload: CreateBudgetPayload) => ({

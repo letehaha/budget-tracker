@@ -1,4 +1,4 @@
-import { Money } from '@common/types/money';
+import { INVESTMENT_DECIMAL_SCALE, Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
@@ -66,17 +66,17 @@ const updatePortfolioBalanceImpl = async ({
   if (setAvailableCash !== undefined) {
     newAvailableCash = setAvailableCash;
   } else if (availableCashDelta !== undefined) {
-    newAvailableCash = new Big(balance.availableCash.toDecimalString(10)).plus(new Big(availableCashDelta)).toFixed(10);
+    newAvailableCash = balance.availableCash.toBig().plus(new Big(availableCashDelta)).toFixed(10);
   } else {
-    newAvailableCash = balance.availableCash.toDecimalString(10);
+    newAvailableCash = balance.availableCash.toDecimalString(INVESTMENT_DECIMAL_SCALE);
   }
 
   if (setTotalCash !== undefined) {
     newTotalCash = setTotalCash;
   } else if (totalCashDelta !== undefined) {
-    newTotalCash = new Big(balance.totalCash.toDecimalString(10)).plus(new Big(totalCashDelta)).toFixed(10);
+    newTotalCash = balance.totalCash.toBig().plus(new Big(totalCashDelta)).toFixed(10);
   } else {
-    newTotalCash = balance.totalCash.toDecimalString(10);
+    newTotalCash = balance.totalCash.toDecimalString(INVESTMENT_DECIMAL_SCALE);
   }
 
   // Calculate reference amounts (converted to user's base currency)

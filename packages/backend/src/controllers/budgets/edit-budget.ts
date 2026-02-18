@@ -28,7 +28,6 @@ const schema = z.object({
 export default createController(schema, async ({ user, params, body }) => {
   const { name, categoryIds, startDate, endDate, limitAmount, autoInclude } = body;
 
-  // Convert decimal limitAmount to cents
   const budget = await editBudgetService.editBudget({
     id: params.id,
     userId: user.id,
@@ -36,7 +35,7 @@ export default createController(schema, async ({ user, params, body }) => {
     categoryIds,
     startDate,
     endDate,
-    limitAmount: limitAmount !== undefined ? Money.fromDecimal(limitAmount).toCents() : undefined,
+    limitAmount: limitAmount !== undefined ? Money.fromDecimal(limitAmount) : undefined,
     autoInclude,
   });
 

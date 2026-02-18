@@ -45,7 +45,7 @@ async function calculateRefAmountImpl(params: Params): Promise<Money> {
   const cachedAmount = await refAmountCache.read();
 
   if (cachedAmount !== null) {
-    return Money.fromCents(parseFloat(cachedAmount));
+    return Money.fromCents(parseInt(cachedAmount, 10));
   }
 
   try {

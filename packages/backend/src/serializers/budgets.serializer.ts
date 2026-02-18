@@ -151,13 +151,14 @@ export function deserializeUpdateBudget(req: UpdateBudgetRequest): UpdateBudgetI
     startDate: req.startDate ? new Date(req.startDate) : req.startDate === null ? null : undefined,
     endDate: req.endDate ? new Date(req.endDate) : req.endDate === null ? null : undefined,
     autoInclude: req.autoInclude,
-    limitAmount:
-      req.limitAmount !== undefined
-        ? req.limitAmount !== null
-          ? Money.fromDecimal(req.limitAmount)
-          : null
-        : undefined,
+    limitAmount: deserializeLimitAmount(req.limitAmount),
   };
+}
+
+function deserializeLimitAmount(val: number | null | undefined): Money | null | undefined {
+  if (val === undefined) return undefined;
+  if (val === null) return null;
+  return Money.fromDecimal(val);
 }
 
 // ============================================================================

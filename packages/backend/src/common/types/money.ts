@@ -189,6 +189,14 @@ export class Money {
   }
 
   /**
+   * Return a copy of the internal Big value for arithmetic in investment services
+   * that need precise multi-step calculations without Money round-trips.
+   */
+  toBig(): Big {
+    return new Big(this.value);
+  }
+
+  /**
    * Convert to a raw JS number.
    * Use for regular transaction amounts in API responses.
    */
@@ -238,3 +246,6 @@ export function rawCents(val: Money | number): number {
   if (Money.isMoney(val)) return val.toCents();
   return val as number;
 }
+
+/** Decimal scale for investment DECIMAL columns (precision: 20, scale: 10). */
+export const INVESTMENT_DECIMAL_SCALE = 10;

@@ -26,9 +26,9 @@ const recalculateHoldingImpl = async (holdingId: { portfolioId: number; security
   let totalRefCostBasis = new Big(0);
 
   for (const tx of transactions) {
-    const quantity = new Big(tx.quantity.toDecimalString(10));
-    const amount = new Big(tx.amount.toDecimalString(10));
-    const refAmount = new Big(tx.refAmount.toDecimalString(10));
+    const quantity = tx.quantity.toBig();
+    const amount = tx.amount.toBig();
+    const refAmount = tx.refAmount.toBig();
 
     switch (tx.category) {
       case INVESTMENT_TRANSACTION_CATEGORY.buy:

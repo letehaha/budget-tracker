@@ -1,6 +1,6 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
-import { Money } from '@common/types/money';
+import { INVESTMENT_DECIMAL_SCALE, Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
@@ -49,19 +49,19 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
 
   // Business rule: Check for sufficient shares when updating to a sell transaction
   const finalCategory = updateFields.category ?? transaction.category;
-  const finalQuantity = updateFields.quantity ?? transaction.quantity.toDecimalString(10);
+  const finalQuantity = updateFields.quantity ?? transaction.quantity.toDecimalString(INVESTMENT_DECIMAL_SCALE);
 
   if (finalCategory === INVESTMENT_TRANSACTION_CATEGORY.sell) {
     // Calculate what the quantity would be after removing this transaction's effect
     // then check if we have enough for the new quantity
-    let adjustedHoldingQuantity = new Big(holding.quantity.toDecimalString(10));
+    let adjustedHoldingQuantity = holding.quantity.toBig();
 
     // If this transaction was originally a buy, we need to subtract its quantity
     // If it was originally a sell, we need to add its quantity back
     if (transaction.category === INVESTMENT_TRANSACTION_CATEGORY.buy) {
-      adjustedHoldingQuantity = adjustedHoldingQuantity.minus(new Big(transaction.quantity.toDecimalString(10)));
+      adjustedHoldingQuantity = adjustedHoldingQuantity.minus(transaction.quantity.toBig());
     } else if (transaction.category === INVESTMENT_TRANSACTION_CATEGORY.sell) {
-      adjustedHoldingQuantity = adjustedHoldingQuantity.plus(new Big(transaction.quantity.toDecimalString(10)));
+      adjustedHoldingQuantity = adjustedHoldingQuantity.plus(transaction.quantity.toBig());
     }
 
     const sellQuantity = new Big(finalQuantity);
@@ -112,9 +112,9 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
   }
 
   // Recalculate amount if quantity or price changed
-  const newQuantity = updateFields.quantity ?? transaction.quantity.toDecimalString(10);
-  const newPrice = updateFields.price ?? transaction.price.toDecimalString(10);
-  const newFees = updateFields.fees ?? transaction.fees.toDecimalString(10);
+  const newQuantity = updateFields.quantity ?? transaction.quantity.toDecimalString(INVESTMENT_DECIMAL_SCALE);
+  const newPrice = updateFields.price ?? transaction.price.toDecimalString(INVESTMENT_DECIMAL_SCALE);
+  const newFees = updateFields.fees ?? transaction.fees.toDecimalString(INVESTMENT_DECIMAL_SCALE);
   const newDate = updateFields.date ?? transaction.date;
 
   const amount = new Big(newQuantity).times(new Big(newPrice)).plus(new Big(newFees)).toFixed(10);
