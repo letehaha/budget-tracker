@@ -1,0 +1,286 @@
+name: Preview Deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.pull_request.base.ref == 'main'
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && contains(github.event.pull_request.labels.*.name, 'preview')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Disk space check ──────────────────────────────────────────────
+      - name: Check VPS disk space
+        id: disk-check
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+          script: |
+            AVAIL_KB=$(df / --output=avail | tail -1 | tr -d ' ')
+            AVAIL_GB=$(echo "scale=2; $AVAIL_KB / 1024 / 1024" | bc)
+            echo "Available disk space: ${AVAIL_GB}GB"
+            if [ "$AVAIL_KB" -lt 2097152 ]; then
+              echo "ERROR: Less than 2GB free disk space!"
+              exit 1
+            fi
+
+      - name: Comment on PR if disk space low
+        if: failure() && steps.disk-check.outcome == 'failure'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: preview-env
+          message: |
+            ## Preview Environment
+
+            :x: **Deploy failed** — VPS has less than 2GB free disk space. Please clean up before retrying.
+
+      # ── Detect first deploy vs update ─────────────────────────────────
+      - name: Check if first deploy
+        id: check-first-deploy
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+          envs: PR_NUMBER,VPS_PREVIEW_BASE_PATH
+          script: |
+            if [ -f "$VPS_PREVIEW_BASE_PATH/pr-$PR_NUMBER/.env" ]; then
+              echo "UPDATE"
+            else
+              echo "FIRST_DEPLOY"
+            fi
+        env:
+          VPS_PREVIEW_BASE_PATH: ${{ secrets.VPS_PREVIEW_BASE_PATH }}
+
+      - name: Validate deploy type detected
+        if: >-
+          !contains(steps.check-first-deploy.outputs.stdout, 'FIRST_DEPLOY')
+          && !contains(steps.check-first-deploy.outputs.stdout, 'UPDATE')
+        run: |
+          echo "ERROR: Could not determine deploy type."
+          echo "stdout: ${{ steps.check-first-deploy.outputs.stdout }}"
+          exit 1
+
+      # ── Build and push Docker images ──────────────────────────────────
+      - name: Build and push frontend image
+        uses: ./.github/actions/frontend-docker-build
+        with:
+          api-base-url: https://api-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app
+          vue-app-api-ver: /api/v1
+          image-tag: pr-${{ env.PR_NUMBER }}
+          docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          push: 'true'
+
+      - name: Build and push backend image
+        uses: ./.github/actions/backend-docker-build
+        with:
+          image-tag: pr-${{ env.PR_NUMBER }}
+          docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          push: 'true'
+
+      # ── Copy compose file to VPS ──────────────────────────────────────
+      - name: Copy compose file to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+          source: docker/preview/docker-compose.preview.yml
+          target: ${{ secrets.VPS_PREVIEW_BASE_PATH }}/pr-${{ env.PR_NUMBER }}/
+          strip_components: 2
+
+      # ── Deploy (first deploy) ─────────────────────────────────────────
+      - name: First deploy — generate env, restore DB, start stack
+        if: contains(steps.check-first-deploy.outputs.stdout, 'FIRST_DEPLOY')
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          VPS_PREVIEW_BASE_PATH: ${{ secrets.VPS_PREVIEW_BASE_PATH }}
+          PREVIEW_DB_PASSWORD: ${{ secrets.PREVIEW_DB_PASSWORD }}
+          PREVIEW_JWT_SECRET: ${{ secrets.PREVIEW_JWT_SECRET }}
+          PREVIEW_SESSION_SECRET: ${{ secrets.PREVIEW_SESSION_SECRET }}
+          PREVIEW_BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+          envs: PR_NUMBER,VPS_PREVIEW_BASE_PATH,PREVIEW_DB_PASSWORD,PREVIEW_JWT_SECRET,PREVIEW_SESSION_SECRET,PREVIEW_BETTER_AUTH_SECRET,R2_ENDPOINT,R2_ACCESS_KEY_ID,R2_SECRET_ACCESS_KEY,R2_BUCKET
+          command_timeout: 10m
+          script: |
+            set -e
+            PR_DIR="$VPS_PREVIEW_BASE_PATH/pr-$PR_NUMBER"
+            mkdir -p "$PR_DIR"
+            cd "$PR_DIR"
+
+            # Ensure backup file is cleaned up on failure
+            BACKUP_FILE="/tmp/preview-pr-${PR_NUMBER}-backup.sql.gz"
+            trap "rm -f '$BACKUP_FILE'" EXIT
+
+            # Discover shared service container names dynamically
+            CURRENCY_RATES_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E 'currency-rates-api' | head -1)
+            FRANKFURTER_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E 'frankfurter' | head -1)
+
+            if [ -z "$CURRENCY_RATES_CONTAINER" ] || [ -z "$FRANKFURTER_CONTAINER" ]; then
+              echo "ERROR: Could not find shared service containers"
+              echo "  currency-rates-api: ${CURRENCY_RATES_CONTAINER:-NOT FOUND}"
+              echo "  frankfurter: ${FRANKFURTER_CONTAINER:-NOT FOUND}"
+              exit 1
+            fi
+
+            echo "Found shared services:"
+            echo "  currency-rates-api: $CURRENCY_RATES_CONTAINER"
+            echo "  frankfurter: $FRANKFURTER_CONTAINER"
+
+            # Generate .env file
+            cat > .env <<ENVEOF
+NODE_ENV=production
+APPLICATION_HOST=0.0.0.0
+APPLICATION_PORT=8080
+APPLICATION_JWT_SECRET=$PREVIEW_JWT_SECRET
+APPLICATION_DB_HOST=preview-pr-${PR_NUMBER}-db
+APPLICATION_DB_PORT=5432
+APPLICATION_DB_USERNAME=preview
+APPLICATION_DB_PASSWORD=$PREVIEW_DB_PASSWORD
+APPLICATION_DB_DATABASE=budget_tracker_preview
+APPLICATION_DB_DIALECT=postgres
+APPLICATION_REDIS_HOST=preview-pr-${PR_NUMBER}-redis
+ALLOWED_ORIGINS=https://pr-${PR_NUMBER}.preview.moneymatter.app
+APP_SESSION_ID_SECRET=$PREVIEW_SESSION_SECRET
+BETTER_AUTH_SECRET=$PREVIEW_BETTER_AUTH_SECRET
+BETTER_AUTH_URL=https://pr-${PR_NUMBER}.preview.moneymatter.app
+AUTH_RP_ID=pr-${PR_NUMBER}.preview.moneymatter.app
+AUTH_ORIGIN=https://pr-${PR_NUMBER}.preview.moneymatter.app
+AUTH_RP_NAME=MoneyMatter-Preview
+CURRENCY_RATES_API_URL=http://${CURRENCY_RATES_CONTAINER}:8080
+FRANKFURTER_BASE_URL=http://${FRANKFURTER_CONTAINER}:8080
+PREVIEW_DB_PASSWORD=$PREVIEW_DB_PASSWORD
+ENVEOF
+
+            # Export vars for docker compose env substitution
+            export PR_NUMBER PREVIEW_DB_PASSWORD
+
+            # Start DB + Redis first
+            docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER up -d db redis
+
+            # Wait for DB to be healthy
+            echo "Waiting for database to be healthy..."
+            for i in $(seq 1 30); do
+              if docker exec preview-pr-${PR_NUMBER}-db pg_isready -U preview -d budget_tracker_preview > /dev/null 2>&1; then
+                echo "Database is ready!"
+                break
+              fi
+              if [ "$i" = "30" ]; then
+                echo "ERROR: Database failed to start within 150s"
+                exit 1
+              fi
+              sleep 5
+            done
+
+            # Download latest R2 backup and restore
+            echo "Downloading latest database backup from R2..."
+            LATEST_BACKUP=$(AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+              AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+              aws s3 ls "s3://${R2_BUCKET}/backups/" \
+                --endpoint-url "$R2_ENDPOINT" \
+              | sort | tail -1 | awk '{print $4}')
+
+            if [ -z "$LATEST_BACKUP" ]; then
+              echo "WARNING: No backup found in R2. Starting with empty database."
+            else
+              echo "Restoring backup: $LATEST_BACKUP"
+              AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+              AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+              aws s3 cp "s3://${R2_BUCKET}/backups/${LATEST_BACKUP}" "$BACKUP_FILE" \
+                --endpoint-url "$R2_ENDPOINT"
+
+              gunzip -c "$BACKUP_FILE" | \
+                docker exec -i preview-pr-${PR_NUMBER}-db psql -U preview -d budget_tracker_preview
+
+              echo "Database restore completed!"
+            fi
+
+            # Start the full stack (backend will auto-run migrations)
+            docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER up -d
+
+            echo "Preview environment deployed successfully!"
+
+      # ── Deploy (update) ───────────────────────────────────────────────
+      - name: Update deploy — pull new images, restart frontend + backend
+        if: contains(steps.check-first-deploy.outputs.stdout, 'UPDATE')
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          VPS_PREVIEW_BASE_PATH: ${{ secrets.VPS_PREVIEW_BASE_PATH }}
+          PREVIEW_DB_PASSWORD: ${{ secrets.PREVIEW_DB_PASSWORD }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+          envs: PR_NUMBER,VPS_PREVIEW_BASE_PATH,PREVIEW_DB_PASSWORD
+          command_timeout: 5m
+          script: |
+            set -e
+            cd "$VPS_PREVIEW_BASE_PATH/pr-$PR_NUMBER"
+
+            export PR_NUMBER PREVIEW_DB_PASSWORD
+
+            # Pull new images
+            docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER pull frontend backend
+
+            # Restart only frontend and backend (DB stays untouched)
+            docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER up -d --no-deps frontend backend
+
+            echo "Preview environment updated successfully!"
+
+      # ── Comment on PR ─────────────────────────────────────────────────
+      - name: Comment on PR with preview URLs
+        if: success()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: preview-env
+          message: |
+            ## Preview Environment
+
+            :white_check_mark: Preview deployed successfully!
+
+            | Service | URL |
+            |---------|-----|
+            | Frontend | https://pr-${{ env.PR_NUMBER }}.preview.moneymatter.app |
+            | API | https://api-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app |
+
+            _Last deployed: ${{ github.sha }} at ${{ github.event.pull_request.updated_at }}_
+
+      - name: Comment on PR if deploy failed
+        if: failure() && steps.disk-check.outcome != 'failure'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: preview-env
+          message: |
+            ## Preview Environment
+
+            :x: **Deploy failed.** Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.

@@ -13,6 +13,10 @@ inputs:
     description: 'SENTRY_RELEASE - Release version (git SHA) for Sentry'
     required: false
     default: ''
+  image-tag:
+    description: 'Docker image tag (e.g. latest, pr-123)'
+    required: false
+    default: 'latest'
   push:
     description: Specifies if docker result should be pushed
     required: false
@@ -44,6 +48,6 @@ runs:
         file: ./docker/prod/backend/Dockerfile
         push: ${{ inputs.push == 'true' }}
         load: ${{ inputs.push != 'true' }}
-        tags: ${{ inputs.docker-hub-username }}/budget-tracker-be:latest
+        tags: ${{ inputs.docker-hub-username }}/budget-tracker-be:${{ inputs.image-tag }}
         build-args: |
           SENTRY_RELEASE=${{ inputs.sentry-release }}
