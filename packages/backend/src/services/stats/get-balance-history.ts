@@ -1,4 +1,3 @@
-import { BalanceModel } from '@bt/shared/types';
 import * as Accounts from '@models/Accounts.model';
 import * as Balances from '@models/Balances.model';
 import { format } from 'date-fns';
@@ -20,7 +19,7 @@ function formatDate(date: string | Date): string {
  * @param {number} params.userId - The ID of the user for whom balances are to be fetched.
  * @param {string} [params.from] - The start date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @param {string} [params.to] - The end date (inclusive) of the date range in 'yyyy-mm-dd' format.
- * @returns {Promise<BalanceModel[]>} - A promise that resolves to an array of balance records.
+ * @returns {Promise<Balances.default[]>} - A promise that resolves to an array of balance records.
  * @throws {Error} - Throws an error if the database query fails.
  *
  * @example
@@ -34,7 +33,7 @@ export const getBalanceHistory = async ({
   userId: number;
   from?: string;
   to?: string;
-}): Promise<BalanceModel[]> => {
+}): Promise<Balances.default[]> => {
   const dataAttributes = ['date', 'amount', 'accountId'];
 
   const [allUserAccounts, balancesInRange] = await Promise.all([
@@ -55,7 +54,7 @@ export const getBalanceHistory = async ({
       ],
       raw: true,
       attributes: dataAttributes,
-    }) as Promise<BalanceModel[]>,
+    }) as Promise<Balances.default[]>,
   ]);
 
   let data = balancesInRange;
@@ -97,7 +96,7 @@ export const getBalanceHistory = async ({
     ]);
 
     // Pre-group balances by accountId using Maps for O(1) lookup
-    const beforeByAccount = new Map<number, BalanceModel[]>();
+    const beforeByAccount = new Map<number, Balances.default[]>();
     for (const b of balancesBeforeFrom) {
       const items = beforeByAccount.get(b.accountId);
       if (items) {
@@ -107,7 +106,7 @@ export const getBalanceHistory = async ({
       }
     }
 
-    const afterByAccount = new Map<number, BalanceModel[]>();
+    const afterByAccount = new Map<number, Balances.default[]>();
     for (const b of balancesAfterTo) {
       const items = afterByAccount.get(b.accountId);
       if (items) {
@@ -126,19 +125,19 @@ export const getBalanceHistory = async ({
     }
 
     // For each missing account, find the latest "before" or earliest "after" balance
-    const latestBalances: BalanceModel[] = [];
+    const latestBalances: Balances.default[] = [];
     const overrideDate = new Date(to ?? from ?? new Date());
 
     for (const accountId of accountIdsNotInRange) {
       const beforeBalances = beforeByAccount.get(accountId);
       if (beforeBalances && beforeBalances.length > 0) {
-        latestBalances.push({ ...(beforeBalances[0] as BalanceModel), date: overrideDate });
+        latestBalances.push({ ...beforeBalances[0]!, date: overrideDate } as Balances.default);
         continue;
       }
 
       const afterBalances = afterByAccount.get(accountId);
       if (afterBalances && afterBalances.length > 0) {
-        latestBalances.push({ ...(afterBalances[0] as BalanceModel), date: overrideDate });
+        latestBalances.push({ ...afterBalances[0]!, date: overrideDate } as Balances.default);
       }
     }
 
@@ -158,7 +157,11 @@ interface AggregatedBalanceHistoryItem {
  * Aggregates balance trend data by filling gaps and summing all accounts per date.
  * This is the logic that was previously done on the frontend.
  */
-function aggregateBalanceTrendData(data: BalanceModel[], from?: string, to?: string): AggregatedBalanceHistoryItem[] {
+function aggregateBalanceTrendData(
+  data: Balances.default[],
+  from?: string,
+  to?: string,
+): AggregatedBalanceHistoryItem[] {
   if (!data || data.length === 0) {
     return [];
   }
@@ -182,11 +185,12 @@ function aggregateBalanceTrendData(data: BalanceModel[], from?: string, to?: str
 
   // Build lookup Maps in a single pass:
   // - dataByAccountAndDate: "accountId_date" -> amount for O(1) access
-  // - dataByAccount: accountId -> BalanceModel[] for efficient first entry lookup
+  // - dataByAccount: accountId -> Balances.default[] for efficient first entry lookup
   const dataByAccountAndDate = new Map<string, number>();
-  const dataByAccount = new Map<number, BalanceModel[]>();
+  const dataByAccount = new Map<number, Balances.default[]>();
   for (const item of data) {
-    dataByAccountAndDate.set(`${item.accountId}_${formatDate(item.date)}`, item.amount);
+    // raw: true bypasses MoneyColumn getter, so amount is raw cents integer
+    dataByAccountAndDate.set(`${item.accountId}_${formatDate(item.date)}`, item.amount as unknown as number);
 
     const accountItems = dataByAccount.get(item.accountId);
     if (accountItems) {
@@ -215,7 +219,8 @@ function aggregateBalanceTrendData(data: BalanceModel[], from?: string, to?: str
 
     for (const date of allDates) {
       if (date > firstEntryDateStr) break; // dates are sorted, no need to continue
-      filledDataPerAccount[accountId][date] = firstEntry.amount;
+      // raw: true bypasses MoneyColumn getter, so amount is raw cents integer
+      filledDataPerAccount[accountId][date] = firstEntry.amount as unknown as number;
     }
   }
 

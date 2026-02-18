@@ -1,4 +1,5 @@
-import { ACCOUNT_TYPES, CentsAmount, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, asCents } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -102,14 +103,14 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
   const transactionType = isSystemAccount ? newData.transactionType : prevData.transactionType;
 
   const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams & {
-    amount: CentsAmount;
-    refAmount: CentsAmount;
+    amount: Money;
+    refAmount: Money;
     currencyCode: string;
     time: Date;
   } = {
     id: newData.id,
-    amount: newData.amount !== undefined ? asCents(newData.amount) : asCents(prevData.amount),
-    refAmount: newData.amount !== undefined ? asCents(newData.amount) : asCents(prevData.refAmount),
+    amount: newData.amount !== undefined ? newData.amount : prevData.amount,
+    refAmount: newData.amount !== undefined ? newData.amount : prevData.refAmount,
     note: newData.note,
     time: newData.time ?? prevData.time,
     userId: newData.userId,
@@ -181,11 +182,10 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
             },
           },
           attributes: ['refAmount'],
-          raw: true,
         });
-        const sum = newTransactions.reduce((acc, curr) => (acc += curr.refAmount), 0);
+        const sum = Money.sum(newTransactions.map((curr) => curr.refAmount));
 
-        if (sum > baseTransactionUpdateParams.refAmount) {
+        if (sum.greaterThan(baseTransactionUpdateParams.refAmount)) {
           throw new ValidationError({
             message: t({ key: 'transactions.refundExceedsOriginal' }),
           });
@@ -276,8 +276,8 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
   let updateOppositeTxParams = removeUndefinedKeys({
     id: oppositeTx.id,
     userId,
-    amount: destinationAmount !== undefined ? asCents(destinationAmount) : undefined,
-    refAmount: asCents(baseTransaction.refAmount),
+    amount: destinationAmount !== undefined ? destinationAmount : undefined,
+    refAmount: baseTransaction.refAmount,
     transactionType: TRANSACTION_TYPES.income,
     accountId: destinationAccountId,
     note,
@@ -309,7 +309,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     date: baseTransaction.time,
   });
 
-  updateOppositeTxParams.refAmount = asCents(oppositeRefAmount);
+  updateOppositeTxParams.refAmount = oppositeRefAmount;
   baseTransaction = updatedBaseTransaction;
 
   const destinationTransaction = await Transactions.updateTransactionById(updateOppositeTxParams);

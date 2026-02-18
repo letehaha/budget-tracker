@@ -109,3 +109,9 @@ Other instructions:
    - If a feature needs translations, mention it in your response and let the user decide when to add them
 8. For Chrome extenstion use Brave browser, not Chrome
 9. **Frontend env vars (`VITE_*`) must also be added to CI** — they are inlined at build time. Add as input + envkey in `.github/actions/frontend-docker-build/action.yml`, then pass the secret in `.github/workflows/image-to-docker-hub.yml`.
+10. **VERY IMPORTANT: Stop Early When Stuck**
+    - If something doesn't work as expected during implementation, you are allowed **1–2 attempts** to fix it.
+    - After that — **STOP**. Do NOT keep trying workarounds, custom scripts, eval hacks, or speculative fixes.
+    - Instead, **describe the problem to the user** and ask what to do next.
+    - This applies to debugging, unexpected behavior, failing builds, type errors you can't resolve, etc.
+    - Burning tokens on a long chain of guesses almost never helps. Asking the user is always better.

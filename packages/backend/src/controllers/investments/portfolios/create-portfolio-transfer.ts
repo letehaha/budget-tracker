@@ -29,5 +29,13 @@ export default createController(schema, async ({ user, params, body }) => {
     description: body.description || null,
   });
 
-  return { data: transfer };
+  const json = transfer.toJSON();
+
+  return {
+    data: {
+      ...json,
+      amount: transfer.amount.toDecimalString(10),
+      refAmount: transfer.refAmount.toDecimalString(10),
+    },
+  };
 });

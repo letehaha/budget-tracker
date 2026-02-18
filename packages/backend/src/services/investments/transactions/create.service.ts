@@ -1,5 +1,6 @@
-import { TRANSACTION_TYPES, asCents } from '@bt/shared/types';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
@@ -46,23 +47,23 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
   // Business rule: Allow selling more than owned (phantom shares treated as zero cost basis)
   // The gains calculation and recalculation services will handle this scenario
 
-  const amount = new Big(quantity).times(new Big(price)).plus(new Big(fees)).toFixed(10);
+  const amountStr = new Big(quantity).times(new Big(price)).plus(new Big(fees)).toFixed(10);
 
   const [refAmount, refPrice, refFees] = await Promise.all([
     calculateRefAmount({
-      amount: asCents(parseFloat(amount)),
+      amount: Money.fromDecimal(amountStr),
       userId,
       date,
       baseCode: holding.currencyCode,
     }),
     calculateRefAmount({
-      amount: asCents(parseFloat(price)),
+      amount: Money.fromDecimal(price),
       userId,
       date,
       baseCode: holding.currencyCode,
     }),
     calculateRefAmount({
-      amount: asCents(parseFloat(fees)),
+      amount: Money.fromDecimal(fees),
       userId,
       date,
       baseCode: holding.currencyCode,
@@ -71,10 +72,10 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
 
   const newTx = await InvestmentTransaction.create({
     ...params,
-    amount,
-    refAmount: refAmount.toString(),
-    refPrice: refPrice.toString(),
-    refFees: refFees.toString(),
+    amount: amountStr,
+    refAmount,
+    refPrice,
+    refFees,
     transactionType:
       category === INVESTMENT_TRANSACTION_CATEGORY.buy ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
   });

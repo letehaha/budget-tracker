@@ -1,31 +1,35 @@
 /**
  * Account Serializers
  *
- * Handles conversion between internal cents representation and API decimal format.
- * - Serializers: DB (cents) → API (decimal)
- * - Deserializers: API (decimal) → DB (cents)
+ * Serializes account model instances for API responses.
+ * Money fields auto-convert via .toNumber().
  */
-import {
-  type AccountModel,
-  type AccountWithRelinkStatus,
-  type DecimalAmount,
-  asCents,
-  toDecimal,
-} from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import type Accounts from '@models/Accounts.model';
+
+/**
+ * Convert a money field to API decimal. Handles both:
+ * - Money objects (from model instances) → .toNumber()
+ * - Raw cents numbers (from raw: true queries) → cents / 100
+ */
+function centsToApi(val: Money | number): number {
+  if (Money.isMoney(val)) return val.toNumber();
+  return (val as number) / 100;
+}
 
 // ============================================================================
-// Response Types (API format with DecimalAmount)
+// Response Types
 // ============================================================================
 
 export interface AccountApiResponse {
   id: number;
   name: string;
-  initialBalance: DecimalAmount;
-  refInitialBalance: DecimalAmount;
-  currentBalance: DecimalAmount;
-  refCurrentBalance: DecimalAmount;
-  creditLimit: DecimalAmount;
-  refCreditLimit: DecimalAmount;
+  initialBalance: number;
+  refInitialBalance: number;
+  currentBalance: number;
+  refCurrentBalance: number;
+  creditLimit: number;
+  refCreditLimit: number;
   type: string;
   accountCategory: string;
   currencyCode: string;
@@ -43,18 +47,17 @@ export interface AccountApiResponse {
 
 /**
  * Serialize an account from DB format to API response
- * Accepts AccountModel, AccountWithRelinkStatus, or the Sequelize model
  */
-export function serializeAccount(account: AccountModel | AccountWithRelinkStatus): AccountApiResponse {
+export function serializeAccount(account: Accounts & { needsRelink?: boolean }): AccountApiResponse {
   const response: AccountApiResponse = {
     id: account.id,
     name: account.name,
-    initialBalance: toDecimal(asCents(account.initialBalance)),
-    refInitialBalance: toDecimal(asCents(account.refInitialBalance)),
-    currentBalance: toDecimal(asCents(account.currentBalance)),
-    refCurrentBalance: toDecimal(asCents(account.refCurrentBalance)),
-    creditLimit: toDecimal(asCents(account.creditLimit)),
-    refCreditLimit: toDecimal(asCents(account.refCreditLimit)),
+    initialBalance: centsToApi(account.initialBalance),
+    refInitialBalance: centsToApi(account.refInitialBalance),
+    currentBalance: centsToApi(account.currentBalance),
+    refCurrentBalance: centsToApi(account.refCurrentBalance),
+    creditLimit: centsToApi(account.creditLimit),
+    refCreditLimit: centsToApi(account.refCreditLimit),
     type: account.type,
     accountCategory: account.accountCategory,
     currencyCode: account.currencyCode,
@@ -65,8 +68,7 @@ export function serializeAccount(account: AccountModel | AccountWithRelinkStatus
     bankDataProviderConnectionId: account.bankDataProviderConnectionId ?? null,
   };
 
-  // Include needsRelink if present (from AccountWithRelinkStatus)
-  if ('needsRelink' in account) {
+  if (account.needsRelink !== undefined) {
     response.needsRelink = account.needsRelink;
   }
 
@@ -76,6 +78,6 @@ export function serializeAccount(account: AccountModel | AccountWithRelinkStatus
 /**
  * Serialize multiple accounts
  */
-export function serializeAccounts(accounts: (AccountModel | AccountWithRelinkStatus)[]): AccountApiResponse[] {
+export function serializeAccounts(accounts: (Accounts & { needsRelink?: boolean })[]): AccountApiResponse[] {
   return accounts.map(serializeAccount);
 }

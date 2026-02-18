@@ -126,7 +126,7 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
       id: account.id,
       name: account.name,
       externalId: account.externalId,
-      currentBalance: account.currentBalance,
+      currentBalance: account.currentBalance.toNumber(),
       currencyCode: account.currencyCode,
       type: account.type,
     })),

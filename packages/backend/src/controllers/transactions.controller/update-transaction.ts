@@ -1,5 +1,6 @@
-import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, parseToCents } from '@bt/shared/types';
+import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
+import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { removeUndefinedKeys } from '@js/helpers';
 import { serializeTransactionTuple } from '@root/serializers';
@@ -119,19 +120,19 @@ export default createController(schema, async ({ user, params, body }) => {
   } = body;
   const { id: userId } = user;
 
-  // Convert decimal amounts to cents
-  const amountInCents = amount !== undefined ? parseToCents(amount) : undefined;
-  const destinationAmountInCents = destinationAmount !== undefined ? parseToCents(destinationAmount) : undefined;
-  const splitsInCents = splits?.map((split) => ({
+  // Convert decimal amounts to Money
+  const amountAsMoney = amount !== undefined ? Money.fromDecimal(amount) : undefined;
+  const destinationAmountAsMoney = destinationAmount !== undefined ? Money.fromDecimal(destinationAmount) : undefined;
+  const splitsAsMoney = splits?.map((split) => ({
     ...split,
-    amount: parseToCents(split.amount),
+    amount: Money.fromDecimal(split.amount),
   }));
 
   const transactions = await transactionsService.updateTransaction({
     id: parseInt(id),
     ...removeUndefinedKeys({
-      amount: amountInCents,
-      destinationAmount: destinationAmountInCents,
+      amount: amountAsMoney,
+      destinationAmount: destinationAmountAsMoney,
       destinationTransactionId,
       note,
       time: time ? new Date(time) : undefined,
@@ -147,7 +148,7 @@ export default createController(schema, async ({ user, params, body }) => {
       refundsSplitId,
     }),
     // splits can be null to clear all splits, so don't use removeUndefinedKeys
-    ...(splits !== undefined ? { splits: splits === null ? null : splitsInCents } : {}),
+    ...(splits !== undefined ? { splits: splits === null ? null : splitsAsMoney } : {}),
     // tagIds can be null to clear all tags, so don't use removeUndefinedKeys
     ...(tagIds !== undefined ? { tagIds } : {}),
   });

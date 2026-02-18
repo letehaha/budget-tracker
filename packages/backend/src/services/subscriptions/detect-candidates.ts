@@ -128,8 +128,8 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
     raw: true,
   });
 
-  // Filter out linked transactions in-memory (raw: true returns plain objects)
-  const transactions = (rawTransactions as TransactionForGrouping[]).filter((tx) => !linkedSet.has(tx.id));
+  // Filter out linked transactions in-memory (raw: true returns plain objects with raw cents, not Money)
+  const transactions = (rawTransactions as unknown as TransactionForGrouping[]).filter((tx) => !linkedSet.has(tx.id));
 
   if (transactions.length === 0) {
     logger.info(`[detect-candidates] No qualifying transactions for user ${userId}`);

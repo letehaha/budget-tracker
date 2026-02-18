@@ -1,5 +1,6 @@
-import { TRANSACTION_TYPES, asCents } from '@bt/shared/types';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
@@ -48,19 +49,19 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
 
   // Business rule: Check for sufficient shares when updating to a sell transaction
   const finalCategory = updateFields.category ?? transaction.category;
-  const finalQuantity = updateFields.quantity ?? transaction.quantity;
+  const finalQuantity = updateFields.quantity ?? transaction.quantity.toDecimalString(10);
 
   if (finalCategory === INVESTMENT_TRANSACTION_CATEGORY.sell) {
     // Calculate what the quantity would be after removing this transaction's effect
     // then check if we have enough for the new quantity
-    let adjustedHoldingQuantity = new Big(holding.quantity);
+    let adjustedHoldingQuantity = new Big(holding.quantity.toDecimalString(10));
 
     // If this transaction was originally a buy, we need to subtract its quantity
     // If it was originally a sell, we need to add its quantity back
     if (transaction.category === INVESTMENT_TRANSACTION_CATEGORY.buy) {
-      adjustedHoldingQuantity = adjustedHoldingQuantity.minus(new Big(transaction.quantity));
+      adjustedHoldingQuantity = adjustedHoldingQuantity.minus(new Big(transaction.quantity.toDecimalString(10)));
     } else if (transaction.category === INVESTMENT_TRANSACTION_CATEGORY.sell) {
-      adjustedHoldingQuantity = adjustedHoldingQuantity.plus(new Big(transaction.quantity));
+      adjustedHoldingQuantity = adjustedHoldingQuantity.plus(new Big(transaction.quantity.toDecimalString(10)));
     }
 
     const sellQuantity = new Big(finalQuantity);
@@ -99,25 +100,25 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
   }
 
   if (updateFields.quantity !== undefined) {
-    updateData.quantity = updateFields.quantity;
+    updateData.quantity = Money.fromDecimal(updateFields.quantity);
   }
 
   if (updateFields.price !== undefined) {
-    updateData.price = updateFields.price;
+    updateData.price = Money.fromDecimal(updateFields.price);
   }
 
   if (updateFields.fees !== undefined) {
-    updateData.fees = updateFields.fees;
+    updateData.fees = Money.fromDecimal(updateFields.fees);
   }
 
   // Recalculate amount if quantity or price changed
-  const newQuantity = updateFields.quantity ?? transaction.quantity;
-  const newPrice = updateFields.price ?? transaction.price;
-  const newFees = updateFields.fees ?? transaction.fees;
+  const newQuantity = updateFields.quantity ?? transaction.quantity.toDecimalString(10);
+  const newPrice = updateFields.price ?? transaction.price.toDecimalString(10);
+  const newFees = updateFields.fees ?? transaction.fees.toDecimalString(10);
   const newDate = updateFields.date ?? transaction.date;
 
   const amount = new Big(newQuantity).times(new Big(newPrice)).plus(new Big(newFees)).toFixed(10);
-  updateData.amount = amount;
+  updateData.amount = Money.fromDecimal(amount);
 
   // Recalculate reference amounts if relevant fields changed
   const needsRefAmountRecalc =
@@ -130,28 +131,28 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
     if (holding) {
       const [refAmount, refPrice, refFees] = await Promise.all([
         calculateRefAmount({
-          amount: asCents(parseFloat(amount)),
+          amount: Money.fromDecimal(amount),
           userId,
           date: newDate,
           baseCode: holding.currencyCode,
         }),
         calculateRefAmount({
-          amount: asCents(parseFloat(newPrice)),
+          amount: Money.fromDecimal(newPrice),
           userId,
           date: newDate,
           baseCode: holding.currencyCode,
         }),
         calculateRefAmount({
-          amount: asCents(parseFloat(newFees)),
+          amount: Money.fromDecimal(newFees),
           userId,
           date: newDate,
           baseCode: holding.currencyCode,
         }),
       ]);
 
-      updateData.refAmount = refAmount.toString();
-      updateData.refPrice = refPrice.toString();
-      updateData.refFees = refFees.toString();
+      updateData.refAmount = refAmount;
+      updateData.refPrice = refPrice;
+      updateData.refFees = refFees;
     }
   }
 

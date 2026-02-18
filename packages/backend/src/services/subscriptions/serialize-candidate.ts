@@ -1,4 +1,4 @@
-import { asCents, toDecimal } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import SubscriptionCandidates from '@models/SubscriptionCandidates.model';
 import Subscriptions from '@models/Subscriptions.model';
 
@@ -53,7 +53,7 @@ export function serializeCandidate({
     id: json.id,
     suggestedName: json.suggestedName,
     detectedFrequency: json.detectedFrequency,
-    averageAmount: toDecimal(asCents(json.averageAmount)),
+    averageAmount: Money.fromCents(json.averageAmount).toNumber(),
     currencyCode: json.currencyCode,
     accountId: json.accountId,
     sampleTransactionIds: json.sampleTransactionIds,

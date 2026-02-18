@@ -1,6 +1,7 @@
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import Securities from "./Securities.model";
-import { SecurityPricingModel } from "@bt/shared/types/investments"
+import { Money } from '@common/types/money';
+import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 
 /**
  * Represents the dynamic pricing information of financial securities over time.
@@ -21,7 +22,7 @@ import { SecurityPricingModel } from "@bt/shared/types/investments"
     },
   ],
 })
-export default class SecurityPricing extends Model implements SecurityPricingModel {
+export default class SecurityPricing extends Model {
   @Column({
     primaryKey: true,
     autoIncrement: true,
@@ -45,8 +46,9 @@ export default class SecurityPricing extends Model implements SecurityPricingMod
    * financial analysis and reporting as they represent the final price at which the security was traded
    * during the trading session.
    */
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
-  priceClose!: string;
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get priceClose(): Money { return moneyGetDecimal(this, 'priceClose'); }
+  set priceClose(val: Money | string | number) { moneySetDecimal(this, 'priceClose', val, 10); }
 
   /**
    * (Optional) The timestamp indicating the specific time the priceClose was recorded. This is particularly

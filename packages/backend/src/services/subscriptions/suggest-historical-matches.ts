@@ -1,4 +1,4 @@
-import { CentsAmount, SubscriptionMatchingRule, asCents } from '@bt/shared/types';
+import { SubscriptionMatchingRule } from '@bt/shared/types';
 import SubscriptionTransactions from '@models/SubscriptionTransactions.model';
 import * as Transactions from '@models/Transactions.model';
 import { serializeTransactions } from '@root/serializers/transactions.serializer';
@@ -163,11 +163,12 @@ async function filterByCrossCurrencyAmount({
     let matchesAllRules = true;
 
     for (const rule of rules) {
-      let amount = Math.abs(tx.amount);
+      let amount = tx.amount.abs();
 
       // If currencies match, compare directly
       if (tx.currencyCode === rule.currencyCode) {
-        if (amount < rule.min || amount > rule.max) {
+        const amountCents = amount.toCents();
+        if (amountCents < rule.min || amountCents > rule.max) {
           matchesAllRules = false;
           break;
         }
@@ -177,7 +178,7 @@ async function filterByCrossCurrencyAmount({
       // Cross-currency: convert transaction amount to rule's currency
       try {
         const converted = await calculateRefAmount({
-          amount: asCents(amount) as CentsAmount,
+          amount,
           userId,
           date: tx.time,
           baseCode: tx.currencyCode,
@@ -193,8 +194,8 @@ async function filterByCrossCurrencyAmount({
       // Apply tolerance (same as matching-engine.ts)
       const tolerantMin = Math.floor(rule.min * (1 - CROSS_CURRENCY_TOLERANCE));
       const tolerantMax = Math.ceil(rule.max * (1 + CROSS_CURRENCY_TOLERANCE));
-
-      if (amount < tolerantMin || amount > tolerantMax) {
+      const amountCents = amount.toCents();
+      if (amountCents < tolerantMin || amountCents > tolerantMax) {
         matchesAllRules = false;
         break;
       }

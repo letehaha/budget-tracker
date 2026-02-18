@@ -1,4 +1,4 @@
-import { asCents } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -265,8 +265,8 @@ describe('Query transactions with splits', () => {
         raw: true,
         includeSplits: true,
         accountIds: [account.id],
-        amountGte: asCents(100),
-        amountLte: asCents(1000),
+        amountGte: Money.fromDecimal(100),
+        amountLte: Money.fromDecimal(1000),
       });
 
       expect(transactions).toHaveLength(1);

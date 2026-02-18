@@ -1,4 +1,4 @@
-import { asCents } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
@@ -87,7 +87,7 @@ const getPortfolioSummaryImpl = async ({
 
     // Convert realized gain to base currency (still needed as it's in original currency)
     const realizedGainInBase = await calculateRefAmount({
-      amount: asCents(parseFloat(holding.realizedGainValue || '0')),
+      amount: Money.fromDecimal(holding.realizedGainValue || '0'),
       userId,
       date: conversionDate,
       baseCode: holding.currencyCode,
@@ -97,7 +97,7 @@ const getPortfolioSummaryImpl = async ({
     totalCurrentValueInBase += marketValueInBase;
     totalCostBasisInBase += costBasisInBase;
     totalUnrealizedGainInBase += unrealizedGainInBase;
-    totalRealizedGainInBase += realizedGainInBase;
+    totalRealizedGainInBase += realizedGainInBase.toNumber();
   }
 
   // Calculate percentages

@@ -12,14 +12,14 @@ import Holdings from './Holdings.model';
 import InvestmentTransactions from './InvestmentTransaction.model';
 import SecurityPricing from "./SecurityPricing.model";
 
-import { SecurityModel, SECURITY_PROVIDER, ASSET_CLASS } from "@bt/shared/types/investments"
+import { SECURITY_PROVIDER, ASSET_CLASS } from "@bt/shared/types/investments"
 
 @Table({
   tableName: 'Securities',
   freezeTableName: true,
   timestamps: true,
 })
-export default class Securities extends Model implements SecurityModel {
+export default class Securities extends Model {
   @Column({
     primaryKey: true,
     autoIncrement: true,

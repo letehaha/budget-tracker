@@ -58,7 +58,7 @@ const getManualBudgetStats = async ({
       attributes: ['time', 'amount', 'refAmount', 'transactionType'],
     });
 
-  return aggregateTransactionStats({ transactions, limitAmount: budgetDetails.limitAmount });
+  return aggregateTransactionStats({ transactions, limitAmount: budgetDetails.limitAmount?.toCents() ?? null });
 };
 
 /**
@@ -136,11 +136,11 @@ const getCategoryBudgetStats = async ({
     const isExpense = tx.transactionType === TRANSACTION_TYPES.expense;
 
     if (isExpense) {
-      result.summary.actualExpense += tx.refAmount;
-      result.summary.balance -= tx.refAmount;
+      result.summary.actualExpense += tx.refAmount.toCents();
+      result.summary.balance -= tx.refAmount.toCents();
     } else {
-      result.summary.actualIncome += tx.refAmount;
-      result.summary.balance += tx.refAmount;
+      result.summary.actualIncome += tx.refAmount.toCents();
+      result.summary.balance += tx.refAmount.toCents();
     }
 
     updateDateRange(result, tx.time);
@@ -155,11 +155,11 @@ const getCategoryBudgetStats = async ({
     const isExpense = transaction.transactionType === TRANSACTION_TYPES.expense;
 
     if (isExpense) {
-      result.summary.actualExpense += split.refAmount;
-      result.summary.balance -= split.refAmount;
+      result.summary.actualExpense += split.refAmount.toCents();
+      result.summary.balance -= split.refAmount.toCents();
     } else {
-      result.summary.actualIncome += split.refAmount;
-      result.summary.balance += split.refAmount;
+      result.summary.actualIncome += split.refAmount.toCents();
+      result.summary.balance += split.refAmount.toCents();
     }
 
     updateDateRange(result, transaction.time);
@@ -169,7 +169,7 @@ const getCategoryBudgetStats = async ({
 
   if (budgetDetails.limitAmount) {
     const netSpending = Math.max(0, -result.summary.balance);
-    result.summary.utilizationRate = (netSpending / budgetDetails.limitAmount) * 100;
+    result.summary.utilizationRate = (netSpending / budgetDetails.limitAmount.toCents()) * 100;
   }
 
   return result;
@@ -200,13 +200,15 @@ const aggregateTransactionStats = ({
 }): StatsResponse => {
   const result = transactions.reduce((acc, curr) => {
     const isExpense = curr.transactionType === TRANSACTION_TYPES.expense;
+    // isRaw: true bypasses MoneyColumn getter, so refAmount is raw cents integer
+    const refAmount = curr.refAmount as unknown as number;
 
     if (isExpense) {
-      acc.summary.actualExpense += curr.refAmount;
-      acc.summary.balance -= curr.refAmount;
+      acc.summary.actualExpense += refAmount;
+      acc.summary.balance -= refAmount;
     } else {
-      acc.summary.actualIncome += curr.refAmount;
-      acc.summary.balance += curr.refAmount;
+      acc.summary.actualIncome += refAmount;
+      acc.summary.balance += refAmount;
     }
 
     updateDateRange(acc, curr.time);

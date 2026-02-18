@@ -1,5 +1,6 @@
-import { ACCOUNT_CATEGORIES, API_RESPONSE_STATUS, TRANSACTION_TYPES, asCents } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, API_RESPONSE_STATUS, TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import { faker } from '@faker-js/faker';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -604,7 +605,7 @@ describe('Change Base Currency', () => {
         expect(updatedUahTransactions[i]!.amount).toEqual(originalUahTransactions[i]!.amount);
         expect(updatedUahTransactions[i]!.currencyCode).toEqual('UAH');
         // RefAmount should have changed (unless it was 0)
-        if (originalUahTransactions[i]!.amount !== 0) {
+        if (Number(originalUahTransactions[i]!.amount) !== 0) {
           expect(updatedUahTransactions[i]!.refAmount).not.toEqual(originalUahTransactions[i]!.refAmount);
         }
       }
@@ -613,7 +614,7 @@ describe('Change Base Currency', () => {
         expect(updatedEurTransactions[i]!.amount).toEqual(originalEurTransactions[i]!.amount);
         expect(updatedEurTransactions[i]!.currencyCode).toEqual('EUR');
         // RefAmount should have changed (unless it was 0)
-        if (originalEurTransactions[i]!.amount !== 0) {
+        if (Number(originalEurTransactions[i]!.amount) !== 0) {
           expect(updatedEurTransactions[i]!.refAmount).not.toEqual(originalEurTransactions[i]!.refAmount);
         }
       }
@@ -657,17 +658,17 @@ describe('Change Base Currency', () => {
 
       // Validate UAH transaction calculation using the actual service function
       const expectedUahRefAmount = calculateRefAmountFromParams({
-        amount: asCents(sampleUahTx.amount),
+        amount: Money.fromCents(Number(sampleUahTx.amount)),
         rate: uahExchangeRate.rate,
       });
-      expect(sampleUahTx.refAmount).toEqualRefValue(expectedUahRefAmount);
+      expect(Number(sampleUahTx.refAmount)).toEqualRefValue(expectedUahRefAmount.toCents());
 
       // Validate EUR transaction calculation using the actual service function
       const expectedEurRefAmount = calculateRefAmountFromParams({
-        amount: asCents(sampleEurTx.amount),
+        amount: Money.fromCents(Number(sampleEurTx.amount)),
         rate: eurExchangeRate.rate,
       });
-      expect(sampleEurTx.refAmount).toEqualRefValue(expectedEurRefAmount);
+      expect(Number(sampleEurTx.refAmount)).toEqualRefValue(expectedEurRefAmount.toCents());
 
       // Validate USD transaction (should be 1:1)
       expect(sampleUsdTx.refAmount).toEqual(sampleUsdTx.amount);
@@ -708,9 +709,9 @@ describe('Change Base Currency', () => {
       expect(updatedInvestmentTx!.price).toEqual(originalInvestmentTx!.price);
 
       // Investment tx is in USD, so ref values should equal original values
-      expect(parseFloat(updatedInvestmentTx!.refAmount)).toEqual(parseFloat(updatedInvestmentTx!.amount));
-      expect(parseFloat(updatedInvestmentTx!.refFees)).toEqual(parseFloat(updatedInvestmentTx!.fees));
-      expect(parseFloat(updatedInvestmentTx!.refPrice)).toEqual(parseFloat(updatedInvestmentTx!.price));
+      expect(updatedInvestmentTx!.refAmount.toNumber()).toEqual(updatedInvestmentTx!.amount.toNumber());
+      expect(updatedInvestmentTx!.refFees.toNumber()).toEqual(updatedInvestmentTx!.fees.toNumber());
+      expect(updatedInvestmentTx!.refPrice.toNumber()).toEqual(updatedInvestmentTx!.price.toNumber());
 
       // ========== STEP 10: Verify portfolio transfers were recalculated correctly ==========
 
@@ -721,7 +722,7 @@ describe('Change Base Currency', () => {
         expect(updatedTransfer.amount).toEqual(originalTransfer!.amount);
 
         // Transfer is in USD, so ref amount should equal amount
-        expect(parseFloat(updatedTransfer.refAmount)).toEqual(parseFloat(updatedTransfer.amount));
+        expect(updatedTransfer.refAmount.toNumber()).toEqual(updatedTransfer.amount.toNumber());
       }
       // Note: Portfolio transfers might not be updated in certain scenarios (e.g., self-transfers)
 
@@ -735,7 +736,7 @@ describe('Change Base Currency', () => {
       expect(updatedHolding!.refCostBasis).toBeDefined();
 
       // Holding is in USD, so ref cost basis should equal cost basis
-      expect(parseFloat(updatedHolding!.refCostBasis)).toEqual(parseFloat(updatedHolding!.costBasis));
+      expect(updatedHolding!.refCostBasis.toNumber()).toEqual(updatedHolding!.costBasis.toNumber());
 
       // ========== STEP 12: Verify portfolio balances were recalculated correctly ==========
 
@@ -748,10 +749,10 @@ describe('Change Base Currency', () => {
       expect(updatedPortfolioBalance!.totalCash).toEqual(originalPortfolioBalance!.totalCash);
 
       // Portfolio balance is in USD, so ref values should equal original values
-      expect(parseFloat(updatedPortfolioBalance!.refAvailableCash)).toEqual(
-        parseFloat(updatedPortfolioBalance!.availableCash),
+      expect(updatedPortfolioBalance!.refAvailableCash.toNumber()).toEqual(
+        updatedPortfolioBalance!.availableCash.toNumber(),
       );
-      expect(parseFloat(updatedPortfolioBalance!.refTotalCash)).toEqual(parseFloat(updatedPortfolioBalance!.totalCash));
+      expect(updatedPortfolioBalance!.refTotalCash.toNumber()).toEqual(updatedPortfolioBalance!.totalCash.toNumber());
 
       // ========== STEP 13: Verify balance history was rebuilt ==========
 
@@ -853,7 +854,7 @@ describe('Change Base Currency', () => {
         where: { accountId: accountWithInitialBalance.id },
       });
       expect(balanceAfterChange).toBeDefined();
-      expect(balanceAfterChange!.amount).toBeGreaterThan(0);
+      expect(balanceAfterChange!.amount.toNumber()).toBeGreaterThan(0);
 
       // Verify balance history is still available via API
       const balanceHistoryAfter = await helpers.makeRequest({

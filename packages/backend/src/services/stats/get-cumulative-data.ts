@@ -170,10 +170,11 @@ async function getPeriodData({
 
     const monthEntry = monthlyDataMap.get(monthKey)!;
 
+    // raw: true bypasses MoneyColumn getter, so refAmount is raw cents integer
     if (tx.transactionType === TRANSACTION_TYPES.income) {
-      monthEntry.income += tx.refAmount;
+      monthEntry.income += tx.refAmount as unknown as number;
     } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
-      monthEntry.expenses += Math.abs(tx.refAmount);
+      monthEntry.expenses += Math.abs(tx.refAmount as unknown as number);
     }
   }
 

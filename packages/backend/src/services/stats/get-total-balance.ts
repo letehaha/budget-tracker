@@ -22,7 +22,8 @@ export const getTotalBalance = async ({ userId, date }: { userId: number; date: 
     to: date,
   });
 
-  const totalBalance = balancesForDate.reduce((acc, value) => (acc += value.amount), 0);
+  // raw: true bypasses MoneyColumn getter, so amount is raw cents integer
+  const totalBalance = balancesForDate.reduce((acc, value) => (acc += value.amount as unknown as number), 0);
 
   return totalBalance;
 };

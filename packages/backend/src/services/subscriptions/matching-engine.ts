@@ -1,10 +1,5 @@
-import {
-  CATEGORIZATION_SOURCE,
-  CentsAmount,
-  SUBSCRIPTION_MATCH_SOURCE,
-  SubscriptionMatchingRule,
-  asCents,
-} from '@bt/shared/types';
+import { CATEGORIZATION_SOURCE, SUBSCRIPTION_MATCH_SOURCE, SubscriptionMatchingRule } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import SubscriptionTransactions from '@models/SubscriptionTransactions.model';
 import Subscriptions from '@models/Subscriptions.model';
@@ -125,14 +120,14 @@ async function calculateMatchScore({
     return 0;
   }
 
-  let txAmountInSubCurrency: number;
+  let txAmountInSubCurrency: Money;
 
   if (transaction.currencyCode === subscription.expectedCurrencyCode) {
-    txAmountInSubCurrency = Math.abs(transaction.amount);
+    txAmountInSubCurrency = transaction.amount.abs();
   } else {
     try {
       const converted = await calculateRefAmount({
-        amount: asCents(Math.abs(transaction.amount)),
+        amount: transaction.amount.abs(),
         userId,
         date: transaction.time,
         baseCode: transaction.currencyCode,
@@ -145,8 +140,8 @@ async function calculateMatchScore({
     }
   }
 
-  const expected = subscription.expectedAmount;
-  const deviation = Math.abs(txAmountInSubCurrency - expected) / expected;
+  const expected = Money.fromCents(subscription.expectedAmount);
+  const deviation = txAmountInSubCurrency.subtract(expected).abs().toNumber() / expected.toNumber();
 
   // score = 1 - deviation, clamped to [0, 1]
   return Math.max(0, 1 - deviation);
@@ -162,17 +157,18 @@ async function evaluateRule({ rule, transaction, userId }: EvaluateRuleParams): 
     case 'amount': {
       if (rule.operator !== 'between' || typeof rule.value !== 'object' || Array.isArray(rule.value)) return false;
       const { min, max } = rule.value as { min: number; max: number };
-      let amount = Math.abs(transaction.amount);
+      let amount = transaction.amount.abs();
 
       // If currencies match or no currency specified, compare directly
       if (!rule.currencyCode || rule.currencyCode === transaction.currencyCode) {
-        return amount >= min && amount <= max;
+        const amountCents = amount.toCents();
+        return amountCents >= min && amountCents <= max;
       }
 
       // Cross-currency: convert transaction amount to rule's currency, then compare with ±5% tolerance
       try {
         const converted = await calculateRefAmount({
-          amount: asCents(amount) as CentsAmount,
+          amount,
           userId,
           date: transaction.time,
           baseCode: transaction.currencyCode,
@@ -187,7 +183,8 @@ async function evaluateRule({ rule, transaction, userId }: EvaluateRuleParams): 
       const tolerance = 0.05;
       const tolerantMin = Math.floor(min * (1 - tolerance));
       const tolerantMax = Math.ceil(max * (1 + tolerance));
-      return amount >= tolerantMin && amount <= tolerantMax;
+      const amountCents = amount.toCents();
+      return amountCents >= tolerantMin && amountCents <= tolerantMax;
     }
     case 'transactionType': {
       if (rule.operator !== 'equals') return false;

@@ -1,4 +1,4 @@
-import { asCents } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
@@ -63,7 +63,7 @@ const createPortfolioTransferImpl = async ({
 
   // Calculate reference amount (converted to user's base currency)
   const refAmount = await calculateRefAmount({
-    amount: asCents(parseFloat(amount)),
+    amount: Money.fromDecimal(amount),
     baseCode: currency.code,
     userId,
     date: new Date(date),

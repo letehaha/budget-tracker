@@ -1,5 +1,6 @@
-import { type CentsAmount, TRANSACTION_TYPES, asCents, parseToCents } from '@bt/shared/types';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
+import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import Accounts from '@models/Accounts.model';
 import { getTransactionById } from '@models/Transactions.model';
@@ -41,7 +42,7 @@ export default createController(schema, async ({ user, query }) => {
   const { id: userId } = user;
 
   let searchTransactionType: TRANSACTION_TYPES;
-  let refAmountCenter: CentsAmount;
+  let refAmountCenter: Money;
 
   if (query.transactionId) {
     // Fetch the transaction and derive parameters
@@ -80,7 +81,7 @@ export default createController(schema, async ({ user, query }) => {
 
     // Calculate refAmount from the form amount
     refAmountCenter = await calculateRefAmount({
-      amount: parseToCents(originAmount!),
+      amount: Money.fromDecimal(originAmount!),
       userId,
       baseCode: account.currencyCode,
       date: new Date(),
@@ -88,8 +89,9 @@ export default createController(schema, async ({ user, query }) => {
   }
 
   // Calculate refAmount range
-  const refAmountGte = asCents(Math.max(0, refAmountCenter - RECOMMENDATION_REF_AMOUNT_RANGE));
-  const refAmountLte = asCents(refAmountCenter + RECOMMENDATION_REF_AMOUNT_RANGE);
+  const centerCents = refAmountCenter.toCents();
+  const refAmountGte = Money.fromCents(Math.max(0, centerCents - RECOMMENDATION_REF_AMOUNT_RANGE));
+  const refAmountLte = Money.fromCents(centerCents + RECOMMENDATION_REF_AMOUNT_RANGE);
 
   // Calculate date range (last 6 months)
   const endDate = new Date();

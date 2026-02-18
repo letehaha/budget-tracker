@@ -1,20 +1,19 @@
 /**
  * Balance Serializers
  *
- * Handles conversion between internal cents representation and API decimal format.
- * - Serializers: DB (cents) → API (decimal)
+ * Serializes balance model instances for API responses.
+ * Money fields auto-convert via .toNumber().
  */
-import { type DecimalAmount, asCents, toDecimal } from '@bt/shared/types';
 import type Balances from '@models/Balances.model';
 
 // ============================================================================
-// Response Types (API format with DecimalAmount)
+// Response Types
 // ============================================================================
 
 export interface BalanceApiResponse {
   id: number;
   date: Date;
-  amount: DecimalAmount;
+  amount: number;
   accountId: number;
 }
 
@@ -29,7 +28,7 @@ export function serializeBalance(balance: Balances): BalanceApiResponse {
   return {
     id: balance.id,
     date: balance.date,
-    amount: toDecimal(asCents(balance.amount)),
+    amount: balance.amount.toNumber(),
     accountId: balance.accountId,
   };
 }

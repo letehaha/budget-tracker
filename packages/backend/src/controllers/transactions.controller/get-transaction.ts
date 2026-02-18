@@ -1,11 +1,6 @@
-import {
-  ACCOUNT_TYPES,
-  CATEGORIZATION_SOURCE,
-  SORT_DIRECTIONS,
-  TRANSACTION_TYPES,
-  parseToCents,
-} from '@bt/shared/types';
+import { ACCOUNT_TYPES, CATEGORIZATION_SOURCE, SORT_DIRECTIONS, TRANSACTION_TYPES } from '@bt/shared/types';
 import { booleanQuery } from '@common/lib/zod/custom-types';
+import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeTransactions } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
@@ -108,9 +103,9 @@ const schema = z.object({
 export default createController(schema, async ({ user, query }) => {
   const { id: userId } = user;
 
-  // Convert decimal amount filters to cents for DB query
-  const amountGte = query.amountGte !== undefined ? parseToCents(query.amountGte) : undefined;
-  const amountLte = query.amountLte !== undefined ? parseToCents(query.amountLte) : undefined;
+  // Convert decimal amount filters to Money for DB query
+  const amountGte = query.amountGte !== undefined ? Money.fromDecimal(query.amountGte) : undefined;
+  const amountLte = query.amountLte !== undefined ? Money.fromDecimal(query.amountLte) : undefined;
 
   const transactions = await transactionsService.getTransactions({
     ...query,

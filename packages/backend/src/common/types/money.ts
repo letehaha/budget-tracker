@@ -14,10 +14,18 @@ import Big from 'big.js';
  * For investment fields with high precision, use `.toDecimalString(dp)` explicitly.
  */
 export class Money {
+  /** @internal Brand tag for duck-type identification. */
+  readonly __isMoney__ = true as const;
+
   private readonly value: Big;
 
   private constructor(value: Big) {
     this.value = value;
+  }
+
+  /** Reliable check that works across module copies (unlike instanceof). */
+  static isMoney(val: unknown): val is Money {
+    return val !== null && typeof val === 'object' && (val as { __isMoney__?: boolean }).__isMoney__ === true;
   }
 
   // ==========================================================================
@@ -51,7 +59,7 @@ export class Money {
    * Money.fromDecimal(existingMoney)    // idempotent passthrough
    */
   static fromDecimal(v: number | string | Money): Money {
-    if (v instanceof Money) {
+    if (Money.isMoney(v)) {
       return v;
     }
     if (typeof v === 'number' && !Number.isFinite(v)) {

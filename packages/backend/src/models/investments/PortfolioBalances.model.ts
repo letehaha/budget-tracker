@@ -11,13 +11,14 @@ import {
 import Portfolios from './Portfolios.model';
 import Currencies from '../Currencies.model';
 
-import { PortfolioBalanceModel } from "@bt/shared/types/investments";
+import { Money } from '@common/types/money';
+import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 
 @Table({
   timestamps: true,
   tableName: 'PortfolioBalances',
 })
-export default class PortfolioBalances extends Model implements PortfolioBalanceModel {
+export default class PortfolioBalances extends Model {
   @PrimaryKey
   @ForeignKey(() => Portfolios)
   @Index
@@ -30,17 +31,21 @@ export default class PortfolioBalances extends Model implements PortfolioBalance
   @Column({ type: DataType.STRING(3), allowNull: false })
   currencyCode!: string;
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  availableCash!: string;
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get availableCash(): Money { return moneyGetDecimal(this, 'availableCash'); }
+  set availableCash(val: Money | string | number) { moneySetDecimal(this, 'availableCash', val, 10); }
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  totalCash!: string;
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get totalCash(): Money { return moneyGetDecimal(this, 'totalCash'); }
+  set totalCash(val: Money | string | number) { moneySetDecimal(this, 'totalCash', val, 10); }
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  refAvailableCash!: string;
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get refAvailableCash(): Money { return moneyGetDecimal(this, 'refAvailableCash'); }
+  set refAvailableCash(val: Money | string | number) { moneySetDecimal(this, 'refAvailableCash', val, 10); }
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  refTotalCash!: string;
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get refTotalCash(): Money { return moneyGetDecimal(this, 'refTotalCash'); }
+  set refTotalCash(val: Money | string | number) { moneySetDecimal(this, 'refTotalCash', val, 10); }
 
   @Column({ type: DataType.DATE, allowNull: false })
   createdAt!: Date;

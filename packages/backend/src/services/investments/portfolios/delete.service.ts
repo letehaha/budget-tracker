@@ -32,7 +32,7 @@ const deletePortfolioImpl = async ({ userId, portfolioId, force = false }: Delet
     const hasTransactions = portfolio.investmentTransactions && portfolio.investmentTransactions.length > 0;
     const hasBalances =
       portfolio.balances &&
-      portfolio.balances.some((balance) => parseFloat(balance.totalCash) > 0 || parseFloat(balance.availableCash) > 0);
+      portfolio.balances.some((balance) => balance.totalCash.toNumber() > 0 || balance.availableCash.toNumber() > 0);
 
     if (hasActiveHoldings) {
       throw new ValidationError({

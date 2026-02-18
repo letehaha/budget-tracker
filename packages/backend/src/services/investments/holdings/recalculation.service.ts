@@ -1,4 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
@@ -25,9 +26,9 @@ const recalculateHoldingImpl = async (holdingId: { portfolioId: number; security
   let totalRefCostBasis = new Big(0);
 
   for (const tx of transactions) {
-    const quantity = new Big(tx.quantity);
-    const amount = new Big(tx.amount);
-    const refAmount = new Big(tx.refAmount);
+    const quantity = new Big(tx.quantity.toDecimalString(10));
+    const amount = new Big(tx.amount.toDecimalString(10));
+    const refAmount = new Big(tx.refAmount.toDecimalString(10));
 
     switch (tx.category) {
       case INVESTMENT_TRANSACTION_CATEGORY.buy:
@@ -62,9 +63,9 @@ const recalculateHoldingImpl = async (holdingId: { portfolioId: number; security
   }
 
   // Cap quantity at 0 (no negative holdings) but preserve cost basis calculations
-  holding.quantity = totalQuantity.lt(0) ? '0' : totalQuantity.toFixed(10);
-  holding.costBasis = totalCostBasis.lt(0) ? '0' : totalCostBasis.toFixed(10);
-  holding.refCostBasis = totalRefCostBasis.lt(0) ? '0' : totalRefCostBasis.toFixed(10);
+  holding.quantity = Money.fromDecimal(totalQuantity.lt(0) ? '0' : totalQuantity.toFixed(10));
+  holding.costBasis = Money.fromDecimal(totalCostBasis.lt(0) ? '0' : totalCostBasis.toFixed(10));
+  holding.refCostBasis = Money.fromDecimal(totalRefCostBasis.lt(0) ? '0' : totalRefCostBasis.toFixed(10));
   await holding.save();
 
   return holding;

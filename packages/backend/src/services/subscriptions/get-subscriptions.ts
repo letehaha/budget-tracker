@@ -1,4 +1,5 @@
-import { SUBSCRIPTION_LINK_STATUS, asCents, toDecimal } from '@bt/shared/types';
+import { SUBSCRIPTION_LINK_STATUS } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { NotFoundError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
@@ -54,7 +55,7 @@ export const getSubscriptions = async ({ userId, isActive, type }: GetSubscripti
     const plain = s.toJSON();
     return {
       ...plain,
-      expectedAmount: plain.expectedAmount !== null ? toDecimal(asCents(plain.expectedAmount)) : null,
+      expectedAmount: plain.expectedAmount !== null ? Money.fromCents(plain.expectedAmount).toNumber() : null,
       linkedTransactionsCount: Number((plain as Record<string, unknown>).linkedTransactionsCount ?? 0),
     };
   });
@@ -83,7 +84,7 @@ export const getSubscriptionById = async ({ id, userId }: { id: string; userId: 
   const raw = subscription.toJSON();
   const plain = {
     ...raw,
-    expectedAmount: raw.expectedAmount !== null ? toDecimal(asCents(raw.expectedAmount)) : null,
+    expectedAmount: raw.expectedAmount !== null ? Money.fromCents(raw.expectedAmount).toNumber() : null,
   };
   const nextExpectedDate = computeNextExpectedDate({
     startDate: plain.startDate,
@@ -91,14 +92,14 @@ export const getSubscriptionById = async ({ id, userId }: { id: string; userId: 
     transactions: plain.transactions,
   });
 
-  // Convert transaction amounts from cents to decimals
+  // Convert transaction Money instances to numbers for API response
   const serializedTransactions = (plain.transactions ?? []).map((tx: Record<string, unknown>) => ({
     ...tx,
-    amount: toDecimal(asCents(tx.amount as number)),
-    refAmount: toDecimal(asCents(tx.refAmount as number)),
-    commissionRate: toDecimal(asCents(tx.commissionRate as number)),
-    refCommissionRate: toDecimal(asCents(tx.refCommissionRate as number)),
-    cashbackAmount: toDecimal(asCents(tx.cashbackAmount as number)),
+    amount: (tx.amount as Money).toNumber(),
+    refAmount: (tx.refAmount as Money).toNumber(),
+    commissionRate: (tx.commissionRate as Money).toNumber(),
+    refCommissionRate: (tx.refCommissionRate as Money).toNumber(),
+    cashbackAmount: (tx.cashbackAmount as Money).toNumber(),
   }));
 
   return { ...plain, transactions: serializedTransactions, nextExpectedDate };

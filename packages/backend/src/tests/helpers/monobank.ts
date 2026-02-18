@@ -104,7 +104,7 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
       if (account) {
         // Regenerate mocked transactions with correct initial balance
         mockedTransactions = getMockedTransactionData(amount, {
-          initialBalance: account.initialBalance,
+          initialBalance: account.initialBalance.toCents(),
         });
       }
     } else {

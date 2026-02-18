@@ -1,4 +1,5 @@
-import { INVESTMENT_TRANSACTION_CATEGORY, parseToCents } from '@bt/shared/types';
+import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import ExchangeRates from '@models/ExchangeRates.model';
 import UserExchangeRates from '@models/UserExchangeRates.model';
@@ -141,7 +142,7 @@ const calculatePortfolioBalanceHistory = async ({
   const pricesBySecurityAndDate = new Map<string, number>(); // "securityId_date" -> price
   for (const price of securityPrices) {
     const dateStr = String(price.date);
-    const priceValue = parseFloat(price.priceClose);
+    const priceValue = parseFloat(String(price.priceClose));
 
     if (!pricesBySecurity.has(price.securityId)) {
       pricesBySecurity.set(price.securityId, []);
@@ -244,8 +245,8 @@ const calculatePortfolioBalanceHistory = async ({
         if (tx.date > dateStr) break;
 
         const securityId = tx.securityId;
-        const quantity = parseFloat(tx.quantity);
-        const totalAmount = parseFloat(tx.refAmount) + parseFloat(tx.refFees);
+        const quantity = parseFloat(String(tx.quantity));
+        const totalAmount = parseFloat(String(tx.refAmount)) + parseFloat(String(tx.refFees));
 
         if (!holdings.has(securityId)) {
           holdings.set(securityId, {
@@ -287,7 +288,7 @@ const calculatePortfolioBalanceHistory = async ({
       }
     }
 
-    portfolioValuesByDate.set(dateStr, parseToCents(totalValueForDate));
+    portfolioValuesByDate.set(dateStr, Money.fromDecimal(totalValueForDate).toCents());
   }
 
   return portfolioValuesByDate;

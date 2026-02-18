@@ -26,7 +26,7 @@ const deleteHoldingImpl = async ({ userId, portfolioId, securityId }: DeletePara
   // The user must sell or transfer all shares first.
   // TODO: improve this logic and let user delete even active positions. We just
   // need to confirm that user wants this, and if so - remove holding with(out) all transactions?
-  if (parseFloat(holding.quantity) !== 0) {
+  if (!holding.quantity.isZero()) {
     throw new NotAllowedError({
       message: t({ key: 'investments.cannotDeleteHoldingWithActivePosition' }),
     });

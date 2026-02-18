@@ -84,10 +84,10 @@ const getPortfolioBalanceHistoryImpl = async ({
   const balanceHistory: BalanceSnapshot[] = balances.map((balance) => ({
     portfolioId: balance.portfolioId,
     currencyCode: balance.currencyCode,
-    availableCash: balance.availableCash,
-    totalCash: balance.totalCash,
-    refAvailableCash: balance.refAvailableCash,
-    refTotalCash: balance.refTotalCash,
+    availableCash: balance.availableCash.toDecimalString(10),
+    totalCash: balance.totalCash.toDecimalString(10),
+    refAvailableCash: balance.refAvailableCash.toDecimalString(10),
+    refTotalCash: balance.refTotalCash.toDecimalString(10),
     snapshotDate: balance.updatedAt,
     currency: {
       code: balance.currency?.code || '',

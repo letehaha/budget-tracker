@@ -119,7 +119,8 @@ export async function detectDuplicates<T extends TransactionToCheck>({
   for (const tx of existingTransactions) {
     const dateStr = new Date(tx.time).toISOString().split('T')[0];
     const type = tx.transactionType === TRANSACTION_TYPES.income ? 'income' : 'expense';
-    const key = `${dateStr}:${Math.abs(tx.amount)}:${type}`;
+    // isRaw: true bypasses MoneyColumn getter, so amount is raw cents integer
+    const key = `${dateStr}:${Math.abs(tx.amount as unknown as number)}:${type}`;
 
     if (!existingMap.has(key)) {
       existingMap.set(key, []);
@@ -147,7 +148,8 @@ export async function detectDuplicates<T extends TransactionToCheck>({
       existing: {
         id: bestMatch.id,
         date: new Date(bestMatch.time).toISOString().split('T')[0]!,
-        amount: Math.abs(bestMatch.amount),
+        // isRaw: true bypasses MoneyColumn getter, so amount is raw cents integer
+        amount: Math.abs(bestMatch.amount as unknown as number),
         note: bestMatch.note || '',
       },
     });

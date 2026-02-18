@@ -11,13 +11,15 @@ import Users from '../Users.model';
 import Accounts from '../Accounts.model';
 import Portfolios from './Portfolios.model';
 import Currencies from '../Currencies.model';
-import { PortfolioTransferModel } from '@bt/shared/types/investments';
+
+import { Money } from '@common/types/money';
+import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 
 @Table({
   timestamps: true,
   tableName: 'PortfolioTransfers',
 })
-export default class PortfolioTransfers extends Model implements PortfolioTransferModel {
+export default class PortfolioTransfers extends Model {
   @Column({
     primaryKey: true,
     unique: true,
@@ -52,11 +54,13 @@ export default class PortfolioTransfers extends Model implements PortfolioTransf
   @Column({ type: DataType.INTEGER, allowNull: true })
   toAccountId!: number | null;
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
-  amount!: string;
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get amount(): Money { return moneyGetDecimal(this, 'amount'); }
+  set amount(val: Money | string | number) { moneySetDecimal(this, 'amount', val, 10); }
 
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false })
-  refAmount!: string;
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get refAmount(): Money { return moneyGetDecimal(this, 'refAmount'); }
+  set refAmount(val: Money | string | number) { moneySetDecimal(this, 'refAmount', val, 10); }
 
   @ForeignKey(() => Currencies)
   @Index

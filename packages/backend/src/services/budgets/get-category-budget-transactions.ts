@@ -1,11 +1,4 @@
-import {
-  BUDGET_TYPES,
-  type DecimalAmount,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-  asCents,
-  toDecimal,
-} from '@bt/shared/types';
+import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Budgets from '@models/Budget.model';
@@ -109,8 +102,8 @@ export const getCategoryBudgetTransactions = async ({
       id: tx.id,
       time: tx.time,
       transactionType: tx.transactionType,
-      refAmount: toDecimal(asCents(tx.refAmount)),
-      amount: toDecimal(asCents(tx.amount)),
+      refAmount: tx.refAmount.toNumber(),
+      amount: tx.amount.toNumber(),
       note: tx.note,
       categoryId: tx.categoryId,
       accountId: tx.accountId,
@@ -121,7 +114,7 @@ export const getCategoryBudgetTransactions = async ({
             color: category.color,
           }
         : undefined,
-      effectiveRefAmount: toDecimal(asCents(tx.refAmount)),
+      effectiveRefAmount: tx.refAmount.toNumber(),
     });
   }
 
@@ -136,8 +129,8 @@ export const getCategoryBudgetTransactions = async ({
       id: transaction.id,
       time: transaction.time,
       transactionType: transaction.transactionType,
-      refAmount: toDecimal(asCents(split.refAmount)),
-      amount: toDecimal(asCents(split.amount)),
+      refAmount: split.refAmount.toNumber(),
+      amount: split.amount.toNumber(),
       note: transaction.note,
       categoryId: split.categoryId,
       accountId: transaction.accountId,
@@ -148,7 +141,7 @@ export const getCategoryBudgetTransactions = async ({
             color: category.color,
           }
         : undefined,
-      effectiveRefAmount: toDecimal(asCents(split.refAmount)),
+      effectiveRefAmount: split.refAmount.toNumber(),
     });
 
     seenTransactionIds.add(transaction.id);
@@ -170,8 +163,8 @@ interface TransactionWithCategory {
   id: number;
   time: Date;
   transactionType: TRANSACTION_TYPES;
-  refAmount: DecimalAmount;
-  amount: DecimalAmount;
+  refAmount: number;
+  amount: number;
   note: string | null;
   categoryId: number | null;
   accountId: number;
@@ -182,7 +175,7 @@ interface TransactionWithCategory {
     color: string;
   };
   /** For split transactions, this is the split amount */
-  effectiveRefAmount?: DecimalAmount;
+  effectiveRefAmount?: number;
 }
 
 interface GetCategoryBudgetTransactionsParams {

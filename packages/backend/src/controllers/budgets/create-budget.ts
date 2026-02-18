@@ -1,4 +1,5 @@
-import { BUDGET_STATUSES, BUDGET_TYPES, parseToCents } from '@bt/shared/types';
+import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeBudget } from '@root/serializers';
 import * as budgetsService from '@root/services/budgets/create-budget';
@@ -40,7 +41,8 @@ export default createController(schema, async ({ user, body }) => {
     startDate: startDate ? new Date(startDate) : undefined,
     endDate: endDate ? new Date(endDate) : undefined,
     autoInclude,
-    limitAmount: limitAmount !== undefined && limitAmount !== null ? parseToCents(limitAmount) : limitAmount,
+    limitAmount:
+      limitAmount !== undefined && limitAmount !== null ? Money.fromDecimal(limitAmount).toCents() : limitAmount,
   });
 
   // Serialize: convert cents to decimal for API response

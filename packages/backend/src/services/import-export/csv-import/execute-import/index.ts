@@ -10,14 +10,13 @@ import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   CATEGORY_TYPES,
-  CentsAmount,
   ImportSource,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
-import { asCents } from '@js/helpers/system-amount';
 import { trackImportCompleted } from '@js/utils/posthog';
 import * as Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
@@ -119,7 +118,7 @@ async function executeImportImpl({
       // Note: row.amount is already in cents (from parseAmount in detect-duplicates)
       const refAmount = await calculateRefAmount({
         userId,
-        amount: row.amount as CentsAmount,
+        amount: Money.fromCents(row.amount),
         baseCode: row.currencyCode,
         date: new Date(row.date),
       });
@@ -133,7 +132,7 @@ async function executeImportImpl({
       // Create transaction
       const transaction = await Transactions.createTransaction({
         userId,
-        amount: row.amount as CentsAmount,
+        amount: Money.fromCents(row.amount),
         refAmount,
         note: row.description,
         time: new Date(row.date),
@@ -230,7 +229,7 @@ async function createAccountsIfNeeded({
       // Calculate ref values
       const refInitialBalance = await calculateRefAmount({
         userId,
-        amount: asCents(0),
+        amount: Money.zero(),
         baseCode: currencyCode,
         date: new Date(),
       });
@@ -242,10 +241,10 @@ async function createAccountsIfNeeded({
         currencyCode,
         accountCategory: ACCOUNT_CATEGORIES.general,
         type: ACCOUNT_TYPES.system,
-        initialBalance: asCents(0),
+        initialBalance: Money.zero(),
         refInitialBalance,
-        creditLimit: asCents(0),
-        refCreditLimit: asCents(0),
+        creditLimit: Money.zero(),
+        refCreditLimit: Money.zero(),
         isEnabled: true,
       });
 

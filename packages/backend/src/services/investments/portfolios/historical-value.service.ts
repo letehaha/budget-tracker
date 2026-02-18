@@ -1,5 +1,5 @@
-import { asCents } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
@@ -72,8 +72,8 @@ const calculateHoldingsAtDate = async (portfolioId: number, targetDate: Date): P
 
   for (const tx of transactions) {
     const securityId = tx.securityId;
-    const quantity = parseFloat(tx.quantity);
-    const totalAmount = parseFloat(tx.refAmount) + parseFloat(tx.refFees);
+    const quantity = tx.quantity.toNumber();
+    const totalAmount = tx.refAmount.toNumber() + tx.refFees.toNumber();
 
     if (!holdings.has(securityId)) {
       holdings.set(securityId, {
@@ -146,7 +146,7 @@ const getSecurityPricesForDates = async (securityIds: number[], dates: Date[]): 
     }
     pricesBySecurityId.get(securityId)!.push({
       date: String(price.date),
-      price: parseFloat(price.priceClose),
+      price: price.priceClose.toNumber(),
     });
   }
 
@@ -241,14 +241,14 @@ const calculatePortfolioValueAtDateImpl = async ({
 
       // Convert to base currency
       const marketValueInBase = await calculateRefAmount({
-        amount: asCents(marketValueInSecurityCurrency),
+        amount: Money.fromDecimal(marketValueInSecurityCurrency),
         userId,
         date,
         baseCode: holding.currencyCode,
         quoteCode: baseCurrencyCode,
       });
 
-      totalValue += marketValueInBase;
+      totalValue += marketValueInBase.toNumber();
     } else {
       // If no price available even after carry-forward logic, use cost basis as fallback
       // This should only happen for very new securities or data issues

@@ -1,4 +1,4 @@
-import { asCents } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
@@ -66,29 +66,29 @@ const updatePortfolioBalanceImpl = async ({
   if (setAvailableCash !== undefined) {
     newAvailableCash = setAvailableCash;
   } else if (availableCashDelta !== undefined) {
-    newAvailableCash = new Big(balance.availableCash).plus(new Big(availableCashDelta)).toFixed(10);
+    newAvailableCash = new Big(balance.availableCash.toDecimalString(10)).plus(new Big(availableCashDelta)).toFixed(10);
   } else {
-    newAvailableCash = balance.availableCash;
+    newAvailableCash = balance.availableCash.toDecimalString(10);
   }
 
   if (setTotalCash !== undefined) {
     newTotalCash = setTotalCash;
   } else if (totalCashDelta !== undefined) {
-    newTotalCash = new Big(balance.totalCash).plus(new Big(totalCashDelta)).toFixed(10);
+    newTotalCash = new Big(balance.totalCash.toDecimalString(10)).plus(new Big(totalCashDelta)).toFixed(10);
   } else {
-    newTotalCash = balance.totalCash;
+    newTotalCash = balance.totalCash.toDecimalString(10);
   }
 
   // Calculate reference amounts (converted to user's base currency)
   const refAvailableCash = await calculateRefAmount({
-    amount: asCents(parseFloat(newAvailableCash)),
+    amount: Money.fromDecimal(newAvailableCash),
     baseCode: currency.code,
     userId,
     date: new Date(),
   });
 
   const refTotalCash = await calculateRefAmount({
-    amount: asCents(parseFloat(newTotalCash)),
+    amount: Money.fromDecimal(newTotalCash),
     baseCode: currency.code,
     userId,
     date: new Date(),

@@ -2,13 +2,14 @@ import {
   ACCOUNT_TYPES,
   CategorizationMeta,
   CATEGORIZATION_SOURCE,
-  CentsAmount,
   PAYMENT_TYPES,
   SORT_DIRECTIONS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TransactionModel,
 } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { Op, Includeable, WhereOptions } from 'sequelize';
 import {
   Table,
@@ -56,9 +57,9 @@ const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
 
 export interface TransactionsAttributes {
   id: number;
-  amount: CentsAmount;
+  amount: Money;
   /** Amount in user's base currency */
-  refAmount: CentsAmount;
+  refAmount: Money;
   note: string;
   time: Date;
   userId: number;
@@ -83,9 +84,9 @@ export interface TransactionsAttributes {
     hold?: boolean;
     receiptId?: string;
   } & Record<string, unknown>;
-  commissionRate: CentsAmount;
-  refCommissionRate: CentsAmount;
-  cashbackAmount: CentsAmount;
+  commissionRate: Money;
+  refCommissionRate: Money;
+  cashbackAmount: Money;
   refundLinked: boolean;
   categorizationMeta: CategorizationMeta | null;
   createdAt: Date;
@@ -107,12 +108,14 @@ export default class Transactions extends Model {
   })
   declare id: number;
 
-  @Column({ allowNull: false, defaultValue: 0, type: DataType.NUMBER })
-  amount!: CentsAmount;
+  @Column(MoneyColumn({ storage: 'cents' }))
+  get amount(): Money { return moneyGetCents(this, 'amount'); }
+  set amount(val: Money | number) { moneySetCents(this, 'amount', val); }
 
   // Amount in curreny of account
-  @Column({ allowNull: false, defaultValue: 0, type: DataType.NUMBER })
-  refAmount!: CentsAmount;
+  @Column(MoneyColumn({ storage: 'cents' }))
+  get refAmount(): Money { return moneyGetCents(this, 'refAmount'); }
+  set refAmount(val: Money | number) { moneySetCents(this, 'refAmount', val); }
 
   @Length({ max: 2000 })
   @Column({ allowNull: true, type: DataType.STRING })
@@ -202,26 +205,17 @@ export default class Transactions extends Model {
   })
   externalData!: TransactionsAttributes['externalData'];
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  })
-  commissionRate!: CentsAmount;
+  @Column(MoneyColumn({ storage: 'cents' }))
+  get commissionRate(): Money { return moneyGetCents(this, 'commissionRate'); }
+  set commissionRate(val: Money | number) { moneySetCents(this, 'commissionRate', val); }
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  })
-  refCommissionRate!: CentsAmount;
+  @Column(MoneyColumn({ storage: 'cents' }))
+  get refCommissionRate(): Money { return moneyGetCents(this, 'refCommissionRate'); }
+  set refCommissionRate(val: Money | number) { moneySetCents(this, 'refCommissionRate', val); }
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  })
-  cashbackAmount!: CentsAmount;
+  @Column(MoneyColumn({ storage: 'cents' }))
+  get cashbackAmount(): Money { return moneyGetCents(this, 'cashbackAmount'); }
+  set cashbackAmount(val: Money | number) { moneySetCents(this, 'cashbackAmount', val); }
 
   // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
   // optimization purposes. All the related refund information is tored in the "RefundTransactions"
@@ -285,6 +279,20 @@ export default class Transactions extends Model {
     const newData: Transactions = (instance as any).dataValues;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const prevData: Transactions = (instance as any)._previousDataValues;
+
+    // dataValues/previousDataValues are raw DB values (cents integers), not Money.
+    // Convert in-place so downstream code that expects Money objects works correctly.
+    newData.amount = Money.fromCents(newData.amount as unknown as number);
+    newData.refAmount = Money.fromCents(newData.refAmount as unknown as number);
+    newData.commissionRate = Money.fromCents(newData.commissionRate as unknown as number);
+    newData.refCommissionRate = Money.fromCents(newData.refCommissionRate as unknown as number);
+    newData.cashbackAmount = Money.fromCents(newData.cashbackAmount as unknown as number);
+    prevData.amount = Money.fromCents(prevData.amount as unknown as number);
+    prevData.refAmount = Money.fromCents(prevData.refAmount as unknown as number);
+    prevData.commissionRate = Money.fromCents(prevData.commissionRate as unknown as number);
+    prevData.refCommissionRate = Money.fromCents(prevData.refCommissionRate as unknown as number);
+    prevData.cashbackAmount = Money.fromCents(prevData.cashbackAmount as unknown as number);
+
     const isAccountChanged = newData.accountId !== prevData.accountId;
 
     if (newData.accountType === ACCOUNT_TYPES.system) {
@@ -406,14 +414,14 @@ export const findWithFilters = async ({
   excludeRefunds?: boolean;
   startDate?: string;
   endDate?: string;
-  /** Filter: amount >= this value (in cents) */
-  amountGte?: CentsAmount;
-  /** Filter: amount <= this value (in cents) */
-  amountLte?: CentsAmount;
-  /** Filter: refAmount >= this value (in cents) - for cross-currency matching */
-  refAmountGte?: CentsAmount;
-  /** Filter: refAmount <= this value (in cents) - for cross-currency matching */
-  refAmountLte?: CentsAmount;
+  /** Filter: amount >= this value */
+  amountGte?: Money;
+  /** Filter: amount <= this value */
+  amountLte?: Money;
+  /** Filter: refAmount >= this value - for cross-currency matching */
+  refAmountGte?: Money;
+  /** Filter: refAmount <= this value - for cross-currency matching */
+  refAmountLte?: Money;
   categoryIds?: number[];
   noteSearch?: string[]; // array of keywords
   attributes?: (keyof Transactions)[];
@@ -486,12 +494,12 @@ export const findWithFilters = async ({
     whereClause.amount = {};
     if (amountGte && amountLte) {
       whereClause.amount = {
-        [Op.between]: [amountGte, amountLte],
+        [Op.between]: [amountGte.toCents(), amountLte.toCents()],
       };
     } else if (amountGte) {
-      whereClause.amount[Op.gte] = amountGte;
+      whereClause.amount[Op.gte] = amountGte.toCents();
     } else if (amountLte) {
-      whereClause.amount[Op.lte] = amountLte;
+      whereClause.amount[Op.lte] = amountLte.toCents();
     }
   }
 
@@ -499,12 +507,12 @@ export const findWithFilters = async ({
     whereClause.refAmount = {};
     if (refAmountGte && refAmountLte) {
       whereClause.refAmount = {
-        [Op.between]: [refAmountGte, refAmountLte],
+        [Op.between]: [refAmountGte.toCents(), refAmountLte.toCents()],
       };
     } else if (refAmountGte) {
-      whereClause.refAmount[Op.gte] = refAmountGte;
+      whereClause.refAmount[Op.gte] = refAmountGte.toCents();
     } else if (refAmountLte) {
-      whereClause.refAmount[Op.lte] = refAmountLte;
+      whereClause.refAmount[Op.lte] = refAmountLte.toCents();
     }
   }
 
@@ -731,8 +739,8 @@ export const createTransaction = async ({ userId, ...rest }: CreateTransactionPa
 export interface UpdateTransactionByIdParams {
   id: number;
   userId: number;
-  amount?: CentsAmount;
-  refAmount?: CentsAmount;
+  amount?: Money;
+  refAmount?: Money;
   note?: string | null;
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
@@ -768,7 +776,7 @@ export const updateTransactionById = async (
 
 export const updateTransactions = (
   payload: {
-    amount?: CentsAmount;
+    amount?: Money;
     note?: string;
     time?: Date;
     transactionType?: TRANSACTION_TYPES;

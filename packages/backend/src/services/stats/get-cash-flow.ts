@@ -320,7 +320,8 @@ export const getCashFlow = async ({
     if (bucketIndex === -1) continue;
 
     const periodData = periodDataMap.get(bucketIndex)!;
-    const amount = tx.refAmount;
+    // raw: true bypasses MoneyColumn getter, so refAmount is raw cents integer
+    const amount = tx.refAmount as unknown as number;
 
     if (tx.transactionType === TRANSACTION_TYPES.income) {
       periodData.income += amount;

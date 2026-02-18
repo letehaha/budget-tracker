@@ -1,19 +1,18 @@
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
-  AccountModel,
   BUDGET_STATUSES,
-  CentsAmount,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
-  asCents,
 } from '@bt/shared/types';
 import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
+import { Money } from '@common/types/money';
 import { faker } from '@faker-js/faker';
 import { i18nextReady } from '@i18n/index';
 import { logger } from '@js/utils/logger';
+import Accounts from '@models/Accounts.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as accountsService from '@services/accounts.service';
 import { createBudget } from '@services/budgets/create-budget';
@@ -208,8 +207,8 @@ async function createTags({ userId }: { userId: number }): Promise<void> {
   }
 }
 
-async function createAccounts({ userId }: { userId: number }): Promise<AccountModel[]> {
-  const accounts: AccountModel[] = [];
+async function createAccounts({ userId }: { userId: number }): Promise<Accounts[]> {
+  const accounts: Accounts[] = [];
 
   for (const accountConfig of DEMO_CONFIG.accounts) {
     const account = await accountsService.createAccount({
@@ -217,8 +216,8 @@ async function createAccounts({ userId }: { userId: number }): Promise<AccountMo
       name: accountConfig.name,
       currencyCode: accountConfig.currency,
       accountCategory: accountConfig.type,
-      initialBalance: asCents(accountConfig.initialBalance),
-      creditLimit: asCents(accountConfig.creditLimit || 0),
+      initialBalance: Money.fromCents(accountConfig.initialBalance),
+      creditLimit: Money.fromCents(accountConfig.creditLimit || 0),
       type: ACCOUNT_TYPES.system,
     });
     if (account) {
@@ -235,7 +234,7 @@ async function generateTransactions({
   categoryMap,
 }: {
   userId: number;
-  accounts: AccountModel[];
+  accounts: Accounts[];
   categoryMap: Map<string, number>;
 }): Promise<void> {
   const endDate = new Date();
@@ -541,7 +540,7 @@ async function generateTransactions({
       batch.map((tx) =>
         transactionsService.createTransaction({
           userId,
-          amount: tx.amount as CentsAmount,
+          amount: Money.fromCents(tx.amount),
           transactionType: tx.transactionType,
           categoryId: tx.categoryId,
           accountId: tx.accountId,

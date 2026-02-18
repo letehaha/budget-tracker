@@ -1,11 +1,12 @@
 /**
  * Stats Serializers
  *
- * Handles conversion between internal cents representation and API decimal format
- * for all stats-related endpoints.
- * - Serializers: DB (cents) → API (decimal)
+ * Serializes stats data for API responses.
+ * Uses Money.fromCents() for raw cents values from services/aggregates.
  */
-import { type BalanceModel, type DecimalAmount, asCents, type endpointsTypes, toDecimal } from '@bt/shared/types';
+import { type endpointsTypes } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import type Balances from '@models/Balances.model';
 import type { CombinedBalanceHistoryItem } from '@services/stats/get-combined-balance-history';
 import type { GetExpensesHistoryResponseSchema } from '@services/stats/get-expenses-history';
 
@@ -14,10 +15,11 @@ import type { GetExpensesHistoryResponseSchema } from '@services/stats/get-expen
 // ============================================================================
 
 /**
- * Convert a cents amount to decimal
+ * Convert a money value (Money instance or raw cents number) to a decimal number for API
  */
-function convertAmount(cents: number): DecimalAmount {
-  return toDecimal(asCents(cents));
+function convertAmount(value: number | Money): number {
+  if (Money.isMoney(value)) return value.toNumber();
+  return Money.fromCents(value).toNumber();
 }
 
 // ============================================================================
@@ -26,14 +28,14 @@ function convertAmount(cents: number): DecimalAmount {
 
 export interface BalanceHistoryItemApiResponse {
   date: Date | string;
-  amount: DecimalAmount;
+  amount: number;
   accountId: number;
 }
 
 /**
  * Serialize balance history items (from getBalanceHistory)
  */
-export function serializeBalanceHistory(balances: BalanceModel[]): BalanceHistoryItemApiResponse[] {
+export function serializeBalanceHistory(balances: Balances[]): BalanceHistoryItemApiResponse[] {
   return balances.map((balance) => ({
     date: balance.date,
     amount: convertAmount(balance.amount),
@@ -43,7 +45,7 @@ export function serializeBalanceHistory(balances: BalanceModel[]): BalanceHistor
 
 export interface AggregatedBalanceHistoryItemApiResponse {
   date: string;
-  amount: DecimalAmount;
+  amount: number;
 }
 
 /**
@@ -65,7 +67,7 @@ export function serializeAggregatedBalanceHistory(
 /**
  * Serialize total balance (from getTotalBalance)
  */
-export function serializeTotalBalance(totalCents: number): DecimalAmount {
+export function serializeTotalBalance(totalCents: number): number {
   return convertAmount(totalCents);
 }
 
@@ -77,8 +79,8 @@ export interface ExpensesHistoryItemApiResponse {
   id: number;
   accountId: number;
   time: Date;
-  amount: DecimalAmount;
-  refAmount: DecimalAmount;
+  amount: number;
+  refAmount: number;
   currencyCode: string;
   categoryId: number;
   refundLinked: boolean;
@@ -111,7 +113,7 @@ export function serializeExpensesHistory(
 export interface SpendingStructureApiResponse {
   name: string;
   color: string;
-  amount: DecimalAmount;
+  amount: number;
 }
 
 export type GetSpendingsByCategoriesApiResponse = {
@@ -145,25 +147,25 @@ export interface CashFlowCategoryDataApiResponse {
   categoryId: number;
   name: string;
   color: string;
-  incomeAmount: DecimalAmount;
-  expenseAmount: DecimalAmount;
+  incomeAmount: number;
+  expenseAmount: number;
 }
 
 export interface CashFlowPeriodDataApiResponse {
   periodStart: string;
   periodEnd: string;
-  income: DecimalAmount;
-  expenses: DecimalAmount;
-  netFlow: DecimalAmount;
+  income: number;
+  expenses: number;
+  netFlow: number;
   categories?: CashFlowCategoryDataApiResponse[];
 }
 
 export interface GetCashFlowApiResponse {
   periods: CashFlowPeriodDataApiResponse[];
   totals: {
-    income: DecimalAmount;
-    expenses: DecimalAmount;
-    netFlow: DecimalAmount;
+    income: number;
+    expenses: number;
+    netFlow: number;
     savingsRate: number;
   };
 }
@@ -203,14 +205,14 @@ export function serializeCashFlow(cashFlow: endpointsTypes.GetCashFlowResponse):
 export interface CumulativeMonthDataApiResponse {
   month: number;
   monthLabel: string;
-  value: DecimalAmount;
-  periodValue: DecimalAmount;
+  value: number;
+  periodValue: number;
 }
 
 export interface CumulativePeriodDataApiResponse {
   year: number;
   data: CumulativeMonthDataApiResponse[];
-  total: DecimalAmount;
+  total: number;
 }
 
 export interface GetCumulativeApiResponse {
@@ -252,9 +254,9 @@ export function serializeCumulativeData(cumulative: endpointsTypes.GetCumulative
 
 export interface CombinedBalanceHistoryItemApiResponse {
   date: string;
-  accountsBalance: DecimalAmount;
-  portfoliosBalance: DecimalAmount;
-  totalBalance: DecimalAmount;
+  accountsBalance: number;
+  portfoliosBalance: number;
+  totalBalance: number;
 }
 
 /**
@@ -278,6 +280,6 @@ export function serializeCombinedBalanceHistory(
 /**
  * Serialize expenses amount for period (from getExpensesAmountForPeriod)
  */
-export function serializeExpensesAmountForPeriod(amountCents: number): DecimalAmount {
+export function serializeExpensesAmountForPeriod(amountCents: number): number {
   return convertAmount(amountCents);
 }

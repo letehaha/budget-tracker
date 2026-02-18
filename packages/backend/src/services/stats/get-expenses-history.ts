@@ -1,4 +1,4 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
 import * as Transactions from '@models/Transactions.model';
@@ -8,7 +8,7 @@ import { getUserSettings } from '../user-settings/get-user-settings';
 import { getWhereConditionForTime } from './utils';
 
 export type GetExpensesHistoryResponseSchema = Pick<
-  TransactionModel,
+  Transactions.default,
   | 'id'
   | 'accountId'
   | 'time'

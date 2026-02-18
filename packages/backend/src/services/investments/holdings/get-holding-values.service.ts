@@ -1,4 +1,4 @@
-import { asCents } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Securities from '@models/investments/Securities.model';
@@ -115,7 +115,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
 
   for (const holding of holdings) {
     const price = pricesBySecurityId[holding.securityId];
-    const quantity = new Big(holding.quantity);
+    const quantity = new Big(holding.quantity.toDecimalString(10));
 
     let marketValue = '0';
     let refMarketValue = '0';
@@ -123,21 +123,21 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     let priceDate: Date | undefined;
 
     if (price) {
-      latestPrice = price.priceClose;
+      latestPrice = price.priceClose.toDecimalString(10);
       priceDate = price.date;
-      const priceClose = new Big(price.priceClose);
+      const priceClose = new Big(price.priceClose.toDecimalString(10));
       marketValue = quantity.times(priceClose).toFixed(10);
 
       // Calculate reference market value if userId provided
       if (userId && parseFloat(marketValue) > 0) {
         try {
           const refAmount = await calculateRefAmount({
-            amount: asCents(parseFloat(marketValue)),
+            amount: Money.fromDecimal(marketValue),
             baseCode: holding.currencyCode,
             userId,
             date: date || new Date(),
           });
-          refMarketValue = refAmount.toString();
+          refMarketValue = refAmount.toDecimalString(10);
         } catch (error) {
           // If reference conversion fails, keep as 0
           refMarketValue = '0';
@@ -149,22 +149,22 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     const securityTransactions = transactionsBySecurityId[holding.securityId] || [];
     const gains = calculateAllGains(
       parseFloat(marketValue),
-      parseFloat(holding.costBasis),
+      holding.costBasis.toNumber(),
       securityTransactions.map((tx) => ({
         date: tx.date,
         category: tx.category,
-        quantity: tx.quantity || '0',
-        price: tx.price || '0',
-        fees: tx.fees || '0',
+        quantity: tx.quantity.toDecimalString(10),
+        price: tx.price.toDecimalString(10),
+        fees: tx.fees.toDecimalString(10),
       })),
     );
 
     holdingValues.push({
       portfolioId: holding.portfolioId,
       securityId: holding.securityId,
-      quantity: holding.quantity,
-      costBasis: holding.costBasis,
-      refCostBasis: holding.refCostBasis,
+      quantity: holding.quantity.toDecimalString(10),
+      costBasis: holding.costBasis.toDecimalString(10),
+      refCostBasis: holding.refCostBasis.toDecimalString(10),
       currencyCode: holding.currencyCode,
       excluded: holding.excluded,
       security: holding.security,

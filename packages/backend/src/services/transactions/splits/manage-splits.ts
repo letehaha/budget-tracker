@@ -1,4 +1,4 @@
-import { asCents } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import RefundTransactions from '@models/RefundTransactions.model';
@@ -18,7 +18,7 @@ interface ManageSplitsParams {
   transactionId: number;
   userId: number;
   splits: SplitInput[];
-  transactionAmount: number;
+  transactionAmount: Money;
   transactionCurrencyCode: string;
   transactionTime: Date;
   transferNature?: string;
@@ -47,9 +47,9 @@ export const manageSplits = async ({
   const refundsByCategoryId = new Map<
     number,
     {
-      totalRefundedRefAmount: number;
+      totalRefundedRefAmount: Money;
       splitId: string;
-      refundAmounts: { amount: number; currencyCode: string }[];
+      refundAmounts: { amount: Money; currencyCode: string }[];
     }
   >();
 
@@ -61,9 +61,9 @@ export const manageSplits = async ({
     });
 
     if (refunds.length > 0) {
-      const totalRefunded = refunds.reduce((sum, r) => sum + Math.abs(r.refundTransaction.refAmount), 0);
+      const totalRefunded = Money.sum(refunds.map((r) => r.refundTransaction.refAmount.abs()));
       const refundAmounts = refunds.map((r) => ({
-        amount: Math.abs(r.refundTransaction.amount),
+        amount: r.refundTransaction.amount.abs(),
         currencyCode: r.refundTransaction.currencyCode,
       }));
       refundsByCategoryId.set(existingSplit.categoryId, {
@@ -114,7 +114,7 @@ export const manageSplits = async ({
           // Calculate refAmount based on exchange rate
           refAmount = await calculateRefAmount({
             userId,
-            amount: asCents(split.amount),
+            amount: split.amount,
             baseCode: transactionCurrencyCode,
             quoteCode: baseCurrency.code,
             date: transactionTime,
@@ -124,10 +124,10 @@ export const manageSplits = async ({
 
       // Validate: if this category had refunds, new refAmount must be >= total refunded
       const existingRefundInfo = refundsByCategoryId.get(split.categoryId);
-      if (existingRefundInfo && refAmount < existingRefundInfo.totalRefundedRefAmount) {
+      if (existingRefundInfo && refAmount.lessThan(existingRefundInfo.totalRefundedRefAmount)) {
         // Format refund amounts in their original currencies for user-friendly display
         const refundDescriptions = existingRefundInfo.refundAmounts.map(
-          (r) => `${(r.amount / 100).toFixed(2)} ${r.currencyCode}`,
+          (r) => `${r.amount.toNumber().toFixed(2)} ${r.currencyCode}`,
         );
         const refundsText = refundDescriptions.join(', ');
         throw new ValidationError({
@@ -139,8 +139,8 @@ export const manageSplits = async ({
         transactionId,
         userId,
         categoryId: split.categoryId,
-        amount: asCents(split.amount),
-        refAmount: asCents(refAmount),
+        amount: split.amount,
+        refAmount,
         note: split.note || null,
       };
     }),
@@ -188,8 +188,8 @@ export const getSplitsWithPrimaryAmount = async ({
   transaction: Transactions;
 }): Promise<{
   splits: TransactionSplits[];
-  primaryAmount: number;
-  primaryRefAmount: number;
+  primaryAmount: Money;
+  primaryRefAmount: Money;
 }> => {
   const splits = await TransactionSplits.findAll({
     where: {
@@ -198,12 +198,12 @@ export const getSplitsWithPrimaryAmount = async ({
     },
   });
 
-  const splitsTotal = splits.reduce((sum, split) => sum + Number(split.amount), 0);
-  const splitsRefTotal = splits.reduce((sum, split) => sum + Number(split.refAmount), 0);
+  const splitsTotal = Money.sum(splits.map((split) => split.amount));
+  const splitsRefTotal = Money.sum(splits.map((split) => split.refAmount));
 
   return {
     splits,
-    primaryAmount: transaction.amount - splitsTotal,
-    primaryRefAmount: transaction.refAmount - splitsRefTotal,
+    primaryAmount: transaction.amount.subtract(splitsTotal),
+    primaryRefAmount: transaction.refAmount.subtract(splitsRefTotal),
   };
 };

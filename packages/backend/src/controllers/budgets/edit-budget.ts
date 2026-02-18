@@ -1,5 +1,5 @@
-import { parseToCents } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
+import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeBudget } from '@root/serializers';
 import * as editBudgetService from '@services/budgets/edit-budget';
@@ -36,7 +36,7 @@ export default createController(schema, async ({ user, params, body }) => {
     categoryIds,
     startDate,
     endDate,
-    limitAmount: limitAmount !== undefined ? parseToCents(limitAmount) : undefined,
+    limitAmount: limitAmount !== undefined ? Money.fromDecimal(limitAmount).toCents() : undefined,
     autoInclude,
   });
 

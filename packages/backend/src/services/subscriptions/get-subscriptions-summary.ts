@@ -1,4 +1,5 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, asCents, toDecimal } from '@bt/shared/types';
+import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Subscriptions from '@models/Subscriptions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
@@ -42,30 +43,30 @@ const getSubscriptionsSummaryImpl = async ({ userId, type }: GetSubscriptionsSum
 
   const baseCurrencyCode = userCurrency.currency.code;
 
-  let totalMonthlyCents = 0;
+  let totalMonthly = Money.zero();
 
   for (const sub of subscriptions) {
     try {
       const refAmount = await calculateRefAmount({
-        amount: asCents(sub.expectedAmount!),
+        amount: Money.fromCents(sub.expectedAmount!),
         userId,
         date: new Date(),
         baseCode: sub.expectedCurrencyCode!,
       });
 
       const multiplier = MONTHLY_MULTIPLIERS[sub.frequency] ?? 1;
-      totalMonthlyCents += refAmount * multiplier;
+      totalMonthly = totalMonthly.add(refAmount.multiply(multiplier));
     } catch (e) {
       logger.warn(`Skipping subscription ${sub.id} in summary: currency conversion failed`);
     }
   }
 
-  const monthlyCents = Math.round(totalMonthlyCents);
-  const yearlyCents = monthlyCents * 12;
+  const monthlyMoney = totalMonthly.round();
+  const yearlyMoney = monthlyMoney.multiply(12);
 
   return {
-    estimatedMonthlyCost: toDecimal(asCents(monthlyCents)),
-    projectedYearlyCost: toDecimal(asCents(yearlyCents)),
+    estimatedMonthlyCost: monthlyMoney.toNumber(),
+    projectedYearlyCost: yearlyMoney.toNumber(),
     activeCount: subscriptions.length,
     currencyCode: baseCurrencyCode,
   };

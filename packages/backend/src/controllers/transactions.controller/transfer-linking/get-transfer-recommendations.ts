@@ -1,5 +1,6 @@
-import { type CentsAmount, TRANSACTION_TYPES, asCents, parseToCents } from '@bt/shared/types';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
+import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import Accounts from '@models/Accounts.model';
 import Transactions, { getTransactionById } from '@models/Transactions.model';
@@ -42,7 +43,7 @@ export default createController(schema, async ({ user, query }) => {
   const { id: userId } = user;
 
   let searchTransactionType: TRANSACTION_TYPES;
-  let refAmountCenter: CentsAmount;
+  let refAmountCenter: Money;
   let sourceAccountId: number;
   let sourceCurrencyCode: string;
   let sourceTime: Date;
@@ -92,7 +93,7 @@ export default createController(schema, async ({ user, query }) => {
 
     // Calculate refAmount from the form amount
     refAmountCenter = await calculateRefAmount({
-      amount: parseToCents(originAmount!),
+      amount: Money.fromDecimal(originAmount!),
       userId,
       baseCode: account.currencyCode,
       date: new Date(),
@@ -100,8 +101,9 @@ export default createController(schema, async ({ user, query }) => {
   }
 
   // Calculate refAmount range (±10%)
-  const refAmountGte = asCents(Math.max(0, Math.floor(refAmountCenter * (1 - RECOMMENDATION_PERCENT_RANGE))));
-  const refAmountLte = asCents(Math.ceil(refAmountCenter * (1 + RECOMMENDATION_PERCENT_RANGE)));
+  const centerCents = refAmountCenter.toCents();
+  const refAmountGte = Money.fromCents(Math.max(0, Math.floor(centerCents * (1 - RECOMMENDATION_PERCENT_RANGE))));
+  const refAmountLte = Money.fromCents(Math.ceil(centerCents * (1 + RECOMMENDATION_PERCENT_RANGE)));
 
   // Calculate date range based on transaction type
   // For transfers: income.time >= expense.time (money arrives after being sent)
@@ -160,8 +162,8 @@ export default createController(schema, async ({ user, query }) => {
       if (aSameCurrency !== bSameCurrency) return aSameCurrency - bSameCurrency;
 
       // 2. Amount proximity (closer to center = better)
-      const aAmountDiff = Math.abs(a.refAmount - refAmountCenter);
-      const bAmountDiff = Math.abs(b.refAmount - refAmountCenter);
+      const aAmountDiff = a.refAmount.subtract(refAmountCenter).abs().toNumber();
+      const bAmountDiff = b.refAmount.subtract(refAmountCenter).abs().toNumber();
       if (aAmountDiff !== bAmountDiff) return aAmountDiff - bAmountDiff;
 
       // 3. Date proximity (closer = better)
