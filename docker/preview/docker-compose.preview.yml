@@ -1,0 +1,83 @@
+services:
+  frontend:
+    image: letehaha/budget-tracker-fe:pr-${PR_NUMBER}
+    container_name: preview-pr-${PR_NUMBER}-frontend
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-fe-http.rule=Host(`pr-${PR_NUMBER}.preview.moneymatter.app`)"
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-fe-http.entrypoints=web"
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-fe-http.middlewares=preview-pr-${PR_NUMBER}-fe-redirect"
+      - "traefik.http.middlewares.preview-pr-${PR_NUMBER}-fe-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.preview-pr-${PR_NUMBER}-fe-redirect.redirectscheme.permanent=true"
+      # HTTPS
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-fe.rule=Host(`pr-${PR_NUMBER}.preview.moneymatter.app`)"
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-fe.entrypoints=websecure"
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-fe.tls=true"
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-fe.tls.certresolver=letsencrypt"
+      - "traefik.http.services.preview-pr-${PR_NUMBER}-fe.loadbalancer.server.port=80"
+
+  backend:
+    image: letehaha/budget-tracker-be:pr-${PR_NUMBER}
+    container_name: preview-pr-${PR_NUMBER}-backend
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - dokploy-network
+      - internal
+    labels:
+      - "traefik.enable=true"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-be-http.rule=Host(`api-pr-${PR_NUMBER}.preview.moneymatter.app`)"
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-be-http.entrypoints=web"
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-be-http.middlewares=preview-pr-${PR_NUMBER}-be-redirect"
+      - "traefik.http.middlewares.preview-pr-${PR_NUMBER}-be-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.preview-pr-${PR_NUMBER}-be-redirect.redirectscheme.permanent=true"
+      # HTTPS
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-be.rule=Host(`api-pr-${PR_NUMBER}.preview.moneymatter.app`)"
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-be.entrypoints=websecure"
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-be.tls=true"
+      - "traefik.http.routers.preview-pr-${PR_NUMBER}-be.tls.certresolver=letsencrypt"
+      - "traefik.http.services.preview-pr-${PR_NUMBER}-be.loadbalancer.server.port=8080"
+
+  db:
+    image: postgres:16
+    container_name: preview-pr-${PR_NUMBER}-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=preview
+      - POSTGRES_PASSWORD=${PREVIEW_DB_PASSWORD}
+      - POSTGRES_DB=budget_tracker_preview
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U preview -d budget_tracker_preview"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: preview-pr-${PR_NUMBER}-redis
+    restart: unless-stopped
+    networks:
+      - internal
+
+networks:
+  dokploy-network:
+    external: true
+  internal:
+    name: preview-pr-${PR_NUMBER}-internal
+
+volumes:
+  db_data:

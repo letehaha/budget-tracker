@@ -49,6 +49,10 @@ inputs:
   docker-hub-access-token:
     description: 'DOCKER_HUB_ACCESS_TOKEN'
     required: false
+  image-tag:
+    description: 'Docker image tag (e.g. latest, pr-123)'
+    required: false
+    default: 'latest'
   push:
     description: Specifies if docker result should be pushed
     required: false
@@ -94,4 +98,4 @@ runs:
         file: ./docker/prod/frontend/Dockerfile
         push: ${{ inputs.push == 'true' }}
         load: ${{ inputs.push != 'true' }}
-        tags: ${{ inputs.docker-hub-username }}/budget-tracker-fe:latest
+        tags: ${{ inputs.docker-hub-username }}/budget-tracker-fe:${{ inputs.image-tag }}
