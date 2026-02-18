@@ -179,13 +179,7 @@ export const updateAccount = withTransaction(
 );
 
 const calculateNewBalance = (amount: Money, previousAmount: Money, currentBalance: Money): Money => {
-  if (amount.greaterThan(previousAmount)) {
-    return currentBalance.add(amount.subtract(previousAmount));
-  } else if (amount.lessThan(previousAmount)) {
-    return currentBalance.subtract(previousAmount.subtract(amount));
-  }
-
-  return currentBalance;
+  return currentBalance.add(amount.subtract(previousAmount));
 };
 
 const defineCorrectAmountFromTxType = (amount: Money, transactionType: TRANSACTION_TYPES): Money => {

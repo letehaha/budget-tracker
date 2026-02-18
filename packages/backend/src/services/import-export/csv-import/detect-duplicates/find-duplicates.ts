@@ -1,5 +1,6 @@
 import type { DuplicateMatch, ParsedTransactionRow } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { rawCents } from '@common/types/money';
 import * as Transactions from '@models/Transactions.model';
 
 interface FindDuplicatesParams {
@@ -46,12 +47,10 @@ export async function findDuplicates({
   });
 
   // Build lookup maps for efficient matching
-  // Note: isRaw: true means Sequelize returns plain objects, Money getters don't run,
-  // so amount is a raw number (cents) at runtime despite the TypeScript type
   const exactMatchMap = new Map<string, Transactions.default[]>();
   for (const tx of existingTransactions) {
     const dateStr = new Date(tx.time).toISOString().split('T')[0];
-    const rawAmount = tx.amount as unknown as number;
+    const rawAmount = rawCents(tx.amount);
     const key = `${tx.accountId}:${dateStr}:${Math.abs(rawAmount)}`;
 
     if (!exactMatchMap.has(key)) {
@@ -137,7 +136,7 @@ export async function findDuplicates({
         existingTransaction: {
           id: bestMatch.id,
           date: new Date(bestMatch.time).toISOString().split('T')[0]!,
-          amount: bestMatch.amount as unknown as number,
+          amount: rawCents(bestMatch.amount),
           note: bestMatch.note || '',
           accountId: bestMatch.accountId,
         },

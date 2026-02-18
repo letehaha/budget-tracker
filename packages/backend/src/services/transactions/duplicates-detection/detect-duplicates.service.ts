@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { rawCents } from '@common/types/money';
 import * as Transactions from '@models/Transactions.model';
 
 /**
@@ -119,8 +120,7 @@ export async function detectDuplicates<T extends TransactionToCheck>({
   for (const tx of existingTransactions) {
     const dateStr = new Date(tx.time).toISOString().split('T')[0];
     const type = tx.transactionType === TRANSACTION_TYPES.income ? 'income' : 'expense';
-    // isRaw: true bypasses MoneyColumn getter, so amount is raw cents integer
-    const key = `${dateStr}:${Math.abs(tx.amount as unknown as number)}:${type}`;
+    const key = `${dateStr}:${Math.abs(rawCents(tx.amount))}:${type}`;
 
     if (!existingMap.has(key)) {
       existingMap.set(key, []);
@@ -148,8 +148,7 @@ export async function detectDuplicates<T extends TransactionToCheck>({
       existing: {
         id: bestMatch.id,
         date: new Date(bestMatch.time).toISOString().split('T')[0]!,
-        // isRaw: true bypasses MoneyColumn getter, so amount is raw cents integer
-        amount: Math.abs(bestMatch.amount as unknown as number),
+        amount: Math.abs(rawCents(bestMatch.amount)),
         note: bestMatch.note || '',
       },
     });

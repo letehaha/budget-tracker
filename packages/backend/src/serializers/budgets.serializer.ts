@@ -6,7 +6,7 @@
  * Deserializers convert API decimal inputs to Money.
  */
 import { BUDGET_TYPES } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { Money, centsToApiDecimal } from '@common/types/money';
 import type Budgets from '@models/Budget.model';
 
 // ============================================================================
@@ -189,22 +189,14 @@ interface BudgetStatsInternal {
 }
 
 /**
- * Convert a money value (Money instance or raw cents number) to a decimal number for API
- */
-function toApiDecimal(value: number | Money): number {
-  if (Money.isMoney(value)) return value.toNumber();
-  return Money.fromCents(value).toNumber();
-}
-
-/**
  * Serialize budget stats to API decimal format
  */
 export function serializeBudgetStats(stats: BudgetStatsInternal): BudgetStatsApiResponse {
   return {
     summary: {
-      actualIncome: toApiDecimal(stats.summary.actualIncome),
-      actualExpense: toApiDecimal(stats.summary.actualExpense),
-      balance: toApiDecimal(stats.summary.balance),
+      actualIncome: centsToApiDecimal(stats.summary.actualIncome),
+      actualExpense: centsToApiDecimal(stats.summary.actualExpense),
+      balance: centsToApiDecimal(stats.summary.balance),
       utilizationRate: stats.summary.utilizationRate,
       transactionsCount: stats.summary.transactionsCount,
       firstTransactionDate: stats.summary.firstTransactionDate,

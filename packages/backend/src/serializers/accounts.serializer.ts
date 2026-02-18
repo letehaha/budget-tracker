@@ -4,18 +4,8 @@
  * Serializes account model instances for API responses.
  * Money fields auto-convert via .toNumber().
  */
-import { Money } from '@common/types/money';
+import { centsToApiDecimal } from '@common/types/money';
 import type Accounts from '@models/Accounts.model';
-
-/**
- * Convert a money field to API decimal. Handles both:
- * - Money objects (from model instances) → .toNumber()
- * - Raw cents numbers (from raw: true queries) → cents / 100
- */
-function centsToApi(val: Money | number): number {
-  if (Money.isMoney(val)) return val.toNumber();
-  return (val as number) / 100;
-}
 
 // ============================================================================
 // Response Types
@@ -52,12 +42,12 @@ export function serializeAccount(account: Accounts & { needsRelink?: boolean }):
   const response: AccountApiResponse = {
     id: account.id,
     name: account.name,
-    initialBalance: centsToApi(account.initialBalance),
-    refInitialBalance: centsToApi(account.refInitialBalance),
-    currentBalance: centsToApi(account.currentBalance),
-    refCurrentBalance: centsToApi(account.refCurrentBalance),
-    creditLimit: centsToApi(account.creditLimit),
-    refCreditLimit: centsToApi(account.refCreditLimit),
+    initialBalance: centsToApiDecimal(account.initialBalance),
+    refInitialBalance: centsToApiDecimal(account.refInitialBalance),
+    currentBalance: centsToApiDecimal(account.currentBalance),
+    refCurrentBalance: centsToApiDecimal(account.refCurrentBalance),
+    creditLimit: centsToApiDecimal(account.creditLimit),
+    refCreditLimit: centsToApiDecimal(account.refCreditLimit),
     type: account.type,
     accountCategory: account.accountCategory,
     currencyCode: account.currencyCode,

@@ -1,3 +1,4 @@
+import { rawCents } from '@common/types/money';
 import * as Accounts from '@models/Accounts.model';
 import * as Balances from '@models/Balances.model';
 import { format } from 'date-fns';
@@ -189,8 +190,7 @@ function aggregateBalanceTrendData(
   const dataByAccountAndDate = new Map<string, number>();
   const dataByAccount = new Map<number, Balances.default[]>();
   for (const item of data) {
-    // raw: true bypasses MoneyColumn getter, so amount is raw cents integer
-    dataByAccountAndDate.set(`${item.accountId}_${formatDate(item.date)}`, item.amount as unknown as number);
+    dataByAccountAndDate.set(`${item.accountId}_${formatDate(item.date)}`, rawCents(item.amount));
 
     const accountItems = dataByAccount.get(item.accountId);
     if (accountItems) {
@@ -219,8 +219,7 @@ function aggregateBalanceTrendData(
 
     for (const date of allDates) {
       if (date > firstEntryDateStr) break; // dates are sorted, no need to continue
-      // raw: true bypasses MoneyColumn getter, so amount is raw cents integer
-      filledDataPerAccount[accountId][date] = firstEntry.amount as unknown as number;
+      filledDataPerAccount[accountId][date] = rawCents(firstEntry.amount);
     }
   }
 

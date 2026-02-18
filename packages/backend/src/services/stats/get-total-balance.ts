@@ -1,3 +1,5 @@
+import { rawCents } from '@common/types/money';
+
 import { getBalanceHistory } from './get-balance-history';
 
 /**
@@ -22,8 +24,7 @@ export const getTotalBalance = async ({ userId, date }: { userId: number; date: 
     to: date,
   });
 
-  // raw: true bypasses MoneyColumn getter, so amount is raw cents integer
-  const totalBalance = balancesForDate.reduce((acc, value) => (acc += value.amount as unknown as number), 0);
+  const totalBalance = balancesForDate.reduce((acc, value) => (acc += rawCents(value.amount)), 0);
 
   return totalBalance;
 };

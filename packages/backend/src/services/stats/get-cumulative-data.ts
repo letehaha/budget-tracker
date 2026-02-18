@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
+import { rawCents } from '@common/types/money';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
 import * as Transactions from '@models/Transactions.model';
@@ -170,11 +171,10 @@ async function getPeriodData({
 
     const monthEntry = monthlyDataMap.get(monthKey)!;
 
-    // raw: true bypasses MoneyColumn getter, so refAmount is raw cents integer
     if (tx.transactionType === TRANSACTION_TYPES.income) {
-      monthEntry.income += tx.refAmount as unknown as number;
+      monthEntry.income += rawCents(tx.refAmount);
     } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
-      monthEntry.expenses += Math.abs(tx.refAmount as unknown as number);
+      monthEntry.expenses += Math.abs(rawCents(tx.refAmount));
     }
   }
 

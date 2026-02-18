@@ -1,6 +1,7 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { endpointsTypes } from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
+import { rawCents } from '@common/types/money';
 import * as Categories from '@models/Categories.model';
 import RefundTransactions from '@models/RefundTransactions.model';
 import TransactionSplits from '@models/TransactionSplits.model';
@@ -197,9 +198,8 @@ function groupAndAdjustData(params: {
 
     if (txSplits && txSplits.length > 0) {
       // Transaction has splits - distribute amounts accordingly
-      // raw: true bypasses MoneyColumn getter, so refAmount is raw cents integer
       const splitsRefTotal = txSplits.reduce((sum, split) => sum + Number(split.refAmount), 0);
-      const primaryAmount = (transaction.refAmount as unknown as number) - splitsRefTotal;
+      const primaryAmount = rawCents(transaction.refAmount) - splitsRefTotal;
 
       // Add primary category amount (if > 0)
       if (primaryAmount > 0) {
@@ -212,8 +212,7 @@ function groupAndAdjustData(params: {
       }
     } else {
       // No splits - use the full amount for primary category (original behavior)
-      // raw: true bypasses MoneyColumn getter, so refAmount is raw cents integer
-      addToCategory(transaction.categoryId, transaction.refAmount as unknown as number);
+      addToCategory(transaction.categoryId, rawCents(transaction.refAmount));
     }
   }
 
@@ -242,8 +241,7 @@ function groupAndAdjustData(params: {
     const rootCategoryId = getRootCategoryId(wantedCategoryId).toString();
 
     if (rootCategoryId in result) {
-      // raw: true bypasses MoneyColumn getter, so refAmount is raw cents integer
-      result[rootCategoryId].amount -= refundTx.refAmount as unknown as number;
+      result[rootCategoryId].amount -= rawCents(refundTx.refAmount);
     }
   }
 

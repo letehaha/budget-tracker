@@ -5,22 +5,10 @@
  * Uses Money.fromCents() for raw cents values from services/aggregates.
  */
 import { type endpointsTypes } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { centsToApiDecimal } from '@common/types/money';
 import type Balances from '@models/Balances.model';
 import type { CombinedBalanceHistoryItem } from '@services/stats/get-combined-balance-history';
 import type { GetExpensesHistoryResponseSchema } from '@services/stats/get-expenses-history';
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Convert a money value (Money instance or raw cents number) to a decimal number for API
- */
-function convertAmount(value: number | Money): number {
-  if (Money.isMoney(value)) return value.toNumber();
-  return Money.fromCents(value).toNumber();
-}
 
 // ============================================================================
 // Balance History Serializers
@@ -38,7 +26,7 @@ export interface BalanceHistoryItemApiResponse {
 export function serializeBalanceHistory(balances: Balances[]): BalanceHistoryItemApiResponse[] {
   return balances.map((balance) => ({
     date: balance.date,
-    amount: convertAmount(balance.amount),
+    amount: centsToApiDecimal(balance.amount),
     accountId: balance.accountId,
   }));
 }
@@ -56,7 +44,7 @@ export function serializeAggregatedBalanceHistory(
 ): AggregatedBalanceHistoryItemApiResponse[] {
   return balances.map((balance) => ({
     date: balance.date,
-    amount: convertAmount(balance.amount),
+    amount: centsToApiDecimal(balance.amount),
   }));
 }
 
@@ -68,7 +56,7 @@ export function serializeAggregatedBalanceHistory(
  * Serialize total balance (from getTotalBalance)
  */
 export function serializeTotalBalance(totalCents: number): number {
-  return convertAmount(totalCents);
+  return centsToApiDecimal(totalCents);
 }
 
 // ============================================================================
@@ -97,8 +85,8 @@ export function serializeExpensesHistory(
     id: expense.id,
     accountId: expense.accountId,
     time: expense.time,
-    amount: convertAmount(expense.amount),
-    refAmount: convertAmount(expense.refAmount),
+    amount: centsToApiDecimal(expense.amount),
+    refAmount: centsToApiDecimal(expense.refAmount),
     currencyCode: expense.currencyCode,
     categoryId: expense.categoryId,
     refundLinked: expense.refundLinked,
@@ -132,7 +120,7 @@ export function serializeSpendingsByCategories(
     result[Number(categoryId)] = {
       name: spending.name,
       color: spending.color,
-      amount: convertAmount(spending.amount),
+      amount: centsToApiDecimal(spending.amount),
     };
   }
 
@@ -178,21 +166,21 @@ export function serializeCashFlow(cashFlow: endpointsTypes.GetCashFlowResponse):
     periods: cashFlow.periods.map((period) => ({
       periodStart: period.periodStart,
       periodEnd: period.periodEnd,
-      income: convertAmount(period.income),
-      expenses: convertAmount(period.expenses),
-      netFlow: convertAmount(period.netFlow),
+      income: centsToApiDecimal(period.income),
+      expenses: centsToApiDecimal(period.expenses),
+      netFlow: centsToApiDecimal(period.netFlow),
       categories: period.categories?.map((category) => ({
         categoryId: category.categoryId,
         name: category.name,
         color: category.color,
-        incomeAmount: convertAmount(category.incomeAmount),
-        expenseAmount: convertAmount(category.expenseAmount),
+        incomeAmount: centsToApiDecimal(category.incomeAmount),
+        expenseAmount: centsToApiDecimal(category.expenseAmount),
       })),
     })),
     totals: {
-      income: convertAmount(cashFlow.totals.income),
-      expenses: convertAmount(cashFlow.totals.expenses),
-      netFlow: convertAmount(cashFlow.totals.netFlow),
+      income: centsToApiDecimal(cashFlow.totals.income),
+      expenses: centsToApiDecimal(cashFlow.totals.expenses),
+      netFlow: centsToApiDecimal(cashFlow.totals.netFlow),
       savingsRate: cashFlow.totals.savingsRate,
     },
   };
@@ -230,10 +218,10 @@ function serializeCumulativePeriod(period: endpointsTypes.CumulativePeriodData):
     data: period.data.map((monthData) => ({
       month: monthData.month,
       monthLabel: monthData.monthLabel,
-      value: convertAmount(monthData.value),
-      periodValue: convertAmount(monthData.periodValue),
+      value: centsToApiDecimal(monthData.value),
+      periodValue: centsToApiDecimal(monthData.periodValue),
     })),
-    total: convertAmount(period.total),
+    total: centsToApiDecimal(period.total),
   };
 }
 
@@ -267,9 +255,9 @@ export function serializeCombinedBalanceHistory(
 ): CombinedBalanceHistoryItemApiResponse[] {
   return items.map((item) => ({
     date: item.date,
-    accountsBalance: convertAmount(item.accountsBalance),
-    portfoliosBalance: convertAmount(item.portfoliosBalance),
-    totalBalance: convertAmount(item.totalBalance),
+    accountsBalance: centsToApiDecimal(item.accountsBalance),
+    portfoliosBalance: centsToApiDecimal(item.portfoliosBalance),
+    totalBalance: centsToApiDecimal(item.totalBalance),
   }));
 }
 
@@ -281,5 +269,5 @@ export function serializeCombinedBalanceHistory(
  * Serialize expenses amount for period (from getExpensesAmountForPeriod)
  */
 export function serializeExpensesAmountForPeriod(amountCents: number): number {
-  return convertAmount(amountCents);
+  return centsToApiDecimal(amountCents);
 }

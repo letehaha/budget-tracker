@@ -282,16 +282,13 @@ export default class Transactions extends Model {
 
     // dataValues/previousDataValues are raw DB values (cents integers), not Money.
     // Convert in-place so downstream code that expects Money objects works correctly.
-    newData.amount = Money.fromCents(newData.amount as unknown as number);
-    newData.refAmount = Money.fromCents(newData.refAmount as unknown as number);
-    newData.commissionRate = Money.fromCents(newData.commissionRate as unknown as number);
-    newData.refCommissionRate = Money.fromCents(newData.refCommissionRate as unknown as number);
-    newData.cashbackAmount = Money.fromCents(newData.cashbackAmount as unknown as number);
-    prevData.amount = Money.fromCents(prevData.amount as unknown as number);
-    prevData.refAmount = Money.fromCents(prevData.refAmount as unknown as number);
-    prevData.commissionRate = Money.fromCents(prevData.commissionRate as unknown as number);
-    prevData.refCommissionRate = Money.fromCents(prevData.refCommissionRate as unknown as number);
-    prevData.cashbackAmount = Money.fromCents(prevData.cashbackAmount as unknown as number);
+    const MONEY_FIELDS = ['amount', 'refAmount', 'commissionRate', 'refCommissionRate', 'cashbackAmount'] as const;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newRaw = newData as any, prevRaw = prevData as any;
+    for (const field of MONEY_FIELDS) {
+      newRaw[field] = Money.fromCents(newRaw[field]);
+      prevRaw[field] = Money.fromCents(prevRaw[field]);
+    }
 
     const isAccountChanged = newData.accountId !== prevData.accountId;
 

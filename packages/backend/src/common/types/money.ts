@@ -216,3 +216,25 @@ export class Money {
     return `Money(${this.value.toString()})`;
   }
 }
+
+/**
+ * Convert a Money or raw cents integer (from `raw: true` queries) to an API-friendly decimal number.
+ * Handles both Money instances (via getter) and raw DB integers (from raw queries).
+ *
+ * Use in serializers when preparing money fields for API responses.
+ */
+export function centsToApiDecimal(val: Money | number): number {
+  if (Money.isMoney(val)) return val.toNumber();
+  return Money.fromCents(val as number).toNumber();
+}
+
+/**
+ * Extract the raw cents integer from a Money or raw number (from `raw: true` queries).
+ * Handles both Money instances (via getter) and raw DB integers (from raw queries).
+ *
+ * Use in services/stats where arithmetic needs raw cent values from `raw: true` queries.
+ */
+export function rawCents(val: Money | number): number {
+  if (Money.isMoney(val)) return val.toCents();
+  return val as number;
+}

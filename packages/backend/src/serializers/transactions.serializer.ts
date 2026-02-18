@@ -6,20 +6,10 @@
  * Deserializers convert API decimal inputs to Money.
  */
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { Money, centsToApiDecimal } from '@common/types/money';
 import type Tags from '@models/Tags.model';
 import type TransactionSplits from '@models/TransactionSplits.model';
 import type Transactions from '@models/Transactions.model';
-
-/**
- * Convert a money field to API decimal. Handles both:
- * - Money objects (from model instances) → .toNumber()
- * - Raw cents numbers (from raw: true queries) → cents / 100
- */
-function centsToApi(val: Money | number): number {
-  if (Money.isMoney(val)) return val.toNumber();
-  return (val as number) / 100;
-}
 
 // ============================================================================
 // Response Types
@@ -176,8 +166,8 @@ export function serializeTransactionSplit(
   return {
     id: split.id,
     categoryId: split.categoryId,
-    amount: centsToApi(split.amount),
-    refAmount: centsToApi(split.refAmount),
+    amount: centsToApiDecimal(split.amount),
+    refAmount: centsToApiDecimal(split.refAmount),
     note: split.note,
     ...(split.category && {
       category: {
@@ -201,11 +191,11 @@ export function serializeTransaction(
 ): TransactionApiResponse {
   return {
     id: tx.id,
-    amount: centsToApi(tx.amount),
-    refAmount: centsToApi(tx.refAmount),
-    commissionRate: centsToApi(tx.commissionRate),
-    refCommissionRate: centsToApi(tx.refCommissionRate),
-    cashbackAmount: centsToApi(tx.cashbackAmount),
+    amount: centsToApiDecimal(tx.amount),
+    refAmount: centsToApiDecimal(tx.refAmount),
+    commissionRate: centsToApiDecimal(tx.commissionRate),
+    refCommissionRate: centsToApiDecimal(tx.refCommissionRate),
+    cashbackAmount: centsToApiDecimal(tx.cashbackAmount),
     note: tx.note,
     time: tx.time,
     userId: tx.userId,

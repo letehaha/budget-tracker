@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
+import { rawCents } from '@common/types/money';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
@@ -320,8 +321,7 @@ export const getCashFlow = async ({
     if (bucketIndex === -1) continue;
 
     const periodData = periodDataMap.get(bucketIndex)!;
-    // raw: true bypasses MoneyColumn getter, so refAmount is raw cents integer
-    const amount = tx.refAmount as unknown as number;
+    const amount = rawCents(tx.refAmount);
 
     if (tx.transactionType === TRANSACTION_TYPES.income) {
       periodData.income += amount;
