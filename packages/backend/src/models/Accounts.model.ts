@@ -170,7 +170,6 @@ export const getAccounts = async (payload: GetAccountsPayload) => {
 
   const accounts = await Accounts.findAll({
     where,
-    raw: true,
   });
 
   return accounts;

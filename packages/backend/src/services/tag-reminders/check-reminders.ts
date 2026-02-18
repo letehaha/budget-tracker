@@ -5,7 +5,7 @@ import {
   TAG_REMINDER_TYPES,
   TagReminderNotificationPayload,
 } from '@bt/shared/types';
-import { Money, rawCents } from '@common/types/money';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { logger } from '@js/utils/logger';
 import TagReminders from '@models/TagReminders.model';
@@ -195,14 +195,13 @@ async function checkReminder({
     tagIds: [reminder.tagId],
     from: 0,
     limit: isExistenceCheck ? 1 : undefined, // No limit for amount calculation, limit 1 for existence check
-    isRaw: true,
   });
 
   switch (reminder.type) {
     case TAG_REMINDER_TYPES.amountThreshold: {
       // Calculate totals for amount threshold check
       const transactionCount = transactions.length;
-      const totalAmount = transactions.reduce((sum, tx) => sum + rawCents(tx.refAmount), 0);
+      const totalAmount = transactions.reduce((sum, tx) => sum + tx.refAmount.toCents(), 0);
       const transactionIds = transactions.map((tx) => tx.id);
 
       result.transactionCount = transactionCount;

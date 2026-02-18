@@ -406,7 +406,7 @@ export const findWithFilters = async ({
   order?: SORT_DIRECTIONS;
   includeSplits?: boolean;
   includeTags?: boolean;
-  isRaw: boolean;
+  isRaw?: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
   startDate?: string;

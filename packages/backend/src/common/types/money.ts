@@ -236,16 +236,5 @@ export function centsToApiDecimal(val: Money | number): number {
   return Money.fromCents(val as number).toNumber();
 }
 
-/**
- * Extract the raw cents integer from a Money or raw number (from `raw: true` queries).
- * Handles both Money instances (via getter) and raw DB integers (from raw queries).
- *
- * Use in services/stats where arithmetic needs raw cent values from `raw: true` queries.
- */
-export function rawCents(val: Money | number): number {
-  if (Money.isMoney(val)) return val.toCents();
-  return val as number;
-}
-
 /** Decimal scale for investment DECIMAL columns (precision: 20, scale: 10). */
 export const INVESTMENT_DECIMAL_SCALE = 10;

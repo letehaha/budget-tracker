@@ -1,5 +1,4 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { rawCents } from '@common/types/money';
 import * as Transactions from '@models/Transactions.model';
 
 /**
@@ -112,7 +111,6 @@ export async function detectDuplicates<T extends TransactionToCheck>({
     endDate: endDateStr,
     from: 0,
     limit: 10000,
-    isRaw: true,
   });
 
   // Build lookup map for efficient matching: key = "date:amount:type"
@@ -120,7 +118,7 @@ export async function detectDuplicates<T extends TransactionToCheck>({
   for (const tx of existingTransactions) {
     const dateStr = new Date(tx.time).toISOString().split('T')[0];
     const type = tx.transactionType === TRANSACTION_TYPES.income ? 'income' : 'expense';
-    const key = `${dateStr}:${Math.abs(rawCents(tx.amount))}:${type}`;
+    const key = `${dateStr}:${Math.abs(tx.amount.toCents())}:${type}`;
 
     if (!existingMap.has(key)) {
       existingMap.set(key, []);
@@ -148,7 +146,7 @@ export async function detectDuplicates<T extends TransactionToCheck>({
       existing: {
         id: bestMatch.id,
         date: new Date(bestMatch.time).toISOString().split('T')[0]!,
-        amount: Math.abs(rawCents(bestMatch.amount)),
+        amount: Math.abs(bestMatch.amount.toCents()),
         note: bestMatch.note || '',
       },
     });

@@ -1,5 +1,4 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
-import { rawCents } from '@common/types/money';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
 import * as Transactions from '@models/Transactions.model';
@@ -153,7 +152,6 @@ async function getPeriodData({
         attributes: [],
       },
     ],
-    raw: true,
     attributes: ['time', 'refAmount', 'transactionType'],
   });
 
@@ -172,9 +170,9 @@ async function getPeriodData({
     const monthEntry = monthlyDataMap.get(monthKey)!;
 
     if (tx.transactionType === TRANSACTION_TYPES.income) {
-      monthEntry.income += rawCents(tx.refAmount);
+      monthEntry.income += tx.refAmount.toCents();
     } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
-      monthEntry.expenses += Math.abs(rawCents(tx.refAmount));
+      monthEntry.expenses += Math.abs(tx.refAmount.toCents());
     }
   }
 

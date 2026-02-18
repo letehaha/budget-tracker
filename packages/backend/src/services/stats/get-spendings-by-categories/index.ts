@@ -1,7 +1,6 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { endpointsTypes } from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
-import { rawCents } from '@common/types/money';
 import * as Categories from '@models/Categories.model';
 import RefundTransactions from '@models/RefundTransactions.model';
 import TransactionSplits from '@models/TransactionSplits.model';
@@ -35,7 +34,6 @@ export async function getSpendingsByCategories(params: {
     where: {
       [Op.or]: [{ refundTxId: { [Op.in]: txIdsWithRefunds } }, { originalTxId: { [Op.in]: txIdsWithRefunds } }],
     },
-    raw: true,
   });
 
   // Build transaction Map for O(1) lookup (only storing fields needed for refund processing)
@@ -58,7 +56,6 @@ export async function getSpendingsByCategories(params: {
     const missingTxs = await Transactions.findAll({
       where: { id: { [Op.in]: [...missingTxIds] } },
       attributes: ['id', 'refAmount', 'categoryId', 'transactionType'],
-      raw: true,
     });
     for (const tx of missingTxs) {
       txMap.set(tx.id, tx);
@@ -81,12 +78,10 @@ export async function getSpendingsByCategories(params: {
           ...(splitIdsToFetch.size > 0 ? [{ id: { [Op.in]: [...splitIdsToFetch] } }] : []),
         ],
       },
-      raw: true,
     }),
     Categories.default.findAll({
       where: { userId: params.userId },
       attributes: ['id', 'parentId', 'name', 'color'],
-      raw: true,
     }),
   ]);
 
@@ -116,12 +111,10 @@ async function processWithoutRefunds({
   const [splits, categories] = await Promise.all([
     TransactionSplits.findAll({
       where: { transactionId: { [Op.in]: txIds }, userId },
-      raw: true,
     }),
     Categories.default.findAll({
       where: { userId },
       attributes: ['id', 'parentId', 'name', 'color'],
-      raw: true,
     }),
   ]);
 
@@ -198,8 +191,8 @@ function groupAndAdjustData(params: {
 
     if (txSplits && txSplits.length > 0) {
       // Transaction has splits - distribute amounts accordingly
-      const splitsRefTotal = txSplits.reduce((sum, split) => sum + Number(split.refAmount), 0);
-      const primaryAmount = rawCents(transaction.refAmount) - splitsRefTotal;
+      const splitsRefTotal = txSplits.reduce((sum, split) => sum + split.refAmount.toCents(), 0);
+      const primaryAmount = transaction.refAmount.toCents() - splitsRefTotal;
 
       // Add primary category amount (if > 0)
       if (primaryAmount > 0) {
@@ -208,11 +201,11 @@ function groupAndAdjustData(params: {
 
       // Add each split to its category
       for (const split of txSplits) {
-        addToCategory(split.categoryId, Number(split.refAmount));
+        addToCategory(split.categoryId, split.refAmount.toCents());
       }
     } else {
       // No splits - use the full amount for primary category (original behavior)
-      addToCategory(transaction.categoryId, rawCents(transaction.refAmount));
+      addToCategory(transaction.categoryId, transaction.refAmount.toCents());
     }
   }
 
@@ -241,7 +234,7 @@ function groupAndAdjustData(params: {
     const rootCategoryId = getRootCategoryId(wantedCategoryId).toString();
 
     if (rootCategoryId in result) {
-      result[rootCategoryId].amount -= rawCents(refundTx.refAmount);
+      result[rootCategoryId].amount -= refundTx.refAmount.toCents();
     }
   }
 

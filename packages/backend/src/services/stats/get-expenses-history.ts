@@ -82,7 +82,6 @@ export const getExpensesHistory = async ({
       },
     ],
     order: [['time', 'ASC']],
-    raw: true,
     attributes: dataAttributes,
   });
 

@@ -1,6 +1,5 @@
 import type { DuplicateMatch, ParsedTransactionRow } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { rawCents } from '@common/types/money';
 import * as Transactions from '@models/Transactions.model';
 
 interface FindDuplicatesParams {
@@ -43,15 +42,13 @@ export async function findDuplicates({
     endDate: maxDate,
     from: 0,
     limit: 10000,
-    isRaw: true,
   });
 
   // Build lookup maps for efficient matching
   const exactMatchMap = new Map<string, Transactions.default[]>();
   for (const tx of existingTransactions) {
     const dateStr = new Date(tx.time).toISOString().split('T')[0];
-    const rawAmount = rawCents(tx.amount);
-    const key = `${tx.accountId}:${dateStr}:${Math.abs(rawAmount)}`;
+    const key = `${tx.accountId}:${dateStr}:${Math.abs(tx.amount.toCents())}`;
 
     if (!exactMatchMap.has(key)) {
       exactMatchMap.set(key, []);
@@ -136,7 +133,7 @@ export async function findDuplicates({
         existingTransaction: {
           id: bestMatch.id,
           date: new Date(bestMatch.time).toISOString().split('T')[0]!,
-          amount: rawCents(bestMatch.amount),
+          amount: bestMatch.amount.toCents(),
           note: bestMatch.note || '',
           accountId: bestMatch.accountId,
         },

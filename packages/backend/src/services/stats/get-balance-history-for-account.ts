@@ -46,7 +46,6 @@ export const getBalanceHistoryForAccount = async ({
           attributes: [],
         },
       ],
-      raw: true,
       attributes: dataAttributes,
     });
 
@@ -66,7 +65,6 @@ export const getBalanceHistoryForAccount = async ({
           },
           order: [['date', 'DESC']],
           attributes: dataAttributes,
-          raw: true,
         }))!;
       }
 
@@ -85,7 +83,6 @@ export const getBalanceHistoryForAccount = async ({
           },
           order: [['date', 'ASC']],
           attributes: dataAttributes,
-          raw: true,
         }))!;
       }
 

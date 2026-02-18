@@ -1,4 +1,3 @@
-import { rawCents } from '@common/types/money';
 import * as Accounts from '@models/Accounts.model';
 import * as Balances from '@models/Balances.model';
 import { format } from 'date-fns';
@@ -41,7 +40,6 @@ export const getBalanceHistory = async ({
     Accounts.default.findAll({
       where: { userId, isEnabled: true },
       attributes: ['id'],
-      raw: true,
     }),
     Balances.default.findAll({
       where: getWhereConditionForTime({ from, to, columnName: 'date' }),
@@ -53,7 +51,6 @@ export const getBalanceHistory = async ({
           attributes: [],
         },
       ],
-      raw: true,
       attributes: dataAttributes,
     }) as Promise<Balances.default[]>,
   ]);
@@ -80,7 +77,6 @@ export const getBalanceHistory = async ({
               date: { [Op.lt]: new Date(from) },
             },
             attributes: [...dataAttributes, 'id'],
-            raw: true,
           })
         : Promise.resolve([]),
       // Get earliest balance after 'to' date with amount > 0 for each missing account
@@ -91,7 +87,6 @@ export const getBalanceHistory = async ({
               date: { [Op.gt]: new Date(to) },
             },
             attributes: [...dataAttributes, 'id'],
-            raw: true,
           })
         : Promise.resolve([]),
     ]);
@@ -190,7 +185,7 @@ function aggregateBalanceTrendData(
   const dataByAccountAndDate = new Map<string, number>();
   const dataByAccount = new Map<number, Balances.default[]>();
   for (const item of data) {
-    dataByAccountAndDate.set(`${item.accountId}_${formatDate(item.date)}`, rawCents(item.amount));
+    dataByAccountAndDate.set(`${item.accountId}_${formatDate(item.date)}`, item.amount.toCents());
 
     const accountItems = dataByAccount.get(item.accountId);
     if (accountItems) {
@@ -219,7 +214,7 @@ function aggregateBalanceTrendData(
 
     for (const date of allDates) {
       if (date > firstEntryDateStr) break; // dates are sorted, no need to continue
-      filledDataPerAccount[accountId][date] = rawCents(firstEntry.amount);
+      filledDataPerAccount[accountId][date] = firstEntry.amount.toCents();
     }
   }
 

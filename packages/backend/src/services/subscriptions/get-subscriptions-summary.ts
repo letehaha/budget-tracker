@@ -33,7 +33,6 @@ const getSubscriptionsSummaryImpl = async ({ userId, type }: GetSubscriptionsSum
   const subscriptions = await Subscriptions.findAll({
     where,
     attributes: ['id', 'expectedAmount', 'expectedCurrencyCode', 'frequency'],
-    raw: true,
   });
 
   const userCurrency = await UsersCurrencies.getCurrency({

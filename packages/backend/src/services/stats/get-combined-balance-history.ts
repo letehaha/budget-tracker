@@ -77,7 +77,6 @@ const calculatePortfolioBalanceHistory = async ({
       ['createdAt', 'ASC'],
     ],
     attributes: ['portfolioId', 'securityId', 'category', 'date', 'quantity', 'refAmount', 'refFees', 'currencyCode'],
-    raw: true,
   });
 
   const securityIds = [...new Set(transactions.map((t: TransactionRow) => t.securityId))];
@@ -105,7 +104,6 @@ const calculatePortfolioBalanceHistory = async ({
         ['date', 'ASC'],
       ],
       attributes: ['securityId', 'date', 'priceClose'],
-      raw: true,
     }) as Promise<SecurityPriceRow[]>,
     UserExchangeRates.findAll({
       where: {

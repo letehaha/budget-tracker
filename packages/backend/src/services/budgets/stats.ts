@@ -1,5 +1,4 @@
 import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { rawCents } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Budgets from '@models/Budget.model';
@@ -55,7 +54,6 @@ const getManualBudgetStats = async ({
       budgetIds: [budgetId],
       from: 0,
       limit: Infinity,
-      isRaw: true,
       attributes: ['time', 'amount', 'refAmount', 'transactionType'],
     });
 
@@ -201,7 +199,7 @@ const aggregateTransactionStats = ({
 }): StatsResponse => {
   const result = transactions.reduce((acc, curr) => {
     const isExpense = curr.transactionType === TRANSACTION_TYPES.expense;
-    const refAmount = rawCents(curr.refAmount);
+    const refAmount = curr.refAmount.toCents();
 
     if (isExpense) {
       acc.summary.actualExpense += refAmount;

@@ -179,7 +179,6 @@ async function getUncategorizedTransactions({
         attributes: ['name'],
       },
     ],
-    raw: true,
     attributes: ['id', 'amount', 'currencyCode', 'time', 'note', 'accountId'],
   });
 

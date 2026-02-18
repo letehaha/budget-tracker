@@ -222,7 +222,6 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
 
       // Update account metadata and balance after processing all transactions in this batch
       const account: Pick<Accounts, 'externalData' | 'currentBalance'> | null = await Accounts.findByPk(accountId, {
-        raw: true,
         attributes: ['externalData', 'currentBalance'],
       });
 
