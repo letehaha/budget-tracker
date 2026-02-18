@@ -59,6 +59,7 @@ COPY --from=build-stage /app/packages/backend/package.json ./packages/backend/pa
 COPY --from=build-stage /app/packages/backend/.sequelizerc ./packages/backend/.sequelizerc
 COPY --from=build-stage /app/packages/backend/config ./packages/backend/config
 COPY --from=build-stage /app/packages/backend/src/migrations ./packages/backend/src/migrations
+COPY --from=build-stage /app/packages/backend/src/resources ./packages/backend/src/resources
 
 # Copy and prepare entrypoint script
 COPY docker/prod/backend/docker-entrypoint.sh /

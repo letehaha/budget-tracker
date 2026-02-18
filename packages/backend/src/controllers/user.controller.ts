@@ -11,7 +11,7 @@ import { z } from 'zod';
 export const getUser = createController(z.object({}), async ({ user }) => {
   const userData = await userService.getUser(user.id);
 
-  const isAdmin = (process.env.ADMIN_USERS as string).split(',').some((i) => i === user.username);
+  const isAdmin = (process.env.ADMIN_USERS || '').split(',').some((i) => i === user.username);
 
   // Fetch email from better-auth's ba_user table
   let email: string | null = null;
