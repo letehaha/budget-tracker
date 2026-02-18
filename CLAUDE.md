@@ -93,14 +93,16 @@ Other instructions:
    ast-grep --pattern '<button>$TEXT</button>' src/**/*.vue
    ```
 
-6. **Money Convention: Cents in DB, Decimals in API, Decimals in Frontend**
-   - The database stores all monetary amounts in **cents** (integers)
-   - All API responses MUST return monetary amounts as **decimals** (not cents)
-     For example:
-     - When returning transaction data: use `serializeTransactions()` / `serializeTransaction()` from `@root/serializers/transactions.serializer`
-     - When serializing manually (e.g. from BelongsToMany includes): convert each money field with `toDecimal(asCents(value))` from `@bt/shared/types`
-     - Money fields on transactions: `amount`, `refAmount`, `commissionRate`, `refCommissionRate`, `cashbackAmount`
-   - **Frontend ALWAYS works with decimals.** The API returns decimals, forms accept decimals, and the frontend sends decimals back. **NEVER** manually convert between cents and decimals in frontend code. The only cents↔decimal conversion happens in the backend serializers/deserializers.
+6. **Money Convention: `Money` class everywhere, decimals in API, decimals in Frontend**
+   - The database stores monetary amounts as **cents** (INTEGER columns) or **decimal strings** (DECIMAL columns for investments).
+   - All Sequelize models use `MoneyColumn` getters/setters that return `Money` instances (from `@common/types/money`). **Do NOT use `raw: true`** on queries that include Money fields — it bypasses getters and returns raw integers/strings instead of `Money`.
+   - Use `Money` methods for all monetary operations:
+     - Construction: `Money.fromCents(n)`, `Money.fromDecimal(n)`, `Money.zero()`
+     - Arithmetic: `.add()`, `.subtract()`, `.multiply()`, `.divide()`, `.abs()`, `.negate()`
+     - Output: `.toCents()` (for DB writes / cents arithmetic), `.toNumber()` (for API decimals), `.toJSON()` (auto-called by `res.json()`)
+   - All API responses MUST return monetary amounts as **decimals** (not cents). `Money` auto-serializes via `toJSON()` in `res.json()`. For explicit conversion, use serializers with `centsToApiDecimal()` from `@common/types/money`.
+   - Money fields on transactions: `amount`, `refAmount`, `commissionRate`, `refCommissionRate`, `cashbackAmount`
+   - **Frontend ALWAYS works with decimals.** The API returns decimals, forms accept decimals, and the frontend sends decimals back. **NEVER** manually convert between cents and decimals in frontend code.
 7. **i18n Files - DO NOT EDIT UNLESS EXPLICITLY ASKED**
    - i18n locale files are BLOCKED from reading (hook saves tokens)
    - **NEVER** proactively add/update translations when implementing features
