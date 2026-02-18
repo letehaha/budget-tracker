@@ -266,7 +266,6 @@ const loadAccounts = async () => {
 const loadPasskeys = async () => {
   try {
     const result = await authClient.passkey.listUserPasskeys();
-    console.log('result', result);
     if (result.data) {
       passkeys.value = result.data;
     }

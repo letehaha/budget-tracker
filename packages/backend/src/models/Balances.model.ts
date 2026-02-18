@@ -198,6 +198,12 @@ export default class Balances extends Model {
         break;
       }
 
+      case ACCOUNT_TYPES.lunchflow: {
+        // LunchFlow doesn't provide per-transaction balance info.
+        // Balance is updated from the API after the full sync completes.
+        break;
+      }
+
       default: {
         const exhaustiveCheck: never = data.accountType;
 

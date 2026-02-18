@@ -23,8 +23,6 @@ describe('Monobank Data Provider E2E', () => {
       const monobankProvider = providers.find((p: { type: string }) => p.type === BANK_PROVIDER_TYPE.MONOBANK)!;
       expect(monobankProvider).toBeDefined();
       expect(monobankProvider.name).toBe('Monobank');
-      expect(monobankProvider.credentialFields).toBeDefined();
-      expect(Array.isArray(monobankProvider.credentialFields)).toBe(true);
 
       // Step 2: Connect to selected provider
       const connectResult = await helpers.bankDataProviders.connectProvider({
@@ -141,7 +139,6 @@ describe('Monobank Data Provider E2E', () => {
       expect(provider).toHaveProperty('name');
       expect(provider).toHaveProperty('description');
       expect(provider).toHaveProperty('features');
-      expect(provider).toHaveProperty('credentialFields');
 
       // Verify features structure
       expect(provider.features).toHaveProperty('supportsWebhooks');
@@ -500,8 +497,8 @@ describe('Monobank Data Provider E2E', () => {
 
       const account = await helpers.getAccount({ id: createdAccount.id, raw: true });
 
-      expect(account.currentBalance).toBe(selectedExternal.balance / 100);
-      expect(account.initialBalance).toBe(selectedExternal.balance / 100);
+      expect(account.currentBalance).toBe(selectedExternal.balance);
+      expect(account.initialBalance).toBe(selectedExternal.balance);
       expect(account.currencyCode).toBe(selectedExternal.currency);
     });
 

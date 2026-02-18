@@ -42,7 +42,6 @@
       :category="dialogState.category"
       :parent-category="dialogState.parentCategory"
       @saved="handleCategorySaved"
-      @deleted="handleCategoryDeleted"
     />
 
     <AlertDialog v-model:open="deleteDialogState.isOpen">
@@ -196,11 +195,6 @@ const openAddSubcategoryDialog = (parentCategory: FormattedCategory) => {
 
 const handleCategorySaved = () => {
   dialogState.isOpen = false;
-};
-
-const handleCategoryDeleted = () => {
-  dialogState.isOpen = false;
-  selectedCategoryId.value = null;
 };
 
 const openDeleteConfirmation = async (category: FormattedCategory) => {

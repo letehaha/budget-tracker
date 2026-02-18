@@ -38,7 +38,9 @@
           >
             <div class="flex-1 truncate">
               <div class="max-w-50 truncate font-medium">{{ account.accountName }}</div>
-              <div class="text-muted-foreground text-[10px]">{{ METAINFO_FROM_TYPE[account.providerType].name }}</div>
+              <div class="text-muted-foreground text-[10px]">
+                {{ t(METAINFO_FROM_TYPE[account.providerType].nameKey) }}
+              </div>
             </div>
             <div class="flex shrink-0 items-center gap-1">
               <component
@@ -56,10 +58,7 @@
     </div>
 
     <!-- AI Categorization Section -->
-    <div
-      v-if="isCategorizing || categorizationJustCompleted"
-      class="border-border space-y-2 border-t pt-3"
-    >
+    <div v-if="isCategorizing || categorizationJustCompleted" class="border-border space-y-2 border-t pt-3">
       <div class="flex items-center gap-2">
         <SparklesIcon class="text-primary size-4" />
         <span class="text-sm font-medium">{{ $t('header.categorization.title') }}</span>

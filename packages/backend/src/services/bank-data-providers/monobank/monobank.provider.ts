@@ -7,7 +7,6 @@ import BankDataProviderConnections from '@models/BankDataProviderConnections.mod
 import Transactions from '@models/Transactions.model';
 import {
   BaseBankDataProvider,
-  CredentialFieldType,
   DateRange,
   ProviderAccount,
   ProviderBalance,
@@ -40,16 +39,6 @@ export class MonobankProvider extends BaseBankDataProvider {
       defaultSyncInterval: 4 * 60 * 60 * 1000, // 4 hours
       minSyncInterval: 60 * 1000, // 1 minute (Monobank API rate limit)
     },
-    credentialFields: [
-      {
-        name: 'apiToken',
-        type: CredentialFieldType.PASSWORD,
-        label: 'API Token',
-        placeholder: 'Enter your Monobank API token',
-        required: true,
-        helpText: 'Get your token from Monobank mobile app: Profile → API Settings → Generate Token',
-      },
-    ],
   };
 
   // ============================================================================

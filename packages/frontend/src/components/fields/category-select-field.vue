@@ -206,6 +206,8 @@ import { createReusableTemplate } from '@vueuse/core';
 import { ChevronDownIcon, XIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 const [CategoryListTemplate, CategoryListContent] = createReusableTemplate();
 
 interface FlatCategory extends FormattedCategory {

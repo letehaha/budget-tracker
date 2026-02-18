@@ -6,35 +6,6 @@
       "emptyState": "Натисніть Налаштувати, щоб додати віджети"
     },
     "widgets": {
-      "registry": {
-        "balanceTrend": {
-          "name": "Тренд балансу",
-          "description": "Відстежуйте загальний баланс з часом"
-        },
-        "spendingCategories": {
-          "name": "Категорії витрат",
-          "description": "Дізнайтеся, куди йдуть ваші гроші"
-        },
-        "latestRecords": {
-          "name": "Останні записи",
-          "description": "Перегляньте найновіші транзакції"
-        },
-        "subscriptions": {
-          "name": "Підписки та рахунки",
-          "description": "Щомісячні витрати та найближчі платежі"
-        }
-      },
-      "subscriptions": {
-        "title": "Підписки та рахунки",
-        "titleSubscriptions": "Підписки",
-        "titleBills": "Рахунки",
-        "activeSummary": "{count} активних",
-        "perYear": "/рік",
-        "configType": "Показати",
-        "configTypeAll": "Все",
-        "configTypeSubscriptions": "Підписки",
-        "configTypeBills": "Рахунки"
-      },
       "balanceTrend": {
         "title": "Тренд балансу",
         "balanceTypes": {
@@ -65,7 +36,36 @@
         "title": "Останні транзакції",
         "showAll": "Показати всі"
       },
-      "emptyState": "Немає даних за вибраний період часу."
+      "subscriptions": {
+        "title": "Підписки та рахунки",
+        "titleSubscriptions": "Підписки",
+        "titleBills": "Рахунки",
+        "configType": "Тип",
+        "configTypeAll": "Всі",
+        "configTypeSubscriptions": "Підписки",
+        "configTypeBills": "Рахунки",
+        "activeSummary": "{count} активна",
+        "perYear": " на рік"
+      },
+      "emptyState": "Немає даних за вибраний період часу.",
+      "registry": {
+        "balanceTrend": {
+          "name": "Тренд балансу",
+          "description": "Відстежуйте баланс з часом"
+        },
+        "spendingCategories": {
+          "name": "Витрати за категоріями",
+          "description": "Подивіться, куди йдуть гроші"
+        },
+        "latestRecords": {
+          "name": "Останні записи",
+          "description": "Ваші останні транзакції"
+        },
+        "subscriptions": {
+          "name": "Підписки та рахунки",
+          "description": "Огляд регулярних платежів"
+        }
+      }
     },
     "periodSelector": {
       "quickSelect": "Швидкий вибір",

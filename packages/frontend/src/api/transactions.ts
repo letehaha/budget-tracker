@@ -3,7 +3,7 @@ import { TransactionModel } from '@bt/shared/types/db-models';
 import * as endpointsTypes from '@bt/shared/types/endpoints';
 import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types/enums';
 
-export const formatTransactionPayload = <
+const formatTransactionPayload = <
   T extends endpointsTypes.CreateTransactionBody | endpointsTypes.UpdateTransactionBody,
 >(
   transaction: T,
@@ -40,18 +40,6 @@ export const loadTransactions = async (params: {
   includeTags?: boolean;
 }): Promise<endpointsTypes.GetTransactionsResponse> => {
   return api.get('/transactions', formatTransactionPayload(params));
-};
-
-export const loadTransactionById = async ({
-  id,
-  includeSplits,
-  includeTags,
-}: {
-  id: number;
-  includeSplits?: boolean;
-  includeTags?: boolean;
-}): Promise<TransactionModel> => {
-  return api.get(`/transactions/${id}`, { includeSplits, includeTags });
 };
 
 export const loadTransactionsByTransferId = async (transferId: string): Promise<TransactionModel[]> => {
@@ -93,18 +81,11 @@ export const unlinkTransactions = async (payload: endpointsTypes.UnlinkTransferT
   await api.put('/transactions/unlink', payload);
 };
 
-export const getTransactionByBudgetId = async (budgetId: number): Promise<TransactionModel[]> => {
-  return api.get(`/transactions/budget/${budgetId}`);
-};
-
 export const bulkUpdateTransactions = async (
   payload: endpointsTypes.BulkUpdateTransactionsBody,
 ): Promise<endpointsTypes.BulkUpdateTransactionsResponse> => {
   return api.put('/transactions/bulk', payload);
 };
-
-// Backward compatibility alias
-export const bulkUpdateTransactionsCategory = bulkUpdateTransactions;
 
 export const loadRefundRecommendations = async (
   params: { transactionId: number } | { transactionType: TRANSACTION_TYPES; originAmount: number; accountId: number },

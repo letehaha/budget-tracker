@@ -18,7 +18,6 @@ import { getUserDefaultCategory } from '@models/Users.model';
 import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import {
   BaseBankDataProvider,
-  CredentialFieldType,
   DateRange,
   ProviderAccount,
   ProviderBalance,
@@ -65,40 +64,6 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       defaultSyncInterval: 24 * 60 * 60 * 1000, // 24 hours
       minSyncInterval: 5 * 60 * 1000, // 5 minutes
     },
-    credentialFields: [
-      {
-        name: 'appId',
-        type: CredentialFieldType.TEXT,
-        label: 'Application ID',
-        placeholder: 'Enter your Enable Banking app_id',
-        required: true,
-        helpText: 'Get your app_id from Enable Banking portal after uploading your certificate',
-      },
-      {
-        name: 'privateKey',
-        type: CredentialFieldType.PASSWORD,
-        label: 'Private Key',
-        placeholder: 'Paste your PEM-encoded RSA private key',
-        required: true,
-        helpText: 'Your RSA private key used to sign JWT tokens (stored encrypted)',
-      },
-      {
-        name: 'bankName',
-        type: CredentialFieldType.TEXT,
-        label: 'Bank Name',
-        placeholder: 'e.g., Nordea',
-        required: true,
-        helpText: 'Name of the bank you want to connect (must match ASPSP name exactly)',
-      },
-      {
-        name: 'bankCountry',
-        type: CredentialFieldType.TEXT,
-        label: 'Bank Country',
-        placeholder: 'e.g., FI',
-        required: true,
-        helpText: 'Two-letter country code (ISO 3166-1 alpha-2)',
-      },
-    ],
   };
 
   // ============================================================================

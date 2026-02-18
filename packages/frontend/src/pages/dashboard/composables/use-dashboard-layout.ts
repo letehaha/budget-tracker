@@ -1,20 +1,35 @@
 import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { DEFAULT_DASHBOARD_LAYOUT, WIDGET_REGISTRY } from '@/components/widgets/widget-registry';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
+import { useLocalStorage } from '@vueuse/core';
 import { cloneDeep } from 'lodash-es';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 export function useDashboardLayout() {
   const { data: settings, mutateAsync } = useUserSettings();
+
+  const cachedLayout = useLocalStorage<DashboardWidgetConfig[]>('dashboard-layout', DEFAULT_DASHBOARD_LAYOUT);
 
   const isEditMode = ref(false);
   const draftWidgets = ref<DashboardWidgetConfig[]>([]);
 
   const activeWidgets = computed<DashboardWidgetConfig[]>(() => {
     const saved = settings.value?.dashboard?.widgets;
-    const layout = saved && saved.length > 0 ? saved : DEFAULT_DASHBOARD_LAYOUT;
-    // Filter out unknown widget IDs
-    return layout.filter((w) => w.widgetId in WIDGET_REGISTRY);
+
+    if (settings.value) {
+      // Settings loaded — use API data or default
+      const layout = saved && saved.length > 0 ? saved : DEFAULT_DASHBOARD_LAYOUT;
+      return layout.filter((w) => w.widgetId in WIDGET_REGISTRY);
+    }
+
+    // Still loading — use cached layout for accurate skeletons
+    return cachedLayout.value.filter((w) => w.widgetId in WIDGET_REGISTRY);
+  });
+
+  watch(activeWidgets, (layout) => {
+    if (settings.value) {
+      cachedLayout.value = layout;
+    }
   });
 
   const displayWidgets = computed(() => (isEditMode.value ? draftWidgets.value : activeWidgets.value));

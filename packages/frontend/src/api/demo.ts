@@ -1,7 +1,7 @@
 import { api } from '@/api/_api';
 import { UserModel } from '@bt/shared/types/db-models';
 
-export interface StartDemoResponse {
+interface StartDemoResponse {
   user: UserModel;
 }
 

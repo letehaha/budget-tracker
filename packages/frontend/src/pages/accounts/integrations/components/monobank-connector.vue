@@ -9,30 +9,28 @@
             v-model="apiToken"
             type="password"
             class="w-full rounded-md border px-3 py-2"
-            :placeholder="$t('pages.monobank.tokenPlaceholder')"
+            :placeholder="$t('pages.integrations.monobank.tokenPlaceholder')"
             @keyup.enter="handleConnectProvider"
           />
 
-          <Tooltip.TooltipProvider>
-            <Tooltip.Tooltip>
-              <Tooltip.TooltipTrigger class="mt-2 flex items-center gap-2">
-                <p class="text-muted-foreground text-xs">{{ t('pages.integrations.monobank.tokenHint') }}</p>
-                <InfoIcon class="text-primary size-4" />
-              </Tooltip.TooltipTrigger>
-              <Tooltip.TooltipContent class="max-w-100 p-4">
-                <span class="text-sm leading-6 opacity-90">
-                  <i18n-t keypath="pages.integrations.monobank.tokenInstructions" tag="span">
-                    <template #link>
-                      <ExternalLink href="https://api.monobank.ua" />
-                    </template>
-                  </i18n-t>
-                  <br />
-                  <b>{{ t('pages.integrations.monobank.tokenReadOnlyNote') }}</b>
-                  {{ t('pages.integrations.monobank.tokenReadOnlyText') }}
-                </span>
-              </Tooltip.TooltipContent>
-            </Tooltip.Tooltip>
-          </Tooltip.TooltipProvider>
+          <ResponsiveTooltip content-class-name="max-w-100 p-4">
+            <span class="mt-2 flex items-center gap-2">
+              <InfoIcon class="text-primary size-4" />
+              <p class="text-muted-foreground text-xs">{{ t('pages.integrations.monobank.tokenHint') }}</p>
+            </span>
+            <template #content>
+              <span class="text-sm leading-6 opacity-90">
+                <i18n-t keypath="pages.integrations.monobank.tokenInstructions" tag="span">
+                  <template #link>
+                    <ExternalLink href="https://api.monobank.ua" />
+                  </template>
+                </i18n-t>
+                <br />
+                <b>{{ t('pages.integrations.monobank.tokenReadOnlyNote') }}</b>
+                {{ t('pages.integrations.monobank.tokenReadOnlyText') }}
+              </span>
+            </template>
+          </ResponsiveTooltip>
         </div>
         <div>
           <label class="mb-2 block text-sm font-medium">{{
@@ -42,7 +40,7 @@
             v-model="connectionName"
             type="text"
             class="w-full rounded-md border px-3 py-2"
-            :placeholder="$t('pages.monobank.accountNamePlaceholder')"
+            :placeholder="$t('pages.integrations.monobank.accountNamePlaceholder')"
           />
         </div>
         <div class="flex justify-between gap-2">
@@ -113,9 +111,9 @@ import {
   getAvailableAccounts,
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import ExternalLink from '@/components/external-link.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore, useOnboardingStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';

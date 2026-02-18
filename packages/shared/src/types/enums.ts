@@ -27,6 +27,7 @@ export enum ACCOUNT_TYPES {
   system = 'system',
   monobank = 'monobank', // monobank provider connection
   enableBanking = 'enable-banking', // enable-banking provider connection
+  lunchflow = 'lunchflow', // lunchflow provider connection
 }
 
 /**
@@ -35,8 +36,7 @@ export enum ACCOUNT_TYPES {
 export enum BANK_PROVIDER_TYPE {
   MONOBANK = 'monobank',
   ENABLE_BANKING = 'enable-banking',
-  // Future providers will be added here:
-  // GOCARDLESS = 'gocardless',
+  LUNCHFLOW = 'lunchflow',
 }
 
 export enum ACCOUNT_CATEGORIES {

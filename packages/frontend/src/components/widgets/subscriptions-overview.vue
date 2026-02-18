@@ -17,6 +17,7 @@ import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import EmptyState from './components/empty-state.vue';
+import LoadingState from './components/loading-state.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
 const { t } = useI18n();
@@ -55,6 +56,7 @@ const { data: upcoming, isFetching: isUpcomingFetching } = useQuery({
 });
 
 const isFetching = computed(() => isSummaryFetching.value || isUpcomingFetching.value);
+const isInitialLoading = computed(() => isFetching.value && !summary.value);
 const isEmpty = computed(() => !summary.value || summary.value.activeCount === 0);
 
 const formatNextDate = (dateStr: string | null) => {
@@ -75,7 +77,11 @@ const formatNextDate = (dateStr: string | null) => {
       </router-link>
     </template>
 
-    <template v-if="isEmpty && !isFetching">
+    <template v-if="isInitialLoading">
+      <LoadingState />
+    </template>
+
+    <template v-else-if="isEmpty && !isFetching">
       <EmptyState>
         <RepeatIcon class="size-32" />
       </EmptyState>

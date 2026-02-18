@@ -29,11 +29,10 @@
     ],
     "Stop": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-unused-code.sh",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-unused-code.py\"",
             "timeout": 120,
             "statusMessage": "Checking for unused code with knip..."
           },

@@ -48,6 +48,7 @@ export interface ConnectionDetailsResponse {
     isExpired: boolean;
     isExpiringSoon: boolean; // Less than 7 days remaining
   };
+  deactivationReason?: string | null;
 }
 
 export async function getConnectionDetails(params: GetConnectionDetailsParams): Promise<ConnectionDetailsResponse> {
@@ -131,5 +132,6 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
       type: account.type,
     })),
     consent: consentInfo,
+    deactivationReason: metadata?.deactivationReason || null,
   };
 }

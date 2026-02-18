@@ -13,6 +13,7 @@ import type { Ref } from 'vue';
 import { computed, inject } from 'vue';
 
 import EmptyState from './components/empty-state.vue';
+import LoadingState from './components/loading-state.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
 const { isAppInitialized } = storeToRefs(useRootStore());
@@ -24,7 +25,7 @@ const maxDisplay = computed(() => {
   return (config.rowSpan ?? 1) >= 2 ? 11 : 5;
 });
 
-const { data: transactions } = useQuery({
+const { data: transactions, isFetching } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.widgetLatestRecords,
   queryFn: () => apiLoadTransactions({ limit: 20, from: 0, includeSplits: true, includeTags: true }), // Over-fetch to account for deduplication
   staleTime: Infinity,
@@ -32,14 +33,15 @@ const { data: transactions } = useQuery({
   enabled: isAppInitialized,
 });
 
-const isDataEmpty = computed(() => transactions.value.length === 0);
+const isInitialLoading = computed(() => isFetching.value && transactions.value.length === 0);
+const isDataEmpty = computed(() => !isFetching.value && transactions.value.length === 0);
 </script>
 
 <template>
-  <WidgetWrapper>
+  <WidgetWrapper :is-fetching="isFetching">
     <template #title> {{ $t('dashboard.widgets.latestTransactions.title') }} </template>
     <template #action>
-      <template v-if="!isDataEmpty">
+      <template v-if="!isDataEmpty && !isInitialLoading">
         <router-link
           :class="buttonVariants({ variant: 'link', size: 'sm', class: 'text-primary block text-center' })"
           :to="{ name: ROUTES_NAMES.transactions }"
@@ -48,7 +50,10 @@ const isDataEmpty = computed(() => transactions.value.length === 0);
         </router-link>
       </template>
     </template>
-    <template v-if="isDataEmpty">
+    <template v-if="isInitialLoading">
+      <LoadingState />
+    </template>
+    <template v-else-if="isDataEmpty">
       <EmptyState>
         <ListIcon class="size-32" />
       </EmptyState>
