@@ -12,13 +12,13 @@ import Users from '../Users.model';
 import PortfolioBalances from './PortfolioBalances.model';
 import Holdings from './Holdings.model';
 import InvestmentTransaction from './InvestmentTransaction.model';
-import { PORTFOLIO_TYPE, PortfolioModel } from '@bt/shared/types/investments';
+import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 
 @Table({
   timestamps: true,
   tableName: 'Portfolios',
 })
-export default class Portfolios extends Model implements PortfolioModel {
+export default class Portfolios extends Model {
   @Column({
     primaryKey: true,
     unique: true,

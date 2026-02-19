@@ -1,9 +1,11 @@
+import { Money } from '@common/types/money';
+
 /**
  * Transaction data sent to AI for categorization
  */
 export interface TransactionForCategorization {
   id: number;
-  amount: number;
+  amount: Money;
   currencyCode: string;
   accountName: string;
   datetime: string;

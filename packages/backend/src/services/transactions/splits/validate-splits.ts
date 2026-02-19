@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import Categories from '@models/Categories.model';
 
@@ -13,7 +14,7 @@ import {
 
 interface ValidateSplitsParams {
   splits: SplitInput[];
-  transactionAmount: number;
+  transactionAmount: Money;
   userId: number;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
 }
@@ -75,7 +76,7 @@ export const validateSplits = async ({
       });
     } else {
       // Check for negative amounts
-      if (split.amount < 0) {
+      if (split.amount.isNegative()) {
         errors.push({
           field: `${fieldPrefix}.amount`,
           message: t({ key: 'transactions.splits.amountNegative' }),
@@ -83,10 +84,10 @@ export const validateSplits = async ({
         });
       }
       // Check minimum amount
-      else if (split.amount < MIN_SPLIT_AMOUNT) {
+      else if (split.amount.lessThan(MIN_SPLIT_AMOUNT)) {
         errors.push({
           field: `${fieldPrefix}.amount`,
-          message: t({ key: 'transactions.splits.amountTooSmall', variables: { min: MIN_SPLIT_AMOUNT / 100 } }),
+          message: t({ key: 'transactions.splits.amountTooSmall', variables: { min: MIN_SPLIT_AMOUNT.toNumber() } }),
           code: SPLIT_ERROR_CODES.SPLIT_AMOUNT_TOO_SMALL,
         });
       }
@@ -127,13 +128,13 @@ export const validateSplits = async ({
   }
 
   // Check that total splits don't exceed transaction amount
-  const totalSplitAmount = splits.reduce((sum, split) => sum + (split.amount || 0), 0);
-  if (totalSplitAmount > transactionAmount) {
+  const totalSplitAmount = Money.sum(splits.map((split) => split.amount || Money.zero()));
+  if (totalSplitAmount.greaterThan(transactionAmount)) {
     errors.push({
       field: 'splits',
       message: t({
         key: 'transactions.splits.exceedTotal',
-        variables: { total: totalSplitAmount, transactionAmount },
+        variables: { total: totalSplitAmount.toNumber(), transactionAmount: transactionAmount.toNumber() },
       }),
       code: SPLIT_ERROR_CODES.SPLITS_EXCEED_TOTAL,
     });

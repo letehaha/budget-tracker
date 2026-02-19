@@ -1,6 +1,8 @@
 import { Op } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
-import { TRANSACTION_TYPES, BalanceModel, ACCOUNT_TYPES, CentsAmount, asCents, parseToCents } from '@bt/shared/types';
+import { TRANSACTION_TYPES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { subDays, startOfMonth, startOfDay } from 'date-fns';
 import Accounts from './Accounts.model';
 import Transactions, { TransactionsAttributes } from './Transactions.model';
@@ -31,10 +33,6 @@ export default class Balances extends Model {
   })
   date!: Date;
 
-  @Column({
-    allowNull: false,
-    type: DataType.INTEGER,
-  })
   /**
    * Representation of the account balance at the specific date. Each time a new
    * transaction is being added, changed or removed, we update account balance,
@@ -42,7 +40,9 @@ export default class Balances extends Model {
    * specific date.
    * `amount` is in the BASE currency. So it represents a `refAmount` (`refBalance`)
    */
-  amount!: CentsAmount;
+  @Column(MoneyColumn({ storage: 'cents' }))
+  get amount(): Money { return moneyGetCents(this, 'amount'); }
+  set amount(val: Money | number) { moneySetCents(this, 'amount', val); }
 
   @ForeignKey(() => Accounts)
   @Column({ allowNull: false, type: DataType.INTEGER, })
@@ -64,7 +64,7 @@ export default class Balances extends Model {
   }
 
   // Method to retrieve total balance history for specified dates and accounts
-  static async getTotalBalanceHistory(payload: GetTotalBalanceHistoryPayload): Promise<BalanceModel[]> {
+  static async getTotalBalanceHistory(payload: GetTotalBalanceHistoryPayload): Promise<Balances[]> {
     const { startDate, endDate, accountIds } = payload;
     return Balances.findAll({
       where: {
@@ -105,17 +105,17 @@ export default class Balances extends Model {
     isDelete?: boolean;
   }) {
     const { accountId, time } = data;
-    let amount: CentsAmount = data.transactionType === TRANSACTION_TYPES.income ? asCents(data.refAmount) : asCents(data.refAmount * -1);
+    let amount: Money = data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount.negate();
     const date = startOfDay(new Date(time));
 
     switch (data.accountType) {
       case ACCOUNT_TYPES.system: {
         if (isDelete) {
-          amount = asCents(-amount); // Reverse the amount if it's a deletion
+          amount = amount.negate(); // Reverse the amount if it's a deletion
         } else if (prevData) {
           const originalDate = startOfDay(new Date(prevData.time));
           const originalAmount =
-            prevData.transactionType === TRANSACTION_TYPES.income ? prevData.refAmount : asCents(prevData.refAmount * -1);
+            prevData.transactionType === TRANSACTION_TYPES.income ? prevData.refAmount : prevData.refAmount.negate();
 
           if (
             // If the account ID changed,
@@ -125,13 +125,13 @@ export default class Balances extends Model {
             // the transaction type changed,
             data.transactionType !== prevData.transactionType ||
             // or the amount changed
-            amount
+            !amount.isZero()
             // THEN remove the original transaction
           ) {
             await this.updateBalanceIncremental({
               accountId: prevData.accountId,
               date: originalDate,
-              amount: asCents(-originalAmount),
+              amount: originalAmount.negate(),
             });
           }
         }
@@ -164,7 +164,7 @@ export default class Balances extends Model {
             baseCode: data.currencyCode,
             quoteCode: data.refCurrencyCode,
           });
-          const refBalance = asCents(roundHalfToEven(balance * exchangeRateData.rate));
+          const refBalance = Money.fromCents(roundHalfToEven(balance * exchangeRateData.rate));
 
           await this.updateAccountBalance({ accountId, date, refBalance });
         }
@@ -183,14 +183,14 @@ export default class Balances extends Model {
         const balanceAfter = externalData?.balanceAfter;
 
         if (balanceAfter) {
-          const balanceAmount = parseToCents(parseFloat(balanceAfter.amount));
+          const balanceDecimal = parseFloat(balanceAfter.amount);
           const exchangeRateData = await getExchangeRate({
             userId: data.userId,
             date,
             baseCode: data.currencyCode,
             quoteCode: data.refCurrencyCode,
           });
-          const refBalance = asCents(roundHalfToEven(balanceAmount * exchangeRateData.rate));
+          const refBalance = Money.fromDecimal(roundHalfToEven(balanceDecimal * exchangeRateData.rate * 100) / 100);
 
           await this.updateAccountBalance({ accountId, date, refBalance });
         }
@@ -233,7 +233,7 @@ export default class Balances extends Model {
    * For external bank providers (Monobank, EnableBanking), use updateAccountBalance()
    * which sets an absolute balance value without cascading.
    */
-  private static async updateBalanceIncremental({ accountId, date, amount }: { accountId: number; date: Date; amount: CentsAmount }) {
+  private static async updateBalanceIncremental({ accountId, date, amount }: { accountId: number; date: Date; amount: Money }) {
     // If there's no record for the 1st of the month, create it based on the closest record prior it
     // so it's easier to calculate stats for the period
     const firstDayOfMonth = startOfMonth(new Date(date));
@@ -317,7 +317,7 @@ export default class Balances extends Model {
         await this.create({
           accountId,
           date,
-          amount: asCents(account!.refInitialBalance + amount),
+          amount: account!.refInitialBalance.add(amount),
         });
         // }
       } else {
@@ -325,20 +325,19 @@ export default class Balances extends Model {
         balanceForTxDate = await this.create({
           accountId,
           date,
-          amount: asCents(latestBalancePrior.amount + amount),
+          amount: latestBalancePrior.amount.add(amount),
         });
       }
     } else {
       // If a balance already exists, update its amount
-      balanceForTxDate.amount = asCents(balanceForTxDate.amount + amount);
+      balanceForTxDate.amount = balanceForTxDate.amount.add(amount);
 
       await balanceForTxDate.save();
     }
 
-    // if (Balances.sequelize) {
     // Update the amount of all balances for the account that come after the date
     await this.update(
-      { amount: Balances.sequelize!.literal(`amount + ${amount}`) },
+      { amount: Balances.sequelize!.literal(`amount + ${amount.toCents()}`) },
       {
         where: {
           accountId,
@@ -348,7 +347,6 @@ export default class Balances extends Model {
         },
       },
     );
-    // }
   }
 
   /**
@@ -374,17 +372,15 @@ export default class Balances extends Model {
 
     // If record exists, then it's account updating, otherwise account creation
     if (record && prevAccount) {
-      const diff = refInitialBalance - prevAccount.refInitialBalance;
+      const diff = refInitialBalance.subtract(prevAccount.refInitialBalance);
 
-      // if (Balances.sequelize) {
-      // Update history for all the records realted to that account
+      // Update history for all the records related to that account
       await this.update(
-        { amount: Balances.sequelize!.literal(`amount + ${diff}`) },
+        { amount: Balances.sequelize!.literal(`amount + ${diff.toCents()}`) },
         {
           where: { accountId },
         },
       );
-      // }
     } else {
       const date = startOfDay(new Date());
 
@@ -416,7 +412,7 @@ export default class Balances extends Model {
   }: {
     accountId: number;
     date: Date;
-    refBalance: CentsAmount;
+    refBalance: Money;
   }) {
     const normalizedDate = startOfDay(date);
 

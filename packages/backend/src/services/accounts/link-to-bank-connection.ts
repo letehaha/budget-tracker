@@ -6,8 +6,8 @@ import {
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
-  asCents,
 } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
@@ -115,7 +115,7 @@ export const linkAccountToBankConnection = withTransaction(
     }
 
     // 5. Calculate balance difference
-    const systemBalance = account.currentBalance;
+    const systemBalance = account.currentBalance.toCents();
     const externalBalance = externalAccount.balance;
     const balanceDifference = externalBalance - systemBalance;
 
@@ -132,7 +132,7 @@ export const linkAccountToBankConnection = withTransaction(
       const [createdTransaction] = await createTransaction({
         userId,
         accountId: account.id,
-        amount: asCents(Math.abs(balanceDifference)),
+        amount: Money.fromCents(Math.abs(balanceDifference)),
         time: new Date(),
         transactionType: balanceDifference > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
         transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,

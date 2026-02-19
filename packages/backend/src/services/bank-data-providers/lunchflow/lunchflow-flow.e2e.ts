@@ -4,6 +4,7 @@ import {
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  asDecimal,
 } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -342,7 +343,7 @@ describe('LunchFlow Data Provider E2E', () => {
         // Override balance for account 1003 to return no currency
         getLunchFlowBalanceMock({
           accountId: 1003,
-          response: { balance: { amount: 100, currency: '' } },
+          response: { balance: { amount: asDecimal(100), currency: '' } },
         }),
       );
 
@@ -1191,7 +1192,7 @@ describe('LunchFlow Data Provider E2E', () => {
           {
             id: 'new-tx-after-manual-1',
             accountId: 1001,
-            amount: -25.0,
+            amount: asDecimal(-25.0),
             currency: 'USD',
             date: newTx1Date.toISOString(),
             merchant: 'New Merchant 1',
@@ -1201,7 +1202,7 @@ describe('LunchFlow Data Provider E2E', () => {
           {
             id: 'new-tx-after-manual-2',
             accountId: 1001,
-            amount: -15.0,
+            amount: asDecimal(-15.0),
             currency: 'USD',
             date: newTx2Date.toISOString(),
             merchant: 'New Merchant 2',

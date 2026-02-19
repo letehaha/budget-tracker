@@ -1,4 +1,5 @@
-import { SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_TYPES, asCents, toDecimal } from '@bt/shared/types';
+import { SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import Categories from '@models/Categories.model';
 import Subscriptions from '@models/Subscriptions.model';
 import Transactions from '@models/Transactions.model';
@@ -47,7 +48,7 @@ export const getUpcomingPayments = async ({ userId, limit = 5, type }: GetUpcomi
       return {
         subscriptionId: plain.id,
         subscriptionName: plain.name,
-        expectedAmount: toDecimal(asCents(plain.expectedAmount!)),
+        expectedAmount: Money.fromCents(plain.expectedAmount!).toNumber(),
         expectedCurrencyCode: plain.expectedCurrencyCode,
         nextPaymentDate,
         frequency: plain.frequency,

@@ -1,6 +1,7 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
 
 describe('Delete transaction controller', () => {
@@ -24,7 +25,7 @@ describe('Delete transaction controller', () => {
     expect(txsAfterDeletion.length).toBe(0);
   });
   describe('transfer transactions', () => {
-    let transactions: TransactionModel[] = [];
+    let transactions: Transactions[] = [];
 
     beforeEach(async () => {
       const currencyA = global.MODELS_CURRENCIES!.find((item) => item.code === 'EUR');

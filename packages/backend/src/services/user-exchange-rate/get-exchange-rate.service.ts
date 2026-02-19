@@ -107,8 +107,20 @@ export async function getExchangeRate({
   // Note: loadRate returns { rate: 1 } for USD, so we only need to check for null
   const needsFetch = !baseRate || !quoteRate;
 
-  if (needsFetch) {
-    await fetchExchangeRatesForDate(date);
+  // Also fetch if we only have stale fallback rates from a different date.
+  // loadRate returns the most recent rate as fallback when no exact-date match exists,
+  // but we should still attempt to fetch current rates for the requested date.
+  const hasStaleRates = !needsFetch && (!isRateForDate(baseRate, date) || !isRateForDate(quoteRate, date));
+
+  if (needsFetch || hasStaleRates) {
+    try {
+      await fetchExchangeRatesForDate(date);
+    } catch (e) {
+      // If we have no rates at all, propagate the error
+      if (needsFetch) throw e;
+      // If we have fallback rates from a different date, log and continue
+      logger.warn(`[getExchangeRate] Failed to fetch rates for ${date.toISOString()}, using fallback rates`);
+    }
 
     // Retry fetching the missing rates after the API call
     if (!baseRate) {
@@ -167,6 +179,11 @@ export async function getExchangeRate({
 
   return result;
 }
+
+const isRateForDate = (rate: ExchangeRateReturnType | null, requestedDate: Date): boolean => {
+  if (!rate) return false;
+  return startOfDay(rate.date).getTime() === startOfDay(requestedDate).getTime();
+};
 
 const loadRate = async (code: string, rateDate: Date): Promise<ExchangeRateReturnType | null> => {
   if (code === API_LAYER_BASE_CURRENCY_CODE) {

@@ -1,5 +1,6 @@
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, asCents } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -50,7 +51,7 @@ export const calcTransferTransactionRefAmount = async ({
 }: {
   userId: number;
   baseTransaction: Transactions.default;
-  destinationAmount: number;
+  destinationAmount: Money;
   oppositeTxCurrencyCode: string;
   baseCurrency?: UnwrapPromise<ReturnType<typeof UsersCurrencies.getBaseCurrency>>;
   date: Date;
@@ -62,7 +63,7 @@ export const calcTransferTransactionRefAmount = async ({
   const isSourceRef = baseTransaction.currencyCode === baseCurrency.currency.code;
   const isOppositeRef = oppositeTxCurrencyCode === baseCurrency.currency.code;
 
-  let oppositeRefAmount = destinationAmount;
+  let oppositeRefAmount: Money = destinationAmount;
 
   if (isSourceRef && !isOppositeRef) {
     oppositeRefAmount = baseTransaction.refAmount;
@@ -70,7 +71,7 @@ export const calcTransferTransactionRefAmount = async ({
     baseTransaction = await Transactions.updateTransactionById({
       id: baseTransaction.id,
       userId,
-      refAmount: asCents(destinationAmount),
+      refAmount: destinationAmount,
     });
     oppositeRefAmount = destinationAmount;
   } else if (isSourceRef && isOppositeRef) {
@@ -78,7 +79,7 @@ export const calcTransferTransactionRefAmount = async ({
   } else if (!isSourceRef && !isOppositeRef) {
     oppositeRefAmount = await calculateRefAmount({
       userId,
-      amount: asCents(destinationAmount),
+      amount: destinationAmount,
       baseCode: oppositeTxCurrencyCode,
       quoteCode: baseCurrency.currency.code,
       date,
@@ -147,8 +148,8 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
 
   const oppositeTx = await Transactions.createTransaction({
     userId: baseTransaction.userId,
-    amount: asCents(destinationAmount),
-    refAmount: asCents(oppositeRefAmount),
+    amount: destinationAmount,
+    refAmount: oppositeRefAmount,
     note: baseTransaction.note,
     time: new Date(baseTransaction.time),
     transactionType:
@@ -172,7 +173,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
 export const createTransaction = withTransaction(
   async ({
     amount,
-    commissionRate = asCents(0),
+    commissionRate = Money.zero(),
     userId,
     accountId,
     transferNature,
@@ -186,16 +187,16 @@ export const createTransaction = withTransaction(
     try {
       // Detect negative amounts - this is a bug in the caller code
       // Transaction amounts should ALWAYS be positive, with transactionType determining expense/income
-      if (amount < 0) {
+      if (amount.isNegative()) {
         const stack = new Error().stack;
         logger.error('Negative amount detected in createTransaction. This is a bug - amounts must be positive.', {
-          amount,
+          amount: amount.toNumber(),
           userId,
           accountId,
           transactionType: payload.transactionType,
           stack,
         });
-        amount = asCents(Math.abs(amount));
+        amount = amount.abs();
       }
 
       if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
@@ -221,8 +222,8 @@ export const createTransaction = withTransaction(
         time: payload.time ?? new Date(),
         amount,
         refAmount: amount,
-        commissionRate: commissionRate || asCents(0),
-        refCommissionRate: commissionRate || asCents(0),
+        commissionRate,
+        refCommissionRate: commissionRate,
         userId,
         accountId,
         transferNature,
@@ -241,7 +242,7 @@ export const createTransaction = withTransaction(
         });
         generalTxParams.refCommissionRate = await calculateRefAmount({
           userId,
-          amount: generalTxParams.commissionRate || asCents(0),
+          amount: generalTxParams.commissionRate || Money.zero(),
           baseCode: generalTxCurrency.code,
           quoteCode: defaultUserCurrency.code,
           date: generalTxParams.time,
@@ -383,7 +384,7 @@ export const createTransaction = withTransaction(
 //   "refBalance": 6_331_767,
 // }
 
-const logDataBefore = async (params: CreateTransactionParams & { refAmount?: number }) => {
+const logDataBefore = async (params: CreateTransactionParams & { refAmount?: Money }) => {
   try {
     const { transferNature, destinationTransactionId, userId, accountId, transactionType } = params;
     const isTransfer = transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;

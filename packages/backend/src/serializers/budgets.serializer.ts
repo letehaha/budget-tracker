@@ -1,15 +1,16 @@
 /**
  * Budget Serializers
  *
- * Handles conversion between internal cents representation and API decimal format.
- * - Serializers: DB (cents) → API (decimal)
- * - Deserializers: API (decimal) → DB (cents)
+ * Serializes budget model instances for API responses.
+ * Money fields auto-convert via .toNumber().
+ * Deserializers convert API decimal inputs to Money.
  */
-import { BUDGET_TYPES, type CentsAmount, type DecimalAmount, asCents, parseToCents, toDecimal } from '@bt/shared/types';
+import { BUDGET_TYPES } from '@bt/shared/types';
+import { Money, centsToApiDecimal } from '@common/types/money';
 import type Budgets from '@models/Budget.model';
 
 // ============================================================================
-// Response Types (API format with DecimalAmount)
+// Response Types
 // ============================================================================
 
 export interface BudgetCategoryResponse {
@@ -27,7 +28,7 @@ export interface BudgetApiResponse {
   startDate: Date | null;
   endDate: Date | null;
   autoInclude: boolean;
-  limitAmount: DecimalAmount | null;
+  limitAmount: number | null;
   categories: BudgetCategoryResponse[];
 }
 
@@ -57,7 +58,7 @@ export interface UpdateBudgetRequest {
 }
 
 // ============================================================================
-// Internal Types (DB format with CentsAmount)
+// Internal Types (DB format with Money)
 // ============================================================================
 
 export interface CreateBudgetInternal {
@@ -68,7 +69,7 @@ export interface CreateBudgetInternal {
   startDate?: Date | null;
   endDate?: Date | null;
   autoInclude?: boolean;
-  limitAmount?: CentsAmount | null;
+  limitAmount?: Money | null;
   userId: number;
 }
 
@@ -79,7 +80,7 @@ export interface UpdateBudgetInternal {
   startDate?: Date | null;
   endDate?: Date | null;
   autoInclude?: boolean;
-  limitAmount?: CentsAmount | null;
+  limitAmount?: Money | null;
 }
 
 // ============================================================================
@@ -105,7 +106,7 @@ export function serializeBudget(budget: Budgets): BudgetApiResponse {
     startDate: budget.startDate,
     endDate: budget.endDate,
     autoInclude: budget.autoInclude,
-    limitAmount: budget.limitAmount !== null ? toDecimal(asCents(budget.limitAmount)) : null,
+    limitAmount: budget.limitAmount !== null ? budget.limitAmount.toNumber() : null,
     categories,
   };
 }
@@ -133,7 +134,8 @@ export function deserializeCreateBudget(req: CreateBudgetRequest, userId: number
     startDate: req.startDate ? new Date(req.startDate) : undefined,
     endDate: req.endDate ? new Date(req.endDate) : undefined,
     autoInclude: req.autoInclude,
-    limitAmount: req.limitAmount !== undefined && req.limitAmount !== null ? parseToCents(req.limitAmount) : undefined,
+    limitAmount:
+      req.limitAmount !== undefined && req.limitAmount !== null ? Money.fromDecimal(req.limitAmount) : undefined,
     userId,
   };
 }
@@ -149,9 +151,14 @@ export function deserializeUpdateBudget(req: UpdateBudgetRequest): UpdateBudgetI
     startDate: req.startDate ? new Date(req.startDate) : req.startDate === null ? null : undefined,
     endDate: req.endDate ? new Date(req.endDate) : req.endDate === null ? null : undefined,
     autoInclude: req.autoInclude,
-    limitAmount:
-      req.limitAmount !== undefined ? (req.limitAmount !== null ? parseToCents(req.limitAmount) : null) : undefined,
+    limitAmount: deserializeLimitAmount(req.limitAmount),
   };
+}
+
+function deserializeLimitAmount(val: number | null | undefined): Money | null | undefined {
+  if (val === undefined) return undefined;
+  if (val === null) return null;
+  return Money.fromDecimal(val);
 }
 
 // ============================================================================
@@ -159,18 +166,6 @@ export function deserializeUpdateBudget(req: UpdateBudgetRequest): UpdateBudgetI
 // ============================================================================
 
 export interface BudgetStatsApiResponse {
-  summary: {
-    actualIncome: DecimalAmount;
-    actualExpense: DecimalAmount;
-    balance: DecimalAmount;
-    utilizationRate: number | null;
-    transactionsCount: number;
-    firstTransactionDate: string | null;
-    lastTransactionDate: string | null;
-  };
-}
-
-interface BudgetStatsInternal {
   summary: {
     actualIncome: number;
     actualExpense: number;
@@ -182,15 +177,27 @@ interface BudgetStatsInternal {
   };
 }
 
+interface BudgetStatsInternal {
+  summary: {
+    actualIncome: number | Money;
+    actualExpense: number | Money;
+    balance: number | Money;
+    utilizationRate: number | null;
+    transactionsCount: number;
+    firstTransactionDate: string | null;
+    lastTransactionDate: string | null;
+  };
+}
+
 /**
- * Serialize budget stats from internal cents format to API decimal format
+ * Serialize budget stats to API decimal format
  */
 export function serializeBudgetStats(stats: BudgetStatsInternal): BudgetStatsApiResponse {
   return {
     summary: {
-      actualIncome: toDecimal(asCents(stats.summary.actualIncome)),
-      actualExpense: toDecimal(asCents(stats.summary.actualExpense)),
-      balance: toDecimal(asCents(stats.summary.balance)),
+      actualIncome: centsToApiDecimal(stats.summary.actualIncome),
+      actualExpense: centsToApiDecimal(stats.summary.actualExpense),
+      balance: centsToApiDecimal(stats.summary.balance),
       utilizationRate: stats.summary.utilizationRate,
       transactionsCount: stats.summary.transactionsCount,
       firstTransactionDate: stats.summary.firstTransactionDate,

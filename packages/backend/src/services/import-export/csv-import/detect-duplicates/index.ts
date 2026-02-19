@@ -11,6 +11,7 @@ import {
   CategoryOptionValue,
   CurrencyOptionValue,
   TransactionTypeOptionValue,
+  asCents,
 } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -150,7 +151,7 @@ export async function detectDuplicates({
       validRows.push({
         rowIndex,
         date: parsedDate!,
-        amount: Math.abs(parsedAmount!), // Store absolute value, sign determined by transactionType
+        amount: asCents(Math.abs(parsedAmount!)), // Store absolute value in cents, sign determined by transactionType
         description,
         categoryName,
         accountName,

@@ -42,14 +42,13 @@ export async function findDuplicates({
     endDate: maxDate,
     from: 0,
     limit: 10000,
-    isRaw: true,
   });
 
   // Build lookup maps for efficient matching
   const exactMatchMap = new Map<string, Transactions.default[]>();
   for (const tx of existingTransactions) {
     const dateStr = new Date(tx.time).toISOString().split('T')[0];
-    const key = `${tx.accountId}:${dateStr}:${Math.abs(tx.amount)}`;
+    const key = `${tx.accountId}:${dateStr}:${Math.abs(tx.amount.toCents())}`;
 
     if (!exactMatchMap.has(key)) {
       exactMatchMap.set(key, []);
@@ -134,7 +133,7 @@ export async function findDuplicates({
         existingTransaction: {
           id: bestMatch.id,
           date: new Date(bestMatch.time).toISOString().split('T')[0]!,
-          amount: bestMatch.amount,
+          amount: bestMatch.amount.toCents(),
           note: bestMatch.note || '',
           accountId: bestMatch.accountId,
         },

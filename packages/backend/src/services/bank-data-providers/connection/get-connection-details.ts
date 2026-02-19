@@ -1,4 +1,3 @@
-import { asCents, toDecimal } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
@@ -128,7 +127,7 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
       id: account.id,
       name: account.name,
       externalId: account.externalId,
-      currentBalance: toDecimal(asCents(account.currentBalance)),
+      currentBalance: account.currentBalance.toNumber(),
       currencyCode: account.currencyCode,
       type: account.type,
     })),

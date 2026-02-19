@@ -1,21 +1,12 @@
 /**
  * TagReminders Serializers
  *
- * Handles conversion between internal cents representation and API decimal format
- * for the amountThreshold field in reminder settings.
- * - Serializers: DB (cents) → API (decimal)
- * - Deserializers: API (decimal) → DB (cents)
+ * Handles conversion for the amountThreshold field in reminder settings.
+ * amountThreshold is stored as cents in a JSON column (not a MoneyColumn),
+ * so explicit conversion is still needed.
  */
-import {
-  type CentsAmount,
-  type DecimalAmount,
-  type TagReminderFrequency,
-  type TagReminderSettings,
-  type TagReminderType,
-  asCents,
-  parseToCents,
-  toDecimal,
-} from '@bt/shared/types';
+import { type TagReminderFrequency, type TagReminderSettings, type TagReminderType } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import type TagReminders from '@models/TagReminders.model';
 
 // ============================================================================
@@ -23,7 +14,7 @@ import type TagReminders from '@models/TagReminders.model';
 // ============================================================================
 
 export interface TagReminderSettingsApiResponse {
-  amountThreshold?: DecimalAmount;
+  amountThreshold?: number;
   [key: string]: unknown;
 }
 
@@ -73,7 +64,7 @@ export interface UpdateTagReminderRequest {
 // ============================================================================
 
 export interface TagReminderSettingsInternal {
-  amountThreshold?: CentsAmount;
+  amountThreshold?: number; // cents for JSONB storage
   [key: string]: unknown;
 }
 
@@ -98,7 +89,8 @@ export interface UpdateTagReminderInternal {
 // ============================================================================
 
 /**
- * Serialize settings, converting amountThreshold from cents to decimal
+ * Serialize settings, converting amountThreshold from cents to decimal.
+ * amountThreshold is stored as cents in JSON, so we use Money.fromCents().
  */
 function serializeSettings(settings: TagReminderSettings): TagReminderSettingsApiResponse {
   const settingsObj = settings as { amountThreshold?: number; [key: string]: unknown };
@@ -106,7 +98,7 @@ function serializeSettings(settings: TagReminderSettings): TagReminderSettingsAp
   if (settingsObj.amountThreshold !== undefined) {
     return {
       ...settingsObj,
-      amountThreshold: toDecimal(asCents(settingsObj.amountThreshold)),
+      amountThreshold: Money.fromCents(settingsObj.amountThreshold).toNumber(),
     } as TagReminderSettingsApiResponse;
   }
 
@@ -145,7 +137,7 @@ export function serializeTagReminders(reminders: TagReminders[]): TagReminderApi
 // ============================================================================
 
 /**
- * Deserialize settings, converting amountThreshold from decimal to cents
+ * Deserialize settings, converting amountThreshold from decimal to Money
  */
 function deserializeSettings(settings?: CreateTagReminderRequest['settings']): TagReminderSettingsInternal | undefined {
   if (!settings) return undefined;
@@ -155,7 +147,7 @@ function deserializeSettings(settings?: CreateTagReminderRequest['settings']): T
   if (amountThreshold !== undefined) {
     return {
       ...rest,
-      amountThreshold: parseToCents(amountThreshold),
+      amountThreshold: Money.fromDecimal(amountThreshold).toCents(),
     } as TagReminderSettingsInternal;
   }
 

@@ -1,4 +1,5 @@
 import { BUDGET_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Budgets from '@models/Budget.model';
@@ -14,7 +15,7 @@ export interface EditBudgetPayload {
   name?: string;
   startDate?: string;
   endDate?: string;
-  limitAmount?: number;
+  limitAmount?: Money;
   autoInclude?: boolean;
   categoryIds?: number[];
 }

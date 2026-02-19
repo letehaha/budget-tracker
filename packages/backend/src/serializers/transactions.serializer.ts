@@ -1,34 +1,25 @@
 /**
  * Transaction Serializers
  *
- * Handles conversion between internal cents representation and API decimal format.
- * - Serializers: DB (cents) → API (decimal)
- * - Deserializers: API (decimal) → DB (cents)
+ * Serializes transaction model instances for API responses.
+ * Money fields auto-convert via .toNumber().
+ * Deserializers convert API decimal inputs to Money.
  */
-import {
-  ACCOUNT_TYPES,
-  type CentsAmount,
-  type DecimalAmount,
-  PAYMENT_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-  asCents,
-  parseToCents,
-  toDecimal,
-} from '@bt/shared/types';
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money, centsToApiDecimal } from '@common/types/money';
 import type Tags from '@models/Tags.model';
 import type TransactionSplits from '@models/TransactionSplits.model';
 import type Transactions from '@models/Transactions.model';
 
 // ============================================================================
-// Response Types (API format with DecimalAmount)
+// Response Types
 // ============================================================================
 
 export interface TransactionSplitApiResponse {
   id: string;
   categoryId: number;
-  amount: DecimalAmount;
-  refAmount: DecimalAmount;
+  amount: number;
+  refAmount: number;
   note: string | null;
   category?: {
     id: number;
@@ -40,11 +31,11 @@ export interface TransactionSplitApiResponse {
 
 export interface TransactionApiResponse {
   id: number;
-  amount: DecimalAmount;
-  refAmount: DecimalAmount;
-  commissionRate: DecimalAmount;
-  refCommissionRate: DecimalAmount;
-  cashbackAmount: DecimalAmount;
+  amount: number;
+  refAmount: number;
+  commissionRate: number;
+  refCommissionRate: number;
+  cashbackAmount: number;
   note: string | null;
   time: Date;
   userId: number;
@@ -117,13 +108,13 @@ export interface UpdateTransactionRequest {
 }
 
 // ============================================================================
-// Serialized (Internal) Types (DB format with CentsAmount)
+// Internal Types (DB format with Money)
 // ============================================================================
 
 export interface CreateTransactionInternal {
-  amount: CentsAmount;
-  commissionRate?: CentsAmount;
-  destinationAmount?: CentsAmount;
+  amount: Money;
+  commissionRate?: Money;
+  destinationAmount?: Money;
   note?: string;
   time?: Date;
   transactionType: TRANSACTION_TYPES;
@@ -138,7 +129,7 @@ export interface CreateTransactionInternal {
   refundsSplitId?: string;
   splits?: Array<{
     categoryId: number;
-    amount: CentsAmount;
+    amount: Money;
     note?: string | null;
   }>;
   tagIds?: number[];
@@ -146,7 +137,7 @@ export interface CreateTransactionInternal {
 }
 
 export interface UpdateTransactionInternal {
-  amount?: CentsAmount;
+  amount?: Money;
   note?: string | null;
   time?: Date;
   transactionType?: string;
@@ -156,7 +147,7 @@ export interface UpdateTransactionInternal {
   splits?: Array<{
     id?: string;
     categoryId: number;
-    amount: CentsAmount;
+    amount: Money;
     note?: string | null;
   }>;
   tagIds?: number[];
@@ -175,8 +166,8 @@ export function serializeTransactionSplit(
   return {
     id: split.id,
     categoryId: split.categoryId,
-    amount: toDecimal(asCents(split.amount)),
-    refAmount: toDecimal(asCents(split.refAmount)),
+    amount: centsToApiDecimal(split.amount),
+    refAmount: centsToApiDecimal(split.refAmount),
     note: split.note,
     ...(split.category && {
       category: {
@@ -200,11 +191,11 @@ export function serializeTransaction(
 ): TransactionApiResponse {
   return {
     id: tx.id,
-    amount: toDecimal(asCents(tx.amount)),
-    refAmount: toDecimal(asCents(tx.refAmount)),
-    commissionRate: toDecimal(asCents(tx.commissionRate)),
-    refCommissionRate: toDecimal(asCents(tx.refCommissionRate)),
-    cashbackAmount: toDecimal(asCents(tx.cashbackAmount)),
+    amount: centsToApiDecimal(tx.amount),
+    refAmount: centsToApiDecimal(tx.refAmount),
+    commissionRate: centsToApiDecimal(tx.commissionRate),
+    refCommissionRate: centsToApiDecimal(tx.refCommissionRate),
+    cashbackAmount: centsToApiDecimal(tx.cashbackAmount),
     note: tx.note,
     time: tx.time,
     userId: tx.userId,
@@ -269,9 +260,9 @@ export function serializeTransactionTuple(
  */
 export function deserializeCreateTransaction(req: CreateTransactionRequest, userId: number): CreateTransactionInternal {
   return {
-    amount: parseToCents(req.amount),
-    commissionRate: req.commissionRate !== undefined ? parseToCents(req.commissionRate) : undefined,
-    destinationAmount: req.destinationAmount !== undefined ? parseToCents(req.destinationAmount) : undefined,
+    amount: Money.fromDecimal(req.amount),
+    commissionRate: req.commissionRate !== undefined ? Money.fromDecimal(req.commissionRate) : undefined,
+    destinationAmount: req.destinationAmount !== undefined ? Money.fromDecimal(req.destinationAmount) : undefined,
     note: req.note || undefined,
     time: req.time ? new Date(req.time) : undefined,
     transactionType: req.transactionType,
@@ -286,7 +277,7 @@ export function deserializeCreateTransaction(req: CreateTransactionRequest, user
     refundsSplitId: req.refundForSplitId,
     splits: req.splits?.map((split) => ({
       categoryId: split.categoryId,
-      amount: parseToCents(split.amount),
+      amount: Money.fromDecimal(split.amount),
       note: split.note,
     })),
     tagIds: req.tagIds,
@@ -299,7 +290,7 @@ export function deserializeCreateTransaction(req: CreateTransactionRequest, user
  */
 export function deserializeUpdateTransaction(req: UpdateTransactionRequest): UpdateTransactionInternal {
   return {
-    amount: req.amount !== undefined ? parseToCents(req.amount) : undefined,
+    amount: req.amount !== undefined ? Money.fromDecimal(req.amount) : undefined,
     note: req.note,
     time: req.time ? new Date(req.time) : undefined,
     transactionType: req.transactionType,
@@ -309,7 +300,7 @@ export function deserializeUpdateTransaction(req: UpdateTransactionRequest): Upd
     splits: req.splits?.map((split) => ({
       id: split.id,
       categoryId: split.categoryId,
-      amount: parseToCents(split.amount),
+      amount: Money.fromDecimal(split.amount),
       note: split.note,
     })),
     tagIds: req.tagIds,

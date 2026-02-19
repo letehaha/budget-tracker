@@ -285,8 +285,8 @@ describe('Create transaction that refunds a specific split', () => {
     });
 
     // Get tx1 and split from tx2
-    const tx1 = transactions!.find((t) => t.amount === 10000)!;
-    const tx2 = transactions!.find((t) => t.amount === 5000)!;
+    const tx1 = transactions!.find((t) => Number(t.amount) === 10000)!;
+    const tx2 = transactions!.find((t) => Number(t.amount) === 5000)!;
     const splitFromTx2 = tx2.splits![0]!;
 
     // Try to refund tx1 but with splitId from tx2 - should fail

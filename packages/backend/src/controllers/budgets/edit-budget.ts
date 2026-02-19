@@ -1,5 +1,5 @@
-import { parseToCents } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
+import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeBudget } from '@root/serializers';
 import * as editBudgetService from '@services/budgets/edit-budget';
@@ -28,7 +28,6 @@ const schema = z.object({
 export default createController(schema, async ({ user, params, body }) => {
   const { name, categoryIds, startDate, endDate, limitAmount, autoInclude } = body;
 
-  // Convert decimal limitAmount to cents
   const budget = await editBudgetService.editBudget({
     id: params.id,
     userId: user.id,
@@ -36,7 +35,7 @@ export default createController(schema, async ({ user, params, body }) => {
     categoryIds,
     startDate,
     endDate,
-    limitAmount: limitAmount !== undefined ? parseToCents(limitAmount) : undefined,
+    limitAmount: limitAmount !== undefined ? Money.fromDecimal(limitAmount) : undefined,
     autoInclude,
   });
 

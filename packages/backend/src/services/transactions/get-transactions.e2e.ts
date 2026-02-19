@@ -1,4 +1,5 @@
-import { SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, asCents } from '@bt/shared/types';
+import { SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -274,7 +275,7 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountLte: asCents(1000),
+        amountLte: Money.fromDecimal(1000),
         raw: true,
       });
 
@@ -287,7 +288,7 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountGte: asCents(5000),
+        amountGte: Money.fromDecimal(5000),
         raw: true,
       });
 
@@ -300,14 +301,14 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountGte: asCents(2000),
-        amountLte: asCents(5000),
+        amountGte: Money.fromDecimal(2000),
+        amountLte: Money.fromDecimal(5000),
         raw: true,
       });
 
       expect(res.length).toBe(3); // income, expense, 1 of transfers
       res.forEach((tx) => {
-        expect(tx.amount >= 2000 && tx.amount <= 5000).toBe(true);
+        expect(Number(tx.amount) >= 2000 && Number(tx.amount) <= 5000).toBe(true);
       });
     });
 
@@ -315,8 +316,8 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountLte: asCents(2000),
-        amountGte: asCents(5000),
+        amountLte: Money.fromDecimal(2000),
+        amountGte: Money.fromDecimal(5000),
       });
 
       expect(res.statusCode).toBe(ERROR_CODES.ValidationError);

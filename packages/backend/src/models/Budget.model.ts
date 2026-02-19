@@ -4,7 +4,9 @@ import Transactions from '@models/Transactions.model';
 import Categories from '@models/Categories.model';
 import BudgetTransactions from './BudgetTransactions.model';
 import BudgetCategories from './BudgetCategories.model';
-import { BUDGET_STATUSES, BUDGET_TYPES, CentsAmount } from '@bt/shared/types';
+import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
 
 @Table({
   timestamps: false,
@@ -35,8 +37,9 @@ export default class Budgets extends Model {
   @Column({ defaultValue: false, type: DataType.BOOLEAN })
   autoInclude!: boolean;
 
-  @Column({ allowNull: true, type: DataType.NUMBER })
-  limitAmount!: CentsAmount;
+  @Column(MoneyColumn({ storage: 'cents', allowNull: true }))
+  get limitAmount(): Money { return moneyGetCents(this, 'limitAmount'); }
+  set limitAmount(val: Money | number) { moneySetCents(this, 'limitAmount', val); }
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false, type: DataType.INTEGER })

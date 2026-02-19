@@ -1,3 +1,4 @@
+import type { Cents } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { executeImport } from '@services/import-export/csv-import/execute-import';
 import { z } from 'zod';
@@ -5,7 +6,7 @@ import { z } from 'zod';
 const parsedTransactionRowSchema = z.object({
   rowIndex: z.number(),
   date: z.string(), // ISO format
-  amount: z.number(),
+  amount: z.number().transform((n) => n as Cents),
   description: z.string(),
   categoryName: z.string().optional(),
   accountName: z.string(),

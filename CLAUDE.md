@@ -24,7 +24,7 @@ Always test through the actual API endpoints to ensure full integration testing.
 - **Auto-trigger**: After implementing a new endpoint, automatically write e2e tests as the next step — don't wait to be asked.
 - Minimum coverage: **happy path**, **empty state**, and at least one **error case**.
 - Follow the `e2e-test-creator` skill conventions (`.claude/skills/e2e-test-creator/SKILL.md`) for structure and patterns.
-- Suggest running the tests to the user, but wait for confirmation before executing.
+- Run the tests automatically after writing them — do not wait for user confirmation.
 
 **Bug Fix Workflow: Test-First Approach**
 
@@ -34,7 +34,7 @@ Always test through the actual API endpoints to ensure full integration testing.
 
 **CRITICAL: Running Tests**
 
-- **Do NOT run tests automatically** unless the user explicitly requests it. Tests can be slow and expensive (Docker containers, database setup). You can suggest running tests, but wait for user confirmation.
+- **Run e2e tests automatically** after implementing changes that affect backend logic (new endpoints, bug fixes, refactors). Do not wait for user confirmation — just run them.
 - **NEVER** use `npx jest` directly. Always use the npm scripts.
 - **ALWAYS** use the `test-runner` subagent to run tests. The main agent must NEVER run tests directly.
 - Backend e2e tests: `npm run test:e2e` from `packages/backend/`
@@ -93,14 +93,16 @@ Other instructions:
    ast-grep --pattern '<button>$TEXT</button>' src/**/*.vue
    ```
 
-6. **Money Convention: Cents in DB, Decimals in API, Decimals in Frontend**
-   - The database stores all monetary amounts in **cents** (integers)
-   - All API responses MUST return monetary amounts as **decimals** (not cents)
-     For example:
-     - When returning transaction data: use `serializeTransactions()` / `serializeTransaction()` from `@root/serializers/transactions.serializer`
-     - When serializing manually (e.g. from BelongsToMany includes): convert each money field with `toDecimal(asCents(value))` from `@bt/shared/types`
-     - Money fields on transactions: `amount`, `refAmount`, `commissionRate`, `refCommissionRate`, `cashbackAmount`
-   - **Frontend ALWAYS works with decimals.** The API returns decimals, forms accept decimals, and the frontend sends decimals back. **NEVER** manually convert between cents and decimals in frontend code. The only cents↔decimal conversion happens in the backend serializers/deserializers.
+6. **Money Convention: `Money` class everywhere, decimals in API, decimals in Frontend**
+   - The database stores monetary amounts as **cents** (INTEGER columns) or **decimal strings** (DECIMAL columns for investments).
+   - All Sequelize models use `MoneyColumn` getters/setters that return `Money` instances (from `@common/types/money`). **Do NOT use `raw: true`** on queries that include Money fields — it bypasses getters and returns raw integers/strings instead of `Money`.
+   - Use `Money` methods for all monetary operations:
+     - Construction: `Money.fromCents(n)`, `Money.fromDecimal(n)`, `Money.zero()`
+     - Arithmetic: `.add()`, `.subtract()`, `.multiply()`, `.divide()`, `.abs()`, `.negate()`
+     - Output: `.toCents()` (for DB writes / cents arithmetic), `.toNumber()` (for API decimals), `.toJSON()` (auto-called by `res.json()`)
+   - All API responses MUST return monetary amounts as **decimals** (not cents). `Money` auto-serializes via `toJSON()` in `res.json()`. For explicit conversion, use serializers with `centsToApiDecimal()` from `@common/types/money`.
+   - Money fields on transactions: `amount`, `refAmount`, `commissionRate`, `refCommissionRate`, `cashbackAmount`
+   - **Frontend ALWAYS works with decimals.** The API returns decimals, forms accept decimals, and the frontend sends decimals back. **NEVER** manually convert between cents and decimals in frontend code.
 7. **i18n Files - DO NOT EDIT UNLESS EXPLICITLY ASKED**
    - i18n locale files are BLOCKED from reading (hook saves tokens)
    - **NEVER** proactively add/update translations when implementing features
@@ -109,3 +111,12 @@ Other instructions:
    - If a feature needs translations, mention it in your response and let the user decide when to add them
 8. For Chrome extenstion use Brave browser, not Chrome
 9. **Frontend env vars (`VITE_*`) must also be added to CI** — they are inlined at build time. Add as input + envkey in `.github/actions/frontend-docker-build/action.yml`, then pass the secret in `.github/workflows/image-to-docker-hub.yml`.
+10. **CRITICAL: No Git Commits or Pushes**
+    - **NEVER** run `git commit`, `git push`, or any command that creates commits or pushes to remote.
+    - The user manages all git operations themselves. No exceptions.
+11. **VERY IMPORTANT: Stop Early When Stuck**
+    - If something doesn't work as expected during implementation, you are allowed **1–2 attempts** to fix it.
+    - After that — **STOP**. Do NOT keep trying workarounds, custom scripts, eval hacks, or speculative fixes.
+    - Instead, **describe the problem to the user** and ask what to do next.
+    - This applies to debugging, unexpected behavior, failing builds, type errors you can't resolve, etc.
+    - Burning tokens on a long chain of guesses almost never helps. Asking the user is always better.

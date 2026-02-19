@@ -10,8 +10,8 @@ import {
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
-  parseToCents,
 } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import { trackImportCompleted } from '@js/utils/posthog';
 import * as Accounts from '@models/Accounts.model';
@@ -131,11 +131,10 @@ async function executeImportImpl({
 
       // Calculate refAmount
       // Note: tx.amount is in decimal format from AI extraction (e.g., 35 means 35.00)
-      // Convert to cents for storage
-      const amountInCents = parseToCents(tx.amount);
+      const amount = Money.fromDecimal(tx.amount);
       const refAmount = await calculateRefAmount({
         userId,
-        amount: amountInCents,
+        amount,
         baseCode: currencyCode,
         date: txDate,
       });
@@ -149,7 +148,7 @@ async function executeImportImpl({
       // Create transaction
       const transaction = await Transactions.createTransaction({
         userId,
-        amount: amountInCents,
+        amount,
         refAmount,
         note: tx.description,
         time: txDate,

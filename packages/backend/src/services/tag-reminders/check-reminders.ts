@@ -4,9 +4,8 @@ import {
   TAG_REMINDER_FREQUENCIES,
   TAG_REMINDER_TYPES,
   TagReminderNotificationPayload,
-  asCents,
-  toDecimal,
 } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { logger } from '@js/utils/logger';
 import TagReminders from '@models/TagReminders.model';
@@ -196,14 +195,13 @@ async function checkReminder({
     tagIds: [reminder.tagId],
     from: 0,
     limit: isExistenceCheck ? 1 : undefined, // No limit for amount calculation, limit 1 for existence check
-    isRaw: true,
   });
 
   switch (reminder.type) {
     case TAG_REMINDER_TYPES.amountThreshold: {
       // Calculate totals for amount threshold check
       const transactionCount = transactions.length;
-      const totalAmount = transactions.reduce((sum, tx) => sum + tx.refAmount, 0);
+      const totalAmount = transactions.reduce((sum, tx) => sum + tx.refAmount.toCents(), 0);
       const transactionIds = transactions.map((tx) => tx.id);
 
       result.transactionCount = transactionCount;
@@ -254,10 +252,10 @@ async function createReminderNotification({
 
   // Amount threshold is stored in cents, convert to decimal for display
   const amountThresholdCents = (reminder.settings as AmountThresholdSettings)?.amountThreshold;
-  const amountThreshold = amountThresholdCents ? toDecimal(asCents(amountThresholdCents)) : undefined;
+  const amountThreshold = amountThresholdCents ? Money.fromCents(amountThresholdCents).toNumber() : undefined;
 
   // Total amount from transactions is in cents, convert to decimal for display
-  const actualAmount = checkResult.totalAmount ? toDecimal(asCents(checkResult.totalAmount)) : undefined;
+  const actualAmount = checkResult.totalAmount ? Money.fromCents(checkResult.totalAmount).toNumber() : undefined;
 
   const tag = reminder.tag;
 

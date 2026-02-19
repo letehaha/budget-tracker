@@ -1,5 +1,6 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, parseToCents } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
 import { currencyCode } from '@common/lib/zod/custom-types';
+import { Money } from '@common/types/money';
 import { NotFoundError, Unauthorized, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
@@ -60,8 +61,8 @@ export const createAccount = createController(
       currencyCode,
       name,
       type,
-      creditLimit: parseToCents(creditLimit),
-      initialBalance: parseToCents(initialBalance),
+      creditLimit: Money.fromDecimal(creditLimit),
+      initialBalance: Money.fromDecimal(initialBalance),
       userId,
     });
 
@@ -112,9 +113,9 @@ export const updateAccount = createController(
       ...removeUndefinedKeys({
         isEnabled,
         accountCategory,
-        currentBalance: currentBalance !== undefined ? parseToCents(currentBalance) : undefined,
+        currentBalance: currentBalance !== undefined ? Money.fromDecimal(currentBalance) : undefined,
         name,
-        creditLimit: creditLimit !== undefined ? parseToCents(creditLimit) : undefined,
+        creditLimit: creditLimit !== undefined ? Money.fromDecimal(creditLimit) : undefined,
       }),
     });
 

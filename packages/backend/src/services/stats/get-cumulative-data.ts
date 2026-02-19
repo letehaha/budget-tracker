@@ -152,7 +152,6 @@ async function getPeriodData({
         attributes: [],
       },
     ],
-    raw: true,
     attributes: ['time', 'refAmount', 'transactionType'],
   });
 
@@ -171,9 +170,9 @@ async function getPeriodData({
     const monthEntry = monthlyDataMap.get(monthKey)!;
 
     if (tx.transactionType === TRANSACTION_TYPES.income) {
-      monthEntry.income += tx.refAmount;
+      monthEntry.income += tx.refAmount.toCents();
     } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
-      monthEntry.expenses += Math.abs(tx.refAmount);
+      monthEntry.expenses += Math.abs(tx.refAmount.toCents());
     }
   }
 

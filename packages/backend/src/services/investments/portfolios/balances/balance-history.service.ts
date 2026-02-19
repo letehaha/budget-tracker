@@ -1,3 +1,4 @@
+import { INVESTMENT_DECIMAL_SCALE } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
@@ -84,10 +85,10 @@ const getPortfolioBalanceHistoryImpl = async ({
   const balanceHistory: BalanceSnapshot[] = balances.map((balance) => ({
     portfolioId: balance.portfolioId,
     currencyCode: balance.currencyCode,
-    availableCash: balance.availableCash,
-    totalCash: balance.totalCash,
-    refAvailableCash: balance.refAvailableCash,
-    refTotalCash: balance.refTotalCash,
+    availableCash: balance.availableCash.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+    totalCash: balance.totalCash.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+    refAvailableCash: balance.refAvailableCash.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+    refTotalCash: balance.refTotalCash.toDecimalString(INVESTMENT_DECIMAL_SCALE),
     snapshotDate: balance.updatedAt,
     currency: {
       code: balance.currency?.code || '',

@@ -2,12 +2,13 @@
 import {
   ACCOUNT_TYPES,
   BANK_PROVIDER_TYPE,
+  Cents,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   asCents,
-  parseToCents,
 } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
@@ -172,11 +173,11 @@ export class LunchFlowProvider extends BaseBankDataProvider {
 
     return activeAccounts.reduce<ProviderAccount[]>((result, account, index) => {
       const balanceResult = balanceResults[index]!;
-      let balance = 0;
+      let balance: Cents = asCents(0);
       // Use account-level currency as fallback; balance response takes precedence
       let currency = account.currency || '';
       if (balanceResult.status === 'fulfilled') {
-        balance = parseToCents(balanceResult.value.balance.amount);
+        balance = Money.fromDecimal(balanceResult.value.balance.amount).toCents();
         currency = balanceResult.value.balance.currency || currency;
       } else {
         logger.warn(`[LunchFlow] Failed to fetch balance for account ${account.id}, defaulting to 0`);
@@ -225,7 +226,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
       .filter((tx) => tx.id !== null)
       .map((tx) => ({
         externalId: tx.id!,
-        amount: tx.amount,
+        amount: Money.fromDecimal(tx.amount).toCents(),
         currency: tx.currency,
         date: new Date(tx.date),
         description: tx.description || tx.merchant || '',
@@ -326,15 +327,15 @@ export class LunchFlowProvider extends BaseBankDataProvider {
         const [createdTx] = await createTransaction({
           originalId: tx.id!,
           note: tx.description || tx.merchant || '',
-          amount: parseToCents(Math.abs(tx.amount)),
+          amount: Money.fromDecimal(Math.abs(tx.amount)),
           time: new Date(tx.date),
           externalData: {
             merchant: tx.merchant,
             description: tx.description,
             lunchflowAccountId: tx.accountId,
           },
-          commissionRate: asCents(0),
-          cashbackAmount: asCents(0),
+          commissionRate: Money.fromCents(0),
+          cashbackAmount: Money.fromCents(0),
           accountId: account.id,
           userId: connection.userId,
           transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
@@ -354,8 +355,8 @@ export class LunchFlowProvider extends BaseBankDataProvider {
       // Update account balance
       try {
         const balanceResponse = await apiClient.getBalance({ accountId });
-        const balanceCents = parseToCents(balanceResponse.balance.amount);
-        await account.update({ currentBalance: balanceCents });
+        const balanceMoney = Money.fromDecimal(balanceResponse.balance.amount);
+        await account.update({ currentBalance: balanceMoney });
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         logger.warn(`[LunchFlow] Failed to update balance for account ${account.id}: ${errorMsg}`);
@@ -395,7 +396,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     const { balance } = await apiClient.getBalance({ accountId });
 
     return {
-      amount: parseToCents(balance.amount),
+      amount: Money.fromDecimal(balance.amount).toCents(),
       currency: balance.currency,
       asOf: new Date(),
     };

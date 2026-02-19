@@ -426,7 +426,7 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
         const accountId = syncedAccounts[0]!.id;
 
         const initialAccount = (await Accounts.findByPk(accountId))!;
-        const initialBalance = initialAccount.currentBalance;
+        const initialBalance = initialAccount.currentBalance.toNumber();
 
         // Create transactions that should affect balance
         const mockedTransactions = helpers.monobank.mockedTransactionData(3, {
@@ -450,7 +450,7 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
         const expectedBalance = mockedTransactions.reduce((latest, tx) =>
           tx.time > latest.time ? tx : latest,
         ).balance;
-        expect(updatedAccount.currentBalance).toBe(expectedBalance);
+        expect(updatedAccount.currentBalance.toNumber()).toBe(expectedBalance);
       });
     });
   });
@@ -926,7 +926,7 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
 
       const transaction = await Transactions.findOne({ where: { accountId } });
       const txId = transaction!.id;
-      const originalAmount = transaction!.amount;
+      const originalAmount = transaction!.amount.toNumber();
 
       // Try to update amount (should be rejected)
       const updateResult = await helpers.updateTransaction({
@@ -1032,7 +1032,7 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
 
       // Get the updated account balance after linking (it may have been adjusted)
       const linkedAccount = await Accounts.findByPk(systemAccount.id);
-      const currentBalance = linkedAccount!.currentBalance;
+      const currentBalance = linkedAccount!.currentBalance.toNumber();
 
       // Verify account is properly linked
       expect(linkedAccount!.bankDataProviderConnectionId).toBe(connectionId);
@@ -1081,7 +1081,7 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
       const externalTxEditResult = await helpers.updateTransaction({
         id: externalTx.id,
         payload: {
-          amount: externalTx.amount + 1000,
+          amount: Number(externalTx.amount) + 1000,
         },
       });
 
@@ -1105,7 +1105,7 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
 
       // 7. Modify an existing "external" transaction (should work after unlinking)
       const txToModify = externalTransactions[0]!;
-      const originalAmount = txToModify.amount;
+      const originalAmount = Number(txToModify.amount);
       const newAmount = originalAmount + 500;
 
       const modifyResult = await helpers.updateTransaction({
@@ -1153,7 +1153,7 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
       // 12. Fetch new external transactions
       // Refetch account to get the current balance after relinking
       const accountAfterRelink = await Accounts.findByPk(systemAccount.id);
-      const balanceForNewSync = accountAfterRelink!.currentBalance;
+      const balanceForNewSync = accountAfterRelink!.currentBalance.toCents();
 
       const newMockedTransactions = helpers.monobank.mockedTransactionData(3, {
         initialBalance: balanceForNewSync,
@@ -1200,7 +1200,7 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
       const newExternalTxEditResult = await helpers.updateTransaction({
         id: newExternalTx!.id,
         payload: {
-          amount: newExternalTx!.amount + 1000,
+          amount: Number(newExternalTx!.amount) + 1000,
         },
       });
 
@@ -1210,7 +1210,7 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
       const transaction_1_editResult = await helpers.updateTransaction({
         id: transaction_1.id,
         payload: {
-          amount: transaction_1.amount + 500,
+          amount: Number(transaction_1.amount) + 500,
         },
       });
 

@@ -11,7 +11,8 @@ import {
 
 import Securities from './Securities.model';
 import Portfolios from './Portfolios.model';
-import { HoldingModel } from "@bt/shared/types/investments"
+import { Money } from '@common/types/money';
+import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 
 /**
  * The Holding model represents individual investments within an investment account.
@@ -49,7 +50,7 @@ import { HoldingModel } from "@bt/shared/types/investments"
   timestamps: true,
   tableName: 'Holdings',
 })
-export default class Holdings extends Model implements HoldingModel {
+export default class Holdings extends Model {
   @PrimaryKey
   @ForeignKey(() => Portfolios)
   @Index
@@ -72,8 +73,9 @@ export default class Holdings extends Model implements HoldingModel {
    * Changes in quantity are driven by investment transactions such as buying or
    * selling shares of the security.
    */
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  quantity!: string;
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get quantity(): Money { return moneyGetDecimal(this, 'quantity'); }
+  set quantity(val: Money | string | number) { moneySetDecimal(this, 'quantity', val, 10); }
 
   /**
    * The `costBasis` field represents the original value or purchase price of an
@@ -95,10 +97,12 @@ export default class Holdings extends Model implements HoldingModel {
    * It needs to be recalculated when there are new investment transactions that
    * affect the quantity or value of holding.
    */
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  costBasis!: string;
-  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '0' })
-  refCostBasis!: string;
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get costBasis(): Money { return moneyGetDecimal(this, 'costBasis'); }
+  set costBasis(val: Money | string | number) { moneySetDecimal(this, 'costBasis', val, 10); }
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get refCostBasis(): Money { return moneyGetDecimal(this, 'refCostBasis'); }
+  set refCostBasis(val: Money | string | number) { moneySetDecimal(this, 'refCostBasis', val, 10); }
 
   @Column({ type: DataType.STRING, allowNull: false, defaultValue: 'USD' })
   currencyCode!: string;

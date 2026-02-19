@@ -1,4 +1,4 @@
-import { API_RESPONSE_STATUS, AssertNoDeep, CentsAmount } from '@bt/shared/types';
+import { API_RESPONSE_STATUS } from '@bt/shared/types';
 import { CustomRequest, CustomResponse } from '@common/types';
 import { errorHandler } from '@controllers/helpers';
 import { Request, Response } from 'express';
@@ -15,13 +15,8 @@ type HandlerParams<T extends z.ZodType> = {
   res: Response;
 };
 
-/**
- * Controller response with compile-time enforcement that data cannot contain CentsAmount.
- * If you try to return CentsAmount, TypeScript will show an error:
- * "Type 'CentsAmount' is not assignable to type 'never'"
- */
 type ControllerResponse<T = unknown> = {
-  data?: AssertNoDeep<T, CentsAmount>;
+  data?: T;
   statusCode?: number;
 };
 

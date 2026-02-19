@@ -1,5 +1,5 @@
 import type { ParsedTransactionRow, TransactionImportDetails } from '@bt/shared/types';
-import { ImportSource } from '@bt/shared/types';
+import { ImportSource, asCents } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/Transactions.model';
@@ -19,7 +19,7 @@ describe('Execute Import endpoint', () => {
     {
       rowIndex: 2,
       date: '2024-01-15',
-      amount: 10050, // 100.50 in cents
+      amount: asCents(10050), // 100.50 in cents
       description: 'Grocery shopping',
       categoryName,
       accountName,
@@ -29,7 +29,7 @@ describe('Execute Import endpoint', () => {
     {
       rowIndex: 3,
       date: '2024-01-16',
-      amount: 5000, // 50.00 in cents
+      amount: asCents(5000), // 50.00 in cents
       description: 'Coffee shop',
       categoryName,
       accountName,
@@ -39,7 +39,7 @@ describe('Execute Import endpoint', () => {
     {
       rowIndex: 4,
       date: '2024-01-17',
-      amount: 250000, // 2500.00 in cents
+      amount: asCents(250000), // 2500.00 in cents
       description: 'Salary',
       categoryName: undefined,
       accountName,
@@ -257,7 +257,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'Transaction 1',
           accountName: 'Account A',
           currencyCode: 'USD',
@@ -266,7 +266,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'Transaction 2',
           accountName: 'Account B',
           currencyCode: 'EUR',
@@ -311,7 +311,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'Transaction 1',
           categoryName: 'Category A',
           accountName: 'CSV Account',
@@ -321,7 +321,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'Transaction 2',
           categoryName: 'Category B',
           accountName: 'CSV Account',
@@ -366,7 +366,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'Transaction without category',
           categoryName: undefined,
           accountName: 'CSV Account',
@@ -407,7 +407,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'Transaction to new account',
           accountName: 'New Account A',
           currencyCode: 'USD',
@@ -416,7 +416,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'Transaction to existing account',
           accountName: 'CSV Existing Account',
           currencyCode: existingAccount.currencyCode,
@@ -425,7 +425,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 4,
           date: '2024-01-17',
-          amount: 7500,
+          amount: asCents(7500),
           description: 'Transaction to another new account',
           accountName: 'New Account B',
           currencyCode: 'EUR',
@@ -490,7 +490,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'Transaction with new category',
           categoryName: 'New Category A',
           accountName: 'CSV Account',
@@ -500,7 +500,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'Transaction with existing category 1',
           categoryName: 'CSV Existing Cat 1',
           accountName: 'CSV Account',
@@ -510,7 +510,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 4,
           date: '2024-01-17',
-          amount: 7500,
+          amount: asCents(7500),
           description: 'Transaction with another new category',
           categoryName: 'New Category B',
           accountName: 'CSV Account',
@@ -520,7 +520,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 5,
           date: '2024-01-18',
-          amount: 3000,
+          amount: asCents(3000),
           description: 'Transaction with existing category 2',
           categoryName: 'CSV Existing Cat 2',
           accountName: 'CSV Account',
@@ -574,7 +574,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'Food expense from Account A',
           categoryName: 'Food',
           accountName: 'Account A',
@@ -584,7 +584,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'Food expense from Account B',
           categoryName: 'Food',
           accountName: 'Account B',
@@ -594,7 +594,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 4,
           date: '2024-01-17',
-          amount: 7500,
+          amount: asCents(7500),
           description: 'Food expense from Account A again',
           categoryName: 'Food',
           accountName: 'Account A',
@@ -649,7 +649,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'Transaction with category',
           categoryName: 'New Category',
           accountName: 'CSV Account',
@@ -659,7 +659,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'Transaction without category',
           categoryName: undefined,
           accountName: 'CSV Account',
@@ -669,7 +669,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 4,
           date: '2024-01-17',
-          amount: 7500,
+          amount: asCents(7500),
           description: 'Another transaction with category',
           categoryName: 'New Category',
           accountName: 'CSV Account',
@@ -726,7 +726,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'A + Cat1',
           categoryName: 'Category 1',
           accountName: 'Account A',
@@ -737,7 +737,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'B + Cat1',
           categoryName: 'Category 1',
           accountName: 'Account B',
@@ -748,7 +748,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 4,
           date: '2024-01-17',
-          amount: 7500,
+          amount: asCents(7500),
           description: 'Existing + Cat2',
           categoryName: 'Category 2',
           accountName: 'CSV Existing',
@@ -759,7 +759,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 5,
           date: '2024-01-18',
-          amount: 3000,
+          amount: asCents(3000),
           description: 'A + Existing Cat',
           categoryName: 'CSV Existing Cat',
           accountName: 'Account A',
@@ -770,7 +770,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 6,
           date: '2024-01-19',
-          amount: 2000,
+          amount: asCents(2000),
           description: 'B + No Cat',
           categoryName: undefined,
           accountName: 'Account B',
@@ -830,7 +830,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'USD Account 1',
           accountName: 'USD Account 1',
           currencyCode: 'USD',
@@ -839,7 +839,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'USD Account 2',
           accountName: 'USD Account 2',
           currencyCode: 'USD',
@@ -848,7 +848,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 4,
           date: '2024-01-17',
-          amount: 7500,
+          amount: asCents(7500),
           description: 'USD Account 3',
           accountName: 'USD Account 3',
           currencyCode: 'USD',
@@ -890,7 +890,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'Food expense',
           categoryName: 'Food',
           accountName: 'My Account',
@@ -900,7 +900,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'Transport expense',
           categoryName: 'Transport',
           accountName: 'My Account',
@@ -910,7 +910,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 4,
           date: '2024-01-17',
-          amount: 7500,
+          amount: asCents(7500),
           description: 'Entertainment expense',
           categoryName: 'Entertainment',
           accountName: 'My Account',
@@ -920,7 +920,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 5,
           date: '2024-01-18',
-          amount: 3000,
+          amount: asCents(3000),
           description: 'Another food expense',
           categoryName: 'Food',
           accountName: 'My Account',
@@ -972,7 +972,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'Transaction 1',
           categoryName: 'Category A',
           accountName: 'Account 1',
@@ -982,7 +982,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'Transaction 2',
           categoryName: 'Category B',
           accountName: 'Account 2',
@@ -1039,7 +1039,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'Transaction 1',
           categoryName: 'CSV Category 1',
           accountName: 'CSV Account 1',
@@ -1049,7 +1049,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'Transaction 2',
           categoryName: 'CSV Category 2',
           accountName: 'CSV Account 2',
@@ -1186,7 +1186,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'Test transaction',
           categoryName: 'CSV Category',
           accountName: 'CSV Account',
@@ -1270,7 +1270,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'EUR Transaction',
           accountName: 'EUR Account',
           currencyCode: 'EUR',
@@ -1299,7 +1299,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 2,
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           description: 'USD Transaction',
           accountName: 'USD Account',
           currencyCode: 'USD',
@@ -1308,7 +1308,7 @@ describe('Execute Import endpoint', () => {
         {
           rowIndex: 3,
           date: '2024-01-16',
-          amount: 5000,
+          amount: asCents(5000),
           description: 'GBP Transaction',
           accountName: 'GBP Account',
           currencyCode: 'GBP',

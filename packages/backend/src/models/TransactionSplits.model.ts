@@ -8,7 +8,8 @@ import {
   Length,
   BeforeCreate,
 } from 'sequelize-typescript';
-import { CentsAmount } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { v7 as uuidv7 } from 'uuid';
 import Categories from './Categories.model';
 import Transactions from './Transactions.model';
@@ -69,18 +70,14 @@ export default class TransactionSplits extends Model {
   categoryId!: number;
 
   /** Amount in account currency (same as transaction.amount) */
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  amount!: CentsAmount;
+  @Column(MoneyColumn({ storage: 'cents' }))
+  get amount(): Money { return moneyGetCents(this, 'amount'); }
+  set amount(val: Money | number) { moneySetCents(this, 'amount', val); }
 
   /** Amount in base currency (same as transaction.refAmount) */
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  refAmount!: CentsAmount;
+  @Column(MoneyColumn({ storage: 'cents' }))
+  get refAmount(): Money { return moneyGetCents(this, 'refAmount'); }
+  set refAmount(val: Money | number) { moneySetCents(this, 'refAmount', val); }
 
   // Optional per-split note, max 100 chars
   @Length({ max: 100 })
@@ -106,8 +103,8 @@ export interface CreateSplitPayload {
   transactionId: number;
   userId: number;
   categoryId: number;
-  amount: CentsAmount;
-  refAmount: CentsAmount;
+  amount: Money;
+  refAmount: Money;
   note?: string | null;
 }
 

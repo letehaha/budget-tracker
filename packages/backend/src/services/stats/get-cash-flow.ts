@@ -290,7 +290,6 @@ export const getCashFlow = async ({
         attributes: [],
       },
     ],
-    raw: true,
     attributes: ['time', 'refAmount', 'transactionType', 'categoryId'],
   });
 
@@ -320,7 +319,7 @@ export const getCashFlow = async ({
     if (bucketIndex === -1) continue;
 
     const periodData = periodDataMap.get(bucketIndex)!;
-    const amount = tx.refAmount;
+    const amount = tx.refAmount.toCents();
 
     if (tx.transactionType === TRANSACTION_TYPES.income) {
       periodData.income += amount;

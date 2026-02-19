@@ -1,8 +1,9 @@
-import { BalanceModel, TRANSACTION_TYPES } from '@bt/shared/types';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { booleanQuery, recordId } from '@common/lib/zod/custom-types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
+import type Balances from '@models/Balances.model';
 import {
   serializeBalanceHistory,
   serializeCashFlow,
@@ -47,7 +48,7 @@ export const getBalanceHistory = createController(balanceHistorySchema, async ({
 
   tryBasicDateValidation({ from, to });
 
-  let balanceHistory: BalanceModel[];
+  let balanceHistory: Balances[];
   if (accountId) {
     balanceHistory = await statsService.getBalanceHistoryForAccount({
       userId,

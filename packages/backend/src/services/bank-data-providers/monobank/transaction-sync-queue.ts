@@ -1,12 +1,6 @@
-import {
-  ACCOUNT_TYPES,
-  AccountModel,
-  PAYMENT_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-  asCents,
-} from '@bt/shared/types';
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/Accounts.model';
 import * as MerchantCategoryCodes from '@models/MerchantCategoryCodes.model';
@@ -134,7 +128,7 @@ async function createMonobankTransaction(
   const [createdTx] = await transactionsService.createTransaction({
     originalId: data.id,
     note: data.description,
-    amount: asCents(Math.abs(data.amount)),
+    amount: Money.fromCents(Math.abs(data.amount)),
     time: new Date(data.time * 1000),
     externalData: {
       operationAmount: data.operationAmount,
@@ -142,8 +136,8 @@ async function createMonobankTransaction(
       balance: data.balance,
       hold: data.hold,
     },
-    commissionRate: asCents(data.commissionRate),
-    cashbackAmount: asCents(data.cashbackAmount),
+    commissionRate: Money.fromCents(data.commissionRate),
+    cashbackAmount: Money.fromCents(data.cashbackAmount),
     accountId,
     userId,
     transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
@@ -227,8 +221,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
       emitTransactionsSyncEvent({ userId, accountId, transactionIds: createdTransactionIds });
 
       // Update account metadata and balance after processing all transactions in this batch
-      const account: Pick<AccountModel, 'externalData' | 'currentBalance'> | null = await Accounts.findByPk(accountId, {
-        raw: true,
+      const account: Pick<Accounts, 'externalData' | 'currentBalance'> | null = await Accounts.findByPk(accountId, {
         attributes: ['externalData', 'currentBalance'],
       });
 
@@ -275,7 +268,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
             );
 
             if (balanceFromExternalData !== undefined) {
-              accountDataToUpdate.currentBalance = asCents(balanceFromExternalData);
+              accountDataToUpdate.currentBalance = Money.fromCents(balanceFromExternalData);
             } else {
               logger.error(
                 "[Monobank transactions sync]: latest monobank transaction doesn't have balance in externalData",

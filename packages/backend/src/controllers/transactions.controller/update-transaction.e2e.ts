@@ -8,7 +8,7 @@ import * as helpers from '@tests/helpers';
 describe('Update transaction controller', () => {
   it('should make basic updation', async () => {
     const [baseTx] = await helpers.createTransaction({ raw: true });
-    const txAmount = baseTx.amount;
+    const txAmount = Number(baseTx.amount);
     const expectedNewAmount = txAmount + 1000;
 
     const res = await helpers.updateTransaction({
@@ -44,7 +44,7 @@ describe('Update transaction controller', () => {
 
     expect(baseTx.accountId).toStrictEqual(accountUAH.id);
     expect(baseTx.amount).toStrictEqual(createdTransaction.amount);
-    expect(baseTx.refAmount).toEqualRefValue(createdTransaction.amount * currencyRate!.rate);
+    expect(baseTx.refAmount).toEqualRefValue(Number(createdTransaction.amount) * currencyRate!.rate);
   });
   it('should create transfer tx for ref + non-ref tx, and change destination non-ref account to another non-ref account', async () => {
     const baseAccount = await helpers.createAccount({ raw: true });
@@ -238,7 +238,7 @@ describe('Update transaction controller', () => {
           payload: {
             transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
             destinationAccountId: accountB.id,
-            destinationAmount: externalTransaction!.refAmount,
+            destinationAmount: Number(externalTransaction!.refAmount),
           },
           raw: true,
         });
