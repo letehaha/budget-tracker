@@ -109,6 +109,21 @@
       "signOut": "Вийти"
     }
   },
+  "pages": {
+    "integrations": {
+      "providers": {
+        "monobank": {
+          "name": "Monobank"
+        },
+        "enableBanking": {
+          "name": "Enable Banking"
+        },
+        "lunchflow": {
+          "name": "Lunch Flow"
+        }
+      }
+    }
+  },
   "dashboard": {
     "onboarding": {
       "title": "Ласкаво просимо до MoneyMatter",
