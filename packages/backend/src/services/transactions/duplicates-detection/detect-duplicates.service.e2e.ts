@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { TRANSACTION_TYPES, asCents } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -12,17 +12,17 @@ describe('Generic Detect Duplicates Service', () => {
     const defaults: TransactionToCheck[] = [
       {
         date: '2024-01-15 10:30:00',
-        amount: 10050,
+        amount: asCents(10050),
         type: 'expense',
       },
       {
         date: '2024-01-16 14:20:00',
-        amount: 5000,
+        amount: asCents(5000),
         type: 'expense',
       },
       {
         date: '2024-01-17 09:00:00',
-        amount: 250000,
+        amount: asCents(250000),
         type: 'income',
       },
     ];
@@ -229,7 +229,9 @@ describe('Generic Detect Duplicates Service', () => {
       await helpers.createTransaction({ payload: txPayload, raw: true });
 
       // Check transaction at 10:30 on same day
-      const transactions: TransactionToCheck[] = [{ date: '2024-01-15 10:30:00', amount: 10050, type: 'expense' }];
+      const transactions: TransactionToCheck[] = [
+        { date: '2024-01-15 10:30:00', amount: asCents(10050), type: 'expense' },
+      ];
 
       const result = await detectDuplicates({
         userId: account.userId,
@@ -252,7 +254,7 @@ describe('Generic Detect Duplicates Service', () => {
       await helpers.createTransaction({ payload: txPayload, raw: true });
 
       // Check with date-only format
-      const transactions: TransactionToCheck[] = [{ date: '2024-01-15', amount: 10050, type: 'expense' }];
+      const transactions: TransactionToCheck[] = [{ date: '2024-01-15', amount: asCents(10050), type: 'expense' }];
 
       const result = await detectDuplicates({
         userId: account.userId,
@@ -301,9 +303,9 @@ describe('Generic Detect Duplicates Service', () => {
       await helpers.createTransaction({ payload: txPayload, raw: true });
 
       const transactions: TransactionToCheck[] = [
-        { date: '2024-01-31', amount: 1000, type: 'expense' },
-        { date: '2024-02-15', amount: 2000, type: 'expense' },
-        { date: '2024-03-01', amount: 3000, type: 'expense' },
+        { date: '2024-01-31', amount: asCents(1000), type: 'expense' },
+        { date: '2024-02-15', amount: asCents(2000), type: 'expense' },
+        { date: '2024-03-01', amount: asCents(3000), type: 'expense' },
       ];
 
       const result = await detectDuplicates({
@@ -327,7 +329,9 @@ describe('Generic Detect Duplicates Service', () => {
       });
       await helpers.createTransaction({ payload: txPayload, raw: true });
 
-      const transactions: TransactionToCheck[] = [{ date: '2024-01-31 12:00:00', amount: 5000, type: 'expense' }];
+      const transactions: TransactionToCheck[] = [
+        { date: '2024-01-31 12:00:00', amount: asCents(5000), type: 'expense' },
+      ];
 
       const result = await detectDuplicates({
         userId: account.userId,
@@ -402,7 +406,7 @@ describe('Generic Detect Duplicates Service', () => {
       const transactions: ExtendedTransaction[] = [
         {
           date: '2024-01-15',
-          amount: 10050,
+          amount: asCents(10050),
           type: 'expense',
           customField: 'test-value',
           metadata: { source: 'bank-sync' },
@@ -515,7 +519,7 @@ describe('Generic Detect Duplicates Service', () => {
       for (let i = 0; i < 20; i++) {
         transactions.push({
           date: `2024-01-${String(i + 1).padStart(2, '0')}`,
-          amount: 1000 * (i + 1),
+          amount: asCents(1000 * (i + 1)),
           type: 'expense',
         });
       }
@@ -544,7 +548,7 @@ describe('Generic Detect Duplicates Service', () => {
         await helpers.createTransaction({ payload: txPayload, raw: true });
       }
 
-      const transactions: TransactionToCheck[] = [{ date: '2024-01-15', amount: 5000, type: 'expense' }];
+      const transactions: TransactionToCheck[] = [{ date: '2024-01-15', amount: asCents(5000), type: 'expense' }];
 
       const result = await detectDuplicates({
         userId: account.userId,

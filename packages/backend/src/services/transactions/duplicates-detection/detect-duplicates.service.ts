@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { Cents, TRANSACTION_TYPES, asCents } from '@bt/shared/types';
 import * as Transactions from '@models/Transactions.model';
 
 /**
@@ -9,7 +9,7 @@ export interface TransactionToCheck {
   /** Date in YYYY-MM-DD or YYYY-MM-DD HH:MM:SS format */
   date: string;
   /** Amount in system format (integer, cents) */
-  amount: number;
+  amount: Cents;
   /** Transaction type */
   type: 'income' | 'expense';
 }
@@ -20,7 +20,7 @@ export interface TransactionToCheck {
 export interface ExistingTransactionMatch {
   id: number;
   date: string;
-  amount: number;
+  amount: Cents;
   note: string;
 }
 
@@ -146,7 +146,7 @@ export async function detectDuplicates<T extends TransactionToCheck>({
       existing: {
         id: bestMatch.id,
         date: new Date(bestMatch.time).toISOString().split('T')[0]!,
-        amount: Math.abs(bestMatch.amount.toCents()),
+        amount: asCents(Math.abs(bestMatch.amount.toCents())),
         note: bestMatch.note || '',
       },
     });

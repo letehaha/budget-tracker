@@ -111,7 +111,10 @@ Other instructions:
    - If a feature needs translations, mention it in your response and let the user decide when to add them
 8. For Chrome extenstion use Brave browser, not Chrome
 9. **Frontend env vars (`VITE_*`) must also be added to CI** — they are inlined at build time. Add as input + envkey in `.github/actions/frontend-docker-build/action.yml`, then pass the secret in `.github/workflows/image-to-docker-hub.yml`.
-10. **VERY IMPORTANT: Stop Early When Stuck**
+10. **CRITICAL: No Git Commits or Pushes**
+    - **NEVER** run `git commit`, `git push`, or any command that creates commits or pushes to remote.
+    - The user manages all git operations themselves. No exceptions.
+11. **VERY IMPORTANT: Stop Early When Stuck**
     - If something doesn't work as expected during implementation, you are allowed **1–2 attempts** to fix it.
     - After that — **STOP**. Do NOT keep trying workarounds, custom scripts, eval hacks, or speculative fixes.
     - Instead, **describe the problem to the user** and ask what to do next.
