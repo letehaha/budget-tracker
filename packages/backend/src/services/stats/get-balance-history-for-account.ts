@@ -91,7 +91,8 @@ export const getBalanceHistoryForAccount = async ({
         data = [
           ...data,
           {
-            ...balanceRecord,
+            accountId: balanceRecord.accountId,
+            amount: balanceRecord.amount,
             date: new Date(to ?? from ?? new Date()),
           } as Balances.default,
         ];

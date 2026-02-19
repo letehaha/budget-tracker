@@ -115,7 +115,7 @@ export const linkAccountToBankConnection = withTransaction(
     }
 
     // 5. Calculate balance difference
-    const systemBalance = account.currentBalance.toNumber();
+    const systemBalance = account.currentBalance.toCents();
     const externalBalance = externalAccount.balance;
     const balanceDifference = externalBalance - systemBalance;
 

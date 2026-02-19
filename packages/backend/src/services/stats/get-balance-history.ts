@@ -127,13 +127,23 @@ export const getBalanceHistory = async ({
     for (const accountId of accountIdsNotInRange) {
       const beforeBalances = beforeByAccount.get(accountId);
       if (beforeBalances && beforeBalances.length > 0) {
-        latestBalances.push({ ...beforeBalances[0]!, date: overrideDate } as Balances.default);
+        const b = beforeBalances[0]!;
+        latestBalances.push({
+          accountId: b.accountId,
+          amount: b.amount,
+          date: overrideDate,
+        } as Balances.default);
         continue;
       }
 
       const afterBalances = afterByAccount.get(accountId);
       if (afterBalances && afterBalances.length > 0) {
-        latestBalances.push({ ...afterBalances[0]!, date: overrideDate } as Balances.default);
+        const b = afterBalances[0]!;
+        latestBalances.push({
+          accountId: b.accountId,
+          amount: b.amount,
+          date: overrideDate,
+        } as Balances.default);
       }
     }
 
