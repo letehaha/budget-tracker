@@ -24,7 +24,7 @@ Always test through the actual API endpoints to ensure full integration testing.
 - **Auto-trigger**: After implementing a new endpoint, automatically write e2e tests as the next step — don't wait to be asked.
 - Minimum coverage: **happy path**, **empty state**, and at least one **error case**.
 - Follow the `e2e-test-creator` skill conventions (`.claude/skills/e2e-test-creator/SKILL.md`) for structure and patterns.
-- Suggest running the tests to the user, but wait for confirmation before executing.
+- Run the tests automatically after writing them — do not wait for user confirmation.
 
 **Bug Fix Workflow: Test-First Approach**
 
@@ -34,7 +34,7 @@ Always test through the actual API endpoints to ensure full integration testing.
 
 **CRITICAL: Running Tests**
 
-- **Do NOT run tests automatically** unless the user explicitly requests it. Tests can be slow and expensive (Docker containers, database setup). You can suggest running tests, but wait for user confirmation.
+- **Run e2e tests automatically** after implementing changes that affect backend logic (new endpoints, bug fixes, refactors). Do not wait for user confirmation — just run them.
 - **NEVER** use `npx jest` directly. Always use the npm scripts.
 - **ALWAYS** use the `test-runner` subagent to run tests. The main agent must NEVER run tests directly.
 - Backend e2e tests: `npm run test:e2e` from `packages/backend/`

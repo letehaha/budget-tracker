@@ -1,4 +1,4 @@
-import { API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { API_ERROR_CODES, BANK_PROVIDER_TYPE, Decimal } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
@@ -7,7 +7,13 @@ import { withTransaction } from '@root/services/common/with-transaction';
 import { ProviderAccount, bankProviderRegistry } from '@services/bank-data-providers';
 
 export const listExternalAccounts = withTransaction(
-  async ({ connectionId, userId }: { connectionId: number; userId: number }): Promise<ProviderAccount[]> => {
+  async ({
+    connectionId,
+    userId,
+  }: {
+    connectionId: number;
+    userId: number;
+  }): Promise<(Omit<ProviderAccount, 'balance'> & { balance: Decimal })[]> => {
     const connection = await BankDataProviderConnections.findOne({
       where: {
         id: connectionId,

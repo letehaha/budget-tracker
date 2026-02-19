@@ -3,7 +3,7 @@
  * This system allows users to connect multiple bank accounts from various providers
  * (Monobank, Enable Banking, etc.) in a unified, modular way.
  */
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE, Cents } from '@bt/shared/types';
 
 // ============================================================================
 // Provider Types and Enums
@@ -100,8 +100,8 @@ export interface ProviderAccount {
   name: string;
   /** Account type (e.g., 'debit', 'credit', 'savings') */
   type: string;
-  /** Current account balance */
-  balance: number;
+  /** Current account balance (in cents) */
+  balance: Cents;
   /** Currency code (e.g., 'UAH', 'USD') */
   currency: string;
   /** Additional provider-specific data */
@@ -114,8 +114,8 @@ export interface ProviderAccount {
 export interface ProviderTransaction {
   /** Provider's unique identifier for this transaction */
   externalId: string;
-  /** Transaction amount (positive for income, negative for expense) */
-  amount: number;
+  /** Transaction amount in cents (positive for income, negative for expense) */
+  amount: Cents;
   /** Currency code */
   currency: string;
   /** Transaction date */
@@ -134,8 +134,8 @@ export interface ProviderTransaction {
  * Account balance information from provider
  */
 export interface ProviderBalance {
-  /** Balance amount */
-  amount: number;
+  /** Balance amount (in cents) */
+  amount: Cents;
   /** Currency code */
   currency: string;
   /** Timestamp when balance was retrieved */

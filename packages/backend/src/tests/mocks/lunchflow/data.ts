@@ -1,3 +1,4 @@
+import { asDecimal } from '@bt/shared/types';
 import { faker } from '@faker-js/faker';
 import type {
   LunchFlowApiAccountsResponse,
@@ -37,7 +38,7 @@ export const getMockedLunchFlowBalance = ({
   const id = accountId ? Number(accountId) : 1001;
   return {
     balance: {
-      amount: id === 1001 ? 1523.45 : 850.0,
+      amount: asDecimal(id === 1001 ? 1523.45 : 850.0),
       currency: id === 1001 ? 'USD' : 'EUR',
     },
   };
@@ -54,7 +55,7 @@ export const getMockedLunchFlowTransactions = (amount = 5): LunchFlowApiTransact
     return {
       id: faker.string.uuid(),
       accountId: 1001,
-      amount: signedAmount,
+      amount: asDecimal(signedAmount),
       currency: 'USD',
       date: subDays(currentDate, index).toISOString(),
       merchant: faker.company.name(),

@@ -1,4 +1,5 @@
 import type { ExternalMonobankClientInfoResponse } from '@bt/shared/types';
+import { asCents } from '@bt/shared/types';
 
 export const getMockedClientData = (): ExternalMonobankClientInfoResponse => ({
   clientId: 'sdfsdfsdf',
@@ -9,8 +10,8 @@ export const getMockedClientData = (): ExternalMonobankClientInfoResponse => ({
     {
       id: 'test-account-1',
       sendId: 'test-send-id-1',
-      balance: 2500000,
-      creditLimit: 200000,
+      balance: asCents(2500000),
+      creditLimit: asCents(200000),
       type: 'black',
       currencyCode: 980,
       cashbackType: 'Miles',
@@ -20,8 +21,8 @@ export const getMockedClientData = (): ExternalMonobankClientInfoResponse => ({
     {
       id: 'test-account-2',
       sendId: 'test-send-id-2',
-      balance: 1000,
-      creditLimit: 0,
+      balance: asCents(1000),
+      creditLimit: asCents(0),
       type: 'black',
       currencyCode: 840,
       cashbackType: 'Miles',

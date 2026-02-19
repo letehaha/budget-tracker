@@ -19,8 +19,16 @@ export const getBudgets = withTransaction(async ({ userId }: { userId: number })
   return budgets;
 });
 
+type BudgetByIdReturnType = Budgets & { categories: Pick<Categories, 'id' | 'name' | 'color' | 'parentId'>[] };
+
 export const getBudgetById = withTransaction(
-  async ({ userId, id }: { userId: BudgetModel['userId']; id: BudgetModel['id'] }) => {
+  async ({
+    userId,
+    id,
+  }: {
+    userId: BudgetModel['userId'];
+    id: BudgetModel['id'];
+  }): Promise<BudgetByIdReturnType | null> => {
     const budget = await Budgets.findOne({
       where: { userId, id },
       include: [

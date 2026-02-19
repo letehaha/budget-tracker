@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
 import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
@@ -160,7 +160,7 @@ export class MonobankProvider extends BaseBankDataProvider {
 
     return transactions.map((tx) => ({
       externalId: tx.id,
-      amount: tx.amount,
+      amount: asCents(tx.amount),
       currency: this.getCurrencyCodeFromMonobank(tx.currencyCode),
       date: new Date(tx.time * 1000),
       description: tx.description,
@@ -305,7 +305,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     }
 
     return {
-      amount: account.balance,
+      amount: asCents(account.balance),
       currency: this.getCurrencyCodeFromMonobank(account.currencyCode),
       asOf: new Date(),
     };

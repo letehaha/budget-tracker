@@ -1,6 +1,8 @@
 /**
- * LunchFlow-specific types for the provider implementation
+ * LunchFlow-specific types for the provider implementation.
+ * LunchFlow API returns monetary amounts as decimals (not cents).
  */
+import type { Decimal } from '@bt/shared/types';
 
 /**
  * LunchFlow API credentials required for authentication
@@ -42,7 +44,7 @@ export interface LunchFlowApiAccount {
 export interface LunchFlowApiTransaction {
   id: string | null;
   accountId: number;
-  amount: number;
+  amount: Decimal;
   currency: string;
   date: string;
   merchant?: string;
@@ -55,7 +57,7 @@ export interface LunchFlowApiTransaction {
  */
 export interface LunchFlowApiBalance {
   balance: {
-    amount: number;
+    amount: Decimal;
     currency: string;
   };
 }

@@ -1,3 +1,4 @@
+import type { Cents, Decimal } from '@bt/shared/types';
 import Big from 'big.js';
 
 /**
@@ -174,8 +175,8 @@ export class Money {
    * @example
    * Money.fromDecimal(15.50).toCents() // => 1550
    */
-  toCents(): number {
-    return this.value.times(100).round(0, Big.roundHalfUp).toNumber();
+  toCents(): Cents {
+    return this.value.times(100).round(0, Big.roundHalfUp).toNumber() as Cents;
   }
 
   /**
@@ -200,8 +201,8 @@ export class Money {
    * Convert to a raw JS number.
    * Use for regular transaction amounts in API responses.
    */
-  toNumber(): number {
-    return this.value.toNumber();
+  toNumber(): Decimal {
+    return this.value.toNumber() as Decimal;
   }
 
   /**
@@ -210,8 +211,8 @@ export class Money {
    *
    * For investment fields needing high precision, use toDecimalString() explicitly.
    */
-  toJSON(): number {
-    return this.value.toNumber();
+  toJSON(): Decimal {
+    return this.value.toNumber() as Decimal;
   }
 
   /** String representation for debugging. */
@@ -231,7 +232,7 @@ export class Money {
  *
  * Use in serializers when preparing money fields for API responses.
  */
-export function centsToApiDecimal(val: Money | number): number {
+export function centsToApiDecimal(val: Money | number): Decimal {
   if (Money.isMoney(val)) return val.toNumber();
   return Money.fromCents(val as number).toNumber();
 }

@@ -11,4 +11,5 @@ export * from './import-export';
 export * from './statement-parser';
 export * from './sse';
 export * from './ai';
+export * from './money';
 export { endpointsTypes };

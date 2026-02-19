@@ -2,9 +2,11 @@
 import {
   ACCOUNT_TYPES,
   BANK_PROVIDER_TYPE,
+  Cents,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  asCents,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
@@ -171,7 +173,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
 
     return activeAccounts.reduce<ProviderAccount[]>((result, account, index) => {
       const balanceResult = balanceResults[index]!;
-      let balance = 0;
+      let balance: Cents = asCents(0);
       // Use account-level currency as fallback; balance response takes precedence
       let currency = account.currency || '';
       if (balanceResult.status === 'fulfilled') {
@@ -224,7 +226,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
       .filter((tx) => tx.id !== null)
       .map((tx) => ({
         externalId: tx.id!,
-        amount: tx.amount,
+        amount: Money.fromDecimal(tx.amount).toCents(),
         currency: tx.currency,
         date: new Date(tx.date),
         description: tx.description || tx.merchant || '',

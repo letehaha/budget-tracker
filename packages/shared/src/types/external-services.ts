@@ -1,3 +1,5 @@
+import type { Cents } from './money';
+
 /**
  * More info here:
  *
@@ -11,8 +13,8 @@ export interface ExternalMonobankClientInfoResponse {
   accounts: {
     id: string;
     sendId: string;
-    balance: number;
-    creditLimit: number;
+    balance: Cents;
+    creditLimit: Cents;
     type: 'black' | 'white' | 'platinum' | 'iron' | 'fop' | 'yellow' | 'eAid';
     currencyCode: number;
     cashbackType: 'None' | 'UAH' | 'Miles';
@@ -25,8 +27,8 @@ export interface ExternalMonobankClientInfoResponse {
     title: string;
     description: string;
     currencyCode: number;
-    balance: number;
-    goal: number;
+    balance: Cents;
+    goal: Cents;
   }[];
 }
 
@@ -42,12 +44,12 @@ export type ExternalMonobankTransactionResponse = {
   mcc: number;
   originalMcc: number;
   hold: boolean;
-  amount: number;
-  operationAmount: number;
+  amount: Cents;
+  operationAmount: Cents;
   currencyCode: number;
-  commissionRate: number;
-  cashbackAmount: number;
-  balance: number;
+  commissionRate: Cents;
+  cashbackAmount: Cents;
+  balance: Cents;
   comment: string;
   receiptId: string;
   invoiceId: string;
