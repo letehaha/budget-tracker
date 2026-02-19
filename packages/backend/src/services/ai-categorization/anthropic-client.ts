@@ -7,7 +7,7 @@ export enum AnthropicClientModel {
   opus = 'claude-opus-4-5-20251101',
 }
 
-export interface AnthropicClientOptions {
+interface AnthropicClientOptions {
   apiKey: string;
   maxTokens?: number;
 

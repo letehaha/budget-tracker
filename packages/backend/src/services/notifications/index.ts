@@ -8,11 +8,10 @@ import {
   NotificationType,
 } from '@bt/shared/types';
 import Notifications from '@models/Notifications.model';
-import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 
-export interface CreateNotificationParams {
+interface CreateNotificationParams {
   userId: number;
   type: NotificationType;
   title: string;
@@ -75,7 +74,7 @@ export const getNotificationById = async ({
   return notification?.toJSON() ?? null;
 };
 
-export interface GetNotificationsParams {
+interface GetNotificationsParams {
   userId: number;
   status?: NotificationStatus;
   type?: NotificationType;
@@ -165,13 +164,3 @@ export const getUnreadCount = async ({ userId }: { userId: number }): Promise<nu
     },
   });
 };
-
-export const deleteExpiredNotifications = withTransaction(async (): Promise<number> => {
-  return Notifications.destroy({
-    where: {
-      expiresAt: {
-        [Op.lt]: new Date(),
-      },
-    },
-  });
-});

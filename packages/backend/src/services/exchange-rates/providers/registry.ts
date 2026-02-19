@@ -345,6 +345,3 @@ class ExchangeRateProviderRegistry {
 
 // Export singleton instance
 export const exchangeRateProviderRegistry = ExchangeRateProviderRegistry.getInstance();
-
-// Also export the class for testing purposes
-export { ExchangeRateProviderRegistry };

@@ -126,6 +126,3 @@ class BankProviderRegistry {
 
 // Export singleton instance
 export const bankProviderRegistry = BankProviderRegistry.getInstance();
-
-// Also export the class for testing purposes
-export { BankProviderRegistry };

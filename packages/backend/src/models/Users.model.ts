@@ -106,22 +106,6 @@ export const getUserDefaultCategory = async ({ id }: { id: number }) => {
   return user;
 };
 
-export const getUserCurrencies = async ({ userId }: { userId: number }) => {
-  const user = await Users.findOne({
-    where: { id: userId },
-    include: [
-      {
-        model: Currencies,
-        as: 'currencies',
-        // to remove the rows from the join table (i.e. 'UsersCurrencies' table) in the result set
-        through: { attributes: [] },
-      },
-    ],
-  });
-
-  return user;
-};
-
 export const createUser = async ({
   username,
   email,

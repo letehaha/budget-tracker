@@ -6,7 +6,7 @@ import { logger } from '@js/utils/logger';
  * Keys for category translation lookup.
  * These map to keys in i18n files under "defaultCategories.main.*"
  */
-export const CATEGORY_KEYS = Object.freeze({
+const CATEGORY_KEYS = Object.freeze({
   food: 'food',
   shopping: 'shopping',
   housing: 'housing',
@@ -24,7 +24,7 @@ export const CATEGORY_KEYS = Object.freeze({
  * Category structure without translated names.
  * Names are resolved at runtime via i18n based on user's locale.
  */
-export const DEFAULT_CATEGORY_STRUCTURE = Object.freeze({
+const DEFAULT_CATEGORY_STRUCTURE = Object.freeze({
   main: [
     { key: CATEGORY_KEYS.food, type: CATEGORY_TYPES.custom, color: '#e74c3c', icon: 'food-20-filled' },
     { key: CATEGORY_KEYS.shopping, type: CATEGORY_TYPES.custom, color: '#3498db', icon: 'shopping-bag-20-filled' },

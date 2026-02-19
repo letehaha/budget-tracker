@@ -7,7 +7,7 @@ import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
-export interface AddTransactionsToTagPayload {
+interface AddTransactionsToTagPayload {
   tagId: number;
   userId: number;
   transactionIds: number[];
@@ -65,7 +65,7 @@ export const addTransactionsToTag = withTransaction(async (payload: AddTransacti
   };
 });
 
-export interface RemoveTransactionsFromTagPayload {
+interface RemoveTransactionsFromTagPayload {
   tagId: number;
   userId: number;
   transactionIds: number[];
@@ -106,65 +106,3 @@ export const removeTransactionsFromTag = withTransaction(async (payload: RemoveT
     removedCount: deletedCount,
   };
 });
-
-export interface GetTagsForTransactionPayload {
-  transactionId: number;
-  userId: number;
-}
-
-export const getTagsForTransaction = async ({ transactionId, userId }: GetTagsForTransactionPayload) => {
-  const transaction = await Transactions.findOne({
-    where: { id: transactionId, userId },
-    include: [
-      {
-        model: Tags,
-        through: { attributes: [] },
-      },
-    ],
-  });
-
-  if (!transaction) {
-    throw new NotFoundError({ message: t({ key: 'transactions.transactionNotFound' }) });
-  }
-
-  return transaction.tags || [];
-};
-
-export interface GetTransactionsForTagPayload {
-  tagId: number;
-  userId: number;
-  limit?: number;
-  offset?: number;
-}
-
-export const getTransactionsForTag = async ({
-  tagId,
-  userId,
-  limit = 50,
-  offset = 0,
-}: GetTransactionsForTagPayload) => {
-  const tag = await Tags.findOne({
-    where: { id: tagId, userId },
-  });
-
-  if (!tag) {
-    throw new NotFoundError({ message: t({ key: 'tags.tagNotFound' }) });
-  }
-
-  const transactions = await Transactions.findAll({
-    include: [
-      {
-        model: Tags,
-        where: { id: tagId },
-        through: { attributes: [] },
-        attributes: [],
-      },
-    ],
-    where: { userId },
-    limit,
-    offset,
-    order: [['time', 'DESC']],
-  });
-
-  return transactions;
-};

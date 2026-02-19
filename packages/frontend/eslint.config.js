@@ -78,6 +78,9 @@ export default typescriptEslint.config(
             '/^planned\\.subscriptions\\.backToList$/',
             // subscriptions-overview.vue: TITLE_KEYS object with dynamic access via widgetType
             '/^dashboard\\.widgets\\.subscriptions\\./',
+            '/^pages\\.integrations\\.labels\\./',
+            '/^pages\\.integrations\\.tooltips\\./',
+            '/^dashboard\\.widgets\\.registry\\./',
           ],
         },
       ],

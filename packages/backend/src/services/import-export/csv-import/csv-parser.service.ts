@@ -13,7 +13,7 @@ interface CSVParseResult {
  * Detects the most likely CSV delimiter by testing common delimiters
  * Returns the delimiter that produces the most consistent column count
  */
-export function detectDelimiter(sample: string): string {
+function detectDelimiter(sample: string): string {
   const delimiters = [',', ';', '\t', '|'];
   const lines = sample.split('\n').slice(0, 10); // Check first 10 lines
 

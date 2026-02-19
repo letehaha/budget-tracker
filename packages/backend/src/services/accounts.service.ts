@@ -61,10 +61,6 @@ export const getAccounts = withTransaction(
   },
 );
 
-export const getAccountsByExternalIds = withTransaction(async (payload: Accounts.GetAccountsByExternalIdsPayload) =>
-  Accounts.getAccountsByExternalIds(payload),
-);
-
 export const getAccountById = withTransaction(
   async (payload: { id: number; userId: number }): Promise<AccountWithRelinkStatus | null> => {
     const account = await Accounts.getAccountById({ ...payload });
@@ -234,7 +230,7 @@ const defineCorrectAmountFromTxType = (amount: Money, transactionType: TRANSACTI
 //   prevTransactionType: TRANSACTION_TYPES;
 // }): Promise<void>;
 
-export async function updateAccountBalanceForChangedTxImpl({
+async function updateAccountBalanceForChangedTxImpl({
   accountId,
   userId,
   transactionType,

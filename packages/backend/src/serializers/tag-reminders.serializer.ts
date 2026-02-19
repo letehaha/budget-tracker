@@ -13,12 +13,12 @@ import type TagReminders from '@models/TagReminders.model';
 // Response Types (API format with DecimalAmount)
 // ============================================================================
 
-export interface TagReminderSettingsApiResponse {
+interface TagReminderSettingsApiResponse {
   amountThreshold?: number;
   [key: string]: unknown;
 }
 
-export interface TagReminderApiResponse {
+interface TagReminderApiResponse {
   id: number;
   userId: number;
   tagId: number;
@@ -37,7 +37,7 @@ export interface TagReminderApiResponse {
 // Request Types (API format with decimal input)
 // ============================================================================
 
-export interface CreateTagReminderRequest {
+interface CreateTagReminderRequest {
   type: TagReminderType;
   frequency?: TagReminderFrequency | null;
   dayOfMonth?: number | null;
@@ -48,7 +48,7 @@ export interface CreateTagReminderRequest {
   isEnabled?: boolean;
 }
 
-export interface UpdateTagReminderRequest {
+interface UpdateTagReminderRequest {
   type?: TagReminderType;
   frequency?: TagReminderFrequency | null;
   dayOfMonth?: number | null;
@@ -63,12 +63,12 @@ export interface UpdateTagReminderRequest {
 // Internal Types (DB format with CentsAmount)
 // ============================================================================
 
-export interface TagReminderSettingsInternal {
+interface TagReminderSettingsInternal {
   amountThreshold?: number; // cents for JSONB storage
   [key: string]: unknown;
 }
 
-export interface CreateTagReminderInternal {
+interface CreateTagReminderInternal {
   type: TagReminderType;
   frequency?: TagReminderFrequency | null;
   dayOfMonth?: number | null;
@@ -76,7 +76,7 @@ export interface CreateTagReminderInternal {
   isEnabled?: boolean;
 }
 
-export interface UpdateTagReminderInternal {
+interface UpdateTagReminderInternal {
   type?: TagReminderType;
   frequency?: TagReminderFrequency | null;
   dayOfMonth?: number | null;

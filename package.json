@@ -25,7 +25,7 @@
     "prepare": "node -e \"if (process.env.NODE_ENV !== 'production'){process.exit(1)} \" || husky",
     "postinstall": "chmod +x ./post-install.sh && ./post-install.sh",
     "prettier": "npx prettier --write .",
-    "knip": "npx -w packages/frontend knip"
+    "knip": "npx -w packages/backend knip && npx -w packages/frontend knip"
   },
   "author": "letehaha",
   "license": "ISC",

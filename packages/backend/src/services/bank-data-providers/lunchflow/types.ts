@@ -22,11 +22,13 @@ export interface LunchFlowMetadata {
 
 /**
  * LunchFlow account status
+ * @public
  */
 export type LunchFlowAccountStatus = 'ACTIVE' | 'DISCONNECTED' | 'ERROR';
 
 /**
  * LunchFlow API response: account
+ * @public
  */
 export interface LunchFlowApiAccount {
   id: number;

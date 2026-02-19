@@ -17,7 +17,7 @@ export interface TransactionToCheck {
 /**
  * Existing transaction that matched as a duplicate
  */
-export interface ExistingTransactionMatch {
+interface ExistingTransactionMatch {
   id: number;
   date: string;
   amount: Cents;
@@ -28,7 +28,7 @@ export interface ExistingTransactionMatch {
  * A duplicate match result.
  * Generic over T to preserve the original transaction data.
  */
-export interface DuplicateMatch<T> {
+interface DuplicateMatch<T> {
   /** Index in the input transactions array */
   index: number;
   /** The incoming transaction that was checked */
@@ -37,7 +37,7 @@ export interface DuplicateMatch<T> {
   existing: ExistingTransactionMatch;
 }
 
-export interface DetectDuplicatesParams<T extends TransactionToCheck> {
+interface DetectDuplicatesParams<T extends TransactionToCheck> {
   userId: number;
   accountId: number;
   /** Transactions to check for duplicates */

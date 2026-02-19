@@ -7,7 +7,7 @@ import * as Currencies from '@models/Currencies.model';
 /**
  * Validate currency code format (3-letter uppercase)
  */
-export function isValidCurrencyCode(code: string): boolean {
+function isValidCurrencyCode(code: string): boolean {
   return /^[A-Z]{3}$/.test(code);
 }
 

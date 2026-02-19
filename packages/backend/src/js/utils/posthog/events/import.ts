@@ -1,6 +1,6 @@
 import { trackEvent } from '../index';
 
-export type ImportType = 'csv' | 'statement_parser';
+type ImportType = 'csv' | 'statement_parser';
 
 /**
  * Track import completion.

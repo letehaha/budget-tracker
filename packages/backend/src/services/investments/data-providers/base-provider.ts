@@ -16,11 +16,6 @@ export interface HistoricalPriceOptions {
   endDate?: Date;
 }
 
-export interface SecurityDetails extends SecuritySearchResult {
-  sharesPerContract?: string;
-  cryptoCurrencyCode?: string;
-}
-
 export abstract class BaseSecurityDataProvider {
   abstract readonly providerName: SECURITY_PROVIDER;
 

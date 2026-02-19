@@ -16,12 +16,12 @@ import {
 /**
  * Default base currency used by all providers
  */
-export const DEFAULT_BASE_CURRENCY = 'USD';
+const DEFAULT_BASE_CURRENCY = 'USD';
 
 /**
  * Standard date format for exchange rates
  */
-export const EXCHANGE_RATE_DATE_FORMAT = 'yyyy-MM-dd';
+const EXCHANGE_RATE_DATE_FORMAT = 'yyyy-MM-dd';
 
 /**
  * Abstract base class for exchange rate providers.

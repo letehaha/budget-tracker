@@ -29,7 +29,7 @@ const SKIP_NOTIFICATION_PREFIX = '[chore]';
  * Handles GitHub release webhook events.
  * Creates notifications for users when a new release is published.
  */
-export async function handleGitHubRelease(req: Request, res: Response): Promise<void> {
+async function handleGitHubRelease(req: Request, res: Response): Promise<void> {
   const event = req.headers['x-github-event'] as string;
 
   // Only handle release events

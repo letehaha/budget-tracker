@@ -5,7 +5,7 @@ import Transactions, * as TransactionsModel from '@models/Transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { editExcludedCategories } from '@services/user-settings/edit-excluded-categories';
 
-export interface DeleteCategoryPayload extends Categories.DeleteCategoryPayload {
+interface DeleteCategoryPayload extends Categories.DeleteCategoryPayload {
   replaceWithCategoryId?: number;
 }
 

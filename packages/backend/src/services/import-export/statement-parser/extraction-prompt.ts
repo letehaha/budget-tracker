@@ -58,7 +58,7 @@ Output CSV only. First line metadata, then transactions.`;
 /**
  * Expected output structure after parsing CSV
  */
-export interface AIExtractionOutput {
+interface AIExtractionOutput {
   transactions: Array<{
     date: string;
     description: string;

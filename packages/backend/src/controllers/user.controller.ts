@@ -2,7 +2,7 @@ import { currencyCode } from '@common/lib/zod/custom-types';
 import { authPool } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
 import { ValidationError } from '@js/errors';
-import { ExchangeRatePair, UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
+import { ExchangeRatePair } from '@models/UserExchangeRates.model';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';
 import { deleteUser as deleteUserService } from '@services/user/delete-user.service';
@@ -99,21 +99,6 @@ export const editUserCurrency = createController(
   },
 );
 
-export const setDefaultUserCurrency = createController(
-  z.object({
-    body: z.object({
-      currencyCode: currencyCode(),
-    }),
-  }),
-  async ({ user, body }) => {
-    const result = await userService.setDefaultUserCurrency({
-      userId: user.id,
-      currencyCode: body.currencyCode,
-    });
-    return { data: result };
-  },
-);
-
 export const deleteUserCurrency = createController(
   z.object({
     body: z.object({
@@ -138,38 +123,6 @@ const exchangeRatePairSchema = z.object({
   quoteCode: z.string(),
   rate: z.number().optional(),
 });
-
-export const editUserCurrencyExchangeRate = createController(
-  z.object({
-    body: z.object({
-      pairs: z.array(exchangeRatePairSchema),
-    }),
-  }),
-  async ({ user, body }) => {
-    const { pairs } = body;
-
-    if (pairs.some((item) => item.baseCode === item.quoteCode)) {
-      throw new ValidationError({
-        message: 'You cannot edit pair with the same base and quote currency code.',
-      });
-    }
-
-    pairs.forEach((pair) => {
-      if (!pairs.some((item) => item.baseCode === pair.quoteCode)) {
-        throw new ValidationError({
-          message: "When changing base-qoute pair rate, you need to also change opposite pair's rate.",
-        });
-      }
-    });
-
-    const data = await userExchangeRates.editUserExchangeRates({
-      userId: user.id,
-      pairs: pairs as UpdateExchangeRatePair[],
-    });
-
-    return { data };
-  },
-);
 
 export const removeUserCurrencyExchangeRate = createController(
   z.object({

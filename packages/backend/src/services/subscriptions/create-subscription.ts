@@ -4,7 +4,7 @@ import { withTransaction } from '@services/common/with-transaction';
 
 import { validateAccountOwnership, validateCategoryOwnership } from './helpers';
 
-export interface CreateSubscriptionParams {
+interface CreateSubscriptionParams {
   userId: number;
   name: string;
   type?: SUBSCRIPTION_TYPES;

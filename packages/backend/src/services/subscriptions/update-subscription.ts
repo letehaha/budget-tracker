@@ -3,7 +3,7 @@ import { withTransaction } from '@services/common/with-transaction';
 
 import { findSubscriptionOrThrow, validateAccountOwnership, validateCategoryOwnership } from './helpers';
 
-export interface UpdateSubscriptionParams {
+interface UpdateSubscriptionParams {
   id: string;
   userId: number;
   name?: string;

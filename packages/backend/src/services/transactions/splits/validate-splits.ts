@@ -23,7 +23,7 @@ interface ValidateSplitsParams {
  * Validates split data for a transaction.
  * Returns an array of validation errors (empty if valid).
  */
-export const validateSplits = async ({
+const validateSplits = async ({
   splits,
   transactionAmount,
   userId,

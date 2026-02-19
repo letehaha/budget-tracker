@@ -1,7 +1,7 @@
 import { logger } from '@js/utils';
 import { redisClient } from '@root/redis-client';
 
-export interface RateLimitResult {
+interface RateLimitResult {
   allowed: boolean;
   remainingSeconds?: number;
   resetTime?: Date;

@@ -8,7 +8,7 @@ import type AccountGroup from '@models/accounts-groups/AccountGroups.model';
 
 import { type AccountApiResponse, serializeAccount } from './accounts.serializer';
 
-export interface AccountGroupApiResponse {
+interface AccountGroupApiResponse {
   id: number;
   name: string;
   userId: number;
@@ -20,7 +20,7 @@ export interface AccountGroupApiResponse {
 /**
  * Serialize an account group, including nested accounts and child groups
  */
-export function serializeAccountGroup(group: AccountGroup): AccountGroupApiResponse {
+function serializeAccountGroup(group: AccountGroup): AccountGroupApiResponse {
   return {
     id: group.id,
     name: group.name,

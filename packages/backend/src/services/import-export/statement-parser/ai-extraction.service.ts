@@ -13,20 +13,20 @@ import { generateText } from 'ai';
 
 import { STATEMENT_EXTRACTION_SYSTEM_PROMPT, createTextExtractionPrompt, parseAIResponse } from './extraction-prompt';
 
-export interface AIExtractionParams {
+interface AIExtractionParams {
   userId: number;
   text: string;
   pageCount: number;
   fileType: StatementFileType;
 }
 
-export interface AIExtractionError {
+interface AIExtractionError {
   code: 'NO_AI_CONFIGURED' | 'AI_ERROR' | 'EXTRACTION_FAILED' | 'NO_TRANSACTIONS_FOUND' | 'RATE_LIMITED';
   message: string;
   details?: string;
 }
 
-export type AIExtractionResultType =
+type AIExtractionResultType =
   | { success: true; result: StatementExtractionResult }
   | { success: false; error: AIExtractionError };
 

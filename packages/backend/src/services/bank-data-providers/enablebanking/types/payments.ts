@@ -17,6 +17,7 @@ import { ChargeBearerCode, ExecutionRule, FrequencyCode, PSUType, PaymentStatus,
 /**
  * Payment identification
  * https://enablebanking.com/docs/api/reference/#paymentidentification
+ * @public
  */
 export interface PaymentIdentification {
   /** Instruction identification */
@@ -28,6 +29,7 @@ export interface PaymentIdentification {
 /**
  * Beneficiary information
  * https://enablebanking.com/docs/api/reference/#beneficiary
+ * @public
  */
 export interface Beneficiary {
   /** Creditor party identification */
@@ -41,6 +43,7 @@ export interface Beneficiary {
 /**
  * Regulatory reporting
  * https://enablebanking.com/docs/api/reference/#regulatoryreporting
+ * @public
  */
 export interface RegulatoryReporting {
   /** Reporting authority */
@@ -52,6 +55,7 @@ export interface RegulatoryReporting {
 /**
  * Credit transfer transaction
  * https://enablebanking.com/docs/api/reference/#credittransfertransaction
+ * @public
  */
 export interface CreditTransferTransaction {
   /** Payment amount and currency */
@@ -83,6 +87,7 @@ export interface CreditTransferTransaction {
 /**
  * Payment request resource
  * https://enablebanking.com/docs/api/reference/#paymentrequestresource
+ * @public
  */
 export interface PaymentRequestResource {
   /** Payment transaction details */
@@ -100,6 +105,7 @@ export interface PaymentRequestResource {
 /**
  * Request to create a payment
  * https://enablebanking.com/docs/api/reference/#createpaymentrequest
+ * @public
  */
 export interface CreatePaymentRequest {
   /** Payment type */
@@ -127,6 +133,7 @@ export interface CreatePaymentRequest {
 /**
  * Response from creating a payment
  * https://enablebanking.com/docs/api/reference/#createpaymentresponse
+ * @public
  */
 export interface CreatePaymentResponse {
   /** URL to redirect user for payment authorization */
@@ -138,6 +145,7 @@ export interface CreatePaymentResponse {
 /**
  * Response from GET /payments/{payment_id}
  * https://enablebanking.com/docs/api/reference/#getpaymentresponse
+ * @public
  */
 export interface GetPaymentResponse {
   /** Payment ID */

@@ -14,7 +14,7 @@ import type { GetExpensesHistoryResponseSchema } from '@services/stats/get-expen
 // Balance History Serializers
 // ============================================================================
 
-export interface BalanceHistoryItemApiResponse {
+interface BalanceHistoryItemApiResponse {
   date: Date | string;
   amount: number;
   accountId: number;
@@ -28,23 +28,6 @@ export function serializeBalanceHistory(balances: Balances[]): BalanceHistoryIte
     date: balance.date,
     amount: centsToApiDecimal(balance.amount),
     accountId: balance.accountId,
-  }));
-}
-
-export interface AggregatedBalanceHistoryItemApiResponse {
-  date: string;
-  amount: number;
-}
-
-/**
- * Serialize aggregated balance history items (from getAggregatedBalanceHistory)
- */
-export function serializeAggregatedBalanceHistory(
-  balances: { date: string; amount: number }[],
-): AggregatedBalanceHistoryItemApiResponse[] {
-  return balances.map((balance) => ({
-    date: balance.date,
-    amount: centsToApiDecimal(balance.amount),
   }));
 }
 
@@ -63,7 +46,7 @@ export function serializeTotalBalance(totalCents: number): number {
 // Expenses History Serializers
 // ============================================================================
 
-export interface ExpensesHistoryItemApiResponse {
+interface ExpensesHistoryItemApiResponse {
   id: number;
   accountId: number;
   time: Date;
@@ -98,13 +81,13 @@ export function serializeExpensesHistory(
 // Spendings by Categories Serializers
 // ============================================================================
 
-export interface SpendingStructureApiResponse {
+interface SpendingStructureApiResponse {
   name: string;
   color: string;
   amount: number;
 }
 
-export type GetSpendingsByCategoriesApiResponse = {
+type GetSpendingsByCategoriesApiResponse = {
   [categoryId: number]: SpendingStructureApiResponse;
 };
 
@@ -131,7 +114,7 @@ export function serializeSpendingsByCategories(
 // Cash Flow Serializers
 // ============================================================================
 
-export interface CashFlowCategoryDataApiResponse {
+interface CashFlowCategoryDataApiResponse {
   categoryId: number;
   name: string;
   color: string;
@@ -139,7 +122,7 @@ export interface CashFlowCategoryDataApiResponse {
   expenseAmount: number;
 }
 
-export interface CashFlowPeriodDataApiResponse {
+interface CashFlowPeriodDataApiResponse {
   periodStart: string;
   periodEnd: string;
   income: number;
@@ -148,7 +131,7 @@ export interface CashFlowPeriodDataApiResponse {
   categories?: CashFlowCategoryDataApiResponse[];
 }
 
-export interface GetCashFlowApiResponse {
+interface GetCashFlowApiResponse {
   periods: CashFlowPeriodDataApiResponse[];
   totals: {
     income: number;
@@ -190,20 +173,20 @@ export function serializeCashFlow(cashFlow: endpointsTypes.GetCashFlowResponse):
 // Cumulative Data Serializers
 // ============================================================================
 
-export interface CumulativeMonthDataApiResponse {
+interface CumulativeMonthDataApiResponse {
   month: number;
   monthLabel: string;
   value: number;
   periodValue: number;
 }
 
-export interface CumulativePeriodDataApiResponse {
+interface CumulativePeriodDataApiResponse {
   year: number;
   data: CumulativeMonthDataApiResponse[];
   total: number;
 }
 
-export interface GetCumulativeApiResponse {
+interface GetCumulativeApiResponse {
   currentPeriod: CumulativePeriodDataApiResponse;
   previousPeriod: CumulativePeriodDataApiResponse;
   percentChange: number;
@@ -240,7 +223,7 @@ export function serializeCumulativeData(cumulative: endpointsTypes.GetCumulative
 // Combined Balance History Serializers
 // ============================================================================
 
-export interface CombinedBalanceHistoryItemApiResponse {
+interface CombinedBalanceHistoryItemApiResponse {
   date: string;
   accountsBalance: number;
   portfoliosBalance: number;

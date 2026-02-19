@@ -151,10 +151,6 @@
         "viewTransactionsButton": "View Transactions",
         "startNewImportButton": "Start New Import"
       }
-    },
-    "monobank": {
-      "tokenPlaceholder": "Enter your Monobank API token",
-      "accountNamePlaceholder": "e.g., Personal Account"
     }
   }
 }

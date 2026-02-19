@@ -8,7 +8,6 @@ import {
   AfterCreate,
   HasMany,
 } from 'sequelize-typescript';
-import { Op } from 'sequelize';
 import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
@@ -18,7 +17,7 @@ import Balances from '@models/Balances.model';
 import Transactions from '@models/Transactions.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 
-export interface AccountsAttributes {
+interface AccountsAttributes {
   id: number;
   name: string;
   initialBalance: Money;
@@ -187,23 +186,6 @@ export const getAccountById = async ({
   const account = await Accounts.findOne({
     where: { userId, id },
     raw,
-  });
-
-  return account;
-};
-
-export interface GetAccountsByExternalIdsPayload {
-  userId: AccountsAttributes['userId'];
-  externalIds: string[];
-}
-export const getAccountsByExternalIds = async ({ userId, externalIds }: GetAccountsByExternalIdsPayload) => {
-  const account = await Accounts.findAll({
-    where: {
-      userId,
-      externalId: {
-        [Op.in]: externalIds,
-      },
-    },
   });
 
   return account;

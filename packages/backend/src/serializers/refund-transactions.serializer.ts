@@ -13,7 +13,7 @@ import { type TransactionApiResponse, serializeTransaction } from './transaction
 // Response Types (API format with DecimalAmount)
 // ============================================================================
 
-export interface RefundTransactionApiResponse {
+interface RefundTransactionApiResponse {
   id: number;
   userId: number;
   originalTxId: number | null;

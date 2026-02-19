@@ -9,3 +9,11 @@ declare module 'express' {
     [SESSION_ID_KEY_NAME]?: string | null; // Optional sessionId property
   }
 }
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: { id: number; username: string; authUserId: string; role: string } | null;
+    }
+  }
+}

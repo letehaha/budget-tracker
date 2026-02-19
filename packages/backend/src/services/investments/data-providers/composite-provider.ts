@@ -11,7 +11,7 @@ import {
   getSearchProviderPreference,
 } from './utils';
 
-export interface CompositeProviderOptions {
+interface CompositeProviderOptions {
   fmpApiKey?: string;
   polygonApiKey?: string;
   alphaVantageApiKey?: string;

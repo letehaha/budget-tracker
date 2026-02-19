@@ -4,7 +4,7 @@ import Subscriptions from '@models/Subscriptions.model';
 
 import { isFuzzyNameMatch } from './detect-candidates-utils';
 
-export interface PossibleMatch {
+interface PossibleMatch {
   id: string;
   name: string;
 }

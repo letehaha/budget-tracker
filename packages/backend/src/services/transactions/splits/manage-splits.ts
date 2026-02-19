@@ -178,32 +178,3 @@ export const manageSplits = async ({
 
   return createdSplits;
 };
-
-/**
- * Get splits for a transaction and calculate the primary category amount.
- */
-export const getSplitsWithPrimaryAmount = async ({
-  transaction,
-}: {
-  transaction: Transactions;
-}): Promise<{
-  splits: TransactionSplits[];
-  primaryAmount: Money;
-  primaryRefAmount: Money;
-}> => {
-  const splits = await TransactionSplits.findAll({
-    where: {
-      transactionId: transaction.id,
-      userId: transaction.userId,
-    },
-  });
-
-  const splitsTotal = Money.sum(splits.map((split) => split.amount));
-  const splitsRefTotal = Money.sum(splits.map((split) => split.refAmount));
-
-  return {
-    splits,
-    primaryAmount: transaction.amount.subtract(splitsTotal),
-    primaryRefAmount: transaction.refAmount.subtract(splitsRefTotal),
-  };
-};

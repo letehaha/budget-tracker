@@ -4,7 +4,7 @@ import { t } from '@i18n/index';
  * Keys for default tag translation lookup.
  * These map to keys in i18n files under "defaultTags.*"
  */
-export const DEFAULT_TAG_KEYS = Object.freeze({
+const DEFAULT_TAG_KEYS = Object.freeze({
   want: 'want',
   need: 'need',
   must: 'must',
@@ -17,7 +17,7 @@ export const DEFAULT_TAG_KEYS = Object.freeze({
  * These tags are pre-populated for new users and are fully editable/deletable.
  * They have no special protection or system status.
  */
-export const DEFAULT_TAG_STRUCTURE = Object.freeze([
+const DEFAULT_TAG_STRUCTURE = Object.freeze([
   { key: DEFAULT_TAG_KEYS.want, color: '#16a34a', icon: 'sparkles' },
   { key: DEFAULT_TAG_KEYS.need, color: '#c35a04', icon: 'target' },
   { key: DEFAULT_TAG_KEYS.must, color: '#c11401', icon: 'circle-alert' },

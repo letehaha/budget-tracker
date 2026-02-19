@@ -8,7 +8,7 @@ import { SyncStatus, setAccountSyncStatus, shouldTriggerAutoSync, updateLastAuto
 // Re-export for backwards compatibility
 export { getUserAccountsSyncStatus } from './get-user-sync-status';
 
-export interface SyncResult {
+interface SyncResult {
   totalAccounts: number;
   syncedAccounts: number;
   failedAccounts: number;

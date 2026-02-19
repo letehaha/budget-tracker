@@ -26,31 +26,3 @@ export function trackBankConnected({
     sessionId,
   });
 }
-
-/**
- * Track bank sync completion.
- */
-export function trackBankSyncCompleted({
-  userId,
-  provider,
-  transactionsCount,
-  accountsCount,
-  sessionId,
-}: {
-  userId: string | number;
-  provider: BankProvider;
-  transactionsCount: number;
-  accountsCount: number;
-  sessionId?: string | null;
-}): void {
-  trackEvent({
-    userId,
-    event: 'bank_sync_completed',
-    properties: {
-      provider,
-      transactions_count: transactionsCount,
-      accounts_count: accountsCount,
-    },
-    sessionId,
-  });
-}

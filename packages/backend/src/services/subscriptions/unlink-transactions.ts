@@ -5,7 +5,7 @@ import { Op } from 'sequelize';
 
 import { findSubscriptionOrThrow } from './helpers';
 
-export interface UnlinkTransactionsParams {
+interface UnlinkTransactionsParams {
   subscriptionId: string;
   transactionIds: number[];
   userId: number;

@@ -151,10 +151,6 @@
         "viewTransactionsButton": "Переглянути транзакції",
         "startNewImportButton": "Почати новий імпорт"
       }
-    },
-    "monobank": {
-      "tokenPlaceholder": "Введіть ваш API токен Monobank",
-      "accountNamePlaceholder": "напр., Особистий рахунок"
     }
   }
 }

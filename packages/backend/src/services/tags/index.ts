@@ -4,7 +4,7 @@ import Tags from '@models/Tags.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { literal } from 'sequelize';
 
-export interface CreateTagPayload {
+interface CreateTagPayload {
   userId: number;
   name: string;
   color: string;
@@ -35,7 +35,7 @@ export const createTag = withTransaction(async (payload: CreateTagPayload) => {
   return tag;
 });
 
-export interface GetTagsPayload {
+interface GetTagsPayload {
   userId: number;
 }
 
@@ -64,7 +64,7 @@ export const getTags = async ({ userId }: GetTagsPayload) => {
   }));
 };
 
-export interface GetTagByIdPayload {
+interface GetTagByIdPayload {
   id: number;
   userId: number;
 }
@@ -81,7 +81,7 @@ export const getTagById = async ({ id, userId }: GetTagByIdPayload) => {
   return tag;
 };
 
-export interface UpdateTagPayload {
+interface UpdateTagPayload {
   id: number;
   userId: number;
   name?: string;
@@ -122,7 +122,7 @@ export const updateTag = withTransaction(async (payload: UpdateTagPayload) => {
   return tag;
 });
 
-export interface DeleteTagPayload {
+interface DeleteTagPayload {
   id: number;
   userId: number;
 }
@@ -141,7 +141,7 @@ export const deleteTag = withTransaction(async ({ id, userId }: DeleteTagPayload
   return { success: true };
 });
 
-export interface BulkCreateTagsPayload {
+interface BulkCreateTagsPayload {
   userId: number;
   tags: Array<{
     name: string;
