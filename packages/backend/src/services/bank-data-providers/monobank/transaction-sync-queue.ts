@@ -355,7 +355,7 @@ transactionSyncWorker.on('error', (err) => {
  * Split date range into 31-day chunks (Monobank API limitation)
  * Returns chunks in DESCENDING order (newest first) for better UX
  */
-export function splitDateRangeIntoChunks(from: Date, to: Date): Array<{ from: Date; to: Date }> {
+function splitDateRangeIntoChunks(from: Date, to: Date): Array<{ from: Date; to: Date }> {
   const chunks: Array<{ from: Date; to: Date }> = [];
   const MAX_DAYS = 31;
   const MS_PER_DAY = 24 * 60 * 60 * 1000;

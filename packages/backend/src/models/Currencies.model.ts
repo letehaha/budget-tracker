@@ -1,4 +1,3 @@
-import cc from 'currency-codes';
 import { Op } from 'sequelize';
 import {
   Table,
@@ -126,25 +125,3 @@ export async function getCurrencies({
   return Currencies.findAll({ where });
 }
 
-export const createCurrency = async ({ code }: { code: string }) => {
-  const currency = cc.code(code);
-
-  if (!currency) {
-    throw new ValidationError({
-      message: `Currency with code {code} is not found.`,
-    });
-  }
-
-  const currencyData = {
-    code: currency.code,
-    number: Number(currency.number),
-    digits: currency.digits,
-    currency: currency.currency,
-  };
-  const [result] = await Currencies.findOrCreate({
-    where: { code: currency.code },
-    defaults: currencyData,
-  });
-
-  return result;
-};

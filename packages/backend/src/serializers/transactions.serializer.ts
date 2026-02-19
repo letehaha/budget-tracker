@@ -15,7 +15,7 @@ import type Transactions from '@models/Transactions.model';
 // Response Types
 // ============================================================================
 
-export interface TransactionSplitApiResponse {
+interface TransactionSplitApiResponse {
   id: string;
   categoryId: number;
   amount: number;
@@ -66,7 +66,7 @@ export interface TransactionApiResponse {
 // Request Types (API format with decimal input)
 // ============================================================================
 
-export interface CreateTransactionRequest {
+interface CreateTransactionRequest {
   amount: number; // decimal from API
   commissionRate?: number;
   destinationAmount?: number;
@@ -90,28 +90,11 @@ export interface CreateTransactionRequest {
   tagIds?: number[];
 }
 
-export interface UpdateTransactionRequest {
-  amount?: number;
-  note?: string | null;
-  time?: string;
-  transactionType?: string;
-  paymentType?: string;
-  accountId?: number;
-  categoryId?: number | null;
-  splits?: Array<{
-    id?: string;
-    categoryId: number;
-    amount: number;
-    note?: string | null;
-  }>;
-  tagIds?: number[];
-}
-
 // ============================================================================
 // Internal Types (DB format with Money)
 // ============================================================================
 
-export interface CreateTransactionInternal {
+interface CreateTransactionInternal {
   amount: Money;
   commissionRate?: Money;
   destinationAmount?: Money;
@@ -136,23 +119,6 @@ export interface CreateTransactionInternal {
   userId: number;
 }
 
-export interface UpdateTransactionInternal {
-  amount?: Money;
-  note?: string | null;
-  time?: Date;
-  transactionType?: string;
-  paymentType?: string;
-  accountId?: number;
-  categoryId?: number | null;
-  splits?: Array<{
-    id?: string;
-    categoryId: number;
-    amount: Money;
-    note?: string | null;
-  }>;
-  tagIds?: number[];
-}
-
 // ============================================================================
 // Serializers (DB → API)
 // ============================================================================
@@ -160,7 +126,7 @@ export interface UpdateTransactionInternal {
 /**
  * Serialize a transaction split from DB format to API response
  */
-export function serializeTransactionSplit(
+function serializeTransactionSplit(
   split: TransactionSplits & { category?: { id: number; name: string; color: string; icon: string } },
 ): TransactionSplitApiResponse {
   return {
@@ -282,27 +248,5 @@ export function deserializeCreateTransaction(req: CreateTransactionRequest, user
     })),
     tagIds: req.tagIds,
     userId,
-  };
-}
-
-/**
- * Deserialize an update transaction request from API decimal format to internal cents format
- */
-export function deserializeUpdateTransaction(req: UpdateTransactionRequest): UpdateTransactionInternal {
-  return {
-    amount: req.amount !== undefined ? Money.fromDecimal(req.amount) : undefined,
-    note: req.note,
-    time: req.time ? new Date(req.time) : undefined,
-    transactionType: req.transactionType,
-    paymentType: req.paymentType,
-    accountId: req.accountId,
-    categoryId: req.categoryId,
-    splits: req.splits?.map((split) => ({
-      id: split.id,
-      categoryId: split.categoryId,
-      amount: Money.fromDecimal(split.amount),
-      note: split.note,
-    })),
-    tagIds: req.tagIds,
   };
 }

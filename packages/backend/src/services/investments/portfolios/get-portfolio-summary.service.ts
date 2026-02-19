@@ -13,7 +13,7 @@ interface GetPortfolioSummaryParams {
   date?: Date;
 }
 
-export interface PortfolioSummaryResult {
+interface PortfolioSummaryResult {
   portfolioId: number;
   portfolioName: string;
   totalCurrentValue: string;

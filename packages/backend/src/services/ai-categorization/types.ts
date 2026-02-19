@@ -37,11 +37,3 @@ export interface CategorizationBatchResult {
   failed: number[]; // Transaction IDs that couldn't be categorized
   errors?: string[];
 }
-
-/**
- * Parameters for the categorization service
- */
-export interface CategorizationParams {
-  userId: number;
-  transactionIds: number[];
-}

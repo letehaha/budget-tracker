@@ -113,6 +113,7 @@ export interface EnableBankingTransaction {
 /**
  * Response from /accounts/{uid}/transactions endpoint
  * https://enablebanking.com/docs/api/reference/#haltransactions
+ * @public
  */
 export interface HalTransactions {
   /** List of transactions */

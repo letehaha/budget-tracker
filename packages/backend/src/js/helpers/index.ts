@@ -1,4 +1,3 @@
-export const isExist = (v) => v !== undefined;
 export const removeUndefinedKeys = <T>(obj: T): T => {
   for (const key in obj) {
     if (
@@ -14,8 +13,6 @@ export const removeUndefinedKeys = <T>(obj: T): T => {
   return obj;
 };
 
-export const toSystemFiat = (value) => Math.floor(value * 100);
-export const fromSystemFiat = (value) => value / 100;
 /**
  * We always select lowest integer value regardless it's positive or negative
  * @param number
@@ -29,5 +26,3 @@ export const fromSystemFiat = (value) => value / 100;
 export const truncateSystemAmount = (number) => {
   return number > 0 ? Math.floor(number) : Math.ceil(number);
 };
-
-export * from './sequelize';

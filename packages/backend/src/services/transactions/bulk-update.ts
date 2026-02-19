@@ -8,7 +8,7 @@ import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 
-export interface BulkUpdateParams {
+interface BulkUpdateParams {
   userId: number;
   transactionIds: number[];
   categoryId?: number;
@@ -17,7 +17,7 @@ export interface BulkUpdateParams {
   note?: string;
 }
 
-export interface BulkUpdateResult {
+interface BulkUpdateResult {
   updatedCount: number;
   updatedIds: number[];
 }
@@ -184,20 +184,5 @@ export const bulkUpdate = withTransaction(
       updatedCount: updatedIds.length,
       updatedIds,
     };
-  },
-);
-
-// Keep backward compatibility with the old function name
-export const bulkUpdateCategory = withTransaction(
-  async ({
-    userId,
-    transactionIds,
-    categoryId,
-  }: {
-    userId: number;
-    transactionIds: number[];
-    categoryId: number;
-  }): Promise<BulkUpdateResult> => {
-    return bulkUpdate({ userId, transactionIds, categoryId });
   },
 );

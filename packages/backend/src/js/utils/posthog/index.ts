@@ -9,7 +9,7 @@ let posthogClient: PostHog | null = null;
  * Check if PostHog should be enabled.
  * Only enabled in production with valid API key.
  */
-export function isPostHogEnabled(): boolean {
+function isPostHogEnabled(): boolean {
   const isProduction = process.env.NODE_ENV === 'production';
   const hasKey = Boolean(POSTHOG_KEY);
 

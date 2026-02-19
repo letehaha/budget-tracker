@@ -8,12 +8,12 @@ export interface TransactionForGains {
   fees?: string | number;
 }
 
-export interface UnrealizedGainsResult {
+interface UnrealizedGainsResult {
   unrealizedGainValue: number;
   unrealizedGainPercent: number;
 }
 
-export interface RealizedGainsResult {
+interface RealizedGainsResult {
   realizedGainValue: number;
   realizedGainPercent: number;
 }

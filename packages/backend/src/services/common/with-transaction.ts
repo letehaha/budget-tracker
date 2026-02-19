@@ -1,6 +1,6 @@
 import { connection, namespace } from '@models/index';
 
-export const isTransactionActive = () => {
+const isTransactionActive = () => {
   return !!namespace.get('transaction');
 };
 

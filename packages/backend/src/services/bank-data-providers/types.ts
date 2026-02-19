@@ -12,7 +12,7 @@ import { BANK_PROVIDER_TYPE, Cents } from '@bt/shared/types';
 /**
  * Feature capabilities of a provider
  */
-export interface ProviderFeatures {
+interface ProviderFeatures {
   /** Provider supports webhook notifications */
   supportsWebhooks: boolean;
   /** Provider supports real-time data updates */
@@ -45,37 +45,6 @@ export interface ProviderMetadata {
   documentationUrl?: string;
   /** Provider feature capabilities */
   features: ProviderFeatures;
-}
-
-// ============================================================================
-// Connection Data Types
-// ============================================================================
-
-/**
- * Represents a connection to a bank data provider
- * This is the TypeScript representation of the database model
- */
-export interface BankDataProviderConnection {
-  /** Database ID */
-  id: number;
-  /** User who owns this connection */
-  userId: number;
-  /** Type of provider */
-  providerType: BANK_PROVIDER_TYPE;
-  /** User-defined friendly name */
-  providerName: string;
-  /** Whether connection is currently active */
-  isActive: boolean;
-  /** Encrypted credentials (stored as JSONB in DB) */
-  credentials: Record<string, unknown>;
-  /** Provider-specific metadata (webhooks, clientIds, etc.) */
-  metadata: Record<string, unknown>;
-  /** Timestamp of last successful sync */
-  lastSyncAt?: Date;
-  /** Record creation timestamp */
-  createdAt: Date;
-  /** Record last update timestamp */
-  updatedAt: Date;
 }
 
 // ============================================================================

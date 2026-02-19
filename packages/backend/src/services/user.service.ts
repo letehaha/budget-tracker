@@ -183,7 +183,7 @@ export const editUserCurrency = withTransaction(
   },
 );
 
-export const setDefaultUserCurrency = withTransaction(
+const setDefaultUserCurrency = withTransaction(
   async ({ userId, currencyCode }: { userId: number; currencyCode: string }) => {
     const passedCurrency = await UsersCurrencies.getCurrency({
       userId,

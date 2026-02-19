@@ -631,20 +631,6 @@ export const findWithFilters = async ({
   return transactions;
 };
 
-export interface GetTransactionBySomeIdPayload {
-  userId: TransactionsAttributes['userId'];
-  id?: TransactionsAttributes['id'];
-  transferId?: TransactionsAttributes['transferId'];
-  originalId?: TransactionsAttributes['originalId'];
-}
-export const getTransactionBySomeId = ({ userId, id, transferId, originalId }: GetTransactionBySomeIdPayload) => {
-  return Transactions.findOne({
-    where: {
-      userId,
-      ...removeUndefinedKeys({ id, transferId, originalId }),
-    },
-  });
-};
 
 export const getTransactionById = ({
   id,

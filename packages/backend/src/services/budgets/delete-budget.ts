@@ -2,7 +2,7 @@ import Budgets from '@models/Budget.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
-export interface DeleteBudgetPayload {
+interface DeleteBudgetPayload {
   id: number;
   userId?: number;
 }
@@ -12,7 +12,7 @@ export const deleteBudget = withTransaction(async ({ id, userId }: { id: number;
   return result;
 });
 
-export const deleteBudgetModel = async ({ id, userId }: DeleteBudgetPayload) => {
+const deleteBudgetModel = async ({ id, userId }: DeleteBudgetPayload) => {
   const budget = await Budgets.findOne({
     where: { id, userId },
   });

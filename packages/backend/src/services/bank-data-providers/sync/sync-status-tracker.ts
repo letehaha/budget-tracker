@@ -221,15 +221,6 @@ export async function setAccountPriority(accountId: number, priority: number): P
 }
 
 /**
- * Get priority score for an account
- */
-export async function getAccountPriority(accountId: number): Promise<number> {
-  if (!isRedisReady()) return 0;
-  const priority = await redisClient.get(REDIS_KEYS.accountPriority(accountId));
-  return priority ? parseFloat(priority) : 0;
-}
-
-/**
  * Clear stale sync statuses from Redis on startup
  * Only resets QUEUED/SYNCING statuses (which are invalid after restart)
  * Preserves COMPLETED/FAILED/IDLE statuses and user last-sync timestamps

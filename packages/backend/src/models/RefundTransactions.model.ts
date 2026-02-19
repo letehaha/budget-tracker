@@ -88,34 +88,3 @@ export const createRefundTransaction = async ({
   return RefundTransactions.create({ userId, originalTxId, refundTxId, splitId });
 };
 
-export const getRefundsForTransaction = async ({ originalTxId, userId }: { originalTxId: number; userId: number }) => {
-  return RefundTransactions.findAll({
-    where: { originalTxId: originalTxId, userId },
-    include: [{ model: Transactions, as: 'refundTransaction' }],
-  });
-};
-
-export const bulkCreateRefundTransactions = (
-  {
-    data,
-  }: {
-    data: Array<{
-      userId: number;
-      originalTxId: number | null;
-      refundTxId: number;
-      splitId?: string | null;
-    }>;
-  },
-  {
-    validate = true,
-    returning = false,
-  }: {
-    validate?: boolean;
-    returning?: boolean;
-  },
-) => {
-  return RefundTransactions.bulkCreate(data, {
-    validate,
-    returning,
-  });
-};

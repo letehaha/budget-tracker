@@ -18,7 +18,7 @@ import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 /**
  * Interface for BankDataProviderConnections attributes
  */
-export interface BankDataProviderConnectionsAttributes {
+interface BankDataProviderConnectionsAttributes {
   id: number;
   userId: number;
   providerType: BANK_PROVIDER_TYPE;

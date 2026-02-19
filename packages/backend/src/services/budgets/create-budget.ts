@@ -12,7 +12,7 @@ import { Op } from 'sequelize';
 
 import { expandCategoryIds } from './utils/expand-category-ids';
 
-export interface CreateBudgetPayload {
+interface CreateBudgetPayload {
   id?: number;
   userId: number;
   name: string;

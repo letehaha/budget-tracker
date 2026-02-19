@@ -4,9 +4,9 @@ import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize
 import Users from './Users.model';
 import { z } from 'zod';
 
-export const ZodAiApiKeyStatusSchema = z.enum(['valid', 'invalid']);
+const ZodAiApiKeyStatusSchema = z.enum(['valid', 'invalid']);
 
-export const ZodAiApiKeySchema = z.object({
+const ZodAiApiKeySchema = z.object({
   provider: z.nativeEnum(AI_PROVIDER),
   keyEncrypted: z.string(),
   createdAt: z.string().datetime(),
@@ -16,12 +16,12 @@ export const ZodAiApiKeySchema = z.object({
   invalidatedAt: z.string().datetime().optional(),
 });
 
-export const ZodAiFeatureConfigSchema = z.object({
+const ZodAiFeatureConfigSchema = z.object({
   feature: z.nativeEnum(AI_FEATURE),
   modelId: z.string(), // Format: 'provider/model', e.g., 'openai/gpt-4o'
 });
 
-export const ZodAiSettingsSchema = z.object({
+const ZodAiSettingsSchema = z.object({
   apiKeys: z.array(ZodAiApiKeySchema).default([]),
   defaultProvider: z.nativeEnum(AI_PROVIDER).optional(),
   featureConfigs: z.array(ZodAiFeatureConfigSchema).default([]),
@@ -31,7 +31,7 @@ export const ZodAiSettingsSchema = z.object({
  * Notification preferences per notification type.
  * Users can enable/disable specific notification types.
  */
-export const ZodNotificationPreferencesSchema = z.object({
+const ZodNotificationPreferencesSchema = z.object({
   enabled: z.boolean().default(true),
   // Per-type preferences (all enabled by default)
   types: z
@@ -43,7 +43,7 @@ export const ZodNotificationPreferencesSchema = z.object({
 });
 
 // Onboarding state schema for Quick Start feature
-export const ZodOnboardingStateSchema = z.object({
+const ZodOnboardingStateSchema = z.object({
   completedTasks: z.array(z.string()).default([]),
   isDismissed: z.boolean().default(false),
   dismissedAt: z.string().datetime().nullable().default(null),
@@ -64,23 +64,15 @@ export const DEFAULT_ONBOARDING_STATE: OnboardingStateSchema = {
   dismissedAt: null,
 };
 
-export const DEFAULT_NOTIFICATION_PREFERENCES = {
-  enabled: true,
-  types: {
-    [NOTIFICATION_TYPES.budgetAlert]: true,
-    [NOTIFICATION_TYPES.system]: true,
-    [NOTIFICATION_TYPES.changelog]: true,
-  },
-};
 
-export const ZodDashboardWidgetSchema = z.object({
+const ZodDashboardWidgetSchema = z.object({
   widgetId: z.string(),
   colSpan: z.number().int().min(1).max(3).default(1),
   rowSpan: z.number().int().min(1).max(2).default(1),
   config: z.record(z.string(), z.unknown()).optional(),
 });
 
-export const ZodDashboardSettingsSchema = z.object({
+const ZodDashboardSettingsSchema = z.object({
   widgets: z.array(ZodDashboardWidgetSchema).default([]),
 });
 

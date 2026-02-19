@@ -19,7 +19,7 @@ function getTokenEncoder(): Tiktoken {
   return tokenEncoder;
 }
 
-export interface TextExtractionResult {
+interface TextExtractionResult {
   success: boolean;
   text?: string;
   pageCount?: number;

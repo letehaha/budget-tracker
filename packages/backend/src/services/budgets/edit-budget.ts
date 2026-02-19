@@ -9,7 +9,7 @@ import { withTransaction } from '@services/common/with-transaction';
 
 import { expandCategoryIds } from './utils/expand-category-ids';
 
-export interface EditBudgetPayload {
+interface EditBudgetPayload {
   id: number;
   userId: number;
   name?: string;

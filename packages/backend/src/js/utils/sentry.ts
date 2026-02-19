@@ -6,7 +6,7 @@ const SENTRY_DSN = process.env.SENTRY_DSN;
  * Check if Sentry should be enabled.
  * Only enabled in production with valid DSN.
  */
-export function isSentryEnabled(): boolean {
+function isSentryEnabled(): boolean {
   const isProduction = process.env.NODE_ENV === 'production';
   const hasDsn = Boolean(SENTRY_DSN);
 
@@ -88,17 +88,6 @@ export function setSentryUser({
   if (sessionId) {
     Sentry.setTag('sessionId', sessionId);
   }
-}
-
-/**
- * Clear user context (call on logout or request end).
- */
-export function clearSentryUser(): void {
-  if (!isSentryEnabled()) {
-    return;
-  }
-
-  Sentry.setUser(null);
 }
 
 /**

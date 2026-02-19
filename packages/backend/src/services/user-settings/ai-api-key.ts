@@ -396,28 +396,3 @@ export const markApiKeyValid = withTransaction(
     await userSettings.save();
   },
 );
-
-/**
- * Get the status of an API key for a specific provider.
- */
-export const getApiKeyStatus = withTransaction(
-  async ({ userId, provider }: { userId: number; provider: AI_PROVIDER }): Promise<AIApiKeyStatus | null> => {
-    const userSettings = await UserSettings.findOne({
-      where: { userId },
-      attributes: ['settings'],
-    });
-
-    const aiSettings = userSettings?.settings?.ai;
-    if (!aiSettings?.apiKeys?.length) {
-      return null;
-    }
-
-    const keyEntry = aiSettings.apiKeys.find((k) => k.provider === provider);
-    if (!keyEntry) {
-      return null;
-    }
-
-    // Default to 'valid' for migration (old entries without status)
-    return keyEntry.status ?? 'valid';
-  },
-);

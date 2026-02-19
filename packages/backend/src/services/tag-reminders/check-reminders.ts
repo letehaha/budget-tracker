@@ -317,7 +317,7 @@ async function createReminderNotification({
   });
 }
 
-export interface CheckRemindersResult {
+interface CheckRemindersResult {
   totalChecked: number;
   triggered: number;
   skipped: number;

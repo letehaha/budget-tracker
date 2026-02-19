@@ -111,16 +111,6 @@ export interface FetchHistoricalRatesWithFallbackResult {
   providerType: EXCHANGE_RATE_PROVIDER_TYPE;
 }
 
-/**
- * Individual rate entry compatible with ExchangeRates model
- */
-export interface ExchangeRateData {
-  baseCode: string;
-  quoteCode: string;
-  rate: number;
-  date: Date;
-}
-
 // ============================================================================
 // Provider Interface
 // ============================================================================

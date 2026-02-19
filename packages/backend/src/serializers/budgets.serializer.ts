@@ -13,14 +13,14 @@ import type Budgets from '@models/Budget.model';
 // Response Types
 // ============================================================================
 
-export interface BudgetCategoryResponse {
+interface BudgetCategoryResponse {
   id: number;
   name: string;
   color: string;
   parentId: number | null;
 }
 
-export interface BudgetApiResponse {
+interface BudgetApiResponse {
   id: number;
   name: string;
   status: string;
@@ -30,57 +30,6 @@ export interface BudgetApiResponse {
   autoInclude: boolean;
   limitAmount: number | null;
   categories: BudgetCategoryResponse[];
-}
-
-// ============================================================================
-// Request Types (API format with decimal input)
-// ============================================================================
-
-export interface CreateBudgetRequest {
-  name: string;
-  status?: string;
-  type?: BUDGET_TYPES;
-  categoryIds?: number[];
-  startDate?: string | null;
-  endDate?: string | null;
-  autoInclude?: boolean;
-  limitAmount?: number | null; // decimal from API
-}
-
-export interface UpdateBudgetRequest {
-  name?: string;
-  status?: string;
-  categoryIds?: number[];
-  startDate?: string | null;
-  endDate?: string | null;
-  autoInclude?: boolean;
-  limitAmount?: number | null; // decimal from API
-}
-
-// ============================================================================
-// Internal Types (DB format with Money)
-// ============================================================================
-
-export interface CreateBudgetInternal {
-  name: string;
-  status?: string;
-  type?: BUDGET_TYPES;
-  categoryIds?: number[];
-  startDate?: Date | null;
-  endDate?: Date | null;
-  autoInclude?: boolean;
-  limitAmount?: Money | null;
-  userId: number;
-}
-
-export interface UpdateBudgetInternal {
-  name?: string;
-  status?: string;
-  categoryIds?: number[];
-  startDate?: Date | null;
-  endDate?: Date | null;
-  autoInclude?: boolean;
-  limitAmount?: Money | null;
 }
 
 // ============================================================================
@@ -119,53 +68,10 @@ export function serializeBudgets(budgets: Budgets[]): BudgetApiResponse[] {
 }
 
 // ============================================================================
-// Deserializers (API → DB)
-// ============================================================================
-
-/**
- * Deserialize a create budget request from API decimal format to internal cents format
- */
-export function deserializeCreateBudget(req: CreateBudgetRequest, userId: number): CreateBudgetInternal {
-  return {
-    name: req.name,
-    status: req.status,
-    type: req.type,
-    categoryIds: req.categoryIds,
-    startDate: req.startDate ? new Date(req.startDate) : undefined,
-    endDate: req.endDate ? new Date(req.endDate) : undefined,
-    autoInclude: req.autoInclude,
-    limitAmount:
-      req.limitAmount !== undefined && req.limitAmount !== null ? Money.fromDecimal(req.limitAmount) : undefined,
-    userId,
-  };
-}
-
-/**
- * Deserialize an update budget request from API decimal format to internal cents format
- */
-export function deserializeUpdateBudget(req: UpdateBudgetRequest): UpdateBudgetInternal {
-  return {
-    name: req.name,
-    status: req.status,
-    categoryIds: req.categoryIds,
-    startDate: req.startDate ? new Date(req.startDate) : req.startDate === null ? null : undefined,
-    endDate: req.endDate ? new Date(req.endDate) : req.endDate === null ? null : undefined,
-    autoInclude: req.autoInclude,
-    limitAmount: deserializeLimitAmount(req.limitAmount),
-  };
-}
-
-function deserializeLimitAmount(val: number | null | undefined): Money | null | undefined {
-  if (val === undefined) return undefined;
-  if (val === null) return null;
-  return Money.fromDecimal(val);
-}
-
-// ============================================================================
 // Budget Stats Serializer
 // ============================================================================
 
-export interface BudgetStatsApiResponse {
+interface BudgetStatsApiResponse {
   summary: {
     actualIncome: number;
     actualExpense: number;

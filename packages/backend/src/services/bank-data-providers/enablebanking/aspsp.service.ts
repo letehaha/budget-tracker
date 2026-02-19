@@ -8,7 +8,7 @@ import { ASPSP, EnableBankingCredentials } from './types';
  * Get list of all supported ASPSPs
  * @param credentials - Enable Banking credentials (just appId and privateKey needed)
  */
-export async function listASPSPs(credentials: EnableBankingCredentials): Promise<ASPSP[]> {
+async function listASPSPs(credentials: EnableBankingCredentials): Promise<ASPSP[]> {
   const apiClient = new EnableBankingApiClient(credentials);
   return await apiClient.getASPSPs();
 }

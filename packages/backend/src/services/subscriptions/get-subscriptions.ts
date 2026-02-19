@@ -11,7 +11,7 @@ import { computeNextExpectedDate } from './subscription-date.utils';
 
 export { computeNextExpectedDate };
 
-export interface GetSubscriptionsParams {
+interface GetSubscriptionsParams {
   userId: number;
   isActive?: boolean;
   type?: string;
