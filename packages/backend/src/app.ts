@@ -17,6 +17,7 @@ import path from 'path';
 import { API_PREFIX } from './config';
 import { auth } from './config/auth';
 import { demoCleanupCron } from './crons/demo-cleanup';
+import { demoTemplateRefreshCron } from './crons/demo-template-refresh';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
 import { subscriptionCandidateDetectionCron } from './crons/subscription-candidate-detection';
@@ -269,8 +270,9 @@ function initializeBackgroundJobs() {
 
     loadCurrencyRatesJob.start();
 
-    // Demo cleanup runs in all environments (dev and prod)
+    // Demo cleanup and template refresh run in all environments (dev and prod)
     demoCleanupCron.startCron();
+    demoTemplateRefreshCron.startCron();
 
     if (process.env.NODE_ENV === 'production') {
       securitiesDailySyncCron.startCron();
@@ -297,6 +299,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const processUnexpectedExit = async () => {
   demoCleanupCron.stopCron();
+  demoTemplateRefreshCron.stopCron();
   securitiesDailySyncCron.stopCron();
   tagRemindersCron.stopCron();
   subscriptionCandidateDetectionCron.stopCron();

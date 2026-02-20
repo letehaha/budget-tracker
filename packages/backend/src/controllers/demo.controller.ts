@@ -2,7 +2,8 @@ import { API_RESPONSE_STATUS } from '@bt/shared/types';
 import { auth } from '@config/auth';
 import { errorHandler } from '@controllers/helpers';
 import { logger } from '@js/utils/logger';
-import { createDemoUser } from '@services/demo/create-demo-user.service';
+import { applyDemoTemplate } from '@services/demo/apply-demo-template.service';
+import { createDemoUserFast } from '@services/demo/create-demo-user.service';
 import { Request, Response } from 'express';
 
 /**
@@ -15,10 +16,13 @@ export const startDemo = async (req: Request, res: Response) => {
   try {
     logger.info(`Demo session requested from IP: ${req.ip}`);
 
-    // 1. Create demo user with credentials
-    const { user, email, password } = await createDemoUser();
+    // 1. Create demo user records (auth + app user, no data seeding)
+    const { user, email, password } = await createDemoUserFast();
 
-    // 2. Sign in using better-auth's API to get proper session with signed cookies
+    // 2. Apply pre-generated template (fast bulk insert)
+    await applyDemoTemplate({ userId: user.id });
+
+    // 3. Sign in using better-auth's API to get proper session with signed cookies
     // Pass asResponse: true to get a full Response object with Set-Cookie headers
     const signInResponse = await auth.api.signInEmail({
       body: {
@@ -32,7 +36,7 @@ export const startDemo = async (req: Request, res: Response) => {
 
     logger.info(`Demo session created for user: ${user.id}`);
 
-    // 3. Forward the Set-Cookie headers from better-auth response
+    // 4. Forward the Set-Cookie headers from better-auth response
     const setCookieHeaders = signInResponse.headers.getSetCookie() || [];
     for (const cookie of setCookieHeaders) {
       res.append('Set-Cookie', cookie);
