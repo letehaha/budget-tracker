@@ -24,6 +24,10 @@
     "accountNoExternalIdEnableBanking": "Рахунок не має зовнішнього ID від Enable Banking",
     "accountNotFoundForTransaction": "Рахунок для цієї транзакції не знайдено"
   },
+  "balanceAdjustment": {
+    "defaultNote": "Коригування балансу",
+    "accountNotFound": "Рахунок з id \"{{accountId}}\" не знайдено."
+  },
   "accountGroups": {
     "groupNotFound": "Групу не знайдено",
     "parentGroupNotExist": "Батьківська група з таким id не існує.",

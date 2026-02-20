@@ -103,7 +103,7 @@ export const getUserDefaultCategory = async ({ id }: { id: number }) => {
     attributes: ['defaultCategoryId'],
   });
 
-  return user;
+  return user!.defaultCategoryId;
 };
 
 export const createUser = async ({

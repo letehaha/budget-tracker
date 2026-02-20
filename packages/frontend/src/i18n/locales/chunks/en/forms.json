@@ -102,6 +102,10 @@
         "success": "Created successfully.",
         "error": "Unexpected error."
       }
+    },
+    "validators": {
+      "invalidCurrencyDecimal": "Enter a valid amount (up to 2 decimal places)",
+      "mustBePositive": "Amount must be positive"
     }
   },
   "fields": {

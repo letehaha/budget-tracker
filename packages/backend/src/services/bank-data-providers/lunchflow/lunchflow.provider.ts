@@ -290,7 +290,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
       // Sort by date ascending
       postedTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-      const { defaultCategoryId } = (await getUserDefaultCategory({ id: connection.userId }))!;
+      const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
       const createdTransactionIds: number[] = [];
 
       for (const tx of postedTransactions) {

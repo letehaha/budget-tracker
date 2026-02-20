@@ -4,14 +4,17 @@ export const maxDecimalPoints =
   (value: number | string): boolean => {
     const number = parseFloat(String(value));
 
-    if (!number || !Number.isFinite(number) || typeof number !== 'number') return false;
+    if (!Number.isFinite(number)) return false;
 
-    const splittedValue = String(number).split('.');
-    if (splittedValue.length < 2) {
-      return true;
-    }
-    return splittedValue[splittedValue.length - 1]!.length <= Number(points);
+    // Use toFixed to convert to plain decimal notation (avoids "1e-7" scientific notation)
+    const decimalStr = number.toFixed(20).replace(/\.?0+$/, '');
+    const parts = decimalStr.split('.');
+    if (parts.length < 2) return true;
+    return parts[1]!.length <= Number(points);
   };
+
+/** Validates that a monetary value has at most 2 decimal places (standard currency precision). */
+export const currencyDecimal = maxDecimalPoints(2);
 export const requiredToBeTrue = (value: unknown): boolean => value === true;
 
 export * from '@vuelidate/validators';

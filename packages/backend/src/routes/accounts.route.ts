@@ -5,6 +5,7 @@ import {
   getAccounts,
   updateAccount,
 } from '@controllers/accounts.controller';
+import balanceAdjustment from '@controllers/accounts/balance-adjustment';
 import linkAccountToBankConnection from '@controllers/accounts/link-to-bank-connection';
 import unlinkAccountFromBankConnection from '@controllers/accounts/unlink-from-bunk-connection';
 import { authenticateSession } from '@middlewares/better-auth';
@@ -48,6 +49,12 @@ router.post(
   authenticateSession,
   validateEndpoint(linkAccountToBankConnection.schema),
   linkAccountToBankConnection.handler,
+);
+router.post(
+  '/:id/balance-adjustment',
+  authenticateSession,
+  validateEndpoint(balanceAdjustment.schema),
+  balanceAdjustment.handler,
 );
 
 export default router;

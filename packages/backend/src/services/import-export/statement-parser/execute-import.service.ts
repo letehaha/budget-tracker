@@ -72,8 +72,7 @@ async function executeImportImpl({
   const currencyCode = account.currencyCode;
 
   // Get user's default category
-  const userDefaults = await Users.getUserDefaultCategory({ id: userId });
-  const defaultCategoryId = userDefaults?.defaultCategoryId;
+  const defaultCategoryId = await Users.getUserDefaultCategory({ id: userId });
 
   // Create transactions
   const errors: StatementImportError[] = [];

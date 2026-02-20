@@ -725,7 +725,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         // Determine transaction type from metadata
         const isExpense = tx.metadata?.isExpense === true;
 
-        const { defaultCategoryId } = (await getUserDefaultCategory({ id: connection.userId }))!;
+        const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
 
         // TODO: consider creating transactions in batch?
         // Create transaction using service (handles all required fields)

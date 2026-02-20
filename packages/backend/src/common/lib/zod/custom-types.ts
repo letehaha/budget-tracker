@@ -1,7 +1,21 @@
+import { Money } from '@common/types/money';
 import { z } from 'zod';
 
 export const recordId = () => z.coerce.number().int().positive().finite();
 export const recordArrayIds = () => z.array(recordId());
+
+/**
+ * Zod type for decimal monetary amounts from API requests.
+ * Accepts a finite number and transforms it directly into a Money instance,
+ * eliminating the need to call Money.fromDecimal() manually in controllers.
+ *
+ * @example
+ * body: z.object({
+ *   amount: decimalMoney(),           // Money instance, any value
+ *   fee: decimalMoney().optional(),   // optional Money instance
+ * })
+ */
+export const decimalMoney = () => z.number().transform((val) => Money.fromDecimal(val));
 export const currencyCode = () => z.string().length(3);
 
 /**

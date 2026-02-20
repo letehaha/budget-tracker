@@ -113,8 +113,7 @@ async function createMonobankTransaction(
     categoryId = userMcc[0]!.get('categoryId');
   } else {
     // Use default category for this user
-    const defaultCategory = await Users.getUserDefaultCategory({ id: userId });
-    categoryId = defaultCategory!.get('defaultCategoryId');
+    categoryId = await Users.getUserDefaultCategory({ id: userId });
 
     // Create mapping for future transactions
     await UserMerchantCategoryCodes.createEntry({

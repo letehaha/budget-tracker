@@ -122,8 +122,9 @@ const isIncompleteDecimal = (value: string): boolean => {
 // The value to display in the input
 const displayValue = computed(() => {
   if (props.type === 'number') {
-    // If we have a raw input that's an incomplete decimal, show it
-    if (rawNumberInput.value && isIncompleteDecimal(rawNumberInput.value)) {
+    // Prefer raw input when it's an incomplete decimal (e.g. "5." or "5.0")
+    // or when the model value would display in scientific notation (e.g. 0.0000001 → "1e-7")
+    if (rawNumberInput.value && (isIncompleteDecimal(rawNumberInput.value) || String(props.modelValue).includes('e'))) {
       return rawNumberInput.value;
     }
     // Otherwise show the model value

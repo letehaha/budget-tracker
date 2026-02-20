@@ -116,6 +116,21 @@ export const getFeature = withTransaction(getFeatureImpl);
 - DB models: `@bt/shared/types/db-models.ts`
 - Endpoints: `@bt/shared/types/endpoints.ts`
 
+## E2E Tests
+
+**Location**: E2E tests live **in the service layer**, colocated with the service file they test:
+
+```
+src/services/{feature}/action.e2e.ts
+```
+
+Examples:
+- `src/services/accounts/delete-account.e2e.ts`
+- `src/services/transactions/get-transactions.e2e.ts`
+- `src/services/budgets/create-budget.e2e.ts`
+
+**Never** place e2e tests in the controllers layer. Even when testing a full HTTP endpoint, the test file belongs next to the corresponding service.
+
 ## E2E Test Helpers
 
 Test helpers live in `packages/backend/src/tests/helpers/`. Always type the return value:

@@ -51,7 +51,7 @@
       }
     },
     "list": {
-      "noMoreData": "No more data to load",
+      "noMoreData": "No more transactions",
       "loadingMore": "Loading more...",
       "detailsTitle": "Transaction details",
       "detailsDescription": "View and edit transaction"
