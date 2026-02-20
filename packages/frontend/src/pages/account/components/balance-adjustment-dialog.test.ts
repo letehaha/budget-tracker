@@ -163,9 +163,7 @@ describe('BalanceAdjustmentDialog', () => {
 
     it('allows submit for amount with exactly 2 decimal places', async () => {
       const w = mountDialog();
-      // Use an IEEE-754-exact value (0.25 = 1/4). Values like 1500.99 fail
-      // due to a known floating-point bug in maxDecimalPoints — see validators.test.ts.
-      await enterAmountAndSubmit(w, 1500.25);
+      await enterAmountAndSubmit(w, 1500.99);
 
       expect(mockMutateAsync).toHaveBeenCalled();
     });
