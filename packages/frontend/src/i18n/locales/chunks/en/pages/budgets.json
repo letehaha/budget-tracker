@@ -55,6 +55,12 @@
       "expenses": "Expenses",
       "net": "Net",
       "used": "Used",
+      "archive": "Archive",
+      "unarchive": "Unarchive",
+      "archivedLabel": "Archived",
+      "archiveError": "Failed to update archive status",
+      "showArchived": "Show archived",
+      "hideArchived": "Hide archived",
       "emptyState": {
         "title": "No budgets yet",
         "description": "Create a budget to start tracking your spending or monitoring specific events."

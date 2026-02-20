@@ -6,6 +6,7 @@ import { getBudgetById, getBudgets } from '@controllers/budgets/get-budgets';
 import getCategoryBudgetTransactions from '@controllers/budgets/get-category-budget-transactions';
 import getStats from '@controllers/budgets/get-stats';
 import removeTransactionsFromBudget from '@controllers/budgets/remove-transaction-from-budget';
+import toggleArchive from '@controllers/budgets/toggle-archive';
 import { authenticateSession } from '@middlewares/better-auth';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
@@ -23,6 +24,7 @@ router.get(
 );
 router.post('/', authenticateSession, validateEndpoint(createBudget.schema), createBudget.handler);
 router.put('/:id', authenticateSession, validateEndpoint(editBudget.schema), editBudget.handler);
+router.patch('/:id/archive', authenticateSession, validateEndpoint(toggleArchive.schema), toggleArchive.handler);
 router.delete('/:id', authenticateSession, validateEndpoint(deleteBudget.schema), deleteBudget.handler);
 
 router.post(

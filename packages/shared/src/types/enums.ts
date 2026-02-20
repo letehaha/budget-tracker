@@ -90,6 +90,7 @@ export enum TRANSACTION_TRANSFER_NATURE {
 export enum BUDGET_STATUSES {
   active = 'active',
   closed = 'closed',
+  archived = 'archived',
 }
 
 export enum BUDGET_TYPES {

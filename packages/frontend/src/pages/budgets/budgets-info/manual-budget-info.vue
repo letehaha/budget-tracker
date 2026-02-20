@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { deleteBudget as deleteBudgetApi } from '@/api';
-import { editBudget, loadBudgetById, loadBudgetStats } from '@/api/budgets';
+import { archiveBudget as archiveBudgetApi, editBudget, loadBudgetById, loadBudgetStats } from '@/api/budgets';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AlertDialog } from '@/components/common';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
@@ -8,10 +8,20 @@ import InputField from '@/components/fields/input-field.vue';
 import { buttonVariants } from '@/components/lib/ui/button';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
+import { BUDGET_STATUSES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
-import { ArrowRightIcon, CalendarIcon, ChevronLeftIcon, PencilIcon, Trash2Icon, WalletIcon } from 'lucide-vue-next';
-import { ref, watchEffect } from 'vue';
+import {
+  ArchiveIcon,
+  ArchiveRestoreIcon,
+  ArrowRightIcon,
+  CalendarIcon,
+  ChevronLeftIcon,
+  PencilIcon,
+  Trash2Icon,
+  WalletIcon,
+} from 'lucide-vue-next';
+import { computed, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -76,6 +86,23 @@ const handleDeleteBudget = async () => {
   }
 };
 
+const isBudgetArchived = computed(() => budgetData.value?.status === BUDGET_STATUSES.archived);
+
+const { mutate: toggleArchive } = useMutation({
+  mutationFn: archiveBudgetApi,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
+    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_CACHE_KEYS.budgetsListItem, currentBudgetId.value] });
+  },
+  onError: () => {
+    addErrorNotification(t('budgets.list.archiveError'));
+  },
+});
+
+const handleToggleArchive = () => {
+  toggleArchive({ budgetId: currentBudgetId.value, isArchived: !isBudgetArchived.value });
+};
+
 watchEffect(() => {
   if (!isLoading.value && budgetItem.value) {
     budgetData.value = cloneDeep(budgetItem.value);
@@ -108,6 +135,13 @@ watchEffect(() => {
             <div class="flex items-center gap-3">
               <h1 class="text-2xl font-semibold tracking-tight">{{ budgetData.name }}</h1>
               <span
+                v-if="isBudgetArchived"
+                class="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
+              >
+                <ArchiveIcon class="size-3" />
+                {{ $t('budgets.list.archivedLabel') }}
+              </span>
+              <span
                 v-if="getBudgetTimeStatus"
                 :class="[
                   'rounded-full px-2.5 py-1 text-xs font-medium',
@@ -138,6 +172,11 @@ watchEffect(() => {
 
         <!-- Action Buttons -->
         <div class="flex items-center gap-2">
+          <Button variant="outline" size="sm" @click="handleToggleArchive">
+            <component :is="isBudgetArchived ? ArchiveRestoreIcon : ArchiveIcon" class="mr-2 size-4" />
+            {{ isBudgetArchived ? $t('budgets.list.unarchive') : $t('budgets.list.archive') }}
+          </Button>
+
           <ResponsiveDialog v-model:open="isEditDialogOpen">
             <template #trigger>
               <Button variant="outline" size="sm">
