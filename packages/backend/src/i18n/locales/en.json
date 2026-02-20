@@ -24,6 +24,10 @@
     "accountNoExternalIdEnableBanking": "Account does not have external ID from Enable Banking",
     "accountNotFoundForTransaction": "Account not found for this transaction"
   },
+  "balanceAdjustment": {
+    "defaultNote": "Balance adjustment",
+    "accountNotFound": "Account with id \"{{accountId}}\" not found."
+  },
   "accountGroups": {
     "groupNotFound": "Group not found",
     "parentGroupNotExist": "Parent with such id does not exist.",

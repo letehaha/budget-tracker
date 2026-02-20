@@ -35,6 +35,20 @@ export const deleteAccount = async ({ id }: DeleteAccountPayload): Promise<void>
 export interface UnlinkAccountFromBankConnectionPayload {
   id: number;
 }
+export const balanceAdjustment = async ({
+  id,
+  targetBalance,
+  note,
+}: {
+  id: number;
+  targetBalance: number;
+  note?: string;
+}): Promise<{
+  transaction: TransactionModel | null;
+  previousBalance: number;
+  newBalance: number;
+}> => api.post(`/accounts/${id}/balance-adjustment`, { targetBalance, note });
+
 export const unlinkAccountFromBankConnection = async ({
   id,
 }: UnlinkAccountFromBankConnectionPayload): Promise<AccountModel> => {

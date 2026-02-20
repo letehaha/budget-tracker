@@ -1,4 +1,10 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, TransactionModel, type endpointsTypes } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_TYPES,
+  type Decimal,
+  type TransactionModel,
+  type endpointsTypes,
+} from '@bt/shared/types';
 import Accounts from '@models/Accounts.model';
 import Currencies from '@models/Currencies.model';
 import { updateAccount as apiUpdateAccount } from '@root/services/accounts.service';
@@ -111,6 +117,30 @@ export function linkAccountToBankConnection<R extends boolean | undefined = unde
       connectionId,
       externalAccountId,
     },
+    raw,
+  });
+}
+
+export function balanceAdjustment<R extends boolean | undefined = undefined>({
+  id,
+  payload,
+  raw,
+}: {
+  id: number;
+  payload: { targetBalance: Decimal; note?: string };
+  raw?: R;
+}) {
+  return makeRequest<
+    {
+      transaction: TransactionModel | null;
+      previousBalance: number;
+      newBalance: number;
+    },
+    R
+  >({
+    method: 'post',
+    url: `/accounts/${id}/balance-adjustment`,
+    payload,
     raw,
   });
 }
