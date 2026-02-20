@@ -21,6 +21,7 @@ defineProps<{
   <Tabs.Tabs default-value="details">
     <Tabs.TabsList class="mt-4 w-full justify-start">
       <Tabs.TabsTrigger value="details">{{ t('pages.account.tabs.details') }}</Tabs.TabsTrigger>
+      <Tabs.TabsTrigger value="integrations">{{ t('pages.account.tabs.integrations') }}</Tabs.TabsTrigger>
       <Tabs.TabsTrigger value="settings">{{ t('pages.account.tabs.settings') }}</Tabs.TabsTrigger>
     </Tabs.TabsList>
 
@@ -36,11 +37,13 @@ defineProps<{
 
         <Separator />
 
-        <AccountLinkSection :account="account" />
-
-        <Separator />
-
         <AccountDeletionSection :account="account" :transactions="transactions" />
+      </div>
+    </Tabs.TabsContent>
+
+    <Tabs.TabsContent value="integrations">
+      <div class="grid gap-4 py-6">
+        <AccountLinkSection :account="account" />
       </div>
     </Tabs.TabsContent>
   </Tabs.Tabs>

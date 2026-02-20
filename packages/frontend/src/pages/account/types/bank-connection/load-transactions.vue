@@ -104,6 +104,7 @@ const loadTransactionsForPeriod = async () => {
         <Tooltip.TooltipTrigger as-child>
           <span class="inline-block">
             <Button disabled class="pointer-events-none min-w-25" size="sm">
+              <CalendarIcon class="size-4" />
               {{ t('pages.account.loadTransactions.selectPeriod') }}
             </Button>
           </span>
@@ -117,6 +118,7 @@ const loadTransactionsForPeriod = async () => {
     <Popover.Popover v-else :open="selectorVisible" @update:open="selectorVisible = $event">
       <Popover.PopoverTrigger as-child>
         <Button :disabled="isLoading || isAccountSyncing" class="min-w-25" size="sm">
+          <CalendarIcon class="size-4" />
           {{
             isLoading || isAccountSyncing
               ? t('pages.account.loadTransactions.loading')
