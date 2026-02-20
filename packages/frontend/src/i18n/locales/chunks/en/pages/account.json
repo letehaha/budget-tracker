@@ -33,7 +33,9 @@
         "transactionsPreserved": "All existing transactions will be preserved",
         "syncWillStop": "Automatic syncing will stop",
         "connectionHistorySaved": "Connection history will be saved for potential future reconnection",
-        "confirmAccountName": "Type the account name to confirm:"
+        "confirmAccountName": "Type the account name to confirm:",
+        "collapsedDescription": "Converts to system account — auto-sync stops, all data preserved.",
+        "collapsedNote": "You can reconnect later from this tab."
       },
       "deletion": {
         "success": "Account {accountName} removed successfully",
@@ -82,7 +84,8 @@
       },
       "tabs": {
         "details": "Details",
-        "settings": "Settings"
+        "settings": "Settings",
+        "integrations": "Data Connection"
       },
       "details": {
         "creditLimit": "Credit Limit:",
@@ -141,6 +144,9 @@
       "rightPanel": {
         "transactions": "Transactions",
         "analyticsSoon": "Analytics (soon)"
+      },
+      "integrations": {
+        "connectedVia": "Connected via"
       }
     }
   }

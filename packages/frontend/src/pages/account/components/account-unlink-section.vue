@@ -5,6 +5,7 @@ import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
+import { Unlink } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -46,15 +47,9 @@ const unlinkAccount = async () => {
     class="flex flex-col justify-between gap-2 @[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center"
   >
     <div>
-      <p class="mb-2 font-bold">{{ t('pages.account.unlink.title') }}</p>
-      <p class="text-xs">
-        {{ t('pages.account.unlink.description') }}
-        <br />
-        <b>{{ t('pages.account.unlink.autoSyncWarning') }}</b>
-        {{ t('pages.account.unlink.manualUpdatesOnly') }}
-        <br />
-        <b class="text-green-600">{{ t('pages.account.unlink.note') }}</b> {{ t('pages.account.unlink.reconnectionInfo') }}
-      </p>
+      <p class="mb-1 font-bold">{{ t('pages.account.unlink.title') }}</p>
+      <p class="text-xs">{{ t('pages.account.unlink.collapsedDescription') }}</p>
+      <p class="text-muted-foreground mt-0.5 text-xs">{{ t('pages.account.unlink.collapsedNote') }}</p>
     </div>
 
     <AlertDialog
@@ -64,7 +59,8 @@ const unlinkAccount = async () => {
       @accept="unlinkAccount"
     >
       <template #trigger>
-        <Button variant="outline" :disable="isAccountUnlinking">
+        <Button variant="destructive" :disabled="isAccountUnlinking">
+          <Unlink class="size-4" />
           <template v-if="isAccountUnlinking"> {{ t('pages.account.unlink.unlinkingButton') }} </template>
           <template v-else> {{ t('pages.account.unlink.unlinkButton') }} </template>
         </Button>

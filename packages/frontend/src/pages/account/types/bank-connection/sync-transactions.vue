@@ -7,6 +7,7 @@
       </div>
 
       <Button :disabled="isSyncDisabled" class="min-w-25" size="sm" @click="syncTransactionsHandler">
+        <RefreshCw class="size-4" :class="{ 'animate-spin': isSyncing || isAccountSyncing }" />
         {{
           isSyncing || isAccountSyncing
             ? t('pages.account.syncTransactions.syncing')
@@ -25,6 +26,7 @@ import { NotificationType, useNotificationCenter } from '@/components/notificati
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { API_ERROR_CODES, AccountModel } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
+import { RefreshCw } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

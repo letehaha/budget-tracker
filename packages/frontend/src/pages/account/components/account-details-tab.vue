@@ -41,13 +41,6 @@ const isOpen = ref(false);
       </div>
       <Separator />
       <div class="flex items-center justify-between gap-2">
-        <span>{{ t('pages.account.details.accountType') }}</span>
-
-        {{ account.type }}
-      </div>
-      <Separator />
-
-      <div class="flex items-center justify-between gap-2">
         <span>{{ t('pages.account.details.accountCategory') }}</span>
 
         <span class="capitalize">

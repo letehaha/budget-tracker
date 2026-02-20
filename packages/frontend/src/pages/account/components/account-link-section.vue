@@ -7,7 +7,7 @@ import {
   listConnections,
 } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { AlertDialog } from '@/components/common';
+import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Label } from '@/components/lib/ui/label';
 import * as Select from '@/components/lib/ui/select';
@@ -16,6 +16,7 @@ import { useFormatCurrency } from '@/composable/formatters';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
+import { CheckIcon, Link2Icon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -31,6 +32,9 @@ const isSystemAccount = computed(() => props.account.type === 'system');
 
 // Only show for system accounts that are not yet linked
 const showLinkOption = computed(() => isSystemAccount.value && !isAccountLinkedToBank.value);
+
+// Dialog state
+const isDialogOpen = ref(false);
 
 // Form state
 const selectedConnectionId = ref<string>(undefined);
@@ -85,6 +89,7 @@ const linkAccount = async () => {
 };
 
 const resetForm = () => {
+  isDialogOpen.value = false;
   selectedConnectionId.value = undefined;
   selectedExternalAccountId.value = undefined;
 };
@@ -108,129 +113,143 @@ const linkingError = computed(() => {
 </script>
 
 <template>
-  <div
-    v-if="showLinkOption"
-    class="flex flex-col justify-between gap-2 @[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center"
-  >
-    <div>
-      <p class="mb-2 font-bold">{{ $t('pages.account.link.title') }}</p>
-      <p class="text-xs">
-        {{ $t('pages.account.link.description') }}
-        <br />
-        <b>{{ $t('pages.account.link.whatWillHappen') }}</b>
+  <div v-if="showLinkOption" class="rounded-lg border p-5">
+    <div class="mb-4 flex items-center gap-2.5">
+      <div class="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-full">
+        <Link2Icon class="size-4" />
+      </div>
+      <div>
+        <p class="font-semibold">{{ $t('pages.account.link.title') }}</p>
+        <p class="text-muted-foreground text-xs">{{ $t('pages.account.link.description') }}</p>
+      </div>
+    </div>
+
+    <div class="mb-5 space-y-2">
+      <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+        {{ $t('pages.account.link.whatWillHappen') }}
       </p>
-      <ul class="mt-1 ml-4 list-disc text-xs">
-        <li>{{ $t('pages.account.link.listItem1') }}</li>
-        <li>{{ $t('pages.account.link.listItem2') }}</li>
-        <li>{{ $t('pages.account.link.listItem3') }}</li>
-        <li>{{ $t('pages.account.link.listItem4') }}</li>
+      <ul class="space-y-1.5">
+        <li
+          v-for="key in ['listItem1', 'listItem2', 'listItem3', 'listItem4']"
+          :key="key"
+          class="flex items-start gap-2 text-sm"
+        >
+          <CheckIcon class="text-primary mt-0.5 size-4 shrink-0" />
+          <span>{{ $t(`pages.account.link.${key}`) }}</span>
+        </li>
       </ul>
     </div>
 
-    <AlertDialog
-      :title="$t('pages.account.link.dialogTitle')"
-      :accept-disabled="!canConfirmLink"
-      :accept-label="$t('pages.account.link.acceptLabel')"
-      @accept="linkAccount"
-    >
+    <ResponsiveDialog v-model:open="isDialogOpen">
       <template #trigger>
-        <Button
-          variant="outline"
-          :disabled="isLinking"
-          class="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
-        >
+        <Button class="w-full" :disabled="isLinking">
           {{ isLinking ? $t('pages.account.link.linking') : $t('pages.account.link.linkButton') }}
         </Button>
       </template>
 
-      <template #description>
-        <p class="mb-4">{{ $t('pages.account.link.dialogDescription') }}</p>
+      <template #title>{{ $t('pages.account.link.dialogTitle') }}</template>
 
-        <div class="space-y-4">
-          <!-- Select Bank Connection -->
-          <div class="space-y-2">
-            <Label for="connection-select">{{ $t('pages.account.link.connectionLabel') }}</Label>
-            <Select.Select v-model="selectedConnectionId" :disabled="isLoadingConnections || !hasConnections">
-              <Select.SelectTrigger id="connection-select">
-                <Select.SelectValue :placeholder="$t('pages.account.link.selectConnection')" />
-              </Select.SelectTrigger>
-              <Select.SelectContent>
-                <template v-if="isLoadingConnections">
-                  <Select.SelectItem disabled value="loading">{{ $t('pages.account.link.loadingConnections') }}</Select.SelectItem>
-                </template>
-                <template v-else-if="hasConnections">
-                  <Select.SelectItem v-for="conn in connections" :key="conn.id" :value="String(conn.id)">
-                    {{ conn.providerName }}
-                  </Select.SelectItem>
-                </template>
-                <template v-else>
-                  <Select.SelectItem disabled value="none">{{ $t('pages.account.link.noConnections') }}</Select.SelectItem>
-                </template>
-              </Select.SelectContent>
-            </Select.Select>
-          </div>
+      <template #description>{{ $t('pages.account.link.dialogDescription') }}</template>
 
-          <!-- Select External Account -->
-          <div v-if="selectedConnectionId" class="space-y-2">
-            <Label for="account-select">{{ $t('pages.account.link.accountLabel') }}</Label>
-            <Select.Select
-              v-model="selectedExternalAccountId"
-              :disabled="isLoadingExternalAccounts || !hasExternalAccounts"
-            >
-              <Select.SelectTrigger id="account-select">
-                <Select.SelectValue
-                  :placeholder="
-                    isLoadingExternalAccounts
-                      ? $t('pages.account.link.loading')
-                      : $t('pages.account.link.selectExternalAccount')
-                  "
-                />
-              </Select.SelectTrigger>
-              <Select.SelectContent>
-                <template v-if="isLoadingExternalAccounts">
-                  <Select.SelectItem disabled value="loading">{{ $t('pages.account.link.loadingAccounts') }}</Select.SelectItem>
-                </template>
-                <template v-else-if="hasExternalAccounts">
-                  <Select.SelectItem v-for="acc in externalAccounts" :key="acc.externalId" :value="acc.externalId">
-                    {{ acc.name }} ({{ formatAmountByCurrencyCode(acc.balance, acc.currency) }})
-                  </Select.SelectItem>
-                </template>
-                <template v-else>
-                  <Select.SelectItem disabled value="none">{{ $t('pages.account.link.noExternalAccounts') }}</Select.SelectItem>
-                </template>
-              </Select.SelectContent>
-            </Select.Select>
-          </div>
-
-          <!-- Currency Mismatch Error -->
-          <div v-if="linkingError" class="bg-destructive/10 rounded-md p-3 text-sm">
-            <p class="text-destructive-text font-semibold">{{ $t('pages.account.link.mismatchWarning') }}</p>
-            <p class="text-destructive-text mt-1 text-xs">{{ linkingError }}</p>
-          </div>
-
-          <!-- Balance Preview -->
-          <div v-else-if="selectedExternalAccount" class="bg-muted rounded-md p-3 text-sm">
-            <p class="mb-1 font-semibold">{{ $t('pages.account.link.balanceComparison') }}</p>
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <p class="text-muted-foreground">{{ $t('pages.account.link.systemAccount') }}</p>
-                <p class="font-mono">
-                  {{ formatAmountByCurrencyCode(account.currentBalance, account.currencyCode) }}
-                </p>
-              </div>
-              <div>
-                <p class="text-muted-foreground">{{ $t('pages.account.link.externalAccount') }}</p>
-                <p class="font-mono">
-                  {{ formatAmountByCurrencyCode(selectedExternalAccount.balance, selectedExternalAccount.currency) }}
-                </p>
-              </div>
-            </div>
-            <p class="mt-2 text-xs text-yellow-600">
-              {{ $t('pages.account.link.adjustmentNote') }}
-            </p>
-          </div>
+      <div class="space-y-4">
+        <!-- Select Bank Connection -->
+        <div class="space-y-2">
+          <Label for="connection-select">{{ $t('pages.account.link.connectionLabel') }}</Label>
+          <Select.Select v-model="selectedConnectionId" :disabled="isLoadingConnections || !hasConnections">
+            <Select.SelectTrigger id="connection-select">
+              <Select.SelectValue :placeholder="$t('pages.account.link.selectConnection')" />
+            </Select.SelectTrigger>
+            <Select.SelectContent>
+              <template v-if="isLoadingConnections">
+                <Select.SelectItem disabled value="loading">{{
+                  $t('pages.account.link.loadingConnections')
+                }}</Select.SelectItem>
+              </template>
+              <template v-else-if="hasConnections">
+                <Select.SelectItem v-for="conn in connections" :key="conn.id" :value="String(conn.id)">
+                  {{ conn.providerName }}
+                </Select.SelectItem>
+              </template>
+              <template v-else>
+                <Select.SelectItem disabled value="none">{{
+                  $t('pages.account.link.noConnections')
+                }}</Select.SelectItem>
+              </template>
+            </Select.SelectContent>
+          </Select.Select>
         </div>
+
+        <!-- Select External Account -->
+        <div v-if="selectedConnectionId" class="space-y-2">
+          <Label for="account-select">{{ $t('pages.account.link.accountLabel') }}</Label>
+          <Select.Select
+            v-model="selectedExternalAccountId"
+            :disabled="isLoadingExternalAccounts || !hasExternalAccounts"
+          >
+            <Select.SelectTrigger id="account-select">
+              <Select.SelectValue
+                :placeholder="
+                  isLoadingExternalAccounts
+                    ? $t('pages.account.link.loading')
+                    : $t('pages.account.link.selectExternalAccount')
+                "
+              />
+            </Select.SelectTrigger>
+            <Select.SelectContent>
+              <template v-if="isLoadingExternalAccounts">
+                <Select.SelectItem disabled value="loading">{{
+                  $t('pages.account.link.loadingAccounts')
+                }}</Select.SelectItem>
+              </template>
+              <template v-else-if="hasExternalAccounts">
+                <Select.SelectItem v-for="acc in externalAccounts" :key="acc.externalId" :value="acc.externalId">
+                  {{ acc.name }} ({{ formatAmountByCurrencyCode(acc.balance, acc.currency) }})
+                </Select.SelectItem>
+              </template>
+              <template v-else>
+                <Select.SelectItem disabled value="none">{{
+                  $t('pages.account.link.noExternalAccounts')
+                }}</Select.SelectItem>
+              </template>
+            </Select.SelectContent>
+          </Select.Select>
+        </div>
+
+        <!-- Currency Mismatch Error -->
+        <div v-if="linkingError" class="bg-destructive/10 rounded-md p-3 text-sm">
+          <p class="text-destructive-text font-semibold">{{ $t('pages.account.link.mismatchWarning') }}</p>
+          <p class="text-destructive-text mt-1 text-xs">{{ linkingError }}</p>
+        </div>
+
+        <!-- Balance Preview -->
+        <div v-else-if="selectedExternalAccount" class="bg-muted rounded-md p-3 text-sm">
+          <p class="mb-1 font-semibold">{{ $t('pages.account.link.balanceComparison') }}</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <p class="text-muted-foreground">{{ $t('pages.account.link.systemAccount') }}</p>
+              <p class="font-mono">
+                {{ formatAmountByCurrencyCode(account.currentBalance, account.currencyCode) }}
+              </p>
+            </div>
+            <div>
+              <p class="text-muted-foreground">{{ $t('pages.account.link.externalAccount') }}</p>
+              <p class="font-mono">
+                {{ formatAmountByCurrencyCode(selectedExternalAccount.balance, selectedExternalAccount.currency) }}
+              </p>
+            </div>
+          </div>
+          <p class="mt-2 text-xs text-yellow-600">
+            {{ $t('pages.account.link.adjustmentNote') }}
+          </p>
+        </div>
+      </div>
+
+      <template #footer="{ close }">
+        <Button variant="outline" @click="close">{{ $t('common.actions.cancel') }}</Button>
+        <Button :disabled="!canConfirmLink" @click="linkAccount">
+          {{ isLinking ? $t('pages.account.link.linking') : $t('pages.account.link.acceptLabel') }}
+        </Button>
       </template>
-    </AlertDialog>
+    </ResponsiveDialog>
   </div>
 </template>
