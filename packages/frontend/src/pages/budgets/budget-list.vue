@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { deleteBudget as deleteBudgetApi, loadBudgetStats } from '@/api';
-import { loadSystemBudgets } from '@/api/budgets';
+import { archiveBudget as archiveBudgetApi, loadSystemBudgets } from '@/api/budgets';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes';
-import { BUDGET_TYPES, BudgetModel } from '@bt/shared/types';
-import { useQueries, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { BUDGET_STATUSES, BUDGET_TYPES, BudgetModel } from '@bt/shared/types';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { differenceInDays, isPast, isWithinInterval } from 'date-fns';
-import { TagsIcon, WalletIcon } from 'lucide-vue-next';
+import { ArchiveRestoreIcon, TagsIcon, WalletIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -22,14 +22,25 @@ const { addErrorNotification, addSuccessNotification } = useNotificationCenter()
 const router = useRouter();
 const queryClient = useQueryClient();
 
-const { data: budgetsList, isPlaceholderData: isBudgetsListPlaceholder } = useQuery({
-  queryFn: () => loadSystemBudgets(),
-  queryKey: VUE_QUERY_CACHE_KEYS.budgetsList,
+const showArchived = ref(false);
+
+const statusFilter = computed(() => (showArchived.value ? 'active,archived' : 'active'));
+
+const {
+  data: budgetsList,
+  isPlaceholderData: isBudgetsListPlaceholder,
+  isFetching: isBudgetsListFetching,
+} = useQuery({
+  queryFn: () => loadSystemBudgets({ status: statusFilter.value }),
+  queryKey: [...VUE_QUERY_CACHE_KEYS.budgetsList, statusFilter],
   staleTime: Infinity,
-  placeholderData: [],
+  placeholderData: (previousData) => previousData ?? [],
 });
 
-const isBudgetsListLoading = computed(() => isBudgetsListPlaceholder.value);
+// True only on very first load when we have no data at all
+const isInitialLoading = computed(() => isBudgetsListPlaceholder.value && !budgetsList.value?.length);
+// True when we have existing data but are fetching updated results (e.g. toggling archived)
+const isLoadingMore = computed(() => isBudgetsListFetching.value && !isInitialLoading.value);
 
 const budgetStatsQueries = useQueries({
   queries: computed(() =>
@@ -72,6 +83,20 @@ const deleteBudget = async ({ budgetId }: { budgetId: number }) => {
   }
 };
 
+const { mutate: archiveBudget } = useMutation({
+  mutationFn: archiveBudgetApi,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
+  },
+  onError: () => {
+    addErrorNotification(t('budgets.list.archiveError'));
+  },
+});
+
+const handleArchive = ({ budgetId, isArchived }: { budgetId: number; isArchived: boolean }) => {
+  archiveBudget({ budgetId, isArchived });
+};
+
 const getBudgetTimeStatus = (budget: BudgetModel) => {
   if (!budget.startDate && !budget.endDate) return null;
 
@@ -109,8 +134,11 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
 
 const activeTab = ref<BUDGET_TYPES>(BUDGET_TYPES.category);
 
-// Sort priority: active/upcoming (0) > no dates (1) > ended (2)
+const isArchived = (budget: BudgetModel) => budget.status === BUDGET_STATUSES.archived;
+
+// Sort priority: active/upcoming (0) > no dates (1) > ended (2) > archived (3)
 const getBudgetSortPriority = (budget: BudgetModel): number => {
+  if (isArchived(budget)) return 3;
   const status = getBudgetTimeStatus(budget);
   if (!status) return 1; // No dates set
   if (status.status === 'ended') return 2;
@@ -132,29 +160,43 @@ const manualBudgets = computed(() =>
 
 <template>
   <div>
-    <!-- Loading Skeleton -->
-    <BudgetCardSkeleton v-if="isBudgetsListLoading" />
+    <!-- Initial full-page skeleton (no data yet) -->
+    <BudgetCardSkeleton v-if="isInitialLoading" />
 
-    <template v-else-if="budgetsList.length">
+    <template v-else-if="budgetsList.length || isLoadingMore">
       <Tabs v-model="activeTab" class="w-full">
-        <TabsList class="mb-4">
-          <TabsTrigger :value="BUDGET_TYPES.category">
-            {{ $t('budgets.list.tabCategory') }}
-            <span v-if="categoryBudgets.length" class="bg-muted ml-1.5 rounded-full px-1.5 py-0.5 text-xs">
-              {{ categoryBudgets.length }}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger :value="BUDGET_TYPES.manual">
-            {{ $t('budgets.list.tabManual') }}
-            <span v-if="manualBudgets.length" class="bg-muted ml-1.5 rounded-full px-1.5 py-0.5 text-xs">
-              {{ manualBudgets.length }}
-            </span>
-          </TabsTrigger>
-        </TabsList>
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <TabsList>
+            <TabsTrigger :value="BUDGET_TYPES.category">
+              {{ $t('budgets.list.tabCategory') }}
+              <span v-if="categoryBudgets.length" class="bg-muted ml-1.5 rounded-full px-1.5 py-0.5 text-xs">
+                {{ categoryBudgets.length }}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger :value="BUDGET_TYPES.manual">
+              {{ $t('budgets.list.tabManual') }}
+              <span v-if="manualBudgets.length" class="bg-muted ml-1.5 rounded-full px-1.5 py-0.5 text-xs">
+                {{ manualBudgets.length }}
+              </span>
+            </TabsTrigger>
+          </TabsList>
+
+          <button
+            type="button"
+            class="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1.5 text-xs transition-colors"
+            @click="showArchived = !showArchived"
+          >
+            <ArchiveRestoreIcon class="size-3.5" />
+            {{ showArchived ? $t('budgets.list.hideArchived') : $t('budgets.list.showArchived') }}
+          </button>
+        </div>
 
         <!-- Category Budgets Tab -->
         <TabsContent :value="BUDGET_TYPES.category">
-          <div v-if="categoryBudgets.length === 0" class="flex flex-col items-center justify-center py-12 text-center">
+          <div
+            v-if="categoryBudgets.length === 0 && !isLoadingMore"
+            class="flex flex-col items-center justify-center py-12 text-center"
+          >
             <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
               <TagsIcon class="text-muted-foreground size-8" />
             </div>
@@ -168,19 +210,25 @@ const manualBudgets = computed(() =>
               v-for="budget in categoryBudgets"
               :key="budget.id"
               :budget="budget"
+              :is-archived="isArchived(budget)"
               :stats="getBudgetStats(budget.id)?.summary ?? null"
               :is-stats-loading="isBudgetStatsLoading(budget.id)"
               :time-status="getBudgetTimeStatus(budget)"
               @click="navigateToBudget({ budgetId: budget.id })"
               @edit="navigateToBudget({ budgetId: budget.id })"
               @delete="deleteBudget({ budgetId: budget.id })"
+              @archive="handleArchive({ budgetId: budget.id, isArchived: !isArchived(budget) })"
             />
+            <BudgetCardSkeleton v-if="isLoadingMore" :count="2" inline />
           </div>
         </TabsContent>
 
         <!-- Manual Budgets Tab -->
         <TabsContent :value="BUDGET_TYPES.manual">
-          <div v-if="manualBudgets.length === 0" class="flex flex-col items-center justify-center py-12 text-center">
+          <div
+            v-if="manualBudgets.length === 0 && !isLoadingMore"
+            class="flex flex-col items-center justify-center py-12 text-center"
+          >
             <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
               <WalletIcon class="text-muted-foreground size-8" />
             </div>
@@ -194,13 +242,16 @@ const manualBudgets = computed(() =>
               v-for="budget in manualBudgets"
               :key="budget.id"
               :budget="budget"
+              :is-archived="isArchived(budget)"
               :stats="getBudgetStats(budget.id)?.summary ?? null"
               :is-stats-loading="isBudgetStatsLoading(budget.id)"
               :time-status="getBudgetTimeStatus(budget)"
               @click="navigateToBudget({ budgetId: budget.id })"
               @edit="navigateToBudget({ budgetId: budget.id })"
               @delete="deleteBudget({ budgetId: budget.id })"
+              @archive="handleArchive({ budgetId: budget.id, isArchived: !isArchived(budget) })"
             />
+            <BudgetCardSkeleton v-if="isLoadingMore" :count="2" inline />
           </div>
         </TabsContent>
       </Tabs>

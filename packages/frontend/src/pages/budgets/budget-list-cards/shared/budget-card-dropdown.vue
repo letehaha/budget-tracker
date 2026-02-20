@@ -8,15 +8,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/common/dropdown-menu';
 import Button from '@/components/lib/ui/button/Button.vue';
-import { MoreVerticalIcon, PencilIcon, Trash2Icon } from 'lucide-vue-next';
+import { ArchiveIcon, ArchiveRestoreIcon, MoreVerticalIcon, PencilIcon, Trash2Icon } from 'lucide-vue-next';
 
 defineProps<{
   budgetId: number;
+  isArchived?: boolean;
 }>();
 
 const emit = defineEmits<{
   edit: [];
   delete: [];
+  archive: [];
 }>();
 </script>
 
@@ -32,6 +34,10 @@ const emit = defineEmits<{
         <DropdownMenuItem @click.stop="emit('edit')">
           <PencilIcon class="mr-2 size-4" />
           {{ $t('budgets.list.edit') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem @click.stop="emit('archive')">
+          <component :is="isArchived ? ArchiveRestoreIcon : ArchiveIcon" class="mr-2 size-4" />
+          {{ isArchived ? $t('budgets.list.unarchive') : $t('budgets.list.archive') }}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <AlertDialog

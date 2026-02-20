@@ -47,12 +47,15 @@ export async function createCustomBudget<R extends boolean | undefined = undefin
 
 export async function getCustomBudgets<R extends boolean | undefined = undefined>({
   raw,
+  status,
 }: {
   raw?: R;
+  status?: string;
 } = {}) {
   return makeRequest<BudgetModel[], R>({
     method: 'get',
     url: '/budgets',
+    payload: status ? { status } : null,
     raw,
   });
 }
@@ -152,6 +155,23 @@ export async function removeTransactionFromCustomBudget<R extends boolean | unde
     method: 'delete',
     url: `/budgets/${id}/transactions`,
     payload,
+    raw,
+  });
+}
+
+export async function archiveCustomBudget<R extends boolean | undefined = undefined>({
+  id,
+  isArchived,
+  raw,
+}: {
+  id: number;
+  isArchived: boolean;
+  raw?: R;
+}) {
+  return makeRequest<BudgetModel, R>({
+    method: 'patch',
+    url: `/budgets/${id}/archive`,
+    payload: { isArchived },
     raw,
   });
 }

@@ -7,8 +7,8 @@ interface editBudgetParamsParams {
   categoryIds?: number[];
 }
 
-export const loadSystemBudgets = async (): Promise<BudgetModel[]> => {
-  return api.get('/budgets');
+export const loadSystemBudgets = async ({ status }: { status?: string } = {}): Promise<BudgetModel[]> => {
+  return api.get('/budgets', status ? { status } : undefined);
 };
 
 export const loadBudgetById = async (id: number): Promise<BudgetModel> => {
@@ -24,6 +24,9 @@ export const createBudget = async (payload: Omit<BudgetModel, 'id' | 'userId'>):
 };
 
 export const deleteBudget = async (budgetId: number) => api.delete(`/budgets/${budgetId}`);
+
+export const archiveBudget = async ({ budgetId, isArchived }: { budgetId: number; isArchived: boolean }) =>
+  api.patch(`/budgets/${budgetId}/archive`, { isArchived });
 
 export const editBudget = async ({ budgetId, payload }: { budgetId: number; payload: editBudgetParamsParams }) => {
   await api.put(`/budgets/${budgetId}`, payload);

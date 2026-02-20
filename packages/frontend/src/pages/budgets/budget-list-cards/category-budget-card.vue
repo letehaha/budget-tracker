@@ -4,7 +4,7 @@ import { Card } from '@/components/lib/ui/card';
 import { useFormatCurrency } from '@/composable';
 import { BudgetModel, CategoryModel } from '@bt/shared/types';
 import { format } from 'date-fns';
-import { ArrowRightIcon, CalendarIcon, TagsIcon } from 'lucide-vue-next';
+import { ArchiveIcon, ArrowRightIcon, CalendarIcon, TagsIcon } from 'lucide-vue-next';
 
 import BudgetStatsSkeleton from '../budget-stats-skeleton.vue';
 import BudgetCardDropdown from './shared/budget-card-dropdown.vue';
@@ -13,6 +13,7 @@ import BudgetCardUtilization from './shared/budget-card-utilization.vue';
 
 defineProps<{
   budget: BudgetModel;
+  isArchived?: boolean;
   stats: {
     actualIncome: number;
     actualExpense: number;
@@ -26,6 +27,7 @@ defineProps<{
 const emit = defineEmits<{
   edit: [];
   delete: [];
+  archive: [];
 }>();
 
 const { formatBaseCurrency } = useFormatCurrency();
@@ -37,25 +39,44 @@ const formatDate = (date: Date | string | undefined | null) => {
 </script>
 
 <template>
-  <Card class="group relative flex cursor-pointer flex-col overflow-hidden transition-all duration-200 hover:border-white/20 hover:bg-white/2">
+  <Card
+    :class="[
+      'group relative flex cursor-pointer flex-col overflow-hidden transition-all duration-200 hover:border-white/20 hover:bg-white/2',
+      isArchived && 'opacity-50',
+    ]"
+  >
     <!-- Status Banner -->
     <div
       :class="[
         'flex items-center justify-center py-1.5 text-xs font-medium',
-        !timeStatus
-          ? 'bg-muted/50 text-muted-foreground/70'
-          : timeStatus.status === 'ended'
-            ? 'bg-muted text-muted-foreground'
-            : timeStatus.status === 'upcoming'
-              ? 'bg-blue-500/15 text-blue-400'
-              : 'bg-success-text/15 text-success-text',
+        isArchived
+          ? 'bg-muted text-muted-foreground'
+          : !timeStatus
+            ? 'bg-muted/50 text-muted-foreground/70'
+            : timeStatus.status === 'ended'
+              ? 'bg-muted text-muted-foreground'
+              : timeStatus.status === 'upcoming'
+                ? 'bg-blue-500/15 text-blue-400'
+                : 'bg-success-text/15 text-success-text',
       ]"
     >
-      {{ timeStatus?.text || $t('budgets.list.noTimePeriod') }}
+      <template v-if="isArchived">
+        <ArchiveIcon class="mr-1 size-3" />
+        {{ $t('budgets.list.archivedLabel') }}
+      </template>
+      <template v-else>
+        {{ timeStatus?.text || $t('budgets.list.noTimePeriod') }}
+      </template>
     </div>
 
     <div class="relative flex flex-1 flex-col p-4">
-      <BudgetCardDropdown :budget-id="budget.id" @edit="emit('edit')" @delete="emit('delete')" />
+      <BudgetCardDropdown
+        :budget-id="budget.id"
+        :is-archived="isArchived"
+        @edit="emit('edit')"
+        @delete="emit('delete')"
+        @archive="emit('archive')"
+      />
       <!-- Header -->
       <div class="mb-3 flex items-center gap-3">
         <div class="bg-muted flex size-10 shrink-0 items-center justify-center rounded-lg">
