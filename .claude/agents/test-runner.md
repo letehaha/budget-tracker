@@ -51,15 +51,17 @@ The main model will decide how to present this to the user and what actions to t
 
 ## Available Test Commands
 
-This is a monorepo with backend (Jest) and frontend (Vitest):
+This is a monorepo with backend (Jest), frontend unit (Vitest), and frontend E2E (Playwright):
 
-| Scope        | Command                                 |
-| ------------ | --------------------------------------- |
-| All tests    | `npm test`                              |
-| Backend all  | `npm -w packages/backend run test`      |
-| Backend unit | `npm -w packages/backend run test:unit` |
-| Backend E2E  | `npm -w packages/backend run test:e2e`  |
-| Frontend     | `npm -w packages/frontend run test`     |
+| Scope              | Command                                     |
+| ------------------ | ------------------------------------------- |
+| All tests          | `npm test`                                  |
+| Backend all        | `npm -w packages/backend run test`          |
+| Backend unit       | `npm -w packages/backend run test:unit`     |
+| Backend E2E        | `npm -w packages/backend run test:e2e`      |
+| Frontend unit      | `npm -w packages/frontend run test`         |
+| Frontend E2E       | `npm run test:e2e -w packages/frontend`     |
+| Frontend E2E (one) | `npm run test:e2e -w packages/frontend -- --grep "test name"` |
 
 ## CRITICAL: Test File Patterns
 
@@ -95,13 +97,53 @@ If user wants to run specific tests:
 
 - Backend unit: `npm -w packages/backend run test:unit -- pattern`
 - Backend E2E: `npm -w packages/backend run test:e2e -- pattern`
-- Frontend: `npm -w packages/frontend run test -- pattern`
+- Frontend unit: `npm -w packages/frontend run test -- pattern`
+- Frontend E2E: `npm run test:e2e -w packages/frontend -- --grep "pattern"`
 
 Examples for running feature-specific tests:
 
 - Refunds unit: `npm -w packages/backend run test:unit -- refund`
 - Refunds E2E: `npm -w packages/backend run test:e2e -- tx-refunds`
+- Frontend E2E sign-in: `npm run test:e2e -w packages/frontend -- --grep "Sign in"`
 - Both: Run unit command first, then E2E command
+
+## Frontend E2E Tests (Playwright)
+
+Frontend E2E tests live in `packages/frontend/e2e/` and use Playwright.
+
+### Key details
+
+- **Config:** `packages/frontend/playwright.config.ts`
+- **Test dir:** `packages/frontend/e2e/tests/`
+- **Fixtures:** `packages/frontend/e2e/fixtures/index.ts` — provides `testUser` (worker-scoped) and `ensurePreviewAlive` (auto)
+- **Helpers:** `packages/frontend/e2e/helpers/` — `test-user.ts` (API-based user lifecycle), `auth.ts` (UI login)
+- **Global setup:** `packages/frontend/e2e/global-setup.ts` — health checks frontend + API before running
+
+### Environment variables
+
+Tests default to `https://localhost:8100` (frontend) and `https://localhost:8081` (API). Override with:
+
+```
+PLAYWRIGHT_BASE_URL=https://example.com PLAYWRIGHT_API_BASE_URL=https://api.example.com npm run test:e2e -w packages/frontend
+```
+
+### Reading the report
+
+After a test run, the HTML report is at `packages/frontend/playwright-report/index.html`. Open it with:
+
+```
+npm run test:e2e:report -w packages/frontend
+```
+
+Failed test screenshots are saved in `packages/frontend/test-results/`.
+
+### Projects
+
+- **chromium** — the only configured browser
+
+### Timeout
+
+Frontend E2E tests can take up to 2 minutes. Use `timeout: 180000` for the Bash command.
 
 ## Timeout Handling
 

@@ -152,5 +152,10 @@ docs/prds/*
 # i18n hook bypass flag
 .claude/i18n-bypass
 
+# Playwright
+packages/frontend/playwright-report/
+packages/frontend/test-results/
+packages/frontend/blob-report/
+
 # Astro generated files
 packages/landing/.astro/

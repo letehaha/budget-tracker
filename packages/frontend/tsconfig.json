@@ -17,5 +17,5 @@
     "lib": ["esnext", "dom", "dom.iterable", "scripthost"]
   },
   "include": ["src/**/*.js", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "tests/**/*.ts", "tests/**/*.tsx"],
-  "exclude": ["node_modules", "cypress", "cypress.config.ts", "./index.html", "knip.ts"]
+  "exclude": ["node_modules", "e2e", "playwright.config.ts", "./index.html", "knip.ts"]
 }
