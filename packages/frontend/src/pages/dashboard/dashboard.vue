@@ -8,9 +8,10 @@
       v-if="!hasNoAccounts"
       :class="
         cn([
-          'bg-background/95 supports-[backdrop-filter]:bg-background/80 z-(--z-navbar) order-last -mx-6 mt-auto border-t py-2 backdrop-blur',
+          'bg-background/95 supports-backdrop-filter:bg-background/80 order-last -mx-6 mt-auto border-t py-2 backdrop-blur',
+          isEditMode ? 'z-30 max-md:hidden' : 'z-(--z-navbar)',
           'max-md:right-0 max-md:left-0',
-          'sticky md:top-[var(--header-height)]',
+          'sticky md:top-(--header-height)',
           isSafariMobile
             ? isPWA
               ? 'max-md:bottom-[calc(var(--bottom-navbar-height)-env(safe-area-inset-bottom)-1px)]'
@@ -25,7 +26,7 @@
         <PeriodSelector v-model="currentPeriod" />
         <DashboardEditToolbar
           class="hidden justify-self-end md:flex"
-          :is-edit-mode="gridRef?.isEditMode ?? false"
+          :is-edit-mode="isEditMode"
           @enter="gridRef?.enterEditMode()"
           @save="gridRef?.saveLayout()"
           @cancel="gridRef?.cancelEdit()"
@@ -39,7 +40,7 @@
     <template v-else>
       <!-- Mobile: "Customize" button above grid (hidden during edit mode) -->
       <DashboardEditToolbar
-        v-if="!(gridRef?.isEditMode ?? false)"
+        v-if="!isEditMode"
         class="mb-4 justify-center md:hidden"
         :is-edit-mode="false"
         @enter="gridRef?.enterEditMode()"
@@ -88,6 +89,7 @@ defineOptions({
 });
 
 const gridRef = ref<InstanceType<typeof DashboardGrid> | null>(null);
+const isEditMode = computed(() => gridRef.value?.isEditMode ?? false);
 
 // Get initial period from URL or default to current month
 const getInitialPeriod = (): Period => {
