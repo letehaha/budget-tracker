@@ -1,7 +1,12 @@
 import { connection, namespace } from '@models/index';
 
 const isTransactionActive = () => {
-  return !!namespace.get('transaction');
+  const transaction = namespace.get('transaction');
+  // Check both that a transaction exists AND that it hasn't already been
+  // committed/rolled back. Stale transactions can remain in the CLS namespace
+  // when cls-hooked doesn't perfectly restore async context (e.g. in test
+  // environments with supertest where requests share the same process).
+  return !!transaction && !transaction.finished;
 };
 
 type AsyncFunction<T extends unknown[], R> = (...args: T) => Promise<R>;

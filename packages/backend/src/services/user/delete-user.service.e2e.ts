@@ -392,10 +392,10 @@ describe('User deletion (DELETE /user/delete)', () => {
     });
 
     // Add to excluded categories
-    await helpers.editExcludedCategories({
+    const editRes = await helpers.editExcludedCategories({
       addIds: [category.id],
-      raw: true,
     });
+    expect(editRes.statusCode).toBe(200);
 
     // Verify settings exist
     const settingsBefore = await helpers.getUserSettings({ raw: true });
