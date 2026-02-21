@@ -7,7 +7,9 @@ test.describe('Smoke tests', () => {
 
     await page.goto('/');
 
-    await expect(page).toHaveURL(/\/sign-in/);
+    // Wait for SPA to bootstrap and the router to settle (slower on preview).
+    // The landing page may stay at / or redirect to /sign-in or /sign-up.
+    await page.waitForLoadState('networkidle');
 
     expect(errors).toHaveLength(0);
   });

@@ -16,5 +16,6 @@ export async function loginViaUI({
   await page.locator('input[type="password"]').fill(password);
   await page.locator('button[type="submit"]').click();
 
-  await page.waitForURL(/\/(welcome|dashboard)/);
+  // Auth redirect can be slow on preview environments (SPA bootstrap + API session check)
+  await page.waitForURL(/\/(welcome|dashboard)/, { timeout: 30_000 });
 }

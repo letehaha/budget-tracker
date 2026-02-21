@@ -320,7 +320,7 @@ jobs:
 
             ${{ steps.playwright.outcome == 'success' && ':white_check_mark: **All tests passed!**' || '' }}
             ${{ steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected == 'true' && ':warning: **Tests interrupted** — preview environment was torn down during the test run.' || '' }}
-            ${{ steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected != 'true' && ':x: **Some tests failed.** Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) and the uploaded `playwright-report` artifact for details.' || '' }}
+            ${{ steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected != 'true' && format(':x: **Some tests failed.** Check the [workflow logs]({0}/{1}/actions/runs/{2}) and the uploaded `playwright-report` artifact for details.', github.server_url, github.repository, github.run_id) || '' }}
 
             _Tested against: `pr-${{ env.PR_NUMBER }}.preview.moneymatter.app` · Commit: ${{ github.sha }}_
 
