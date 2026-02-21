@@ -259,3 +259,71 @@ jobs:
             ## Preview Environment
 
             :x: **Deploy failed.** Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+
+  # ── E2E Tests against preview ────────────────────────────────────
+  test-preview:
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: success()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - id: prepare-env
+        uses: ./.github/actions/prepare-local-env
+
+      - name: Install dependencies
+        if: steps.prepare-env.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: packages/frontend
+
+      - name: Run Playwright tests
+        id: playwright
+        continue-on-error: true
+        run: npm run test:e2e -w packages/frontend
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: https://pr-${{ env.PR_NUMBER }}.preview.moneymatter.app
+          PLAYWRIGHT_API_BASE_URL: https://api-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app
+
+      - name: Check if failure was due to teardown
+        if: steps.playwright.outcome == 'failure'
+        id: teardown-check
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://pr-${{ env.PR_NUMBER }}.preview.moneymatter.app" || echo "000")
+          if [ "$HTTP_CODE" = "000" ] || [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ]; then
+            echo "teardown_detected=true" >> $GITHUB_OUTPUT
+          else
+            echo "teardown_detected=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-pr-${{ env.PR_NUMBER }}
+          path: packages/frontend/playwright-report/
+          retention-days: 7
+
+      - name: Comment test results on PR
+        if: always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: playwright-tests
+          message: |
+            ## Playwright E2E Tests
+
+            ${{ steps.playwright.outcome == 'success' && ':white_check_mark: **All tests passed!**' || '' }}
+            ${{ steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected == 'true' && ':warning: **Tests interrupted** — preview environment was torn down during the test run.' || '' }}
+            ${{ steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected != 'true' && ':x: **Some tests failed.** Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) and the uploaded `playwright-report` artifact for details.' || '' }}
+
+            _Tested against: `pr-${{ env.PR_NUMBER }}.preview.moneymatter.app` · Commit: ${{ github.sha }}_
+
+      - name: Fail if real test failures
+        if: steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected != 'true'
+        run: exit 1

@@ -2,3 +2,6 @@ node_modules
 dist
 vue.config.js
 knip.ts
+e2e
+playwright.config.ts
+playwright-report

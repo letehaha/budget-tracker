@@ -2,17 +2,16 @@ import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
   // TODO: fix because it's wrong ignoring them
-  ignoreBinaries: ['knip', 'vue-tsc', 'vitest', 'storybook'],
+  ignoreBinaries: ['knip', 'vue-tsc', 'vitest', 'storybook', 'playwright'],
   ignore: [
     '.eslintrc.js',
     'index.d.ts',
     'vite.config.js',
     'backend/**/**',
     'wallaby.js',
-    // keep it for now, delete when Playwright added
     'tests/**/**',
-    'cypress/**/**',
-    'cypress.config.ts',
+    'e2e/**/**',
+    'playwright.config.ts',
     // keep them all for now
     'src/components/lib/**/**',
     // for some reason it cannot resolve it
