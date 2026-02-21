@@ -38,15 +38,19 @@ jobs:
     name: Frontend tasks
     needs: [prepare-dependencies, detect-changes]
     runs-on: ubuntu-latest
-    # Run if frontend files changed OR common files changed
-    if: needs.detect-changes.outputs.backend-only != 'true'
     strategy:
       matrix:
         task: [lint, test, build, knip]
     steps:
+      - name: Skip – no frontend changes
+        if: needs.detect-changes.outputs.backend-only == 'true'
+        run: echo "No frontend changes detected. Skipping."
       - uses: actions/checkout@v4
+        if: needs.detect-changes.outputs.backend-only != 'true'
       - uses: ./.github/actions/prepare-local-env
+        if: needs.detect-changes.outputs.backend-only != 'true'
       - name: Run ${{ matrix.task }}
+        if: needs.detect-changes.outputs.backend-only != 'true'
         run: npm run ${{ matrix.task }} -w packages/frontend
 
   frontend-docker-build:
@@ -73,15 +77,19 @@ jobs:
     name: Backend tasks
     needs: [prepare-dependencies, detect-changes]
     runs-on: ubuntu-latest
-    # Run if backend files changed OR common files changed
-    if: needs.detect-changes.outputs.frontend-only != 'true'
     strategy:
       matrix:
         task: [lint, test, knip]
     steps:
+      - name: Skip – no backend changes
+        if: needs.detect-changes.outputs.frontend-only == 'true'
+        run: echo "No backend changes detected. Skipping."
       - uses: actions/checkout@v4
+        if: needs.detect-changes.outputs.frontend-only != 'true'
       - uses: ./.github/actions/prepare-local-env
+        if: needs.detect-changes.outputs.frontend-only != 'true'
       - name: Make backend env file
+        if: needs.detect-changes.outputs.frontend-only != 'true'
         uses: SpicyPizza/create-envfile@v2
         with:
           envkey_APPLICATION_HOST: 127.0.0.1
@@ -108,11 +116,11 @@ jobs:
           file_name: .env.test
           fail_on_empty: true # fail if any env variable is empty
       - name: Run ${{ matrix.task }}
-        if: matrix.task != 'test'
+        if: needs.detect-changes.outputs.frontend-only != 'true' && matrix.task != 'test'
         run: npm run ${{ matrix.task }} -w packages/backend
 
       - name: Run ${{ matrix.task }} (with retry)
-        if: matrix.task == 'test'
+        if: needs.detect-changes.outputs.frontend-only != 'true' && matrix.task == 'test'
         run: |
           for attempt in 1 2 3; do
             echo "=== Attempt $attempt of 3 ==="
