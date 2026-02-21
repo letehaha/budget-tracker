@@ -490,6 +490,113 @@ describe('Demo Mode', () => {
     }, 60000); // 60s timeout - demo user creation and cleanup involves lots of data
   });
 
+  describe('Template-based Demo Data Integrity', () => {
+    let demoSessionToken: string;
+
+    beforeEach(async () => {
+      const demoUser = await createDemoUserAndAuth();
+      demoSessionToken = demoUser.sessionToken;
+    }, 60000);
+
+    afterEach(() => {
+      if (demoSessionToken) {
+        clearMockSession(demoSessionToken);
+      }
+    });
+
+    it('account balances reflect transaction totals', async () => {
+      // Get accounts
+      const accountsRes = await makeRequest({
+        method: 'get',
+        url: '/accounts',
+        raw: true,
+      });
+
+      expect(accountsRes.length).toBe(4);
+
+      // For each account, verify currentBalance = initialBalance + sum of transactions
+      for (const account of accountsRes) {
+        // Get all transactions for this account directly via SQL to get raw cents
+        const [txRows] = await connection.sequelize.query(
+          `SELECT "transactionType", amount FROM "Transactions" WHERE "accountId" = :accountId`,
+          { replacements: { accountId: account.id } },
+        );
+
+        const txSum = (txRows as { transactionType: string; amount: number }[]).reduce((sum, tx) => {
+          if (tx.transactionType === TRANSACTION_TYPES.income) {
+            return sum + tx.amount;
+          }
+          return sum - tx.amount;
+        }, 0);
+
+        // Get raw account balance values from DB
+        const [accountRows] = await connection.sequelize.query(
+          `SELECT "currentBalance", "initialBalance" FROM "Accounts" WHERE id = :id`,
+          { replacements: { id: account.id } },
+        );
+
+        const rawAccount = (accountRows as { currentBalance: number; initialBalance: number }[])[0]!;
+        expect(rawAccount.currentBalance).toBe(rawAccount.initialBalance + txSum);
+      }
+    });
+
+    it('balances history table has records for demo accounts', async () => {
+      // Get account IDs
+      const accountsRes = await makeRequest({
+        method: 'get',
+        url: '/accounts',
+        raw: true,
+      });
+
+      const accountIds = accountsRes.map((a: { id: number }) => a.id);
+      expect(accountIds.length).toBe(4);
+
+      // Verify Balances records exist
+      const [balanceRows] = await connection.sequelize.query(
+        `SELECT COUNT(*) as count FROM "Balances" WHERE "accountId" IN (:accountIds)`,
+        { replacements: { accountIds } },
+      );
+
+      const balanceCount = parseInt((balanceRows as { count: string }[])[0]!.count, 10);
+
+      // Should have a meaningful number of balance records (at least one per account)
+      expect(balanceCount).toBeGreaterThanOrEqual(accountIds.length);
+    });
+
+    it('balances history has correct running totals', async () => {
+      // Get the main checking account (USD)
+      const accountsRes = await makeRequest({
+        method: 'get',
+        url: '/accounts',
+        raw: true,
+      });
+
+      const mainChecking = accountsRes.find((a: { name: string }) => a.name === 'Main Checking');
+      expect(mainChecking).toBeDefined();
+
+      // Get the latest balance record for this account
+      const [latestBalanceRows] = await connection.sequelize.query(
+        `SELECT amount FROM "Balances" WHERE "accountId" = :accountId ORDER BY date DESC LIMIT 1`,
+        { replacements: { accountId: mainChecking.id } },
+      );
+
+      const latestBalance = (latestBalanceRows as { amount: number }[])[0];
+      expect(latestBalance).toBeDefined();
+
+      // Get refCurrentBalance from the account
+      const [accountRows] = await connection.sequelize.query(
+        `SELECT "refCurrentBalance" FROM "Accounts" WHERE id = :id`,
+        { replacements: { id: mainChecking.id } },
+      );
+
+      const refCurrentBalance = (accountRows as { refCurrentBalance: number }[])[0]!.refCurrentBalance;
+
+      // The latest balance record should match the account's refCurrentBalance
+      // (since main checking is in USD which is the base currency)
+      expect(latestBalance!.amount).toBe(refCurrentBalance);
+    });
+  });
+
   describe('Demo vs Regular User Differentiation', () => {
     it('regular users do not have demo restrictions', async () => {
       // Use the default test user (regular user)

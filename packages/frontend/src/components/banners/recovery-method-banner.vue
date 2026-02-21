@@ -30,7 +30,9 @@
 import { Button } from '@/components/lib/ui/button';
 import { authClient } from '@/lib/auth-client';
 import { ROUTES_NAMES } from '@/routes';
+import { useUserStore } from '@/stores/user';
 import { ShieldAlertIcon, XIcon } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 
 const DISMISSED_KEY = 'recovery-method-banner-dismissed';
@@ -39,11 +41,13 @@ interface Account {
   providerId: string;
 }
 
+const { isDemo } = storeToRefs(useUserStore());
+
 const isDismissed = ref(localStorage.getItem(DISMISSED_KEY) === 'true');
 const hasOnlyPassword = ref(false);
 const isLoaded = ref(false);
 
-const shouldShow = computed(() => isLoaded.value && hasOnlyPassword.value && !isDismissed.value);
+const shouldShow = computed(() => isLoaded.value && hasOnlyPassword.value && !isDismissed.value && !isDemo.value);
 
 const dismiss = () => {
   isDismissed.value = true;
@@ -75,6 +79,9 @@ const checkLoginMethods = async () => {
 };
 
 onMounted(() => {
+  // Skip entirely for demo users -- no need to check login methods
+  if (isDemo.value) return;
+
   // Only check if not already dismissed
   if (!isDismissed.value) {
     checkLoginMethods();
