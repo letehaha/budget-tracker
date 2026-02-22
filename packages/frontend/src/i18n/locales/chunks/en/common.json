@@ -92,7 +92,34 @@
         "error": "Failed to unlink transactions!"
       }
     },
-    "outOfWallet": "Out of Wallet"
+    "outOfWallet": "Out of Wallet",
+    "dateSelector": {
+      "dueDate": "Due date",
+      "quickSelect": "Quick select",
+      "apply": "Apply",
+      "periodTypes": {
+        "day": "Day",
+        "month": "Month",
+        "quarter": "Quarter",
+        "halfYear": "Half-year",
+        "year": "Year"
+      },
+      "filterModes": {
+        "is": "is",
+        "before": "before",
+        "after": "after",
+        "between": "between"
+      },
+      "currentMonth": "Current month",
+      "placeholders": {
+        "day": "Try: 2025-03-15, 03/15/2025",
+        "month": "Try: Jan 2025, 03/2025",
+        "quarter": "Try: Q1, Q4 2025",
+        "halfYear": "Try: H1, H2 2025",
+        "year": "Try: 2025, 2024",
+        "default": "Try: 2025, Q4, Jan 2025"
+      }
+    }
   },
   "validation": {
     "minLength": "Minimal length is {length}.",

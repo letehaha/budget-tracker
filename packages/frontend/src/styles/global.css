@@ -278,6 +278,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Hide scrollbar while keeping scroll functionality */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .datetime-raw-input::-webkit-inner-spin-button,
 .datetime-raw-input::-webkit-calendar-picker-indicator,
 .date-raw-input::-webkit-inner-spin-button,

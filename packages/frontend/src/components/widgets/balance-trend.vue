@@ -23,7 +23,7 @@
     </template>
     <template v-else>
       <!-- Stats row - two columns with space between -->
-      <div class="mb-4 flex items-start justify-between gap-4">
+      <div class="max-xs:px-2 mb-4 flex items-start justify-between gap-4">
         <!-- Left: Primary value -->
         <div>
           <div class="text-2xl font-bold tracking-tight">
@@ -53,7 +53,7 @@
       </div>
 
       <Transition name="chart-fade" mode="out-in">
-        <div :key="chartKey" ref="containerRef" class="relative min-h-44 w-full flex-1">
+        <div :key="chartKey" ref="containerRef" class="max-xs:px-2 relative min-h-44 w-full flex-1">
           <svg ref="svgRef" class="h-full w-full"></svg>
 
           <!-- Tooltip -->

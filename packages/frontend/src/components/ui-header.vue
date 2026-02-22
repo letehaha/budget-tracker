@@ -52,7 +52,7 @@
         <template v-else>
           <Popover.Popover v-model:open="isPopoverOpen">
             <Popover.PopoverTrigger as-child>
-              <Button variant="secondary" :size="isCompactView ? 'icon-sm' : 'sm'">
+              <Button variant="secondary" :size="isCompactView ? 'icon' : 'sm'">
                 <template v-if="syncStatus.isSyncing.value">
                   <RefreshCcw class="animate-spin" :size="16" />
                   <span class="hidden text-sm font-medium lg:inline">

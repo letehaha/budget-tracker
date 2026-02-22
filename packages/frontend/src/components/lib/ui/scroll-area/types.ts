@@ -7,4 +7,7 @@ export enum SCROLL_AREA_IDS {
   accountTransactions = 'scroll-area-account-transactions',
   accountsRelinkWarning = 'scroll-area-accounts-relink-warning',
   quickStart = 'scroll-area-quick-start',
+  dateSelectorPanel = 'scroll-area-date-selector-panel',
+  calendarJumpMonths = 'scroll-area-calendar-jump-months',
+  calendarJumpYears = 'scroll-area-calendar-jump-years',
 }
