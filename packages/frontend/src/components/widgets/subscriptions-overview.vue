@@ -28,7 +28,7 @@ const { formatDistanceToNow } = useDateLocale();
 const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
 
 const isOnDashboard = computed(() => !!widgetConfigRef?.value);
-const displayLimit = computed(() => (isOnDashboard.value ? 4 : 5));
+const displayLimit = computed(() => (isOnDashboard.value ? 5 : 5));
 const widgetType = computed(() => {
   const cfg = widgetConfigRef?.value?.config;
   return (cfg?.type as string) || undefined;
@@ -71,7 +71,7 @@ const formatNextDate = (dateStr: string | null) => {
     <template #action>
       <router-link
         :to="{ name: ROUTES_NAMES.plannedSubscriptions }"
-        :class="buttonVariants({ variant: 'link', size: 'sm' })"
+        :class="buttonVariants({ variant: 'ghost', size: 'sm', class: 'text-muted-foreground' })"
       >
         {{ $t('common.actions.viewAll') }}
       </router-link>
@@ -101,11 +101,12 @@ const formatNextDate = (dateStr: string | null) => {
       </div>
 
       <!-- Upcoming payments list -->
-      <div class="flex flex-col gap-2">
-        <div
+      <div class="-mx-2 flex flex-col">
+        <router-link
           v-for="payment in upcoming?.slice(0, displayLimit)"
           :key="payment.subscriptionId"
-          class="flex items-center gap-3 rounded-md px-1 py-1.5"
+          :to="{ name: ROUTES_NAMES.plannedSubscriptionDetails, params: { id: payment.subscriptionId } }"
+          class="hover:bg-muted/50 flex items-center gap-3 rounded-md px-3 py-1.5 transition-colors"
         >
           <SubscriptionServiceLogo :name="payment.subscriptionName" size="sm" />
           <div class="min-w-0 flex-1">
@@ -119,7 +120,7 @@ const formatNextDate = (dateStr: string | null) => {
                 : formatBaseCurrency(payment.expectedAmount)
             }}
           </span>
-        </div>
+        </router-link>
       </div>
     </template>
   </WidgetWrapper>

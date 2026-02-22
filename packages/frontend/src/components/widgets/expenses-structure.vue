@@ -93,11 +93,11 @@
           <div class="flex flex-col items-center gap-0.5 text-center">
             <template v-if="centerLabel.isHovering">
               <div class="text-muted-foreground text-xs">{{ centerLabel.name }}</div>
-              <div class="text-sm font-medium">{{ centerLabel.amount }}</div>
+              <div class="text-base font-semibold">{{ centerLabel.amount }}</div>
             </template>
             <template v-else>
               <div class="text-muted-foreground text-xs">{{ $t('common.labels.total') }}</div>
-              <div class="text-sm font-medium">{{ formatBaseCurrency(totalAmount) }}</div>
+              <div class="text-base font-semibold">{{ formatBaseCurrency(totalAmount) }}</div>
             </template>
           </div>
         </div>
@@ -396,8 +396,8 @@ const renderChart = () => {
     .append('path')
     .attr('d', arc)
     .attr('fill', (d) => d.data.color)
-    .attr('stroke', 'transparent')
-    .attr('stroke-width', 1)
+    .attr('stroke', 'var(--card)')
+    .attr('stroke-width', 2)
     .style('cursor', 'pointer')
     .style('transition', 'opacity 0.2s ease')
     .on('mouseenter', function (_event, d) {

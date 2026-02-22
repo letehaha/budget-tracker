@@ -2,11 +2,14 @@
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import { useLogout } from '@/composable/actions/logout';
+import { ROUTES_NAMES } from '@/routes/constants';
 import { useUserStore } from '@/stores';
-import { ChevronUpIcon, LogOutIcon } from 'lucide-vue-next';
+import { ChevronUpIcon, LogOutIcon, UserIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const { user } = storeToRefs(useUserStore());
 const logoutHandler = useLogout();
 const isOpen = ref(false);
@@ -30,9 +33,16 @@ const isOpen = ref(false);
       </button>
     </Popover.PopoverTrigger>
     <Popover.PopoverContent side="top" align="start" class="w-56 p-1">
+      <router-link :to="{ name: ROUTES_NAMES.settingsSecurity }" @click="isOpen = false">
+        <UiButton variant="ghost" class="w-full justify-start gap-2 px-3" size="default">
+          <UserIcon class="size-4" />
+          <span>{{ t('navigation.accountDetails') }}</span>
+        </UiButton>
+      </router-link>
+
       <UiButton
-        variant="ghost"
-        class="text-destructive-text hover:bg-destructive/10 w-full justify-start gap-2 px-3"
+        variant="ghost-destructive"
+        class="w-full justify-start gap-2 px-3"
         size="default"
         @click="
           logoutHandler();

@@ -1,7 +1,7 @@
 <template>
   <div
     :class="[
-      'grid w-full cursor-pointer rounded-md px-2 py-1 [content-visibility:auto]',
+      'hover:bg-muted/50 grid w-full cursor-pointer rounded-md px-2 py-1 transition-colors [content-visibility:auto]',
       showCheckbox
         ? 'grid-cols-[auto_minmax(0,1fr)_max-content] items-center gap-2'
         : shouldShowGroupedTransfer || isLoadingGroupedTransfer
@@ -77,14 +77,14 @@
         </template>
         <span
           v-if="!shouldShowGroupedTransfer && !isLoadingGroupedTransfer"
-          class="line-clamp-1 text-sm tracking-wider [word-break:break-word] opacity-40"
+          class="text-muted-foreground line-clamp-1 text-sm tracking-wider [word-break:break-word]"
         >
           {{ transaction.note }}
         </span>
       </div>
     </div>
     <div v-if="shouldShowGroupedTransfer || isLoadingGroupedTransfer" class="flex items-start pt-0.5">
-      <div class="text-right text-sm whitespace-nowrap tabular-nums">
+      <div class="text-muted-foreground text-right text-xs whitespace-nowrap tabular-nums">
         {{ formateDate(transaction.time) }}
       </div>
     </div>
@@ -98,7 +98,7 @@
       >
         {{ formattedAmount }}
       </div>
-      <div class="text-right text-sm">
+      <div class="text-muted-foreground text-right text-xs">
         {{ formateDate(transaction.time) }}
       </div>
     </div>

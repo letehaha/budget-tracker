@@ -301,8 +301,8 @@ const getColors = () => {
   const style = getComputedStyle(document.documentElement);
   return {
     primary: style.getPropertyValue('--primary').trim() || 'rgb(139, 92, 246)',
-    text: style.getPropertyValue('--base-text').trim() || 'rgb(255, 255, 255)',
-    grid: 'color-mix(in srgb, var(--primary) 10%, transparent)',
+    text: style.getPropertyValue('--muted-foreground').trim() || 'rgb(163, 160, 155)',
+    grid: style.getPropertyValue('--border').trim() || 'rgb(42, 40, 37)',
   };
 };
 
@@ -333,7 +333,7 @@ const renderChart = () => {
     top: 10,
     right: isMobile ? 30 : 40,
     bottom: 35,
-    left: isMobile ? 45 : 55,
+    left: isMobile ? 40 : 48,
   };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
@@ -382,7 +382,7 @@ const renderChart = () => {
     )
     .call((grid) => {
       grid.select('.domain').remove();
-      grid.selectAll('.tick line').attr('stroke', colors.grid).attr('stroke-opacity', 0.5);
+      grid.selectAll('.tick line').attr('stroke', colors.grid).attr('stroke-opacity', 0.4);
     });
 
   // Create gradient for area fill
@@ -396,7 +396,7 @@ const renderChart = () => {
     .attr('x2', '0%')
     .attr('y2', '100%');
 
-  gradient.append('stop').attr('offset', '0%').attr('stop-color', 'var(--primary)').attr('stop-opacity', 0.3);
+  gradient.append('stop').attr('offset', '0%').attr('stop-color', 'var(--primary)').attr('stop-opacity', 0.35);
 
   gradient.append('stop').attr('offset', '100%').attr('stop-color', 'var(--primary)').attr('stop-opacity', 0);
 
@@ -442,8 +442,8 @@ const renderChart = () => {
         }),
     )
     .call((axis) => {
-      axis.select('.domain').attr('stroke', colors.grid);
-      axis.selectAll('.tick line').attr('stroke', colors.grid);
+      axis.select('.domain').attr('stroke', colors.grid).attr('stroke-opacity', 0.4);
+      axis.selectAll('.tick line').attr('stroke', colors.grid).attr('stroke-opacity', 0.4);
       axis.selectAll('.tick text').attr('fill', colors.text).attr('font-size', '11px').attr('dy', '1em');
     });
 
