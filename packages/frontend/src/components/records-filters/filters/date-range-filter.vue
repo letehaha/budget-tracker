@@ -1,108 +1,38 @@
 <template>
-  <div class="grid gap-3">
-    <Tabs v-model="mode" class="w-full">
-      <TabsList class="grid w-full grid-cols-2">
-        <TabsTrigger value="range">{{ $t('transactions.filters.dateRange.tabs.range') }}</TabsTrigger>
-        <TabsTrigger value="single">{{ $t('transactions.filters.dateRange.tabs.single') }}</TabsTrigger>
-      </TabsList>
-    </Tabs>
-
-    <template v-if="mode === 'range'">
-      <Popover.Popover v-model:open="isPopoverOpen">
-        <Popover.PopoverTrigger as-child>
+  <div class="flex items-center gap-3">
+    <div class="min-w-0 flex-1">
+      <DateSelector
+        :model-value="currentPeriod"
+        :presets="presets"
+        popover-class-name="md:min-w-150"
+        @update:model-value="handlePeriodUpdate"
+      >
+        <template #trigger="{ triggerText }">
           <Button
             variant="outline"
-            :class="cn('w-full justify-start text-left font-normal', !hasDateRange && 'text-muted-foreground')"
+            :class="['w-full justify-start text-left font-normal', !hasDates && 'text-muted-foreground']"
           >
             <CalendarIcon class="mr-2 size-4" />
-            <template v-if="hasDateRange">
-              {{ formatDateRange }}
-            </template>
-            <template v-else> {{ $t('transactions.filters.dateRange.selectDateRange') }} </template>
+            {{ hasDates ? triggerText : $t('transactions.filters.dateRange.selectDateOrRange') }}
           </Button>
-        </Popover.PopoverTrigger>
-        <Popover.PopoverContent class="w-auto p-0" align="start">
-          <div class="flex flex-col sm:flex-row">
-            <div class="flex max-w-svw flex-row flex-wrap gap-1 border-b p-3 sm:flex-col sm:border-r sm:border-b-0">
-              <Button
-                v-for="preset in presets"
-                :key="preset.label"
-                variant="ghost"
-                size="sm"
-                class="justify-start"
-                @click="applyPreset(preset)"
-              >
-                {{ preset.label }}
-              </Button>
-              <Button
-                v-if="hasDateRange"
-                variant="ghost"
-                size="sm"
-                class="text-destructive-text hover:text-destructive-text hover:bg-destructive/20 justify-start gap-1 sm:mt-auto"
-                @click="clearRange"
-              >
-                <XIcon class="mr-1 size-3" />
-                {{ $t('transactions.filters.dateRange.clear') }}
-              </Button>
-            </div>
-            <div>
-              <Calendar
-                v-model.range="rangeValue"
-                :columns="calendarColumns"
-                type="range"
-                :max-date="today"
-                @update:model-value="handleRangeUpdate"
-              />
-            </div>
-          </div>
-        </Popover.PopoverContent>
-      </Popover.Popover>
-    </template>
+        </template>
+      </DateSelector>
+    </div>
 
-    <template v-else>
-      <DateField
-        :model-value="start"
-        :calendar-options="{
-          maxDate: end ?? today,
-        }"
-        :label="$t('transactions.filters.dateRange.fromDate')"
-        @update:model-value="$emit('update:start', $event)"
-      />
-      <DateField
-        :model-value="end"
-        :calendar-options="{
-          minDate: start,
-          maxDate: today,
-        }"
-        :label="$t('transactions.filters.dateRange.toDate')"
-        @update:model-value="$emit('update:end', $event)"
-      />
-    </template>
+    <Button v-if="hasDates" variant="soft-destructive" size="icon" @click="clearDates">
+      <XIcon class="size-4" />
+    </Button>
   </div>
 </template>
 
 <script lang="ts" setup>
-import DateField from '@/components/fields/date-field.vue';
 import { Button } from '@/components/lib/ui/button';
-import { Calendar } from '@/components/lib/ui/calendar';
-import * as Popover from '@/components/lib/ui/popover';
-import { Tabs, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
-import { useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { cn } from '@/lib/utils';
-import { endOfDay, format, startOfDay, startOfMonth, subMonths } from 'date-fns';
+import { DateSelector, type DateSelectorPreset } from '@/components/lib/ui/date-selector';
+import { type Period } from '@/composable/use-period-navigation';
+import { endOfDay, endOfMonth, startOfDay, startOfMonth, subMonths } from 'date-fns';
 import { CalendarIcon, XIcon } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-interface DateRange {
-  start: Date;
-  end: Date;
-}
-
-interface Preset {
-  label: string;
-  getValue: () => DateRange;
-}
 
 const props = defineProps({
   start: {
@@ -115,86 +45,53 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:start', 'update:end', 'update:range']);
+const emit = defineEmits(['update:range']);
 
 const { t } = useI18n();
 
-const mode = ref<'range' | 'single'>('range');
-const isPopoverOpen = ref(false);
-const today = new Date();
-const isMobile = useWindowBreakpoints(640);
-const calendarColumns = computed(() => (isMobile.value ? 1 : 2));
+const hasDates = computed(() => props.start !== null && props.end !== null);
 
-const rangeValue = ref<DateRange | null>(props.start && props.end ? { start: props.start, end: props.end } : null);
+const currentPeriod = computed<Period>(() => ({
+  from: props.start ?? startOfMonth(new Date()),
+  to: props.end ?? endOfMonth(new Date()),
+}));
 
-const presets = computed<Preset[]>(() => [
+const presets = computed<DateSelectorPreset[]>(() => [
   {
     label: t('transactions.filters.dateRange.presets.thisMonth'),
     getValue: () => ({
-      start: startOfMonth(new Date()),
-      end: endOfDay(new Date()),
+      from: startOfMonth(new Date()),
+      to: endOfDay(new Date()),
     }),
   },
   {
     label: t('transactions.filters.dateRange.presets.last3Months'),
     getValue: () => ({
-      start: startOfDay(subMonths(new Date(), 3)),
-      end: endOfDay(new Date()),
+      from: startOfDay(subMonths(new Date(), 3)),
+      to: endOfDay(new Date()),
     }),
   },
   {
     label: t('transactions.filters.dateRange.presets.last6Months'),
     getValue: () => ({
-      start: startOfDay(subMonths(new Date(), 6)),
-      end: endOfDay(new Date()),
+      from: startOfDay(subMonths(new Date(), 6)),
+      to: endOfDay(new Date()),
     }),
   },
   {
     label: t('transactions.filters.dateRange.presets.last12Months'),
     getValue: () => ({
-      start: startOfDay(subMonths(new Date(), 12)),
-      end: endOfDay(new Date()),
+      from: startOfDay(subMonths(new Date(), 12)),
+      to: endOfDay(new Date()),
     }),
   },
 ]);
 
-const hasDateRange = computed(() => props.start && props.end);
+function handlePeriodUpdate(period: Period) {
+  emit('update:range', { start: period.from, end: period.to });
+}
 
-const formatDateRange = computed(() => {
-  if (!props.start || !props.end) return '';
-  return `${format(props.start, 'MMM d, yyyy')} - ${format(props.end, 'MMM d, yyyy')}`;
-});
-
-const applyPreset = (preset: Preset) => {
-  const { start, end } = preset.getValue();
-  rangeValue.value = { start, end };
-  emit('update:range', { start, end });
-  isPopoverOpen.value = false;
-};
-
-const handleRangeUpdate = (value: DateRange | null) => {
-  if (value?.start && value?.end) {
-    const start = startOfDay(value.start);
-    const end = endOfDay(value.end);
-    emit('update:range', { start, end });
-    isPopoverOpen.value = false;
-  }
-};
-
-const clearRange = () => {
-  rangeValue.value = null;
+function clearDates() {
   emit('update:range', { start: null, end: null });
-  isPopoverOpen.value = false;
-};
-
-watch(
-  () => [props.start, props.end],
-  ([newStart, newEnd]) => {
-    if (newStart && newEnd) {
-      rangeValue.value = { start: newStart, end: newEnd };
-    } else {
-      rangeValue.value = null;
-    }
-  },
-);
+}
 </script>

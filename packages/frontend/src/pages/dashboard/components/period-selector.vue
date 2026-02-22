@@ -1,19 +1,40 @@
 <template>
-  <DateSelector v-model="period" :presets="quickPresets" popover-class-name="md:min-w-[600px]" />
+  <div class="flex items-center justify-center gap-0.5">
+    <Button size="icon-sm" variant="ghost" @click="selectPrevPeriod">
+      <ChevronLeft :size="16" />
+    </Button>
+
+    <DateSelector v-model="period" :presets="quickPresets" popover-class-name="md:min-w-[600px]">
+      <template #trigger="{ triggerText }">
+        <Button variant="ghost" size="sm" class="hover:bg-accent min-w-48 font-medium">
+          <CalendarIcon class="mr-1.5 size-3.5" />
+          {{ triggerText }}
+        </Button>
+      </template>
+    </DateSelector>
+
+    <Button size="icon-sm" variant="ghost" :disabled="isNextDisabled" @click="selectNextPeriod">
+      <ChevronRight :size="16" />
+    </Button>
+  </div>
 </template>
 
 <script lang="ts" setup>
+import Button from '@/components/lib/ui/button/Button.vue';
 import { DateSelector, type DateSelectorPreset } from '@/components/lib/ui/date-selector';
+import { usePeriodNavigation } from '@/composable/use-period-navigation';
 import {
   format as dateFnsFormat,
   endOfMonth,
   endOfYear,
   isSameDay,
+  isSameMonth,
   startOfMonth,
   startOfYear,
   subMonths,
   subYears,
 } from 'date-fns';
+import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -33,6 +54,20 @@ const period = computed({
   get: () => props.modelValue,
   set: (value: Period) => emit('update:modelValue', value),
 });
+
+const { prevPeriod, nextPeriod } = usePeriodNavigation({
+  period: () => props.modelValue,
+});
+
+const isNextDisabled = computed(() => isSameMonth(new Date(), props.modelValue.to));
+
+function selectPrevPeriod() {
+  period.value = prevPeriod.value;
+}
+
+function selectNextPeriod() {
+  period.value = nextPeriod.value;
+}
 
 function isCurrentMonthPeriod(p: Period): boolean {
   const now = new Date();
