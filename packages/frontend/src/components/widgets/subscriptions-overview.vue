@@ -4,6 +4,7 @@ import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { buttonVariants } from '@/components/lib/ui/button';
 import { useFormatCurrency } from '@/composable/formatters';
+import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { useDateLocale } from '@/composable/use-date-locale';
 import SubscriptionServiceLogo from '@/pages/planned/subscriptions/components/subscription-service-logo.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
@@ -59,6 +60,10 @@ const isFetching = computed(() => isSummaryFetching.value || isUpcomingFetching.
 const isInitialLoading = computed(() => isFetching.value && !summary.value);
 const isEmpty = computed(() => !summary.value || summary.value.activeCount === 0);
 
+const { displayValue: animatedMonthlyCost } = useAnimatedNumber({
+  value: computed(() => summary.value?.estimatedMonthlyCost ?? 0),
+});
+
 const formatNextDate = (dateStr: string | null) => {
   if (!dateStr) return '';
   return formatDistanceToNow(parseISO(dateStr), { addSuffix: true });
@@ -91,7 +96,7 @@ const formatNextDate = (dateStr: string | null) => {
       <!-- Monthly total -->
       <div v-if="summary && summary.activeCount > 0" class="mb-4">
         <p class="text-2xl font-bold tracking-tight">
-          {{ formatBaseCurrency(summary.estimatedMonthlyCost) }}
+          {{ formatBaseCurrency(animatedMonthlyCost) }}
         </p>
         <p class="text-muted-foreground mt-1 text-xs">
           {{ t('dashboard.widgets.subscriptions.activeSummary', { count: summary.activeCount }) }} &middot; ~{{

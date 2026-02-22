@@ -45,7 +45,7 @@
             <div class="bg-muted h-8 w-32 animate-pulse rounded" />
           </template>
           <template v-else>
-            {{ formatBaseCurrency(-(currentMonthExpense || 0)) }}
+            {{ formatBaseCurrency(animatedExpense) }}
           </template>
         </div>
         <div class="text-muted-foreground mt-1 text-xs font-medium tracking-tight uppercase">
@@ -132,6 +132,7 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import { useFormatCurrency } from '@/composable';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
+import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { calculatePercentageDifference } from '@/js/helpers';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
@@ -284,6 +285,10 @@ const isWidgetDataFetching = computed(
   () =>
     isSpendingsByCategoriesFetching.value || isCurrentMonthExpenseFetching.value || isPrevMonthExpenseFetching.value,
 );
+
+const { displayValue: animatedExpense } = useAnimatedNumber({
+  value: computed(() => -(currentMonthExpense.value || 0)),
+});
 
 const expensesDiff = computed(() => {
   const percentage = Number(

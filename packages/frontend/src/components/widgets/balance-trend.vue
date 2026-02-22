@@ -27,7 +27,7 @@
         <!-- Left: Primary value -->
         <div>
           <div class="text-2xl font-bold tracking-tight">
-            {{ formatBaseCurrency(displayBalance.current) }}
+            {{ formatBaseCurrency(animatedBalance) }}
           </div>
           <div class="text-muted-foreground mt-1 text-xs font-medium tracking-tight uppercase">
             {{ periodLabel }}
@@ -90,6 +90,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import SelectField from '@/components/fields/select-field.vue';
 import { useFormatCurrency } from '@/composable';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
+import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
@@ -563,6 +564,10 @@ const displayBalance = computed(() => {
         previous: prevPeriodLastEntry?.totalBalance || 0,
       };
   }
+});
+
+const { displayValue: animatedBalance } = useAnimatedNumber({
+  value: computed(() => displayBalance.value.current),
 });
 
 const balancesDiff = computed<number>(() => {
