@@ -5,7 +5,6 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AlertDialog } from '@/components/common';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InputField from '@/components/fields/input-field.vue';
-import { buttonVariants } from '@/components/lib/ui/button';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { BUDGET_STATUSES } from '@bt/shared/types';
@@ -16,7 +15,6 @@ import {
   ArchiveRestoreIcon,
   ArrowRightIcon,
   CalendarIcon,
-  ChevronLeftIcon,
   PencilIcon,
   Trash2Icon,
   WalletIcon,
@@ -111,20 +109,8 @@ watchEffect(() => {
 </script>
 
 <template>
-  <div v-if="budgetData" class="@container max-w-5xl p-6">
-    <!-- Back Button & Header -->
+  <div v-if="budgetData" class="@container max-w-5xl">
     <div class="mb-6">
-      <router-link
-        to="/budgets"
-        :class="[
-          buttonVariants({ size: 'sm', variant: 'ghost' }),
-          'text-muted-foreground hover:text-foreground mb-4 -ml-2 gap-1',
-        ]"
-      >
-        <ChevronLeftIcon class="size-4" />
-        {{ t('pages.budgetDetails.backToBudgets') }}
-      </router-link>
-
       <!-- Hero Header -->
       <div class="flex flex-col gap-4 @md:flex-row @md:items-center @md:justify-between">
         <div class="flex items-center gap-4">

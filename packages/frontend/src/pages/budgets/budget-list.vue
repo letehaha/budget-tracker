@@ -2,7 +2,7 @@
 import { deleteBudget as deleteBudgetApi, loadBudgetStats } from '@/api';
 import { archiveBudget as archiveBudgetApi, loadSystemBudgets } from '@/api/budgets';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
+import PillTabs from '@/components/lib/ui/pill-tabs/pill-tabs.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes';
 import { BUDGET_STATUSES, BUDGET_TYPES, BudgetModel } from '@bt/shared/types';
@@ -156,6 +156,21 @@ const categoryBudgets = computed(() =>
 const manualBudgets = computed(() =>
   sortBudgetsByStatus((budgetsList.value || []).filter((b: BudgetModel) => b.type === BUDGET_TYPES.manual)),
 );
+
+const tabItems = computed(() => [
+  {
+    value: BUDGET_TYPES.category,
+    label: categoryBudgets.value.length
+      ? `${t('budgets.list.tabCategory')}  ${categoryBudgets.value.length}`
+      : t('budgets.list.tabCategory'),
+  },
+  {
+    value: BUDGET_TYPES.manual,
+    label: manualBudgets.value.length
+      ? `${t('budgets.list.tabManual')}  ${manualBudgets.value.length}`
+      : t('budgets.list.tabManual'),
+  },
+]);
 </script>
 
 <template>
@@ -164,97 +179,82 @@ const manualBudgets = computed(() =>
     <BudgetCardSkeleton v-if="isInitialLoading" />
 
     <template v-else-if="budgetsList.length || isLoadingMore">
-      <Tabs v-model="activeTab" class="w-full">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <TabsList>
-            <TabsTrigger :value="BUDGET_TYPES.category">
-              {{ $t('budgets.list.tabCategory') }}
-              <span v-if="categoryBudgets.length" class="bg-muted ml-1.5 rounded-full px-1.5 py-0.5 text-xs">
-                {{ categoryBudgets.length }}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger :value="BUDGET_TYPES.manual">
-              {{ $t('budgets.list.tabManual') }}
-              <span v-if="manualBudgets.length" class="bg-muted ml-1.5 rounded-full px-1.5 py-0.5 text-xs">
-                {{ manualBudgets.length }}
-              </span>
-            </TabsTrigger>
-          </TabsList>
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <PillTabs v-model="activeTab" :items="tabItems" />
 
-          <button
-            type="button"
-            class="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1.5 text-xs transition-colors"
-            @click="showArchived = !showArchived"
-          >
-            <ArchiveRestoreIcon class="size-3.5" />
-            {{ showArchived ? $t('budgets.list.hideArchived') : $t('budgets.list.showArchived') }}
-          </button>
+        <button
+          type="button"
+          class="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1.5 text-xs transition-colors"
+          @click="showArchived = !showArchived"
+        >
+          <ArchiveRestoreIcon class="size-3.5" />
+          {{ showArchived ? $t('budgets.list.hideArchived') : $t('budgets.list.showArchived') }}
+        </button>
+      </div>
+
+      <!-- Category Budgets Tab -->
+      <div v-if="activeTab === BUDGET_TYPES.category">
+        <div
+          v-if="categoryBudgets.length === 0 && !isLoadingMore"
+          class="flex flex-col items-center justify-center py-12 text-center"
+        >
+          <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
+            <TagsIcon class="text-muted-foreground size-8" />
+          </div>
+          <h3 class="mb-1 font-medium">{{ $t('budgets.list.emptyState.title') }}</h3>
+          <p class="text-muted-foreground max-w-sm text-sm">
+            {{ $t('budgets.list.emptyState.description') }}
+          </p>
         </div>
+        <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+          <CategoryBudgetCard
+            v-for="budget in categoryBudgets"
+            :key="budget.id"
+            :budget="budget"
+            :is-archived="isArchived(budget)"
+            :stats="getBudgetStats(budget.id)?.summary ?? null"
+            :is-stats-loading="isBudgetStatsLoading(budget.id)"
+            :time-status="getBudgetTimeStatus(budget)"
+            @click="navigateToBudget({ budgetId: budget.id })"
+            @edit="navigateToBudget({ budgetId: budget.id })"
+            @delete="deleteBudget({ budgetId: budget.id })"
+            @archive="handleArchive({ budgetId: budget.id, isArchived: !isArchived(budget) })"
+          />
+          <BudgetCardSkeleton v-if="isLoadingMore" :count="2" inline />
+        </div>
+      </div>
 
-        <!-- Category Budgets Tab -->
-        <TabsContent :value="BUDGET_TYPES.category">
-          <div
-            v-if="categoryBudgets.length === 0 && !isLoadingMore"
-            class="flex flex-col items-center justify-center py-12 text-center"
-          >
-            <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
-              <TagsIcon class="text-muted-foreground size-8" />
-            </div>
-            <h3 class="mb-1 font-medium">{{ $t('budgets.list.emptyState.title') }}</h3>
-            <p class="text-muted-foreground max-w-sm text-sm">
-              {{ $t('budgets.list.emptyState.description') }}
-            </p>
+      <!-- Manual Budgets Tab -->
+      <div v-if="activeTab === BUDGET_TYPES.manual">
+        <div
+          v-if="manualBudgets.length === 0 && !isLoadingMore"
+          class="flex flex-col items-center justify-center py-12 text-center"
+        >
+          <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
+            <WalletIcon class="text-muted-foreground size-8" />
           </div>
-          <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
-            <CategoryBudgetCard
-              v-for="budget in categoryBudgets"
-              :key="budget.id"
-              :budget="budget"
-              :is-archived="isArchived(budget)"
-              :stats="getBudgetStats(budget.id)?.summary ?? null"
-              :is-stats-loading="isBudgetStatsLoading(budget.id)"
-              :time-status="getBudgetTimeStatus(budget)"
-              @click="navigateToBudget({ budgetId: budget.id })"
-              @edit="navigateToBudget({ budgetId: budget.id })"
-              @delete="deleteBudget({ budgetId: budget.id })"
-              @archive="handleArchive({ budgetId: budget.id, isArchived: !isArchived(budget) })"
-            />
-            <BudgetCardSkeleton v-if="isLoadingMore" :count="2" inline />
-          </div>
-        </TabsContent>
-
-        <!-- Manual Budgets Tab -->
-        <TabsContent :value="BUDGET_TYPES.manual">
-          <div
-            v-if="manualBudgets.length === 0 && !isLoadingMore"
-            class="flex flex-col items-center justify-center py-12 text-center"
-          >
-            <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
-              <WalletIcon class="text-muted-foreground size-8" />
-            </div>
-            <h3 class="mb-1 font-medium">{{ $t('budgets.list.emptyState.title') }}</h3>
-            <p class="text-muted-foreground max-w-sm text-sm">
-              {{ $t('budgets.list.emptyState.description') }}
-            </p>
-          </div>
-          <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
-            <ManualBudgetCard
-              v-for="budget in manualBudgets"
-              :key="budget.id"
-              :budget="budget"
-              :is-archived="isArchived(budget)"
-              :stats="getBudgetStats(budget.id)?.summary ?? null"
-              :is-stats-loading="isBudgetStatsLoading(budget.id)"
-              :time-status="getBudgetTimeStatus(budget)"
-              @click="navigateToBudget({ budgetId: budget.id })"
-              @edit="navigateToBudget({ budgetId: budget.id })"
-              @delete="deleteBudget({ budgetId: budget.id })"
-              @archive="handleArchive({ budgetId: budget.id, isArchived: !isArchived(budget) })"
-            />
-            <BudgetCardSkeleton v-if="isLoadingMore" :count="2" inline />
-          </div>
-        </TabsContent>
-      </Tabs>
+          <h3 class="mb-1 font-medium">{{ $t('budgets.list.emptyState.title') }}</h3>
+          <p class="text-muted-foreground max-w-sm text-sm">
+            {{ $t('budgets.list.emptyState.description') }}
+          </p>
+        </div>
+        <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+          <ManualBudgetCard
+            v-for="budget in manualBudgets"
+            :key="budget.id"
+            :budget="budget"
+            :is-archived="isArchived(budget)"
+            :stats="getBudgetStats(budget.id)?.summary ?? null"
+            :is-stats-loading="isBudgetStatsLoading(budget.id)"
+            :time-status="getBudgetTimeStatus(budget)"
+            @click="navigateToBudget({ budgetId: budget.id })"
+            @edit="navigateToBudget({ budgetId: budget.id })"
+            @delete="deleteBudget({ budgetId: budget.id })"
+            @archive="handleArchive({ budgetId: budget.id, isArchived: !isArchived(budget) })"
+          />
+          <BudgetCardSkeleton v-if="isLoadingMore" :count="2" inline />
+        </div>
+      </div>
     </template>
 
     <template v-else>

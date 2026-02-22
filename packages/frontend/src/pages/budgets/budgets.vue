@@ -21,7 +21,7 @@ const isModalClosed = () => {
 <template>
   <div>
     <!-- Page Header -->
-    <div class="mb-6 flex items-center justify-between">
+    <div class="mb-6 flex items-center justify-between gap-3">
       <div>
         <h1 class="text-2xl font-semibold tracking-tight">{{ $t('budgets.title') }}</h1>
         <p class="text-muted-foreground mt-1 text-sm">{{ $t('budgets.description') }}</p>

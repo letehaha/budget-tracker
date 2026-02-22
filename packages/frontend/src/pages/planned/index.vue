@@ -9,8 +9,8 @@
       )
     "
   >
-    <!-- Back button (mobile only) -->
-    <BackLink v-if="isMobileView && isOnNestedChildRoute" :to="backLinkTarget">
+    <!-- Back button -->
+    <BackLink v-if="isOnNestedChildRoute" :to="backLinkTarget">
       {{ backLinkLabel }}
     </BackLink>
 

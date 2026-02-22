@@ -11,7 +11,6 @@ import {
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AlertDialog } from '@/components/common';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
-import { buttonVariants } from '@/components/lib/ui/button';
 import Button from '@/components/lib/ui/button/Button.vue';
 import Card from '@/components/lib/ui/card/Card.vue';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -26,7 +25,6 @@ import {
   ArrowRightIcon,
   CalendarIcon,
   ChevronDownIcon,
-  ChevronLeftIcon,
   ChevronUpIcon,
   LayersIcon,
   PencilIcon,
@@ -187,20 +185,8 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
 </script>
 
 <template>
-  <div v-if="budgetData" class="@container max-w-5xl p-6">
-    <!-- Back Button & Header -->
+  <div v-if="budgetData" class="@container max-w-5xl">
     <div class="mb-6">
-      <router-link
-        to="/budgets"
-        :class="[
-          buttonVariants({ size: 'sm', variant: 'ghost' }),
-          'text-muted-foreground hover:text-foreground mb-4 -ml-2 gap-1',
-        ]"
-      >
-        <ChevronLeftIcon class="size-4" />
-        {{ $t('budgets.categoryBudget.backToBudgets') }}
-      </router-link>
-
       <!-- Hero Header -->
       <div class="flex flex-col gap-4 @md:flex-row @md:items-center @md:justify-between">
         <div class="flex items-center gap-4">

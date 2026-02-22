@@ -1,5 +1,8 @@
 {
   "planned": {
+    "budgets": {
+      "backToList": "Back to Budgets"
+    },
     "subscriptions": {
       "title": "Subscriptions & Bills",
       "description": "Track recurring payments and bills",
