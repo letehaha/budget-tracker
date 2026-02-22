@@ -246,7 +246,7 @@
 
     --destructive: rgb(147, 29, 29);
     --destructive-foreground: rgb(254, 242, 242);
-    --destructive-text: rgb(239, 68, 68);
+    --destructive-text: oklch(0.704 0.191 22.216);
 
     --border: rgb(42, 40, 37);
     --input: rgb(42, 40, 37);
