@@ -171,7 +171,7 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
           class="flex cursor-pointer flex-wrap items-end justify-start gap-x-2 transition-opacity hover:opacity-75"
           @click="adjustmentDialogOpen = true"
         >
-          <span class="text-3xl">
+          <span class="text-amount text-3xl">
             {{ toLocalNumber(account.currentBalance) }}
             {{ currenciesMap[account.currencyCode].currency.code }}
           </span>
@@ -182,7 +182,7 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
           </span>
         </button>
         <div v-else class="flex flex-wrap items-end justify-start gap-2">
-          <span class="text-3xl">
+          <span class="text-amount text-3xl">
             {{ toLocalNumber(account.currentBalance) }}
             {{ currenciesMap[account.currencyCode].currency.code }}
           </span>

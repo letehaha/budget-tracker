@@ -113,7 +113,7 @@ const formatNextDate = (dateStr: string | null) => {
             <p class="truncate text-sm font-medium">{{ payment.subscriptionName }}</p>
             <p class="text-muted-foreground text-xs">{{ formatNextDate(payment.nextPaymentDate) }}</p>
           </div>
-          <span class="text-sm font-medium tabular-nums">
+          <span class="text-amount text-sm">
             {{
               payment.expectedCurrencyCode
                 ? formatAmountByCurrencyCode(payment.expectedAmount, payment.expectedCurrencyCode)

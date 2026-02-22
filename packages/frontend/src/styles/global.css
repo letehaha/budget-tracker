@@ -272,6 +272,12 @@
   }
 }
 
+/* Utility for inline monetary amounts — consistent weight and alignment */
+@utility text-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .datetime-raw-input::-webkit-inner-spin-button,
 .datetime-raw-input::-webkit-calendar-picker-indicator,
 .date-raw-input::-webkit-inner-spin-button,

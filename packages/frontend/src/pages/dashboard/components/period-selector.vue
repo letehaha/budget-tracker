@@ -1,13 +1,13 @@
 <template>
-  <div class="flex items-center justify-center gap-1">
-    <ui-button size="icon" variant="ghost" @click="selectPrevPeriod">
-      <ChevronLeft :size="20" />
+  <div class="flex items-center justify-center gap-0.5">
+    <ui-button size="icon-sm" variant="ghost" @click="selectPrevPeriod">
+      <ChevronLeft :size="16" />
     </ui-button>
 
     <Popover v-model:open="isCalendarOpen">
       <PopoverTrigger as-child>
-        <ui-button variant="ghost" class="hover:bg-accent min-w-55 font-normal">
-          <CalendarIcon class="mr-2 size-4" />
+        <ui-button variant="ghost" size="sm" class="hover:bg-accent min-w-48 font-medium">
+          <CalendarIcon class="mr-1.5 size-3.5" />
           {{ periodSelectorText }}
         </ui-button>
       </PopoverTrigger>
@@ -41,8 +41,8 @@
       </PopoverContent>
     </Popover>
 
-    <ui-button size="icon" variant="ghost" :disabled="isNextDisabled" @click="selectNextPeriod">
-      <ChevronRight :size="20" />
+    <ui-button size="icon-sm" variant="ghost" :disabled="isNextDisabled" @click="selectNextPeriod">
+      <ChevronRight :size="16" />
     </ui-button>
   </div>
 </template>

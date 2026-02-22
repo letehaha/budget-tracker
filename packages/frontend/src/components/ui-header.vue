@@ -1,13 +1,13 @@
 <template>
   <div ref="headerRef">
     <DemoBanner />
-    <div class="shadow-header border-border flex items-center justify-between border-b px-6 py-3">
+    <div class="shadow-header border-border flex items-center justify-between border-b px-6 py-2">
       <div class="flex items-center gap-4">
         <template v-if="isMobileView">
           <Sheet.Sheet :open="isMobileSheetOpen" @update:open="isMobileSheetOpen = $event">
             <Sheet.SheetTrigger as-child>
-              <Button size="icon" variant="secondary" class="shrink-0">
-                <MenuIcon class="size-5" />
+              <Button size="icon-sm" variant="secondary" class="shrink-0">
+                <MenuIcon class="size-4" />
               </Button>
             </Sheet.SheetTrigger>
             <Sheet.SheetContent
@@ -26,8 +26,8 @@
         </template>
 
         <ManageTransactionDialog>
-          <Button variant="default" class="flex items-center gap-1">
-            <PlusIcon class="size-5" />
+          <Button variant="default" size="sm" class="flex items-center gap-1">
+            <PlusIcon class="size-4" />
             <span class="hidden md:block">{{ $t('header.newTransaction') }}</span>
             <span class="md:hidden">{{ $t('header.add') }}</span>
           </Button>
@@ -52,10 +52,10 @@
         <template v-else>
           <Popover.Popover v-model:open="isPopoverOpen">
             <Popover.PopoverTrigger as-child>
-              <Button variant="secondary" :size="isCompactView ? 'icon' : 'default'">
+              <Button variant="secondary" :size="isCompactView ? 'icon-sm' : 'sm'">
                 <template v-if="syncStatus.isSyncing.value">
                   <RefreshCcw class="animate-spin" :size="16" />
-                  <span class="hidden font-medium lg:inline">
+                  <span class="hidden text-sm font-medium lg:inline">
                     <span class="xs:hidden">{{ $t('header.sync.syncing') }}</span>
                     <span class="xs:inline hidden">{{
                       syncStatus.syncingSummaryText.value || $t('header.sync.synchronizing')
@@ -64,19 +64,19 @@
                 </template>
                 <template v-else-if="categorizationStatus.isCategorizing.value">
                   <SparklesIcon class="text-primary animate-pulse" :size="16" />
-                  <span class="hidden font-medium lg:inline">
+                  <span class="hidden text-sm font-medium lg:inline">
                     {{ $t('header.categorization.categorizing') }}
                   </span>
                 </template>
                 <template v-else-if="hasConnections">
-                  <CloudCheckIcon class="text-success-text size-5" />
-                  <span v-if="lastSyncRelativeTime" class="hidden font-medium lg:block">
+                  <CloudCheckIcon class="text-success-text size-4" />
+                  <span v-if="lastSyncRelativeTime" class="hidden text-sm font-medium lg:block">
                     {{ $t('header.sync.syncedTime', { time: lastSyncRelativeTime }) }}
                   </span>
                 </template>
                 <template v-else>
-                  <CloudCheckIcon class="size-5" />
-                  <span class="hidden font-medium lg:block">{{ $t('header.sync.connectBank') }}</span>
+                  <CloudCheckIcon class="size-4" />
+                  <span class="hidden text-sm font-medium lg:block">{{ $t('header.sync.connectBank') }}</span>
                 </template>
               </Button>
             </Popover.PopoverTrigger>
