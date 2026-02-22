@@ -1,5 +1,5 @@
 <template>
-  <section class="flex min-h-full flex-col p-6">
+  <section class="flex min-h-full flex-col p-4 md:px-6">
     <!-- Recovery method suggestion banner -->
     <RecoveryMethodBanner />
 
@@ -17,7 +17,7 @@
               ? 'max-md:bottom-[calc(var(--bottom-navbar-height)-env(safe-area-inset-bottom)-1px)]'
               : 'max-md:bottom-[calc(var(--bottom-navbar-height-content-rect)-env(safe-area-inset-bottom)-1px)]'
             : 'max-md:bottom-[calc(env(safe-area-inset-bottom)-1px)]',
-          'md:order-first md:mx-0 md:mt-0 md:mb-6 md:border-t-0 md:py-0',
+          'md:order-first md:mx-0 md:mt-0 md:mb-3 md:border-t-0 md:py-0',
         ])
       "
     >

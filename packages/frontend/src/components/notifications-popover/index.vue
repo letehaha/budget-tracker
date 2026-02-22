@@ -12,9 +12,13 @@ import {
 import { NOTIFICATION_STATUSES, NOTIFICATION_TYPES } from '@bt/shared/types';
 import { BellIcon, BellOffIcon, Loader2 } from 'lucide-vue-next';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import NotificationItem from './notification-item.vue';
 
+withDefaults(defineProps<{ sidebar?: boolean }>(), { sidebar: false });
+
+const { t } = useI18n();
 const isOpen = ref(false);
 
 const { data: notifications, isLoading } = useNotifications();
@@ -65,17 +69,35 @@ const handleDismiss = (id: string) => {
 <template>
   <Popover.Popover v-model:open="isOpen">
     <Popover.PopoverTrigger as-child>
-      <Button variant="secondary" size="icon" class="relative">
-        <BellIcon class="size-5" />
-        <span
-          v-if="unreadCount && unreadCount > 0"
-          class="bg-primary absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full text-xs text-white"
+      <!-- Sidebar mode: full-width button with label -->
+      <template v-if="sidebar">
+        <button
+          class="hover:bg-accent hover:text-accent-foreground text-muted-foreground relative inline-flex h-10 w-full items-center gap-2 rounded-md px-3 text-sm font-medium whitespace-nowrap transition-colors"
         >
-          {{ unreadCount > 9 ? '9+' : unreadCount }}
-        </span>
-      </Button>
+          <BellIcon class="size-4 shrink-0" />
+          <span>{{ t('notifications.title') }}</span>
+          <span
+            v-if="unreadCount && unreadCount > 0"
+            class="bg-primary ml-auto flex size-5 items-center justify-center rounded-full text-xs text-white"
+          >
+            {{ unreadCount > 9 ? '9+' : unreadCount }}
+          </span>
+        </button>
+      </template>
+      <!-- Header mode: icon-only button -->
+      <template v-else>
+        <Button variant="secondary" size="icon" class="relative">
+          <BellIcon class="size-5" />
+          <span
+            v-if="unreadCount && unreadCount > 0"
+            class="bg-primary absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full text-xs text-white"
+          >
+            {{ unreadCount > 9 ? '9+' : unreadCount }}
+          </span>
+        </Button>
+      </template>
     </Popover.PopoverTrigger>
-    <Popover.PopoverContent class="w-90 p-0" align="end">
+    <Popover.PopoverContent class="w-90 p-0" :align="sidebar ? 'start' : 'end'" :side="sidebar ? 'top' : 'bottom'">
       <div class="border-border flex items-center justify-between border-b px-4 py-3">
         <h3 class="text-sm font-semibold">{{ $t('notifications.title') }}</h3>
         <Button

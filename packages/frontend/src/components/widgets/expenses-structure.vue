@@ -40,7 +40,7 @@
     <div class="mb-4 flex items-start justify-between gap-4">
       <!-- Left: Primary value -->
       <div>
-        <div class="text-xl font-bold tracking-wide">
+        <div class="text-2xl font-bold tracking-tight">
           <template v-if="isWidgetDataFetching && !hasData">
             <div class="bg-muted h-8 w-32 animate-pulse rounded" />
           </template>
@@ -48,26 +48,29 @@
             {{ formatBaseCurrency(-(currentMonthExpense || 0)) }}
           </template>
         </div>
-        <div class="text-muted-foreground mt-0.5 text-xs font-medium tracking-tight uppercase">
+        <div class="text-muted-foreground mt-1 text-xs font-medium tracking-tight uppercase">
           {{ periodLabel }}
         </div>
       </div>
 
       <!-- Right: Comparison -->
-      <div class="text-right">
-        <div
-          class="text-base font-semibold"
-          :class="{
-            'text-destructive-text': expensesDiff > 0,
-            'text-success-text': expensesDiff < 0,
-          }"
-        >
-          <template v-if="isWidgetDataFetching && !hasData">
-            <div class="bg-muted ml-auto h-6 w-16 animate-pulse rounded" />
-          </template>
-          <template v-else> {{ expensesDiff > 0 ? '+' : '' }}{{ expensesDiff }}% </template>
-        </div>
-        <div class="text-muted-foreground mt-0.5 text-xs tracking-tight">
+      <div class="flex flex-col items-end gap-1">
+        <template v-if="isWidgetDataFetching && !hasData">
+          <div class="bg-muted h-6 w-16 animate-pulse rounded-full" />
+        </template>
+        <template v-else>
+          <span
+            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+            :class="{
+              'bg-destructive-text/15 text-destructive-text': expensesDiff > 0,
+              'bg-success-text/15 text-success-text': expensesDiff < 0,
+              'bg-muted text-muted-foreground': expensesDiff === 0,
+            }"
+          >
+            {{ expensesDiff > 0 ? '+' : '' }}{{ expensesDiff }}%
+          </span>
+        </template>
+        <div class="text-muted-foreground text-xs tracking-tight">
           {{ $t('dashboard.widgets.expensesStructure.vsPreviousPeriod') }}
         </div>
       </div>

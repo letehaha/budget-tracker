@@ -26,26 +26,27 @@
       <div class="mb-4 flex items-start justify-between gap-4">
         <!-- Left: Primary value -->
         <div>
-          <div class="text-xl font-bold tracking-wide">
+          <div class="text-2xl font-bold tracking-tight">
             {{ formatBaseCurrency(displayBalance.current) }}
           </div>
-          <div class="text-muted-foreground mt-0.5 text-xs font-medium tracking-tight uppercase">
+          <div class="text-muted-foreground mt-1 text-xs font-medium tracking-tight uppercase">
             {{ periodLabel }}
           </div>
         </div>
 
         <!-- Right: Comparison -->
-        <div class="text-right">
-          <div
-            class="text-base font-semibold"
+        <div class="flex flex-col items-end gap-1">
+          <span
+            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
             :class="{
-              'text-app-expense-color': balancesDiff < 0,
-              'text-success-text': balancesDiff > 0,
+              'bg-app-expense-color/15 text-app-expense-color': balancesDiff < 0,
+              'bg-success-text/15 text-success-text': balancesDiff > 0,
+              'bg-muted text-muted-foreground': balancesDiff === 0,
             }"
           >
             {{ balancesDiff > 0 ? '+' : '' }}{{ balancesDiff }}%
-          </div>
-          <div class="text-muted-foreground mt-0.5 text-xs tracking-tight">
+          </span>
+          <div class="text-muted-foreground text-xs tracking-tight">
             {{ $t('dashboard.widgets.balanceTrend.vsPreviousPeriod') }}
           </div>
         </div>

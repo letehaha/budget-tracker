@@ -61,7 +61,7 @@ const currentConnection = computed(() =>
     </Tabs.TabsContent>
 
     <Tabs.TabsContent value="integrations">
-      <div class="grid gap-4 pt-6">
+      <div class="grid gap-4 pt-6 text-sm">
         <div class="flex items-center justify-between gap-2">
           <span>{{ t('pages.account.integrations.connectedVia') }}</span>
           <RouterLink
@@ -84,7 +84,7 @@ const currentConnection = computed(() =>
         <LoadTransactions :account="account" />
 
         <div class="border-destructive @container/danger-zone mt-2 grid gap-4 rounded-xl border p-4 sm:-mx-4">
-          <p class="text-xl font-medium">{{ t('pages.account.deletion.dangerZone') }}</p>
+          <p class="text-lg font-medium">{{ t('pages.account.deletion.dangerZone') }}</p>
           <AccountUnlinkSection :account="account" />
         </div>
       </div>

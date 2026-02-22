@@ -8,7 +8,7 @@
     <CardHeader :class="isDashboard ? 'sm:py-3' : ''">
       <slot name="header">
         <div class="grid grid-cols-[minmax(0,1fr)_max-content] items-center justify-between gap-1">
-          <h3>
+          <h3 class="font-semibold">
             <slot name="title" />
           </h3>
 

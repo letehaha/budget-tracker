@@ -90,10 +90,10 @@ const formatNextDate = (dateStr: string | null) => {
     <template v-else>
       <!-- Monthly total -->
       <div v-if="summary && summary.activeCount > 0" class="mb-4">
-        <p class="text-xl font-bold tracking-wide">
+        <p class="text-2xl font-bold tracking-tight">
           {{ formatBaseCurrency(summary.estimatedMonthlyCost) }}
         </p>
-        <p class="text-muted-foreground text-xs">
+        <p class="text-muted-foreground mt-1 text-xs">
           {{ t('dashboard.widgets.subscriptions.activeSummary', { count: summary.activeCount }) }} &middot; ~{{
             formatBaseCurrency(summary.projectedYearlyCost)
           }}{{ t('dashboard.widgets.subscriptions.perYear') }}

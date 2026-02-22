@@ -17,7 +17,7 @@ import { toLocalNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
-import { ArrowRightLeftIcon, MoreVerticalIcon } from 'lucide-vue-next';
+import { ArrowRightLeftIcon, MoreVerticalIcon, PencilIcon, ScaleIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -134,19 +134,22 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem @click="openRenameFromDropdown">{{
-                t('pages.account.header.renameAccount')
-              }}</DropdownMenuItem>
+              <DropdownMenuItem class="gap-2" @click="openRenameFromDropdown">
+                <PencilIcon class="size-4" />
+                {{ t('pages.account.header.renameAccount') }}
+              </DropdownMenuItem>
 
               <Tooltip.TooltipProvider>
                 <Tooltip.Tooltip :delay-duration="0">
                   <Tooltip.TooltipTrigger as-child>
                     <span class="block">
                       <DropdownMenuItem
+                        class="gap-2"
                         :disabled="!isSystemAccount"
                         :class="!isSystemAccount ? 'pointer-events-none' : ''"
                         @click="isSystemAccount && (adjustmentDialogOpen = true)"
                       >
+                        <ScaleIcon class="size-4" />
                         {{ t('pages.account.header.adjustBalance') }}
                       </DropdownMenuItem>
                     </span>

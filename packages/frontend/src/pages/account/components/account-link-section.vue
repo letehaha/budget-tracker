@@ -143,6 +143,7 @@ const linkingError = computed(() => {
     <ResponsiveDialog v-model:open="isDialogOpen">
       <template #trigger>
         <Button class="w-full" :disabled="isLinking">
+          <Link2Icon class="size-4" />
           {{ isLinking ? $t('pages.account.link.linking') : $t('pages.account.link.linkButton') }}
         </Button>
       </template>
