@@ -1,12 +1,7 @@
 <template>
   <div class="flex items-center gap-3">
     <div class="min-w-0 flex-1">
-      <DateSelector
-        :model-value="currentPeriod"
-        :presets="presets"
-        popover-class-name="md:min-w-150"
-        @update:model-value="handlePeriodUpdate"
-      >
+      <DateSelector :model-value="currentPeriod" :presets="presets" @update:model-value="handlePeriodUpdate">
         <template #trigger="{ triggerText }">
           <Button
             variant="outline"

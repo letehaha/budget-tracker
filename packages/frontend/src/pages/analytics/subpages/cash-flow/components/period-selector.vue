@@ -4,7 +4,7 @@
       <ChevronLeft :size="16" />
     </Button>
 
-    <DateSelector v-model="period" :presets="quickPresets" popover-class-name="md:min-w-[600px]">
+    <DateSelector v-model="period" :presets="quickPresets">
       <template #trigger="{ triggerText }">
         <Button variant="ghost" size="sm" class="hover:bg-accent min-w-55 font-medium">
           <CalendarIcon class="mr-1.5 size-3.5" />

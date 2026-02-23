@@ -5,9 +5,15 @@ import { useI18n } from 'vue-i18n';
 
 import { type DateSelectorFilterMode } from './types';
 
-defineProps<{
-  modelValue: DateSelectorFilterMode;
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: DateSelectorFilterMode;
+    allowedModes?: DateSelectorFilterMode[];
+  }>(),
+  {
+    allowedModes: () => ['is', 'before', 'after', 'between'],
+  },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [value: DateSelectorFilterMode];
@@ -15,12 +21,14 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const modes = computed(() => [
-  { value: 'is', label: t('common.dateSelector.filterModes.is') },
-  { value: 'before', label: t('common.dateSelector.filterModes.before') },
-  { value: 'after', label: t('common.dateSelector.filterModes.after') },
-  { value: 'between', label: t('common.dateSelector.filterModes.between') },
+const allModes = computed(() => [
+  { value: 'is' as const, label: t('common.dateSelector.filterModes.is') },
+  { value: 'before' as const, label: t('common.dateSelector.filterModes.before') },
+  { value: 'after' as const, label: t('common.dateSelector.filterModes.after') },
+  { value: 'between' as const, label: t('common.dateSelector.filterModes.between') },
 ]);
+
+const modes = computed(() => allModes.value.filter((m) => props.allowedModes.includes(m.value)));
 </script>
 
 <template>

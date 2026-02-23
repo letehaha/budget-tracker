@@ -14,7 +14,7 @@ import Popover from '../popover/Popover.vue';
 import PopoverContent from '../popover/PopoverContent.vue';
 import PopoverTrigger from '../popover/PopoverTrigger.vue';
 import DateSelectorContent from './date-selector-content.vue';
-import { type DateSelectorPreset } from './types';
+import { type DateSelectorFilterMode, type DateSelectorPreset } from './types';
 
 const [UseTemplate, SlotContent] = createReusableTemplate();
 
@@ -24,10 +24,12 @@ const props = withDefaults(
     presets?: DateSelectorPreset[];
     earliestDate?: Date;
     popoverClassName?: string;
+    allowedFilterModes?: DateSelectorFilterMode[];
   }>(),
   {
     presets: undefined,
     earliestDate: undefined,
+    allowedFilterModes: undefined,
   },
 );
 
@@ -80,6 +82,7 @@ function handleCancel() {
       :period="modelValue"
       :presets="presets"
       :earliest-date="earliestDate"
+      :allowed-filter-modes="allowedFilterModes"
       @apply="applyAndClose"
       @cancel="handleCancel"
       @preset-apply="applyAndClose"
@@ -111,7 +114,7 @@ function handleCancel() {
         <slot name="trigger" :trigger-text="triggerText" />
       </PopoverTrigger>
       <PopoverContent
-        :class="cn(['w-auto max-w-[calc(100vw-1rem)] p-4', popoverClassName])"
+        :class="cn(['w-auto max-w-[calc(100vw-1rem)] p-4 md:min-w-150', popoverClassName])"
         align="center"
         side="top"
         :side-offset="8"

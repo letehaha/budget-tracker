@@ -52,6 +52,22 @@ const monthNames = computed(() => {
   return Array.from({ length: 12 }, (_, i) => formatter.format(new Date(2000, i, 1)));
 });
 
+function formatHeading({ grid }: { grid: Array<{ value: DateValue }> }): string {
+  const formatter = new Intl.DateTimeFormat(calendarLocale.value, { month: 'short' });
+  if (grid.length === 1) {
+    const date = new Date(grid[0].value.year, grid[0].value.month - 1);
+    return `${formatter.format(date)} ${grid[0].value.year}`;
+  }
+  const first = grid[0].value;
+  const last = grid[grid.length - 1].value;
+  const firstMonth = formatter.format(new Date(first.year, first.month - 1));
+  const lastMonth = formatter.format(new Date(last.year, last.month - 1));
+  if (first.year === last.year) {
+    return `${firstMonth} \u2013 ${lastMonth} ${first.year}`;
+  }
+  return `${firstMonth} ${first.year} \u2013 ${lastMonth} ${last.year}`;
+}
+
 const YEAR_MIN = 2000;
 const yearRange = computed(() => {
   const max = new Date().getFullYear();
@@ -107,7 +123,9 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       <Popover :open="isJumpPopoverOpen" @update:open="onPopoverOpen">
         <PopoverTrigger as-child>
           <button type="button" class="hover:text-foreground/80 cursor-pointer transition-colors">
-            <RangeCalendarHeading />
+            <RangeCalendarHeading v-slot class="text-sm font-medium">
+              {{ formatHeading({ grid }) }}
+            </RangeCalendarHeading>
           </button>
         </PopoverTrigger>
 

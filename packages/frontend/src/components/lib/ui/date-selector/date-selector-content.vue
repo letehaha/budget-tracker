@@ -14,13 +14,18 @@ import DateSelectorFooter from './date-selector-footer.vue';
 import DateSelectorPeriodGrid from './date-selector-period-grid.vue';
 import DateSelectorPresets from './date-selector-presets.vue';
 import { parseDateInput } from './date-selector-utils';
-import { type DateSelectorPeriodType, type DateSelectorPreset } from './types';
+import {
+  type DateSelectorFilterMode as DateSelectorFilterModeType,
+  type DateSelectorPeriodType,
+  type DateSelectorPreset,
+} from './types';
 import { useDateSelector } from './use-date-selector';
 
 const props = defineProps<{
   period: Period;
   presets?: DateSelectorPreset[];
   earliestDate?: Date;
+  allowedFilterModes?: DateSelectorFilterModeType[];
 }>();
 
 const emit = defineEmits<{
@@ -51,6 +56,11 @@ const {
 });
 
 initDraft({ period: props.period });
+
+// If allowedFilterModes is set and current mode isn't allowed, switch to the first allowed mode
+if (props.allowedFilterModes?.length && !props.allowedFilterModes.includes(activeFilterMode.value)) {
+  activeFilterMode.value = props.allowedFilterModes[0];
+}
 
 watch([activePeriodType, activeFilterMode], () => {
   clearSelection();
@@ -138,7 +148,7 @@ function setPeriodType(type: DateSelectorPeriodType) {
     <!-- Label + filter mode -->
     <div class="flex items-center gap-3">
       <span class="text-sm font-semibold whitespace-nowrap">{{ t('common.dateSelector.dueDate') }}</span>
-      <DateSelectorFilterMode v-model="activeFilterMode" />
+      <DateSelectorFilterMode v-model="activeFilterMode" :allowed-modes="allowedFilterModes" />
     </div>
 
     <!-- Text input with format placeholder -->
