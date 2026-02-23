@@ -1,45 +1,33 @@
 import { archiveBudget as archiveBudgetApi } from '@/api/budgets';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useActionFeedback } from '@/composable/use-action-feedback';
 import { BUDGET_STATUSES } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
-import { ArchiveIcon, ArchiveRestoreIcon, CheckIcon, XIcon } from 'lucide-vue-next';
-import { type Ref, computed, ref } from 'vue';
+import { ArchiveIcon, ArchiveRestoreIcon } from 'lucide-vue-next';
+import { type Ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-type FeedbackState = 'archived' | 'unarchived' | 'error' | null;
-
-const FEEDBACK_DISPLAY_DURATION = 2000;
 
 export function useArchiveToggle({ budgetData, budgetId }: { budgetData: Ref; budgetId: Ref<number> }) {
   const queryClient = useQueryClient();
   const { addErrorNotification } = useNotificationCenter();
   const { t } = useI18n();
 
-  const feedbackState = ref<FeedbackState>(null);
-  let feedbackTimer: ReturnType<typeof setTimeout> | undefined;
-
-  const setFeedback = (state: FeedbackState) => {
-    feedbackState.value = state;
-    if (feedbackTimer) clearTimeout(feedbackTimer);
-    feedbackTimer = setTimeout(() => {
-      feedbackState.value = null;
-    }, FEEDBACK_DISPLAY_DURATION);
-  };
+  const feedback = useActionFeedback();
 
   const isBudgetArchived = computed(() => budgetData.value?.status === BUDGET_STATUSES.archived);
 
   const { mutate: toggleArchive } = useMutation({
     mutationFn: archiveBudgetApi,
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_CACHE_KEYS.budgetsListItem, budgetId.value] });
 
-      setFeedback(variables.isArchived ? 'archived' : 'unarchived');
+      feedback.trigger({ type: 'success' });
     },
     onError: () => {
       addErrorNotification(t('budgets.list.archiveError'));
-      setFeedback('error');
+      feedback.trigger({ type: 'error' });
     },
   });
 
@@ -48,25 +36,22 @@ export function useArchiveToggle({ budgetData, budgetId }: { budgetData: Ref; bu
   };
 
   const archiveButtonIcon = computed(() => {
-    if (feedbackState.value === 'error') return XIcon;
-    if (feedbackState.value) return CheckIcon;
+    if (feedback.isActive.value) return feedback.feedbackIcon.value;
     return isBudgetArchived.value ? ArchiveRestoreIcon : ArchiveIcon;
   });
 
   const archiveButtonLabel = computed(() => {
-    if (feedbackState.value === 'archived') return t('budgets.list.archived');
-    if (feedbackState.value === 'unarchived') return t('budgets.list.unarchived');
-    if (feedbackState.value === 'error') return t('budgets.list.archiveFailed');
+    if (feedback.type.value === 'success') {
+      return isBudgetArchived.value ? t('budgets.list.archived') : t('budgets.list.unarchived');
+    }
+    if (feedback.type.value === 'error') return t('budgets.list.archiveFailed');
     return isBudgetArchived.value ? t('budgets.list.unarchive') : t('budgets.list.archive');
   });
 
   const archiveButtonVariant = computed(() => {
-    if (feedbackState.value === 'error') return 'soft-destructive' as const;
-    if (feedbackState.value) return 'outline-success' as const;
+    if (feedback.isActive.value) return feedback.buttonVariant.value;
     return 'outline' as const;
   });
-
-  const hasFeedback = computed(() => feedbackState.value !== null);
 
   return {
     isBudgetArchived,
@@ -74,6 +59,6 @@ export function useArchiveToggle({ budgetData, budgetId }: { budgetData: Ref; bu
     archiveButtonIcon,
     archiveButtonLabel,
     archiveButtonVariant,
-    hasFeedback,
+    hasFeedback: feedback.isActive,
   };
 }
