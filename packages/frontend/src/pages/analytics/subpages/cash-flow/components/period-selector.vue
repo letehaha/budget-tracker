@@ -1,88 +1,34 @@
 <template>
-  <div class="flex items-center justify-center gap-1">
-    <ui-button size="icon" variant="ghost" @click="selectPrevPeriod">
-      <ChevronLeft :size="20" />
-    </ui-button>
+  <div class="flex items-center justify-center gap-0.5">
+    <Button size="icon-sm" variant="ghost" @click="selectPrevPeriod">
+      <ChevronLeft :size="16" />
+    </Button>
 
-    <Popover v-model:open="isCalendarOpen">
-      <PopoverTrigger as-child>
-        <ui-button variant="ghost" class="hover:bg-accent min-w-55 font-normal">
-          <CalendarIcon class="mr-2 size-4" />
-          {{ periodSelectorText }}
-        </ui-button>
-      </PopoverTrigger>
-      <PopoverContent class="w-auto p-4" align="center" side="top" :side-offset="8">
-        <div class="xs:gap-4 flex">
-          <!-- Quick actions sidebar -->
-          <div class="xs:pr-4 flex flex-col gap-2 border-r pr-2">
-            <div class="text-muted-foreground mb-2 text-sm font-semibold">
-              {{ t('analytics.cashFlow.periodSelector.quickSelect') }}
-            </div>
-            <ui-button
-              v-for="preset in quickPresets"
-              :key="preset.label"
-              size="sm"
-              variant="ghost"
-              :class="{ 'bg-accent': isPresetActive(preset) }"
-              class="max-xs:px-0 justify-start whitespace-nowrap"
-              @click="applyPreset(preset)"
-            >
-              {{ preset.label }}
-            </ui-button>
-          </div>
+    <DateSelector v-model="period" :presets="quickPresets" popover-class-name="md:min-w-[600px]">
+      <template #trigger="{ triggerText }">
+        <Button variant="ghost" size="sm" class="hover:bg-accent min-w-55 font-medium">
+          <CalendarIcon class="mr-1.5 size-3.5" />
+          {{ triggerText }}
+        </Button>
+      </template>
+    </DateSelector>
 
-          <!-- Calendar -->
-          <RangeCalendar
-            :model-value="calendarValue"
-            :number-of-months="2"
-            @update:model-value="handleDateRangeSelect"
-          />
-        </div>
-      </PopoverContent>
-    </Popover>
-
-    <ui-button size="icon" variant="ghost" :disabled="isNextDisabled" @click="selectNextPeriod">
-      <ChevronRight :size="20" />
-    </ui-button>
+    <Button size="icon-sm" variant="ghost" :disabled="isNextDisabled" @click="selectNextPeriod">
+      <ChevronRight :size="16" />
+    </Button>
   </div>
 </template>
 
 <script lang="ts" setup>
-import UiButton from '@/components/lib/ui/button/Button.vue';
-import Popover from '@/components/lib/ui/popover/Popover.vue';
-import PopoverContent from '@/components/lib/ui/popover/PopoverContent.vue';
-import PopoverTrigger from '@/components/lib/ui/popover/PopoverTrigger.vue';
-import RangeCalendar from '@/components/lib/ui/range-calendar/RangeCalendar.vue';
-import { useDateLocale } from '@/composable/use-date-locale';
+import Button from '@/components/lib/ui/button/Button.vue';
+import { DateSelector, type DateSelectorPreset } from '@/components/lib/ui/date-selector';
 import { type Period, usePeriodNavigation } from '@/composable/use-period-navigation';
-import { CalendarDate, type DateValue } from '@internationalized/date';
-import {
-  addDays,
-  differenceInDays,
-  endOfMonth,
-  endOfYear,
-  isSameMonth,
-  startOfMonth,
-  startOfYear,
-  subMonths,
-  subYears,
-} from 'date-fns';
+import { endOfMonth, endOfYear, isAfter, startOfMonth, startOfYear, subMonths, subYears } from 'date-fns';
 import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next';
-import { type DateRange } from 'reka-ui';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-// Maximum period allowed is 3 years
-const MAX_PERIOD_YEARS = 3;
-const MAX_PERIOD_DAYS = MAX_PERIOD_YEARS * 365;
-
 const { t } = useI18n();
-const { format } = useDateLocale();
-
-interface PeriodPreset {
-  label: string;
-  getValue: () => Period;
-}
 
 const props = defineProps<{
   modelValue: Period;
@@ -92,25 +38,26 @@ const emit = defineEmits<{
   'update:modelValue': [value: Period];
 }>();
 
-// Helper functions to convert between Date and DateValue
-const dateToCalendarDate = (date: Date): CalendarDate => {
-  return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
-};
+const period = computed({
+  get: () => props.modelValue,
+  set: (value: Period) => emit('update:modelValue', value),
+});
 
-const calendarDateToDate = (calendarDate: DateValue): Date => {
-  return new Date(calendarDate.year, calendarDate.month - 1, calendarDate.day);
-};
+const { prevPeriod, nextPeriod } = usePeriodNavigation({
+  period: () => props.modelValue,
+});
 
-const isCalendarOpen = ref(false);
+const isNextDisabled = computed(() => isAfter(nextPeriod.value.from, new Date()));
 
-// Calendar value for the RangeCalendar component
-const calendarValue = computed(() => ({
-  start: dateToCalendarDate(props.modelValue.from),
-  end: dateToCalendarDate(props.modelValue.to),
-}));
+function selectPrevPeriod() {
+  period.value = prevPeriod.value;
+}
 
-// Quick preset buttons - optimized for analytics view
-const quickPresets = computed<PeriodPreset[]>(() => [
+function selectNextPeriod() {
+  period.value = nextPeriod.value;
+}
+
+const quickPresets = computed<DateSelectorPreset[]>(() => [
   {
     label: t('analytics.cashFlow.periods.last3Months'),
     getValue: () => ({
@@ -150,75 +97,4 @@ const quickPresets = computed<PeriodPreset[]>(() => [
     },
   },
 ]);
-
-const isNextDisabled = computed(() => isSameMonth(new Date(), props.modelValue.to));
-
-const periodSelectorText = computed(() => {
-  const from = props.modelValue.from;
-  const to = props.modelValue.to;
-
-  // Check if it's a full year
-  const isFullYear = from.getMonth() === 0 && from.getDate() === 1 && to.getMonth() === 11 && to.getDate() === 31;
-  if (isFullYear) {
-    return t('analytics.cashFlow.periodSelector.year', { year: from.getFullYear() });
-  }
-
-  // Check if same month
-  if (isSameMonth(from, to)) {
-    return format(from, 'MMM yyyy');
-  }
-
-  // Check if same year
-  if (from.getFullYear() === to.getFullYear()) {
-    return `${format(from, 'dd MMM')} - ${format(to, 'dd MMM yyyy')}`;
-  }
-
-  // Different years
-  return `${format(from, 'dd MMM yyyy')} - ${format(to, 'dd MMM yyyy')}`;
-});
-
-const { prevPeriod, nextPeriod } = usePeriodNavigation({
-  period: () => props.modelValue,
-});
-
-const updatePeriod = (period: Period) => {
-  emit('update:modelValue', period);
-};
-
-const selectPrevPeriod = () => {
-  updatePeriod(prevPeriod.value);
-};
-
-const selectNextPeriod = () => {
-  updatePeriod(nextPeriod.value);
-};
-
-const handleDateRangeSelect = (range: DateRange) => {
-  if (range.start && range.end) {
-    const from = calendarDateToDate(range.start);
-    let to = calendarDateToDate(range.end);
-
-    // Enforce max period limit
-    const daysDiff = differenceInDays(to, from);
-    if (daysDiff > MAX_PERIOD_DAYS) {
-      to = addDays(from, MAX_PERIOD_DAYS);
-    }
-
-    updatePeriod({ from, to });
-    isCalendarOpen.value = false;
-  }
-};
-
-const applyPreset = (preset: PeriodPreset) => {
-  updatePeriod(preset.getValue());
-  isCalendarOpen.value = false;
-};
-
-const isPresetActive = (preset: PeriodPreset): boolean => {
-  const presetValue = preset.getValue();
-  return (
-    props.modelValue.from.getTime() === presetValue.from.getTime() &&
-    props.modelValue.to.getTime() === presetValue.to.getTime()
-  );
-};
 </script>
