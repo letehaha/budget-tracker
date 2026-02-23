@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6">
+  <PageWrapper>
     <div class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl tracking-wider">{{ t('pages.integrations.title') }}</h1>
 
@@ -92,7 +92,7 @@
       :is-disconnecting="isDisconnecting"
       @confirm="handleDisconnectConfirm"
     />
-  </div>
+  </PageWrapper>
 </template>
 
 <script lang="ts" setup>
@@ -106,18 +106,19 @@ import {
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
+import PageWrapper from '@/components/common/page-wrapper.vue';
 import { DemoRestricted } from '@/components/demo';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes';
+import { useUserStore } from '@/stores';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { useUserStore } from '@/stores';
 
 import AddIntegrationDialog from './components/add-integration-dialog.vue';
 import DisconnectIntegrationDialog from './components/disconnect-integration-dialog.vue';

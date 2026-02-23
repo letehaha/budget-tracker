@@ -115,7 +115,7 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
 <template>
   <div>
     <!-- Page Header -->
-    <div class="mb-4 flex items-center justify-between gap-2 sm:mb-6 sm:gap-4">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-2 sm:mb-6 sm:gap-4">
       <div>
         <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">{{ $t('planned.subscriptions.title') }}</h1>
         <p class="text-muted-foreground mt-1 hidden text-sm sm:block">{{ $t('planned.subscriptions.description') }}</p>

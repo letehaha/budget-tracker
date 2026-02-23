@@ -1,5 +1,5 @@
 <template>
-  <div class="p-4">
+  <PageWrapper>
     <div class="flex w-min max-w-full flex-col gap-4 lg:w-auto lg:flex-row">
       <template v-if="!isMobileView">
         <Card
@@ -43,10 +43,11 @@
     </div>
 
     <ScrollTopButton />
-  </div>
+  </PageWrapper>
 </template>
 
 <script lang="ts" setup>
+import PageWrapper from '@/components/common/page-wrapper.vue';
 import { Card } from '@/components/lib/ui/card';
 import FiltersDialog from '@/components/records-filters/filters-dialog.vue';
 import FiltersPanel from '@/components/records-filters/index.vue';

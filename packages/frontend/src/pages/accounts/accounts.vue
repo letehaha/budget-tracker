@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6">
+  <PageWrapper>
     <div class="mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
       <h1 class="text-2xl tracking-wider">{{ $t('accounts.title') }}</h1>
 
@@ -74,12 +74,13 @@
       :providers="providers || []"
       @integration-added="handleIntegrationAdded"
     />
-  </div>
+  </PageWrapper>
 </template>
 
 <script lang="ts" setup>
 import { type BankProvider, listProviders } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import PageWrapper from '@/components/common/page-wrapper.vue';
 import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import AddIntegrationDialog from '@/pages/accounts/integrations/components/add-integration-dialog.vue';

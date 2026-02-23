@@ -1,5 +1,5 @@
 <template>
-  <section class="flex min-h-full flex-col p-4 md:px-6">
+  <PageWrapper class="flex min-h-full flex-col">
     <!-- Recovery method suggestion banner -->
     <RecoveryMethodBanner />
 
@@ -57,11 +57,12 @@
         @cancel="gridRef?.cancelEdit()"
       />
     </template>
-  </section>
+  </PageWrapper>
 </template>
 
 <script lang="ts" setup>
 import RecoveryMethodBanner from '@/components/banners/recovery-method-banner.vue';
+import PageWrapper from '@/components/common/page-wrapper.vue';
 import DashboardOnboarding from '@/components/widgets/dashboard-onboarding.vue';
 import { useSafariDetection } from '@/composable/detect-safari';
 import { cn } from '@/lib/utils';

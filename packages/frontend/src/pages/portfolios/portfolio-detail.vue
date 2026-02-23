@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6">
+  <PageWrapper>
     <!-- Header Section with improved layout -->
     <div class="mb-8">
       <!-- Back button row -->
@@ -77,10 +77,11 @@
       <p class="text-destructive mb-4">{{ $t('portfolioDetail.loadError') }}</p>
       <UiButton @click="refetch">{{ $t('portfolioDetail.tryAgain') }}</UiButton>
     </div>
-  </div>
+  </PageWrapper>
 </template>
 
 <script setup lang="ts">
+import PageWrapper from '@/components/common/page-wrapper.vue';
 import DeletePortfolioDialog from '@/components/dialogs/delete-portfolio-dialog.vue';
 import EditPortfolioDialog from '@/components/dialogs/edit-portfolio-dialog.vue';
 import PortfolioTransferDialog from '@/components/dialogs/portfolio-transfer-dialog.vue';

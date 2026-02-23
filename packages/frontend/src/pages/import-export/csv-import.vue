@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6">
+  <PageWrapper>
     <div class="mb-6">
       <h1 class="text-2xl tracking-wider">{{ t('pages.importExport.csvImport.pageTitle') }}</h1>
       <p class="text-muted-foreground mt-2">
@@ -172,10 +172,11 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageWrapper>
 </template>
 
 <script setup lang="ts">
+import PageWrapper from '@/components/common/page-wrapper.vue';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useImportExportStore } from '@/stores/import-export';
 import { CheckIcon, ChevronDownIcon, LockIcon } from 'lucide-vue-next';

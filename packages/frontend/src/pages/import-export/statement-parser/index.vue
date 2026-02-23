@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 pt-4">
+  <PageWrapper class="pt-4">
     <BackLink :to="{ name: ROUTES_NAMES.settingsDataManagement }">{{
       $t('pages.statementParser.backToSettings')
     }}</BackLink>
@@ -154,11 +154,12 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageWrapper>
 </template>
 
 <script setup lang="ts">
 import BackLink from '@/components/common/back-link.vue';
+import PageWrapper from '@/components/common/page-wrapper.vue';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes';
 import { useStatementParserStore } from '@/stores/statement-parser';
