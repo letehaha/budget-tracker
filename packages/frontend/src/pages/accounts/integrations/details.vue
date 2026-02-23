@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6">
+  <PageWrapper>
     <div v-if="isLoading" class="py-8 text-center">{{ $t('pages.integrations.details.loading') }}</div>
 
     <div v-else-if="error" class="rounded-lg border border-red-500 p-4 text-red-700">
@@ -501,7 +501,7 @@
       :is-pending="isReconnectPending"
       @confirm="handleReconnect"
     />
-  </div>
+  </PageWrapper>
 </template>
 
 <script lang="ts" setup>
@@ -515,6 +515,7 @@ import {
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
+import PageWrapper from '@/components/common/page-wrapper.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';

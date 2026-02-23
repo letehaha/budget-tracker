@@ -22,7 +22,7 @@ const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-wid
 const maxDisplay = computed(() => {
   const config = widgetConfigRef?.value;
   if (!config) return 10;
-  return (config.rowSpan ?? 1) >= 2 ? 11 : 5;
+  return (config.rowSpan ?? 1) >= 2 ? 12 : 5;
 });
 
 const { data: transactions, isFetching } = useQuery({
@@ -43,10 +43,10 @@ const isDataEmpty = computed(() => !isFetching.value && transactions.value.lengt
     <template #action>
       <template v-if="!isDataEmpty && !isInitialLoading">
         <router-link
-          :class="buttonVariants({ variant: 'link', size: 'sm', class: 'text-primary block text-center' })"
+          :class="buttonVariants({ variant: 'ghost', size: 'sm', class: 'text-muted-foreground' })"
           :to="{ name: ROUTES_NAMES.transactions }"
         >
-          <span>{{ $t('dashboard.widgets.latestTransactions.showAll') }}</span>
+          {{ $t('dashboard.widgets.latestTransactions.showAll') }}
         </router-link>
       </template>
     </template>
@@ -59,7 +59,7 @@ const isDataEmpty = computed(() => !isFetching.value && transactions.value.lengt
       </EmptyState>
     </template>
     <template v-else>
-      <TransactionsList raw-list class="gap-1" :transactions="transactions || []" :max-display="maxDisplay" />
+      <TransactionsList raw-list class="!gap-0.5" :transactions="transactions || []" :max-display="maxDisplay" />
     </template>
   </WidgetWrapper>
 </template>

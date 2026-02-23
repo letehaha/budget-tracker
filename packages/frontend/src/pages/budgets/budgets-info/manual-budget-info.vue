@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { deleteBudget as deleteBudgetApi } from '@/api';
-import { archiveBudget as archiveBudgetApi, editBudget, loadBudgetById, loadBudgetStats } from '@/api/budgets';
+import { editBudget, loadBudgetById, loadBudgetStats } from '@/api/budgets';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AlertDialog } from '@/components/common';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InputField from '@/components/fields/input-field.vue';
-import { buttonVariants } from '@/components/lib/ui/button';
+import ActionButton from '@/components/lib/ui/action-button/action-button.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
-import { BUDGET_STATUSES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
 import {
@@ -16,18 +15,18 @@ import {
   ArchiveRestoreIcon,
   ArrowRightIcon,
   CalendarIcon,
-  ChevronLeftIcon,
   PencilIcon,
   Trash2Icon,
   WalletIcon,
 } from 'lucide-vue-next';
-import { computed, ref, watchEffect } from 'vue';
+import { ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 import BudgetDetailSkeleton from './budget-detail-skeleton.vue';
 import BudgetStatsCards from './shared/budget-stats-cards.vue';
 import BudgetUtilizationBar from './shared/budget-utilization-bar.vue';
+import { useArchiveToggle } from './shared/use-archive-toggle';
 import { useBudgetDetails } from './shared/use-budget-details';
 import TransactionsList from './transactions-list.vue';
 
@@ -86,22 +85,7 @@ const handleDeleteBudget = async () => {
   }
 };
 
-const isBudgetArchived = computed(() => budgetData.value?.status === BUDGET_STATUSES.archived);
-
-const { mutate: toggleArchive } = useMutation({
-  mutationFn: archiveBudgetApi,
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_CACHE_KEYS.budgetsListItem, currentBudgetId.value] });
-  },
-  onError: () => {
-    addErrorNotification(t('budgets.list.archiveError'));
-  },
-});
-
-const handleToggleArchive = () => {
-  toggleArchive({ budgetId: currentBudgetId.value, isArchived: !isBudgetArchived.value });
-};
+const { isBudgetArchived, handleToggleArchive } = useArchiveToggle({ budgetData, budgetId: currentBudgetId });
 
 watchEffect(() => {
   if (!isLoading.value && budgetItem.value) {
@@ -111,20 +95,8 @@ watchEffect(() => {
 </script>
 
 <template>
-  <div v-if="budgetData" class="@container max-w-5xl p-6">
-    <!-- Back Button & Header -->
+  <div v-if="budgetData" class="@container max-w-5xl">
     <div class="mb-6">
-      <router-link
-        to="/budgets"
-        :class="[
-          buttonVariants({ size: 'sm', variant: 'ghost' }),
-          'text-muted-foreground hover:text-foreground mb-4 -ml-2 gap-1',
-        ]"
-      >
-        <ChevronLeftIcon class="size-4" />
-        {{ t('pages.budgetDetails.backToBudgets') }}
-      </router-link>
-
       <!-- Hero Header -->
       <div class="flex flex-col gap-4 @md:flex-row @md:items-center @md:justify-between">
         <div class="flex items-center gap-4">
@@ -172,10 +144,13 @@ watchEffect(() => {
 
         <!-- Action Buttons -->
         <div class="flex items-center gap-2">
-          <Button variant="outline" size="sm" @click="handleToggleArchive">
-            <component :is="isBudgetArchived ? ArchiveRestoreIcon : ArchiveIcon" class="mr-2 size-4" />
-            {{ isBudgetArchived ? $t('budgets.list.unarchive') : $t('budgets.list.archive') }}
-          </Button>
+          <ActionButton
+            :action="handleToggleArchive"
+            :label="isBudgetArchived ? t('budgets.list.unarchive') : t('budgets.list.archive')"
+            :icon="isBudgetArchived ? ArchiveRestoreIcon : ArchiveIcon"
+            size="sm"
+            @error="addErrorNotification(t('budgets.list.archiveError'))"
+          />
 
           <ResponsiveDialog v-model:open="isEditDialogOpen">
             <template #trigger>

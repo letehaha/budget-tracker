@@ -56,14 +56,16 @@ const isPopoverOpen = ref(false);
 </script>
 
 <template>
-  <div class="mb-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-hidden">
-    <div class="flex items-center justify-between">
-      <p class="ml-2 text-xs font-medium tracking-wide uppercase">{{ $t('sidebar.accountsView.title') }}</p>
+  <div class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-hidden">
+    <div class="flex items-center justify-between px-1">
+      <p class="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+        {{ $t('sidebar.accountsView.title') }}
+      </p>
 
       <Popover.Popover :open="isPopoverOpen" @update:open="isPopoverOpen = $event">
         <Popover.PopoverTrigger as-child>
-          <Button size="icon" variant="secondary">
-            <PlusIcon :class="['transition-transform', isPopoverOpen && '-rotate-45']" />
+          <Button size="icon-sm" variant="secondary">
+            <PlusIcon :class="['size-3.5 transition-transform', isPopoverOpen && '-rotate-45']" />
           </Button>
         </Popover.PopoverTrigger>
         <Popover.PopoverContent side="bottom" align="end">

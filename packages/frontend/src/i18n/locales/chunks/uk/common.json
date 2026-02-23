@@ -17,6 +17,7 @@
       "saveChanges": "Зберегти зміни",
       "scrollToTop": "Вгору",
       "done": "Готово",
+      "failed": "Помилка",
       "viewAll": "Переглянути все"
     },
     "ui": {
@@ -92,7 +93,34 @@
         "error": "Не вдалося відв'язати транзакції!"
       }
     },
-    "outOfWallet": "Поза гаманцем"
+    "outOfWallet": "Поза гаманцем",
+    "dateSelector": {
+      "dueDate": "Дата",
+      "quickSelect": "Швидкий вибір",
+      "apply": "Застосувати",
+      "periodTypes": {
+        "day": "День",
+        "month": "Місяць",
+        "quarter": "Квартал",
+        "halfYear": "Півріччя",
+        "year": "Рік"
+      },
+      "filterModes": {
+        "is": "є",
+        "before": "до",
+        "after": "після",
+        "between": "між"
+      },
+      "currentMonth": "Поточний місяць",
+      "placeholders": {
+        "day": "Спробуйте: 2025-03-15, 03/15/2025",
+        "month": "Спробуйте: Jan 2025, 03/2025",
+        "quarter": "Спробуйте: Q1, Q4 2025",
+        "halfYear": "Спробуйте: H1, H2 2025",
+        "year": "Спробуйте: 2025, 2024",
+        "default": "Спробуйте: 2025, Q4, Jan 2025"
+      }
+    }
   },
   "validation": {
     "minLength": "Мінімальна довжина {length}.",

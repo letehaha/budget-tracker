@@ -23,7 +23,7 @@ const { formatCompactAmount, formatAmountByCurrencyCode } = useFormatCurrency();
         <span class="truncate text-sm">{{ account.name }}</span>
         <DesktopOnlyTooltip :content="formatAmountByCurrencyCode(account.currentBalance, account.currencyCode)">
           <span
-            class="shrink-0 text-sm tabular-nums"
+            class="text-amount shrink-0 text-sm"
             :class="account.currentBalance >= 0 ? 'text-muted-foreground' : 'text-destructive-text'"
           >
             {{ formatCompactAmount(account.currentBalance, account.currencyCode) }}

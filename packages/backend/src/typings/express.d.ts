@@ -1,12 +1,14 @@
-import { BodyPayload } from '@bt/shared/types/endpoints';
-import type { SESSION_ID_KEY_NAME } from '@common/types';
+// This import makes the file a module so `declare module` below acts as
+// augmentation (extending express types) rather than a full module declaration
+// (replacing them). Do not remove it.
+import 'express';
 
 declare module 'express' {
   interface Request {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    body: BodyPayload;
-    requestId?: string; // Optional requestId property
-    [SESSION_ID_KEY_NAME]?: string | null; // Optional sessionId property
+    body: { [key: string | number]: string | number | boolean | undefined };
+    requestId?: string;
+    sessionId?: string | null;
   }
 }
 

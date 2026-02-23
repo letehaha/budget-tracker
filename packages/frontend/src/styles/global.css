@@ -1,9 +1,5 @@
-/* Montserrat font via fontsource - only weights used in the app */
-@import '@fontsource/montserrat/300.css'; /* font-light */
-@import '@fontsource/montserrat/400.css'; /* font-normal */
-@import '@fontsource/montserrat/500.css'; /* font-medium */
-@import '@fontsource/montserrat/600.css'; /* font-semibold */
-@import '@fontsource/montserrat/700.css'; /* font-bold */
+/* Manrope variable font via fontsource - supports weights 200-800 */
+@import '@fontsource-variable/manrope';
 
 @import 'tailwindcss';
 @import './calendar.css';
@@ -89,6 +85,7 @@
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-collapsible-down: collapsible-down 0.2s ease-in-out;
   --animate-collapsible-up: collapsible-up 0.2s ease-in-out;
+  --animate-archive-check: archive-check 0.4s ease-out;
 }
 
 /* Define keyframes */
@@ -125,6 +122,21 @@
   }
   to {
     height: 0;
+  }
+}
+
+@keyframes archive-check {
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
   }
 }
 
@@ -171,6 +183,9 @@
 
 @layer base {
   :root {
+    --font-sans:
+      'Manrope Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+      'Segoe UI Symbol', 'Noto Color Emoji';
     --header-height: 69px;
 
     --background: rgb(255, 255, 255);
@@ -206,7 +221,7 @@
     --border: rgb(227, 227, 231);
     --input: rgb(227, 227, 231);
     --ring: rgb(115, 85, 190);
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --success: rgb(5, 145, 52);
     --success-foreground: rgb(10, 18, 26);
@@ -220,37 +235,37 @@
 
   :root.dark {
     --background: rgb(11, 9, 8);
-    --foreground: rgb(242, 242, 242);
+    --foreground: rgb(245, 243, 240);
 
-    --base-text: rgb(250, 250, 250);
+    --base-text: rgb(250, 249, 247);
 
     --card: rgb(27, 25, 23);
-    --card-foreground: rgb(242, 242, 242);
+    --card-foreground: rgb(245, 243, 240);
 
-    --card-tooltip: rgb(50, 50, 50);
-    --card-tooltip-foreground: rgb(242, 242, 242);
+    --card-tooltip: rgb(50, 48, 46);
+    --card-tooltip-foreground: rgb(245, 243, 240);
 
-    --popover: rgb(22, 22, 22);
-    --popover-foreground: rgb(242, 242, 242);
+    --popover: rgb(22, 20, 19);
+    --popover-foreground: rgb(245, 243, 240);
 
     --primary: rgb(130, 100, 205);
     --primary-foreground: rgb(255, 255, 255);
 
-    --secondary: rgb(39, 39, 42);
-    --secondary-foreground: rgb(249, 249, 249);
+    --secondary: rgb(42, 40, 38);
+    --secondary-foreground: rgb(249, 248, 246);
 
-    --muted: rgb(38, 38, 38);
-    --muted-foreground: rgb(161, 161, 169);
+    --muted: rgb(40, 38, 36);
+    --muted-foreground: rgb(163, 160, 155);
 
     --accent: rgb(41, 37, 36);
-    --accent-foreground: rgb(249, 249, 249);
+    --accent-foreground: rgb(249, 248, 246);
 
     --destructive: rgb(147, 29, 29);
     --destructive-foreground: rgb(254, 242, 242);
-    --destructive-text: rgb(239, 68, 68);
+    --destructive-text: oklch(0.704 0.191 22.216);
 
-    --border: rgb(39, 39, 42);
-    --input: rgb(39, 39, 42);
+    --border: rgb(42, 40, 37);
+    --input: rgb(42, 40, 37);
     --ring: rgb(115, 85, 190);
 
     --success: rgb(16, 59, 49);
@@ -269,7 +284,22 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+/* Utility for inline monetary amounts — consistent weight and alignment */
+@utility text-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hide scrollbar while keeping scroll functionality */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 

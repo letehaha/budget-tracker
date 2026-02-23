@@ -41,7 +41,7 @@ const config: KnipConfig = {
     '@popperjs/core',
 
     // used in CSS
-    '@fontsource/montserrat',
+    '@fontsource-variable/manrope',
   ],
   // ignoreBinaries: ["eslint"],
   rules: {

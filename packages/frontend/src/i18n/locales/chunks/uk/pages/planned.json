@@ -1,5 +1,8 @@
 {
   "planned": {
+    "budgets": {
+      "backToList": "Назад до бюджетів"
+    },
     "subscriptions": {
       "title": "Підписки та рахунки",
       "description": "Відстежуйте регулярні платежі та рахунки",

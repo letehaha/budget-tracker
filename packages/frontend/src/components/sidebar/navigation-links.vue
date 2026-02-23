@@ -18,6 +18,11 @@ import { useRoute } from 'vue-router';
 
 withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
 
+const navItemBase = 'w-full gap-2 px-3';
+const navItemActive = 'bg-primary/10 text-foreground';
+const navIconBase = 'size-4 shrink-0';
+const navIconActive = 'text-primary';
+
 const route = useRoute();
 
 const isPlannedRoute = computed(
@@ -42,48 +47,48 @@ watch(
 <template>
   <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.home }">
     <ui-button
-      :variant="isActive ? 'secondary' : 'ghost'"
+      variant="ghost"
       as="span"
-      :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
+      :class="[navItemBase, !bottomNav && 'justify-start', isActive && navItemActive]"
       size="default"
     >
-      <LayoutDashboardIcon :class="['size-4 shrink-0', isActive && 'text-primary']" />
+      <LayoutDashboardIcon :class="[navIconBase, isActive && navIconActive]" />
       <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.dashboard') }} </span>
     </ui-button>
   </router-link>
 
   <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.accounts }">
     <ui-button
-      :variant="isActive ? 'secondary' : 'ghost'"
+      variant="ghost"
       as="span"
-      :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
+      :class="[navItemBase, !bottomNav && 'justify-start', isActive && navItemActive]"
       size="default"
     >
-      <LayersIcon :class="['size-4 shrink-0', isActive && 'text-primary']" />
+      <LayersIcon :class="[navIconBase, isActive && navIconActive]" />
       <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.accounts') }} </span>
     </ui-button>
   </router-link>
 
   <router-link v-if="!bottomNav" v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.investments }">
     <ui-button
-      :variant="isActive ? 'secondary' : 'ghost'"
+      variant="ghost"
       as="span"
-      :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
+      :class="[navItemBase, 'justify-start', isActive && navItemActive]"
       size="default"
     >
-      <TrendingUpIcon :class="['size-4 shrink-0', isActive && 'text-primary']" />
-      <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.investments') }} </span>
+      <TrendingUpIcon :class="[navIconBase, isActive && navIconActive]" />
+      <span> {{ $t('navigation.investments') }} </span>
     </ui-button>
   </router-link>
 
   <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactions }">
     <ui-button
-      :variant="isActive ? 'secondary' : 'ghost'"
+      variant="ghost"
       as="span"
-      :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
+      :class="[navItemBase, !bottomNav && 'justify-start', isActive && navItemActive]"
       size="default"
     >
-      <CreditCardIcon :class="['size-4 shrink-0', isActive && 'text-primary']" />
+      <CreditCardIcon :class="[navIconBase, isActive && navIconActive]" />
       <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.transactions') }} </span>
     </ui-button>
   </router-link>
@@ -93,10 +98,10 @@ watch(
       <ui-button
         variant="ghost"
         as="div"
-        :class="['w-full justify-start gap-2 px-3', isPlannedRoute && 'bg-white/5']"
+        :class="['w-full justify-start gap-2 px-3', isPlannedRoute && 'bg-primary/10']"
         size="default"
       >
-        <CalendarClockIcon :class="['size-4 shrink-0', isPlannedRoute && 'text-primary']" />
+        <CalendarClockIcon :class="[navIconBase, isPlannedRoute && navIconActive]" />
         <span>{{ $t('navigation.planned.planned') }}</span>
         <ChevronRightIcon
           :class="['ml-auto size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isPlannedOpen }]"
@@ -104,26 +109,26 @@ watch(
       </ui-button>
     </CollapsibleTrigger>
     <CollapsibleContent>
-      <div class="border-border/40 mt-2 ml-2 grid gap-1 border-l pl-2">
+      <div class="border-border/40 mt-1 ml-2 grid gap-0.5 border-l pl-2">
         <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.plannedSubscriptions }">
           <ui-button
-            :variant="isActive ? 'secondary' : 'ghost'"
+            variant="ghost"
             as="span"
-            class="w-full justify-start gap-2 px-3"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
             size="sm"
           >
-            <RepeatIcon :class="['size-4 shrink-0', isActive && 'text-primary']" />
+            <RepeatIcon :class="[navIconBase, isActive && navIconActive]" />
             <span>{{ $t('navigation.planned.subscriptions') }}</span>
           </ui-button>
         </router-link>
         <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.plannedBudgets }">
           <ui-button
-            :variant="isActive ? 'secondary' : 'ghost'"
+            variant="ghost"
             as="span"
-            class="w-full justify-start gap-2 px-3"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
             size="sm"
           >
-            <WalletIcon :class="['size-4 shrink-0', isActive && 'text-primary']" />
+            <WalletIcon :class="[navIconBase, isActive && navIconActive]" />
             <span>{{ $t('navigation.planned.budgets') }}</span>
           </ui-button>
         </router-link>
@@ -133,12 +138,12 @@ watch(
 
   <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.analytics }">
     <ui-button
-      :variant="isActive ? 'secondary' : 'ghost'"
+      variant="ghost"
       as="span"
-      :class="['w-full gap-2 px-3', { 'justify-start': !bottomNav }]"
+      :class="[navItemBase, !bottomNav && 'justify-start', isActive && navItemActive]"
       size="default"
     >
-      <ChartColumnIcon :class="['size-4 shrink-0', isActive && 'text-primary']" />
+      <ChartColumnIcon :class="[navIconBase, isActive && navIconActive]" />
       <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.analytics') }} </span>
     </ui-button>
   </router-link>

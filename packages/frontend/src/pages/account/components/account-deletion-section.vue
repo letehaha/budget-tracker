@@ -6,6 +6,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
 import { AccountModel, TransactionModel } from '@bt/shared/types';
+import { Trash2Icon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -40,7 +41,7 @@ const deleteAccount = async () => {
 
 <template>
   <div class="border-destructive @container/danger-zone mt-4 grid gap-4 rounded-xl border p-4 sm:-mx-4">
-    <p class="text-xl font-medium">{{ t('pages.account.deletion.dangerZone') }}</p>
+    <p class="text-lg font-medium">{{ t('pages.account.deletion.dangerZone') }}</p>
 
     <div class="flex flex-col justify-between gap-2 @[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center">
       <div>
@@ -59,7 +60,9 @@ const deleteAccount = async () => {
         @accept="deleteAccount"
       >
         <template #trigger>
-          <Button variant="destructive"> {{ t('pages.account.deletion.deleteButton') }} </Button>
+          <Button variant="destructive">
+            <Trash2Icon class="size-4" /> {{ t('pages.account.deletion.deleteButton') }}
+          </Button>
         </template>
         <template #description>
           <template v-if="accountHasTransactions">

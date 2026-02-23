@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6">
+  <PageWrapper>
     <div class="mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
       <h1 class="text-2xl tracking-wider">{{ $t('investments.title') }}</h1>
 
@@ -71,7 +71,7 @@
             <!-- Disabled overlay indicator -->
             <div
               v-if="!portfolio.isEnabled"
-              class="to-muted/20 pointer-events-none absolute inset-0 z-10 bg-gradient-to-br from-transparent via-transparent"
+              class="to-muted/20 pointer-events-none absolute inset-0 z-10 bg-linear-to-br from-transparent via-transparent"
             >
               <div class="absolute top-3 left-3">
                 <div
@@ -185,7 +185,7 @@
         </CreatePortfolioDialog>
       </div>
     </template>
-  </div>
+  </PageWrapper>
 </template>
 
 <script lang="ts" setup>
@@ -196,6 +196,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/common/dropdown-menu';
+import PageWrapper from '@/components/common/page-wrapper.vue';
 import CreatePortfolioDialog from '@/components/dialogs/create-portfolio-dialog.vue';
 import DeletePortfolioDialog from '@/components/dialogs/delete-portfolio-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
@@ -257,5 +258,4 @@ const getPortfolioTypeColor = (type: PORTFOLIO_TYPE): string => {
 const formatPortfolioType = (type: string): string => {
   return type.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 };
-
 </script>

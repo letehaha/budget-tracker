@@ -10,7 +10,7 @@
           "range": "Range",
           "single": "Single"
         },
-        "selectDateRange": "Select date range",
+        "selectDateOrRange": "Select date or range",
         "fromDate": "From date",
         "toDate": "To date",
         "clear": "Clear",

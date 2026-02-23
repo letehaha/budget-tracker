@@ -3,7 +3,7 @@
     ref="containerRef"
     :class="
       cn(
-        'flex min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))] flex-col gap-6 p-6 sm:flex-row',
+        'flex min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))] flex-col gap-6 p-4 sm:flex-row md:px-6',
         isMobileView
           ? 'min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))]'
           : 'min-h-[calc(100dvh-var(--header-height))]',

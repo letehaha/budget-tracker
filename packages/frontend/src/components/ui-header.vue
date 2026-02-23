@@ -1,41 +1,41 @@
 <template>
   <div ref="headerRef">
     <DemoBanner />
-    <div class="shadow-header border-border flex items-center justify-between border-b px-6 py-3">
-    <div class="flex items-center gap-4">
-      <template v-if="isMobileView">
-        <Sheet.Sheet :open="isMobileSheetOpen" @update:open="isMobileSheetOpen = $event">
-          <Sheet.SheetTrigger as-child>
-            <Button size="icon" variant="secondary" class="shrink-0">
-              <MenuIcon class="size-5" />
-            </Button>
-          </Sheet.SheetTrigger>
-          <Sheet.SheetContent
-            side="left"
-            :class="[
-              'xs:w-3/4 w-full overflow-y-auto px-0',
-              'data-[state=closed]:duration-200 data-[state=open]:duration-300',
-            ]"
-          >
-            <Sheet.SheetTitle></Sheet.SheetTitle>
-            <Sheet.SheetDescription></Sheet.SheetDescription>
+    <div class="shadow-header border-border flex items-center justify-between border-b px-6 py-2">
+      <div class="flex items-center gap-4">
+        <template v-if="isMobileView">
+          <Sheet.Sheet :open="isMobileSheetOpen" @update:open="isMobileSheetOpen = $event">
+            <Sheet.SheetTrigger as-child>
+              <Button size="icon-sm" variant="secondary" class="shrink-0">
+                <MenuIcon class="size-4" />
+              </Button>
+            </Sheet.SheetTrigger>
+            <Sheet.SheetContent
+              side="left"
+              :class="[
+                'xs:w-3/4 w-full overflow-y-auto px-0',
+                'data-[state=closed]:duration-200 data-[state=open]:duration-300',
+              ]"
+            >
+              <Sheet.SheetTitle></Sheet.SheetTitle>
+              <Sheet.SheetDescription></Sheet.SheetDescription>
 
-            <Sidebar mobile-view />
-          </Sheet.SheetContent>
-        </Sheet.Sheet>
-      </template>
+              <Sidebar mobile-view />
+            </Sheet.SheetContent>
+          </Sheet.Sheet>
+        </template>
 
-      <ManageTransactionDialog>
-        <Button variant="default" class="flex items-center gap-1">
-          <PlusIcon class="size-5" />
-          <span class="hidden md:block">{{ $t('header.newTransaction') }}</span>
-          <span class="md:hidden">{{ $t('header.add') }}</span>
-        </Button>
-      </ManageTransactionDialog>
-    </div>
+        <ManageTransactionDialog>
+          <Button variant="default" size="sm" class="flex items-center gap-1">
+            <PlusIcon class="size-4" />
+            <span class="hidden md:block">{{ $t('header.newTransaction') }}</span>
+            <span class="md:hidden">{{ $t('header.add') }}</span>
+          </Button>
+        </ManageTransactionDialog>
+      </div>
 
-    <div class="ml-auto flex items-center gap-2">
-      <!-- Theme toggle temporarily disabled - light theme coming soon
+      <div class="ml-auto flex items-center gap-2">
+        <!-- Theme toggle temporarily disabled - light theme coming soon
       <Button variant="ghost" size="icon" @click="toggleTheme">
         <template v-if="currentTheme === Themes.dark">
           <MoonStar :size="20" />
@@ -46,75 +46,69 @@
       </Button>
       -->
 
-      <template v-if="accountsNeedingRelink.length > 0">
-        <AccountsRelinkWarning />
-      </template>
-      <template v-else>
-        <Popover.Popover v-model:open="isPopoverOpen">
-          <Popover.PopoverTrigger as-child>
-            <Button variant="secondary" :size="isCompactView ? 'icon' : 'default'">
-              <template v-if="syncStatus.isSyncing.value">
-                <RefreshCcw class="animate-spin" :size="16" />
-                <span class="hidden font-medium lg:inline">
-                  <span class="xs:hidden">{{ $t('header.sync.syncing') }}</span>
-                  <span class="xs:inline hidden">{{
-                    syncStatus.syncingSummaryText.value || $t('header.sync.synchronizing')
-                  }}</span>
-                </span>
-              </template>
-              <template v-else-if="categorizationStatus.isCategorizing.value">
-                <SparklesIcon class="text-primary animate-pulse" :size="16" />
-                <span class="hidden font-medium lg:inline">
-                  {{ $t('header.categorization.categorizing') }}
-                </span>
-              </template>
-              <template v-else-if="hasConnections">
-                <CloudCheckIcon class="text-success-text size-5" />
-                <span v-if="lastSyncRelativeTime" class="hidden font-medium lg:block">
-                  {{ $t('header.sync.syncedTime', { time: lastSyncRelativeTime }) }}
-                </span>
-              </template>
-              <template v-else>
-                <CloudCheckIcon class="size-5" />
-                <span class="hidden font-medium lg:block">{{ $t('header.sync.connectBank') }}</span>
-              </template>
-            </Button>
-          </Popover.PopoverTrigger>
-          <Popover.PopoverContent class="w-auto p-0" align="end">
-            <SyncStatusTooltip
-              :account-statuses="syncStatus.accountStatuses.value"
-              :sync-progress="syncStatus.syncProgress.value"
-              :last-sync-timestamp="syncStatus.lastSyncTimestamp.value"
-              :is-loading="syncStatus.isLoading.value"
-              :is-syncing="syncStatus.isSyncing.value"
-              :show-success-message="syncStatus.showSuccessMessage.value"
-              :categorization-status="categorizationStatus.categorizationStatus.value"
-              :is-categorizing="categorizationStatus.isCategorizing.value"
-              :categorization-progress="categorizationStatus.progress.value"
-              :categorization-just-completed="categorizationStatus.justCompleted.value"
-              @trigger-sync="handleSyncClick"
-            />
-          </Popover.PopoverContent>
-        </Popover.Popover>
+        <template v-if="accountsNeedingRelink.length > 0">
+          <AccountsRelinkWarning />
+        </template>
+        <template v-else>
+          <Popover.Popover v-model:open="isPopoverOpen">
+            <Popover.PopoverTrigger as-child>
+              <Button variant="secondary" :size="isCompactView ? 'icon' : 'sm'">
+                <template v-if="syncStatus.isSyncing.value">
+                  <RefreshCcw class="animate-spin" :size="16" />
+                  <span class="hidden text-sm font-medium lg:inline">
+                    <span class="xs:hidden">{{ $t('header.sync.syncing') }}</span>
+                    <span class="xs:inline hidden">{{
+                      syncStatus.syncingSummaryText.value || $t('header.sync.synchronizing')
+                    }}</span>
+                  </span>
+                </template>
+                <template v-else-if="categorizationStatus.isCategorizing.value">
+                  <SparklesIcon class="text-primary animate-pulse" :size="16" />
+                  <span class="hidden text-sm font-medium lg:inline">
+                    {{ $t('header.categorization.categorizing') }}
+                  </span>
+                </template>
+                <template v-else-if="hasConnections">
+                  <CloudCheckIcon class="text-success-text size-4" />
+                  <span v-if="lastSyncRelativeTime" class="hidden text-sm font-medium lg:block">
+                    {{ $t('header.sync.syncedTime', { time: lastSyncRelativeTime }) }}
+                  </span>
+                </template>
+                <template v-else>
+                  <CloudCheckIcon class="size-4" />
+                  <span class="hidden text-sm font-medium lg:block">{{ $t('header.sync.connectBank') }}</span>
+                </template>
+              </Button>
+            </Popover.PopoverTrigger>
+            <Popover.PopoverContent class="w-auto p-0" align="end">
+              <SyncStatusTooltip
+                :account-statuses="syncStatus.accountStatuses.value"
+                :sync-progress="syncStatus.syncProgress.value"
+                :last-sync-timestamp="syncStatus.lastSyncTimestamp.value"
+                :is-loading="syncStatus.isLoading.value"
+                :is-syncing="syncStatus.isSyncing.value"
+                :show-success-message="syncStatus.showSuccessMessage.value"
+                :categorization-status="categorizationStatus.categorizationStatus.value"
+                :is-categorizing="categorizationStatus.isCategorizing.value"
+                :categorization-progress="categorizationStatus.progress.value"
+                :categorization-just-completed="categorizationStatus.justCompleted.value"
+                @trigger-sync="handleSyncClick"
+              />
+            </Popover.PopoverContent>
+          </Popover.Popover>
 
-        <SyncConfirmationDialog
-          v-model:open="showConfirmDialog"
-          :last-sync-timestamp="syncStatus.lastSyncTimestamp.value"
-          @confirm="confirmSync"
-        />
-      </template>
+          <SyncConfirmationDialog
+            v-model:open="showConfirmDialog"
+            :last-sync-timestamp="syncStatus.lastSyncTimestamp.value"
+            @confirm="confirmSync"
+          />
+        </template>
 
-      <NotificationsPopover />
+        <NotificationsPopover />
 
-      <!-- Language Switcher -->
-      <LanguageSelector variant="secondary" show-header persist-to-backend />
-
-      <router-link :to="{ name: ROUTES_NAMES.settings }">
-        <Button variant="secondary" class="text-white" size="icon" as="span">
-          <SettingsIcon />
-        </Button>
-      </router-link>
-    </div>
+        <!-- Language Switcher -->
+        <LanguageSelector variant="secondary" show-header persist-to-backend />
+      </div>
     </div>
   </div>
 </template>
@@ -139,10 +133,9 @@ import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-
 import { useDateLocale } from '@/composable/use-date-locale';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
 // MoonStar, Sun removed - theme toggle temporarily disabled
-import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SettingsIcon, SparklesIcon } from 'lucide-vue-next';
+import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SparklesIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';

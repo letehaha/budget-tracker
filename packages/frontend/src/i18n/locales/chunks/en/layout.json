@@ -5,7 +5,9 @@
     "investments": "Investments",
     "transactions": "Transactions",
     "analytics": "Analytics",
+    "accountDetails": "Account details",
     "logout": "Logout",
+    "settings": "Settings",
     "planned": {
       "planned": "Planned",
       "subscriptions": "Subscriptions",

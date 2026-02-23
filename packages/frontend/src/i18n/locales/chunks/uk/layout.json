@@ -5,7 +5,9 @@
     "investments": "Інвестиції",
     "transactions": "Транзакції",
     "analytics": "Аналітика",
+    "accountDetails": "Деталі акаунту",
     "logout": "Вийти",
+    "settings": "Налаштування",
     "planned": {
       "planned": "Заплановане",
       "subscriptions": "Підписки",

@@ -1,7 +1,7 @@
 <template>
   <div
     :class="[
-      'grid w-full cursor-pointer rounded-md px-2 py-1 [content-visibility:auto]',
+      'hover:bg-muted/50 grid w-full cursor-pointer rounded-md px-2 py-1 transition-colors [content-visibility:auto]',
       showCheckbox
         ? 'grid-cols-[auto_minmax(0,1fr)_max-content] items-center gap-2'
         : shouldShowGroupedTransfer || isLoadingGroupedTransfer
@@ -33,7 +33,7 @@
             <div class="h-4 w-20 animate-pulse rounded bg-white/10"></div>
           </div>
           <div class="flex items-center gap-3 text-sm">
-            <span class="text-app-expense-color font-medium tabular-nums">{{ formattedExpenseAmount }}</span>
+            <span class="text-amount text-app-expense-color">{{ formattedExpenseAmount }}</span>
             <ArrowRight :size="12" class="opacity-40" />
             <div class="h-4 w-16 animate-pulse rounded bg-white/10"></div>
           </div>
@@ -51,13 +51,9 @@
           </div>
           <!-- Show both amounts on bottom with better spacing and typography -->
           <div class="flex items-center gap-3 text-sm">
-            <span class="text-app-expense-color font-medium whitespace-nowrap tabular-nums">{{
-              formattedExpenseAmount
-            }}</span>
+            <span class="text-amount text-app-expense-color whitespace-nowrap">{{ formattedExpenseAmount }}</span>
             <ArrowRight :size="12" class="opacity-40" />
-            <span class="text-app-income-color font-medium whitespace-nowrap tabular-nums">{{
-              formattedIncomeAmount
-            }}</span>
+            <span class="text-amount text-app-income-color whitespace-nowrap">{{ formattedIncomeAmount }}</span>
           </div>
         </template>
         <template v-else-if="isTransferTransaction">
@@ -77,28 +73,28 @@
         </template>
         <span
           v-if="!shouldShowGroupedTransfer && !isLoadingGroupedTransfer"
-          class="line-clamp-1 text-sm tracking-wider [word-break:break-word] opacity-40"
+          class="text-muted-foreground line-clamp-1 text-sm tracking-wider [word-break:break-word]"
         >
           {{ transaction.note }}
         </span>
       </div>
     </div>
     <div v-if="shouldShowGroupedTransfer || isLoadingGroupedTransfer" class="flex items-start pt-0.5">
-      <div class="text-right text-sm whitespace-nowrap tabular-nums">
+      <div class="text-muted-foreground text-right text-xs whitespace-nowrap tabular-nums">
         {{ formateDate(transaction.time) }}
       </div>
     </div>
     <div v-else>
       <div
         :class="[
-          'text-right',
+          'text-amount text-right',
           transaction.transactionType === TRANSACTION_TYPES.income && 'text-app-income-color',
           transaction.transactionType === TRANSACTION_TYPES.expense && 'text-app-expense-color',
         ]"
       >
         {{ formattedAmount }}
       </div>
-      <div class="text-right text-sm">
+      <div class="text-muted-foreground text-right text-xs">
         {{ formateDate(transaction.time) }}
       </div>
     </div>

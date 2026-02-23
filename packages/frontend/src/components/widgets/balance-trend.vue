@@ -23,36 +23,37 @@
     </template>
     <template v-else>
       <!-- Stats row - two columns with space between -->
-      <div class="mb-4 flex items-start justify-between gap-4">
+      <div class="max-xs:px-2 mb-4 flex items-start justify-between gap-4">
         <!-- Left: Primary value -->
         <div>
-          <div class="text-xl font-bold tracking-wide">
-            {{ formatBaseCurrency(displayBalance.current) }}
+          <div class="text-2xl font-bold tracking-tight">
+            {{ formatBaseCurrency(animatedBalance) }}
           </div>
-          <div class="text-muted-foreground mt-0.5 text-xs font-medium tracking-tight uppercase">
+          <div class="text-muted-foreground mt-1 text-xs font-medium tracking-tight uppercase">
             {{ periodLabel }}
           </div>
         </div>
 
         <!-- Right: Comparison -->
-        <div class="text-right">
-          <div
-            class="text-base font-semibold"
+        <div class="flex flex-col items-end gap-1">
+          <span
+            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
             :class="{
-              'text-app-expense-color': balancesDiff < 0,
-              'text-success-text': balancesDiff > 0,
+              'bg-app-expense-color/15 text-app-expense-color': balancesDiff < 0,
+              'bg-success-text/15 text-success-text': balancesDiff > 0,
+              'bg-muted text-muted-foreground': balancesDiff === 0,
             }"
           >
             {{ balancesDiff > 0 ? '+' : '' }}{{ balancesDiff }}%
-          </div>
-          <div class="text-muted-foreground mt-0.5 text-xs tracking-tight">
+          </span>
+          <div class="text-muted-foreground text-xs tracking-tight">
             {{ $t('dashboard.widgets.balanceTrend.vsPreviousPeriod') }}
           </div>
         </div>
       </div>
 
       <Transition name="chart-fade" mode="out-in">
-        <div :key="chartKey" ref="containerRef" class="relative min-h-44 w-full flex-1">
+        <div :key="chartKey" ref="containerRef" class="max-xs:px-2 relative min-h-44 w-full flex-1">
           <svg ref="svgRef" class="h-full w-full"></svg>
 
           <!-- Tooltip -->
@@ -89,6 +90,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import SelectField from '@/components/fields/select-field.vue';
 import { useFormatCurrency } from '@/composable';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
+import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
@@ -300,8 +302,8 @@ const getColors = () => {
   const style = getComputedStyle(document.documentElement);
   return {
     primary: style.getPropertyValue('--primary').trim() || 'rgb(139, 92, 246)',
-    text: style.getPropertyValue('--base-text').trim() || 'rgb(255, 255, 255)',
-    grid: 'color-mix(in srgb, var(--primary) 10%, transparent)',
+    text: style.getPropertyValue('--muted-foreground').trim() || 'rgb(163, 160, 155)',
+    grid: style.getPropertyValue('--border').trim() || 'rgb(42, 40, 37)',
   };
 };
 
@@ -332,7 +334,7 @@ const renderChart = () => {
     top: 10,
     right: isMobile ? 30 : 40,
     bottom: 35,
-    left: isMobile ? 45 : 55,
+    left: isMobile ? 40 : 48,
   };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
@@ -381,7 +383,7 @@ const renderChart = () => {
     )
     .call((grid) => {
       grid.select('.domain').remove();
-      grid.selectAll('.tick line').attr('stroke', colors.grid).attr('stroke-opacity', 0.5);
+      grid.selectAll('.tick line').attr('stroke', colors.grid).attr('stroke-opacity', 0.4);
     });
 
   // Create gradient for area fill
@@ -395,7 +397,7 @@ const renderChart = () => {
     .attr('x2', '0%')
     .attr('y2', '100%');
 
-  gradient.append('stop').attr('offset', '0%').attr('stop-color', 'var(--primary)').attr('stop-opacity', 0.3);
+  gradient.append('stop').attr('offset', '0%').attr('stop-color', 'var(--primary)').attr('stop-opacity', 0.35);
 
   gradient.append('stop').attr('offset', '100%').attr('stop-color', 'var(--primary)').attr('stop-opacity', 0);
 
@@ -441,8 +443,8 @@ const renderChart = () => {
         }),
     )
     .call((axis) => {
-      axis.select('.domain').attr('stroke', colors.grid);
-      axis.selectAll('.tick line').attr('stroke', colors.grid);
+      axis.select('.domain').attr('stroke', colors.grid).attr('stroke-opacity', 0.4);
+      axis.selectAll('.tick line').attr('stroke', colors.grid).attr('stroke-opacity', 0.4);
       axis.selectAll('.tick text').attr('fill', colors.text).attr('font-size', '11px').attr('dy', '1em');
     });
 
@@ -562,6 +564,10 @@ const displayBalance = computed(() => {
         previous: prevPeriodLastEntry?.totalBalance || 0,
       };
   }
+});
+
+const { displayValue: animatedBalance } = useAnimatedNumber({
+  value: computed(() => displayBalance.value.current),
 });
 
 const balancesDiff = computed<number>(() => {

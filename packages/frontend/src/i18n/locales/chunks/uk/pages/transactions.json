@@ -10,7 +10,7 @@
           "range": "Діапазон",
           "single": "Дати окремо"
         },
-        "selectDateRange": "Виберіть діапазон дат",
+        "selectDateOrRange": "Виберіть дату або діапазон",
         "fromDate": "Від дати",
         "toDate": "До дати",
         "clear": "Очистити",
