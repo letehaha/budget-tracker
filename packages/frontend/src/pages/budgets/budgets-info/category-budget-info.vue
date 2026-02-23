@@ -10,6 +10,7 @@ import {
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AlertDialog } from '@/components/common';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import ActionButton from '@/components/lib/ui/action-button/action-button.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import Card from '@/components/lib/ui/card/Card.vue';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -19,6 +20,7 @@ import { format } from 'date-fns';
 import { cloneDeep } from 'lodash-es';
 import {
   ArchiveIcon,
+  ArchiveRestoreIcon,
   ArrowRightIcon,
   CalendarIcon,
   ChevronDownIcon,
@@ -122,14 +124,7 @@ const handleDeleteBudget = async () => {
   }
 };
 
-const {
-  isBudgetArchived,
-  handleToggleArchive,
-  archiveButtonIcon,
-  archiveButtonLabel,
-  archiveButtonVariant,
-  hasFeedback,
-} = useArchiveToggle({ budgetData, budgetId: currentBudgetId });
+const { isBudgetArchived, handleToggleArchive } = useArchiveToggle({ budgetData, budgetId: currentBudgetId });
 
 watch(
   budgetItem,
@@ -226,15 +221,13 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
 
         <!-- Action Buttons -->
         <div class="flex items-center gap-2">
-          <Button
-            :variant="archiveButtonVariant"
+          <ActionButton
+            :action="handleToggleArchive"
+            :label="isBudgetArchived ? t('budgets.list.unarchive') : t('budgets.list.archive')"
+            :icon="isBudgetArchived ? ArchiveRestoreIcon : ArchiveIcon"
             size="sm"
-            class="transition-colors duration-300"
-            @click="handleToggleArchive"
-          >
-            <component :is="archiveButtonIcon" class="mr-2 size-4" :class="hasFeedback && 'animate-archive-check'" />
-            {{ archiveButtonLabel }}
-          </Button>
+            @error="addErrorNotification(t('budgets.list.archiveError'))"
+          />
 
           <ResponsiveDialog v-model:open="isEditDialogOpen">
             <template #trigger>

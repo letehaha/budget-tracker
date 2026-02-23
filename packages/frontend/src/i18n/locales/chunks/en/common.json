@@ -17,6 +17,7 @@
       "saveChanges": "Save Changes",
       "scrollToTop": "Top",
       "done": "Done",
+      "failed": "Failed",
       "viewAll": "View all"
     },
     "ui": {
