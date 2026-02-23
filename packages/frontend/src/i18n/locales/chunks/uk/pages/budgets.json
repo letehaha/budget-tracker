@@ -49,7 +49,10 @@
       "archive": "Архівувати",
       "unarchive": "Розархівувати",
       "archivedLabel": "Архівовано",
+      "archived": "Архівовано",
+      "unarchived": "Розархівовано",
       "archiveError": "Не вдалося оновити статус архіву",
+      "archiveFailed": "Помилка",
       "showArchived": "Показати архівовані",
       "hideArchived": "Сховати архівовані",
       "emptyState": {

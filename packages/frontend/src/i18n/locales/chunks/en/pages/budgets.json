@@ -58,7 +58,10 @@
       "archive": "Archive",
       "unarchive": "Unarchive",
       "archivedLabel": "Archived",
+      "archived": "Archived",
+      "unarchived": "Unarchived",
       "archiveError": "Failed to update archive status",
+      "archiveFailed": "Failed",
       "showArchived": "Show archived",
       "hideArchived": "Hide archived",
       "emptyState": {

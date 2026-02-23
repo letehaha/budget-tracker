@@ -2,7 +2,6 @@
 import { deleteBudget as deleteBudgetApi } from '@/api';
 import {
   type CategoryBudgetTransaction,
-  archiveBudget as archiveBudgetApi,
   editBudget,
   loadBudgetById,
   loadBudgetStats,
@@ -15,13 +14,11 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import Card from '@/components/lib/ui/card/Card.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable';
-import { BUDGET_STATUSES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { format } from 'date-fns';
 import { cloneDeep } from 'lodash-es';
 import {
   ArchiveIcon,
-  ArchiveRestoreIcon,
   ArrowRightIcon,
   CalendarIcon,
   ChevronDownIcon,
@@ -39,6 +36,7 @@ import BudgetDetailSkeleton from './budget-detail-skeleton.vue';
 import CategoryBudgetEditForm from './category-budget-edit-form.vue';
 import BudgetStatsCards from './shared/budget-stats-cards.vue';
 import BudgetUtilizationBar from './shared/budget-utilization-bar.vue';
+import { useArchiveToggle } from './shared/use-archive-toggle';
 import { useBudgetDetails } from './shared/use-budget-details';
 
 const route = useRoute();
@@ -124,22 +122,14 @@ const handleDeleteBudget = async () => {
   }
 };
 
-const isBudgetArchived = computed(() => budgetData.value?.status === BUDGET_STATUSES.archived);
-
-const { mutate: toggleArchive } = useMutation({
-  mutationFn: archiveBudgetApi,
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
-    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_CACHE_KEYS.budgetsListItem, currentBudgetId.value] });
-  },
-  onError: () => {
-    addErrorNotification(t('budgets.list.archiveError'));
-  },
-});
-
-const handleToggleArchive = () => {
-  toggleArchive({ budgetId: currentBudgetId.value, isArchived: !isBudgetArchived.value });
-};
+const {
+  isBudgetArchived,
+  handleToggleArchive,
+  archiveButtonIcon,
+  archiveButtonLabel,
+  archiveButtonVariant,
+  hasFeedback,
+} = useArchiveToggle({ budgetData, budgetId: currentBudgetId });
 
 watch(
   budgetItem,
@@ -236,9 +226,14 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
 
         <!-- Action Buttons -->
         <div class="flex items-center gap-2">
-          <Button variant="outline" size="sm" @click="handleToggleArchive">
-            <component :is="isBudgetArchived ? ArchiveRestoreIcon : ArchiveIcon" class="mr-2 size-4" />
-            {{ isBudgetArchived ? $t('budgets.list.unarchive') : $t('budgets.list.archive') }}
+          <Button
+            :variant="archiveButtonVariant"
+            size="sm"
+            class="transition-colors duration-300"
+            @click="handleToggleArchive"
+          >
+            <component :is="archiveButtonIcon" class="mr-2 size-4" :class="hasFeedback && 'animate-archive-check'" />
+            {{ archiveButtonLabel }}
           </Button>
 
           <ResponsiveDialog v-model:open="isEditDialogOpen">

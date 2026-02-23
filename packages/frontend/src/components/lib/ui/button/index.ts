@@ -16,6 +16,10 @@ export const buttonVariants = cva(
         'ghost-destructive': 'text-destructive-text hover:bg-destructive/20 hover:text-destructive-text',
         'soft-destructive': 'bg-destructive/15 text-destructive-text hover:bg-destructive/25',
         'ghost-primary': 'text-primary hover:bg-primary/10 hover:text-primary',
+        success: 'bg-success text-success-foreground hover:bg-success/90',
+        'outline-success': 'border border-success-text/30 text-success-text bg-background hover:bg-success-text/10',
+        'ghost-success': 'text-success-text hover:bg-success-text/10 hover:text-success-text',
+        'soft-success': 'bg-success-text/15 text-success-text hover:bg-success-text/25',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
