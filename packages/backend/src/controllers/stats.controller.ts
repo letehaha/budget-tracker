@@ -241,6 +241,11 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
   return { data: serializeCashFlow(result) };
 });
 
+export const getEarliestTransactionDate = createController(z.object({}), async ({ user }) => {
+  const date = await statsService.getEarliestTransactionDate({ userId: user.id });
+  return { data: date };
+});
+
 const cumulativeDataSchema = z.object({
   query: z.object({
     from: z.string(),
