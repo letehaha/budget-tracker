@@ -31,14 +31,34 @@
       },
       "utilization": {
         "title": "Budget Utilization",
-        "of": "of",
-        "limit": "limit",
+        "summary": "{spent} of {limit} limit",
         "na": "N/A"
       },
       "backToBudgets": "Back to Budgets",
       "noTransactionsYet": "No transactions yet",
       "transactions": "Transactions",
-      "transactionsLinked": "{count} transaction linked to this budget | {count} transactions linked to this budget"
+      "transactionsLinked": "{count} transaction linked to this budget | {count} transactions linked to this budget",
+      "tabs": {
+        "statistics": "Statistics",
+        "transactions": "Transactions"
+      },
+      "statistics": {
+        "tabs": {
+          "categories": "Categories",
+          "timeline": "Timeline"
+        },
+        "errorTitle": "Failed to load statistics",
+        "errorDescription": "Something went wrong while loading the data. Please try again later.",
+        "noDataTitle": "No spending data",
+        "noDataDescription": "There's no spending data available for this budget yet.",
+        "noCategoryData": "No category spending data.",
+        "noTimelineData": "No timeline data.",
+        "total": "Total",
+        "income": "Income",
+        "expenses": "Expenses",
+        "incomeLabel": "Income:",
+        "expensesLabel": "Expenses:"
+      }
     }
   }
 }

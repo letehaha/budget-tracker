@@ -93,6 +93,18 @@ const getTransactionKey = (tx: TransactionModel | undefined, index: number): str
 
 const scrollContainer = useScrollAreaContainer(props.scrollAreaId);
 
+const listContainerRef = ref<HTMLElement | null>(null);
+const scrollMargin = ref(0);
+
+// Measure distance from scroll element top to list container top.
+// TanStack Virtual needs this when the list is offset within the scroll element.
+watch(listContainerRef, (el) => {
+  const scrollEl = scrollContainer?.value?.viewportElement;
+  if (el && scrollEl) {
+    scrollMargin.value = el.getBoundingClientRect().top - scrollEl.getBoundingClientRect().top + scrollEl.scrollTop;
+  }
+});
+
 /**
  * Smart container: Process transactions for display
  * Deduplicate transfers by showing only expense side with opposite transaction attached
@@ -188,6 +200,7 @@ const virtualizer = useVirtualizer(
     getScrollElement: () => scrollContainer?.value?.viewportElement,
     estimateSize: () => 52 + 8,
     overscan: 10,
+    scrollMargin: scrollMargin.value,
     enabled: props.paginate && !!scrollContainer?.value?.viewportElement,
   })),
 );
@@ -234,7 +247,7 @@ watchEffect(() => {
     />
 
     <template v-if="paginate">
-      <div class="relative">
+      <div ref="listContainerRef" class="relative">
         <div v-bind="$attrs" v-if="transactions" class="w-full">
           <div :style="{ height: `${totalSize}px` }" class="relative">
             <div
@@ -245,7 +258,7 @@ watchEffect(() => {
                 top: 0,
                 left: 0,
                 width: '100%',
-                transform: `translateY(${virtualRow.start}px)`,
+                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
               }"
             >
               <template v-if="displayTransactions[virtualRow.index]">

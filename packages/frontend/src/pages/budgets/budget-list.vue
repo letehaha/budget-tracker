@@ -7,6 +7,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes';
 import { BUDGET_STATUSES, BUDGET_TYPES, BudgetModel } from '@bt/shared/types';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useLocalStorage } from '@vueuse/core';
 import { differenceInDays, isPast, isWithinInterval } from 'date-fns';
 import { ArchiveRestoreIcon, TagsIcon, WalletIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -132,7 +133,7 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
   return null;
 };
 
-const activeTab = ref<BUDGET_TYPES>(BUDGET_TYPES.category);
+const activeTab = useLocalStorage<BUDGET_TYPES>('budgets-active-tab', BUDGET_TYPES.category);
 
 const isArchived = (budget: BudgetModel) => budget.status === BUDGET_STATUSES.archived;
 
@@ -161,13 +162,13 @@ const tabItems = computed(() => [
   {
     value: BUDGET_TYPES.category,
     label: categoryBudgets.value.length
-      ? `${t('budgets.list.tabCategory')}  ${categoryBudgets.value.length}`
+      ? `${t('budgets.list.tabCategory')}  (${categoryBudgets.value.length})`
       : t('budgets.list.tabCategory'),
   },
   {
     value: BUDGET_TYPES.manual,
     label: manualBudgets.value.length
-      ? `${t('budgets.list.tabManual')}  ${manualBudgets.value.length}`
+      ? `${t('budgets.list.tabManual')}  (${manualBudgets.value.length})`
       : t('budgets.list.tabManual'),
   },
 ]);

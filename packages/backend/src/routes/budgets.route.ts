@@ -4,6 +4,7 @@ import deleteBudget from '@controllers/budgets/delete-budgets';
 import editBudget from '@controllers/budgets/edit-budget';
 import { getBudgetById, getBudgets } from '@controllers/budgets/get-budgets';
 import getCategoryBudgetTransactions from '@controllers/budgets/get-category-budget-transactions';
+import getSpendingStats from '@controllers/budgets/get-spending-stats';
 import getStats from '@controllers/budgets/get-stats';
 import removeTransactionsFromBudget from '@controllers/budgets/remove-transaction-from-budget';
 import toggleArchive from '@controllers/budgets/toggle-archive';
@@ -16,6 +17,12 @@ const router = Router({});
 router.get('/', authenticateSession, validateEndpoint(getBudgets.schema), getBudgets.handler);
 router.get('/:id', authenticateSession, validateEndpoint(getBudgetById.schema), getBudgetById.handler);
 router.get('/:id/stats', authenticateSession, validateEndpoint(getStats.schema), getStats.handler);
+router.get(
+  '/:id/spending-stats',
+  authenticateSession,
+  validateEndpoint(getSpendingStats.schema),
+  getSpendingStats.handler,
+);
 router.get(
   '/:id/category-transactions',
   authenticateSession,

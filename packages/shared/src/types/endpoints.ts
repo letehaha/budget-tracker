@@ -269,3 +269,27 @@ export interface GetRefundRecommendationsQuery extends QueryPayload {
 export type GetRefundRecommendationsResponse = TransactionModel[];
 
 export type GetTransferRecommendationsResponse = TransactionModel[];
+
+// Budget Spending Stats
+export interface BudgetSpendingByCategoryItem {
+  categoryId: number;
+  name: string;
+  color: string;
+  amount: number; // decimal, positive (expenses only)
+  children?: BudgetSpendingByCategoryItem[];
+}
+
+export interface BudgetSpendingPeriod {
+  periodStart: string; // yyyy-MM-dd
+  periodEnd: string;
+  expense: number; // decimal, positive
+  income: number; // decimal, positive
+}
+
+export interface BudgetSpendingStatsResponse {
+  spendingsByCategory: BudgetSpendingByCategoryItem[];
+  spendingOverTime: {
+    granularity: 'monthly' | 'weekly';
+    periods: BudgetSpendingPeriod[];
+  };
+}
