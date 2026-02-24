@@ -111,3 +111,55 @@ export function serializeBudgetStats(stats: BudgetStatsInternal): BudgetStatsApi
     },
   };
 }
+
+// ============================================================================
+// Budget Spending Stats Serializer
+// ============================================================================
+
+interface SpendingCategoryInternal {
+  categoryId: number;
+  name: string;
+  color: string;
+  amount: number; // cents
+  children?: SpendingCategoryInternal[];
+}
+
+interface SpendingStatsInternal {
+  spendingsByCategory: SpendingCategoryInternal[];
+  spendingOverTime: {
+    granularity: 'monthly' | 'weekly';
+    periods: {
+      periodStart: string;
+      periodEnd: string;
+      expense: number; // cents
+      income: number; // cents
+    }[];
+  };
+}
+
+function serializeSpendingCategory(item: SpendingCategoryInternal) {
+  return {
+    categoryId: item.categoryId,
+    name: item.name,
+    color: item.color,
+    amount: centsToApiDecimal(item.amount),
+    ...(item.children?.length && {
+      children: item.children.map(serializeSpendingCategory),
+    }),
+  };
+}
+
+export function serializeBudgetSpendingStats(stats: SpendingStatsInternal) {
+  return {
+    spendingsByCategory: stats.spendingsByCategory.map(serializeSpendingCategory),
+    spendingOverTime: {
+      granularity: stats.spendingOverTime.granularity,
+      periods: stats.spendingOverTime.periods.map((period) => ({
+        periodStart: period.periodStart,
+        periodEnd: period.periodEnd,
+        expense: centsToApiDecimal(period.expense),
+        income: centsToApiDecimal(period.income),
+      })),
+    },
+  };
+}

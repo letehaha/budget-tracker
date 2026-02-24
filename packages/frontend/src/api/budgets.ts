@@ -1,5 +1,5 @@
 import { api } from '@/api/_api';
-import { BudgetModel } from '@bt/shared/types';
+import { BudgetModel, endpointsTypes } from '@bt/shared/types';
 
 interface editBudgetParamsParams {
   name?: string;
@@ -91,4 +91,12 @@ export const loadCategoryBudgetTransactions = async ({
   limit?: number;
 }): Promise<CategoryBudgetTransactionsResponse> => {
   return api.get(`/budgets/${budgetId}/category-transactions`, { from, limit });
+};
+
+export const loadBudgetSpendingStats = async ({
+  budgetId,
+}: {
+  budgetId: number;
+}): Promise<endpointsTypes.BudgetSpendingStatsResponse> => {
+  return api.get(`/budgets/${budgetId}/spending-stats`);
 };

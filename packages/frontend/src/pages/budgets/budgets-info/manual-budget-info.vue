@@ -7,6 +7,7 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InputField from '@/components/fields/input-field.vue';
 import ActionButton from '@/components/lib/ui/action-button/action-button.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import PillTabs from '@/components/lib/ui/pill-tabs/pill-tabs.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
@@ -19,7 +20,7 @@ import {
   Trash2Icon,
   WalletIcon,
 } from 'lucide-vue-next';
-import { ref, watchEffect } from 'vue';
+import { computed, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -28,6 +29,7 @@ import BudgetStatsCards from './shared/budget-stats-cards.vue';
 import BudgetUtilizationBar from './shared/budget-utilization-bar.vue';
 import { useArchiveToggle } from './shared/use-archive-toggle';
 import { useBudgetDetails } from './shared/use-budget-details';
+import BudgetStatistics from './statistics/budget-statistics.vue';
 import TransactionsList from './transactions-list.vue';
 
 const route = useRoute();
@@ -86,6 +88,12 @@ const handleDeleteBudget = async () => {
 };
 
 const { isBudgetArchived, handleToggleArchive } = useArchiveToggle({ budgetData, budgetId: currentBudgetId });
+
+const activeTab = ref('statistics');
+const tabItems = computed(() => [
+  { value: 'statistics', label: t('pages.budgetDetails.tabs.statistics') },
+  { value: 'transactions', label: t('pages.budgetDetails.tabs.transactions') },
+]);
 
 watchEffect(() => {
   if (!isLoading.value && budgetItem.value) {
@@ -233,8 +241,13 @@ watchEffect(() => {
       :utilization-text-color="utilizationTextColor"
     />
 
-    <!-- Transactions Section -->
-    <div>
+    <PillTabs v-model="activeTab" :items="tabItems" class="mb-6" />
+
+    <!-- Statistics Tab -->
+    <BudgetStatistics v-if="activeTab === 'statistics'" :budget-id="currentBudgetId" />
+
+    <!-- Transactions Tab -->
+    <div v-else>
       <div class="mb-4 flex items-center justify-between">
         <div>
           <h2 class="text-lg font-medium">{{ t('pages.budgetDetails.transactions') }}</h2>

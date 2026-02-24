@@ -13,6 +13,7 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import ActionButton from '@/components/lib/ui/action-button/action-button.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import Card from '@/components/lib/ui/card/Card.vue';
+import PillTabs from '@/components/lib/ui/pill-tabs/pill-tabs.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
@@ -40,6 +41,7 @@ import BudgetStatsCards from './shared/budget-stats-cards.vue';
 import BudgetUtilizationBar from './shared/budget-utilization-bar.vue';
 import { useArchiveToggle } from './shared/use-archive-toggle';
 import { useBudgetDetails } from './shared/use-budget-details';
+import BudgetStatistics from './statistics/budget-statistics.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -125,6 +127,12 @@ const handleDeleteBudget = async () => {
 };
 
 const { isBudgetArchived, handleToggleArchive } = useArchiveToggle({ budgetData, budgetId: currentBudgetId });
+
+const activeTab = ref('statistics');
+const tabItems = computed(() => [
+  { value: 'statistics', label: t('pages.budgetDetails.tabs.statistics') },
+  { value: 'transactions', label: t('pages.budgetDetails.tabs.transactions') },
+]);
 
 watch(
   budgetItem,
@@ -324,101 +332,109 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
       :utilization-text-color="utilizationTextColor"
     />
 
-    <!-- Category Breakdown -->
-    <Card v-if="categoryBreakdown.length > 0" class="mb-6 p-4">
-      <h3 class="mb-4 font-medium">{{ $t('budgets.categoryBudget.categoryBreakdown') }}</h3>
-      <div class="space-y-3">
-        <div v-for="item in categoryBreakdown" :key="item.category?.id" class="flex items-center gap-3">
-          <div class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: item.category?.color || '#888' }" />
-          <span class="flex-1 truncate text-sm">{{ item.category?.name }}</span>
-          <span class="text-muted-foreground text-sm font-medium tabular-nums">
-            {{ formatBaseCurrency(item.amount) }}
-          </span>
-          <span class="text-muted-foreground w-12 text-right text-xs">
-            {{ Math.round((item.amount / totalBreakdownAmount) * 100) }}%
-          </span>
-        </div>
-      </div>
-    </Card>
+    <PillTabs v-model="activeTab" :items="tabItems" class="mb-6" />
 
-    <!-- Transactions Section -->
-    <div>
-      <div class="mb-4">
-        <h2 class="text-lg font-medium">{{ $t('budgets.categoryBudget.transactionsTitle') }}</h2>
-        <p class="text-muted-foreground text-sm">
-          {{ $t('budgets.categoryBudget.transactionsCount', { count: stats.transactionsCount }) }}
-        </p>
-      </div>
+    <!-- Statistics Tab -->
+    <BudgetStatistics v-if="activeTab === 'statistics'" :budget-id="currentBudgetId" />
 
-      <Card class="overflow-clip">
-        <div class="p-3 @md:p-4">
-          <template v-if="isLoadingTransactions">
-            <div class="flex items-center justify-center py-12">
-              <div class="text-muted-foreground text-sm">{{ t('pages.budgetDetails.loading') }}</div>
-            </div>
-          </template>
-          <template v-else-if="transactions.length > 0">
-            <div class="space-y-1">
-              <div
-                v-for="tx in transactions"
-                :key="`${tx.id}-${tx.effectiveCategory?.id}`"
-                class="hover:bg-muted/50 flex items-center gap-3 rounded-lg p-2 transition-colors"
-              >
-                <div
-                  v-if="tx.effectiveCategory"
-                  class="size-8 shrink-0 rounded-full"
-                  :style="{ backgroundColor: tx.effectiveCategory.color }"
-                />
-                <div v-else class="bg-muted size-8 shrink-0 rounded-full" />
-
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2">
-                    <span v-if="tx.effectiveCategory" class="truncate text-sm font-medium">
-                      {{ tx.effectiveCategory.name }}
-                    </span>
-                    <span v-else class="text-muted-foreground truncate text-sm">
-                      {{ t('pages.budgetDetails.uncategorized') }}
-                    </span>
-                  </div>
-                  <div class="text-muted-foreground flex items-center gap-2 text-xs">
-                    <span>{{ formatTransactionDate(tx.time) }}</span>
-                    <span v-if="tx.note" class="truncate">{{ tx.note }}</span>
-                  </div>
-                </div>
-
-                <div class="text-right">
-                  <span
-                    class="text-sm font-medium tabular-nums"
-                    :class="tx.transactionType === 'expense' ? 'text-app-expense-color' : 'text-success-text'"
-                  >
-                    {{ tx.transactionType === 'expense' ? '-' : '+'
-                    }}{{ formatBaseCurrency(tx.effectiveRefAmount || tx.refAmount) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="hasMoreTransactions" class="mt-4 flex justify-center">
-              <Button variant="outline" size="sm" :disabled="isFetchingTransactions" @click="loadMoreTransactions">
-                {{ $t('budgets.categoryBudget.loadMore') }}
-              </Button>
-            </div>
-          </template>
-          <template v-else>
-            <!-- Empty State -->
-            <div class="flex flex-col items-center justify-center py-12 text-center">
-              <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
-                <LayersIcon class="text-muted-foreground size-8" />
-              </div>
-              <h3 class="mb-1 font-medium">{{ $t('budgets.categoryBudget.noTransactions') }}</h3>
-              <p class="text-muted-foreground max-w-sm text-sm">
-                {{ $t('budgets.categoryBudget.noTransactionsDescription') }}
-              </p>
-            </div>
-          </template>
+    <!-- Transactions Tab -->
+    <template v-else>
+      <!-- Category Breakdown -->
+      <Card v-if="categoryBreakdown.length > 0" class="mb-6 p-4">
+        <h3 class="mb-4 font-medium">{{ $t('budgets.categoryBudget.categoryBreakdown') }}</h3>
+        <div class="space-y-3">
+          <div v-for="item in categoryBreakdown" :key="item.category?.id" class="flex items-center gap-3">
+            <div class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: item.category?.color || '#888' }" />
+            <span class="flex-1 truncate text-sm">{{ item.category?.name }}</span>
+            <span class="text-muted-foreground text-sm font-medium tabular-nums">
+              {{ formatBaseCurrency(item.amount) }}
+            </span>
+            <span class="text-muted-foreground w-12 text-right text-xs">
+              {{ Math.round((item.amount / totalBreakdownAmount) * 100) }}%
+            </span>
+          </div>
         </div>
       </Card>
-    </div>
+
+      <!-- Transactions Section -->
+      <div>
+        <div class="mb-4">
+          <h2 class="text-lg font-medium">{{ $t('budgets.categoryBudget.transactionsTitle') }}</h2>
+          <p class="text-muted-foreground text-sm">
+            {{ $t('budgets.categoryBudget.transactionsCount', { count: stats.transactionsCount }) }}
+          </p>
+        </div>
+
+        <Card class="overflow-clip">
+          <div class="p-3 @md:p-4">
+            <template v-if="isLoadingTransactions">
+              <div class="flex items-center justify-center py-12">
+                <div class="text-muted-foreground text-sm">{{ t('pages.budgetDetails.loading') }}</div>
+              </div>
+            </template>
+            <template v-else-if="transactions.length > 0">
+              <div class="space-y-1">
+                <div
+                  v-for="tx in transactions"
+                  :key="`${tx.id}-${tx.effectiveCategory?.id}`"
+                  class="hover:bg-muted/50 flex items-center gap-3 rounded-lg p-2 transition-colors"
+                >
+                  <div
+                    v-if="tx.effectiveCategory"
+                    class="size-8 shrink-0 rounded-full"
+                    :style="{ backgroundColor: tx.effectiveCategory.color }"
+                  />
+                  <div v-else class="bg-muted size-8 shrink-0 rounded-full" />
+
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2">
+                      <span v-if="tx.effectiveCategory" class="truncate text-sm font-medium">
+                        {{ tx.effectiveCategory.name }}
+                      </span>
+                      <span v-else class="text-muted-foreground truncate text-sm">
+                        {{ t('pages.budgetDetails.uncategorized') }}
+                      </span>
+                    </div>
+                    <div class="text-muted-foreground flex items-center gap-2 text-xs">
+                      <span>{{ formatTransactionDate(tx.time) }}</span>
+                      <span v-if="tx.note" class="truncate">{{ tx.note }}</span>
+                    </div>
+                  </div>
+
+                  <div class="text-right">
+                    <span
+                      class="text-sm font-medium tabular-nums"
+                      :class="tx.transactionType === 'expense' ? 'text-app-expense-color' : 'text-success-text'"
+                    >
+                      {{ tx.transactionType === 'expense' ? '-' : '+'
+                      }}{{ formatBaseCurrency(tx.effectiveRefAmount || tx.refAmount) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="hasMoreTransactions" class="mt-4 flex justify-center">
+                <Button variant="outline" size="sm" :disabled="isFetchingTransactions" @click="loadMoreTransactions">
+                  {{ $t('budgets.categoryBudget.loadMore') }}
+                </Button>
+              </div>
+            </template>
+            <template v-else>
+              <!-- Empty State -->
+              <div class="flex flex-col items-center justify-center py-12 text-center">
+                <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
+                  <LayersIcon class="text-muted-foreground size-8" />
+                </div>
+                <h3 class="mb-1 font-medium">{{ $t('budgets.categoryBudget.noTransactions') }}</h3>
+                <p class="text-muted-foreground max-w-sm text-sm">
+                  {{ $t('budgets.categoryBudget.noTransactionsDescription') }}
+                </p>
+              </div>
+            </template>
+          </div>
+        </Card>
+      </div>
+    </template>
   </div>
 
   <!-- Loading State -->

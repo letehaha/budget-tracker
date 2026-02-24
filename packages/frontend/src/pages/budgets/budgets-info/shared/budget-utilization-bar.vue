@@ -23,12 +23,14 @@ const { formatBaseCurrency } = useFormatCurrency();
     <div class="flex items-center justify-between">
       <div>
         <p class="text-muted-foreground text-sm font-medium">{{ t('pages.budgetDetails.utilization.title') }}</p>
-        <p class="mt-1 text-sm">
-          <span class="font-medium">{{ formatBaseCurrency(Math.max(0, -stats.balance)) }}</span>
-          <span class="text-muted-foreground"> {{ t('pages.budgetDetails.utilization.of') }} </span>
-          <span class="font-medium">{{ formatBaseCurrency(limitAmount) }}</span>
-          <span class="text-muted-foreground"> {{ t('pages.budgetDetails.utilization.limit') }}</span>
-        </p>
+        <i18n-t keypath="pages.budgetDetails.utilization.summary" tag="p" class="text-muted-foreground mt-1 text-sm">
+          <template #spent>
+            <span class="font-medium text-white">{{ formatBaseCurrency(Math.max(0, -stats.balance)) }}</span>
+          </template>
+          <template #limit>
+            <span class="font-medium text-white">{{ formatBaseCurrency(limitAmount) }}</span>
+          </template>
+        </i18n-t>
       </div>
       <span :class="['text-2xl font-semibold tabular-nums', utilizationTextColor]">
         {{
