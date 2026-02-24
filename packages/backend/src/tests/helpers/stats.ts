@@ -1,5 +1,8 @@
 import { BalanceModel } from '@bt/shared/types';
-import { getCombinedBalanceHistory as _getCombinedBalanceHistory } from '@root/services/stats';
+import {
+  getCombinedBalanceHistory as _getCombinedBalanceHistory,
+  getEarliestTransactionDate as _getEarliestTransactionDate,
+} from '@root/services/stats';
 import * as helpers from '@tests/helpers';
 
 export async function getBalanceHistory<R extends boolean | undefined = undefined>({
@@ -35,6 +38,20 @@ export const getSpendingsByCategories = async ({ raw = false }: { raw?: boolean 
 
   return raw ? helpers.extractResponse(result) : result;
 };
+
+export async function getEarliestTransactionDate<R extends boolean | undefined = undefined>({
+  raw,
+}: {
+  raw?: R;
+} = {}) {
+  const result = await helpers.makeRequest<Awaited<ReturnType<typeof _getEarliestTransactionDate>>, R>({
+    method: 'get',
+    url: '/stats/earliest-transaction-date',
+    raw,
+  });
+
+  return result;
+}
 
 export async function getCombinedBalanceHistory<R extends boolean | undefined = undefined>({
   from,

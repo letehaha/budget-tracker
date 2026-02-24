@@ -62,6 +62,10 @@ export const getCombinedBalanceHistory = async ({ from, to }: { from?: Date; to?
   return api.get('/stats/combined-balance-history', params);
 };
 
+export const getEarliestTransactionDate = async (): Promise<string | null> => {
+  return api.get('/stats/earliest-transaction-date');
+};
+
 interface GetCashFlowParams {
   from: Date;
   to: Date;

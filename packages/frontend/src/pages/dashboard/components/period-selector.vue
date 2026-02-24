@@ -4,7 +4,12 @@
       <ChevronLeft :size="16" />
     </Button>
 
-    <DateSelector v-model="period" :presets="quickPresets" popover-class-name="md:min-w-[600px]">
+    <DateSelector
+      v-model="period"
+      :presets="quickPresets"
+      :earliest-date="earliestDate"
+      popover-class-name="md:min-w-[600px]"
+    >
       <template #trigger="{ triggerText }">
         <Button variant="ghost" size="sm" class="hover:bg-accent min-w-48 font-medium">
           <CalendarIcon class="mr-1.5 size-3.5" />
@@ -22,6 +27,7 @@
 <script lang="ts" setup>
 import Button from '@/components/lib/ui/button/Button.vue';
 import { DateSelector, type DateSelectorPreset } from '@/components/lib/ui/date-selector';
+import { useEarliestTransactionDate } from '@/composable/data-queries/earliest-transaction-date';
 import { usePeriodNavigation } from '@/composable/use-period-navigation';
 import {
   format as dateFnsFormat,
@@ -58,6 +64,8 @@ const period = computed({
 const { prevPeriod, nextPeriod } = usePeriodNavigation({
   period: () => props.modelValue,
 });
+
+const { earliestDate } = useEarliestTransactionDate();
 
 const isNextDisabled = computed(() => isSameMonth(new Date(), props.modelValue.to));
 

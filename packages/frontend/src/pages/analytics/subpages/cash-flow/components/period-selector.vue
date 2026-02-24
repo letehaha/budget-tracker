@@ -4,7 +4,7 @@
       <ChevronLeft :size="16" />
     </Button>
 
-    <DateSelector v-model="period" :presets="quickPresets">
+    <DateSelector v-model="period" :presets="quickPresets" :earliest-date="earliestDate">
       <template #trigger="{ triggerText }">
         <Button variant="ghost" size="sm" class="hover:bg-accent min-w-55 font-medium">
           <CalendarIcon class="mr-1.5 size-3.5" />
@@ -22,6 +22,7 @@
 <script lang="ts" setup>
 import Button from '@/components/lib/ui/button/Button.vue';
 import { DateSelector, type DateSelectorPreset } from '@/components/lib/ui/date-selector';
+import { useEarliestTransactionDate } from '@/composable/data-queries/earliest-transaction-date';
 import { type Period, usePeriodNavigation } from '@/composable/use-period-navigation';
 import { endOfMonth, endOfYear, isAfter, startOfMonth, startOfYear, subMonths, subYears } from 'date-fns';
 import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next';
@@ -46,6 +47,8 @@ const period = computed({
 const { prevPeriod, nextPeriod } = usePeriodNavigation({
   period: () => props.modelValue,
 });
+
+const { earliestDate } = useEarliestTransactionDate();
 
 const isNextDisabled = computed(() => isAfter(nextPeriod.value.from, new Date()));
 

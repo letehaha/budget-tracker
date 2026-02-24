@@ -53,5 +53,11 @@ router.get(
   validateEndpoint(statsController.getCumulativeData.schema),
   statsController.getCumulativeData.handler,
 );
+router.get(
+  '/earliest-transaction-date',
+  authenticateSession,
+  validateEndpoint(statsController.getEarliestTransactionDate.schema),
+  statsController.getEarliestTransactionDate.handler,
+);
 
 export default router;
