@@ -39,7 +39,7 @@
   "devDependencies": {
     "@vue/compiler-sfc": "^3.5.13",
     "husky": "9.1.7",
-    "knip": "^5.46.0",
+    "knip": "^5.85.0",
     "oxfmt": "^0.35.0",
     "oxlint": "^1.50.0",
     "typescript": "^5.9.3"
