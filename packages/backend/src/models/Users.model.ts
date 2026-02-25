@@ -88,7 +88,7 @@ export default class Users extends Model {
     type: DataType.DATE,
     defaultValue: DataType.NOW,
   })
-  createdAt!: Date;
+  declare createdAt: Date;
 }
 
 export const getUsers = async () => {

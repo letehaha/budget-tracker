@@ -22,8 +22,8 @@ describe('GET /transactions/by-ids', () => {
 
     expect(result).toHaveLength(2);
 
-    const returnedIds = result.map((t) => t.id).sort();
-    expect(returnedIds).toEqual([tx1.id, tx2.id].sort());
+    const returnedIds = result.map((t) => t.id).toSorted();
+    expect(returnedIds).toEqual([tx1.id, tx2.id].toSorted());
 
     // Verify amounts are serialized to decimals
     const firstTx = result.find((t) => t.id === tx1.id)!;

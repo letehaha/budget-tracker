@@ -29,7 +29,7 @@ export default class SecurityPricing extends Model {
     autoIncrement: true,
     type: DataType.INTEGER,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Securities)
   @Column({ type: DataType.INTEGER, allowNull: false })
@@ -71,9 +71,9 @@ export default class SecurityPricing extends Model {
   source!: string | null;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   @BelongsTo(() => Securities)
   security!: Securities;

@@ -41,7 +41,7 @@ export default class InvestmentTransaction extends Model {
     autoIncrement: true,
     type: DataType.INTEGER,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Securities)
   @Index
@@ -184,10 +184,10 @@ export default class InvestmentTransaction extends Model {
   transferId!: string | null;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   @BelongsTo(() => Securities)
   security!: Securities;

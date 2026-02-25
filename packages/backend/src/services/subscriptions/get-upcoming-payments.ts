@@ -56,7 +56,7 @@ export const getUpcomingPayments = async ({ userId, limit = 5, type }: GetUpcomi
         categoryColor: plain.category?.color ?? null,
       };
     })
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       if (!a.nextPaymentDate) return 1;
       if (!b.nextPaymentDate) return -1;
       return a.nextPaymentDate.localeCompare(b.nextPaymentDate);

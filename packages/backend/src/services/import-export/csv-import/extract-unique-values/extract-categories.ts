@@ -33,7 +33,7 @@ export function extractCategories({
       if (category) uniqueCategories.add(category);
     });
 
-    return Array.from(uniqueCategories).sort();
+    return Array.from(uniqueCategories).toSorted();
   }
 
   // existing-category option doesn't need extraction

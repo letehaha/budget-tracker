@@ -6,12 +6,21 @@
   },
   "rules": {
     "typescript/no-empty-object-type": "off",
-    "no-unused-vars": "warn",
+    "no-unused-vars": [
+      "warn",
+      {
+        "caughtErrors": "all",
+        "caughtErrorsIgnorePattern": "^_",
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
     "unicorn/no-useless-fallback-in-spread": "warn",
     "unicorn/no-new-array": "warn",
     "unicorn/no-useless-spread": "warn",
     "unicorn/no-single-promise-in-promise-methods": "warn",
-    "unicorn/no-invalid-fetch-options": "warn"
+    "unicorn/no-invalid-fetch-options": "warn",
+    "unicorn/prefer-optional-catch-binding": "warn"
   },
   "ignorePatterns": ["src/seeders/**/*.js", "src/migrations/**/*.js", "config/**", "dist"]
 }

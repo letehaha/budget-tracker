@@ -124,7 +124,7 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
   }
 
   // Start database transaction for atomicity
-  const result = await Transactions.sequelize!.transaction(async (t: SequelizeTransaction) => {
+  const result = await Transactions.sequelize!.transaction(async (dbTransaction: SequelizeTransaction) => {
     logger.info(
       `Starting base currency change for user ${userId} from ${oldBaseCurrency.currencyCode} to ${newCurrencyCode}`,
     );
@@ -133,14 +133,14 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
     const transactionsUpdated = await rebuildTransactions({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 2: Recalculate all accounts
     const accountsUpdated = await recalculateAccounts({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 3: Rebuild balance history
@@ -148,35 +148,35 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       userId,
       oldCurrencyCode: oldBaseCurrency.currencyCode,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 4: Recalculate investment transactions
     const investmentTransactionsUpdated = await recalculateInvestmentTransactions({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 5: Recalculate portfolio transfers
     const portfolioTransfersUpdated = await recalculatePortfolioTransfers({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 6: Recalculate holdings
     const holdingsUpdated = await recalculateHoldings({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 7: Recalculate portfolio balances
     const portfolioBalancesUpdated = await recalculatePortfolioBalances({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 8: Update the base currency flag

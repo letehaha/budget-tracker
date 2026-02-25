@@ -15,10 +15,10 @@ const getMockedTransactionData = (
   // To make balance change realistic, we store initial one here and the sub below
   let initialAccountBalance = initialBalance ?? faker.number.int({ min: 10000, max: 9999999 });
 
-  return new Array(amount).fill(0).map((_, index) => {
-    const amount = faker.number.int({ min: 1000, max: 99999 });
+  return Array.from({ length: amount }, (_, index) => {
+    const txAmount = faker.number.int({ min: 1000, max: 99999 });
     // Make expenses and incomes
-    const realisticAmount = index % 3 ? amount : amount * -1;
+    const realisticAmount = index % 3 ? txAmount : txAmount * -1;
     const newBalance = (initialAccountBalance = initialAccountBalance + realisticAmount);
 
     return {

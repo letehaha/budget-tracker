@@ -31,7 +31,7 @@ export default createController(schema, async ({ query, body }) => {
     return {
       data: { banks },
     };
-  } catch (error) {
+  } catch {
     throw new ValidationError({ message: t({ key: 'bankDataProviders.failedToFetchBanks' }) });
   }
 });

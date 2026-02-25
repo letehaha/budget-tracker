@@ -9,7 +9,7 @@ import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize
 })
 export default class TagReminders extends Model {
   @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false, type: DataType.INTEGER })

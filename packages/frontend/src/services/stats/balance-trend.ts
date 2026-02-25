@@ -15,6 +15,7 @@ export function aggregateBalanceTrendData(data: BalanceHistoryEntity[]) {
 
   // Generate a list of all dates from the earliest to the latest.
   const allDates = [];
+  // oxlint-disable-next-line no-unmodified-loop-condition -- dt is mutated via setDate()
   for (let dt = firstDate; dt <= lastDate; dt.setDate(dt.getDate() + 1)) {
     allDates.push(formatDate(dt));
   }

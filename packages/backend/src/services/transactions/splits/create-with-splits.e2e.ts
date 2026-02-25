@@ -71,7 +71,7 @@ describe('Create transaction with splits', () => {
     const txWithSplits = transactions![0]!;
 
     expect(txWithSplits.splits).toHaveLength(2);
-    expect(txWithSplits.splits!.map((s) => s.amount).sort()).toEqual([200, 300]);
+    expect(txWithSplits.splits!.map((s) => s.amount).toSorted()).toEqual([200, 300]);
   });
 
   it('should create transaction with splits having notes', async () => {

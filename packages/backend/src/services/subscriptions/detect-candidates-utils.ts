@@ -125,7 +125,7 @@ export function splitByAmountBuckets({
   transactions: TransactionForGrouping[];
   tolerance?: number;
 }): TransactionForGrouping[][] {
-  const sorted = [...transactions].sort((a, b) => Math.abs(a.amount) - Math.abs(b.amount));
+  const sorted = transactions.toSorted((a, b) => Math.abs(a.amount) - Math.abs(b.amount));
   const buckets: TransactionForGrouping[][] = [];
 
   for (const tx of sorted) {
@@ -155,7 +155,7 @@ export function splitByAmountBuckets({
 export function computeIntervals({ dates }: { dates: Date[] }): number[] {
   if (dates.length < 2) return [];
 
-  const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime());
+  const sorted = dates.toSorted((a, b) => a.getTime() - b.getTime());
   const intervals: number[] = [];
 
   for (let i = 1; i < sorted.length; i++) {
@@ -172,7 +172,7 @@ export function computeIntervals({ dates }: { dates: Date[] }): number[] {
 export function computeMedian({ values }: { values: number[] }): number {
   if (values.length === 0) return 0;
 
-  const sorted = [...values].sort((a, b) => a - b);
+  const sorted = values.toSorted((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
 
   if (sorted.length % 2 === 0) {

@@ -16,7 +16,7 @@ export default class Securities extends Model {
     autoIncrement: true,
     type: DataType.INTEGER,
   })
-  id!: number;
+  declare id: number;
 
   @Column({ type: DataType.STRING, allowNull: true })
   name!: string | null;
@@ -70,10 +70,10 @@ export default class Securities extends Model {
   assetClass!: ASSET_CLASS;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   @HasMany(() => Holdings)
   holdings?: Holdings[];

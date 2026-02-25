@@ -122,8 +122,8 @@ app.use((req, res, next) => {
   // Use req.originalUrl to ensure we match the full path regardless of mounting
   if (rawBodyPaths.some((p) => req.originalUrl.startsWith(p))) {
     return express.json({
-      verify: (req, _res, buf) => {
-        (req as Request & { rawBody?: Buffer }).rawBody = buf;
+      verify: (rawReq, _res, buf) => {
+        (rawReq as Request & { rawBody?: Buffer }).rawBody = buf;
       },
     })(req, res, next);
   }

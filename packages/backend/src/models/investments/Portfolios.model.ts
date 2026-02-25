@@ -18,7 +18,7 @@ export default class Portfolios extends Model {
     autoIncrement: true,
     type: DataType.INTEGER,
   })
-  id!: number;
+  declare id: number;
 
   @Column({ type: DataType.STRING, allowNull: false })
   name!: string;
@@ -43,10 +43,10 @@ export default class Portfolios extends Model {
   isEnabled!: boolean;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   // Associations
   @BelongsTo(() => Users)

@@ -269,7 +269,7 @@ const determineDateRange = ({
   if (budgetStartDate && budgetEndDate) {
     return { from: new Date(budgetStartDate), to: new Date(budgetEndDate) };
   }
-  const timestamps = transactionTimes.map((t) => t.getTime());
+  const timestamps = transactionTimes.map((time) => time.getTime());
   return {
     from: new Date(Math.min(...timestamps)),
     to: new Date(Math.max(...timestamps)),

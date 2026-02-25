@@ -5,7 +5,8 @@
   },
   "compilerOptions": {
     "strict": true,
-    "target": "es6",
+    "target": "es2023",
+    "useDefineForClassFields": false,
     "module": "commonjs",
     "outDir": "./dist",
     "baseUrl": "./src",

@@ -47,12 +47,10 @@ export const deleteTransaction = withTransaction(
         await Promise.all(
           // For the each transaction with the same "transferId" delete transaction
           transferTransactions.map((tx) =>
-            Promise.all([
-              Transactions.deleteTransactionById({
-                id: tx.id,
-                userId: tx.userId,
-              }),
-            ]),
+            Transactions.deleteTransactionById({
+              id: tx.id,
+              userId: tx.userId,
+            }),
           ),
         );
       } else {

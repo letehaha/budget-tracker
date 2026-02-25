@@ -120,10 +120,10 @@ export default class Holdings extends Model {
   excluded!: boolean;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   @BelongsTo(() => Securities)
   security?: Securities;

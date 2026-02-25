@@ -60,7 +60,9 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
       return results;
     } catch (error) {
       logger.error({ message: 'FMP search failed:', error: error as Error });
-      throw new Error(`FMP search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`FMP search failed: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+        cause: error,
+      });
     }
   }
 
@@ -95,6 +97,7 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
       logger.error({ message: `Failed to fetch latest price for ${symbol}:`, error: error as Error });
       throw new Error(
         `Failed to fetch latest price for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { cause: error },
       );
     }
   }
@@ -130,14 +133,15 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
       }));
 
       // Sort by date ascending
-      results.sort((a, b) => a.date.getTime() - b.date.getTime());
+      const sorted = results.toSorted((a, b) => a.date.getTime() - b.date.getTime());
 
-      logger.info(`Found ${results.length} historical prices for ${symbol} in date range`);
-      return results;
+      logger.info(`Found ${sorted.length} historical prices for ${symbol} in date range`);
+      return sorted;
     } catch (error) {
       logger.error({ message: `Failed to fetch historical prices for ${symbol}:`, error: error as Error });
       throw new Error(
         `Failed to fetch historical prices for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { cause: error },
       );
     }
   }

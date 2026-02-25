@@ -55,10 +55,10 @@ export default class PortfolioBalances extends Model {
   }
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   // Associations
   @BelongsTo(() => Portfolios)

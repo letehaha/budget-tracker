@@ -760,8 +760,8 @@ const renderChart = () => {
   const createTopRoundedRect = ({
     x,
     y,
-    width,
-    height,
+    width: w,
+    height: h,
     radius,
   }: {
     x: number;
@@ -770,13 +770,13 @@ const renderChart = () => {
     height: number;
     radius: number;
   }) => {
-    const r = Math.min(radius, height / 2, width / 2);
+    const r = Math.min(radius, h / 2, w / 2);
     return `
       M ${x + r} ${y}
-      L ${x + width - r} ${y}
-      Q ${x + width} ${y} ${x + width} ${y + r}
-      L ${x + width} ${y + height}
-      L ${x} ${y + height}
+      L ${x + w - r} ${y}
+      Q ${x + w} ${y} ${x + w} ${y + r}
+      L ${x + w} ${y + h}
+      L ${x} ${y + h}
       L ${x} ${y + r}
       Q ${x} ${y} ${x + r} ${y}
       Z
@@ -792,7 +792,7 @@ const renderChart = () => {
 
       // Filter to only categories with data for current metric, then sort
       const filteredCategories = period.categories.filter((cat) => renderCategoryIds.has(cat.categoryId));
-      const sortedCategories = [...filteredCategories].sort((a, b) => {
+      const sortedCategories = filteredCategories.toSorted((a, b) => {
         const indexA = selectedCategoryIds.value.indexOf(a.categoryId);
         const indexB = selectedCategoryIds.value.indexOf(b.categoryId);
         return indexA - indexB;

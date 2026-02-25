@@ -588,8 +588,8 @@ const { mutate: updateCredentialsMutation, isPending: isUpdatingCredentials } = 
     isUpdateCredentialsDialogOpen.value = false;
     newApiKey.value = '';
   },
-  onError: (error) => {
-    const message = error instanceof Error ? error.message : t('pages.integrations.updateCredentials.failed');
+  onError: (err) => {
+    const message = err instanceof Error ? err.message : t('pages.integrations.updateCredentials.failed');
     addErrorNotification(message);
   },
 });
@@ -670,8 +670,8 @@ const { mutate: disconnectMutation, isPending: isDisconnecting } = useMutation({
 
 // Mutation for updating connection name
 const { mutate: updateNameMutation, isPending: isSavingName } = useMutation({
-  mutationFn: ({ connectionId, providerName }: { connectionId: number; providerName: string }) =>
-    updateConnectionDetails(connectionId, { providerName }),
+  mutationFn: ({ connectionId: connId, providerName }: { connectionId: number; providerName: string }) =>
+    updateConnectionDetails(connId, { providerName }),
   onSuccess: () => {
     addSuccessNotification(t('pages.integrations.notifications.updateNameSuccess'));
     queryClient.invalidateQueries({
@@ -775,9 +775,8 @@ const handleReconnect = async () => {
 
     // Redirect to the authorization URL
     window.location.href = response.authUrl;
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : t('pages.integrations.details.errors.reauthorizationFailed');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : t('pages.integrations.details.errors.reauthorizationFailed');
     isReconnectPending.value = false;
     isReconnectDialogOpen.value = false;
     addErrorNotification(message);

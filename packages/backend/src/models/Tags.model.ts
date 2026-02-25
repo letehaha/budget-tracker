@@ -11,7 +11,7 @@ import TransactionTags from './TransactionTags.model';
 })
 export default class Tags extends Model {
   @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false, type: DataType.INTEGER })

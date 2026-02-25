@@ -219,7 +219,7 @@ interface FlatCategory extends FormattedCategory {
 const props = withDefaults(
   defineProps<{
     label?: string;
-    modelValue: FormattedCategory | null;
+    modelValue?: FormattedCategory | null;
     labelKey?: string | ((value: FormattedCategory) => string);
     values: FormattedCategory[];
     placeholder?: string;

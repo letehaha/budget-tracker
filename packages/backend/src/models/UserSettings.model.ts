@@ -113,7 +113,7 @@ export default class UserSettings extends Model {
     unique: true,
     type: DataType.INTEGER,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Column({
@@ -137,12 +137,12 @@ export default class UserSettings extends Model {
     type: DataType.DATE,
     defaultValue: DataType.NOW,
   })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({
     allowNull: false,
     type: DataType.DATE,
     defaultValue: DataType.NOW,
   })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 }

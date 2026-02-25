@@ -178,11 +178,11 @@ describe('prepareTxUpdationParams', () => {
 
     it('handles external expense → transfer_out_wallet (account → out_of_wallet) conversion without transactionType', () => {
       const expenseTx = buildExternalExpenseTransaction();
-      const destinationAccount = getUahAccount();
+      const destAccount = getUahAccount();
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(expenseTx),
         type: FORM_TYPES.transfer,
-        account: destinationAccount,
+        account: destAccount,
         amount: 1500,
         targetAmount: null,
         toAccount: OUT_OF_WALLET_ACCOUNT_MOCK,
@@ -211,14 +211,14 @@ describe('prepareTxUpdationParams', () => {
 
     it('handles external expense → transfer_out_wallet (out_of_wallet → account) conversion without transactionType', () => {
       const expenseTx = buildExternalExpenseTransaction();
-      const destinationAccount = getUahAccount();
+      const destAccount = getUahAccount();
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(expenseTx),
         type: FORM_TYPES.transfer,
         account: OUT_OF_WALLET_ACCOUNT_MOCK,
         amount: null,
         targetAmount: 1500,
-        toAccount: destinationAccount,
+        toAccount: destAccount,
       };
 
       const result = prepareTxUpdationParams({

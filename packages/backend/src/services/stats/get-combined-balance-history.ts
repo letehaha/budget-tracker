@@ -184,7 +184,7 @@ const calculatePortfolioBalanceHistory = async ({
         const parts = k.split('_');
         return k.startsWith(`${currencyCode}_`) && parts[1] && parts[1] <= dateStr;
       })
-      .sort((a, b) => b[0].localeCompare(a[0]));
+      .toSorted((a, b) => b[0].localeCompare(a[0]));
 
     if (availableRates.length > 0) {
       return availableRates[0]![1];

@@ -374,7 +374,7 @@ function splitDateRangeIntoChunks(from: Date, to: Date): Array<{ from: Date; to:
   }
 
   // Reverse to process newest transactions first
-  return chunks.reverse();
+  return chunks.toReversed();
 }
 
 /**

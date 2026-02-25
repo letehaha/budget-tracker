@@ -47,7 +47,7 @@ export const getMockedLunchFlowBalance = ({
 export const getMockedLunchFlowTransactions = (amount = 5): LunchFlowApiTransactionsResponse => {
   const currentDate = new Date();
 
-  const transactions: LunchFlowApiTransaction[] = new Array(amount).fill(0).map((_, index) => {
+  const transactions: LunchFlowApiTransaction[] = Array.from({ length: amount }, (_, index) => {
     const txAmount = faker.number.float({ min: 5, max: 500, fractionDigits: 2 });
     // Alternate between expenses and incomes
     const signedAmount = index % 3 === 0 ? txAmount : -txAmount;

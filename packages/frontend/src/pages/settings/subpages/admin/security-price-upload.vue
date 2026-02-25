@@ -99,15 +99,15 @@ const fieldMapping = ref<Record<string, string>>({});
 const dateFormat = ref<string>('dd/MM/yyyy');
 const isMappingComplete = ref(false);
 
-function handleMappingComplete(mapping: Record<string, string>, format: string) {
+function handleMappingComplete(mapping: Record<string, string>, fmt: string) {
   fieldMapping.value = mapping;
-  dateFormat.value = format;
+  dateFormat.value = fmt;
   isMappingComplete.value = true;
 }
 
-function handleMappingChanged(mapping: Record<string, string>, format: string) {
+function handleMappingChanged(mapping: Record<string, string>, fmt: string) {
   fieldMapping.value = mapping;
-  dateFormat.value = format;
+  dateFormat.value = fmt;
   // Check if mapping is still complete (all required fields mapped)
   const requiredFields = ['price', 'date'];
   isMappingComplete.value = requiredFields.every((field) => mapping[field]);

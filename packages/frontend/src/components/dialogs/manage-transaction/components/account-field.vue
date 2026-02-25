@@ -118,7 +118,7 @@ withDefaults(
     isTransferTransaction: boolean;
     accounts: AccountModel[];
     filteredAccounts: AccountModel[];
-    isTransactionLinking: boolean;
+    isTransactionLinking?: boolean;
     transactionType: TRANSACTION_TYPES;
     fromAccountDisabled?: boolean;
     toAccountDisabled?: boolean;

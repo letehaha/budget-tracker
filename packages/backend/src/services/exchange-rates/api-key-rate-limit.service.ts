@@ -6,6 +6,7 @@ import { endOfMonth } from 'date-fns';
  * Service to track API keys that have hit rate limits and "disable" them
  * until the end of the month to avoid wasting API calls.
  */
+// oxlint-disable-next-line typescript/no-extraneous-class -- static utility class used as a namespace
 export class ApiKeyRateLimitService {
   private static readonly REDIS_PREFIX = 'api_key_rate_limit';
 

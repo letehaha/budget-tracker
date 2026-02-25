@@ -19,7 +19,7 @@ export default class PortfolioTransfers extends Model {
     autoIncrement: true,
     type: DataType.INTEGER,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Index
@@ -75,10 +75,10 @@ export default class PortfolioTransfers extends Model {
   description!: string | null;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   // Associations
   @BelongsTo(() => Users)

@@ -57,6 +57,7 @@ export abstract class BaseExchangeRateProvider implements IExchangeRateProvider 
     const currentDate = new Date(params.startDate);
     const endDate = new Date(params.endDate);
 
+    // oxlint-disable-next-line no-unmodified-loop-condition -- currentDate is mutated via setDate() below
     while (currentDate <= endDate) {
       const result = await this.fetchRatesForDate({
         date: new Date(currentDate),

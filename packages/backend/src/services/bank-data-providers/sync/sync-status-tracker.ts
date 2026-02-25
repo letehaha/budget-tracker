@@ -271,7 +271,7 @@ export async function clearAllSyncStatuses(): Promise<void> {
         }
       }
       // Keep COMPLETED, FAILED, and IDLE statuses - they're still valid
-    } catch (err) {
+    } catch {
       // If we can't parse it, delete it (only if Redis is still ready)
       if (isRedisReady()) {
         await redisClient.del(key);

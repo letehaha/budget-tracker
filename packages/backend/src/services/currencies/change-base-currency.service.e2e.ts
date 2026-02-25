@@ -424,9 +424,8 @@ describe('Change Base Currency', () => {
       const uahCurrency = currencies.find((i) => i.currencyCode === 'UAH')!;
       const eurCurrency = currencies.find((i) => i.currencyCode === 'EUR')!;
 
-      const accounts = await Promise.all([
-        // USD will become our new base currency
-        ...[uahCurrency.currencyCode, eurCurrency.currencyCode, 'USD'].map((currencyCode) =>
+      const accounts = await Promise.all(
+        [uahCurrency.currencyCode, eurCurrency.currencyCode, 'USD'].map((currencyCode) =>
           helpers.createAccount({
             payload: {
               name: `${currencyCode} Account`,
@@ -438,7 +437,7 @@ describe('Change Base Currency', () => {
             raw: true,
           }),
         ),
-      ]);
+      );
       const uahAccount = accounts[0]!;
       const eurAccount = accounts[1]!;
       const usdAccount = accounts[2]!;

@@ -82,7 +82,7 @@ export default class Notifications extends Model implements NotificationModel {
     allowNull: false,
     defaultValue: DataType.NOW,
   })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({
     type: DataType.DATE,

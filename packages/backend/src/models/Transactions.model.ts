@@ -604,6 +604,7 @@ export const findWithFilters = async ({
         };
       } else {
         whereClause.id = {
+          // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread
           ...((whereClause.id as object) || {}),
           [Op.notIn]: excludedTransactionIds,
         };

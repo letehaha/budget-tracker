@@ -126,18 +126,18 @@ describe('mapIntervalToFrequency', () => {
   });
 });
 
-describe('splitByAmountBuckets', () => {
-  function makeTx({ amount }: { amount: number }): TransactionForGrouping {
-    return {
-      id: Math.random(),
-      amount,
-      note: 'test',
-      time: new Date(),
-      accountId: 1,
-      currencyCode: 'USD',
-    };
-  }
+function makeTx({ amount }: { amount: number }): TransactionForGrouping {
+  return {
+    id: Math.random(),
+    amount,
+    note: 'test',
+    time: new Date(),
+    accountId: 1,
+    currencyCode: 'USD',
+  };
+}
 
+describe('splitByAmountBuckets', () => {
   it('groups identical amounts into one bucket', () => {
     const txs = [makeTx({ amount: -1000 }), makeTx({ amount: -1000 }), makeTx({ amount: -1000 })];
     const buckets = splitByAmountBuckets({ transactions: txs });

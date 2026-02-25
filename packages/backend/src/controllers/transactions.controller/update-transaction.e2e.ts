@@ -611,7 +611,7 @@ describe('Update transaction controller', () => {
   });
 
   describe('refunds', () => {
-    const createTransaction = async (txType: TRANSACTION_TYPES, amount: number) => {
+    const createTestTx = async (txType: TRANSACTION_TYPES, amount: number) => {
       const account = await helpers.createAccount({ raw: true });
       const [tx] = await helpers.createTransaction({
         payload: {
@@ -635,8 +635,8 @@ describe('Update transaction controller', () => {
     ];
 
     it('fails when trying to update both refundsTxId, and refundedBy', async () => {
-      const originalTx = await createTransaction(TRANSACTION_TYPES.expense, 1000);
-      const refundTx = await createTransaction(TRANSACTION_TYPES.income, 500);
+      const originalTx = await createTestTx(TRANSACTION_TYPES.expense, 1000);
+      const refundTx = await createTestTx(TRANSACTION_TYPES.income, 500);
       const response = await helpers.updateTransaction({
         id: refundTx.id,
         payload: {
@@ -651,8 +651,8 @@ describe('Update transaction controller', () => {
     it('change from refundsTxId to refundedByTxIds', async () => {
       const [original, refund] = await Promise.all([
         // Use the same amount, so transactions can refund another in both directions
-        createTransaction(TRANSACTION_TYPES.expense, 500),
-        createTransaction(TRANSACTION_TYPES.income, 500),
+        createTestTx(TRANSACTION_TYPES.expense, 500),
+        createTestTx(TRANSACTION_TYPES.income, 500),
       ]);
 
       // Set up initial refund relationship
@@ -695,8 +695,8 @@ describe('Update transaction controller', () => {
       it.each(scenarios)(
         'refunds another transaction in default conditions ($originalType -> $refundType)',
         async ({ originalType, refundType }) => {
-          const originalTx = await createTransaction(originalType, 1000);
-          const refundTx = await createTransaction(refundType, 500);
+          const originalTx = await createTestTx(originalType, 1000);
+          const refundTx = await createTestTx(refundType, 500);
           const [updatedOriginalTx] = await helpers.updateTransaction({
             id: refundTx.id,
             payload: {
@@ -723,8 +723,8 @@ describe('Update transaction controller', () => {
       it.each(scenarios)(
         'should unlink refund transaction when refundsTxId is null ($originalType -> $refundType)',
         async ({ originalType, refundType }) => {
-          const originalTx = await createTransaction(originalType, 1000);
-          const refundTx = await createTransaction(refundType, 500);
+          const originalTx = await createTestTx(originalType, 1000);
+          const refundTx = await createTestTx(refundType, 500);
 
           await helpers.updateTransaction({
             id: refundTx.id,
@@ -764,9 +764,9 @@ describe('Update transaction controller', () => {
       it.each(scenarios)(
         'should change refund transaction when a new one is provided ($originalType -> $refundType)',
         async ({ originalType, refundType }) => {
-          const originalTx1 = await createTransaction(originalType, 1000);
-          const originalTx2 = await createTransaction(originalType, 500);
-          const refundTx = await createTransaction(refundType, 500);
+          const originalTx1 = await createTestTx(originalType, 1000);
+          const originalTx2 = await createTestTx(originalType, 500);
+          const refundTx = await createTestTx(refundType, 500);
 
           await helpers.updateTransaction({
             id: refundTx.id,
@@ -806,26 +806,13 @@ describe('Update transaction controller', () => {
     });
 
     describe('transaction refunded by many others', () => {
-      const createTransaction = async (txType, amount) => {
-        const account = await helpers.createAccount({ raw: true });
-        const [tx] = await helpers.createTransaction({
-          payload: {
-            ...helpers.buildTransactionPayload({ accountId: account.id }),
-            transactionType: txType,
-            amount,
-          },
-          raw: true,
-        });
-        return tx;
-      };
-
       it.each(scenarios)(
         'links multiple refund transactions ($originalType -> $refundType)',
         async ({ originalType, refundType }) => {
           const [originalTx, refundTx1, refundTx2] = await Promise.all([
-            createTransaction(originalType, 1000),
-            createTransaction(refundType, 500),
-            createTransaction(refundType, 500),
+            createTestTx(originalType, 1000),
+            createTestTx(refundType, 500),
+            createTestTx(refundType, 500),
           ]);
 
           const [updatedOriginalTx] = await helpers.updateTransaction({
@@ -863,9 +850,9 @@ describe('Update transaction controller', () => {
         'unlinks multiple refund transactions when refundedByTxIds is null ($originalType -> $refundType)',
         async ({ originalType, refundType }) => {
           const [originalTx, refundTx1, refundTx2] = await Promise.all([
-            createTransaction(originalType, 1000),
-            createTransaction(refundType, 500),
-            createTransaction(refundType, 500),
+            createTestTx(originalType, 1000),
+            createTestTx(refundType, 500),
+            createTestTx(refundType, 500),
           ]);
 
           await helpers.updateTransaction({
@@ -909,10 +896,10 @@ describe('Update transaction controller', () => {
         'changes refund transactions when new array is provided ($originalType -> $refundType)',
         async ({ originalType, refundType }) => {
           const [originalTx, refundTx1, refundTx2, refundTx3] = await Promise.all([
-            createTransaction(originalType, 1000),
-            createTransaction(refundType, 300),
-            createTransaction(refundType, 300),
-            createTransaction(refundType, 400),
+            createTestTx(originalType, 1000),
+            createTestTx(refundType, 300),
+            createTestTx(refundType, 300),
+            createTestTx(refundType, 400),
           ]);
 
           await helpers.updateTransaction({
@@ -954,10 +941,10 @@ describe('Update transaction controller', () => {
         'does not allow refunds exceeding original transaction amount ($originalType -> $refundType)',
         async ({ originalType, refundType }) => {
           const [originalTx, refundTx1, refundTx2, refundTx3] = await Promise.all([
-            createTransaction(originalType, 1000),
-            createTransaction(refundType, 500),
-            createTransaction(refundType, 500),
-            createTransaction(refundType, 100),
+            createTestTx(originalType, 1000),
+            createTestTx(refundType, 500),
+            createTestTx(refundType, 500),
+            createTestTx(refundType, 100),
           ]);
 
           const response = await helpers.updateTransaction({
@@ -975,9 +962,9 @@ describe('Update transaction controller', () => {
         'does not allow refunds with incorrect transaction type ($originalType -> $refundType)',
         async ({ originalType, refundType }) => {
           const [originalTx, refundTx1, refundTx2] = await Promise.all([
-            createTransaction(originalType, 1000),
-            createTransaction(originalType, 500),
-            createTransaction(refundType, 500),
+            createTestTx(originalType, 1000),
+            createTestTx(originalType, 500),
+            createTestTx(refundType, 500),
           ]);
 
           const response = await helpers.updateTransaction({

@@ -155,7 +155,7 @@ export default createController(schema, async ({ user, query }) => {
     // Exclude transactions that have splits (parent transactions with splits)
     .filter((tx) => !tx.splits || tx.splits.length === 0)
     // Sort by: 1) Same currency first, 2) Amount proximity, 3) Date proximity
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       // 1. Same currency preference (same currency = 0, different = 1)
       const aSameCurrency = a.currencyCode === sourceCurrencyCode ? 0 : 1;
       const bSameCurrency = b.currencyCode === sourceCurrencyCode ? 0 : 1;

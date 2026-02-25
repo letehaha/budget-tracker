@@ -148,7 +148,7 @@ export const getBalanceHistory = async ({
     }
 
     // Combine results
-    data = [...data, ...latestBalances].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    data = [...data, ...latestBalances].toSorted((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }
 
   return data;
@@ -177,7 +177,7 @@ function aggregateBalanceTrendData(
   const datesList = new Set(data.map((item) => formatDate(item.date)));
 
   // Determine the earliest and latest dates in the dataset.
-  const sortedDates = Array.from(datesList).sort();
+  const sortedDates = Array.from(datesList).toSorted();
 
   // Use requested from/to dates if provided, otherwise use data range
   const firstDate = from ? new Date(from) : new Date(sortedDates[0]!);
@@ -185,6 +185,7 @@ function aggregateBalanceTrendData(
 
   // Generate a list of all dates from the earliest to the latest.
   const allDates: string[] = [];
+  // oxlint-disable-next-line no-unmodified-loop-condition -- dt is mutated via setDate()
   for (let dt = new Date(firstDate); dt <= lastDate; dt.setDate(dt.getDate() + 1)) {
     allDates.push(formatDate(dt));
   }
@@ -267,7 +268,7 @@ function aggregateBalanceTrendData(
       date,
       amount,
     }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+    .toSorted((a, b) => a.date.localeCompare(b.date));
 
   return result;
 }
