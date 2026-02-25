@@ -72,18 +72,14 @@ const { isPending: isMutating, mutate: createBudgetItem } = useMutation({
 
 const isDateExist = computed(() => !!form.value.startDate && !!form.value.endDate);
 const isCategoryBudget = computed(() => form.value.type === BUDGET_TYPES.category);
-const isCategoryValid = computed(
-  () => !isCategoryBudget.value || form.value.categoryIds.length > 0,
-);
+const isCategoryValid = computed(() => !isCategoryBudget.value || form.value.categoryIds.length > 0);
 const categoryErrorMessage = computed(() => {
   if (!isCategoryBudget.value) return undefined;
   if (!categoriesFieldTouched.value) return undefined;
   if (form.value.categoryIds.length > 0) return undefined;
   return t('budgets.creation.categoriesRequired');
 });
-const isSubmitDisabled = computed(
-  () => isMutating.value || !form.value.name || !isCategoryValid.value,
-);
+const isSubmitDisabled = computed(() => isMutating.value || !form.value.name || !isCategoryValid.value);
 
 const onCategoriesUpdate = (value: number[]) => {
   form.value.categoryIds = value;

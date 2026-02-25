@@ -32,13 +32,13 @@ const strokeDasharray = (progress: number) => {
           :class="
             cn(
               'fixed z-40 flex items-center justify-center',
-              'rounded-full bg-background border shadow-lg',
-              'hover:scale-105 transition-all duration-200',
-              'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+              'bg-background rounded-full border shadow-lg',
+              'transition-all duration-200 hover:scale-105',
+              'focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none',
               // Desktop: right side, vertically centered
-              'right-4 top-1/2 -translate-y-1/2',
+              'top-1/2 right-4 -translate-y-1/2',
               // Mobile: bottom right, above bottom navbar
-              'max-md:bottom-20 max-md:top-auto max-md:translate-y-0',
+              'max-md:top-auto max-md:bottom-20 max-md:translate-y-0',
             )
           "
           @click="handleClick"
@@ -47,14 +47,7 @@ const strokeDasharray = (progress: number) => {
           <div class="relative size-12">
             <svg class="size-12 -rotate-90" viewBox="0 0 36 36">
               <!-- Background circle -->
-              <circle
-                class="stroke-muted"
-                stroke-width="3"
-                fill="none"
-                cx="18"
-                cy="18"
-                r="15.9155"
-              />
+              <circle class="stroke-muted" stroke-width="3" fill="none" cx="18" cy="18" r="15.9155" />
               <!-- Progress circle -->
               <circle
                 class="stroke-primary transition-all duration-500 ease-out"

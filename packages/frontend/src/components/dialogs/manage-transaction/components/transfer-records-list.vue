@@ -129,7 +129,12 @@ const {
   hasNextPage,
   isFetched,
 } = useInfiniteQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.recordsPageTransactionList, 'transfer-list', props.transactionType, appliedFilters],
+  queryKey: [
+    ...VUE_QUERY_CACHE_KEYS.recordsPageTransactionList,
+    'transfer-list',
+    props.transactionType,
+    appliedFilters,
+  ],
   queryFn: ({ pageParam }) => fetchTransactions({ pageParam, filter: appliedFilters.value }),
   initialPageParam: 0,
   getNextPageParam: (lastPage, pages) => {
@@ -256,7 +261,9 @@ const hasAnyTransactions = computed(
       </Button>
     </template>
     <template v-else-if="!hasNextPage && hasAnyTransactions">
-      <p class="mt-4 text-center text-sm">{{ t('dialogs.manageTransaction.transferRecordsList.noMoreTransactions') }}</p>
+      <p class="mt-4 text-center text-sm">
+        {{ t('dialogs.manageTransaction.transferRecordsList.noMoreTransactions') }}
+      </p>
     </template>
     <template v-else>
       <p class="mx-auto max-w-[80%] text-center text-sm text-white/80">

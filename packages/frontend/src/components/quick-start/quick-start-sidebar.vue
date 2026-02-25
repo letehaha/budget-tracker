@@ -18,15 +18,8 @@ import QuickStartHeader from './quick-start-header.vue';
 const router = useRouter();
 const onboardingStore = useOnboardingStore();
 
-const {
-  isPanelOpen,
-  categories,
-  progressPercentage,
-  completedCount,
-  totalTasks,
-  remainingCount,
-  shouldShowTrigger,
-} = storeToRefs(onboardingStore);
+const { isPanelOpen, categories, progressPercentage, completedCount, totalTasks, remainingCount, shouldShowTrigger } =
+  storeToRefs(onboardingStore);
 
 const handleToggle = () => {
   if (isPanelOpen.value) {
@@ -62,10 +55,7 @@ const strokeDasharray = (progress: number) => {
   <div
     v-if="shouldShowTrigger"
     :class="
-      cn(
-        'bg-background border-l flex flex-col transition-all duration-300 ease-in-out',
-        isPanelOpen ? 'w-80' : 'w-12',
-      )
+      cn('bg-background flex flex-col border-l transition-all duration-300 ease-in-out', isPanelOpen ? 'w-80' : 'w-12')
     "
   >
     <!-- Collapsed state -->
@@ -82,14 +72,7 @@ const strokeDasharray = (progress: number) => {
       <div class="relative size-9">
         <svg class="size-9 -rotate-90" viewBox="0 0 36 36">
           <!-- Background circle -->
-          <circle
-            class="stroke-muted"
-            stroke-width="3"
-            fill="none"
-            cx="18"
-            cy="18"
-            r="15.9155"
-          />
+          <circle class="stroke-muted" stroke-width="3" fill="none" cx="18" cy="18" r="15.9155" />
           <!-- Progress circle -->
           <circle
             class="stroke-primary transition-all duration-500 ease-out"
@@ -110,7 +93,7 @@ const strokeDasharray = (progress: number) => {
 
       <!-- Rotated "Quick Start" text -->
       <span
-        class="text-muted-foreground whitespace-nowrap text-xs font-medium"
+        class="text-muted-foreground text-xs font-medium whitespace-nowrap"
         style="writing-mode: vertical-rl; text-orientation: mixed"
       >
         {{ t('dashboard.onboarding.quickStart.ui.title') }}

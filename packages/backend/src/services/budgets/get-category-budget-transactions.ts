@@ -3,8 +3,8 @@ import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Budgets from '@models/Budget.model';
 import Categories from '@models/Categories.model';
-import TransactionSplits from '@models/TransactionSplits.model';
 import * as Transactions from '@models/Transactions.model';
+import TransactionSplits from '@models/TransactionSplits.model';
 import { Op } from 'sequelize';
 
 import { buildDateFilter } from './utils/build-date-filter';

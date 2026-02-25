@@ -53,14 +53,14 @@ The main model will decide how to present this to the user and what actions to t
 
 This is a monorepo with backend (Jest), frontend unit (Vitest), and frontend E2E (Playwright):
 
-| Scope              | Command                                     |
-| ------------------ | ------------------------------------------- |
-| All tests          | `npm test`                                  |
-| Backend all        | `npm -w packages/backend run test`          |
-| Backend unit       | `npm -w packages/backend run test:unit`     |
-| Backend E2E        | `npm -w packages/backend run test:e2e`      |
-| Frontend unit      | `npm -w packages/frontend run test`         |
-| Frontend E2E       | `npm run test:e2e -w packages/frontend`     |
+| Scope              | Command                                                       |
+| ------------------ | ------------------------------------------------------------- |
+| All tests          | `npm test`                                                    |
+| Backend all        | `npm -w packages/backend run test`                            |
+| Backend unit       | `npm -w packages/backend run test:unit`                       |
+| Backend E2E        | `npm -w packages/backend run test:e2e`                        |
+| Frontend unit      | `npm -w packages/frontend run test`                           |
+| Frontend E2E       | `npm run test:e2e -w packages/frontend`                       |
 | Frontend E2E (one) | `npm run test:e2e -w packages/frontend -- --grep "test name"` |
 
 ## CRITICAL: Test File Patterns

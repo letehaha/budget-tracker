@@ -59,7 +59,6 @@ Other instructions:
 5. **Tool Selection for Code Search:**
 
    **Use ast-grep when:**
-
    - Finding code patterns by **structure** (not just text):
      - Function calls with specific argument patterns
      - Class/interface definitions matching criteria
@@ -71,7 +70,6 @@ Other instructions:
    - **Context-aware searches**: Code in specific syntactic positions
 
    **Use grep when:**
-
    - Simple literal searches (variable names, specific constants)
    - Cross-file-type searches (markdown, JSON, configs, code)
    - Exploratory searches (don't know exact structure yet)

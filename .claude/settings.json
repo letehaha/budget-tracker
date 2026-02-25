@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path' | while read -r f; do case \"$f\" in *.ts|*.tsx|*.js|*.jsx|*.vue|*.json|*.css|*.scss) npx prettier --write \"$f\";; esac; done"
+            "command": "jq -r '.tool_input.file_path' | while read -r f; do case \"$f\" in *.ts|*.tsx|*.js|*.jsx|*.vue|*.json|*.css|*.scss) npx oxfmt --write \"$f\";; esac; done"
           }
         ]
       }

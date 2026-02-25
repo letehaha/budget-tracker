@@ -1,17 +1,7 @@
-import {
-  SUBSCRIPTION_CANDIDATE_STATUS,
-  SUBSCRIPTION_FREQUENCIES,
-} from '@bt/shared/types';
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-  DataType,
-  BeforeCreate,
-} from 'sequelize-typescript';
+import { SUBSCRIPTION_CANDIDATE_STATUS, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType, BeforeCreate } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
+
 import Accounts from './Accounts.model';
 import Subscriptions from './Subscriptions.model';
 import Users from './Users.model';

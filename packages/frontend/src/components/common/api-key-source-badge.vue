@@ -19,7 +19,11 @@
       </Tooltip.TooltipTrigger>
       <Tooltip.TooltipContent class="max-w-70 p-3">
         <p class="text-sm">
-          {{ usingUserKey ? $t('settings.ai.modelSelector.badges.yourKeyTooltip') : $t('settings.ai.modelSelector.badges.serverTooltip') }}
+          {{
+            usingUserKey
+              ? $t('settings.ai.modelSelector.badges.yourKeyTooltip')
+              : $t('settings.ai.modelSelector.badges.serverTooltip')
+          }}
         </p>
       </Tooltip.TooltipContent>
     </Tooltip.Tooltip>

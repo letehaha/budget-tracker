@@ -1,18 +1,9 @@
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  HasMany,
-  Index,
-  BeforeCreate,
-  BeforeUpdate,
-} from 'sequelize-typescript';
+import { SECURITY_PROVIDER, ASSET_CLASS } from '@bt/shared/types/investments';
+import { Table, Column, Model, DataType, HasMany, Index, BeforeCreate, BeforeUpdate } from 'sequelize-typescript';
+
 import Holdings from './Holdings.model';
 import InvestmentTransactions from './InvestmentTransaction.model';
-import SecurityPricing from "./SecurityPricing.model";
-
-import { SECURITY_PROVIDER, ASSET_CLASS } from "@bt/shared/types/investments"
+import SecurityPricing from './SecurityPricing.model';
 
 @Table({
   tableName: 'Securities',

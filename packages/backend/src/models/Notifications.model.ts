@@ -9,6 +9,7 @@ import {
 } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType, BeforeCreate } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
+
 import Users from './Users.model';
 
 @Table({

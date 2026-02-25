@@ -1,0 +1,17 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "typescript/no-empty-object-type": "off",
+    "no-unused-vars": "warn",
+    "unicorn/no-useless-fallback-in-spread": "warn",
+    "unicorn/no-new-array": "warn",
+    "unicorn/no-useless-spread": "warn",
+    "unicorn/no-single-promise-in-promise-methods": "warn",
+    "unicorn/no-invalid-fetch-options": "warn"
+  },
+  "ignorePatterns": ["src/seeders/**/*.js", "src/migrations/**/*.js", "config/**", "dist"]
+}

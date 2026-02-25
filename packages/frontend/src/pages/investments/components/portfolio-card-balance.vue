@@ -19,9 +19,7 @@
       <span class="text-sm font-medium">
         {{ unrealizedGainFormatted }}
       </span>
-      <span class="text-xs opacity-80">
-        ({{ unrealizedPercentFormatted }})
-      </span>
+      <span class="text-xs opacity-80"> ({{ unrealizedPercentFormatted }}) </span>
     </div>
 
     <!-- Cost Basis -->

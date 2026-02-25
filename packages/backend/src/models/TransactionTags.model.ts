@@ -1,5 +1,6 @@
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 import Tags from '@models/Tags.model';
+import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
+
 import Transactions from './Transactions.model';
 
 @Table({ tableName: 'TransactionTags', timestamps: false })

@@ -1,6 +1,7 @@
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
-import Users from '../Users.model';
 import { UnwrapArray } from '@common/types';
+import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
+
+import Users from '../Users.model';
 
 @Table({
   timestamps: false,

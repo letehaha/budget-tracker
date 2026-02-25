@@ -1,3 +1,6 @@
+import '@/styles/global.css';
+import './registerServiceWorker';
+
 import { identifyCurrentTheme, patchMetaViewportMaxScaleForiOS } from '@/common/utils';
 import { clickOutside, nodeResizeObserver } from '@/directives';
 import { i18n, initializeLocale, loadChunks } from '@/i18n';
@@ -5,13 +8,11 @@ import { initPostHog, trackPageviews } from '@/lib/posthog';
 import { initSentry } from '@/lib/sentry';
 import { router } from '@/routes';
 import { store } from '@/stores/setup';
-import '@/styles/global.css';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { createHead } from '@unhead/vue/client';
 import { createApp } from 'vue';
 
 import App from './app.vue';
-import './registerServiceWorker';
 
 identifyCurrentTheme();
 patchMetaViewportMaxScaleForiOS();

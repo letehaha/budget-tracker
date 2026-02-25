@@ -1,8 +1,8 @@
 import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 
 import Categories from './Categories.model';
-import Users from './Users.model';
 import MerchantCategoryCodes from './MerchantCategoryCodes.model';
+import Users from './Users.model';
 
 @Table({
   timestamps: false,

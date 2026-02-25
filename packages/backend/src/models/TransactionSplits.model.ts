@@ -1,16 +1,8 @@
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-  DataType,
-  Length,
-  BeforeCreate,
-} from 'sequelize-typescript';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType, Length, BeforeCreate } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
+
 import Categories from './Categories.model';
 import Transactions from './Transactions.model';
 import Users from './Users.model';
@@ -71,13 +63,21 @@ export default class TransactionSplits extends Model {
 
   /** Amount in account currency (same as transaction.amount) */
   @Column(MoneyColumn({ storage: 'cents' }))
-  get amount(): Money { return moneyGetCents(this, 'amount'); }
-  set amount(val: Money | number) { moneySetCents(this, 'amount', val); }
+  get amount(): Money {
+    return moneyGetCents(this, 'amount');
+  }
+  set amount(val: Money | number) {
+    moneySetCents(this, 'amount', val);
+  }
 
   /** Amount in base currency (same as transaction.refAmount) */
   @Column(MoneyColumn({ storage: 'cents' }))
-  get refAmount(): Money { return moneyGetCents(this, 'refAmount'); }
-  set refAmount(val: Money | number) { moneySetCents(this, 'refAmount', val); }
+  get refAmount(): Money {
+    return moneyGetCents(this, 'refAmount');
+  }
+  set refAmount(val: Money | number) {
+    moneySetCents(this, 'refAmount', val);
+  }
 
   // Optional per-split note, max 100 chars
   @Length({ max: 100 })
@@ -108,11 +108,7 @@ export interface CreateSplitPayload {
   note?: string | null;
 }
 
-export const bulkCreateSplits = async ({
-  data,
-}: {
-  data: CreateSplitPayload[];
-}) => {
+export const bulkCreateSplits = async ({ data }: { data: CreateSplitPayload[] }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return TransactionSplits.bulkCreate(data as any, { individualHooks: true });
 };
@@ -129,25 +125,13 @@ export const deleteSplitsForTransaction = async ({
   });
 };
 
-export const deleteSplitById = async ({
-  id,
-  userId,
-}: {
-  id: string;
-  userId: number;
-}) => {
+export const deleteSplitById = async ({ id, userId }: { id: string; userId: number }) => {
   return TransactionSplits.destroy({
     where: { id, userId },
   });
 };
 
-export const getSplitById = async ({
-  id,
-  userId,
-}: {
-  id: string;
-  userId: number;
-}) => {
+export const getSplitById = async ({ id, userId }: { id: string; userId: number }) => {
   return TransactionSplits.findOne({
     where: { id, userId },
     include: [{ model: Categories, as: 'category' }],

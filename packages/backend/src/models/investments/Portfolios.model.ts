@@ -1,18 +1,10 @@
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  ForeignKey,
-  BelongsTo,
-  HasMany,
-  Index,
-} from 'sequelize-typescript';
+import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, Index } from 'sequelize-typescript';
+
 import Users from '../Users.model';
-import PortfolioBalances from './PortfolioBalances.model';
 import Holdings from './Holdings.model';
 import InvestmentTransaction from './InvestmentTransaction.model';
-import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import PortfolioBalances from './PortfolioBalances.model';
 
 @Table({
   timestamps: true,

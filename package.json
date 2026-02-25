@@ -1,11 +1,14 @@
 {
   "name": "budget-tracker",
   "private": true,
+  "description": "",
+  "license": "ISC",
+  "author": "letehaha",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "lint": "npm -w packages/backend run lint && npm -w packages/frontend run lint",
+    "lint": "npm -w budget-tracker-be run lint && npm -w budget-tracker-fe run lint",
     "landing:dev": "npm -w packages/landing run dev",
     "landing:build": "npm -w packages/landing run build",
     "test": "cross-env NODE_ENV=test npm -w packages/backend run test && npm -w packages/frontend run test",
@@ -24,12 +27,10 @@
     "docker:prod": "docker compose -f ./docker/prod/docker-compose.yml --env-file .env.production build --no-cache && docker compose -f ./docker/prod/docker-compose.yml --env-file .env.production up",
     "prepare": "node -e \"if (process.env.NODE_ENV !== 'production'){process.exit(1)} \" || husky",
     "postinstall": "chmod +x ./post-install.sh && ./post-install.sh",
-    "prettier": "npx prettier --write .",
+    "format": "npx oxfmt .",
+    "format:check": "npx oxfmt --check .",
     "knip": "npx -w packages/backend knip && npx -w packages/frontend knip"
   },
-  "author": "letehaha",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
@@ -38,14 +39,11 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@vue/compiler-sfc": "^3.5.13",
-    "eslint": "7.31.0",
-    "eslint-config-prettier": "^9.1.0",
     "husky": "9.1.7",
     "knip": "^5.46.0",
-    "prettier": "3.5.3",
-    "prettier-plugin-tailwindcss": "^0.6.14",
+    "oxfmt": "^0.35.0",
+    "oxlint": "^1.50.0",
     "typescript": "^5.8.2"
   },
   "volta": {

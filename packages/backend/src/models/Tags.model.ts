@@ -1,8 +1,9 @@
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany, HasMany } from 'sequelize-typescript';
-import Users from '@models/Users.model';
 import Transactions from '@models/Transactions.model';
-import TransactionTags from './TransactionTags.model';
+import Users from '@models/Users.model';
+import { Table, Column, Model, ForeignKey, DataType, BelongsToMany, HasMany } from 'sequelize-typescript';
+
 import TagReminders from './TagReminders.model';
+import TransactionTags from './TransactionTags.model';
 
 @Table({
   tableName: 'Tags',

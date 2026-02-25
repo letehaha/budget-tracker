@@ -1,10 +1,11 @@
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
-import { Op } from 'sequelize';
 import { UserExchangeRatesModel } from '@bt/shared/types';
-import * as Currencies from './Currencies.model';
-import * as UsersCurrencies from './UsersCurrencies.model';
-import Users from './Users.model';
 import { NotFoundError, ValidationError } from '@js/errors';
+import { Op } from 'sequelize';
+import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
+
+import * as Currencies from './Currencies.model';
+import Users from './Users.model';
+import * as UsersCurrencies from './UsersCurrencies.model';
 
 type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>;
 
@@ -163,7 +164,10 @@ export async function updateRates({
         attributes: ['code'],
       }))!;
 
-      await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyCode: currency.code } });
+      await UsersCurrencies.default.update(
+        { liveRateUpdate: false },
+        { where: { userId, currencyCode: currency.code } },
+      );
 
       if (updatedItems[0]) returningValues.push(updatedItems[0]);
     } else {
@@ -202,7 +206,10 @@ export async function updateRates({
           raw: true,
           attributes: ['code'],
         }))!;
-        await UsersCurrencies.default.update({ liveRateUpdate: false }, { where: { userId, currencyCode: currency.code } });
+        await UsersCurrencies.default.update(
+          { liveRateUpdate: false },
+          { where: { userId, currencyCode: currency.code } },
+        );
 
         returningValues.push(res);
       } else {

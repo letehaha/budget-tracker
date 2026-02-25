@@ -2,9 +2,8 @@ import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
   // TODO: fix because it's wrong ignoring them
-  ignoreBinaries: ['knip', 'vue-tsc', 'vitest', 'storybook', 'playwright'],
+  ignoreBinaries: ['knip', 'vue-tsc', 'vitest', 'storybook', 'playwright', 'oxlint'],
   ignore: [
-    '.eslintrc.js',
     'index.d.ts',
     'vite.config.js',
     'backend/**/**',
@@ -30,8 +29,6 @@ const config: KnipConfig = {
     '@storybook/addon-actions',
     // needed for build
     'vue-tsc',
-    // eslint
-    '@eslint/js',
 
     // used in global.css file
     'tailwindcss',
@@ -43,25 +40,12 @@ const config: KnipConfig = {
     // used in CSS
     '@fontsource-variable/manrope',
   ],
-  // ignoreBinaries: ["eslint"],
   rules: {
     // Disables "Dubplicate exports" warning. In some components we want to keep
     // exporting the component both as the variable and as a "default export"
     duplicates: 'off',
     // enumMembers: "off",
   },
-
-  /**
-   * PLUGINS
-   *
-   * We define them manually, because Knip cannot find them automatically.
-   * We need them defined, so Knip won't report of unused dependencies and will
-   * respect plugins configs.
-   */
-  eslint: ['eslint.config.js'],
-  /**
-   * PLUGINS END
-   */
 };
 
 export default config;

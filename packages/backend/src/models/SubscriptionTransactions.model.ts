@@ -1,5 +1,6 @@
 import { SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
+
 import Subscriptions from './Subscriptions.model';
 import Transactions from './Transactions.model';
 

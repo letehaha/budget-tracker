@@ -1,19 +1,8 @@
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-  DataType,
-  HasMany,
-} from 'sequelize-typescript';
-import Users from '@models/Users.model';
-import Accounts from '@models/Accounts.model';
-import {
-  encryptCredentials,
-  decryptCredentials,
-} from '@services/bank-data-providers/utils/credential-encryption';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import Accounts from '@models/Accounts.model';
+import Users from '@models/Users.model';
+import { encryptCredentials, decryptCredentials } from '@services/bank-data-providers/utils/credential-encryption';
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType, HasMany } from 'sequelize-typescript';
 
 /**
  * Interface for BankDataProviderConnections attributes

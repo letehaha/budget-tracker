@@ -80,8 +80,8 @@ SAFE_PREFIXES = [
     "npm run build",
 
     # npx (common dev tools)
-    "npx prettier",
-    "npx eslint",
+    "npx oxfmt",
+    "npx oxlint",
     "npx tsc",
     "npx vue-tsc",
     "npx vitest",

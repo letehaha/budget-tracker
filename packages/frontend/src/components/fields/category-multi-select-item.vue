@@ -11,11 +11,7 @@
       :style="{ paddingLeft: `${8 + depth * 16}px` }"
       @click="$emit('toggle', category.id)"
     >
-      <Checkbox
-        :model-value="isSelected(category.id)"
-        @click.stop
-        @update:model-value="$emit('toggle', category.id)"
-      />
+      <Checkbox :model-value="isSelected(category.id)" @click.stop @update:model-value="$emit('toggle', category.id)" />
       <CategoryCircle :category="category" class="shrink-0" />
       <span class="flex-1 truncate text-sm">{{ category.name }}</span>
       <span v-if="descendantCount > 0" class="text-muted-foreground text-xs">

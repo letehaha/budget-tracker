@@ -1,7 +1,7 @@
 import { TagReminderFrequency, TagReminderSettings, TagReminderType } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import Tags from '@models/Tags.model';
 import Users from '@models/Users.model';
+import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 
 @Table({
   tableName: 'TagReminders',

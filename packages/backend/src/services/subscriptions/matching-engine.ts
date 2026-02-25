@@ -1,8 +1,8 @@
 import { CATEGORIZATION_SOURCE, SUBSCRIPTION_MATCH_SOURCE, SubscriptionMatchingRule } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
-import SubscriptionTransactions from '@models/SubscriptionTransactions.model';
 import Subscriptions from '@models/Subscriptions.model';
+import SubscriptionTransactions from '@models/SubscriptionTransactions.model';
 import * as Transactions from '@models/Transactions.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';

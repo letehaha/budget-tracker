@@ -24,9 +24,7 @@ const clampedRate = computed(() => Math.min(props.utilizationRate, 100));
   <div class="mt-3">
     <div class="mb-1 flex items-center justify-between text-xs">
       <span class="text-muted-foreground">{{ $t('budgets.list.used') }}</span>
-      <span :class="['font-medium tabular-nums', colorClass]">
-        {{ Math.round(utilizationRate) }}%
-      </span>
+      <span :class="['font-medium tabular-nums', colorClass]"> {{ Math.round(utilizationRate) }}% </span>
     </div>
     <div class="bg-muted h-1.5 overflow-hidden rounded-full">
       <div

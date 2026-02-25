@@ -1,15 +1,10 @@
-import { Op } from 'sequelize';
-import {
-  Table,
-  Column,
-  Model,
-  BelongsToMany,
-  DataType,
-} from 'sequelize-typescript';
-import Users from './Users.model';
-import UsersCurrencies from './UsersCurrencies.model';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
+import { Op } from 'sequelize';
+import { Table, Column, Model, BelongsToMany, DataType } from 'sequelize-typescript';
+
+import Users from './Users.model';
+import UsersCurrencies from './UsersCurrencies.model';
 
 @Table({
   timestamps: false,
@@ -124,4 +119,3 @@ export async function getCurrencies({
 
   return Currencies.findAll({ where });
 }
-

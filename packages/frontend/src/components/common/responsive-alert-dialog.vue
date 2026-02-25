@@ -97,11 +97,7 @@ const handleConfirm = () => {
           <AlertDialog.AlertDialogCancel @click="handleCancel">
             {{ effectiveCancelLabel }}
           </AlertDialog.AlertDialogCancel>
-          <AlertDialog.AlertDialogAction
-            :variant="confirmVariant"
-            :disabled="confirmDisabled"
-            @click="handleConfirm"
-          >
+          <AlertDialog.AlertDialogAction :variant="confirmVariant" :disabled="confirmDisabled" @click="handleConfirm">
             {{ effectiveConfirmLabel }}
           </AlertDialog.AlertDialogAction>
         </AlertDialog.AlertDialogFooter>

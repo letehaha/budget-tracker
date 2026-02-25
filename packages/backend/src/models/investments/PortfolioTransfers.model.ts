@@ -1,19 +1,11 @@
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  ForeignKey,
-  BelongsTo,
-  Index,
-} from 'sequelize-typescript';
-import Users from '../Users.model';
-import Accounts from '../Accounts.model';
-import Portfolios from './Portfolios.model';
-import Currencies from '../Currencies.model';
-
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index } from 'sequelize-typescript';
+
+import Accounts from '../Accounts.model';
+import Currencies from '../Currencies.model';
+import Users from '../Users.model';
+import Portfolios from './Portfolios.model';
 
 @Table({
   timestamps: true,
@@ -55,12 +47,20 @@ export default class PortfolioTransfers extends Model {
   toAccountId!: number | null;
 
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get amount(): Money { return moneyGetDecimal(this, 'amount'); }
-  set amount(val: Money | string | number) { moneySetDecimal(this, 'amount', val, 10); }
+  get amount(): Money {
+    return moneyGetDecimal(this, 'amount');
+  }
+  set amount(val: Money | string | number) {
+    moneySetDecimal(this, 'amount', val, 10);
+  }
 
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refAmount(): Money { return moneyGetDecimal(this, 'refAmount'); }
-  set refAmount(val: Money | string | number) { moneySetDecimal(this, 'refAmount', val, 10); }
+  get refAmount(): Money {
+    return moneyGetDecimal(this, 'refAmount');
+  }
+  set refAmount(val: Money | string | number) {
+    moneySetDecimal(this, 'refAmount', val, 10);
+  }
 
   @ForeignKey(() => Currencies)
   @Index
