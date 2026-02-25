@@ -38,9 +38,6 @@ const mountComponent = ({ props = {} } = {}) =>
         VueQueryPlugin,
         router,
       ],
-      directives: {
-        'click-outside': () => {},
-      },
     },
   });
 
