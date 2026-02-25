@@ -53,15 +53,18 @@ const defaultDialogProps = {
   oppositeTransaction: undefined,
 };
 const dialogProps = ref<{
-  transaction: TransactionModel;
-  oppositeTransaction: TransactionModel;
+  transaction: TransactionModel | undefined;
+  oppositeTransaction: TransactionModel | undefined;
 }>(defaultDialogProps);
 
 watch(isDialogVisible, (value) => {
   if (value === false) dialogProps.value = defaultDialogProps;
 });
 
-const handlerRecordClick = ([baseTx, oppositeTx]: [baseTx: TransactionModel, oppositeTx: TransactionModel]) => {
+const handlerRecordClick = ([baseTx, oppositeTx]: [
+  baseTx: TransactionModel,
+  oppositeTx: TransactionModel | undefined,
+]) => {
   const isExternalTransfer =
     baseTx.accountType !== ACCOUNT_TYPES.system || (oppositeTx && oppositeTx.accountType !== ACCOUNT_TYPES.system);
 
@@ -263,10 +266,10 @@ watchEffect(() => {
             >
               <template v-if="displayTransactions[virtualRow.index]">
                 <TransactionRecord
-                  :tx="displayTransactions[virtualRow.index]"
+                  :tx="displayTransactions[virtualRow.index]!"
                   :show-checkbox="enableBulkEdit"
-                  :is-selected="isTransactionSelected(displayTransactions[virtualRow.index].id)"
-                  :is-selectable="isTransactionSelectable(displayTransactions[virtualRow.index])"
+                  :is-selected="isTransactionSelected(displayTransactions[virtualRow.index]!.id)"
+                  :is-selectable="isTransactionSelectable(displayTransactions[virtualRow.index]!)"
                   :index="virtualRow.index"
                   @record-click="handlerRecordClick"
                   @selection-change="toggleTransaction"

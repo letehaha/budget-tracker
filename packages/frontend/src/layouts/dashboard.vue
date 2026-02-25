@@ -54,12 +54,12 @@ const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile, {
   wait: 50,
 });
 
-const scrollAreaRef = ref<typeof ScrollArea>(null);
+const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
 
 watch(
   () => route.fullPath,
   () => {
-    if (scrollAreaRef.value?.viewportRef.viewportElement) {
+    if (scrollAreaRef.value?.viewportRef?.viewportElement) {
       scrollAreaRef.value.viewportRef.viewportElement.scrollTop = 0;
     }
   },

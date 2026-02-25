@@ -19,9 +19,9 @@ export const useTransferFormLogic = ({
   isTransferTx: Ref<boolean>;
   isRecordExternal: Ref<boolean>;
   isOppositeTxExternal: Ref<boolean>;
-  transaction: TransactionModel;
-  oppositeTransaction: TransactionModel;
-  linkedTransaction: Ref<TransactionModel>;
+  transaction: TransactionModel | undefined;
+  oppositeTransaction: TransactionModel | undefined;
+  linkedTransaction: Ref<TransactionModel | null>;
 }) => {
   const { currenciesMap } = storeToRefs(useCurrenciesStore());
   const { systemAccounts } = storeToRefs(useAccountsStore());
@@ -38,10 +38,10 @@ export const useTransferFormLogic = ({
   const isTargetAmountFieldDisabled = computed(() => {
     if (isRecordExternal.value) {
       if (!isTransferTx.value) return true;
-      if (transaction.transactionType === TRANSACTION_TYPES.income) return true;
+      if (transaction?.transactionType === TRANSACTION_TYPES.income) return true;
     }
     if (isOppositeTxExternal.value) {
-      if (oppositeTransaction.transactionType === TRANSACTION_TYPES.income) return true;
+      if (oppositeTransaction?.transactionType === TRANSACTION_TYPES.income) return true;
     }
     // Means it's "Out of wallet"
     if (toAccount.value?.id === OUT_OF_WALLET_ACCOUNT_MOCK.id) return true;
@@ -49,12 +49,14 @@ export const useTransferFormLogic = ({
     return false;
   });
 
-  const targetCurrency = computed(() => currenciesMap.value[form.value.toAccount?.currencyCode]);
+  const targetCurrency = computed(() =>
+    form.value.toAccount?.currencyCode ? currenciesMap.value[form.value.toAccount.currencyCode] : undefined,
+  );
 
   const fromAccountFieldDisabled = computed(() => {
     if (isRecordExternal.value) {
       if (!isTransferTx.value) return true;
-      if (transaction.transactionType === TRANSACTION_TYPES.expense) return true;
+      if (transaction?.transactionType === TRANSACTION_TYPES.expense) return true;
     }
     if (isTransferTx.value && linkedTransaction.value) return true;
     return false;
@@ -63,10 +65,10 @@ export const useTransferFormLogic = ({
   const toAccountFieldDisabled = computed(() => {
     if (isRecordExternal.value) {
       if (!isTransferTx.value) return true;
-      if (transaction.transactionType === TRANSACTION_TYPES.income) return true;
+      if (transaction?.transactionType === TRANSACTION_TYPES.income) return true;
     }
     if (isOppositeTxExternal.value) {
-      if (oppositeTransaction.transactionType === TRANSACTION_TYPES.income) return true;
+      if (oppositeTransaction?.transactionType === TRANSACTION_TYPES.income) return true;
     }
     if (isTransferTx.value && linkedTransaction.value) return true;
     return false;
@@ -84,7 +86,7 @@ export const useTransferFormLogic = ({
       // If fromAccount is the same as toAccount, make toAccount empty
       if (form.value.toAccount?.id === value?.id) {
         // eslint-disable-next-line no-param-reassign
-        form.value.toAccount = null;
+        form.value.toAccount = undefined;
       }
     },
   );

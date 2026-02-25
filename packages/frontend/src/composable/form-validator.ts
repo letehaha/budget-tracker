@@ -90,7 +90,7 @@ export const useFormValidation = <Vargs extends ValidationArgs, T extends Extrac
    * @param fieldPath - the string with the field name. Works also for nested
    *                    fields, such as 'form.email'.
    */
-  const touchField = (fieldPath) => {
+  const touchField = (fieldPath: string) => {
     const field = safeGet(instance.value, fieldPath);
     if (field) {
       field.$touch();
@@ -153,7 +153,12 @@ export const useFormValidation = <Vargs extends ValidationArgs, T extends Extrac
 
         const customErrorMessage = isRef(customMessage) ? customMessage.value : customMessage;
 
-        return customErrorMessage || GENERIC_VALIDATION_MESSAGES[rule] || field[rule].$message || '';
+        return (
+          customErrorMessage ||
+          (GENERIC_VALIDATION_MESSAGES as Record<string, string>)[rule] ||
+          field[rule].$message ||
+          ''
+        );
       }
     }
     return '';

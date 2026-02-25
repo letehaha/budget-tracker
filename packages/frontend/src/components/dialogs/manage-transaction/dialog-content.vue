@@ -98,10 +98,10 @@ const form = ref<UI_FORM_STRUCT>({
   account: null,
   toAccount: null,
   targetAmount: null,
-  category: formattedCategories.value[0],
+  category: formattedCategories.value[0]!,
   time: new Date(),
-  paymentType: VERBOSE_PAYMENT_TYPES.find((item) => item.value === PAYMENT_TYPES.creditCard),
-  note: null,
+  paymentType: VERBOSE_PAYMENT_TYPES.find((item) => item.value === PAYMENT_TYPES.creditCard) ?? null,
+  note: undefined,
   type: FORM_TYPES.expense,
   refundedByTxs: undefined,
   refundsTx: undefined,
@@ -143,14 +143,14 @@ const isRecordExternal = computed(() => {
   // Check the account type, not the transaction type
   // A system transaction in a monobank account should be treated as external
   const account = accountsRecord.value[transaction.value.accountId];
-  return account && account.type !== ACCOUNT_TYPES.system;
+  return (account && account.type !== ACCOUNT_TYPES.system) ?? false;
 });
 const isOppositeTxExternal = computed(() => {
   if (!oppositeTransaction.value) return false;
   // Check the account type, not the transaction type
   // A system transaction in a monobank account should be treated as external
   const account = accountsRecord.value[oppositeTransaction.value.accountId];
-  return account && account.type !== ACCOUNT_TYPES.system;
+  return (account && account.type !== ACCOUNT_TYPES.system) ?? false;
 });
 // If record is external, the account field will be disabled, so we need to preselect
 // the account
@@ -160,7 +160,7 @@ watch(
     if (value && transaction.value?.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
       nextTick(() => {
         if (transaction.value && accountsRecord.value[transaction.value.accountId]) {
-          form.value.account = accountsRecord.value[transaction.value.accountId];
+          form.value.account = accountsRecord.value[transaction.value.accountId]!;
         }
       });
     }
@@ -225,8 +225,9 @@ const isCurrenciesDifferent = computed(() => {
 });
 
 const currencyCode = computed(() => {
-  if (form.value.account?.currencyCode) {
-    return currenciesMap.value[form.value.account.currencyCode].currency.code;
+  const accountCurrencyCode = form.value.account?.currencyCode;
+  if (accountCurrencyCode) {
+    return currenciesMap.value[accountCurrencyCode]?.currency?.code;
   }
   return undefined;
 });
@@ -242,13 +243,13 @@ watch(
 
       if (isLinked) {
         form.value.amount = amount;
-        form.value.account = accountsRecord.value[accountId];
+        form.value.account = accountsRecord.value[accountId] ?? null;
       } else if (txType === FORM_TYPES.transfer) {
         if (transactionType === TRANSACTION_TYPES.income) {
           form.value.targetAmount = amount;
           form.value.amount = null;
 
-          form.value.toAccount = accountsRecord.value[accountId];
+          form.value.toAccount = accountsRecord.value[accountId] ?? null;
           form.value.account = null;
 
           if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
@@ -260,7 +261,7 @@ watch(
           form.value.amount = amount;
           form.value.targetAmount = null;
 
-          form.value.account = accountsRecord.value[accountId];
+          form.value.account = accountsRecord.value[accountId] ?? null;
           form.value.toAccount = null;
         }
       }
@@ -284,7 +285,7 @@ const submit = () => {
 
 const unlinkTransactions = () => {
   unlinkMutation.mutate({
-    transferIds: [transaction.value.transferId],
+    transferIds: [transaction.value!.transferId],
     transactionId: transaction.value?.id,
     oppositeTransactionId: oppositeTransaction.value?.id,
   });
@@ -292,11 +293,11 @@ const unlinkTransactions = () => {
 
 const deleteTransactionHandler = () => {
   // Check the account type, not the transaction type
-  const account = accountsRecord.value[transaction.value.accountId];
+  const account = accountsRecord.value[transaction.value!.accountId];
   if (account && account.type !== ACCOUNT_TYPES.system) return;
 
   deleteMutation.mutate({
-    transactionId: transaction.value.id,
+    transactionId: transaction.value!.id,
   });
 };
 
@@ -312,7 +313,7 @@ const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
 onMounted(() => {
   if (!transaction.value) {
-    form.value.account = systemAccounts.value[0];
+    form.value.account = systemAccounts.value[0] ?? null;
   } else {
     const data = prepopulateForm({
       transaction: transaction.value,
@@ -463,7 +464,7 @@ onUnmounted(() => {
                   <div class="flex items-center gap-2">
                     <SplitIcon class="text-muted-foreground size-4" />
                     <span class="text-sm font-medium">
-                      {{ $t('dialogs.manageTransaction.form.splitInfo', { count: form.splits.length + 1 }) }}
+                      {{ $t('dialogs.manageTransaction.form.splitInfo', { count: (form.splits?.length ?? 0) + 1 }) }}
                     </span>
                   </div>
                   <div class="flex items-center gap-2">

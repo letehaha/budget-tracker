@@ -61,7 +61,7 @@ const { isPending: isDeleting, mutate: deleteCurrency } = useMutation({
     if (e instanceof ApiErrorResponseError) {
       if (e.data.code === API_ERROR_CODES.unauthorized) return;
       if (e.data.code === API_ERROR_CODES.validationError) {
-        addErrorNotification(e.data.message);
+        addErrorNotification(e.data.message ?? '');
         return;
       }
     }

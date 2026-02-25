@@ -31,7 +31,7 @@ export const useFiltersFromQuery = () => {
         ? query.accountIds.map((id) => Number(id))
         : [Number(query.accountIds)];
 
-      filters.accounts = storeAccounts.value.filter((account) => accountIds.includes(account.id));
+      filters.accounts = (storeAccounts.value ?? []).filter((account) => accountIds.includes(account.id));
     }
 
     if (query.start) {

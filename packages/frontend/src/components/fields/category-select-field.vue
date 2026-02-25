@@ -321,7 +321,7 @@ const shouldShowSeparator = ({ item, index }: { item: FlatCategory; index: numbe
   if (index === 0) return true;
 
   const prevItem = filteredItems.value[index - 1];
-  return prevItem.rootParentId !== item.rootParentId;
+  return prevItem!.rootParentId !== item.rootParentId;
 };
 
 const openDropdown = () => {

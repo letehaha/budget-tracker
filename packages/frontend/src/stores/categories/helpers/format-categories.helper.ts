@@ -32,7 +32,7 @@ export const buildCategiesObjectGraph = (items: CategoryModel[]): FormattedCateg
   tempItems.forEach((item) => {
     const { parentId } = item;
     // if parentId is null, this is a root; otherwise, it's parentId's kid
-    const nodes = !parentId ? roots : itemsById[parentId].subCategories;
+    const nodes = !parentId ? roots : itemsById[parentId]!.subCategories;
     nodes.push(item);
   });
 

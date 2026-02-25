@@ -170,7 +170,7 @@ const { mutate: createSub } = useMutation({
   onError(error) {
     const message =
       error instanceof ApiErrorResponseError ? error.data.message : t('planned.subscriptions.createError');
-    createFormRef.value?.setError({ error: message });
+    createFormRef.value?.setError({ error: message ?? '' });
   },
 });
 

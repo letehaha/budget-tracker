@@ -70,8 +70,8 @@ const triggerPriceSync = async () => {
       type: NotificationType.success,
     });
   } catch (error) {
-    const errorData = error?.data;
-    const errorMessage = error?.message || 'Failed to trigger price sync';
+    const errorData = (error as any)?.data;
+    const errorMessage = (error as any)?.message || 'Failed to trigger price sync';
 
     if (errorData?.code === API_ERROR_CODES.tooManyRequests) {
       const retryAfter = errorData?.details?.retryAfter || 300; // Default 5 minutes

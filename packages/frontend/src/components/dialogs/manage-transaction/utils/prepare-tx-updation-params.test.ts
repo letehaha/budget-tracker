@@ -1,5 +1,5 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, AccountModel, TransactionModel } from '@bt/shared/types';
 import {
   USER_CATEGORIES,
   buildExternalExpenseTransaction,
@@ -18,10 +18,10 @@ const buildBaseFormMock = (
   transaction: TransactionModel,
 ): Pick<UI_FORM_STRUCT, 'time' | 'note' | 'paymentType' | 'refundedByTxs' | 'category' | 'refundsTx'> => ({
   time: transaction.time,
-  note: null,
-  paymentType: VERBOSE_PAYMENT_TYPES.find((i) => i.value === transaction.paymentType),
+  note: undefined,
+  paymentType: VERBOSE_PAYMENT_TYPES.find((i) => i.value === transaction.paymentType) ?? null,
   refundedByTxs: undefined,
-  category: undefined,
+  category: undefined as unknown as UI_FORM_STRUCT['category'],
   refundsTx: undefined,
 });
 
@@ -43,7 +43,7 @@ describe('prepareTxUpdationParams', () => {
         account: OUT_OF_WALLET_ACCOUNT_MOCK,
         amount: null,
         targetAmount: 1000,
-        toAccount: destinationAccount,
+        toAccount: destinationAccount as AccountModel,
       };
 
       expect(
@@ -64,7 +64,7 @@ describe('prepareTxUpdationParams', () => {
         // out_of_wallet -> account = income
         transactionType: TRANSACTION_TYPES.income,
         paymentType: transactionMock.paymentType,
-        accountId: formMock.toAccount.id,
+        accountId: formMock.toAccount!.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
       });
     });
@@ -72,7 +72,7 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(transactionMock),
         type: FORM_TYPES.transfer,
-        account: destinationAccount,
+        account: destinationAccount as AccountModel,
         amount: 1000,
         targetAmount: null,
         toAccount: OUT_OF_WALLET_ACCOUNT_MOCK,
@@ -96,7 +96,7 @@ describe('prepareTxUpdationParams', () => {
         // account -> out_of_wallet = expense
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: transactionMock.paymentType,
-        accountId: formMock.account.id,
+        accountId: formMock.account!.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
       });
     });
@@ -110,10 +110,10 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(transactionMock),
         type: FORM_TYPES.transfer,
-        account: sourceAccount,
+        account: sourceAccount as AccountModel,
         amount: 2000,
         targetAmount: 2500,
-        toAccount: destinationAccount,
+        toAccount: destinationAccount as AccountModel,
       };
 
       expect(
@@ -128,11 +128,11 @@ describe('prepareTxUpdationParams', () => {
         }),
       ).toEqual({
         txId: transactionMock.id,
-        accountId: formMock.account.id,
-        amount: +formMock.amount,
+        accountId: formMock.account!.id,
+        amount: +formMock.amount!,
 
-        destinationAccountId: formMock.toAccount.id,
-        destinationAmount: +formMock.targetAmount,
+        destinationAccountId: formMock.toAccount!.id,
+        destinationAmount: +formMock.targetAmount!,
 
         note: formMock.note,
         time: expect.anything(),
@@ -153,8 +153,8 @@ describe('prepareTxUpdationParams', () => {
         account: null,
         amount: 1500,
         note: 'Updated external record',
-        paymentType: VERBOSE_PAYMENT_TYPES.find((p) => p.value === 'cash'),
-        category: USER_CATEGORIES[0],
+        paymentType: VERBOSE_PAYMENT_TYPES.find((p) => p.value === 'cash') ?? null,
+        category: USER_CATEGORIES[0]!,
       };
 
       expect(
@@ -170,7 +170,7 @@ describe('prepareTxUpdationParams', () => {
       ).toEqual({
         txId: expenseTx.id,
         note: formMock.note,
-        paymentType: formMock.paymentType.value,
+        paymentType: formMock.paymentType!.value,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         categoryId: formMock.category.id,
       });
@@ -182,7 +182,7 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(expenseTx),
         type: FORM_TYPES.transfer,
-        account: destAccount,
+        account: destAccount as AccountModel,
         amount: 1500,
         targetAmount: null,
         toAccount: OUT_OF_WALLET_ACCOUNT_MOCK,
@@ -201,7 +201,7 @@ describe('prepareTxUpdationParams', () => {
       expect(result).toEqual({
         txId: expenseTx.id,
         note: formMock.note,
-        paymentType: formMock.paymentType.value,
+        paymentType: formMock.paymentType!.value,
         transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
       });
 
@@ -218,7 +218,7 @@ describe('prepareTxUpdationParams', () => {
         account: OUT_OF_WALLET_ACCOUNT_MOCK,
         amount: null,
         targetAmount: 1500,
-        toAccount: destAccount,
+        toAccount: destAccount as AccountModel,
       };
 
       const result = prepareTxUpdationParams({
@@ -234,7 +234,7 @@ describe('prepareTxUpdationParams', () => {
       expect(result).toEqual({
         txId: expenseTx.id,
         note: formMock.note,
-        paymentType: formMock.paymentType.value,
+        paymentType: formMock.paymentType!.value,
         accountId: destinationAccount.id,
         amount: formMock.targetAmount,
         transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
@@ -256,9 +256,9 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(incomeTx),
         type: FORM_TYPES.expense,
-        account: sourceAccount,
+        account: sourceAccount as AccountModel,
         amount: 1500,
-        category: USER_CATEGORIES[0],
+        category: USER_CATEGORIES[0]!,
       };
 
       expect(
@@ -278,7 +278,7 @@ describe('prepareTxUpdationParams', () => {
         time: expect.anything(),
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: incomeTx.paymentType,
-        accountId: formMock.account.id,
+        accountId: formMock.account!.id,
         categoryId: formMock.category.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       });
@@ -289,9 +289,9 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(expenseTx),
         type: FORM_TYPES.income,
-        account: sourceAccount,
+        account: sourceAccount as AccountModel,
         amount: 1500,
-        category: USER_CATEGORIES[0],
+        category: USER_CATEGORIES[0]!,
       };
 
       expect(
@@ -311,7 +311,7 @@ describe('prepareTxUpdationParams', () => {
         time: expect.anything(),
         transactionType: TRANSACTION_TYPES.income,
         paymentType: expenseTx.paymentType,
-        accountId: formMock.account.id,
+        accountId: formMock.account!.id,
         categoryId: formMock.category.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       });
@@ -329,10 +329,10 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(incomeTx),
         type: FORM_TYPES.transfer,
-        account: sourceAccount,
+        account: sourceAccount as AccountModel,
         amount: 2000,
         targetAmount: 2000,
-        toAccount: destinationAccount,
+        toAccount: destinationAccount as AccountModel,
       };
 
       expect(
@@ -347,10 +347,10 @@ describe('prepareTxUpdationParams', () => {
         }),
       ).toEqual({
         txId: incomeTx.id,
-        accountId: formMock.account.id,
-        amount: +formMock.amount,
-        destinationAccountId: formMock.toAccount.id,
-        destinationAmount: +formMock.targetAmount,
+        accountId: formMock.account!.id,
+        amount: +formMock.amount!,
+        destinationAccountId: formMock.toAccount!.id,
+        destinationAmount: +formMock.targetAmount!,
         note: formMock.note,
         time: expect.anything(),
         transactionType: TRANSACTION_TYPES.expense,
@@ -364,7 +364,7 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(expenseTx),
         type: FORM_TYPES.transfer,
-        account: sourceAccount,
+        account: sourceAccount as AccountModel,
         amount: 1500,
         targetAmount: null,
         toAccount: OUT_OF_WALLET_ACCOUNT_MOCK,
@@ -387,7 +387,7 @@ describe('prepareTxUpdationParams', () => {
         time: expect.anything(),
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: expenseTx.paymentType,
-        accountId: formMock.account.id,
+        accountId: formMock.account!.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
       });
     });
@@ -397,9 +397,9 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(outOfWalletTx),
         type: FORM_TYPES.expense,
-        account: sourceAccount,
+        account: sourceAccount as AccountModel,
         amount: 1500,
-        category: USER_CATEGORIES[0],
+        category: USER_CATEGORIES[0]!,
       };
 
       expect(
@@ -419,7 +419,7 @@ describe('prepareTxUpdationParams', () => {
         time: expect.anything(),
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: outOfWalletTx.paymentType,
-        accountId: formMock.account.id,
+        accountId: formMock.account!.id,
         categoryId: formMock.category.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       });
@@ -437,9 +437,9 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(expenseTx),
         type: FORM_TYPES.expense,
-        account: sourceAccount,
+        account: sourceAccount as AccountModel,
         amount: 1500,
-        category: USER_CATEGORIES[0],
+        category: USER_CATEGORIES[0]!,
         refundsTx: { transaction: refundTx },
         refundedByTxs: null,
       };
@@ -461,7 +461,7 @@ describe('prepareTxUpdationParams', () => {
         time: expect.anything(),
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: expenseTx.paymentType,
-        accountId: formMock.account.id,
+        accountId: formMock.account!.id,
         categoryId: formMock.category.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         refundsTxId: refundTx.id,
@@ -475,9 +475,9 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(expenseTx),
         type: FORM_TYPES.expense,
-        account: sourceAccount,
+        account: sourceAccount as AccountModel,
         amount: 1500,
-        category: USER_CATEGORIES[0],
+        category: USER_CATEGORIES[0]!,
         refundsTx: null,
         refundedByTxs: refundingTxs.map((tx) => ({ transaction: tx })),
       };
@@ -499,10 +499,10 @@ describe('prepareTxUpdationParams', () => {
         time: expect.anything(),
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: expenseTx.paymentType,
-        accountId: formMock.account.id,
+        accountId: formMock.account!.id,
         categoryId: formMock.category.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-        refundedByTxIds: [refundingTxs[0].id, refundingTxs[1].id],
+        refundedByTxIds: [refundingTxs[0]!.id, refundingTxs[1]!.id],
       });
     });
   });
@@ -519,10 +519,10 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(expenseTx),
         type: FORM_TYPES.transfer,
-        account: sourceAccount,
+        account: sourceAccount as AccountModel,
         amount: 2000,
         targetAmount: 2000,
-        toAccount: destinationAccount,
+        toAccount: destinationAccount as AccountModel,
       };
 
       expect(
@@ -537,8 +537,8 @@ describe('prepareTxUpdationParams', () => {
         }),
       ).toEqual({
         txId: expenseTx.id,
-        accountId: formMock.account.id,
-        amount: +formMock.amount,
+        accountId: formMock.account!.id,
+        amount: +formMock.amount!,
         note: formMock.note,
         time: expect.anything(),
         transactionType: TRANSACTION_TYPES.expense,
@@ -555,10 +555,10 @@ describe('prepareTxUpdationParams', () => {
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(expenseTx),
         type: FORM_TYPES.transfer,
-        account: sourceAccount,
+        account: sourceAccount as AccountModel,
         amount: 2000,
         targetAmount: 2000,
-        toAccount: destinationAccount,
+        toAccount: destinationAccount as AccountModel,
       };
 
       expect(
@@ -573,8 +573,8 @@ describe('prepareTxUpdationParams', () => {
         }),
       ).toEqual({
         txId: expenseTx.id,
-        accountId: formMock.account.id,
-        amount: +formMock.amount,
+        accountId: formMock.account!.id,
+        amount: +formMock.amount!,
         note: formMock.note,
         time: expect.anything(),
         transactionType: TRANSACTION_TYPES.expense,

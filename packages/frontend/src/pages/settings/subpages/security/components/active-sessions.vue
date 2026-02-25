@@ -121,7 +121,7 @@ const formatDate = (dateStr: string | Date) => {
   return date.toLocaleDateString();
 };
 
-const parseUserAgent = (userAgent: string | null): string => {
+const parseUserAgent = (userAgent: string | null | undefined): string => {
   if (!userAgent) return t('settings.security.activeSessions.deviceTypes.unknownDevice');
 
   // Simple parsing for common browsers
@@ -145,7 +145,7 @@ const parseUserAgent = (userAgent: string | null): string => {
   return t('settings.security.activeSessions.deviceTypes.unknownBrowser');
 };
 
-const getDeviceIcon = (userAgent: string | null): Component => {
+const getDeviceIcon = (userAgent: string | null | undefined): Component => {
   if (!userAgent) return MonitorIcon;
 
   if (userAgent.includes('Mobile') || userAgent.includes('Android') || userAgent.includes('iPhone')) {
@@ -168,7 +168,7 @@ const loadSessions = async () => {
 
     const result = await authClient.listSessions();
     if (result.data) {
-      sessions.value = result.data.map((s: Session) => ({
+      sessions.value = (result.data as Session[]).map((s: Session) => ({
         ...s,
         isCurrent: s.token === currentSessionToken.value,
       }));

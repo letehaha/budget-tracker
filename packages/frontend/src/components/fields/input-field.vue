@@ -96,6 +96,8 @@ const emits = defineEmits<{
 
 const slots = defineSlots<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  'label-right'(): any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subLabel(): any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   iconTrailing(): any;
@@ -207,7 +209,7 @@ const isLeadingIconExist = computed(() => !!slots.iconLeading);
 
 onMounted(() => {
   if (props.autofocus) {
-    inputFieldRef.value.focus();
+    inputFieldRef.value!.focus();
   }
 });
 </script>

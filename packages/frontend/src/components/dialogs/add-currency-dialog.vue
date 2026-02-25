@@ -28,7 +28,7 @@ const isOpen = ref(false);
 const form = ref<{
   currencyCode: string;
 }>({
-  currencyCode: String(systemCurrenciesVerbose.value.unlinked[0].code),
+  currencyCode: String(systemCurrenciesVerbose.value.unlinked[0]?.code ?? ''),
 });
 
 const saveCurrency = async () => {

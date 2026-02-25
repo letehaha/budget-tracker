@@ -98,12 +98,13 @@ const chunkRegistry: ChunkRegistry = {
 };
 
 // Create i18n instance with common chunk pre-loaded
-export const i18n: I18n<Record<string, unknown>, {}, {}, SupportedLocale, false> = createI18n({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const i18n: I18n<any, {}, {}, string, false> = createI18n<{}, string, false>({
   legacy: false,
   locale: DEFAULT_LOCALE,
   fallbackLocale: DEFAULT_LOCALE,
   messages: {
-    en: enCommon as Record<string, unknown>,
+    en: enCommon,
   },
   globalInjection: true,
   missingWarn: process.env.NODE_ENV === 'development',

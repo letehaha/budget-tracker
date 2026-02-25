@@ -135,11 +135,11 @@ withDefaults(
 
 const emit = defineEmits(['update:account', 'update:to-account']);
 
-const updateFormAccount = (account: AccountModel) => {
+const updateFormAccount = (account: AccountModel | null) => {
   emit('update:account', account);
 };
 
-const updateToAccount = (account: AccountModel) => {
+const updateToAccount = (account: AccountModel | null) => {
   emit('update:to-account', account);
 };
 </script>

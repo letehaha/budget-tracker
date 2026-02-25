@@ -20,10 +20,10 @@ const { t } = useI18n();
 const confirmEmail = ref('');
 const isDeleting = ref(false);
 
-const isDeleteDisabled = computed(() => confirmEmail.value !== user.value.email || isDeleting.value);
+const isDeleteDisabled = computed(() => confirmEmail.value !== user.value?.email || isDeleting.value);
 
 const handleDeleteAccount = async () => {
-  if (confirmEmail.value !== user.value.email) return;
+  if (confirmEmail.value !== user.value?.email) return;
 
   isDeleting.value = true;
   try {
@@ -85,7 +85,7 @@ const handleDeleteAccount = async () => {
             class="mt-4 mb-2 text-left text-sm"
           >
             <template #email>
-              <ClickToCopy :value="user.email" />
+              <ClickToCopy :value="user?.email ?? ''" />
             </template>
           </i18n-t>
           <InputField

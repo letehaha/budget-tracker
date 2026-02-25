@@ -29,7 +29,7 @@ const isOpen = ref(false);
         <span>{{ t('pages.account.details.creditLimit') }}</span>
 
         {{ toLocalNumber(account.creditLimit) }}
-        {{ currenciesMap[account.currencyCode].currency.code }}
+        {{ currenciesMap[account.currencyCode]?.currency?.code }}
       </div>
       <Separator />
 
@@ -37,7 +37,7 @@ const isOpen = ref(false);
         <span>{{ t('pages.account.details.initialBalance') }}</span>
 
         {{ toLocalNumber(account.initialBalance) }}
-        {{ currenciesMap[account.currencyCode].currency.code }}
+        {{ currenciesMap[account.currencyCode]?.currency?.code }}
       </div>
       <Separator />
       <div class="flex items-center justify-between gap-2">
@@ -55,9 +55,9 @@ const isOpen = ref(false);
             <span>{{ t('pages.account.details.currency') }}</span>
 
             <div class="flex gap-2">
-              {{ currenciesMap[account.currencyCode].currency.code }}
+              {{ currenciesMap[account.currencyCode]?.currency?.code }}
 
-              <span v-if="currenciesMap[account.currencyCode].isDefaultCurrency">
+              <span v-if="currenciesMap[account.currencyCode]?.isDefaultCurrency">
                 {{ t('pages.account.details.main') }}
               </span>
 
@@ -78,7 +78,7 @@ const isOpen = ref(false);
             <div class="flex items-center justify-between gap-2">
               <span>{{ t('pages.account.details.exchangeRate') }}</span>
 
-              {{ currenciesMap[account.currencyCode].exchangeRate }}
+              {{ currenciesMap[account.currencyCode]?.exchangeRate }}
             </div>
 
             <Separator />
@@ -87,7 +87,7 @@ const isOpen = ref(false);
               <span>{{ t('pages.account.details.exchangeRateLiveUpdate') }}</span>
 
               {{
-                currenciesMap[account.currencyCode].liveRateUpdate
+                currenciesMap[account.currencyCode]?.liveRateUpdate
                   ? t('pages.account.details.enabled')
                   : t('pages.account.details.disabled')
               }}

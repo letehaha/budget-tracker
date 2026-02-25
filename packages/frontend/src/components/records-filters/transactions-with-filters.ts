@@ -23,7 +23,7 @@ export const useTransactionsWithFilters = ({
   const filters = ref<FiltersStruct>({ ...DEFAULT_FILTERS });
   const appliedFilters = ref<FiltersStruct>({ ...DEFAULT_FILTERS });
 
-  const transactionsListRef = ref(null);
+  const transactionsListRef = ref<{ scrollToIndex: (index: number) => void } | null>(null);
 
   const isResetButtonDisabled = computed(() => isEqual(filters.value, DEFAULT_FILTERS));
   const isAnyFiltersApplied = computed(() => !isEqual(appliedFilters.value, DEFAULT_FILTERS));
@@ -49,9 +49,9 @@ export const useTransactionsWithFilters = ({
       removeValuesFromObject({
         limit,
         from,
-        transactionType: filter.transactionType,
-        endDate: isDate(filter.end) ? filter.end.toISOString() : undefined,
-        startDate: isDate(filter.start) ? filter.start.toISOString() : undefined,
+        transactionType: filter.transactionType ?? undefined,
+        endDate: isDate(filter.end) ? filter.end!.toISOString() : undefined,
+        startDate: isDate(filter.start) ? filter.start!.toISOString() : undefined,
         amountGte: filter.amountGte,
         amountLte: filter.amountLte,
         noteSearch: filter.noteIncludes,
@@ -60,13 +60,12 @@ export const useTransactionsWithFilters = ({
         accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
         categoryIds: filter.categoryIds.length ? filter.categoryIds : undefined,
         tagIds: filter.tagIds.length ? filter.tagIds : undefined,
-        categorizationSource: filter.categorizationSource,
-        budgetIds: staticFilters.budgetIds,
-        excludedBudgetIds: staticFilters.excludedBudgetIds,
+        categorizationSource: filter.categorizationSource ?? undefined,
+        budgetIds: staticFilters.budgetIds ?? undefined,
+        excludedBudgetIds: staticFilters.excludedBudgetIds ?? undefined,
         includeSplits: true,
         includeTags: true,
-        ...staticFilters,
-      }),
+      } as Parameters<typeof loadTransactions>[0]),
     );
   };
 

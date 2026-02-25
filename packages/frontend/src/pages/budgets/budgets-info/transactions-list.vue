@@ -107,7 +107,7 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   fetchNextPage,
   isFetchingNextPage,
   parentRef,
-  getItemKey: (index) => flatTransactions.value[index].id,
+  getItemKey: (index) => flatTransactions.value[index]!.id,
 });
 
 const { isPending: isMutating, mutate } = useMutation({
@@ -388,24 +388,24 @@ const toggleSelectAll = () => {
                 :class="[
                   'grid cursor-pointer grid-cols-[min-content_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 transition-colors',
                   { 'select-none': isShiftKeyPressed },
-                  pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)
+                  pickedTransactionsIds.has(flatTransactions[virtualRow.index]!.id)
                     ? 'bg-warning-text/10 hover:bg-warning-text/20'
                     : 'hover:bg-muted/50',
                 ]"
               >
                 <Checkbox
-                  :model-value="pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)"
+                  :model-value="pickedTransactionsIds.has(flatTransactions[virtualRow.index]!.id)"
                   @update:model-value="
                     handleSelection(
                       !!$event,
-                      flatTransactions[virtualRow.index].id,
+                      flatTransactions[virtualRow.index]!.id,
                       virtualRow.index,
                       flatTransactions,
                       (v) => v.id,
                     )
                   "
                 />
-                <TransactionRecord :tx="flatTransactions[virtualRow.index]" />
+                <TransactionRecord :tx="flatTransactions[virtualRow.index]!" />
               </label>
               <div v-else class="flex h-13 items-center justify-center">
                 <span class="text-muted-foreground text-sm">{{ t('pages.budgets.transactionsList.loadingMore') }}</span>

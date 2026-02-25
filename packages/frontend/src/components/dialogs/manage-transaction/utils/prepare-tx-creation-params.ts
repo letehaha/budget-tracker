@@ -19,7 +19,7 @@ const formSplitsToApiSplits = (splits: FormSplit[] | undefined): SplitInput[] | 
   return splits
     .filter((split) => split.category && split.amount !== null && split.amount > 0)
     .map((split) => ({
-      categoryId: split.category.id,
+      categoryId: split.category!.id,
       amount: split.amount as number,
       note: split.note || undefined,
     }));
@@ -36,23 +36,16 @@ export const prepareTxCreationParams = ({
   isTransferTx: boolean;
   isCurrenciesDifferent: boolean;
 }) => {
-  const {
-    amount,
-    note,
-    time,
-    type: formTxType,
-    paymentType,
-    account: { id: accountId },
-    toAccount,
-    category,
-  } = form;
+  const { amount, note, time, type: formTxType, paymentType, account, toAccount, category } = form;
+
+  const accountId = account!.id;
 
   const creationParams: Parameters<typeof createTransaction>[0] = {
-    amount,
+    amount: amount!,
     note,
     time: time.toUTCString(),
     transactionType: getTxTypeFromFormType(formTxType),
-    paymentType: paymentType.value,
+    paymentType: paymentType!.value,
     accountId,
     // Include tag IDs if any tags are selected
     ...(form.tagIds && form.tagIds.length > 0 ? { tagIds: form.tagIds } : {}),
@@ -73,8 +66,8 @@ export const prepareTxCreationParams = ({
   // } else {
   // // everything that is below...
   if (isTransferTx) {
-    creationParams.destinationAccountId = toAccount.id;
-    creationParams.destinationAmount = isCurrenciesDifferent ? form.targetAmount : amount;
+    creationParams.destinationAccountId = toAccount!.id;
+    creationParams.destinationAmount = isCurrenciesDifferent ? form.targetAmount! : amount!;
     creationParams.transferNature = TRANSACTION_TRANSFER_NATURE.common_transfer;
   } else {
     creationParams.categoryId = category.id;
@@ -93,8 +86,8 @@ export const prepareTxCreationParams = ({
 
     if (creationParams.accountId === OUT_OF_WALLET_ACCOUNT_MOCK.id) {
       creationParams.transactionType = TRANSACTION_TYPES.income;
-      creationParams.amount = creationParams.destinationAmount;
-      creationParams.accountId = creationParams.destinationAccountId;
+      creationParams.amount = creationParams.destinationAmount!;
+      creationParams.accountId = creationParams.destinationAccountId!;
       delete creationParams.destinationAmount;
       delete creationParams.destinationAccountId;
     } else if (creationParams.destinationAccountId === OUT_OF_WALLET_ACCOUNT_MOCK.id) {

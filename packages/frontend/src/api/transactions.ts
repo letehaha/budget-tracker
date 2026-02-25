@@ -8,14 +8,14 @@ const formatTransactionPayload = <
 >(
   transaction: T,
 ): T => {
-  const params = { ...transaction };
+  const params = { ...transaction } as Record<string, unknown>;
   const timeFieldsToPatch = ['time', 'startDate', 'endDate'];
 
   timeFieldsToPatch.forEach((field) => {
-    if (params[field]) params[field] = new Date(params[field]).toISOString();
+    if (params[field]) params[field] = new Date(params[field] as string).toISOString();
   });
 
-  return params;
+  return params as T;
 };
 
 export const loadTransactions = async (params: {

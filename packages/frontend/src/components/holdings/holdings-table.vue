@@ -38,7 +38,7 @@ const sortDir = ref<'asc' | 'desc'>('desc');
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { currencies } = storeToRefs(useCurrenciesStore());
 const formatCurrency = (amount: number, currencyCode: string) => {
-  const userCurrency = currencies.value.find((c) => c.currency.code === currencyCode.toUpperCase());
+  const userCurrency = currencies.value.find((c) => c.currency?.code === currencyCode.toUpperCase());
   if (!userCurrency) {
     // Fallback or default formatting if currency not found
     return amount.toLocaleString(undefined, {
@@ -144,7 +144,7 @@ const getGainColorClass = (gainPercent: number) => {
   return 'text-gray-600';
 };
 
-const expandedHoldingId = ref<number | null>(null);
+const expandedHoldingId = ref<number | undefined>(undefined);
 const currentPage = ref(1);
 const limit = ref(10);
 
@@ -161,7 +161,7 @@ const handlePageChange = (newPage: number) => {
 
 const toggleExpand = (securityId: number) => {
   if (expandedHoldingId.value === securityId) {
-    expandedHoldingId.value = null;
+    expandedHoldingId.value = undefined;
   } else {
     currentPage.value = 1;
     expandedHoldingId.value = securityId;

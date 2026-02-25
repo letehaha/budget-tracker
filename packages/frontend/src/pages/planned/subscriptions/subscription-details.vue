@@ -98,7 +98,7 @@ const { mutate: updateSub } = useMutation({
   onError(error) {
     const message =
       error instanceof ApiErrorResponseError ? error.data.message : t('planned.subscriptions.updateError');
-    editFormRef.value?.setError({ error: message });
+    editFormRef.value?.setError({ error: message ?? '' });
   },
 });
 

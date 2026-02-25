@@ -30,15 +30,15 @@ interface RecordListModalProps {
 const props = defineProps<RecordListModalProps>();
 
 const DEFAULT_FILTERS: {
-  start: Date | null;
-  end: Date | null;
+  start: Date | undefined;
+  end: Date | undefined;
   amountGte: number | null;
   amountLte: number | null;
 } = {
   // TODO: by accounts
   // TODO: by categories
-  start: null,
-  end: null,
+  start: undefined,
+  end: undefined,
   amountGte: null,
   amountLte: null,
 };
@@ -114,10 +114,10 @@ const fetchTransactions = ({ pageParam, filter }: { pageParam: number; filter: t
       excludeTransfer: true,
       excludeRefunds: false, // Allow transactions that already have refunds
       includeSplits: true, // Include splits so we can show split selector
-      endDate: isDate(filter.end) ? filter.end.toISOString() : undefined,
-      startDate: isDate(filter.start) ? filter.start.toISOString() : undefined,
-      amountGte: filter.amountGte,
-      amountLte: filter.amountLte,
+      endDate: isDate(filter.end) ? filter.end!.toISOString() : undefined,
+      startDate: isDate(filter.start) ? filter.start!.toISOString() : undefined,
+      amountGte: filter.amountGte ?? undefined,
+      amountLte: filter.amountLte ?? undefined,
     }),
   );
 };

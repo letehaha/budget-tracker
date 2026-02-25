@@ -1,13 +1,13 @@
-import { USER_ROLES, UserRole } from '@bt/shared/types';
+import { USER_ROLES, UserModel, UserRole } from '@bt/shared/types';
 
-export const USER = {
+export const USER: UserModel = {
   id: 1,
   username: 'letehaha1',
-  email: null,
-  firstName: null,
-  lastName: null,
-  middleName: null,
-  avatar: null,
+  email: '',
+  firstName: '',
+  lastName: '',
+  middleName: '',
+  avatar: '',
   totalBalance: 0,
   defaultCategoryId: 3131,
   role: USER_ROLES.common as UserRole,

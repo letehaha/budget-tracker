@@ -32,7 +32,7 @@ const { formatCurrencyLabel } = useCurrencyName();
 const { baseCurrency, systemCurrenciesVerbose } = storeToRefs(currenciesStore);
 
 const defaultCurrency = computed(
-  () => systemCurrenciesVerbose.value.linked.find((i) => i.code === baseCurrency.value.currencyCode).code || '',
+  () => systemCurrenciesVerbose.value.linked.find((i) => i.code === baseCurrency.value!.currencyCode)!.code || '',
 );
 
 // Get account category from query params or default to general

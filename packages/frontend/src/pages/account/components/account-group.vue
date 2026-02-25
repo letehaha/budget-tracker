@@ -48,7 +48,7 @@ watch(
 
     <div class="flex items-center gap-2">
       <template v-if="accountGroupData">
-        {{ accountGroupData.name }}
+        {{ (accountGroupData as any)?.name }}
       </template>
       <template v-else>
         <span>{{ t('pages.account.group.notAssociated') }}</span>

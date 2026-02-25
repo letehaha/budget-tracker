@@ -1,6 +1,6 @@
 <template>
   <img
-    :class="[cn('size-10', $attrs.class)]"
+    :class="[cn('size-10', $attrs.class as string)]"
     :src="currentTheme === Themes.dark ? logos[provider].icon.dark : logos[provider].icon.light"
   />
 </template>

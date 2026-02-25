@@ -326,13 +326,13 @@ const handleSaveKey = async () => {
 
     // Select next available provider if there's one
     if (availableProvidersToAdd.value.length > 0) {
-      selectedProvider.value = availableProvidersToAdd.value[0].value;
+      selectedProvider.value = availableProvidersToAdd.value[0]!.value;
     }
   } catch (error) {
     // Show the validation error message inline below the input field
     validationError.value =
       error instanceof ApiErrorResponseError
-        ? error.data.message
+        ? (error.data.message ?? t('settings.ai.apiKeyManager.notifications.saveFailed'))
         : t('settings.ai.apiKeyManager.notifications.saveFailed');
   }
 };

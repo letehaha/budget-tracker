@@ -14,7 +14,7 @@
           <span
             class="inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-2 text-sm font-medium"
           >
-            {{ isAllSelected ? storeAccounts.length : selectedAccounts.length }}
+            {{ isAllSelected ? storeAccounts!.length : selectedAccounts.length }}
           </span>
           <span class="font-medium">
             {{
@@ -101,7 +101,7 @@ const pickAccount = (account: AccountModel) => {
 };
 
 const baseSortedAccounts = computed(() => {
-  return [...storeAccounts.value].sort((a, b) => {
+  return [...(storeAccounts.value ?? [])].sort((a, b) => {
     // Prioritize accounts with non-zero balance
     const aHasBalance = a.currentBalance !== 0;
     const bHasBalance = b.currentBalance !== 0;
@@ -143,7 +143,9 @@ const displayedAccounts = computed(() => {
 const selectedAccountIds = ref<number[]>([]);
 
 // Derive selectedAccounts from IDs - no need to maintain separately
-const selectedAccounts = computed(() => storeAccounts.value.filter((a) => selectedAccountIds.value.includes(a.id)));
+const selectedAccounts = computed(() =>
+  (storeAccounts.value ?? []).filter((a) => selectedAccountIds.value.includes(a.id)),
+);
 
 // Sync internal state when props change (and differ from current state)
 watch(

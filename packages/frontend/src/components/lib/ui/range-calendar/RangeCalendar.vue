@@ -55,11 +55,11 @@ const monthNames = computed(() => {
 function formatHeading({ grid }: { grid: Array<{ value: DateValue }> }): string {
   const formatter = new Intl.DateTimeFormat(calendarLocale.value, { month: 'short' });
   if (grid.length === 1) {
-    const date = new Date(grid[0].value.year, grid[0].value.month - 1);
-    return `${formatter.format(date)} ${grid[0].value.year}`;
+    const date = new Date(grid[0]!.value.year, grid[0]!.value.month - 1);
+    return `${formatter.format(date)} ${grid[0]!.value.year}`;
   }
-  const first = grid[0].value;
-  const last = grid[grid.length - 1].value;
+  const first = grid[0]!.value;
+  const last = grid[grid.length - 1]!.value;
   const firstMonth = formatter.format(new Date(first.year, first.month - 1));
   const lastMonth = formatter.format(new Date(last.year, last.month - 1));
   if (first.year === last.year) {
@@ -99,7 +99,7 @@ function applyJump() {
 
 const delegatedProps = computed(() => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { class: _, ...delegated } = props;
+  const { class: _, placeholder: _placeholder, ...delegated } = props;
 
   return {
     ...delegated,

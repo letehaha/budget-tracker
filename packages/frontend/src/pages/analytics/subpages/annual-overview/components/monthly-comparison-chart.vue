@@ -364,7 +364,7 @@ const hasStackedBars = computed(() => {
 // Categories from API response for legend, filtered by metric
 const chartCategories = computed(() => {
   if (!chartData.value.length) return [];
-  const allCategories = chartData.value[0].categories || [];
+  const allCategories = chartData.value[0]!.categories || [];
 
   // Filter to only show categories that have non-zero amount for the current metric
   // across all periods
@@ -441,7 +441,7 @@ const chartData = computed<PeriodWithChange[]>(() => {
     let momChange: number | undefined;
 
     if (index > 0) {
-      const prevPeriod = cashFlowData.value!.periods[index - 1];
+      const prevPeriod = cashFlowData.value!.periods[index - 1]!;
       const prevValue = getDisplayedValue(prevPeriod);
 
       if (prevValue === 0) {
@@ -476,7 +476,7 @@ const averageValue = computed(() => {
 const singleBarColor = computed(() => {
   // If we have exactly one category, use its color
   if (chartCategories.value.length === 1) {
-    return chartCategories.value[0].color;
+    return chartCategories.value[0]!.color;
   }
 
   // Otherwise use metric-based color
@@ -800,7 +800,7 @@ const renderChart = () => {
 
       // Find which segments actually have height (non-zero amounts)
       const visibleSegments = sortedCategories.filter((cat) => getCategoryAmount(cat) > 0);
-      const topSegmentId = visibleSegments.length > 0 ? visibleSegments[visibleSegments.length - 1].categoryId : null;
+      const topSegmentId = visibleSegments.length > 0 ? visibleSegments[visibleSegments.length - 1]!.categoryId : null;
 
       // Inner shadow height to help distinguish segments with similar colors
       const shadowHeight = 4;
@@ -903,7 +903,7 @@ const renderChart = () => {
       .on('mouseleave', handleMouseLeave)
       .on('click', (event: MouseEvent, d) => {
         // When exactly one category has data, pass its ID for navigation
-        const singleCategoryId = chartCategories.value.length === 1 ? chartCategories.value[0].categoryId : undefined;
+        const singleCategoryId = chartCategories.value.length === 1 ? chartCategories.value[0]!.categoryId : undefined;
         handleBarClick(event, d, singleCategoryId);
       });
   }

@@ -25,7 +25,7 @@
                     <div class="flex items-center gap-2">
                       <CategoryCircle :category="categoriesMap[categoryId]" />
 
-                      {{ categoriesMap[categoryId].name }}
+                      {{ categoriesMap[categoryId]?.name }}
                     </div>
                   </template>
                 </div>

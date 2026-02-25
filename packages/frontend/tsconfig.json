@@ -2,10 +2,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "target": "esnext",
+    "strict": true,
     "module": "esnext",
     "jsx": "preserve",
     "isolatedModules": true,
-    "importHelpers": true,
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
     "types": ["vite/client", "vitest/globals", "vite-svg-loader", "node"],
@@ -14,7 +14,7 @@
       "@tests/*": ["tests/*"],
       "@bt/shared/*": ["../shared/src/*"]
     },
-    "lib": ["esnext", "dom", "dom.iterable", "scripthost"]
+    "lib": ["esnext", "dom", "dom.iterable"]
   },
   "include": ["src/**/*.js", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "tests/**/*.ts", "tests/**/*.tsx"],
   "exclude": ["node_modules", "e2e", "playwright.config.ts", "./index.html", "knip.ts"]

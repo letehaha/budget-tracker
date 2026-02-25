@@ -74,7 +74,7 @@ async function connect(): Promise<void> {
     fetchEventSource(url, {
       method: 'GET',
       credentials: 'include', // Send session cookie for better-auth
-      signal: abortController.signal,
+      signal: abortController!.signal,
       // Keep connection open when tab is hidden. This ensures real-time updates
       // are received even in background tabs. Trade-off: slightly higher battery
       // usage on mobile. Set to false if this becomes an issue.

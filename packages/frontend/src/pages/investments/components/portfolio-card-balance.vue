@@ -53,7 +53,7 @@ const hasValue = computed(
 );
 
 const findUserCurrency = (currencyCode: string) =>
-  props.currencies.find((c) => c.currency.code === currencyCode.toUpperCase());
+  props.currencies.find((c) => c.currency?.code === currencyCode.toUpperCase());
 
 const formatCurrency = ({ amount, currencyCode }: { amount: number; currencyCode: string }) => {
   const userCurrency = findUserCurrency(currencyCode);

@@ -37,7 +37,7 @@ const portfolioTypeLabels: Record<PORTFOLIO_TYPE, string> = {
 const form = reactive({
   name: '',
   portfolioType: PORTFOLIO_TYPE.investment as PORTFOLIO_TYPE,
-  description: '' as string | null,
+  description: '',
 });
 
 watch(

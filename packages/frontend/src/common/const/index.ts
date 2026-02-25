@@ -39,7 +39,7 @@ export const OUT_OF_WALLET_ACCOUNT_MOCK = {
   _isOutOfWallet: true,
   name: OUT_OF_WALLET_ACCOUNT_NAME_KEY,
   id: null,
-} as OutOfWalletAccountModel;
+} as unknown as OutOfWalletAccountModel;
 
 export * from './account-categories-verbose';
 export * from './ai-features';

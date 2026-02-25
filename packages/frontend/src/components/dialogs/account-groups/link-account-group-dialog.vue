@@ -20,7 +20,7 @@ const props = defineProps<{
 }>();
 const isOpen = ref(false);
 
-const selectedGroup = ref<AccountGroups>(null);
+const selectedGroup = ref<AccountGroups | null>(null);
 
 const queryClient = useQueryClient();
 const { data } = useQuery({
@@ -46,7 +46,7 @@ watch(
 watch(
   currentSelection,
   (v) => {
-    selectedGroup.value = v;
+    selectedGroup.value = v ?? null;
   },
   { immediate: true },
 );
@@ -83,16 +83,18 @@ const saveChanges = () => {
   } else {
     unlinkAccount({
       accountIds: [props.account.id],
-      groupId: currentSelection.value.id,
+      groupId: currentSelection.value!.id,
     });
   }
 };
 
 const handleSelection = (group: AccountGroups) => {
-  selectedGroup.value = selectedGroup.value?.id === group.id ? null : group;
+  selectedGroup.value = selectedGroup.value?.id === group.id ? null : (group as AccountGroups);
 };
 
-const isGroupChanged = computed(() => currentSelection.value?.name !== selectedGroup.value?.name);
+const isGroupChanged = computed(
+  () => (currentSelection.value as AccountGroups | null)?.name !== selectedGroup.value?.name,
+);
 </script>
 
 <template>
@@ -122,7 +124,11 @@ const isGroupChanged = computed(() => currentSelection.value?.name !== selectedG
     <div class="mt-8">
       <template v-if="isGroupChanged">
         <div class="grid grid-cols-2 gap-2">
-          <UiButton variant="secondary" :disabled="isFormPending" @click="selectedGroup = currentSelection">
+          <UiButton
+            variant="secondary"
+            :disabled="isFormPending"
+            @click="selectedGroup = (currentSelection as AccountGroups | null) ?? null"
+          >
             {{ t('common.actions.cancel') }}
           </UiButton>
           <UiButton :disabled="isFormPending" @click="saveChanges">{{ t('common.actions.save') }}</UiButton>

@@ -121,15 +121,15 @@ describe('CreateAccountForm', () => {
 
       // Fill initialBalance (first number input)
       const numberInputs = wrapper.findAll<HTMLInputElement>('input[type="number"]');
-      await simulateNumberInput({ wrapper, input: numberInputs[0], value: '250.50' });
+      await simulateNumberInput({ wrapper, input: numberInputs[0]!, value: '250.50' });
 
       // Fill creditLimit (second number input)
-      await simulateNumberInput({ wrapper, input: numberInputs[1], value: '1000' });
+      await simulateNumberInput({ wrapper, input: numberInputs[1]!, value: '1000' });
 
       await submitForm({ wrapper });
 
       expect(createAccountMock).toHaveBeenCalledTimes(1);
-      const payload = createAccountMock.mock.calls[0][0];
+      const payload = createAccountMock.mock.calls[0]![0];
 
       expect(payload).toEqual(
         expect.objectContaining({
@@ -153,7 +153,7 @@ describe('CreateAccountForm', () => {
       await submitForm({ wrapper });
 
       expect(createAccountMock).toHaveBeenCalledTimes(1);
-      const payload = createAccountMock.mock.calls[0][0];
+      const payload = createAccountMock.mock.calls[0]![0];
 
       expect(payload.initialBalance).toBe(0);
       expect(typeof payload.initialBalance).toBe('number');
@@ -170,12 +170,12 @@ describe('CreateAccountForm', () => {
       await nameInput.setValue('Test Account');
 
       const numberInputs = wrapper.findAll<HTMLInputElement>('input[type="number"]');
-      await simulateNumberInput({ wrapper, input: numberInputs[0], value: '-500' });
+      await simulateNumberInput({ wrapper, input: numberInputs[0]!, value: '-500' });
 
       await submitForm({ wrapper });
 
       expect(createAccountMock).toHaveBeenCalledTimes(1);
-      const payload = createAccountMock.mock.calls[0][0];
+      const payload = createAccountMock.mock.calls[0]![0];
       expect(payload.initialBalance).toBe(-500);
     });
 
@@ -186,12 +186,12 @@ describe('CreateAccountForm', () => {
       await nameInput.setValue('Big Balance');
 
       const numberInputs = wrapper.findAll<HTMLInputElement>('input[type="number"]');
-      await simulateNumberInput({ wrapper, input: numberInputs[0], value: '99999999.99' });
+      await simulateNumberInput({ wrapper, input: numberInputs[0]!, value: '99999999.99' });
 
       await submitForm({ wrapper });
 
       expect(createAccountMock).toHaveBeenCalledTimes(1);
-      const payload = createAccountMock.mock.calls[0][0];
+      const payload = createAccountMock.mock.calls[0]![0];
       expect(payload.initialBalance).toBe(99999999.99);
       expect(typeof payload.initialBalance).toBe('number');
     });
@@ -202,7 +202,7 @@ describe('CreateAccountForm', () => {
       await submitForm({ wrapper });
 
       expect(createAccountMock).toHaveBeenCalledTimes(1);
-      const payload = createAccountMock.mock.calls[0][0];
+      const payload = createAccountMock.mock.calls[0]![0];
       expect(payload.name).toBe('');
     });
   });
@@ -216,7 +216,7 @@ describe('CreateAccountForm', () => {
 
       await submitForm({ wrapper });
 
-      const payload = createAccountMock.mock.calls[0][0];
+      const payload = createAccountMock.mock.calls[0]![0];
       expect(payload.accountCategory).toBe(ACCOUNT_CATEGORIES.general);
     });
 
@@ -230,7 +230,7 @@ describe('CreateAccountForm', () => {
 
       await submitForm({ wrapper });
 
-      const payload = createAccountMock.mock.calls[0][0];
+      const payload = createAccountMock.mock.calls[0]![0];
       expect(payload.accountCategory).toBe(ACCOUNT_CATEGORIES.saving);
     });
 
@@ -244,7 +244,7 @@ describe('CreateAccountForm', () => {
 
       await submitForm({ wrapper });
 
-      const payload = createAccountMock.mock.calls[0][0];
+      const payload = createAccountMock.mock.calls[0]![0];
       expect(payload.accountCategory).toBe(ACCOUNT_CATEGORIES.creditCard);
     });
   });
@@ -258,7 +258,7 @@ describe('CreateAccountForm', () => {
 
       await submitForm({ wrapper });
 
-      const payload = createAccountMock.mock.calls[0][0];
+      const payload = createAccountMock.mock.calls[0]![0];
       // Base currency from mocks is UAH
       expect(payload.currencyCode).toBe(dataMocks.USER_BASE_CURRENCY.currencyCode);
     });
@@ -272,8 +272,8 @@ describe('CreateAccountForm', () => {
       const selectComponents = wrapper.findAllComponents(Select.Select);
       const currencySelect = selectComponents[0];
 
-      const eurCurrency = dataMocks.USER_CURRENCIES.find((c) => c.currency.code === 'EUR');
-      currencySelect.vm.$emit('update:modelValue', eurCurrency.currencyCode);
+      const eurCurrency = dataMocks.USER_CURRENCIES.find((c) => c.currency!.code === 'EUR');
+      currencySelect!.vm.$emit('update:modelValue', eurCurrency!.currencyCode);
       await wrapper.vm.$nextTick();
 
       const nameInput = wrapper.find<HTMLInputElement>('input:not([type="number"])');
@@ -282,9 +282,9 @@ describe('CreateAccountForm', () => {
       await submitForm({ wrapper });
 
       expect(createAccountMock).toHaveBeenCalledTimes(1);
-      const payload = createAccountMock.mock.calls[0][0];
+      const payload = createAccountMock.mock.calls[0]![0];
 
-      expect(payload.currencyCode).toBe(eurCurrency.currencyCode);
+      expect(payload.currencyCode).toBe(eurCurrency!.currencyCode);
     });
   });
 
@@ -300,7 +300,7 @@ describe('CreateAccountForm', () => {
       });
 
       // Verify the predicate matches transactionChange queries
-      const { predicate } = invalidateQueriesSpy.mock.calls[0][0] as { predicate: (query: unknown) => boolean };
+      const { predicate } = invalidateQueriesSpy.mock.calls[0]![0] as { predicate: (query: unknown) => boolean };
 
       // Should match queries containing transactionChange (accounts, analytics, balance trend, etc.)
       expect(predicate({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts })).toBe(true);
@@ -316,7 +316,7 @@ describe('CreateAccountForm', () => {
   describe('6. Double-submit guard', () => {
     it('does not call createAccount again when Enter is pressed during loading', async () => {
       // Make createAccount return a promise that never resolves during the test
-      let resolveCreateAccount: (value: unknown) => void;
+      let resolveCreateAccount: (value: Awaited<ReturnType<typeof api.createAccount>>) => void;
       createAccountMock.mockReturnValue(
         new Promise((resolve) => {
           resolveCreateAccount = resolve;
@@ -339,7 +339,7 @@ describe('CreateAccountForm', () => {
       expect(createAccountMock).toHaveBeenCalledTimes(1);
 
       // Clean up: resolve the pending promise to avoid unhandled rejection
-      resolveCreateAccount!({});
+      resolveCreateAccount!({} as Awaited<ReturnType<typeof api.createAccount>>);
     });
   });
 });

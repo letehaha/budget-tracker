@@ -59,7 +59,7 @@ initDraft({ period: props.period });
 
 // If allowedFilterModes is set and current mode isn't allowed, switch to the first allowed mode
 if (props.allowedFilterModes?.length && !props.allowedFilterModes.includes(activeFilterMode.value)) {
-  activeFilterMode.value = props.allowedFilterModes[0];
+  activeFilterMode.value = props.allowedFilterModes[0]!;
 }
 
 watch([activePeriodType, activeFilterMode], () => {

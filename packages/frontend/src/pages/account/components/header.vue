@@ -173,23 +173,23 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
         >
           <span class="text-amount text-3xl">
             {{ toLocalNumber(account.currentBalance) }}
-            {{ currenciesMap[account.currencyCode].currency.code }}
+            {{ currenciesMap[account.currencyCode]?.currency?.code }}
           </span>
-          <span v-if="account.currencyCode !== baseCurrency.currencyCode" class="text-white opacity-50">
+          <span v-if="baseCurrency && account.currencyCode !== baseCurrency.currencyCode" class="text-white opacity-50">
             ~
             {{ toLocalNumber(account.refCurrentBalance) }}
-            {{ baseCurrency.currency.code }}
+            {{ baseCurrency.currency?.code }}
           </span>
         </button>
         <div v-else class="flex flex-wrap items-end justify-start gap-2">
           <span class="text-amount text-3xl">
             {{ toLocalNumber(account.currentBalance) }}
-            {{ currenciesMap[account.currencyCode].currency.code }}
+            {{ currenciesMap[account.currencyCode]?.currency?.code }}
           </span>
-          <span v-if="account.currencyCode !== baseCurrency.currencyCode" class="text-white opacity-50">
+          <span v-if="baseCurrency && account.currencyCode !== baseCurrency.currencyCode" class="text-white opacity-50">
             ~
             {{ toLocalNumber(account.refCurrentBalance) }}
-            {{ baseCurrency.currency.code }}
+            {{ baseCurrency.currency?.code }}
           </span>
         </div>
       </div>

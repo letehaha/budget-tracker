@@ -83,7 +83,7 @@ const route = useRoute();
 
 const accountsStore = useAccountsStore();
 const { accounts, isAccountsFetched } = storeToRefs(accountsStore);
-const hasNoAccounts = computed(() => isAccountsFetched.value && accounts.value.length === 0);
+const hasNoAccounts = computed(() => isAccountsFetched.value && (accounts.value?.length ?? 0) === 0);
 
 defineOptions({
   name: 'page-dashboard',

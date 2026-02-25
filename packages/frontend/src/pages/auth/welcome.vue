@@ -54,7 +54,7 @@ const currencies = computed(() => {
 });
 
 watch(selectedCurrency, () => (formError.value = null));
-watch(currencies, () => (selectedCurrency.value = currencies.value[0]));
+watch(currencies, () => (selectedCurrency.value = currencies.value[0] ?? null));
 watch(isErrorLoadingCurrencies, () => (formError.value = t('auth.welcome.errors.unableToLoadCurrencies')));
 watch(baseCurrency, (value) => {
   if (value) forwardToDashboard();

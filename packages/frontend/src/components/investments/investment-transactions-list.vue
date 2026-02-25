@@ -65,15 +65,15 @@ const getCategoryClasses = (category: INVESTMENT_TRANSACTION_CATEGORY) => {
               {{ $t(`portfolioDetail.transactionsList.categories.${tx.category}`) }}
             </span>
           </td>
-          <td class="px-3 py-1.5 text-right tabular-nums">{{ parseFloat(tx.quantity).toFixed(2) }}</td>
+          <td class="px-3 py-1.5 text-right tabular-nums">{{ parseFloat(tx.quantity as string).toFixed(2) }}</td>
           <td class="px-3 py-1.5 text-right tabular-nums">
-            {{ formatAmountByCurrencyCode(parseFloat(tx.price), tx.security.currencyCode) }}
+            {{ formatAmountByCurrencyCode(parseFloat(tx.price as string), tx.security!.currencyCode) }}
           </td>
           <td class="px-3 py-1.5 text-right tabular-nums">
-            {{ formatAmountByCurrencyCode(parseFloat(tx.fees), tx.security.currencyCode) }}
+            {{ formatAmountByCurrencyCode(parseFloat(tx.fees as string), tx.security!.currencyCode) }}
           </td>
           <td class="px-3 py-1.5 text-right font-medium tabular-nums">
-            {{ formatAmountByCurrencyCode(parseFloat(tx.amount), tx.security.currencyCode) }}
+            {{ formatAmountByCurrencyCode(parseFloat(tx.amount as string), tx.security!.currencyCode) }}
           </td>
           <td class="px-3 py-1.5 text-center">
             <DeleteInvestmentTransactionDialog :transaction-id="tx.id">

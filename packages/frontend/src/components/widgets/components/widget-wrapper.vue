@@ -1,7 +1,7 @@
 <template>
   <Card
     :class="[
-      cn('flex flex-col', $attrs.class),
+      cn('flex flex-col', $attrs.class as string),
       isDashboard ? 'h-full' : { 'max-h-87.5': !higher, 'max-h-181': higher },
     ]"
   >
