@@ -34,7 +34,6 @@
   "dependencies": {
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
-    "tailwindcss": "^4.1.13",
     "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
