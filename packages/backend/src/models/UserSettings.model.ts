@@ -1,8 +1,9 @@
-import { AI_FEATURE, AI_PROVIDER, NOTIFICATION_TYPES } from '@bt/shared/types';
 import { SUPPORTED_LOCALES } from '@bt/shared/i18n/locales';
+import { AI_FEATURE, AI_PROVIDER, NOTIFICATION_TYPES } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
-import Users from './Users.model';
 import { z } from 'zod';
+
+import Users from './Users.model';
 
 const ZodAiApiKeyStatusSchema = z.enum(['valid', 'invalid']);
 
@@ -34,12 +35,11 @@ const ZodAiSettingsSchema = z.object({
 const ZodNotificationPreferencesSchema = z.object({
   enabled: z.boolean().default(true),
   // Per-type preferences (all enabled by default)
-  types: z
-    .object({
-      [NOTIFICATION_TYPES.budgetAlert]: z.boolean().default(true),
-      [NOTIFICATION_TYPES.system]: z.boolean().default(true),
-      [NOTIFICATION_TYPES.changelog]: z.boolean().default(true),
-    }),
+  types: z.object({
+    [NOTIFICATION_TYPES.budgetAlert]: z.boolean().default(true),
+    [NOTIFICATION_TYPES.system]: z.boolean().default(true),
+    [NOTIFICATION_TYPES.changelog]: z.boolean().default(true),
+  }),
 });
 
 // Onboarding state schema for Quick Start feature
@@ -63,7 +63,6 @@ export const DEFAULT_ONBOARDING_STATE: OnboardingStateSchema = {
   isDismissed: false,
   dismissedAt: null,
 };
-
 
 const ZodDashboardWidgetSchema = z.object({
   widgetId: z.string(),
@@ -114,7 +113,7 @@ export default class UserSettings extends Model {
     unique: true,
     type: DataType.INTEGER,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Column({
@@ -138,12 +137,12 @@ export default class UserSettings extends Model {
     type: DataType.DATE,
     defaultValue: DataType.NOW,
   })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({
     allowNull: false,
     type: DataType.DATE,
     defaultValue: DataType.NOW,
   })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 }

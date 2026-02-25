@@ -63,7 +63,7 @@ const { isPending: isMutating, mutate: createBudgetItem } = useMutation({
   },
   onError(error) {
     if (error instanceof ApiErrorResponseError) {
-      addErrorNotification(error.data.message);
+      addErrorNotification(error.data.message ?? '');
     } else {
       addErrorNotification(t('budgets.creation.error'));
     }
@@ -72,18 +72,14 @@ const { isPending: isMutating, mutate: createBudgetItem } = useMutation({
 
 const isDateExist = computed(() => !!form.value.startDate && !!form.value.endDate);
 const isCategoryBudget = computed(() => form.value.type === BUDGET_TYPES.category);
-const isCategoryValid = computed(
-  () => !isCategoryBudget.value || form.value.categoryIds.length > 0,
-);
+const isCategoryValid = computed(() => !isCategoryBudget.value || form.value.categoryIds.length > 0);
 const categoryErrorMessage = computed(() => {
   if (!isCategoryBudget.value) return undefined;
   if (!categoriesFieldTouched.value) return undefined;
   if (form.value.categoryIds.length > 0) return undefined;
   return t('budgets.creation.categoriesRequired');
 });
-const isSubmitDisabled = computed(
-  () => isMutating.value || !form.value.name || !isCategoryValid.value,
-);
+const isSubmitDisabled = computed(() => isMutating.value || !form.value.name || !isCategoryValid.value);
 
 const onCategoriesUpdate = (value: number[]) => {
   form.value.categoryIds = value;
@@ -100,7 +96,7 @@ const onBudgetTypeChange = (type: BUDGET_TYPES) => {
 </script>
 
 <template>
-  <form class="grid gap-4" @submit.prevent="() => createBudgetItem(form)">
+  <form class="grid gap-4" @submit.prevent="() => createBudgetItem(form as any)">
     <InputField
       v-model="form.name"
       :label="$t('budgets.creation.nameLabel')"
@@ -109,7 +105,11 @@ const onBudgetTypeChange = (type: BUDGET_TYPES) => {
 
     <div>
       <Label class="mb-2 block text-sm font-medium">{{ $t('budgets.creation.typeLabel') }}</Label>
-      <RadioGroup :model-value="form.type" class="grid grid-cols-2 gap-3" @update:model-value="onBudgetTypeChange">
+      <RadioGroup
+        :model-value="form.type"
+        class="grid grid-cols-2 gap-3"
+        @update:model-value="(v: string) => onBudgetTypeChange(v as BUDGET_TYPES)"
+      >
         <Label
           :class="
             cn(
@@ -151,18 +151,20 @@ const onBudgetTypeChange = (type: BUDGET_TYPES) => {
 
     <div class="flex justify-between gap-4">
       <DateField
-        v-model="form.startDate"
+        :model-value="form.startDate ?? undefined"
         :calendar-options="{
-          maxDate: form.endDate,
+          maxDate: form.endDate ?? undefined,
         }"
         :label="$t('budgets.creation.fromDateLabel')"
+        @update:model-value="(v: Date | undefined) => (form.startDate = v ?? null)"
       />
       <DateField
-        v-model="form.endDate"
+        :model-value="form.endDate ?? undefined"
         :calendar-options="{
-          minDate: form.startDate,
+          minDate: form.startDate ?? undefined,
         }"
         :label="$t('budgets.creation.toDateLabel')"
+        @update:model-value="(v: Date | undefined) => (form.endDate = v ?? null)"
       />
     </div>
 

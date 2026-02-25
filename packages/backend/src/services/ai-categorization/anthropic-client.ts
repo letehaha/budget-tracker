@@ -63,16 +63,16 @@ export class AnthropicClient {
         const message = error.message;
 
         if (status === 401) {
-          throw new Error('Invalid Anthropic API key');
+          throw new Error('Invalid Anthropic API key', { cause: error });
         }
         if (status === 429) {
-          throw new Error('Anthropic API rate limit exceeded');
+          throw new Error('Anthropic API rate limit exceeded', { cause: error });
         }
         if (status === 500 || status === 503) {
-          throw new Error('Anthropic API temporarily unavailable');
+          throw new Error('Anthropic API temporarily unavailable', { cause: error });
         }
 
-        throw new Error(`Anthropic API error: ${message}`);
+        throw new Error(`Anthropic API error: ${message}`, { cause: error });
       }
       throw error;
     }

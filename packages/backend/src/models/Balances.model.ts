@@ -1,15 +1,16 @@
-import { Op } from 'sequelize';
-import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
 import { TRANSACTION_TYPES, ACCOUNT_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { roundHalfToEven } from '@common/utils/round-half-to-even';
+import { logger } from '@js/utils';
+import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
+import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { subDays, startOfMonth, startOfDay } from 'date-fns';
+import { Op } from 'sequelize';
+import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
+
 import Accounts from './Accounts.model';
 import Transactions, { TransactionsAttributes } from './Transactions.model';
-import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
-import { logger } from '@js/utils';
-import { roundHalfToEven } from '@common/utils/round-half-to-even';
-import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
 
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
@@ -41,11 +42,15 @@ export default class Balances extends Model {
    * `amount` is in the BASE currency. So it represents a `refAmount` (`refBalance`)
    */
   @Column(MoneyColumn({ storage: 'cents' }))
-  get amount(): Money { return moneyGetCents(this, 'amount'); }
-  set amount(val: Money | number) { moneySetCents(this, 'amount', val); }
+  get amount(): Money {
+    return moneyGetCents(this, 'amount');
+  }
+  set amount(val: Money | number) {
+    moneySetCents(this, 'amount', val);
+  }
 
   @ForeignKey(() => Accounts)
-  @Column({ allowNull: false, type: DataType.INTEGER, })
+  @Column({ allowNull: false, type: DataType.INTEGER })
   accountId!: number;
 
   @BelongsTo(() => Accounts)
@@ -207,10 +212,10 @@ export default class Balances extends Model {
       default: {
         const exhaustiveCheck: never = data.accountType;
 
-        if (process.env.NODE_ENV === "development") {
+        if (process.env.NODE_ENV === 'development') {
           throw new Error(`Unhandled account type in handleTransactionChange: ${exhaustiveCheck}`);
         } else {
-          logger.error(`Unhandled account type in handleTransactionChange: ${exhaustiveCheck}`)
+          logger.error(`Unhandled account type in handleTransactionChange: ${exhaustiveCheck}`);
         }
         console.log('default');
       }
@@ -233,7 +238,15 @@ export default class Balances extends Model {
    * For external bank providers (Monobank, EnableBanking), use updateAccountBalance()
    * which sets an absolute balance value without cascading.
    */
-  private static async updateBalanceIncremental({ accountId, date, amount }: { accountId: number; date: Date; amount: Money }) {
+  private static async updateBalanceIncremental({
+    accountId,
+    date,
+    amount,
+  }: {
+    accountId: number;
+    date: Date;
+    amount: Money;
+  }) {
     // If there's no record for the 1st of the month, create it based on the closest record prior it
     // so it's easier to calculate stats for the period
     const firstDayOfMonth = startOfMonth(new Date(date));

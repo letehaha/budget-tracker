@@ -50,6 +50,7 @@ packages/frontend/src/i18n/locales/chunks/{locale}/
 **Locales:** `en` (English), `uk` (Ukrainian)
 
 **Finding the right file:**
+
 1. Use `Glob` to discover available chunks: `packages/frontend/src/i18n/locales/chunks/en/**/*.json`
 2. Match chunk to feature (e.g., editing dashboard → `pages/dashboard.json`)
 3. For shared UI elements → check `common.json`, `dialogs.json`, `forms.json`
@@ -100,6 +101,7 @@ Report results to the main model:
 ### Global Chunks (loaded for ALL `/app` routes automatically)
 
 These are declared on the `/app` parent route — every child route inherits them:
+
 - `common` — synchronously loaded at startup, truly universal
 - `layout` — header, sidebar, footer
 - `dialogs` — modal/dialog strings
@@ -111,6 +113,7 @@ These are declared on the `/app` parent route — every child route inherits the
 ### Per-Page Chunks (loaded on demand per route)
 
 These are declared on individual routes and loaded lazily:
+
 - `pages/account.json` — loaded only on `/account/:id`
 - `pages/transactions.json` — loaded on routes that declare it
 - `settings/categories.json` — loaded only on the categories settings page

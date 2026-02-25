@@ -1,7 +1,8 @@
 // AccountGroup.model.ts
 import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, BelongsToMany, DataType } from 'sequelize-typescript';
-import Users from '../Users.model';
+
 import Accounts from '../Accounts.model';
+import Users from '../Users.model';
 import AccountGrouping from './AccountGrouping.model';
 
 /**

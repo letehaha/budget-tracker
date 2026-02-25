@@ -157,15 +157,15 @@ watch(
 const makeBaseCurrency = async () => {
   try {
     emit('trigger-disabled', true);
-    await changeBaseCurrencyMutation.mutateAsync(props.currency.currency.code);
+    await changeBaseCurrencyMutation.mutateAsync(props.currency.currency!.code);
 
     addSuccessNotification(t('settings.currencies.setBase.successMessage'));
 
     emit('trigger-disabled', false);
     emit('submit');
-  } catch (e) {
-    if (e.data?.code === API_ERROR_CODES.validationError) {
-      addErrorNotification(e.data.message);
+  } catch (e: unknown) {
+    if ((e as any)?.data?.code === API_ERROR_CODES.validationError) {
+      addErrorNotification((e as any).data.message);
       return;
     }
     addErrorNotification(t('settings.currencies.setBase.errors.changeFailed'));

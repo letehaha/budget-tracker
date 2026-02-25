@@ -95,7 +95,7 @@ export const createBudget = withTransaction(async (payload: CreateBudgetPayload)
     });
 
     if (transactions.length) {
-      const transactionIds = transactions.map((t) => t.id);
+      const transactionIds = transactions.map((tx) => tx.id);
       await BudgetTransactions.bulkCreate(
         transactionIds.map((transactionId) => ({
           budgetId: budget.id,

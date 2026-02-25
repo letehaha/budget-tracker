@@ -11,7 +11,7 @@ import { AccountModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed, provide, ref } from 'vue';
+import { Ref, computed, provide, ref } from 'vue';
 
 import AccountGroupsList from './account-groups-list.vue';
 import AccountsList from './accounts-list.vue';
@@ -30,7 +30,7 @@ const { data: accountGroups, isLoading: isGroupsLoading } = useQuery({
 // Wait for both accounts and groups to load to prevent layout shift
 const isLoading = computed(() => !isAccountsFetched.value || isGroupsLoading.value);
 
-const accountGroupsContext = useActiveAccountGroups(accountGroups);
+const accountGroupsContext = useActiveAccountGroups(accountGroups as Ref<AccountGroups[]>);
 provide('accountGroupsContext', accountGroupsContext);
 
 const accountsInGroups = computed(() => {
@@ -48,7 +48,7 @@ const accountsInGroups = computed(() => {
       {} as Record<number, AccountModel>,
     );
 
-  return flattenAccounts(accountGroups.value);
+  return flattenAccounts(accountGroups.value ?? []);
 });
 const accountsWithoutGroups = computed(() => enabledAccounts.value.filter((i) => !accountsInGroups.value[i.id]));
 
@@ -89,7 +89,7 @@ const isPopoverOpen = ref(false);
         <AccountsSkeleton />
       </template>
       <template v-else>
-        <AccountGroupsList :groups="accountGroups" />
+        <AccountGroupsList :groups="accountGroups ?? []" />
         <AccountsList :accounts="accountsWithoutGroups" />
       </template>
     </div>

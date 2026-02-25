@@ -33,7 +33,9 @@ const emit = defineEmits<{
         <div class="bg-primary h-full transition-all duration-500 ease-out" :style="{ width: `${progress}%` }" />
       </div>
       <div class="text-muted-foreground flex justify-between text-xs">
-        <span>{{ t('dashboard.onboarding.quickStart.ui.progressText', { completed: completedCount, total: totalCount }) }}</span>
+        <span>{{
+          t('dashboard.onboarding.quickStart.ui.progressText', { completed: completedCount, total: totalCount })
+        }}</span>
         <span>{{ progress }}%</span>
       </div>
     </div>

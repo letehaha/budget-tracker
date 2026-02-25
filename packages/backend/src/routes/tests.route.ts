@@ -6,6 +6,7 @@ import { Router } from 'express';
 
 const router = Router();
 
+// oxlint-disable-next-line oxc/no-async-endpoint-handlers – used only in tests
 router.get('/exchange-rates/sync', authenticateSession, async (req, res) => {
   try {
     await syncExchangeRates();

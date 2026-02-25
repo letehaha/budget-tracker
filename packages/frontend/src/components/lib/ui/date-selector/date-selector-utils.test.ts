@@ -518,10 +518,10 @@ describe('getGridColumns', () => {
 });
 
 describe('getCellLabels', () => {
-  const formatFn = (d: Date, pattern: string) => {
+  const formatFn = (d: Date, pattern: string): string => {
     if (pattern === 'MMM') {
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return months[d.getMonth()];
+      return months[d.getMonth()]!;
     }
     return '';
   };

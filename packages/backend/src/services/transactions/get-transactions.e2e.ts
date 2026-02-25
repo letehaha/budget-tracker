@@ -253,7 +253,7 @@ describe('Retrieve transactions with filters', () => {
     });
 
     expect(res.length).toBe(6);
-    expect(transactions.map((t) => t!.time).sort((a, b) => comparer(new Date(a), new Date(b)))).toEqual(
+    expect(transactions.map((t) => t!.time).toSorted((a, b) => comparer(new Date(a), new Date(b)))).toEqual(
       res.map((t) => t.time),
     );
   });

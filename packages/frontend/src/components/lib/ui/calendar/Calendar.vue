@@ -56,7 +56,7 @@ const modelValue = useVModel(props, 'modelValue', emits, {
 const datePicker = ref<InstanceType<typeof DatePicker>>();
 // In this current version of v-calendar has the calendarRef instance, which is
 // required to handle arrow nav.
-const calendarRef = computed(() => datePicker.value.calendarRef);
+const calendarRef = computed(() => datePicker.value!.calendarRef);
 
 function handleNav(direction: 'prev' | 'next') {
   if (!calendarRef.value) return;

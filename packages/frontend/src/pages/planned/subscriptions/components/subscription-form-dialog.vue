@@ -375,14 +375,15 @@ const handleSubmit = () => {
           <!-- Dates -->
           <div class="grid grid-cols-2 gap-3">
             <DateField
-              v-model="form.startDate"
+              :model-value="form.startDate ?? undefined"
               :calendar-options="{ maxDate: form.endDate ?? undefined }"
               :label="$t('planned.subscriptions.form.startDateLabel')"
+              @update:model-value="(v: Date | null) => (form.startDate = v)"
             />
             <DateField
-              v-model="form.endDate"
-              :calendar-options="{ minDate: form.startDate ?? undefined }"
+              :model-value="form.endDate ?? undefined"
               :label="$t('planned.subscriptions.form.endDateLabel')"
+              @update:model-value="(v: Date | null) => (form.endDate = v)"
             />
           </div>
 

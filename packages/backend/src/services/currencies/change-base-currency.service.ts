@@ -6,13 +6,13 @@ import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
-import Transactions from '@models/Transactions.model';
-import { getBaseCurrency, updateCurrencies } from '@models/UsersCurrencies.model';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import PortfolioBalances from '@models/investments/PortfolioBalances.model';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import Portfolios from '@models/investments/Portfolios.model';
+import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
+import Transactions from '@models/Transactions.model';
+import { getBaseCurrency, updateCurrencies } from '@models/UsersCurrencies.model';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { withLock } from '@services/common/lock';
 import * as userExchangeRateService from '@services/user-exchange-rate';
@@ -124,7 +124,7 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
   }
 
   // Start database transaction for atomicity
-  const result = await Transactions.sequelize!.transaction(async (t: SequelizeTransaction) => {
+  const result = await Transactions.sequelize!.transaction(async (dbTransaction: SequelizeTransaction) => {
     logger.info(
       `Starting base currency change for user ${userId} from ${oldBaseCurrency.currencyCode} to ${newCurrencyCode}`,
     );
@@ -133,14 +133,14 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
     const transactionsUpdated = await rebuildTransactions({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 2: Recalculate all accounts
     const accountsUpdated = await recalculateAccounts({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 3: Rebuild balance history
@@ -148,35 +148,35 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       userId,
       oldCurrencyCode: oldBaseCurrency.currencyCode,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 4: Recalculate investment transactions
     const investmentTransactionsUpdated = await recalculateInvestmentTransactions({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 5: Recalculate portfolio transfers
     const portfolioTransfersUpdated = await recalculatePortfolioTransfers({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 6: Recalculate holdings
     const holdingsUpdated = await recalculateHoldings({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 7: Recalculate portfolio balances
     const portfolioBalancesUpdated = await recalculatePortfolioBalances({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 8: Update the base currency flag

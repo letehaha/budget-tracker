@@ -51,7 +51,7 @@ const { isFormValid, getFieldErrorMessage, touchField, resetValidation } = useFo
 );
 
 const currencyCode = computed(
-  () => currenciesMap.value[props.account.currencyCode]?.currency.code ?? props.account.currencyCode,
+  () => currenciesMap.value[props.account.currencyCode]?.currency?.code ?? props.account.currencyCode,
 );
 
 const computedTarget = computed<number | null>(() => {

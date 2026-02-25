@@ -129,7 +129,7 @@ class ApiCaller {
       endpoint,
       options,
       query: validQuery,
-      data: params?.data,
+      data: params?.data as ApiCall['data'],
     });
   }
 

@@ -3,8 +3,8 @@ import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Budgets from '@models/Budget.model';
 import Categories from '@models/Categories.model';
-import TransactionSplits from '@models/TransactionSplits.model';
 import * as Transactions from '@models/Transactions.model';
+import TransactionSplits from '@models/TransactionSplits.model';
 import {
   addMonths,
   addWeeks,
@@ -269,7 +269,7 @@ const determineDateRange = ({
   if (budgetStartDate && budgetEndDate) {
     return { from: new Date(budgetStartDate), to: new Date(budgetEndDate) };
   }
-  const timestamps = transactionTimes.map((t) => t.getTime());
+  const timestamps = transactionTimes.map((time) => time.getTime());
   return {
     from: new Date(Math.min(...timestamps)),
     to: new Date(Math.max(...timestamps)),

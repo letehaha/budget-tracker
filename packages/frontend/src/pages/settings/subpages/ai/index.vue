@@ -21,7 +21,7 @@
               :class="[
                 isActiveRoute(ROUTES_NAMES.settingsAiFeatures)
                   ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground',
+                  : 'text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground border-transparent',
               ]"
             >
               <SparklesIcon class="size-4" />
@@ -34,7 +34,7 @@
               :class="[
                 isActiveRoute(ROUTES_NAMES.settingsAiKeys)
                   ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground',
+                  : 'text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground border-transparent',
               ]"
             >
               <KeyIcon class="size-4" />

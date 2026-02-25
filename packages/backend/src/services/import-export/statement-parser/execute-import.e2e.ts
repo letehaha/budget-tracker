@@ -33,7 +33,7 @@ describe('Statement Parser - Execute Import endpoint', () => {
 
     return defaults.map((tx, i) => ({
       ...tx,
-      ...(overrides[i] || {}),
+      ...overrides[i],
     }));
   };
 

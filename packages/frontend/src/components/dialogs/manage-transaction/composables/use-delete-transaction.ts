@@ -24,7 +24,7 @@ export function useDeleteTransaction({ onSuccess }: { onSuccess: () => void }) {
     },
     onError: (error) => {
       if (error instanceof ApiErrorResponseError) {
-        addErrorNotification(error.data.message);
+        addErrorNotification(error.data.message ?? error.message);
       } else {
         // eslint-disable-next-line no-console
         console.error(error);

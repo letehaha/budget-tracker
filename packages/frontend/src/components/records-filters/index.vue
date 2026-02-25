@@ -7,7 +7,7 @@
     />
 
     <TransactionTypeFilter
-      :value="filters.transactionType"
+      :value="filters.transactionType ?? undefined"
       @update:value="$emit('update:filters', { ...filters, transactionType: $event })"
     />
 

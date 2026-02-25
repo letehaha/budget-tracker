@@ -1,4 +1,5 @@
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
+
 import Transactions from './Transactions.model';
 import TransactionSplits from './TransactionSplits.model';
 import Users from './Users.model';
@@ -87,4 +88,3 @@ export const createRefundTransaction = async ({
 }) => {
   return RefundTransactions.create({ userId, originalTxId, refundTxId, splitId });
 };
-

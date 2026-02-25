@@ -16,27 +16,27 @@ const SHARED_TX_ACCOUNT = getUahAccount();
 const buildCommonTxBody = (overrides: Partial<TransactionModel> = {}): TransactionModel => {
   const amount = faker.number.int({ min: 1000, max: 100000 });
   const currencyCode = SHARED_TX_ACCOUNT.currencyCode;
-  const currency = USER_CURRENCIES.find((item) => item.currencyCode === currencyCode);
+  const currency = USER_CURRENCIES.find((item) => item.currencyCode === currencyCode)!;
   const refAmount = amount * currency.exchangeRate;
 
   return {
     id: faker.number.int({ min: 1, max: 100000 }),
     amount,
     refAmount,
-    note: null,
+    note: '',
     time: new Date(),
     userId: USER.id,
     transactionType: TRANSACTION_TYPES.income,
     paymentType: PAYMENT_TYPES.creditCard,
-    accountId: SHARED_TX_ACCOUNT.id,
-    categoryId: USER_CATEGORIES[0].id,
-    currencyCode,
+    accountId: SHARED_TX_ACCOUNT.id!,
+    categoryId: USER_CATEGORIES[0]!.id,
+    currencyCode: currencyCode!,
     accountType: ACCOUNT_TYPES.system,
-    refCurrencyCode: USER_BASE_CURRENCY.currency.code,
+    refCurrencyCode: USER_BASE_CURRENCY.currency!.code,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-    transferId: null,
-    originalId: null,
-    externalData: null,
+    transferId: '',
+    originalId: '',
+    externalData: {} as object,
     commissionRate: 0,
     refCommissionRate: 0,
     cashbackAmount: 0,

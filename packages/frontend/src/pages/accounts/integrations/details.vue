@@ -43,7 +43,9 @@
                   <p class="mt-1 flex items-center gap-2 font-medium">
                     <BankProviderLogo class="size-5" :provider="connectionDetails.providerType" />
 
-                    {{ t(METAINFO_FROM_TYPE[connectionDetails.providerType].nameKey) }}
+                    {{
+                      t(METAINFO_FROM_TYPE[connectionDetails.providerType as keyof typeof METAINFO_FROM_TYPE]!.nameKey)
+                    }}
                   </p>
                 </div>
                 <div>
@@ -231,7 +233,7 @@
                       {{ $t('pages.integrations.details.connectionValidity.validUntil') }}
                     </p>
                     <p class="font-medium">
-                      {{ formatDate(connectionDetails.consent.validUntil) }}
+                      {{ formatDate(connectionDetails.consent.validUntil!) }}
                     </p>
                   </div>
                   <div>
@@ -248,7 +250,7 @@
                       {{
                         $t(
                           'pages.integrations.details.connectionValidity.daysCount',
-                          connectionDetails.consent.daysRemaining,
+                          connectionDetails.consent.daysRemaining ?? 0,
                         )
                       }}
                     </p>
@@ -588,8 +590,8 @@ const { mutate: updateCredentialsMutation, isPending: isUpdatingCredentials } = 
     isUpdateCredentialsDialogOpen.value = false;
     newApiKey.value = '';
   },
-  onError: (error) => {
-    const message = error instanceof Error ? error.message : t('pages.integrations.updateCredentials.failed');
+  onError: (err) => {
+    const message = err instanceof Error ? err.message : t('pages.integrations.updateCredentials.failed');
     addErrorNotification(message);
   },
 });
@@ -670,8 +672,8 @@ const { mutate: disconnectMutation, isPending: isDisconnecting } = useMutation({
 
 // Mutation for updating connection name
 const { mutate: updateNameMutation, isPending: isSavingName } = useMutation({
-  mutationFn: ({ connectionId, providerName }: { connectionId: number; providerName: string }) =>
-    updateConnectionDetails(connectionId, { providerName }),
+  mutationFn: ({ connectionId: connId, providerName }: { connectionId: number; providerName: string }) =>
+    updateConnectionDetails(connId, { providerName }),
   onSuccess: () => {
     addSuccessNotification(t('pages.integrations.notifications.updateNameSuccess'));
     queryClient.invalidateQueries({
@@ -741,7 +743,7 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const formatRelativeTime = (dateString: string | null) => {
+const formatRelativeTime = (dateString: string | null | undefined) => {
   if (!dateString) return t('pages.integrations.details.relativeTime.never');
 
   const date = new Date(dateString);
@@ -775,9 +777,8 @@ const handleReconnect = async () => {
 
     // Redirect to the authorization URL
     window.location.href = response.authUrl;
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : t('pages.integrations.details.errors.reauthorizationFailed');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : t('pages.integrations.details.errors.reauthorizationFailed');
     isReconnectPending.value = false;
     isReconnectDialogOpen.value = false;
     addErrorNotification(message);

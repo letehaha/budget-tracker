@@ -39,7 +39,7 @@
             <div class="flex-1 truncate">
               <div class="max-w-50 truncate font-medium">{{ account.accountName }}</div>
               <div class="text-muted-foreground text-[10px]">
-                {{ t(METAINFO_FROM_TYPE[account.providerType].nameKey) }}
+                {{ t(METAINFO_FROM_TYPE[account.providerType]?.nameKey ?? '') }}
               </div>
             </div>
             <div class="flex shrink-0 items-center gap-1">

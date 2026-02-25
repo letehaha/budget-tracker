@@ -34,13 +34,13 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const DEFAULT_FILTERS: {
-  start: Date | null;
-  end: Date | null;
+  start: Date | undefined;
+  end: Date | undefined;
   amountGte: number | null;
   amountLte: number | null;
 } = {
-  start: null,
-  end: null,
+  start: undefined,
+  end: undefined,
   amountGte: null,
   amountLte: null,
 };
@@ -115,10 +115,10 @@ const fetchTransactions = ({ pageParam, filter }: { pageParam: number; filter: t
       transactionType: props.transactionType,
       excludeTransfer: true,
       excludeRefunds: true, // Exclude refund-linked transactions for transfers
-      endDate: isDate(filter.end) ? filter.end.toISOString() : undefined,
-      startDate: isDate(filter.start) ? filter.start.toISOString() : undefined,
-      amountGte: filter.amountGte,
-      amountLte: filter.amountLte,
+      endDate: isDate(filter.end) ? filter.end!.toISOString() : undefined,
+      startDate: isDate(filter.start) ? filter.start!.toISOString() : undefined,
+      amountGte: filter.amountGte ?? undefined,
+      amountLte: filter.amountLte ?? undefined,
     }),
   );
 };
@@ -129,7 +129,12 @@ const {
   hasNextPage,
   isFetched,
 } = useInfiniteQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.recordsPageTransactionList, 'transfer-list', props.transactionType, appliedFilters],
+  queryKey: [
+    ...VUE_QUERY_CACHE_KEYS.recordsPageTransactionList,
+    'transfer-list',
+    props.transactionType,
+    appliedFilters,
+  ],
   queryFn: ({ pageParam }) => fetchTransactions({ pageParam, filter: appliedFilters.value }),
   initialPageParam: 0,
   getNextPageParam: (lastPage, pages) => {
@@ -256,7 +261,9 @@ const hasAnyTransactions = computed(
       </Button>
     </template>
     <template v-else-if="!hasNextPage && hasAnyTransactions">
-      <p class="mt-4 text-center text-sm">{{ t('dialogs.manageTransaction.transferRecordsList.noMoreTransactions') }}</p>
+      <p class="mt-4 text-center text-sm">
+        {{ t('dialogs.manageTransaction.transferRecordsList.noMoreTransactions') }}
+      </p>
     </template>
     <template v-else>
       <p class="mx-auto max-w-[80%] text-center text-sm text-white/80">

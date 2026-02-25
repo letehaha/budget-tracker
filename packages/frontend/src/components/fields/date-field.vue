@@ -71,13 +71,7 @@ import { format } from 'date-fns';
 import { CalendarClockIcon } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 
-interface InputChangeEvent extends InputEvent {
-  target: HTMLInputElement;
-}
-
-interface InputFocusEvent extends FocusEvent {
-  target: HTMLInputElement;
-}
+defineOptions({ inheritAttrs: false });
 
 const props = withDefaults(
   defineProps<{
@@ -114,11 +108,11 @@ const inputValue = ref(props.modelValue ? formatToInput(props.modelValue) : '');
 const emit = defineEmits<{
   (e: 'update:modelValue', payload: Date): void;
 }>();
-const localValue = ref<Date>(props.modelValue);
+const localValue = ref<Date>(props.modelValue ?? new Date());
 const isPopoverOpen = ref(false);
 
-const handleLocalInputUpdate = (event: InputChangeEvent) => {
-  const inputVal = event.target.value;
+const handleLocalInputUpdate = (event: Event) => {
+  const inputVal = (event.target as HTMLInputElement).value;
 
   // Always update the displayed input value so user can see what they're typing
   inputValue.value = inputVal;
@@ -131,8 +125,8 @@ const handleLocalInputUpdate = (event: InputChangeEvent) => {
   // This prevents validation errors during typing
 };
 
-const handleBlur = (event: InputFocusEvent) => {
-  const inputVal = event.target.value;
+const handleBlur = (event: FocusEvent) => {
+  const inputVal = (event.target as HTMLInputElement).value;
 
   // On blur, validate the final input value
   if (inputVal && !isNaN(new Date(inputVal).getTime())) {
@@ -149,7 +143,7 @@ watch(
   () => props.modelValue,
   (value) => {
     inputValue.value = value ? formatToInput(value) : '';
-    localValue.value = value;
+    localValue.value = value!;
   },
 );
 

@@ -1,18 +1,10 @@
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  ForeignKey,
-  BelongsTo,
-  HasMany,
-  Index,
-} from 'sequelize-typescript';
+import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, Index } from 'sequelize-typescript';
+
 import Users from '../Users.model';
-import PortfolioBalances from './PortfolioBalances.model';
 import Holdings from './Holdings.model';
 import InvestmentTransaction from './InvestmentTransaction.model';
-import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import PortfolioBalances from './PortfolioBalances.model';
 
 @Table({
   timestamps: true,
@@ -26,7 +18,7 @@ export default class Portfolios extends Model {
     autoIncrement: true,
     type: DataType.INTEGER,
   })
-  id!: number;
+  declare id: number;
 
   @Column({ type: DataType.STRING, allowNull: false })
   name!: string;
@@ -51,10 +43,10 @@ export default class Portfolios extends Model {
   isEnabled!: boolean;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   // Associations
   @BelongsTo(() => Users)

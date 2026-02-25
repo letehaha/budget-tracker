@@ -98,7 +98,7 @@ export class MonobankProvider extends BaseBankDataProvider {
 
     try {
       return await apiClient.testConnection();
-    } catch (error) {
+    } catch {
       // Network or other errors - consider as invalid
       return false;
     }

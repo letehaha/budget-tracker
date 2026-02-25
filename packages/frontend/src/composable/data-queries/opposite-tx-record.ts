@@ -6,7 +6,11 @@ import { computed } from 'vue';
 
 const BASE_QUERY_KEY = 'transactions-by-transfer-id';
 
-export function useOppositeTxRecord(transaction) {
+export function useOppositeTxRecord(transaction: {
+  id: number;
+  transferNature: TRANSACTION_TRANSFER_NATURE;
+  transferId: string | null;
+}) {
   const isTransferTransaction = computed(() =>
     [TRANSACTION_TRANSFER_NATURE.common_transfer, TRANSACTION_TRANSFER_NATURE.transfer_out_wallet].includes(
       transaction.transferNature,
@@ -26,4 +30,4 @@ export function useOppositeTxRecord(transaction) {
   });
 }
 
-export const getInvalidationQueryKey = (transactionId) => [BASE_QUERY_KEY, transactionId];
+export const getInvalidationQueryKey = (transactionId: number) => [BASE_QUERY_KEY, transactionId];

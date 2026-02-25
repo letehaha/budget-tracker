@@ -63,7 +63,7 @@
 
     <ReassignCategoryDialog
       v-model:open="reassignDialogState.isOpen"
-      :category="reassignDialogState.category"
+      :category="reassignDialogState.category!"
       :transaction-count="reassignDialogState.transactionCount"
       @deleted="handleReassignDeleted"
     />
@@ -228,7 +228,7 @@ const handleDeleteCategory = async () => {
   } catch (err) {
     if (err instanceof ApiErrorResponseError) {
       if (err.data.code === API_ERROR_CODES.validationError) {
-        addErrorNotification(err.data.message);
+        addErrorNotification(err.data.message ?? '');
         return;
       }
     }

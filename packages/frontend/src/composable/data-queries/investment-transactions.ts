@@ -14,10 +14,11 @@ export const useCreateInvestmentTransaction = () => {
 
   return useMutation({
     mutationFn: createInvestmentTransaction,
-    onSuccess: (_, variables: { portfolioId: number }) => {
+    onSuccess: (_, variables) => {
+      const { portfolioId } = variables as { portfolioId: number };
       // Invalidate holdings and portfolio queries to refetch data
-      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.holdingsList, variables.portfolioId] });
-      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioDetails, variables.portfolioId] });
+      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.holdingsList, portfolioId] });
+      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioDetails, portfolioId] });
       // Invalidate holding-transactions queries to refresh transaction lists
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingTransactions });
     },

@@ -1,18 +1,9 @@
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  ForeignKey,
-  BelongsTo,
-  Index,
-  PrimaryKey,
-} from 'sequelize-typescript';
-
-import Securities from './Securities.model';
-import Portfolios from './Portfolios.model';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index, PrimaryKey } from 'sequelize-typescript';
+
+import Portfolios from './Portfolios.model';
+import Securities from './Securities.model';
 
 /**
  * The Holding model represents individual investments within an investment account.
@@ -74,8 +65,12 @@ export default class Holdings extends Model {
    * selling shares of the security.
    */
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get quantity(): Money { return moneyGetDecimal(this, 'quantity'); }
-  set quantity(val: Money | string | number) { moneySetDecimal(this, 'quantity', val, 10); }
+  get quantity(): Money {
+    return moneyGetDecimal(this, 'quantity');
+  }
+  set quantity(val: Money | string | number) {
+    moneySetDecimal(this, 'quantity', val, 10);
+  }
 
   /**
    * The `costBasis` field represents the original value or purchase price of an
@@ -98,11 +93,19 @@ export default class Holdings extends Model {
    * affect the quantity or value of holding.
    */
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get costBasis(): Money { return moneyGetDecimal(this, 'costBasis'); }
-  set costBasis(val: Money | string | number) { moneySetDecimal(this, 'costBasis', val, 10); }
+  get costBasis(): Money {
+    return moneyGetDecimal(this, 'costBasis');
+  }
+  set costBasis(val: Money | string | number) {
+    moneySetDecimal(this, 'costBasis', val, 10);
+  }
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refCostBasis(): Money { return moneyGetDecimal(this, 'refCostBasis'); }
-  set refCostBasis(val: Money | string | number) { moneySetDecimal(this, 'refCostBasis', val, 10); }
+  get refCostBasis(): Money {
+    return moneyGetDecimal(this, 'refCostBasis');
+  }
+  set refCostBasis(val: Money | string | number) {
+    moneySetDecimal(this, 'refCostBasis', val, 10);
+  }
 
   @Column({ type: DataType.STRING, allowNull: false, defaultValue: 'USD' })
   currencyCode!: string;
@@ -117,10 +120,10 @@ export default class Holdings extends Model {
   excluded!: boolean;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   @BelongsTo(() => Securities)
   security?: Securities;

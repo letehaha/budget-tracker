@@ -1,10 +1,10 @@
+import { NotFoundError } from '@js/errors';
+import { removeUndefinedKeys } from '@js/helpers';
 import { Op } from 'sequelize';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
 
-import { removeUndefinedKeys } from '@js/helpers';
-import Users from './Users.model';
 import Currencies from './Currencies.model';
-import { NotFoundError } from '@js/errors';
+import Users from './Users.model';
 
 @Table({
   timestamps: false,
@@ -44,21 +44,21 @@ export default class UsersCurrencies extends Model {
   @Column({
     allowNull: true,
     defaultValue: null,
-    type: DataType.INTEGER
+    type: DataType.INTEGER,
   })
   exchangeRate!: number;
 
   @Column({
     allowNull: false,
     defaultValue: false,
-    type: DataType.BOOLEAN
+    type: DataType.BOOLEAN,
   })
   liveRateUpdate!: boolean;
 
   @Column({
     allowNull: false,
     defaultValue: false,
-    type: DataType.BOOLEAN
+    type: DataType.BOOLEAN,
   })
   isDefaultCurrency!: boolean;
 }
@@ -88,7 +88,13 @@ export const getBaseCurrency = async ({ userId }: { userId: number }) => {
 };
 
 type getCurrencyOverload = {
-  ({ userId, currencyCode }: { userId: number; currencyCode: string }): Promise<UsersCurrencies & { currency: Currencies }>;
+  ({
+    userId,
+    currencyCode,
+  }: {
+    userId: number;
+    currencyCode: string;
+  }): Promise<UsersCurrencies & { currency: Currencies }>;
   ({
     userId,
     isDefaultCurrency,

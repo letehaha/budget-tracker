@@ -75,7 +75,7 @@
                   </Select.SelectContent>
                 </Select.Select>
                 <p
-                  v-if="getFilteredAccounts(sourceAccount.currency).length === 0"
+                  v-if="getFilteredAccounts(sourceAccount.currency ?? '').length === 0"
                   class="text-destructive-text mt-1 text-xs"
                 >
                   {{
@@ -184,7 +184,7 @@ const getAccountSelectValue = (accountName: string): string => {
 const getAccountDisplayValue = (accountName: string): string => {
   const mapping = importStore.accountMapping[accountName];
   if (mapping?.action === 'link-existing' && mapping.accountId) {
-    const account = accounts.value.find((acc) => acc.id === mapping.accountId);
+    const account = (accounts.value ?? []).find((acc) => acc.id === mapping.accountId);
     return account
       ? `${account.name} (${account.currencyCode})`
       : t('pages.importExport.accountMappingTable.selectAccount');
@@ -203,7 +203,7 @@ const getMappedToAccountName = (accountId: number): string => {
 };
 
 const getFilteredAccounts = (targetCurrency: string) => {
-  if (!targetCurrency) return accounts.value;
-  return accounts.value.filter((acc) => acc.currencyCode === targetCurrency);
+  if (!targetCurrency) return accounts.value ?? [];
+  return (accounts.value ?? []).filter((acc) => acc.currencyCode === targetCurrency);
 };
 </script>

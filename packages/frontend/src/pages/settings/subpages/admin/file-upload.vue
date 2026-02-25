@@ -45,11 +45,11 @@ function parseCSV(text: string): Record<string, string>[] {
     return result;
   }
 
-  const headers = parseLine(lines[0]);
+  const headers = parseLine(lines[0]!);
   const result: Record<string, string>[] = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const values = parseLine(lines[i]);
+    const values = parseLine(lines[i]!);
     const row: Record<string, string> = {};
     headers.forEach((header, index) => {
       row[header] = values[index] || '';

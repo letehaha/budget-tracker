@@ -1,8 +1,8 @@
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Tags from '@models/Tags.model';
-import TransactionTags from '@models/TransactionTags.model';
 import Transactions from '@models/Transactions.model';
+import TransactionTags from '@models/TransactionTags.model';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';

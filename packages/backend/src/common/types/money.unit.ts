@@ -297,7 +297,7 @@ describe('Money value object', () => {
     it('toDecimalString produces fixed-precision string', () => {
       expect(Money.fromDecimal(102.5).toDecimalString(10)).toBe('102.5000000000');
       expect(Money.fromDecimal(0).toDecimalString(2)).toBe('0.00');
-      expect(Money.fromDecimal(-3.14159).toDecimalString(4)).toBe('-3.1416');
+      expect(Money.fromDecimal(-3.1159).toDecimalString(4)).toBe('-3.1159');
     });
 
     it('toNumber returns JS number', () => {

@@ -1,8 +1,8 @@
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import Portfolios from '@models/investments/Portfolios.model';
+import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import { Op } from 'sequelize';
 
 interface ListPortfolioTransfersParams {

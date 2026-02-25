@@ -1,7 +1,8 @@
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
-import Securities from "./Securities.model";
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
+
+import Securities from './Securities.model';
 
 /**
  * Represents the dynamic pricing information of financial securities over time.
@@ -28,7 +29,7 @@ export default class SecurityPricing extends Model {
     autoIncrement: true,
     type: DataType.INTEGER,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Securities)
   @Column({ type: DataType.INTEGER, allowNull: false })
@@ -47,8 +48,12 @@ export default class SecurityPricing extends Model {
    * during the trading session.
    */
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get priceClose(): Money { return moneyGetDecimal(this, 'priceClose'); }
-  set priceClose(val: Money | string | number) { moneySetDecimal(this, 'priceClose', val, 10); }
+  get priceClose(): Money {
+    return moneyGetDecimal(this, 'priceClose');
+  }
+  set priceClose(val: Money | string | number) {
+    moneySetDecimal(this, 'priceClose', val, 10);
+  }
 
   /**
    * (Optional) The timestamp indicating the specific time the priceClose was recorded. This is particularly
@@ -66,9 +71,9 @@ export default class SecurityPricing extends Model {
   source!: string | null;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   @BelongsTo(() => Securities)
   security!: Securities;

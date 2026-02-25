@@ -53,14 +53,14 @@ function selectSecurity(searchResult: SecuritySearchResult) {
 
 const securityPriceUploadInfo = useQuery({
   queryKey: ['security-price-upload-info', selectedSecurity],
-  queryFn: () => getPriceUploadInfo(selectedSecurity.value.currencyCode),
+  queryFn: () => getPriceUploadInfo(selectedSecurity.value!.currencyCode),
   enabled: () => !!selectedSecurity.value,
 });
 
-watch(securityPriceUploadInfo.error, (error) => {
+watch(securityPriceUploadInfo.error, (error: unknown) => {
   addNotification({
     text: t('settings.admin.priceUpload.notifications.dateInfoLoadFailed', {
-      error: error?.message || 'Unknown error',
+      error: error instanceof Error ? error.message : 'Unknown error',
     }),
     type: NotificationType.error,
   });
@@ -99,15 +99,15 @@ const fieldMapping = ref<Record<string, string>>({});
 const dateFormat = ref<string>('dd/MM/yyyy');
 const isMappingComplete = ref(false);
 
-function handleMappingComplete(mapping: Record<string, string>, format: string) {
+function handleMappingComplete(mapping: Record<string, string>, fmt: string) {
   fieldMapping.value = mapping;
-  dateFormat.value = format;
+  dateFormat.value = fmt;
   isMappingComplete.value = true;
 }
 
-function handleMappingChanged(mapping: Record<string, string>, format: string) {
+function handleMappingChanged(mapping: Record<string, string>, fmt: string) {
   fieldMapping.value = mapping;
-  dateFormat.value = format;
+  dateFormat.value = fmt;
   // Check if mapping is still complete (all required fields mapped)
   const requiredFields = ['price', 'date'];
   isMappingComplete.value = requiredFields.every((field) => mapping[field]);
@@ -243,8 +243,8 @@ function transformData(): boolean {
   try {
     previewData.value = fileData.value.map((row, index) => {
       const rowData = row as Record<string, unknown>;
-      const price = Number(rowData[fieldMapping.value.price]);
-      const dateStr = String(rowData[fieldMapping.value.date]);
+      const price = Number(rowData[fieldMapping.value.price!]);
+      const dateStr = String(rowData[fieldMapping.value.date!]);
 
       // Parse date according to selected format, then convert to YYYY-MM-DD
       const parsedDate = parse(dateStr, dateFormat.value, new Date());
@@ -321,7 +321,9 @@ async function submitUpload() {
     });
   } catch (error) {
     addNotification({
-      text: t('settings.admin.priceUpload.notifications.uploadFailed', { error: error?.message || 'Unknown error' }),
+      text: t('settings.admin.priceUpload.notifications.uploadFailed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }),
       type: NotificationType.error,
     });
   } finally {
@@ -430,13 +432,13 @@ if (!isAdmin.value) {
               <div class="mb-1 font-medium">
                 {{
                   $t('settings.admin.priceUpload.dateRangeInfo.title', {
-                    currency: securityPriceUploadInfo.data.value.currencyCode,
+                    currency: securityPriceUploadInfo.data.value?.currencyCode,
                   })
                 }}
               </div>
               <div class="text-muted-foreground">
-                {{ new Date(securityPriceUploadInfo.data.value.oldestDate).toLocaleDateString() }} -
-                {{ new Date(securityPriceUploadInfo.data.value.newestDate).toLocaleDateString() }}
+                {{ new Date(securityPriceUploadInfo.data.value!.oldestDate).toLocaleDateString() }} -
+                {{ new Date(securityPriceUploadInfo.data.value!.newestDate).toLocaleDateString() }}
               </div>
             </div>
 

@@ -129,7 +129,15 @@ import ResponsiveMenu from '@/components/common/responsive-menu.vue';
 import { Button } from '@/components/lib/ui/button';
 import { cn } from '@/lib/utils';
 import { CATEGORY_TYPES } from '@bt/shared/types';
-import { ChevronRightIcon, LineChartIcon, ListIcon, MoreVerticalIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-vue-next';
+import {
+  ChevronRightIcon,
+  LineChartIcon,
+  ListIcon,
+  MoreVerticalIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+} from 'lucide-vue-next';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 

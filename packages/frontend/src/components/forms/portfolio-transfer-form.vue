@@ -157,7 +157,7 @@ const showToAccount = computed(() => transferType.value === 'portfolio-to-accoun
 // Dynamic labels based on context
 const amountLabel = computed(() => {
   return form.selectedCurrency
-    ? t('forms.portfolioTransfer.amountLabelWithCurrency', { currency: form.selectedCurrency.currency.code })
+    ? t('forms.portfolioTransfer.amountLabelWithCurrency', { currency: form.selectedCurrency.currency!.code })
     : t('forms.portfolioTransfer.amountLabel');
 });
 
@@ -285,7 +285,7 @@ const prepareConfirmationData = () => {
     from: fromName,
     to: toName,
     amount: form.amount,
-    currency: form.selectedCurrency?.currency.code || '',
+    currency: form.selectedCurrency?.currency!.code || '',
   };
 };
 
@@ -306,7 +306,7 @@ const confirmTransfer = async () => {
         toPortfolioId: form.toPortfolio?.id || 0, // 0 for account transfers
         currencyCode: form.selectedCurrency!.currencyCode,
         amount: form.amount,
-        date: form.date.toISOString().split('T')[0],
+        date: form.date.toISOString().split('T')[0]!,
         description: form.description || undefined,
       });
     } else {
@@ -411,7 +411,7 @@ const isSubmitDisabled = computed(
       :label="$t('forms.portfolioTransfer.currencyLabel')"
       :values="currencies || []"
       value-key="currencyCode"
-      :label-key="(currency) => currency.currency.code"
+      :label-key="(currency: UserCurrencyModel) => currency.currency!.code"
       :placeholder="$t('forms.portfolioTransfer.currencyPlaceholder')"
       :disabled="createTransferMutation.isPending.value || disabled"
       :error-message="getFieldErrorMessage('form.selectedCurrency')"

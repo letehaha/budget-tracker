@@ -137,7 +137,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
             date: date || new Date(),
           });
           refMarketValue = refAmount.toDecimalString(INVESTMENT_DECIMAL_SCALE);
-        } catch (error) {
+        } catch {
           // If reference conversion fails, keep as 0
           refMarketValue = '0';
         }

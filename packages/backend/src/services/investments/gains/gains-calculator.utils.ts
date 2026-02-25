@@ -41,7 +41,7 @@ export function calculateUnrealizedGains(marketValue: number, costBasis: number)
  */
 export function calculateRealizedGains(transactions: TransactionForGains[]): RealizedGainsResult {
   // Sort transactions by date to ensure FIFO
-  const sortedTransactions = [...transactions].sort((a, b) => {
+  const sortedTransactions = transactions.toSorted((a, b) => {
     const dateA = new Date(a.date).getTime();
     const dateB = new Date(b.date).getTime();
     return dateA - dateB;

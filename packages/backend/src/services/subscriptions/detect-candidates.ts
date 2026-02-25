@@ -219,7 +219,7 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
     const suggestedName = findMostCommonNote({ notes: group.rawNotes });
 
     // Sort by time descending for sample IDs and lastOccurrenceAt
-    const sortedByTime = txs.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    const sortedByTime = txs.toSorted((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
     const sampleTransactionIds = sortedByTime.slice(0, MAX_SAMPLE_TRANSACTIONS).map((tx) => tx.id);
     const lastOccurrenceAt = sortedByTime[0] ? new Date(sortedByTime[0].time) : now;
 
@@ -272,7 +272,7 @@ function analyzeGroup({ group }: { group: TransactionGroup }): {
     if (qualifyingBuckets.length === 0) return null;
 
     // Use the largest qualifying bucket
-    txs = qualifyingBuckets.sort((a, b) => b.length - a.length)[0]!;
+    txs = qualifyingBuckets.toSorted((a, b) => b.length - a.length)[0]!;
   }
 
   // Timing regularity

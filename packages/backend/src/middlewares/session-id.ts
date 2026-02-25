@@ -51,7 +51,7 @@ export const sessionMiddleware = async (req: Request, res: Response, next: NextF
       logger.warn('"sessionMiddleware": wasnt able to set sessionId for unexpected reasons.');
       next();
     }
-  } catch (err) {
+  } catch {
     logger.error('"sessionMiddleware" failed due to unexpected error');
     next();
   }

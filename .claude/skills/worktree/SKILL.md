@@ -35,7 +35,6 @@ Removes a worktree and its local branch.
 ### For `create` command:
 
 1. Parse arguments:
-
    - `<branch-name>`: Required, the new branch name
    - `<base-branch>`: Optional, defaults to `origin/main`
 
@@ -123,7 +122,6 @@ git worktree list
 1. If no worktree name provided, show `git worktree list` and ask user to specify
 
 2. Parse worktree name to extract branch:
-
    - Worktree format: `<repo>--<branch>`
    - Extract branch: everything after `--`
 

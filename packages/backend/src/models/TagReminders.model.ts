@@ -1,7 +1,7 @@
 import { TagReminderFrequency, TagReminderSettings, TagReminderType } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import Tags from '@models/Tags.model';
 import Users from '@models/Users.model';
+import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 
 @Table({
   tableName: 'TagReminders',
@@ -9,7 +9,7 @@ import Users from '@models/Users.model';
 })
 export default class TagReminders extends Model {
   @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false, type: DataType.INTEGER })

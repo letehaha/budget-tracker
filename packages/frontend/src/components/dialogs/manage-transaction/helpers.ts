@@ -34,6 +34,12 @@ export const getDestinationAmount = ({
   isCurrenciesDifferent,
   isRecordExternal,
   sourceTransaction,
+}: {
+  fromAmount: number;
+  toAmount: number;
+  isCurrenciesDifferent: boolean;
+  isRecordExternal: boolean;
+  sourceTransaction: TransactionModel;
 }) => {
   if (isRecordExternal) {
     const isIncome = sourceTransaction.transactionType === TRANSACTION_TYPES.income;
@@ -99,10 +105,10 @@ export const prepopulateForm = ({
 
     const initialFormValues = {
       type: getFormTypeFromTransaction(transaction),
-      category: formattedCategoriesMap[transaction.categoryId] || categories[transaction.categoryId],
+      category: formattedCategoriesMap[transaction.categoryId] ?? categories[transaction.categoryId] ?? null,
       time: new Date(transaction.time),
       paymentType: VERBOSE_PAYMENT_TYPES.find((item) => item.value === transaction.paymentType),
-      note: transaction.note,
+      note: transaction.note ?? undefined,
       refundedByTxs: undefined,
       refundsTx: undefined,
       // Extract tag IDs from transaction tags if present
@@ -114,7 +120,7 @@ export const prepopulateForm = ({
       initialFormValues.splits = transaction.splits.map(
         (split): FormSplit => ({
           id: split.id,
-          category: formattedCategoriesMap[split.categoryId],
+          category: formattedCategoriesMap[split.categoryId] ?? null,
           amount: split.amount,
           note: split.note,
         }),
@@ -125,18 +131,18 @@ export const prepopulateForm = ({
       if (transaction.transactionType === TRANSACTION_TYPES.income) {
         initialFormValues.account = OUT_OF_WALLET_ACCOUNT_MOCK;
         initialFormValues.targetAmount = transaction.amount;
-        initialFormValues.toAccount = accounts[transaction.accountId];
+        initialFormValues.toAccount = accounts[transaction.accountId]!;
       } else if (transaction.transactionType === TRANSACTION_TYPES.expense) {
         initialFormValues.amount = transaction.amount;
-        initialFormValues.account = accounts[transaction.accountId];
+        initialFormValues.account = accounts[transaction.accountId]!;
         initialFormValues.toAccount = OUT_OF_WALLET_ACCOUNT_MOCK;
       }
     } else {
       initialFormValues.amount = transaction.amount;
-      initialFormValues.account = accounts[transaction.accountId];
+      initialFormValues.account = accounts[transaction.accountId]!;
 
       if (oppositeTransaction) {
-        initialFormValues.toAccount = accounts[oppositeTransaction.accountId];
+        initialFormValues.toAccount = accounts[oppositeTransaction.accountId]!;
         initialFormValues.targetAmount = oppositeTransaction.amount;
       }
     }

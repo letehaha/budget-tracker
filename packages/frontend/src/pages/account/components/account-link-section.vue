@@ -37,8 +37,8 @@ const showLinkOption = computed(() => isSystemAccount.value && !isAccountLinkedT
 const isDialogOpen = ref(false);
 
 // Form state
-const selectedConnectionId = ref<string>(undefined);
-const selectedExternalAccountId = ref<string>(undefined);
+const selectedConnectionId = ref<string | undefined>(undefined);
+const selectedExternalAccountId = ref<string | undefined>(undefined);
 const isLinking = ref(false);
 
 // Fetch user connections

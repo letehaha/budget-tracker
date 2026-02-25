@@ -10,6 +10,19 @@ import {
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { ValidationError } from '@js/errors';
+import { removeUndefinedKeys } from '@js/helpers';
+import Accounts from '@models/Accounts.model';
+import Balances from '@models/Balances.model';
+import Budgets from '@models/Budget.model';
+import BudgetTransactions from '@models/BudgetTransactions.model';
+import Categories from '@models/Categories.model';
+import Currencies from '@models/Currencies.model';
+import Tags from '@models/Tags.model';
+import TransactionSplits from '@models/TransactionSplits.model';
+import TransactionTags from '@models/TransactionTags.model';
+import Users from '@models/Users.model';
+import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
 import { Op, Includeable, WhereOptions } from 'sequelize';
 import {
   Table,
@@ -27,19 +40,6 @@ import {
   BelongsToMany,
   HasMany,
 } from 'sequelize-typescript';
-import { removeUndefinedKeys } from '@js/helpers';
-import { ValidationError } from '@js/errors';
-import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
-import Users from '@models/Users.model';
-import Accounts from '@models/Accounts.model';
-import Categories from '@models/Categories.model';
-import Currencies from '@models/Currencies.model';
-import Balances from '@models/Balances.model';
-import Budgets from '@models/Budget.model';
-import BudgetTransactions from '@models/BudgetTransactions.model';
-import TransactionSplits from '@models/TransactionSplits.model';
-import Tags from '@models/Tags.model';
-import TransactionTags from '@models/TransactionTags.model';
 
 const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
   const include: Includeable[] = [];
@@ -109,13 +109,21 @@ export default class Transactions extends Model {
   declare id: number;
 
   @Column(MoneyColumn({ storage: 'cents' }))
-  get amount(): Money { return moneyGetCents(this, 'amount'); }
-  set amount(val: Money | number) { moneySetCents(this, 'amount', val); }
+  get amount(): Money {
+    return moneyGetCents(this, 'amount');
+  }
+  set amount(val: Money | number) {
+    moneySetCents(this, 'amount', val);
+  }
 
   // Amount in curreny of account
   @Column(MoneyColumn({ storage: 'cents' }))
-  get refAmount(): Money { return moneyGetCents(this, 'refAmount'); }
-  set refAmount(val: Money | number) { moneySetCents(this, 'refAmount', val); }
+  get refAmount(): Money {
+    return moneyGetCents(this, 'refAmount');
+  }
+  set refAmount(val: Money | number) {
+    moneySetCents(this, 'refAmount', val);
+  }
 
   @Length({ max: 2000 })
   @Column({ allowNull: true, type: DataType.STRING })
@@ -149,10 +157,18 @@ export default class Transactions extends Model {
   @HasMany(() => TransactionSplits)
   splits!: TransactionSplits[];
 
-  @Column({ allowNull: false, defaultValue: TRANSACTION_TYPES.income, type: DataType.ENUM(...Object.values(TRANSACTION_TYPES)), })
+  @Column({
+    allowNull: false,
+    defaultValue: TRANSACTION_TYPES.income,
+    type: DataType.ENUM(...Object.values(TRANSACTION_TYPES)),
+  })
   transactionType!: TRANSACTION_TYPES;
 
-  @Column({ allowNull: false, defaultValue: PAYMENT_TYPES.creditCard, type: DataType.ENUM(...Object.values(PAYMENT_TYPES)), })
+  @Column({
+    allowNull: false,
+    defaultValue: PAYMENT_TYPES.creditCard,
+    type: DataType.ENUM(...Object.values(PAYMENT_TYPES)),
+  })
   paymentType!: PAYMENT_TYPES;
 
   @ForeignKey(() => Accounts)
@@ -173,7 +189,11 @@ export default class Transactions extends Model {
   @Column({ allowNull: true, type: DataType.STRING(3) })
   currencyCode!: string;
 
-  @Column({ allowNull: false, defaultValue: ACCOUNT_TYPES.system, type: DataType.ENUM(...Object.values(ACCOUNT_TYPES)), })
+  @Column({
+    allowNull: false,
+    defaultValue: ACCOUNT_TYPES.system,
+    type: DataType.ENUM(...Object.values(ACCOUNT_TYPES)),
+  })
   accountType!: ACCOUNT_TYPES;
 
   @ForeignKey(() => Currencies)
@@ -206,16 +226,28 @@ export default class Transactions extends Model {
   externalData!: TransactionsAttributes['externalData'];
 
   @Column(MoneyColumn({ storage: 'cents' }))
-  get commissionRate(): Money { return moneyGetCents(this, 'commissionRate'); }
-  set commissionRate(val: Money | number) { moneySetCents(this, 'commissionRate', val); }
+  get commissionRate(): Money {
+    return moneyGetCents(this, 'commissionRate');
+  }
+  set commissionRate(val: Money | number) {
+    moneySetCents(this, 'commissionRate', val);
+  }
 
   @Column(MoneyColumn({ storage: 'cents' }))
-  get refCommissionRate(): Money { return moneyGetCents(this, 'refCommissionRate'); }
-  set refCommissionRate(val: Money | number) { moneySetCents(this, 'refCommissionRate', val); }
+  get refCommissionRate(): Money {
+    return moneyGetCents(this, 'refCommissionRate');
+  }
+  set refCommissionRate(val: Money | number) {
+    moneySetCents(this, 'refCommissionRate', val);
+  }
 
   @Column(MoneyColumn({ storage: 'cents' }))
-  get cashbackAmount(): Money { return moneyGetCents(this, 'cashbackAmount'); }
-  set cashbackAmount(val: Money | number) { moneySetCents(this, 'cashbackAmount', val); }
+  get cashbackAmount(): Money {
+    return moneyGetCents(this, 'cashbackAmount');
+  }
+  set cashbackAmount(val: Money | number) {
+    moneySetCents(this, 'cashbackAmount', val);
+  }
 
   // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
   // optimization purposes. All the related refund information is tored in the "RefundTransactions"
@@ -284,7 +316,8 @@ export default class Transactions extends Model {
     // Convert in-place so downstream code that expects Money objects works correctly.
     const MONEY_FIELDS = ['amount', 'refAmount', 'commissionRate', 'refCommissionRate', 'cashbackAmount'] as const;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const newRaw = newData as any, prevRaw = prevData as any;
+    const newRaw = newData as any,
+      prevRaw = prevData as any;
     for (const field of MONEY_FIELDS) {
       newRaw[field] = Money.fromCents(newRaw[field]);
       prevRaw[field] = Money.fromCents(prevRaw[field]);
@@ -522,21 +555,20 @@ export const findWithFilters = async ({
     });
   }
 
-
   if (excludedBudgetIds?.length) {
     const excludedTransactionIds = await BudgetTransactions.findAll({
-      attributes: ["transactionId"],
+      attributes: ['transactionId'],
       where: {
         budgetId: {
-          [Op.in]: excludedBudgetIds
-        }
+          [Op.in]: excludedBudgetIds,
+        },
       },
       raw: true,
     }).then((results) => results.map((r) => r.transactionId));
 
     if (excludedTransactionIds.length > 0) {
       whereClause.id = {
-        [Op.notIn]: excludedTransactionIds
+        [Op.notIn]: excludedTransactionIds,
       };
     }
   }
@@ -554,11 +586,11 @@ export const findWithFilters = async ({
   // Exclude transactions with specific tags
   if (excludedTagIds?.length) {
     const excludedTransactionIds = await TransactionTags.findAll({
-      attributes: ["transactionId"],
+      attributes: ['transactionId'],
       where: {
         tagId: {
-          [Op.in]: excludedTagIds
-        }
+          [Op.in]: excludedTagIds,
+        },
       },
       raw: true,
     }).then((results) => results.map((r) => r.transactionId));
@@ -568,12 +600,13 @@ export const findWithFilters = async ({
       if (whereClause.id && (whereClause.id as Record<symbol, number[]>)[Op.notIn]) {
         const existingExclusions = (whereClause.id as Record<symbol, number[]>)[Op.notIn] as number[];
         whereClause.id = {
-          [Op.notIn]: [...new Set([...existingExclusions, ...excludedTransactionIds])]
+          [Op.notIn]: [...new Set([...existingExclusions, ...excludedTransactionIds])],
         };
       } else {
         whereClause.id = {
-          ...(whereClause.id as object || {}),
-          [Op.notIn]: excludedTransactionIds
+          // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread
+          ...((whereClause.id as object) || {}),
+          [Op.notIn]: excludedTransactionIds,
         };
       }
     }
@@ -583,9 +616,7 @@ export const findWithFilters = async ({
   // Note: when filtering by tagIds, we add a separate non-required include to get all tags
   if (includeTags) {
     // Remove any existing Tags include from tagIds filtering (which was required: true)
-    const tagFilterIndex = queryInclude.findIndex(
-      (inc) => (inc as { model?: unknown }).model === Tags
-    );
+    const tagFilterIndex = queryInclude.findIndex((inc) => (inc as { model?: unknown }).model === Tags);
     if (tagFilterIndex !== -1) {
       queryInclude.splice(tagFilterIndex, 1);
     }
@@ -605,9 +636,9 @@ export const findWithFilters = async ({
   // Add note search condition if provided
   if (noteSearch && noteSearch.length > 0) {
     whereClause.note = {
-      [Op.or]: noteSearch.map(term => ({
-        [Op.iLike]: `%${term}%`
-      }))
+      [Op.or]: noteSearch.map((term) => ({
+        [Op.iLike]: `%${term}%`,
+      })),
     };
   }
 
@@ -631,7 +662,6 @@ export const findWithFilters = async ({
   return transactions;
 };
 
-
 export const getTransactionById = ({
   id,
   userId,
@@ -649,13 +679,7 @@ export const getTransactionById = ({
   });
 };
 
-export const getTransactionsByTransferId = ({
-  transferId,
-  userId,
-}: {
-  transferId: string;
-  userId: number;
-}) => {
+export const getTransactionsByTransferId = ({ transferId, userId }: { transferId: string; userId: number }) => {
   return Transactions.findAll({
     where: { transferId, userId },
   });

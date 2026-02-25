@@ -19,13 +19,7 @@ import QuickStartHeader from './quick-start-header.vue';
 const router = useRouter();
 const onboardingStore = useOnboardingStore();
 
-const {
-  isPanelOpen,
-  categories,
-  progressPercentage,
-  completedCount,
-  totalTasks,
-} = storeToRefs(onboardingStore);
+const { isPanelOpen, categories, progressPercentage, completedCount, totalTasks } = storeToRefs(onboardingStore);
 
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile, { wait: 50 });
 

@@ -143,7 +143,7 @@ const accountsStore = useAccountsStore();
 const { accountsRecord } = storeToRefs(accountsStore);
 
 const emit = defineEmits<{
-  'record-click': [[value: TransactionModel, oppositeTx: TransactionModel]];
+  'record-click': [[value: TransactionModel, oppositeTx: TransactionModel | undefined]];
   'selection-change': [{ value: boolean; id: number; index: number }];
 }>();
 
@@ -176,7 +176,9 @@ const isLoadingGroupedTransfer = computed(() => {
 
 const category = computed(() => categoriesMap.value[transaction.categoryId]);
 const accountFrom = computed(() => accountsRecord.value[transaction.accountId]);
-const accountTo = computed(() => accountsRecord.value[oppositeTransferTransaction.value?.accountId]);
+const accountTo = computed(() =>
+  oppositeTransferTransaction.value ? accountsRecord.value[oppositeTransferTransaction.value.accountId] : undefined,
+);
 
 const accountMovement = computed(() => {
   const separator = transaction.transactionType === TRANSACTION_TYPES.expense ? '=>' : '<=';
@@ -190,7 +192,7 @@ const accountMovement = computed(() => {
 const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMM y');
 
 const transactionEmit = () => {
-  emit('record-click', [transaction, oppositeTransferTransaction.value]);
+  emit('record-click', [transaction, oppositeTransferTransaction.value ?? undefined]);
 };
 
 // Computed with get/set for v-model binding

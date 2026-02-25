@@ -26,7 +26,7 @@ const formSplitsToApiSplits = ({
   const validSplits = formSplits
     .filter((split) => split.category && split.amount !== null && split.amount > 0)
     .map((split) => ({
-      categoryId: split.category.id,
+      categoryId: split.category!.id,
       amount: split.amount as number,
       note: split.note || undefined,
     }));
@@ -58,7 +58,7 @@ export const prepareTxUpdationParams = ({
 }) => {
   const { amount, note, time, type: formTxType, paymentType, account, category } = form;
 
-  const accountId = account?.id || null;
+  const accountId = account?.id ?? undefined;
 
   let editionParams: Parameters<typeof editTransaction>[0] = {
     txId: transaction.id,
@@ -112,7 +112,7 @@ export const prepareTxUpdationParams = ({
     editionParams = {
       ...editionParams,
       note,
-      paymentType: paymentType.value,
+      paymentType: paymentType!.value,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     };
   } else {
@@ -122,7 +122,7 @@ export const prepareTxUpdationParams = ({
       note,
       time: time.toISOString(),
       transactionType: getTxTypeFromFormType(formTxType),
-      paymentType: paymentType.value,
+      paymentType: paymentType!.value,
       accountId,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     };
@@ -131,8 +131,8 @@ export const prepareTxUpdationParams = ({
   if (isTransferTx) {
     const destinationAccount = getDestinationAccount({
       isRecordExternal,
-      account: form.account,
-      toAccount: form.toAccount,
+      account: form.account!,
+      toAccount: form.toAccount!,
       sourceTransaction: transaction,
     });
 
@@ -145,7 +145,7 @@ export const prepareTxUpdationParams = ({
         if (!isRecordExternal) {
           editionParams.transactionType = TRANSACTION_TYPES.expense;
         }
-      } else if (isOutOfWalletAccount(form.account)) {
+      } else if (isOutOfWalletAccount(form.account!)) {
         // Don't set transactionType for external transactions - it's a restricted field
         if (!isRecordExternal) {
           editionParams.transactionType = TRANSACTION_TYPES.income;

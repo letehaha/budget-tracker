@@ -32,7 +32,7 @@ export function useBulkUpdateCategory({ onSuccess }: { onSuccess?: () => void } 
     },
     onError: (error) => {
       if (error instanceof ApiErrorResponseError) {
-        addErrorNotification(error.data.message);
+        addErrorNotification(error.data.message ?? 'Unknown error');
       } else {
         // eslint-disable-next-line no-console
         console.error(error);

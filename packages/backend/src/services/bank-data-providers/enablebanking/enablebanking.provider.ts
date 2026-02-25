@@ -438,7 +438,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     try {
       return await apiClient.testConnection();
-    } catch (error) {
+    } catch {
       return false;
     }
   }

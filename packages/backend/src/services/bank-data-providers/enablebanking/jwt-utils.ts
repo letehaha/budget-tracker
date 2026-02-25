@@ -159,7 +159,7 @@ export function validateState(state: string, expectedUserId: number): boolean {
     if (Date.now() - timestamp > maxAge) return false;
 
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

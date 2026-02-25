@@ -139,7 +139,7 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { currencies } = storeToRefs(useCurrenciesStore());
 
 const formatCurrency = (amount: number, currencyCode: string) => {
-  const userCurrency = currencies.value.find((c) => c.currency.code === currencyCode.toUpperCase());
+  const userCurrency = currencies.value.find((c) => c.currency?.code === currencyCode.toUpperCase());
   if (!userCurrency) {
     return amount.toLocaleString(undefined, {
       minimumFractionDigits: 2,

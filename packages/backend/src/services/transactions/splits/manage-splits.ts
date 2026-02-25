@@ -2,12 +2,12 @@ import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import RefundTransactions from '@models/RefundTransactions.model';
+import Transactions from '@models/Transactions.model';
 import TransactionSplits, {
   CreateSplitPayload,
   bulkCreateSplits,
   deleteSplitsForTransaction,
 } from '@models/TransactionSplits.model';
-import Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 

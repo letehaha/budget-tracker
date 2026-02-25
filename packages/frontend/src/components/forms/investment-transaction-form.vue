@@ -46,12 +46,12 @@ const transactionTypes = computed(() =>
     )
     .map((type) => ({
       value: type,
-      label: t(transactionTypeMap[type]),
+      label: t(transactionTypeMap[type]!),
     })),
 );
 
 const form = reactive({
-  type: transactionTypes.value[0],
+  type: transactionTypes.value[0]!,
   security: null as SecurityOption | null,
   quantity: '',
   price: '',

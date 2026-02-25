@@ -109,7 +109,7 @@ const removeSplit = (index: number) => {
 
 const updateSplit = (index: number, updates: Partial<LocalSplit>) => {
   const newSplits = [...localSplits.value];
-  newSplits[index] = { ...newSplits[index], ...updates };
+  newSplits[index] = { ...newSplits[index], ...updates } as LocalSplit;
   localSplits.value = newSplits;
 };
 

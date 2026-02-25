@@ -120,7 +120,7 @@ const calculateMovingAverage = (data: typeof chartData.value, periods: number = 
     const availablePeriods = Math.min(index + 1, periods);
     let sum = 0;
     for (let i = 0; i < availablePeriods; i++) {
-      sum += data[index - i].netFlow;
+      sum += data[index - i]!.netFlow;
     }
     return sum / availablePeriods;
   });

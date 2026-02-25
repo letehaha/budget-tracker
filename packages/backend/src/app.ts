@@ -1,4 +1,5 @@
 import './bootstrap';
+import './redis-client';
 
 import { requestContext } from '@common/request-context';
 import { logger } from '@js/utils/logger';
@@ -24,7 +25,6 @@ import { subscriptionCandidateDetectionCron } from './crons/subscription-candida
 import { tagRemindersCron } from './crons/tag-reminders-check';
 import { SUPPORTED_LOCALES } from './i18n';
 import { addI18nextToRequest, detectLanguage } from './i18n/middleware';
-import './redis-client';
 import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
 /**
@@ -122,8 +122,8 @@ app.use((req, res, next) => {
   // Use req.originalUrl to ensure we match the full path regardless of mounting
   if (rawBodyPaths.some((p) => req.originalUrl.startsWith(p))) {
     return express.json({
-      verify: (req, _res, buf) => {
-        (req as Request & { rawBody?: Buffer }).rawBody = buf;
+      verify: (rawReq, _res, buf) => {
+        (rawReq as Request & { rawBody?: Buffer }).rawBody = buf;
       },
     })(req, res, next);
   }

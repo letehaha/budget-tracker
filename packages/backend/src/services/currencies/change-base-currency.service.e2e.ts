@@ -6,11 +6,11 @@ import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
-import Transactions from '@models/Transactions.model';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import PortfolioBalances from '@models/investments/PortfolioBalances.model';
 import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
+import Transactions from '@models/Transactions.model';
 import { redisClient } from '@root/redis-client';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { buildLockKey } from '@services/currencies/change-base-currency.service';
@@ -424,9 +424,8 @@ describe('Change Base Currency', () => {
       const uahCurrency = currencies.find((i) => i.currencyCode === 'UAH')!;
       const eurCurrency = currencies.find((i) => i.currencyCode === 'EUR')!;
 
-      const accounts = await Promise.all([
-        // USD will become our new base currency
-        ...[uahCurrency.currencyCode, eurCurrency.currencyCode, 'USD'].map((currencyCode) =>
+      const accounts = await Promise.all(
+        [uahCurrency.currencyCode, eurCurrency.currencyCode, 'USD'].map((currencyCode) =>
           helpers.createAccount({
             payload: {
               name: `${currencyCode} Account`,
@@ -438,7 +437,7 @@ describe('Change Base Currency', () => {
             raw: true,
           }),
         ),
-      ]);
+      );
       const uahAccount = accounts[0]!;
       const eurAccount = accounts[1]!;
       const usdAccount = accounts[2]!;

@@ -1,19 +1,20 @@
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
-import Users from '@models/Users.model';
-import Transactions from '@models/Transactions.model';
-import Categories from '@models/Categories.model';
-import BudgetTransactions from './BudgetTransactions.model';
-import BudgetCategories from './BudgetCategories.model';
 import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import Categories from '@models/Categories.model';
+import Transactions from '@models/Transactions.model';
+import Users from '@models/Users.model';
+import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
+
+import BudgetCategories from './BudgetCategories.model';
+import BudgetTransactions from './BudgetTransactions.model';
 
 @Table({
   timestamps: false,
 })
 export default class Budgets extends Model {
   @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  id!: number;
+  declare id: number;
 
   @Column({ allowNull: false, type: DataType.STRING(200) })
   name!: string;
@@ -38,8 +39,12 @@ export default class Budgets extends Model {
   autoInclude!: boolean;
 
   @Column(MoneyColumn({ storage: 'cents', allowNull: true }))
-  get limitAmount(): Money { return moneyGetCents(this, 'limitAmount'); }
-  set limitAmount(val: Money | number) { moneySetCents(this, 'limitAmount', val); }
+  get limitAmount(): Money {
+    return moneyGetCents(this, 'limitAmount');
+  }
+  set limitAmount(val: Money | number) {
+    moneySetCents(this, 'limitAmount', val);
+  }
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false, type: DataType.INTEGER })

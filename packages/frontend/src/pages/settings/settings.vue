@@ -96,7 +96,7 @@ const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile, {
 });
 
 const isCompactLayout = computed(() => containerWidth.value < 920);
-const showAdminTab = ref(user.value.isAdmin);
+const showAdminTab = ref(user.value?.isAdmin ?? false);
 
 const isOnChildRoute = computed(() => route.name !== ROUTES_NAMES.settings);
 

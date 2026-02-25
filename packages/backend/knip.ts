@@ -10,9 +10,8 @@ const config: KnipConfig = {
     // jest config files
     'jest.config.*.ts',
   ],
-  ignoreBinaries: ['knip', 'ts-node', 'nodemon', 'cross-env', 'sequelize-cli', 'jest', 'eslint'],
+  ignoreBinaries: ['knip', 'ts-node', 'nodemon', 'cross-env', 'sequelize-cli', 'jest', 'oxlint'],
   ignore: [
-    '.eslintrc.js',
     'config/**',
     'src/migrations/**',
     // False positive: imported via @common/types path alias which knip doesn't resolve
@@ -23,12 +22,6 @@ const config: KnipConfig = {
   ignoreDependencies: [
     // CLI tool, invoked via npx not imported
     'sequelize-cli',
-    // ESLint packages used via .eslintrc.js config
-    'eslint-config-airbnb-base',
-    'eslint-import-resolver-alias',
-    'eslint-plugin-import',
-    '@typescript-eslint/eslint-plugin',
-    '@typescript-eslint/parser',
     // Used in npm scripts, not via imports
     'cross-env',
     'jest',

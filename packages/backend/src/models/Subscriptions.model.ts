@@ -1,8 +1,4 @@
-import {
-  SUBSCRIPTION_FREQUENCIES,
-  SUBSCRIPTION_TYPES,
-  SubscriptionMatchingRules,
-} from '@bt/shared/types';
+import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules } from '@bt/shared/types';
 import {
   Table,
   Column,
@@ -14,6 +10,7 @@ import {
   BeforeCreate,
 } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
+
 import Accounts from './Accounts.model';
 import Categories from './Categories.model';
 import SubscriptionTransactions from './SubscriptionTransactions.model';

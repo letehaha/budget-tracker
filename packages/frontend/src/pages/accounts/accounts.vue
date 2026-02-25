@@ -16,9 +16,9 @@
       </div>
     </div>
 
-    <template v-if="accounts.length">
+    <template v-if="accounts?.length">
       <div class="grid gap-6">
-        <template v-for="key in Object.keys(groupedAccounts)">
+        <template v-for="key in Object.keys(groupedAccounts) as AccountTypeKey[]">
           <template v-if="groupedAccounts[key].length">
             <Section :default-open="key === 'hidden' ? false : true">
               <template #trigger-content>
@@ -101,7 +101,7 @@ const queryClient = useQueryClient();
 type AccountTypeKey = 'integrations' | 'manual' | 'hidden';
 
 const groupedAccounts = computed(() =>
-  accounts.value.reduce(
+  (accounts.value ?? []).reduce(
     (acc, account) => {
       if (!account.isEnabled) {
         acc.hidden.push(account);

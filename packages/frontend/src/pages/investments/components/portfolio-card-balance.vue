@@ -19,9 +19,7 @@
       <span class="text-sm font-medium">
         {{ unrealizedGainFormatted }}
       </span>
-      <span class="text-xs opacity-80">
-        ({{ unrealizedPercentFormatted }})
-      </span>
+      <span class="text-xs opacity-80"> ({{ unrealizedPercentFormatted }}) </span>
     </div>
 
     <!-- Cost Basis -->
@@ -55,7 +53,7 @@ const hasValue = computed(
 );
 
 const findUserCurrency = (currencyCode: string) =>
-  props.currencies.find((c) => c.currency.code === currencyCode.toUpperCase());
+  props.currencies.find((c) => c.currency?.code === currencyCode.toUpperCase());
 
 const formatCurrency = ({ amount, currencyCode }: { amount: number; currencyCode: string }) => {
   const userCurrency = findUserCurrency(currencyCode);

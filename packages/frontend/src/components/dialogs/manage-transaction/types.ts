@@ -34,15 +34,15 @@ export interface FormSplit {
 }
 
 export interface UI_FORM_STRUCT {
-  amount: number;
-  account: AccountModel;
-  toAccount?: AccountModel;
+  amount: number | null;
+  account: AccountModel | null;
+  toAccount?: AccountModel | null;
   category: FormattedCategory;
   time: Date;
-  paymentType: VerbosePaymentType;
+  paymentType: VerbosePaymentType | null;
   note?: string;
   type: FORM_TYPES;
-  targetAmount?: number;
+  targetAmount?: number | null;
   refundedByTxs: RefundedByAnotherTxs;
   refundsTx: RefundsAnoterTx;
   /** Optional splits for distributing transaction amount across multiple categories */

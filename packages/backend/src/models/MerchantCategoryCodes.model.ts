@@ -1,7 +1,7 @@
 import { Table, Column, Model, Length, BelongsToMany, DataType } from 'sequelize-typescript';
 
-import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 import Categories from './Categories.model';
+import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 
 @Table({
   timestamps: false,

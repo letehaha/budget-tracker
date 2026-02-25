@@ -146,7 +146,7 @@ const balanceTypeOptions = computed(() => [
   { value: 'accounts' as const, label: t('dashboard.widgets.balanceTrend.balanceTypes.accounts') },
   { value: 'portfolios' as const, label: t('dashboard.widgets.balanceTrend.balanceTypes.portfolios') },
 ]);
-const selectedBalanceType = ref(balanceTypeOptions.value[0]);
+const selectedBalanceType = ref(balanceTypeOptions.value[0]!);
 const { formatBaseCurrency, getCurrencySymbol } = useFormatCurrency();
 const { baseCurrency } = storeToRefs(useCurrenciesStore());
 
@@ -351,7 +351,7 @@ const renderChart = () => {
   // X scale
   const xScale = d3
     .scaleLinear()
-    .domain([xAxisTicks[0], xAxisTicks[xAxisTicks.length - 1]])
+    .domain([xAxisTicks[0]!, xAxisTicks[xAxisTicks.length - 1]!])
     .range([0, innerWidth]);
 
   // Y scale - limit to 5 ticks
@@ -368,8 +368,8 @@ const renderChart = () => {
   // Calculate exactly 5 tick values
   const yDomain = yScale.domain();
   const yTickCount = 5;
-  const yTickStep = (yDomain[1] - yDomain[0]) / (yTickCount - 1);
-  const yTickValues = Array.from({ length: yTickCount }, (_, i) => yDomain[0] + i * yTickStep);
+  const yTickStep = (yDomain[1]! - yDomain[0]!) / (yTickCount - 1);
+  const yTickValues = Array.from({ length: yTickCount }, (_, i) => yDomain[0]! + i * yTickStep);
 
   // Grid lines - exactly 5 ticks
   g.append('g')
@@ -538,7 +538,7 @@ const displayBalance = computed(() => {
   if (!balanceHistory.value || balanceHistory.value.length === 0) return { current: 0, previous: 0 };
 
   // Get the latest balance entry from current period
-  const latestEntry = balanceHistory.value[balanceHistory.value.length - 1];
+  const latestEntry = balanceHistory.value[balanceHistory.value.length - 1]!;
 
   // Get the latest (ending) balance from previous period for comparison
   const prevPeriodLastEntry =
@@ -546,7 +546,7 @@ const displayBalance = computed(() => {
       ? prevPeriodBalance.value[prevPeriodBalance.value.length - 1]
       : null;
 
-  switch (selectedBalanceType.value.value) {
+  switch (selectedBalanceType.value!.value) {
     case 'accounts':
       return {
         current: latestEntry.accountsBalance || 0,

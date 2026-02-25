@@ -23,12 +23,12 @@ type ActiveItemIndex = number;
 
 const { t } = useI18n();
 
-const activeItemIndex = ref<ActiveItemIndex>(null);
-const selectedGroup = ref<AccountGroups>(null);
+const activeItemIndex = ref<ActiveItemIndex | null>(null);
+const selectedGroup = ref<AccountGroups | null>(null);
 const activeEditName = ref<string>('');
 const openNameEditor = ref<Record<number, boolean>>({});
-const toggledListItem = ref([]);
-const deletedElements = ref<AccountModel[]>(null);
+const toggledListItem = ref<Record<number, boolean>>({});
+const deletedElements = ref<AccountModel[] | null>(null);
 const queryClient = useQueryClient();
 const toggledAccountId = ref<number>();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
@@ -73,14 +73,14 @@ const { mutate: deleteAccountMutation } = useMutation({
 
 const isFormPending = computed(() => isUnlinkingAccount.value);
 
-const toggleActiveItem = (group: AccountGroups, index: ActiveItemIndex) => {
-  toggledListItem[index] = index;
+const toggleActiveItem = (group: AccountGroups, index: number) => {
+  toggledListItem.value[index] = true;
   activeItemIndex.value = activeItemIndex.value === index ? null : index;
   selectedGroup.value = group;
-  toggledListItem[index] = !toggledListItem[index];
+  toggledListItem.value[index] = !toggledListItem.value[index];
 };
 
-const toggleGroupNameEdit = (index: ActiveItemIndex, group: AccountGroups) => {
+const toggleGroupNameEdit = (index: number, group: AccountGroups) => {
   openNameEditor.value[index] = true;
   activeEditName.value = group.name;
 };
@@ -89,7 +89,7 @@ const toggleDelete = (group: AccountGroups) => {
   deletedElements.value = group.accounts;
 };
 
-const updateGroup = async (group: AccountGroups, index: ActiveItemIndex) => {
+const updateGroup = async (group: AccountGroups, index: number) => {
   const newName = activeEditName.value.trim();
 
   if (newName && group.name !== newName) {
@@ -125,7 +125,7 @@ const unlinkAccountFromGroup = (id: number) => {
 
 <template>
   <div>
-    <template v-if="accountGroups.length">
+    <template v-if="accountGroups?.length">
       <div class="@container/accounts-groups grid gap-3">
         <template v-for="(group, index) in accountGroups" :key="group.id">
           <div
@@ -203,7 +203,7 @@ const unlinkAccountFromGroup = (id: number) => {
                     </Button>
                   </template>
                   <template #description>
-                    <div v-if="deletedElements.length">
+                    <div v-if="deletedElements?.length">
                       <div class="mb-2 text-sm">
                         {{ $t('settings.accountGroups.table.deleteDialog.unlinkWarning') }}
                       </div>

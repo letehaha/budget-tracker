@@ -23,7 +23,7 @@ export const buildOptimisticTransaction = ({
   const updatedTransaction: TransactionModel = {
     ...transaction,
     note: form.note ?? '',
-    paymentType: form.paymentType.value,
+    paymentType: form.paymentType!.value,
     updatedAt: new Date(),
   };
 

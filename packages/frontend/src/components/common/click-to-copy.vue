@@ -32,7 +32,7 @@ const copyToClipboard = async ({ value }: { value: string }) => {
     :class="
       cn(
         'bg-muted inline-flex w-min max-w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-white/10',
-        $attrs.class,
+        $attrs.class as string,
       )
     "
     @click="copyToClipboard({ value })"

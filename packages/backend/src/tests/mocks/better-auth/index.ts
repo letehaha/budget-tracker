@@ -97,7 +97,7 @@ export function betterAuth(config: BetterAuthConfig): AuthInstance {
 
       // Basic routing for auth endpoints
       if (path === '/sign-up/email' && request.method === 'POST') {
-        const body = await request.json();
+        const body = (await request.json()) as { email: string; name: string };
 
         // Extract locale from Accept-Language header for locale-aware signup
         // Note: supertest sends headers in lowercase
@@ -135,7 +135,7 @@ export function betterAuth(config: BetterAuthConfig): AuthInstance {
       }
 
       if (path === '/sign-in/email' && request.method === 'POST') {
-        const body = await request.json();
+        const body = (await request.json()) as { email: string };
         const user = { id: 'test-user-id', email: body.email };
         const sessionToken = 'test-token';
 

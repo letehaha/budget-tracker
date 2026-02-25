@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "plugins": ["vue", "typescript"],
+  "rules": {
+    "typescript/no-empty-object-type": "off",
+    "no-unused-vars": "warn",
+    "unicorn/prefer-optional-catch-binding": "warn"
+  },
+  "ignorePatterns": ["*.d.ts", "**/coverage", "**/dist", "**/landing/**", "**/legal/**", "vite.config.js", "scripts/**"]
+}

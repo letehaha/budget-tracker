@@ -28,7 +28,10 @@
         <p>{{ t('pages.statementParser.accountSelection.currencyNotDetected') }}</p>
       </div>
       <div class="max-w-xs">
-        <Select.Select :model-value="store.manualCurrency ?? undefined" @update:model-value="handleCurrencyChange">
+        <Select.Select
+          :model-value="store.manualCurrency ?? undefined"
+          @update:model-value="(v: any) => handleCurrencyChange(v as string)"
+        >
           <Select.SelectTrigger>
             <Select.SelectValue :placeholder="$t('pages.statementParser.selectCurrency')" />
           </Select.SelectTrigger>
@@ -98,7 +101,7 @@
     <!-- Create Account Dialog -->
     <CreateAccountForImportDialog
       v-model:open="showCreateDialog"
-      :default-currency="store.effectiveCurrency"
+      :default-currency="store.effectiveCurrency ?? undefined"
       :default-name="store.extractionResult?.metadata.bankName"
       @created="handleAccountCreated"
     />
@@ -144,7 +147,7 @@ function handleAccountCreated(account: AccountModel) {
   showCreateDialog.value = false;
 }
 
-function handleCurrencyChange(currencyCode: string | null) {
+function handleCurrencyChange(currencyCode: string) {
   store.setManualCurrency({ currencyCode });
   // Clear selected account when currency changes since it might no longer match
   store.clearSelectedAccount();

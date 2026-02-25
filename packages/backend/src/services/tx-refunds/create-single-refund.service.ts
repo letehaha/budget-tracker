@@ -2,8 +2,8 @@ import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as RefundTransactions from '@models/RefundTransactions.model';
-import * as TransactionSplits from '@models/TransactionSplits.model';
 import * as Transactions from '@models/Transactions.model';
+import * as TransactionSplits from '@models/TransactionSplits.model';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';

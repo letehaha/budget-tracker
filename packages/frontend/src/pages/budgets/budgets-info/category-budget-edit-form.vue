@@ -30,10 +30,10 @@ const formData = ref({
 const initFormData = () => {
   formData.value = {
     name: props.budget.name,
-    limitAmount: props.budget.limitAmount,
+    limitAmount: props.budget.limitAmount ?? 0,
     categoryIds: props.budget.categories?.map((c) => c.id) ?? [],
-    startDate: props.budget.startDate,
-    endDate: props.budget.endDate,
+    startDate: props.budget.startDate ? new Date(props.budget.startDate) : null,
+    endDate: props.budget.endDate ? new Date(props.budget.endDate) : null,
   };
 };
 

@@ -2,12 +2,12 @@ import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Budgets from '@models/Budget.model';
 import Transactions from '@models/Transactions.model';
+import UsersCurrencies from '@models/UsersCurrencies.model';
 import UserSettings, {
   DEFAULT_ONBOARDING_STATE,
   DEFAULT_SETTINGS,
   type OnboardingStateSchema,
 } from '@models/UserSettings.model';
-import UsersCurrencies from '@models/UsersCurrencies.model';
 
 import { withTransaction } from '../common/with-transaction';
 

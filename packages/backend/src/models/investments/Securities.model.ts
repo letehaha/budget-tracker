@@ -1,18 +1,9 @@
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  HasMany,
-  Index,
-  BeforeCreate,
-  BeforeUpdate,
-} from 'sequelize-typescript';
+import { SECURITY_PROVIDER, ASSET_CLASS } from '@bt/shared/types/investments';
+import { Table, Column, Model, DataType, HasMany, Index, BeforeCreate, BeforeUpdate } from 'sequelize-typescript';
+
 import Holdings from './Holdings.model';
 import InvestmentTransactions from './InvestmentTransaction.model';
-import SecurityPricing from "./SecurityPricing.model";
-
-import { SECURITY_PROVIDER, ASSET_CLASS } from "@bt/shared/types/investments"
+import SecurityPricing from './SecurityPricing.model';
 
 @Table({
   tableName: 'Securities',
@@ -25,7 +16,7 @@ export default class Securities extends Model {
     autoIncrement: true,
     type: DataType.INTEGER,
   })
-  id!: number;
+  declare id: number;
 
   @Column({ type: DataType.STRING, allowNull: true })
   name!: string | null;
@@ -79,10 +70,10 @@ export default class Securities extends Model {
   assetClass!: ASSET_CLASS;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   @HasMany(() => Holdings)
   holdings?: Holdings[];

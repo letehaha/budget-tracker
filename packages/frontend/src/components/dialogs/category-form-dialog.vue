@@ -57,7 +57,7 @@
             </PopoverTrigger>
             <PopoverContent class="w-[320px] p-2" align="start">
               <IconPickerDropdown
-                :model-value="form.icon"
+                :model-value="form.icon ?? undefined"
                 @update:model-value="form.icon = $event"
                 @close="iconPickerOpen = false"
               />

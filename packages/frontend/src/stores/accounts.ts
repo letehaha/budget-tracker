@@ -33,21 +33,21 @@ export const useAccountsStore = defineStore('accounts', () => {
   });
 
   watch(accounts, (value) => {
-    for (const acc of value) {
+    for (const acc of value ?? []) {
       accountsRecord.value[acc.id] = acc;
     }
   });
 
-  const accountsCurrencyCodes = computed(() => [...new Set(accounts.value.map((item) => item.currencyCode))]);
+  const accountsCurrencyCodes = computed(() => [...new Set(accounts.value?.map((item) => item.currencyCode) ?? [])]);
 
-  const systemAccounts = computed(() => accounts.value.filter((item) => item.type === ACCOUNT_TYPES.system));
-  const enabledAccounts = computed(() => accounts.value.filter((item) => item.isEnabled));
+  const systemAccounts = computed(() => accounts.value?.filter((item) => item.type === ACCOUNT_TYPES.system) ?? []);
+  const enabledAccounts = computed(() => accounts.value?.filter((item) => item.isEnabled) ?? []);
 
   /**
    * Accounts that need to be re-linked due to schema migration.
    * These are Enable Banking accounts where externalId doesn't match identification_hash.
    */
-  const accountsNeedingRelink = computed(() => accounts.value.filter((item) => item.needsRelink));
+  const accountsNeedingRelink = computed(() => accounts.value?.filter((item) => item.needsRelink) ?? []);
 
   const editAccount = async ({ id, ...data }: Parameters<typeof apiEditAccount>[0]) => {
     try {

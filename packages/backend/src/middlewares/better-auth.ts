@@ -59,7 +59,7 @@ export const authenticateSession = async (req: Request, res: Response, next: Nex
     });
 
     next();
-  } catch (error) {
+  } catch {
     return res.status(401).json({
       status: API_RESPONSE_STATUS.error,
       response: {

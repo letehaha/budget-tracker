@@ -17,7 +17,7 @@ const accountGroupsContext = inject<ReturnType<typeof useActiveAccountGroups>>('
 
 const isOpen = ref(false);
 watch(
-  () => accountGroupsContext.openGroupIds.value,
+  () => accountGroupsContext!.openGroupIds.value,
   (openGroupIds) => {
     isOpen.value = openGroupIds.has(props.group.id);
   },

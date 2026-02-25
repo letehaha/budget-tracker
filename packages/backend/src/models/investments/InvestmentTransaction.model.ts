@@ -1,12 +1,11 @@
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
-
-import Securities from './Securities.model';
-import Portfolios from './Portfolios.model';
+import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
+
+import Portfolios from './Portfolios.model';
+import Securities from './Securities.model';
 
 @Table({
   timestamps: true,
@@ -42,7 +41,7 @@ export default class InvestmentTransaction extends Model {
     autoIncrement: true,
     type: DataType.INTEGER,
   })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Securities)
   @Index
@@ -71,7 +70,7 @@ export default class InvestmentTransaction extends Model {
   @Column({ type: DataType.DATEONLY, allowNull: false })
   date!: string;
 
-   /**
+  /**
    * A descriptive name or title for the investment transaction, providing a
    * quick overview of the transaction's nature. Same as `note` in `Transactions`
    */
@@ -84,26 +83,46 @@ export default class InvestmentTransaction extends Model {
    * associated with the transaction. Calculated as quantity * price + fees
    */
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get amount(): Money { return moneyGetDecimal(this, 'amount'); }
-  set amount(val: Money | string | number) { moneySetDecimal(this, 'amount', val, 10); }
+  get amount(): Money {
+    return moneyGetDecimal(this, 'amount');
+  }
+  set amount(val: Money | string | number) {
+    moneySetDecimal(this, 'amount', val, 10);
+  }
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refAmount(): Money { return moneyGetDecimal(this, 'refAmount'); }
-  set refAmount(val: Money | string | number) { moneySetDecimal(this, 'refAmount', val, 10); }
+  get refAmount(): Money {
+    return moneyGetDecimal(this, 'refAmount');
+  }
+  set refAmount(val: Money | string | number) {
+    moneySetDecimal(this, 'refAmount', val, 10);
+  }
 
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get fees(): Money { return moneyGetDecimal(this, 'fees'); }
-  set fees(val: Money | string | number) { moneySetDecimal(this, 'fees', val, 10); }
+  get fees(): Money {
+    return moneyGetDecimal(this, 'fees');
+  }
+  set fees(val: Money | string | number) {
+    moneySetDecimal(this, 'fees', val, 10);
+  }
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refFees(): Money { return moneyGetDecimal(this, 'refFees'); }
-  set refFees(val: Money | string | number) { moneySetDecimal(this, 'refFees', val, 10); }
+  get refFees(): Money {
+    return moneyGetDecimal(this, 'refFees');
+  }
+  set refFees(val: Money | string | number) {
+    moneySetDecimal(this, 'refFees', val, 10);
+  }
 
   /**
    * * The quantity of the security involved in the transaction. This is crucial
    * for tracking the changes in holdings as a result of the transaction.
    */
   @Column(MoneyColumn({ storage: 'decimal', precision: 36, scale: 18 }))
-  get quantity(): Money { return moneyGetDecimal(this, 'quantity'); }
-  set quantity(val: Money | string | number) { moneySetDecimal(this, 'quantity', val, 18); }
+  get quantity(): Money {
+    return moneyGetDecimal(this, 'quantity');
+  }
+  set quantity(val: Money | string | number) {
+    moneySetDecimal(this, 'quantity', val, 18);
+  }
 
   /**
    * The price per unit of the security at the time of the transaction.
@@ -111,11 +130,19 @@ export default class InvestmentTransaction extends Model {
    * basis of the holding.
    */
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get price(): Money { return moneyGetDecimal(this, 'price'); }
-  set price(val: Money | string | number) { moneySetDecimal(this, 'price', val, 10); }
+  get price(): Money {
+    return moneyGetDecimal(this, 'price');
+  }
+  set price(val: Money | string | number) {
+    moneySetDecimal(this, 'price', val, 10);
+  }
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refPrice(): Money { return moneyGetDecimal(this, 'refPrice'); }
-  set refPrice(val: Money | string | number) { moneySetDecimal(this, 'refPrice', val, 10); }
+  get refPrice(): Money {
+    return moneyGetDecimal(this, 'refPrice');
+  }
+  set refPrice(val: Money | string | number) {
+    moneySetDecimal(this, 'refPrice', val, 10);
+  }
 
   /**
    * The ISO currency code or standard cryptocurrency code representing the currency
@@ -157,10 +184,10 @@ export default class InvestmentTransaction extends Model {
   transferId!: string | null;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({ type: DataType.DATE, allowNull: false })
-  updatedAt!: Date;
+  declare updatedAt: Date;
 
   @BelongsTo(() => Securities)
   security!: Securities;

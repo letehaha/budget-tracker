@@ -6,7 +6,7 @@
           class="flex h-6 items-center gap-0.5 rounded-sm border border-amber-500/60 px-1 py-0.5 text-xs text-amber-400/90"
         >
           <SplitIcon class="size-4" />
-          <span>{{ transaction.splits.length + 1 }}</span>
+          <span>{{ transaction.splits!.length + 1 }}</span>
         </div>
       </TooltipTrigger>
       <TooltipContent>{{ t('common.ui.split') }}</TooltipContent>

@@ -3,8 +3,8 @@ import { endpointsTypes } from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
 import * as Categories from '@models/Categories.model';
 import RefundTransactions from '@models/RefundTransactions.model';
-import TransactionSplits from '@models/TransactionSplits.model';
 import Transactions from '@models/Transactions.model';
+import TransactionSplits from '@models/TransactionSplits.model';
 import { Op } from 'sequelize';
 
 import { getExpensesHistory } from '../get-expenses-history';

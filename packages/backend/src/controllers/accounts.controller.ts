@@ -46,7 +46,7 @@ export const createAccount = createController(
     }),
   }),
   async ({ user, body }) => {
-    const { accountCategory, currencyCode, name, type, initialBalance, creditLimit } = body;
+    const { accountCategory, currencyCode: currency, name, type, initialBalance, creditLimit } = body;
     const { id: userId } = user;
 
     if (type !== ACCOUNT_TYPES.system && process.env.NODE_ENV === 'production') {
@@ -58,7 +58,7 @@ export const createAccount = createController(
     // Convert decimal amounts to cents
     const account = await accountsService.createAccount({
       accountCategory,
-      currencyCode,
+      currencyCode: currency,
       name,
       type,
       creditLimit: Money.fromDecimal(creditLimit),

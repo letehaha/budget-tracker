@@ -340,26 +340,26 @@ export function parseDateInput({ input }: { input: string }): ParsedDateInput | 
   // "Q1" or "Q4 2025"
   const quarterMatch = trimmed.match(/^Q([1-4])(?:\s+(\d{4}))?$/i);
   if (quarterMatch) {
-    const qIndex = parseInt(quarterMatch[1], 10) - 1;
-    const year = quarterMatch[2] ? parseInt(quarterMatch[2], 10) : currentYear;
+    const qIndex = parseInt(quarterMatch[1]!, 10) - 1;
+    const year = quarterMatch[2] ? parseInt(quarterMatch[2]!, 10) : currentYear;
     return { periodType: 'quarter', filterMode: 'is', start: { year, index: qIndex }, end: null };
   }
 
   // "H1" or "H2 2025"
   const halfMatch = trimmed.match(/^H([12])(?:\s+(\d{4}))?$/i);
   if (halfMatch) {
-    const hIndex = parseInt(halfMatch[1], 10) - 1;
-    const year = halfMatch[2] ? parseInt(halfMatch[2], 10) : currentYear;
+    const hIndex = parseInt(halfMatch[1]!, 10) - 1;
+    const year = halfMatch[2] ? parseInt(halfMatch[2]!, 10) : currentYear;
     return { periodType: 'half-year', filterMode: 'is', start: { year, index: hIndex }, end: null };
   }
 
   // "Jan 2025" or "January 2025" or "Jan" — month
   const monthYearMatch = trimmed.match(/^([a-zA-Z]+)(?:\s+(\d{4}))?$/);
   if (monthYearMatch) {
-    const monthName = monthYearMatch[1].toLowerCase();
+    const monthName = monthYearMatch[1]!.toLowerCase();
     const monthIndex = MONTH_NAMES[monthName];
     if (monthIndex !== undefined) {
-      const year = monthYearMatch[2] ? parseInt(monthYearMatch[2], 10) : currentYear;
+      const year = monthYearMatch[2] ? parseInt(monthYearMatch[2]!, 10) : currentYear;
       return { periodType: 'month', filterMode: 'is', start: { year, index: monthIndex }, end: null };
     }
   }
@@ -367,8 +367,8 @@ export function parseDateInput({ input }: { input: string }): ParsedDateInput | 
   // "01/2025" or "1/2025" — month/year
   const monthSlashYear = trimmed.match(/^(\d{1,2})\/(\d{4})$/);
   if (monthSlashYear) {
-    const month = parseInt(monthSlashYear[1], 10) - 1;
-    const year = parseInt(monthSlashYear[2], 10);
+    const month = parseInt(monthSlashYear[1]!, 10) - 1;
+    const year = parseInt(monthSlashYear[2]!, 10);
     if (month >= 0 && month <= 11) {
       return { periodType: 'month', filterMode: 'is', start: { year, index: month }, end: null };
     }

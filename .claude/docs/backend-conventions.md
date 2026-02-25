@@ -37,12 +37,7 @@ import featureController from '@controllers/feature.controller';
 
 const router = Router();
 
-router.get(
-  '/',
-  authenticateSession,
-  validateEndpoint(featureController.schema),
-  featureController.handler,
-);
+router.get('/', authenticateSession, validateEndpoint(featureController.schema), featureController.handler);
 
 export default router;
 ```
@@ -125,6 +120,7 @@ src/services/{feature}/action.e2e.ts
 ```
 
 Examples:
+
 - `src/services/accounts/delete-account.e2e.ts`
 - `src/services/transactions/get-transactions.e2e.ts`
 - `src/services/budgets/create-budget.e2e.ts`

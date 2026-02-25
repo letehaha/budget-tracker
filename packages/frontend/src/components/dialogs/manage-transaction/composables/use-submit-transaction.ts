@@ -127,7 +127,11 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
       const onboardingStore = useOnboardingStore();
 
       if (params.isFormCreation) {
-        const transactionType = params.isTransferTx ? 'transfer' : params.form.amount >= 0 ? 'income' : 'expense';
+        const transactionType = params.isTransferTx
+          ? 'transfer'
+          : (params.form.amount ?? 0) >= 0
+            ? 'income'
+            : 'expense';
         trackAnalyticsEvent({
           event: 'transaction_created',
           properties: { transaction_type: transactionType },
@@ -173,7 +177,7 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
       }
 
       if (error instanceof ApiErrorResponseError) {
-        addErrorNotification(error.data.message);
+        addErrorNotification(error.data.message ?? error.message);
       } else {
         // eslint-disable-next-line no-console
         console.error(error);

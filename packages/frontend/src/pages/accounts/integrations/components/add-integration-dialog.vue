@@ -33,21 +33,31 @@
                   </span>
                 </p>
                 <p class="text-sm opacity-70">
-                  {{ t(METAINFO_FROM_TYPE[provider.type].descriptionKey) }}
+                  {{ t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.descriptionKey) }}
                 </p>
                 <div class="mt-2 flex items-center gap-2">
-                  <span :class="pricingBadgeClass(METAINFO_FROM_TYPE[provider.type].pricing)">
-                    {{ t(METAINFO_FROM_TYPE[provider.type].pricingLabelKey) }}
+                  <span
+                    :class="
+                      pricingBadgeClass(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.pricing)
+                    "
+                  >
+                    {{ t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.pricingLabelKey) }}
                   </span>
                   <ResponsiveTooltip
-                    :content="t(METAINFO_FROM_TYPE[provider.type].difficultyTooltipKey)"
+                    :content="
+                      t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.difficultyTooltipKey)
+                    "
                     content-class-name="w-screen max-w-105 text-balance"
                   >
                     <span
-                      :class="difficultyBadgeClass(METAINFO_FROM_TYPE[provider.type].difficulty)"
+                      :class="
+                        difficultyBadgeClass(
+                          METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.difficulty,
+                        )
+                      "
                       class="inline-flex items-center gap-1"
                     >
-                      {{ t(METAINFO_FROM_TYPE[provider.type].difficultyLabelKey) }}
+                      {{ t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.difficultyLabelKey) }}
                       <InfoIcon class="size-3" />
                     </span>
                   </ResponsiveTooltip>

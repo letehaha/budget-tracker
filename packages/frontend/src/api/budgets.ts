@@ -32,7 +32,7 @@ export const editBudget = async ({ budgetId, payload }: { budgetId: number; payl
   await api.put(`/budgets/${budgetId}`, payload);
 };
 
-export const addTransactionsToBudget = async (budgetId: number, params: unknown) =>
+export const addTransactionsToBudget = async (budgetId: number, params: Record<string, unknown>) =>
   api.post(`/budgets/${budgetId}/transactions`, params);
 
 export const removeTransactionsFromBudget = async ({

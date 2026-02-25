@@ -1,5 +1,5 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
-import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import {
   ACCOUNTS,
   USER_CATEGORIES,
@@ -28,11 +28,11 @@ describe('components/modals/modify-record/helpers', () => {
     ])('%s to be %s', (args, expected) => {
       expect(
         getDestinationAmount({
-          fromAmount: args[0],
-          toAmount: args[1],
-          isCurrenciesDifferent: args[2],
-          isRecordExternal: args[3],
-          sourceTransaction: args[4],
+          fromAmount: args[0] as number,
+          toAmount: args[1] as number,
+          isCurrenciesDifferent: args[2] as boolean,
+          isRecordExternal: args[3] as boolean,
+          sourceTransaction: args[4] as TransactionModel,
         }),
       ).toBe(expected);
     });
@@ -108,8 +108,8 @@ describe('components/modals/modify-record/helpers', () => {
         refundedByTxs: undefined,
         refundsTx: undefined,
       });
-      expect(result.time).toBeInstanceOf(Date);
-      expect(result.paymentType.value).toBe(transaction.paymentType);
+      expect(result!.time).toBeInstanceOf(Date);
+      expect(result!.paymentType!.value).toBe(transaction.paymentType);
     });
 
     it('populates form for basic expense transaction', () => {
@@ -187,7 +187,7 @@ describe('components/modals/modify-record/helpers', () => {
         targetAmount: transaction.amount,
       });
       // amount should not be set for income out-of-wallet
-      expect(result.amount).toBeUndefined();
+      expect(result!.amount).toBeUndefined();
     });
 
     it('populates form for out-of-wallet expense transaction (account → external)', () => {
@@ -215,7 +215,7 @@ describe('components/modals/modify-record/helpers', () => {
         amount: transaction.amount,
       });
       // targetAmount should not be set for expense out-of-wallet
-      expect(result.targetAmount).toBeUndefined();
+      expect(result!.targetAmount).toBeUndefined();
     });
 
     it('preserves transaction note', () => {
@@ -231,7 +231,7 @@ describe('components/modals/modify-record/helpers', () => {
         formattedCategories: USER_CATEGORIES,
       });
 
-      expect(result.note).toBe('Test note for transaction');
+      expect(result!.note).toBe('Test note for transaction');
     });
 
     it('maps payment type correctly', () => {
@@ -247,7 +247,7 @@ describe('components/modals/modify-record/helpers', () => {
         formattedCategories: USER_CATEGORIES,
       });
 
-      expect(result.paymentType).toEqual(VERBOSE_PAYMENT_TYPES.find((p) => p.value === PAYMENT_TYPES.cash));
+      expect(result!.paymentType).toEqual(VERBOSE_PAYMENT_TYPES.find((p) => p.value === PAYMENT_TYPES.cash));
     });
 
     it('converts transaction time to Date object', () => {
@@ -264,8 +264,8 @@ describe('components/modals/modify-record/helpers', () => {
         formattedCategories: USER_CATEGORIES,
       });
 
-      expect(result.time).toBeInstanceOf(Date);
-      expect(result.time.getTime()).toBe(txTime.getTime());
+      expect(result!.time).toBeInstanceOf(Date);
+      expect(result!.time.getTime()).toBe(txTime.getTime());
     });
   });
 });

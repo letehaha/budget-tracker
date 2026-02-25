@@ -31,7 +31,7 @@ export const useCssVarFromElementSize = ({ cssVars }: { cssVars: CssVarConfig[] 
     const entry = entries[0];
     if (entry) {
       cssVars.forEach(({ cssVarName, sizeSource = 'borderBoxSize' }) => {
-        const height = sizeSource === 'borderBoxSize' ? entry.borderBoxSize[0].blockSize : entry.contentRect.height;
+        const height = sizeSource === 'borderBoxSize' ? entry.borderBoxSize[0]!.blockSize : entry.contentRect.height;
 
         document.documentElement.style.setProperty(cssVarName, `${height}px`);
       });

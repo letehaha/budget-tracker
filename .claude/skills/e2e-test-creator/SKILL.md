@@ -56,6 +56,7 @@ export async function myEndpoint<R extends boolean | undefined = undefined>({
 ```
 
 Key rules:
+
 - Use **type-only** import for the service function (for return type inference)
 - Use the generic `<R>` pattern for the `raw` parameter
 - Pass query params via `payload` for GET requests (makeRequest converts them to query string)

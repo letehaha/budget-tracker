@@ -29,7 +29,7 @@ describe('Generic Detect Duplicates Service', () => {
 
     return defaults.map((tx, i) => ({
       ...tx,
-      ...(overrides[i] || {}),
+      ...overrides[i],
     }));
   };
 
@@ -144,7 +144,7 @@ describe('Generic Detect Duplicates Service', () => {
       });
 
       expect(result).toHaveLength(3);
-      expect(result.map((d) => d.index).sort()).toEqual([0, 1, 2]);
+      expect(result.map((d) => d.index).toSorted()).toEqual([0, 1, 2]);
     });
   });
 

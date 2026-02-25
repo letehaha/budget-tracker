@@ -1,8 +1,9 @@
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany, HasMany } from 'sequelize-typescript';
-import Users from '@models/Users.model';
 import Transactions from '@models/Transactions.model';
-import TransactionTags from './TransactionTags.model';
+import Users from '@models/Users.model';
+import { Table, Column, Model, ForeignKey, DataType, BelongsToMany, HasMany } from 'sequelize-typescript';
+
 import TagReminders from './TagReminders.model';
+import TransactionTags from './TransactionTags.model';
 
 @Table({
   tableName: 'Tags',
@@ -10,7 +11,7 @@ import TagReminders from './TagReminders.model';
 })
 export default class Tags extends Model {
   @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  id!: number;
+  declare id: number;
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false, type: DataType.INTEGER })

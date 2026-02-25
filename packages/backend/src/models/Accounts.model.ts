@@ -1,21 +1,12 @@
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-  DataType,
-  AfterCreate,
-  HasMany,
-} from 'sequelize-typescript';
 import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
-import Users from '@models/Users.model';
-import Currencies from '@models/Currencies.model';
 import Balances from '@models/Balances.model';
-import Transactions from '@models/Transactions.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
+import Currencies from '@models/Currencies.model';
+import Transactions from '@models/Transactions.model';
+import Users from '@models/Users.model';
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType, AfterCreate, HasMany } from 'sequelize-typescript';
 
 interface AccountsAttributes {
   id: number;
@@ -70,28 +61,52 @@ export default class Accounts extends Model {
   name!: string;
 
   @Column(MoneyColumn({ storage: 'cents' }))
-  get initialBalance(): Money { return moneyGetCents(this, 'initialBalance'); }
-  set initialBalance(val: Money | number) { moneySetCents(this, 'initialBalance', val); }
+  get initialBalance(): Money {
+    return moneyGetCents(this, 'initialBalance');
+  }
+  set initialBalance(val: Money | number) {
+    moneySetCents(this, 'initialBalance', val);
+  }
 
   @Column(MoneyColumn({ storage: 'cents' }))
-  get refInitialBalance(): Money { return moneyGetCents(this, 'refInitialBalance'); }
-  set refInitialBalance(val: Money | number) { moneySetCents(this, 'refInitialBalance', val); }
+  get refInitialBalance(): Money {
+    return moneyGetCents(this, 'refInitialBalance');
+  }
+  set refInitialBalance(val: Money | number) {
+    moneySetCents(this, 'refInitialBalance', val);
+  }
 
   @Column(MoneyColumn({ storage: 'cents' }))
-  get currentBalance(): Money { return moneyGetCents(this, 'currentBalance'); }
-  set currentBalance(val: Money | number) { moneySetCents(this, 'currentBalance', val); }
+  get currentBalance(): Money {
+    return moneyGetCents(this, 'currentBalance');
+  }
+  set currentBalance(val: Money | number) {
+    moneySetCents(this, 'currentBalance', val);
+  }
 
   @Column(MoneyColumn({ storage: 'cents' }))
-  get refCurrentBalance(): Money { return moneyGetCents(this, 'refCurrentBalance'); }
-  set refCurrentBalance(val: Money | number) { moneySetCents(this, 'refCurrentBalance', val); }
+  get refCurrentBalance(): Money {
+    return moneyGetCents(this, 'refCurrentBalance');
+  }
+  set refCurrentBalance(val: Money | number) {
+    moneySetCents(this, 'refCurrentBalance', val);
+  }
 
   @Column(MoneyColumn({ storage: 'cents' }))
-  get creditLimit(): Money { return moneyGetCents(this, 'creditLimit'); }
-  set creditLimit(val: Money | number) { moneySetCents(this, 'creditLimit', val); }
+  get creditLimit(): Money {
+    return moneyGetCents(this, 'creditLimit');
+  }
+  set creditLimit(val: Money | number) {
+    moneySetCents(this, 'creditLimit', val);
+  }
 
   @Column(MoneyColumn({ storage: 'cents' }))
-  get refCreditLimit(): Money { return moneyGetCents(this, 'refCreditLimit'); }
-  set refCreditLimit(val: Money | number) { moneySetCents(this, 'refCreditLimit', val); }
+  get refCreditLimit(): Money {
+    return moneyGetCents(this, 'refCreditLimit');
+  }
+  set refCreditLimit(val: Money | number) {
+    moneySetCents(this, 'refCreditLimit', val);
+  }
 
   @Column({
     type: DataType.STRING,

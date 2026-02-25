@@ -226,7 +226,7 @@ export const useAuthStore = defineStore('auth', () => {
     const result = await signUp.email({
       email,
       password,
-      name: name || email.split('@')[0],
+      name: name || email.split('@')[0]!,
       // Callback URL after email verification - goes to auth callback which validates session
       callbackURL: `${window.location.origin}/auth/callback`,
     });

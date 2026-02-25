@@ -42,10 +42,6 @@ import { FieldError, FieldLabel } from '@/components/fields';
 import { cn } from '@/lib/utils';
 import { onMounted, ref } from 'vue';
 
-interface InputChangeEvent extends InputEvent {
-  target: HTMLInputElement;
-}
-
 const MODEL_EVENTS = Object.freeze({
   input: 'update:modelValue',
 });
@@ -94,8 +90,9 @@ onMounted(() => {
   if (props.modelValue) currentLength.value = String(props.modelValue).length;
 });
 
-const onInput = (event: InputChangeEvent) => {
-  if (props.maxlength) currentLength.value = event.target.value.length;
-  emit(MODEL_EVENTS.input, event.target.value);
+const onInput = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (props.maxlength) currentLength.value = target.value.length;
+  emit(MODEL_EVENTS.input, target.value);
 };
 </script>

@@ -68,8 +68,9 @@ const addTransactions = async () => {
     queryClient.invalidateQueries({
       predicate: (query) => query.queryKey.includes(currentBudgetId.value),
     });
-  } catch (err) {
-    addErrorNotification(err.data.message);
+  } catch (err: unknown) {
+    const message = (err as any)?.data?.message ?? 'Failed to add transactions';
+    addErrorNotification(message);
   }
   isAddingTransactionModalVisible.value = false;
   resetSelection();
@@ -94,7 +95,7 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   isFetchingNextPage: isFetchingNextTransactionsPage,
   parentRef,
   enabled: isAddingTransactionModalVisible,
-  getItemKey: (index) => flatTransactions.value[index].id,
+  getItemKey: (index) => flatTransactions.value[index]!.id,
 });
 
 const isFiltersDialogOpen = ref(false);
@@ -163,18 +164,18 @@ const isMobileView = useWindowBreakpoints(1024);
               ]"
             >
               <Checkbox
-                :model-value="pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)"
+                :model-value="pickedTransactionsIds.has(flatTransactions[virtualRow.index]!.id)"
                 @update:model-value="
                   handleSelection(
                     !!$event,
-                    flatTransactions[virtualRow.index].id,
+                    flatTransactions[virtualRow.index]!.id,
                     virtualRow.index,
                     flatTransactions,
                     (v) => v.id,
                   )
                 "
               />
-              <TransactionRecord :tx="flatTransactions[virtualRow.index]" />
+              <TransactionRecord :tx="flatTransactions[virtualRow.index]!" />
             </label>
             <div v-else class="flex h-13 items-center justify-center">{{ t('transactions.list.loadingMore') }}</div>
           </div>

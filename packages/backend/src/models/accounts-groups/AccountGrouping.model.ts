@@ -1,4 +1,5 @@
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
+
 import Accounts from '../Accounts.model';
 import AccountGroup from './AccountGroups.model';
 

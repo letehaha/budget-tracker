@@ -51,7 +51,7 @@
               <div class="mt-3 flex items-center gap-2 text-base">
                 <BankProviderLogo class="size-8" :provider="connection.providerType" />
 
-                {{ t(METAINFO_FROM_TYPE[connection.providerType].nameKey) }}
+                {{ t(METAINFO_FROM_TYPE[connection.providerType as keyof typeof METAINFO_FROM_TYPE]!.nameKey) }}
               </div>
             </CardHeader>
 
@@ -82,7 +82,7 @@
     <!-- Add Integration Dialog -->
     <AddIntegrationDialog
       v-model:open="isDialogOpen"
-      :providers="providers"
+      :providers="providers ?? []"
       @integration-added="handleIntegrationAdded"
     />
 

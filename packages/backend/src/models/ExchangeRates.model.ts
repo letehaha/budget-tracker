@@ -1,5 +1,6 @@
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 import { Op } from 'sequelize';
+import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
+
 import Currencies from './Currencies.model';
 
 @Table({

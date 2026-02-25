@@ -364,7 +364,7 @@ const hasStackedBars = computed(() => {
 // Categories from API response for legend, filtered by metric
 const chartCategories = computed(() => {
   if (!chartData.value.length) return [];
-  const allCategories = chartData.value[0].categories || [];
+  const allCategories = chartData.value[0]!.categories || [];
 
   // Filter to only show categories that have non-zero amount for the current metric
   // across all periods
@@ -441,7 +441,7 @@ const chartData = computed<PeriodWithChange[]>(() => {
     let momChange: number | undefined;
 
     if (index > 0) {
-      const prevPeriod = cashFlowData.value!.periods[index - 1];
+      const prevPeriod = cashFlowData.value!.periods[index - 1]!;
       const prevValue = getDisplayedValue(prevPeriod);
 
       if (prevValue === 0) {
@@ -476,7 +476,7 @@ const averageValue = computed(() => {
 const singleBarColor = computed(() => {
   // If we have exactly one category, use its color
   if (chartCategories.value.length === 1) {
-    return chartCategories.value[0].color;
+    return chartCategories.value[0]!.color;
   }
 
   // Otherwise use metric-based color
@@ -760,8 +760,8 @@ const renderChart = () => {
   const createTopRoundedRect = ({
     x,
     y,
-    width,
-    height,
+    width: w,
+    height: h,
     radius,
   }: {
     x: number;
@@ -770,13 +770,13 @@ const renderChart = () => {
     height: number;
     radius: number;
   }) => {
-    const r = Math.min(radius, height / 2, width / 2);
+    const r = Math.min(radius, h / 2, w / 2);
     return `
       M ${x + r} ${y}
-      L ${x + width - r} ${y}
-      Q ${x + width} ${y} ${x + width} ${y + r}
-      L ${x + width} ${y + height}
-      L ${x} ${y + height}
+      L ${x + w - r} ${y}
+      Q ${x + w} ${y} ${x + w} ${y + r}
+      L ${x + w} ${y + h}
+      L ${x} ${y + h}
       L ${x} ${y + r}
       Q ${x} ${y} ${x + r} ${y}
       Z
@@ -792,7 +792,7 @@ const renderChart = () => {
 
       // Filter to only categories with data for current metric, then sort
       const filteredCategories = period.categories.filter((cat) => renderCategoryIds.has(cat.categoryId));
-      const sortedCategories = [...filteredCategories].sort((a, b) => {
+      const sortedCategories = filteredCategories.toSorted((a, b) => {
         const indexA = selectedCategoryIds.value.indexOf(a.categoryId);
         const indexB = selectedCategoryIds.value.indexOf(b.categoryId);
         return indexA - indexB;
@@ -800,7 +800,7 @@ const renderChart = () => {
 
       // Find which segments actually have height (non-zero amounts)
       const visibleSegments = sortedCategories.filter((cat) => getCategoryAmount(cat) > 0);
-      const topSegmentId = visibleSegments.length > 0 ? visibleSegments[visibleSegments.length - 1].categoryId : null;
+      const topSegmentId = visibleSegments.length > 0 ? visibleSegments[visibleSegments.length - 1]!.categoryId : null;
 
       // Inner shadow height to help distinguish segments with similar colors
       const shadowHeight = 4;
@@ -903,7 +903,7 @@ const renderChart = () => {
       .on('mouseleave', handleMouseLeave)
       .on('click', (event: MouseEvent, d) => {
         // When exactly one category has data, pass its ID for navigation
-        const singleCategoryId = chartCategories.value.length === 1 ? chartCategories.value[0].categoryId : undefined;
+        const singleCategoryId = chartCategories.value.length === 1 ? chartCategories.value[0]!.categoryId : undefined;
         handleBarClick(event, d, singleCategoryId);
       });
   }

@@ -33,8 +33,8 @@ const { data: transactions, isFetching } = useQuery({
   enabled: isAppInitialized,
 });
 
-const isInitialLoading = computed(() => isFetching.value && transactions.value.length === 0);
-const isDataEmpty = computed(() => !isFetching.value && transactions.value.length === 0);
+const isInitialLoading = computed(() => isFetching.value && (transactions.value?.length ?? 0) === 0);
+const isDataEmpty = computed(() => !isFetching.value && (transactions.value?.length ?? 0) === 0);
 </script>
 
 <template>

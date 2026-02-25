@@ -81,7 +81,7 @@ class ExchangeRateProviderRegistry {
   listAll(): ExchangeRateProviderMetadata[] {
     return Array.from(this.providers.values())
       .map((provider) => provider.metadata)
-      .sort((a, b) => a.priority - b.priority);
+      .toSorted((a, b) => a.priority - b.priority);
   }
 
   /**
@@ -98,7 +98,7 @@ class ExchangeRateProviderRegistry {
    * @returns Array of provider instances sorted by priority
    */
   async getByPriority(): Promise<BaseExchangeRateProvider[]> {
-    const sorted = Array.from(this.providers.values()).sort((a, b) => a.metadata.priority - b.metadata.priority);
+    const sorted = Array.from(this.providers.values()).toSorted((a, b) => a.metadata.priority - b.metadata.priority);
 
     const available: BaseExchangeRateProvider[] = [];
     for (const provider of sorted) {
@@ -319,7 +319,7 @@ class ExchangeRateProviderRegistry {
       }
     }
 
-    return Array.from(allCurrencies).sort();
+    return Array.from(allCurrencies).toSorted();
   }
 
   /**

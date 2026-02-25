@@ -1,5 +1,6 @@
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 import Budgets from '@models/Budget.model';
+import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
+
 import Categories from './Categories.model';
 
 /**

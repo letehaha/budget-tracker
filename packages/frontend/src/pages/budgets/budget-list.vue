@@ -179,7 +179,7 @@ const tabItems = computed(() => [
     <!-- Initial full-page skeleton (no data yet) -->
     <BudgetCardSkeleton v-if="isInitialLoading" />
 
-    <template v-else-if="budgetsList.length || isLoadingMore">
+    <template v-else-if="budgetsList?.length || isLoadingMore">
       <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
         <PillTabs v-model="activeTab" :items="tabItems" />
 
@@ -213,7 +213,7 @@ const tabItems = computed(() => [
             :key="budget.id"
             :budget="budget"
             :is-archived="isArchived(budget)"
-            :stats="getBudgetStats(budget.id)?.summary ?? null"
+            :stats="(getBudgetStats(budget.id)?.summary as any) ?? null"
             :is-stats-loading="isBudgetStatsLoading(budget.id)"
             :time-status="getBudgetTimeStatus(budget)"
             @click="navigateToBudget({ budgetId: budget.id })"
@@ -245,7 +245,7 @@ const tabItems = computed(() => [
             :key="budget.id"
             :budget="budget"
             :is-archived="isArchived(budget)"
-            :stats="getBudgetStats(budget.id)?.summary ?? null"
+            :stats="(getBudgetStats(budget.id)?.summary as any) ?? null"
             :is-stats-loading="isBudgetStatsLoading(budget.id)"
             :time-status="getBudgetTimeStatus(budget)"
             @click="navigateToBudget({ budgetId: budget.id })"

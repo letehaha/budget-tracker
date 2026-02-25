@@ -1,8 +1,7 @@
 {
   "analytics": {
     "backToAnalytics": "Back to Analytics",
-    "timePeriods": {
-    },
+    "timePeriods": {},
     "navigation": {
       "cashFlow": "Cash Flow",
       "trendsComparison": "Trends Comparison"

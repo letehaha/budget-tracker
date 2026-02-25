@@ -9,6 +9,7 @@ import {
 } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType, BeforeCreate } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
+
 import Users from './Users.model';
 
 @Table({
@@ -81,7 +82,7 @@ export default class Notifications extends Model implements NotificationModel {
     allowNull: false,
     defaultValue: DataType.NOW,
   })
-  createdAt!: Date;
+  declare createdAt: Date;
 
   @Column({
     type: DataType.DATE,

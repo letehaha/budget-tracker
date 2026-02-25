@@ -8,8 +8,8 @@ import {
 } from '@bt/shared/types';
 import { authPool } from '@config/auth';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import Users from '@models/Users.model';
 import { connection } from '@models/index';
+import Users from '@models/Users.model';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 import { clearMockSession, registerMockSession } from '@tests/mocks/better-auth';
 

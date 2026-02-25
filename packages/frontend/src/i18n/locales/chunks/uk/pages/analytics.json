@@ -1,8 +1,7 @@
 {
   "analytics": {
     "backToAnalytics": "Назад до аналітики",
-    "timePeriods": {
-    },
+    "timePeriods": {},
     "navigation": {
       "cashFlow": "Грошовий потік",
       "trendsComparison": "Порівняння трендів"

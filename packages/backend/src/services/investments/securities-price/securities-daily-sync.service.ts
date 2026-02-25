@@ -128,7 +128,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
 
         result.successfulUpdates = securityPricesToUpsert.length;
         logger.info(`Bulk created/updated ${securityPricesToUpsert.length} security prices`);
-      } catch (err) {
+      } catch {
         logger.warn(
           `Bulk create failed, falling back to individual upserts for ${securityPricesToUpsert.length} records`,
         );

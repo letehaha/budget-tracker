@@ -18,10 +18,7 @@
 
     <template v-else>
       <!-- Demo mode restriction notice -->
-      <div
-        v-if="isDemo"
-        class="bg-muted/50 text-muted-foreground flex items-center gap-3 rounded-lg border p-4"
-      >
+      <div v-if="isDemo" class="bg-muted/50 text-muted-foreground flex items-center gap-3 rounded-lg border p-4">
         <AlertCircle class="size-5 shrink-0" />
         <p class="text-sm">
           {{ $t('demo.passwordChangeRestricted') }}

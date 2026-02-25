@@ -55,7 +55,7 @@ const getSubscriptionsSummaryImpl = async ({ userId, type }: GetSubscriptionsSum
 
       const multiplier = MONTHLY_MULTIPLIERS[sub.frequency] ?? 1;
       totalMonthly = totalMonthly.add(refAmount.multiply(multiplier));
-    } catch (e) {
+    } catch {
       logger.warn(`Skipping subscription ${sub.id} in summary: currency conversion failed`);
     }
   }

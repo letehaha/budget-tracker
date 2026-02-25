@@ -17,9 +17,9 @@
             )
           "
         >
-          <img class="size-5 shrink-0" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
+          <img class="size-5 shrink-0" :src="getCurrencyIcon(currency.currency?.code ?? '')" alt="icon" />
           <span class="text-lg font-medium text-white">
-            {{ currency.currency.currency }}
+            {{ currency.currency?.currency }}
           </span>
 
           <ResponsiveTooltip
@@ -42,16 +42,16 @@
             {{ currency.rate.toLocaleString() }}
 
             <span class="text-sm">
-              {{ currency.currency.code }} /
-              {{ baseCurrency.currency.code }}
+              {{ currency.currency?.code }} /
+              {{ baseCurrency?.currency?.code }}
             </span>
           </div>
           <div class="text-sm font-bold">
             {{ currency.quoteRate.toLocaleString() }}
 
             <span class="text-sm">
-              {{ baseCurrency.currency.code }} /
-              {{ currency.currency.code }}
+              {{ baseCurrency?.currency?.code }} /
+              {{ currency.currency?.code }}
             </span>
           </div>
         </div>

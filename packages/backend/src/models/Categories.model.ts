@@ -1,14 +1,15 @@
 import { CATEGORY_TYPES } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
-import Users from './Users.model';
-import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
-import MerchantCategoryCodes from './MerchantCategoryCodes.model';
 import { NotFoundError, ValidationError } from '@js/errors';
+import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
+
+import MerchantCategoryCodes from './MerchantCategoryCodes.model';
+import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
+import Users from './Users.model';
 
 @Table({
   timestamps: false,
   tableName: 'Categories',
-  freezeTableName: true
+  freezeTableName: true,
 })
 export default class Categories extends Model {
   @Column({

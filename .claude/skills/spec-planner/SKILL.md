@@ -122,7 +122,6 @@ Only after thorough interviewing, write the specification:
 
 1. **Location**: Store specs in `docs/prds/` using kebab-case naming (e.g., `transaction-bulk-edit.md`)
 2. **Structure**:
-
    - Overview (2-3 sentences max)
    - Problem Statement
    - Goals & Non-Goals (explicitly list what's OUT of scope)
@@ -146,7 +145,6 @@ Only after thorough interviewing, write the specification:
 4. **Suggest Alternatives**: When appropriate, present options with tradeoffs rather than just asking open-ended questions.
 
 5. **Know When to Stop**: Stop interviewing when:
-
    - You can explain the feature back to them with full confidence
    - All edge cases have clear handling strategies
    - The user confirms the summary is accurate and complete

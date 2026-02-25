@@ -1,8 +1,8 @@
 import { UserModel, USER_ROLES, UserRole } from '@bt/shared/types';
 import { Table, Column, Model, DefaultScope, Scopes, BelongsToMany, Length, DataType } from 'sequelize-typescript';
 
-import UsersCurrencies from './UsersCurrencies.model';
 import Currencies from './Currencies.model';
+import UsersCurrencies from './UsersCurrencies.model';
 
 const DETAULT_TOTAL_BALANCE = 0;
 
@@ -47,23 +47,23 @@ export default class Users extends Model {
   })
   email!: string;
 
-  @Column({ allowNull: true, type: DataType.STRING, })
+  @Column({ allowNull: true, type: DataType.STRING })
   firstName!: string;
 
-  @Column({ allowNull: true, type: DataType.STRING, })
+  @Column({ allowNull: true, type: DataType.STRING })
   lastName!: string;
 
-  @Column({ allowNull: true, type: DataType.STRING, })
+  @Column({ allowNull: true, type: DataType.STRING })
   middleName!: string;
 
-  @Column({ allowNull: true, type: DataType.STRING, })
+  @Column({ allowNull: true, type: DataType.STRING })
   password!: string;
 
-  @Column({ allowNull: true, type: DataType.STRING, })
+  @Column({ allowNull: true, type: DataType.STRING })
   authUserId!: string;
 
   @Length({ max: 2000 })
-  @Column({ allowNull: true, type: DataType.STRING, })
+  @Column({ allowNull: true, type: DataType.STRING })
   avatar!: string;
 
   @Column({
@@ -73,7 +73,7 @@ export default class Users extends Model {
   })
   totalBalance!: number;
 
-  @Column({ allowNull: true, type: DataType.NUMBER, })
+  @Column({ allowNull: true, type: DataType.NUMBER })
   defaultCategoryId!: number;
 
   @Column({
@@ -88,7 +88,7 @@ export default class Users extends Model {
     type: DataType.DATE,
     defaultValue: DataType.NOW,
   })
-  createdAt!: Date;
+  declare createdAt: Date;
 }
 
 export const getUsers = async () => {
