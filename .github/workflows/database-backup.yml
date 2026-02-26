@@ -34,6 +34,7 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           DB_USERNAME: ${{ secrets.APPLICATION_DB_USERNAME }}
           DB_DATABASE: ${{ secrets.APPLICATION_DB_DATABASE }}
+          DB_SERVICE_NAME: ${{ secrets.DB_SERVICE_NAME }}
           COMMIT_SHA: ${{ github.sha }}
           BACKUP_REASON: ${{ inputs.backup_reason || 'scheduled' }}
         with:
@@ -41,14 +42,12 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
-          envs: R2_ENDPOINT,R2_ACCESS_KEY_ID,R2_SECRET_ACCESS_KEY,R2_BUCKET,DB_USERNAME,DB_DATABASE,COMMIT_SHA,BACKUP_REASON
+          envs: R2_ENDPOINT,R2_ACCESS_KEY_ID,R2_SECRET_ACCESS_KEY,R2_BUCKET,DB_USERNAME,DB_DATABASE,DB_SERVICE_NAME,COMMIT_SHA,BACKUP_REASON
           script: |
             set -e
+            set -o pipefail
 
             echo "🗄️ Starting database backup..."
-
-            # Navigate to project directory
-            cd ${{ secrets.VPS_PROJECT_PATH }}
 
             # Generate backup filename with timestamp and commit SHA
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -56,15 +55,28 @@ jobs:
             BACKUP_FILENAME="db_backup_${TIMESTAMP}_${SHORT_SHA}_${BACKUP_REASON}.sql.gz"
             BACKUP_PATH="/tmp/${BACKUP_FILENAME}"
 
-            # Create compressed database dump
-            # Using docker compose exec with -T flag (no TTY) for non-interactive execution
-            echo "📦 Creating database dump..."
-            docker compose exec -T db pg_dump \
+            # Find the app DB container by name pattern (excludes Dokploy's internal postgres)
+            DB_CONTAINER=$(docker ps --format '{{.Names}}' | grep -v 'dokploy' | grep -m1 "${DB_SERVICE_NAME}.*-db-")
+            if [ -z "$DB_CONTAINER" ]; then
+              echo "❌ Could not find container matching: $DB_SERVICE_NAME (excluding dokploy)"
+              docker ps --format 'table {{.Names}}\t{{.Image}}'
+              exit 1
+            fi
+            echo "📦 Creating database dump from container: $DB_CONTAINER"
+            docker exec "$DB_CONTAINER" pg_dump \
               -U "$DB_USERNAME" \
               -d "$DB_DATABASE" \
               --no-owner \
               --no-acl \
               | gzip > "$BACKUP_PATH"
+
+            # Validate backup is not empty (empty gzip is ~20 bytes)
+            BACKUP_SIZE_BYTES=$(stat -c%s "$BACKUP_PATH" 2>/dev/null || stat -f%z "$BACKUP_PATH")
+            if [ "$BACKUP_SIZE_BYTES" -lt 100 ]; then
+              echo "❌ Backup file is too small (${BACKUP_SIZE_BYTES} bytes), pg_dump likely failed"
+              rm -f "$BACKUP_PATH"
+              exit 1
+            fi
 
             BACKUP_SIZE=$(ls -lh "$BACKUP_PATH" | awk '{print $5}')
             echo "✅ Backup created: $BACKUP_FILENAME ($BACKUP_SIZE)"
@@ -93,7 +105,7 @@ jobs:
             echo ""
             echo "🎉 Database backup completed successfully!"
 
-      - name: Cleanup old backups (older than 7 days)
+      - name: Cleanup old backups (older than 60 days)
         uses: appleboy/ssh-action@master
         env:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
@@ -109,14 +121,11 @@ jobs:
           script: |
             set -e
 
-            echo "🧹 Cleaning up backups older than 7 days..."
+            echo "🧹 Cleaning up backups older than 60 days..."
 
-            # Navigate to project directory (for consistent working directory)
-            cd ${{ secrets.VPS_PROJECT_PATH }}
+            CUTOFF_DATE=$(date -d '60 days ago' +%Y%m%d 2>/dev/null || date -v-60d +%Y%m%d)
 
-            CUTOFF_DATE=$(date -d '7 days ago' +%Y%m%d 2>/dev/null || date -v-7d +%Y%m%d)
-
-            # List all backups and filter those older than 7 days
+            # List all backups and filter those older than 60 days
             AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
             AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
             aws s3 ls "s3://${R2_BUCKET}/backups/" \
