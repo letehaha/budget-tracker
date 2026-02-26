@@ -7,7 +7,7 @@ import Portfolios from '@models/investments/Portfolios.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
 import UserExchangeRates from '@models/UserExchangeRates.model';
 import UsersCurrencies from '@models/UsersCurrencies.model';
-import { eachDayOfInterval, format, parseISO } from 'date-fns';
+import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 
 import { getAggregatedBalanceHistory } from './get-balance-history';
@@ -86,6 +86,10 @@ const calculatePortfolioBalanceHistory = async ({
     return null;
   }
 
+  // Fetch data starting 7 days before minDate to ensure fallback lookups
+  // have prior trading-day data available for weekends/holidays
+  const dataFetchMinDate = format(subDays(parseISO(minDate), 7), 'yyyy-MM-dd');
+
   type SecurityPriceRow = Pick<SecurityPricing, 'securityId' | 'date' | 'priceClose'>;
   type ExchangeRateRow = Pick<UserExchangeRates, 'baseCode' | 'quoteCode' | 'date' | 'rate'>;
 
@@ -96,7 +100,7 @@ const calculatePortfolioBalanceHistory = async ({
           [Op.in]: securityIds,
         },
         date: {
-          [Op.between]: [minDate, maxDate],
+          [Op.between]: [dataFetchMinDate, maxDate],
         },
       },
       order: [
@@ -113,7 +117,7 @@ const calculatePortfolioBalanceHistory = async ({
         },
         quoteCode: userBaseCurrency.currencyCode,
         date: {
-          [Op.between]: [minDate, maxDate],
+          [Op.between]: [dataFetchMinDate, maxDate],
         },
       },
       attributes: ['baseCode', 'quoteCode', 'date', 'rate'],
@@ -126,9 +130,13 @@ const calculatePortfolioBalanceHistory = async ({
         },
         quoteCode: userBaseCurrency.currencyCode,
         date: {
-          [Op.between]: [minDate, maxDate],
+          [Op.between]: [startOfDay(parseISO(dataFetchMinDate)), endOfDay(parseISO(maxDate))],
         },
       },
+      order: [
+        ['baseCode', 'ASC'],
+        ['date', 'ASC'],
+      ],
       raw: true,
     }),
   ]);
@@ -275,7 +283,7 @@ const calculatePortfolioBalanceHistory = async ({
       for (const [securityId, holding] of holdings) {
         const currentPrice = findPriceForDate(securityId, dateStr);
 
-        if (currentPrice) {
+        if (currentPrice !== null) {
           const marketValueInSecurityCurrency = holding.quantity * currentPrice;
           const exchangeRate = getExchangeRate(holding.currencyCode, dateStr);
           const marketValueInBaseCurrency = Math.floor(marketValueInSecurityCurrency * exchangeRate);

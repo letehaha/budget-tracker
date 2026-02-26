@@ -93,6 +93,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
 
 export const DEFAULT_DASHBOARD_LAYOUT = [
   { widgetId: 'balance-trend', colSpan: 2 },
-  { widgetId: 'latest-records', colSpan: 1 },
-  { widgetId: 'spending-categories', colSpan: 2 },
+  { widgetId: 'latest-records', colSpan: 1, rowSpan: 2 },
+  { widgetId: 'subscriptions-overview', colSpan: 1 },
+  { widgetId: 'spending-categories', colSpan: 1 },
 ];

@@ -1,15 +1,18 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, BUDGET_STATUSES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, BUDGET_STATUSES, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
 import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/Accounts.model';
+import Subscriptions from '@models/Subscriptions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import * as accountsService from '@services/accounts.service';
 import { createBudget } from '@services/budgets/create-budget';
 import * as categoriesService from '@services/categories.service';
 import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
+import { format, subMonths, setDate } from 'date-fns';
+import { v7 as uuidv7 } from 'uuid';
 
 // Demo data configuration based on PRD
 export const DEMO_CONFIG = {
@@ -34,6 +37,15 @@ export const DEMO_CONFIG = {
     { name: 'Monthly Groceries', limitAmount: 50000, categoryKey: 'food' }, // $500 in cents
     { name: 'Entertainment & Life', limitAmount: 25000, categoryKey: 'life' }, // $250 in cents (life includes hobbies, events, etc.)
     { name: 'Dining Out', limitAmount: 35000, categoryKey: 'food' }, // $350 in cents
+  ],
+  subscriptions: [
+    { name: 'Netflix', expectedAmount: 1599, dayOfMonth: 2, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
+    { name: 'Apple One', expectedAmount: 1995, dayOfMonth: 5, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
+    { name: 'Spotify', expectedAmount: 999, dayOfMonth: 8, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
+    { name: 'YouTube Premium', expectedAmount: 1399, dayOfMonth: 12, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
+    { name: 'Adobe Creative Cloud', expectedAmount: 5499, dayOfMonth: 15, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
+    { name: 'Amazon Prime', expectedAmount: 1499, dayOfMonth: 20, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
+    { name: 'ChatGPT Plus', expectedAmount: 2000, dayOfMonth: 25, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
   ],
 };
 
@@ -190,4 +202,36 @@ export async function createBudgets({
   }
 
   logger.info(`Created ${DEMO_CONFIG.budgets.length} demo budgets`);
+}
+
+export async function createSubscriptions({
+  userId,
+  accountId,
+  categoryId,
+  referenceDate,
+}: {
+  userId: number;
+  accountId: number;
+  categoryId: number | null;
+  referenceDate: Date;
+}): Promise<void> {
+  const startBase = subMonths(referenceDate, 8);
+
+  const rows = DEMO_CONFIG.subscriptions.map((sub) => ({
+    id: uuidv7(),
+    userId,
+    name: sub.name,
+    type: 'subscription' as const,
+    expectedAmount: sub.expectedAmount,
+    expectedCurrencyCode: DEMO_CONFIG.baseCurrency,
+    frequency: sub.frequency,
+    startDate: format(setDate(startBase, sub.dayOfMonth), 'yyyy-MM-dd'),
+    accountId,
+    categoryId,
+    matchingRules: { rules: [] },
+    isActive: true,
+  }));
+
+  await Subscriptions.bulkCreate(rows);
+  logger.info(`Created ${rows.length} demo subscriptions`);
 }

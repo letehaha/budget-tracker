@@ -13,6 +13,9 @@
         />
       </div>
     </template>
+    <template v-if="widgetConfigRef" #action>
+      <SpikeSettingsPopover />
+    </template>
     <template v-if="isInitialLoading">
       <LoadingState />
     </template>
@@ -78,7 +81,43 @@
               {{ $t('dashboard.widgets.balanceTrend.tooltip.total') }}
               {{ formatLargeNumber(tooltip.totalBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
             </div>
+            <div
+              v-if="tooltip.hasDelta"
+              class="mt-1 border-t pt-1 text-xs font-medium"
+              :class="{
+                'text-success-text': tooltip.deltaAbsolute > 0,
+                'text-app-expense-color': tooltip.deltaAbsolute < 0,
+                'text-muted-foreground': tooltip.deltaAbsolute === 0,
+              }"
+            >
+              {{ tooltip.deltaAbsolute > 0 ? '+' : ''
+              }}{{
+                formatLargeNumber(tooltip.deltaAbsolute, { isFiat: true, currency: baseCurrency?.currency?.code })
+              }}
+              ({{ tooltip.deltaPercent > 0 ? '+' : '' }}{{ tooltip.deltaPercent.toFixed(1) }}%)
+            </div>
           </div>
+
+          <!-- Spike transactions panel -->
+          <SpikeTransactionsPanel
+            ref="spikePanelRef"
+            :visible="spikePanel.visible"
+            :x="spikePanel.x"
+            :y="spikePanel.y"
+            :spike-date="spikeDateLabel"
+            :delta-absolute="spikePanel.spikePoint?.deltaAbsolute ?? 0"
+            :delta-percent="spikePanel.spikePoint?.deltaPercent ?? 0"
+            :is-positive="spikePanel.spikePoint?.isPositive ?? true"
+            :transactions="spikeTransactions ?? []"
+            :is-loading="isSpikeTransactionsLoading"
+            :is-portfolio-mode="isPortfolioMode"
+            :accounts-delta="spikePanel.accountsDelta"
+            :portfolios-delta="spikePanel.portfoliosDelta"
+            :selected-balance-type="selectedBalanceType.value"
+            :currency-code="baseCurrency?.currency?.code"
+            @close="closeSpikePanel"
+            @see-all="navigateToSpikeTransactions"
+          />
         </div>
       </Transition>
     </template>
@@ -86,24 +125,37 @@
 </template>
 
 <script lang="ts" setup>
+import { loadTransactions } from '@/api/transactions';
+import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import SelectField from '@/components/fields/select-field.vue';
 import { useFormatCurrency } from '@/composable';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
+import {
+  SPIKE_DEFAULTS,
+  type SpikeDetectionOptions,
+  type SpikePoint,
+  useSpikeDetection,
+} from '@/composable/charts/use-spike-detection';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
+import { ROUTES_NAMES } from '@/routes/constants';
 import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
 import * as d3 from 'd3';
-import { differenceInDays, format, isSameMonth, min, startOfDay, subDays } from 'date-fns';
+import { differenceInDays, endOfDay, format, isSameMonth, min, startOfDay, subDays } from 'date-fns';
 import { ChartLineIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed, nextTick, onUnmounted, reactive, ref, watch } from 'vue';
+import type { Ref } from 'vue';
+import { computed, inject, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 
 import EmptyState from './components/empty-state.vue';
 import LoadingState from './components/loading-state.vue';
+import SpikeSettingsPopover from './components/spike-settings-popover.vue';
+import SpikeTransactionsPanel from './components/spike-transactions-panel.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
 // Calculate it manually so chart will always have first and last ticks (dates)
@@ -150,6 +202,19 @@ const selectedBalanceType = ref(balanceTypeOptions.value[0]!);
 const { formatBaseCurrency, getCurrencySymbol } = useFormatCurrency();
 const { baseCurrency } = storeToRefs(useCurrenciesStore());
 
+// --- Spike settings (read from persisted dashboard widget config) ---
+const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
+
+const spikeSettings = computed<SpikeDetectionOptions>(() => {
+  const cfg = widgetConfigRef?.value?.config;
+  return {
+    enabled: (cfg?.spikesEnabled as boolean) ?? SPIKE_DEFAULTS.enabled,
+    percentThreshold: (cfg?.spikePercentThreshold as number) ?? SPIKE_DEFAULTS.percentThreshold,
+    absoluteThreshold: (cfg?.spikeAbsoluteThreshold as number) ?? SPIKE_DEFAULTS.absoluteThreshold,
+    maxSpikes: (cfg?.spikeMaxCount as number) ?? SPIKE_DEFAULTS.maxSpikes,
+  };
+});
+
 // D3 chart refs
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
@@ -163,6 +228,9 @@ const tooltip = reactive({
   accountsBalance: 0,
   portfoliosBalance: 0,
   totalBalance: 0,
+  deltaAbsolute: 0,
+  deltaPercent: 0,
+  hasDelta: false,
 });
 
 const { updateTooltipPosition } = useChartTooltipPosition({
@@ -280,12 +348,17 @@ const chartData = computed(() => {
   if (!balanceHistory.value) return [];
 
   return balanceHistory.value.map((point) => {
-    const value =
-      selectedBalanceType.value.value === 'total'
-        ? point.totalBalance
-        : selectedBalanceType.value.value === 'accounts'
-          ? point.accountsBalance
-          : point.portfoliosBalance;
+    let value: number;
+    switch (selectedBalanceType.value.value) {
+      case 'accounts':
+        value = point.accountsBalance;
+        break;
+      case 'portfolios':
+        value = point.portfoliosBalance;
+        break;
+      default:
+        value = point.totalBalance;
+    }
 
     return {
       date: startOfDay(new Date(point.date)).getTime(),
@@ -295,6 +368,136 @@ const chartData = computed(() => {
       totalBalance: point.totalBalance,
     };
   });
+});
+
+const { spikePoints } = useSpikeDetection({ chartData, options: spikeSettings });
+
+const isPortfolioMode = computed(() => selectedBalanceType.value.value === 'portfolios');
+
+// Spike panel state
+const router = useRouter();
+const spikePanelRef = ref<InstanceType<typeof SpikeTransactionsPanel> | null>(null);
+
+const spikePanel = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  spikePoint: null as SpikePoint | null,
+  accountsDelta: 0,
+  portfoliosDelta: 0,
+});
+
+const spikeDateLabel = computed(() => {
+  if (!spikePanel.spikePoint) return '';
+  return format(spikePanel.spikePoint.date, 'MMM d, yyyy');
+});
+
+const selectedSpikeDate = ref<string | null>(null);
+
+const { data: spikeTransactions, isLoading: isSpikeTransactionsLoading } = useQuery({
+  queryKey: ['spike-transactions', selectedSpikeDate],
+  queryFn: async () => {
+    if (!selectedSpikeDate.value) return [];
+    const dateStart = startOfDay(new Date(selectedSpikeDate.value));
+    const dateEnd = endOfDay(new Date(selectedSpikeDate.value));
+    const transactions = await loadTransactions({
+      from: 0,
+      limit: 20,
+      startDate: dateStart.toISOString(),
+      endDate: dateEnd.toISOString(),
+    });
+    // Sort by highest refAmount (base currency) so the biggest transactions show first
+    return transactions.sort((a, b) => Math.abs(b.refAmount) - Math.abs(a.refAmount));
+  },
+  enabled: computed(() => selectedSpikeDate.value !== null),
+  staleTime: Infinity,
+});
+
+function openSpikePanel({ event, spike }: { event: MouseEvent; spike: SpikePoint }) {
+  const PANEL_WIDTH = 338;
+  const PANEL_HEIGHT_ESTIMATE = 250;
+  const MARGIN = 12;
+
+  let x = event.clientX + MARGIN;
+  let y = event.clientY + MARGIN;
+
+  // Viewport boundary checks
+  if (x + PANEL_WIDTH > window.innerWidth) {
+    x = event.clientX - PANEL_WIDTH - MARGIN;
+  }
+  if (x < MARGIN) x = MARGIN;
+
+  if (y + PANEL_HEIGHT_ESTIMATE > window.innerHeight) {
+    y = event.clientY - PANEL_HEIGHT_ESTIMATE - MARGIN;
+  }
+  if (y < MARGIN) y = MARGIN;
+
+  spikePanel.x = x;
+  spikePanel.y = y;
+  spikePanel.spikePoint = spike;
+
+  // Compute per-component deltas from chartData
+  const spikeIndex = chartData.value.findIndex((d) => d.date === spike.date);
+  if (spikeIndex > 0) {
+    const curr = chartData.value[spikeIndex]!;
+    const prev = chartData.value[spikeIndex - 1]!;
+    spikePanel.accountsDelta = curr.accountsBalance - prev.accountsBalance;
+    spikePanel.portfoliosDelta = curr.portfoliosBalance - prev.portfoliosBalance;
+  } else {
+    spikePanel.accountsDelta = 0;
+    spikePanel.portfoliosDelta = 0;
+  }
+
+  spikePanel.visible = true;
+
+  // Trigger transaction fetch by setting the date
+  selectedSpikeDate.value = format(spike.date, 'yyyy-MM-dd');
+}
+
+function closeSpikePanel() {
+  spikePanel.visible = false;
+  spikePanel.spikePoint = null;
+  spikePanel.accountsDelta = 0;
+  spikePanel.portfoliosDelta = 0;
+  selectedSpikeDate.value = null;
+}
+
+function navigateToSpikeTransactions() {
+  if (!spikePanel.spikePoint) return;
+  const dateStr = format(new Date(spikePanel.spikePoint.date), 'yyyy-MM-dd');
+
+  router.push({
+    name: ROUTES_NAMES.transactions,
+    query: { start: dateStr, end: dateStr },
+  });
+}
+
+// Close spike panel on click outside
+function handleDocumentClick(event: MouseEvent) {
+  if (!spikePanel.visible) return;
+  const target = event.target as Element;
+  // Ignore clicks on spike markers — they have their own handler
+  if (target.classList?.contains('spike-hit-area') || target.classList?.contains('spike-dot')) return;
+  const panelEl = spikePanelRef.value?.panelRef;
+  if (panelEl && !panelEl.contains(target)) {
+    closeSpikePanel();
+  }
+}
+
+function handleEscapeKey(event: KeyboardEvent) {
+  if (event.key === 'Escape' && spikePanel.visible) {
+    closeSpikePanel();
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick);
+  document.addEventListener('keydown', handleEscapeKey);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleDocumentClick);
+  document.removeEventListener('keydown', handleEscapeKey);
 });
 
 // Get colors from CSS variables
@@ -506,7 +709,9 @@ const renderChart = () => {
 
       if (!d0) return;
 
-      const d = d1 && x0 - d0.date > d1.date - x0 ? d1 : d0;
+      const isCloserToD1 = d1 && x0 - d0.date > d1.date - x0;
+      const d = isCloserToD1 ? d1 : d0;
+      const currentIndex = isCloserToD1 ? index : index - 1;
 
       // Update hover dot position
       hoverDot.attr('cx', xScale(d.date)).attr('cy', yScale(d.value));
@@ -523,6 +728,20 @@ const renderChart = () => {
       tooltip.accountsBalance = d.accountsBalance;
       tooltip.portfoliosBalance = d.portfoliosBalance;
       tooltip.totalBalance = d.totalBalance;
+
+      // Compute day-over-day delta
+      if (currentIndex > 0) {
+        const prevPoint = chartData.value[currentIndex - 1]!;
+        tooltip.deltaAbsolute = d.value - prevPoint.value;
+        tooltip.deltaPercent =
+          prevPoint.value !== 0 ? ((d.value - prevPoint.value) / Math.abs(prevPoint.value)) * 100 : 0;
+        tooltip.hasDelta = true;
+      } else {
+        tooltip.deltaAbsolute = 0;
+        tooltip.deltaPercent = 0;
+        tooltip.hasDelta = false;
+      }
+
       tooltip.visible = true;
 
       updateTooltipPosition(event);
@@ -532,6 +751,43 @@ const renderChart = () => {
       hoverDot.style('opacity', 0);
       hoverLine.style('opacity', 0);
     });
+
+  // Spike markers — appended after overlay so they sit on top in SVG z-order
+  const markerRadius = isMobile ? 5 : 6;
+  const hitAreaRadius = markerRadius + 12;
+  const markers = g.append('g').attr('class', 'spike-markers');
+
+  // Invisible hit areas (larger click target)
+  markers
+    .selectAll('.spike-hit-area')
+    .data(spikePoints.value)
+    .join('circle')
+    .attr('class', 'spike-hit-area')
+    .attr('cx', (d) => xScale(d.date))
+    .attr('cy', (d) => yScale(d.value))
+    .attr('r', hitAreaRadius)
+    .attr('fill', 'transparent')
+    .attr('cursor', 'pointer')
+    .on('click', (event: MouseEvent, d) => {
+      event.stopPropagation();
+      openSpikePanel({ event, spike: d });
+    });
+
+  // Visible markers
+  markers
+    .selectAll('.spike-dot')
+    .data(spikePoints.value)
+    .join('circle')
+    .attr('class', 'spike-dot')
+    .attr('cx', (d) => xScale(d.date))
+    .attr('cy', (d) => yScale(d.value))
+    .attr('r', markerRadius)
+    .attr('fill', (d) => (d.isPositive ? 'var(--color-app-income-color)' : 'var(--color-app-expense-color)'))
+    .attr('stroke', 'var(--card)')
+    .attr('stroke-width', 2)
+    .attr('cursor', 'pointer')
+    .attr('pointer-events', 'none')
+    .style('filter', 'drop-shadow(0 0 3px rgba(0,0,0,0.3))');
 };
 
 const displayBalance = computed(() => {
@@ -606,12 +862,18 @@ onUnmounted(() => {
 watch(
   [chartData, () => actualDataPeriod.value],
   async () => {
+    closeSpikePanel();
     await nextTick();
     setupResizeObserver();
     renderChart();
   },
   { deep: true, flush: 'post' },
 );
+
+// Re-render chart when spike settings change (after Accept / save)
+watch(spikePoints, () => {
+  renderChart();
+});
 
 // Also watch for when container becomes available (after loading state)
 watch(

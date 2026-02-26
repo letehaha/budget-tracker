@@ -64,12 +64,38 @@ export const DEFAULT_ONBOARDING_STATE: OnboardingStateSchema = {
   dismissedAt: null,
 };
 
-const ZodDashboardWidgetSchema = z.object({
-  widgetId: z.string(),
-  colSpan: z.number().int().min(1).max(3).default(1),
-  rowSpan: z.number().int().min(1).max(2).default(1),
-  config: z.record(z.string(), z.unknown()).optional(),
+// Spike detection config keys that can appear in balance-trend widget config
+const ZodSpikeConfigSchema = z.object({
+  spikesEnabled: z.boolean().optional(),
+  spikePercentThreshold: z.number().min(1).max(50).optional(),
+  spikeAbsoluteThreshold: z.number().min(1).max(10000).optional(),
+  spikeMaxCount: z.number().int().min(1).max(20).optional(),
 });
+
+const ZodDashboardWidgetSchema = z
+  .object({
+    widgetId: z.string(),
+    colSpan: z.number().int().min(1).max(3).default(1),
+    rowSpan: z.number().int().min(1).max(2).default(1),
+    config: z.record(z.string(), z.unknown()).optional(),
+  })
+  .superRefine((widget, ctx) => {
+    if (!widget.config) return;
+
+    // Validate spike config keys when present on any widget (only balance-trend
+    // uses them, but the schema is widget-agnostic — unknown keys are ignored)
+    const spikeKeys = Object.keys(ZodSpikeConfigSchema.shape);
+    const hasSpikeKeys = spikeKeys.some((key) => key in widget.config!);
+
+    if (hasSpikeKeys) {
+      const result = ZodSpikeConfigSchema.safeParse(widget.config);
+      if (!result.success) {
+        for (const issue of result.error.issues) {
+          ctx.addIssue({ ...issue, path: ['config', ...issue.path] });
+        }
+      }
+    }
+  });
 
 const ZodDashboardSettingsSchema = z.object({
   widgets: z.array(ZodDashboardWidgetSchema).default([]),
