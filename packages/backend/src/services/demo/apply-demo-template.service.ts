@@ -13,6 +13,7 @@ import {
   createAccounts,
   createBudgets,
   createCategories,
+  createSubscriptions,
   createTags,
   setupCurrencies,
 } from './seed-demo-data.service';
@@ -91,6 +92,18 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
   await updateAccountBalances({ userId });
   await rebuildBalancesHistory({ userId });
   await createBudgets({ userId, categoryMap });
+
+  // Create demo subscriptions linked to main checking account and 'life' category
+  const mainCheckingAccountId = accountKeyToId['main_checking'];
+  const lifeCategoryId = categoryMap.get('life') ?? null;
+  if (mainCheckingAccountId) {
+    await createSubscriptions({
+      userId,
+      accountId: mainCheckingAccountId,
+      categoryId: lifeCategoryId,
+      referenceDate: template.generatedAt,
+    });
+  }
 
   const duration = Date.now() - startTime;
   logger.info(`Demo template applied for user ${userId} in ${duration}ms (${rows.length} transactions)`);
