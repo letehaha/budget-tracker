@@ -19,7 +19,14 @@
           "total": "Total:"
         },
         "today": "Today",
-        "vsPreviousPeriod": "vs previous period"
+        "vsPreviousPeriod": "vs previous period",
+        "spikePanel": {
+          "accounts": "Accounts",
+          "portfolios": "Portfolios",
+          "priceDrivenChange": "Price-driven change — transaction details coming soon",
+          "noSignificantTransactions": "No significant transactions for this date.",
+          "seeAllTransactions": "See all transactions"
+        }
       },
       "expensesStructure": {
         "title": "Expenses Structure",
