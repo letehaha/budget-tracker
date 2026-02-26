@@ -8,14 +8,38 @@ export interface SpikePoint {
   isPositive: boolean;
 }
 
-const SPIKE_PERCENT_THRESHOLD = 3;
-const SPIKE_ABSOLUTE_THRESHOLD = 500;
-const MAX_SPIKES = 10;
+export interface SpikeDetectionOptions {
+  enabled?: boolean;
+  percentThreshold?: number;
+  absoluteThreshold?: number;
+  maxSpikes?: number;
+}
 
-export function useSpikeDetection({ chartData }: { chartData: ComputedRef<{ date: number; value: number }[]> }): {
+export const SPIKE_DEFAULTS = {
+  enabled: true,
+  percentThreshold: 3,
+  absoluteThreshold: 500,
+  maxSpikes: 10,
+} as const;
+
+export function useSpikeDetection({
+  chartData,
+  options,
+}: {
+  chartData: ComputedRef<{ date: number; value: number }[]>;
+  options?: ComputedRef<SpikeDetectionOptions>;
+}): {
   spikePoints: ComputedRef<SpikePoint[]>;
 } {
   const spikePoints = computed<SpikePoint[]>(() => {
+    const opts = options?.value ?? {};
+    const enabled = opts.enabled ?? SPIKE_DEFAULTS.enabled;
+    if (!enabled) return [];
+
+    const percentThreshold = Math.max(1, opts.percentThreshold ?? SPIKE_DEFAULTS.percentThreshold);
+    const absoluteThreshold = Math.max(1, opts.absoluteThreshold ?? SPIKE_DEFAULTS.absoluteThreshold);
+    const maxSpikes = Math.max(1, opts.maxSpikes ?? SPIKE_DEFAULTS.maxSpikes);
+
     const data = chartData.value;
     if (data.length < 2) return [];
 
@@ -35,7 +59,7 @@ export function useSpikeDetection({ chartData }: { chartData: ComputedRef<{ date
         deltaPercent = 100;
       }
 
-      if (Math.abs(deltaPercent) > SPIKE_PERCENT_THRESHOLD && Math.abs(deltaAbsolute) > SPIKE_ABSOLUTE_THRESHOLD) {
+      if (Math.abs(deltaPercent) > percentThreshold || Math.abs(deltaAbsolute) > absoluteThreshold) {
         candidates.push({
           date: curr.date,
           value: curr.value,
@@ -46,8 +70,8 @@ export function useSpikeDetection({ chartData }: { chartData: ComputedRef<{ date
       }
     }
 
-    // Sort by absolute percent change descending and cap at MAX_SPIKES
-    return candidates.toSorted((a, b) => Math.abs(b.deltaPercent) - Math.abs(a.deltaPercent)).slice(0, MAX_SPIKES);
+    // Sort by absolute percent change descending and cap at maxSpikes
+    return candidates.toSorted((a, b) => Math.abs(b.deltaPercent) - Math.abs(a.deltaPercent)).slice(0, maxSpikes);
   });
 
   return { spikePoints };

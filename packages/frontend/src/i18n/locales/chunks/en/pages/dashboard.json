@@ -26,6 +26,22 @@
           "priceDrivenChange": "Price-driven change — transaction details coming soon",
           "noSignificantTransactions": "No significant transactions for this date.",
           "seeAllTransactions": "See all transactions"
+        },
+        "spikeSettings": {
+          "showMarkers": "Show spike markers",
+          "showMarkersTooltip": "Toggle colored markers on the chart that highlight significant balance changes.",
+          "percentThreshold": "Min change %",
+          "percentThresholdTooltip": "Minimum percentage change in balance between two consecutive days to mark as a spike. Either this or the absolute threshold must be exceeded. Low values show more markers.",
+          "absoluteThreshold": "Min change $",
+          "absoluteThresholdTooltip": "Minimum absolute balance change (in your base currency) to qualify as a spike. Either this or the % threshold must be exceeded.",
+          "maxMarkers": "Max markers",
+          "maxMarkersTooltip": "Maximum number of spike markers shown on the chart. When there are more spikes than this limit, only the most significant ones are displayed.",
+          "resetDefaults": "Reset defaults",
+          "accept": "Accept",
+          "validation": {
+            "outOfRange": "Value is out of allowed range",
+            "integer": "Must be a whole number"
+          }
         }
       },
       "expensesStructure": {

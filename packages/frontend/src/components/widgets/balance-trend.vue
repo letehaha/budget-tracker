@@ -13,6 +13,9 @@
         />
       </div>
     </template>
+    <template v-if="widgetConfigRef" #action>
+      <SpikeSettingsPopover />
+    </template>
     <template v-if="isInitialLoading">
       <LoadingState />
     </template>
@@ -123,11 +126,17 @@
 
 <script lang="ts" setup>
 import { loadTransactions } from '@/api/transactions';
+import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import SelectField from '@/components/fields/select-field.vue';
 import { useFormatCurrency } from '@/composable';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
-import { type SpikePoint, useSpikeDetection } from '@/composable/charts/use-spike-detection';
+import {
+  SPIKE_DEFAULTS,
+  type SpikeDetectionOptions,
+  type SpikePoint,
+  useSpikeDetection,
+} from '@/composable/charts/use-spike-detection';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { ROUTES_NAMES } from '@/routes/constants';
@@ -138,12 +147,14 @@ import * as d3 from 'd3';
 import { differenceInDays, endOfDay, format, isSameMonth, min, startOfDay, subDays } from 'date-fns';
 import { ChartLineIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import type { Ref } from 'vue';
+import { computed, inject, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import EmptyState from './components/empty-state.vue';
 import LoadingState from './components/loading-state.vue';
+import SpikeSettingsPopover from './components/spike-settings-popover.vue';
 import SpikeTransactionsPanel from './components/spike-transactions-panel.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
@@ -190,6 +201,19 @@ const balanceTypeOptions = computed(() => [
 const selectedBalanceType = ref(balanceTypeOptions.value[0]!);
 const { formatBaseCurrency, getCurrencySymbol } = useFormatCurrency();
 const { baseCurrency } = storeToRefs(useCurrenciesStore());
+
+// --- Spike settings (read from persisted dashboard widget config) ---
+const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
+
+const spikeSettings = computed<SpikeDetectionOptions>(() => {
+  const cfg = widgetConfigRef?.value?.config;
+  return {
+    enabled: (cfg?.spikesEnabled as boolean) ?? SPIKE_DEFAULTS.enabled,
+    percentThreshold: (cfg?.spikePercentThreshold as number) ?? SPIKE_DEFAULTS.percentThreshold,
+    absoluteThreshold: (cfg?.spikeAbsoluteThreshold as number) ?? SPIKE_DEFAULTS.absoluteThreshold,
+    maxSpikes: (cfg?.spikeMaxCount as number) ?? SPIKE_DEFAULTS.maxSpikes,
+  };
+});
 
 // D3 chart refs
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -346,7 +370,7 @@ const chartData = computed(() => {
   });
 });
 
-const { spikePoints } = useSpikeDetection({ chartData });
+const { spikePoints } = useSpikeDetection({ chartData, options: spikeSettings });
 
 const isPortfolioMode = computed(() => selectedBalanceType.value.value === 'portfolios');
 
@@ -845,6 +869,11 @@ watch(
   },
   { deep: true, flush: 'post' },
 );
+
+// Re-render chart when spike settings change (after Accept / save)
+watch(spikePoints, () => {
+  renderChart();
+});
 
 // Also watch for when container becomes available (after loading state)
 watch(
