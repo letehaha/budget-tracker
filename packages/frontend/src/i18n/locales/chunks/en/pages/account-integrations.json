@@ -264,6 +264,8 @@
         "loading": "Loading...",
         "error": {
           "loadFailed": "Failed to load integration details. Please try again.",
+          "notFoundTitle": "Integration not found",
+          "notFoundDescription": "This integration may have been removed or the link is incorrect. Check your integrations list to find what you're looking for.",
           "backButton": "Back to Integrations"
         },
         "connectionDetails": {

@@ -1,10 +1,22 @@
 <template>
   <PageWrapper>
-    <div v-if="isLoading" class="py-8 text-center">{{ $t('pages.integrations.details.loading') }}</div>
+    <IntegrationDetailsSkeleton v-if="isLoading" />
 
-    <div v-else-if="error" class="rounded-lg border border-red-500 p-4 text-red-700">
-      <p>{{ $t('pages.integrations.details.error.loadFailed') }}</p>
-      <UiButton variant="outline" class="mt-4" @click="router.push({ name: ROUTES_NAMES.accountIntegrations })">
+    <div
+      v-else-if="error"
+      class="flex min-h-80 flex-col items-center justify-center rounded-lg border border-dashed p-6 text-center md:p-12"
+    >
+      <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
+        <SearchXIcon class="text-muted-foreground size-8" />
+      </div>
+      <h2 class="mb-2 text-xl font-semibold tracking-wide">
+        {{ $t('pages.integrations.details.error.notFoundTitle') }}
+      </h2>
+      <p class="text-muted-foreground mb-6 max-w-md">
+        {{ $t('pages.integrations.details.error.notFoundDescription') }}
+      </p>
+      <UiButton @click="router.push({ name: ROUTES_NAMES.accountIntegrations })">
+        <ArrowLeftIcon class="size-4" />
         {{ $t('pages.integrations.details.error.backButton') }}
       </UiButton>
     </div>
@@ -550,13 +562,14 @@ import { ROUTES_NAMES } from '@/routes';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { ChevronDownIcon, InfoIcon, PencilIcon } from 'lucide-vue-next';
+import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, PencilIcon, SearchXIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 import DisconnectIntegrationDialog from './components/disconnect-integration-dialog.vue';
 import EditConnectionNameDialog from './components/edit-connection-name-dialog.vue';
+import IntegrationDetailsSkeleton from './components/integration-details-skeleton.vue';
 import ReconnectConfirmationDialog from './components/reconnect-confirmation-dialog.vue';
 
 const route = useRoute();
