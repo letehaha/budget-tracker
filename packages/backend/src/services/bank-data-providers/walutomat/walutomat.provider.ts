@@ -30,6 +30,7 @@ import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
 import { type HistoryItem, type WalletBalance, WalutomatApiClient } from './api-client';
+import { linkCrossProviderTransfers } from './cross-provider-linking';
 import { WalutomatCredentials, WalutomatMetadata } from './types';
 
 const WALLET_EXTERNAL_ID_PREFIX = 'wallet-';
@@ -415,6 +416,14 @@ export class WalutomatProvider extends BaseBankDataProvider {
 
       // Auto-link FX trade pairs as transfers across walutomat wallets
       await this.linkFxTransfers({ userId: connection.userId });
+
+      // Auto-link PAYIN/PAYOUT to matching transactions in other bank accounts (by IBAN)
+      try {
+        await linkCrossProviderTransfers({ userId: connection.userId });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        logger.warn(`[Walutomat] Failed to auto-link cross-provider transfers: ${errorMsg}`);
+      }
 
       await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.COMPLETED, userId });
     } catch (error) {
