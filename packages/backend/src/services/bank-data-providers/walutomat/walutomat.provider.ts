@@ -23,13 +23,12 @@ import {
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
-import axios from 'axios';
 import { Op, Sequelize } from 'sequelize';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
-import { type HistoryItem, type WalletBalance, WalutomatApiClient } from './api-client';
+import { type HistoryItem, type WalletBalance, WalutomatApiClient, WalutomatHttpError } from './api-client';
 import { linkCrossProviderTransfers } from './cross-provider-linking';
 import { WalutomatCredentials, WalutomatMetadata } from './types';
 
@@ -485,7 +484,7 @@ export class WalutomatProvider extends BaseBankDataProvider {
   private async handleAuthError({ connectionId, error }: { connectionId: number; error: unknown }): Promise<void> {
     const isAuthError =
       error instanceof ForbiddenError ||
-      (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403));
+      (error instanceof WalutomatHttpError && (error.statusCode === 401 || error.statusCode === 403));
 
     if (!isAuthError) return;
 
