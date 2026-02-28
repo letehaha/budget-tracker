@@ -28,6 +28,7 @@ export enum ACCOUNT_TYPES {
   monobank = 'monobank', // monobank provider connection
   enableBanking = 'enable-banking', // enable-banking provider connection
   lunchflow = 'lunchflow', // lunchflow provider connection
+  walutomat = 'walutomat', // walutomat provider connection
 }
 
 /**
@@ -37,6 +38,7 @@ export enum BANK_PROVIDER_TYPE {
   MONOBANK = 'monobank',
   ENABLE_BANKING = 'enable-banking',
   LUNCHFLOW = 'lunchflow',
+  WALUTOMAT = 'walutomat',
 }
 
 export enum ACCOUNT_CATEGORIES {

@@ -33,6 +33,10 @@
         "lunchflow": {
           "name": "Lunch Flow",
           "description": "Sync transactions from 20,000+ banks worldwide via LunchFlow"
+        },
+        "walutomat": {
+          "name": "Walutomat",
+          "description": "Polish currency exchange platform with 23 currencies"
         }
       },
       "monobank": {
@@ -203,6 +207,50 @@
           "importFailed": "Failed to import accounts"
         }
       },
+      "walutomat": {
+        "helpText": "Need help setting up Walutomat API access?",
+        "viewInstructions": "View setup instructions",
+        "apiKeyLabel": "API Key",
+        "apiKeyPlaceholder": "Enter your Walutomat API key",
+        "apiKeyHint": "Found in your Walutomat dashboard under Settings → API",
+        "privateKeyLabel": "Private Key (PEM)",
+        "privateKeyPlaceholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+        "privateKeyHint": "Paste the contents of your private.key file (RSA 4096-bit PEM format)",
+        "backButton": "Back",
+        "connectButton": "Connect",
+        "connectingButton": "Connecting...",
+        "loadingWallets": "Loading wallets...",
+        "selectWalletsHint": "Select which currency wallets to sync ({count} available)",
+        "selectAll": "Select all",
+        "importButton": "Import {count} wallet(s)",
+        "importingButton": "Importing...",
+        "importSuccess": "Successfully imported {count} Walutomat wallet(s)",
+        "errors": {
+          "connectFailed": "Failed to connect to Walutomat. Check your credentials.",
+          "importFailed": "Failed to import wallets."
+        },
+        "instructions": {
+          "title": "Walutomat API Setup Instructions",
+          "description": "Step-by-step guide to set up Walutomat API access",
+          "overviewTitle": "Overview",
+          "overviewText": "To connect Walutomat, you need an API key and an RSA private key. The API key authenticates your account, while the private key signs each request for security.",
+          "step1Title": "Generate RSA Key Pair",
+          "step1Intro": "Open a terminal and run these commands:",
+          "step1FilesCreated": "This creates two files: {privateKey} (keep secret!) and {publicKey} (upload to Walutomat).",
+          "step2Title": "Upload Public Key to Walutomat",
+          "step2Login": "1. Log in to",
+          "step2GoToSettings": "2. Go to {settings} → {api}",
+          "step2Upload": "3. Upload your {publicKey} file",
+          "step2ApiKeyGenerated": "4. Walutomat will generate an API key for you",
+          "step3Title": "Enter Credentials Here",
+          "step3Intro": "You need two things:",
+          "step3ApiKeyDesc": "{apiKey} — Copy it from the Walutomat API settings page",
+          "step3PrivateKeyDesc": "{privateKey} — Open {filename} in a text editor and copy the entire contents (including the BEGIN/END lines)",
+          "securityNoteTitle": "Security Note",
+          "securityNoteText": "Your private key is encrypted before storage and is only used to sign API requests. It is never exposed or transmitted to anyone other than Walutomat.",
+          "closeButton": "Got it"
+        }
+      },
       "notifications": {
         "disconnectSuccess": "Integration disconnected successfully",
         "disconnectFailed": "Failed to disconnect integration",
@@ -327,12 +375,14 @@
         "free": "Free",
         "paid": "Paid",
         "easySetup": "Easy to setup",
+        "mediumSetup": "Medium setup",
         "veryDifficultSetup": "Very difficult to setup"
       },
       "tooltips": {
         "monobank": "Requires manually copying an API token from the Monobank mobile app",
         "enableBanking": "Since smooth integration requires several thousands $ per month to be paid, it's only possible to connect by creating own EnableBanking dev account, and setting up \"test\" application with real connection to own banks, storing certificates and keys and uploading them here. Moderate technical knowledge required",
-        "lunchflow": "Just connect your banks on the LunchFlow side, then create and paste your LunchFlow API key"
+        "lunchflow": "Just connect your banks on the LunchFlow side, then create and paste your LunchFlow API key",
+        "walutomat": "Requires generating an RSA key pair and uploading the public key to Walutomat dashboard"
       }
     },
     "connectionName": {

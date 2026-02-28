@@ -205,6 +205,12 @@
       "accountNoExternalId": "Обліковий запис не має зовнішнього ID для синхронізації LunchFlow.",
       "accountNotFound": "Обліковий запис LunchFlow не знайдено.",
       "apiError": "Помилка API LunchFlow: {{message}}"
+    },
+    "walutomat": {
+      "invalidCredentialsFormat": "Invalid Walutomat credentials format. API key and private key are required.",
+      "invalidApiKey": "Invalid Walutomat API key or private key.",
+      "accountNoExternalId": "Walutomat account has no external ID.",
+      "walletNotFound": "Walutomat wallet not found for currency: {{currency}}"
     }
   },
   "csvImport": {

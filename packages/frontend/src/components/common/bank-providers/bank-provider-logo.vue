@@ -31,6 +31,13 @@ const logos: Record<BANK_PROVIDER_TYPE, { icon: { dark: string; light: string } 
       light: 'https://cdn.brandfetch.io/lunchflow.app/w/400/h/400/theme/dark/icon.jpeg',
     },
   },
+  [BANK_PROVIDER_TYPE.WALUTOMAT]: {
+    icon: {
+      dark: 'https://cdn.brandfetch.io/idMxRWw7fO/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1765355825327',
+      light:
+        'https://cdn.brandfetch.io/idMxRWw7fO/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1765355825327',
+    },
+  },
 };
 
 defineProps<{ provider: BANK_PROVIDER_TYPE }>();

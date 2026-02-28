@@ -131,12 +131,24 @@
                 :placeholder="$t('pages.integrations.updateCredentials.apiKeyPlaceholder')"
               />
             </div>
+            <!-- Private key field for Walutomat -->
+            <div v-if="connectionDetails.providerType === BANK_PROVIDER_TYPE.WALUTOMAT">
+              <label class="mb-2 block text-sm font-medium">{{
+                $t('pages.integrations.walutomat.privateKeyLabel')
+              }}</label>
+              <textarea
+                v-model="newPrivateKey"
+                class="w-full rounded-md border px-3 py-2 font-mono text-xs"
+                rows="6"
+                :placeholder="$t('pages.integrations.walutomat.privateKeyPlaceholder')"
+              />
+            </div>
           </div>
           <DialogFooter class="mt-6 grid gap-3 sm:grid-cols-2">
             <UiButton variant="outline" @click="isUpdateCredentialsDialogOpen = false">
               {{ $t('common.actions.cancel') }}
             </UiButton>
-            <UiButton :disabled="!newApiKey || isUpdatingCredentials" @click="handleUpdateCredentials">
+            <UiButton :disabled="!canUpdateCredentials || isUpdatingCredentials" @click="handleUpdateCredentials">
               {{
                 isUpdatingCredentials
                   ? $t('pages.integrations.updateCredentials.updatingButton')
@@ -535,6 +547,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useBankConnectionDetails } from '@/composable/data-queries/bank-providers/bank-connection-details';
 import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { ChevronDownIcon, InfoIcon, PencilIcon } from 'lucide-vue-next';
@@ -560,6 +573,7 @@ const isReconnectDialogOpen = ref(false);
 const isUpdateCredentialsDialogOpen = ref(false);
 const selectedAccountIds = ref<string[]>([]);
 const newApiKey = ref('');
+const newPrivateKey = ref('');
 
 // Collapsible states
 const isConnectionDetailsOpen = ref(true);
@@ -589,6 +603,7 @@ const { mutate: updateCredentialsMutation, isPending: isUpdatingCredentials } = 
     });
     isUpdateCredentialsDialogOpen.value = false;
     newApiKey.value = '';
+    newPrivateKey.value = '';
   },
   onError: (err) => {
     const message = err instanceof Error ? err.message : t('pages.integrations.updateCredentials.failed');
@@ -596,9 +611,22 @@ const { mutate: updateCredentialsMutation, isPending: isUpdatingCredentials } = 
   },
 });
 
+const canUpdateCredentials = computed(() => {
+  if (!newApiKey.value) return false;
+  if (connectionDetails.value?.providerType === BANK_PROVIDER_TYPE.WALUTOMAT) {
+    return !!newPrivateKey.value;
+  }
+  return true;
+});
+
 const handleUpdateCredentials = () => {
-  if (!newApiKey.value) return;
-  updateCredentialsMutation({ apiKey: newApiKey.value });
+  if (!canUpdateCredentials.value) return;
+
+  const credentials: Record<string, unknown> = { apiKey: newApiKey.value };
+  if (connectionDetails.value?.providerType === BANK_PROVIDER_TYPE.WALUTOMAT) {
+    credentials.privateKey = newPrivateKey.value;
+  }
+  updateCredentialsMutation(credentials);
 };
 
 // Initialize connection validity open state based on consent status

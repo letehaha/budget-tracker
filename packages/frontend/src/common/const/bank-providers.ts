@@ -1,7 +1,7 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 
 export type PricingType = 'free' | 'paid';
-export type DifficultyType = 'easy' | 'very-difficult';
+export type DifficultyType = 'easy' | 'medium' | 'very-difficult';
 
 interface ProviderMetainfo {
   nameKey: string;
@@ -42,5 +42,14 @@ export const METAINFO_FROM_TYPE: Record<string, ProviderMetainfo> = {
     difficultyTooltipKey: 'pages.integrations.tooltips.lunchflow',
     pricing: 'paid',
     difficulty: 'easy',
+  },
+  [BANK_PROVIDER_TYPE.WALUTOMAT]: {
+    nameKey: 'pages.integrations.providers.walutomat.name',
+    descriptionKey: 'pages.integrations.providers.walutomat.description',
+    pricingLabelKey: 'pages.integrations.labels.free',
+    difficultyLabelKey: 'pages.integrations.labels.mediumSetup',
+    difficultyTooltipKey: 'pages.integrations.tooltips.walutomat',
+    pricing: 'free',
+    difficulty: 'medium',
   },
 };
