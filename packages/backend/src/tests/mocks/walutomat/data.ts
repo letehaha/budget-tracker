@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import type { HistoryItem, WalletBalance } from '@services/bank-data-providers/walutomat/api-client';
+import type { Currency, HistoryItem, WalletBalance } from '@services/bank-data-providers/walutomat/api-client';
 import { subDays } from 'date-fns';
 
 export const getMockedWalutomatBalances = (): WalletBalance[] => [
@@ -47,7 +47,7 @@ export const getMockedWalutomatHistory = ({
       ts: subDays(now, index).toISOString(),
       operationAmount: signedAmount.toFixed(2),
       balanceAfter: faker.number.float({ min: 100, max: 5000, fractionDigits: 2 }).toFixed(2),
-      currency,
+      currency: currency as Currency,
       operationType,
       operationDetailedType,
       operationDetails: [

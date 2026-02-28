@@ -6,7 +6,7 @@ import * as helpers from '@tests/helpers';
 import { getMockedWalutomatHistory } from '@tests/mocks/walutomat/data';
 import { getWalutomatBalancesMock, getWalutomatHistoryMock } from '@tests/mocks/walutomat/mock-api';
 
-import type { HistoryItem } from './api-client';
+import type { Currency, HistoryItem } from './api-client';
 
 const MOCK_EXTERNAL_IBAN = 'BE67967310247287';
 
@@ -42,13 +42,11 @@ async function createAccountWithIban({
 async function createBankTransaction({
   accountId,
   amount,
-  currencyCode,
   transactionType,
   time,
 }: {
   accountId: number;
   amount: number;
-  currencyCode: string;
   transactionType: TRANSACTION_TYPES;
   time: Date;
 }): Promise<Transactions> {
@@ -85,7 +83,7 @@ function buildPayoutHistoryItem({
     ts,
     operationAmount: `-${amount}`,
     balanceAfter: '0.00',
-    currency,
+    currency: currency as Currency,
     operationType: 'PAYOUT',
     operationDetailedType: 'PAYOUT',
     operationDetails: [
@@ -116,7 +114,7 @@ function buildPayinHistoryItem({
     ts,
     operationAmount: amount,
     balanceAfter: amount,
-    currency,
+    currency: currency as Currency,
     operationType: 'PAYIN',
     operationDetailedType: 'PAYIN',
     operationDetails: [
@@ -143,7 +141,6 @@ describe('Walutomat Cross-Provider PAYIN/PAYOUT Linking', () => {
     const bankTx = await createBankTransaction({
       accountId: bankAccount.id,
       amount,
-      currencyCode: 'EUR',
       transactionType: TRANSACTION_TYPES.income,
       time: new Date('2026-02-28T10:00:00Z'), // Arrives 1 day later
     });
@@ -191,7 +188,6 @@ describe('Walutomat Cross-Provider PAYIN/PAYOUT Linking', () => {
     const bankTx = await createBankTransaction({
       accountId: bankAccount.id,
       amount,
-      currencyCode: 'EUR',
       transactionType: TRANSACTION_TYPES.expense,
       time: new Date('2026-02-26T15:00:00Z'), // Sent 1 day before arrival
     });
@@ -259,7 +255,6 @@ describe('Walutomat Cross-Provider PAYIN/PAYOUT Linking', () => {
     await createBankTransaction({
       accountId: bankAccount.id,
       amount: 999,
-      currencyCode: 'EUR',
       transactionType: TRANSACTION_TYPES.income,
       time: new Date('2026-02-28T10:00:00Z'),
     });
@@ -297,7 +292,6 @@ describe('Walutomat Cross-Provider PAYIN/PAYOUT Linking', () => {
     await createBankTransaction({
       accountId: bankAccount.id,
       amount: 1000,
-      currencyCode: 'EUR',
       transactionType: TRANSACTION_TYPES.income,
       time: new Date('2026-03-04T10:00:00Z'),
     });
