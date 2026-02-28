@@ -2,9 +2,10 @@ import bankDataProviders from './bank-data-providers';
 import enablebanking from './enablebanking';
 import lunchflow from './lunchflow';
 import monobank from './monobank';
+import walutomat from './walutomat';
 
 export * from './common';
-export { bankDataProviders, enablebanking, lunchflow, monobank };
+export { bankDataProviders, enablebanking, lunchflow, monobank, walutomat };
 export * from './account';
 export * from './refunds';
 export * from './transfers';

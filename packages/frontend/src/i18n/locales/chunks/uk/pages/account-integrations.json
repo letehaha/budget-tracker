@@ -33,6 +33,10 @@
         "lunchflow": {
           "name": "Lunch Flow",
           "description": "Синхронізація транзакцій з 20 000+ банків по всьому світу через LunchFlow"
+        },
+        "walutomat": {
+          "name": "Walutomat",
+          "description": "Polish currency exchange platform with 23 currencies"
         }
       },
       "monobank": {
@@ -203,6 +207,50 @@
           "importFailed": "Не вдалося імпортувати облікові записи"
         }
       },
+      "walutomat": {
+        "helpText": "Need help setting up Walutomat API access?",
+        "viewInstructions": "View setup instructions",
+        "apiKeyLabel": "API Key",
+        "apiKeyPlaceholder": "Enter your Walutomat API key",
+        "apiKeyHint": "Found in your Walutomat dashboard under Settings → API",
+        "privateKeyLabel": "Private Key (PEM)",
+        "privateKeyPlaceholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+        "privateKeyHint": "Paste the contents of your private.key file (RSA 4096-bit PEM format)",
+        "backButton": "Back",
+        "connectButton": "Connect",
+        "connectingButton": "Connecting...",
+        "loadingWallets": "Loading wallets...",
+        "selectWalletsHint": "Select which currency wallets to sync ({count} available)",
+        "selectAll": "Select all",
+        "importButton": "Import {count} wallet(s)",
+        "importingButton": "Importing...",
+        "importSuccess": "Successfully imported {count} Walutomat wallet(s)",
+        "errors": {
+          "connectFailed": "Failed to connect to Walutomat. Check your credentials.",
+          "importFailed": "Failed to import wallets."
+        },
+        "instructions": {
+          "title": "Walutomat API Setup Instructions",
+          "description": "Step-by-step guide to set up Walutomat API access",
+          "overviewTitle": "Overview",
+          "overviewText": "To connect Walutomat, you need an API key and an RSA private key. The API key authenticates your account, while the private key signs each request for security.",
+          "step1Title": "Generate RSA Key Pair",
+          "step1Intro": "Open a terminal and run these commands:",
+          "step1FilesCreated": "This creates two files: {privateKey} (keep secret!) and {publicKey} (upload to Walutomat).",
+          "step2Title": "Upload Public Key to Walutomat",
+          "step2Login": "1. Log in to",
+          "step2GoToSettings": "2. Go to {settings} → {api}",
+          "step2Upload": "3. Upload your {publicKey} file",
+          "step2ApiKeyGenerated": "4. Walutomat will generate an API key for you",
+          "step3Title": "Enter Credentials Here",
+          "step3Intro": "You need two things:",
+          "step3ApiKeyDesc": "{apiKey} — Copy it from the Walutomat API settings page",
+          "step3PrivateKeyDesc": "{privateKey} — Open {filename} in a text editor and copy the entire contents (including the BEGIN/END lines)",
+          "securityNoteTitle": "Security Note",
+          "securityNoteText": "Your private key is encrypted before storage and is only used to sign API requests. It is never exposed or transmitted to anyone other than Walutomat.",
+          "closeButton": "Got it"
+        }
+      },
       "notifications": {
         "disconnectSuccess": "Інтеграцію успішно відключено",
         "disconnectFailed": "Не вдалося відключити інтеграцію",
@@ -216,7 +264,9 @@
         "loading": "Завантаження...",
         "error": {
           "loadFailed": "Не вдалося завантажити деталі інтеграції. Спробуйте ще раз.",
-          "backButton": "Назад до інтеграцій"
+          "notFoundTitle": "Інтеграцію не знайдено",
+          "notFoundDescription": "Ця інтеграція могла бути видалена або посилання є некоректним. Перевірте список інтеграцій, щоб знайти потрібне.",
+          "backButton": "До списку інтеграцій"
         },
         "connectionDetails": {
           "title": "Деталі підключення",
@@ -327,12 +377,14 @@
         "free": "Безкоштовно",
         "paid": "Платно",
         "easySetup": "Легко налаштувати",
+        "mediumSetup": "Medium setup",
         "veryDifficultSetup": "Дуже складно налаштувати"
       },
       "tooltips": {
         "monobank": "Потрібно вручну скопіювати API токен з мобільного додатку Monobank",
         "enableBanking": "Оскільки повноцінна інтеграція коштує кілька тисяч на місяць, підключитися можна лише створивши власний EnableBanking dev-акаунт та налаштувавши \"тестовий\" додаток з реальним підключенням до своїх банків, зберігаючи сертифікати та ключі й завантажуючи їх сюди. Потребуються середні техічні знання",
-        "lunchflow": "Просто підключіть свої банки на стороні LunchFlow, потім створіть та вставте свій LunchFlow API ключ"
+        "lunchflow": "Просто підключіть свої банки на стороні LunchFlow, потім створіть та вставте свій LunchFlow API ключ",
+        "walutomat": "Requires generating an RSA key pair and uploading the public key to Walutomat dashboard"
       }
     },
     "connectionName": {

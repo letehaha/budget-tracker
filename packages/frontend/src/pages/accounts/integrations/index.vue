@@ -7,8 +7,10 @@
         <UiButton :disabled="isDemo" @click="openAddIntegrationDialog">
           <PlusIcon class="size-5" />
 
-          {{ t('pages.integrations.addButton') }}
-          <span class="max-sm:hidden">{{ t('pages.integrations.addButtonFull') }}</span>
+          <span>
+            {{ t('pages.integrations.addButton') }}
+            <span class="max-sm:hidden">{{ t('pages.integrations.addButtonFull') }}</span>
+          </span>
         </UiButton>
       </DemoRestricted>
     </div>

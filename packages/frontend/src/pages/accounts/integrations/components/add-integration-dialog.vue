@@ -85,6 +85,11 @@
           @connected="handleProviderConnected"
           @cancel="handleCancel"
         />
+        <WalutomatConnector
+          v-else-if="selectedProviderType === BANK_PROVIDER_TYPE.WALUTOMAT"
+          @connected="handleProviderConnected"
+          @cancel="handleCancel"
+        />
       </template>
     </DialogContent>
   </Dialog>
@@ -106,6 +111,7 @@ import { useI18n } from 'vue-i18n';
 import EnableBankingConnector from './enable-banking-connector.vue';
 import LunchFlowConnector from './lunchflow-connector.vue';
 import MonobankConnector from './monobank-connector.vue';
+import WalutomatConnector from './walutomat-connector.vue';
 
 const { t } = useI18n();
 
@@ -146,6 +152,9 @@ const pricingBadgeClass = (pricing: PricingType) => {
 const difficultyBadgeClass = (difficulty: DifficultyType) => {
   if (difficulty === 'easy') {
     return `${BADGE_BASE} bg-success/20 text-success-text`;
+  }
+  if (difficulty === 'medium') {
+    return `${BADGE_BASE} bg-warning/20 text-warning-text`;
   }
   return `${BADGE_BASE} bg-destructive/20 text-destructive-text`;
 };

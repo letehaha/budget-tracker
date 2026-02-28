@@ -1,10 +1,22 @@
 <template>
   <PageWrapper>
-    <div v-if="isLoading" class="py-8 text-center">{{ $t('pages.integrations.details.loading') }}</div>
+    <IntegrationDetailsSkeleton v-if="isLoading" />
 
-    <div v-else-if="error" class="rounded-lg border border-red-500 p-4 text-red-700">
-      <p>{{ $t('pages.integrations.details.error.loadFailed') }}</p>
-      <UiButton variant="outline" class="mt-4" @click="router.push({ name: ROUTES_NAMES.accountIntegrations })">
+    <div
+      v-else-if="error"
+      class="flex min-h-80 flex-col items-center justify-center rounded-lg border border-dashed p-6 text-center md:p-12"
+    >
+      <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
+        <SearchXIcon class="text-muted-foreground size-8" />
+      </div>
+      <h2 class="mb-2 text-xl font-semibold tracking-wide">
+        {{ $t('pages.integrations.details.error.notFoundTitle') }}
+      </h2>
+      <p class="text-muted-foreground mb-6 max-w-md">
+        {{ $t('pages.integrations.details.error.notFoundDescription') }}
+      </p>
+      <UiButton @click="router.push({ name: ROUTES_NAMES.accountIntegrations })">
+        <ArrowLeftIcon class="size-4" />
         {{ $t('pages.integrations.details.error.backButton') }}
       </UiButton>
     </div>
@@ -131,12 +143,24 @@
                 :placeholder="$t('pages.integrations.updateCredentials.apiKeyPlaceholder')"
               />
             </div>
+            <!-- Private key field for Walutomat -->
+            <div v-if="connectionDetails.providerType === BANK_PROVIDER_TYPE.WALUTOMAT">
+              <label class="mb-2 block text-sm font-medium">{{
+                $t('pages.integrations.walutomat.privateKeyLabel')
+              }}</label>
+              <textarea
+                v-model="newPrivateKey"
+                class="w-full rounded-md border px-3 py-2 font-mono text-xs"
+                rows="6"
+                :placeholder="$t('pages.integrations.walutomat.privateKeyPlaceholder')"
+              />
+            </div>
           </div>
           <DialogFooter class="mt-6 grid gap-3 sm:grid-cols-2">
             <UiButton variant="outline" @click="isUpdateCredentialsDialogOpen = false">
               {{ $t('common.actions.cancel') }}
             </UiButton>
-            <UiButton :disabled="!newApiKey || isUpdatingCredentials" @click="handleUpdateCredentials">
+            <UiButton :disabled="!canUpdateCredentials || isUpdatingCredentials" @click="handleUpdateCredentials">
               {{
                 isUpdatingCredentials
                   ? $t('pages.integrations.updateCredentials.updatingButton')
@@ -535,15 +559,17 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useBankConnectionDetails } from '@/composable/data-queries/bank-providers/bank-connection-details';
 import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { ChevronDownIcon, InfoIcon, PencilIcon } from 'lucide-vue-next';
+import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, PencilIcon, SearchXIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 import DisconnectIntegrationDialog from './components/disconnect-integration-dialog.vue';
 import EditConnectionNameDialog from './components/edit-connection-name-dialog.vue';
+import IntegrationDetailsSkeleton from './components/integration-details-skeleton.vue';
 import ReconnectConfirmationDialog from './components/reconnect-confirmation-dialog.vue';
 
 const route = useRoute();
@@ -560,6 +586,7 @@ const isReconnectDialogOpen = ref(false);
 const isUpdateCredentialsDialogOpen = ref(false);
 const selectedAccountIds = ref<string[]>([]);
 const newApiKey = ref('');
+const newPrivateKey = ref('');
 
 // Collapsible states
 const isConnectionDetailsOpen = ref(true);
@@ -589,6 +616,7 @@ const { mutate: updateCredentialsMutation, isPending: isUpdatingCredentials } = 
     });
     isUpdateCredentialsDialogOpen.value = false;
     newApiKey.value = '';
+    newPrivateKey.value = '';
   },
   onError: (err) => {
     const message = err instanceof Error ? err.message : t('pages.integrations.updateCredentials.failed');
@@ -596,9 +624,22 @@ const { mutate: updateCredentialsMutation, isPending: isUpdatingCredentials } = 
   },
 });
 
+const canUpdateCredentials = computed(() => {
+  if (!newApiKey.value) return false;
+  if (connectionDetails.value?.providerType === BANK_PROVIDER_TYPE.WALUTOMAT) {
+    return !!newPrivateKey.value;
+  }
+  return true;
+});
+
 const handleUpdateCredentials = () => {
-  if (!newApiKey.value) return;
-  updateCredentialsMutation({ apiKey: newApiKey.value });
+  if (!canUpdateCredentials.value) return;
+
+  const credentials: Record<string, unknown> = { apiKey: newApiKey.value };
+  if (connectionDetails.value?.providerType === BANK_PROVIDER_TYPE.WALUTOMAT) {
+    credentials.privateKey = newPrivateKey.value;
+  }
+  updateCredentialsMutation(credentials);
 };
 
 // Initialize connection validity open state based on consent status
