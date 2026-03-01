@@ -208,6 +208,12 @@ export const auth = betterAuth({
     }),
   ],
 
+  // Disable rate limiting in test/dev environments (including preview deploys).
+  // better-auth enables it by default when NODE_ENV=production.
+  rateLimit: {
+    enabled: false,
+  },
+
   // Advanced options
   advanced: {
     // Cookie settings for session
