@@ -2,14 +2,17 @@ import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
+import { NotFoundError, ValidationError } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Portfolios from '@models/investments/Portfolios.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
+import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
 import { Big } from 'big.js';
+
+import { calculateCashDelta } from './cash-balance-utils';
 
 interface CreateTxParams {
   userId: number;
@@ -44,8 +47,15 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
     throw new NotFoundError({ message: t({ key: 'investments.holdingNotFoundAddSecurity' }) });
   }
 
-  // Business rule: Allow selling more than owned (phantom shares treated as zero cost basis)
-  // The gains calculation and recalculation services will handle this scenario
+  // Disallow selling more shares than currently owned
+  if (category === INVESTMENT_TRANSACTION_CATEGORY.sell) {
+    const currentQty = new Big(holding.quantity.toDecimalString(10));
+    if (new Big(quantity).gt(currentQty)) {
+      throw new ValidationError({
+        message: 'Cannot sell more shares than currently owned.',
+      });
+    }
+  }
 
   const amountStr = new Big(quantity).times(new Big(price)).plus(new Big(fees)).toFixed(10);
 
@@ -82,6 +92,25 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
 
   // After creating the transaction, trigger a full recalculation of the holding
   await recalculateHolding({ portfolioId, securityId });
+
+  // Update portfolio cash balance
+  const cashDelta = calculateCashDelta({
+    category,
+    quantity,
+    price,
+    fees,
+    amount: amountStr,
+  });
+
+  if (cashDelta !== null) {
+    await updatePortfolioBalance({
+      userId,
+      portfolioId,
+      currencyCode: holding.currencyCode,
+      availableCashDelta: cashDelta,
+      totalCashDelta: cashDelta,
+    });
+  }
 
   return newTx;
 };

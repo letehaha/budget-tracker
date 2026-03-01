@@ -306,6 +306,10 @@
         "createButton": "Create"
       }
     },
+    "directCashTransaction": {
+      "title": "Add Cash Transaction",
+      "description": "Record a cash deposit or withdrawal"
+    },
     "feedback": {
       "sidebarButton": "Feedback",
       "title": "Send feedback",

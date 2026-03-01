@@ -40,7 +40,7 @@
         <div class="shrink-0">
           <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <h2 class="text-3xl font-semibold tracking-tight">
-              {{ formatCurrency(Number(summary.totalCurrentValue), summary.currencyCode) }}
+              {{ formatCurrency(Number(summary.totalPortfolioValue), summary.currencyCode) }}
             </h2>
             <div :class="getGainColorClass(getTotalGainPercent())" class="flex items-center gap-1.5">
               <component :is="getTotalGainValue() >= 0 ? TrendingUpIcon : TrendingDownIcon" class="size-4" />

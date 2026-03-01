@@ -306,6 +306,10 @@
         "createButton": "Створити"
       }
     },
+    "directCashTransaction": {
+      "title": "Додати грошову операцію",
+      "description": "Записати поповнення або зняття коштів"
+    },
     "feedback": {
       "sidebarButton": "Feedback",
       "title": "Send feedback",

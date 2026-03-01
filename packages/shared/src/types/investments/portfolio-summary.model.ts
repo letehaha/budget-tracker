@@ -8,4 +8,7 @@ export interface PortfolioSummaryModel {
   realizedGainValue: string;
   realizedGainPercent: string;
   currencyCode: string;
+  totalCashInBaseCurrency: string;
+  availableCashInBaseCurrency: string;
+  totalPortfolioValue: string;
 }

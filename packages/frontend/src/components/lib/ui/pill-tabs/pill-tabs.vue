@@ -1,12 +1,13 @@
 <script lang="ts" setup>
 import { cn } from '@/lib/utils';
 import { nextTick, onMounted, ref, watch } from 'vue';
+import { pillTabsContainerVariants, pillTabsIndicatorVariants, pillTabsTriggerVariants, type PillTabsSize } from '.';
 
 const props = withDefaults(
   defineProps<{
     items: { value: string; label: string }[];
     modelValue: string;
-    size?: 'sm' | 'default';
+    size?: PillTabsSize;
   }>(),
   { size: 'default' },
 );
@@ -40,26 +41,9 @@ watch(
 </script>
 
 <template>
-  <div
-    ref="containerRef"
-    :class="
-      cn(
-        'bg-muted/50 relative inline-flex items-center self-start',
-        'no-scrollbar max-w-full overflow-x-auto',
-        size === 'sm' ? 'rounded-lg px-1 py-0.5' : 'rounded-md p-1',
-      )
-    "
-  >
+  <div ref="containerRef" :class="cn(pillTabsContainerVariants({ size }))">
     <!-- Sliding indicator -->
-    <div
-      :class="
-        cn(
-          'bg-background absolute rounded-md shadow-sm transition-all duration-200 ease-out',
-          size === 'sm' ? 'top-0.5 bottom-0.5' : 'top-1 bottom-1',
-        )
-      "
-      :style="indicatorStyle"
-    />
+    <div :class="cn(pillTabsIndicatorVariants({ size }))" :style="indicatorStyle" />
     <!-- Buttons -->
     <button
       v-for="item in items"
@@ -67,11 +51,7 @@ watch(
       type="button"
       :data-value="item.value"
       :class="
-        cn(
-          'focus-visible:bg-background/50 relative z-1 rounded-md transition-colors focus-visible:outline-none',
-          size === 'sm' ? 'px-3 py-0.5 text-sm' : 'px-3 py-1.5 text-sm font-medium',
-          modelValue === item.value ? 'text-foreground' : 'text-muted-foreground',
-        )
+        cn(pillTabsTriggerVariants({ size }), modelValue === item.value ? 'text-foreground' : 'text-muted-foreground')
       "
       @click="emit('update:modelValue', item.value)"
     >

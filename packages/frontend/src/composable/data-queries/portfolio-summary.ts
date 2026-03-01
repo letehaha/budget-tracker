@@ -12,7 +12,7 @@ export const usePortfolioSummary = (portfolioId: MaybeRefOrGetter<number>, date?
     queryFn: async () => {
       const id = unref(portfolioId) as number;
       const dateValue = date ? (unref(date) as string) : undefined;
-      return await getPortfolioSummary(id, dateValue);
+      return await getPortfolioSummary({ portfolioId: id, date: dateValue });
     },
     enabled: computed(() => {
       const id = unref(portfolioId) as number;

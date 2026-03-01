@@ -103,7 +103,7 @@ describe('POST /transaction (create investment transaction)', () => {
     expect(holding!.costBasis).toBeNumericEqual(120);
   });
 
-  it('should NOT fail to create a sell transaction with insufficient shares', async () => {
+  it('should reject a sell transaction with insufficient shares', async () => {
     const response = await helpers.createInvestmentTransaction({
       payload: {
         portfolioId: investmentPortfolio.id,
@@ -114,7 +114,7 @@ describe('POST /transaction (create investment transaction)', () => {
       },
     });
 
-    expect(response.statusCode).toBe(201);
+    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 
   it('should fail to create a transaction for non-existent portfolio', async () => {
