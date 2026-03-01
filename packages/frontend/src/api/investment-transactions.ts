@@ -37,3 +37,11 @@ export const getHoldingTransactions = (params: {
 }): Promise<HoldingTransactionsResponse> => {
   return api.get('/investments/transactions', { ...params });
 };
+
+export const getPortfolioInvestmentTransactions = (params: {
+  portfolioId: number;
+  limit?: number;
+  offset?: number;
+}): Promise<HoldingTransactionsResponse> => {
+  return api.get('/investments/transactions', { ...params });
+};

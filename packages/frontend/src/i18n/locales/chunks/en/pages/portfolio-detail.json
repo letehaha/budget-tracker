@@ -21,6 +21,32 @@
         "totalReturn": "Total Return"
       }
     },
+    "cashBalances": {
+      "title": "Cash Balances",
+      "subtitle": "{count} currencies",
+      "emptyState": "No cash balances",
+      "tabs": {
+        "overview": "Overview",
+        "cashTransactions": "Cash Transactions",
+        "buysSells": "Buys & Sells"
+      },
+      "cashTransactions": {
+        "addButton": "Add Cash Transaction",
+        "emptyState": "No cash transactions yet",
+        "deposit": "Deposit",
+        "withdrawal": "Withdrawal",
+        "transferIn": "Transfer In",
+        "transferOut": "Transfer Out",
+        "deleteConfirm": "Delete this cash transaction?",
+        "linkedTransactionNote": "This transfer has a linked account transaction. What would you like to do with it?",
+        "keepLinkedTransaction": "Keep account transaction (mark as out of wallet)",
+        "deleteLinkedTransaction": "Also delete the linked account transaction"
+      },
+      "buysSells": {
+        "emptyState": "No buy/sell transactions",
+        "shares": "shares"
+      }
+    },
     "holdings": {
       "title": "Holdings",
       "subtitle": "{count} symbols",

@@ -6,13 +6,17 @@ import TextareaField from '@/components/fields/textarea-field.vue';
 import * as AlertDialog from '@/components/lib/ui/alert-dialog';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { useFormatCurrency } from '@/composable';
 import {
   type TransferContext,
   type TransferType,
+  useAccountToPortfolioTransfer,
   useCreatePortfolioTransfer,
+  usePortfolioToAccountTransfer,
 } from '@/composable/data-queries/portfolio-transfers';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { useFormValidation } from '@/composable/form-validator';
+import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { AccountModel, PortfolioModel, UserCurrencyModel } from '@bt/shared/types';
 import { minValue, required } from '@vuelidate/validators';
@@ -44,8 +48,11 @@ const accountsStore = useAccountsStore();
 const { systemAccounts } = storeToRefs(useAccountsStore());
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { data: portfolios } = usePortfolios();
+const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const createTransferMutation = useCreatePortfolioTransfer();
+const accountToPortfolioMutation = useAccountToPortfolioTransfer();
+const portfolioToAccountMutation = usePortfolioToAccountTransfer();
 
 // Form state
 const form = reactive<{
@@ -91,7 +98,6 @@ const transferTypeOptions = computed(() => {
       {
         value: 'account-to-portfolio' as TransferType,
         label: t('forms.portfolioTransfer.transferTypes.accountToPortfolio'),
-        disabled: true,
       },
     ];
   }
@@ -190,10 +196,16 @@ const { isFormValid, getFieldErrorMessage, touchField, resetValidation } = useFo
   },
 );
 
-// Auto-set currency based on source
+// Auto-set currency based on source.
+// For account-to-portfolio, always lock currency to the account's currency.
 watch(
-  [() => form.fromPortfolio, () => form.fromAccount],
+  [() => form.fromPortfolio, () => form.fromAccount, () => transferType.value],
   () => {
+    if (transferType.value === 'account-to-portfolio' && form.fromAccount?.currencyCode) {
+      form.selectedCurrency = currencies.value?.find((c) => c.currencyCode === form.fromAccount!.currencyCode) || null;
+      return;
+    }
+
     const sourceCurrencyCode = form.fromPortfolio?.balances?.[0]?.currencyCode || form.fromAccount?.currencyCode;
     if (sourceCurrencyCode && !form.selectedCurrency) {
       form.selectedCurrency = currencies.value?.find((c) => c.currencyCode === sourceCurrencyCode) || null;
@@ -284,7 +296,7 @@ const prepareConfirmationData = () => {
   confirmDialogData.value = {
     from: fromName,
     to: toName,
-    amount: form.amount,
+    amount: formatAmountByCurrencyCode(Number(form.amount), form.selectedCurrency?.currency!.code!),
     currency: form.selectedCurrency?.currency!.code || '',
   };
 };
@@ -300,22 +312,35 @@ const confirmTransfer = async () => {
   try {
     showConfirmDialog.value = false;
 
-    if (transferType.value === 'portfolio-to-portfolio' || transferType.value === 'portfolio-to-account') {
+    const dateStr = form.date.toISOString().split('T')[0]!;
+    const amount = String(form.amount);
+
+    if (transferType.value === 'portfolio-to-portfolio') {
       await createTransferMutation.mutateAsync({
         fromPortfolioId: form.fromPortfolio!.id,
-        toPortfolioId: form.toPortfolio?.id || 0, // 0 for account transfers
+        toPortfolioId: form.toPortfolio!.id,
         currencyCode: form.selectedCurrency!.currencyCode,
-        amount: form.amount,
-        date: form.date.toISOString().split('T')[0]!,
+        amount,
+        date: dateStr,
+        description: form.description || undefined,
+      });
+    } else if (transferType.value === 'portfolio-to-account') {
+      await portfolioToAccountMutation.mutateAsync({
+        portfolioId: form.fromPortfolio!.id,
+        accountId: form.toAccount!.id,
+        amount,
+        currencyCode: form.selectedCurrency!.currencyCode,
+        date: dateStr,
         description: form.description || undefined,
       });
     } else {
-      // Account-to-portfolio transfers - disabled until post-MVP implementation
-      addNotification({
-        text: t('forms.portfolioTransfer.notifications.comingSoon'),
-        type: NotificationType.info,
+      await accountToPortfolioMutation.mutateAsync({
+        portfolioId: form.toPortfolio!.id,
+        accountId: form.fromAccount!.id,
+        amount,
+        date: dateStr,
+        description: form.description || undefined,
       });
-      return;
     }
 
     addNotification({
@@ -334,11 +359,18 @@ const confirmTransfer = async () => {
   }
 };
 
+const isAnyMutationPending = computed(
+  () =>
+    createTransferMutation.isPending.value ||
+    accountToPortfolioMutation.isPending.value ||
+    portfolioToAccountMutation.isPending.value,
+);
+
 const isSubmitDisabled = computed(
   () =>
     props.disabled ||
-    createTransferMutation.isPending.value ||
-    !form.amount.trim() ||
+    isAnyMutationPending.value ||
+    !form.amount ||
     !form.selectedCurrency ||
     (!form.fromPortfolio && !form.fromAccount) ||
     (!form.toPortfolio && !form.toAccount),
@@ -353,14 +385,9 @@ const isSubmitDisabled = computed(
       :values="transferTypeOptions"
       value-key="value"
       label-key="label"
-      :disabled="createTransferMutation.isPending.value || disabled"
+      :disabled="isAnyMutationPending || disabled"
       :error-message="getFieldErrorMessage('form.transferTypeOption')"
     />
-
-    <!-- Coming Soon Notice for Account Context -->
-    <div v-if="props.context === 'account'" class="text-muted-foreground text-sm italic">
-      {{ $t('forms.portfolioTransfer.comingSoonNotice') }}
-    </div>
 
     <SelectField
       v-if="showFromPortfolio"
@@ -370,7 +397,7 @@ const isSubmitDisabled = computed(
       value-key="id"
       label-key="name"
       :placeholder="$t('forms.portfolioTransfer.fromPortfolioPlaceholder')"
-      :disabled="createTransferMutation.isPending.value || disabled || props.context === 'portfolio'"
+      :disabled="isAnyMutationPending || disabled || props.context === 'portfolio'"
     />
 
     <SelectField
@@ -381,7 +408,7 @@ const isSubmitDisabled = computed(
       value-key="id"
       label-key="name"
       :placeholder="$t('forms.portfolioTransfer.fromAccountPlaceholder')"
-      :disabled="createTransferMutation.isPending.value || disabled || props.context === 'account'"
+      :disabled="isAnyMutationPending || disabled || props.context === 'account'"
     />
 
     <SelectField
@@ -392,7 +419,7 @@ const isSubmitDisabled = computed(
       value-key="id"
       label-key="name"
       :placeholder="$t('forms.portfolioTransfer.toPortfolioPlaceholder')"
-      :disabled="createTransferMutation.isPending.value || disabled"
+      :disabled="isAnyMutationPending || disabled"
     />
 
     <SelectField
@@ -403,17 +430,18 @@ const isSubmitDisabled = computed(
       value-key="id"
       label-key="name"
       :placeholder="$t('forms.portfolioTransfer.toAccountPlaceholder')"
-      :disabled="createTransferMutation.isPending.value || disabled"
+      :disabled="isAnyMutationPending || disabled"
     />
 
     <SelectField
+      v-if="transferType !== 'account-to-portfolio'"
       v-model="form.selectedCurrency"
       :label="$t('forms.portfolioTransfer.currencyLabel')"
       :values="currencies || []"
       value-key="currencyCode"
       :label-key="(currency: UserCurrencyModel) => currency.currency!.code"
       :placeholder="$t('forms.portfolioTransfer.currencyPlaceholder')"
-      :disabled="createTransferMutation.isPending.value || disabled"
+      :disabled="isAnyMutationPending || disabled"
       :error-message="getFieldErrorMessage('form.selectedCurrency')"
     />
 
@@ -424,7 +452,7 @@ const isSubmitDisabled = computed(
       step="0.01"
       min="0.01"
       :placeholder="$t('forms.portfolioTransfer.amountPlaceholder')"
-      :disabled="createTransferMutation.isPending.value || disabled"
+      :disabled="isAnyMutationPending || disabled"
       :error="getFieldErrorMessage('form.amount')"
       @blur="touchField('form.amount')"
     />
@@ -432,7 +460,7 @@ const isSubmitDisabled = computed(
     <DateField
       v-model="form.date"
       :label="$t('forms.portfolioTransfer.dateLabel')"
-      :disabled="createTransferMutation.isPending.value || disabled"
+      :disabled="isAnyMutationPending || disabled"
       :error-message="getFieldErrorMessage('form.date')"
       @blur="touchField('form.date')"
     />
@@ -441,21 +469,16 @@ const isSubmitDisabled = computed(
       v-model="form.description"
       :label="$t('forms.portfolioTransfer.descriptionLabel')"
       :placeholder="$t('forms.portfolioTransfer.descriptionPlaceholder')"
-      :disabled="createTransferMutation.isPending.value || disabled"
+      :disabled="isAnyMutationPending || disabled"
     />
 
     <div class="flex justify-end gap-4">
-      <UiButton
-        type="button"
-        variant="secondary"
-        @click="emit('cancel')"
-        :disabled="createTransferMutation.isPending.value || disabled"
-      >
+      <UiButton type="button" variant="secondary" @click="emit('cancel')" :disabled="isAnyMutationPending || disabled">
         {{ $t('forms.portfolioTransfer.cancelButton') }}
       </UiButton>
       <UiButton type="submit" class="min-w-30" :disabled="isSubmitDisabled">
         {{
-          createTransferMutation.isPending.value
+          isAnyMutationPending
             ? $t('forms.portfolioTransfer.submitButtonLoading')
             : $t('forms.portfolioTransfer.submitButton')
         }}
@@ -473,9 +496,6 @@ const isSubmitDisabled = computed(
               <template #amount>
                 <strong>{{ confirmDialogData?.amount }}</strong>
               </template>
-              <template #currency>
-                <strong>{{ confirmDialogData?.currency }}</strong>
-              </template>
               <template #from>
                 <strong>{{ confirmDialogData?.from }}</strong>
               </template>
@@ -483,8 +503,6 @@ const isSubmitDisabled = computed(
                 <strong>{{ confirmDialogData?.to }}</strong>
               </template>
             </i18n-t>
-            <br /><br />
-            {{ $t('forms.portfolioTransfer.confirmDialog.warning') }}
           </AlertDialog.AlertDialogDescription>
         </AlertDialog.AlertDialogHeader>
         <AlertDialog.AlertDialogFooter>
