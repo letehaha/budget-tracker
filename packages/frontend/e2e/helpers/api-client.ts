@@ -90,6 +90,10 @@ export async function verifyEmailViaFetch({ email }: { email: string }): Promise
     body: JSON.stringify({ email }),
   });
 
+  // The /tests/* routes are only available when NODE_ENV is "test" or "development".
+  // On preview (production), skip gracefully — email verification is not enforced there.
+  if (response.status === 404) return;
+
   if (!response.ok) {
     throw new Error(`Email verification failed: ${response.status} ${await response.text()}`);
   }
