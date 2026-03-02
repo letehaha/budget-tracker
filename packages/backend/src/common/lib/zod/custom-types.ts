@@ -65,6 +65,16 @@ export const booleanQuery = () =>
     return z.NEVER;
   });
 
+/** Validates a YYYY-MM-DD date string. */
+export const dateString = () =>
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format' });
+
+/** Validates a positive decimal amount string (rejects zero and negative by default). */
+export const positiveAmountString = () =>
+  z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: 'Amount must be a valid number greater than 0',
+  });
+
 export const numericString = (options?: { allowNegative?: boolean; allowZero?: boolean }) =>
   z
     .union([z.string(), z.number()])

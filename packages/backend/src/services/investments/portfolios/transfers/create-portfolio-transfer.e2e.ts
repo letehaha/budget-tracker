@@ -155,6 +155,35 @@ describe('Portfolio Transfer', () => {
     ).toBe(ERROR_CODES.ValidationError);
   });
 
+  it('should reject transfer to non-existent destination portfolio', async () => {
+    const sourcePortfolio = await helpers.createPortfolio({
+      payload: { name: 'Source' },
+      raw: true,
+    });
+
+    const {
+      currencies: [usdCurrency],
+    } = await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
+
+    await helpers.updatePortfolioBalance({
+      portfolioId: sourcePortfolio.id,
+      currencyCode: usdCurrency!.currencyCode,
+      setAvailableCash: '1000',
+      setTotalCash: '1000',
+    });
+
+    const response = await helpers.createPortfolioTransfer({
+      fromPortfolioId: sourcePortfolio.id,
+      payload: helpers.buildPortfolioTransferPayload({
+        toPortfolioId: 999999,
+        currencyCode: usdCurrency!.currencyCode,
+        amount: '100',
+      }),
+    });
+
+    expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+  });
+
   it('should not allow transfer to the same portfolio', async () => {
     const portfolio = await helpers.createPortfolio({ raw: true });
     const {

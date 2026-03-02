@@ -45,7 +45,7 @@
       "transferTypes": {
         "portfolioToPortfolio": "To Another Portfolio",
         "portfolioToAccount": "To Account",
-        "accountToPortfolio": "To Portfolio (Coming Soon)"
+        "accountToPortfolio": "To Portfolio"
       },
       "comingSoonNotice": "💡 Account-to-portfolio transfers are coming in a future update!",
       "fromPortfolioLabel": "From Portfolio",
@@ -101,6 +101,29 @@
       "notifications": {
         "success": "Created successfully.",
         "error": "Unexpected error."
+      }
+    },
+    "directCashTransaction": {
+      "typeLabel": "Transaction Type",
+      "typeDeposit": "Deposit",
+      "typeWithdrawal": "Withdrawal",
+      "amountLabel": "Amount",
+      "amountPlaceholder": "Enter amount",
+      "currencyLabel": "Currency",
+      "currencyPlaceholder": "Select currency",
+      "dateLabel": "Date",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional description",
+      "cancelButton": "Cancel",
+      "submitButton": "Submit",
+      "submitButtonLoading": "Submitting...",
+      "validation": {
+        "required": "This field is required",
+        "minValue": "Amount must be greater than 0"
+      },
+      "notifications": {
+        "success": "Cash transaction created successfully",
+        "error": "Failed to create cash transaction"
       }
     },
     "validators": {

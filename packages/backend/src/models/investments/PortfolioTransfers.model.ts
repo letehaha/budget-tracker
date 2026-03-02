@@ -4,6 +4,7 @@ import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index } from 'se
 
 import Accounts from '../Accounts.model';
 import Currencies from '../Currencies.model';
+import Transactions from '../Transactions.model';
 import Users from '../Users.model';
 import Portfolios from './Portfolios.model';
 
@@ -98,4 +99,12 @@ export default class PortfolioTransfers extends Model {
 
   @BelongsTo(() => Currencies)
   currency?: Currencies;
+
+  @ForeignKey(() => Transactions)
+  @Index
+  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: null, onDelete: 'SET NULL' })
+  transactionId!: number | null;
+
+  @BelongsTo(() => Transactions)
+  transaction?: Transactions;
 }

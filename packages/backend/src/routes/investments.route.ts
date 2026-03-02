@@ -3,14 +3,18 @@ import {
   deleteHoldingController,
   getHoldingsController,
 } from '@controllers/investments/holdings';
+import accountToPortfolioTransferController from '@controllers/investments/portfolios/account-to-portfolio-transfer';
 import createPortfolioController from '@controllers/investments/portfolios/create-portfolio';
 import createPortfolioTransferController from '@controllers/investments/portfolios/create-portfolio-transfer';
 import deletePortfolioController from '@controllers/investments/portfolios/delete-portfolio';
+import deletePortfolioTransferController from '@controllers/investments/portfolios/delete-portfolio-transfer';
+import directCashTransactionController from '@controllers/investments/portfolios/direct-cash-transaction';
 import getPortfolioController from '@controllers/investments/portfolios/get-portfolio';
 import getPortfolioBalanceController from '@controllers/investments/portfolios/get-portfolio-balance';
 import getPortfolioSummaryController from '@controllers/investments/portfolios/get-portfolio-summary.controller';
 import listPortfolioTransfersController from '@controllers/investments/portfolios/list-portfolio-transfers';
 import listPortfoliosController from '@controllers/investments/portfolios/list-portfolios';
+import portfolioToAccountTransferController from '@controllers/investments/portfolios/portfolio-to-account-transfer';
 import updatePortfolioController from '@controllers/investments/portfolios/update-portfolio';
 import updatePortfolioBalanceController from '@controllers/investments/portfolios/update-portfolio-balance';
 import getPricesController from '@controllers/investments/prices/get-prices.controller';
@@ -62,16 +66,44 @@ router.put(
 );
 
 router.post(
+  '/portfolios/:id/cash-transaction',
+  checkBaseCurrencyLock,
+  validateEndpoint(directCashTransactionController.schema),
+  directCashTransactionController.handler,
+);
+
+router.post(
   '/portfolios/:id/transfer',
   checkBaseCurrencyLock,
   validateEndpoint(createPortfolioTransferController.schema),
   createPortfolioTransferController.handler,
 );
 
+router.post(
+  '/portfolios/:id/transfer/from-account',
+  checkBaseCurrencyLock,
+  validateEndpoint(accountToPortfolioTransferController.schema),
+  accountToPortfolioTransferController.handler,
+);
+
+router.post(
+  '/portfolios/:id/transfer/to-account',
+  checkBaseCurrencyLock,
+  validateEndpoint(portfolioToAccountTransferController.schema),
+  portfolioToAccountTransferController.handler,
+);
+
 router.get(
   '/portfolios/:id/transfers',
   validateEndpoint(listPortfolioTransfersController.schema),
   listPortfolioTransfersController.handler,
+);
+
+router.delete(
+  '/portfolios/:id/transfers/:transferId',
+  checkBaseCurrencyLock,
+  validateEndpoint(deletePortfolioTransferController.schema),
+  deletePortfolioTransferController.handler,
 );
 
 router.put(

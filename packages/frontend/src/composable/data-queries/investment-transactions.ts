@@ -3,6 +3,7 @@ import {
   createInvestmentTransaction,
   deleteInvestmentTransaction,
   getHoldingTransactions,
+  getPortfolioInvestmentTransactions,
 } from '@/api/investment-transactions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
@@ -36,6 +37,28 @@ export const useDeleteInvestmentTransaction = () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingsList });
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioDetails });
     },
+  });
+};
+
+export const usePortfolioInvestmentTransactions = (
+  portfolioId: MaybeRef<number | undefined>,
+  page: Ref<number>,
+  limit: Ref<number>,
+) => {
+  const portfolioIdRef = toRef(portfolioId);
+  const offset = computed(() => (page.value - 1) * limit.value);
+
+  return useQuery<HoldingTransactionsResponse | undefined>({
+    queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioInvestmentTransactions, portfolioIdRef, page, limit],
+    queryFn: () => {
+      if (!portfolioIdRef.value) return Promise.resolve(undefined);
+      return getPortfolioInvestmentTransactions({
+        portfolioId: portfolioIdRef.value,
+        limit: limit.value,
+        offset: offset.value,
+      });
+    },
+    enabled: computed(() => !!portfolioIdRef.value),
   });
 };
 

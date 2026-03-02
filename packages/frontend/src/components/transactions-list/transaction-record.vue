@@ -149,9 +149,11 @@ const emit = defineEmits<{
 
 const transaction = reactive(props.tx);
 const isTransferTransaction = computed(() =>
-  [TRANSACTION_TRANSFER_NATURE.common_transfer, TRANSACTION_TRANSFER_NATURE.transfer_out_wallet].includes(
-    transaction.transferNature,
-  ),
+  [
+    TRANSACTION_TRANSFER_NATURE.common_transfer,
+    TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+    TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+  ].includes(transaction.transferNature),
 );
 
 const { data: oppositeTransferTransaction, isLoading: isLoadingOpposite } = useOppositeTxRecord(transaction);
@@ -185,6 +187,9 @@ const accountMovement = computed(() => {
 
   if (transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
     return `${accountFrom.value?.name} ${separator} Out of wallet`;
+  }
+  if (transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio) {
+    return `${accountFrom.value?.name} ${separator} Portfolio`;
   }
   return `${accountFrom.value?.name} ${separator} ${accountTo.value?.name}`;
 });

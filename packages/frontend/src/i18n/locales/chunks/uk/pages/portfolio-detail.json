@@ -21,6 +21,32 @@
         "totalReturn": "Загальний дохід"
       }
     },
+    "cashBalances": {
+      "title": "Грошові залишки",
+      "subtitle": "{count} валют",
+      "emptyState": "Немає грошових залишків",
+      "tabs": {
+        "overview": "Огляд",
+        "cashTransactions": "Грошові операції",
+        "buysSells": "Купівлі та продажі"
+      },
+      "cashTransactions": {
+        "addButton": "Додати грошову операцію",
+        "emptyState": "Немає грошових операцій",
+        "deposit": "Поповнення",
+        "withdrawal": "Зняття",
+        "transferIn": "Переказ на",
+        "transferOut": "Переказ з",
+        "deleteConfirm": "Видалити цю грошову операцію?",
+        "linkedTransactionNote": "Цей переказ має пов'язану транзакцію рахунку. Що ви хочете з нею зробити?",
+        "keepLinkedTransaction": "Залишити транзакцію рахунку (позначити як поза гаманцем)",
+        "deleteLinkedTransaction": "Також видалити пов'язану транзакцію рахунку"
+      },
+      "buysSells": {
+        "emptyState": "Немає операцій купівлі/продажу",
+        "shares": "акцій"
+      }
+    },
     "holdings": {
       "title": "Утримання",
       "subtitle": "{count} символів",
