@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import DirectCashTransactionForm from '@/components/forms/direct-cash-transaction-form.vue';
+import type { PortfolioModel } from '@bt/shared/types';
 import { ref } from 'vue';
 
 interface Emit {
@@ -9,6 +10,7 @@ interface Emit {
 
 const props = defineProps<{
   portfolioId: number;
+  portfolio: PortfolioModel;
 }>();
 
 const emit = defineEmits<Emit>();
@@ -34,6 +36,11 @@ const handleCancel = () => {
     <template #title>{{ $t('dialogs.directCashTransaction.title') }}</template>
     <template #description>{{ $t('dialogs.directCashTransaction.description') }}</template>
 
-    <DirectCashTransactionForm :portfolio-id="props.portfolioId" @success="handleSuccess" @cancel="handleCancel" />
+    <DirectCashTransactionForm
+      :portfolio-id="props.portfolioId"
+      :portfolio="props.portfolio"
+      @success="handleSuccess"
+      @cancel="handleCancel"
+    />
   </ResponsiveDialog>
 </template>

@@ -27,9 +27,10 @@ watch(isOpen, (open) => {
     </Dialog.DialogTrigger>
     <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-225 p-0">
       <Dialog.DialogTitle class="sr-only">{{ t('dialogs.manageTransaction.title') }}</Dialog.DialogTitle>
-      <Dialog.DialogDescription class="sr-only">{{
-        t('dialogs.manageTransaction.description')
-      }}</Dialog.DialogDescription>
+      <Dialog.DialogDescription class="sr-only">
+        {{ t('dialogs.manageTransaction.description') }}
+      </Dialog.DialogDescription>
+
       <ManageTransactionDialogContent @close-modal="isOpen = false" />
     </Dialog.DialogContent>
   </Dialog.Dialog>

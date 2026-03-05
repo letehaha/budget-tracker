@@ -3,8 +3,11 @@ import {
   createPortfolioTransfer as _createPortfolioTransfer,
   deletePortfolioTransfer as _deletePortfolioTransfer,
   directCashTransaction as _directCashTransaction,
+  getTransactionPortfolioLink as _getTransactionPortfolioLink,
+  linkTransactionToPortfolio as _linkTransactionToPortfolio,
   listPortfolioTransfers as _listPortfolioTransfers,
   portfolioToAccountTransfer as _portfolioToAccountTransfer,
+  unlinkTransactionFromPortfolio as _unlinkTransactionFromPortfolio,
 } from '@services/investments/portfolios/transfers';
 
 import { makeRequest } from '../common';
@@ -164,6 +167,51 @@ export async function directCashTransaction<R extends boolean | undefined = fals
     method: 'post',
     url: `/investments/portfolios/${portfolioId}/cash-transaction`,
     payload,
+    raw,
+  });
+}
+
+export async function linkTransactionToPortfolio<R extends boolean | undefined = false>({
+  transactionId,
+  payload,
+  raw,
+}: {
+  transactionId: number;
+  payload: { portfolioId: number };
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof _linkTransactionToPortfolio>>, R>({
+    method: 'post',
+    url: `/transactions/${transactionId}/link-to-portfolio`,
+    payload,
+    raw,
+  });
+}
+
+export async function unlinkTransactionFromPortfolio<R extends boolean | undefined = false>({
+  transactionId,
+  raw,
+}: {
+  transactionId: number;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof _unlinkTransactionFromPortfolio>>, R>({
+    method: 'post',
+    url: `/transactions/${transactionId}/unlink-from-portfolio`,
+    raw,
+  });
+}
+
+export async function getTransactionPortfolioLink<R extends boolean | undefined = false>({
+  transactionId,
+  raw,
+}: {
+  transactionId: number;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof _getTransactionPortfolioLink>>, R>({
+    method: 'get',
+    url: `/transactions/${transactionId}/portfolio-link`,
     raw,
   });
 }

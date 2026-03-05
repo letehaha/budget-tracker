@@ -225,6 +225,17 @@
         "noExpenseTransactions": "No expense transactions found. Try adjusting the filters.",
         "noTransactions": "No transactions found. Try adjusting the filters.",
         "resetFiltersButton": "Reset filters"
+      },
+      "portfolioLinked": {
+        "title": "Portfolio-Linked Transaction",
+        "linkedAs": "This transaction is linked as a {type} to",
+        "deposit": "deposit",
+        "withdrawal": "withdrawal",
+        "unlinkButton": "Unlink from Portfolio",
+        "unlinkWarning": "Unlinking will reduce the cash balance of {portfolio} portfolio.",
+        "unlinkDescription": "Original transaction details will be restored.",
+        "cancelButton": "Cancel",
+        "confirmUnlink": "Confirm Unlink"
       }
     },
     "portfolioTransfer": {
@@ -307,8 +318,11 @@
       }
     },
     "directCashTransaction": {
-      "title": "Add Cash Transaction",
-      "description": "Record a cash deposit or withdrawal"
+      "title": "Cash Transaction",
+      "description": "Add a deposit or withdrawal to the portfolio"
+    },
+    "pickTransaction": {
+      "title": "Select transaction"
     },
     "feedback": {
       "sidebarButton": "Feedback",

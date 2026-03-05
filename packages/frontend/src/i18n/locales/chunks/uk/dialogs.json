@@ -225,6 +225,17 @@
         "noExpenseTransactions": "Не знайдено транзакцій витрат. Спробуйте змінити фільтри.",
         "noTransactions": "Не знайдено транзакцій. Спробуйте змінити фільтри.",
         "resetFiltersButton": "Скинути фільтри"
+      },
+      "portfolioLinked": {
+        "title": "Транзакція портфеля",
+        "linkedAs": "Ця транзакція прив'язана як {type} до",
+        "deposit": "внесення",
+        "withdrawal": "зняття",
+        "unlinkButton": "Від'єднати від портфеля",
+        "unlinkWarning": "Від'єднання зменшить грошовий баланс портфеля {portfolio}.",
+        "unlinkDescription": "Деталі оригінальної транзакції будуть відновлені.",
+        "cancelButton": "Скасувати",
+        "confirmUnlink": "Підтвердити від'єднання"
       }
     },
     "portfolioTransfer": {
@@ -307,8 +318,11 @@
       }
     },
     "directCashTransaction": {
-      "title": "Додати грошову операцію",
-      "description": "Записати поповнення або зняття коштів"
+      "title": "Касова операція",
+      "description": "Додайте поповнення або зняття до портфеля"
+    },
+    "pickTransaction": {
+      "title": "Обрати транзакцію"
     },
     "feedback": {
       "sidebarButton": "Feedback",

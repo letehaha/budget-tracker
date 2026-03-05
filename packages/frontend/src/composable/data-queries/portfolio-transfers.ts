@@ -4,9 +4,12 @@ import {
   createPortfolioTransfer,
   deletePortfolioTransfer,
   getPortfolioTransfers,
+  getTransactionPortfolioLink,
+  linkTransactionToPortfolio,
   portfolioToAccountTransfer,
+  unlinkTransactionFromPortfolio,
 } from '@/api/portfolios';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import type { QueryClient } from '@tanstack/vue-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRef, unref } from 'vue';
@@ -67,6 +70,39 @@ export const useDeletePortfolioTransfer = () => {
     mutationFn: (params: { portfolioId: number; transferId: number; deleteLinkedTransaction?: boolean }) =>
       deletePortfolioTransfer(params),
     onSuccess: () => invalidateTransferRelatedQueries(queryClient),
+  });
+};
+
+export const useLinkTransactionToPortfolio = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: Parameters<typeof linkTransactionToPortfolio>[0]) => linkTransactionToPortfolio(params),
+    onSuccess: () => {
+      invalidateTransferRelatedQueries(queryClient);
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+    },
+  });
+};
+
+export const useTransactionPortfolioLink = (transactionId: MaybeRef<number | undefined>) => {
+  return useQuery({
+    queryFn: () => getTransactionPortfolioLink({ transactionId: unref(transactionId)! }),
+    queryKey: [...VUE_QUERY_CACHE_KEYS.transactionPortfolioLink, transactionId],
+    enabled: () => !!unref(transactionId),
+  });
+};
+
+export const useUnlinkTransactionFromPortfolio = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: { transactionId: number }) => unlinkTransactionFromPortfolio(params),
+    onSuccess: () => {
+      invalidateTransferRelatedQueries(queryClient);
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.transactionPortfolioLink });
+    },
   });
 };
 

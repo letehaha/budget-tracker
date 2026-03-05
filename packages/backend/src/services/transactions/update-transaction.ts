@@ -67,6 +67,12 @@ const validateTransaction = async (newData: UpdateTransactionParams, prevData: T
     });
   }
 
+  if (prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio) {
+    throw new ValidationError({
+      message: t({ key: 'transactions.cannotEditPortfolioLinkedTransaction' }),
+    });
+  }
+
   // We doesn't allow users to change non-source trasnaction for several reasons:
   // 1. Most importantly – to make things simpler. For now there's no case that
   //    exactly non-source tx should be changed, so it's just easier to not

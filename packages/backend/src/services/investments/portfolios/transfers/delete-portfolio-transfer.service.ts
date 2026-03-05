@@ -4,8 +4,8 @@ import Portfolios from '@models/investments/Portfolios.model';
 import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import * as Transactions from '@models/Transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
-import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
-import { Big } from 'big.js';
+
+import { reverseTransferBalanceChanges } from './transfer-validations';
 
 interface DeletePortfolioTransferParams {
   userId: number;
@@ -31,45 +31,20 @@ const deletePortfolioTransferImpl = async ({
     return { success: true };
   }
 
-  const amount = transfer.amount.toDecimalString(10);
-  const { currencyCode } = transfer;
-
-  // Reverse portfolio balance changes
-  if (transfer.fromPortfolioId) {
-    // Was subtracted from source portfolio → add back
-    await updatePortfolioBalance({
-      userId,
-      portfolioId: transfer.fromPortfolioId,
-      currencyCode,
-      availableCashDelta: amount,
-      totalCashDelta: amount,
-    });
-  }
-
-  if (transfer.toPortfolioId) {
-    // Was added to destination portfolio → subtract back
-    const negatedAmount = new Big(amount).times(-1).toFixed(10);
-    await updatePortfolioBalance({
-      userId,
-      portfolioId: transfer.toPortfolioId,
-      currencyCode,
-      availableCashDelta: negatedAmount,
-      totalCashDelta: negatedAmount,
-    });
-  }
+  await reverseTransferBalanceChanges({ transfer, userId });
 
   // Handle linked account transaction (from account-to-portfolio or portfolio-to-account transfers)
   if (transfer.transactionId) {
     if (deleteLinkedTransaction) {
       await Transactions.deleteTransactionById({ id: transfer.transactionId, userId });
     } else {
-      // Mark the linked transaction as "out of wallet" so it remains in the account
-      // history but is no longer associated with any transfer
+      const originalState = (transfer.metaData as Record<string, any> | null)?.originalTransactionState;
+
       await Transactions.updateTransactionById({
         id: transfer.transactionId,
         userId,
-        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
-        transferId: null,
+        transferNature: originalState?.transferNature ?? TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+        transferId: originalState?.transferId ?? null,
       });
     }
   }

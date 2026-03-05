@@ -7,6 +7,12 @@ module.exports = {
       `ALTER TYPE "enum_transfer_nature" ADD VALUE IF NOT EXISTS 'transfer_to_portfolio';`,
     );
 
+    await queryInterface.addColumn('PortfolioTransfers', 'metaData', {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: null,
+    });
+
     await queryInterface.addColumn('PortfolioTransfers', 'transactionId', {
       type: DataTypes.INTEGER,
       allowNull: true,
@@ -118,6 +124,8 @@ module.exports = {
     });
 
     await queryInterface.removeColumn('PortfolioTransfers', 'transactionId');
+
+    await queryInterface.removeColumn('PortfolioTransfers', 'metaData');
 
     // Reset any transactions using the new enum value before removing it
     await queryInterface.sequelize.query(

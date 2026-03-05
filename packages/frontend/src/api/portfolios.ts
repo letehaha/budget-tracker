@@ -153,6 +153,40 @@ export const deletePortfolioTransfer = async ({
   return api.delete(`/investments/portfolios/${portfolioId}/transfers/${transferId}`, { query });
 };
 
+export const linkTransactionToPortfolio = async ({
+  transactionId,
+  portfolioId,
+}: {
+  transactionId: number;
+  portfolioId: number;
+}): Promise<PortfolioTransferModel> => {
+  const result = await api.post(`/transactions/${transactionId}/link-to-portfolio`, { portfolioId });
+  return result;
+};
+
+export const unlinkTransactionFromPortfolio = async ({ transactionId }: { transactionId: number }): Promise<void> => {
+  return api.post(`/transactions/${transactionId}/unlink-from-portfolio`);
+};
+
+interface TransactionPortfolioLinkResponse {
+  transferId: number;
+  portfolioId: number;
+  portfolioName: string;
+  transferType: 'deposit' | 'withdrawal';
+  amount: string;
+  currencyCode: string;
+  date: string;
+}
+
+export const getTransactionPortfolioLink = async ({
+  transactionId,
+}: {
+  transactionId: number;
+}): Promise<TransactionPortfolioLinkResponse> => {
+  const result = await api.get(`/transactions/${transactionId}/portfolio-link`);
+  return result;
+};
+
 export const getPortfolioSummary = async ({
   portfolioId,
   date,

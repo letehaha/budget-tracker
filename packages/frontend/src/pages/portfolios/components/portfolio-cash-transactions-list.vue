@@ -1,14 +1,5 @@
 <template>
   <div>
-    <div class="mb-4 flex items-center justify-between">
-      <DirectCashTransactionDialog :portfolio-id="portfolioId">
-        <UiButton variant="outline" size="sm">
-          <PlusIcon class="mr-2 size-4" />
-          {{ $t('portfolioDetail.cashBalances.cashTransactions.addButton') }}
-        </UiButton>
-      </DirectCashTransactionDialog>
-    </div>
-
     <!-- Loading -->
     <div v-if="isLoading" class="space-y-3">
       <div v-for="i in 3" :key="i" class="flex items-center justify-between py-2">
@@ -53,75 +44,66 @@
               </p>
             </div>
 
-            <AlertDialog.AlertDialog>
-              <AlertDialog.AlertDialogTrigger as-child>
-                <UiButton
-                  variant="ghost-destructive"
-                  size="icon-sm"
-                  :disabled="deleteMutation.isPending.value"
-                  @click="linkedTxAction = 'keep'"
-                >
-                  <Trash2Icon class="size-3.5" />
-                </UiButton>
-              </AlertDialog.AlertDialogTrigger>
-              <AlertDialog.AlertDialogContent>
-                <AlertDialog.AlertDialogHeader>
-                  <AlertDialog.AlertDialogTitle>
-                    {{ $t('portfolioDetail.cashBalances.cashTransactions.deleteConfirm') }}
-                  </AlertDialog.AlertDialogTitle>
-                  <AlertDialog.AlertDialogDescription v-if="transfer.transactionId">
-                    {{ $t('portfolioDetail.cashBalances.cashTransactions.linkedTransactionNote') }}
-                  </AlertDialog.AlertDialogDescription>
-                </AlertDialog.AlertDialogHeader>
-
-                <!-- Linked transaction options -->
-                <RadioGroup v-if="transfer.transactionId" v-model="linkedTxAction" class="gap-3">
-                  <div class="flex items-center gap-2">
-                    <RadioGroupItem id="keep" value="keep" />
-                    <Label for="keep" class="cursor-pointer text-sm font-normal">
-                      {{ $t('portfolioDetail.cashBalances.cashTransactions.keepLinkedTransaction') }}
-                    </Label>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <RadioGroupItem id="delete" value="delete" />
-                    <Label for="delete" class="cursor-pointer text-sm font-normal">
-                      {{ $t('portfolioDetail.cashBalances.cashTransactions.deleteLinkedTransaction') }}
-                    </Label>
-                  </div>
-                </RadioGroup>
-
-                <AlertDialog.AlertDialogFooter>
-                  <AlertDialog.AlertDialogCancel>{{
-                    $t('forms.directCashTransaction.cancelButton')
-                  }}</AlertDialog.AlertDialogCancel>
-                  <AlertDialog.AlertDialogAction variant="destructive" @click="handleDelete(transfer)">
-                    {{ $t('portfolioDetail.actions.delete') }}
-                  </AlertDialog.AlertDialogAction>
-                </AlertDialog.AlertDialogFooter>
-              </AlertDialog.AlertDialogContent>
-            </AlertDialog.AlertDialog>
+            <UiButton
+              variant="ghost-destructive"
+              size="icon-sm"
+              :disabled="deleteMutation.isPending.value"
+              @click="openDeleteDialog(transfer)"
+            >
+              <Trash2Icon class="size-3.5" />
+            </UiButton>
           </div>
         </template>
       </div>
     </div>
+    <!-- Delete confirmation dialog -->
+    <ResponsiveAlertDialog
+      v-model:open="isDeleteDialogOpen"
+      :cancel-label="$t('forms.directCashTransaction.cancelButton')"
+      :confirm-label="$t('portfolioDetail.actions.delete')"
+      confirm-variant="destructive"
+      @confirm="confirmDelete"
+    >
+      <template #title>
+        {{ $t('portfolioDetail.cashBalances.cashTransactions.deleteConfirm') }}
+      </template>
+      <template v-if="transferToDelete?.transactionId" #description>
+        {{ $t('portfolioDetail.cashBalances.cashTransactions.linkedTransactionNote') }}
+      </template>
+
+      <RadioGroup v-if="transferToDelete?.transactionId" v-model="linkedTxAction" class="gap-3">
+        <div class="flex items-center gap-2">
+          <RadioGroupItem id="keep" value="keep" />
+          <Label for="keep" class="cursor-pointer text-sm font-normal">
+            {{ $t('portfolioDetail.cashBalances.cashTransactions.keepLinkedTransaction') }}
+          </Label>
+        </div>
+        <div class="flex items-center gap-2">
+          <RadioGroupItem id="delete" value="delete" />
+          <Label for="delete" class="cursor-pointer text-sm font-normal">
+            {{ $t('portfolioDetail.cashBalances.cashTransactions.deleteLinkedTransaction') }}
+          </Label>
+        </div>
+      </RadioGroup>
+    </ResponsiveAlertDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import DirectCashTransactionDialog from '@/components/dialogs/direct-cash-transaction-dialog.vue';
-import * as AlertDialog from '@/components/lib/ui/alert-dialog';
+import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Label } from '@/components/lib/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import { useDeletePortfolioTransfer, usePortfolioTransfers } from '@/composable/data-queries/portfolio-transfers';
 import { useFormatCurrency } from '@/composable/formatters';
+import type { PortfolioModel } from '@bt/shared/types';
 import type { PortfolioTransferModel } from '@bt/shared/types/investments';
 import { format } from 'date-fns';
-import { ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon } from 'lucide-vue-next';
+import { ArrowDownIcon, ArrowUpIcon, Trash2Icon } from 'lucide-vue-next';
 import { ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const props = defineProps<{ portfolioId: number }>();
+const props = defineProps<{ portfolioId: number; portfolio: PortfolioModel }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { t } = useI18n();
@@ -131,6 +113,20 @@ const { data: transfers, isLoading } = usePortfolioTransfers(portfolioId);
 const deleteMutation = useDeletePortfolioTransfer();
 
 const linkedTxAction = ref<'keep' | 'delete'>('keep');
+const isDeleteDialogOpen = ref(false);
+const transferToDelete = ref<PortfolioTransferModel | null>(null);
+
+const openDeleteDialog = (transfer: PortfolioTransferModel) => {
+  transferToDelete.value = transfer;
+  linkedTxAction.value = 'keep';
+  isDeleteDialogOpen.value = true;
+};
+
+const confirmDelete = () => {
+  if (transferToDelete.value) {
+    handleDelete(transferToDelete.value);
+  }
+};
 
 const formatDate = (date: string) => format(new Date(date), 'MMM d, yyyy');
 
@@ -164,9 +160,9 @@ function getTransferDisplayProps(transfer: PortfolioTransferModel) {
     label: labels[type] || type,
     icon: isOutgoing ? ArrowUpIcon : ArrowDownIcon,
     iconContainerClass: isOutgoing
-      ? 'bg-destructive/10 text-destructive'
+      ? 'bg-app-expense-color/10 text-destructive-text'
       : 'bg-app-income-color/10 text-app-income-color',
-    amountClass: isOutgoing ? 'text-destructive' : 'text-app-income-color',
+    amountClass: isOutgoing ? 'text-app-expense-color' : 'text-app-income-color',
     amountPrefix: isOutgoing ? '-' : '+',
   };
 }
@@ -177,5 +173,6 @@ const handleDelete = async (transfer: PortfolioTransferModel) => {
     transferId: transfer.id,
     deleteLinkedTransaction: transfer.transactionId ? linkedTxAction.value === 'delete' : undefined,
   });
+  isDeleteDialogOpen.value = false;
 };
 </script>

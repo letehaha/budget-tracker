@@ -27,7 +27,8 @@
       "emptyState": "Немає грошових залишків",
       "tabs": {
         "overview": "Огляд",
-        "cashTransactions": "Грошові операції",
+        "balances": "Баланси",
+        "cashTransactions": "Транзакції",
         "buysSells": "Купівлі та продажі"
       },
       "cashTransactions": {
@@ -39,7 +40,7 @@
         "transferOut": "Переказ з",
         "deleteConfirm": "Видалити цю грошову операцію?",
         "linkedTransactionNote": "Цей переказ має пов'язану транзакцію рахунку. Що ви хочете з нею зробити?",
-        "keepLinkedTransaction": "Залишити транзакцію рахунку (позначити як поза гаманцем)",
+        "keepLinkedTransaction": "Залишити транзакцію рахунку. Деталі оригінальної транзакції будуть відновлені.",
         "deleteLinkedTransaction": "Також видалити пов'язану транзакцію рахунку"
       },
       "buysSells": {

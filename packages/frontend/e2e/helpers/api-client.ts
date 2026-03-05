@@ -187,6 +187,52 @@ export async function setPortfolioCash({
   });
 }
 
+// ─── Transactions ────────────────────────────────────────────────────
+
+export async function createTransaction({
+  request,
+  accountId,
+  amount,
+  transactionType = 'expense',
+  categoryId = 1,
+}: {
+  request: APIRequestContext;
+  accountId: number;
+  amount: number;
+  transactionType?: 'expense' | 'income';
+  categoryId?: number;
+}) {
+  return apiPost({
+    request,
+    path: '/api/v1/transactions',
+    data: {
+      accountId,
+      amount,
+      transactionType,
+      categoryId,
+      transferNature: 'not_transfer',
+      paymentType: 'creditCard',
+      time: new Date().toISOString(),
+    },
+  });
+}
+
+export async function linkTransactionToPortfolio({
+  request,
+  transactionId,
+  portfolioId,
+}: {
+  request: APIRequestContext;
+  transactionId: number;
+  portfolioId: number;
+}) {
+  return apiPost({
+    request,
+    path: `/api/v1/transactions/${transactionId}/link-to-portfolio`,
+    data: { portfolioId },
+  });
+}
+
 // ─── Holdings ────────────────────────────────────────────────────────
 
 export async function createHolding({

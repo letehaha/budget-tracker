@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PickTransactionDialog from '@/components/dialogs/pick-transaction-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
@@ -6,19 +7,22 @@ import TextareaField from '@/components/fields/textarea-field.vue';
 import * as AlertDialog from '@/components/lib/ui/alert-dialog';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { useFormatCurrency } from '@/composable';
 import {
   type TransferContext,
   type TransferType,
   useAccountToPortfolioTransfer,
   useCreatePortfolioTransfer,
+  useLinkTransactionToPortfolio,
   usePortfolioToAccountTransfer,
 } from '@/composable/data-queries/portfolio-transfers';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { useFormValidation } from '@/composable/form-validator';
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
-import { AccountModel, PortfolioModel, UserCurrencyModel } from '@bt/shared/types';
+import { AccountModel, PortfolioModel, TRANSACTION_TYPES, TransactionModel, UserCurrencyModel } from '@bt/shared/types';
+import { X } from 'lucide-vue-next';
 import { minValue, required } from '@vuelidate/validators';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
@@ -45,7 +49,7 @@ const emit = defineEmits<Emit>();
 const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
-const { systemAccounts } = storeToRefs(useAccountsStore());
+const { systemAccounts, accountsRecord } = storeToRefs(useAccountsStore());
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { data: portfolios } = usePortfolios();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
@@ -53,6 +57,7 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
 const createTransferMutation = useCreatePortfolioTransfer();
 const accountToPortfolioMutation = useAccountToPortfolioTransfer();
 const portfolioToAccountMutation = usePortfolioToAccountTransfer();
+const linkToPortfolioMutation = useLinkTransactionToPortfolio();
 
 // Form state
 const form = reactive<{
@@ -79,6 +84,21 @@ const form = reactive<{
 
 // Computed values for easier access
 const transferType = computed(() => form.transferTypeOption?.value || 'portfolio-to-portfolio');
+
+// Link existing transaction state
+const linkedTransaction = ref<TransactionModel | null>(null);
+const isPickerOpen = ref(false);
+const isLinkExistingTx = computed(() => !!linkedTransaction.value);
+
+const supportsLinking = computed(
+  () => transferType.value === 'portfolio-to-account' || transferType.value === 'account-to-portfolio',
+);
+
+const pickerTransactionType = computed(() => {
+  if (transferType.value === 'portfolio-to-account') return TRANSACTION_TYPES.income;
+  if (transferType.value === 'account-to-portfolio') return TRANSACTION_TYPES.expense;
+  return undefined;
+});
 
 // Transfer type options based on context
 const transferTypeOptions = computed(() => {
@@ -122,6 +142,7 @@ const confirmDialogData = ref<{
   to: string;
   amount: string;
   currency: string;
+  action: string;
 } | null>(null);
 
 // Available options based on transfer type and selections
@@ -137,6 +158,7 @@ const availableToPortfolios = computed(() => {
 
 const availableFromAccounts = computed(() => {
   if (props.context === 'portfolio') return [];
+  if (transferType.value !== 'account-to-portfolio') return [];
   return systemAccounts.value.filter((a) => a.id !== form.toAccount?.id);
 });
 
@@ -236,6 +258,7 @@ watch(
     if (newType === 'portfolio-to-portfolio') {
       form.fromAccount = null;
       form.toAccount = null;
+      linkedTransaction.value = null;
     } else if (newType === 'portfolio-to-account') {
       form.toPortfolio = null;
       form.fromAccount = null;
@@ -257,11 +280,19 @@ const resetForm = () => {
   form.selectedCurrency = null;
   form.date = new Date();
   form.description = '';
+  linkedTransaction.value = null;
 
   resetValidation();
 };
 
 const validateForm = (): boolean => {
+  if (isLinkExistingTx.value) {
+    touchField('form.transferTypeOption');
+    if (!linkedTransaction.value) return false;
+    if (!form.fromPortfolio && !form.toPortfolio) return false;
+    return true;
+  }
+
   touchField('form.transferTypeOption');
   touchField('form.amount');
   touchField('form.selectedCurrency');
@@ -278,27 +309,50 @@ const validateForm = (): boolean => {
   return isFormValid('form');
 };
 
+const getTransferAction = (): string => {
+  if (transferType.value === 'portfolio-to-portfolio') {
+    return t('forms.portfolioTransfer.confirmDialog.actionTransfer');
+  } else if (transferType.value === 'portfolio-to-account') {
+    return t('forms.portfolioTransfer.confirmDialog.actionWithdrawal');
+  }
+  return t('forms.portfolioTransfer.confirmDialog.actionDeposit');
+};
+
 const prepareConfirmationData = () => {
   let fromName = '';
   let toName = '';
+  let amount: string;
+  let currency: string;
 
-  if (transferType.value === 'portfolio-to-portfolio') {
-    fromName = form.fromPortfolio?.name || '';
-    toName = form.toPortfolio?.name || '';
-  } else if (transferType.value === 'portfolio-to-account') {
-    fromName = form.fromPortfolio?.name || '';
-    toName = form.toAccount?.name || '';
-  } else if (transferType.value === 'account-to-portfolio') {
-    fromName = form.fromAccount?.name || '';
-    toName = form.toPortfolio?.name || '';
+  if (isLinkExistingTx.value && linkedTransaction.value) {
+    const tx = linkedTransaction.value;
+    amount = formatAmountByCurrencyCode(tx.amount, tx.currencyCode);
+    currency = tx.currencyCode;
+
+    if (transferType.value === 'portfolio-to-account') {
+      fromName = form.fromPortfolio?.name || '';
+      toName = accountsRecord.value[tx.accountId]?.name || t('forms.portfolioTransfer.linkedTransactionLabel');
+    } else {
+      fromName = accountsRecord.value[tx.accountId]?.name || t('forms.portfolioTransfer.linkedTransactionLabel');
+      toName = form.toPortfolio?.name || '';
+    }
+  } else {
+    if (transferType.value === 'portfolio-to-portfolio') {
+      fromName = form.fromPortfolio?.name || '';
+      toName = form.toPortfolio?.name || '';
+    } else if (transferType.value === 'portfolio-to-account') {
+      fromName = form.fromPortfolio?.name || '';
+      toName = form.toAccount?.name || '';
+    } else if (transferType.value === 'account-to-portfolio') {
+      fromName = form.fromAccount?.name || '';
+      toName = form.toPortfolio?.name || '';
+    }
+
+    amount = formatAmountByCurrencyCode(Number(form.amount), form.selectedCurrency?.currency!.code!);
+    currency = form.selectedCurrency?.currency!.code || '';
   }
 
-  confirmDialogData.value = {
-    from: fromName,
-    to: toName,
-    amount: formatAmountByCurrencyCode(Number(form.amount), form.selectedCurrency?.currency!.code!),
-    currency: form.selectedCurrency?.currency!.code || '',
-  };
+  confirmDialogData.value = { from: fromName, to: toName, amount, currency, action: getTransferAction() };
 };
 
 const onSubmit = () => {
@@ -312,35 +366,44 @@ const confirmTransfer = async () => {
   try {
     showConfirmDialog.value = false;
 
-    const dateStr = form.date.toISOString().split('T')[0]!;
-    const amount = String(form.amount);
+    if (isLinkExistingTx.value && linkedTransaction.value) {
+      const portfolioId = transferType.value === 'portfolio-to-account' ? form.fromPortfolio!.id : form.toPortfolio!.id;
 
-    if (transferType.value === 'portfolio-to-portfolio') {
-      await createTransferMutation.mutateAsync({
-        fromPortfolioId: form.fromPortfolio!.id,
-        toPortfolioId: form.toPortfolio!.id,
-        currencyCode: form.selectedCurrency!.currencyCode,
-        amount,
-        date: dateStr,
-        description: form.description || undefined,
-      });
-    } else if (transferType.value === 'portfolio-to-account') {
-      await portfolioToAccountMutation.mutateAsync({
-        portfolioId: form.fromPortfolio!.id,
-        accountId: form.toAccount!.id,
-        amount,
-        currencyCode: form.selectedCurrency!.currencyCode,
-        date: dateStr,
-        description: form.description || undefined,
+      await linkToPortfolioMutation.mutateAsync({
+        transactionId: linkedTransaction.value.id,
+        portfolioId,
       });
     } else {
-      await accountToPortfolioMutation.mutateAsync({
-        portfolioId: form.toPortfolio!.id,
-        accountId: form.fromAccount!.id,
-        amount,
-        date: dateStr,
-        description: form.description || undefined,
-      });
+      const dateStr = form.date.toISOString().split('T')[0]!;
+      const amount = String(form.amount);
+
+      if (transferType.value === 'portfolio-to-portfolio') {
+        await createTransferMutation.mutateAsync({
+          fromPortfolioId: form.fromPortfolio!.id,
+          toPortfolioId: form.toPortfolio!.id,
+          currencyCode: form.selectedCurrency!.currencyCode,
+          amount,
+          date: dateStr,
+          description: form.description || undefined,
+        });
+      } else if (transferType.value === 'portfolio-to-account') {
+        await portfolioToAccountMutation.mutateAsync({
+          portfolioId: form.fromPortfolio!.id,
+          accountId: form.toAccount!.id,
+          amount,
+          currencyCode: form.selectedCurrency!.currencyCode,
+          date: dateStr,
+          description: form.description || undefined,
+        });
+      } else {
+        await accountToPortfolioMutation.mutateAsync({
+          portfolioId: form.toPortfolio!.id,
+          accountId: form.fromAccount!.id,
+          amount,
+          date: dateStr,
+          description: form.description || undefined,
+        });
+      }
     }
 
     addNotification({
@@ -363,18 +426,26 @@ const isAnyMutationPending = computed(
   () =>
     createTransferMutation.isPending.value ||
     accountToPortfolioMutation.isPending.value ||
-    portfolioToAccountMutation.isPending.value,
+    portfolioToAccountMutation.isPending.value ||
+    linkToPortfolioMutation.isPending.value,
 );
 
-const isSubmitDisabled = computed(
-  () =>
-    props.disabled ||
-    isAnyMutationPending.value ||
+const isSubmitDisabled = computed(() => {
+  if (props.disabled || isAnyMutationPending.value) return true;
+
+  if (isLinkExistingTx.value) {
+    if (!linkedTransaction.value) return true;
+    if (!form.fromPortfolio && !form.toPortfolio) return true;
+    return false;
+  }
+
+  return (
     !form.amount ||
     !form.selectedCurrency ||
     (!form.fromPortfolio && !form.fromAccount) ||
-    (!form.toPortfolio && !form.toAccount),
-);
+    (!form.toPortfolio && !form.toAccount)
+  );
+});
 </script>
 
 <template>
@@ -423,7 +494,7 @@ const isSubmitDisabled = computed(
     />
 
     <SelectField
-      v-if="showToAccount"
+      v-if="showToAccount && !isLinkExistingTx"
       v-model="form.toAccount"
       :label="$t('forms.portfolioTransfer.toAccountLabel')"
       :values="availableToAccounts"
@@ -433,44 +504,75 @@ const isSubmitDisabled = computed(
       :disabled="isAnyMutationPending || disabled"
     />
 
-    <SelectField
-      v-if="transferType !== 'account-to-portfolio'"
-      v-model="form.selectedCurrency"
-      :label="$t('forms.portfolioTransfer.currencyLabel')"
-      :values="currencies || []"
-      value-key="currencyCode"
-      :label-key="(currency: UserCurrencyModel) => currency.currency!.code"
-      :placeholder="$t('forms.portfolioTransfer.currencyPlaceholder')"
-      :disabled="isAnyMutationPending || disabled"
-      :error-message="getFieldErrorMessage('form.selectedCurrency')"
-    />
+    <!-- Link existing transaction -->
+    <template v-if="supportsLinking">
+      <div v-if="!linkedTransaction">
+        <UiButton
+          type="button"
+          variant="outline"
+          class="w-full"
+          :disabled="isAnyMutationPending || disabled"
+          @click="isPickerOpen = true"
+        >
+          {{ $t('forms.portfolioTransfer.linkExistingTransaction') }}
+        </UiButton>
+      </div>
+      <div v-else class="flex items-center gap-2">
+        <div class="min-w-0 flex-1">
+          <TransactionRecord :tx="linkedTransaction" :as-button="false" />
+        </div>
+        <UiButton type="button" variant="ghost" size="icon" class="size-8 shrink-0" @click="linkedTransaction = null">
+          <X :size="16" />
+        </UiButton>
+      </div>
+      <PickTransactionDialog
+        v-model:open="isPickerOpen"
+        :transaction-type="pickerTransactionType"
+        @select="(tx: TransactionModel) => (linkedTransaction = tx)"
+      />
+    </template>
 
-    <InputField
-      v-model="form.amount"
-      :label="amountLabel"
-      type="number"
-      step="0.01"
-      min="0.01"
-      :placeholder="$t('forms.portfolioTransfer.amountPlaceholder')"
-      :disabled="isAnyMutationPending || disabled"
-      :error="getFieldErrorMessage('form.amount')"
-      @blur="touchField('form.amount')"
-    />
+    <!-- Regular transfer fields (hidden when linking) -->
+    <template v-if="!isLinkExistingTx">
+      <SelectField
+        v-if="transferType !== 'account-to-portfolio'"
+        v-model="form.selectedCurrency"
+        :label="$t('forms.portfolioTransfer.currencyLabel')"
+        :values="currencies || []"
+        value-key="currencyCode"
+        :label-key="(currency: UserCurrencyModel) => currency.currency!.code"
+        :placeholder="$t('forms.portfolioTransfer.currencyPlaceholder')"
+        :disabled="isAnyMutationPending || disabled"
+        :error-message="getFieldErrorMessage('form.selectedCurrency')"
+      />
 
-    <DateField
-      v-model="form.date"
-      :label="$t('forms.portfolioTransfer.dateLabel')"
-      :disabled="isAnyMutationPending || disabled"
-      :error-message="getFieldErrorMessage('form.date')"
-      @blur="touchField('form.date')"
-    />
+      <InputField
+        v-model="form.amount"
+        :label="amountLabel"
+        type="number"
+        step="0.01"
+        min="0.01"
+        :placeholder="$t('forms.portfolioTransfer.amountPlaceholder')"
+        :disabled="isAnyMutationPending || disabled"
+        :error="getFieldErrorMessage('form.amount')"
+        @blur="touchField('form.amount')"
+      />
 
-    <TextareaField
-      v-model="form.description"
-      :label="$t('forms.portfolioTransfer.descriptionLabel')"
-      :placeholder="$t('forms.portfolioTransfer.descriptionPlaceholder')"
-      :disabled="isAnyMutationPending || disabled"
-    />
+      <DateField
+        v-model="form.date"
+        :label="$t('forms.portfolioTransfer.dateLabel')"
+        :disabled="isAnyMutationPending || disabled"
+        :error-message="getFieldErrorMessage('form.date')"
+        @blur="touchField('form.date')"
+      />
+
+      <TextareaField
+        v-model="form.description"
+        :label="$t('forms.portfolioTransfer.descriptionLabel')"
+        :placeholder="$t('forms.portfolioTransfer.descriptionPlaceholder')"
+        :disabled="isAnyMutationPending || disabled"
+      />
+    </template>
 
     <div class="flex justify-end gap-4">
       <UiButton type="button" variant="secondary" @click="emit('cancel')" :disabled="isAnyMutationPending || disabled">
@@ -495,6 +597,9 @@ const isSubmitDisabled = computed(
             <i18n-t keypath="forms.portfolioTransfer.confirmDialog.description" tag="span">
               <template #amount>
                 <strong>{{ confirmDialogData?.amount }}</strong>
+              </template>
+              <template #action>
+                <span>{{ confirmDialogData?.action }}</span>
               </template>
               <template #from>
                 <strong>{{ confirmDialogData?.from }}</strong>

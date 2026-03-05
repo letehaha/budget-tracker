@@ -27,7 +27,8 @@
       "emptyState": "No cash balances",
       "tabs": {
         "overview": "Overview",
-        "cashTransactions": "Cash Transactions",
+        "balances": "Balances",
+        "cashTransactions": "Transactions",
         "buysSells": "Buys & Sells"
       },
       "cashTransactions": {
@@ -39,7 +40,7 @@
         "transferOut": "Transfer Out",
         "deleteConfirm": "Delete this cash transaction?",
         "linkedTransactionNote": "This transfer has a linked account transaction. What would you like to do with it?",
-        "keepLinkedTransaction": "Keep account transaction (mark as out of wallet)",
+        "keepLinkedTransaction": "Keep account transaction. Original transaction details will be restored.",
         "deleteLinkedTransaction": "Also delete the linked account transaction"
       },
       "buysSells": {

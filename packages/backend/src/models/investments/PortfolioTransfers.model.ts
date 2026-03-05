@@ -100,6 +100,9 @@ export default class PortfolioTransfers extends Model {
   @BelongsTo(() => Currencies)
   currency?: Currencies;
 
+  @Column({ type: DataType.JSONB, allowNull: true, defaultValue: null })
+  metaData!: Record<string, unknown> | null;
+
   @ForeignKey(() => Transactions)
   @Index
   @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: null, onDelete: 'SET NULL' })

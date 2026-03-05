@@ -4,7 +4,9 @@ import { NotFoundError, ValidationError } from '@js/errors';
 import * as Accounts from '@models/Accounts.model';
 import Currencies from '@models/Currencies.model';
 import Portfolios from '@models/investments/Portfolios.model';
+import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
 import { Big } from 'big.js';
 
 export function validatePositiveAmount({ amount }: { amount: string }): void {
@@ -66,6 +68,42 @@ export async function findCurrencyOrThrow({ currencyCode }: { currencyCode: stri
   }
 
   return currency;
+}
+
+export function negateAmount({ amount }: { amount: string }): string {
+  return new Big(amount).times(-1).toFixed(10);
+}
+
+export async function reverseTransferBalanceChanges({
+  transfer,
+  userId,
+}: {
+  transfer: PortfolioTransfers;
+  userId: number;
+}): Promise<void> {
+  const amount = transfer.amount.toDecimalString(10);
+  const { currencyCode } = transfer;
+
+  if (transfer.fromPortfolioId) {
+    await updatePortfolioBalance({
+      userId,
+      portfolioId: transfer.fromPortfolioId,
+      currencyCode,
+      availableCashDelta: amount,
+      totalCashDelta: amount,
+    });
+  }
+
+  if (transfer.toPortfolioId) {
+    const negated = negateAmount({ amount });
+    await updatePortfolioBalance({
+      userId,
+      portfolioId: transfer.toPortfolioId,
+      currencyCode,
+      availableCashDelta: negated,
+      totalCashDelta: negated,
+    });
+  }
 }
 
 export async function computeRefAmount({

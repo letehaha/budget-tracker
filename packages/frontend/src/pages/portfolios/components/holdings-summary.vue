@@ -1,5 +1,5 @@
 <template>
-  <Card>
+  <Card class="min-w-0">
     <CardHeader class="pb-4">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-3">

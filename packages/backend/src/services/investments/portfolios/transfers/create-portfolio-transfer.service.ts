@@ -5,12 +5,12 @@ import Portfolios from '@models/investments/Portfolios.model';
 import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
-import { Big } from 'big.js';
 
 import {
   computeRefAmount,
   findCurrencyOrThrow,
   findPortfolioOrThrow,
+  negateAmount,
   validatePositiveAmount,
 } from './transfer-validations';
 
@@ -61,12 +61,13 @@ const createPortfolioTransferImpl = async ({
 
   // Update portfolio balances
   // Subtract from source portfolio
+  const negated = negateAmount({ amount });
   await updatePortfolioBalance({
     userId,
     portfolioId: fromPortfolioId,
     currencyCode,
-    availableCashDelta: new Big(amount).times(-1).toFixed(10),
-    totalCashDelta: new Big(amount).times(-1).toFixed(10),
+    availableCashDelta: negated,
+    totalCashDelta: negated,
   });
 
   // Add to destination portfolio

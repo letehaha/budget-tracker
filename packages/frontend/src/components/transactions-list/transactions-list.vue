@@ -18,7 +18,7 @@ import TransactionRecord from './transaction-record.vue';
 
 const { t } = useI18n();
 
-const ManageTransactionDoalogContent = defineAsyncComponent(
+const ManageTransactionDialogContent = defineAsyncComponent(
   () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
 );
 
@@ -60,6 +60,10 @@ const dialogProps = ref<{
 watch(isDialogVisible, (value) => {
   if (value === false) dialogProps.value = defaultDialogProps;
 });
+
+const isCompactDialog = computed(
+  () => dialogProps.value.transaction?.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+);
 
 const handlerRecordClick = ([baseTx, oppositeTx]: [
   baseTx: TransactionModel,
@@ -308,7 +312,7 @@ watchEffect(() => {
     </template>
 
     <UseDialogTemplate>
-      <ManageTransactionDoalogContent v-bind="dialogProps" @close-modal="isDialogVisible = false" />
+      <ManageTransactionDialogContent v-bind="dialogProps" @close-modal="isDialogVisible = false" />
     </UseDialogTemplate>
 
     <template v-if="isMobile">
@@ -324,7 +328,10 @@ watchEffect(() => {
     </template>
     <template v-else>
       <Dialog.Dialog v-model:open="isDialogVisible">
-        <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-225 p-0">
+        <Dialog.DialogContent
+          custom-close
+          :class="['bg-card max-h-[90dvh] w-full p-0', isCompactDialog ? 'max-w-lg' : 'max-w-225']"
+        >
           <Dialog.DialogTitle class="sr-only">{{ t('transactions.list.detailsTitle') }}</Dialog.DialogTitle>
           <Dialog.DialogDescription class="sr-only">{{
             t('transactions.list.detailsDescription')

@@ -69,7 +69,10 @@
       "submitButtonLoading": "Processing...",
       "confirmDialog": {
         "title": "Confirm Transfer",
-        "description": "Are you sure you want to transfer {amount} {currency} from {from} to {to}?",
+        "description": "A {amount} {action} will be created from {from} to {to}",
+        "actionTransfer": "transfer",
+        "actionWithdrawal": "withdrawal",
+        "actionDeposit": "deposit",
         "warning": "This action cannot be undone.",
         "cancelButton": "Cancel",
         "confirmButton": "Confirm Transfer"
@@ -82,7 +85,9 @@
         "comingSoon": "Account-to-portfolio transfers are coming in a future update!",
         "success": "Transfer completed successfully.",
         "error": "Transfer failed. Please try again."
-      }
+      },
+      "linkExistingTransaction": "Link existing transaction",
+      "linkedTransactionLabel": "Transaction"
     },
     "createAccount": {
       "nameLabel": "Account name",
@@ -104,9 +109,20 @@
       }
     },
     "directCashTransaction": {
-      "typeLabel": "Transaction Type",
-      "typeDeposit": "Deposit",
-      "typeWithdrawal": "Withdrawal",
+      "methodTypes": {
+        "direct": "Direct",
+        "transfer": "Transfer"
+      },
+      "operationTypes": {
+        "deposit": "Deposit",
+        "withdrawal": "Withdrawal"
+      },
+      "fromAccountLabel": "From Account",
+      "toAccountLabel": "To Account",
+      "accountPlaceholder": "Select account",
+      "orSeparator": "or",
+      "linkExistingTransaction": "Link existing transaction",
+      "linkedTransactionLabel": "Linked transaction",
       "amountLabel": "Amount",
       "amountPlaceholder": "Enter amount",
       "currencyLabel": "Currency",
@@ -117,6 +133,14 @@
       "cancelButton": "Cancel",
       "submitButton": "Submit",
       "submitButtonLoading": "Submitting...",
+      "confirmDialog": {
+        "title": "Confirm Transfer",
+        "description": "A {amount} {action} will be created from {from} to {to}",
+        "cancelButton": "Cancel",
+        "confirmButton": "Confirm",
+        "actionDeposit": "deposit",
+        "actionWithdrawal": "withdrawal"
+      },
       "validation": {
         "required": "This field is required",
         "minValue": "Amount must be greater than 0"

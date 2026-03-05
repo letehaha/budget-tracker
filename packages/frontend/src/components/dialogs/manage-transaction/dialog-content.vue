@@ -29,6 +29,7 @@ import { useRoute } from 'vue-router';
 import AccountField from './components/account-field.vue';
 import FormRow from './components/form-row.vue';
 import LinkTransactionSection from './components/link-transaction-section.vue';
+import PortfolioLinkedView from './components/portfolio-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
@@ -77,6 +78,10 @@ const emit = defineEmits(['close-modal']);
 const closeModal = () => {
   emit('close-modal');
 };
+
+const isPortfolioLinkedView = computed(
+  () => !!props.transaction && props.transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+);
 
 const route = useRoute();
 const { t } = useI18n();
@@ -378,7 +383,12 @@ onUnmounted(() => {
     </template>
   </DefineMoreOptions>
 
-  <div class="rounded-t-xl">
+  <PortfolioLinkedView
+    v-if="$props.transaction && $props.transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio"
+    :transaction="$props.transaction"
+    @close-modal="closeModal"
+  />
+  <div v-else class="rounded-t-xl">
     <div
       :class="[
         'h-3 rounded-t-lg transition-[background-color] duration-200 ease-out',
