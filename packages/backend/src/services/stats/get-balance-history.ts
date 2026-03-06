@@ -58,32 +58,35 @@ export const getBalanceHistory = async ({
   let data = balancesInRange;
   const allAccountIds = allUserAccounts.map((acc) => acc.id);
 
-  // Extract account IDs for balance records which have the same date as the
-  // first record in the range. This is needed to make sure that we know the
-  // balance for each account for the beginning of the date range
-  const accountIdsInRange = balancesInRange
-    .filter((item) => item.date === balancesInRange[0]?.date)
-    .map((b) => b.accountId);
+  // Identify accounts that have NO balance records at all within the requested range.
+  // These accounts need a backfill entry from their latest pre-range (or earliest post-range)
+  // balance so the aggregation includes them.
+  //
+  // Accounts that DO have records in the range (even if not on the first date) are handled
+  // correctly by the aggregation's forward-fill logic — their first in-range value is used
+  // for all prior dates. We intentionally skip backfilling these accounts to avoid creating
+  // phantom balance spikes when the pre-range balance differs from the first in-range value
+  // (e.g., an account was $8,500 before the range but $0 on its first in-range record).
+  const accountIdsWithRecordsInRange = new Set(balancesInRange.map((b) => b.accountId));
+  const accountIdsWithNoRecords = allAccountIds.filter((id) => !accountIdsWithRecordsInRange.has(id));
 
-  const accountIdsNotInRange = allAccountIds.filter((id) => !accountIdsInRange.includes(id));
-
-  if (accountIdsNotInRange.length && (from || to)) {
+  if (accountIdsWithNoRecords.length && (from || to)) {
     const [balancesBeforeFrom, balancesAfterTo] = await Promise.all([
       // Get latest balance before 'from' date for each missing account
       from
         ? Balances.default.findAll({
             where: {
-              accountId: { [Op.in]: accountIdsNotInRange },
+              accountId: { [Op.in]: accountIdsWithNoRecords },
               date: { [Op.lt]: new Date(from) },
             },
             attributes: [...dataAttributes, 'id'],
           })
         : Promise.resolve([]),
-      // Get earliest balance after 'to' date with amount > 0 for each missing account
+      // Get earliest balance after 'to' date for each missing account
       to
         ? Balances.default.findAll({
             where: {
-              accountId: { [Op.in]: accountIdsNotInRange },
+              accountId: { [Op.in]: accountIdsWithNoRecords },
               date: { [Op.gt]: new Date(to) },
             },
             attributes: [...dataAttributes, 'id'],
@@ -120,11 +123,13 @@ export const getBalanceHistory = async ({
       items.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }
 
-    // For each missing account, find the latest "before" or earliest "after" balance
+    // For each account with no records in the range, find the latest "before" or
+    // earliest "after" balance. Inject at `from` so the aggregation forward-fills
+    // this balance across the entire range.
     const latestBalances: Balances.default[] = [];
-    const overrideDate = new Date(to ?? from ?? new Date());
+    const overrideDate = new Date(from ?? to ?? new Date());
 
-    for (const accountId of accountIdsNotInRange) {
+    for (const accountId of accountIdsWithNoRecords) {
       const beforeBalances = beforeByAccount.get(accountId);
       if (beforeBalances && beforeBalances.length > 0) {
         const b = beforeBalances[0]!;
