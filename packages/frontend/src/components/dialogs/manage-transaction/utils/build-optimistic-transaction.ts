@@ -1,6 +1,7 @@
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import type { TagModel, TransactionModel } from '@bt/shared/types';
 import type { InfiniteData, QueryClient } from '@tanstack/vue-query';
+import { toRaw } from 'vue';
 
 import { getTxTypeFromFormType } from '../helpers';
 import type { UI_FORM_STRUCT } from '../types';
@@ -14,14 +15,21 @@ interface BuildOptimisticTransactionParams {
 /**
  * Builds an optimistically updated transaction from form data.
  * Only updates fields that can be changed via the edit form.
+ *
+ * IMPORTANT: All values must be plain (non-reactive) to avoid storing Vue
+ * Proxy objects in the query cache, which would break structuredClone/JSON
+ * cloning in subsequent optimistic updates.
  */
 export const buildOptimisticTransaction = ({
   form,
   transaction,
   isRecordExternal,
 }: BuildOptimisticTransactionParams): TransactionModel => {
+  // Unwrap reactive proxy from transaction to get plain nested objects
+  const rawTransaction = toRaw(transaction);
+
   const updatedTransaction: TransactionModel = {
-    ...transaction,
+    ...rawTransaction,
     note: form.note ?? '',
     paymentType: form.paymentType!.value,
     updatedAt: new Date(),
@@ -30,9 +38,9 @@ export const buildOptimisticTransaction = ({
   // Only update certain fields for non-external transactions
   if (!isRecordExternal) {
     updatedTransaction.amount = Number(form.amount);
-    updatedTransaction.time = form.time;
+    updatedTransaction.time = new Date(form.time);
     updatedTransaction.transactionType = getTxTypeFromFormType(form.type);
-    updatedTransaction.accountId = form.account?.id ?? transaction.accountId;
+    updatedTransaction.accountId = form.account?.id ?? rawTransaction.accountId;
   }
 
   // Update category if not a transfer
@@ -42,10 +50,10 @@ export const buildOptimisticTransaction = ({
 
   // Update tags optimistically
   if (form.tagIds !== undefined) {
-    updatedTransaction.tags = form.tagIds.map(
+    updatedTransaction.tags = toRaw(form.tagIds).map(
       (id): TagModel => ({
         id,
-        userId: transaction.userId,
+        userId: rawTransaction.userId,
         name: '',
         color: '',
         icon: null,
@@ -96,8 +104,11 @@ export const applyOptimisticTransactionUpdate = ({
 
     if (!currentData) continue;
 
-    // Store previous data for rollback
-    previousQueries.set(queryKeyString, structuredClone(currentData));
+    // Store previous data for rollback.
+    // Use JSON clone instead of structuredClone because cache data may contain
+    // Vue reactive Proxies (from prior optimistic updates that haven't been
+    // replaced by a refetch yet), and structuredClone cannot handle Proxy objects.
+    previousQueries.set(queryKeyString, JSON.parse(JSON.stringify(currentData)));
 
     // Handle infinite query data (paginated lists)
     if (isInfiniteQueryData(currentData)) {
