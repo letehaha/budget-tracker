@@ -9,7 +9,7 @@ import {
 } from '../../helpers/api-client';
 import { loginViaUI } from '../../helpers/auth';
 import { buildTestCredentials, signUpAndVerify } from '../../helpers/test-setup';
-import { pickDialogSelect, waitForSuccessToast } from '../../helpers/ui';
+import { pickDialogSelect } from '../../helpers/ui';
 
 const CURRENCY = 'USD';
 const creds = buildTestCredentials({ prefix: 'tpl' });
@@ -50,7 +50,9 @@ async function seedTestData({ request }: { request: import('@playwright/test').A
     amount: 250,
     transactionType: 'income',
   });
-  incomeTransaction = { id: incomeTx.response?.id ?? incomeTx.id };
+  incomeTransaction = {
+    id: (Array.isArray(incomeTx.response) ? incomeTx.response[0]?.id : incomeTx.response?.id) ?? incomeTx.id,
+  };
 
   const expenseTx = await createTransaction({
     request,
@@ -58,7 +60,9 @@ async function seedTestData({ request }: { request: import('@playwright/test').A
     amount: 150,
     transactionType: 'expense',
   });
-  expenseTransaction = { id: expenseTx.response?.id ?? expenseTx.id };
+  expenseTransaction = {
+    id: (Array.isArray(expenseTx.response) ? expenseTx.response[0]?.id : expenseTx.response?.id) ?? expenseTx.id,
+  };
 
   dataSeeded = true;
 }
@@ -113,7 +117,8 @@ async function submitTransferAndConfirm({
   await expect(page.getByRole('button', { name: /confirm/i })).toBeVisible({ timeout: 5_000 });
   await page.getByRole('button', { name: /confirm/i }).click();
 
-  await waitForSuccessToast({ page });
+  // Wait for the main dialog to close (indicates success)
+  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 15_000 });
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────

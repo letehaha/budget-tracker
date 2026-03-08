@@ -46,7 +46,7 @@ async function seedTestData({ request }: { request: import('@playwright/test').A
     amount: 500,
     transactionType: 'expense',
   });
-  linkedTxId = tx.response?.id ?? tx.id;
+  linkedTxId = (Array.isArray(tx.response) ? tx.response[0]?.id : tx.response?.id) ?? tx.id;
 
   await linkTransactionToPortfolio({
     request,

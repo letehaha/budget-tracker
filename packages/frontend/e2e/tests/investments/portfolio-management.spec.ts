@@ -51,15 +51,7 @@ async function seedTestData({ request }: { request: import('@playwright/test').A
 // ─── UI helpers specific to this suite ───────────────────────────────
 
 async function openCashTransactionDialog({ page }: { page: import('@playwright/test').Page }): Promise<void> {
-  await page.locator('button[data-value="cash-transactions"]').click();
-
-  const addBtn = page
-    .locator('button[data-value="cash-transactions"]')
-    .locator('xpath=ancestor::div[contains(@class,"mt-6")]')
-    .getByRole('button')
-    .filter({ hasText: /add/i });
-  await addBtn.click();
-
+  await page.getByRole('button', { name: /add cash transaction/i }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
 }
 
@@ -127,13 +119,14 @@ test.describe('Portfolio Management', () => {
       const dialog = page.getByRole('dialog');
       await expect(dialog.locator('form')).toBeVisible({ timeout: 10_000 });
 
-      await pickDialogSelect({ page, nth: 0, optionName: /deposit/i });
+      // Deposit is the default PillTabs selection — no combobox pick needed
       await dialog.locator('input[type="number"]').fill('500');
-      await pickDialogSelect({ page, nth: 1, optionName: CURRENCY });
+      await pickDialogSelect({ page, nth: 0, optionName: CURRENCY });
 
       await dialog.locator('button[type="submit"]').click();
       await waitForSuccessToast({ page });
 
+      await page.locator('button[data-value="cash-transactions"]').click();
       await expect(page.locator('text=/\\+\\$500/')).toBeVisible({ timeout: 10_000 });
     });
 
@@ -144,13 +137,15 @@ test.describe('Portfolio Management', () => {
       await openCashTransactionDialog({ page });
 
       const dialog = page.getByRole('dialog');
-      await pickDialogSelect({ page, nth: 0, optionName: /withdrawal/i });
+      // Select withdrawal via PillTabs button instead of combobox
+      await dialog.getByRole('button', { name: /withdrawal/i }).click();
       await dialog.locator('input[type="number"]').fill('200');
-      await pickDialogSelect({ page, nth: 1, optionName: CURRENCY });
+      await pickDialogSelect({ page, nth: 0, optionName: CURRENCY });
 
       await dialog.locator('button[type="submit"]').click();
       await waitForSuccessToast({ page });
 
+      await page.locator('button[data-value="cash-transactions"]').click();
       await expect(page.locator('text=/-\\$200/')).toBeVisible({ timeout: 10_000 });
     });
 
@@ -160,10 +155,7 @@ test.describe('Portfolio Management', () => {
 
       await page.locator('button[data-value="cash-transactions"]').click();
 
-      const cashTxContent = page
-        .locator('button[data-value="cash-transactions"]')
-        .locator('xpath=ancestor::div[contains(@class,"mt-6")]')
-        .locator('.divide-y');
+      const cashTxContent = page.locator('.divide-y');
       const transactionRows = cashTxContent.locator('> div');
       await expect(transactionRows.first()).toBeVisible({ timeout: 10_000 });
 

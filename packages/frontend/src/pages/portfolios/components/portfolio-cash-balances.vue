@@ -13,6 +13,13 @@
             {{ $t('portfolioDetail.cashBalances.cashTransactions.addButton') }}
           </UiButton>
         </DirectCashTransactionDialog>
+
+        <PortfolioTransferDialog :portfolio="portfolio" context="portfolio">
+          <UiButton variant="outline" size="sm">
+            <ArrowRightLeftIcon class="mr-2 size-4" />
+            {{ $t('portfolioDetail.actions.transfer') }}
+          </UiButton>
+        </PortfolioTransferDialog>
       </div>
     </CardHeader>
     <CardContent class="pt-0">
@@ -33,10 +40,11 @@
 
 <script setup lang="ts">
 import DirectCashTransactionDialog from '@/components/dialogs/direct-cash-transaction-dialog.vue';
+import PortfolioTransferDialog from '@/components/dialogs/portfolio-transfer-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/lib/ui/card';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
-import { PlusIcon, WalletIcon } from 'lucide-vue-next';
+import { ArrowRightLeftIcon, PlusIcon, WalletIcon } from 'lucide-vue-next';
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 

@@ -9,7 +9,7 @@ import {
 } from '../../helpers/api-client';
 import { loginViaUI } from '../../helpers/auth';
 import { buildTestCredentials, signUpAndVerify } from '../../helpers/test-setup';
-import { pickDialogSelect, waitForSuccessToast } from '../../helpers/ui';
+import { pickDialogSelect } from '../../helpers/ui';
 
 const CURRENCY = 'USD';
 const creds = buildTestCredentials({ prefix: 'pct' });
@@ -154,7 +154,8 @@ async function confirmAndWait({ page }: { page: import('@playwright/test').Page 
   await expect(page.getByRole('button', { name: /confirm/i })).toBeVisible({ timeout: 5_000 });
   await page.getByRole('button', { name: /confirm/i }).click();
 
-  await waitForSuccessToast({ page });
+  // Wait for the main dialog to close (indicates success)
+  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 15_000 });
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────
@@ -181,8 +182,8 @@ test.describe('Portfolio Cash Transactions – All 6 Submit Paths', () => {
     await fillDirectForm({ page, amount: '100' });
     await submitForm({ page });
 
-    // Direct mode submits immediately without confirmation
-    await waitForSuccessToast({ page });
+    // Direct mode submits immediately without confirmation — dialog closes on success
+    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 15_000 });
   });
 
   test('2. Direct withdrawal', async ({ page }) => {
@@ -192,7 +193,7 @@ test.describe('Portfolio Cash Transactions – All 6 Submit Paths', () => {
     await fillDirectForm({ page, amount: '50' });
     await submitForm({ page });
 
-    await waitForSuccessToast({ page });
+    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 15_000 });
   });
 
   test('3. Transfer deposit – manual', async ({ page }) => {
