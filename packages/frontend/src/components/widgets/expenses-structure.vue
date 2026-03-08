@@ -140,7 +140,7 @@ import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { useMediaQuery } from '@vueuse/core';
 import * as d3 from 'd3';
-import { differenceInDays, format, isSameMonth, subDays } from 'date-fns';
+import { differenceInDays, endOfMonth, format, isSameMonth, startOfMonth, subDays, subMonths } from 'date-fns';
 import { ChartPieIcon, CircleOffIcon, ExternalLinkIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, nextTick, onUnmounted, reactive, ref, watch } from 'vue';
@@ -261,11 +261,22 @@ const { data: currentMonthExpense, isFetching: isCurrentMonthExpenseFetching } =
   placeholderData: (previousData) => previousData || 0,
 });
 
-// Calculate previous period with the same duration, ending right before current period starts
+// Calculate previous period. For full-month selections, use the full previous month
+// to avoid skipping days (e.g., Feb 28 days vs Jan 31 days).
+// For custom date ranges, fall back to same-duration comparison.
 const prevPeriod = computed(() => {
-  const durationInDays = differenceInDays(props.selectedPeriod.to, props.selectedPeriod.from) + 1;
-  const prevTo = subDays(props.selectedPeriod.from, 1); // Day before current period starts
-  const prevFrom = subDays(props.selectedPeriod.from, durationInDays);
+  const { from, to } = props.selectedPeriod;
+
+  const isFullMonth = isSameMonth(from, to) && from.getDate() === 1 && to.getDate() === endOfMonth(to).getDate();
+
+  if (isFullMonth) {
+    const prevMonth = subMonths(from, 1);
+    return { from: startOfMonth(prevMonth), to: endOfMonth(prevMonth) };
+  }
+
+  const durationInDays = differenceInDays(to, from) + 1;
+  const prevTo = subDays(from, 1);
+  const prevFrom = subDays(from, durationInDays);
 
   return { from: prevFrom, to: prevTo };
 });
