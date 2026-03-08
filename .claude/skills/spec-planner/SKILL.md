@@ -1,7 +1,7 @@
 ---
-name: Spec Planner
+name: spec-planner
 description: Deep-dive specification planner. Interviews you thoroughly about new features, refactoring, or any work requiring planning. Use when you want to plan new functionality, refactor existing code, design architecture, or create detailed specifications. Triggers on "plan", "spec", "design", "architect", or when you mention wanting to think through implementation details.
-allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, AskUserQuestion]
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, AskUserQuestion
 ---
 
 # Spec Planner
@@ -45,67 +45,15 @@ Do NOT activate for:
 
 Use `AskUserQuestion` tool repeatedly to probe deeply. Structure your questions across these dimensions:
 
-#### Technical Implementation Questions
+Consult `references/interview-questions.md` for the full question bank. Cover these dimensions:
 
-- What happens when [edge case X] occurs?
-- How should this interact with [existing system Y]?
-- What's the expected behavior under [failure condition Z]?
-- Should this be synchronous or asynchronous? Why?
-- What are the performance constraints or expectations?
-- How will this handle concurrent operations?
-- What's the rollback strategy if something fails mid-operation?
-- How should validation work? Client-side, server-side, or both?
-- What data migrations (if any) are needed?
-- How will this affect existing API contracts?
-
-#### UI/UX Questions
-
-- What should the user see while waiting for [operation X]?
-- How should errors be communicated to the user?
-- What's the expected flow if the user [does unexpected action Y]?
-- Should there be confirmation dialogs? For which actions?
-- How does this fit into the existing navigation patterns?
-- What accessibility considerations matter here?
-- How should this behave on mobile vs desktop?
-- What happens if the user navigates away mid-operation?
-
-#### Data & State Questions
-
-- What's the source of truth for this data?
-- How should stale data be handled?
-- What caching strategy makes sense?
-- How should this data be persisted?
-- What happens to this data when [related entity] is deleted?
-- Are there any data consistency concerns across services/tables?
-
-#### Security & Privacy Questions
-
-- Who should have access to this feature/data?
-- Are there any rate limiting concerns?
-- What audit logging is needed?
-- How should sensitive data be handled?
-
-#### Integration & Dependencies Questions
-
-- What external services does this depend on?
-- How should failures in external services be handled?
-- Are there any third-party API limitations to consider?
-- How does this affect or interact with existing features?
-
-#### Tradeoffs & Alternatives Questions
-
-- Why this approach over [alternative approach]?
-- What are you willing to compromise on if time is limited?
-- Is there a simpler MVP version we should consider first?
-- What's the cost of getting this wrong?
-- Are there any known limitations we're accepting?
-
-#### Future Considerations Questions
-
-- How might this need to evolve in 6 months?
-- Are there related features that might affect this design?
-- What would make this hard to change later?
-- Should this be designed for extensibility or simplicity?
+- **Technical Implementation**: Edge cases, failure conditions, async vs sync, rollback, validation, migrations, API contracts
+- **UI/UX**: Loading states, error display, unexpected actions, confirmation dialogs, navigation, accessibility
+- **Data & State**: Source of truth, staleness, caching, persistence, cascading deletes, consistency
+- **Security & Privacy**: Access control, rate limiting, audit logging, sensitive data
+- **Integration & Dependencies**: External services, failure handling, API limitations, feature interactions
+- **Tradeoffs & Alternatives**: Approach justification, compromises, MVP scope, risk assessment
+- **Future Considerations**: Evolution path, related features, changeability, extensibility vs simplicity
 
 ### Phase 3: Clarification Rounds
 
@@ -168,3 +116,37 @@ Ask: "When showing the list of 500+ items, should we: (a) paginate with explicit
 - Include concrete examples where helpful
 - List explicit decisions made during the interview
 - Note any accepted limitations or future improvements deferred
+
+## Examples
+
+### Example 1: New feature spec
+
+User says: "I want to plan a recurring transactions feature"
+Actions:
+
+1. Read existing transaction-related code for context
+2. Interview user across all dimensions (3-4 rounds)
+3. Write spec to `docs/prds/recurring-transactions.md`
+   Result: Detailed spec covering technical design, edge cases, UI/UX, and implementation notes
+
+### Example 2: Refactoring spec
+
+User says: "Let's plan the migration from REST to tRPC"
+Actions:
+
+1. Explore current API structure and patterns
+2. Interview about scope, rollout strategy, backwards compatibility
+3. Write spec with phased migration plan
+   Result: Actionable spec with clear phases, dependencies, and risk assessment
+
+## Troubleshooting
+
+### User gives vague answers
+
+Cause: Questions are too open-ended or user hasn't thought through details yet
+Solution: Offer concrete options with tradeoffs instead of open-ended questions. Use the "Instead of X, ask Y" patterns.
+
+### Interview goes too long
+
+Cause: Too many dimensions explored at once
+Solution: Prioritize dimensions most relevant to the feature. Skip Security/Privacy for internal-only features, skip UI/UX for pure backend work.

@@ -1,7 +1,7 @@
 ---
 name: worktree
 description: Manage git worktrees for parallel Claude Code sessions. Use when user says "worktree", "create worktree", "parallel session", "new tree", or wants to work on multiple branches simultaneously.
-allowed-tools: [Bash, Glob, AskUserQuestion]
+allowed-tools: Bash, Glob, AskUserQuestion
 ---
 
 # Git Worktree Manager
@@ -150,3 +150,20 @@ git worktree list
 - Never remove the main worktree (one without `--` in directory name)
 - Preserve remote branches when removing (only delete local branch)
 - If branch already exists, ask user if they want to use existing or create new name
+
+## Troubleshooting
+
+### Error: "fatal: '<branch>' is already checked out at '<path>'"
+
+Cause: The branch is already in use by another worktree
+Solution: Use `git worktree list` to find the existing worktree, then either remove it or choose a different branch name.
+
+### Error: "fatal: a branch named '<branch>' already exists"
+
+Cause: Local branch with that name already exists
+Solution: Ask user if they want to reuse the existing branch or pick a new name.
+
+### Worktree remove fails with "contains modified or untracked files"
+
+Cause: There are uncommitted changes in the worktree
+Solution: Ask user for explicit confirmation before using `--force`. Warn about potential data loss.

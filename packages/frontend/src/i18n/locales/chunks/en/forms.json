@@ -172,7 +172,8 @@
       "allAccounts": "All accounts",
       "account": "account",
       "accountsSelected": "accounts selected",
-      "searchPlaceholder": "Search accounts..."
+      "searchPlaceholder": "Search accounts...",
+      "noResults": "No results found."
     },
     "comboboxCategories": {
       "searchPlaceholder": "Search categories...",

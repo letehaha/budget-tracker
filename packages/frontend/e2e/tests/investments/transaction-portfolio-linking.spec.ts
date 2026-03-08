@@ -16,8 +16,6 @@ const creds = buildTestCredentials({ prefix: 'tpl' });
 
 let portfolio: { id: number; name: string };
 let testAccount: { id: number; name: string };
-let incomeTransaction: { id: number };
-let expenseTransaction: { id: number };
 let dataSeeded = false;
 
 test.describe.configure({ mode: 'serial' });
@@ -44,25 +42,19 @@ async function seedTestData({ request }: { request: import('@playwright/test').A
   });
   testAccount = { id: acc.response?.id ?? acc.id, name: 'Link Test Account' };
 
-  const incomeTx = await createTransaction({
+  await createTransaction({
     request,
     accountId: testAccount.id,
     amount: 250,
     transactionType: 'income',
   });
-  incomeTransaction = {
-    id: (Array.isArray(incomeTx.response) ? incomeTx.response[0]?.id : incomeTx.response?.id) ?? incomeTx.id,
-  };
 
-  const expenseTx = await createTransaction({
+  await createTransaction({
     request,
     accountId: testAccount.id,
     amount: 150,
     transactionType: 'expense',
   });
-  expenseTransaction = {
-    id: (Array.isArray(expenseTx.response) ? expenseTx.response[0]?.id : expenseTx.response?.id) ?? expenseTx.id,
-  };
 
   dataSeeded = true;
 }
