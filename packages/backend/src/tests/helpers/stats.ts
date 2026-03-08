@@ -30,14 +30,44 @@ export async function getBalanceHistory<R extends boolean | undefined = undefine
   return result;
 }
 
-export const getSpendingsByCategories = async ({ raw = false }: { raw?: boolean } = {}) => {
+export const getSpendingsByCategories = async ({
+  raw = false,
+  from,
+  to,
+}: { raw?: boolean; from?: string; to?: string } = {}) => {
+  const params = new URLSearchParams();
+  if (from) params.append('from', from);
+  if (to) params.append('to', to);
+
   const result = await helpers.makeRequest({
     method: 'get',
-    url: '/stats/spendings-by-categories',
+    url: `/stats/spendings-by-categories${params.toString() ? `?${params.toString()}` : ''}`,
   });
 
   return raw ? helpers.extractResponse(result) : result;
 };
+
+export async function getExpensesAmountForPeriod<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  raw,
+}: {
+  from?: string;
+  to?: string;
+  raw?: R;
+}) {
+  const params = new URLSearchParams();
+  if (from) params.append('from', from);
+  if (to) params.append('to', to);
+
+  const result = await helpers.makeRequest<number, R>({
+    method: 'get',
+    url: `/stats/expenses-amount-for-period${params.toString() ? `?${params.toString()}` : ''}`,
+    raw,
+  });
+
+  return result;
+}
 
 export async function getEarliestTransactionDate<R extends boolean | undefined = undefined>({
   raw,
