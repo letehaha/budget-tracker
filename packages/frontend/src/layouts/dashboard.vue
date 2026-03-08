@@ -32,6 +32,7 @@
 </template>
 
 <script lang="ts" setup>
+import { useHead } from '@unhead/vue';
 import BottomNavbar from '@/components/bottom-navbar.vue';
 import { ScrollArea, ScrollBar } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
@@ -44,6 +45,10 @@ import { useCurrenciesStore, useOnboardingStore, useRootStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+
+useHead({
+  meta: [{ name: 'robots', content: 'noindex, nofollow' }],
+});
 
 const router = useRouter();
 const route = useRoute();

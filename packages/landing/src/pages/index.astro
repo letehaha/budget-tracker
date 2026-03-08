@@ -14,10 +14,58 @@ import GitHubActivity from '@/components/github-activity.vue';
 ---
 
 <BaseLayout
-  title="MoneyMatter - Take Control of Your Financial Future"
-  description="Track expenses, connect your banks, set budgets, and own your data. MoneyMatter is the open-source personal finance app that puts you in charge."
-  canonicalUrl={Astro.site?.origin || 'https://moneymatter.app'}
+  title="Free Open-Source Budget Tracker & Personal Finance App | MoneyMatter"
+  description="Free, open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host for full control or use our cloud — your data stays yours."
+  canonicalUrl="https://moneymatter.app/"
 >
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://moneymatter.app/#website",
+        "url": "https://moneymatter.app/",
+        "name": "MoneyMatter",
+        "description": "Free, open-source budget tracking app for personal finance management.",
+        "inLanguage": "en"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://moneymatter.app/#app",
+        "name": "MoneyMatter",
+        "description": "Free, open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host for full control or use our cloud — your data stays yours.",
+        "url": "https://moneymatter.app/",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web",
+        "browserRequirements": "Requires JavaScript. Works best in modern browsers.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "featureList": [
+          "Bank account synchronization",
+          "AI-powered transaction categorization",
+          "Budget tracking and management",
+          "Multi-currency support",
+          "Investment portfolio tracking",
+          "CSV and bank statement import",
+          "Self-hosting option",
+          "Data export"
+        ],
+        "screenshot": "https://moneymatter.app/img/og-image.jpg",
+        "author": {
+          "@type": "Person",
+          "name": "letehaha",
+          "url": "https://github.com/letehaha"
+        },
+        "isAccessibleForFree": true,
+        "license": "https://opensource.org/licenses/MIT"
+      }
+    ]
+  })} />
+
   <div class="bg-background text-foreground landing-page min-h-screen">
     <BackgroundOrbs />
     <LandingHeader />
