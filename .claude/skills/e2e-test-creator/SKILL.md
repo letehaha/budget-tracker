@@ -1,7 +1,7 @@
 ---
-name: E2E Test Creator
+name: e2e-test-creator
 description: Creates backend e2e tests for new or existing endpoints. Auto-triggers after implementing a new API endpoint. Also runs when asked to add test coverage or triggered by "/e2e-test-creator". Follows project conventions for test structure, helpers, and assertions.
-allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, AskUserQuestion]
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, AskUserQuestion
 ---
 
 # E2E Test Creator
@@ -172,11 +172,13 @@ expect(res.statusCode).toBe(404);
 
 ## Step 4: Verify
 
-After writing the test, suggest running it to the user:
+After writing the test, run it automatically using the `test-runner` subagent:
 
-> "I've written e2e tests for the new endpoint. Want me to run them? Command: `npm run test:e2e -- --testPathPattern='<pattern>'` from `packages/backend/`"
+```bash
+npm run test:e2e -- --testPathPattern='<pattern>'
+```
 
-**Do NOT run tests without user confirmation.**
+Run from `packages/backend/`. Do NOT wait for user confirmation — run tests immediately after writing them.
 
 ## Example: Complete Test for a Summary Endpoint
 
@@ -250,3 +252,20 @@ describe('Subscriptions Summary', () => {
   });
 });
 ```
+
+## Troubleshooting
+
+### Test timeout (exceeds 15s)
+
+Cause: Endpoint is too slow or test has an unresolved promise
+Solution: Check for missing `await` keywords, infinite loops, or endpoints that need optimization.
+
+### "relation does not exist" error
+
+Cause: Migration hasn't been applied to the test database
+Solution: Verify migrations are up to date. The test setup should handle this automatically, but check for new migration files.
+
+### Unexpected 422 instead of 400
+
+Cause: The `validateEndpoint` middleware returns 422 for Zod validation failures, not 400
+Solution: Always expect `422` for schema validation errors. Use `400` only for custom validation in service logic.
