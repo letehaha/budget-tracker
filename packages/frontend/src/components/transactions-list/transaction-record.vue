@@ -18,7 +18,7 @@
     </label>
 
     <div class="flex items-center gap-2 overflow-hidden">
-      <template v-if="!isTransferTransaction && category">
+      <template v-if="!isTransferTransaction && !isPortfolioLinked && category">
         <CategoryCircle :category="category" />
       </template>
 
@@ -54,6 +54,23 @@
             <span class="text-amount text-app-expense-color whitespace-nowrap">{{ formattedExpenseAmount }}</span>
             <ArrowRight :size="12" class="opacity-40" />
             <span class="text-amount text-app-income-color whitespace-nowrap">{{ formattedIncomeAmount }}</span>
+          </div>
+        </template>
+        <template v-else-if="isPortfolioLinked">
+          <div class="flex items-center gap-1.5">
+            <span class="line-clamp-1 text-sm tracking-wider">
+              {{ accountFrom?.name }}
+            </span>
+            <ArrowRight :size="14" class="shrink-0 opacity-60" />
+            <BriefcaseIcon :size="14" class="text-app-transfer-color shrink-0" />
+            <template v-if="isLoadingPortfolioLink">
+              <div class="h-4 w-16 animate-pulse rounded bg-white/10" />
+            </template>
+            <template v-else>
+              <span class="line-clamp-1 text-sm tracking-wider">
+                {{ portfolioName }}
+              </span>
+            </template>
           </div>
         </template>
         <template v-else-if="isTransferTransaction">
@@ -105,11 +122,12 @@
 import CategoryCircle from '@/components/common/category-circle.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import { useOppositeTxRecord } from '@/composable/data-queries/opposite-tx-record';
+import { useTransactionPortfolioLink } from '@/composable/data-queries/portfolio-transfers';
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore } from '@/stores';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { format } from 'date-fns';
-import { ArrowRight } from 'lucide-vue-next';
+import { ArrowRight, BriefcaseIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -155,6 +173,13 @@ const isTransferTransaction = computed(() =>
 );
 
 const { data: oppositeTransferTransaction, isLoading: isLoadingOpposite } = useOppositeTxRecord(transaction);
+
+const isPortfolioLinked = computed(
+  () => transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+);
+const portfolioLinkId = computed(() => (isPortfolioLinked.value ? transaction.id : undefined));
+const { data: portfolioLinkData, isLoading: isLoadingPortfolioLink } = useTransactionPortfolioLink(portfolioLinkId);
+const portfolioName = computed(() => portfolioLinkData.value?.portfolioName ?? '');
 
 // Show grouped transfer display when we have both sides
 const shouldShowGroupedTransfer = computed(() => {

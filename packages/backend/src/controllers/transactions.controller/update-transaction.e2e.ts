@@ -979,4 +979,72 @@ describe('Update transaction controller', () => {
       );
     });
   });
+
+  describe('portfolio-linked transaction protection', () => {
+    it('should reject updating a transaction linked to a portfolio', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Test Portfolio' }),
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      await helpers.linkTransactionToPortfolio({
+        transactionId: tx.id,
+        payload: { portfolioId: portfolio.id },
+        raw: true,
+      });
+
+      const result = await helpers.updateTransaction({
+        id: tx.id,
+        payload: { note: 'trying to edit' },
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should allow updating after unlinking from portfolio', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Test Portfolio' }),
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      await helpers.linkTransactionToPortfolio({
+        transactionId: tx.id,
+        payload: { portfolioId: portfolio.id },
+        raw: true,
+      });
+
+      await helpers.unlinkTransactionFromPortfolio({
+        transactionId: tx.id,
+        raw: true,
+      });
+
+      const [updatedTx] = await helpers.updateTransaction({
+        id: tx.id,
+        payload: { note: 'edited after unlink' },
+        raw: true,
+      });
+
+      expect(updatedTx.note).toBe('edited after unlink');
+    });
+  });
 });

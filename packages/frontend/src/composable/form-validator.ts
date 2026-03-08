@@ -136,14 +136,16 @@ export const useFormValidation = <Vargs extends ValidationArgs, T extends Extrac
 
     const field = _extractVuelidateField(fieldPath);
     if (!field || !Object.keys(field).length) {
-      // eslint-disable-next-line no-console
-      console.error(`getFieldErrorMessage: Cannot extract vuelidate field by ${fieldPath.trim()}`);
+      return '';
     }
-
-    const fieldRules = safeGet(isRef(rules) ? rules.value : rules, fieldPath);
 
     // makes dirty only after $touch call
     if (!field.$dirty) {
+      return '';
+    }
+
+    const fieldRules = safeGet(isRef(rules) ? rules.value : rules, fieldPath);
+    if (!fieldRules) {
       return '';
     }
 

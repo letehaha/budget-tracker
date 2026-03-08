@@ -45,6 +45,8 @@ export interface PortfolioTransferModel {
   amount: string;
   refAmount: string;
   currencyCode: string;
+  transactionId: number | null;
+  metaData: Record<string, unknown> | null;
   date: string;
   description: string | null;
   createdAt: Date;

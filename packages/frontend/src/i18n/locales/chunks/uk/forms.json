@@ -45,7 +45,7 @@
       "transferTypes": {
         "portfolioToPortfolio": "На інший портфель",
         "portfolioToAccount": "На рахунок",
-        "accountToPortfolio": "На портфель (Незабаром)"
+        "accountToPortfolio": "На портфель"
       },
       "comingSoonNotice": "💡 Перекази з рахунку на портфель з'являться в майбутньому оновленні!",
       "fromPortfolioLabel": "З портфеля",
@@ -69,7 +69,10 @@
       "submitButtonLoading": "Обробка...",
       "confirmDialog": {
         "title": "Підтвердити переказ",
-        "description": "Ви впевнені, що хочете переказати {amount} {currency} з {from} на {to}?",
+        "description": "{action} на {amount} буде створено з {from} до {to}",
+        "actionTransfer": "переказ",
+        "actionWithdrawal": "зняття",
+        "actionDeposit": "поповнення",
         "warning": "Цю дію неможливо скасувати.",
         "cancelButton": "Скасувати",
         "confirmButton": "Підтвердити переказ"
@@ -82,7 +85,9 @@
         "comingSoon": "Перекази з рахунку на портфель з'являться в майбутньому оновленні!",
         "success": "Переказ успішно завершено.",
         "error": "Переказ не вдався. Спробуйте ще раз."
-      }
+      },
+      "linkExistingTransaction": "Прив'язати існуючу транзакцію",
+      "linkedTransactionLabel": "Транзакція"
     },
     "createAccount": {
       "nameLabel": "Назва рахунку",
@@ -101,6 +106,48 @@
       "notifications": {
         "success": "Успішно створено.",
         "error": "Неочікувана помилка."
+      }
+    },
+    "directCashTransaction": {
+      "methodTypes": {
+        "direct": "Прямий",
+        "transfer": "Переказ"
+      },
+      "operationTypes": {
+        "deposit": "Поповнення",
+        "withdrawal": "Зняття"
+      },
+      "fromAccountLabel": "З рахунку",
+      "toAccountLabel": "На рахунок",
+      "accountPlaceholder": "Оберіть рахунок",
+      "orSeparator": "або",
+      "linkExistingTransaction": "Прив'язати існуючу транзакцію",
+      "linkedTransactionLabel": "Прив'язана транзакція",
+      "amountLabel": "Сума",
+      "amountPlaceholder": "Введіть суму",
+      "currencyLabel": "Валюта",
+      "currencyPlaceholder": "Оберіть валюту",
+      "dateLabel": "Дата",
+      "descriptionLabel": "Опис",
+      "descriptionPlaceholder": "Необов'язковий опис",
+      "cancelButton": "Скасувати",
+      "submitButton": "Підтвердити",
+      "submitButtonLoading": "Зберігається...",
+      "confirmDialog": {
+        "title": "Підтвердити переказ",
+        "description": "{action} на {amount} буде створено з {from} до {to}",
+        "cancelButton": "Скасувати",
+        "confirmButton": "Підтвердити",
+        "actionDeposit": "поповнення",
+        "actionWithdrawal": "зняття"
+      },
+      "validation": {
+        "required": "Це поле обов'язкове",
+        "minValue": "Сума повинна бути більше 0"
+      },
+      "notifications": {
+        "success": "Грошову операцію створено успішно",
+        "error": "Не вдалося створити грошову операцію"
       }
     },
     "validators": {

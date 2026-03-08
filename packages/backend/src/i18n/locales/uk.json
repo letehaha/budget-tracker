@@ -56,6 +56,7 @@
     "linkUnexpectedError": "Неочікувана помилка. Не вдалося зв'язати вказані транзакції.",
     "linkCannotFind": "Не вдалося знайти базову або протилежну транзакцію",
     "invalidTagIds": "Один або декілька ID тегів недійсні або не належать цьому користувачу",
+    "cannotEditPortfolioLinkedTransaction": "Неможливо редагувати транзакцію, прив'язану до портфеля. Спочатку від'єднайте її.",
     "splits": {
       "splitsOnTransfer": "Не можна додавати розбиття до транзакцій-переказів",
       "splitLimitExceeded": "Максимально дозволено {{max}} розбиттів на транзакцію",
@@ -139,7 +140,10 @@
     "transferAmountMustBePositive": "Сума переказу повинна бути більше нуля",
     "sourcePortfolioNotFound": "Вихідний портфель не знайдено",
     "destinationPortfolioNotFound": "Цільовий портфель не знайдено",
-    "cannotDeleteHoldingWithActivePosition": "Не можна видалити актив з активною позицією. Будь ласка, спочатку продайте або перекажіть всі акції."
+    "cannotDeleteHoldingWithActivePosition": "Не можна видалити актив з активною позицією. Будь ласка, спочатку продайте або перекажіть всі акції.",
+    "transactionAlreadyTransfer": "Транзакція вже позначена як переказ і не може бути прив'язана до портфеля.",
+    "transactionAlreadyLinkedToPortfolio": "Транзакція вже прив'язана до переказу в портфель.",
+    "portfolioTransferNotFound": "Переказ портфеля не знайдено"
   },
   "errors": {
     "connectionNotFound": "З'єднання не знайдено",

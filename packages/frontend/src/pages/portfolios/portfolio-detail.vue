@@ -29,13 +29,6 @@
         </div>
 
         <div v-if="portfolio" class="flex flex-wrap items-center gap-2">
-          <PortfolioTransferDialog :portfolio="portfolio" context="portfolio" @success="refetch">
-            <UiButton variant="outline" size="sm">
-              <ArrowRightLeftIcon class="mr-2 size-4" />
-              {{ $t('portfolioDetail.actions.transfer') }}
-            </UiButton>
-          </PortfolioTransferDialog>
-
           <EditPortfolioDialog :portfolio="portfolio" @updated="refetch">
             <UiButton variant="outline" size="sm">
               <PencilIcon class="mr-2 size-4" />
@@ -57,6 +50,7 @@
     <div v-if="portfolio" class="grid gap-6">
       <PortfolioBalance :portfolio-id="portfolioId" />
       <HoldingsSummary :portfolio-id="portfolioId" />
+      <PortfolioCashBalances :portfolio-id="portfolioId" :portfolio="portfolio" />
     </div>
 
     <!-- Loading State -->
@@ -84,23 +78,16 @@
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import DeletePortfolioDialog from '@/components/dialogs/delete-portfolio-dialog.vue';
 import EditPortfolioDialog from '@/components/dialogs/edit-portfolio-dialog.vue';
-import PortfolioTransferDialog from '@/components/dialogs/portfolio-transfer-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { usePortfolio } from '@/composable/data-queries/portfolios';
 import { ROUTES_NAMES } from '@/routes/constants';
-import {
-  AlertCircleIcon,
-  ArrowRightLeftIcon,
-  BriefcaseIcon,
-  ChevronLeftIcon,
-  PencilIcon,
-  Trash2Icon,
-} from 'lucide-vue-next';
+import { AlertCircleIcon, BriefcaseIcon, ChevronLeftIcon, PencilIcon, Trash2Icon } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import HoldingsSummary from './components/holdings-summary.vue';
 import PortfolioBalance from './components/portfolio-balance.vue';
+import PortfolioCashBalances from './components/portfolio-cash-balances.vue';
 
 // import PortfolioOverview from './components/portfolio-overview.vue';
 

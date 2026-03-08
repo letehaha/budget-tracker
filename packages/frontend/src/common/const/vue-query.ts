@@ -83,6 +83,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   portfolioDetails: [securityPriceChange, 'portfolio-details'] as const,
   portfolioTransfers: [securityPriceChange, 'portfolio-transfers'] as const,
   portfolioSummary: [securityPriceChange, 'portfolio-summary'] as const,
+  portfolioBalances: [securityPriceChange, 'portfolio-balances'] as const,
+  transactionPortfolioLink: [transactionChange, 'transaction-portfolio-link'] as const,
+
+  portfolioInvestmentTransactions: [securityPriceChange, 'portfolio-investment-transactions'] as const,
 
   // holdings
   holdingsList: [securityPriceChange, 'holdings'] as const,

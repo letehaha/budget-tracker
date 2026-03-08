@@ -205,7 +205,9 @@ app.use(`${API_PREFIX}/sse`, sseRoutes);
 app.use(`${API_PREFIX}/webhooks`, webhooksRoutes);
 app.use(`${API_PREFIX}/github`, githubRoutes);
 
-if (process.env.NODE_ENV === 'test') {
+// "development" is required here: Playwright frontend e2e tests run against
+// the dev backend on CI and rely on /tests/verify-email and other test-only endpoints.
+if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);
 }
 

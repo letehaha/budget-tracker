@@ -1,14 +1,17 @@
 <script lang="ts" setup>
 import { cn } from '@/lib/utils';
+import type { Component } from 'vue';
 import { nextTick, onMounted, ref, watch } from 'vue';
+import { pillTabsContainerVariants, pillTabsIndicatorVariants, pillTabsTriggerVariants, type PillTabsSize } from '.';
 
 const props = withDefaults(
   defineProps<{
-    items: { value: string; label: string }[];
+    items: { value: string; label: string; icon?: Component }[];
     modelValue: string;
-    size?: 'sm' | 'default';
+    size?: PillTabsSize;
+    disabled?: boolean;
   }>(),
-  { size: 'default' },
+  { size: 'default', disabled: false },
 );
 
 const emit = defineEmits<{
@@ -40,41 +43,26 @@ watch(
 </script>
 
 <template>
-  <div
-    ref="containerRef"
-    :class="
-      cn(
-        'bg-muted/50 relative inline-flex items-center self-start',
-        'no-scrollbar max-w-full overflow-x-auto',
-        size === 'sm' ? 'rounded-lg px-1 py-0.5' : 'rounded-md p-1',
-      )
-    "
-  >
+  <div ref="containerRef" :class="cn(pillTabsContainerVariants({ size }))">
     <!-- Sliding indicator -->
-    <div
-      :class="
-        cn(
-          'bg-background absolute rounded-md shadow-sm transition-all duration-200 ease-out',
-          size === 'sm' ? 'top-0.5 bottom-0.5' : 'top-1 bottom-1',
-        )
-      "
-      :style="indicatorStyle"
-    />
+    <div :class="cn(pillTabsIndicatorVariants({ size }))" :style="indicatorStyle" />
     <!-- Buttons -->
     <button
       v-for="item in items"
       :key="item.value"
       type="button"
       :data-value="item.value"
+      :disabled="disabled"
       :class="
         cn(
-          'focus-visible:bg-background/50 relative z-1 rounded-md transition-colors focus-visible:outline-none',
-          size === 'sm' ? 'px-3 py-0.5 text-sm' : 'px-3 py-1.5 text-sm font-medium',
+          pillTabsTriggerVariants({ size }),
           modelValue === item.value ? 'text-foreground' : 'text-muted-foreground',
+          disabled && 'cursor-not-allowed opacity-50',
         )
       "
       @click="emit('update:modelValue', item.value)"
     >
+      <component :is="item.icon" v-if="item.icon" class="mr-1.5 inline size-4 align-[-3px]" />
       {{ item.label }}
     </button>
   </div>

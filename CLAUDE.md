@@ -112,7 +112,11 @@ Other instructions:
 10. **CRITICAL: No Git Commits or Pushes**
     - **NEVER** run `git commit`, `git push`, or any command that creates commits or pushes to remote.
     - The user manages all git operations themselves. No exceptions.
-11. **VERY IMPORTANT: Stop Early When Stuck**
+11. **CRITICAL: Migrations — Modify Existing Before Creating New**
+    - **NEVER** create a new migration file if you can modify an existing one that was created during the current development process and has **not been merged to `main`** yet.
+    - Check the current branch's unmerged migrations first (`git log main..HEAD` or git status for new files). If the change logically belongs in an existing unmerged migration, update that migration instead of adding a new one.
+    - Only create a separate migration when the existing one is already on `main` or when the changes are genuinely unrelated.
+12. **VERY IMPORTANT: Stop Early When Stuck**
     - If something doesn't work as expected during implementation, you are allowed **1–2 attempts** to fix it.
     - After that — **STOP**. Do NOT keep trying workarounds, custom scripts, eval hacks, or speculative fixes.
     - Instead, **describe the problem to the user** and ask what to do next.

@@ -1,0 +1,119 @@
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { t } from '@i18n/index';
+import { NotFoundError, ValidationError } from '@js/errors';
+import Currencies from '@models/Currencies.model';
+import Portfolios from '@models/investments/Portfolios.model';
+import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
+import * as Transactions from '@models/Transactions.model';
+import { withTransaction } from '@services/common/with-transaction';
+import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
+import { format } from 'date-fns';
+
+import { computeRefAmount, findPortfolioOrThrow, negateAmount } from './transfer-validations';
+
+interface LinkTransactionToPortfolioParams {
+  userId: number;
+  transactionId: number;
+  portfolioId: number;
+}
+
+const DISALLOWED_TRANSFER_NATURES = [
+  TRANSACTION_TRANSFER_NATURE.common_transfer,
+  TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+];
+
+const linkTransactionToPortfolioImpl = async ({
+  userId,
+  transactionId,
+  portfolioId,
+}: LinkTransactionToPortfolioParams) => {
+  const tx = await Transactions.getTransactionById({ id: transactionId, userId });
+
+  if (!tx) {
+    throw new NotFoundError({ message: t({ key: 'transactions.notFound' }) });
+  }
+
+  if (DISALLOWED_TRANSFER_NATURES.includes(tx.transferNature)) {
+    throw new ValidationError({
+      message: t({ key: 'investments.transactionAlreadyTransfer' }),
+    });
+  }
+
+  const existingLink = await PortfolioTransfers.findOne({
+    where: { transactionId },
+  });
+
+  if (existingLink) {
+    throw new ValidationError({
+      message: t({ key: 'investments.transactionAlreadyLinkedToPortfolio' }),
+    });
+  }
+
+  await findPortfolioOrThrow({ portfolioId, userId, role: 'generic' });
+
+  const amount = tx.amount.toDecimalString(10);
+  const date = format(tx.time, 'yyyy-MM-dd');
+  const currencyCode = tx.currencyCode;
+
+  const refAmount = await computeRefAmount({ amount, currencyCode, userId, date });
+
+  // Determine direction based on transaction type:
+  // expense → money flows from account to portfolio (portfolio balance UP)
+  // income → money flows from portfolio to account (portfolio balance DOWN)
+  const isExpense = tx.transactionType === TRANSACTION_TYPES.expense;
+
+  const transfer = await PortfolioTransfers.create({
+    userId,
+    fromAccountId: isExpense ? tx.accountId : null,
+    toPortfolioId: isExpense ? portfolioId : null,
+    fromPortfolioId: isExpense ? null : portfolioId,
+    toAccountId: isExpense ? null : tx.accountId,
+    amount,
+    refAmount,
+    currencyCode,
+    date,
+    transactionId,
+    metaData: {
+      originalTransactionState: {
+        transferNature: tx.transferNature,
+        transferId: tx.transferId,
+        categoryId: tx.categoryId,
+        amount: tx.amount.toCents(),
+        refAmount: tx.refAmount.toCents(),
+        accountId: tx.accountId,
+        transactionType: tx.transactionType,
+        paymentType: tx.paymentType,
+        currencyCode: tx.currencyCode,
+        time: tx.time,
+        note: tx.note,
+      },
+    },
+  });
+
+  await Transactions.updateTransactionById({
+    id: transactionId,
+    userId,
+    transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+  });
+
+  // Update portfolio balance
+  const delta = isExpense ? amount : negateAmount({ amount });
+
+  await updatePortfolioBalance({
+    userId,
+    portfolioId,
+    currencyCode,
+    availableCashDelta: delta,
+    totalCashDelta: delta,
+  });
+
+  return transfer.reload({
+    include: [
+      { model: Portfolios, as: 'fromPortfolio' },
+      { model: Portfolios, as: 'toPortfolio' },
+      { model: Currencies, as: 'currency' },
+    ],
+  });
+};
+
+export const linkTransactionToPortfolio = withTransaction(linkTransactionToPortfolioImpl);
