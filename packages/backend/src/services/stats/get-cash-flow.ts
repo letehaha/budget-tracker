@@ -20,7 +20,7 @@ import {
 import { Op } from 'sequelize';
 
 import { getUserSettings } from '../user-settings/get-user-settings';
-import { getWhereConditionForTime } from './utils';
+import { expandCategoryIdsWithDescendants, getWhereConditionForTime } from './utils';
 
 interface GetCashFlowParams {
   userId: number;
@@ -211,13 +211,6 @@ export const getCashFlow = async ({
     periodDataMap.set(index, { income: 0, expenses: 0, categories: new Map() });
   });
 
-  // Get excluded categories if needed
-  let excludedCategoryIds: number[] = [];
-  if (excludeCategories) {
-    const settings = await getUserSettings({ userId });
-    excludedCategoryIds = settings.stats.expenses.excludedCategories;
-  }
-
   // Fetch ALL user categories to build the hierarchy map
   const allCategories = await Categories.findAll({
     where: { userId },
@@ -236,23 +229,15 @@ export const getCashFlow = async ({
     });
   });
 
-  // Expand excluded categories to include all descendant sub-categories
-  if (excludedCategoryIds.length > 0) {
-    const excludedSet = new Set<number>(excludedCategoryIds);
-
-    for (const cat of allCategories) {
-      let currentParentId: number | null = cat.parentId;
-      while (currentParentId !== null) {
-        if (excludedSet.has(currentParentId)) {
-          excludedSet.add(cat.id);
-          break;
-        }
-        const parent = categoryMap.get(currentParentId);
-        currentParentId = parent?.parentId ?? null;
-      }
-    }
-
-    excludedCategoryIds = Array.from(excludedSet);
+  // Get excluded categories (with descendants) if needed
+  let excludedCategoryIds: number[] = [];
+  if (excludeCategories) {
+    const settings = await getUserSettings({ userId });
+    const rawExcluded = settings.stats.expenses.excludedCategories;
+    excludedCategoryIds = expandCategoryIdsWithDescendants({
+      categoryIds: rawExcluded,
+      allCategories,
+    });
   }
 
   // Get root categories (those without a parent)

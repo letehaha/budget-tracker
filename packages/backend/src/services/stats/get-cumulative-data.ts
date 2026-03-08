@@ -17,8 +17,7 @@ import {
 } from 'date-fns';
 import { Op } from 'sequelize';
 
-import { getUserSettings } from '../user-settings/get-user-settings';
-import { getWhereConditionForTime } from './utils';
+import { getExcludedCategoryIds, getWhereConditionForTime } from './utils';
 
 interface GetCumulativeDataParams {
   userId: number;
@@ -114,16 +113,11 @@ async function getPeriodData({
   const effectiveToDate = toDate > now ? endOfMonth(now) : toDate;
   const effectiveTo = format(effectiveToDate, 'yyyy-MM-dd');
 
-  // Get excluded categories if needed
-  let excludedCategoryIds: number[] = [];
-  if (excludeCategories) {
-    const settings = await getUserSettings({ userId });
-    excludedCategoryIds = settings.stats.expenses.excludedCategories;
-  }
+  // Get excluded categories (including descendants) if needed
+  const excludedCategoryIds = excludeCategories ? await getExcludedCategoryIds({ userId }) : [];
 
   // Build where clause for categories
-  const categoryWhere =
-    excludeCategories && excludedCategoryIds.length > 0 ? { [Op.notIn]: excludedCategoryIds } : undefined;
+  const categoryWhere = excludedCategoryIds.length > 0 ? { [Op.notIn]: excludedCategoryIds } : undefined;
 
   // Determine which transaction types to fetch based on metric
   const transactionTypes =

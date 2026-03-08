@@ -1,12 +1,10 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
-import * as Categories from '@models/Categories.model';
 import * as Transactions from '@models/Transactions.model';
 import { Op } from 'sequelize';
 
-import { getUserSettings } from '../user-settings/get-user-settings';
-import { getWhereConditionForTime } from './utils';
+import { getExcludedCategoryIds, getWhereConditionForTime } from './utils';
 
 export type GetExpensesHistoryResponseSchema = Pick<
   Transactions.default,
@@ -60,36 +58,7 @@ export const getExpensesHistory = async ({
     'transactionType',
   ];
 
-  const settings = await getUserSettings({ userId });
-
-  const excludedCategories = settings.stats.expenses.excludedCategories;
-
-  // Expand excluded categories to include all descendant sub-categories
-  let allExcludedCategoryIds = excludedCategories;
-  if (excludedCategories.length > 0) {
-    const allCategories = await Categories.default.findAll({
-      where: { userId },
-      attributes: ['id', 'parentId'],
-      raw: true,
-    });
-
-    const excludedSet = new Set<number>(excludedCategories);
-
-    // For each category, check if any ancestor is excluded
-    for (const cat of allCategories) {
-      let currentParentId: number | null = cat.parentId;
-      while (currentParentId !== null) {
-        if (excludedSet.has(currentParentId)) {
-          excludedSet.add(cat.id);
-          break;
-        }
-        const parent = allCategories.find((c) => c.id === currentParentId);
-        currentParentId = parent?.parentId ?? null;
-      }
-    }
-
-    allExcludedCategoryIds = Array.from(excludedSet);
-  }
+  const allExcludedCategoryIds = await getExcludedCategoryIds({ userId });
 
   const transactions = await Transactions.default.findAll({
     where: removeUndefinedKeys({
