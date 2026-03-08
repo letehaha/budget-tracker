@@ -1,4 +1,4 @@
-import { BalanceModel } from '@bt/shared/types';
+import { BalanceModel, endpointsTypes } from '@bt/shared/types';
 import {
   getCombinedBalanceHistory as _getCombinedBalanceHistory,
   getEarliestTransactionDate as _getEarliestTransactionDate,
@@ -77,6 +77,37 @@ export async function getEarliestTransactionDate<R extends boolean | undefined =
   const result = await helpers.makeRequest<Awaited<ReturnType<typeof _getEarliestTransactionDate>>, R>({
     method: 'get',
     url: '/stats/earliest-transaction-date',
+    raw,
+  });
+
+  return result;
+}
+
+export async function getCashFlow<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  granularity,
+  excludeCategories,
+  categoryIds,
+  raw,
+}: {
+  from: string;
+  to: string;
+  granularity: endpointsTypes.CashFlowGranularity;
+  excludeCategories?: boolean;
+  categoryIds?: number[];
+  raw?: R;
+}) {
+  const params = new URLSearchParams();
+  params.append('from', from);
+  params.append('to', to);
+  params.append('granularity', granularity);
+  if (excludeCategories !== undefined) params.append('excludeCategories', String(excludeCategories));
+  if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
+
+  const result = await helpers.makeRequest<endpointsTypes.GetCashFlowResponse, R>({
+    method: 'get',
+    url: `/stats/cash-flow?${params.toString()}`,
     raw,
   });
 
