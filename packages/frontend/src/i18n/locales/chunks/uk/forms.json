@@ -172,7 +172,8 @@
       "allAccounts": "Всі рахунки",
       "account": "рахунок",
       "accountsSelected": "рахунків вибрано",
-      "searchPlaceholder": "Шукати рахунки..."
+      "searchPlaceholder": "Шукати рахунки...",
+      "noResults": "Результатів не знайдено."
     },
     "comboboxCategories": {
       "searchPlaceholder": "Шукати категорії...",
