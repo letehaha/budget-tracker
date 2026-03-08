@@ -209,6 +209,11 @@ if (process.env.NODE_ENV === 'test') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);
 }
 
+// Block search engine crawling on the API subdomain
+app.get('/robots.txt', (_req, res) => {
+  res.type('text/plain').send('User-agent: *\nDisallow: /');
+});
+
 // Sentry error handler - must be after routes but before other error handlers
 // Only set up in production when Sentry is actually initialized
 if (process.env.NODE_ENV === 'production') {
