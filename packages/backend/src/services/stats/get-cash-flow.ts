@@ -236,6 +236,25 @@ export const getCashFlow = async ({
     });
   });
 
+  // Expand excluded categories to include all descendant sub-categories
+  if (excludedCategoryIds.length > 0) {
+    const excludedSet = new Set<number>(excludedCategoryIds);
+
+    for (const cat of allCategories) {
+      let currentParentId: number | null = cat.parentId;
+      while (currentParentId !== null) {
+        if (excludedSet.has(currentParentId)) {
+          excludedSet.add(cat.id);
+          break;
+        }
+        const parent = categoryMap.get(currentParentId);
+        currentParentId = parent?.parentId ?? null;
+      }
+    }
+
+    excludedCategoryIds = Array.from(excludedSet);
+  }
+
   // Get root categories (those without a parent)
   const rootCategories = allCategories.filter((cat) => cat.parentId === null);
 
