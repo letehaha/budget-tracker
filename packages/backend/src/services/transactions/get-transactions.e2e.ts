@@ -346,6 +346,42 @@ describe('Retrieve transactions with filters', () => {
     expect(res.every((t) => t.accountId === expense.accountId)).toBe(true);
   });
 
+  describe('excludeAccountIds', () => {
+    it('excludes transactions from the specified account', async () => {
+      const { income, expense } = await createMockTransactions();
+
+      const res = await helpers.getTransactions({
+        excludeAccountIds: [income.accountId],
+        raw: true,
+      });
+
+      // income is in accountA, expense is in accountB
+      // accountA has: income, transferIncome, refundOriginal, refundTx (4 txs)
+      // accountB has: expense, transferExpense (2 txs)
+      expect(res.length).toBe(2);
+      expect(res.every((t) => t.accountId !== income.accountId)).toBe(true);
+    });
+
+    it('excludes transactions from multiple accounts', async () => {
+      const { income, expense } = await createMockTransactions();
+
+      const res = await helpers.getTransactions({
+        excludeAccountIds: [income.accountId, expense.accountId],
+        raw: true,
+      });
+
+      expect(res.length).toBe(0);
+    });
+
+    it('returns all transactions when excludeAccountIds is not provided', async () => {
+      await createMockTransactions();
+
+      const res = await helpers.getTransactions({ raw: true });
+
+      expect(res.length).toBe(6);
+    });
+  });
+
   describe('filter by amount', () => {
     it('`amountLte`', async () => {
       await createMockTransactions();

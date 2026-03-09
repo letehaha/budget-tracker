@@ -38,6 +38,7 @@ export const loadTransactions = async (params: {
   sort?: SORT_DIRECTIONS;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  excludeAccountIds?: number[];
   transferFilter?: FILTER_OPERATION;
   refundFilter?: FILTER_OPERATION;
   startDate?: string;

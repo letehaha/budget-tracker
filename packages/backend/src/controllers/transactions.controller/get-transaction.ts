@@ -71,6 +71,12 @@ const schema = z.object({
           z.array(z.number().int().positive()),
         )
         .optional(),
+      excludeAccountIds: z
+        .preprocess(
+          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
+          z.array(z.number().int().positive()),
+        )
+        .optional(),
       includeSplits: booleanQuery().optional(),
       includeTags: booleanQuery().optional(),
       excludeTransfer: booleanQuery().optional(),
