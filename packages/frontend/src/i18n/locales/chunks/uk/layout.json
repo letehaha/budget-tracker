@@ -2,6 +2,8 @@
   "navigation": {
     "dashboard": "Головна",
     "accounts": "Рахунки",
+    "accountsList": "Усі рахунки",
+    "bankIntegrations": "Банківські інтеграції",
     "investments": "Інвестиції",
     "transactions": "Транзакції",
     "analytics": "Аналітика",

@@ -2,6 +2,8 @@
   "navigation": {
     "dashboard": "Dashboard",
     "accounts": "Accounts",
+    "accountsList": "All Accounts",
+    "bankIntegrations": "Bank Integrations",
     "investments": "Investments",
     "transactions": "Transactions",
     "analytics": "Analytics",
