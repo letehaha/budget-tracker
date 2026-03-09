@@ -3,17 +3,9 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
       <h1 class="text-2xl tracking-wider">{{ $t('accounts.title') }}</h1>
 
-      <div class="flex flex-wrap gap-x-4 gap-y-2">
-        <CreateAccountDialog>
-          <UiButton variant="outline"> {{ $t('accounts.createAccount') }} </UiButton>
-        </CreateAccountDialog>
-
-        <UiButton as-child>
-          <router-link :to="{ name: ROUTES_NAMES.accountIntegrations }">
-            {{ $t('accounts.bankIntegrations') }}
-          </router-link>
-        </UiButton>
-      </div>
+      <CreateAccountDialog>
+        <UiButton> {{ $t('accounts.createAccount') }} </UiButton>
+      </CreateAccountDialog>
     </div>
 
     <template v-if="accounts?.length">
@@ -84,7 +76,6 @@ import PageWrapper from '@/components/common/page-wrapper.vue';
 import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import AddIntegrationDialog from '@/pages/accounts/integrations/components/add-integration-dialog.vue';
-import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';

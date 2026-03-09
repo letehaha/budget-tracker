@@ -7,6 +7,7 @@ import {
   ChartColumnIcon,
   ChevronRightIcon,
   CreditCardIcon,
+  LandmarkIcon,
   LayersIcon,
   LayoutDashboardIcon,
   RepeatIcon,
@@ -24,6 +25,23 @@ const navIconBase = 'size-4 shrink-0';
 const navIconActive = 'text-primary';
 
 const route = useRoute();
+
+const isAccountsRoute = computed(
+  () =>
+    route.name === ROUTES_NAMES.accounts ||
+    route.name === ROUTES_NAMES.account ||
+    route.name === ROUTES_NAMES.accountIntegrations ||
+    route.name === ROUTES_NAMES.accountIntegrationDetails,
+);
+
+const isAccountsOpen = ref(false);
+watch(
+  isAccountsRoute,
+  (val) => {
+    if (val) isAccountsOpen.value = true;
+  },
+  { immediate: true },
+);
 
 const isPlannedRoute = computed(
   () =>
@@ -57,17 +75,56 @@ watch(
     </ui-button>
   </router-link>
 
-  <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.accounts }">
-    <ui-button
-      variant="ghost"
-      as="span"
-      :class="[navItemBase, !bottomNav && 'justify-start', isActive && navItemActive]"
-      size="default"
-    >
-      <LayersIcon :class="[navIconBase, isActive && navIconActive]" />
-      <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.accounts') }} </span>
-    </ui-button>
-  </router-link>
+  <template v-if="bottomNav">
+    <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.accounts }">
+      <ui-button variant="ghost" as="span" :class="[navItemBase, isActive && navItemActive]" size="default">
+        <LayersIcon :class="[navIconBase, isActive && navIconActive]" />
+        <span class="max-sm:hidden"> {{ $t('navigation.accounts') }} </span>
+      </ui-button>
+    </router-link>
+  </template>
+  <Collapsible v-else v-model:open="isAccountsOpen">
+    <CollapsibleTrigger class="w-full">
+      <ui-button
+        variant="ghost"
+        as="div"
+        :class="['w-full justify-start gap-2 px-3', isAccountsRoute && 'bg-primary/10']"
+        size="default"
+      >
+        <LayersIcon :class="[navIconBase, isAccountsRoute && navIconActive]" />
+        <span>{{ $t('navigation.accounts') }}</span>
+        <ChevronRightIcon
+          :class="['ml-auto size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isAccountsOpen }]"
+        />
+      </ui-button>
+    </CollapsibleTrigger>
+    <CollapsibleContent>
+      <div class="border-border/40 mt-1 ml-2 grid gap-0.5 border-l pl-2">
+        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.accounts }">
+          <ui-button
+            variant="ghost"
+            as="span"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
+            size="sm"
+          >
+            <WalletIcon :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ $t('navigation.accountsList') }}</span>
+          </ui-button>
+        </router-link>
+        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.accountIntegrations }">
+          <ui-button
+            variant="ghost"
+            as="span"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
+            size="sm"
+          >
+            <LandmarkIcon :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ $t('navigation.bankIntegrations') }}</span>
+          </ui-button>
+        </router-link>
+      </div>
+    </CollapsibleContent>
+  </Collapsible>
 
   <router-link v-if="!bottomNav" v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.investments }">
     <ui-button
