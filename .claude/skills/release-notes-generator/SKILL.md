@@ -69,6 +69,7 @@ git show <commit-hash> --stat
 ```
 
 Categorize by commit prefix:
+
 - `feat:` commits = new user-facing functionality
 - `fix:` commits = bug fixes
 - `refactor:` / `chore:` commits = internal improvements
@@ -108,13 +109,14 @@ Follow the **exact format** observed from recent releases. The format is:
 
 ### Code Changes
 
-* [commit type]: [PR title] by @letehaha in [PR URL]
-* [repeat for each PR]
+- [commit type]: [PR title] by @letehaha in [PR URL]
+- [repeat for each PR]
 
 **Full Changelog**: https://github.com/letehaha/budget-tracker/compare/<previous-tag>...<new-tag>
 ```
 
 **Format rules:**
+
 - Use `##` for the top "What's Changed" heading
 - Use `###` for section titles within
 - Feature descriptions should be user-facing (what changed for the user, not code details)
@@ -128,6 +130,7 @@ Follow the **exact format** observed from recent releases. The format is:
 Suggest a title following the pattern: `v<version> – <short description>`
 
 Examples from past releases:
+
 - `v0.10.6 – Walutomat integration`
 - `v0.10.5 – "Balance Trend" spikes markers`
 - `v0.10.4 - Stats on budget's details page`
@@ -144,22 +147,24 @@ Output the release text as a markdown code block so the user can copy it directl
 
 User says: "prepare next release text"
 Actions:
+
 1. Find latest tag `v0.10.6`
 2. Collect 6 PRs merged since then
 3. Read commit messages: `feat: complete portfolio transfers`, `fix: balance trend calculation`, etc.
 4. Identify portfolio transfers as main feature, several bug fixes
 5. Generate formatted release text with feature description + bug fix list
-Result: Markdown release text + suggested title `v0.10.7 – Portfolio transfers & stats fixes`
+   Result: Markdown release text + suggested title `v0.10.7 – Portfolio transfers & stats fixes`
 
 ### Example 2: Bug-fix-only release
 
 User says: "create release notes"
 Actions:
+
 1. Find latest tag, collect changes
 2. Read commit messages — all are `fix:` and `chore:` prefixed
 3. No major features, only fixes
 4. Use `[chore]` prefix in title, simpler format
-Result: Release text with bug fix list + suggested title `[chore] v0.10.8 – Bug fixes and improvements`
+   Result: Release text with bug fix list + suggested title `[chore] v0.10.8 – Bug fixes and improvements`
 
 ## Troubleshooting
 

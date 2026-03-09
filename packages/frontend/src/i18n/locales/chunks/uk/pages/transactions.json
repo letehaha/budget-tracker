@@ -33,10 +33,16 @@
         "placeholderFrom": ">= ніж",
         "placeholderTo": "<= ніж"
       },
-      "exclude": {
-        "label": "Сховати:",
-        "refunds": "Повернення",
-        "transfers": "Перекази"
+      "refundsFilter": {
+        "label": "Повернення"
+      },
+      "transferFilter": {
+        "label": "Перекази"
+      },
+      "filterOperation": {
+        "all": "Всі",
+        "exclude": "Виключити",
+        "only": "Тільки"
       },
       "noteIncludes": {
         "label": "Примітка містить (через кому):",

@@ -19,10 +19,10 @@
     />
 
     <ExclusionsFilter
-      :exclude-refunds="filters.excludeRefunds"
-      :exclude-transfer="filters.excludeTransfer"
-      @update:exclude-refunds="$emit('update:filters', { ...filters, excludeRefunds: $event })"
-      @update:exclude-transfer="$emit('update:filters', { ...filters, excludeTransfer: $event })"
+      :refund-filter="filters.refundFilter"
+      :transfer-filter="filters.transferFilter"
+      @update:refund-filter="$emit('update:filters', { ...filters, refundFilter: $event })"
+      @update:transfer-filter="$emit('update:filters', { ...filters, transferFilter: $event })"
     />
 
     <NoteIncludesFilter

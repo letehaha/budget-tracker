@@ -1,9 +1,18 @@
 import { FiltersStruct } from '@/components/records-filters/const';
 import { useAccountsStore } from '@/stores';
-import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { FILTER_OPERATION, TRANSACTION_TYPES } from '@bt/shared/types';
 import { endOfDay, parseISO } from 'date-fns';
 import { storeToRefs } from 'pinia';
 import { LocationQuery } from 'vue-router';
+
+const VALID_FILTER_OPERATIONS = new Set<string>(Object.values(FILTER_OPERATION));
+
+function parseFilterOperation(value: string | undefined): FILTER_OPERATION | undefined {
+  if (value && VALID_FILTER_OPERATIONS.has(value)) {
+    return value as FILTER_OPERATION;
+  }
+  return undefined;
+}
 
 /**
  * Parses route query parameters into a partial FiltersStruct.
@@ -64,12 +73,14 @@ export const useFiltersFromQuery = () => {
       filters.noteIncludes = query.noteIncludes as string;
     }
 
-    if (query.excludeRefunds) {
-      filters.excludeRefunds = query.excludeRefunds === 'true';
+    const transferFilter = parseFilterOperation(query.transferFilter as string | undefined);
+    if (transferFilter) {
+      filters.transferFilter = transferFilter;
     }
 
-    if (query.excludeTransfer) {
-      filters.excludeTransfer = query.excludeTransfer === 'true';
+    const refundFilter = parseFilterOperation(query.refundFilter as string | undefined);
+    if (refundFilter) {
+      filters.refundFilter = refundFilter;
     }
 
     return Object.keys(filters).length > 0 ? filters : null;

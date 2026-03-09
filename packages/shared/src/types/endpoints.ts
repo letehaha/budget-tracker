@@ -1,5 +1,5 @@
 import { AccountModel, CategoryModel, TransactionModel, UserModel } from './db-models';
-import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TYPES } from './enums';
+import { ACCOUNT_TYPES, FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TYPES } from './enums';
 
 export type BodyPayload = {
   [key: string | number]: string | number | boolean | undefined;
@@ -66,6 +66,8 @@ export interface GetTransactionsQuery extends QueryPayload {
   accountId?: number;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  transferFilter?: FILTER_OPERATION;
+  refundFilter?: FILTER_OPERATION;
 }
 
 export type GetTransactionsResponse = TransactionModel[];

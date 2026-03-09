@@ -6,7 +6,7 @@ import { useTransactionsWithFilters } from '@/components/records-filters/transac
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { FILTER_OPERATION, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -46,7 +46,7 @@ const {
   isFetchingNextPage,
 } = useTransactionsWithFilters({
   queryEnabled: isOpen,
-  staticFilters: { excludeTransfer: true },
+  staticFilters: { transferFilter: FILTER_OPERATION.exclude },
 });
 
 // Pre-set transaction type filter from prop
