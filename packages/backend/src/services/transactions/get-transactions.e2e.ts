@@ -1,4 +1,4 @@
-import { SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -239,6 +239,82 @@ describe('Retrieve transactions with filters', () => {
 
     expect(res.length).toBe(4);
     expect(res.every((t) => t.refundLinked === false)).toBe(true);
+  });
+
+  it('should retrieve only transfers using transferFilter=only', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      transferFilter: FILTER_OPERATION.only,
+      raw: true,
+    });
+
+    expect(res.length).toBe(2); // transferIncome, transferExpense
+    expect(res.every((t) => t.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer)).toBe(true);
+  });
+
+  it('should retrieve only refund-linked transactions using refundFilter=only', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      refundFilter: FILTER_OPERATION.only,
+      raw: true,
+    });
+
+    expect(res.length).toBe(2); // refundOriginal, refundTx
+    expect(res.every((t) => t.refundLinked === true)).toBe(true);
+  });
+
+  it('should exclude transfers using transferFilter=exclude', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      transferFilter: FILTER_OPERATION.exclude,
+      raw: true,
+    });
+
+    expect(res.length).toBe(4); // income, expense, refunds
+    expect(res.every((t) => t.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer)).toBe(true);
+  });
+
+  it('should exclude refunds using refundFilter=exclude', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      refundFilter: FILTER_OPERATION.exclude,
+      raw: true,
+    });
+
+    expect(res.length).toBe(4);
+    expect(res.every((t) => t.refundLinked === false)).toBe(true);
+  });
+
+  it('should use OR logic when both transferFilter and refundFilter are "only"', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      transferFilter: FILTER_OPERATION.only,
+      refundFilter: FILTER_OPERATION.only,
+      raw: true,
+    });
+
+    // Should return transfers OR refunds (not AND), so 4 total:
+    // transferIncome, transferExpense, refundOriginal, refundTx
+    expect(res.length).toBe(4);
+    expect(
+      res.every((t) => t.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer || t.refundLinked === true),
+    ).toBe(true);
+  });
+
+  it('should return all transactions using transferFilter=all', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      transferFilter: FILTER_OPERATION.all,
+      raw: true,
+    });
+
+    expect(res.length).toBe(6);
   });
 
   it.each([

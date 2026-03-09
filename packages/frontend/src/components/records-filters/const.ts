@@ -1,4 +1,4 @@
-import { AccountModel, CATEGORIZATION_SOURCE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { AccountModel, CATEGORIZATION_SOURCE, FILTER_OPERATION, TRANSACTION_TYPES } from '@bt/shared/types';
 
 export interface FiltersStruct {
   start: Date | undefined; // ISO date
@@ -6,8 +6,8 @@ export interface FiltersStruct {
   transactionType: TRANSACTION_TYPES | null;
   amountGte: number | undefined;
   amountLte: number | undefined;
-  excludeRefunds: boolean;
-  excludeTransfer: boolean;
+  transferFilter: FILTER_OPERATION;
+  refundFilter: FILTER_OPERATION;
   accounts: AccountModel[];
   budgetIds?: number[] | null;
   excludedBudgetIds?: number[] | null;
@@ -23,8 +23,8 @@ export const DEFAULT_FILTERS: FiltersStruct = {
   transactionType: null,
   amountGte: undefined,
   amountLte: undefined,
-  excludeRefunds: false,
-  excludeTransfer: false,
+  transferFilter: FILTER_OPERATION.all,
+  refundFilter: FILTER_OPERATION.all,
   accounts: [],
   excludedBudgetIds: null,
   noteIncludes: '',

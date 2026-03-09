@@ -33,10 +33,16 @@
         "placeholderFrom": ">= than",
         "placeholderTo": "<= than"
       },
-      "exclude": {
-        "label": "Exlude:",
-        "refunds": "Refunds",
-        "transfers": "Transfers"
+      "refundsFilter": {
+        "label": "Refunds"
+      },
+      "transferFilter": {
+        "label": "Transfers"
+      },
+      "filterOperation": {
+        "all": "All",
+        "exclude": "Exclude",
+        "only": "Only"
       },
       "noteIncludes": {
         "label": "Note includes (comma-separated):",

@@ -2,6 +2,7 @@ import {
   ACCOUNT_TYPES,
   CategorizationMeta,
   CATEGORIZATION_SOURCE,
+  FILTER_OPERATION,
   PAYMENT_TYPES,
   SORT_DIRECTIONS,
   TRANSACTION_TRANSFER_NATURE,
@@ -395,6 +396,19 @@ export default class Transactions extends Model {
   }
 }
 
+function buildTransferCondition(filter: FILTER_OPERATION | undefined): Record<string, unknown> | null {
+  if (filter === FILTER_OPERATION.exclude) return { transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer };
+  if (filter === FILTER_OPERATION.only)
+    return { transferNature: { [Op.ne]: TRANSACTION_TRANSFER_NATURE.not_transfer } };
+  return null;
+}
+
+function buildRefundCondition(filter: FILTER_OPERATION | undefined): Record<string, unknown> | null {
+  if (filter === FILTER_OPERATION.exclude) return { refundLinked: false };
+  if (filter === FILTER_OPERATION.only) return { refundLinked: true };
+  return null;
+}
+
 export const findWithFilters = async ({
   from = 0,
   limit = 20,
@@ -413,6 +427,8 @@ export const findWithFilters = async ({
   isRaw = false,
   excludeTransfer,
   excludeRefunds,
+  transferFilter,
+  refundFilter,
   startDate,
   endDate,
   amountGte,
@@ -442,6 +458,8 @@ export const findWithFilters = async ({
   isRaw?: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  transferFilter?: FILTER_OPERATION;
+  refundFilter?: FILTER_OPERATION;
   startDate?: string;
   endDate?: string;
   /** Filter: amount >= this value */
@@ -459,15 +477,35 @@ export const findWithFilters = async ({
 }) => {
   const queryInclude: Includeable[] = prepareTXInclude({ includeSplits });
 
+  // New enum params take priority over legacy booleans
+  const resolvedTransferFilter = transferFilter ?? (excludeTransfer ? FILTER_OPERATION.exclude : undefined);
+  const resolvedRefundFilter = refundFilter ?? (excludeRefunds ? FILTER_OPERATION.exclude : undefined);
+
+  const transferCondition = buildTransferCondition(resolvedTransferFilter);
+  const refundCondition = buildRefundCondition(resolvedRefundFilter);
+
   const whereClause: WhereOptions<Transactions> = {
     userId,
     ...removeUndefinedKeys({
       accountType,
       transactionType,
-      transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
-      refundLinked: excludeRefunds ? false : undefined,
     }),
   };
+
+  // When both filters are "only", use OR logic so the user can see
+  // "refunds OR transfers" instead of the impossible "refunds AND transfers"
+  if (
+    transferCondition &&
+    refundCondition &&
+    resolvedTransferFilter === FILTER_OPERATION.only &&
+    resolvedRefundFilter === FILTER_OPERATION.only
+  ) {
+    // Wrap in Op.and to avoid conflicting with category filter's Op.or
+    whereClause[Op.and as unknown as string] = [{ [Op.or]: [transferCondition, refundCondition] }];
+  } else {
+    if (transferCondition) Object.assign(whereClause, transferCondition);
+    if (refundCondition) Object.assign(whereClause, refundCondition);
+  }
 
   if (categoryIds && categoryIds.length > 0) {
     // Find transactions that have splits with any of the requested category IDs

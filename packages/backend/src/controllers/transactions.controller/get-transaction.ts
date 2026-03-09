@@ -1,4 +1,10 @@
-import { ACCOUNT_TYPES, CATEGORIZATION_SOURCE, SORT_DIRECTIONS, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  CATEGORIZATION_SOURCE,
+  FILTER_OPERATION,
+  SORT_DIRECTIONS,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { booleanQuery } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
@@ -69,6 +75,8 @@ const schema = z.object({
       includeTags: booleanQuery().optional(),
       excludeTransfer: booleanQuery().optional(),
       excludeRefunds: booleanQuery().optional(),
+      transferFilter: z.nativeEnum(FILTER_OPERATION).optional(),
+      refundFilter: z.nativeEnum(FILTER_OPERATION).optional(),
       startDate: z.string().datetime({ message: 'Invalid ISO date string for startDate' }).optional(),
       endDate: z.string().datetime({ message: 'Invalid ISO date string for endDate' }).optional(),
       // Amount filters now accept decimals from API

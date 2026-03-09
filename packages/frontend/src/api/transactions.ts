@@ -1,7 +1,13 @@
 import { api } from '@/api/_api';
 import { TransactionModel } from '@bt/shared/types/db-models';
 import * as endpointsTypes from '@bt/shared/types/endpoints';
-import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types/enums';
+import {
+  ACCOUNT_TYPES,
+  FILTER_OPERATION,
+  SORT_DIRECTIONS,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types/enums';
 
 const formatTransactionPayload = <
   T extends endpointsTypes.CreateTransactionBody | endpointsTypes.UpdateTransactionBody,
@@ -32,6 +38,8 @@ export const loadTransactions = async (params: {
   sort?: SORT_DIRECTIONS;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  transferFilter?: FILTER_OPERATION;
+  refundFilter?: FILTER_OPERATION;
   startDate?: string;
   endDate?: string;
   amountLte?: number;

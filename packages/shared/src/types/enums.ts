@@ -82,6 +82,12 @@ export enum CATEGORY_TYPES {
   internal = 'internal',
 }
 
+export enum FILTER_OPERATION {
+  all = 'all',
+  exclude = 'exclude',
+  only = 'only',
+}
+
 // Stored like that in the DB as well
 export enum TRANSACTION_TRANSFER_NATURE {
   not_transfer = 'not_transfer',
