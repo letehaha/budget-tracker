@@ -115,6 +115,7 @@ const fetchTransactions = ({ pageParam, filter }: { pageParam: number; filter: t
       transactionType: props.transactionType,
       excludeTransfer: true,
       excludeRefunds: true, // Exclude refund-linked transactions for transfers
+      excludeAccountIds: props.originAccountId ? [props.originAccountId] : undefined,
       endDate: isDate(filter.end) ? filter.end!.toISOString() : undefined,
       startDate: isDate(filter.start) ? filter.start!.toISOString() : undefined,
       amountGte: filter.amountGte ?? undefined,
@@ -133,6 +134,7 @@ const {
     ...VUE_QUERY_CACHE_KEYS.recordsPageTransactionList,
     'transfer-list',
     props.transactionType,
+    props.originAccountId,
     appliedFilters,
   ],
   queryFn: ({ pageParam }) => fetchTransactions({ pageParam, filter: appliedFilters.value }),
