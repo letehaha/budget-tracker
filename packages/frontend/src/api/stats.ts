@@ -31,15 +31,20 @@ export const getSpendingsByCategories = async ({
   from,
   to,
   type,
+  categoryIds,
   ...rest
-}: Params & { type?: TRANSACTION_TYPES } = {}): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
-  const params: endpointsTypes.GetBalanceHistoryPayload & { type?: string } = {
+}: Params & {
+  type?: TRANSACTION_TYPES;
+  categoryIds?: number[];
+} = {}): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
+  const params: endpointsTypes.GetBalanceHistoryPayload & { type?: string; categoryIds?: string } = {
     ...rest,
   };
 
   if (from) params.from = formatDate(from);
   if (to) params.to = formatDate(to);
   if (type) params.type = type;
+  if (categoryIds && categoryIds.length > 0) params.categoryIds = categoryIds.join(',');
 
   return api.get('/stats/spendings-by-categories', params);
 };

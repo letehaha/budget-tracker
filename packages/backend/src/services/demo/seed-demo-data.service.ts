@@ -6,6 +6,7 @@ import { logger } from '@js/utils/logger';
 import Accounts from '@models/Accounts.model';
 import Subscriptions from '@models/Subscriptions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import UserSettings, { DEFAULT_SETTINGS, type SettingsSchema } from '@models/UserSettings.model';
 import * as accountsService from '@services/accounts.service';
 import { createBudget } from '@services/budgets/create-budget';
 import * as categoriesService from '@services/categories.service';
@@ -234,4 +235,38 @@ export async function createSubscriptions({
 
   await Subscriptions.bulkCreate(rows);
   logger.info(`Created ${rows.length} demo subscriptions`);
+}
+
+const DEMO_WATCHLIST_CATEGORY_KEYS = ['food', 'housing', 'transportation', 'life', 'income'];
+
+export async function setupDashboardSettings({
+  userId,
+  categoryMap,
+}: {
+  userId: number;
+  categoryMap: Map<string, number>;
+}): Promise<void> {
+  const selectedCategoryIds = DEMO_WATCHLIST_CATEGORY_KEYS.map((key) => categoryMap.get(key)).filter(
+    (id): id is number => id !== undefined,
+  );
+
+  const settings: SettingsSchema = {
+    ...DEFAULT_SETTINGS,
+    dashboard: {
+      widgets: [
+        { widgetId: 'balance-trend', colSpan: 1, rowSpan: 1 },
+        { widgetId: 'category-spending-tracker', colSpan: 1, rowSpan: 1, config: { selectedCategoryIds } },
+        { widgetId: 'latest-records', colSpan: 1, rowSpan: 2 },
+        { widgetId: 'subscriptions-overview', colSpan: 1, rowSpan: 1 },
+        { widgetId: 'spending-categories', colSpan: 1, rowSpan: 1 },
+      ],
+    },
+  };
+
+  await UserSettings.findOrCreate({
+    where: { userId },
+    defaults: { settings },
+  });
+
+  logger.info(`Configured demo dashboard with spending watchlist (${selectedCategoryIds.length} categories)`);
 }

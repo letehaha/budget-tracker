@@ -34,10 +34,12 @@ export const getSpendingsByCategories = async ({
   raw = false,
   from,
   to,
-}: { raw?: boolean; from?: string; to?: string } = {}) => {
+  categoryIds,
+}: { raw?: boolean; from?: string; to?: string; categoryIds?: number[] } = {}) => {
   const params = new URLSearchParams();
   if (from) params.append('from', from);
   if (to) params.append('to', to);
+  if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
 
   const result = await helpers.makeRequest({
     method: 'get',

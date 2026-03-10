@@ -70,11 +70,21 @@
         "activeSummary": "{count} active",
         "perYear": " per year"
       },
+      "categoryTracker": {
+        "title": "Categories Watchlist",
+        "addCategory": "Add category",
+        "addCategories": "Add categories to track",
+        "selectCategories": "Select Categories"
+      },
       "emptyState": "There are no data in selected time interval.",
       "registry": {
         "balanceTrend": {
           "name": "Balance Trend",
           "description": "Track your balance over time"
+        },
+        "categoryTracker": {
+          "name": "Categories Watchlist",
+          "description": "Watch spending and income for selected categories"
         },
         "spendingCategories": {
           "name": "Spending by Categories",

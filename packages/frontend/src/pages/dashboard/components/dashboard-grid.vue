@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { LayoutGridIcon } from 'lucide-vue-next';
+import { provide } from 'vue';
 import { VueDraggable } from 'vue-draggable-plus';
 
 import { useDashboardLayout } from '../composables/use-dashboard-layout';
@@ -24,7 +25,10 @@ const {
   addWidget,
   resizeWidget,
   updateWidgetConfig,
+  saveWidgetConfigDirect,
 } = useDashboardLayout();
+
+provide('dashboard-save-widget-config', saveWidgetConfigDirect);
 
 defineExpose({
   isEditMode,
