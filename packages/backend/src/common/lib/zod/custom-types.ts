@@ -19,6 +19,30 @@ export const decimalMoney = () => z.number().transform((val) => Money.fromDecima
 export const currencyCode = () => z.string().length(3);
 
 /**
+ * Optional comma-separated numeric IDs for query parameters.
+ * Silently filters out non-numeric values (lenient parsing for GET queries).
+ * Returns undefined when the string is absent.
+ *
+ * @example
+ * query: z.object({ categoryIds: optionalCommaSeparatedIds() })
+ * // "1,2,3" => [1, 2, 3]
+ * // "1,abc,3" => [1, 3]
+ * // undefined => undefined
+ */
+export const optionalCommaSeparatedIds = () =>
+  z
+    .string()
+    .optional()
+    .transform((val) =>
+      val
+        ? val
+            .split(',')
+            .map((id) => Number(id.trim()))
+            .filter((id) => !Number.isNaN(id))
+        : undefined,
+    );
+
+/**
  * Used for the case when array is expected to be received like 1,2,3.
  * For example GET queries
  */

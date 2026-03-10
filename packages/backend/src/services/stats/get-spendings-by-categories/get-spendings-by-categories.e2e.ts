@@ -2,6 +2,105 @@ import { CategoryModel, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
+describe('[Stats] Spendings by categories – categoryIds filter', () => {
+  it('Returns spending grouped by selected categories instead of root', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const categoriesList = await helpers.getCategoriesList();
+
+    // Pick a root category and one of its children
+    const rootCategory = categoriesList.find((c) => !c.parentId)!;
+    const childCategory = categoriesList.find((c) => c.parentId === rootCategory.id)!;
+
+    // Create a nested sub-sub category under the child
+    const subChild = await helpers.addCustomCategory({
+      parentId: childCategory.id,
+      name: 'sub-child-test',
+      raw: true,
+    });
+
+    // Create transactions: 100 on root, 200 on child, 300 on sub-child
+    await Promise.all([
+      helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100, categoryId: rootCategory.id }),
+        raw: true,
+      }),
+      helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 200, categoryId: childCategory.id }),
+        raw: true,
+      }),
+      helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 300, categoryId: subChild.id }),
+        raw: true,
+      }),
+    ]);
+
+    // Without categoryIds: everything grouped under root
+    const rootGrouped = await helpers.getSpendingsByCategories({ raw: true });
+    expect(rootGrouped[rootCategory.id.toString()].amount).toBe(600); // 100 + 200 + 300
+
+    // With categoryIds selecting only the child: child gets its own (200) + sub-child (300) = 500
+    const childGrouped = await helpers.getSpendingsByCategories({
+      raw: true,
+      categoryIds: [childCategory.id],
+    });
+    expect(childGrouped[childCategory.id.toString()]).toEqual({
+      name: childCategory.name,
+      color: childCategory.color,
+      amount: 500,
+    });
+    // Root category should NOT appear (transaction tagged directly on root doesn't belong to childCategory)
+    expect(childGrouped[rootCategory.id.toString()]).toBeUndefined();
+  });
+
+  it('Pre-initializes selected categories with zero when no transactions match', async () => {
+    await helpers.createAccount({ raw: true });
+    const categoriesList = await helpers.getCategoriesList();
+    const rootCategory = categoriesList.find((c) => !c.parentId)!;
+
+    // Request spending for a category with no transactions
+    const result = await helpers.getSpendingsByCategories({
+      raw: true,
+      categoryIds: [rootCategory.id],
+    });
+
+    expect(result[rootCategory.id.toString()]).toEqual({
+      name: rootCategory.name,
+      color: rootCategory.color,
+      amount: 0,
+    });
+  });
+
+  it('Handles overlapping parent + child selection (most specific match wins)', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const categoriesList = await helpers.getCategoriesList();
+
+    const rootCategory = categoriesList.find((c) => !c.parentId)!;
+    const childCategory = categoriesList.find((c) => c.parentId === rootCategory.id)!;
+
+    // 100 directly on root, 200 on child
+    await Promise.all([
+      helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100, categoryId: rootCategory.id }),
+        raw: true,
+      }),
+      helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 200, categoryId: childCategory.id }),
+        raw: true,
+      }),
+    ]);
+
+    // Select both root and child. Child's transaction maps to child (nearest ancestor in set).
+    // Root's transaction maps to root.
+    const result = await helpers.getSpendingsByCategories({
+      raw: true,
+      categoryIds: [rootCategory.id, childCategory.id],
+    });
+
+    expect(result[rootCategory.id.toString()].amount).toBe(100);
+    expect(result[childCategory.id.toString()].amount).toBe(200);
+  });
+});
+
 describe('[Stats] Spendings by categories', () => {
   it('Returns correct list of data for simple transactions list', async () => {
     const account = await helpers.createAccount({ raw: true });

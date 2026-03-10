@@ -65,6 +65,19 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
     component: () => import('@/components/widgets/latest-records.vue'),
     needsPeriod: false,
   },
+  'category-spending-tracker': {
+    id: 'category-spending-tracker',
+    name: 'dashboard.widgets.registry.categoryTracker.name',
+    description: 'dashboard.widgets.registry.categoryTracker.description',
+    defaultColSpan: 1,
+    defaultRowSpan: 1,
+    allowedSizes: [
+      { colSpan: 1, rowSpan: 1, label: '1\u00d71' },
+      { colSpan: 1, rowSpan: 2, label: '1\u00d72' },
+    ],
+    component: () => import('@/components/widgets/category-spending-tracker/index.vue'),
+    needsPeriod: true,
+  },
   'subscriptions-overview': {
     id: 'subscriptions-overview',
     name: 'dashboard.widgets.registry.subscriptions.name',

@@ -19,6 +19,8 @@ export async function getSpendingsByCategories(params: {
   accountId?: number;
   from?: string;
   to?: string;
+  categoryIds?: number[];
+  transactionType?: TRANSACTION_TYPES;
 }): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> {
   const transactions = await getExpensesHistory(params);
   const txIds = transactions.map((i) => i.id);
@@ -26,7 +28,12 @@ export async function getSpendingsByCategories(params: {
 
   // Skip refund processing if no refund-linked transactions
   if (txIdsWithRefunds.length === 0) {
-    return processWithoutRefunds({ transactions, txIds, userId: params.userId });
+    return processWithoutRefunds({
+      transactions,
+      txIds,
+      userId: params.userId,
+      selectedCategoryIds: params.categoryIds,
+    });
   }
 
   // Fetch refunds for transactions with refund links
@@ -95,6 +102,7 @@ export async function getSpendingsByCategories(params: {
     splitsByTxId,
     splitsById,
     txMap,
+    selectedCategoryIds: params.categoryIds,
   });
 }
 
@@ -103,10 +111,12 @@ async function processWithoutRefunds({
   transactions,
   txIds,
   userId,
+  selectedCategoryIds,
 }: {
   transactions: UnwrapPromise<ReturnType<typeof getExpensesHistory>>;
   txIds: number[];
   userId: number;
+  selectedCategoryIds?: number[];
 }) {
   const [splits, categories] = await Promise.all([
     TransactionSplits.findAll({
@@ -132,6 +142,7 @@ async function processWithoutRefunds({
         { id: t.id, refAmount: t.refAmount, categoryId: t.categoryId, transactionType: t.transactionType },
       ]),
     ),
+    selectedCategoryIds,
   });
 }
 
@@ -148,40 +159,88 @@ function groupAndAdjustData(params: {
   splitsByTxId: Map<number, TransactionSplits[]>;
   splitsById: Map<string, TransactionSplits>; // UUID keyed
   txMap: Map<number, TxMapEntry>;
+  selectedCategoryIds?: number[];
 }): endpointsTypes.GetSpendingsByCategoriesReturnType {
-  const { categories, transactions, refunds, splitsByTxId, splitsById, txMap } = params;
+  const { categories, transactions, refunds, splitsByTxId, splitsById, txMap, selectedCategoryIds } = params;
   const categoryMap = new Map(categories.map((cat) => [cat.id, cat]));
   const result: endpointsTypes.GetSpendingsByCategoriesReturnType = {};
 
-  // Cache for root category lookups to avoid repeated traversals
-  const rootCategoryCache = new Map<number, number>();
+  const selectedSet = selectedCategoryIds ? new Set(selectedCategoryIds) : null;
 
-  // Function to get root category ID with caching
+  // Cache for category group lookups to avoid repeated traversals
+  const groupCache = new Map<number, number | null>();
+
+  // Function to get root category ID with caching (default mode)
   const getRootCategoryId = (categoryId: number): number => {
-    const cached = rootCategoryCache.get(categoryId);
-    if (cached !== undefined) return cached;
+    const cached = groupCache.get(categoryId);
+    if (cached !== undefined) return cached!;
 
     let currentCategory = categoryMap.get(categoryId);
     while (currentCategory && currentCategory.parentId !== null) {
       currentCategory = categoryMap.get(currentCategory.parentId);
     }
     const rootId = currentCategory ? currentCategory.id : categoryId;
-    rootCategoryCache.set(categoryId, rootId);
+    groupCache.set(categoryId, rootId);
     return rootId;
   };
 
+  // Function to find the nearest selected ancestor for a category (selected categories mode).
+  // Walks up the tree from categoryId. Returns the first ancestor (including self) that is
+  // in the selected set, or null if none found.
+  const getSelectedGroupId = (categoryId: number): number | null => {
+    const cached = groupCache.get(categoryId);
+    if (cached !== undefined) return cached;
+
+    const visited: number[] = [];
+    let current = categoryId;
+
+    while (true) {
+      visited.push(current);
+      if (selectedSet!.has(current)) {
+        for (const v of visited) groupCache.set(v, current);
+        return current;
+      }
+      const cat = categoryMap.get(current);
+      if (!cat || cat.parentId === null) break;
+      current = cat.parentId;
+    }
+
+    for (const v of visited) groupCache.set(v, null);
+    return null;
+  };
+
+  // Resolve the group ID for a category based on the current mode
+  const getGroupId = (categoryId: number): number | null => {
+    return selectedSet ? getSelectedGroupId(categoryId) : getRootCategoryId(categoryId);
+  };
+
+  // When filtering by selected categories, pre-initialize all selected categories with 0
+  if (selectedSet) {
+    for (const catId of selectedSet) {
+      const cat = categoryMap.get(catId);
+      result[catId.toString()] = {
+        amount: 0,
+        name: cat ? cat.name : 'Unknown',
+        color: cat ? cat.color : '#000000',
+      };
+    }
+  }
+
   // Helper to add amount to a category
   const addToCategory = (categoryId: number, amount: number) => {
-    const rootCategoryId = getRootCategoryId(categoryId).toString();
-    const rootCategory = categoryMap.get(Number(rootCategoryId));
+    const groupId = getGroupId(categoryId);
+    if (groupId === null) return;
 
-    if (rootCategoryId in result) {
-      result[rootCategoryId].amount += amount;
+    const groupIdStr = groupId.toString();
+    const groupCategory = categoryMap.get(groupId);
+
+    if (groupIdStr in result) {
+      result[groupIdStr].amount += amount;
     } else {
-      result[rootCategoryId] = {
+      result[groupIdStr] = {
         amount,
-        name: rootCategory ? rootCategory.name : 'Unknown',
-        color: rootCategory ? rootCategory.color : '#000000',
+        name: groupCategory ? groupCategory.name : 'Unknown',
+        color: groupCategory ? groupCategory.color : '#000000',
       };
     }
   };
@@ -231,10 +290,12 @@ function groupAndAdjustData(params: {
       wantedCategoryId = baseTx.transactionType === TRANSACTION_TYPES.expense ? baseTx.categoryId : refundTx.categoryId;
     }
 
-    const rootCategoryId = getRootCategoryId(wantedCategoryId).toString();
+    const groupId = getGroupId(wantedCategoryId);
+    if (groupId === null) continue;
 
-    if (rootCategoryId in result) {
-      result[rootCategoryId].amount -= refundTx.refAmount.toCents();
+    const groupIdStr = groupId.toString();
+    if (groupIdStr in result) {
+      result[groupIdStr].amount -= refundTx.refAmount.toCents();
     }
   }
 

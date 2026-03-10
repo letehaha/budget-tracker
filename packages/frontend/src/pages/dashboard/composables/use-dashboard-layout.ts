@@ -85,6 +85,27 @@ export function useDashboardLayout() {
     }
   };
 
+  const saveWidgetConfigDirect = async ({
+    widgetId,
+    config,
+  }: {
+    widgetId: string;
+    config: Record<string, unknown>;
+  }) => {
+    const currentSettings = settings.value;
+    if (!currentSettings) return;
+
+    const widgets = cloneDeep(currentSettings.dashboard?.widgets ?? activeWidgets.value);
+    const widget = widgets.find((w) => w.widgetId === widgetId);
+    if (widget) {
+      widget.config = { ...widget.config, ...config };
+      await mutateAsync({
+        ...currentSettings,
+        dashboard: { widgets },
+      });
+    }
+  };
+
   return {
     isEditMode,
     activeWidgets,
@@ -98,5 +119,6 @@ export function useDashboardLayout() {
     addWidget,
     resizeWidget,
     updateWidgetConfig,
+    saveWidgetConfigDirect,
   };
 }

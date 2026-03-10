@@ -1,5 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { booleanQuery, recordId } from '@common/lib/zod/custom-types';
+import { booleanQuery, optionalCommaSeparatedIds, recordId } from '@common/lib/zod/custom-types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -124,12 +124,13 @@ const spendingsByCategoriesSchema = z.object({
     to: z.string().optional(),
     accountId: z.string().optional(),
     type: z.enum(Object.values(TRANSACTION_TYPES)).optional(),
+    categoryIds: optionalCommaSeparatedIds(),
   }),
 });
 
 export const getSpendingsByCategories = createController(spendingsByCategoriesSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, accountId, type: transactionType } = query;
+  const { from, to, accountId, type: transactionType, categoryIds } = query;
 
   tryBasicDateValidation({ from, to });
 
@@ -140,6 +141,7 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
       to,
       accountId: Number(accountId),
       transactionType,
+      categoryIds,
     }),
   );
 
@@ -203,18 +205,7 @@ const cashFlowSchema = z.object({
     to: z.string(),
     granularity: z.enum(['monthly', 'biweekly', 'weekly']),
     accountId: z.string().optional(),
-    // Comma-separated category IDs (e.g., "1,2,3")
-    categoryIds: z
-      .string()
-      .optional()
-      .transform((val) =>
-        val
-          ? val
-              .split(',')
-              .map((id) => Number(id.trim()))
-              .filter((id) => !Number.isNaN(id))
-          : undefined,
-      ),
+    categoryIds: optionalCommaSeparatedIds(),
     excludeCategories: booleanQuery().optional(),
   }),
 });

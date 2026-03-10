@@ -70,11 +70,21 @@
         "activeSummary": "{count} активна",
         "perYear": " на рік"
       },
+      "categoryTracker": {
+        "title": "Спостереження Категорій",
+        "addCategory": "Додати категорію",
+        "addCategories": "Додати категорії для відстеження",
+        "selectCategories": "Обрати категорії"
+      },
       "emptyState": "Немає даних за вибраний період часу.",
       "registry": {
         "balanceTrend": {
           "name": "Тренд балансу",
           "description": "Відстежуйте баланс з часом"
+        },
+        "categoryTracker": {
+          "name": "Спостереження Категорій",
+          "description": "Спостерігайте за витратами та доходами обраних категорій"
         },
         "spendingCategories": {
           "name": "Витрати за категоріями",
