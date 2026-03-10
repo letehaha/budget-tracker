@@ -222,11 +222,12 @@ const navigateToTransactions = ({ categoryId }: { categoryId: number }) => {
 </script>
 
 <template>
-  <WidgetWrapper :is-fetching="isFetching">
+  <WidgetWrapper :is-fetching="isFetching" data-testid="widget-category-spending-tracker">
     <template #title>{{ t('dashboard.widgets.categoryTracker.title') }}</template>
     <template #action>
       <button
         v-if="categoryRows.length > 0"
+        data-testid="cst-customize-toggle"
         :class="
           buttonVariants({
             variant: isCustomizing ? 'default' : 'ghost',
@@ -288,7 +289,12 @@ const navigateToTransactions = ({ categoryId }: { categoryId: number }) => {
 
             <span class="min-w-0 flex-1 truncate text-sm">{{ item.name }}</span>
 
-            <Button size="icon-sm" variant="ghost-destructive" @click.stop="removeCategory({ categoryId: item.id })">
+            <Button
+              data-testid="cst-remove-category"
+              size="icon-sm"
+              variant="ghost-destructive"
+              @click.stop="removeCategory({ categoryId: item.id })"
+            >
               <Trash2Icon class="size-3.5" />
             </Button>
           </div>
@@ -316,6 +322,7 @@ const navigateToTransactions = ({ categoryId }: { categoryId: number }) => {
         <button
           v-for="n in ghostSlotCount"
           :key="`ghost-${n}`"
+          data-testid="cst-add-slot"
           class="border-muted-foreground/30 hover:bg-muted/50 text-muted-foreground mx-1 flex h-9 items-center gap-2 rounded-md border border-dashed px-2 py-0.5 transition-colors"
           @click="openPickerForAdd"
         >
