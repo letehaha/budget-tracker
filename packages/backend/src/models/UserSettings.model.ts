@@ -103,11 +103,6 @@ const ZodDashboardSettingsSchema = z.object({
 
 export const ZodSettingsSchema = z.object({
   locale: z.enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN]).default(SUPPORTED_LOCALES.ENGLISH),
-  stats: z.object({
-    expenses: z.object({
-      excludedCategories: z.array(z.number().int().positive().finite()),
-    }),
-  }),
   ai: ZodAiSettingsSchema.optional(),
   notifications: ZodNotificationPreferencesSchema.optional(),
   onboarding: ZodOnboardingStateSchema.optional(),
@@ -119,11 +114,6 @@ export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
 export const DEFAULT_SETTINGS: SettingsSchema = {
   locale: SUPPORTED_LOCALES.ENGLISH,
-  stats: {
-    expenses: {
-      excludedCategories: [],
-    },
-  },
 };
 
 @Table({

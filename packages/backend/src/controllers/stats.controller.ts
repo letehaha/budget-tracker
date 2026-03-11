@@ -1,5 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { booleanQuery, optionalCommaSeparatedIds, recordId } from '@common/lib/zod/custom-types';
+import { optionalCommaSeparatedIds, recordId } from '@common/lib/zod/custom-types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -10,7 +10,6 @@ import {
   serializeCombinedBalanceHistory,
   serializeCumulativeData,
   serializeExpensesAmountForPeriod,
-  serializeExpensesHistory,
   serializeSpendingsByCategories,
   serializeTotalBalance,
 } from '@root/serializers';
@@ -91,33 +90,6 @@ export const getTotalBalance = createController(totalBalanceSchema, async ({ use
   return { data: serializeTotalBalance(totalBalance) };
 });
 
-const expensesHistorySchema = z.object({
-  query: z.object({
-    from: z.string().optional(),
-    to: z.string().optional(),
-    accountId: z.string().optional(),
-  }),
-});
-
-export const getExpensesHistory = createController(expensesHistorySchema, async ({ user, query }) => {
-  const { id: userId } = user;
-  const { from, to, accountId } = query;
-
-  tryBasicDateValidation({ from, to });
-
-  const result = await statsService.getExpensesHistory(
-    removeUndefinedKeys({
-      userId,
-      from,
-      to,
-      accountId: Number(accountId),
-    }),
-  );
-
-  // Serialize: convert cents to decimal for API response
-  return { data: serializeExpensesHistory(result) };
-});
-
 const spendingsByCategoriesSchema = z.object({
   query: z.object({
     from: z.string().optional(),
@@ -125,12 +97,13 @@ const spendingsByCategoriesSchema = z.object({
     accountId: z.string().optional(),
     type: z.enum(Object.values(TRANSACTION_TYPES)).optional(),
     categoryIds: optionalCommaSeparatedIds(),
+    excludedCategoryIds: optionalCommaSeparatedIds(),
   }),
 });
 
 export const getSpendingsByCategories = createController(spendingsByCategoriesSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, accountId, type: transactionType, categoryIds } = query;
+  const { from, to, accountId, type: transactionType, categoryIds, excludedCategoryIds } = query;
 
   tryBasicDateValidation({ from, to });
 
@@ -142,6 +115,7 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
       accountId: Number(accountId),
       transactionType,
       categoryIds,
+      excludedCategoryIds,
     }),
   );
 
@@ -154,12 +128,13 @@ const expensesAmountSchema = z.object({
     from: z.string().optional(),
     to: z.string().optional(),
     accountId: z.string().optional(),
+    excludedCategoryIds: optionalCommaSeparatedIds(),
   }),
 });
 
 export const getExpensesAmountForPeriod = createController(expensesAmountSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, accountId } = query;
+  const { from, to, accountId, excludedCategoryIds } = query;
 
   tryBasicDateValidation({ from, to });
 
@@ -169,6 +144,7 @@ export const getExpensesAmountForPeriod = createController(expensesAmountSchema,
       from,
       to,
       accountId: Number(accountId),
+      excludedCategoryIds,
     }),
   );
 
@@ -206,13 +182,12 @@ const cashFlowSchema = z.object({
     granularity: z.enum(['monthly', 'biweekly', 'weekly']),
     accountId: z.string().optional(),
     categoryIds: optionalCommaSeparatedIds(),
-    excludeCategories: booleanQuery().optional(),
   }),
 });
 
 export const getCashFlow = createController(cashFlowSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, granularity, accountId, categoryIds, excludeCategories } = query;
+  const { from, to, granularity, accountId, categoryIds } = query;
 
   tryBasicDateValidation({ from, to });
 
@@ -224,7 +199,6 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
       granularity,
       accountId: accountId ? Number(accountId) : undefined,
       categoryIds,
-      excludeCategories,
     }),
   );
 
@@ -243,13 +217,12 @@ const cumulativeDataSchema = z.object({
     to: z.string(),
     metric: z.enum(['expenses', 'income', 'savings']),
     accountId: z.string().optional(),
-    excludeCategories: booleanQuery().optional(),
   }),
 });
 
 export const getCumulativeData = createController(cumulativeDataSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, metric, accountId, excludeCategories } = query;
+  const { from, to, metric, accountId } = query;
 
   tryBasicDateValidation({ from, to });
 
@@ -260,7 +233,6 @@ export const getCumulativeData = createController(cumulativeDataSchema, async ({
       to,
       metric,
       accountId: accountId ? Number(accountId) : undefined,
-      excludeCategories,
     }),
   );
 

@@ -4,9 +4,9 @@ import Accounts from '@models/Accounts.model';
 import * as Transactions from '@models/Transactions.model';
 import { Op } from 'sequelize';
 
-import { getExcludedCategoryIds, getWhereConditionForTime } from './utils';
+import { getWhereConditionForTime } from './utils';
 
-export type GetExpensesHistoryResponseSchema = Pick<
+type GetExpensesHistoryResponseSchema = Pick<
   Transactions.default,
   | 'id'
   | 'accountId'
@@ -39,12 +39,14 @@ export const getExpensesHistory = async ({
   to,
   accountId,
   transactionType = TRANSACTION_TYPES.expense,
+  excludedCategoryIds,
 }: {
   userId: number;
   accountId?: number;
   from?: string;
   to?: string;
   transactionType?: TRANSACTION_TYPES;
+  excludedCategoryIds?: number[];
 }): Promise<GetExpensesHistoryResponseSchema[]> => {
   const dataAttributes: (keyof Transactions.default)[] = [
     'id',
@@ -58,7 +60,8 @@ export const getExpensesHistory = async ({
     'transactionType',
   ];
 
-  const allExcludedCategoryIds = await getExcludedCategoryIds({ userId });
+  const categoryWhere =
+    excludedCategoryIds && excludedCategoryIds.length > 0 ? { [Op.notIn]: excludedCategoryIds } : undefined;
 
   const transactions = await Transactions.default.findAll({
     where: removeUndefinedKeys({
@@ -66,9 +69,7 @@ export const getExpensesHistory = async ({
       userId,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       transactionType,
-      categoryId: {
-        [Op.notIn]: allExcludedCategoryIds,
-      },
+      ...(categoryWhere ? { categoryId: categoryWhere } : {}),
       ...getWhereConditionForTime({ from, to, columnName: 'time' }),
     }),
     include: [

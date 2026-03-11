@@ -4,8 +4,16 @@
       <div class="flex items-center gap-2">
         {{ $t('dashboard.widgets.expensesStructure.title') }}
 
-        <ExcludedCategoriesPopover v-if="hasExcludedStats" :category-ids="excludedCategories" />
+        <ExcludedCategoriesPopover
+          v-if="hasExcludedStats"
+          :category-ids="excludedCategoryIds"
+          @remove="handleRemoveExclusion"
+        />
       </div>
+    </template>
+
+    <template v-if="widgetConfigRef" #action>
+      <ExcludeSettingsPopover :excluded-category-ids="excludedCategoryIds" @save="persistExcludedCategories" />
     </template>
 
     <!-- Stats row - two columns with space between -->
@@ -63,12 +71,14 @@
 </template>
 
 <script lang="ts" setup>
+import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { useFormatCurrency } from '@/composable';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { ChartPieIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
+import { type Ref, computed, inject } from 'vue';
 import { useRouter } from 'vue-router';
 
 import EmptyState from '../components/empty-state.vue';
@@ -76,6 +86,7 @@ import LoadingState from '../components/loading-state.vue';
 import WidgetWrapper from '../components/widget-wrapper.vue';
 
 import DonutChart from './donut-chart.vue';
+import ExcludeSettingsPopover from './exclude-settings-popover.vue';
 import ExcludedCategoriesPopover from './excluded-categories-popover.vue';
 import { useExpensesStructureData } from './use-expenses-structure-data';
 
@@ -92,8 +103,18 @@ const categoriesStore = useCategoriesStore();
 const { categoriesMap } = storeToRefs(categoriesStore);
 const router = useRouter();
 
+const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
+const saveWidgetConfig =
+  inject<(params: { widgetId: string; config: Record<string, unknown> }) => Promise<void>>(
+    'dashboard-save-widget-config',
+  );
+
+const excludedCategoryIds = computed<number[]>(() => {
+  const ids = widgetConfigRef?.value?.config?.excludedCategoryIds;
+  return Array.isArray(ids) ? (ids as number[]) : [];
+});
+
 const {
-  excludedCategories,
   hasExcludedStats,
   periodLabel,
   isWidgetDataFetching,
@@ -105,7 +126,23 @@ const {
   totalAmount,
 } = useExpensesStructureData({
   selectedPeriod: () => props.selectedPeriod,
+  excludedCategoryIds,
 });
+
+const persistExcludedCategories = async ({ categoryIds }: { categoryIds: number[] }) => {
+  if (!saveWidgetConfig || !widgetConfigRef?.value) return;
+
+  await saveWidgetConfig({
+    widgetId: widgetConfigRef.value.widgetId,
+    config: { excludedCategoryIds: categoryIds },
+  });
+};
+
+const handleRemoveExclusion = ({ categoryId }: { categoryId: number }) => {
+  persistExcludedCategories({
+    categoryIds: excludedCategoryIds.value.filter((id) => id !== categoryId),
+  });
+};
 
 const getAllCategoryIds = (rootCategoryId: number): number[] => {
   const result = [rootCategoryId];

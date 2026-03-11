@@ -3,7 +3,6 @@ import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import * as Categories from '@models/Categories.model';
 import Transactions, * as TransactionsModel from '@models/Transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
-import { editExcludedCategories } from '@services/user-settings/edit-excluded-categories';
 
 interface DeleteCategoryPayload extends Categories.DeleteCategoryPayload {
   replaceWithCategoryId?: number;
@@ -63,11 +62,6 @@ export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayl
       { individualHooks: false },
     );
   }
-
-  await editExcludedCategories({
-    userId: payload.userId,
-    removeIds: [payload.categoryId],
-  });
 
   await Categories.deleteCategory(payload);
 });

@@ -1,24 +1,5 @@
 import { type UserSettingsSchema, getUserSettings, updateUserSettings } from '@/api/user-settings';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { cloneDeep } from 'lodash-es';
-
-export const addCategories = (settings: UserSettingsSchema, categories: number[]) => {
-  const existing = settings.stats.expenses.excludedCategories;
-  const updatedUserSettings = cloneDeep(settings);
-  updatedUserSettings.stats.expenses.excludedCategories = [...new Set([...existing, ...categories])];
-  return updatedUserSettings;
-};
-
-export const removeCategories = (settings: UserSettingsSchema, categoriesToRemove: number[]) => {
-  const temp = settings.stats.expenses.excludedCategories;
-  const updatedUserSettings = cloneDeep(settings);
-
-  updatedUserSettings.stats.expenses.excludedCategories = temp.filter(
-    (category) => !categoriesToRemove.includes(category),
-  );
-
-  return updatedUserSettings;
-};
 
 export const useUserSettings = (
   queryOptions: Partial<Parameters<typeof useQuery<UserSettingsSchema, Error>>[0]> = {},

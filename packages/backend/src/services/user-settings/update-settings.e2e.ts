@@ -6,7 +6,6 @@ describe('Update user settings', () => {
   it('updates empty settings and returns new value right away', async () => {
     const newSettings: SettingsSchema = {
       locale: 'en',
-      stats: { expenses: { excludedCategories: [10] } },
     };
 
     const updatedUserSettings = await helpers.updateUserSettings({
@@ -21,14 +20,13 @@ describe('Update user settings', () => {
     expect(useSettings).toStrictEqual(newSettings);
   });
 
-  it.each([
-    { locale: 'en' as const, stats: { expenses: { excludedCategories: [20] } } },
-    { locale: 'en' as const, stats: { expenses: { excludedCategories: [] } } },
-  ])('overrides existing settings', async (newSettings: SettingsSchema) => {
+  it('overrides existing settings', async () => {
     await helpers.updateUserSettings({
       raw: true,
-      settings: { locale: 'en', stats: { expenses: { excludedCategories: [10] } } },
+      settings: { locale: 'en' },
     });
+
+    const newSettings: SettingsSchema = { locale: 'uk' };
 
     const updatedUserSettings = await helpers.updateUserSettings({
       raw: true,
@@ -40,96 +38,11 @@ describe('Update user settings', () => {
     const useSettings = await helpers.getUserSettings({ raw: true });
 
     expect(useSettings).toStrictEqual(newSettings);
-  });
-
-  it('throws error when excluded categories do not exist', async () => {
-    const nonExistentCategoryId = 999;
-    const newSettings: SettingsSchema = {
-      locale: 'en',
-      stats: {
-        expenses: {
-          excludedCategories: [nonExistentCategoryId],
-        },
-      },
-    };
-
-    const updater = await helpers.updateUserSettings({
-      settings: newSettings,
-    });
-
-    expect(updater.statusCode).toBe(422);
-  });
-
-  it('accepts valid category IDs', async () => {
-    const category = await helpers.addCustomCategory({
-      name: 'test',
-      color: '#FF0000',
-      raw: true,
-    });
-    const newSettings: SettingsSchema = {
-      locale: 'en',
-      stats: {
-        expenses: {
-          excludedCategories: [category.id],
-        },
-      },
-    };
-
-    const updatedSettings = await helpers.updateUserSettings({
-      raw: true,
-      settings: newSettings,
-    });
-
-    // Use toMatchObject because addCustomCategory marks an onboarding task complete,
-    // which adds an onboarding object to settings that we want to ignore in this test
-    expect(updatedSettings).toMatchObject(newSettings);
-  });
-
-  it('handles mixed valid and invalid category IDs', async () => {
-    const category = await helpers.addCustomCategory({
-      name: 'test',
-      color: '#FF0000',
-      raw: true,
-    });
-    const nonExistentId = 999;
-    const newSettings: SettingsSchema = {
-      locale: 'en',
-      stats: {
-        expenses: {
-          excludedCategories: [category.id, nonExistentId],
-        },
-      },
-    };
-
-    const updater = await helpers.updateUserSettings({
-      settings: newSettings,
-    });
-
-    expect(updater.statusCode).toBe(422);
-  });
-
-  it('handles empty excluded categories array', async () => {
-    const newSettings: SettingsSchema = {
-      locale: 'en',
-      stats: {
-        expenses: {
-          excludedCategories: [],
-        },
-      },
-    };
-
-    const updatedSettings = await helpers.updateUserSettings({
-      raw: true,
-      settings: newSettings,
-    });
-
-    expect(updatedSettings).toStrictEqual(newSettings);
   });
 
   it('saves and returns dashboard widgets with custom config field', async () => {
     const newSettings: SettingsSchema = {
       locale: 'en',
-      stats: { expenses: { excludedCategories: [] } },
       dashboard: {
         widgets: [
           { widgetId: 'subscriptions-overview', colSpan: 1, rowSpan: 1, config: { type: 'subscription' } },
@@ -154,7 +67,6 @@ describe('Update user settings', () => {
   it('saves dashboard widget without config field (backwards compatible)', async () => {
     const newSettings: SettingsSchema = {
       locale: 'en',
-      stats: { expenses: { excludedCategories: [] } },
       dashboard: {
         widgets: [{ widgetId: 'balance-trend', colSpan: 2, rowSpan: 1 }],
       },
@@ -173,7 +85,6 @@ describe('Update user settings', () => {
     it('saves widget with valid spike detection config', async () => {
       const newSettings: SettingsSchema = {
         locale: 'en',
-        stats: { expenses: { excludedCategories: [] } },
         dashboard: {
           widgets: [
             {
@@ -211,7 +122,6 @@ describe('Update user settings', () => {
     it('saves widget with partial spike config (only some keys)', async () => {
       const newSettings: SettingsSchema = {
         locale: 'en',
-        stats: { expenses: { excludedCategories: [] } },
         dashboard: {
           widgets: [
             {
@@ -240,7 +150,6 @@ describe('Update user settings', () => {
     it('saves widget with spike config mixed with other config keys', async () => {
       const newSettings: SettingsSchema = {
         locale: 'en',
-        stats: { expenses: { excludedCategories: [] } },
         dashboard: {
           widgets: [
             {
@@ -268,7 +177,6 @@ describe('Update user settings', () => {
     it('saves widget with boundary spike config values', async () => {
       const newSettings: SettingsSchema = {
         locale: 'en',
-        stats: { expenses: { excludedCategories: [] } },
         dashboard: {
           widgets: [
             {
@@ -295,7 +203,6 @@ describe('Update user settings', () => {
       // Also test upper boundaries
       const upperSettings: SettingsSchema = {
         locale: 'en',
-        stats: { expenses: { excludedCategories: [] } },
         dashboard: {
           widgets: [
             {
@@ -324,7 +231,6 @@ describe('Update user settings', () => {
       const res = await helpers.updateUserSettings({
         settings: {
           locale: 'en',
-          stats: { expenses: { excludedCategories: [] } },
           dashboard: {
             widgets: [
               {
@@ -345,7 +251,6 @@ describe('Update user settings', () => {
       const res = await helpers.updateUserSettings({
         settings: {
           locale: 'en',
-          stats: { expenses: { excludedCategories: [] } },
           dashboard: {
             widgets: [
               {
@@ -366,7 +271,6 @@ describe('Update user settings', () => {
       const res = await helpers.updateUserSettings({
         settings: {
           locale: 'en',
-          stats: { expenses: { excludedCategories: [] } },
           dashboard: {
             widgets: [
               {
@@ -387,7 +291,6 @@ describe('Update user settings', () => {
       const res = await helpers.updateUserSettings({
         settings: {
           locale: 'en',
-          stats: { expenses: { excludedCategories: [] } },
           dashboard: {
             widgets: [
               {
@@ -408,7 +311,6 @@ describe('Update user settings', () => {
       const res = await helpers.updateUserSettings({
         settings: {
           locale: 'en',
-          stats: { expenses: { excludedCategories: [] } },
           dashboard: {
             widgets: [
               {
@@ -428,7 +330,6 @@ describe('Update user settings', () => {
     it('allows widgets without spike keys in config (no validation triggered)', async () => {
       const newSettings: SettingsSchema = {
         locale: 'en',
-        stats: { expenses: { excludedCategories: [] } },
         dashboard: {
           widgets: [
             {

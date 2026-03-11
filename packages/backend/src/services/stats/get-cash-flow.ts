@@ -19,8 +19,7 @@ import {
 } from 'date-fns';
 import { Op } from 'sequelize';
 
-import { getUserSettings } from '../user-settings/get-user-settings';
-import { expandCategoryIdsWithDescendants, getWhereConditionForTime } from './utils';
+import { getWhereConditionForTime } from './utils';
 
 interface GetCashFlowParams {
   userId: number;
@@ -29,7 +28,6 @@ interface GetCashFlowParams {
   granularity: endpointsTypes.CashFlowGranularity;
   accountId?: number;
   categoryIds?: number[];
-  excludeCategories?: boolean;
 }
 
 /**
@@ -200,7 +198,6 @@ export const getCashFlow = async ({
   granularity,
   accountId,
   categoryIds,
-  excludeCategories = false,
 }: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
   // Generate period buckets
   const buckets = generatePeriodBuckets({ from, to, granularity });
@@ -228,17 +225,6 @@ export const getCashFlow = async ({
       parentId: cat.parentId,
     });
   });
-
-  // Get excluded categories (with descendants) if needed
-  let excludedCategoryIds: number[] = [];
-  if (excludeCategories) {
-    const settings = await getUserSettings({ userId });
-    const rawExcluded = settings.stats.expenses.excludedCategories;
-    excludedCategoryIds = expandCategoryIdsWithDescendants({
-      categoryIds: rawExcluded,
-      allCategories,
-    });
-  }
 
   // Get root categories (those without a parent)
   const rootCategories = allCategories.filter((cat) => cat.parentId === null);
@@ -269,11 +255,7 @@ export const getCashFlow = async ({
 
   // Build where clause for categories
   const categoryWhere =
-    queryFilterCategoryIds && queryFilterCategoryIds.length > 0
-      ? { [Op.in]: queryFilterCategoryIds }
-      : excludeCategories && excludedCategoryIds.length > 0
-        ? { [Op.notIn]: excludedCategoryIds }
-        : undefined;
+    queryFilterCategoryIds && queryFilterCategoryIds.length > 0 ? { [Op.in]: queryFilterCategoryIds } : undefined;
 
   // Fetch all transactions (both income and expense) in the date range
   const transactions = await Transactions.default.findAll({
