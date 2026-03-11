@@ -1,11 +1,11 @@
 <template>
   <Popover.Popover>
     <Popover.PopoverTrigger class="px-1" as-child>
-      <Button size="icon-sm" variant="ghost">
+      <Button size="icon-sm" variant="ghost" data-testid="es-excluded-warning">
         <CircleOffIcon class="text-warning size-4" />
       </Button>
     </Popover.PopoverTrigger>
-    <Popover.PopoverContent class="max-w-75 text-sm">
+    <Popover.PopoverContent class="max-w-75 text-sm" data-testid="es-excluded-popover">
       <div>
         <p class="text-muted-foreground">
           {{ $t('dashboard.widgets.expensesStructure.excludedCategories.message') }}

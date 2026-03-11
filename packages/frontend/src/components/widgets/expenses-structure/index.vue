@@ -1,5 +1,5 @@
 <template>
-  <WidgetWrapper :is-fetching="isWidgetDataFetching" class="max-h-auto">
+  <WidgetWrapper :is-fetching="isWidgetDataFetching" class="max-h-auto" data-testid="widget-expenses-structure">
     <template #title>
       <div class="flex items-center gap-2">
         {{ $t('dashboard.widgets.expensesStructure.title') }}

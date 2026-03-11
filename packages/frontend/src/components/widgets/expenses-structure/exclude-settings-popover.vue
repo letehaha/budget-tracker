@@ -1,7 +1,7 @@
 <template>
   <Popover v-model:open="isPopoverOpen">
     <PopoverTrigger as-child>
-      <Button size="icon-sm" variant="ghost">
+      <Button size="icon-sm" variant="ghost" data-testid="es-settings-btn">
         <SettingsIcon class="text-muted-foreground size-4" />
       </Button>
     </PopoverTrigger>
@@ -9,6 +9,7 @@
       <button
         type="button"
         class="hover:bg-accent flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm"
+        data-testid="es-exclude-categories-btn"
         @click="openDialog"
       >
         <CircleOffIcon class="text-muted-foreground size-4" />
@@ -38,6 +39,7 @@
       <button
         v-if="searchQuery.length"
         class="text-muted-foreground hover:text-foreground shrink-0"
+        data-testid="es-search-clear"
         @click="searchQuery = ''"
       >
         <XIcon class="size-4" />
@@ -76,7 +78,7 @@
     </div>
 
     <template #footer>
-      <Button class="w-full" @click="save">
+      <Button class="w-full" data-testid="es-save-exclusions-btn" @click="save">
         {{ $t('dashboard.widgets.expensesStructure.excludeSettings.save') }}
       </Button>
     </template>
