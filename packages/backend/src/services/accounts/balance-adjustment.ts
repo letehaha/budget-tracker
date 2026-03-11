@@ -56,7 +56,7 @@ export const adjustAccountBalance = withTransaction(
       accountId,
       amount: diff.abs(),
       transactionType,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
       accountType: ACCOUNT_TYPES.system,
       paymentType: PAYMENT_TYPES.bankTransfer,
       note: note ?? t({ key: 'balanceAdjustment.defaultNote' }),
