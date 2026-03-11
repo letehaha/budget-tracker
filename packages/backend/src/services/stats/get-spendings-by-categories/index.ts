@@ -21,6 +21,7 @@ export async function getSpendingsByCategories(params: {
   to?: string;
   categoryIds?: number[];
   transactionType?: TRANSACTION_TYPES;
+  excludedCategoryIds?: number[];
 }): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> {
   const transactions = await getExpensesHistory(params);
   const txIds = transactions.map((i) => i.id);

@@ -1,5 +1,4 @@
 import { AI_PROVIDER } from '@bt/shared/types';
-import { editExcludedCategories as apiEditExcludedCategories } from '@root/services/user-settings/edit-excluded-categories';
 import { getUserSettings as apiGetUserSettings } from '@root/services/user-settings/get-user-settings';
 import { updateUserSettings as apiUpdateUserSettings } from '@root/services/user-settings/update-settings';
 
@@ -23,21 +22,6 @@ export async function updateUserSettings<R extends boolean | undefined = undefin
     method: 'put',
     url: '/user/settings',
     payload: payload.settings,
-    raw,
-  });
-}
-
-export async function editExcludedCategories<R extends boolean | undefined = undefined>({
-  addIds,
-  removeIds,
-  raw,
-}: Omit<Parameters<typeof apiEditExcludedCategories>[0], 'userId'> & {
-  raw?: R;
-}) {
-  return makeRequest<Awaited<ReturnType<typeof apiEditExcludedCategories>>, R>({
-    method: 'put',
-    url: '/user/settings/edit-excluded-categories',
-    payload: { addIds, removeIds },
     raw,
   });
 }

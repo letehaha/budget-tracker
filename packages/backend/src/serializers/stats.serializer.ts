@@ -8,7 +8,6 @@ import { type endpointsTypes } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type Balances from '@models/Balances.model';
 import type { CombinedBalanceHistoryItem } from '@services/stats/get-combined-balance-history';
-import type { GetExpensesHistoryResponseSchema } from '@services/stats/get-expenses-history';
 
 // ============================================================================
 // Balance History Serializers
@@ -40,41 +39,6 @@ export function serializeBalanceHistory(balances: Balances[]): BalanceHistoryIte
  */
 export function serializeTotalBalance(totalCents: number): number {
   return centsToApiDecimal(totalCents);
-}
-
-// ============================================================================
-// Expenses History Serializers
-// ============================================================================
-
-interface ExpensesHistoryItemApiResponse {
-  id: number;
-  accountId: number;
-  time: Date;
-  amount: number;
-  refAmount: number;
-  currencyCode: string;
-  categoryId: number;
-  refundLinked: boolean;
-  transactionType: string;
-}
-
-/**
- * Serialize expenses history items (from getExpensesHistory)
- */
-export function serializeExpensesHistory(
-  expenses: GetExpensesHistoryResponseSchema[],
-): ExpensesHistoryItemApiResponse[] {
-  return expenses.map((expense) => ({
-    id: expense.id,
-    accountId: expense.accountId,
-    time: expense.time,
-    amount: centsToApiDecimal(expense.amount),
-    refAmount: centsToApiDecimal(expense.refAmount),
-    currencyCode: expense.currencyCode,
-    categoryId: expense.categoryId,
-    refundLinked: expense.refundLinked,
-    transactionType: expense.transactionType,
-  }));
 }
 
 // ============================================================================

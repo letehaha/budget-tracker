@@ -18,12 +18,6 @@ router.get(
   statsController.getTotalBalance.handler,
 );
 router.get(
-  '/expenses-history',
-  authenticateSession,
-  validateEndpoint(statsController.getExpensesHistory.schema),
-  statsController.getExpensesHistory.handler,
-);
-router.get(
   '/expenses-amount-for-period',
   authenticateSession,
   validateEndpoint(statsController.getExpensesAmountForPeriod.schema),

@@ -1,11 +1,10 @@
 import { getExpensesAmountForPeriod, getSpendingsByCategories } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { calculatePercentageDifference } from '@/js/helpers';
 import { useQuery } from '@tanstack/vue-query';
 import { differenceInDays, endOfMonth, format, isSameMonth, startOfMonth, subDays, subMonths } from 'date-fns';
-import { computed, ref, watch } from 'vue';
+import { type Ref, computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 export interface ChartDataItem {
@@ -15,17 +14,18 @@ export interface ChartDataItem {
   amount: number;
 }
 
-export function useExpensesStructureData({ selectedPeriod }: { selectedPeriod: () => { from: Date; to: Date } }) {
+export function useExpensesStructureData({
+  selectedPeriod,
+  excludedCategoryIds,
+}: {
+  selectedPeriod: () => { from: Date; to: Date };
+  excludedCategoryIds: Ref<number[]>;
+}) {
   const { t } = useI18n();
 
   const periodQueryKey = ref(`${new Date().getTime()}-${new Date().getTime()}`);
 
-  const { data: userSettings } = useUserSettings();
-
-  const excludedCategories = computed(() =>
-    userSettings.value ? userSettings.value.stats.expenses.excludedCategories : [],
-  );
-  const hasExcludedStats = computed(() => excludedCategories.value.length > 0);
+  const hasExcludedStats = computed(() => excludedCategoryIds.value.length > 0);
 
   const periodLabel = computed(() => {
     const from = selectedPeriod().from;
@@ -59,23 +59,27 @@ export function useExpensesStructureData({ selectedPeriod }: { selectedPeriod: (
     { deep: true },
   );
 
+  const excludedKey = computed(() => excludedCategoryIds.value.join(','));
+
   const { data: spendingsByCategories, isFetching: isSpendingsByCategoriesFetching } = useQuery({
-    queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructureTotal, periodQueryKey],
+    queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructureTotal, periodQueryKey, excludedKey],
     queryFn: () =>
       getSpendingsByCategories({
         from: selectedPeriod().from,
         to: selectedPeriod().to,
+        excludedCategoryIds: excludedCategoryIds.value.length > 0 ? excludedCategoryIds.value : undefined,
       }),
     staleTime: Infinity,
     placeholderData: (previousData) => previousData || {},
   });
 
   const { data: currentMonthExpense, isFetching: isCurrentMonthExpenseFetching } = useQuery({
-    queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructureCurrentAmount, periodQueryKey],
+    queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructureCurrentAmount, periodQueryKey, excludedKey],
     queryFn: () =>
       getExpensesAmountForPeriod({
         from: selectedPeriod().from,
         to: selectedPeriod().to,
+        excludedCategoryIds: excludedCategoryIds.value.length > 0 ? excludedCategoryIds.value : undefined,
       }),
     staleTime: Infinity,
     placeholderData: (previousData) => previousData || 0,
@@ -102,11 +106,12 @@ export function useExpensesStructureData({ selectedPeriod }: { selectedPeriod: (
   });
 
   const { data: prevMonthExpense, isFetching: isPrevMonthExpenseFetching } = useQuery({
-    queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructurePrevAmount, periodQueryKey],
+    queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructurePrevAmount, periodQueryKey, excludedKey],
     queryFn: () =>
       getExpensesAmountForPeriod({
         from: prevPeriod.value.from,
         to: prevPeriod.value.to,
+        excludedCategoryIds: excludedCategoryIds.value.length > 0 ? excludedCategoryIds.value : undefined,
       }),
     staleTime: Infinity,
     placeholderData: (previousData) => previousData || 0,
@@ -128,21 +133,24 @@ export function useExpensesStructureData({ selectedPeriod }: { selectedPeriod: (
     return Number(percentage);
   });
 
-  const chartData = computed<ChartDataItem[]>(() =>
-    Object.entries(spendingsByCategories.value || {}).map(([id, value]) => ({
-      categoryId: Number(id),
-      name: value.name,
-      color: value.color,
-      amount: value.amount,
-    })),
-  );
+  const chartData = computed<ChartDataItem[]>(() => {
+    const excludedSet = new Set(excludedCategoryIds.value);
+    return Object.entries(spendingsByCategories.value || {})
+      .filter(([id]) => !excludedSet.has(Number(id)))
+      .map(([id, value]) => ({
+        categoryId: Number(id),
+        name: value.name,
+        color: value.color,
+        amount: value.amount,
+      }));
+  });
 
   const isDataEmpty = computed(() => chartData.value.length === 0);
   const hasData = computed(() => currentMonthExpense.value !== undefined && prevMonthExpense.value !== undefined);
   const totalAmount = computed(() => chartData.value.reduce((sum, item) => sum + item.amount, 0));
 
   return {
-    excludedCategories,
+    excludedCategoryIds,
     hasExcludedStats,
     periodLabel,
     spendingsByCategories,

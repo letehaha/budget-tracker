@@ -66,26 +66,6 @@
         </FieldLabel>
       </div>
 
-      <div class="flex items-center gap-3">
-        <div class="bg-border h-px flex-1" />
-        <span class="text-muted-foreground text-xs">{{ $t('dialogs.categoryForm.settingsDivider') }}</span>
-        <div class="bg-border h-px flex-1" />
-      </div>
-
-      <div class="flex items-center gap-3">
-        <label class="flex cursor-pointer items-center gap-3">
-          <Checkbox v-model="form.excludeFromStats" />
-          <span class="text-sm">{{ $t('dialogs.categoryForm.excludeFromStatsLabel') }}</span>
-        </label>
-
-        <ResponsiveTooltip
-          :content="$t('dialogs.categoryForm.excludeFromStatsTooltip')"
-          content-class-name="max-w-[250px]"
-        >
-          <InfoIcon class="text-muted-foreground size-4" />
-        </ResponsiveTooltip>
-      </div>
-
       <div class="mt-2 flex justify-end">
         <Button type="submit" :disabled="isSubmitDisabled">
           {{ isEditMode ? $t('dialogs.categoryForm.saveButton') : $t('dialogs.categoryForm.createButton') }}
@@ -101,19 +81,16 @@ import { type FormattedCategory } from '@/common/types';
 import { removeNullishValues } from '@/common/utils/remove-keys';
 import TagIcon from '@/components/common/icons/tag-icon.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
-import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import ColorSelectField from '@/components/fields/color-select-field.vue';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
-import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { useNotificationCenter } from '@/components/notification-center';
-import { addCategories, removeCategories, useUserSettings } from '@/composable/data-queries/user-settings';
 import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { useCategoriesStore, useOnboardingStore } from '@/stores';
-import { ChevronsUpDownIcon, InfoIcon } from 'lucide-vue-next';
+import { ChevronsUpDownIcon } from 'lucide-vue-next';
 import { computed, defineAsyncComponent, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -144,7 +121,6 @@ const isSubmitting = ref(false);
 const { t } = useI18n();
 const categoriesStore = useCategoriesStore();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
-const { data: userSettings, mutateAsync: updateUserSettings } = useUserSettings();
 
 const isEditMode = computed(() => !!props.category);
 const isCreatingTopLevelCategory = computed(() => !isEditMode.value && !props.parentCategory);
@@ -157,24 +133,20 @@ const form = reactive({
   name: '',
   color: DEFAULT_CATEGORY_COLOR,
   icon: '' as string | null,
-  excludeFromStats: false,
 });
 
 const initialValues = reactive({
   name: '',
   color: DEFAULT_CATEGORY_COLOR,
   icon: '' as string | null,
-  excludeFromStats: false,
 });
 
 const hasNameChanged = computed(() => form.name !== initialValues.name);
 const hasColorChanged = computed(() => form.color !== initialValues.color);
 const hasIconChanged = computed(() => form.icon !== initialValues.icon);
-const hasExcludeFromStatsChanged = computed(() => form.excludeFromStats !== initialValues.excludeFromStats);
-const hasCategoryFieldsChanged = computed(() => hasNameChanged.value || hasColorChanged.value || hasIconChanged.value);
 
 const hasChanges = computed(() => {
-  return hasCategoryFieldsChanged.value || hasExcludeFromStatsChanged.value;
+  return hasNameChanged.value || hasColorChanged.value || hasIconChanged.value;
 });
 
 const isSubmitDisabled = computed(() => {
@@ -188,29 +160,22 @@ const resetForm = () => {
   form.name = '';
   form.color = DEFAULT_CATEGORY_COLOR;
   form.icon = null;
-  form.excludeFromStats = false;
 };
 
 const initializeForm = () => {
   if (props.category) {
-    const excludeFromStats =
-      userSettings.value?.stats?.expenses?.excludedCategories?.includes(props.category.id) ?? false;
-
     form.name = props.category.name;
     form.color = props.category.color || DEFAULT_CATEGORY_COLOR;
     form.icon = props.category.icon || null;
-    form.excludeFromStats = excludeFromStats;
 
     initialValues.name = props.category.name;
     initialValues.color = props.category.color || DEFAULT_CATEGORY_COLOR;
     initialValues.icon = props.category.icon || null;
-    initialValues.excludeFromStats = excludeFromStats;
   } else {
     resetForm();
     initialValues.name = '';
     initialValues.color = DEFAULT_CATEGORY_COLOR;
     initialValues.icon = null;
-    initialValues.excludeFromStats = false;
   }
 };
 
@@ -224,16 +189,6 @@ watch(
   { immediate: true },
 );
 
-// Re-initialize form when userSettings loads (handles page refresh case)
-watch(
-  () => userSettings.value,
-  () => {
-    if (isOpen.value) {
-      initializeForm();
-    }
-  },
-);
-
 const handleSubmit = async () => {
   if (!hasChanges.value) return;
 
@@ -241,21 +196,11 @@ const handleSubmit = async () => {
 
   try {
     if (isEditMode.value && props.category) {
-      if (hasCategoryFieldsChanged.value) {
-        await editCategory({
-          categoryId: props.category.id,
-          name: form.name.trim(),
-          icon: form.icon,
-        });
-      }
-
-      if (hasExcludeFromStatsChanged.value) {
-        await updateUserSettings(
-          form.excludeFromStats
-            ? addCategories(userSettings.value!, [props.category.id])
-            : removeCategories(userSettings.value!, [props.category.id]),
-        );
-      }
+      await editCategory({
+        categoryId: props.category.id,
+        name: form.name.trim(),
+        icon: form.icon,
+      });
 
       addSuccessNotification(t('dialogs.categoryForm.notifications.updated'));
       await categoriesStore.loadCategories();
@@ -279,10 +224,6 @@ const handleSubmit = async () => {
       }
 
       const newCategory = await createCategory(params);
-
-      if (form.excludeFromStats) {
-        await updateUserSettings(addCategories(userSettings.value!, [newCategory.id]));
-      }
 
       addSuccessNotification(t('dialogs.categoryForm.notifications.created'));
       await categoriesStore.loadCategories();

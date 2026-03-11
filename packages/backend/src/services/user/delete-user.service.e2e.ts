@@ -383,23 +383,15 @@ describe('User deletion (DELETE /user/delete)', () => {
     expect(accountsAfter).toHaveLength(0);
   });
 
-  it('should delete user with user settings and excluded categories', async () => {
-    // Create category
-    const category = await helpers.addCustomCategory({
-      name: 'Excluded Category',
-      color: '#FF0000',
-      raw: true,
+  it('should delete user with user settings', async () => {
+    // Create some settings
+    await helpers.updateUserSettings({
+      settings: { locale: 'uk' },
     });
-
-    // Add to excluded categories
-    const editRes = await helpers.editExcludedCategories({
-      addIds: [category.id],
-    });
-    expect(editRes.statusCode).toBe(200);
 
     // Verify settings exist
-    const settingsBefore = await helpers.getUserSettings({ raw: true });
-    expect(settingsBefore.stats.expenses.excludedCategories).toContain(category.id);
+    const settingsBefore = await UserSettings.findAll({});
+    expect(settingsBefore).toHaveLength(1);
 
     // Delete user
     const deleteRes = await helpers.deleteUserAccount();

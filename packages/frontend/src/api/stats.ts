@@ -16,13 +16,19 @@ export interface BalanceHistoryEntity {
   accountId: number;
 }
 
-export const getExpensesAmountForPeriod = async ({ from, to, ...rest }: Params = {}): Promise<number> => {
-  const params: endpointsTypes.GetBalanceHistoryPayload = {
+export const getExpensesAmountForPeriod = async ({
+  from,
+  to,
+  excludedCategoryIds,
+  ...rest
+}: Params & { excludedCategoryIds?: number[] } = {}): Promise<number> => {
+  const params: endpointsTypes.GetBalanceHistoryPayload & { excludedCategoryIds?: string } = {
     ...rest,
   };
 
   if (from) params.from = formatDate(from);
   if (to) params.to = formatDate(to);
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) params.excludedCategoryIds = excludedCategoryIds.join(',');
 
   return api.get('/stats/expenses-amount-for-period', params);
 };
@@ -32,12 +38,18 @@ export const getSpendingsByCategories = async ({
   to,
   type,
   categoryIds,
+  excludedCategoryIds,
   ...rest
 }: Params & {
   type?: TRANSACTION_TYPES;
   categoryIds?: number[];
+  excludedCategoryIds?: number[];
 } = {}): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
-  const params: endpointsTypes.GetBalanceHistoryPayload & { type?: string; categoryIds?: string } = {
+  const params: endpointsTypes.GetBalanceHistoryPayload & {
+    type?: string;
+    categoryIds?: string;
+    excludedCategoryIds?: string;
+  } = {
     ...rest,
   };
 
@@ -45,6 +57,7 @@ export const getSpendingsByCategories = async ({
   if (to) params.to = formatDate(to);
   if (type) params.type = type;
   if (categoryIds && categoryIds.length > 0) params.categoryIds = categoryIds.join(',');
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) params.excludedCategoryIds = excludedCategoryIds.join(',');
 
   return api.get('/stats/spendings-by-categories', params);
 };
@@ -77,7 +90,6 @@ interface GetCashFlowParams {
   granularity: endpointsTypes.CashFlowGranularity;
   accountId?: number;
   categoryIds?: number[];
-  excludeCategories?: boolean;
 }
 
 export const getCashFlow = async ({
@@ -86,7 +98,6 @@ export const getCashFlow = async ({
   granularity,
   accountId,
   categoryIds,
-  excludeCategories,
 }: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
   const params: Record<string, string | number | boolean> = {
     from: formatDate(from),
@@ -98,7 +109,6 @@ export const getCashFlow = async ({
   if (categoryIds !== undefined && categoryIds.length > 0) {
     params.categoryIds = categoryIds.join(',');
   }
-  if (excludeCategories !== undefined) params.excludeCategories = excludeCategories;
 
   return api.get('/stats/cash-flow', params);
 };
@@ -108,7 +118,6 @@ interface GetCumulativeDataParams {
   to: Date;
   metric: endpointsTypes.CumulativeMetric;
   accountId?: number;
-  excludeCategories?: boolean;
 }
 
 export const getCumulativeData = async ({
@@ -116,7 +125,6 @@ export const getCumulativeData = async ({
   to,
   metric,
   accountId,
-  excludeCategories,
 }: GetCumulativeDataParams): Promise<endpointsTypes.GetCumulativeResponse> => {
   const params: Record<string, string | number | boolean> = {
     from: formatDate(from),
@@ -125,7 +133,6 @@ export const getCumulativeData = async ({
   };
 
   if (accountId !== undefined) params.accountId = accountId;
-  if (excludeCategories !== undefined) params.excludeCategories = excludeCategories;
 
   return api.get('/stats/cumulative', params);
 };

@@ -13,8 +13,7 @@ describe('Get user settings', () => {
 
   it('returns new value after updation', async () => {
     const newSettings: SettingsSchema = {
-      locale: 'en',
-      stats: { expenses: { excludedCategories: [10] } },
+      locale: 'uk',
     };
 
     const response = await helpers.updateUserSettings({

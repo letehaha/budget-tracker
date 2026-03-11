@@ -8,11 +8,6 @@ export interface DashboardWidgetConfig {
 }
 
 export interface UserSettingsSchema {
-  stats: {
-    expenses: {
-      excludedCategories: number[];
-    };
-  };
   dashboard?: {
     widgets: DashboardWidgetConfig[];
   };

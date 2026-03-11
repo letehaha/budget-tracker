@@ -47,9 +47,14 @@
       "expensesStructure": {
         "title": "Expenses Structure",
         "excludedCategories": {
-          "message": "Some categories are excluded.",
-          "updateSettings": "Update settings",
-          "changeBehavior": "to change this behavior."
+          "message": "Some categories are excluded from this widget"
+        },
+        "excludeSettings": {
+          "title": "Settings",
+          "excludeCategories": "Exclude categories",
+          "dialogTitle": "Exclude categories",
+          "dialogDescription": "Select categories to exclude from this widget's chart and totals",
+          "save": "Save"
         },
         "today": "Today",
         "vsPreviousPeriod": "vs previous period",

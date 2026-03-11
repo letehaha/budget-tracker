@@ -17,7 +17,7 @@ import {
 } from 'date-fns';
 import { Op } from 'sequelize';
 
-import { getExcludedCategoryIds, getWhereConditionForTime } from './utils';
+import { getWhereConditionForTime } from './utils';
 
 interface GetCumulativeDataParams {
   userId: number;
@@ -25,10 +25,7 @@ interface GetCumulativeDataParams {
   to: string;
   metric: endpointsTypes.CumulativeMetric;
   accountId?: number;
-  excludeCategories?: boolean;
 }
-
-type GetPeriodDataParams = GetCumulativeDataParams;
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -43,7 +40,6 @@ export const getCumulativeData = async ({
   to,
   metric,
   accountId,
-  excludeCategories = false,
 }: GetCumulativeDataParams): Promise<endpointsTypes.GetCumulativeResponse> => {
   // Use parseISO for consistent date parsing (treats dates as local time, not UTC)
   const fromDate = parseISO(from);
@@ -65,7 +61,6 @@ export const getCumulativeData = async ({
     to,
     metric,
     accountId,
-    excludeCategories,
   });
 
   const previousPeriodData = await getPeriodData({
@@ -74,7 +69,6 @@ export const getCumulativeData = async ({
     to: prevTo,
     metric,
     accountId,
-    excludeCategories,
   });
 
   // Calculate period-over-period percent change
@@ -102,8 +96,7 @@ async function getPeriodData({
   to,
   metric,
   accountId,
-  excludeCategories,
-}: GetPeriodDataParams): Promise<endpointsTypes.CumulativePeriodData> {
+}: GetCumulativeDataParams): Promise<endpointsTypes.CumulativePeriodData> {
   // Use parseISO for consistent date parsing (treats dates as local time, not UTC)
   const fromDate = parseISO(from);
   const toDate = parseISO(to);
@@ -112,12 +105,6 @@ async function getPeriodData({
   // Limit 'to' date to current month if it's in the future
   const effectiveToDate = toDate > now ? endOfMonth(now) : toDate;
   const effectiveTo = format(effectiveToDate, 'yyyy-MM-dd');
-
-  // Get excluded categories (including descendants) if needed
-  const excludedCategoryIds = excludeCategories ? await getExcludedCategoryIds({ userId }) : [];
-
-  // Build where clause for categories
-  const categoryWhere = excludedCategoryIds.length > 0 ? { [Op.notIn]: excludedCategoryIds } : undefined;
 
   // Determine which transaction types to fetch based on metric
   const transactionTypes =
@@ -136,7 +123,6 @@ async function getPeriodData({
       transactionType: {
         [Op.in]: transactionTypes,
       },
-      ...(categoryWhere ? { categoryId: categoryWhere } : {}),
       ...getWhereConditionForTime({ from, to: effectiveTo, columnName: 'time' }),
     }),
     include: [

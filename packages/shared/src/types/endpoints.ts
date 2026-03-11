@@ -184,9 +184,8 @@ export interface GetCashFlowPayload extends QueryPayload {
   to: string;
   granularity: CashFlowGranularity;
   accountId?: AccountModel['id'];
-  // Filter to specific categories (comma-separated IDs). Overrides excludeCategories.
+  // Filter to specific categories (comma-separated IDs).
   categoryIds?: string;
-  excludeCategories?: boolean;
 }
 
 // Category breakdown within a period
@@ -232,7 +231,6 @@ export interface GetCumulativePayload extends QueryPayload {
   to: string;
   metric: CumulativeMetric;
   accountId?: AccountModel['id'];
-  excludeCategories?: boolean;
 }
 
 export interface CumulativeMonthData {

@@ -47,9 +47,14 @@
       "expensesStructure": {
         "title": "Структура витрат",
         "excludedCategories": {
-          "message": "Деякі категорії виключено.",
-          "updateSettings": "Оновіть налаштування",
-          "changeBehavior": ", щоб змінити цю поведінку."
+          "message": "Деякі категорії виключено з цього віджета"
+        },
+        "excludeSettings": {
+          "title": "Налаштування",
+          "excludeCategories": "Виключити категорії",
+          "dialogTitle": "Виключити категорії",
+          "dialogDescription": "Оберіть категорії, які будуть виключені з графіку та підсумків цього віджета",
+          "save": "Зберегти"
         },
         "today": "Сьогодні",
         "vsPreviousPeriod": "до попереднього періоду",

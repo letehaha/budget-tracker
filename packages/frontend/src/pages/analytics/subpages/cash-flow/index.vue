@@ -32,17 +32,6 @@
                   {{ t('analytics.cashFlow.showTrendLineHint') }}
                 </p>
               </div>
-              <div class="space-y-1">
-                <div class="flex items-center gap-2">
-                  <Checkbox id="exclude-categories" v-model="excludeCategories" />
-                  <Label for="exclude-categories" class="cursor-pointer text-sm font-normal">
-                    {{ t('analytics.cashFlow.excludeCategories') }}
-                  </Label>
-                </div>
-                <p class="text-muted-foreground pl-6 text-xs">
-                  {{ t('analytics.cashFlow.excludeCategoriesHint') }}
-                </p>
-              </div>
             </div>
           </PopoverContent>
         </Popover>
@@ -159,7 +148,6 @@ const selectedGranularity = useLocalStorage<endpointsTypes.CashFlowGranularity>(
 const selectedPeriod = useSessionStorage<Period>('cash-flow-period', getDefaultPeriod(), {
   serializer: periodSerializer,
 });
-const excludeCategories = useSessionStorage('cash-flow-exclude-categories', false);
 const showMovingAverage = useSessionStorage('cash-flow-show-moving-avg', true);
 
 // Calculate previous period (same duration, immediately before current period)
@@ -188,7 +176,6 @@ const queryParams = computed(() => ({
   from: selectedPeriod.value.from,
   to: selectedPeriod.value.to,
   granularity: selectedGranularity.value,
-  excludeCategories: excludeCategories.value,
 }));
 
 // Query params for previous period (for trend comparison)
@@ -196,7 +183,6 @@ const previousQueryParams = computed(() => ({
   from: previousPeriod.value.from,
   to: previousPeriod.value.to,
   granularity: selectedGranularity.value,
-  excludeCategories: excludeCategories.value,
 }));
 
 const {
