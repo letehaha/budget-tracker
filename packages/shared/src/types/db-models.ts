@@ -166,6 +166,8 @@ export interface TransactionModel {
   splits?: TransactionSplitModel[];
   /** Optional tags associated with the transaction (loaded when includeTags=true) */
   tags?: TagModel[];
+  /** Transaction groups this transaction belongs to (loaded when includeGroups=true) */
+  transactionGroups?: Array<{ id: number; name: string }>;
   /** Timestamp when the record was created (defaults to transaction time for existing records) */
   createdAt: Date;
   /** Timestamp when the record was last updated */

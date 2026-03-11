@@ -79,6 +79,7 @@ const schema = z.object({
         .optional(),
       includeSplits: booleanQuery().optional(),
       includeTags: booleanQuery().optional(),
+      includeGroups: booleanQuery().optional(),
       excludeTransfer: booleanQuery().optional(),
       excludeRefunds: booleanQuery().optional(),
       transferFilter: z.nativeEnum(FILTER_OPERATION).optional(),

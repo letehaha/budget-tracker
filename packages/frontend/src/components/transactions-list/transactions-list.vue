@@ -12,14 +12,20 @@ import { computed, defineAsyncComponent, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { SCROLL_AREA_IDS } from '../lib/ui/scroll-area/types';
+import AddToGroupDialog from './add-to-group-dialog.vue';
 import BulkEditDialog, { type BulkEditFormValues } from './bulk-edit-dialog.vue';
 import BulkEditToolbar from './bulk-edit-toolbar.vue';
+import CreateGroupDialog from './create-group-dialog.vue';
+import TransactionGroupRecord, { type GroupRowData } from './transaction-group-record.vue';
 import TransactionRecord from './transaction-record.vue';
 
 const { t } = useI18n();
 
 const ManageTransactionDialogContent = defineAsyncComponent(
   () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
+);
+const TransactionGroupDialog = defineAsyncComponent(
+  () => import('@/pages/transaction-groups/transaction-group-dialog.vue'),
 );
 
 const props = withDefaults(
@@ -33,6 +39,8 @@ const props = withDefaults(
     rawList?: boolean; // whenever we don't need to show anything except actual records
     maxDisplay?: number; // maximum number of items to display after deduplication
     enableBulkEdit?: boolean;
+    /** When true, content filters are active — groups dissolve and individual transactions show */
+    contentFiltersActive?: boolean;
   }>(),
   {
     isTransactionRecord: false,
@@ -41,6 +49,7 @@ const props = withDefaults(
     paginate: true,
     scrollAreaId: SCROLL_AREA_IDS.dashboard,
     enableBulkEdit: false,
+    contentFiltersActive: false,
   },
 );
 const emits = defineEmits(['fetch-next-page']);
@@ -93,9 +102,10 @@ const handlerRecordClick = ([baseTx, oppositeTx]: [
   dialogProps.value = modalOptions;
 };
 
-const getTransactionKey = (tx: TransactionModel | undefined, index: number): string | number => {
-  if (!tx) return index;
-  return `${tx.id}-${tx.updatedAt}`;
+const getDisplayItemKey = (item: DisplayItem | undefined, index: number): string | number => {
+  if (!item) return index;
+  if (isGroupRow(item)) return `group-${item.groupId}`;
+  return `${item.id}-${item.updatedAt}`;
 };
 
 const scrollContainer = useScrollAreaContainer(props.scrollAreaId);
@@ -112,47 +122,88 @@ watch(listContainerRef, (el) => {
   }
 });
 
+type DisplayItem = TransactionModel | GroupRowData;
+
+const isGroupRow = (item: DisplayItem): item is GroupRowData => 'type' in item && item.type === 'group';
+
 /**
  * Smart container: Process transactions for display
- * Deduplicate transfers by showing only expense side with opposite transaction attached
+ * - Deduplicate transfers by showing only expense side
+ * - Replace grouped transactions with a single group row (unless content filters are active)
  */
-const displayTransactions = computed(() => {
+const displayTransactions = computed<DisplayItem[]>(() => {
   const seen = new Set<string>();
 
   const deduplicated = props.transactions.filter((tx) => {
-    // Not a transfer - always show
-    if (!tx.transferId) {
-      return true;
-    }
-
-    // Transfer out of wallet - always show (no opposite transaction, can be income or expense)
-    if (tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
-      return true;
-    }
-
-    // Common transfer - deduplicate by showing only expense side
+    if (!tx.transferId) return true;
+    if (tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return true;
     if (tx.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
-      // Skip if already processed
-      if (seen.has(tx.transferId)) {
-        return false;
-      }
-
-      // Only show expense side
+      if (seen.has(tx.transferId)) return false;
       if (tx.transactionType === TRANSACTION_TYPES.expense) {
         seen.add(tx.transferId);
         return true;
       }
-
-      // Income side - skip without marking as seen
       return false;
     }
-
-    // Fallback: show the transaction
     return true;
   });
 
-  // Limit to maxDisplay if specified
-  return props.maxDisplay ? deduplicated.slice(0, props.maxDisplay) : deduplicated;
+  // When content filters are active, dissolve groups — show individual transactions
+  if (props.contentFiltersActive) {
+    return props.maxDisplay ? deduplicated.slice(0, props.maxDisplay) : deduplicated;
+  }
+
+  // Group transactions by groupId and replace with group rows
+  const groupedTxs = new Map<number, TransactionModel[]>();
+  const ungrouped: TransactionModel[] = [];
+
+  for (const tx of deduplicated) {
+    const groupInfo = tx.transactionGroups?.[0];
+    if (groupInfo) {
+      const existing = groupedTxs.get(groupInfo.id);
+      if (existing) {
+        existing.push(tx);
+      } else {
+        groupedTxs.set(groupInfo.id, [tx]);
+      }
+    } else {
+      ungrouped.push(tx);
+    }
+  }
+
+  // Build display items: ungrouped transactions + group rows at newest member date
+  const items: DisplayItem[] = [...ungrouped];
+
+  for (const [groupId, txs] of groupedTxs) {
+    const groupName = txs[0]!.transactionGroups![0]!.name;
+    const dates = txs.map((tx) => new Date(tx.time).getTime());
+    const dateFrom = new Date(Math.min(...dates));
+    const dateTo = new Date(Math.max(...dates));
+
+    const groupRow: GroupRowData = {
+      type: 'group',
+      groupId,
+      groupName,
+      transactionCount: txs.length,
+      dateFrom,
+      dateTo,
+    };
+
+    // Insert at position of the newest transaction date
+    const newestTime = Math.max(...dates);
+    const insertIndex = items.findIndex((item) => {
+      const itemTime = isGroupRow(item) ? item.dateTo.getTime() : new Date(item.time).getTime();
+      return itemTime <= newestTime;
+    });
+
+    if (insertIndex === -1) {
+      items.push(groupRow);
+    } else {
+      items.splice(insertIndex, 0, groupRow);
+    }
+  }
+
+  return props.maxDisplay ? items.slice(0, props.maxDisplay) : items;
 });
 
 // Bulk edit selection
@@ -166,7 +217,7 @@ const {
   clearSelection,
   getSelectedTransactionIds,
 } = useTransactionSelection({
-  getTransactions: () => displayTransactions.value,
+  getTransactions: () => displayTransactions.value.filter((item): item is TransactionModel => !isGroupRow(item)),
 });
 
 const handleSelectAllToggle = (checked: boolean) => {
@@ -185,9 +236,40 @@ const bulkUpdateMutation = useBulkUpdateCategory({
 });
 
 const isBulkEditDialogOpen = ref(false);
+const isCreateGroupDialogOpen = ref(false);
 
 const handleOpenBulkEditDialog = () => {
   isBulkEditDialogOpen.value = true;
+};
+
+const handleOpenCreateGroupDialog = () => {
+  isCreateGroupDialogOpen.value = true;
+};
+
+const handleGroupCreated = () => {
+  clearSelection();
+};
+
+// Add to existing group
+const isAddToGroupDialogOpen = ref(false);
+
+const handleOpenAddToGroupDialog = () => {
+  isAddToGroupDialogOpen.value = true;
+};
+
+const handleAddedToGroup = () => {
+  clearSelection();
+};
+
+// Group detail dialog
+const isGroupDialogOpen = ref(false);
+const groupDialogKey = ref(0);
+const groupDialogId = ref<number | undefined>();
+
+const handleGroupRowClick = (groupId: number) => {
+  groupDialogId.value = groupId;
+  groupDialogKey.value++;
+  isGroupDialogOpen.value = true;
 };
 
 const handleBulkApply = (values: BulkEditFormValues) => {
@@ -242,6 +324,8 @@ watchEffect(() => {
       :is-loading="bulkUpdateMutation.isPending.value"
       @cancel="clearSelection"
       @edit="handleOpenBulkEditDialog"
+      @create-group="handleOpenCreateGroupDialog"
+      @add-to-group="handleOpenAddToGroupDialog"
       @select-all="handleSelectAllToggle"
     />
 
@@ -253,13 +337,27 @@ watchEffect(() => {
       @apply="handleBulkApply"
     />
 
+    <!-- Create group dialog -->
+    <CreateGroupDialog
+      v-model:open="isCreateGroupDialogOpen"
+      :transaction-ids="getSelectedTransactionIds()"
+      @created="handleGroupCreated"
+    />
+
+    <!-- Add to existing group dialog -->
+    <AddToGroupDialog
+      v-model:open="isAddToGroupDialogOpen"
+      :transaction-ids="getSelectedTransactionIds()"
+      @added="handleAddedToGroup"
+    />
+
     <template v-if="paginate">
       <div ref="listContainerRef" class="relative">
         <div v-bind="$attrs" v-if="transactions" class="w-full">
           <div :style="{ height: `${totalSize}px` }" class="relative">
             <div
               v-for="virtualRow in virtualRows"
-              :key="getTransactionKey(displayTransactions[virtualRow.index], virtualRow.index)"
+              :key="getDisplayItemKey(displayTransactions[virtualRow.index], virtualRow.index)"
               :style="{
                 position: 'absolute',
                 top: 0,
@@ -269,15 +367,32 @@ watchEffect(() => {
               }"
             >
               <template v-if="displayTransactions[virtualRow.index]">
-                <TransactionRecord
-                  :tx="displayTransactions[virtualRow.index]!"
-                  :show-checkbox="enableBulkEdit"
-                  :is-selected="isTransactionSelected(displayTransactions[virtualRow.index]!.id)"
-                  :is-selectable="isTransactionSelectable(displayTransactions[virtualRow.index]!)"
-                  :index="virtualRow.index"
-                  @record-click="handlerRecordClick"
-                  @selection-change="toggleTransaction"
+                <!-- Group row -->
+                <TransactionGroupRecord
+                  v-if="isGroupRow(displayTransactions[virtualRow.index]!)"
+                  :group="displayTransactions[virtualRow.index] as GroupRowData"
+                  @click="handleGroupRowClick"
                 />
+                <!-- Transaction row -->
+                <div v-else class="flex items-center gap-1">
+                  <slot name="row-leading" :tx="displayTransactions[virtualRow.index] as TransactionModel" />
+                  <div class="min-w-0 flex-1">
+                    <TransactionRecord
+                      :tx="displayTransactions[virtualRow.index] as TransactionModel"
+                      :show-checkbox="enableBulkEdit"
+                      :is-selected="
+                        isTransactionSelected((displayTransactions[virtualRow.index] as TransactionModel).id)
+                      "
+                      :is-selectable="
+                        isTransactionSelectable(displayTransactions[virtualRow.index] as TransactionModel)
+                      "
+                      :index="virtualRow.index"
+                      @record-click="handlerRecordClick"
+                      @selection-change="toggleTransaction"
+                    />
+                  </div>
+                  <slot name="row-trailing" :tx="displayTransactions[virtualRow.index] as TransactionModel" />
+                </div>
               </template>
             </div>
           </div>
@@ -297,16 +412,23 @@ watchEffect(() => {
     </template>
     <template v-else>
       <div v-bind="$attrs" class="grid grid-cols-1 gap-2">
-        <template v-for="(item, index) in displayTransactions" :key="`${item.id}-${item.updatedAt}`">
-          <TransactionRecord
-            :tx="item"
-            :show-checkbox="enableBulkEdit"
-            :is-selected="isTransactionSelected(item.id)"
-            :is-selectable="isTransactionSelectable(item)"
-            :index="index"
-            @record-click="handlerRecordClick"
-            @selection-change="toggleTransaction"
-          />
+        <template v-for="(item, index) in displayTransactions" :key="getDisplayItemKey(item, index)">
+          <TransactionGroupRecord v-if="isGroupRow(item)" :group="item" @click="handleGroupRowClick" />
+          <div v-else class="flex items-center gap-1">
+            <slot name="row-leading" :tx="item" />
+            <div class="min-w-0 flex-1">
+              <TransactionRecord
+                :tx="item"
+                :show-checkbox="enableBulkEdit"
+                :is-selected="isTransactionSelected(item.id)"
+                :is-selectable="isTransactionSelectable(item)"
+                :index="index"
+                @record-click="handlerRecordClick"
+                @selection-change="toggleTransaction"
+              />
+            </div>
+            <slot name="row-trailing" :tx="item" />
+          </div>
         </template>
       </div>
     </template>
@@ -340,5 +462,8 @@ watchEffect(() => {
         </Dialog.DialogContent>
       </Dialog.Dialog>
     </template>
+
+    <!-- Group detail dialog -->
+    <TransactionGroupDialog v-model:open="isGroupDialogOpen" :key="groupDialogKey" :group-id="groupDialogId" />
   </div>
 </template>

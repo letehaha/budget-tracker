@@ -68,6 +68,7 @@ export const useTransactionsWithFilters = ({
         excludedBudgetIds: staticFilters.excludedBudgetIds ?? undefined,
         includeSplits: true,
         includeTags: true,
+        includeGroups: true,
       } as Parameters<typeof loadTransactions>[0]),
     );
   };

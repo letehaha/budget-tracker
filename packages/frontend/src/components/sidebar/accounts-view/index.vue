@@ -6,6 +6,8 @@ import CreateAccountGroupDialog from '@/components/dialogs/account-groups/create
 import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
@@ -84,7 +86,7 @@ const isPopoverOpen = ref(false);
       </Popover.Popover>
     </div>
 
-    <div class="flex-1 overflow-auto">
+    <ScrollArea :scroll-area-id="SCROLL_AREA_IDS.sidebarAccounts" class="flex-1">
       <template v-if="isLoading">
         <AccountsSkeleton />
       </template>
@@ -92,6 +94,6 @@ const isPopoverOpen = ref(false);
         <AccountGroupsList :groups="accountGroups ?? []" />
         <AccountsList :accounts="accountsWithoutGroups" />
       </template>
-    </div>
+    </ScrollArea>
   </div>
 </template>

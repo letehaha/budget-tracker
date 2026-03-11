@@ -5,6 +5,19 @@ export const recordId = () => z.coerce.number().int().positive().finite();
 export const recordArrayIds = () => z.array(recordId());
 
 /**
+ * Array of unique record IDs. Validates that all IDs are unique.
+ * Accepts optional min/max constraints.
+ */
+export const uniqueRecordIds = ({ min, max }: { min?: number; max?: number } = {}) => {
+  let schema = z.array(recordId());
+  if (min !== undefined) schema = schema.min(min);
+  if (max !== undefined) schema = schema.max(max);
+  return schema.refine((ids) => new Set(ids).size === ids.length, {
+    message: 'IDs must be unique',
+  });
+};
+
+/**
  * Zod type for decimal monetary amounts from API requests.
  * Accepts a finite number and transforms it directly into a Money instance,
  * eliminating the need to call Money.fromDecimal() manually in controllers.
