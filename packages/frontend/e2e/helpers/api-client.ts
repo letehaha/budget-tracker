@@ -32,6 +32,14 @@ export async function apiPut({ request, path, data }: { request: APIRequestConte
   return response.json();
 }
 
+export async function apiDelete({ request, path, data }: { request: APIRequestContext; path: string; data?: unknown }) {
+  const response = await request.delete(`${API_BASE_URL}${path}`, { ...(data !== undefined && { data }) });
+  await assertOk({ response, label: `API DELETE ${path} failed` });
+  // DELETE may return empty body
+  const text = await response.text();
+  return text ? JSON.parse(text) : undefined;
+}
+
 // ─── Auth ────────────────────────────────────────────────────────────
 
 /**
@@ -230,6 +238,42 @@ export async function linkTransactionToPortfolio({
     request,
     path: `/api/v1/transactions/${transactionId}/link-to-portfolio`,
     data: { portfolioId },
+  });
+}
+
+// ─── Transaction Groups ─────────────────────────────────────────────
+
+export async function createTransactionGroup({
+  request,
+  name,
+  transactionIds,
+  note,
+}: {
+  request: APIRequestContext;
+  name: string;
+  transactionIds: number[];
+  note?: string | null;
+}) {
+  return apiPost({
+    request,
+    path: '/api/v1/transaction-groups',
+    data: { name, transactionIds, ...(note !== undefined && { note }) },
+  });
+}
+
+export async function addTransactionsToGroup({
+  request,
+  groupId,
+  transactionIds,
+}: {
+  request: APIRequestContext;
+  groupId: number;
+  transactionIds: number[];
+}) {
+  return apiPost({
+    request,
+    path: `/api/v1/transaction-groups/${groupId}/transactions`,
+    data: { transactionIds },
   });
 }
 
