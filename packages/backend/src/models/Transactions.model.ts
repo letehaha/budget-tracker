@@ -20,16 +20,19 @@ import BudgetTransactions from '@models/BudgetTransactions.model';
 import Categories from '@models/Categories.model';
 import Currencies from '@models/Currencies.model';
 import Tags from '@models/Tags.model';
+import TransactionGroupItems from '@models/TransactionGroupItems.model';
+import TransactionGroups from '@models/TransactionGroups.model';
 import TransactionSplits from '@models/TransactionSplits.model';
 import TransactionTags from '@models/TransactionTags.model';
 import Users from '@models/Users.model';
 import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
-import { Op, Includeable, WhereOptions } from 'sequelize';
+import { Op, Includeable, WhereOptions, literal } from 'sequelize';
 import {
   Table,
   BeforeCreate,
   AfterCreate,
   AfterUpdate,
+  AfterDestroy,
   BeforeDestroy,
   BeforeUpdate,
   Column,
@@ -154,6 +157,13 @@ export default class Transactions extends Model {
     otherKey: 'tagId',
   })
   tags!: Tags[];
+
+  @BelongsToMany(() => TransactionGroups, {
+    through: { model: () => TransactionGroupItems, unique: false },
+    foreignKey: 'transactionId',
+    otherKey: 'groupId',
+  })
+  transactionGroups!: TransactionGroups[];
 
   @HasMany(() => TransactionSplits)
   splits!: TransactionSplits[];
@@ -393,6 +403,41 @@ export default class Transactions extends Model {
     }
 
     await Balances.handleTransactionChange({ data: instance, isDelete: true });
+
+    // Capture group membership BEFORE CASCADE deletes the join rows.
+    // Stored on the instance so @AfterDestroy can check only the affected groups.
+    const groupItems = await TransactionGroupItems.findAll({
+      where: { transactionId: instance.id },
+      attributes: ['groupId'],
+      raw: true,
+    });
+    (instance as unknown as Record<string, unknown>)._affectedGroupIds = groupItems.map((item) => item.groupId);
+  }
+
+  @AfterDestroy
+  static async autoDissolveEmptyGroups(instance: Transactions) {
+    // After CASCADE removes the join row, check only the groups this transaction belonged to.
+    const affectedGroupIds = (instance as unknown as Record<string, unknown>)._affectedGroupIds as number[] | undefined;
+
+    if (!affectedGroupIds || affectedGroupIds.length === 0) return;
+
+    const underMinGroups = (await TransactionGroups.findAll({
+      where: {
+        id: { [Op.in]: affectedGroupIds },
+        [Op.and]: literal(`(
+          SELECT COUNT(*)
+          FROM "TransactionGroupItems"
+          WHERE "TransactionGroupItems"."groupId" = "TransactionGroups"."id"
+        ) < 2`),
+      },
+      attributes: ['id'],
+      raw: true,
+    })) as TransactionGroups[];
+
+    const idsToDelete = underMinGroups.map((g) => g.id);
+    if (idsToDelete.length > 0) {
+      await TransactionGroups.destroy({ where: { id: { [Op.in]: idsToDelete } } });
+    }
   }
 }
 
@@ -424,6 +469,7 @@ export const findWithFilters = async ({
   transactionType,
   includeSplits,
   includeTags,
+  includeGroups,
   isRaw = false,
   excludeTransfer,
   excludeRefunds,
@@ -455,6 +501,7 @@ export const findWithFilters = async ({
   order?: SORT_DIRECTIONS;
   includeSplits?: boolean;
   includeTags?: boolean;
+  includeGroups?: boolean;
   isRaw?: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
@@ -678,6 +725,16 @@ export const findWithFilters = async ({
         [Op.iLike]: `%${term}%`,
       })),
     };
+  }
+
+  // Include group membership info if requested
+  if (includeGroups) {
+    queryInclude.push({
+      model: TransactionGroups,
+      through: { attributes: [] },
+      attributes: ['id', 'name'],
+      required: false,
+    });
   }
 
   // Filter by categorization source (stored in JSONB field)

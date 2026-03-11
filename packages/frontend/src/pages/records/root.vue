@@ -33,6 +33,7 @@
           <TransactionsList
             ref="transactionsListRef"
             enable-bulk-edit
+            :content-filters-active="contentFiltersActive"
             @fetch-next-page="fetchNextPage"
             :hasNextPage="hasNextPage"
             :isFetchingNextPage="isFetchingNextPage"
@@ -54,8 +55,9 @@ import FiltersPanel from '@/components/records-filters/index.vue';
 import { useTransactionsWithFilters } from '@/components/records-filters/transactions-with-filters';
 import { useFiltersFromQuery } from '@/components/records-filters/use-filters-from-query';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
+import { DEFAULT_FILTERS } from '@/components/records-filters/const';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import ScrollTopButton from './components/scroll-to-top.vue';
@@ -101,4 +103,21 @@ watch(appliedFilters, () => {
 });
 
 const isMobileView = useWindowBreakpoints(1024);
+
+// Content filters dissolve groups — only date filters keep groups visible
+const contentFiltersActive = computed(() => {
+  const f = appliedFilters.value;
+  return (
+    f.transactionType !== DEFAULT_FILTERS.transactionType ||
+    f.amountGte !== DEFAULT_FILTERS.amountGte ||
+    f.amountLte !== DEFAULT_FILTERS.amountLte ||
+    f.accounts.length > 0 ||
+    f.categoryIds.length > 0 ||
+    f.tagIds.length > 0 ||
+    f.noteIncludes !== DEFAULT_FILTERS.noteIncludes ||
+    f.transferFilter !== DEFAULT_FILTERS.transferFilter ||
+    f.refundFilter !== DEFAULT_FILTERS.refundFilter ||
+    f.categorizationSource !== DEFAULT_FILTERS.categorizationSource
+  );
+});
 </script>

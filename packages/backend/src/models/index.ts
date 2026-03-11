@@ -28,6 +28,8 @@ import SubscriptionsModel from './Subscriptions.model';
 import SubscriptionTransactionsModel from './SubscriptionTransactions.model';
 import TagRemindersModel from './TagReminders.model';
 import TagsModel from './Tags.model';
+import TransactionGroupItemsModel from './TransactionGroupItems.model';
+import TransactionGroupsModel from './TransactionGroups.model';
 import TransactionsModel from './Transactions.model';
 import TransactionSplitsModel from './TransactionSplits.model';
 import TransactionTagsModel from './TransactionTags.model';
@@ -82,6 +84,8 @@ const models = [
   TagRemindersModel,
   TransactionTagsModel,
   TransactionSplitsModel,
+  TransactionGroupsModel,
+  TransactionGroupItemsModel,
   HoldingsModel,
   InvestmentTransactionModel,
   SecuritiesModel,

@@ -10,4 +10,5 @@ export enum SCROLL_AREA_IDS {
   dateSelectorPanel = 'scroll-area-date-selector-panel',
   calendarJumpMonths = 'scroll-area-calendar-jump-months',
   calendarJumpYears = 'scroll-area-calendar-jump-years',
+  sidebarAccounts = 'scroll-area-sidebar-accounts',
 }

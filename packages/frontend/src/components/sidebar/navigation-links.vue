@@ -7,6 +7,7 @@ import {
   ChartColumnIcon,
   ChevronRightIcon,
   CreditCardIcon,
+  GroupIcon,
   LandmarkIcon,
   LayersIcon,
   LayoutDashboardIcon,
@@ -15,7 +16,10 @@ import {
   WalletIcon,
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
+
+const { t } = useI18n();
 
 withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
 
@@ -39,6 +43,19 @@ watch(
   isAccountsRoute,
   (val) => {
     if (val) isAccountsOpen.value = true;
+  },
+  { immediate: true },
+);
+
+const isTransactionsRoute = computed(
+  () => route.name === ROUTES_NAMES.transactions || route.name === ROUTES_NAMES.transactionGroups,
+);
+
+const isTransactionsOpen = ref(false);
+watch(
+  isTransactionsRoute,
+  (val) => {
+    if (val) isTransactionsOpen.value = true;
   },
   { immediate: true },
 );
@@ -138,17 +155,56 @@ watch(
     </ui-button>
   </router-link>
 
-  <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactions }">
-    <ui-button
-      variant="ghost"
-      as="span"
-      :class="[navItemBase, !bottomNav && 'justify-start', isActive && navItemActive]"
-      size="default"
-    >
-      <CreditCardIcon :class="[navIconBase, isActive && navIconActive]" />
-      <span :class="{ 'max-sm:hidden': bottomNav }"> {{ $t('navigation.transactions') }} </span>
-    </ui-button>
-  </router-link>
+  <template v-if="bottomNav">
+    <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactions }">
+      <ui-button variant="ghost" as="span" :class="[navItemBase, isActive && navItemActive]" size="default">
+        <CreditCardIcon :class="[navIconBase, isActive && navIconActive]" />
+        <span class="max-sm:hidden"> {{ $t('navigation.transactions') }} </span>
+      </ui-button>
+    </router-link>
+  </template>
+  <Collapsible v-else v-model:open="isTransactionsOpen">
+    <CollapsibleTrigger class="w-full">
+      <ui-button
+        variant="ghost"
+        as="div"
+        :class="['w-full justify-start gap-2 px-3', isTransactionsRoute && 'bg-primary/10']"
+        size="default"
+      >
+        <CreditCardIcon :class="[navIconBase, isTransactionsRoute && navIconActive]" />
+        <span>{{ $t('navigation.transactions') }}</span>
+        <ChevronRightIcon
+          :class="['ml-auto size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isTransactionsOpen }]"
+        />
+      </ui-button>
+    </CollapsibleTrigger>
+    <CollapsibleContent>
+      <div class="border-border/40 mt-1 ml-2 grid gap-0.5 border-l pl-2">
+        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactions }">
+          <ui-button
+            variant="ghost"
+            as="span"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
+            size="sm"
+          >
+            <CreditCardIcon :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ t('transactions.transactionGroups.navigation.allTransactions') }}</span>
+          </ui-button>
+        </router-link>
+        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactionGroups }">
+          <ui-button
+            variant="ghost"
+            as="span"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
+            size="sm"
+          >
+            <GroupIcon :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ t('transactions.transactionGroups.navigation.groups') }}</span>
+          </ui-button>
+        </router-link>
+      </div>
+    </CollapsibleContent>
+  </Collapsible>
 
   <Collapsible v-if="!bottomNav" v-model:open="isPlannedOpen">
     <CollapsibleTrigger class="w-full">

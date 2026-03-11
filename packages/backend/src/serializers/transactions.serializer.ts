@@ -8,6 +8,7 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money, centsToApiDecimal } from '@common/types/money';
 import type Tags from '@models/Tags.model';
+import type TransactionGroups from '@models/TransactionGroups.model';
 import type Transactions from '@models/Transactions.model';
 import type TransactionSplits from '@models/TransactionSplits.model';
 
@@ -59,6 +60,10 @@ export interface TransactionApiResponse {
     name: string;
     color: string;
     icon: string | null;
+  }>;
+  transactionGroups?: Array<{
+    id: number;
+    name: string;
   }>;
 }
 
@@ -153,6 +158,7 @@ export function serializeTransaction(
   tx: Transactions & {
     splits?: TransactionSplits[];
     tags?: Tags[];
+    transactionGroups?: TransactionGroups[];
   },
 ): TransactionApiResponse {
   return {
@@ -194,6 +200,12 @@ export function serializeTransaction(
         icon: tag.icon,
       })),
     }),
+    ...(tx.transactionGroups && {
+      transactionGroups: tx.transactionGroups.map((group) => ({
+        id: group.id,
+        name: group.name,
+      })),
+    }),
   };
 }
 
@@ -201,7 +213,7 @@ export function serializeTransaction(
  * Serialize multiple transactions
  */
 export function serializeTransactions(
-  txs: Array<Transactions & { splits?: TransactionSplits[]; tags?: Tags[] }>,
+  txs: Array<Transactions & { splits?: TransactionSplits[]; tags?: Tags[]; transactionGroups?: TransactionGroups[] }>,
 ): TransactionApiResponse[] {
   return txs.map(serializeTransaction);
 }

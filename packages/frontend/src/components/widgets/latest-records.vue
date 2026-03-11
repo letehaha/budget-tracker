@@ -27,7 +27,8 @@ const maxDisplay = computed(() => {
 
 const { data: transactions, isFetching } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.widgetLatestRecords,
-  queryFn: () => apiLoadTransactions({ limit: 20, from: 0, includeSplits: true, includeTags: true }), // Over-fetch to account for deduplication
+  queryFn: () =>
+    apiLoadTransactions({ limit: 40, from: 0, includeSplits: true, includeTags: true, includeGroups: true }), // Over-fetch to account for deduplication and grouping
   staleTime: Infinity,
   placeholderData: [],
   enabled: isAppInitialized,
@@ -59,7 +60,7 @@ const isDataEmpty = computed(() => !isFetching.value && (transactions.value?.len
       </EmptyState>
     </template>
     <template v-else>
-      <TransactionsList raw-list class="!gap-0.5" :transactions="transactions || []" :max-display="maxDisplay" />
+      <TransactionsList raw-list class="gap-0.5!" :transactions="transactions || []" :max-display="maxDisplay" />
     </template>
   </WidgetWrapper>
 </template>

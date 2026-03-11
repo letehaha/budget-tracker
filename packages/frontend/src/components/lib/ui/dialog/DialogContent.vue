@@ -3,8 +3,6 @@ import { Button } from '@/components/lib/ui/button';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-
-const { t } = useI18n();
 import {
   DialogClose,
   DialogContent,
@@ -15,6 +13,8 @@ import {
   useForwardPropsEmits,
 } from 'reka-ui';
 import { type HTMLAttributes, computed } from 'vue';
+
+const { t } = useI18n();
 
 const props = defineProps<
   DialogContentProps & {
@@ -57,7 +57,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       <slot />
 
       <template v-if="!customClose">
-        <DialogClose class="absolute top-4 right-4" as-child>
+        <DialogClose class="absolute top-6 right-6" as-child>
           <Button variant="ghost" size="icon">
             <X class="size-4" />
             <span class="sr-only">{{ t('common.ui.close') }}</span>

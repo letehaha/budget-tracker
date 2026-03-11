@@ -47,6 +47,7 @@ export const loadTransactions = async (params: {
   amountGte?: number;
   includeSplits?: boolean;
   includeTags?: boolean;
+  includeGroups?: boolean;
 }): Promise<endpointsTypes.GetTransactionsResponse> => {
   return api.get('/transactions', formatTransactionPayload(params));
 };
