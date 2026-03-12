@@ -110,6 +110,16 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/pages/planned/subscriptions/subscription-details.vue'),
           },
           {
+            path: 'reminders',
+            name: ROUTES_NAMES.plannedReminders,
+            component: () => import('@/pages/planned/reminders/index.vue'),
+          },
+          {
+            path: 'reminders/:id',
+            name: ROUTES_NAMES.plannedReminderDetails,
+            component: () => import('@/pages/planned/reminders/reminder-details.vue'),
+          },
+          {
             path: 'budgets',
             name: ROUTES_NAMES.plannedBudgets,
             component: () => import('@/pages/budgets/budgets.vue'),

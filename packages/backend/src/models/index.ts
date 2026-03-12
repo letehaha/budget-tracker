@@ -22,6 +22,9 @@ import SecuritiesModel from './investments/Securities.model';
 import SecurityPricingModel from './investments/SecurityPricing.model';
 import MerchantCategoryCodesModel from './MerchantCategoryCodes.model';
 import NotificationsModel from './Notifications.model';
+import PaymentReminderNotificationsModel from './payment-reminder-notifications.model';
+import PaymentReminderPeriodsModel from './payment-reminder-periods.model';
+import PaymentRemindersModel from './payment-reminders.model';
 import RefundTransactionsModel from './RefundTransactions.model';
 import SubscriptionCandidatesModel from './SubscriptionCandidates.model';
 import SubscriptionsModel from './Subscriptions.model';
@@ -96,6 +99,9 @@ const models = [
   SubscriptionsModel,
   SubscriptionTransactionsModel,
   SubscriptionCandidatesModel,
+  PaymentRemindersModel,
+  PaymentReminderPeriodsModel,
+  PaymentReminderNotificationsModel,
 ];
 
 const sequelize = new Sequelize({

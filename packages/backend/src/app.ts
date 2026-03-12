@@ -20,6 +20,7 @@ import { auth } from './config/auth';
 import { demoCleanupCron } from './crons/demo-cleanup';
 import { demoTemplateRefreshCron } from './crons/demo-template-refresh';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
+import { paymentRemindersCron } from './crons/payment-reminders-check';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
 import { subscriptionCandidateDetectionCron } from './crons/subscription-candidate-detection';
 import { tagRemindersCron } from './crons/tag-reminders-check';
@@ -43,6 +44,7 @@ import csvImportExportRoutes from './routes/import-export/csv.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
 import investmentsRoutes from './routes/investments.route';
 import notificationsRoutes from './routes/notifications.route';
+import paymentRemindersRoutes from './routes/payment-reminders.route';
 import sseRoutes from './routes/sse.route';
 import statsRoutes from './routes/stats.route';
 import subscriptionsRoutes from './routes/subscriptions.route';
@@ -200,6 +202,7 @@ app.use(`${API_PREFIX}/tags`, tagsRoutes);
 app.use(`${API_PREFIX}/tag-reminders`, tagRemindersRoutes);
 app.use(`${API_PREFIX}/transaction-groups`, transactionGroupsRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
+app.use(`${API_PREFIX}/payment-reminders`, paymentRemindersRoutes);
 app.use(`${API_PREFIX}/investments`, investmentsRoutes);
 app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
 app.use(`${API_PREFIX}/import`, statementParserRoutes);
@@ -286,6 +289,7 @@ function initializeBackgroundJobs() {
     if (process.env.NODE_ENV === 'production') {
       securitiesDailySyncCron.startCron();
       tagRemindersCron.startCron();
+      paymentRemindersCron.startCron();
       subscriptionCandidateDetectionCron.startCron();
     }
   }

@@ -101,6 +101,21 @@ Always use `lucide-vue-next` icons. Never use raw SVGs or other icon libraries.
 
 Always use the `ScrollArea` component (`@/components/lib/ui/scroll-area`) for scrollable containers. Never use raw `overflow-auto` / `overflow-y-scroll` divs. Adding the ScrollArea's id to a global variable is not needed unless there's a concrete use case for it.
 
+### Checkbox
+
+The project's `Checkbox` component (`@/components/lib/ui/checkbox`) uses `modelValue` / `update:modelValue`, **not** `checked` / `update:checked`. Always bind with `:model-value` and `@update:model-value` (or `v-model`).
+
+```vue
+<!-- Correct -->
+<Checkbox :model-value="form.notifyEmail" @update:model-value="(val) => (form.notifyEmail = !!val)" />
+
+<!-- Also correct -->
+<Checkbox v-model="form.notifyEmail" />
+
+<!-- WRONG — will silently do nothing -->
+<Checkbox :checked="form.notifyEmail" @update:checked="..." />
+```
+
 ### Dialogs & modals
 
 - Use **`ResponsiveDialog`** (`@/components/common/responsive-dialog.vue`) for general-purpose modals (forms, detail views)

@@ -13,7 +13,8 @@
     "planned": {
       "planned": "Заплановане",
       "subscriptions": "Підписки",
-      "budgets": "Бюджети"
+      "budgets": "Бюджети",
+      "reminders": "Нагадування"
     }
   },
   "sidebar": {
