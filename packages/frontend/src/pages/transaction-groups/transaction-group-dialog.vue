@@ -117,12 +117,7 @@ const transactions = computed(() => group.value?.transactions ?? []);
 </script>
 
 <template>
-  <ResponsiveDialog
-    :open="open"
-    dialog-content-class="sm:max-w-2xl"
-    no-internal-scroll
-    @update:open="emit('update:open', $event)"
-  >
+  <ResponsiveDialog :open="open" dialog-content-class="sm:max-w-2xl" @update:open="emit('update:open', $event)">
     <template #title>
       <div class="flex items-center gap-2">
         {{ group?.name ?? t('transactions.transactionGroups.groupDialog.loadingText') }}

@@ -11,7 +11,7 @@ const props = withDefaults(
     ScrollAreaRootProps & {
       class?: string;
       scrollY?: () => void;
-      scrollAreaId: SCROLL_AREA_IDS;
+      scrollAreaId?: SCROLL_AREA_IDS;
     }
   >(),
   {
