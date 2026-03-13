@@ -11,7 +11,7 @@ const props = withDefaults(
     ScrollAreaRootProps & {
       class?: string;
       scrollY?: () => void;
-      scrollAreaId: SCROLL_AREA_IDS;
+      scrollAreaId?: SCROLL_AREA_IDS;
     }
   >(),
   {
@@ -23,9 +23,11 @@ const props = withDefaults(
 
 const viewportRef = ref<typeof ScrollAreaViewport | null>(null);
 
-// Directly provide the viewport ref using the scrollAreaId as the key, so that
-// children can inject it and refer to it. For example virtualized lists
-provide(props.scrollAreaId, viewportRef);
+// Provide the viewport ref using the scrollAreaId as the key, so that
+// children can inject it and refer to it. For example virtualized lists.
+if (props.scrollAreaId) {
+  provide(props.scrollAreaId, viewportRef);
+}
 
 defineExpose({ viewportRef });
 </script>

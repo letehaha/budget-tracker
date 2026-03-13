@@ -3,6 +3,9 @@
     "budgets": {
       "backToList": "Back to Budgets"
     },
+    "reminders": {
+      "backToList": "Back to Reminders"
+    },
     "subscriptions": {
       "title": "Subscriptions & Bills",
       "description": "Track recurring payments and bills",

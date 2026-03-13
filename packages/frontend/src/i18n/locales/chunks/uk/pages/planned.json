@@ -3,6 +3,9 @@
     "budgets": {
       "backToList": "Назад до бюджетів"
     },
+    "reminders": {
+      "backToList": "Назад до нагадувань"
+    },
     "subscriptions": {
       "title": "Підписки та рахунки",
       "description": "Відстежуйте регулярні платежі та рахунки",

@@ -180,6 +180,7 @@ export const NOTIFICATION_TYPES = {
   system: 'system',
   changelog: 'changelog',
   tagReminder: 'tag_reminder',
+  paymentReminder: 'payment_reminder',
 } as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES] | string;
@@ -252,3 +253,49 @@ export enum SUBSCRIPTION_CANDIDATE_STATUS {
   accepted = 'accepted',
   dismissed = 'dismissed',
 }
+
+/**
+ * Payment reminder period statuses
+ */
+export const PAYMENT_REMINDER_STATUSES = {
+  upcoming: 'upcoming',
+  overdue: 'overdue',
+  paid: 'paid',
+  skipped: 'skipped',
+} as const;
+
+export type PaymentReminderStatus = (typeof PAYMENT_REMINDER_STATUSES)[keyof typeof PAYMENT_REMINDER_STATUSES];
+
+/**
+ * Fixed "remind before" presets for payment reminders.
+ * Up to 3 can be selected per reminder.
+ */
+export const REMIND_BEFORE_PRESETS = {
+  oneDay: '1_day',
+  twoDays: '2_days',
+  threeDays: '3_days',
+  fiveDays: '5_days',
+  oneWeek: '1_week',
+  twoWeeks: '2_weeks',
+  oneMonth: '1_month',
+} as const;
+
+export type RemindBeforePreset = (typeof REMIND_BEFORE_PRESETS)[keyof typeof REMIND_BEFORE_PRESETS];
+
+/** Map presets to number of days for calculation */
+export const REMIND_BEFORE_DAYS: Record<RemindBeforePreset, number> = {
+  '1_day': 1,
+  '2_days': 2,
+  '3_days': 3,
+  '5_days': 5,
+  '1_week': 7,
+  '2_weeks': 14,
+  '1_month': 30,
+};
+
+/** Maximum number of remind-before presets per reminder */
+export const MAX_REMIND_BEFORE_PRESETS = 3;
+
+/** Allowed hour slots for reminder notification time */
+export const PREFERRED_TIME_SLOTS = [0, 4, 8, 12, 16, 20] as const;
+export type PreferredTimeSlot = (typeof PREFERRED_TIME_SLOTS)[number];

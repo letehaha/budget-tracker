@@ -13,7 +13,8 @@
     "planned": {
       "planned": "Planned",
       "subscriptions": "Subscriptions",
-      "budgets": "Budgets"
+      "budgets": "Budgets",
+      "reminders": "Reminders"
     }
   },
   "sidebar": {

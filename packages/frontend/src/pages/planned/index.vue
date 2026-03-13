@@ -34,7 +34,7 @@ const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile, {
   wait: 50,
 });
 
-const nestedRouteMap: Record<string, { parent: { name: string }; labelKey: string }> = {
+const nestedRouteMap: Record<string, { parent: { name: string }; labelKey?: string; label?: string }> = {
   [ROUTES_NAMES.plannedSubscriptionDetails]: {
     parent: { name: ROUTES_NAMES.plannedSubscriptions },
     labelKey: 'planned.subscriptions.backToList',
@@ -43,12 +43,17 @@ const nestedRouteMap: Record<string, { parent: { name: string }; labelKey: strin
     parent: { name: ROUTES_NAMES.plannedBudgets },
     labelKey: 'planned.budgets.backToList',
   },
+  [ROUTES_NAMES.plannedReminderDetails]: {
+    parent: { name: ROUTES_NAMES.plannedReminders },
+    labelKey: 'planned.reminders.backToList',
+  },
 };
 
 const isOnNestedChildRoute = computed(() => !!nestedRouteMap[route.name as string]);
 const backLinkTarget = computed(() => nestedRouteMap[route.name as string]?.parent ?? { name: ROUTES_NAMES.planned });
 const backLinkLabel = computed(() => {
-  const key = nestedRouteMap[route.name as string]?.labelKey;
-  return key ? t(key) : '';
+  const entry = nestedRouteMap[route.name as string];
+  if (!entry) return '';
+  return entry.labelKey ? t(entry.labelKey) : '';
 });
 </script>

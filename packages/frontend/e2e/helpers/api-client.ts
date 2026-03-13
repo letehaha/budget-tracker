@@ -277,6 +277,58 @@ export async function addTransactionsToGroup({
   });
 }
 
+// ─── Payment Reminders ──────────────────────────────────────────────
+
+export async function createPaymentReminder({
+  request,
+  name,
+  dueDate,
+  frequency,
+  expectedAmount,
+  currencyCode,
+  remindBefore,
+}: {
+  request: APIRequestContext;
+  name: string;
+  dueDate: string;
+  frequency?: string;
+  expectedAmount?: number;
+  currencyCode?: string;
+  remindBefore?: string[];
+}) {
+  return apiPost({
+    request,
+    path: '/api/v1/payment-reminders',
+    data: {
+      name,
+      dueDate,
+      ...(frequency && { frequency }),
+      ...(expectedAmount !== undefined && { expectedAmount }),
+      ...(currencyCode && { currencyCode }),
+      ...(remindBefore && { remindBefore }),
+      timezone: 'UTC',
+    },
+  });
+}
+
+export async function markReminderPeriodPaid({
+  request,
+  reminderId,
+  periodId,
+  transactionId,
+}: {
+  request: APIRequestContext;
+  reminderId: string;
+  periodId: string;
+  transactionId?: number;
+}) {
+  return apiPost({
+    request,
+    path: `/api/v1/payment-reminders/${reminderId}/periods/${periodId}/pay`,
+    data: transactionId !== undefined ? { transactionId } : {},
+  });
+}
+
 // ─── Holdings ────────────────────────────────────────────────────────
 
 export async function createHolding({

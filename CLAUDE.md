@@ -3,7 +3,7 @@
 ## Context Files
 
 - **Backend work**: Read `.claude/docs/backend-conventions.md` before writing backend code
-- **Frontend work**: Read `.claude/docs/frontend-conventions.md` before writing frontend code
+- **Frontend work**: Read `.claude/skills/frontend-rules/SKILL.md` before writing frontend code
 
 ## Testing Patterns
 

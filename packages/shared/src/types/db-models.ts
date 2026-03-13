@@ -8,6 +8,8 @@ import {
   NotificationStatus,
   NotificationType,
   PAYMENT_TYPES,
+  PaymentReminderStatus,
+  RemindBeforePreset,
   SUBSCRIPTION_CANDIDATE_STATUS,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_LINK_STATUS,
@@ -397,4 +399,51 @@ export interface SubscriptionCandidateModel {
   detectedAt: Date;
   lastOccurrenceAt: Date | null;
   resolvedAt: Date | null;
+}
+
+export interface PaymentReminderModel {
+  id: string;
+  userId: number;
+  subscriptionId: string | null;
+  name: string;
+  /** Amount in cents, null means no expected amount */
+  expectedAmount: number | null;
+  currencyCode: string | null;
+  /** null = one-off reminder */
+  frequency: SUBSCRIPTION_FREQUENCIES | null;
+  /** Anchor day for recurring reminders (1-31). Derived from initial dueDate. */
+  anchorDay: number;
+  dueDate: string;
+  remindBefore: RemindBeforePreset[];
+  notifyEmail: boolean;
+  /** Hour slot for notifications in user's timezone (0, 4, 8, 12, 16, 20) */
+  preferredTime: number;
+  /** IANA timezone string */
+  timezone: string;
+  categoryId: number | null;
+  notes: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PaymentReminderPeriodModel {
+  id: string;
+  reminderId: string;
+  dueDate: string;
+  status: PaymentReminderStatus;
+  paidAt: Date | null;
+  transactionId: number | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PaymentReminderNotificationModel {
+  id: string;
+  periodId: string;
+  remindBeforePreset: RemindBeforePreset;
+  sentAt: Date;
+  emailSent: boolean;
+  emailError: string | null;
 }
