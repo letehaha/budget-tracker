@@ -15,13 +15,16 @@ import {
 } from '@bt/shared/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { ChevronDownIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, MailIcon } from 'lucide-vue-next';
 import { format } from 'date-fns';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { CreateReminderPayload, PaymentReminderDetail } from '@/api/payment-reminders';
 
 type SelectOption = { value: string; label: string };
+
+const { t } = useI18n();
 
 const props = defineProps<{
   initialValues?: PaymentReminderDetail;
@@ -88,17 +91,17 @@ const today = computed(() => {
 
 const ONE_TIME_VALUE = 'one_time';
 
-const frequencyOptions: SelectOption[] = [
-  { value: ONE_TIME_VALUE, label: 'One-time' },
-  { value: SUBSCRIPTION_FREQUENCIES.weekly, label: 'Weekly' },
-  { value: SUBSCRIPTION_FREQUENCIES.biweekly, label: 'Every 2 weeks' },
-  { value: SUBSCRIPTION_FREQUENCIES.monthly, label: 'Monthly' },
-  { value: SUBSCRIPTION_FREQUENCIES.quarterly, label: 'Quarterly' },
-  { value: SUBSCRIPTION_FREQUENCIES.semiAnnual, label: 'Every 6 months' },
-  { value: SUBSCRIPTION_FREQUENCIES.annual, label: 'Annually' },
-];
+const frequencyOptions = computed<SelectOption[]>(() => [
+  { value: ONE_TIME_VALUE, label: t('planned.reminders.frequencies.oneTime') },
+  { value: SUBSCRIPTION_FREQUENCIES.weekly, label: t('planned.reminders.frequencies.weekly') },
+  { value: SUBSCRIPTION_FREQUENCIES.biweekly, label: t('planned.reminders.frequencies.biweekly') },
+  { value: SUBSCRIPTION_FREQUENCIES.monthly, label: t('planned.reminders.frequencies.monthly') },
+  { value: SUBSCRIPTION_FREQUENCIES.quarterly, label: t('planned.reminders.frequencies.quarterly') },
+  { value: SUBSCRIPTION_FREQUENCIES.semiAnnual, label: t('planned.reminders.frequencies.semiAnnual') },
+  { value: SUBSCRIPTION_FREQUENCIES.annual, label: t('planned.reminders.frequencies.annual') },
+]);
 
-const selectedFrequency = computed(() => frequencyOptions.find((o) => o.value === form.value.frequency) ?? null);
+const selectedFrequency = computed(() => frequencyOptions.value.find((o) => o.value === form.value.frequency) ?? null);
 
 const timeSlotOptions: SelectOption[] = PREFERRED_TIME_SLOTS.map((h) => ({
   value: String(h),
@@ -119,15 +122,15 @@ const selectedCurrency = computed(() => currencyOptions.value.find((o) => o.valu
 
 // --- Remind before ---
 
-const remindBeforeOptions: { value: RemindBeforePreset; label: string }[] = [
-  { value: REMIND_BEFORE_PRESETS.oneDay, label: '1 day before' },
-  { value: REMIND_BEFORE_PRESETS.twoDays, label: '2 days before' },
-  { value: REMIND_BEFORE_PRESETS.threeDays, label: '3 days before' },
-  { value: REMIND_BEFORE_PRESETS.fiveDays, label: '5 days before' },
-  { value: REMIND_BEFORE_PRESETS.oneWeek, label: '1 week before' },
-  { value: REMIND_BEFORE_PRESETS.twoWeeks, label: '2 weeks before' },
-  { value: REMIND_BEFORE_PRESETS.oneMonth, label: '1 month before' },
-];
+const remindBeforeOptions = computed<{ value: RemindBeforePreset; label: string }[]>(() => [
+  { value: REMIND_BEFORE_PRESETS.oneDay, label: t('planned.reminders.remindBefore.oneDay') },
+  { value: REMIND_BEFORE_PRESETS.twoDays, label: t('planned.reminders.remindBefore.twoDays') },
+  { value: REMIND_BEFORE_PRESETS.threeDays, label: t('planned.reminders.remindBefore.threeDays') },
+  { value: REMIND_BEFORE_PRESETS.fiveDays, label: t('planned.reminders.remindBefore.fiveDays') },
+  { value: REMIND_BEFORE_PRESETS.oneWeek, label: t('planned.reminders.remindBefore.oneWeek') },
+  { value: REMIND_BEFORE_PRESETS.twoWeeks, label: t('planned.reminders.remindBefore.twoWeeks') },
+  { value: REMIND_BEFORE_PRESETS.oneMonth, label: t('planned.reminders.remindBefore.oneMonth') },
+]);
 
 function toggleRemindBefore(preset: RemindBeforePreset) {
   const idx = form.value.remindBefore.indexOf(preset);
@@ -151,7 +154,7 @@ function handleSubmit() {
   error.value = '';
 
   if (isCreateMode.value && form.value.dueDate && form.value.dueDate < today.value) {
-    error.value = 'Due date cannot be in the past';
+    error.value = t('planned.reminders.form.dueDatePastError');
     return;
   }
 
@@ -187,14 +190,14 @@ defineExpose({ isSubmitDisabled, setError });
   <form :id="formId" class="grid gap-4" @submit.prevent="handleSubmit">
     <InputField
       v-model="form.name"
-      label="Name"
-      placeholder="e.g. Rent, Insurance, Taxes..."
+      :label="$t('planned.reminders.form.nameLabel')"
+      :placeholder="$t('planned.reminders.form.namePlaceholder')"
       :disabled="isSubscriptionLinked"
     />
 
     <DateField
       :model-value="form.dueDate ?? undefined"
-      label="Due date"
+      :label="$t('planned.reminders.form.dueDateLabel')"
       :calendar-options="isCreateMode ? { minDate: today } : undefined"
       @update:model-value="(v: Date) => (form.dueDate = v)"
     />
@@ -202,31 +205,15 @@ defineExpose({ isSubmitDisabled, setError });
     <SelectField
       :model-value="selectedFrequency"
       :values="frequencyOptions"
-      label="Frequency"
+      :label="$t('planned.reminders.form.frequencyLabel')"
       :disabled="isSubscriptionLinked"
       @update:model-value="(v: SelectOption | null) => (form.frequency = v?.value ?? ONE_TIME_VALUE)"
     />
 
-    <div class="grid grid-cols-2 gap-3">
-      <InputField
-        v-model="form.expectedAmount"
-        label="Amount"
-        type="number"
-        placeholder="Optional"
-        :disabled="isSubscriptionLinked"
-      />
-      <SelectField
-        :model-value="selectedCurrency"
-        :values="currencyOptions"
-        label="Currency"
-        placeholder="Select currency"
-        :disabled="isSubscriptionLinked"
-        @update:model-value="(v: SelectOption | null) => (form.currencyCode = v?.value ?? '')"
-      />
-    </div>
-
     <div>
-      <Label class="mb-2 block text-sm font-medium"> Remind before (max {{ MAX_REMIND_BEFORE_PRESETS }}) </Label>
+      <Label class="mb-2 block text-sm font-medium">
+        {{ $t('planned.reminders.form.remindBeforeLabel', { max: MAX_REMIND_BEFORE_PRESETS }) }}
+      </Label>
       <div class="flex flex-wrap gap-2">
         <UiButton
           v-for="opt in remindBeforeOptions"
@@ -242,32 +229,57 @@ defineExpose({ isSubmitDisabled, setError });
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-3">
-      <SelectField
-        :model-value="selectedTimeSlot"
-        :values="timeSlotOptions"
-        label="Notification time"
-        @update:model-value="(v: SelectOption | null) => (form.preferredTime = Number(v?.value ?? 8))"
-      />
-      <div />
-    </div>
-
     <div class="flex items-center gap-2">
       <Checkbox
         :id="`${formId}-email`"
         :model-value="form.notifyEmail"
         @update:model-value="(val) => (form.notifyEmail = !!val)"
       />
-      <Label :for="`${formId}-email`" class="text-sm">Also send email notifications</Label>
+      <Label :for="`${formId}-email`" class="flex items-center gap-1.5 text-base">
+        <MailIcon class="size-4" />
+        {{ $t('planned.reminders.form.emailNotifications') }}
+      </Label>
     </div>
 
     <Collapsible v-model:open="isExtraOptionsOpen">
       <CollapsibleTrigger class="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm">
-        Extra options
+        {{ $t('planned.reminders.form.extraOptions') }}
         <ChevronDownIcon :class="['size-4 transition-transform', isExtraOptionsOpen && 'rotate-180']" />
       </CollapsibleTrigger>
       <CollapsibleContent class="mt-3 grid gap-4">
-        <TextareaField v-model="form.notes" label="Notes" placeholder="Optional notes..." />
+        <div class="grid grid-cols-2 gap-3">
+          <InputField
+            v-model="form.expectedAmount"
+            :label="$t('planned.reminders.form.amountLabel')"
+            type="number"
+            :placeholder="$t('planned.reminders.form.amountPlaceholder')"
+            :disabled="isSubscriptionLinked"
+          />
+          <SelectField
+            :model-value="selectedCurrency"
+            :values="currencyOptions"
+            :label="$t('planned.reminders.form.currencyLabel')"
+            :placeholder="$t('planned.reminders.form.currencyPlaceholder')"
+            :disabled="isSubscriptionLinked"
+            @update:model-value="(v: SelectOption | null) => (form.currencyCode = v?.value ?? '')"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <SelectField
+            :model-value="selectedTimeSlot"
+            :values="timeSlotOptions"
+            :label="$t('planned.reminders.form.notificationTimeLabel')"
+            @update:model-value="(v: SelectOption | null) => (form.preferredTime = Number(v?.value ?? 8))"
+          />
+          <div />
+        </div>
+
+        <TextareaField
+          v-model="form.notes"
+          :label="$t('planned.reminders.form.notesLabel')"
+          :placeholder="$t('planned.reminders.form.notesPlaceholder')"
+        />
       </CollapsibleContent>
     </Collapsible>
 

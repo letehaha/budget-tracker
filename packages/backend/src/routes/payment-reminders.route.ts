@@ -4,6 +4,7 @@ import getPeriods from '@controllers/payment-reminders/get-periods';
 import getReminderById from '@controllers/payment-reminders/get-reminder-by-id';
 import getReminders from '@controllers/payment-reminders/get-reminders';
 import markPeriodPaid from '@controllers/payment-reminders/mark-period-paid';
+import revertPeriod from '@controllers/payment-reminders/revert-period';
 import skipPeriod from '@controllers/payment-reminders/skip-period';
 import unlinkTransaction from '@controllers/payment-reminders/unlink-transaction';
 import updateReminder from '@controllers/payment-reminders/update-reminder';
@@ -39,6 +40,12 @@ router.post(
   authenticateSession,
   validateEndpoint(unlinkTransaction.schema),
   unlinkTransaction.handler,
+);
+router.post(
+  '/:id/periods/:periodId/revert',
+  authenticateSession,
+  validateEndpoint(revertPeriod.schema),
+  revertPeriod.handler,
 );
 
 export default router;

@@ -136,3 +136,13 @@ export const unlinkPeriodTransaction = async ({
 }): Promise<PaymentReminderPeriodModel> => {
   return api.post(`/payment-reminders/${reminderId}/periods/${periodId}/unlink`);
 };
+
+export const revertPeriod = async ({
+  reminderId,
+  periodId,
+}: {
+  reminderId: string;
+  periodId: string;
+}): Promise<PaymentReminderPeriodModel> => {
+  return api.post(`/payment-reminders/${reminderId}/periods/${periodId}/revert`);
+};
