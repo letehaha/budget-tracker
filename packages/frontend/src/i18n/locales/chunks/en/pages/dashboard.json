@@ -81,6 +81,15 @@
         "addCategories": "Add categories to track",
         "selectCategories": "Select Categories"
       },
+      "cashFlow": {
+        "title": "Cash Flow",
+        "description": "Shows your net savings: income minus expenses for the selected period, with a trend of previous periods",
+        "vsPrevious": "vs previous",
+        "income": "Income",
+        "expenses": "Expenses",
+        "saved": "Saved",
+        "previousPeriodsTrend": "Previous periods trend"
+      },
       "emptyState": "There are no data in selected time interval.",
       "registry": {
         "balanceTrend": {
@@ -102,6 +111,10 @@
         "subscriptions": {
           "name": "Subscriptions & Bills",
           "description": "Overview of recurring payments"
+        },
+        "cashFlow": {
+          "name": "Cash Flow",
+          "description": "Income vs expenses with savings rate"
         }
       }
     },

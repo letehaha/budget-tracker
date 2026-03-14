@@ -50,6 +50,11 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // widget category spending tracker
   widgetCategorySpendingTracker: [transactionChange, 'widget-category-spending-tracker'] as const,
 
+  // widget cash flow
+  widgetCashFlow: [transactionChange, 'widget-cash-flow'] as const,
+  widgetCashFlowPrev: [transactionChange, 'widget-cash-flow-prev'] as const,
+  widgetCashFlowTrend: [transactionChange, 'widget-cash-flow-trend'] as const,
+
   // analytics
   analyticsBalanceHistoryTrend: [transactionChange, securityPriceChange, 'analytics-balance-history-trend'] as const,
   analyticsCashFlow: [transactionChange, 'analytics-cash-flow'] as const,

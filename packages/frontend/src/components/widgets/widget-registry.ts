@@ -78,6 +78,19 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
     component: () => import('@/components/widgets/category-spending-tracker/index.vue'),
     needsPeriod: true,
   },
+  'cash-flow': {
+    id: 'cash-flow',
+    name: 'dashboard.widgets.registry.cashFlow.name',
+    description: 'dashboard.widgets.registry.cashFlow.description',
+    defaultColSpan: 1,
+    defaultRowSpan: 1,
+    allowedSizes: [
+      { colSpan: 1, rowSpan: 1, label: '1×1' },
+      { colSpan: 2, rowSpan: 1, label: '2×1' },
+    ],
+    component: () => import('@/components/widgets/cash-flow-widget.vue'),
+    needsPeriod: true,
+  },
   'subscriptions-overview': {
     id: 'subscriptions-overview',
     name: 'dashboard.widgets.registry.subscriptions.name',
