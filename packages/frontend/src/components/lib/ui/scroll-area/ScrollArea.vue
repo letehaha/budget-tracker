@@ -10,12 +10,14 @@ const props = withDefaults(
   defineProps<
     ScrollAreaRootProps & {
       class?: string;
+      viewportClass?: string;
       scrollY?: () => void;
       scrollAreaId?: SCROLL_AREA_IDS;
     }
   >(),
   {
     class: '',
+    viewportClass: '',
     orientation: 'vertical',
     scrollY: undefined,
   },
@@ -34,7 +36,11 @@ defineExpose({ viewportRef });
 
 <template>
   <ScrollAreaRoot :type="type" :class="cn('relative overflow-hidden', props.class)">
-    <ScrollAreaViewport ref="viewportRef" class="h-full w-full rounded-[inherit]" @scroll="scrollY">
+    <ScrollAreaViewport
+      ref="viewportRef"
+      :class="cn('h-full w-full rounded-[inherit]', props.viewportClass)"
+      @scroll="scrollY"
+    >
       <slot />
     </ScrollAreaViewport>
     <ScrollBar />

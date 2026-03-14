@@ -258,6 +258,7 @@ export async function setupDashboardSettings({
         { widgetId: 'cash-flow', colSpan: 1, rowSpan: 1 },
         { widgetId: 'category-spending-tracker', colSpan: 1, rowSpan: 1, config: { selectedCategoryIds } },
         { widgetId: 'latest-records', colSpan: 1, rowSpan: 2 },
+        { widgetId: 'credit-utilization', colSpan: 1, rowSpan: 1 },
         { widgetId: 'subscriptions-overview', colSpan: 1, rowSpan: 1 },
         { widgetId: 'spending-categories', colSpan: 1, rowSpan: 1 },
       ],

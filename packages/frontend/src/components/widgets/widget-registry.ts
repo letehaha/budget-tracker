@@ -91,6 +91,19 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
     component: () => import('@/components/widgets/cash-flow-widget.vue'),
     needsPeriod: true,
   },
+  'credit-utilization': {
+    id: 'credit-utilization',
+    name: 'dashboard.widgets.registry.creditUtilization.name',
+    description: 'dashboard.widgets.registry.creditUtilization.description',
+    defaultColSpan: 1,
+    defaultRowSpan: 1,
+    allowedSizes: [
+      { colSpan: 1, rowSpan: 1, label: '1×1' },
+      { colSpan: 1, rowSpan: 2, label: '1×2' },
+    ],
+    component: () => import('@/components/widgets/credit-utilization-widget.vue'),
+    needsPeriod: false,
+  },
   'subscriptions-overview': {
     id: 'subscriptions-overview',
     name: 'dashboard.widgets.registry.subscriptions.name',
