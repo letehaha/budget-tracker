@@ -1144,4 +1144,151 @@ describe('Payment Reminders', () => {
       expect(orphanedPeriod).toBeNull();
     });
   });
+
+  describe('Revert Period', () => {
+    it('reverts a paid period back to upcoming', async () => {
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Revert Test',
+        dueDate: '2099-06-15',
+        raw: true,
+      });
+
+      const periodId = reminder.periods[0]!.id;
+
+      await helpers.markPaymentReminderPeriodPaid({
+        reminderId: reminder.id,
+        periodId,
+      });
+
+      const reverted = await helpers.revertPaymentReminderPeriod({
+        reminderId: reminder.id,
+        periodId,
+        raw: true,
+      });
+
+      expect(reverted.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+      expect(reverted.paidAt).toBeNull();
+      expect(reverted.transactionId).toBeNull();
+    });
+
+    it('reverts a skipped period back to upcoming', async () => {
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Revert Skip Test',
+        dueDate: '2099-07-01',
+        raw: true,
+      });
+
+      const periodId = reminder.periods[0]!.id;
+
+      await helpers.skipPaymentReminderPeriod({
+        reminderId: reminder.id,
+        periodId,
+      });
+
+      const reverted = await helpers.revertPaymentReminderPeriod({
+        reminderId: reminder.id,
+        periodId,
+        raw: true,
+      });
+
+      expect(reverted.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+      expect(reverted.paidAt).toBeNull();
+    });
+
+    it('returns 409 when reverting an already active period', async () => {
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Revert Active Test',
+        dueDate: '2099-08-01',
+        raw: true,
+      });
+
+      const periodId = reminder.periods[0]!.id;
+
+      const res = await helpers.revertPaymentReminderPeriod({
+        reminderId: reminder.id,
+        periodId,
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(409);
+    });
+
+    it('removes auto-created upcoming period when reverting a paid recurring period', async () => {
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Revert Recurring',
+        dueDate: '2099-09-15',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        raw: true,
+      });
+
+      const firstPeriodId = reminder.periods[0]!.id;
+
+      // Mark as paid — this auto-creates the next upcoming period
+      await helpers.markPaymentReminderPeriodPaid({
+        reminderId: reminder.id,
+        periodId: firstPeriodId,
+      });
+
+      // Should have 2 periods now: paid + new upcoming
+      const beforeRevert = await helpers.getPaymentReminderPeriods({
+        reminderId: reminder.id,
+        raw: true,
+      });
+      expect(beforeRevert.total).toBe(2);
+
+      // Revert — should delete the auto-created upcoming period
+      await helpers.revertPaymentReminderPeriod({
+        reminderId: reminder.id,
+        periodId: firstPeriodId,
+      });
+
+      const afterRevert = await helpers.getPaymentReminderPeriods({
+        reminderId: reminder.id,
+        raw: true,
+      });
+      expect(afterRevert.total).toBe(1);
+      expect(afterRevert.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+      expect(afterRevert.periods[0]!.id).toBe(firstPeriodId);
+    });
+
+    it('reverts to overdue when due date is in the past', async () => {
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Revert Past Due',
+        dueDate: '2099-01-01',
+        raw: true,
+      });
+
+      const periodId = reminder.periods[0]!.id;
+
+      // Move the period to the past and mark as paid to simulate the scenario
+      await PaymentReminderPeriods.update(
+        { status: PAYMENT_REMINDER_STATUSES.paid, paidAt: new Date(), dueDate: '2020-01-01' },
+        { where: { id: periodId } },
+      );
+
+      const reverted = await helpers.revertPaymentReminderPeriod({
+        reminderId: reminder.id,
+        periodId,
+        raw: true,
+      });
+
+      expect(reverted.status).toBe(PAYMENT_REMINDER_STATUSES.overdue);
+    });
+
+    it('returns 404 for non-existent period', async () => {
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Revert 404 Test',
+        dueDate: '2099-10-01',
+        raw: true,
+      });
+
+      const res = await helpers.revertPaymentReminderPeriod({
+        reminderId: reminder.id,
+        periodId: '00000000-0000-0000-0000-000000000000',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(404);
+    });
+  });
 });

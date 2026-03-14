@@ -5,6 +5,7 @@ import type { getPeriods as apiGetPeriods } from '@services/payment-reminders/ge
 import type { getReminderById as apiGetReminderById } from '@services/payment-reminders/get-reminder-by-id';
 import type { getReminders as apiGetReminders } from '@services/payment-reminders/get-reminders';
 import type { markPeriodPaid as apiMarkPeriodPaid } from '@services/payment-reminders/mark-period-paid';
+import type { revertPeriod as apiRevertPeriod } from '@services/payment-reminders/revert-period';
 import type { skipPeriod as apiSkipPeriod } from '@services/payment-reminders/skip-period';
 import type { unlinkTransaction as apiUnlinkTransaction } from '@services/payment-reminders/unlink-transaction';
 import type { updateReminder as apiUpdateReminder } from '@services/payment-reminders/update-reminder';
@@ -188,6 +189,22 @@ export async function unlinkPaymentReminderTransaction<R extends boolean | undef
   return makeRequest<Awaited<ReturnType<typeof apiUnlinkTransaction>>, R>({
     method: 'post',
     url: `/payment-reminders/${reminderId}/periods/${periodId}/unlink`,
+    raw,
+  });
+}
+
+export async function revertPaymentReminderPeriod<R extends boolean | undefined = undefined>({
+  reminderId,
+  periodId,
+  raw,
+}: {
+  reminderId: string;
+  periodId: string;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiRevertPeriod>>, R>({
+    method: 'post',
+    url: `/payment-reminders/${reminderId}/periods/${periodId}/revert`,
     raw,
   });
 }

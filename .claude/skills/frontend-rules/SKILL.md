@@ -116,6 +116,20 @@ The project's `Checkbox` component (`@/components/lib/ui/checkbox`) uses `modelV
 <Checkbox :checked="form.notifyEmail" @update:checked="..." />
 ```
 
+### Icon-only action buttons
+
+When a button uses `size="icon"` or `size="icon-sm"` (no visible label) and performs an action (edit, delete, skip, etc.), **always** wrap it with `DesktopOnlyTooltip` (`@/components/lib/ui/tooltip`) so the user can see what it does on hover. Use the `content` prop for the label. Do **not** use the native HTML `title` attribute — it has a long delay and inconsistent styling.
+
+```vue
+<DesktopOnlyTooltip content="Delete">
+  <UiButton variant="soft-destructive" size="icon" @click="handleDelete">
+    <Trash2Icon class="size-4" />
+  </UiButton>
+</DesktopOnlyTooltip>
+```
+
+`DesktopOnlyTooltip` automatically skips rendering the tooltip on touch devices (no hover capability), so no extra mobile handling is needed.
+
 ### Dialogs & modals
 
 - Use **`ResponsiveDialog`** (`@/components/common/responsive-dialog.vue`) for general-purpose modals (forms, detail views)
@@ -204,3 +218,41 @@ Disable submit buttons and show loading indicators while mutations are in progre
   Save
 </Button>
 ```
+
+---
+
+## i18n
+
+### `$t` vs `t`
+
+- In Vue **templates**, always use **`$t()`** — it's globally available and requires no import.
+- Only use the imported `t()` function inside `<script setup>` when you need translations in computed properties, composables, or other JS/TS logic that runs outside the template.
+
+### Never split translatable text
+
+Do **not** break a sentence into multiple `$t()` calls when there are inline elements or components in the middle. Translations must represent complete sentences/phrases — splitting them makes proper translation impossible.
+
+```vue
+<!-- WRONG — splits sentence around a link -->
+<p>{{ $t('Please read the') }} <a href="/terms">{{ $t('terms') }}</a> {{ $t('before continuing.') }}</p>
+
+<!-- CORRECT — use <i18n-t> with slots -->
+<i18n-t keypath="pleaseReadTerms" tag="p">
+  <template #link>
+    <a href="/terms">{{ $t('terms') }}</a>
+  </template>
+</i18n-t>
+```
+
+The corresponding translation key uses `{link}` as a placeholder:
+
+```json
+{
+  "pleaseReadTerms": "Please read the {link} before continuing.",
+  "terms": "terms"
+}
+```
+
+### `<i18n-t>` component
+
+Use the **`<i18n-t>`** component (from `vue-i18n`) whenever a translated string contains inline elements or components (links, bold text, icons, etc.). It interpolates Vue slots into translation placeholders, keeping the full sentence in a single translation key.

@@ -4,7 +4,126 @@
       "backToList": "Back to Budgets"
     },
     "reminders": {
-      "backToList": "Back to Reminders"
+      "backToList": "Back to Reminders",
+      "title": "Payment Reminders",
+      "newReminder": "New Reminder",
+      "edit": "Edit",
+      "delete": "Delete",
+      "emptyState": {
+        "title": "No reminders yet",
+        "description": "Create your first reminder to get started."
+      },
+      "list": {
+        "upcoming": "Upcoming",
+        "dueLabels": {
+          "today": "Due today",
+          "tomorrow": "Due tomorrow",
+          "inDays": "Due in {days} days",
+          "overdueBy": "Overdue by {days} day | Overdue by {days} days"
+        },
+        "tooltips": {
+          "markAsPaid": "Mark as paid",
+          "skipPeriod": "Skip period",
+          "delete": "Delete"
+        }
+      },
+      "dialogs": {
+        "deleteTitle": "Delete Reminder",
+        "deleteDescription": "Are you sure you want to delete \"{name}\"? This will remove all payment history.",
+        "editTitle": "Edit Reminder",
+        "revertTitle": "Revert Period",
+        "revertDescription": "This will revert the period (due {date}) back to an active state. Any linked transaction will be unlinked.",
+        "revertConfirm": "Revert"
+      },
+      "notifications": {
+        "reminderCreated": "Reminder created",
+        "reminderUpdated": "Reminder updated",
+        "reminderDeleted": "Reminder deleted",
+        "markedAsPaid": "Marked as paid",
+        "periodSkipped": "Period skipped",
+        "periodReverted": "Period reverted",
+        "transactionUnlinked": "Transaction unlinked",
+        "notFound": "Reminder not found",
+        "updated": "Reminder updated",
+        "updateFailed": "Failed to update",
+        "unlinked": "Transaction unlinked",
+        "unlinkFailed": "Failed to unlink",
+        "reverted": "Period reverted",
+        "revertFailed": "Failed to revert",
+        "createFailed": "Failed to create reminder",
+        "deleteFailed": "Failed to delete reminder",
+        "markAsPaidFailed": "Failed to mark as paid",
+        "skipFailed": "Failed to skip period"
+      },
+      "frequencies": {
+        "oneTime": "One-time",
+        "weekly": "Weekly",
+        "biweekly": "Every 2 weeks",
+        "monthly": "Monthly",
+        "quarterly": "Quarterly",
+        "semiAnnual": "Every 6 months",
+        "annual": "Annually"
+      },
+      "form": {
+        "nameLabel": "Name",
+        "namePlaceholder": "e.g. Rent, Insurance, Taxes...",
+        "dueDateLabel": "Due date",
+        "frequencyLabel": "Frequency",
+        "amountLabel": "Amount",
+        "amountPlaceholder": "Optional",
+        "currencyLabel": "Currency",
+        "currencyPlaceholder": "Select currency",
+        "notificationTimeLabel": "Notification time",
+        "notesLabel": "Notes",
+        "notesPlaceholder": "Optional notes...",
+        "emailNotifications": "Also send email notifications",
+        "extraOptions": "Extra options",
+        "dueDatePastError": "Due date cannot be in the past",
+        "remindBeforeLabel": "Remind before (max {max})"
+      },
+      "remindBefore": {
+        "oneDay": "1 day before",
+        "twoDays": "2 days before",
+        "threeDays": "3 days before",
+        "fiveDays": "5 days before",
+        "oneWeek": "1 week before",
+        "twoWeeks": "2 weeks before",
+        "oneMonth": "1 month before"
+      },
+      "details": {
+        "infoCard": {
+          "dueDate": "Due Date",
+          "amount": "Amount",
+          "email": "Email",
+          "remindBefore": "Remind Before",
+          "enabled": "Enabled",
+          "disabled": "Disabled",
+          "emailEnabled": "Enabled",
+          "emailDisabled": "Disabled"
+        },
+        "paymentHistory": "Payment History",
+        "noPaymentPeriods": "No payment periods yet.",
+        "period": {
+          "upcoming": "Upcoming",
+          "due": "Due {date}",
+          "paid": "Paid",
+          "overdue": "Overdue",
+          "skipped": "Skipped",
+          "paidAt": "Paid {date}",
+          "transaction": "Transaction #{id}",
+          "duePrefix": "Due ",
+          "paidPrefix": "Paid ",
+          "transactionPrefix": "Transaction #",
+          "tooltips": {
+            "markAsPaid": "Mark as paid",
+            "skip": "Skip",
+            "unlinkTransaction": "Unlink transaction",
+            "revert": "Revert"
+          }
+        },
+        "linkedTo": "Linked to {name}",
+        "loadMore": "Load more"
+      }
     },
     "subscriptions": {
       "title": "Subscriptions & Bills",
