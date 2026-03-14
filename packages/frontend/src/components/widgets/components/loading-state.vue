@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full min-h-[250px] flex-col items-center justify-center">
+  <div class="flex h-full min-h-62.5 flex-col items-center justify-center">
     <div class="relative h-32 w-48">
       <!-- Animated circles that morph and move -->
       <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">

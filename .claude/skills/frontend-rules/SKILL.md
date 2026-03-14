@@ -16,6 +16,7 @@ Reference guide for all frontend code in `packages/frontend/`. Read this before 
 - All components use `<script setup lang="ts">`
 - Use **TypeScript** — no `any` unless absolutely unavoidable
 - Use **`date-fns`** for all date formatting and manipulation. Never use raw `Date` methods or other date libraries
+- **Magic numbers**: when a numeric literal's meaning isn't obvious from context, extract it into a descriptive constant (e.g., `const MAX_VISIBLE_TAGS = 5`). Simple, self-evident values (array indices, `0`/`1` checks, common multipliers, etc.) are fine inline — use your judgement
 
 ---
 
@@ -96,6 +97,18 @@ Always use the project's field components from `@/components/fields/`. Never use
 ### Icons
 
 Always use `lucide-vue-next` icons. Never use raw SVGs or other icon libraries.
+
+Always import icons with the **`Icon` suffix** — e.g., `CircleCheckIcon`, `Trash2Icon`, `ChevronDownIcon`. Never use the short form without the suffix.
+
+```vue
+<!-- WRONG -->
+import { CircleCheck, Trash2 } from 'lucide-vue-next'
+<CircleCheck />
+
+<!-- CORRECT -->
+import { CircleCheckIcon, Trash2Icon } from 'lucide-vue-next'
+<CircleCheckIcon />
+```
 
 ### Scroll areas
 
