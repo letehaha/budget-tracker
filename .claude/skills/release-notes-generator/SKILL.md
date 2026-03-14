@@ -119,6 +119,7 @@ Follow the **exact format** observed from recent releases. The format is:
 
 - Use `##` for the top "What's Changed" heading
 - Use `###` for section titles within
+- **Add a relevant emoji before each `###` section title** to visually separate features. Pick emojis that match the feature's purpose (e.g., 🔔 for notifications, 🔗 for linking, 👀 for monitoring, ✨ for improvements, 📝 for code changes).
 - Feature descriptions should be user-facing (what changed for the user, not code details)
 - If there's a single dominant feature, it can be the main section title (see v0.10.6 "Walutomat Integration" as reference)
 - The "Code Changes" section lists all PRs with links
