@@ -89,7 +89,7 @@ const { mutate: updateMutation, isPending: isUpdating } = useMutation({
   onSuccess: () => {
     invalidateAll();
     isEditOpen.value = false;
-    addSuccessNotification(t('planned.reminders.notifications.updated'));
+    addSuccessNotification(t('planned.reminders.notifications.reminderUpdated'));
   },
   onError(error) {
     const message =
@@ -103,7 +103,7 @@ const isDeleteOpen = ref(false);
 const { mutate: deleteMutation } = useMutation({
   mutationFn: deleteReminder,
   onSuccess: () => {
-    addSuccessNotification(t('planned.reminders.notifications.deleted'));
+    addSuccessNotification(t('planned.reminders.notifications.reminderDeleted'));
     router.push({ name: ROUTES_NAMES.plannedReminders });
   },
   onError(error) {
@@ -118,12 +118,14 @@ const { mutate: markPaidMutation, isPending: isMarkingPaid } = useMutation({
   mutationFn: markPeriodPaid,
   onSuccess: () => {
     invalidateAll();
-    addSuccessNotification(t('planned.reminders.notifications.markedPaid'));
+    addSuccessNotification(t('planned.reminders.notifications.markedAsPaid'));
   },
   onError(error) {
     const message =
-      error instanceof ApiErrorResponseError ? error.data.message : t('planned.reminders.notifications.markPaidFailed');
-    addErrorNotification(message ?? t('planned.reminders.notifications.markPaidFailed'));
+      error instanceof ApiErrorResponseError
+        ? error.data.message
+        : t('planned.reminders.notifications.markAsPaidFailed');
+    addErrorNotification(message ?? t('planned.reminders.notifications.markAsPaidFailed'));
   },
 });
 
@@ -131,7 +133,7 @@ const { mutate: skipMutation, isPending: isSkipping } = useMutation({
   mutationFn: skipPeriod,
   onSuccess: () => {
     invalidateAll();
-    addSuccessNotification(t('planned.reminders.notifications.skipped'));
+    addSuccessNotification(t('planned.reminders.notifications.periodSkipped'));
   },
   onError(error) {
     const message =
@@ -144,7 +146,7 @@ const { mutate: unlinkMutation, isPending: isUnlinking } = useMutation({
   mutationFn: unlinkPeriodTransaction,
   onSuccess: () => {
     invalidateAll();
-    addSuccessNotification(t('planned.reminders.notifications.unlinked'));
+    addSuccessNotification(t('planned.reminders.notifications.transactionUnlinked'));
   },
   onError(error) {
     const message =
@@ -159,7 +161,7 @@ const { mutate: revertMutation, isPending: isReverting } = useMutation({
   onSuccess: () => {
     invalidateAll();
     revertTarget.value = null;
-    addSuccessNotification(t('planned.reminders.notifications.reverted'));
+    addSuccessNotification(t('planned.reminders.notifications.periodReverted'));
   },
   onError(error) {
     const message =
@@ -220,9 +222,9 @@ const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
 
   <div v-else-if="reminder">
     <!-- Header -->
-    <div class="mb-6 flex items-center justify-between">
+    <div class="mb-6 flex items-center justify-between gap-2">
       <div>
-        <h1 class="text-2xl font-bold">{{ reminder.name }}</h1>
+        <h1 class="line-clamp-2 text-2xl font-bold break-all">{{ reminder.name }}</h1>
         <p class="text-muted-foreground text-sm">
           {{ $t(getFrequencyI18nKey({ freq: reminder.frequency })) }}
           <template v-if="reminder.subscription">
@@ -252,16 +254,6 @@ const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
         <div v-if="reminder.expectedAmount != null">
           <p class="text-muted-foreground text-xs">{{ $t('planned.reminders.details.infoCard.amount') }}</p>
           <p class="font-medium">{{ formatAmountByCurrencyCode(reminder.expectedAmount!, reminder.currencyCode!) }}</p>
-        </div>
-        <div>
-          <p class="text-muted-foreground text-xs">{{ $t('planned.reminders.details.infoCard.email') }}</p>
-          <p class="font-medium">
-            {{
-              reminder.notifyEmail
-                ? t('planned.reminders.details.infoCard.enabled')
-                : t('planned.reminders.details.infoCard.disabled')
-            }}
-          </p>
         </div>
         <div v-if="reminder.remindBefore?.length">
           <p class="text-muted-foreground text-xs">{{ $t('planned.reminders.details.infoCard.remindBefore') }}</p>
@@ -324,6 +316,7 @@ const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
                 <UiButton
                   variant="soft-success"
                   size="sm"
+                  :title="$t('planned.reminders.details.period.tooltips.markAsPaid')"
                   :disabled="isPeriodActionPending"
                   @click="markPaidMutation({ reminderId: reminder.id, periodId: period.id })"
                 >
@@ -337,6 +330,7 @@ const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
                 <UiButton
                   variant="ghost"
                   size="sm"
+                  :title="$t('planned.reminders.details.period.tooltips.skip')"
                   :disabled="isPeriodActionPending"
                   @click="skipMutation({ reminderId: reminder.id, periodId: period.id })"
                 >
@@ -350,6 +344,7 @@ const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
                 <UiButton
                   variant="ghost"
                   size="sm"
+                  :title="$t('planned.reminders.details.period.tooltips.unlinkTransaction')"
                   :disabled="isPeriodActionPending"
                   @click="unlinkMutation({ reminderId: reminder.id, periodId: period.id })"
                 >
@@ -360,7 +355,13 @@ const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
                 v-if="isStatusRevertable({ status: period.status })"
                 :content="$t('planned.reminders.details.period.tooltips.revert')"
               >
-                <UiButton variant="ghost" size="sm" :disabled="isPeriodActionPending" @click="revertTarget = period">
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  :title="$t('planned.reminders.details.period.tooltips.revert')"
+                  :disabled="isPeriodActionPending"
+                  @click="revertTarget = period"
+                >
                   <UndoIcon class="size-4" />
                 </UiButton>
               </DesktopOnlyTooltip>
@@ -387,14 +388,14 @@ const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
       />
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UiButton variant="outline" @click="isEditOpen = false">{{ $t('common.cancel') }}</UiButton>
+          <UiButton variant="outline" @click="isEditOpen = false">{{ $t('common.actions.cancel') }}</UiButton>
           <UiButton
             type="submit"
             form="edit-reminder-form"
             :disabled="editFormRef?.isSubmitDisabled || isUpdating"
             :loading="isUpdating"
           >
-            {{ $t('common.save') }}
+            {{ $t('common.actions.save') }}
           </UiButton>
         </div>
       </template>

@@ -10,6 +10,7 @@ import {
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -18,7 +19,8 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { PAYMENT_REMINDER_STATUSES, type PaymentReminderStatus } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { BellRingIcon, CheckIcon, PlusIcon, SkipForwardIcon, Trash2Icon } from 'lucide-vue-next';
+import { useElementSize } from '@vueuse/core';
+import { BellRingIcon, CheckIcon, EllipsisVerticalIcon, PlusIcon, SkipForwardIcon, Trash2Icon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -67,7 +69,7 @@ const { mutate: createReminderMutation, isPending: isCreating } = useMutation({
   onSuccess: () => {
     invalidateAll();
     isCreateDialogOpen.value = false;
-    addSuccessNotification(t('planned.reminders.notifications.created'));
+    addSuccessNotification(t('planned.reminders.notifications.reminderCreated'));
   },
   onError(error) {
     const message =
@@ -83,7 +85,7 @@ const { mutate: deleteMutation, isPending: isDeleting } = useMutation({
   onSuccess: () => {
     invalidateAll();
     deleteTarget.value = null;
-    addSuccessNotification(t('planned.reminders.notifications.deleted'));
+    addSuccessNotification(t('planned.reminders.notifications.reminderDeleted'));
   },
   onError(error) {
     const message =
@@ -97,12 +99,14 @@ const { mutate: markPaidMutation, isPending: isMarkingPaid } = useMutation({
   mutationFn: markPeriodPaid,
   onSuccess: () => {
     invalidateAll();
-    addSuccessNotification(t('planned.reminders.notifications.markedPaid'));
+    addSuccessNotification(t('planned.reminders.notifications.markedAsPaid'));
   },
   onError(error) {
     const message =
-      error instanceof ApiErrorResponseError ? error.data.message : t('planned.reminders.notifications.markPaidFailed');
-    addErrorNotification(message ?? t('planned.reminders.notifications.markPaidFailed'));
+      error instanceof ApiErrorResponseError
+        ? error.data.message
+        : t('planned.reminders.notifications.markAsPaidFailed');
+    addErrorNotification(message ?? t('planned.reminders.notifications.markAsPaidFailed'));
   },
 });
 
@@ -110,7 +114,7 @@ const { mutate: skipMutation, isPending: isSkipping } = useMutation({
   mutationFn: skipPeriod,
   onSuccess: () => {
     invalidateAll();
-    addSuccessNotification(t('planned.reminders.notifications.skipped'));
+    addSuccessNotification(t('planned.reminders.notifications.periodSkipped'));
   },
   onError(error) {
     const message =
@@ -121,6 +125,10 @@ const { mutate: skipMutation, isPending: isSkipping } = useMutation({
 
 const isQuickActionPending = computed(() => isMarkingPaid.value || isSkipping.value || isDeleting.value);
 
+const listContainerRef = ref<HTMLElement>();
+const { width: listWidth } = useElementSize(listContainerRef);
+const isMobileActions = computed(() => listWidth.value > 0 && listWidth.value < 520);
+
 function getDueLabel(dueDate: string, status: PaymentReminderStatus): string {
   if (status === PAYMENT_REMINDER_STATUSES.overdue) {
     const days = Math.abs(getDaysUntilDue({ dueDate }));
@@ -130,6 +138,10 @@ function getDueLabel(dueDate: string, status: PaymentReminderStatus): string {
   if (days === 0) return t('planned.reminders.list.dueLabels.today');
   if (days === 1) return t('planned.reminders.list.dueLabels.tomorrow');
   return t('planned.reminders.list.dueLabels.inDays', { days });
+}
+
+function isPeriodDueOrOverdue({ dueDate, status }: { dueDate: string; status: string }): boolean {
+  return isStatusActionable({ status }) && getDaysUntilDue({ dueDate }) <= 0;
 }
 
 function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): string | null {
@@ -143,6 +155,7 @@ function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): stri
     <!-- Header -->
     <div class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl font-bold">{{ $t('planned.reminders.title') }}</h1>
+
       <UiButton @click="isCreateDialogOpen = true">
         <PlusIcon class="mr-1 size-4" />
         {{ $t('planned.reminders.newReminder') }}
@@ -173,16 +186,16 @@ function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): stri
         <h2 class="text-muted-foreground mb-3 text-sm font-medium tracking-wide uppercase">
           {{ $t('planned.reminders.list.upcoming') }}
         </h2>
-        <div class="grid gap-3">
+        <div ref="listContainerRef" class="grid gap-3">
           <div
             v-for="reminder in activeReminders"
             :key="reminder.id"
-            class="bg-card hover:bg-accent/50 flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors"
+            class="bg-card hover:bg-accent/50 flex min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg border p-4 transition-colors"
             @click="router.push({ name: ROUTES_NAMES.plannedReminderDetails, params: { id: reminder.id } })"
           >
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
-                <p class="truncate font-medium">{{ reminder.name }}</p>
+                <p class="line-clamp-2 font-medium break-all">{{ reminder.name }}</p>
                 <span class="text-muted-foreground text-xs">
                   {{ $t(getFrequencyI18nKey({ freq: reminder.frequency })) }}
                 </span>
@@ -205,14 +218,19 @@ function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): stri
               </template>
             </div>
 
-            <div class="flex items-center gap-1" @click.stop>
+            <!-- Desktop: inline buttons -->
+            <div v-if="!isMobileActions" class="flex items-center gap-1" @click.stop>
               <DesktopOnlyTooltip
-                v-if="reminder.periods?.[0] && isStatusActionable({ status: reminder.periods[0].status })"
+                v-if="
+                  reminder.periods?.[0] &&
+                  isPeriodDueOrOverdue({ dueDate: reminder.periods[0].dueDate, status: reminder.periods[0].status })
+                "
                 :content="$t('planned.reminders.list.tooltips.markAsPaid')"
               >
                 <UiButton
                   variant="soft-success"
                   size="icon"
+                  :title="$t('planned.reminders.list.tooltips.markAsPaid')"
                   :disabled="isQuickActionPending"
                   @click="
                     markPaidMutation({
@@ -225,12 +243,16 @@ function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): stri
                 </UiButton>
               </DesktopOnlyTooltip>
               <DesktopOnlyTooltip
-                v-if="reminder.periods?.[0] && isStatusActionable({ status: reminder.periods[0].status })"
+                v-if="
+                  reminder.periods?.[0] &&
+                  isPeriodDueOrOverdue({ dueDate: reminder.periods[0].dueDate, status: reminder.periods[0].status })
+                "
                 :content="$t('planned.reminders.list.tooltips.skipPeriod')"
               >
                 <UiButton
                   variant="ghost"
                   size="icon"
+                  :title="$t('planned.reminders.list.tooltips.skipPeriod')"
                   :disabled="isQuickActionPending"
                   @click="
                     skipMutation({
@@ -243,10 +265,75 @@ function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): stri
                 </UiButton>
               </DesktopOnlyTooltip>
               <DesktopOnlyTooltip :content="$t('planned.reminders.list.tooltips.delete')">
-                <UiButton variant="soft-destructive" size="icon" @click="deleteTarget = reminder">
+                <UiButton
+                  variant="soft-destructive"
+                  size="icon"
+                  :title="$t('planned.reminders.list.tooltips.delete')"
+                  @click="deleteTarget = reminder"
+                >
                   <Trash2Icon class="size-4" />
                 </UiButton>
               </DesktopOnlyTooltip>
+            </div>
+
+            <!-- Mobile: popover menu -->
+            <div v-else @click.stop>
+              <Popover>
+                <PopoverTrigger as-child>
+                  <UiButton variant="ghost" size="icon">
+                    <EllipsisVerticalIcon class="size-4" />
+                  </UiButton>
+                </PopoverTrigger>
+                <PopoverContent align="end" class="flex w-auto min-w-48 flex-col gap-1 p-1">
+                  <UiButton
+                    v-if="
+                      reminder.periods?.[0] &&
+                      isPeriodDueOrOverdue({ dueDate: reminder.periods[0].dueDate, status: reminder.periods[0].status })
+                    "
+                    variant="ghost"
+                    size="sm"
+                    class="w-full justify-start"
+                    :disabled="isQuickActionPending"
+                    @click="
+                      markPaidMutation({
+                        reminderId: reminder.id,
+                        periodId: reminder.periods[0].id,
+                      })
+                    "
+                  >
+                    <CheckIcon class="size-4" />
+                    {{ $t('planned.reminders.list.tooltips.markAsPaid') }}
+                  </UiButton>
+                  <UiButton
+                    v-if="
+                      reminder.periods?.[0] &&
+                      isPeriodDueOrOverdue({ dueDate: reminder.periods[0].dueDate, status: reminder.periods[0].status })
+                    "
+                    variant="ghost"
+                    size="sm"
+                    class="w-full justify-start"
+                    :disabled="isQuickActionPending"
+                    @click="
+                      skipMutation({
+                        reminderId: reminder.id,
+                        periodId: reminder.periods[0].id,
+                      })
+                    "
+                  >
+                    <SkipForwardIcon class="size-4" />
+                    {{ $t('planned.reminders.list.tooltips.skipPeriod') }}
+                  </UiButton>
+                  <UiButton
+                    variant="ghost-destructive"
+                    size="sm"
+                    class="w-full justify-start"
+                    @click="deleteTarget = reminder"
+                  >
+                    <Trash2Icon class="size-4" />
+                    {{ $t('planned.reminders.list.tooltips.delete') }}
+                  </UiButton>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
@@ -264,14 +351,14 @@ function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): stri
       />
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UiButton variant="outline" @click="isCreateDialogOpen = false">{{ $t('common.cancel') }}</UiButton>
+          <UiButton variant="outline" @click="isCreateDialogOpen = false">{{ $t('common.actions.cancel') }}</UiButton>
           <UiButton
             type="submit"
             form="create-reminder-form"
             :disabled="createFormRef?.isSubmitDisabled || isCreating"
             :loading="isCreating"
           >
-            {{ $t('common.create') }}
+            {{ $t('common.actions.create') }}
           </UiButton>
         </div>
       </template>

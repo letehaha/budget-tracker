@@ -15,7 +15,7 @@ import {
 } from '@bt/shared/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { ChevronDownIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, MailIcon } from 'lucide-vue-next';
 import { format } from 'date-fns';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -210,24 +210,6 @@ defineExpose({ isSubmitDisabled, setError });
       @update:model-value="(v: SelectOption | null) => (form.frequency = v?.value ?? ONE_TIME_VALUE)"
     />
 
-    <div class="grid grid-cols-2 gap-3">
-      <InputField
-        v-model="form.expectedAmount"
-        :label="$t('planned.reminders.form.amountLabel')"
-        type="number"
-        :placeholder="$t('planned.reminders.form.amountPlaceholder')"
-        :disabled="isSubscriptionLinked"
-      />
-      <SelectField
-        :model-value="selectedCurrency"
-        :values="currencyOptions"
-        :label="$t('planned.reminders.form.currencyLabel')"
-        :placeholder="$t('planned.reminders.form.currencyPlaceholder')"
-        :disabled="isSubscriptionLinked"
-        @update:model-value="(v: SelectOption | null) => (form.currencyCode = v?.value ?? '')"
-      />
-    </div>
-
     <div>
       <Label class="mb-2 block text-sm font-medium">
         {{ $t('planned.reminders.form.remindBeforeLabel', { max: MAX_REMIND_BEFORE_PRESETS }) }}
@@ -247,23 +229,16 @@ defineExpose({ isSubmitDisabled, setError });
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-3">
-      <SelectField
-        :model-value="selectedTimeSlot"
-        :values="timeSlotOptions"
-        :label="$t('planned.reminders.form.notificationTimeLabel')"
-        @update:model-value="(v: SelectOption | null) => (form.preferredTime = Number(v?.value ?? 8))"
-      />
-      <div />
-    </div>
-
     <div class="flex items-center gap-2">
       <Checkbox
         :id="`${formId}-email`"
         :model-value="form.notifyEmail"
         @update:model-value="(val) => (form.notifyEmail = !!val)"
       />
-      <Label :for="`${formId}-email`" class="text-sm">{{ $t('planned.reminders.form.emailNotifications') }}</Label>
+      <Label :for="`${formId}-email`" class="flex items-center gap-1.5 text-base">
+        <MailIcon class="size-4" />
+        {{ $t('planned.reminders.form.emailNotifications') }}
+      </Label>
     </div>
 
     <Collapsible v-model:open="isExtraOptionsOpen">
@@ -272,6 +247,34 @@ defineExpose({ isSubmitDisabled, setError });
         <ChevronDownIcon :class="['size-4 transition-transform', isExtraOptionsOpen && 'rotate-180']" />
       </CollapsibleTrigger>
       <CollapsibleContent class="mt-3 grid gap-4">
+        <div class="grid grid-cols-2 gap-3">
+          <InputField
+            v-model="form.expectedAmount"
+            :label="$t('planned.reminders.form.amountLabel')"
+            type="number"
+            :placeholder="$t('planned.reminders.form.amountPlaceholder')"
+            :disabled="isSubscriptionLinked"
+          />
+          <SelectField
+            :model-value="selectedCurrency"
+            :values="currencyOptions"
+            :label="$t('planned.reminders.form.currencyLabel')"
+            :placeholder="$t('planned.reminders.form.currencyPlaceholder')"
+            :disabled="isSubscriptionLinked"
+            @update:model-value="(v: SelectOption | null) => (form.currencyCode = v?.value ?? '')"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <SelectField
+            :model-value="selectedTimeSlot"
+            :values="timeSlotOptions"
+            :label="$t('planned.reminders.form.notificationTimeLabel')"
+            @update:model-value="(v: SelectOption | null) => (form.preferredTime = Number(v?.value ?? 8))"
+          />
+          <div />
+        </div>
+
         <TextareaField
           v-model="form.notes"
           :label="$t('planned.reminders.form.notesLabel')"
