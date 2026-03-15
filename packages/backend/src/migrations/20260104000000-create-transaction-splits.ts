@@ -5,7 +5,7 @@ import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core'
  * This table stores additional category splits for transactions (primary category remains in Transactions.categoryId).
  * Also adds splitId column to RefundTransactions to allow refunds to target specific splits.
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 

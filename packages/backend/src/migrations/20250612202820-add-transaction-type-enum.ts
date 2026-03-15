@@ -3,7 +3,7 @@ import { AbstractQueryInterface, Transaction } from '@sequelize/core';
 // exactly fully lowercase to avoid any case-sensitivity issues
 const ENUM_TRANSACTION_TYPE = 'enum_transactions_transaction_type';
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
     try {

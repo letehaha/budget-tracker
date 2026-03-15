@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('Edit currency exchange rate controller', () => {
   it('should fail editing currency exchange rates for non-connected currencies', async () => {

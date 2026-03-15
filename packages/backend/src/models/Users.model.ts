@@ -110,41 +110,6 @@ export const getUserDefaultCategory = async ({ id }: { id: number }) => {
   return user;
 };
 
-export const getUserCurrencies = async ({ userId }: { userId: number }) => {
-  const user = await Users.findOne({
-    where: { id: userId },
-    include: [
-      {
-        model: Currencies,
-        as: 'currencies',
-        // to remove the rows from the join table (i.e. 'UsersCurrencies' table) in the result set
-        through: { attributes: [] },
-      },
-    ],
-  });
-
-  return user;
-};
-
-export const getUserByCredentials = async ({
-  username,
-  email,
-}: {
-  username?: string;
-  email?: string;
-}): Promise<UserModel | null> => {
-  const where: Record<string, unknown> = {};
-
-  if (username) where.username = username;
-  if (email) where.email = email;
-
-  const user = await Users.withScope('withPassword').findOne({
-    where,
-  });
-
-  return user;
-};
-
 export const createUser = async ({
   username,
   email,

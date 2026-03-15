@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Create account group', () => {
   const groupName = 'Test group';

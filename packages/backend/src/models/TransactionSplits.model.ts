@@ -103,13 +103,6 @@ export const bulkCreateSplits = async ({ data }: { data: CreateSplitPayload[] })
   return TransactionSplits.bulkCreate(data as any, { individualHooks: true });
 };
 
-export const getSplitsForTransaction = async ({ transactionId, userId }: { transactionId: number; userId: number }) => {
-  return TransactionSplits.findAll({
-    where: { transactionId, userId },
-    include: [{ model: Categories, as: 'category' }],
-  });
-};
-
 export const deleteSplitsForTransaction = async ({
   transactionId,
   userId,

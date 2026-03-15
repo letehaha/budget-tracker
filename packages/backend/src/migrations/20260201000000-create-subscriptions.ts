@@ -1,6 +1,6 @@
 import { DataTypes, QueryInterface, Transaction } from 'sequelize';
 
-module.exports = {
+export default {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 

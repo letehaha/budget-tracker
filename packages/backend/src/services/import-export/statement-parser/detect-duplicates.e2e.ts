@@ -1,8 +1,8 @@
 import type { ExtractedTransaction } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Tests for the Statement Parser detect-duplicates endpoint.

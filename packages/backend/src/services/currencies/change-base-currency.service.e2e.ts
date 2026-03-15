@@ -2,7 +2,6 @@ import { ACCOUNT_CATEGORIES, API_RESPONSE_STATUS, TRANSACTION_TYPES } from '@bt/
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { faker } from '@faker-js/faker';
-import { beforeEach, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
@@ -16,6 +15,7 @@ import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.ser
 import { buildLockKey } from '@services/currencies/change-base-currency.service';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('Change Base Currency', () => {
   beforeEach(async () => {

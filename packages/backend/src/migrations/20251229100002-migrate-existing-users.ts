@@ -1,5 +1,5 @@
-import crypto from 'crypto';
 import { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import crypto from 'crypto';
 
 interface ExistingUser {
   id: number;
@@ -12,7 +12,7 @@ interface ExistingUser {
  * Migration to move existing users to better-auth tables.
  * Creates ba_user and ba_account records for each existing user.
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 

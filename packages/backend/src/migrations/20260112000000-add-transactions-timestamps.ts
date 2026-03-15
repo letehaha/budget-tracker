@@ -5,7 +5,7 @@ import { DataTypes, QueryInterface, Transaction } from 'sequelize';
  * - createdAt: defaults to the transaction's `time` field (when the transaction occurred)
  * - updatedAt: defaults to NOW()
  */
-module.exports = {
+export default {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 

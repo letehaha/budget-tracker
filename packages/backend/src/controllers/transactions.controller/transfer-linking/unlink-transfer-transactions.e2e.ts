@@ -1,7 +1,7 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { faker } from '@faker-js/faker';
-import { describe, expect, it } from 'vitest';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Unlink transfer transactions', () => {
   it('unlink system transactions', async () => {

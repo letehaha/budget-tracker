@@ -9,7 +9,7 @@ import { AbstractQueryInterface, Transaction } from '@sequelize/core';
  * - BinanceUserSettings.userId
  * - UserMerchantCategoryCodes.userId
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 

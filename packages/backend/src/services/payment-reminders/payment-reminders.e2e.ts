@@ -4,9 +4,9 @@ import {
   SUBSCRIPTION_FREQUENCIES,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 import { checkPaymentReminders } from './check-reminders';
 

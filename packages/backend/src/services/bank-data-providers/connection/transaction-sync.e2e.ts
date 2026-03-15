@@ -1,11 +1,11 @@
 import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import { subDays } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 describe.skip('Bank Data Provider Transaction Sync E2E', () => {
   describe('Sync transactions', () => {

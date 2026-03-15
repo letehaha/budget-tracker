@@ -12,7 +12,7 @@ const ENUM_PORTFOLIO_TYPE = 'enum_portfolio_type';
 const ENUM_TRANSACTION_TYPE = 'enum_transactions_transaction_type'; // exactly fully lowercase to avoid any case-sensitivity issues
 const ENUM_TRANSFER_NATURE = 'enum_transfer_nature';
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractAbstractQueryInterface, Sequelize: any): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 

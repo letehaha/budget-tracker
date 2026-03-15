@@ -4,9 +4,9 @@ import {
   CurrencyOptionValue,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Extract Unique Values endpoint', () => {
   describe('successful extraction with data source columns', () => {

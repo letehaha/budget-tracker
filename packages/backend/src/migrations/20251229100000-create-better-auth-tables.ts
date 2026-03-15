@@ -4,7 +4,7 @@ import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core'
  * Migration to create better-auth tables.
  * All tables use ba_ prefix to avoid conflicts with existing tables.
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 

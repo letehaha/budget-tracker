@@ -1,16 +1,16 @@
 import { SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
-import { afterAll, beforeAll, describe, expect, it, jest } from '@jest/globals';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { computeNextExpectedDate } from './subscription-date.utils';
 
 const FROZEN_NOW = new Date('2025-06-15T12:00:00Z');
 
 beforeAll(() => {
-  jest.useFakeTimers();
-  jest.setSystemTime(FROZEN_NOW);
+  vi.useFakeTimers();
+  vi.setSystemTime(FROZEN_NOW);
 });
 afterAll(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describe('computeNextExpectedDate', () => {

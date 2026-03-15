@@ -6,9 +6,9 @@ import {
   TRANSACTION_TYPES,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Detect Duplicates endpoint', () => {
   // Helper to build common column mapping

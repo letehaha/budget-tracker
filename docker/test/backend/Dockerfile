@@ -1,12 +1,13 @@
-FROM node:23.11.0
+FROM oven/bun:1
 
 LABEL com.docker.compose.project=test
 
 WORKDIR /app
 
-# Copy package.json and package-lock.json files. This allows Docker to cache the
-# npm dependencies as long as these files don't change.
+# Copy package files. This allows Docker to cache the
+# dependencies as long as these files don't change.
 COPY package*.json ./
+COPY bun.lock* ./
 COPY post-install.sh ./
 COPY packages/backend/package*.json ./packages/backend/
 COPY packages/shared/package*.json ./packages/shared/
@@ -20,7 +21,7 @@ COPY packages/shared/tsconfig*.json ./packages/shared/
 COPY post-install.sh ./
 COPY docker ./docker
 RUN chmod +x ./post-install.sh
-RUN npm ci --include=dev
+RUN bun install
 
 # Copy source codes
 COPY packages/backend ./packages/backend

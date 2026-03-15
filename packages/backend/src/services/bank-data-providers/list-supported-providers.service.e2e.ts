@@ -1,6 +1,6 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Bank Data Providers controller', () => {
   describe('GET /api/bank-data-providers', () => {

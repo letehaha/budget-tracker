@@ -13,7 +13,7 @@ import { DataTypes, AbstractQueryInterface } from '@sequelize/core';
  * The new Monobank integration uses BankDataProviderConnections and accounts with
  * bankDataProviderConnectionId set. Those accounts keep type='monobank'.
  */
-module.exports = {
+export default {
   async up(queryInterface: AbstractQueryInterface) {
     // Step 1: Convert old monobank accounts (without bankDataProviderConnectionId) to system accounts
     // Using hardcoded strings as migrations should be self-contained and not depend on app code

@@ -5,7 +5,7 @@ import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core'
  * Migration to remove deprecated value and refValue columns from Holdings table.
  * These fields were deprecated in favor of dynamic calculation (quantity × latest price).
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 

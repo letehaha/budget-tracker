@@ -6,11 +6,11 @@
  * literal updates, and direct model operations.
  */
 import { BUDGET_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
 import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 import { Money } from './money';
 

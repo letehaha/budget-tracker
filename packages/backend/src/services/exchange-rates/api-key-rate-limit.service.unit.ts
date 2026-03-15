@@ -1,6 +1,6 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { redisClient } from '@root/redis-client';
 import { endOfMonth } from 'date-fns';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { ApiKeyRateLimitService } from './api-key-rate-limit.service';
 

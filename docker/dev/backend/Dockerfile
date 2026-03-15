@@ -1,4 +1,4 @@
-FROM node:23.11.0
+FROM oven/bun:1
 
 # Build arg to control offline mode
 ARG OFFLINE_MODE=false
@@ -7,6 +7,7 @@ WORKDIR /app
 
 # Copy package files first for better caching
 COPY package*.json ./
+COPY bun.lock* ./
 COPY post-install.sh ./
 COPY packages/backend/package*.json ./packages/backend/
 COPY packages/shared/package*.json ./packages/shared/
@@ -20,9 +21,9 @@ COPY packages/shared/tsconfig*.json ./packages/shared/
 # In offline mode, skip installation (use cached layer from previous build)
 RUN chmod +x ./post-install.sh
 RUN if [ "$OFFLINE_MODE" = "false" ]; then \
-      npm ci; \
+      bun install; \
     else \
-      echo "Offline mode: skipping npm ci, using cached dependencies"; \
+      echo "Offline mode: skipping bun install, using cached dependencies"; \
     fi
 
 # Copy source code
@@ -35,4 +36,4 @@ COPY docker/dev/backend/docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
-CMD ["npm", "run", "-w", "packages/backend", "dev"]
+CMD ["bun", "run", "--cwd", "packages/backend", "dev"]

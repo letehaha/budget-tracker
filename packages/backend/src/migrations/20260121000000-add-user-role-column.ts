@@ -15,7 +15,7 @@ import { QueryInterface, Transaction } from 'sequelize';
  * without registration.
  */
 
-module.exports = {
+export default {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 

@@ -1,7 +1,7 @@
 import { CATEGORY_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, asDecimal } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Balance Adjustment', () => {
   it('creates income transaction when target > current balance', async () => {

@@ -6,7 +6,7 @@ import { AbstractQueryInterface, Transaction } from '@sequelize/core';
  * When an account is deleted, all its mappings in AccountGroupings will be automatically removed.
  * The groups themselves remain intact - only the relationship rows are deleted.
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 

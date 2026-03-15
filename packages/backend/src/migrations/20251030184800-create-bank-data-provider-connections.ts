@@ -7,7 +7,7 @@ import { AbstractQueryInterface, Transaction } from '@sequelize/core';
  * allowing users to connect multiple instances of the same provider.
  * Also adds bankDataProviderConnectionId to Accounts table to track which connection an account belongs to.
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface, Sequelize: any): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 

@@ -8,7 +8,7 @@ import { DataTypes, QueryInterface, Transaction } from 'sequelize';
  * - No schedule (frequency = null) = real-time trigger on tagging (24h cooldown)
  * - With frequency = cron-based check at specified intervals
  */
-module.exports = {
+export default {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 

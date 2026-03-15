@@ -1,5 +1,4 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import {
@@ -12,6 +11,7 @@ import {
   MOCK_IDENTIFICATION_HASH_2,
   getAllMockAccountUIDs,
 } from '@tests/mocks/enablebanking/data';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('Enable Banking Data Provider E2E', () => {
   // Reset mock session counter before each test to ensure predictable behavior

@@ -227,7 +227,7 @@ const OLD_TO_FLUENT: Record<string, string> = {
   'menu-dots-bold': 'more-horizontal-20-filled',
 };
 
-module.exports = {
+export default {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 

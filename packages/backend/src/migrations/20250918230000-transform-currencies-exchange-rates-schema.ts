@@ -1,6 +1,6 @@
 import { AbstractQueryInterface, DataTypes, QueryTypes, Transaction } from '@sequelize/core';
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const transaction: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 

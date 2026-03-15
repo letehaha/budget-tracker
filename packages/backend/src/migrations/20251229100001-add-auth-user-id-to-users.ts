@@ -4,7 +4,7 @@ import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core'
  * Migration to add authUserId column to Users table for linking to better-auth.
  * Also makes password nullable since auth is now handled by better-auth.
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 

@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { addDays, subDays } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 describe('Edit Budget', () => {
   const baseBudgetMockData = {

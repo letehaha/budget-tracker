@@ -1,7 +1,6 @@
 import { ACCOUNT_TYPES, BalanceModel, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
-import { toSystemAmount } from '@js/helpers/system-amount';
 import { logger } from '@js/utils';
 import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
 import {

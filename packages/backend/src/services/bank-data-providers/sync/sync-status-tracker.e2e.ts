@@ -1,6 +1,6 @@
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import Users from '@models/Users.model';
 import { redisClient } from '@root/redis-client';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   REDIS_KEYS,

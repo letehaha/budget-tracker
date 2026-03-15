@@ -1,7 +1,7 @@
 import { getDefaultValue } from '@common/helpers/get-default-value-from-zod-schema';
-import { describe, expect, it } from 'vitest';
 import { SettingsSchema, ZodSettingsSchema } from '@models/UserSettings.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Get user settings', () => {
   it('returns default value when no settings were ever set', async () => {

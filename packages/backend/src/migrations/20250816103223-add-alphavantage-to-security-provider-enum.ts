@@ -4,7 +4,7 @@ import { AbstractQueryInterface, Transaction } from '@sequelize/core';
 // Define constants for enum names to prevent typos
 const ENUM_SECURITY_PROVIDER = 'enum_security_provider';
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Add enum values without transaction as PostgreSQL doesn't allow enum changes in transactions
     await queryInterface.sequelize.query(

@@ -1,10 +1,10 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
 import { INVALID_MONOBANK_TOKEN, VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
 import { Op } from 'sequelize';
+import { describe, expect, it } from 'vitest';
 
 /**
  * E2E tests for Monobank Data Provider using the new unified connection flow

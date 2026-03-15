@@ -1,7 +1,7 @@
 import { NOTIFICATION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Notifications from '@models/Notifications.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Release Notifications Webhook', () => {
   describe('POST /webhooks/github', () => {

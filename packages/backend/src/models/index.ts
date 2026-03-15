@@ -1,6 +1,5 @@
 import { Sequelize } from '@sequelize/core';
 import { PostgresDialect } from '@sequelize/postgres';
-import { AsyncLocalStorage } from 'async_hooks';
 
 import AccountGroupingModel from './accounts-groups/AccountGrouping.model';
 import AccountGroupsModel from './accounts-groups/AccountGroups.model';
@@ -42,9 +41,6 @@ import UserMerchantCategoryCodesModel from './UserMerchantCategoryCodes.model';
 import UsersModel from './Users.model';
 import UsersCurrenciesModel from './UsersCurrencies.model';
 import UserSettingsModel from './UserSettings.model';
-
-// Sequelize v7 uses AsyncLocalStorage instead of cls-hooked
-export const transactionStorage = new AsyncLocalStorage<object>();
 
 const connection: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

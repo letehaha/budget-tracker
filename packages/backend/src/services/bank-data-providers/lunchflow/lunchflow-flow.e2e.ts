@@ -6,7 +6,6 @@ import {
   TRANSACTION_TYPES,
   asDecimal,
 } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
@@ -26,6 +25,7 @@ import {
 } from '@tests/mocks/lunchflow/mock-api';
 import { addDays, subDays } from 'date-fns';
 import { Op } from 'sequelize';
+import { describe, expect, it } from 'vitest';
 
 /**
  * E2E tests for LunchFlow Data Provider

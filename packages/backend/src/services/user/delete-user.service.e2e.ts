@@ -1,6 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { API_RESPONSE_STATUS } from '@bt/shared/types/api';
-import { describe, expect, it } from 'vitest';
 import Accounts from '@models/Accounts.model';
 import Budgets from '@models/Budget.model';
 import Categories from '@models/Categories.model';
@@ -11,6 +10,7 @@ import Users from '@models/Users.model';
 import UsersCurrencies from '@models/UsersCurrencies.model';
 import UserSettings from '@models/UserSettings.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('User deletion (DELETE /user/delete)', () => {
   it('should delete user and all related data via CASCADE', async () => {

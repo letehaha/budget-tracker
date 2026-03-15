@@ -7,11 +7,11 @@ import {
   USER_ROLES,
 } from '@bt/shared/types';
 import { authPool } from '@config/auth';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { connection } from '@models/index';
 import Users from '@models/Users.model';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 import { clearMockSession, registerMockSession } from '@tests/mocks/better-auth';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * Extracts the session token value from a cookie string.

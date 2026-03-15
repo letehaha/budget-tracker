@@ -1,8 +1,5 @@
 {
   "extends": "../../tsconfig.json",
-  "ts-node": {
-    "files": true
-  },
   "compilerOptions": {
     "strict": true,
     "target": "ES2022",

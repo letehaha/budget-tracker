@@ -1,7 +1,7 @@
 import { CategoryModel } from '@bt/shared/types';
-import { beforeEach, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const CATEGORY_NAME = 'test-1';
 const CATEGORY_COLOR = '#FF0000';

@@ -1,8 +1,8 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
 import Balances from '@models/Balances.model';
 import * as helpers from '@tests/helpers';
 import { format, subDays } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 import { CombinedBalanceHistoryItem } from './get-combined-balance-history';
 

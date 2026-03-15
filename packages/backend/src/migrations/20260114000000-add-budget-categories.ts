@@ -10,7 +10,7 @@ import { DataTypes, QueryInterface, Transaction } from 'sequelize';
  *
  * Existing budgets default to 'manual' type (backward compatible).
  */
-module.exports = {
+export default {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 

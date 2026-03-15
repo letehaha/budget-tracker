@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { SettingsSchema } from '@models/UserSettings.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Update user settings', () => {
   it('updates empty settings and returns new value right away', async () => {

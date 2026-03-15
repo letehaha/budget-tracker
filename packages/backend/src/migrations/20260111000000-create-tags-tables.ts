@@ -12,7 +12,7 @@ const DEFAULT_TAG_STRUCTURE = [
  * Tags allow users to categorize transactions with custom labels.
  * TransactionTags is a junction table for the many-to-many relationship.
  */
-module.exports = {
+export default {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 

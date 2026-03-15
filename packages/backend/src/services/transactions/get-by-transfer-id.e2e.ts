@@ -1,6 +1,6 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Retrieve transaction by transfer id', () => {
   it('should retrieve transaction by transfer id', async () => {

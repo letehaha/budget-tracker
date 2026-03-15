@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Update transaction with splits', () => {
   it('should add splits to existing transaction without splits', async () => {

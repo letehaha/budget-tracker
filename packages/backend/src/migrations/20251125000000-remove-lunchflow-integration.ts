@@ -9,7 +9,7 @@ import { AbstractQueryInterface, Transaction } from '@sequelize/core';
  * - Note: We keep the enum value temporarily to avoid breaking existing code
  *   The enum will be removed in a separate code change
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 

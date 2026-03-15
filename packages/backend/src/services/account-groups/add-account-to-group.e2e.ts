@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('Add account to group', () => {
   let account, group;

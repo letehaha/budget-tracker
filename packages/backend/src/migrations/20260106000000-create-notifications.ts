@@ -5,7 +5,7 @@ import { DataTypes, QueryInterface, Transaction } from 'sequelize';
  * Supports multiple notification types (budget_alert, system, changelog, etc.)
  * with type-specific payloads stored in JSONB.
  */
-module.exports = {
+export default {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 

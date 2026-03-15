@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Parse CSV endpoint', () => {
   describe('successful parsing', () => {

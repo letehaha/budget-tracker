@@ -4,7 +4,7 @@ import { AbstractQueryInterface } from '@sequelize/core';
  * Migration to add index on externalData.importDetails.batchId for efficient
  * lookup of transactions by import batch ID.
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Add btree index on externalData.importDetails.batchId for batch lookups
     await queryInterface.addIndex('Transactions', {

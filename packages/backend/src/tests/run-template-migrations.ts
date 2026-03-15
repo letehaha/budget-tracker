@@ -1,21 +1,17 @@
 import { DataTypes, Sequelize } from '@sequelize/core';
 import { PostgresDialect } from '@sequelize/postgres';
-import { createRequire } from 'module';
 import path from 'path';
+import { Umzug, SequelizeStorage } from 'umzug';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const require = createRequire(import.meta.url);
-
-// Import umzug using require for better CJS/ESM compatibility
-const { Umzug, SequelizeStorage } = require('umzug');
 
 /**
  * Standalone script to run migrations on the template database.
  * Called by setup-e2e-tests.sh before creating worker databases.
  *
- * Usage: npx tsx src/tests/run-template-migrations.ts
+ * Usage: bun src/tests/run-template-migrations.ts
  */
 
 const DATABASE_NAME = `${process.env.APPLICATION_DB_DATABASE}-template`;
@@ -49,14 +45,20 @@ async function runMigrations() {
 
   const umzug = new Umzug({
     migrations: {
-      glob: path.join(__dirname, '../migrations/*.{js,ts}'),
+      glob: path.join(__dirname, '../migrations/[0-9]*.{cjs,ts}'),
       resolve: ({ name, path: migrationPath, context }) => {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const migration = require(migrationPath!);
         return {
           name,
-          up: async () => migration.up(context, SequelizeLegacy),
-          down: async () => migration.down(context, SequelizeLegacy),
+          up: async () => {
+            const migration = await import(migrationPath!);
+            const mod = migration.default || migration;
+            return mod.up(context, SequelizeLegacy);
+          },
+          down: async () => {
+            const migration = await import(migrationPath!);
+            const mod = migration.default || migration;
+            return mod.down(context, SequelizeLegacy);
+          },
         };
       },
     },

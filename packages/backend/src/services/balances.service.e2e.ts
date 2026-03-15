@@ -1,10 +1,10 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
 import Balances from '@models/Balances.model';
 import Currencies from '@models/Currencies.model';
 import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
 import { addDays, addMonths, format, startOfDay, startOfMonth, subDays } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 const callGetBalanceHistory = async (accountId, raw = false) => {
   const result = await helpers.makeRequest({

@@ -1,6 +1,6 @@
 import { QueryInterface } from 'sequelize';
 
-module.exports = {
+export default {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     // PostgreSQL doesn't allow ALTER TYPE ADD VALUE inside a transaction
     await queryInterface.sequelize.query(`ALTER TYPE "enum_Budgets_status" ADD VALUE IF NOT EXISTS 'archived';`);
