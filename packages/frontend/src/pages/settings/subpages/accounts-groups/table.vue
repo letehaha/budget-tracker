@@ -10,6 +10,7 @@ import { AccountGroups } from '@/common/types/models';
 import { AlertDialog } from '@/components/common';
 import { InputField } from '@/components/fields';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable';
 import { ROUTES_NAMES } from '@/routes';
@@ -164,7 +165,7 @@ const unlinkAccountFromGroup = (id: number) => {
                 <Button
                   variant="default"
                   size="sm"
-                  class="gap-1 @[360px]/accounts-groups:min-w-[130px]"
+                  class="gap-1 @[360px]/accounts-groups:min-w-32.5"
                   :aria-label="$t('settings.accountGroups.table.saveButton')"
                   @click.stop.prevent="updateGroup(group, index)"
                 >
@@ -188,7 +189,23 @@ const unlinkAccountFromGroup = (id: number) => {
                   <EditIcon class="size-4" />
                 </Button>
 
+                <DesktopOnlyTooltip
+                  v-if="group.bankDataProviderConnectionId"
+                  :content="$t('settings.accountGroups.table.deleteDisabledTooltip')"
+                  content-class-name="max-w-80"
+                >
+                  <div>
+                    <Button variant="destructive" size="sm" class="w-min gap-1" disabled @click.stop>
+                      <span class="hidden @[360px]/accounts-groups:inline">
+                        {{ $t('settings.accountGroups.table.deleteButton') }}
+                      </span>
+                      <Trash2Icon class="size-4" />
+                    </Button>
+                  </div>
+                </DesktopOnlyTooltip>
+
                 <AlertDialog
+                  v-else
                   :title="$t('settings.accountGroups.table.deleteDialog.title')"
                   :accept-disabled="!!deletedElements?.length"
                   accept-variant="destructive"

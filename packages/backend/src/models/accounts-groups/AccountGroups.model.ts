@@ -2,6 +2,7 @@
 import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, BelongsToMany, DataType } from 'sequelize-typescript';
 
 import Accounts from '../Accounts.model';
+import BankDataProviderConnections from '../BankDataProviderConnections.model';
 import Users from '../Users.model';
 import AccountGrouping from './AccountGrouping.model';
 
@@ -50,8 +51,18 @@ export default class AccountGroup extends Model {
   })
   parentGroupId!: number | null;
 
+  @ForeignKey(() => BankDataProviderConnections)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  bankDataProviderConnectionId!: number | null;
+
   @BelongsTo(() => Users)
   user!: Users;
+
+  @BelongsTo(() => BankDataProviderConnections)
+  bankDataProviderConnection!: BankDataProviderConnections;
 
   @BelongsTo(() => AccountGroup, 'parentGroupId')
   parentGroup!: AccountGroup;

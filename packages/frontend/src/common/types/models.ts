@@ -5,6 +5,7 @@ export interface AccountGroups {
   userId: number;
   name: string;
   parentGroupId: number | null;
+  bankDataProviderConnectionId: number | null;
   user: UserModel;
   parentGroup: AccountGroups;
   childGroups: AccountGroups[];
