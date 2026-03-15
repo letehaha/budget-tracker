@@ -1,5 +1,6 @@
 import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Currencies from '@models/currencies.model';
@@ -70,32 +71,62 @@ export default class Accounts extends Model<InferAttributes<Accounts>, InferCrea
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  declare initialBalance: CreationOptional<number>;
+  get initialBalance(): Money {
+    return moneyGetCents(this, 'initialBalance');
+  }
+  set initialBalance(val: Money | number) {
+    moneySetCents(this, 'initialBalance', val);
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  declare refInitialBalance: CreationOptional<number>;
+  get refInitialBalance(): Money {
+    return moneyGetCents(this, 'refInitialBalance');
+  }
+  set refInitialBalance(val: Money | number) {
+    moneySetCents(this, 'refInitialBalance', val);
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  declare currentBalance: CreationOptional<number>;
+  get currentBalance(): Money {
+    return moneyGetCents(this, 'currentBalance');
+  }
+  set currentBalance(val: Money | number) {
+    moneySetCents(this, 'currentBalance', val);
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  declare refCurrentBalance: CreationOptional<number>;
+  get refCurrentBalance(): Money {
+    return moneyGetCents(this, 'refCurrentBalance');
+  }
+  set refCurrentBalance(val: Money | number) {
+    moneySetCents(this, 'refCurrentBalance', val);
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  declare creditLimit: CreationOptional<number>;
+  get creditLimit(): Money {
+    return moneyGetCents(this, 'creditLimit');
+  }
+  set creditLimit(val: Money | number) {
+    moneySetCents(this, 'creditLimit', val);
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  declare refCreditLimit: CreationOptional<number>;
+  get refCreditLimit(): Money {
+    return moneyGetCents(this, 'refCreditLimit');
+  }
+  set refCreditLimit(val: Money | number) {
+    moneySetCents(this, 'refCreditLimit', val);
+  }
 
   @Attribute(DataTypes.STRING)
   @NotNull

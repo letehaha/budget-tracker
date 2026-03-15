@@ -1,5 +1,7 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY, InvestmentTransactionModel } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
+import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
   CreationOptional,
   DataTypes,
@@ -99,21 +101,41 @@ export default class InvestmentTransaction
    */
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
-  declare amount: string;
+  get amount(): Money {
+    return moneyGetDecimal(this, 'amount');
+  }
+  set amount(val: Money | string | number) {
+    moneySetDecimal(this, 'amount', val, 10);
+  }
 
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
-  declare refAmount: string;
+  get refAmount(): Money {
+    return moneyGetDecimal(this, 'refAmount');
+  }
+  set refAmount(val: Money | string | number) {
+    moneySetDecimal(this, 'refAmount', val, 10);
+  }
 
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
   @Default('0')
-  declare fees: string;
+  get fees(): Money {
+    return moneyGetDecimal(this, 'fees');
+  }
+  set fees(val: Money | string | number) {
+    moneySetDecimal(this, 'fees', val, 10);
+  }
 
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
   @Default('0')
-  declare refFees: string;
+  get refFees(): Money {
+    return moneyGetDecimal(this, 'refFees');
+  }
+  set refFees(val: Money | string | number) {
+    moneySetDecimal(this, 'refFees', val, 10);
+  }
 
   /**
    * * The quantity of the security involved in the transaction. This is crucial
@@ -121,7 +143,12 @@ export default class InvestmentTransaction
    */
   @Attribute(DataTypes.DECIMAL(36, 18))
   @NotNull
-  declare quantity: string;
+  get quantity(): Money {
+    return moneyGetDecimal(this, 'quantity');
+  }
+  set quantity(val: Money | string | number) {
+    moneySetDecimal(this, 'quantity', val, 18);
+  }
 
   /**
    * The price per unit of the security at the time of the transaction.
@@ -130,11 +157,21 @@ export default class InvestmentTransaction
    */
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
-  declare price: string;
+  get price(): Money {
+    return moneyGetDecimal(this, 'price');
+  }
+  set price(val: Money | string | number) {
+    moneySetDecimal(this, 'price', val, 10);
+  }
 
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
-  declare refPrice: string;
+  get refPrice(): Money {
+    return moneyGetDecimal(this, 'refPrice');
+  }
+  set refPrice(val: Money | string | number) {
+    moneySetDecimal(this, 'refPrice', val, 10);
+  }
 
   /**
    * The ISO currency code or standard cryptocurrency code representing the currency

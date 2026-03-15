@@ -10,6 +10,7 @@ import {
   TransactionModel,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { ValidationError } from '@js/errors';
 import { isExist, removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
@@ -124,13 +125,23 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  declare amount: CreationOptional<number>;
+  get amount(): Money {
+    return moneyGetCents(this, 'amount');
+  }
+  set amount(val: Money | number) {
+    moneySetCents(this, 'amount', val);
+  }
 
   // Amount in currency of account
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  declare refAmount: CreationOptional<number>;
+  get refAmount(): Money {
+    return moneyGetCents(this, 'refAmount');
+  }
+  set refAmount(val: Money | number) {
+    moneySetCents(this, 'refAmount', val);
+  }
 
   @Attribute(DataTypes.STRING(2000))
   declare note: string | null;
@@ -224,17 +235,32 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  declare commissionRate: CreationOptional<number>;
+  get commissionRate(): Money {
+    return moneyGetCents(this, 'commissionRate');
+  }
+  set commissionRate(val: Money | number) {
+    moneySetCents(this, 'commissionRate', val);
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  declare refCommissionRate: CreationOptional<number>;
+  get refCommissionRate(): Money {
+    return moneyGetCents(this, 'refCommissionRate');
+  }
+  set refCommissionRate(val: Money | number) {
+    moneySetCents(this, 'refCommissionRate', val);
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  declare cashbackAmount: CreationOptional<number>;
+  get cashbackAmount(): Money {
+    return moneyGetCents(this, 'cashbackAmount');
+  }
+  set cashbackAmount(val: Money | number) {
+    moneySetCents(this, 'cashbackAmount', val);
+  }
 
   // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
   // optimization purposes. All the related refund information is stored in the "RefundTransactions"

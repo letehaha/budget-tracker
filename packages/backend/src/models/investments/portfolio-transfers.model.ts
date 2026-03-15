@@ -1,4 +1,6 @@
 import { PortfolioTransferModel } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
+import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
   CreationOptional,
   DataTypes,
@@ -60,11 +62,21 @@ export default class PortfolioTransfers
 
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
-  declare amount: string;
+  get amount(): Money {
+    return moneyGetDecimal(this, 'amount');
+  }
+  set amount(val: Money | string | number) {
+    moneySetDecimal(this, 'amount', val, 10);
+  }
 
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
-  declare refAmount: string;
+  get refAmount(): Money {
+    return moneyGetDecimal(this, 'refAmount');
+  }
+  set refAmount(val: Money | string | number) {
+    moneySetDecimal(this, 'refAmount', val, 10);
+  }
 
   @Attribute(DataTypes.STRING(3))
   @NotNull

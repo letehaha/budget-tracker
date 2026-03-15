@@ -1,4 +1,6 @@
 import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import {
   CreationOptional,
   DataTypes,
@@ -59,7 +61,12 @@ export default class Subscriptions extends Model<
   declare type: CreationOptional<SUBSCRIPTION_TYPES>;
 
   @Attribute(DataTypes.INTEGER)
-  declare expectedAmount: number | null;
+  get expectedAmount(): Money {
+    return moneyGetCents(this, 'expectedAmount');
+  }
+  set expectedAmount(val: Money | number | null) {
+    moneySetCents(this, 'expectedAmount', val);
+  }
 
   @Attribute(DataTypes.STRING(3))
   declare expectedCurrencyCode: string | null;

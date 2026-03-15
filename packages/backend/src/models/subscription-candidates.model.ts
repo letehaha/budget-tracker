@@ -1,4 +1,6 @@
 import { SUBSCRIPTION_CANDIDATE_STATUS, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import {
   CreationOptional,
   DataTypes,
@@ -56,7 +58,12 @@ export default class SubscriptionCandidates extends Model<
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
-  declare averageAmount: number;
+  get averageAmount(): Money {
+    return moneyGetCents(this, 'averageAmount');
+  }
+  set averageAmount(val: Money | number) {
+    moneySetCents(this, 'averageAmount', val);
+  }
 
   @Attribute(DataTypes.STRING(3))
   @NotNull

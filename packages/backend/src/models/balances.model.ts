@@ -1,5 +1,6 @@
 import { ACCOUNT_TYPES, BalanceModel, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { logger } from '@js/utils';
 import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
@@ -54,7 +55,12 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
    */
   @Attribute(DataTypes.INTEGER)
   @NotNull
-  declare amount: number;
+  get amount(): Money {
+    return moneyGetCents(this, 'amount');
+  }
+  set amount(val: Money | number) {
+    moneySetCents(this, 'amount', val);
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull

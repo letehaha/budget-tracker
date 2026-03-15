@@ -1,4 +1,6 @@
 import { SecurityPricingModel } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
+import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
   CreationOptional,
   DataTypes,
@@ -67,7 +69,12 @@ export default class SecurityPricing
    */
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
-  declare priceClose: string;
+  get priceClose(): Money {
+    return moneyGetDecimal(this, 'priceClose');
+  }
+  set priceClose(val: Money | string | number) {
+    moneySetDecimal(this, 'priceClose', val, 10);
+  }
 
   /**
    * (Optional) The timestamp indicating the specific time the priceClose was recorded. This is particularly

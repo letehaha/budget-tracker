@@ -1,4 +1,6 @@
 import { HoldingModel } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
+import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
   CreationOptional,
   DataTypes,
@@ -77,7 +79,12 @@ export default class Holdings
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
   @Default('0')
-  declare quantity: string;
+  get quantity(): Money {
+    return moneyGetDecimal(this, 'quantity');
+  }
+  set quantity(val: Money | string | number) {
+    moneySetDecimal(this, 'quantity', val, 10);
+  }
 
   /**
    * The `costBasis` field represents the original value or purchase price of an
@@ -102,12 +109,22 @@ export default class Holdings
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
   @Default('0')
-  declare costBasis: string;
+  get costBasis(): Money {
+    return moneyGetDecimal(this, 'costBasis');
+  }
+  set costBasis(val: Money | string | number) {
+    moneySetDecimal(this, 'costBasis', val, 10);
+  }
 
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
   @Default('0')
-  declare refCostBasis: string;
+  get refCostBasis(): Money {
+    return moneyGetDecimal(this, 'refCostBasis');
+  }
+  set refCostBasis(val: Money | string | number) {
+    moneySetDecimal(this, 'refCostBasis', val, 10);
+  }
 
   @Attribute(DataTypes.STRING)
   @NotNull

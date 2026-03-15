@@ -1,4 +1,6 @@
 import { PortfolioBalanceModel } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
+import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
   CreationOptional,
   DataTypes,
@@ -35,22 +37,42 @@ export default class PortfolioBalances
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
   @Default('0')
-  declare availableCash: string;
+  get availableCash(): Money {
+    return moneyGetDecimal(this, 'availableCash');
+  }
+  set availableCash(val: Money | string | number) {
+    moneySetDecimal(this, 'availableCash', val, 10);
+  }
 
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
   @Default('0')
-  declare totalCash: string;
+  get totalCash(): Money {
+    return moneyGetDecimal(this, 'totalCash');
+  }
+  set totalCash(val: Money | string | number) {
+    moneySetDecimal(this, 'totalCash', val, 10);
+  }
 
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
   @Default('0')
-  declare refAvailableCash: string;
+  get refAvailableCash(): Money {
+    return moneyGetDecimal(this, 'refAvailableCash');
+  }
+  set refAvailableCash(val: Money | string | number) {
+    moneySetDecimal(this, 'refAvailableCash', val, 10);
+  }
 
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
   @Default('0')
-  declare refTotalCash: string;
+  get refTotalCash(): Money {
+    return moneyGetDecimal(this, 'refTotalCash');
+  }
+  set refTotalCash(val: Money | string | number) {
+    moneySetDecimal(this, 'refTotalCash', val, 10);
+  }
 
   @Attribute(DataTypes.DATE)
   @NotNull

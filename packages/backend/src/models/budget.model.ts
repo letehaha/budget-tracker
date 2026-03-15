@@ -1,4 +1,6 @@
 import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Categories from '@models/categories.model';
 import Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
@@ -57,7 +59,12 @@ export default class Budgets extends Model<InferAttributes<Budgets>, InferCreati
   declare autoInclude: CreationOptional<boolean>;
 
   @Attribute(DataTypes.INTEGER)
-  declare limitAmount: number | null;
+  get limitAmount(): Money {
+    return moneyGetCents(this, 'limitAmount');
+  }
+  set limitAmount(val: Money | number | null) {
+    moneySetCents(this, 'limitAmount', val);
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull

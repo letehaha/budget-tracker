@@ -1,4 +1,5 @@
 import { Money } from '@common/types/money';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import {
   CreationOptional,
   DataTypes,
@@ -66,12 +67,22 @@ export default class TransactionSplits extends Model<
   // Amount in account currency (same as transaction.amount), stored as amount*100
   @Attribute(DataTypes.INTEGER)
   @NotNull
-  declare amount: number;
+  get amount(): Money {
+    return moneyGetCents(this, 'amount');
+  }
+  set amount(val: Money | number) {
+    moneySetCents(this, 'amount', val);
+  }
 
   // Amount in base currency (same as transaction.refAmount), stored as amount*100
   @Attribute(DataTypes.INTEGER)
   @NotNull
-  declare refAmount: number;
+  get refAmount(): Money {
+    return moneyGetCents(this, 'refAmount');
+  }
+  set refAmount(val: Money | number) {
+    moneySetCents(this, 'refAmount', val);
+  }
 
   // Optional per-split note, max 100 chars
   @Attribute(DataTypes.STRING(100))
