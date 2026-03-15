@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, AccountExternalData, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountExternalData, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, UnexpectedError } from '@js/errors';
@@ -7,6 +7,7 @@ import Balances from '@models/Balances.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
+import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
 import { withTransaction } from './common/with-transaction';
 
 type AccountWithRelinkStatus = Accounts.default & { needsRelink?: boolean };
@@ -119,6 +120,13 @@ export const updateAccount = withTransaction(
 
     if (!accountData) {
       throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
+    }
+
+    // Handle archive side effects when transitioning to archived status
+    const isArchiving =
+      payload.status === ACCOUNT_STATUSES.archived && accountData.status !== ACCOUNT_STATUSES.archived;
+    if (isArchiving) {
+      await performArchiveSideEffects({ account: accountData, userId: accountData.userId });
     }
 
     const currentBalanceIsChanging =

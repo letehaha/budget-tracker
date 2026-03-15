@@ -6,6 +6,7 @@ import { useFormatCurrency } from '@/composable/formatters';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
+import { ACCOUNT_STATUSES } from '@bt/shared/types';
 import { CircleCheckIcon, InfoIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
@@ -29,7 +30,7 @@ const creditAccounts = computed(() => {
   if (!accounts.value) return [];
 
   return accounts.value
-    .filter((a) => a.isEnabled && a.creditLimit > 0)
+    .filter((a) => a.status === ACCOUNT_STATUSES.active && !a.excludeFromStats && a.creditLimit > 0)
     .map((a) => {
       const used = Math.max(a.creditLimit - a.currentBalance, 0);
       const limit = a.creditLimit;

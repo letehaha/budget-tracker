@@ -51,7 +51,7 @@
       <div class="xs:grid-cols-[minmax(0,1fr)_max-content] grid grid-cols-1 flex-wrap gap-3">
         <AccountSelectField
           :model-value="store.selectedAccount"
-          :accounts="enabledAccounts"
+          :accounts="activeAccounts"
           :detected-currency="store.effectiveCurrency"
           :is-new-account="store.isNewAccount"
           :placeholder="$t('pages.statementParser.selectExistingAccount')"
@@ -128,7 +128,7 @@ const { t } = useI18n();
 const store = useStatementParserStore();
 const accountsStore = useAccountsStore();
 const currenciesStore = useCurrenciesStore();
-const { enabledAccounts } = storeToRefs(accountsStore);
+const { activeAccounts } = storeToRefs(accountsStore);
 const { systemCurrenciesVerbose } = storeToRefs(currenciesStore);
 const { formatCurrencyLabel } = useCurrencyName();
 

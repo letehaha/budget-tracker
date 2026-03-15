@@ -1,3 +1,4 @@
+import { ACCOUNT_STATUSES } from '@bt/shared/types';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 
@@ -17,7 +18,7 @@ export const listUserConnections = async ({
       {
         model: Accounts,
         as: 'accounts',
-        where: { isEnabled: true },
+        where: { status: ACCOUNT_STATUSES.active },
         required: false,
       },
     ],

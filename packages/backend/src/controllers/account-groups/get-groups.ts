@@ -8,14 +8,14 @@ export default createController(
   z.object({
     query: z.object({
       accountIds: commaSeparatedRecordIds.optional(),
-      hidden: z.coerce.boolean(),
+      includeArchived: z.coerce.boolean().optional().default(false),
     }),
   }),
   async ({ user, query }) => {
     const data = await accountGroupService.getAccountGroups({
       userId: user.id,
       accountIds: query.accountIds,
-      hidden: query.hidden,
+      includeArchived: query.includeArchived,
     });
 
     return { data: serializeAccountGroups(data) };

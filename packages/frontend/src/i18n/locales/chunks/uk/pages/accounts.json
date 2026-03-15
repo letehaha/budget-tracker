@@ -5,7 +5,7 @@
     "createAccount": "Створити рахунок",
     "bankIntegrations": "Банківські інтеграції",
     "sections": {
-      "hidden": "Приховані рахунки",
+      "archived": "Архівовані",
       "manual": "Ручні рахунки",
       "connected": "Підключені рахунки"
     },

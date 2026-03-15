@@ -1,5 +1,5 @@
 import { AccountModel, CategoryModel, TransactionModel, UserModel } from './db-models';
-import { ACCOUNT_TYPES, FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TYPES } from './enums';
+import { ACCOUNT_STATUSES, ACCOUNT_TYPES, FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TYPES } from './enums';
 
 export type BodyPayload = {
   [key: string | number]: string | number | boolean | undefined;
@@ -14,7 +14,6 @@ export interface CreateAccountBody extends BodyPayload {
   name: AccountModel['name'];
   initialBalance: AccountModel['initialBalance'];
   creditLimit: AccountModel['creditLimit'];
-  isEnabled?: AccountModel['isEnabled'];
   type?: AccountModel['type'];
 }
 
@@ -23,7 +22,8 @@ export interface UpdateAccountBody extends BodyPayload {
   name?: AccountModel['name'];
   currentBalance?: AccountModel['currentBalance'];
   creditLimit?: AccountModel['creditLimit'];
-  isEnabled?: AccountModel['isEnabled'];
+  status?: ACCOUNT_STATUSES;
+  excludeFromStats?: boolean;
 }
 
 export interface GetBalanceHistoryPayload extends QueryPayload {

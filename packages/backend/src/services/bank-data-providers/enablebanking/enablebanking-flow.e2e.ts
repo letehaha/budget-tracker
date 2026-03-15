@@ -1,4 +1,4 @@
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -781,10 +781,10 @@ describe('Enable Banking Data Provider E2E', () => {
 
       const firstAccountId = firstConnect[0]!.id;
 
-      // Disable the account
+      // Archive the account (this also unlinks bank connection)
       await helpers.updateAccount({
         id: firstAccountId,
-        payload: { isEnabled: false },
+        payload: { status: ACCOUNT_STATUSES.archived },
       });
 
       // Reconnect the same account
@@ -801,7 +801,7 @@ describe('Enable Banking Data Provider E2E', () => {
         raw: true,
       });
 
-      expect(account.isEnabled).toBe(true);
+      expect(account.status).toBe('active');
     });
 
     it('should update accountsCount after connecting accounts', async () => {

@@ -43,7 +43,7 @@ const TRANSACTION_TYPE_OPTIONS = computed(() => [
 ]);
 
 const accountOptions = computed(() =>
-  accountsStore.enabledAccounts.map((a) => ({
+  accountsStore.activeAccounts.map((a) => ({
     label: `${a.name} (${a.currencyCode})`,
     value: a.id,
   })),

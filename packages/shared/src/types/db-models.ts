@@ -1,5 +1,6 @@
 import {
   ACCOUNT_CATEGORIES,
+  ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
   BUDGET_TYPES,
   CATEGORIZATION_SOURCE,
@@ -85,7 +86,8 @@ export interface AccountModel {
   userId: number;
   externalId?: string;
   externalData?: AccountExternalData | null;
-  isEnabled: boolean;
+  status: ACCOUNT_STATUSES;
+  excludeFromStats: boolean;
   bankDataProviderConnectionId?: number;
 }
 

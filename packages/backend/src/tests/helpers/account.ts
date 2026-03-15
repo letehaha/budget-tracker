@@ -1,5 +1,6 @@
 import {
   ACCOUNT_CATEGORIES,
+  ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
   type Decimal,
   type TransactionModel,
@@ -59,10 +60,15 @@ export function createAccount({ payload = buildAccountPayload(), raw = false } =
   });
 }
 
+type UpdateAccountPayload = Partial<BuildAccountPayload> & {
+  status?: ACCOUNT_STATUSES;
+  excludeFromStats?: boolean;
+};
+
 export function updateAccount<
   T = Awaited<ReturnType<typeof apiUpdateAccount>>,
   R extends boolean | undefined = undefined,
->({ id, payload = {}, raw }: { id: number; payload?: Partial<BuildAccountPayload>; raw?: R }) {
+>({ id, payload = {}, raw }: { id: number; payload?: UpdateAccountPayload; raw?: R }) {
   return makeRequest<T, R>({
     method: 'put',
     url: `/accounts/${id}`,

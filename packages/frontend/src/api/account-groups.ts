@@ -2,7 +2,7 @@ import { api } from '@/api/_api';
 import { AccountGroups } from '@/common/types/models';
 
 export const loadAccountGroups = async (
-  payload: { accountIds?: number[]; hidden?: boolean } = {},
+  payload: { accountIds?: number[]; includeArchived?: boolean } = {},
 ): Promise<AccountGroups[]> => {
   return api.get('/account-group', payload);
 };
