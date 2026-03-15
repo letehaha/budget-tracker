@@ -26,6 +26,10 @@ const props = defineProps<{
   currentAmount?: number | null;
   /** Current form's currency code */
   currentCurrencyCode?: string;
+  /** Current account ID (for recommendations) */
+  currentAccountId?: number | null;
+  /** Current transaction ID (for recommendations when editing) */
+  currentTransactionId?: number;
 }>();
 
 const emit = defineEmits<{
@@ -252,22 +256,25 @@ const hasSmallOptions = computed(() => {
 <template>
   <div>
     <!-- Trigger button -->
-    <Button class="w-full" :disabled="disabled" variant="secondary" @click="isDialogOpen = true"> Link refund </Button>
+    <Button class="w-full" :disabled="disabled" variant="secondary" @click="isDialogOpen = true">
+      {{ $t('dialogs.manageTransaction.markAsRefund.linkRefund') }}
+    </Button>
 
     <!-- Main Dialog -->
     <ResponsiveDialog
       v-model:open="isDialogOpen"
       custom-close
+      no-internal-scroll
       dialog-content-class="grid max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)]"
       drawer-content-class="max-h-[85dvh]"
     >
-      <template #title>Select transaction</template>
+      <template #title>{{ $t('dialogs.manageTransaction.markAsRefund.selectTransaction') }}</template>
       <template #description>
         <template v-if="selectedOption === 'refunds'">
-          <span> Select the original transaction that this entry is refunding. </span>
+          <span> {{ $t('dialogs.manageTransaction.markAsRefund.selectRefundingTransaction') }} </span>
         </template>
         <template v-else-if="selectedOption === 'refunded'">
-          <span> Select transactions which refund current entry. </span>
+          <span> {{ $t('dialogs.manageTransaction.markAsRefund.selectRefundedByTransactions') }} </span>
         </template>
 
         <MarkAsRefundInfoPopover />
@@ -278,26 +285,27 @@ const hasSmallOptions = computed(() => {
           <RadioGroup v-model="selectedOption" default-value="refunds" class="flex gap-6">
             <label class="flex cursor-pointer items-center gap-2">
               <RadioGroupItem value="refunds" />
-              <p class="text-sm">Refunds</p>
+              <p class="text-sm">{{ $t('dialogs.manageTransaction.markAsRefund.refundsLabel') }}</p>
             </label>
             <label
               :class="['flex cursor-pointer items-center gap-2', isRecordCreation && 'cursor-not-allowed opacity-70']"
             >
               <RadioGroupItem :disabled="isRecordCreation" value="refunded" />
-              <p class="text-sm">Refunded by</p>
+              <p class="text-sm">{{ $t('dialogs.manageTransaction.markAsRefund.refundedByLabel') }}</p>
             </label>
           </RadioGroup>
 
-          <Button :disabled="isSaveDisabled" @click="saveState"> Save </Button>
+          <Button :disabled="isSaveDisabled" @click="saveState">
+            {{ $t('dialogs.manageTransaction.markAsRefund.saveButton') }}
+          </Button>
         </div>
 
         <template v-if="selectedOption === 'refunds'">
-          <p class="text-muted-foreground text-xs">* you can select only one transaction</p>
+          <p class="text-muted-foreground text-xs">{{ $t('dialogs.manageTransaction.markAsRefund.selectOnlyOne') }}</p>
         </template>
         <template v-else-if="selectedOption === 'refunded'">
           <p class="text-muted-foreground text-xs">
-            * you can select multiple transactions, but their total amount cannot be greater than the original
-            transaction amount
+            {{ $t('dialogs.manageTransaction.markAsRefund.selectMultipleWithLimit') }}
           </p>
         </template>
       </div>
@@ -308,6 +316,9 @@ const hasSmallOptions = computed(() => {
           :transaction-type="transactionType"
           :on-select="onSelectValue"
           :selected-transactions="selectedTransactions"
+          :origin-amount="currentAmount"
+          :origin-account-id="currentAccountId"
+          :origin-transaction-id="currentTransactionId"
         />
       </div>
     </ResponsiveDialog>
@@ -322,24 +333,24 @@ const hasSmallOptions = computed(() => {
       <template #title>
         <span class="flex items-center gap-2">
           <SplitIcon class="text-muted-foreground size-4" />
-          Select which part to refund
+          {{ $t('dialogs.manageTransaction.markAsRefund.selectWhichPartToRefund') }}
         </span>
       </template>
       <template #description>
-        This transaction is split across multiple categories. Select which part you want to refund.
+        {{ $t('dialogs.manageTransaction.markAsRefund.transactionSplitInfo') }}
       </template>
 
       <template v-if="pendingTransaction">
         <p v-if="hasSmallOptions && currentAmount" class="text-warning mb-4 text-xs italic">
           <template v-if="isSameCurrency">
-            Options smaller than your refund amount
+            {{ $t('dialogs.manageTransaction.markAsRefund.amountTooSmallWarning') }}
             {{ formatUIAmount(currentAmount, { currency: currentCurrencyCode }) }}
-            are disabled.
+            {{ $t('dialogs.manageTransaction.markAsRefund.amountDisabled') }}
           </template>
           <template v-else>
-            Some options may be smaller than your refund amount ({{
+            {{ $t('dialogs.manageTransaction.markAsRefund.amountMayBeSmaller') }} ({{
               formatUIAmount(currentAmount, { currency: currentCurrencyCode })
-            }}). Final validation will use converted amounts.
+            }}). {{ $t('dialogs.manageTransaction.markAsRefund.finalValidationWarning') }}
           </template>
         </p>
 
@@ -365,7 +376,9 @@ const hasSmallOptions = computed(() => {
               <span :class="['text-sm font-medium', shouldDisableOption(isMainCategoryTooSmall) && 'line-through']">
                 {{ getMainCategoryInfo(pendingTransaction).name }}
               </span>
-              <span class="text-muted-foreground text-xs">(main)</span>
+              <span class="text-muted-foreground text-xs">
+                {{ $t('dialogs.manageTransaction.markAsRefund.mainCategoryLabel') }}
+              </span>
             </div>
             <div class="flex items-center gap-2">
               <span :class="['text-sm tabular-nums', isMainCategoryTooSmall && 'text-warning']">
@@ -413,7 +426,9 @@ const hasSmallOptions = computed(() => {
         </div>
 
         <div class="mt-6 flex justify-end">
-          <Button :disabled="isSplitConfirmDisabled" @click="confirmSplitSelection"> Confirm </Button>
+          <Button :disabled="isSplitConfirmDisabled" @click="confirmSplitSelection">
+            {{ $t('dialogs.manageTransaction.markAsRefund.confirmButton') }}
+          </Button>
         </div>
       </template>
     </ResponsiveDialog>

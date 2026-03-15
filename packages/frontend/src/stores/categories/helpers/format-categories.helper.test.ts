@@ -6,7 +6,7 @@ const category = (id: number) => ({
   id,
   color: '',
   name: 'test',
-  imageUrl: '',
+  icon: null,
   userId: 1,
   parentId: null,
   type: CATEGORY_TYPES.custom,

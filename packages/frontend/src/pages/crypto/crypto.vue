@@ -1,8 +1,8 @@
 <template>
-  <div class="p-6">
-    <h1>Crypto</h1>
+  <PageWrapper>
+    <h1>{{ $t('crypto.title') }}</h1>
 
-    <template v-if="isDataLoading"> LOADING... </template>
+    <template v-if="isDataLoading"> {{ $t('crypto.loading') }} </template>
 
     <template v-else>
       <template v-if="isAPIKeysDefined">
@@ -13,10 +13,11 @@
         <APIKeysForm />
       </template>
     </template>
-  </div>
+  </PageWrapper>
 </template>
 
 <script lang="ts">
+import PageWrapper from '@/components/common/page-wrapper.vue';
 import { ApiErrorResponseError } from '@/js/errors';
 import { formatFiat } from '@/js/helpers';
 import { useCryptoBinanceStore } from '@/stores';
@@ -28,6 +29,7 @@ import GeneralList from './components/general-list.vue';
 
 export default defineComponent({
   components: {
+    PageWrapper,
     GeneralList,
     APIKeysForm,
   },

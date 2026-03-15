@@ -1,6 +1,7 @@
 import { loadSystemCategories } from '@/api';
 import { type FormattedCategory } from '@/common/types';
 import { useNotificationCenter } from '@/components/notification-center';
+import { i18n } from '@/i18n';
 import * as errors from '@/js/errors';
 import { CategoryModel } from '@bt/shared/types';
 import { defineStore } from 'pinia';
@@ -20,7 +21,7 @@ export const useCategoriesStore = defineStore('categories', () => {
       if (result?.length) categories.value = result;
     } catch (err) {
       if (!(err instanceof errors.AuthError)) {
-        notificationStore.addErrorNotification('Cannot load categories');
+        notificationStore.addErrorNotification(i18n.global.t('settings.categories.errors.cannotLoad'));
       }
     }
   };

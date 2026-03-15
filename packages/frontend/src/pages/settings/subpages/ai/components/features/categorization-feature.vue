@@ -1,7 +1,7 @@
 <template>
   <div v-if="isLoadingModels" class="text-muted-foreground flex items-center gap-2 py-4 text-sm">
     <Loader2Icon class="size-4 animate-spin" />
-    Loading models...
+    {{ $t('settings.ai.categorization.loading') }}
   </div>
 
   <ModelSelectorCard
@@ -21,13 +21,11 @@
           @click="showModelHint = !showModelHint"
         >
           <LightbulbIcon class="size-3" />
-          What model should I choose?
+          {{ $t('settings.ai.categorization.modelHint.trigger') }}
           <ChevronDownIcon class="size-3 transition-transform" :class="{ 'rotate-180': showModelHint }" />
         </button>
         <p v-if="showModelHint" class="bg-muted/50 text-muted-foreground mt-2 rounded-md p-2 text-xs">
-          For transaction categorization, <strong>low-cost models</strong> like Gemini Flash, Claude Haiku, or GPT-4o
-          Mini are recommended. Categorization is a straightforward task that doesn't require expensive reasoning
-          models. Using cheaper models lets you process more transactions at lower cost.
+          {{ $t('settings.ai.categorization.modelHint.text') }}
         </p>
       </div>
     </template>
@@ -35,17 +33,11 @@
     <template #after-card>
       <!-- How it works for categorization -->
       <div class="mt-4 border-t pt-4">
-        <h5 class="mb-2 text-sm font-medium">How it works</h5>
+        <h5 class="mb-2 text-sm font-medium">{{ $t('settings.ai.categorization.howItWorks.title') }}</h5>
         <ul class="text-muted-foreground list-disc space-y-1.5 pl-5 text-xs leading-relaxed">
-          <li>
-            When you sync transactions from your bank, uncategorized transactions are automatically sent to AI for
-            categorization.
-          </li>
-          <li>
-            The AI analyzes transaction descriptions and merchant names to suggest appropriate categories from your
-            existing category list.
-          </li>
-          <li>You can always manually override AI-suggested categories.</li>
+          <li>{{ $t('settings.ai.categorization.howItWorks.points.autoSync') }}</li>
+          <li>{{ $t('settings.ai.categorization.howItWorks.points.analysis') }}</li>
+          <li>{{ $t('settings.ai.categorization.howItWorks.points.override') }}</li>
         </ul>
       </div>
     </template>

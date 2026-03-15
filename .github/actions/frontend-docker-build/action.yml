@@ -10,6 +10,38 @@ inputs:
     description: 'VUE_APP_API_VER'
     required: false
     default: 'v1'
+  posthog-key:
+    description: 'VITE_POSTHOG_KEY - PostHog API key for analytics'
+    required: false
+    default: ''
+  posthog-host:
+    description: 'VITE_POSTHOG_HOST - PostHog host URL'
+    required: false
+    default: ''
+  sentry-dsn:
+    description: 'VITE_SENTRY_DSN - Sentry DSN for error tracking'
+    required: false
+    default: ''
+  logo-dev-token:
+    description: 'VITE_LOGO_DEV_TOKEN - Logo.dev CDN publishable token for subscription logos'
+    required: false
+    default: ''
+  sentry-auth-token:
+    description: 'SENTRY_AUTH_TOKEN - Sentry auth token for source map upload'
+    required: false
+    default: ''
+  sentry-org:
+    description: 'SENTRY_ORG - Sentry organization slug'
+    required: false
+    default: ''
+  sentry-project:
+    description: 'SENTRY_PROJECT - Sentry project slug'
+    required: false
+    default: ''
+  sentry-release:
+    description: 'VITE_SENTRY_RELEASE - Release version (git SHA) for Sentry'
+    required: false
+    default: ''
   docker-hub-username:
     description: 'DOCKER_HUB_USERNAME'
     required: false
@@ -17,6 +49,10 @@ inputs:
   docker-hub-access-token:
     description: 'DOCKER_HUB_ACCESS_TOKEN'
     required: false
+  image-tag:
+    description: 'Docker image tag (e.g. latest, pr-123)'
+    required: false
+    default: 'latest'
   push:
     description: Specifies if docker result should be pushed
     required: false
@@ -33,6 +69,14 @@ runs:
       with:
         envkey_VITE_APP_API_HTTP: ${{ inputs.api-base-url }}
         envkey_VITE_APP_API_VER: ${{ inputs.vue-app-api-ver }}
+        envkey_VITE_POSTHOG_KEY: ${{ inputs.posthog-key }}
+        envkey_VITE_POSTHOG_HOST: ${{ inputs.posthog-host }}
+        envkey_VITE_LOGO_DEV_TOKEN: ${{ inputs.logo-dev-token }}
+        envkey_VITE_SENTRY_DSN: ${{ inputs.sentry-dsn }}
+        envkey_SENTRY_AUTH_TOKEN: ${{ inputs.sentry-auth-token }}
+        envkey_SENTRY_ORG: ${{ inputs.sentry-org }}
+        envkey_SENTRY_PROJECT: ${{ inputs.sentry-project }}
+        envkey_VITE_SENTRY_RELEASE: ${{ inputs.sentry-release }}
         directory: ./
         file_name: .env.production
 
@@ -54,4 +98,4 @@ runs:
         file: ./docker/prod/frontend/Dockerfile
         push: ${{ inputs.push == 'true' }}
         load: ${{ inputs.push != 'true' }}
-        tags: ${{ inputs.docker-hub-username }}/budget-tracker-fe:latest
+        tags: ${{ inputs.docker-hub-username }}/budget-tracker-fe:${{ inputs.image-tag }}

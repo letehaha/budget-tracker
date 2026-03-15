@@ -1,3 +1,12 @@
+/**
+ * Cache duration constants for Vue Query staleTime and gcTime.
+ * Financial data doesn't change frequently, so longer cache times are appropriate.
+ */
+export const QUERY_CACHE_STALE_TIME = {
+  /** 5 minutes - for data that changes infrequently (analytics, stats) */
+  ANALYTICS: 5 * 60 * 1000,
+} as const;
+
 export const VUE_QUERY_GLOBAL_PREFIXES = Object.freeze({
   // This query might be added to other queries so that on transcation create/edit
   // we can call for invalidating all the queries that include that particular one
@@ -12,9 +21,11 @@ export const VUE_QUERY_GLOBAL_PREFIXES = Object.freeze({
   bankConnectionChange: 'global-query-bank-connection-change',
 
   currencies: 'currencies',
+
+  notifications: 'notifications',
 });
 
-const { transactionChange, securityPriceChange, bankConnectionChange } = VUE_QUERY_GLOBAL_PREFIXES;
+const { transactionChange, securityPriceChange, bankConnectionChange, notifications } = VUE_QUERY_GLOBAL_PREFIXES;
 
 export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // currencies
@@ -36,8 +47,20 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // widget latest records
   widgetLatestRecords: [transactionChange, 'widget-latest-records'] as const,
 
-  // others
+  // widget category spending tracker
+  widgetCategorySpendingTracker: [transactionChange, 'widget-category-spending-tracker'] as const,
+
+  // widget cash flow
+  widgetCashFlow: [transactionChange, 'widget-cash-flow'] as const,
+  widgetCashFlowPrev: [transactionChange, 'widget-cash-flow-prev'] as const,
+  widgetCashFlowTrend: [transactionChange, 'widget-cash-flow-trend'] as const,
+
+  // analytics
   analyticsBalanceHistoryTrend: [transactionChange, securityPriceChange, 'analytics-balance-history-trend'] as const,
+  analyticsCashFlow: [transactionChange, 'analytics-cash-flow'] as const,
+  analyticsCumulative: [transactionChange, 'analytics-cumulative'] as const,
+  analyticsSpendingsByCategories: [transactionChange, 'analytics-spendings-by-categories'] as const,
+  earliestTransactionDate: [transactionChange, 'earliest-transaction-date'] as const,
 
   recordsPageRecordsList: [transactionChange, 'records-page-records-list'] as const,
 
@@ -57,6 +80,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   budgetTransactionList: [transactionChange, 'budget-transaction-list'] as const,
   budgetAddingTransactionList: [transactionChange, 'budget-adding-transaction-list'] as const,
   budgetStats: [transactionChange, 'budget-stats'] as const,
+  budgetSpendingStats: [transactionChange, 'budget-spending-stats'] as const,
 
   /**
    * Investments
@@ -67,6 +91,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   portfolioDetails: [securityPriceChange, 'portfolio-details'] as const,
   portfolioTransfers: [securityPriceChange, 'portfolio-transfers'] as const,
   portfolioSummary: [securityPriceChange, 'portfolio-summary'] as const,
+  portfolioBalances: [securityPriceChange, 'portfolio-balances'] as const,
+  transactionPortfolioLink: [transactionChange, 'transaction-portfolio-link'] as const,
+
+  portfolioInvestmentTransactions: [securityPriceChange, 'portfolio-investment-transactions'] as const,
 
   // holdings
   holdingsList: [securityPriceChange, 'holdings'] as const,
@@ -77,4 +105,24 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   bankConnectionDetails: [bankConnectionChange, 'bank-connection-details'] as const,
   bankAvailableExternalAccounts: [bankConnectionChange, 'bank-available-external-accounts'] as const,
   bankConnections: [bankConnectionChange, 'bank-connections'] as const,
+
+  // notifications
+  notificationsList: [notifications, 'notifications-list'] as const,
+  notificationsUnreadCount: [notifications, 'notifications-unread-count'] as const,
+
+  // subscriptions
+  subscriptionsList: [transactionChange, 'subscriptions-list'] as const,
+  subscriptionDetails: [transactionChange, 'subscription-details'] as const,
+  subscriptionsSummary: [transactionChange, 'subscriptions-summary'] as const,
+  widgetSubscriptionsUpcoming: [transactionChange, 'widget-subscriptions-upcoming'] as const,
+  subscriptionCandidates: ['subscription-candidates'] as const,
+
+  // transaction groups
+  transactionGroupsList: [transactionChange, 'transaction-groups-list'] as const,
+  transactionGroupDetail: [transactionChange, 'transaction-group-detail'] as const,
+
+  // payment reminders
+  remindersList: ['reminders-list'] as const,
+  reminderDetails: ['reminder-details'] as const,
+  reminderPeriods: ['reminder-periods'] as const,
 });

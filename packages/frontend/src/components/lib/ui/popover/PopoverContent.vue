@@ -7,8 +7,9 @@ import {
   PopoverPortal,
   useForwardPropsEmits,
 } from 'reka-ui';
+import type { HTMLAttributes } from 'vue';
 
-const props = withDefaults(defineProps<PopoverContentProps & { class?: string }>(), {
+const props = withDefaults(defineProps<PopoverContentProps & { class?: HTMLAttributes['class'] }>(), {
   sideOffset: 4,
   class: '',
 });

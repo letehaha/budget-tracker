@@ -22,7 +22,7 @@ export const getTotalBalance = async ({ userId, date }: { userId: number; date: 
     to: date,
   });
 
-  const totalBalance = balancesForDate.reduce((acc, value) => (acc += value.amount), 0);
+  const totalBalance = balancesForDate.reduce((acc, value) => (acc += value.amount.toCents()), 0);
 
   return totalBalance;
 };

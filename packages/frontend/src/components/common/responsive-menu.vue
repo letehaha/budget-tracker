@@ -3,7 +3,9 @@ import * as Drawer from '@/components/lib/ui/drawer';
 import * as Popover from '@/components/lib/ui/popover';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { createReusableTemplate } from '@vueuse/core';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const [UseTemplate, SlotContent] = createReusableTemplate();
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
@@ -31,8 +33,8 @@ defineExpose({ close });
 
       <Drawer.DrawerContent class="px-4 pb-6">
         <Drawer.DrawerHeader class="sr-only">
-          <Drawer.DrawerTitle>Actions</Drawer.DrawerTitle>
-          <Drawer.DrawerDescription>Choose an action</Drawer.DrawerDescription>
+          <Drawer.DrawerTitle>{{ t('common.ui.actions') }}</Drawer.DrawerTitle>
+          <Drawer.DrawerDescription>{{ t('common.ui.chooseAction') }}</Drawer.DrawerDescription>
         </Drawer.DrawerHeader>
 
         <div class="mt-4 flex flex-col gap-1">

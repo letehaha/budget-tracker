@@ -1,0 +1,187 @@
+{
+  "forms": {
+    "investmentTransaction": {
+      "typeLabel": "Тип транзакції",
+      "types": {
+        "buy": "Купівля",
+        "sell": "Продаж",
+        "dividend": "Дивіденди"
+      },
+      "securityLabel": "Цінний папір",
+      "securityPlaceholder": "Виберіть цінний папір",
+      "quantityLabel": "Кількість",
+      "quantityPlaceholder": "0.00",
+      "priceLabel": "Ціна за акцію",
+      "pricePlaceholder": "0.00",
+      "feesLabel": "Комісії (необов'язково)",
+      "feesPlaceholder": "0.00",
+      "dateLabel": "Дата транзакції",
+      "cancelButton": "Скасувати",
+      "submitButton": "Створити транзакцію",
+      "submitButtonLoading": "Створення...",
+      "notifications": {
+        "success": "Транзакцію успішно створено.",
+        "error": "Не вдалося створити транзакцію."
+      }
+    },
+    "portfolioSettings": {
+      "nameLabel": "Назва портфеля",
+      "namePlaceholder": "Мій інвестиційний портфель",
+      "nameRequired": "Назва обов'язкова",
+      "typeLabel": "Тип портфеля",
+      "typePlaceholder": "Виберіть тип портфеля",
+      "descriptionLabel": "Опис (необов'язково)",
+      "descriptionPlaceholder": "Короткий опис цього портфеля...",
+      "cancelButton": "Скасувати",
+      "submitButton": "Зберегти зміни",
+      "submitButtonLoading": "Збереження...",
+      "notifications": {
+        "success": "Портфель успішно оновлено.",
+        "error": "Не вдалося оновити портфель. Спробуйте ще раз."
+      }
+    },
+    "portfolioTransfer": {
+      "transferTypeLabel": "Тип переказу",
+      "transferTypes": {
+        "portfolioToPortfolio": "На інший портфель",
+        "portfolioToAccount": "На рахунок",
+        "accountToPortfolio": "На портфель"
+      },
+      "comingSoonNotice": "💡 Перекази з рахунку на портфель з'являться в майбутньому оновленні!",
+      "fromPortfolioLabel": "З портфеля",
+      "fromPortfolioPlaceholder": "Виберіть вихідний портфель",
+      "fromAccountLabel": "З рахунку",
+      "fromAccountPlaceholder": "Виберіть вихідний рахунок",
+      "toPortfolioLabel": "На портфель",
+      "toPortfolioPlaceholder": "Виберіть цільовий портфель",
+      "toAccountLabel": "На рахунок",
+      "toAccountPlaceholder": "Виберіть цільовий рахунок",
+      "currencyLabel": "Валюта",
+      "currencyPlaceholder": "Виберіть валюту",
+      "amountLabel": "Сума",
+      "amountLabelWithCurrency": "Сума ({currency})",
+      "amountPlaceholder": "0.00",
+      "dateLabel": "Дата",
+      "descriptionLabel": "Опис (необов'язково)",
+      "descriptionPlaceholder": "Додайте примітку про цей переказ...",
+      "cancelButton": "Скасувати",
+      "submitButton": "Переказати",
+      "submitButtonLoading": "Обробка...",
+      "confirmDialog": {
+        "title": "Підтвердити переказ",
+        "description": "{action} на {amount} буде створено з {from} до {to}",
+        "actionTransfer": "переказ",
+        "actionWithdrawal": "зняття",
+        "actionDeposit": "поповнення",
+        "warning": "Цю дію неможливо скасувати.",
+        "cancelButton": "Скасувати",
+        "confirmButton": "Підтвердити переказ"
+      },
+      "validation": {
+        "required": "Це поле обов'язкове",
+        "minValue": "Сума повинна бути більше 0"
+      },
+      "notifications": {
+        "comingSoon": "Перекази з рахунку на портфель з'являться в майбутньому оновленні!",
+        "success": "Переказ успішно завершено.",
+        "error": "Переказ не вдався. Спробуйте ще раз."
+      },
+      "linkExistingTransaction": "Прив'язати існуючу транзакцію",
+      "linkedTransactionLabel": "Транзакція"
+    },
+    "createAccount": {
+      "nameLabel": "Назва рахунку",
+      "namePlaceholder": "Назва рахунку",
+      "currencyLabel": "Валюта",
+      "currencyPlaceholder": "Виберіть валюту",
+      "addCurrencyButton": "Додати нову валюту +",
+      "initialBalanceLabel": "Початковий баланс",
+      "initialBalancePlaceholder": "Початковий баланс",
+      "accountCategoryLabel": "Категорія рахунку",
+      "accountCategoryPlaceholder": "Виберіть категорію рахунку",
+      "creditLimitLabel": "Кредитний ліміт",
+      "creditLimitPlaceholder": "Кредитний ліміт",
+      "submitButton": "Створити",
+      "submitButtonLoading": "Створення...",
+      "notifications": {
+        "success": "Успішно створено.",
+        "error": "Неочікувана помилка."
+      }
+    },
+    "directCashTransaction": {
+      "methodTypes": {
+        "direct": "Прямий",
+        "transfer": "Переказ"
+      },
+      "operationTypes": {
+        "deposit": "Поповнення",
+        "withdrawal": "Зняття"
+      },
+      "fromAccountLabel": "З рахунку",
+      "toAccountLabel": "На рахунок",
+      "accountPlaceholder": "Оберіть рахунок",
+      "orSeparator": "або",
+      "linkExistingTransaction": "Прив'язати існуючу транзакцію",
+      "linkedTransactionLabel": "Прив'язана транзакція",
+      "amountLabel": "Сума",
+      "amountPlaceholder": "Введіть суму",
+      "currencyLabel": "Валюта",
+      "currencyPlaceholder": "Оберіть валюту",
+      "dateLabel": "Дата",
+      "descriptionLabel": "Опис",
+      "descriptionPlaceholder": "Необов'язковий опис",
+      "cancelButton": "Скасувати",
+      "submitButton": "Підтвердити",
+      "submitButtonLoading": "Зберігається...",
+      "confirmDialog": {
+        "title": "Підтвердити переказ",
+        "description": "{action} на {amount} буде створено з {from} до {to}",
+        "cancelButton": "Скасувати",
+        "confirmButton": "Підтвердити",
+        "actionDeposit": "поповнення",
+        "actionWithdrawal": "зняття"
+      },
+      "validation": {
+        "required": "Це поле обов'язкове",
+        "minValue": "Сума повинна бути більше 0"
+      },
+      "notifications": {
+        "success": "Грошову операцію створено успішно",
+        "error": "Не вдалося створити грошову операцію"
+      }
+    },
+    "validators": {
+      "invalidCurrencyDecimal": "Введіть коректну суму (до 2 знаків після коми)",
+      "mustBePositive": "Сума має бути додатною"
+    }
+  },
+  "fields": {
+    "categorySelect": {
+      "noCategoriesFound": "Категорій не знайдено",
+      "selectCategoryLabel": "Вибрати категорію",
+      "searchCategoryLabel": "Шукати категорію",
+      "clearSearchLabel": "Очистити пошук",
+      "clearSelectionLabel": "Очистити вибір",
+      "searchPlaceholder": "Пошук..."
+    },
+    "select": {
+      "selectOption": "Вибрати опцію",
+      "searchPlaceholder": "Пошук..."
+    },
+    "comboboxAccounts": {
+      "allAccounts": "Всі рахунки",
+      "account": "рахунок",
+      "accountsSelected": "рахунків вибрано",
+      "searchPlaceholder": "Шукати рахунки...",
+      "noResults": "Результатів не знайдено."
+    },
+    "comboboxCategories": {
+      "searchPlaceholder": "Шукати категорії...",
+      "unselectedPlaceholder": "Всі категорії"
+    },
+    "tagSelect": {
+      "placeholder": "Виберіть теги...",
+      "noTagsAvailable": "Немає доступних тегів"
+    }
+  }
+}

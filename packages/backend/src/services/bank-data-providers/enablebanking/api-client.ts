@@ -4,6 +4,7 @@
  *
  * API Documentation: https://enablebanking.com/docs/api/reference
  */
+import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import axios, { AxiosInstance } from 'axios';
@@ -91,14 +92,18 @@ export class EnableBankingApiClient {
       });
 
       if (status === 401 || status === 403) {
-        throw new ForbiddenError({ message: `Enable Banking authentication failed: ${message}` });
+        throw new ForbiddenError({
+          message: t({ key: 'bankDataProviders.enableBanking.authenticationFailed', variables: { message } }),
+        });
       }
 
       if (status && status >= 400 && status < 500) {
-        throw new BadRequestError({ message: `Enable Banking API error: ${message}` });
+        throw new BadRequestError({
+          message: t({ key: 'bankDataProviders.enableBanking.apiBadRequestError', variables: { message } }),
+        });
       }
 
-      throw new Error(`Enable Banking API error: ${message}`);
+      throw new Error(t({ key: 'bankDataProviders.enableBanking.apiGeneralError', variables: { message } }));
     }
 
     throw error;

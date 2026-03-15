@@ -214,6 +214,7 @@ export enum Usage {
 /**
  * Service level code for payments
  * https://enablebanking.com/docs/api/reference/#servicelevelcode
+ * @public
  */
 export enum ServiceLevelCode {
   CDQC = 'CDQC',
@@ -328,6 +329,7 @@ export enum ReferenceNumberScheme {
 /**
  * Transactions fetch strategy
  * https://enablebanking.com/docs/api/reference/#transactionsfetchstrategy
+ * @public
  */
 export enum TransactionsFetchStrategy {
   SINCE_LAST_REFERENCE = 'SINCE_LAST_REFERENCE',

@@ -1,4 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Portfolios from '@models/investments/Portfolios.model';
@@ -40,7 +41,7 @@ const serviceImpl = async ({
     });
 
     if (!portfolio) {
-      throw new NotFoundError({ message: 'Portfolio not found' });
+      throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
     }
 
     where.portfolioId = portfolioId;

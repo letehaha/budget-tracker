@@ -1,60 +1,27 @@
 import { api } from '@/api/_api';
-import { fromSystemAmount, toSystemAmount } from '@/api/helpers';
-import { TransactionModel, TransactionSplitModel } from '@bt/shared/types/db-models';
+import { TransactionModel } from '@bt/shared/types/db-models';
 import * as endpointsTypes from '@bt/shared/types/endpoints';
-import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types/enums';
+import {
+  ACCOUNT_TYPES,
+  FILTER_OPERATION,
+  SORT_DIRECTIONS,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types/enums';
 
-export const formatTransactionResponse = (transaction: TransactionModel): TransactionModel => {
-  const formatted: TransactionModel = {
-    ...transaction,
-    amount: fromSystemAmount(transaction.amount),
-    refAmount: fromSystemAmount(transaction.refAmount),
-    cashbackAmount: fromSystemAmount(transaction.cashbackAmount),
-    refCommissionRate: fromSystemAmount(transaction.refCommissionRate),
-    commissionRate: fromSystemAmount(transaction.commissionRate),
-  };
-
-  // Format split amounts if present
-  if (transaction.splits && transaction.splits.length > 0) {
-    formatted.splits = transaction.splits.map(
-      (split): TransactionSplitModel => ({
-        ...split,
-        amount: fromSystemAmount(split.amount),
-        refAmount: fromSystemAmount(split.refAmount),
-      }),
-    );
-  }
-
-  return formatted;
-};
-
-export const formatTransactionPayload = <
+const formatTransactionPayload = <
   T extends endpointsTypes.CreateTransactionBody | endpointsTypes.UpdateTransactionBody,
 >(
   transaction: T,
 ): T => {
-  const params = { ...transaction };
-  const timeFieldsToPatch = ['time', 'budgetId', 'startDate', 'endDate'];
+  const params = { ...transaction } as Record<string, unknown>;
+  const timeFieldsToPatch = ['time', 'startDate', 'endDate'];
 
   timeFieldsToPatch.forEach((field) => {
-    if (params[field]) params[field] = new Date(params[field]).toISOString();
+    if (params[field]) params[field] = new Date(params[field] as string).toISOString();
   });
 
-  const amountFieldsToPatch = ['amount', 'destinationAmount', 'amountLte', 'amountGte'];
-
-  amountFieldsToPatch.forEach((field) => {
-    if (params[field]) params[field] = toSystemAmount(Number(params[field]));
-  });
-
-  // Format split amounts to system format
-  if (params.splits && Array.isArray(params.splits)) {
-    params.splits = params.splits.map((split) => ({
-      ...split,
-      amount: toSystemAmount(Number(split.amount)),
-    }));
-  }
-
-  return params;
+  return params as T;
 };
 
 export const loadTransactions = async (params: {
@@ -66,41 +33,31 @@ export const loadTransactions = async (params: {
   transactionType?: TRANSACTION_TYPES;
   accountIds?: number[];
   categoryIds?: number[];
+  tagIds?: number[];
+  excludedTagIds?: number[];
   sort?: SORT_DIRECTIONS;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  excludeAccountIds?: number[];
+  transferFilter?: FILTER_OPERATION;
+  refundFilter?: FILTER_OPERATION;
   startDate?: string;
   endDate?: string;
   amountLte?: number;
   amountGte?: number;
   includeSplits?: boolean;
+  includeTags?: boolean;
+  includeGroups?: boolean;
 }): Promise<endpointsTypes.GetTransactionsResponse> => {
-  const result = await api.get('/transactions', formatTransactionPayload(params));
-
-  return result.map((item) => formatTransactionResponse(item));
-};
-
-export const loadTransactionById = async ({
-  id,
-  includeSplits,
-}: {
-  id: number;
-  includeSplits?: boolean;
-}): Promise<TransactionModel> => {
-  const result = await api.get(`/transactions/${id}`, { includeSplits });
-
-  return formatTransactionResponse(result);
+  return api.get('/transactions', formatTransactionPayload(params));
 };
 
 export const loadTransactionsByTransferId = async (transferId: string): Promise<TransactionModel[]> => {
-  const result = await api.get(`/transactions/transfer/${transferId}`);
+  return api.get(`/transactions/transfer/${transferId}`);
+};
 
-  return result.map((item) => formatTransactionResponse(item));
+export const loadTransactionsByIds = async ({ ids }: { ids: number[] }): Promise<TransactionModel[]> => {
+  return api.get('/transactions/by-ids', { ids: ids.join(',') });
 };
 
 export const createTransaction = async (params: endpointsTypes.CreateTransactionBody) => {
@@ -134,8 +91,20 @@ export const unlinkTransactions = async (payload: endpointsTypes.UnlinkTransferT
   await api.put('/transactions/unlink', payload);
 };
 
-export const getTransactionByBudgetId = async (budgetId: number): Promise<TransactionModel[]> => {
-  const result = await api.get(`/transactions/budget/${budgetId}`);
+export const bulkUpdateTransactions = async (
+  payload: endpointsTypes.BulkUpdateTransactionsBody,
+): Promise<endpointsTypes.BulkUpdateTransactionsResponse> => {
+  return api.put('/transactions/bulk', payload);
+};
 
-  return result.map((item) => formatTransactionResponse(item));
+export const loadRefundRecommendations = async (
+  params: { transactionId: number } | { transactionType: TRANSACTION_TYPES; originAmount: number; accountId: number },
+): Promise<endpointsTypes.GetRefundRecommendationsResponse> => {
+  return api.get('/transactions/refund-recommendations', params);
+};
+
+export const loadTransferRecommendations = async (
+  params: { transactionId: number } | { transactionType: TRANSACTION_TYPES; originAmount: number; accountId: number },
+): Promise<endpointsTypes.GetTransferRecommendationsResponse> => {
+  return api.get('/transactions/transfer-recommendations', params);
 };

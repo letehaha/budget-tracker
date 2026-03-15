@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { PlusIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 
@@ -10,6 +11,7 @@ import BudgetList from './budget-list.vue';
 const isOpen = ref(false);
 const openModal = () => {
   isOpen.value = true;
+  trackAnalyticsEvent({ event: 'budget_creation_opened' });
 };
 const isModalClosed = () => {
   isOpen.value = false;
@@ -17,16 +19,16 @@ const isModalClosed = () => {
 </script>
 
 <template>
-  <div class="p-6">
+  <div>
     <!-- Page Header -->
-    <div class="mb-6 flex items-center justify-between">
+    <div class="mb-6 flex items-center justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-semibold tracking-tight">Budgets</h1>
-        <p class="text-muted-foreground mt-1 text-sm">Track spending and monitor financial events</p>
+        <h1 class="text-2xl font-semibold tracking-tight">{{ $t('budgets.title') }}</h1>
+        <p class="text-muted-foreground mt-1 text-sm">{{ $t('budgets.description') }}</p>
       </div>
       <Button @click="openModal">
         <PlusIcon class="mr-2 size-4" />
-        New Budget
+        {{ $t('budgets.newBudget') }}
       </Button>
     </div>
 
@@ -34,7 +36,7 @@ const isModalClosed = () => {
     <BudgetList />
 
     <ResponsiveDialog v-model:open="isOpen">
-      <template #title> Create budget </template>
+      <template #title> {{ $t('budgets.createBudget') }} </template>
       <BudgetCreation @create-budget="isModalClosed" />
     </ResponsiveDialog>
   </div>

@@ -1,0 +1,151 @@
+{
+  "settings": {
+    "security": {
+      "title": "Налаштування безпеки",
+      "description": "Керуйте способами входу, активними сесіями та паролем",
+      "tabs": {
+        "loginMethods": "Способи входу",
+        "loginMethodsShort": "Вхід",
+        "activeSessions": "Активні сесії",
+        "activeSessionsShort": "Сесії",
+        "password": "Пароль"
+      },
+      "loginMethods": {
+        "title": "Способи входу",
+        "description": "Керуйте способами входу до вашого облікового запису",
+        "legacyWarning": {
+          "title": "Виявлено застарілий обліковий запис",
+          "description": "Ваш обліковий запис використовує застарілий вхід на основі імені користувача. Будь ласка, додайте адресу електронної пошти до свого облікового запису, перш ніж підключати провайдерів OAuth або ключі доступу."
+        },
+        "oauth": {
+          "connectedAs": "Підключено як {email}",
+          "accountName": "Обліковий запис {provider}",
+          "notConnected": "Не підключено",
+          "disconnect": "Відключити",
+          "connect": "Підключити"
+        },
+        "password": {
+          "title": "Пароль",
+          "passwordSet": "Пароль встановлено",
+          "noPassword": "Пароль не встановлено",
+          "manageInTab": "Керувати у вкладці Пароль",
+          "setupInTab": "Налаштувати у вкладці Пароль"
+        },
+        "passkeys": {
+          "title": "Ключі доступу",
+          "noPasskeys": "Ключів доступу не зареєстровано",
+          "passkeyCount": "{count} ключ(ів) доступу зареєстровано",
+          "addButton": "Додати ключ доступу",
+          "passkeyName": "Ключ доступу",
+          "added": "Додано {date}"
+        },
+        "warningOneMethod": "Додайте інший спосіб входу перед відключенням облікового запису OAuth.",
+        "notifications": {
+          "oauthConnectFailed": "Не вдалося підключити обліковий запис {provider}",
+          "oauthDisconnectSuccess": "Обліковий запис {provider} відключено",
+          "oauthDisconnectFailed": "Не вдалося відключити обліковий запис {provider}",
+          "passkeyAddSuccess": "Ключ доступу успішно додано",
+          "passkeyAddFailed": "Не вдалося додати ключ доступу. Переконайтеся, що ваш пристрій підтримує ключі доступу.",
+          "passkeyRemoveSuccess": "Ключ доступу видалено",
+          "passkeyRemoveFailed": "Не вдалося видалити ключ доступу"
+        }
+      },
+      "activeSessions": {
+        "title": "Активні сесії",
+        "description": "Керуйте пристроями, на яких ви зараз увійшли",
+        "currentBadge": "Поточна",
+        "unknownLocation": "Невідоме місцезнаходження",
+        "lastActive": "Остання активність: {date}",
+        "noSessions": "Активних сесій не знайдено",
+        "revokeAllButton": "Вийти з усіх інших сесій",
+        "deviceTypes": {
+          "unknownDevice": "Невідомий пристрій",
+          "unknownBrowser": "Невідомий браузер"
+        },
+        "timeAgo": {
+          "justNow": "Щойно",
+          "minutesAgo": "{count} хвилину тому | {count} хвилини тому | {count} хвилин тому",
+          "hoursAgo": "{count} годину тому | {count} години тому | {count} годин тому",
+          "daysAgo": "{count} день тому | {count} дні тому | {count} днів тому"
+        },
+        "notifications": {
+          "loadFailed": "Не вдалося завантажити сесії",
+          "revokeSuccess": "Сесію відкликано",
+          "revokeFailed": "Не вдалося відкликати сесію",
+          "revokeAllSuccess": "З усіх інших сесій виконано вихід",
+          "revokeAllFailed": "Не вдалося відкликати сесії"
+        }
+      },
+      "passwordSection": {
+        "title": "Пароль",
+        "descriptionChange": "Змінити пароль",
+        "descriptionSet": "Встановити пароль для вашого облікового запису",
+        "labels": {
+          "currentPassword": "Поточний пароль",
+          "newPassword": "Новий пароль",
+          "password": "Пароль",
+          "confirmPassword": "Підтвердити пароль"
+        },
+        "placeholders": {
+          "currentPassword": "Введіть поточний пароль",
+          "newPassword": "Введіть новий пароль",
+          "confirmPassword": "Підтвердіть новий пароль"
+        },
+        "buttons": {
+          "change": "Змінити пароль",
+          "set": "Встановити пароль"
+        },
+        "strength": {
+          "veryWeak": "Дуже слабкий",
+          "weak": "Слабкий",
+          "fair": "Прийнятний",
+          "strong": "Сильний",
+          "veryStrong": "Дуже сильний"
+        },
+        "requirements": {
+          "title": "Вимоги до пароля",
+          "minLength": "Мінімум 8 символів",
+          "mixedCase": "Рекомендується поєднання великих і малих літер",
+          "specialChars": "Додайте цифри та спеціальні символи для більшої безпеки"
+        },
+        "validation": {
+          "minLength": "Пароль повинен містити щонайменше 8 символів",
+          "passwordsNoMatch": "Паролі не збігаються"
+        },
+        "notifications": {
+          "changeSuccess": "Пароль успішно змінено",
+          "changeFailed": "Не вдалося змінити пароль",
+          "setSuccess": "Пароль успішно встановлено",
+          "setFailed": "Не вдалося встановити пароль",
+          "unexpectedError": "Сталася неочікувана помилка",
+          "updateFailed": "Не вдалося оновити пароль"
+        }
+      },
+      "deleteAccount": {
+        "dangerZone": "Небезпечна зона",
+        "title": "Видалити ваш обліковий запис",
+        "warningFull": "Після видалення облікового запису повернення неможливе. {strong} Будь ласка, переконайтеся у своєму рішенні.",
+        "warningStrong": "Усі ваші дані будуть назавжди видалені.",
+        "button": "Видалити мій обліковий запис",
+        "dialog": {
+          "title": "Ви абсолютно впевнені?",
+          "description": "Цю дію неможливо скасувати. Це назавжди видалить ваш обліковий запис та всі ваші дані, включаючи:",
+          "dataList": {
+            "accounts": "Усі рахунки та транзакції",
+            "categories": "Усі категорії та бюджети",
+            "portfolios": "Усі інвестиційні портфелі",
+            "settings": "Усі налаштування та вподобання"
+          },
+          "confirmFull": "Будь ласка, введіть {email} для підтвердження",
+          "placeholder": "Введіть свою електронну пошту",
+          "acceptButton": "Видалити мій обліковий запис",
+          "acceptButtonLoading": "Видалення..."
+        },
+        "notifications": {
+          "success": "Ваш обліковий запис успішно видалено",
+          "failed": "Сталася помилка під час спроби видалити ваш обліковий запис"
+        }
+      }
+    }
+  }
+}

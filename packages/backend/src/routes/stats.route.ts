@@ -18,12 +18,6 @@ router.get(
   statsController.getTotalBalance.handler,
 );
 router.get(
-  '/expenses-history',
-  authenticateSession,
-  validateEndpoint(statsController.getExpensesHistory.schema),
-  statsController.getExpensesHistory.handler,
-);
-router.get(
   '/expenses-amount-for-period',
   authenticateSession,
   validateEndpoint(statsController.getExpensesAmountForPeriod.schema),
@@ -40,6 +34,24 @@ router.get(
   authenticateSession,
   validateEndpoint(statsController.getCombinedBalanceHistory.schema),
   statsController.getCombinedBalanceHistory.handler,
+);
+router.get(
+  '/cash-flow',
+  authenticateSession,
+  validateEndpoint(statsController.getCashFlow.schema),
+  statsController.getCashFlow.handler,
+);
+router.get(
+  '/cumulative',
+  authenticateSession,
+  validateEndpoint(statsController.getCumulativeData.schema),
+  statsController.getCumulativeData.handler,
+);
+router.get(
+  '/earliest-transaction-date',
+  authenticateSession,
+  validateEndpoint(statsController.getEarliestTransactionDate.schema),
+  statsController.getEarliestTransactionDate.handler,
 );
 
 export default router;

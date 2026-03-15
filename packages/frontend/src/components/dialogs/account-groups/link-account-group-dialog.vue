@@ -9,15 +9,18 @@ import { AccountModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { CheckIcon, PlusIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import CreateAccountGroupDialog from './create-account-group-dialog.vue';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   account: AccountModel;
 }>();
 const isOpen = ref(false);
 
-const selectedGroup = ref<AccountGroups>(null);
+const selectedGroup = ref<AccountGroups | null>(null);
 
 const queryClient = useQueryClient();
 const { data } = useQuery({
@@ -43,7 +46,7 @@ watch(
 watch(
   currentSelection,
   (v) => {
-    selectedGroup.value = v;
+    selectedGroup.value = v ?? null;
   },
   { immediate: true },
 );
@@ -80,16 +83,18 @@ const saveChanges = () => {
   } else {
     unlinkAccount({
       accountIds: [props.account.id],
-      groupId: currentSelection.value.id,
+      groupId: currentSelection.value!.id,
     });
   }
 };
 
 const handleSelection = (group: AccountGroups) => {
-  selectedGroup.value = selectedGroup.value?.id === group.id ? null : group;
+  selectedGroup.value = selectedGroup.value?.id === group.id ? null : (group as AccountGroups);
 };
 
-const isGroupChanged = computed(() => currentSelection.value?.name !== selectedGroup.value?.name);
+const isGroupChanged = computed(
+  () => (currentSelection.value as AccountGroups | null)?.name !== selectedGroup.value?.name,
+);
 </script>
 
 <template>
@@ -97,7 +102,7 @@ const isGroupChanged = computed(() => currentSelection.value?.name !== selectedG
     <template #trigger>
       <slot />
     </template>
-    <template #title> Link account group </template>
+    <template #title>{{ t('dialogs.linkAccountGroup.title') }}</template>
 
     <div class="grid gap-1">
       <template v-for="group of data" :key="group.id">
@@ -119,16 +124,20 @@ const isGroupChanged = computed(() => currentSelection.value?.name !== selectedG
     <div class="mt-8">
       <template v-if="isGroupChanged">
         <div class="grid grid-cols-2 gap-2">
-          <UiButton variant="secondary" :disabled="isFormPending" @click="selectedGroup = currentSelection">
-            Cancel
+          <UiButton
+            variant="secondary"
+            :disabled="isFormPending"
+            @click="selectedGroup = (currentSelection as AccountGroups | null) ?? null"
+          >
+            {{ t('common.actions.cancel') }}
           </UiButton>
-          <UiButton :disabled="isFormPending" @click="saveChanges"> Save </UiButton>
+          <UiButton :disabled="isFormPending" @click="saveChanges">{{ t('common.actions.save') }}</UiButton>
         </div>
       </template>
       <template v-else>
         <CreateAccountGroupDialog>
           <UiButton variant="secondary" class="w-full gap-2">
-            Create new group
+            {{ t('dialogs.linkAccountGroup.createNewGroup') }}
             <PlusIcon class="size-5" />
           </UiButton>
         </CreateAccountGroupDialog>

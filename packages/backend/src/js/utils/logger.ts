@@ -82,7 +82,7 @@ function loggerErrorHandler(messageParam: { message: string; error?: Error }, ex
 function loggerErrorHandler(messageParam: { message?: string; error: Error }, extra?: Record<string, unknown>): void;
 function loggerErrorHandler(
   messageParam: { message?: string; error?: Error } | string | Error,
-  extra?: Record<string, unknown>,
+  extra: Record<string, unknown> = {},
 ): void {
   let messageResult: string;
 
@@ -102,7 +102,7 @@ function loggerErrorHandler(
     winstonLogger.error({
       message: messageResult,
       requestId: getCurrentRequestId() ?? null,
-      ...(extra ?? {}),
+      ...extra,
     });
   }
 }

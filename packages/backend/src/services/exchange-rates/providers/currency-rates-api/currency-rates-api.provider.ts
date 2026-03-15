@@ -66,7 +66,7 @@ const RANGE_REQUEST_TIMEOUT = 30000; // 30 seconds for range requests
  * Supported currencies by the currency-rates-api service
  * Based on ECB + NBU data sources
  */
-export const CURRENCY_RATES_API_SUPPORTED_CURRENCIES = [
+const CURRENCY_RATES_API_SUPPORTED_CURRENCIES = [
   // From ECB (since 1999-01-04)
   'AUD',
   'CAD',
@@ -324,5 +324,6 @@ export class CurrencyRatesApiProvider extends BaseExchangeRateProvider {
 
 /**
  * Earliest available data from currency-rates-api (when EUR was introduced)
+ * @public
  */
 export const CURRENCY_RATES_API_START_DATE = new Date('1999-01-04');

@@ -1,11 +1,25 @@
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
+  BUDGET_TYPES,
   CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
+  NotificationPriority,
+  NotificationStatus,
+  NotificationType,
   PAYMENT_TYPES,
+  PaymentReminderStatus,
+  RemindBeforePreset,
+  SUBSCRIPTION_CANDIDATE_STATUS,
+  SUBSCRIPTION_FREQUENCIES,
+  SUBSCRIPTION_LINK_STATUS,
+  SUBSCRIPTION_MATCH_SOURCE,
+  SUBSCRIPTION_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  TagReminderFrequency,
+  TagReminderType,
+  UserRole,
 } from './enums';
 
 export interface UserModel {
@@ -20,13 +34,16 @@ export interface UserModel {
   totalBalance: number;
   defaultCategoryId: number;
   authUserId?: string;
+  /** User role for access control. Defaults to 'common' for regular users. */
+  role: UserRole;
+  /** @deprecated Use role === 'admin' instead */
   isAdmin?: boolean;
 }
 
 export interface CategoryModel {
   color: string;
   id: number;
-  imageUrl: null | string;
+  icon: null | string;
   name: string;
   parentId: null | number;
   type: CATEGORY_TYPES;
@@ -98,6 +115,8 @@ export interface CategorizationMeta {
   source: CATEGORIZATION_SOURCE;
   /** Rule ID for user_rule categorization */
   ruleId?: number;
+  /** Subscription ID for subscription_rule categorization */
+  subscriptionId?: string;
   /** ISO timestamp when categorization was applied */
   categorizedAt?: string;
 }
@@ -147,6 +166,14 @@ export interface TransactionModel {
   categorizationMeta?: CategorizationMeta | null;
   /** Optional splits for multi-category transactions */
   splits?: TransactionSplitModel[];
+  /** Optional tags associated with the transaction (loaded when includeTags=true) */
+  tags?: TagModel[];
+  /** Transaction groups this transaction belongs to (loaded when includeGroups=true) */
+  transactionGroups?: Array<{ id: number; name: string }>;
+  /** Timestamp when the record was created (defaults to transaction time for existing records) */
+  createdAt: Date;
+  /** Timestamp when the record was last updated */
+  updatedAt: Date;
 }
 
 export interface CurrencyModel {
@@ -184,8 +211,239 @@ export interface BudgetModel {
   userId: number;
   status: string;
   name: string;
+  type: BUDGET_TYPES;
   startDate?: Date;
   endDate?: Date;
   limitAmount?: number;
   autoInclude?: boolean;
+  /**
+   * Category IDs for category-based budgets.
+   * Use for CREATE/UPDATE requests - the backend will expand parent IDs to include children.
+   * Not populated in GET responses (use `categories` array instead).
+   */
+  categoryIds?: number[];
+  /**
+   * Full category objects for category-based budgets.
+   * Populated in GET responses when budget has associated categories.
+   * Read-only - for mutations, use `categoryIds`.
+   */
+  categories?: CategoryModel[];
+}
+
+export interface TagModel {
+  id: number;
+  userId: number;
+  name: string;
+  color: string;
+  icon: string | null;
+  description: string | null;
+  createdAt: Date;
+  /** Count of reminders associated with this tag (populated on list fetch) */
+  remindersCount?: number;
+}
+
+/**
+ * Type-specific settings for amount threshold reminders
+ */
+export interface AmountThresholdSettings {
+  /** Threshold amount in cents */
+  amountThreshold: number;
+}
+
+export type TagReminderSettings = AmountThresholdSettings | Record<string, unknown>;
+
+export interface TagReminderModel {
+  id: number;
+  userId: number;
+  tagId: number;
+  type: TagReminderType;
+  /** Frequency preset. Null means real-time trigger (immediate when tagged) */
+  frequency: TagReminderFrequency | null;
+  /** Day of month to check (1-31). Only used for monthly/quarterly/yearly. Null = 1st */
+  dayOfMonth: number | null;
+  /** Type-specific settings (e.g., amountThreshold for amount_threshold type) */
+  settings: TagReminderSettings;
+  isEnabled: boolean;
+  lastCheckedAt: Date | null;
+  lastTriggeredAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Type-specific payload structures for notifications.
+ * Using discriminated union pattern for type safety.
+ */
+export interface BudgetAlertPayload {
+  budgetId: number;
+  budgetName: string;
+  thresholdPercent: number;
+  currentSpent: number;
+  limitAmount: number;
+  currencyCode: string;
+}
+
+export interface SystemNotificationPayload {
+  code?: string;
+  details?: Record<string, unknown>;
+}
+
+export interface ChangelogNotificationPayload {
+  version: string;
+  releaseName: string;
+  releaseUrl: string;
+  releaseDate: string;
+}
+
+export interface TagReminderNotificationPayload {
+  tagId: number;
+  tagName: string;
+  tagColor?: string | null;
+  tagIcon?: string | null;
+  reminderType: TagReminderType;
+  /** Schedule info for context in notification */
+  schedule?: {
+    frequency?: TagReminderFrequency | null;
+    dayOfMonth?: number | null;
+  };
+  /** Amount threshold in cents (integers) */
+  thresholdAmount?: number;
+  /** Actual amount spent in cents (integers) */
+  actualAmount?: number;
+  transactionCount?: number;
+  currencyCode?: string;
+  /** IDs of transactions that triggered this reminder */
+  transactionIds?: number[];
+}
+
+export type NotificationPayload =
+  | BudgetAlertPayload
+  | SystemNotificationPayload
+  | ChangelogNotificationPayload
+  | TagReminderNotificationPayload
+  | Record<string, unknown>;
+
+export interface NotificationModel {
+  id: string;
+  userId: number;
+  type: NotificationType;
+  title: string;
+  message: string | null;
+  payload: NotificationPayload;
+  status: NotificationStatus;
+  priority: NotificationPriority;
+  createdAt: Date;
+  readAt: Date | null;
+  expiresAt: Date | null;
+}
+
+/**
+ * Matching rule for subscription auto-matching.
+ * Rules are evaluated with AND logic (all must pass).
+ */
+export interface SubscriptionMatchingRule {
+  field: 'note' | 'amount' | 'transactionType' | 'accountId';
+  operator: 'contains_any' | 'between' | 'equals';
+  value: string[] | { min: number; max: number } | string | number;
+  /** Currency code for amount rules (enables cross-currency matching) */
+  currencyCode?: string;
+}
+
+export interface SubscriptionMatchingRules {
+  rules: SubscriptionMatchingRule[];
+}
+
+export interface SubscriptionModel {
+  id: string;
+  userId: number;
+  name: string;
+  type: SUBSCRIPTION_TYPES;
+  /** Expected amount in cents */
+  expectedAmount: number | null;
+  expectedCurrencyCode: string | null;
+  frequency: SUBSCRIPTION_FREQUENCIES;
+  startDate: string;
+  endDate: string | null;
+  accountId: number | null;
+  categoryId: number | null;
+  matchingRules: SubscriptionMatchingRules;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubscriptionTransactionModel {
+  subscriptionId: string;
+  transactionId: number;
+  matchSource: SUBSCRIPTION_MATCH_SOURCE;
+  matchedAt: Date;
+  status: SUBSCRIPTION_LINK_STATUS;
+}
+
+export interface SubscriptionCandidateModel {
+  id: string;
+  userId: number;
+  suggestedName: string;
+  detectedFrequency: SUBSCRIPTION_FREQUENCIES;
+  /** Average amount in cents */
+  averageAmount: number;
+  currencyCode: string;
+  accountId: number | null;
+  sampleTransactionIds: number[];
+  occurrenceCount: number;
+  confidenceScore: number;
+  medianIntervalDays: number;
+  status: SUBSCRIPTION_CANDIDATE_STATUS;
+  subscriptionId: string | null;
+  detectedAt: Date;
+  lastOccurrenceAt: Date | null;
+  resolvedAt: Date | null;
+}
+
+export interface PaymentReminderModel {
+  id: string;
+  userId: number;
+  subscriptionId: string | null;
+  name: string;
+  /** Amount in cents, null means no expected amount */
+  expectedAmount: number | null;
+  currencyCode: string | null;
+  /** null = one-off reminder */
+  frequency: SUBSCRIPTION_FREQUENCIES | null;
+  /** Anchor day for recurring reminders (1-31). Derived from initial dueDate. */
+  anchorDay: number;
+  dueDate: string;
+  remindBefore: RemindBeforePreset[];
+  notifyEmail: boolean;
+  /** Hour slot for notifications in user's timezone (0, 4, 8, 12, 16, 20) */
+  preferredTime: number;
+  /** IANA timezone string */
+  timezone: string;
+  categoryId: number | null;
+  notes: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PaymentReminderPeriodModel {
+  id: string;
+  reminderId: string;
+  dueDate: string;
+  status: PaymentReminderStatus;
+  paidAt: Date | null;
+  transactionId: number | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PaymentReminderNotificationModel {
+  id: string;
+  periodId: string;
+  remindBeforePreset: RemindBeforePreset;
+  sentAt: Date;
+  emailSent: boolean;
+  emailError: string | null;
 }

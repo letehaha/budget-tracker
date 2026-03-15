@@ -1,0 +1,73 @@
+name: Preview Teardown
+
+on:
+  pull_request:
+    types: [closed, unlabeled]
+
+permissions:
+  pull-requests: write
+
+env:
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+
+jobs:
+  teardown:
+    runs-on: ubuntu-latest
+    # Tear down when PR with 'preview' label is closed, OR when 'preview' label is removed
+    if: >-
+      github.event.pull_request.base.ref == 'main'
+      && (
+        (github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'preview'))
+        || (github.event.action == 'unlabeled' && github.event.label.name == 'preview')
+      )
+
+    steps:
+      - name: Tear down preview environment
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          VPS_PREVIEW_BASE_PATH: ${{ secrets.VPS_PREVIEW_BASE_PATH }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+          envs: PR_NUMBER,VPS_PREVIEW_BASE_PATH
+          script: |
+            set -e
+            PR_DIR="$VPS_PREVIEW_BASE_PATH/pr-$PR_NUMBER"
+
+            if [ -d "$PR_DIR" ]; then
+              cd "$PR_DIR"
+
+              export PR_NUMBER
+              # Read PREVIEW_DB_PASSWORD from .env (needed for compose interpolation)
+              if [ -f .env ]; then
+                export PREVIEW_DB_PASSWORD=$(grep '^PREVIEW_DB_PASSWORD=' .env | cut -d'=' -f2-)
+              fi
+
+              # Stop and remove containers, volumes, and orphans
+              docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER down -v --remove-orphans 2>/dev/null || true
+
+              # Remove the PR directory
+              rm -rf "$PR_DIR"
+
+              # Remove Docker images
+              docker rmi "letehaha/budget-tracker-fe:pr-$PR_NUMBER" 2>/dev/null || true
+              docker rmi "letehaha/budget-tracker-be:pr-$PR_NUMBER" 2>/dev/null || true
+
+              # Prune dangling images
+              docker image prune -f 2>/dev/null || true
+
+              echo "Preview environment for PR #$PR_NUMBER torn down successfully!"
+            else
+              echo "No preview environment found for PR #$PR_NUMBER"
+            fi
+
+      - name: Update PR comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: preview-env
+          message: |
+            ## Preview Environment
+
+            :wastebasket: Preview environment for PR #${{ env.PR_NUMBER }} has been torn down.

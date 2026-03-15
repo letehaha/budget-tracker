@@ -1,14 +1,13 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
 import * as Transactions from '@models/Transactions.model';
 import { Op } from 'sequelize';
 
-import { getUserSettings } from '../user-settings/get-user-settings';
 import { getWhereConditionForTime } from './utils';
 
-export type GetExpensesHistoryResponseSchema = Pick<
-  TransactionModel,
+type GetExpensesHistoryResponseSchema = Pick<
+  Transactions.default,
   | 'id'
   | 'accountId'
   | 'time'
@@ -39,11 +38,15 @@ export const getExpensesHistory = async ({
   from,
   to,
   accountId,
+  transactionType = TRANSACTION_TYPES.expense,
+  excludedCategoryIds,
 }: {
   userId: number;
   accountId?: number;
   from?: string;
   to?: string;
+  transactionType?: TRANSACTION_TYPES;
+  excludedCategoryIds?: number[];
 }): Promise<GetExpensesHistoryResponseSchema[]> => {
   const dataAttributes: (keyof Transactions.default)[] = [
     'id',
@@ -57,19 +60,16 @@ export const getExpensesHistory = async ({
     'transactionType',
   ];
 
-  const settings = await getUserSettings({ userId });
-
-  const excludedCategories = settings.stats.expenses.excludedCategories;
+  const categoryWhere =
+    excludedCategoryIds && excludedCategoryIds.length > 0 ? { [Op.notIn]: excludedCategoryIds } : undefined;
 
   const transactions = await Transactions.default.findAll({
     where: removeUndefinedKeys({
       accountId,
       userId,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-      transactionType: TRANSACTION_TYPES.expense,
-      categoryId: {
-        [Op.notIn]: excludedCategories,
-      },
+      transactionType,
+      ...(categoryWhere ? { categoryId: categoryWhere } : {}),
       ...getWhereConditionForTime({ from, to, columnName: 'time' }),
     }),
     include: [
@@ -80,7 +80,6 @@ export const getExpensesHistory = async ({
       },
     ],
     order: [['time', 'ASC']],
-    raw: true,
     attributes: dataAttributes,
   });
 

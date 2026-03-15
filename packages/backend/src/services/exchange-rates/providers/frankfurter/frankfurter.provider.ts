@@ -47,7 +47,7 @@ const RANGE_REQUEST_TIMEOUT = 30000; // 30 seconds for range requests
  * Based on ECB reference rates
  * Last updated: 2025-10-05
  */
-export const FRANKFURTER_SUPPORTED_CURRENCIES = [
+const FRANKFURTER_SUPPORTED_CURRENCIES = [
   'AUD',
   'BGN',
   'BRL',
@@ -235,15 +235,3 @@ export class FrankfurterProvider extends BaseExchangeRateProvider {
     });
   }
 }
-
-/**
- * Checks if a currency is supported by Frankfurter
- */
-export function isSupportedByFrankfurter(currencyCode: string): boolean {
-  return FRANKFURTER_SUPPORTED_CURRENCIES.includes(currencyCode.toUpperCase());
-}
-
-/**
- * Earliest available data from Frankfurter (when EUR was introduced)
- */
-export const FRANKFURTER_START_DATE = new Date('1999-01-04');

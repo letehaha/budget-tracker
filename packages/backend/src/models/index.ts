@@ -2,33 +2,46 @@ import { Sequelize } from '@sequelize/core';
 import { PostgresDialect } from '@sequelize/postgres';
 import { AsyncLocalStorage } from 'async_hooks';
 
+import AccountGroupingModel from './accounts-groups/AccountGrouping.model';
+import AccountGroupsModel from './accounts-groups/AccountGroups.model';
 import AccountsModel from './Accounts.model';
 import BalancesModel from './Balances.model';
 import BankDataProviderConnectionsModel from './BankDataProviderConnections.model';
+import BinanceUsersModel from './binance/UserSettings.model';
 import BudgetModel from './Budget.model';
+import BudgetCategoriesModel from './BudgetCategories.model';
 import BudgetTransactionsModel from './BudgetTransactions.model';
 import CategoriesModel from './Categories.model';
 import CurrenciesModel from './Currencies.model';
 import ExchangeRatesModel from './ExchangeRates.model';
-import MerchantCategoryCodesModel from './MerchantCategoryCodes.model';
-import RefundTransactionsModel from './RefundTransactions.model';
-import TransactionSplitsModel from './TransactionSplits.model';
-import TransactionsModel from './Transactions.model';
-import UserExchangeRatesModel from './UserExchangeRates.model';
-import UserMerchantCategoryCodesModel from './UserMerchantCategoryCodes.model';
-import UserSettingsModel from './UserSettings.model';
-import UsersModel from './Users.model';
-import UsersCurrenciesModel from './UsersCurrencies.model';
-import AccountGroupingModel from './accounts-groups/AccountGrouping.model';
-import AccountGroupsModel from './accounts-groups/AccountGroups.model';
-import BinanceUsersModel from './binance/UserSettings.model';
 import HoldingsModel from './investments/Holdings.model';
 import InvestmentTransactionModel from './investments/InvestmentTransaction.model';
 import PortfolioBalancesModel from './investments/PortfolioBalances.model';
-import PortfolioTransfersModel from './investments/PortfolioTransfers.model';
 import PortfoliosModel from './investments/Portfolios.model';
+import PortfolioTransfersModel from './investments/PortfolioTransfers.model';
 import SecuritiesModel from './investments/Securities.model';
 import SecurityPricingModel from './investments/SecurityPricing.model';
+import MerchantCategoryCodesModel from './MerchantCategoryCodes.model';
+import NotificationsModel from './Notifications.model';
+import PaymentReminderNotificationsModel from './payment-reminder-notifications.model';
+import PaymentReminderPeriodsModel from './payment-reminder-periods.model';
+import PaymentRemindersModel from './payment-reminders.model';
+import RefundTransactionsModel from './RefundTransactions.model';
+import SubscriptionCandidatesModel from './SubscriptionCandidates.model';
+import SubscriptionsModel from './Subscriptions.model';
+import SubscriptionTransactionsModel from './SubscriptionTransactions.model';
+import TagRemindersModel from './TagReminders.model';
+import TagsModel from './Tags.model';
+import TransactionGroupItemsModel from './TransactionGroupItems.model';
+import TransactionGroupsModel from './TransactionGroups.model';
+import TransactionsModel from './Transactions.model';
+import TransactionSplitsModel from './TransactionSplits.model';
+import TransactionTagsModel from './TransactionTags.model';
+import UserExchangeRatesModel from './UserExchangeRates.model';
+import UserMerchantCategoryCodesModel from './UserMerchantCategoryCodes.model';
+import UsersModel from './Users.model';
+import UsersCurrenciesModel from './UsersCurrencies.model';
+import UserSettingsModel from './UserSettings.model';
 
 // Sequelize v7 uses AsyncLocalStorage instead of cls-hooked
 export const transactionStorage = new AsyncLocalStorage<object>();
@@ -49,6 +62,7 @@ const models = [
   CurrenciesModel,
   ExchangeRatesModel,
   MerchantCategoryCodesModel,
+  NotificationsModel,
   RefundTransactionsModel,
   TransactionsModel,
   UserExchangeRatesModel,
@@ -59,8 +73,14 @@ const models = [
   AccountGroupsModel,
   BinanceUsersModel,
   BudgetModel,
+  BudgetCategoriesModel,
   BudgetTransactionsModel,
+  TagsModel,
+  TagRemindersModel,
+  TransactionTagsModel,
   TransactionSplitsModel,
+  TransactionGroupsModel,
+  TransactionGroupItemsModel,
   HoldingsModel,
   InvestmentTransactionModel,
   SecuritiesModel,
@@ -68,6 +88,12 @@ const models = [
   PortfoliosModel,
   PortfolioBalancesModel,
   PortfolioTransfersModel,
+  SubscriptionsModel,
+  SubscriptionTransactionsModel,
+  SubscriptionCandidatesModel,
+  PaymentRemindersModel,
+  PaymentReminderPeriodsModel,
+  PaymentReminderNotificationsModel,
 ];
 
 const databaseName =

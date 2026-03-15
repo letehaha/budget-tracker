@@ -7,7 +7,7 @@ const schema = z.object({
   body: z
     .object({
       name: z.string().min(1).max(200, 'The name must not exceed 200 characters').optional(),
-      imageUrl: z.string().url().max(500, 'The URL must not exceed 500 characters').optional(),
+      icon: z.string().max(50, 'Icon name must not exceed 50 characters').nullable().optional(),
       color: z
         .string()
         .regex(/^#[0-9A-F]{6}$/i)
@@ -24,13 +24,13 @@ const schema = z.object({
 export default createController(schema, async ({ user, params, body }) => {
   const { id: userId } = user;
   const { id: categoryId } = params;
-  const { name, imageUrl, color } = body;
+  const { name, icon, color } = body;
 
   const data = await categoriesService.editCategory({
     categoryId: Number(categoryId),
     userId,
     name,
-    imageUrl,
+    icon,
     color,
   });
 

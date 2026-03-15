@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
@@ -47,6 +48,7 @@ export interface ConnectionDetailsResponse {
     isExpired: boolean;
     isExpiringSoon: boolean; // Less than 7 days remaining
   };
+  deactivationReason?: string | null;
 }
 
 export async function getConnectionDetails(params: GetConnectionDetailsParams): Promise<ConnectionDetailsResponse> {
@@ -68,14 +70,16 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
   });
 
   if (!connection) {
-    throw new NotFoundError({ message: 'Connection not found' });
+    throw new NotFoundError({ message: t({ key: 'errors.connectionNotFound' }) });
   }
 
   // Get provider metadata
   const provider = bankProviderRegistry.get(connection.providerType);
 
   if (!provider) {
-    throw new Error(`Provider ${connection.providerType} not found in registry`);
+    throw new Error(
+      t({ key: 'errors.providerNotFoundInRegistry', variables: { providerType: connection.providerType } }),
+    );
   }
 
   const providerMetadata = provider.metadata;
@@ -123,10 +127,11 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
       id: account.id,
       name: account.name,
       externalId: account.externalId,
-      currentBalance: account.currentBalance,
+      currentBalance: account.currentBalance.toNumber(),
       currencyCode: account.currencyCode,
       type: account.type,
     })),
     consent: consentInfo,
+    deactivationReason: metadata?.deactivationReason || null,
   };
 }

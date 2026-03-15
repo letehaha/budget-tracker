@@ -1,20 +1,21 @@
 import { ACCOUNT_CATEGORIES, API_RESPONSE_STATUS, TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import { faker } from '@faker-js/faker';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
-import Transactions from '@models/Transactions.model';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import PortfolioBalances from '@models/investments/PortfolioBalances.model';
 import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
+import Transactions from '@models/Transactions.model';
 import { redisClient } from '@root/redis-client';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { buildLockKey } from '@services/currencies/change-base-currency.service';
+import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as helpers from '@tests/helpers';
-import { format } from 'date-fns';
 
 describe('Change Base Currency', () => {
   beforeEach(async () => {
@@ -214,8 +215,10 @@ describe('Change Base Currency', () => {
         raw: true,
       });
 
-      const originalAmount = tx[0].amount;
-      const originalCurrencyCode = tx[0].currencyCode;
+      // Get original values from DB (in cents) for consistent comparison
+      const originalTx = await Transactions.findByPk(tx[0].id);
+      const originalAmount = originalTx!.amount;
+      const originalCurrencyCode = originalTx!.currencyCode;
 
       // Change base currency
       await helpers.makeRequest({
@@ -248,8 +251,10 @@ describe('Change Base Currency', () => {
         raw: true,
       });
 
-      const originalCreditLimit = account.creditLimit;
-      const originalRefCreditLimit = account.refCreditLimit;
+      // Get original values from DB (in cents) for consistent comparison
+      const originalAccount = await Accounts.findByPk(account.id);
+      const originalCreditLimit = originalAccount!.creditLimit;
+      const originalRefCreditLimit = originalAccount!.refCreditLimit;
 
       // Change base currency
       await helpers.makeRequest({
@@ -291,8 +296,10 @@ describe('Change Base Currency', () => {
         raw: true,
       });
 
-      const originalCommission = baseTx.commissionRate;
-      const originalRefCommission = baseTx.refCommissionRate;
+      // Get original values from DB (in cents) for consistent comparison
+      const originalTx = await Transactions.findByPk(baseTx.id, { raw: true });
+      const originalCommission = originalTx!.commissionRate;
+      const originalRefCommission = originalTx!.refCommissionRate;
 
       // Change base currency
       await helpers.makeRequest({
@@ -417,9 +424,8 @@ describe('Change Base Currency', () => {
       const uahCurrency = currencies.find((i) => i.currencyCode === 'UAH')!;
       const eurCurrency = currencies.find((i) => i.currencyCode === 'EUR')!;
 
-      const accounts = await Promise.all([
-        // USD will become our new base currency
-        ...[uahCurrency.currencyCode, eurCurrency.currencyCode, 'USD'].map((currencyCode) =>
+      const accounts = await Promise.all(
+        [uahCurrency.currencyCode, eurCurrency.currencyCode, 'USD'].map((currencyCode) =>
           helpers.createAccount({
             payload: {
               name: `${currencyCode} Account`,
@@ -431,7 +437,7 @@ describe('Change Base Currency', () => {
             raw: true,
           }),
         ),
-      ]);
+      );
       const uahAccount = accounts[0]!;
       const eurAccount = accounts[1]!;
       const usdAccount = accounts[2]!;
@@ -598,7 +604,7 @@ describe('Change Base Currency', () => {
         expect(updatedUahTransactions[i]!.amount).toEqual(originalUahTransactions[i]!.amount);
         expect(updatedUahTransactions[i]!.currencyCode).toEqual('UAH');
         // RefAmount should have changed (unless it was 0)
-        if (originalUahTransactions[i]!.amount !== 0) {
+        if (Number(originalUahTransactions[i]!.amount) !== 0) {
           expect(updatedUahTransactions[i]!.refAmount).not.toEqual(originalUahTransactions[i]!.refAmount);
         }
       }
@@ -607,7 +613,7 @@ describe('Change Base Currency', () => {
         expect(updatedEurTransactions[i]!.amount).toEqual(originalEurTransactions[i]!.amount);
         expect(updatedEurTransactions[i]!.currencyCode).toEqual('EUR');
         // RefAmount should have changed (unless it was 0)
-        if (originalEurTransactions[i]!.amount !== 0) {
+        if (Number(originalEurTransactions[i]!.amount) !== 0) {
           expect(updatedEurTransactions[i]!.refAmount).not.toEqual(originalEurTransactions[i]!.refAmount);
         }
       }
@@ -626,27 +632,42 @@ describe('Change Base Currency', () => {
       const sampleEurTx = updatedEurTransactions[0]!;
       const sampleUsdTx = updatedUsdTransactions[0]!;
 
-      // Fetch exchange rates for sample transaction dates
-      const uahTxDate = format(new Date(sampleUahTx.time), 'yyyy-MM-dd');
-      const eurTxDate = format(new Date(sampleEurTx.time), 'yyyy-MM-dd');
+      // Fetch exchange rates for sample transaction dates using the actual service
+      // This ensures we use the exact same rates the service used during base currency change
+      const userId = (await helpers.getUserCurrencies())[0]!.userId;
 
-      const uahRates = (await helpers.getExchangeRates({ date: uahTxDate, raw: true }))!;
-      const eurRates = (await helpers.getExchangeRates({ date: eurTxDate, raw: true }))!;
+      const uahTxDate = new Date(sampleUahTx.time);
+      const eurTxDate = new Date(sampleEurTx.time);
 
-      // Find UAH->USD rate (might be direct or need to calculate through base)
+      // Get UAH->USD rate using the actual service (same as what the service uses)
+      const uahExchangeRate = await userExchangeRateService.getExchangeRate({
+        userId,
+        date: uahTxDate,
+        baseCode: 'UAH',
+        quoteCode: 'USD',
+      });
 
-      // Try reverse calculation: if we have USD->UAH, then UAH->USD = 1 / (USD->UAH)
-      const uahToUsdRate = 1 / uahRates.find((r) => r.baseCode === 'USD' && r.quoteCode === 'UAH')!.rate;
-      // Find EUR->USD rate
-      const eurToUsdRate = 1 / eurRates.find((r) => r.baseCode === 'USD' && r.quoteCode === 'EUR')!.rate;
+      // Get EUR->USD rate using the actual service
+      const eurExchangeRate = await userExchangeRateService.getExchangeRate({
+        userId,
+        date: eurTxDate,
+        baseCode: 'EUR',
+        quoteCode: 'USD',
+      });
 
       // Validate UAH transaction calculation using the actual service function
-      const expectedUahRefAmount = calculateRefAmountFromParams({ amount: sampleUahTx.amount, rate: uahToUsdRate });
-      expect(sampleUahTx.refAmount).toEqualRefValue(expectedUahRefAmount);
+      const expectedUahRefAmount = calculateRefAmountFromParams({
+        amount: Money.fromCents(Number(sampleUahTx.amount)),
+        rate: uahExchangeRate.rate,
+      });
+      expect(Number(sampleUahTx.refAmount)).toEqualRefValue(expectedUahRefAmount.toCents());
 
       // Validate EUR transaction calculation using the actual service function
-      const expectedEurRefAmount = calculateRefAmountFromParams({ amount: sampleEurTx.amount, rate: eurToUsdRate });
-      expect(sampleEurTx.refAmount).toEqualRefValue(expectedEurRefAmount);
+      const expectedEurRefAmount = calculateRefAmountFromParams({
+        amount: Money.fromCents(Number(sampleEurTx.amount)),
+        rate: eurExchangeRate.rate,
+      });
+      expect(Number(sampleEurTx.refAmount)).toEqualRefValue(expectedEurRefAmount.toCents());
 
       // Validate USD transaction (should be 1:1)
       expect(sampleUsdTx.refAmount).toEqual(sampleUsdTx.amount);
@@ -687,9 +708,9 @@ describe('Change Base Currency', () => {
       expect(updatedInvestmentTx!.price).toEqual(originalInvestmentTx!.price);
 
       // Investment tx is in USD, so ref values should equal original values
-      expect(parseFloat(updatedInvestmentTx!.refAmount)).toEqual(parseFloat(updatedInvestmentTx!.amount));
-      expect(parseFloat(updatedInvestmentTx!.refFees)).toEqual(parseFloat(updatedInvestmentTx!.fees));
-      expect(parseFloat(updatedInvestmentTx!.refPrice)).toEqual(parseFloat(updatedInvestmentTx!.price));
+      expect(updatedInvestmentTx!.refAmount.toNumber()).toEqual(updatedInvestmentTx!.amount.toNumber());
+      expect(updatedInvestmentTx!.refFees.toNumber()).toEqual(updatedInvestmentTx!.fees.toNumber());
+      expect(updatedInvestmentTx!.refPrice.toNumber()).toEqual(updatedInvestmentTx!.price.toNumber());
 
       // ========== STEP 10: Verify portfolio transfers were recalculated correctly ==========
 
@@ -700,7 +721,7 @@ describe('Change Base Currency', () => {
         expect(updatedTransfer.amount).toEqual(originalTransfer!.amount);
 
         // Transfer is in USD, so ref amount should equal amount
-        expect(parseFloat(updatedTransfer.refAmount)).toEqual(parseFloat(updatedTransfer.amount));
+        expect(updatedTransfer.refAmount.toNumber()).toEqual(updatedTransfer.amount.toNumber());
       }
       // Note: Portfolio transfers might not be updated in certain scenarios (e.g., self-transfers)
 
@@ -714,7 +735,7 @@ describe('Change Base Currency', () => {
       expect(updatedHolding!.refCostBasis).toBeDefined();
 
       // Holding is in USD, so ref cost basis should equal cost basis
-      expect(parseFloat(updatedHolding!.refCostBasis)).toEqual(parseFloat(updatedHolding!.costBasis));
+      expect(updatedHolding!.refCostBasis.toNumber()).toEqual(updatedHolding!.costBasis.toNumber());
 
       // ========== STEP 12: Verify portfolio balances were recalculated correctly ==========
 
@@ -727,10 +748,10 @@ describe('Change Base Currency', () => {
       expect(updatedPortfolioBalance!.totalCash).toEqual(originalPortfolioBalance!.totalCash);
 
       // Portfolio balance is in USD, so ref values should equal original values
-      expect(parseFloat(updatedPortfolioBalance!.refAvailableCash)).toEqual(
-        parseFloat(updatedPortfolioBalance!.availableCash),
+      expect(updatedPortfolioBalance!.refAvailableCash.toNumber()).toEqual(
+        updatedPortfolioBalance!.availableCash.toNumber(),
       );
-      expect(parseFloat(updatedPortfolioBalance!.refTotalCash)).toEqual(parseFloat(updatedPortfolioBalance!.totalCash));
+      expect(updatedPortfolioBalance!.refTotalCash.toNumber()).toEqual(updatedPortfolioBalance!.totalCash.toNumber());
 
       // ========== STEP 13: Verify balance history was rebuilt ==========
 
@@ -798,14 +819,18 @@ describe('Change Base Currency', () => {
         raw: true,
       });
 
+      // Get original values from DB (in cents) for consistent comparison
+      const originalAccount = await Accounts.findByPk(accountWithInitialBalance.id);
+      const originalRefInitialBalance = originalAccount!.refInitialBalance;
+
       // Verify balance record exists before currency change
       const balanceBeforeChange = await Balances.findOne({
         where: { accountId: accountWithInitialBalance.id },
       });
       expect(balanceBeforeChange).toBeDefined();
-      expect(balanceBeforeChange!.amount).toEqual(accountWithInitialBalance.refInitialBalance);
+      expect(balanceBeforeChange!.amount).toEqual(originalRefInitialBalance);
 
-      // Get balance history via API before change
+      // Get balance history via API before change (response is in decimals)
       const balanceHistoryBefore = await helpers.makeRequest({
         method: 'get',
         url: '/stats/balance-history',
@@ -813,6 +838,7 @@ describe('Change Base Currency', () => {
       });
       const balancesBeforeData = helpers.extractResponse(balanceHistoryBefore);
       expect(balancesBeforeData.length).toEqual(1);
+      // API response is in decimals, so compare with API response value
       expect(balancesBeforeData[0].amount).toEqual(accountWithInitialBalance.refInitialBalance);
 
       // Change base currency to USD
@@ -827,7 +853,7 @@ describe('Change Base Currency', () => {
         where: { accountId: accountWithInitialBalance.id },
       });
       expect(balanceAfterChange).toBeDefined();
-      expect(balanceAfterChange!.amount).toBeGreaterThan(0);
+      expect(balanceAfterChange!.amount.toNumber()).toBeGreaterThan(0);
 
       // Verify balance history is still available via API
       const balanceHistoryAfter = await helpers.makeRequest({

@@ -1,4 +1,5 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
@@ -17,7 +18,7 @@ export const syncTransactionsForAccount = withTransaction(
 
     if (!connection) {
       throw new NotFoundError({
-        message: 'Connection not found',
+        message: t({ key: 'errors.connectionNotFound' }),
         code: API_ERROR_CODES.notFound,
       });
     }
@@ -33,7 +34,7 @@ export const syncTransactionsForAccount = withTransaction(
 
     if (!account) {
       throw new NotFoundError({
-        message: 'Account not found or not linked to this connection',
+        message: t({ key: 'bankDataProviders.accountNotLinkedToConnection' }),
         code: API_ERROR_CODES.notFound,
       });
     }

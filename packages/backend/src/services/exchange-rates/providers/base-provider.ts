@@ -16,12 +16,12 @@ import {
 /**
  * Default base currency used by all providers
  */
-export const DEFAULT_BASE_CURRENCY = 'USD';
+const DEFAULT_BASE_CURRENCY = 'USD';
 
 /**
  * Standard date format for exchange rates
  */
-export const EXCHANGE_RATE_DATE_FORMAT = 'yyyy-MM-dd';
+const EXCHANGE_RATE_DATE_FORMAT = 'yyyy-MM-dd';
 
 /**
  * Abstract base class for exchange rate providers.
@@ -57,6 +57,7 @@ export abstract class BaseExchangeRateProvider implements IExchangeRateProvider 
     const currentDate = new Date(params.startDate);
     const endDate = new Date(params.endDate);
 
+    // oxlint-disable-next-line no-unmodified-loop-condition -- currentDate is mutated via setDate() below
     while (currentDate <= endDate) {
       const result = await this.fetchRatesForDate({
         date: new Date(currentDate),

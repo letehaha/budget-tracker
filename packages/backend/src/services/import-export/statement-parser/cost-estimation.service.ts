@@ -21,20 +21,20 @@ const MAX_TRANSACTIONS_PER_PAGE = 30;
 /** Default context window if model info is unavailable */
 const DEFAULT_CONTEXT_WINDOW = 100_000;
 
-export interface CostEstimationParams {
+interface CostEstimationParams {
   userId: number;
   text: string;
   pageCount: number;
   fileType: StatementFileType;
 }
 
-export interface CostEstimationError {
+interface CostEstimationError {
   code: 'NO_AI_CONFIGURED' | 'TOKEN_LIMIT_EXCEEDED';
   message: string;
   details?: string;
 }
 
-export type CostEstimationResultType =
+type CostEstimationResultType =
   | { success: true; estimate: StatementCostEstimate }
   | { success: false; error: CostEstimationError };
 

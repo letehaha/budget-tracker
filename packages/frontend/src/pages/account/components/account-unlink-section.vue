@@ -5,7 +5,9 @@ import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
+import { Unlink } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   account: AccountModel;
@@ -13,6 +15,7 @@ const props = defineProps<{
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { t } = useI18n();
 const confirmAccountName = ref('');
 const isAccountUnlinking = ref(false);
 
@@ -29,10 +32,10 @@ const unlinkAccount = async () => {
     await accountsStore.unlinkAccountFromBankConnection({
       id: props.account.id,
     });
-    addSuccessNotification(`Account ${accountName} unlinked successfully`);
+    addSuccessNotification(t('pages.account.unlink.success', { accountName }));
     confirmAccountName.value = '';
   } catch {
-    addErrorNotification('An error occured while trying to unlink account');
+    addErrorNotification(t('pages.account.unlink.error'));
     isAccountUnlinking.value = false;
   }
 };
@@ -44,53 +47,46 @@ const unlinkAccount = async () => {
     class="flex flex-col justify-between gap-2 @[400px]/danger-zone:flex-row @[400px]/danger-zone:items-center"
   >
     <div>
-      <p class="mb-2 font-bold">Unlink account from bank connection</p>
-      <p class="text-xs">
-        This will convert the account to a system account and preserve all transaction data.
-        <br />
-        <b>The account will no longer sync automatically.</b>
-        Only manual updates will work.
-        <br />
-        <b class="text-green-600">Note:</b> You can reconnect this account to a bank connection later from the Settings
-        tab. After reconnection syncing will start from the latest transaction date.
-      </p>
+      <p class="mb-1 font-bold">{{ t('pages.account.unlink.title') }}</p>
+      <p class="text-xs">{{ t('pages.account.unlink.collapsedDescription') }}</p>
+      <p class="text-muted-foreground mt-0.5 text-xs">{{ t('pages.account.unlink.collapsedNote') }}</p>
     </div>
 
     <AlertDialog
-      title="Are you sure you want to unlink?"
+      :title="t('pages.account.unlink.confirmTitle')"
       :accept-disabled="confirmAccountName !== account.name"
       accept-variant="destructive"
       @accept="unlinkAccount"
     >
       <template #trigger>
-        <Button variant="outline" :disable="isAccountUnlinking">
-          <template v-if="isAccountUnlinking"> Unlinking... </template>
-          <template v-else> Unlink from bank </template>
+        <Button variant="destructive" :disabled="isAccountUnlinking">
+          <Unlink class="size-4" />
+          <template v-if="isAccountUnlinking"> {{ t('pages.account.unlink.unlinkingButton') }} </template>
+          <template v-else> {{ t('pages.account.unlink.unlinkButton') }} </template>
         </Button>
       </template>
       <template #description>
         <p class="mb-2">
-          This action will disconnect your account from its bank connection and convert it to a system account.
+          {{ t('pages.account.unlink.dialogDescription') }}
         </p>
         <p class="mb-2">
-          <strong>What will happen:</strong>
+          <strong>{{ t('pages.account.unlink.whatWillHappen') }}</strong>
         </p>
         <ul class="mb-3 ml-4 list-disc text-sm">
-          <li>Account will become a "system" type (manual updates only)</li>
-          <li>All existing transactions will be preserved</li>
-          <li>Automatic syncing will stop</li>
-          <li>Connection history will be saved for potential future reconnection</li>
+          <li>{{ t('pages.account.unlink.willBecomeSystemType') }}</li>
+          <li>{{ t('pages.account.unlink.transactionsPreserved') }}</li>
+          <li>{{ t('pages.account.unlink.syncWillStop') }}</li>
+          <li>{{ t('pages.account.unlink.connectionHistorySaved') }}</li>
         </ul>
         <p class="text-sm text-green-600">
-          <strong>Note:</strong> You can reconnect this account to a bank connection later from the Settings tab. After
-          reconnection syncing will start from the latest transaction date.
+          <strong>{{ t('pages.account.unlink.note') }}</strong> {{ t('pages.account.unlink.reconnectionInfo') }}
         </p>
       </template>
       <template #content>
-        <p class="mb-2 text-sm">Type the account name to confirm:</p>
+        <p class="mb-2 text-sm">{{ t('pages.account.unlink.confirmAccountName') }}</p>
         <InputField
           v-model="confirmAccountName"
-          placeholder="Enter account name"
+          :placeholder="$t('pages.account.unlink.confirmPlaceholder')"
           class="border-destructive focus-visible:outline-destructive"
         />
       </template>

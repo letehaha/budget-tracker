@@ -1,4 +1,5 @@
 import type { ColumnMappingConfig, ExtractUniqueValuesResponse } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { parse } from 'csv-parse/sync';
 
@@ -37,13 +38,13 @@ export async function extractUniqueValues({
   }) as string[][];
 
   if (records.length === 0) {
-    throw new ValidationError({ message: 'CSV file is empty' });
+    throw new ValidationError({ message: t({ key: 'csvImport.csvFileEmpty' }) });
   }
 
   const headers = records[0];
 
   if (!headers) {
-    throw new ValidationError({ message: 'Headers cannot be parsed' });
+    throw new ValidationError({ message: t({ key: 'csvImport.headersCannotBeParsed' }) });
   }
 
   const dataRows = records.slice(1);

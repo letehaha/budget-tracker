@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 120,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "sortImports": {
+    "newlinesBetween": true,
+    "internalPattern": ["@src"],
+    "groups": [
+      "side_effect",
+      ["builtin", "external"],
+      "type-import",
+      "internal",
+      ["parent", "sibling", "index"],
+      "unknown"
+    ]
+  },
+  "sortTailwindcss": {},
+  "ignorePatterns": ["packages/frontend/src/data/lucide-icons.json", "**/dist"]
+}

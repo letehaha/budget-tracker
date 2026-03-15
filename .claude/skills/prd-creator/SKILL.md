@@ -1,7 +1,7 @@
 ---
-name: PRD Generator
-description: Smart PRD generator. Generates comprehensive technical PRDs optimized for task breakdown. Use when user requests "PRD", "product requirements", "regenrate existing PDR", or mentions task-driven development.
-allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, AskUserQuestion]
+name: prd-creator
+description: Smart PRD generator. Generates comprehensive technical PRDs optimized for task breakdown. Use when user requests "PRD", "product requirements", "regenerate existing PRD", or mentions task-driven development.
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, AskUserQuestion
 ---
 
 # PRD Generator
@@ -56,3 +56,37 @@ Do NOT activate for:
 8. If user asks to regenerate existing PDR, do it by following instructions of this skill. When removing some sections from the old file, ask user if he wants to keep them.
 
 9. **PRD Storage Location**: All PRD files MUST be stored in `docs/prds/` directory using kebab-case naming (e.g., `ai-transaction-categorization.md`).
+
+## Examples
+
+### Example 1: New feature PRD
+
+User says: "I need a PRD for transaction bulk editing"
+Actions:
+
+1. Ask clarifying questions about scope, edge cases, and existing patterns
+2. Research how similar financial apps handle bulk editing
+3. Generate structured PRD in `docs/prds/transaction-bulk-edit.md`
+   Result: Concise PRD with Executive Summary, Problem Statement, Primary Goals, User Stories, and Functional Requirements
+
+### Example 2: Regenerate existing PRD
+
+User says: "Regenerate the investment portfolio PRD"
+Actions:
+
+1. Read existing PRD file
+2. Ask user which sections to keep/remove
+3. Rewrite following this skill's structure
+   Result: Updated PRD following current conventions
+
+## Troubleshooting
+
+### PRD is too verbose
+
+Cause: User didn't specify they want a short document
+Solution: Default to the short structure (5 sections). Only expand when user explicitly asks for detail.
+
+### Missing industry context
+
+Cause: Feature doesn't have clear parallels in existing financial apps
+Solution: Ask user for reference examples or competitor screenshots before generating.

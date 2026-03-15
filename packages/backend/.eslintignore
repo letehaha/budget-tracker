@@ -1,5 +1,0 @@
-src/seeders/**/*.js
-src/migrations/**/*.js
-.eslintrc.js
-config/**
-dist

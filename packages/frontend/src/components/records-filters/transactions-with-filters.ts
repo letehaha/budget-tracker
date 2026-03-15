@@ -2,11 +2,13 @@ import { loadTransactions } from '@/api/transactions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { removeValuesFromObject } from '@/common/utils/remove-values-from-object';
 import { DEFAULT_FILTERS, FiltersStruct } from '@/components/records-filters/const';
-import { useInfiniteQuery } from '@tanstack/vue-query';
-import { useQueryClient } from '@tanstack/vue-query';
+import { FILTER_OPERATION } from '@bt/shared/types';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/vue-query';
 import isDate from 'date-fns/isDate';
 import { isEqual } from 'lodash-es';
 import { MaybeRef, computed, ref } from 'vue';
+
+const filterOrUndefined = (value: FILTER_OPERATION) => (value === FILTER_OPERATION.all ? undefined : value);
 
 export const useTransactionsWithFilters = ({
   limit = 30,
@@ -20,18 +22,19 @@ export const useTransactionsWithFilters = ({
   staticFilters?: Partial<FiltersStruct>;
 } = {}) => {
   const queryClient = useQueryClient();
-  const filters = ref<FiltersStruct>({ ...DEFAULT_FILTERS });
-  const appliedFilters = ref<FiltersStruct>({ ...DEFAULT_FILTERS });
+  const defaultWithStatic = { ...DEFAULT_FILTERS, ...staticFilters };
+  const filters = ref<FiltersStruct>({ ...defaultWithStatic });
+  const appliedFilters = ref<FiltersStruct>({ ...defaultWithStatic });
 
-  const transactionsListRef = ref(null);
+  const transactionsListRef = ref<{ scrollToIndex: (index: number) => void } | null>(null);
 
-  const isResetButtonDisabled = computed(() => isEqual(filters.value, DEFAULT_FILTERS));
-  const isAnyFiltersApplied = computed(() => !isEqual(appliedFilters.value, DEFAULT_FILTERS));
+  const isResetButtonDisabled = computed(() => isEqual(filters.value, defaultWithStatic));
+  const isAnyFiltersApplied = computed(() => !isEqual(appliedFilters.value, defaultWithStatic));
   const isFiltersOutOfSync = computed(() => !isEqual(filters.value, appliedFilters.value));
 
   const resetFilters = () => {
-    filters.value = { ...DEFAULT_FILTERS };
-    appliedFilters.value = { ...DEFAULT_FILTERS };
+    filters.value = { ...defaultWithStatic };
+    appliedFilters.value = { ...defaultWithStatic };
   };
 
   const applyFilters = () => {
@@ -49,22 +52,24 @@ export const useTransactionsWithFilters = ({
       removeValuesFromObject({
         limit,
         from,
-        transactionType: filter.transactionType,
-        endDate: isDate(filter.end) ? filter.end.toISOString() : undefined,
-        startDate: isDate(filter.start) ? filter.start.toISOString() : undefined,
+        transactionType: filter.transactionType ?? undefined,
+        endDate: isDate(filter.end) ? filter.end!.toISOString() : undefined,
+        startDate: isDate(filter.start) ? filter.start!.toISOString() : undefined,
         amountGte: filter.amountGte,
         amountLte: filter.amountLte,
         noteSearch: filter.noteIncludes,
-        excludeRefunds: filter.excludeRefunds,
-        excludeTransfer: filter.excludeTransfer,
+        transferFilter: filterOrUndefined(filter.transferFilter),
+        refundFilter: filterOrUndefined(filter.refundFilter),
         accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
         categoryIds: filter.categoryIds.length ? filter.categoryIds : undefined,
-        categorizationSource: filter.categorizationSource,
-        budgetIds: staticFilters.budgetIds,
-        excludedBudgetIds: staticFilters.excludedBudgetIds,
+        tagIds: filter.tagIds.length ? filter.tagIds : undefined,
+        categorizationSource: filter.categorizationSource ?? undefined,
+        budgetIds: staticFilters.budgetIds ?? undefined,
+        excludedBudgetIds: staticFilters.excludedBudgetIds ?? undefined,
         includeSplits: true,
-        ...staticFilters,
-      }),
+        includeTags: true,
+        includeGroups: true,
+      } as Parameters<typeof loadTransactions>[0]),
     );
   };
 

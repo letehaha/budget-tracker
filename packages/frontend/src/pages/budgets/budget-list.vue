@@ -1,46 +1,48 @@
 <script setup lang="ts">
 import { deleteBudget as deleteBudgetApi, loadBudgetStats } from '@/api';
-import { loadSystemBudgets } from '@/api/budgets';
+import { archiveBudget as archiveBudgetApi, loadSystemBudgets } from '@/api/budgets';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { AlertDialog } from '@/components/common';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/common/dropdown-menu';
-import Button from '@/components/lib/ui/button/Button.vue';
-import { Card } from '@/components/lib/ui/card';
+import PillTabs from '@/components/lib/ui/pill-tabs/pill-tabs.vue';
 import { useNotificationCenter } from '@/components/notification-center';
-import { useFormatCurrency } from '@/composable';
 import { ROUTES_NAMES } from '@/routes';
-import { BudgetModel } from '@bt/shared/types';
-import { useQueries, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { differenceInDays, format, isPast, isWithinInterval } from 'date-fns';
-import { ArrowRightIcon, CalendarIcon, MoreVerticalIcon, PencilIcon, Trash2Icon, WalletIcon } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { BUDGET_STATUSES, BUDGET_TYPES, BudgetModel } from '@bt/shared/types';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useLocalStorage } from '@vueuse/core';
+import { differenceInDays, isPast, isWithinInterval } from 'date-fns';
+import { ArchiveRestoreIcon, TagsIcon, WalletIcon } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import BudgetCardSkeleton from './budget-card-skeleton.vue';
-import BudgetStatsSkeleton from './budget-stats-skeleton.vue';
+import CategoryBudgetCard from './budget-list-cards/category-budget-card.vue';
+import ManualBudgetCard from './budget-list-cards/manual-budget-card.vue';
 
+const { t } = useI18n();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 const router = useRouter();
 const queryClient = useQueryClient();
-const { formatBaseCurrency } = useFormatCurrency();
 
-const { data: budgetsList, isPlaceholderData: isBudgetsListPlaceholder } = useQuery({
-  queryFn: () => loadSystemBudgets(),
-  queryKey: VUE_QUERY_CACHE_KEYS.budgetsList,
+const showArchived = ref(false);
+
+const statusFilter = computed(() => (showArchived.value ? 'active,archived' : 'active'));
+
+const {
+  data: budgetsList,
+  isPlaceholderData: isBudgetsListPlaceholder,
+  isFetching: isBudgetsListFetching,
+} = useQuery({
+  queryFn: () => loadSystemBudgets({ status: statusFilter.value }),
+  queryKey: [...VUE_QUERY_CACHE_KEYS.budgetsList, statusFilter],
   staleTime: Infinity,
-  placeholderData: [],
+  placeholderData: (previousData) => previousData ?? [],
 });
 
-// Show loading state when showing placeholder data (initial load)
-const isBudgetsListLoading = computed(() => isBudgetsListPlaceholder.value);
+// True only on very first load when we have no data at all
+const isInitialLoading = computed(() => isBudgetsListPlaceholder.value && !budgetsList.value?.length);
+// True when we have existing data but are fetching updated results (e.g. toggling archived)
+const isLoadingMore = computed(() => isBudgetsListFetching.value && !isInitialLoading.value);
 
-// Load stats for all budgets
 const budgetStatsQueries = useQueries({
   queries: computed(() =>
     (budgetsList.value || []).map((budget: BudgetModel) => ({
@@ -61,7 +63,6 @@ const isBudgetStatsLoading = (budgetId: number) => {
   const index = budgetsList.value?.findIndex((b: BudgetModel) => b.id === budgetId) ?? -1;
   if (index === -1) return true;
   const query = budgetStatsQueries.value[index];
-  // Show loading if: no query, query pending, query fetching without data, or data undefined
   if (!query) return true;
   if (query.isPending) return true;
   if (query.isFetching && !query.data) return true;
@@ -70,35 +71,31 @@ const isBudgetStatsLoading = (budgetId: number) => {
 };
 
 const navigateToBudget = ({ budgetId }: { budgetId: number }) => {
-  router.push({ name: ROUTES_NAMES.budgetsInfo, params: { id: budgetId } });
+  router.push({ name: ROUTES_NAMES.plannedBudgetDetails, params: { id: budgetId } });
 };
 
 const deleteBudget = async ({ budgetId }: { budgetId: number }) => {
   try {
     await deleteBudgetApi(budgetId);
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
-    addSuccessNotification('Budget deleted successfully!');
+    addSuccessNotification(t('budgets.list.deleteSuccess'));
   } catch {
-    addErrorNotification('Unexpected error!');
+    addErrorNotification(t('budgets.list.deleteError'));
   }
 };
 
-const formatDate = (date: Date | string | undefined | null) => {
-  if (!date) return null;
-  return format(new Date(date), 'MMM d, yyyy');
-};
+const { mutate: archiveBudget } = useMutation({
+  mutationFn: archiveBudgetApi,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
+  },
+  onError: () => {
+    addErrorNotification(t('budgets.list.archiveError'));
+  },
+});
 
-// Get transaction date range from stats
-const getTransactionDateRange = (budgetId: number) => {
-  const stats = getBudgetStats(budgetId);
-  if (!stats) return null;
-  const first = stats.summary?.firstTransactionDate;
-  const last = stats.summary?.lastTransactionDate;
-  if (!first && !last) return null;
-  return {
-    first: first ? formatDate(first) : null,
-    last: last ? formatDate(last) : null,
-  };
+const handleArchive = ({ budgetId, isArchived }: { budgetId: number; isArchived: boolean }) => {
+  archiveBudget({ budgetId, isArchived });
 };
 
 const getBudgetTimeStatus = (budget: BudgetModel) => {
@@ -108,227 +105,156 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
   const startDate = budget.startDate ? new Date(budget.startDate) : null;
   const endDate = budget.endDate ? new Date(budget.endDate) : null;
 
-  // Budget has ended
   if (endDate && isPast(endDate)) {
-    return { status: 'ended' as const, text: 'Ended' };
+    return { status: 'ended' as const, text: t('budgets.list.status.ended') };
   }
 
-  // Budget is active (has both dates and we're within the interval)
   if (startDate && endDate && isWithinInterval(now, { start: startDate, end: endDate })) {
     const daysLeft = differenceInDays(endDate, now);
-    if (daysLeft === 0) return { status: 'active' as const, text: 'Last day' };
-    if (daysLeft === 1) return { status: 'active' as const, text: '1 day left' };
-    return { status: 'active' as const, text: `${daysLeft} days left` };
+    if (daysLeft === 0) return { status: 'active' as const, text: t('budgets.list.status.lastDay') };
+    if (daysLeft === 1) return { status: 'active' as const, text: t('budgets.list.status.oneDayLeft') };
+    return { status: 'active' as const, text: t('budgets.list.status.daysLeft', { count: daysLeft }) };
   }
 
-  // Budget hasn't started yet
   if (startDate && !isPast(startDate)) {
     const daysUntil = differenceInDays(startDate, now);
-    if (daysUntil === 0) return { status: 'upcoming' as const, text: 'Starts today' };
-    if (daysUntil === 1) return { status: 'upcoming' as const, text: 'Starts tomorrow' };
-    return { status: 'upcoming' as const, text: `Starts in ${daysUntil} days` };
+    if (daysUntil === 0) return { status: 'upcoming' as const, text: t('budgets.list.status.startsToday') };
+    if (daysUntil === 1) return { status: 'upcoming' as const, text: t('budgets.list.status.startsTomorrow') };
+    return { status: 'upcoming' as const, text: t('budgets.list.status.startsInDays', { count: daysUntil }) };
   }
 
-  // Only end date set and it's in the future
   if (endDate && !isPast(endDate)) {
     const daysLeft = differenceInDays(endDate, now);
-    if (daysLeft === 0) return { status: 'active' as const, text: 'Last day' };
-    if (daysLeft === 1) return { status: 'active' as const, text: '1 day left' };
-    return { status: 'active' as const, text: `${daysLeft} days left` };
+    if (daysLeft === 0) return { status: 'active' as const, text: t('budgets.list.status.lastDay') };
+    if (daysLeft === 1) return { status: 'active' as const, text: t('budgets.list.status.oneDayLeft') };
+    return { status: 'active' as const, text: t('budgets.list.status.daysLeft', { count: daysLeft }) };
   }
 
   return null;
 };
+
+const activeTab = useLocalStorage<BUDGET_TYPES>('budgets-active-tab', BUDGET_TYPES.category);
+
+const isArchived = (budget: BudgetModel) => budget.status === BUDGET_STATUSES.archived;
+
+// Sort priority: active/upcoming (0) > no dates (1) > ended (2) > archived (3)
+const getBudgetSortPriority = (budget: BudgetModel): number => {
+  if (isArchived(budget)) return 3;
+  const status = getBudgetTimeStatus(budget);
+  if (!status) return 1; // No dates set
+  if (status.status === 'ended') return 2;
+  return 0; // active or upcoming
+};
+
+const sortBudgetsByStatus = (budgets: BudgetModel[]): BudgetModel[] => {
+  return [...budgets].sort((a, b) => getBudgetSortPriority(a) - getBudgetSortPriority(b));
+};
+
+const categoryBudgets = computed(() =>
+  sortBudgetsByStatus((budgetsList.value || []).filter((b: BudgetModel) => b.type === BUDGET_TYPES.category)),
+);
+
+const manualBudgets = computed(() =>
+  sortBudgetsByStatus((budgetsList.value || []).filter((b: BudgetModel) => b.type === BUDGET_TYPES.manual)),
+);
+
+const tabItems = computed(() => [
+  {
+    value: BUDGET_TYPES.category,
+    label: categoryBudgets.value.length
+      ? `${t('budgets.list.tabCategory')}  (${categoryBudgets.value.length})`
+      : t('budgets.list.tabCategory'),
+  },
+  {
+    value: BUDGET_TYPES.manual,
+    label: manualBudgets.value.length
+      ? `${t('budgets.list.tabManual')}  (${manualBudgets.value.length})`
+      : t('budgets.list.tabManual'),
+  },
+]);
 </script>
 
 <template>
   <div>
-    <!-- Loading Skeleton -->
-    <BudgetCardSkeleton v-if="isBudgetsListLoading" />
+    <!-- Initial full-page skeleton (no data yet) -->
+    <BudgetCardSkeleton v-if="isInitialLoading" />
 
-    <template v-else-if="budgetsList.length">
-      <!-- Budget Cards Grid -->
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
-        <Card
-          v-for="budget in budgetsList"
-          :key="budget.id"
-          class="group relative cursor-pointer transition-all duration-200 hover:border-white/20 hover:bg-white/2"
-          @click="navigateToBudget({ budgetId: budget.id })"
+    <template v-else-if="budgetsList?.length || isLoadingMore">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <PillTabs v-model="activeTab" :items="tabItems" />
+
+        <button
+          type="button"
+          class="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1.5 text-xs transition-colors"
+          @click="showArchived = !showArchived"
         >
-          <!-- Dropdown Menu -->
-          <div class="absolute top-3 right-3 z-10">
-            <DropdownMenu>
-              <DropdownMenuTrigger as-child>
-                <Button variant="ghost" size="icon" class="size-8" @click.stop>
-                  <MoreVerticalIcon class="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem @click.stop="navigateToBudget({ budgetId: budget.id })">
-                  <PencilIcon class="mr-2 size-4" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <AlertDialog
-                  title="Do you want to delete this budget?"
-                  accept-variant="destructive"
-                  @accept="deleteBudget({ budgetId: budget.id })"
-                >
-                  <template #description>
-                    By clicking "Accept," all associated transactions will be unlinked from the budget but will remain
-                    in the system.
-                  </template>
-                  <template #trigger>
-                    <DropdownMenuItem
-                      class="text-destructive-text focus:bg-destructive-text/10 focus:text-destructive-text"
-                      @select.prevent
-                      @click.stop
-                    >
-                      <Trash2Icon class="mr-2 size-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </template>
-                </AlertDialog>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <ArchiveRestoreIcon class="size-3.5" />
+          {{ showArchived ? $t('budgets.list.hideArchived') : $t('budgets.list.showArchived') }}
+        </button>
+      </div>
+
+      <!-- Category Budgets Tab -->
+      <div v-if="activeTab === BUDGET_TYPES.category">
+        <div
+          v-if="categoryBudgets.length === 0 && !isLoadingMore"
+          class="flex flex-col items-center justify-center py-12 text-center"
+        >
+          <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
+            <TagsIcon class="text-muted-foreground size-8" />
           </div>
+          <h3 class="mb-1 font-medium">{{ $t('budgets.list.emptyState.title') }}</h3>
+          <p class="text-muted-foreground max-w-sm text-sm">
+            {{ $t('budgets.list.emptyState.description') }}
+          </p>
+        </div>
+        <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+          <CategoryBudgetCard
+            v-for="budget in categoryBudgets"
+            :key="budget.id"
+            :budget="budget"
+            :is-archived="isArchived(budget)"
+            :stats="(getBudgetStats(budget.id)?.summary as any) ?? null"
+            :is-stats-loading="isBudgetStatsLoading(budget.id)"
+            :time-status="getBudgetTimeStatus(budget)"
+            @click="navigateToBudget({ budgetId: budget.id })"
+            @edit="navigateToBudget({ budgetId: budget.id })"
+            @delete="deleteBudget({ budgetId: budget.id })"
+            @archive="handleArchive({ budgetId: budget.id, isArchived: !isArchived(budget) })"
+          />
+          <BudgetCardSkeleton v-if="isLoadingMore" :count="2" inline />
+        </div>
+      </div>
 
-          <!-- Card Content -->
-          <div class="flex h-full flex-col p-4">
-            <!-- Header -->
-            <div class="mb-4 flex items-center gap-3">
-              <div class="bg-muted flex size-10 shrink-0 items-center justify-center rounded-lg">
-                <WalletIcon class="text-muted-foreground size-5" />
-              </div>
-              <div class="mt-auto min-w-0 flex-1">
-                <h3 class="truncate pr-8 font-medium">{{ budget.name }}</h3>
-                <div class="text-muted-foreground flex items-center gap-2 text-sm">
-                  <span v-if="budget.limitAmount">Limit: {{ formatBaseCurrency(budget.limitAmount) }}</span>
-                  <template v-if="isBudgetStatsLoading(budget.id)">
-                    <span v-if="budget.limitAmount">·</span>
-                    <span class="bg-muted inline-block h-4 w-16 animate-pulse rounded" />
-                  </template>
-                  <template v-else>
-                    <span v-if="budget.limitAmount && getBudgetStats(budget.id)?.summary?.transactionsCount">·</span>
-                    <span v-if="getBudgetStats(budget.id)?.summary?.transactionsCount">
-                      {{ getBudgetStats(budget.id)?.summary?.transactionsCount }} transactions
-                    </span>
-                    <span v-else class="text-muted-foreground/60 italic"> No transactions yet </span>
-                  </template>
-                </div>
-              </div>
-            </div>
-
-            <!-- Transaction Date Range (based on actual transactions) -->
-            <div class="text-muted-foreground mb-3 flex items-center justify-between text-xs">
-              <template v-if="isBudgetStatsLoading(budget.id)">
-                <div class="flex items-center gap-1.5">
-                  <CalendarIcon class="size-3.5" />
-                  <span class="bg-muted inline-block h-3 w-24 animate-pulse rounded" />
-                </div>
-              </template>
-              <template v-else-if="getTransactionDateRange(budget.id)">
-                <div class="flex items-center gap-1.5">
-                  <CalendarIcon class="size-3.5" />
-                  <span v-if="getTransactionDateRange(budget.id)?.first && getTransactionDateRange(budget.id)?.last">
-                    {{ getTransactionDateRange(budget.id)?.first }}
-                    <ArrowRightIcon class="inline size-3" />
-                    {{ getTransactionDateRange(budget.id)?.last }}
-                  </span>
-                  <span v-else-if="getTransactionDateRange(budget.id)?.first">
-                    {{ getTransactionDateRange(budget.id)?.first }}
-                  </span>
-                  <span v-else-if="getTransactionDateRange(budget.id)?.last">
-                    {{ getTransactionDateRange(budget.id)?.last }}
-                  </span>
-                </div>
-              </template>
-              <template v-else>
-                <div class="flex items-center gap-1.5">
-                  <CalendarIcon class="size-3.5" />
-                  <span class="text-muted-foreground/60 italic">No transactions yet</span>
-                </div>
-              </template>
-              <span
-                v-if="getBudgetTimeStatus(budget)"
-                :class="[
-                  'rounded-full px-2 py-0.5 text-[10px] font-medium',
-                  getBudgetTimeStatus(budget)?.status === 'ended'
-                    ? 'bg-muted text-muted-foreground'
-                    : getBudgetTimeStatus(budget)?.status === 'upcoming'
-                      ? 'bg-blue-500/10 text-blue-400'
-                      : 'bg-success-text/10 text-success-text',
-                ]"
-              >
-                {{ getBudgetTimeStatus(budget)?.text }}
-              </span>
-            </div>
-
-            <!-- Stats -->
-            <BudgetStatsSkeleton v-if="isBudgetStatsLoading(budget.id)" :show-utilization="!!budget.limitAmount" />
-            <template v-else>
-              <div class="border-border/50 mt-auto grid grid-cols-3 gap-2 border-t pt-3">
-                <div>
-                  <div class="text-muted-foreground text-[10px] tracking-wider uppercase">Income</div>
-                  <div class="text-success-text text-sm font-medium tabular-nums">
-                    {{ formatBaseCurrency(getBudgetStats(budget.id)?.summary?.actualIncome ?? 0) }}
-                  </div>
-                </div>
-                <div>
-                  <div class="text-muted-foreground text-[10px] tracking-wider uppercase">Expenses</div>
-                  <div class="text-app-expense-color text-sm font-medium tabular-nums">
-                    {{ formatBaseCurrency(getBudgetStats(budget.id)?.summary?.actualExpense ?? 0) }}
-                  </div>
-                </div>
-                <div>
-                  <div class="text-muted-foreground text-[10px] tracking-wider uppercase">Net</div>
-                  <div
-                    class="text-sm font-medium tabular-nums"
-                    :class="
-                      (getBudgetStats(budget.id)?.summary?.balance ?? 0) >= 0
-                        ? 'text-success-text'
-                        : 'text-app-expense-color'
-                    "
-                  >
-                    {{ formatBaseCurrency(getBudgetStats(budget.id)?.summary?.balance ?? 0) }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Utilization bar (only if limit is set) -->
-              <div v-if="budget.limitAmount" class="mt-3">
-                <div class="mb-1 flex items-center justify-between text-xs">
-                  <span class="text-muted-foreground">Used</span>
-                  <span
-                    :class="[
-                      'font-medium tabular-nums',
-                      (getBudgetStats(budget.id)?.summary?.utilizationRate ?? 0) > 90
-                        ? 'text-app-expense-color'
-                        : (getBudgetStats(budget.id)?.summary?.utilizationRate ?? 0) > 70
-                          ? 'text-warning-text'
-                          : 'text-success-text',
-                    ]"
-                  >
-                    {{ Math.round(getBudgetStats(budget.id)?.summary?.utilizationRate ?? 0) }}%
-                  </span>
-                </div>
-                <div class="bg-muted h-1.5 overflow-hidden rounded-full">
-                  <div
-                    class="h-full rounded-full transition-all duration-300"
-                    :class="[
-                      (getBudgetStats(budget.id)?.summary?.utilizationRate ?? 0) > 90
-                        ? 'bg-app-expense-color'
-                        : (getBudgetStats(budget.id)?.summary?.utilizationRate ?? 0) > 70
-                          ? 'bg-warning-text'
-                          : 'bg-success-text',
-                    ]"
-                    :style="{ width: `${Math.min(getBudgetStats(budget.id)?.summary?.utilizationRate ?? 0, 100)}%` }"
-                  />
-                </div>
-              </div>
-            </template>
+      <!-- Manual Budgets Tab -->
+      <div v-if="activeTab === BUDGET_TYPES.manual">
+        <div
+          v-if="manualBudgets.length === 0 && !isLoadingMore"
+          class="flex flex-col items-center justify-center py-12 text-center"
+        >
+          <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
+            <WalletIcon class="text-muted-foreground size-8" />
           </div>
-        </Card>
+          <h3 class="mb-1 font-medium">{{ $t('budgets.list.emptyState.title') }}</h3>
+          <p class="text-muted-foreground max-w-sm text-sm">
+            {{ $t('budgets.list.emptyState.description') }}
+          </p>
+        </div>
+        <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+          <ManualBudgetCard
+            v-for="budget in manualBudgets"
+            :key="budget.id"
+            :budget="budget"
+            :is-archived="isArchived(budget)"
+            :stats="(getBudgetStats(budget.id)?.summary as any) ?? null"
+            :is-stats-loading="isBudgetStatsLoading(budget.id)"
+            :time-status="getBudgetTimeStatus(budget)"
+            @click="navigateToBudget({ budgetId: budget.id })"
+            @edit="navigateToBudget({ budgetId: budget.id })"
+            @delete="deleteBudget({ budgetId: budget.id })"
+            @archive="handleArchive({ budgetId: budget.id, isArchived: !isArchived(budget) })"
+          />
+          <BudgetCardSkeleton v-if="isLoadingMore" :count="2" inline />
+        </div>
       </div>
     </template>
 
@@ -337,9 +263,9 @@ const getBudgetTimeStatus = (budget: BudgetModel) => {
         <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
           <WalletIcon class="text-muted-foreground size-8" />
         </div>
-        <h3 class="mb-1 font-medium">No budgets yet</h3>
+        <h3 class="mb-1 font-medium">{{ $t('budgets.list.emptyState.title') }}</h3>
         <p class="text-muted-foreground max-w-sm text-sm">
-          Create a budget to start tracking your spending or monitoring specific events.
+          {{ $t('budgets.list.emptyState.description') }}
         </p>
       </div>
     </template>

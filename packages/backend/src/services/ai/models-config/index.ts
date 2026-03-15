@@ -10,7 +10,7 @@ export { AI_MODEL_ID } from './model-ids';
  * All available models merged from per-provider configs.
  * TypeScript ensures each provider config covers all its models via Extract type.
  */
-export const AVAILABLE_MODELS: Record<AI_MODEL_ID, AIModelInfo> = {
+const AVAILABLE_MODELS: Record<AI_MODEL_ID, AIModelInfo> = {
   ...OPENAI_MODELS,
   ...ANTHROPIC_MODELS,
   ...GOOGLE_MODELS,
@@ -47,13 +47,6 @@ export function getModelInfo({ modelId }: { modelId: string }): AIModelInfo | nu
  */
 export function isValidModelId({ modelId }: { modelId: string }): boolean {
   return modelId in AVAILABLE_MODELS;
-}
-
-/**
- * Get recommended model IDs for a specific feature
- */
-export function getRecommendedModelIds({ feature }: { feature: AI_FEATURE }): AI_MODEL_ID[] {
-  return FEATURE_RECOMMENDATIONS[feature] ?? [];
 }
 
 /**

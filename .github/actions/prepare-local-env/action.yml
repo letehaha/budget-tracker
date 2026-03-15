@@ -25,7 +25,6 @@ runs:
       with:
         path: |
           **/node_modules
-          ~/.cache/Cypress
           ${{ steps.npm-cache-dir.outputs.dir }}
         key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |

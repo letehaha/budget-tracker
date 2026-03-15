@@ -1,22 +1,31 @@
 import './bootstrap';
+import './redis-client';
 
+import { requestContext } from '@common/request-context';
 import { logger } from '@js/utils/logger';
+import { shutdownPostHog } from '@js/utils/posthog';
+import { Sentry } from '@js/utils/sentry';
 import { requestIdMiddleware } from '@middlewares/request-id';
 import { sessionMiddleware } from '@middlewares/session-id';
 import { toNodeHandler } from 'better-auth/node';
 import cors from 'cors';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import fs from 'fs';
 import https from 'https';
-import locale from 'locale';
 import morgan from 'morgan';
 import path from 'path';
 
 import { API_PREFIX } from './config';
 import { auth } from './config/auth';
+import { demoCleanupCron } from './crons/demo-cleanup';
+import { demoTemplateRefreshCron } from './crons/demo-template-refresh';
 import { loadCurrencyRatesJob } from './crons/exchange-rates/index';
+import { paymentRemindersCron } from './crons/payment-reminders-check';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
-import './redis-client';
+import { subscriptionCandidateDetectionCron } from './crons/subscription-candidate-detection';
+import { tagRemindersCron } from './crons/tag-reminders-check';
+import { SUPPORTED_LOCALES } from './i18n';
+import { addI18nextToRequest, detectLanguage } from './i18n/middleware';
 import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
 /**
@@ -28,21 +37,31 @@ import budgetsRoutes from './routes/budgets.route';
 import categoriesRoutes from './routes/categories.route';
 import binanceRoutes from './routes/crypto/binance.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
+import demoRoutes from './routes/demo.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
+import githubRoutes from './routes/github.route';
 import csvImportExportRoutes from './routes/import-export/csv.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
 import investmentsRoutes from './routes/investments.route';
+import notificationsRoutes from './routes/notifications.route';
+import paymentRemindersRoutes from './routes/payment-reminders.route';
 import sseRoutes from './routes/sse.route';
 import statsRoutes from './routes/stats.route';
+import subscriptionsRoutes from './routes/subscriptions.route';
+import tagRemindersRoutes from './routes/tag-reminders.route';
+import tagsRoutes from './routes/tags.route';
 import testsRoutes from './routes/tests.route';
+import transactionGroupsRoutes from './routes/transaction-groups.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
+import webhooksRoutes from './routes/webhooks.route';
 import { registerAiCategorizationListeners } from './services/ai-categorization/index';
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
 import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 import { initializeExchangeRateProviders } from './services/exchange-rates/providers/index';
-import { supportedLocales } from './translations/index';
+import { registerSubscriptionMatchingListeners } from './services/subscriptions';
+import { registerTagReminderListeners } from './services/tag-reminders';
 
 logger.info('Starting application initialization...');
 
@@ -71,7 +90,8 @@ app.use(
         return callback(null, true);
       }
 
-      return callback(new Error('Not allowed by CORS'), false);
+      // Silently reject - don't throw error to avoid Sentry noise
+      return callback(null, false);
     },
     credentials: true,
     exposedHeaders: ['x-session-id', 'x-request-id'],
@@ -79,6 +99,11 @@ app.use(
 );
 
 logger.info(`CORS configured with origins: ${ALLOWED_ORIGINS}`);
+
+// Paths that need raw body preserved (for signature verification)
+// Note: These paths should include the full path WITH API_PREFIX because
+// this middleware runs before route mounting, so req.path contains full path
+const rawBodyPaths = [`${API_PREFIX}/webhooks/github`];
 
 // Body parser with conditional limits
 app.use((req, res, next) => {
@@ -96,6 +121,16 @@ app.use((req, res, next) => {
     ],
   };
 
+  // For webhook paths, preserve raw body for signature verification
+  // Use req.originalUrl to ensure we match the full path regardless of mounting
+  if (rawBodyPaths.some((p) => req.originalUrl.startsWith(p))) {
+    return express.json({
+      verify: (rawReq, _res, buf) => {
+        (rawReq as Request & { rawBody?: Buffer }).rawBody = buf;
+      },
+    })(req, res, next);
+  }
+
   // Check each limit size and apply if path matches
   for (const [limit, paths] of Object.entries(largePaths)) {
     if (paths.includes(req.path)) {
@@ -110,13 +145,17 @@ app.use(express.urlencoded({ extended: false }));
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
-app.use(locale(supportedLocales));
 app.use(sessionMiddleware);
+// i18next language detection middleware (uses Accept-Language header from frontend)
+app.use(detectLanguage);
+app.use(addI18nextToRequest);
 
 // Initialize data providers and event listeners
 initializeBankProviders();
 initializeExchangeRateProviders();
 registerAiCategorizationListeners();
+registerTagReminderListeners();
+registerSubscriptionMatchingListeners();
 
 /**
  *  Routes include
@@ -126,9 +165,25 @@ registerAiCategorizationListeners();
 // Must be mounted BEFORE better-auth handler to take precedence
 app.use(`${API_PREFIX}/auth`, betterAuthExtensionsRoutes);
 
+// Demo mode route - creates temporary demo users with seeded data
+// Rate limited to prevent abuse
+app.use(`${API_PREFIX}/demo`, demoRoutes);
+
 // Mount better-auth handler for all auth routes
 // This handles: signup, signin, signout, session, oauth callbacks, passkey, etc.
-app.all(`${API_PREFIX}/auth/*`, toNodeHandler(auth));
+// We wrap the handler to preserve AsyncLocalStorage context for locale-aware category creation
+const authHandler = toNodeHandler(auth);
+app.all(`${API_PREFIX}/auth/*`, (req: Request, res: Response) => {
+  // Extract locale from Accept-Language header (same logic as detectLanguage middleware)
+  const supportedLocales = SUPPORTED_LOCALES;
+  const headerLang = req.headers['accept-language']?.split(',')[0]?.split('-')[0];
+  const locale = headerLang && supportedLocales.includes(headerLang) ? headerLang : 'en';
+
+  // Wrap the handler in AsyncLocalStorage context to ensure locale is available in hooks
+  requestContext.run({ locale }, () => {
+    authHandler(req, res);
+  });
+});
 
 app.use(`${API_PREFIX}/user`, userRoutes);
 app.use(`${API_PREFIX}/users`, usersRoutes);
@@ -142,30 +197,46 @@ app.use(`${API_PREFIX}/stats`, statsRoutes);
 app.use(`${API_PREFIX}/account-group`, accountGroupsRoutes);
 app.use(`${API_PREFIX}/currencies/rates`, exchangeRatesRoutes);
 app.use(`${API_PREFIX}/budgets`, budgetsRoutes);
+app.use(`${API_PREFIX}/subscriptions`, subscriptionsRoutes);
+app.use(`${API_PREFIX}/tags`, tagsRoutes);
+app.use(`${API_PREFIX}/tag-reminders`, tagRemindersRoutes);
+app.use(`${API_PREFIX}/transaction-groups`, transactionGroupsRoutes);
+app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
+app.use(`${API_PREFIX}/payment-reminders`, paymentRemindersRoutes);
 app.use(`${API_PREFIX}/investments`, investmentsRoutes);
 app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
 app.use(`${API_PREFIX}/import`, statementParserRoutes);
 app.use(`${API_PREFIX}/sse`, sseRoutes);
+app.use(`${API_PREFIX}/webhooks`, webhooksRoutes);
+app.use(`${API_PREFIX}/github`, githubRoutes);
 
-if (process.env.NODE_ENV === 'test') {
+// "development" is required here: Playwright frontend e2e tests run against
+// the dev backend on CI and rely on /tests/verify-email and other test-only endpoints.
+if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
   app.use(`${API_PREFIX}/tests`, testsRoutes);
+}
+
+// Block search engine crawling on the API subdomain
+app.get('/robots.txt', (_req, res) => {
+  res.type('text/plain').send('User-agent: *\nDisallow: /');
+});
+
+// Sentry error handler - must be after routes but before other error handlers
+// Only set up in production when Sentry is actually initialized
+if (process.env.NODE_ENV === 'production') {
+  Sentry.setupExpressErrorHandler(app);
 }
 
 logger.info('Attempting to start server...');
 
 let serverInstance: https.Server | ReturnType<typeof app.listen>;
 
-// Use HTTPS in development, HTTP in test mode
-if (process.env.NODE_ENV === 'development') {
-  const certPath = path.join(__dirname, '../../../docker/dev/certs/cert.pem');
-  const keyPath = path.join(__dirname, '../../../docker/dev/certs/key.pem');
+const certPath = path.join(__dirname, '../../../docker/dev/certs/cert.pem');
+const keyPath = path.join(__dirname, '../../../docker/dev/certs/key.pem');
+const certsExist = fs.existsSync(certPath) && fs.existsSync(keyPath);
 
-  if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
-    logger.error(`SSL certificates not found at ${certPath} and ${keyPath}`);
-    logger.error('Please run: cd docker/dev/certs && mkcert localhost 127.0.0.1 ::1');
-    process.exit(1);
-  }
-
+// Use HTTPS when certs exist (dev or prod), HTTP for tests or when no certs
+if (process.env.NODE_ENV !== 'test' && certsExist) {
   const httpsOptions = {
     key: fs.readFileSync(keyPath),
     cert: fs.readFileSync(certPath),
@@ -177,10 +248,20 @@ if (process.env.NODE_ENV === 'development') {
     logger.info(`API Prefix: ${API_PREFIX}`);
     initializeBackgroundJobs();
   });
+} else if (process.env.NODE_ENV !== 'test' && !certsExist) {
+  // Non-test mode without certs - warn but allow HTTP (for CI/CD or reverse proxy setups)
+  logger.warn(`SSL certificates not found at ${certPath} and ${keyPath}`);
+  logger.warn('Running in HTTP mode. For HTTPS, run: cd docker/dev/certs && mkcert localhost 127.0.0.1 ::1');
+
+  serverInstance = app.listen(app.get('port'), () => {
+    logger.info(`[OK] HTTP Server is running on http://localhost:${app.get('port')}`);
+    logger.info(`API Prefix: ${API_PREFIX}`);
+    initializeBackgroundJobs();
+  });
 } else {
   // Test mode uses HTTP for simplicity
   // Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
-  serverInstance = app.listen(process.env.NODE_ENV === 'test' ? 0 : app.get('port'), () => {
+  serverInstance = app.listen(0, () => {
     logger.info(
       `[OK] ${String(process.env.NODE_ENV).toUpperCase()} server is running on http://localhost:${app.get('port')}`,
     );
@@ -201,8 +282,15 @@ function initializeBackgroundJobs() {
 
     loadCurrencyRatesJob.start();
 
+    // Demo cleanup and template refresh run in all environments (dev and prod)
+    demoCleanupCron.startCron();
+    demoTemplateRefreshCron.startCron();
+
     if (process.env.NODE_ENV === 'production') {
       securitiesDailySyncCron.startCron();
+      tagRemindersCron.startCron();
+      paymentRemindersCron.startCron();
+      subscriptionCandidateDetectionCron.startCron();
     }
   }
 }
@@ -222,9 +310,15 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-const processUnexpectedExit = () => {
+const processUnexpectedExit = async () => {
+  demoCleanupCron.stopCron();
+  demoTemplateRefreshCron.stopCron();
   securitiesDailySyncCron.stopCron();
+  tagRemindersCron.stopCron();
+  subscriptionCandidateDetectionCron.stopCron();
   loadCurrencyRatesJob.stop();
+  // Flush remaining PostHog events before exit
+  await shutdownPostHog();
   process.exit(0);
 };
 

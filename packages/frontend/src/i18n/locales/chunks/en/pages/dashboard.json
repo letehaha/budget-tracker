@@ -1,0 +1,144 @@
+{
+  "dashboard": {
+    "editMode": {
+      "customize": "Customize",
+      "addWidgets": "Add widgets",
+      "emptyState": "Click Customize to add widgets"
+    },
+    "widgets": {
+      "balanceTrend": {
+        "title": "Balance trend",
+        "balanceTypes": {
+          "total": "Total",
+          "accounts": "Accounts",
+          "portfolios": "Portfolios"
+        },
+        "tooltip": {
+          "accounts": "Accounts:",
+          "portfolios": "Portfolios:",
+          "total": "Total:"
+        },
+        "today": "Today",
+        "vsPreviousPeriod": "vs previous period",
+        "spikePanel": {
+          "accounts": "Accounts",
+          "portfolios": "Portfolios",
+          "priceDrivenChange": "Price-driven change — transaction details coming soon",
+          "noSignificantTransactions": "No significant transactions for this date.",
+          "seeAllTransactions": "See all transactions"
+        },
+        "spikeSettings": {
+          "showMarkers": "Show spike markers",
+          "showMarkersTooltip": "Toggle colored markers on the chart that highlight significant balance changes.",
+          "percentThreshold": "Min change %",
+          "percentThresholdTooltip": "Minimum percentage change in balance between two consecutive days to mark as a spike. Either this or the absolute threshold must be exceeded. Low values show more markers.",
+          "absoluteThreshold": "Min change $",
+          "absoluteThresholdTooltip": "Minimum absolute balance change (in your base currency) to qualify as a spike. Either this or the % threshold must be exceeded.",
+          "maxMarkers": "Max markers",
+          "maxMarkersTooltip": "Maximum number of spike markers shown on the chart. When there are more spikes than this limit, only the most significant ones are displayed.",
+          "resetDefaults": "Reset defaults",
+          "accept": "Accept",
+          "validation": {
+            "outOfRange": "Value is out of allowed range",
+            "integer": "Must be a whole number"
+          }
+        }
+      },
+      "expensesStructure": {
+        "title": "Expenses Structure",
+        "excludedCategories": {
+          "message": "Some categories are excluded from this widget"
+        },
+        "excludeSettings": {
+          "title": "Settings",
+          "excludeCategories": "Exclude categories",
+          "dialogTitle": "Exclude categories",
+          "dialogDescription": "Select categories to exclude from this widget's chart and totals",
+          "save": "Save"
+        },
+        "today": "Today",
+        "vsPreviousPeriod": "vs previous period",
+        "viewButton": "View"
+      },
+      "latestTransactions": {
+        "title": "Latest Transactions",
+        "showAll": "View all"
+      },
+      "subscriptions": {
+        "title": "Subscriptions & Bills",
+        "titleSubscriptions": "Subscriptions",
+        "titleBills": "Bills",
+        "configType": "Type",
+        "configTypeAll": "All",
+        "configTypeSubscriptions": "Subscriptions",
+        "configTypeBills": "Bills",
+        "activeSummary": "{count} active",
+        "perYear": " per year"
+      },
+      "categoryTracker": {
+        "title": "Categories Watchlist",
+        "addCategory": "Add category",
+        "addCategories": "Add categories to track",
+        "selectCategories": "Select Categories"
+      },
+      "cashFlow": {
+        "title": "Cash Flow",
+        "description": "Shows your net savings: income minus expenses for the selected period, with a trend of previous periods",
+        "vsPrevious": "vs previous",
+        "income": "Income",
+        "expenses": "Expenses",
+        "saved": "Saved",
+        "previousPeriodsTrend": "Previous periods trend"
+      },
+      "creditUtilization": {
+        "title": "Credit Utilization",
+        "description": "Shows how much of your credit limits are currently used across all accounts",
+        "utilized": "utilized",
+        "noAccounts": "No accounts with credit limits"
+      },
+      "emptyState": "There are no data in selected time interval.",
+      "registry": {
+        "balanceTrend": {
+          "name": "Balance Trend",
+          "description": "Track your balance over time"
+        },
+        "categoryTracker": {
+          "name": "Categories Watchlist",
+          "description": "Watch spending and income for selected categories"
+        },
+        "spendingCategories": {
+          "name": "Spending by Categories",
+          "description": "See where your money goes"
+        },
+        "latestRecords": {
+          "name": "Latest Records",
+          "description": "Your most recent transactions"
+        },
+        "subscriptions": {
+          "name": "Subscriptions & Bills",
+          "description": "Overview of recurring payments"
+        },
+        "cashFlow": {
+          "name": "Cash Flow",
+          "description": "Income vs expenses with savings rate"
+        },
+        "creditUtilization": {
+          "name": "Credit Utilization",
+          "description": "Credit limit usage across your accounts"
+        }
+      }
+    },
+    "periodSelector": {
+      "quickSelect": "Quick Select",
+      "year": "{year}",
+      "presets": {
+        "currentMonth": "Current Month",
+        "last3Months": "Last 3 Months",
+        "last6Months": "Last 6 Months",
+        "lastYear": "Last 12 Months",
+        "thisYear": "This Year",
+        "previousYear": "Previous Year"
+      }
+    }
+  }
+}

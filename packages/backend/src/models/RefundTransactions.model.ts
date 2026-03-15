@@ -17,8 +17,8 @@ import {
   Unique,
 } from '@sequelize/core/decorators-legacy';
 
-import TransactionSplits from './TransactionSplits.model';
 import Transactions from './Transactions.model';
+import TransactionSplits from './TransactionSplits.model';
 import Users from './Users.model';
 
 @Table({
@@ -85,36 +85,4 @@ export const createRefundTransaction = async ({
   splitId?: string | null;
 }) => {
   return RefundTransactions.create({ userId, originalTxId, refundTxId, splitId });
-};
-
-export const getRefundsForTransaction = async ({ originalTxId, userId }: { originalTxId: number; userId: number }) => {
-  return RefundTransactions.findAll({
-    where: { originalTxId: originalTxId, userId },
-    include: [{ model: Transactions, as: 'refundTransaction' }],
-  });
-};
-
-export const bulkCreateRefundTransactions = (
-  {
-    data,
-  }: {
-    data: Array<{
-      userId: number;
-      originalTxId: number | null;
-      refundTxId: number;
-      splitId?: string | null;
-    }>;
-  },
-  {
-    validate = true,
-    returning = false,
-  }: {
-    validate?: boolean;
-    returning?: boolean;
-  },
-) => {
-  return RefundTransactions.bulkCreate(data, {
-    validate,
-    returning,
-  });
 };

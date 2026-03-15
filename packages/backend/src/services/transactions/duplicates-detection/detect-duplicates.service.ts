@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { Cents, TRANSACTION_TYPES, asCents } from '@bt/shared/types';
 import * as Transactions from '@models/Transactions.model';
 
 /**
@@ -9,7 +9,7 @@ export interface TransactionToCheck {
   /** Date in YYYY-MM-DD or YYYY-MM-DD HH:MM:SS format */
   date: string;
   /** Amount in system format (integer, cents) */
-  amount: number;
+  amount: Cents;
   /** Transaction type */
   type: 'income' | 'expense';
 }
@@ -17,10 +17,10 @@ export interface TransactionToCheck {
 /**
  * Existing transaction that matched as a duplicate
  */
-export interface ExistingTransactionMatch {
+interface ExistingTransactionMatch {
   id: number;
   date: string;
-  amount: number;
+  amount: Cents;
   note: string;
 }
 
@@ -28,7 +28,7 @@ export interface ExistingTransactionMatch {
  * A duplicate match result.
  * Generic over T to preserve the original transaction data.
  */
-export interface DuplicateMatch<T> {
+interface DuplicateMatch<T> {
   /** Index in the input transactions array */
   index: number;
   /** The incoming transaction that was checked */
@@ -37,7 +37,7 @@ export interface DuplicateMatch<T> {
   existing: ExistingTransactionMatch;
 }
 
-export interface DetectDuplicatesParams<T extends TransactionToCheck> {
+interface DetectDuplicatesParams<T extends TransactionToCheck> {
   userId: number;
   accountId: number;
   /** Transactions to check for duplicates */
@@ -111,7 +111,6 @@ export async function detectDuplicates<T extends TransactionToCheck>({
     endDate: endDateStr,
     from: 0,
     limit: 10000,
-    isRaw: true,
   });
 
   // Build lookup map for efficient matching: key = "date:amount:type"
@@ -119,7 +118,7 @@ export async function detectDuplicates<T extends TransactionToCheck>({
   for (const tx of existingTransactions) {
     const dateStr = new Date(tx.time).toISOString().split('T')[0];
     const type = tx.transactionType === TRANSACTION_TYPES.income ? 'income' : 'expense';
-    const key = `${dateStr}:${Math.abs(tx.amount)}:${type}`;
+    const key = `${dateStr}:${Math.abs(tx.amount.toCents())}:${type}`;
 
     if (!existingMap.has(key)) {
       existingMap.set(key, []);
@@ -147,7 +146,7 @@ export async function detectDuplicates<T extends TransactionToCheck>({
       existing: {
         id: bestMatch.id,
         date: new Date(bestMatch.time).toISOString().split('T')[0]!,
-        amount: Math.abs(bestMatch.amount),
+        amount: asCents(Math.abs(bestMatch.amount.toCents())),
         note: bestMatch.note || '',
       },
     });

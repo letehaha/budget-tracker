@@ -1,11 +1,6 @@
-import {
-  ACCOUNT_TYPES,
-  AccountModel,
-  PAYMENT_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-} from '@bt/shared/types';
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/Accounts.model';
 import * as MerchantCategoryCodes from '@models/MerchantCategoryCodes.model';
@@ -118,8 +113,7 @@ async function createMonobankTransaction(
     categoryId = userMcc[0]!.get('categoryId');
   } else {
     // Use default category for this user
-    const defaultCategory = await Users.getUserDefaultCategory({ id: userId });
-    categoryId = defaultCategory!.get('defaultCategoryId');
+    categoryId = await Users.getUserDefaultCategory({ id: userId });
 
     // Create mapping for future transactions
     await UserMerchantCategoryCodes.createEntry({
@@ -133,7 +127,7 @@ async function createMonobankTransaction(
   const [createdTx] = await transactionsService.createTransaction({
     originalId: data.id,
     note: data.description,
-    amount: Math.abs(data.amount),
+    amount: Money.fromCents(Math.abs(data.amount)),
     time: new Date(data.time * 1000),
     externalData: {
       operationAmount: data.operationAmount,
@@ -141,8 +135,8 @@ async function createMonobankTransaction(
       balance: data.balance,
       hold: data.hold,
     },
-    commissionRate: data.commissionRate,
-    cashbackAmount: data.cashbackAmount,
+    commissionRate: Money.fromCents(data.commissionRate),
+    cashbackAmount: Money.fromCents(data.cashbackAmount),
     accountId,
     userId,
     transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
@@ -226,8 +220,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
       emitTransactionsSyncEvent({ userId, accountId, transactionIds: createdTransactionIds });
 
       // Update account metadata and balance after processing all transactions in this batch
-      const account: Pick<AccountModel, 'externalData' | 'currentBalance'> | null = await Accounts.findByPk(accountId, {
-        raw: true,
+      const account: Pick<Accounts, 'externalData' | 'currentBalance'> | null = await Accounts.findByPk(accountId, {
         attributes: ['externalData', 'currentBalance'],
       });
 
@@ -274,7 +267,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
             );
 
             if (balanceFromExternalData !== undefined) {
-              accountDataToUpdate.currentBalance = balanceFromExternalData;
+              accountDataToUpdate.currentBalance = Money.fromCents(balanceFromExternalData);
             } else {
               logger.error(
                 "[Monobank transactions sync]: latest monobank transaction doesn't have balance in externalData",
@@ -361,7 +354,7 @@ transactionSyncWorker.on('error', (err) => {
  * Split date range into 31-day chunks (Monobank API limitation)
  * Returns chunks in DESCENDING order (newest first) for better UX
  */
-export function splitDateRangeIntoChunks(from: Date, to: Date): Array<{ from: Date; to: Date }> {
+function splitDateRangeIntoChunks(from: Date, to: Date): Array<{ from: Date; to: Date }> {
   const chunks: Array<{ from: Date; to: Date }> = [];
   const MAX_DAYS = 31;
   const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -381,7 +374,7 @@ export function splitDateRangeIntoChunks(from: Date, to: Date): Array<{ from: Da
   }
 
   // Reverse to process newest transactions first
-  return chunks.reverse();
+  return chunks.toReversed();
 }
 
 /**

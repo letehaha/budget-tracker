@@ -3,7 +3,10 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import PortfolioTransferForm from '@/components/forms/portfolio-transfer-form.vue';
 import type { TransferContext } from '@/composable/data-queries/portfolio-transfers';
 import type { AccountModel, PortfolioModel } from '@bt/shared/types';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 interface Emit {
   (e: 'success'): void;
@@ -32,11 +35,16 @@ const handleCancel = () => {
 };
 
 // Dynamic title and description based on context
-const dialogTitle = props.context === 'portfolio' ? 'Transfer from Portfolio' : 'Transfer from Account';
-const dialogDescription =
+const dialogTitle = computed(() =>
   props.context === 'portfolio'
-    ? 'Transfer funds from this portfolio to another portfolio or account.'
-    : 'Transfer funds from this account to a portfolio.';
+    ? t('dialogs.portfolioTransfer.portfolio.title')
+    : t('dialogs.portfolioTransfer.account.title'),
+);
+const dialogDescription = computed(() =>
+  props.context === 'portfolio'
+    ? t('dialogs.portfolioTransfer.portfolio.description')
+    : t('dialogs.portfolioTransfer.account.description'),
+);
 </script>
 
 <template>

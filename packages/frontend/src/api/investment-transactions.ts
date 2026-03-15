@@ -8,14 +8,14 @@ export interface HoldingTransactionsResponse {
   offset: number;
 }
 
-export const createInvestmentTransaction = (payload: unknown): Promise<InvestmentTransactionModel> => {
+export const createInvestmentTransaction = (payload: Record<string, unknown>): Promise<InvestmentTransactionModel> => {
   return api.post('/investments/transaction', payload);
 };
 
 /** @public */
 export const updateInvestmentTransaction = (
   transactionId: number,
-  payload: unknown,
+  payload: Record<string, unknown>,
 ): Promise<InvestmentTransactionModel> => {
   return api.put(`/investments/transaction/${transactionId}`, payload);
 };
@@ -32,6 +32,14 @@ export const getInvestmentTransactions = (portfolioId: number): Promise<Investme
 export const getHoldingTransactions = (params: {
   portfolioId: number;
   securityId: number;
+  limit?: number;
+  offset?: number;
+}): Promise<HoldingTransactionsResponse> => {
+  return api.get('/investments/transactions', { ...params });
+};
+
+export const getPortfolioInvestmentTransactions = (params: {
+  portfolioId: number;
   limit?: number;
   offset?: number;
 }): Promise<HoldingTransactionsResponse> => {

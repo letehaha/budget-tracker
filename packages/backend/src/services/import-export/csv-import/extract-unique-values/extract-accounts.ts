@@ -60,7 +60,7 @@ export function extractAccounts(
         name,
         currency: Array.from(currencies)[0] || '',
       }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .toSorted((a, b) => a.name.localeCompare(b.name));
   } else if (accountOption.option === AccountOptionValue.existingAccount) {
     // No source accounts to extract - using single existing account
     result.sourceAccounts = [];

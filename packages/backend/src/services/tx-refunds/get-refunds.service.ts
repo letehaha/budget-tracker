@@ -4,7 +4,7 @@ import * as RefundTransactions from '@models/RefundTransactions.model';
 import * as Transactions from '@models/Transactions.model';
 import type { WhereOptions } from 'sequelize';
 
-export interface FiltersStructure {
+interface FiltersStructure {
   categoryId?: number;
   transactionType?: TRANSACTION_TYPES;
   accountId?: number;

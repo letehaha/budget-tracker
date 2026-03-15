@@ -1,9 +1,3 @@
-export const getQueryBooleanValue = (value: string): boolean => {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return Boolean(value);
-};
-
 // To wait until `fn` returns true
 export const until = async <T>(
   fn: () => Promise<T> | T,

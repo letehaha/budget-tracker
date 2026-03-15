@@ -2,8 +2,8 @@ import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as RefundTransactions from '@models/RefundTransactions.model';
-import * as TransactionSplits from '@models/TransactionSplits.model';
 import * as Transactions from '@models/Transactions.model';
+import * as TransactionSplits from '@models/TransactionSplits.model';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
@@ -108,8 +108,8 @@ export const createSingleRefund = withTransaction(
 
         // Check if refund amount is not greater than target amount
         // When targeting a split, compare against split's refAmount; otherwise use transaction's refAmount
-        const targetRefAmount = targetSplit ? Number(targetSplit.refAmount) : originalTx.refAmount;
-        if (Math.abs(refundTx.refAmount) > Math.abs(targetRefAmount)) {
+        const targetRefAmount = targetSplit ? Number(targetSplit.refAmount) : originalTx.refAmount.toNumber();
+        if (Math.abs(refundTx.refAmount.toNumber()) > Math.abs(targetRefAmount)) {
           throw new ValidationError({
             message: targetSplit
               ? 'Refund amount cannot be greater than the split amount'
@@ -161,11 +161,11 @@ export const createSingleRefund = withTransaction(
 
         // Calculate the total refunded amount
         const totalRefundedAmount = existingRefunds.reduce((sum, refund) => {
-          return sum + Math.abs(refund.refundTransaction.refAmount);
-        }, Math.abs(refundTx.refAmount));
+          return sum + Math.abs(refund.refundTransaction.refAmount.toNumber());
+        }, Math.abs(refundTx.refAmount.toNumber()));
 
         // Check if the new refund would exceed the target amount (split or transaction)
-        const targetRefAmount = targetSplit ? Number(targetSplit.refAmount) : originalTx.refAmount;
+        const targetRefAmount = targetSplit ? Number(targetSplit.refAmount) : originalTx.refAmount.toNumber();
         if (totalRefundedAmount > Math.abs(targetRefAmount)) {
           throw new ValidationError({
             message: targetSplit

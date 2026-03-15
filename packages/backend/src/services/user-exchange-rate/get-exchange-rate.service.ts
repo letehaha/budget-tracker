@@ -1,4 +1,6 @@
+import { t } from '@i18n/index';
 import { NotFoundError, UnexpectedError } from '@js/errors';
+import { logger } from '@js/utils';
 import { CacheClient } from '@js/utils/cache';
 import * as Currencies from '@models/Currencies.model';
 import * as ExchangeRates from '@models/ExchangeRates.model';
@@ -38,7 +40,6 @@ export async function getExchangeRate({
     };
   }
 
-  // Now do the expensive operations only on cache miss
   const pair = { baseCode, quoteCode };
 
   // If base and qoute are the same currency, early return with `1`
@@ -74,7 +75,7 @@ export async function getExchangeRate({
   });
 
   if (!userCurrency) {
-    throw new NotFoundError({ message: 'Asked currency is not connected' });
+    throw new NotFoundError({ message: t({ key: 'currencies.currencyNotConnected' }) });
   }
 
   const userDefaultCurrency = await getBaseCurrency({ userId });
@@ -106,8 +107,20 @@ export async function getExchangeRate({
   // Note: loadRate returns { rate: 1 } for USD, so we only need to check for null
   const needsFetch = !baseRate || !quoteRate;
 
-  if (needsFetch) {
-    await fetchExchangeRatesForDate(date);
+  // Also fetch if we only have stale fallback rates from a different date.
+  // loadRate returns the most recent rate as fallback when no exact-date match exists,
+  // but we should still attempt to fetch current rates for the requested date.
+  const hasStaleRates = !needsFetch && (!isRateForDate(baseRate, date) || !isRateForDate(quoteRate, date));
+
+  if (needsFetch || hasStaleRates) {
+    try {
+      await fetchExchangeRatesForDate(date);
+    } catch (e) {
+      // If we have no rates at all, propagate the error
+      if (needsFetch) throw e;
+      // If we have fallback rates from a different date, log and continue
+      logger.warn(`[getExchangeRate] Failed to fetch rates for ${date.toISOString()}, using fallback rates`);
+    }
 
     // Retry fetching the missing rates after the API call
     if (!baseRate) {
@@ -124,8 +137,18 @@ export async function getExchangeRate({
     (!baseRate && pair.baseCode !== API_LAYER_BASE_CURRENCY_CODE) ||
     (!quoteRate && pair.quoteCode !== API_LAYER_BASE_CURRENCY_CODE)
   ) {
+    logger.error(
+      `[getExchangeRate] Rate unavailable: pair=${pair.baseCode}/${pair.quoteCode}, date=${date.toISOString()}`,
+    );
     throw new UnexpectedError({
-      message: `Exchange rate not available for ${pair.baseCode}/${pair.quoteCode} on ${date.toISOString()}`,
+      message: t({
+        key: 'currencies.exchangeRateNotAvailable',
+        variables: {
+          baseCode: pair.baseCode,
+          quoteCode: pair.quoteCode,
+          date: date.toISOString(),
+        },
+      }),
     });
   }
 
@@ -157,6 +180,11 @@ export async function getExchangeRate({
   return result;
 }
 
+const isRateForDate = (rate: ExchangeRateReturnType | null, requestedDate: Date): boolean => {
+  if (!rate) return false;
+  return startOfDay(rate.date).getTime() === startOfDay(requestedDate).getTime();
+};
+
 const loadRate = async (code: string, rateDate: Date): Promise<ExchangeRateReturnType | null> => {
   if (code === API_LAYER_BASE_CURRENCY_CODE) {
     // No need to fetch if it's the API's default base currency
@@ -180,14 +208,38 @@ const loadRate = async (code: string, rateDate: Date): Promise<ExchangeRateRetur
     raw: true,
   });
 
-  if (!result) return null;
+  if (result) {
+    return {
+      baseCode: result.baseCode,
+      quoteCode: result.quoteCode,
+      rate: result.rate,
+      date: result.date,
+    };
+  }
 
-  return {
-    baseCode: result.baseCode,
-    quoteCode: result.quoteCode,
-    rate: result.rate,
-    date: result.date,
-  };
+  // Fallback: find the most recent rate regardless of date
+  const fallback = await ExchangeRates.default.findOne({
+    where: {
+      baseCode: API_LAYER_BASE_CURRENCY_CODE,
+      quoteCode: code,
+    },
+    order: [['date', 'DESC']],
+    raw: true,
+  });
+
+  if (fallback) {
+    logger.info(
+      `[loadRate] Using fallback rate for ${code} from ${fallback.date} (requested ${rateDate.toISOString()})`,
+    );
+    return {
+      baseCode: fallback.baseCode,
+      quoteCode: fallback.quoteCode,
+      rate: fallback.rate,
+      date: fallback.date,
+    };
+  }
+
+  return null;
 };
 
 type ExchangeRateParams = {

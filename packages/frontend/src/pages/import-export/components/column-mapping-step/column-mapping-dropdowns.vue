@@ -4,7 +4,7 @@
       :model-value="dateColumnObject"
       :values="columnOptions"
       label="Date Column"
-      placeholder="Select column..."
+      :placeholder="$t('pages.importExport.common.selectColumn')"
       required
       @update:model-value="handleDateChange"
     />
@@ -13,7 +13,7 @@
       :model-value="amountColumnObject"
       :values="columnOptions"
       label="Amount Column"
-      placeholder="Select column..."
+      :placeholder="$t('pages.importExport.common.selectColumn')"
       required
       @update:model-value="handleAmountChange"
     />
@@ -22,7 +22,7 @@
       :model-value="descriptionColumnObject"
       :values="columnOptions"
       label="Description Column"
-      placeholder="None (optional)"
+      :placeholder="$t('pages.importExport.common.noneOptional')"
       @update:model-value="handleDescriptionChange"
     />
   </div>
@@ -54,7 +54,6 @@ interface OptionItem {
   label: string;
   value: string;
 }
-
 const importStore = useImportExportStore();
 
 const columnOptions = computed<OptionItem[]>(() =>

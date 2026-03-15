@@ -22,7 +22,7 @@ export const useCurrenciesStore = defineStore('currencies', () => {
         }
         return acc;
       },
-      { linked: [], unlinked: [] },
+      { linked: [] as CurrencyModel[], unlinked: [] as CurrencyModel[] },
     ),
   );
 

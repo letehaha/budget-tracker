@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
 import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
+import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Transactions from '@models/Transactions.model';
 import {
   BaseBankDataProvider,
-  CredentialFieldType,
   DateRange,
   ProviderAccount,
   ProviderBalance,
@@ -39,16 +39,6 @@ export class MonobankProvider extends BaseBankDataProvider {
       defaultSyncInterval: 4 * 60 * 60 * 1000, // 4 hours
       minSyncInterval: 60 * 1000, // 1 minute (Monobank API rate limit)
     },
-    credentialFields: [
-      {
-        name: 'apiToken',
-        type: CredentialFieldType.PASSWORD,
-        label: 'API Token',
-        placeholder: 'Enter your Monobank API token',
-        required: true,
-        helpText: 'Get your token from Monobank mobile app: Profile → API Settings → Generate Token',
-      },
-    ],
   };
 
   // ============================================================================
@@ -58,7 +48,7 @@ export class MonobankProvider extends BaseBankDataProvider {
   async connect(userId: number, credentials: unknown): Promise<number> {
     // Validate credentials structure
     if (!this.isValidCredentials(credentials)) {
-      throw new ValidationError({ message: 'Invalid credentials format for Monobank' });
+      throw new ValidationError({ message: t({ key: 'bankDataProviders.monobank.invalidCredentialsFormat' }) });
     }
 
     const { apiToken } = credentials;
@@ -66,7 +56,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     // Validate token by calling Monobank API
     const isValid = await this.validateCredentials(credentials);
     if (!isValid) {
-      throw new ForbiddenError({ message: 'Invalid Monobank API token' });
+      throw new ForbiddenError({ message: t({ key: 'bankDataProviders.monobank.invalidApiToken' }) });
     }
 
     const apiClient = new MonobankApiClient(apiToken);
@@ -108,7 +98,7 @@ export class MonobankProvider extends BaseBankDataProvider {
 
     try {
       return await apiClient.testConnection();
-    } catch (error) {
+    } catch {
       // Network or other errors - consider as invalid
       return false;
     }
@@ -116,7 +106,7 @@ export class MonobankProvider extends BaseBankDataProvider {
 
   async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {
     if (!this.isValidCredentials(newCredentials)) {
-      throw new ValidationError({ message: 'Invalid credentials format for Monobank' });
+      throw new ValidationError({ message: t({ key: 'bankDataProviders.monobank.invalidCredentialsFormat' }) });
     }
 
     const connection = await this.getConnection(connectionId);
@@ -125,7 +115,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     // Validate new credentials
     const isValid = await this.validateCredentials(newCredentials);
     if (!isValid) {
-      throw new ForbiddenError({ message: 'Invalid Monobank API token' });
+      throw new ForbiddenError({ message: t({ key: 'bankDataProviders.monobank.invalidApiToken' }) });
     }
 
     // Update credentials - newCredentials is validated as MonobankCredentials, cast to Record for encryption
@@ -170,7 +160,7 @@ export class MonobankProvider extends BaseBankDataProvider {
 
     return transactions.map((tx) => ({
       externalId: tx.id,
-      amount: tx.amount,
+      amount: asCents(tx.amount),
       currency: this.getCurrencyCodeFromMonobank(tx.currencyCode),
       date: new Date(tx.time * 1000),
       description: tx.description,
@@ -263,7 +253,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     this.validateProviderType(connection);
 
     if (!account.externalId) {
-      throw new BadRequestError({ message: 'Account does not have external ID from Monobank' });
+      throw new BadRequestError({ message: t({ key: 'accounts.accountNoExternalIdMonobank' }) });
     }
 
     const { apiToken } = await this.getValidatedCredentials(connectionId);
@@ -309,11 +299,13 @@ export class MonobankProvider extends BaseBankDataProvider {
     const account = clientInfo.accounts.find((acc) => acc.id === accountExternalId);
 
     if (!account) {
-      throw new NotFoundError({ message: `Account ${accountExternalId} not found in Monobank` });
+      throw new NotFoundError({
+        message: t({ key: 'bankDataProviders.monobank.accountNotFound', variables: { accountExternalId } }),
+      });
     }
 
     return {
-      amount: account.balance,
+      amount: asCents(account.balance),
       currency: this.getCurrencyCodeFromMonobank(account.currencyCode),
       asOf: new Date(),
     };
@@ -323,7 +315,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     const account = await this.getSystemAccount(systemAccountId);
 
     if (!account.externalId) {
-      throw new BadRequestError({ message: 'Account does not have external ID' });
+      throw new BadRequestError({ message: t({ key: 'accounts.accountNoExternalId' }) });
     }
 
     const balance = await this.fetchBalance(connectionId, account.externalId);
@@ -358,7 +350,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     // 2. Extract transaction data from payload
     // 3. Find the corresponding account
     // 4. Create the transaction in database
-    throw new Error('handleWebhook not yet implemented for Monobank');
+    throw new Error(t({ key: 'bankDataProviders.monobank.webhookNotImplemented' }));
   }
 
   // ============================================================================
@@ -381,7 +373,7 @@ export class MonobankProvider extends BaseBankDataProvider {
   private async getValidatedCredentials(connectionId: number): Promise<MonobankCredentials> {
     const credentials = await this.getDecryptedCredentials(connectionId);
     if (!this.isValidCredentials(credentials)) {
-      throw new ValidationError({ message: 'Invalid credentials format' });
+      throw new ValidationError({ message: t({ key: 'bankDataProviders.monobank.invalidCredentialsFormat' }) });
     }
     return credentials;
   }
@@ -446,7 +438,9 @@ export class MonobankProvider extends BaseBankDataProvider {
   private getCurrencyCodeFromMonobank(numericCode: number): string {
     const currency = cc.number(String(numericCode));
     if (!currency) {
-      throw new ValidationError({ message: `Unknown currency code: ${numericCode}` });
+      throw new ValidationError({
+        message: t({ key: 'bankDataProviders.monobank.unknownCurrencyCode', variables: { numericCode } }),
+      });
     }
     return currency.code;
   }

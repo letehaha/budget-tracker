@@ -1,0 +1,166 @@
+{
+  "transactions": {
+    "filters": {
+      "filtersLabel": "Фільтри:",
+      "selectFilters": "Вибрати фільтри",
+      "reset": "Скинути",
+      "apply": "Застосувати",
+      "dateRange": {
+        "tabs": {
+          "range": "Діапазон",
+          "single": "Дати окремо"
+        },
+        "selectDateOrRange": "Виберіть дату або діапазон",
+        "fromDate": "Від дати",
+        "toDate": "До дати",
+        "clear": "Очистити",
+        "presets": {
+          "thisMonth": "Цей місяць",
+          "last3Months": "Останні 3 місяці",
+          "last6Months": "Останні 6 місяців",
+          "last12Months": "Останні 12 місяців"
+        }
+      },
+      "transactionType": {
+        "label": "Тип транзакції:",
+        "both": "Всі",
+        "income": "Доходи",
+        "expense": "Витрати"
+      },
+      "amountRange": {
+        "from": "Сума від (включно)",
+        "to": "Сума до (включно)",
+        "placeholderFrom": ">= ніж",
+        "placeholderTo": "<= ніж"
+      },
+      "refundsFilter": {
+        "label": "Повернення"
+      },
+      "transferFilter": {
+        "label": "Перекази"
+      },
+      "filterOperation": {
+        "all": "Всі",
+        "exclude": "Виключити",
+        "only": "Тільки"
+      },
+      "noteIncludes": {
+        "label": "Примітка містить (через кому):",
+        "placeholder": "Amazon,nike"
+      },
+      "tags": {
+        "allTags": "Усі теги",
+        "tagSingular": "тег",
+        "tagPlural": "тегів",
+        "selected": "обрано",
+        "searchPlaceholder": "Шукати теги..."
+      }
+    },
+    "list": {
+      "noMoreData": "Більше транзакцій немає",
+      "loadingMore": "Завантаження...",
+      "detailsTitle": "Деталі транзакції",
+      "detailsDescription": "Перегляд та редагування транзакції"
+    },
+    "bulkEdit": {
+      "selectAll": "Вибрати всі",
+      "editButton": "Редагувати",
+      "selectedCount": "Вибрано: {count}",
+      "dialogTitle": "Редагувати {count} транзакцій",
+      "dialogDescription": "Зміни буде застосовано до всіх вибраних транзакцій. Оновлені будуть лише заповнені поля.",
+      "categoryLabel": "Категорія",
+      "categoryPlaceholder": "Оберіть категорію...",
+      "tagsLabel": "Теги",
+      "tagsPlaceholder": "Оберіть теги...",
+      "noteLabel": "Примітка",
+      "notePlaceholder": "Введіть примітку...",
+      "applyButton": "Застосувати зміни",
+      "applyingButton": "Застосування...",
+      "confirmTitle": "Підтвердження змін",
+      "confirmDescription": "Ви збираєтесь оновити {count} транзакцій:",
+      "confirmCategoryLabel": "Категорія",
+      "confirmTagsLabel": "Теги",
+      "confirmNoteLabel": "Примітка",
+      "cancelButton": "Скасувати",
+      "confirmApplyButton": "Застосувати",
+      "successMessage": "Успішно оновлено {count} транзакцій",
+      "unexpectedError": "Виникла неочікувана помилка",
+      "tagModeLabel": "Дія з тегами",
+      "tagModeAdd": "Додати до існуючих тегів",
+      "tagModeReplace": "Замінити всі теги",
+      "tagModeRemove": "Видалити ці теги"
+    },
+    "transactionGroups": {
+      "navigation": {
+        "allTransactions": "Всі транзакції",
+        "groups": "Групи"
+      },
+      "bulkActions": {
+        "createNewGroup": "Створити нову групу",
+        "addToExistingGroup": "Додати до існуючої групи",
+        "groupButton": "Група"
+      },
+      "addToGroupDialog": {
+        "title": "Додати до існуючої групи",
+        "searchPlaceholder": "Шукати групи...",
+        "noGroupsMessage": "Груп ще немає. Спочатку створіть одну.",
+        "noSearchResultsMessage": "Жодна група не відповідає вашому пошуку.",
+        "loadingText": "Завантаження груп...",
+        "addingText": "Додавання...",
+        "buttonLabel": "Додати до групи",
+        "cancelButton": "Скасувати",
+        "transactionCountLabel": "транзакцій"
+      },
+      "createGroupDialog": {
+        "title": "Створити групу транзакцій",
+        "descriptionPrefix": "Група",
+        "groupNameLabel": "Назва",
+        "groupNamePlaceholder": "напр. травневий переказ зарплати",
+        "noteLabel": "Примітка (необов'язково)",
+        "notePlaceholder": "Необов'язковий опис...",
+        "creatingText": "Створення...",
+        "buttonLabel": "Створити групу",
+        "cancelButton": "Скасувати"
+      },
+      "groupsPage": {
+        "title": "Групи транзакцій",
+        "searchPlaceholder": "Шукати групи...",
+        "noGroupsMessage": "Групи транзакцій ще не створені.",
+        "emptyStateHint": "Виберіть транзакції на сторінці \"Транзакції\" і натисніть \"Створити групу\" для початку.",
+        "transactionCountLabel": "транзакцій"
+      },
+      "groupDialog": {
+        "editTitle": "Редагувати групу",
+        "nameLabel": "Назва",
+        "noteLabel": "Примітка (необов'язково)",
+        "notePlaceholder": "Необов'язкова примітка...",
+        "loadingText": "Завантаження...",
+        "savingText": "Збереження...",
+        "savingAction": "Зберегти",
+        "cancelButton": "Скасувати",
+        "deletingText": "Видалення...",
+        "editAction": "Редагувати",
+        "deleteAction": "Видалити групу",
+        "transactionsLabel": "Транзакції",
+        "deleteGroupTitle": "Видалити групу",
+        "deleteGroupDescription": "Ви впевнені, що хочете видалити \"{groupName}\"? Транзакції не будуть видалені.",
+        "removeTransactionTitle": "Видалити транзакцію з групи",
+        "removeTransactionDescription": "Це залишить менше 2 транзакцій у групі, тому група буде видалена. Продовжити?",
+        "removeTransactionDescriptionNormal": "Ви впевнені, що хочете видалити цю транзакцію з групи?",
+        "removeButtonText": "Видалити",
+        "removeAndDeleteButtonText": "Видалити й видалити групу",
+        "transactionCountSuffix": "транзакцій"
+      },
+      "transactionGroupRecord": {
+        "transactionCountLabel": "транзакцій"
+      },
+      "errors": {
+        "nameRequired": "Назва групи обов'язкова",
+        "minTransactions": "Виберіть щонайменше {min} транзакцій",
+        "alreadyInGroup": "Деякі вибрані транзакції вже належать до групи",
+        "createFailed": "Не вдалося створити групу",
+        "addFailed": "Не вдалося додати транзакції до групи"
+      }
+    }
+  }
+}

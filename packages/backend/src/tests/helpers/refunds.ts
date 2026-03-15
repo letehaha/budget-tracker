@@ -1,5 +1,8 @@
+import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import type { GetRefundTransactionsParams } from '@services/tx-refunds/get-refunds.service';
 import * as helpers from '@tests/helpers';
+
+import { MakeRequestReturn } from './common';
 
 export const createSingleRefund = async (
   payload: { originalTxId: number | null; refundTxId: number; splitId?: string },
@@ -53,3 +56,22 @@ export const deleteRefund = async (
 
   return raw ? helpers.extractResponse(result) : result;
 };
+
+interface GetRefundRecommendationsParams {
+  transactionId?: number;
+  transactionType?: TRANSACTION_TYPES;
+  originAmount?: number;
+  accountId?: number;
+}
+
+export function getRefundRecommendations<R extends boolean | undefined = undefined>({
+  raw,
+  ...params
+}: GetRefundRecommendationsParams & { raw?: R }): Promise<MakeRequestReturn<TransactionModel[], R>> {
+  return helpers.makeRequest<TransactionModel[], R>({
+    method: 'get',
+    url: '/transactions/refund-recommendations',
+    payload: params,
+    raw,
+  });
+}

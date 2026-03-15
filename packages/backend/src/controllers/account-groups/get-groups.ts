@@ -1,5 +1,6 @@
 import { commaSeparatedRecordIds } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeAccountGroups } from '@root/serializers';
 import * as accountGroupService from '@services/account-groups';
 import { z } from 'zod';
 
@@ -17,6 +18,6 @@ export default createController(
       hidden: query.hidden,
     });
 
-    return { data };
+    return { data: serializeAccountGroups(data) };
   },
 );

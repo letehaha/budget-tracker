@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="grid w-full grid-cols-[minmax(0,1fr)_max-content] items-center gap-2 rounded-md px-2 py-1"
-  >
+  <div class="grid w-full grid-cols-[minmax(0,1fr)_max-content] items-center gap-2 rounded-md px-2 py-1">
     <!-- Left side: Category circle + text -->
     <div class="flex items-center gap-2 overflow-hidden">
       <!-- Category circle skeleton -->

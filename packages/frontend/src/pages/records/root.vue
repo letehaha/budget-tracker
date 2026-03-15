@@ -1,9 +1,9 @@
 <template>
-  <div class="p-4">
-    <div class="flex w-min max-w-full flex-col gap-4 lg:w-auto lg:flex-row xl:gap-20">
+  <PageWrapper>
+    <div class="flex w-min max-w-full flex-col gap-4 lg:w-auto lg:flex-row">
       <template v-if="!isMobileView">
         <Card
-          class="sticky top-(--header-height) h-min max-h-[calc(100vh-var(--header-height)-32px)] min-w-[350px] overflow-auto p-4"
+          class="sticky top-(--header-height) h-min max-h-[calc(100vh-var(--header-height)-32px)] min-w-87.5 overflow-auto p-4"
         >
           <FiltersPanel
             v-model:filters="filters"
@@ -28,10 +28,12 @@
         </FiltersDialog>
       </template>
 
-      <Card class="w-screen max-w-full rounded-md px-2 py-4 sm:max-w-[450px] sm:p-6">
+      <Card class="w-screen max-w-full rounded-md px-2 py-4 sm:max-w-full sm:p-6 lg:max-w-2xl">
         <template v-if="isFetched && transactionsPages">
           <TransactionsList
             ref="transactionsListRef"
+            enable-bulk-edit
+            :content-filters-active="contentFiltersActive"
             @fetch-next-page="fetchNextPage"
             :hasNextPage="hasNextPage"
             :isFetchingNextPage="isFetchingNextPage"
@@ -42,18 +44,20 @@
     </div>
 
     <ScrollTopButton />
-  </div>
+  </PageWrapper>
 </template>
 
 <script lang="ts" setup>
+import PageWrapper from '@/components/common/page-wrapper.vue';
 import { Card } from '@/components/lib/ui/card';
 import FiltersDialog from '@/components/records-filters/filters-dialog.vue';
 import FiltersPanel from '@/components/records-filters/index.vue';
 import { useTransactionsWithFilters } from '@/components/records-filters/transactions-with-filters';
 import { useFiltersFromQuery } from '@/components/records-filters/use-filters-from-query';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
+import { DEFAULT_FILTERS } from '@/components/records-filters/const';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import ScrollTopButton from './components/scroll-to-top.vue';
@@ -99,4 +103,21 @@ watch(appliedFilters, () => {
 });
 
 const isMobileView = useWindowBreakpoints(1024);
+
+// Content filters dissolve groups — only date filters keep groups visible
+const contentFiltersActive = computed(() => {
+  const f = appliedFilters.value;
+  return (
+    f.transactionType !== DEFAULT_FILTERS.transactionType ||
+    f.amountGte !== DEFAULT_FILTERS.amountGte ||
+    f.amountLte !== DEFAULT_FILTERS.amountLte ||
+    f.accounts.length > 0 ||
+    f.categoryIds.length > 0 ||
+    f.tagIds.length > 0 ||
+    f.noteIncludes !== DEFAULT_FILTERS.noteIncludes ||
+    f.transferFilter !== DEFAULT_FILTERS.transferFilter ||
+    f.refundFilter !== DEFAULT_FILTERS.refundFilter ||
+    f.categorizationSource !== DEFAULT_FILTERS.categorizationSource
+  );
+});
 </script>

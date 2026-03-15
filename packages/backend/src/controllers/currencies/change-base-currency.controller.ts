@@ -1,5 +1,6 @@
 import { currencyCode } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { changeBaseCurrency } from '@root/services/currencies/change-base-currency.service';
 import { exchangeRateProviderRegistry } from '@services/exchange-rates/providers';
@@ -16,7 +17,10 @@ export default createController(schema, async ({ user, body }) => {
   if (!exchangeRateProviderRegistry.isCurrencySupportedForHistoricalData(body.newCurrencyCode)) {
     const supportedCurrencies = exchangeRateProviderRegistry.getSupportedCurrenciesForHistoricalData();
     throw new ValidationError({
-      message: `Changing base currency to ${body.newCurrencyCode} is not supported. Only these currencies are supported: ${supportedCurrencies.join(', ')}.`,
+      message: t({
+        key: 'currencies.notSupportedForBaseCurrency',
+        variables: { currency: body.newCurrencyCode, supportedCurrencies: supportedCurrencies.join(', ') },
+      }),
     });
   }
 

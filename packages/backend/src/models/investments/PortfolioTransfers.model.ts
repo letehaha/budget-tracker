@@ -11,6 +11,7 @@ import {
   Attribute,
   AutoIncrement,
   BelongsTo,
+  Default,
   Index,
   NotNull,
   PrimaryKey,
@@ -19,6 +20,7 @@ import {
 
 import Accounts from '../Accounts.model';
 import Currencies from '../Currencies.model';
+import Transactions from '../Transactions.model';
 import Users from '../Users.model';
 import Portfolios from './Portfolios.model';
 
@@ -77,6 +79,14 @@ export default class PortfolioTransfers
   @Attribute(DataTypes.TEXT)
   declare description: string | null;
 
+  @Attribute(DataTypes.JSONB)
+  @Default(null)
+  declare metaData: Record<string, unknown> | null;
+
+  @Attribute(DataTypes.INTEGER)
+  @Index
+  declare transactionId: number | null;
+
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
@@ -98,4 +108,7 @@ export default class PortfolioTransfers
 
   @BelongsTo(() => Currencies, 'currencyCode')
   declare currency?: NonAttribute<Currencies>;
+
+  @BelongsTo(() => Transactions, 'transactionId')
+  declare transaction?: NonAttribute<Transactions>;
 }

@@ -4,15 +4,15 @@
     <div v-if="store.extractionResult" class="bg-muted rounded-lg p-4">
       <div class="flex flex-wrap items-center gap-4 text-sm">
         <div>
-          <span class="text-muted-foreground">Transactions:</span>
+          <span class="text-muted-foreground">{{ t('pages.statementParser.accountSelection.transactions') }}</span>
           <span class="ml-1 font-medium">{{ store.extractionResult.transactions.length }}</span>
         </div>
         <div v-if="store.extractionResult.metadata.bankName">
-          <span class="text-muted-foreground">Bank:</span>
+          <span class="text-muted-foreground">{{ t('pages.statementParser.accountSelection.bank') }}</span>
           <span class="ml-1 font-medium">{{ store.extractionResult.metadata.bankName }}</span>
         </div>
         <div v-if="store.detectedCurrency">
-          <span class="text-muted-foreground">Currency:</span>
+          <span class="text-muted-foreground">{{ t('pages.statementParser.accountSelection.currency') }}</span>
           <span class="ml-1 font-medium">{{ store.detectedCurrency }}</span>
         </div>
       </div>
@@ -25,16 +25,21 @@
     >
       <div class="flex items-start gap-2 text-sm text-yellow-700">
         <AlertTriangleIcon class="mt-0.5 size-4 shrink-0" />
-        <p>Could not detect statement currency. Please select the currency manually:</p>
+        <p>{{ t('pages.statementParser.accountSelection.currencyNotDetected') }}</p>
       </div>
       <div class="max-w-xs">
-        <Select.Select :model-value="store.manualCurrency ?? undefined" @update:model-value="handleCurrencyChange">
+        <Select.Select
+          :model-value="store.manualCurrency ?? undefined"
+          @update:model-value="(v: any) => handleCurrencyChange(v as string)"
+        >
           <Select.SelectTrigger>
-            <Select.SelectValue placeholder="Select currency" />
+            <Select.SelectValue :placeholder="$t('pages.statementParser.selectCurrency')" />
           </Select.SelectTrigger>
           <Select.SelectContent>
             <template v-for="item of systemCurrenciesVerbose.linked" :key="item.code">
-              <Select.SelectItem :value="item.code"> {{ item.code }} - {{ item.currency }} </Select.SelectItem>
+              <Select.SelectItem :value="item.code">
+                {{ formatCurrencyLabel({ code: item.code, fallbackName: item.currency }) }}
+              </Select.SelectItem>
             </template>
           </Select.SelectContent>
         </Select.Select>
@@ -49,13 +54,13 @@
           :accounts="enabledAccounts"
           :detected-currency="store.effectiveCurrency"
           :is-new-account="store.isNewAccount"
-          placeholder="Select existing account"
+          :placeholder="$t('pages.statementParser.selectExistingAccount')"
           @update:model-value="selectExistingAccount"
         />
 
         <Button variant="outline" @click="showCreateDialog = true">
           <PlusIcon class="mr-2 size-4" />
-          Create New
+          {{ t('pages.statementParser.accountSelection.createNew') }}
         </Button>
       </div>
 
@@ -70,20 +75,25 @@
       >
         <AlertTriangleIcon class="mt-0.5 size-4 shrink-0" />
         <p>
-          The statement currency ({{ store.effectiveCurrency }}) differs from the account currency ({{
-            store.selectedAccount.currencyCode
-          }}). Transactions will be imported using the account currency.
+          {{
+            t('pages.statementParser.accountSelection.currencyMismatch', {
+              statementCurrency: store.effectiveCurrency,
+              accountCurrency: store.selectedAccount.currencyCode,
+            })
+          }}
         </p>
       </div>
 
       <div class="flex gap-3">
         <Button variant="outline" @click="handleBack">
           <ArrowLeftIcon class="mr-2 size-4" />
-          Back
+          {{ t('pages.statementParser.accountSelection.back') }}
         </Button>
         <Button v-if="store.selectedAccount" class="flex-1" @click="handleProceed">
-          <template v-if="store.isNewAccount"> Import Transactions </template>
-          <template v-else> Check for Duplicates </template>
+          <template v-if="store.isNewAccount">
+            {{ t('pages.statementParser.accountSelection.importTransactions') }}
+          </template>
+          <template v-else>{{ t('pages.statementParser.accountSelection.checkForDuplicates') }}</template>
         </Button>
       </div>
     </div>
@@ -91,7 +101,7 @@
     <!-- Create Account Dialog -->
     <CreateAccountForImportDialog
       v-model:open="showCreateDialog"
-      :default-currency="store.effectiveCurrency"
+      :default-currency="store.effectiveCurrency ?? undefined"
       :default-name="store.extractionResult?.metadata.bankName"
       @created="handleAccountCreated"
     />
@@ -101,21 +111,26 @@
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
 import * as Select from '@/components/lib/ui/select';
+import { useCurrencyName } from '@/composable';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { useStatementParserStore } from '@/stores/statement-parser';
 import type { AccountModel } from '@bt/shared/types';
 import { AlertTriangleIcon, ArrowLeftIcon, PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import AccountSelectField from './account-select-field.vue';
 import CreateAccountForImportDialog from './create-account-for-import-dialog.vue';
+
+const { t } = useI18n();
 
 const store = useStatementParserStore();
 const accountsStore = useAccountsStore();
 const currenciesStore = useCurrenciesStore();
 const { enabledAccounts } = storeToRefs(accountsStore);
 const { systemCurrenciesVerbose } = storeToRefs(currenciesStore);
+const { formatCurrencyLabel } = useCurrencyName();
 
 const showCreateDialog = ref(false);
 
@@ -132,7 +147,7 @@ function handleAccountCreated(account: AccountModel) {
   showCreateDialog.value = false;
 }
 
-function handleCurrencyChange(currencyCode: string | null) {
+function handleCurrencyChange(currencyCode: string) {
   store.setManualCurrency({ currencyCode });
   // Clear selected account when currency changes since it might no longer match
   store.clearSelectedAccount();

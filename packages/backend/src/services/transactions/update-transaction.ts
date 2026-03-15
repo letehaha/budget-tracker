@@ -1,13 +1,17 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/Accounts.model';
 import RefundTransactions from '@models/RefundTransactions.model';
-import { deleteSplitsForTransaction } from '@models/TransactionSplits.model';
+import Tags from '@models/Tags.model';
 import * as Transactions from '@models/Transactions.model';
+import { deleteSplitsForTransaction } from '@models/TransactionSplits.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import * as refundsService from '@services/tx-refunds';
 import { Op } from 'sequelize';
 
@@ -25,7 +29,8 @@ export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = ['amount', 'time', 't
  * 2. Do now allow editing non-source transaction (TODO: except it's an external one)
  */
 const validateTransaction = async (newData: UpdateTransactionParams, prevData: Transactions.default) => {
-  if (+newData.id !== +prevData.id) throw new ValidationError({ message: 'id cannot be changed' });
+  if (+newData.id !== +prevData.id)
+    throw new ValidationError({ message: t({ key: 'transactions.idCannotBeChanged' }) });
 
   // Check the account type, not the transaction type
   // A system transaction in a monobank account should be treated as external
@@ -36,7 +41,7 @@ const validateTransaction = async (newData: UpdateTransactionParams, prevData: T
 
   if (!account) {
     throw new NotFoundError({
-      message: 'Account not found for this transaction',
+      message: t({ key: 'accounts.accountNotFoundForTransaction' }),
     });
   }
 
@@ -45,21 +50,26 @@ const validateTransaction = async (newData: UpdateTransactionParams, prevData: T
   if (isExternalAccount) {
     if (EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS.some((field) => newData[field] !== undefined)) {
       throw new ValidationError({
-        message: 'Attempt to edit readonly fields of the external account',
+        message: t({ key: 'transactions.editReadonlyFields' }),
       });
     }
   }
 
   if (newData.transactionType && isExternalAccount && newData.transactionType !== prevData.transactionType) {
     throw new ValidationError({
-      message: 'It\'s disallowed to change "transactionType" of the non-system account',
+      message: t({ key: 'transactions.changeTypeNotAllowed' }),
     });
   }
 
   if (newData.refundedByTxIds !== undefined && newData.refundsTxId !== undefined) {
     throw new ValidationError({
-      message:
-        'You cannot use both "refundedByTxIds" and "refundsTxId" simultaneously. Please choose one or the other.',
+      message: t({ key: 'transactions.bothRefundFieldsNotAllowed' }),
+    });
+  }
+
+  if (prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio) {
+    throw new ValidationError({
+      message: t({ key: 'transactions.cannotEditPortfolioLinkedTransaction' }),
     });
   }
 
@@ -99,14 +109,14 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
   const transactionType = isSystemAccount ? newData.transactionType : prevData.transactionType;
 
   const baseTransactionUpdateParams: Transactions.UpdateTransactionByIdParams & {
-    amount: number;
-    refAmount: number;
+    amount: Money;
+    refAmount: Money;
     currencyCode: string;
     time: Date;
   } = {
     id: newData.id,
-    amount: newData.amount ?? prevData.amount,
-    refAmount: newData.amount ?? prevData.refAmount,
+    amount: newData.amount !== undefined ? newData.amount : prevData.amount,
+    refAmount: newData.amount !== undefined ? newData.amount : prevData.refAmount,
     note: newData.note,
     time: newData.time ?? prevData.time,
     userId: newData.userId,
@@ -178,13 +188,12 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
             },
           },
           attributes: ['refAmount'],
-          raw: true,
         });
-        const sum = newTransactions.reduce((acc, curr) => (acc += curr.refAmount), 0);
+        const sum = Money.sum(newTransactions.map((curr) => curr.refAmount));
 
-        if (sum > baseTransactionUpdateParams.refAmount) {
+        if (sum.greaterThan(baseTransactionUpdateParams.refAmount)) {
           throw new ValidationError({
-            message: 'Total refund amount cannot be greater than the original transaction amount',
+            message: t({ key: 'transactions.refundExceedsOriginal' }),
           });
         }
 
@@ -266,14 +275,14 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 
   if (!oppositeTx) {
     throw new NotFoundError({
-      message: 'Cannot find opposite tx to make an updation',
+      message: t({ key: 'transactions.oppositeTransactionNotFound' }),
     });
   }
 
   let updateOppositeTxParams = removeUndefinedKeys({
     id: oppositeTx.id,
     userId,
-    amount: destinationAmount,
+    amount: destinationAmount !== undefined ? destinationAmount : undefined,
     refAmount: baseTransaction.refAmount,
     transactionType: TRANSACTION_TYPES.income,
     accountId: destinationAccountId,
@@ -390,7 +399,7 @@ export const updateTransaction = withTransaction(
 
       if (!prevData) {
         throw new NotFoundError({
-          message: 'Transaction with provided `id` does not exist!',
+          message: t({ key: 'transactions.transactionIdNotExist' }),
         });
       }
 
@@ -478,6 +487,34 @@ export const updateTransaction = withTransaction(
           transactionId: baseTransaction.id,
           userId: payload.userId,
         });
+      }
+
+      // Handle tags
+      if (payload.tagIds !== undefined) {
+        if (payload.tagIds === null || payload.tagIds.length === 0) {
+          // Clear all tags
+          await baseTransaction.$set('tags', []);
+        } else {
+          // Validate that all tagIds belong to the current user
+          const userTags = await Tags.findAll({
+            where: { userId: payload.userId, id: payload.tagIds },
+            attributes: ['id'],
+          });
+
+          if (userTags.length !== payload.tagIds.length) {
+            throw new ValidationError({
+              message: t({ key: 'transactions.invalidTagIds' }),
+            });
+          }
+
+          // Set new tags
+          await baseTransaction.$set('tags', payload.tagIds);
+
+          if (payload.tagIds?.length) {
+            // Emit event for real-time reminders check (handled by event listener)
+            eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_TAGGED, { tagIds: payload.tagIds, userId: payload.userId });
+          }
+        }
       }
 
       return updatedTransactions;

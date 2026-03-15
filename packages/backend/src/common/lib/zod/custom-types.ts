@@ -1,8 +1,59 @@
+import { Money } from '@common/types/money';
 import { z } from 'zod';
 
 export const recordId = () => z.coerce.number().int().positive().finite();
 export const recordArrayIds = () => z.array(recordId());
+
+/**
+ * Array of unique record IDs. Validates that all IDs are unique.
+ * Accepts optional min/max constraints.
+ */
+export const uniqueRecordIds = ({ min, max }: { min?: number; max?: number } = {}) => {
+  let schema = z.array(recordId());
+  if (min !== undefined) schema = schema.min(min);
+  if (max !== undefined) schema = schema.max(max);
+  return schema.refine((ids) => new Set(ids).size === ids.length, {
+    message: 'IDs must be unique',
+  });
+};
+
+/**
+ * Zod type for decimal monetary amounts from API requests.
+ * Accepts a finite number and transforms it directly into a Money instance,
+ * eliminating the need to call Money.fromDecimal() manually in controllers.
+ *
+ * @example
+ * body: z.object({
+ *   amount: decimalMoney(),           // Money instance, any value
+ *   fee: decimalMoney().optional(),   // optional Money instance
+ * })
+ */
+export const decimalMoney = () => z.number().transform((val) => Money.fromDecimal(val));
 export const currencyCode = () => z.string().length(3);
+
+/**
+ * Optional comma-separated numeric IDs for query parameters.
+ * Silently filters out non-numeric values (lenient parsing for GET queries).
+ * Returns undefined when the string is absent.
+ *
+ * @example
+ * query: z.object({ categoryIds: optionalCommaSeparatedIds() })
+ * // "1,2,3" => [1, 2, 3]
+ * // "1,abc,3" => [1, 3]
+ * // undefined => undefined
+ */
+export const optionalCommaSeparatedIds = () =>
+  z
+    .string()
+    .optional()
+    .transform((val) =>
+      val
+        ? val
+            .split(',')
+            .map((id) => Number(id.trim()))
+            .filter((id) => !Number.isNaN(id))
+        : undefined,
+    );
 
 /**
  * Used for the case when array is expected to be received like 1,2,3.
@@ -49,6 +100,16 @@ export const booleanQuery = () =>
       message: 'Boolean value must be "true", "false", "1", or "0"',
     });
     return z.NEVER;
+  });
+
+/** Validates a YYYY-MM-DD date string. */
+export const dateString = () =>
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format' });
+
+/** Validates a positive decimal amount string (rejects zero and negative by default). */
+export const positiveAmountString = () =>
+  z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: 'Amount must be a valid number greater than 0',
   });
 
 export const numericString = (options?: { allowNegative?: boolean; allowZero?: boolean }) =>

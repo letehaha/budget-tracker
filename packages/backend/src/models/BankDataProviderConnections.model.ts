@@ -26,7 +26,7 @@ import { decryptCredentials, encryptCredentials } from '@services/bank-data-prov
 /**
  * Interface for BankDataProviderConnections attributes
  */
-export interface BankDataProviderConnectionsAttributes {
+interface BankDataProviderConnectionsAttributes {
   id: number;
   userId: number;
   providerType: BANK_PROVIDER_TYPE;

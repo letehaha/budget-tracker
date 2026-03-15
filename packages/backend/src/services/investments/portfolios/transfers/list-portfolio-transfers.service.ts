@@ -1,7 +1,9 @@
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
+import Accounts from '@models/Accounts.model';
 import Currencies from '@models/Currencies.model';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import Portfolios from '@models/investments/Portfolios.model';
+import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import { Op } from 'sequelize';
 
 interface ListPortfolioTransfersParams {
@@ -31,7 +33,7 @@ export async function listPortfolioTransfers({
   });
 
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   // Build date filter if provided
@@ -47,7 +49,7 @@ export async function listPortfolioTransfers({
   }
 
   // Build where clause to find transfers involving this portfolio
-  // (either as source or destination)
+  // (either as source or destination, including account↔portfolio transfers)
   const whereClause = {
     userId,
     [Op.or]: [{ fromPortfolioId: portfolioId }, { toPortfolioId: portfolioId }],
@@ -65,6 +67,8 @@ export async function listPortfolioTransfers({
     include: [
       { model: Portfolios, as: 'fromPortfolio' },
       { model: Portfolios, as: 'toPortfolio' },
+      { model: Accounts, as: 'fromAccount', attributes: ['id', 'name', 'currencyCode', 'type'] },
+      { model: Accounts, as: 'toAccount', attributes: ['id', 'name', 'currencyCode', 'type'] },
       { model: Currencies, as: 'currency' },
     ],
     order: [[sortBy, sortDirection]],

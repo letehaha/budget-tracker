@@ -20,10 +20,10 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     refCreditLimit: 0,
     type: ACCOUNT_TYPES.system,
     accountCategory: ACCOUNT_CATEGORIES.general,
-    currencyCode: USER_CURRENCIES.find((item) => item.currency.code === 'EUR').currencyCode,
+    currencyCode: USER_CURRENCIES.find((item) => item.currency?.code === 'EUR')!.currencyCode,
     userId: USER.id,
-    externalId: null,
-    externalData: null,
+    externalId: undefined,
+    externalData: undefined,
     isEnabled: true,
     needsRelink: false,
   },
@@ -38,10 +38,10 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     refCreditLimit: 0,
     type: ACCOUNT_TYPES.system,
     accountCategory: ACCOUNT_CATEGORIES.general,
-    currencyCode: USER_CURRENCIES.find((item) => item.currency.code === 'USD').currencyCode,
+    currencyCode: USER_CURRENCIES.find((item) => item.currency?.code === 'USD')!.currencyCode,
     userId: USER.id,
-    externalId: null,
-    externalData: null,
+    externalId: undefined,
+    externalData: undefined,
     isEnabled: true,
     needsRelink: false,
   },
@@ -56,10 +56,10 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     refCreditLimit: 0,
     type: ACCOUNT_TYPES.system,
     accountCategory: ACCOUNT_CATEGORIES.general,
-    currencyCode: USER_CURRENCIES.find((item) => item.currency.code === 'UAH').currencyCode,
+    currencyCode: USER_CURRENCIES.find((item) => item.currency?.code === 'UAH')!.currencyCode,
     userId: USER.id,
-    externalId: null,
-    externalData: null,
+    externalId: undefined,
+    externalData: undefined,
     isEnabled: true,
     needsRelink: false,
   },
@@ -74,16 +74,28 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     refCreditLimit: 0,
     type: ACCOUNT_TYPES.system,
     accountCategory: ACCOUNT_CATEGORIES.general,
-    currencyCode: USER_CURRENCIES.find((item) => item.currency.code === 'UAH').currencyCode,
+    currencyCode: USER_CURRENCIES.find((item) => item.currency?.code === 'UAH')!.currencyCode,
     userId: USER.id,
-    externalId: null,
-    externalData: null,
+    externalId: undefined,
+    externalData: undefined,
     isEnabled: true,
     needsRelink: false,
   },
 ];
 
-export const getEurAccount = () => ACCOUNTS.find((item) => item.name === eurAccountName);
-export const getUsdAccount = () => ACCOUNTS.find((item) => item.name === usdAccountName);
-export const getUahAccount = () => ACCOUNTS.find((item) => item.name === uahAccountName);
-export const getUah2Account = () => ACCOUNTS.find((item) => item.name === uah2AccountName);
+export const getEurAccount = (overrides?: Partial<AccountWithRelinkStatus>) => ({
+  ...ACCOUNTS.find((item) => item.name === eurAccountName),
+  ...overrides,
+});
+export const getUsdAccount = (overrides?: Partial<AccountWithRelinkStatus>) => ({
+  ...ACCOUNTS.find((item) => item.name === usdAccountName),
+  ...overrides,
+});
+export const getUahAccount = (overrides?: Partial<AccountWithRelinkStatus>) => ({
+  ...ACCOUNTS.find((item) => item.name === uahAccountName),
+  ...overrides,
+});
+export const getUah2Account = (overrides?: Partial<AccountWithRelinkStatus>) => ({
+  ...ACCOUNTS.find((item) => item.name === uah2AccountName),
+  ...overrides,
+});

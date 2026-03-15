@@ -1,7 +1,7 @@
 <template>
   <component :is="onlyTemplate ? 'div' : 'label'" class="field-label">
     <template v-if="label">
-      <div class="mb-[5px] flex items-center justify-between text-base leading-none font-normal tracking-wide">
+      <div class="mb-1.25 flex items-center justify-between text-base leading-none font-normal tracking-wide">
         <span>{{ label }}</span>
 
         <template v-if="$slots['label-right']">

@@ -1,5 +1,5 @@
 <template>
-  <div :class="cn('group relative', $attrs.class)">
+  <div :class="cn('group relative', $attrs.class as string)">
     <slot />
 
     <template v-if="content || $slots['tooltip-content'] || $slots['tooltip-message']">

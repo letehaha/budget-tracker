@@ -1,61 +1,38 @@
 import { api } from '@/api/_api';
-import { BudgetModel } from '@bt/shared/types';
-
-import { fromSystemAmount, toSystemAmount } from './helpers';
+import { BudgetModel, endpointsTypes } from '@bt/shared/types';
 
 interface editBudgetParamsParams {
   name?: string;
   limitAmount?: number;
+  categoryIds?: number[];
 }
 
-export const loadSystemBudgets = async (): Promise<BudgetModel[]> => {
-  const result = await api.get('/budgets');
-
-  const updatedResult = result.map((budget: BudgetModel) => {
-    if (budget.limitAmount) {
-      return {
-        ...budget,
-        limitAmount: fromSystemAmount(Number(budget.limitAmount)),
-      };
-    }
-    return budget;
-  });
-
-  return updatedResult;
+export const loadSystemBudgets = async ({ status }: { status?: string } = {}): Promise<BudgetModel[]> => {
+  return api.get('/budgets', status ? { status } : undefined);
 };
 
 export const loadBudgetById = async (id: number): Promise<BudgetModel> => {
-  const result = await api.get(`/budgets/${id}`);
-
-  if (result.limitAmount) result.limitAmount = fromSystemAmount(Number(result.limitAmount));
-
-  return result;
+  return api.get(`/budgets/${id}`);
 };
 
 export const createBudget = async (payload: Omit<BudgetModel, 'id' | 'userId'>): Promise<BudgetModel> => {
-  const params = payload;
-
-  if (params.limitAmount > 0) {
-    params.limitAmount = toSystemAmount(Number(params.limitAmount));
-  } else {
-    params.limitAmount = null;
-  }
-  const result = await api.post('/budgets', params);
-
-  return result;
+  const params = {
+    ...payload,
+    limitAmount: payload.limitAmount && payload.limitAmount > 0 ? payload.limitAmount : null,
+  };
+  return api.post('/budgets', params);
 };
 
 export const deleteBudget = async (budgetId: number) => api.delete(`/budgets/${budgetId}`);
 
+export const archiveBudget = async ({ budgetId, isArchived }: { budgetId: number; isArchived: boolean }) =>
+  api.patch(`/budgets/${budgetId}/archive`, { isArchived });
+
 export const editBudget = async ({ budgetId, payload }: { budgetId: number; payload: editBudgetParamsParams }) => {
-  const params = payload;
-
-  if (params.limitAmount) params.limitAmount = toSystemAmount(Number(params.limitAmount));
-
-  await api.put(`/budgets/${budgetId}`, params);
+  await api.put(`/budgets/${budgetId}`, payload);
 };
 
-export const addTransactionsToBudget = async (budgetId: number, params: unknown) =>
+export const addTransactionsToBudget = async (budgetId: number, params: Record<string, unknown>) =>
   api.post(`/budgets/${budgetId}/transactions`, params);
 
 export const removeTransactionsFromBudget = async ({
@@ -66,7 +43,7 @@ export const removeTransactionsFromBudget = async ({
   payload: { transactionIds: number[] };
 }) => api.delete(`/budgets/${budgetId}/transactions`, { data: payload });
 
-interface StatsResponse {
+export interface StatsResponse {
   summary: {
     actualIncome: number;
     actualExpense: number;
@@ -79,11 +56,47 @@ interface StatsResponse {
 }
 
 export const loadBudgetStats = async ({ budgetId }: { budgetId: number }): Promise<StatsResponse> => {
-  const data = await api.get(`/budgets/${budgetId}/stats`);
+  return api.get(`/budgets/${budgetId}/stats`);
+};
 
-  data.summary.actualExpense = fromSystemAmount(data.summary.actualExpense);
-  data.summary.actualIncome = fromSystemAmount(data.summary.actualIncome);
-  data.summary.balance = fromSystemAmount(data.summary.balance);
+export interface CategoryBudgetTransaction {
+  id: number;
+  time: string;
+  transactionType: 'income' | 'expense';
+  refAmount: number;
+  amount: number;
+  note: string | null;
+  categoryId: number | null;
+  accountId: number;
+  effectiveCategory?: {
+    id: number;
+    name: string;
+    color: string;
+  };
+  effectiveRefAmount?: number;
+}
 
-  return data;
+interface CategoryBudgetTransactionsResponse {
+  transactions: CategoryBudgetTransaction[];
+  total: number;
+}
+
+export const loadCategoryBudgetTransactions = async ({
+  budgetId,
+  from = 0,
+  limit = 50,
+}: {
+  budgetId: number;
+  from?: number;
+  limit?: number;
+}): Promise<CategoryBudgetTransactionsResponse> => {
+  return api.get(`/budgets/${budgetId}/category-transactions`, { from, limit });
+};
+
+export const loadBudgetSpendingStats = async ({
+  budgetId,
+}: {
+  budgetId: number;
+}): Promise<endpointsTypes.BudgetSpendingStatsResponse> => {
+  return api.get(`/budgets/${budgetId}/spending-stats`);
 };

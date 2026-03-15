@@ -1,9 +1,13 @@
 <template>
   <div class="space-y-6">
     <div>
-      <h3 class="mb-1 text-lg font-medium">Password</h3>
+      <h3 class="mb-1 text-lg font-medium">{{ $t('settings.security.passwordSection.title') }}</h3>
       <p class="text-muted-foreground text-sm">
-        {{ hasPassword ? 'Change your password' : 'Set up a password for your account' }}
+        {{
+          hasPassword
+            ? $t('settings.security.passwordSection.descriptionChange')
+            : $t('settings.security.passwordSection.descriptionSet')
+        }}
       </p>
     </div>
 
@@ -13,16 +17,24 @@
     </div>
 
     <template v-else>
+      <!-- Demo mode restriction notice -->
+      <div v-if="isDemo" class="bg-muted/50 text-muted-foreground flex items-center gap-3 rounded-lg border p-4">
+        <AlertCircle class="size-5 shrink-0" />
+        <p class="text-sm">
+          {{ $t('demo.passwordChangeRestricted') }}
+        </p>
+      </div>
+
       <!-- Password form -->
       <form class="max-w-md space-y-4" @submit.prevent="handleSubmit">
         <!-- Current password (only when changing) -->
         <InputField
           v-if="hasPassword"
           v-model="form.currentPassword"
-          label="Current Password"
+          :label="$t('settings.security.passwordSection.labels.currentPassword')"
           type="password"
-          :disabled="isSubmitting"
-          placeholder="Enter current password"
+          :disabled="isSubmitting || isDemo"
+          :placeholder="$t('settings.security.passwordSection.placeholders.currentPassword')"
           :error-message="getFieldErrorMessage('form.currentPassword')"
         />
 
@@ -30,10 +42,14 @@
         <div class="space-y-2">
           <InputField
             v-model="form.newPassword"
-            :label="hasPassword ? 'New Password' : 'Password'"
+            :label="
+              hasPassword
+                ? $t('settings.security.passwordSection.labels.newPassword')
+                : $t('settings.security.passwordSection.labels.password')
+            "
             type="password"
-            :disabled="isSubmitting"
-            placeholder="Enter new password"
+            :disabled="isSubmitting || isDemo"
+            :placeholder="$t('settings.security.passwordSection.placeholders.newPassword')"
             :error-message="getFieldErrorMessage('form.newPassword')"
           />
           <!-- Password strength indicator -->
@@ -57,10 +73,10 @@
         <!-- Confirm password -->
         <InputField
           v-model="form.confirmPassword"
-          label="Confirm Password"
+          :label="$t('settings.security.passwordSection.labels.confirmPassword')"
           type="password"
-          :disabled="isSubmitting"
-          placeholder="Confirm new password"
+          :disabled="isSubmitting || isDemo"
+          :placeholder="$t('settings.security.passwordSection.placeholders.confirmPassword')"
           :error-message="getFieldErrorMessage('form.confirmPassword')"
         />
 
@@ -68,19 +84,23 @@
         <p v-if="errorMessage" class="text-destructive-text text-sm">{{ errorMessage }}</p>
 
         <!-- Submit button -->
-        <Button type="submit" :disabled="isSubmitting">
+        <Button type="submit" :disabled="isSubmitting || isDemo">
           <Loader2Icon v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
-          {{ hasPassword ? 'Change Password' : 'Set Password' }}
+          {{
+            hasPassword
+              ? $t('settings.security.passwordSection.buttons.change')
+              : $t('settings.security.passwordSection.buttons.set')
+          }}
         </Button>
       </form>
 
       <!-- Info text -->
       <div class="border-t pt-4">
-        <h4 class="mb-2 text-sm font-medium">Password requirements</h4>
+        <h4 class="mb-2 text-sm font-medium">{{ $t('settings.security.passwordSection.requirements.title') }}</h4>
         <ul class="text-muted-foreground list-disc space-y-1 pl-5 text-sm">
-          <li>Minimum 8 characters</li>
-          <li>Mix of uppercase and lowercase letters recommended</li>
-          <li>Include numbers and special characters for stronger security</li>
+          <li>{{ $t('settings.security.passwordSection.requirements.minLength') }}</li>
+          <li>{{ $t('settings.security.passwordSection.requirements.mixedCase') }}</li>
+          <li>{{ $t('settings.security.passwordSection.requirements.specialChars') }}</li>
         </ul>
       </div>
     </template>
@@ -94,8 +114,11 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
 import { minLength, required, sameAs } from '@/js/helpers/validators';
 import { authClient, setPassword } from '@/lib/auth-client';
-import { Loader2Icon } from 'lucide-vue-next';
+import { useUserStore } from '@/stores';
+import { AlertCircle, Loader2Icon } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 interface Account {
   id: string;
@@ -103,6 +126,9 @@ interface Account {
 }
 
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
+const { t } = useI18n();
+const userStore = useUserStore();
+const { isDemo } = storeToRefs(userStore);
 
 const isLoading = ref(true);
 const isSubmitting = ref(false);
@@ -133,8 +159,8 @@ const { isFormValid, getFieldErrorMessage, resetValidation } = useFormValidation
   undefined,
   {
     customValidationMessages: {
-      minLength: 'Password must be at least 8 characters',
-      sameAsPassword: 'Passwords do not match',
+      minLength: t('settings.security.passwordSection.validation.minLength'),
+      sameAsPassword: t('settings.security.passwordSection.validation.passwordsNoMatch'),
     },
   },
 );
@@ -155,13 +181,13 @@ const strengthTextColors: Record<number, string> = {
   4: 'text-green-600',
 };
 
-const strengthLabels: Record<number, string> = {
-  0: 'Very weak',
-  1: 'Weak',
-  2: 'Fair',
-  3: 'Strong',
-  4: 'Very strong',
-};
+const strengthLabels = computed<Record<number, string>>(() => ({
+  0: t('settings.security.passwordSection.strength.veryWeak'),
+  1: t('settings.security.passwordSection.strength.weak'),
+  2: t('settings.security.passwordSection.strength.fair'),
+  3: t('settings.security.passwordSection.strength.strong'),
+  4: t('settings.security.passwordSection.strength.veryStrong'),
+}));
 
 const passwordStrength = computed(() => {
   const password = form.value.newPassword;
@@ -211,22 +237,22 @@ const handleSubmit = async () => {
       });
 
       if (result.error) {
-        errorMessage.value = result.error.message || 'Failed to change password';
+        errorMessage.value = result.error.message || t('settings.security.passwordSection.notifications.changeFailed');
         return;
       }
 
-      addSuccessNotification('Password changed successfully');
+      addSuccessNotification(t('settings.security.passwordSection.notifications.changeSuccess'));
     } else {
       // Set password for OAuth-only accounts
       const result = await setPassword({ newPassword: form.value.newPassword });
 
       if (result.error) {
-        errorMessage.value = result.error.message || 'Failed to set password';
+        errorMessage.value = result.error.message || t('settings.security.passwordSection.notifications.setFailed');
         return;
       }
 
       hasPassword.value = true;
-      addSuccessNotification('Password set successfully');
+      addSuccessNotification(t('settings.security.passwordSection.notifications.setSuccess'));
     }
 
     // Clear form and reset validation
@@ -235,8 +261,8 @@ const handleSubmit = async () => {
     form.value.confirmPassword = '';
     resetValidation();
   } catch {
-    errorMessage.value = 'An unexpected error occurred';
-    addErrorNotification('Failed to update password');
+    errorMessage.value = t('settings.security.passwordSection.notifications.unexpectedError');
+    addErrorNotification(t('settings.security.passwordSection.notifications.updateFailed'));
   } finally {
     isSubmitting.value = false;
   }

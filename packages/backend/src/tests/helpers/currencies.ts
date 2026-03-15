@@ -38,11 +38,9 @@ export function addUserCurrencies<R extends boolean | undefined = undefined>({
     method: 'post',
     url: '/user/currencies',
     payload: {
-      currencies: [
-        ...currencyCodes.map((code) => ({
-          currencyCode: code,
-        })),
-      ],
+      currencies: currencyCodes.map((code) => ({
+        currencyCode: code,
+      })),
     },
     raw,
   });

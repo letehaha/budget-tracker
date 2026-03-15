@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { LockedError } from '@js/errors';
 import { logger } from '@js/utils';
 import { redisClient } from '@root/redis-client';
@@ -33,7 +34,7 @@ export function withLock<T extends unknown[], R>(
     if (!acquired) {
       logger.warn(`Could not acquire lock for key: "${lockKey}". Process is already running.`);
       throw new LockedError({
-        message: `Sync process for "${lockKey}" is already locked.`,
+        message: t({ key: 'common.processAlreadyLocked', variables: { lockKey } }),
       });
     }
 

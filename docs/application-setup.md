@@ -174,7 +174,6 @@ Below is a quick walk-throught for all development-related commands.
 ```bash
 npm run lint # Run linting (both packages)
 npm run test # Run all tests
-npm run prettier # Format code with Prettier
 ```
 
 #### Backend-Specific Commands

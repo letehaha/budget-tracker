@@ -5,7 +5,4 @@ export * from './types';
 export { BaseBankDataProvider } from './base-provider';
 
 // Export registry
-export { bankProviderRegistry, BankProviderRegistry } from './registry';
-
-// Export utilities
-export { encryptCredentials, decryptCredentials } from './utils/credential-encryption';
+export { bankProviderRegistry } from './registry';

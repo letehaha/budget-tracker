@@ -222,8 +222,8 @@ describe('Create transaction controller', () => {
     expect(oppositeTx!.accountId).toBe(accountB.id);
 
     // Secondary (`to`) transfer tx always same `refAmount` as the general (`from`) tx to keep it consistent
-    expect(baseTx.refAmount).toEqualRefValue(baseTx.amount * currencyRate!.rate);
-    expect(oppositeTx!.refAmount).toEqualRefValue(oppositeTx!.amount * oppositeCurrencyRate!.rate);
+    expect(baseTx.refAmount).toEqualRefValue(Number(baseTx.amount) * currencyRate!.rate);
+    expect(oppositeTx!.refAmount).toEqualRefValue(Number(oppositeTx!.amount) * oppositeCurrencyRate!.rate);
 
     expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
     expect(oppositeTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);

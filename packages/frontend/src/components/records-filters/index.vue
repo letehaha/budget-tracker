@@ -3,13 +3,11 @@
     <DateRangeFilter
       :start="filters.start"
       :end="filters.end"
-      @update:start="$emit('update:filters', { ...filters, start: $event })"
-      @update:end="$emit('update:filters', { ...filters, end: $event })"
       @update:range="$emit('update:filters', { ...filters, start: $event.start, end: $event.end })"
     />
 
     <TransactionTypeFilter
-      :value="filters.transactionType"
+      :value="filters.transactionType ?? undefined"
       @update:value="$emit('update:filters', { ...filters, transactionType: $event })"
     />
 
@@ -21,10 +19,10 @@
     />
 
     <ExclusionsFilter
-      :exclude-refunds="filters.excludeRefunds"
-      :exclude-transfer="filters.excludeTransfer"
-      @update:exclude-refunds="$emit('update:filters', { ...filters, excludeRefunds: $event })"
-      @update:exclude-transfer="$emit('update:filters', { ...filters, excludeTransfer: $event })"
+      :refund-filter="filters.refundFilter"
+      :transfer-filter="filters.transferFilter"
+      @update:refund-filter="$emit('update:filters', { ...filters, refundFilter: $event })"
+      @update:transfer-filter="$emit('update:filters', { ...filters, transferFilter: $event })"
     />
 
     <NoteIncludesFilter
@@ -41,6 +39,8 @@
       :category-ids="filters.categoryIds"
       @update:category-ids="$emit('update:filters', { ...filters, categoryIds: $event })"
     />
+
+    <TagFilter :tag-ids="filters.tagIds" @update:tag-ids="$emit('update:filters', { ...filters, tagIds: $event })" />
   </div>
 
   <div class="lg:bg-card max-lg:bg-background sticky -bottom-px mt-4 flex gap-2">
@@ -50,11 +50,13 @@
       class="w-full shrink"
       @click="$emit('reset-filters')"
     >
-      Reset
+      {{ $t('transactions.filters.reset') }}
     </UiButton>
 
     <template v-if="isFiltersOutOfSync">
-      <UiButton variant="default" class="w-full shrink" @click="$emit('apply-filters')"> Apply </UiButton>
+      <UiButton variant="default" class="w-full shrink" @click="$emit('apply-filters')">
+        {{ $t('transactions.filters.apply') }}
+      </UiButton>
     </template>
   </div>
 </template>
@@ -69,6 +71,7 @@ import AccountsFilter from './filters/combobox-accounts.vue';
 import DateRangeFilter from './filters/date-range-filter.vue';
 import ExclusionsFilter from './filters/exclusions.vue';
 import NoteIncludesFilter from './filters/note-includes.vue';
+import TagFilter from './filters/tag-filter.vue';
 import TransactionTypeFilter from './filters/transaction-type-filter.vue';
 
 defineProps<{

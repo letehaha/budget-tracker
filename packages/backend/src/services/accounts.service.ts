@@ -1,10 +1,6 @@
-import {
-  ACCOUNT_TYPES,
-  AccountExternalData,
-  AccountModel,
-  AccountWithRelinkStatus,
-  TRANSACTION_TYPES,
-} from '@bt/shared/types';
+import { ACCOUNT_TYPES, AccountExternalData, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { t } from '@i18n/index';
 import { NotFoundError, UnexpectedError } from '@js/errors';
 import * as Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
@@ -13,12 +9,14 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 import { withTransaction } from './common/with-transaction';
 
+type AccountWithRelinkStatus = Accounts.default & { needsRelink?: boolean };
+
 /**
  * Check if an Enable Banking account needs to be re-linked.
  * This is true when the account has rawAccountData with identification_hash,
  * but the externalId doesn't match (meaning it was created with uid instead).
  */
-function checkNeedsRelink(account: AccountModel): boolean {
+function checkNeedsRelink(account: Accounts.default): boolean {
   // Only check accounts linked to a bank connection
   if (!account.bankDataProviderConnectionId) return false;
 
@@ -45,13 +43,15 @@ function checkNeedsRelink(account: AccountModel): boolean {
 }
 
 /**
- * Add needsRelink flag to accounts
+ * Add needsRelink flag to accounts.
+ * Uses Object.assign (not spread) to preserve the Sequelize model prototype and Money getters.
  */
-function addNeedsRelinkFlag(accounts: AccountModel[]): AccountWithRelinkStatus[] {
-  return accounts.map((account) => ({
-    ...account,
-    needsRelink: checkNeedsRelink(account),
-  }));
+function addNeedsRelinkFlag(accounts: Accounts.default[]): AccountWithRelinkStatus[] {
+  return accounts.map((account) =>
+    Object.assign(account, {
+      needsRelink: checkNeedsRelink(account),
+    }),
+  );
 }
 
 export const getAccounts = withTransaction(
@@ -61,27 +61,22 @@ export const getAccounts = withTransaction(
   },
 );
 
-export const getAccountsByExternalIds = withTransaction(async (payload: Accounts.GetAccountsByExternalIdsPayload) =>
-  Accounts.getAccountsByExternalIds(payload),
-);
-
 export const getAccountById = withTransaction(
   async (payload: { id: number; userId: number }): Promise<AccountWithRelinkStatus | null> => {
-    const account = await Accounts.getAccountById({ ...payload, raw: true });
+    const account = await Accounts.getAccountById({ ...payload });
 
     if (!account) return null;
 
-    return {
-      ...account,
+    return Object.assign(account, {
       needsRelink: checkNeedsRelink(account),
-    };
+    });
   },
 );
 
 export const createAccount = withTransaction(
   async (
     payload: Omit<Accounts.CreateAccountPayload, 'refCreditLimit' | 'refInitialBalance'>,
-  ): Promise<AccountModel | null> => {
+  ): Promise<Accounts.default | null> => {
     try {
       const { userId, creditLimit, currencyCode, initialBalance } = payload;
 
@@ -123,14 +118,14 @@ export const updateAccount = withTransaction(
     const accountData = await Accounts.default.findByPk(id);
 
     if (!accountData) {
-      throw new NotFoundError({ message: 'Account not found!' });
+      throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
     }
 
     const currentBalanceIsChanging =
-      payload.currentBalance !== undefined && payload.currentBalance !== accountData.currentBalance;
-    let initialBalance = accountData.initialBalance;
-    let refInitialBalance = accountData.refInitialBalance;
-    let refCurrentBalance = accountData.refCurrentBalance;
+      payload.currentBalance !== undefined && !payload.currentBalance.equals(accountData.currentBalance);
+    let initialBalance: Money = accountData.initialBalance;
+    let refInitialBalance: Money = accountData.refInitialBalance;
+    let refCurrentBalance: Money = accountData.refCurrentBalance;
 
     /**
      * If `currentBalance` is changing, it means user want to change current balance
@@ -138,7 +133,7 @@ export const updateAccount = withTransaction(
      * and `currentBalance` on the same diff
      */
     if (currentBalanceIsChanging && payload.currentBalance !== undefined) {
-      const diff = payload.currentBalance - accountData.currentBalance;
+      const diff = payload.currentBalance.subtract(accountData.currentBalance);
       const refDiff = await calculateRefAmount({
         userId: accountData.userId,
         amount: diff,
@@ -152,10 +147,10 @@ export const updateAccount = withTransaction(
       // --- for all accounts
       // change currentBalance => recalculate refCurrentBalance
       if (accountData.type === ACCOUNT_TYPES.system) {
-        initialBalance += diff;
-        refInitialBalance += refDiff;
+        initialBalance = initialBalance.add(diff);
+        refInitialBalance = refInitialBalance.add(refDiff);
       }
-      refCurrentBalance += refDiff;
+      refCurrentBalance = refCurrentBalance.add(refDiff);
     }
 
     const result = await Accounts.updateAccountById({
@@ -168,7 +163,7 @@ export const updateAccount = withTransaction(
     });
 
     if (!result) {
-      throw new UnexpectedError({ message: 'Account updation is not successful' });
+      throw new UnexpectedError({ message: t({ key: 'accounts.accountUpdateFailed' }) });
     }
 
     await Balances.handleAccountChange({
@@ -180,18 +175,12 @@ export const updateAccount = withTransaction(
   },
 );
 
-const calculateNewBalance = (amount: number, previousAmount: number, currentBalance: number) => {
-  if (amount > previousAmount) {
-    return currentBalance + (amount - previousAmount);
-  } else if (amount < previousAmount) {
-    return currentBalance - (previousAmount - amount);
-  }
-
-  return currentBalance;
+const calculateNewBalance = (amount: Money, previousAmount: Money, currentBalance: Money): Money => {
+  return currentBalance.add(amount.subtract(previousAmount));
 };
 
-const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACTION_TYPES) => {
-  return transactionType === TRANSACTION_TYPES.income ? amount : amount * -1;
+const defineCorrectAmountFromTxType = (amount: Money, transactionType: TRANSACTION_TYPES): Money => {
+  return transactionType === TRANSACTION_TYPES.income ? amount : amount.negate();
 };
 
 // At least one of pair (amount + refAmount) OR (prevAmount + prefRefAmount) should be passed
@@ -241,23 +230,23 @@ const defineCorrectAmountFromTxType = (amount: number, transactionType: TRANSACT
 //   prevTransactionType: TRANSACTION_TYPES;
 // }): Promise<void>;
 
-export async function updateAccountBalanceForChangedTxImpl({
+async function updateAccountBalanceForChangedTxImpl({
   accountId,
   userId,
   transactionType,
-  amount = 0,
-  prevAmount = 0,
-  refAmount = 0,
-  prevRefAmount = 0,
+  amount = Money.zero(),
+  prevAmount = Money.zero(),
+  refAmount = Money.zero(),
+  prevRefAmount = Money.zero(),
   prevTransactionType = transactionType,
 }: {
   accountId: number;
   userId: number;
   transactionType: TRANSACTION_TYPES;
-  amount?: number;
-  prevAmount?: number;
-  refAmount?: number;
-  prevRefAmount?: number;
+  amount?: Money;
+  prevAmount?: Money;
+  refAmount?: Money;
+  prevRefAmount?: Money;
   prevTransactionType?: TRANSACTION_TYPES;
   currencyCode?: string;
 }): Promise<void> {
@@ -265,23 +254,13 @@ export async function updateAccountBalanceForChangedTxImpl({
 
   if (!account) return undefined;
 
-  const { currentBalance, refCurrentBalance } = account;
+  const currentBalance = account.currentBalance;
+  const refCurrentBalance = account.refCurrentBalance;
 
   const newAmount = defineCorrectAmountFromTxType(amount, transactionType);
   const oldAmount = defineCorrectAmountFromTxType(prevAmount, prevTransactionType);
   const newRefAmount = defineCorrectAmountFromTxType(refAmount, transactionType);
   const oldRefAmount = defineCorrectAmountFromTxType(prevRefAmount, prevTransactionType);
-
-  // TODO: for now keep that deadcode, cause it doesn't really work. But when have time, recheck it past neednes
-  // if (currencyCode !== accountCurrencyCode) {
-  //   const { rate } = await userExchangeRateService.getExchangeRate({
-  //     userId,
-  //     baseCode: currencyCode,
-  //     quoteCode: accountCurrencyCode,
-  //   }, { transaction });
-
-  //   newAmount = defineCorrectAmountFromTxType(amount * rate, transactionType)
-  // }
 
   await Accounts.updateAccountById({
     id: accountId,

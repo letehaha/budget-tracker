@@ -6,26 +6,33 @@ import CreateAccountGroupDialog from '@/components/dialogs/account-groups/create
 import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed, provide, ref } from 'vue';
+import { Ref, computed, provide, ref } from 'vue';
 
 import AccountGroupsList from './account-groups-list.vue';
 import AccountsList from './accounts-list.vue';
+import AccountsSkeleton from './accounts-skeleton.vue';
 import { useActiveAccountGroups } from './helpers/use-active-account-groups';
 
-const { enabledAccounts } = storeToRefs(useAccountsStore());
-const { data: accountGroups, isLoading } = useQuery({
+const accountsStore = useAccountsStore();
+const { enabledAccounts, isAccountsFetched } = storeToRefs(accountsStore);
+const { data: accountGroups, isLoading: isGroupsLoading } = useQuery({
   queryFn: () => loadAccountGroups(),
   queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
   staleTime: Infinity,
   placeholderData: [],
 });
 
-const accountGroupsContext = useActiveAccountGroups(accountGroups);
+// Wait for both accounts and groups to load to prevent layout shift
+const isLoading = computed(() => !isAccountsFetched.value || isGroupsLoading.value);
+
+const accountGroupsContext = useActiveAccountGroups(accountGroups as Ref<AccountGroups[]>);
 provide('accountGroupsContext', accountGroupsContext);
 
 const accountsInGroups = computed(() => {
@@ -43,7 +50,7 @@ const accountsInGroups = computed(() => {
       {} as Record<number, AccountModel>,
     );
 
-  return flattenAccounts(accountGroups.value);
+  return flattenAccounts(accountGroups.value ?? []);
 });
 const accountsWithoutGroups = computed(() => enabledAccounts.value.filter((i) => !accountsInGroups.value[i.id]));
 
@@ -51,38 +58,42 @@ const isPopoverOpen = ref(false);
 </script>
 
 <template>
-  <div class="mb-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-hidden">
-    <div class="flex items-center justify-between">
-      <p class="ml-2 text-xs font-medium tracking-wide uppercase">Accounts</p>
+  <div class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-hidden">
+    <div class="flex items-center justify-between px-1">
+      <p class="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+        {{ $t('sidebar.accountsView.title') }}
+      </p>
 
       <Popover.Popover :open="isPopoverOpen" @update:open="isPopoverOpen = $event">
         <Popover.PopoverTrigger as-child>
-          <Button size="icon" variant="secondary">
-            <PlusIcon :class="['transition-transform', isPopoverOpen && '-rotate-45']" />
+          <Button size="icon-sm" variant="secondary">
+            <PlusIcon :class="['size-3.5 transition-transform', isPopoverOpen && '-rotate-45']" />
           </Button>
         </Popover.PopoverTrigger>
         <Popover.PopoverContent side="bottom" align="end">
           <div class="grid gap-2">
             <CreateAccountDialog @created="isPopoverOpen = false">
-              <Button type="button" size="sm" variant="secondary"> New account </Button>
+              <Button type="button" size="sm" variant="secondary"> {{ $t('sidebar.accountsView.newAccount') }} </Button>
             </CreateAccountDialog>
 
             <CreateAccountGroupDialog @created="isPopoverOpen = false">
-              <Button type="button" size="sm" variant="secondary"> New accounts group </Button>
+              <Button type="button" size="sm" variant="secondary">
+                {{ $t('sidebar.accountsView.newAccountsGroup') }}
+              </Button>
             </CreateAccountGroupDialog>
           </div>
         </Popover.PopoverContent>
       </Popover.Popover>
     </div>
 
-    <div class="flex-1 overflow-auto">
+    <ScrollArea :scroll-area-id="SCROLL_AREA_IDS.sidebarAccounts" class="flex-1">
       <template v-if="isLoading">
-        <div class="text-muted-foreground px-2 py-4 text-sm">Loading...</div>
+        <AccountsSkeleton />
       </template>
       <template v-else>
-        <AccountGroupsList :groups="accountGroups" />
+        <AccountGroupsList :groups="accountGroups ?? []" />
         <AccountsList :accounts="accountsWithoutGroups" />
       </template>
-    </div>
+    </ScrollArea>
   </div>
 </template>

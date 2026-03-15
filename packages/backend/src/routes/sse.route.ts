@@ -15,6 +15,7 @@ const KEEPALIVE_INTERVAL_MS = 30000; // 30 seconds
  * Establishes a Server-Sent Events connection for real-time updates.
  * Requires authentication via session cookie (better-auth).
  */
+// oxlint-disable-next-line oxc/no-async-endpoint-handlers -- SSE handler has internal try/catch for all async operations
 router.get('/events', authenticateSession, async (req, res) => {
   const userId = (req.user as { id: number }).id;
   // Reuse requestId from middleware as connection ID for tracing

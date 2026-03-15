@@ -3,7 +3,7 @@
     <div class="grid w-full grid-cols-2 gap-4">
       <input-field
         v-model="form.baseRate"
-        :label="`1 ${currency.currency.code} =`"
+        :label="`1 ${currency.currency?.code} =`"
         :disabled="isLiveRateEnabled"
         @focus="onBaseFocus"
       />
@@ -19,10 +19,10 @@
 
     <div class="flex items-center justify-between gap-4">
       <p class="text-sm opacity-90">
-        Disable live updation to be able to set custom exchange rate.
+        {{ $t('settings.currencies.exchangeRate.disableLiveUpdate') }}
         <br />
         <span class="inline-flex items-center gap-1">
-          <InfoIcon class="text-primary inline size-4" /> When enabled, custom rate is ignored.
+          <InfoIcon class="text-primary inline size-4" /> {{ $t('settings.currencies.exchangeRate.liveUpdateInfo') }}
         </span>
       </p>
 
@@ -30,7 +30,7 @@
         class="flex w-max cursor-pointer items-center aria-disabled:cursor-default"
         :aria-disabled="isFormDisabled"
       >
-        <span class="mr-2.5 w-max">Live update</span>
+        <span class="mr-2.5 w-max">{{ $t('settings.currencies.exchangeRate.liveUpdateLabel') }}</span>
         <Checkbox
           :model-value="isLiveRateEnabled"
           :disabled="isFormDisabled"
@@ -40,7 +40,7 @@
     </div>
 
     <Button v-if="shouldShowSaveButton" class="mt-8 w-full" @click="onSubmitHandler" :disabled="isFormDisabled">
-      Save
+      {{ $t('settings.currencies.exchangeRate.saveButton') }}
     </Button>
   </div>
 </template>
@@ -55,6 +55,7 @@ import { useCurrenciesStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { InfoIcon } from 'lucide-vue-next';
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { CurrencyWithExchangeRate } from '../types';
 
@@ -78,6 +79,7 @@ const emit = defineEmits<{
 
 const currenciesStore = useCurrenciesStore();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { t } = useI18n();
 
 const form = reactive({
   baseRate: props.currency.rate,
@@ -129,24 +131,24 @@ const deleteExchangeRates = async () => {
   try {
     await deleteCustomRate([
       {
-        baseCode: props.currency.currency.code,
+        baseCode: props.currency.currency!.code,
         quoteCode: props.currency.quoteCode,
       },
       {
         baseCode: props.currency.quoteCode,
-        quoteCode: props.currency.currency.code,
+        quoteCode: props.currency.currency!.code,
       },
     ]);
 
     emit('submit');
 
-    addSuccessNotification('Successfully updated.');
-  } catch (e) {
-    if (e.data.code === API_ERROR_CODES.validationError) {
-      addErrorNotification(e.data.message);
+    addSuccessNotification(t('settings.currencies.exchangeRate.successfullyUpdated'));
+  } catch (e: unknown) {
+    if ((e as any)?.data?.code === API_ERROR_CODES.validationError) {
+      addErrorNotification((e as any).data.message);
       return;
     }
-    addErrorNotification('Unexpected error');
+    addErrorNotification(t('settings.currencies.exchangeRate.errors.unexpectedError'));
   }
 };
 
@@ -154,13 +156,13 @@ const updateExchangeRates = async () => {
   try {
     await editUserCurrenciesExchangeRates([
       {
-        baseCode: props.currency.currency.code,
+        baseCode: props.currency.currency!.code,
         quoteCode: props.currency.quoteCode,
         rate: Number(form.baseRate),
       },
       {
         baseCode: props.currency.quoteCode,
-        quoteCode: props.currency.currency.code,
+        quoteCode: props.currency.currency!.code,
         rate: Number(form.quoteRate),
       },
     ]);
@@ -168,13 +170,13 @@ const updateExchangeRates = async () => {
 
     emit('submit');
 
-    addSuccessNotification('Successfully updated.');
-  } catch (e) {
-    if (e.data.code === API_ERROR_CODES.validationError) {
-      addErrorNotification(e.data.message);
+    addSuccessNotification(t('settings.currencies.exchangeRate.successfullyUpdated'));
+  } catch (e: unknown) {
+    if ((e as any)?.data?.code === API_ERROR_CODES.validationError) {
+      addErrorNotification((e as any).data.message);
       return;
     }
-    addErrorNotification('Unexpected error. Currency is not updated.');
+    addErrorNotification(t('settings.currencies.exchangeRate.errors.updateFailed'));
   }
 };
 

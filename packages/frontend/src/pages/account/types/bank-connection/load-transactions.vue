@@ -1,14 +1,18 @@
 <script lang="ts" setup>
 import { loadTransactionsForPeriod as apiLoadTransactions } from '@/api/bank-data-providers';
 import { Button } from '@/components/lib/ui/button';
-import { Calendar } from '@/components/lib/ui/calendar';
-import * as Popover from '@/components/lib/ui/popover';
+import { DateSelector } from '@/components/lib/ui/date-selector';
+import * as Tooltip from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { type Period } from '@/composable/use-period-navigation';
 import { useSyncStatus } from '@/composable/use-sync-status';
-import { AccountModel } from '@bt/shared/types';
-import { differenceInDays, format, subDays } from 'date-fns';
+import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
+import { differenceInDays, startOfDay, subDays } from 'date-fns';
 import { CalendarIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   account: AccountModel;
@@ -23,32 +27,36 @@ const isAccountSyncing = computed(() => {
   return status?.status === 'syncing' || status?.status === 'queued';
 });
 
-const INITIAL_FORM_VALUE = {
-  start: subDays(new Date(), 1),
-  end: subDays(new Date(), 1),
-};
+const PROVIDERS_WITHOUT_PERIOD_SYNC: ACCOUNT_TYPES[] = [ACCOUNT_TYPES.lunchflow];
+const isPeriodSyncSupported = computed(() => !PROVIDERS_WITHOUT_PERIOD_SYNC.includes(props.account.type));
 
-const selectorVisible = ref(false);
-const dateRange = ref(INITIAL_FORM_VALUE);
+const yesterday = startOfDay(subDays(new Date(), 1));
+
+const dateRange = ref<Period>({
+  from: yesterday,
+  to: yesterday,
+});
 const isLoading = ref(false);
 
-const loadTransactionsForPeriod = async () => {
+const handlePeriodUpdate = async (period: Period) => {
+  dateRange.value = period;
+
   if (!props.account.bankDataProviderConnectionId) {
     addNotification({
-      text: 'This account is not linked to a bank connection',
+      text: t('pages.account.loadTransactions.notLinked'),
       type: NotificationType.error,
     });
     return;
   }
 
   try {
-    const { start, end } = dateRange.value;
+    const { from, to } = period;
 
     // Validate date range (max 1 year)
-    const daysDiff = differenceInDays(end, start);
+    const daysDiff = differenceInDays(to, from);
     if (daysDiff > 365) {
       addNotification({
-        text: 'Date range cannot exceed 1 year',
+        text: t('pages.account.loadTransactions.dateRangeExceeds'),
         type: NotificationType.error,
       });
       return;
@@ -62,8 +70,8 @@ const loadTransactionsForPeriod = async () => {
     const result = await apiLoadTransactions(
       props.account.bankDataProviderConnectionId,
       props.account.id,
-      start.toISOString(),
-      end.toISOString(),
+      from.toISOString(),
+      to.toISOString(),
     );
 
     addNotification({
@@ -71,14 +79,11 @@ const loadTransactionsForPeriod = async () => {
       type: NotificationType.info,
     });
 
-    dateRange.value = INITIAL_FORM_VALUE;
-    selectorVisible.value = false;
-
     // SSE will provide updates as sync progresses
   } catch (error) {
     const e = error as { data?: { message?: string } };
     addNotification({
-      text: e?.data?.message || 'Failed to load transactions',
+      text: e?.data?.message || t('pages.account.loadTransactions.failed'),
       type: NotificationType.error,
       visibilityTime: 10_000, // 10 seconds for error messages to give user time to read
     });
@@ -90,35 +95,36 @@ const loadTransactionsForPeriod = async () => {
 
 <template>
   <div class="flex items-center justify-between">
-    <p>Load transactions for selected period</p>
+    <p>{{ t('pages.account.loadTransactions.title') }}</p>
 
-    <Popover.Popover :open="selectorVisible" @update:open="selectorVisible = $event">
-      <Popover.PopoverTrigger as-child>
-        <Button :disabled="isLoading || isAccountSyncing" class="min-w-[100px]" size="sm">
-          {{ isLoading || isAccountSyncing ? 'Loading...' : 'Select period' }}
-        </Button>
-      </Popover.PopoverTrigger>
-
-      <Popover.PopoverContent class="grid w-[600px] gap-3">
-        <div class="flex items-center justify-center gap-2">
-          <CalendarIcon />
-          <span>
-            {{ format(dateRange.start, 'MMM dd, yyyy') }} -
-            {{ format(dateRange.end, 'MMM dd, yyyy') }}
+    <Tooltip.TooltipProvider v-if="!isPeriodSyncSupported">
+      <Tooltip.Tooltip :delay-duration="0">
+        <Tooltip.TooltipTrigger as-child>
+          <span class="inline-block">
+            <Button disabled class="pointer-events-none min-w-25" size="sm">
+              <CalendarIcon class="size-4" />
+              {{ t('pages.account.loadTransactions.selectPeriod') }}
+            </Button>
           </span>
-        </div>
+        </Tooltip.TooltipTrigger>
+        <Tooltip.TooltipContent>
+          {{ t('pages.account.loadTransactions.notSupportedByProvider') }}
+        </Tooltip.TooltipContent>
+      </Tooltip.Tooltip>
+    </Tooltip.TooltipProvider>
 
-        <Calendar
-          v-model.range="dateRange"
-          type="range"
-          :disabled-dates="[{ start: new Date(), end: null }]"
-          :columns="2"
-        />
-
-        <div class="flex justify-end">
-          <Button :disabled="isLoading" @click="loadTransactionsForPeriod"> Load transactions </Button>
-        </div>
-      </Popover.PopoverContent>
-    </Popover.Popover>
+    <DateSelector
+      v-else
+      :model-value="dateRange"
+      :allowed-filter-modes="['between']"
+      @update:model-value="handlePeriodUpdate"
+    >
+      <template #trigger="{ triggerText }">
+        <Button :disabled="isLoading || isAccountSyncing" class="min-w-25" size="sm">
+          <CalendarIcon class="size-4" />
+          {{ isLoading || isAccountSyncing ? t('pages.account.loadTransactions.loading') : triggerText }}
+        </Button>
+      </template>
+    </DateSelector>
   </div>
 </template>

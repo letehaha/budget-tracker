@@ -4,37 +4,37 @@
       <div v-if="isProcessing" class="text-center">
         <InfoIcon class="mb-4 size-12" />
 
-        <h2 class="mb-2 text-xl font-semibold">Completing Authorization...</h2>
+        <h2 class="mb-2 text-xl font-semibold">{{ t('pages.bankCallback.processing.title') }}</h2>
 
-        <p class="text-muted-foreground text-sm">Please wait while we verify your bank connection</p>
+        <p class="text-muted-foreground text-sm">{{ t('pages.bankCallback.processing.description') }}</p>
       </div>
 
       <div v-else-if="error" class="text-center">
         <InfoIcon class="text-destructive-text mx-auto mb-4 size-12" />
 
-        <h2 class="text-destructive-text mb-2 text-xl font-semibold">Authorization Failed</h2>
+        <h2 class="text-destructive-text mb-2 text-xl font-semibold">{{ t('pages.bankCallback.error.title') }}</h2>
 
         <p class="text-muted-foreground mb-6 text-sm">{{ error }}</p>
         <button
           @click="goToIntegrations"
           class="bg-primary hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium text-white"
         >
-          Back to Integrations
+          {{ t('pages.bankCallback.error.backToIntegrations') }}
         </button>
       </div>
 
       <div v-else-if="success" class="text-center">
         <CheckCircle2Icon class="text-success-text mx-auto mb-4 size-12" />
 
-        <h2 class="text-success-text mb-2 text-xl font-semibold">Connection Successful!</h2>
+        <h2 class="text-success-text mb-2 text-xl font-semibold">{{ t('pages.bankCallback.success.title') }}</h2>
 
-        <p class="text-muted-foreground mb-6 text-sm">Your bank account has been connected successfully.</p>
+        <p class="text-muted-foreground mb-6 text-sm">{{ t('pages.bankCallback.success.description') }}</p>
 
         <button
           @click="goToAccounts"
           class="bg-primary hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium text-white"
         >
-          View Accounts
+          {{ t('pages.bankCallback.success.viewAccounts') }}
         </button>
       </div>
     </div>
@@ -47,10 +47,12 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { CheckCircle2Icon, InfoIcon } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 
 const isProcessing = ref(true);
@@ -66,7 +68,7 @@ onMounted(async () => {
 
   // Check for OAuth errors
   if (errorParam) {
-    error.value = errorDescription || errorParam || 'Authorization was denied or failed';
+    error.value = errorDescription || errorParam || t('pages.bankCallback.errors.authorizationDenied');
     isProcessing.value = false;
     addErrorNotification(error.value);
     return;
@@ -74,7 +76,7 @@ onMounted(async () => {
 
   // Validate required parameters
   if (!code || !state) {
-    error.value = 'Missing required parameters (code or state)';
+    error.value = t('pages.bankCallback.errors.missingParameters');
     isProcessing.value = false;
     addErrorNotification(error.value);
     return;
@@ -84,7 +86,7 @@ onMounted(async () => {
   const connectionId = localStorage.getItem('pendingEnableBankingConnectionId');
 
   if (!connectionId) {
-    error.value = 'Connection ID not found. Please start the connection process again.';
+    error.value = t('pages.bankCallback.errors.connectionIdNotFound');
     isProcessing.value = false;
     addErrorNotification(error.value);
     return;
@@ -98,7 +100,7 @@ onMounted(async () => {
     localStorage.removeItem('pendingEnableBankingConnectionId');
 
     success.value = true;
-    addSuccessNotification('Bank connection established successfully!');
+    addSuccessNotification(t('pages.integrations.notifications.connectionEstablished'));
 
     setTimeout(() => {
       router.push({
@@ -107,7 +109,7 @@ onMounted(async () => {
       });
     }, 2000);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to complete authorization';
+    const message = err instanceof Error ? err.message : t('pages.bankCallback.errors.failedToComplete');
     error.value = message;
     addErrorNotification(message);
   } finally {

@@ -2,6 +2,7 @@
  * Import/Export shared types
  * These types are used by both frontend and backend for CSV import functionality
  */
+import type { Cents } from './money';
 
 /**
  * Import source types for imported transactions
@@ -130,7 +131,7 @@ export type CategoryMappingConfig = Record<string, CategoryMappingValue>;
 export interface ParsedTransactionRow {
   rowIndex: number;
   date: string; // ISO format
-  amount: number;
+  amount: Cents;
   description: string;
   categoryName?: string;
   accountName: string;
@@ -156,7 +157,7 @@ export interface DuplicateMatch {
   existingTransaction: {
     id: number;
     date: string;
-    amount: number;
+    amount: Cents;
     note: string;
     accountId: number;
   };

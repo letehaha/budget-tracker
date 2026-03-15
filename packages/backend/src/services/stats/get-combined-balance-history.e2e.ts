@@ -2,7 +2,7 @@ import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 import Balances from '@models/Balances.model';
 import * as helpers from '@tests/helpers';
-import { format, startOfMonth, subDays } from 'date-fns';
+import { format, subDays } from 'date-fns';
 
 import { CombinedBalanceHistoryItem } from './get-combined-balance-history';
 
@@ -150,8 +150,8 @@ describe('[Stats] Combined balance history', () => {
 
     await Balances.update({ date: yesterday }, { where: { accountId: account.id } });
 
-    // Get combined balance history for the last month (which should include today)
-    const fromDate = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+    // Get combined balance history for a range that includes both yesterday and today
+    const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
     const toDate = format(new Date(), 'yyyy-MM-dd');
 
     const data = await helpers.getCombinedBalanceHistory({
@@ -180,5 +180,98 @@ describe('[Stats] Combined balance history', () => {
     // This is the bug: it returns 0 instead of 1000
     expect(todayEntry.accountsBalance).toBe(1000);
     expect(todayEntry.totalBalance).toBe(1000);
+  });
+
+  it('Does not create phantom balance spike when pre-range balance differs from first in-range record', async () => {
+    // Scenario: Account A had 8500 before the range but its first in-range
+    // balance record is 0 (at day -3, NOT the earliest date in the range).
+    // The old code only checked accounts present on the FIRST date in the result,
+    // so Account A would be classified as "not in range" and get a stale 8500
+    // backfill injected — creating a phantom spike.
+    //
+    // We use API-created accounts (so amounts are stored correctly) and only
+    // manipulate dates via Balances.update to avoid Money conversion issues.
+
+    const accountA = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ initialBalance: 8500 }),
+      raw: true,
+    });
+    const accountB = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ initialBalance: 2000 }),
+      raw: true,
+    });
+
+    const day10Ago = subDays(new Date(), 10);
+    const day5Ago = subDays(new Date(), 5);
+    const day3Ago = subDays(new Date(), 3);
+    day10Ago.setHours(0, 0, 0, 0);
+    day5Ago.setHours(0, 0, 0, 0);
+    day3Ago.setHours(0, 0, 0, 0);
+
+    // Move Account A's balance record to day -10 (pre-range)
+    await Balances.update({ date: day10Ago }, { where: { accountId: accountA.id } });
+
+    // Move Account B's balance record to day -5 (earliest in-range date)
+    await Balances.update({ date: day5Ago }, { where: { accountId: accountB.id } });
+
+    // Create Account A's in-range record at day -3 with amount 0
+    // (0 is safe from any Money conversion — 0 cents = $0 regardless)
+    await (Balances as any).create({ accountId: accountA.id, date: day3Ago, amount: 0 });
+
+    // Query range: last 7 days
+    const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+    const toDate = format(new Date(), 'yyyy-MM-dd');
+
+    const data = await helpers.getCombinedBalanceHistory({
+      from: fromDate,
+      to: toDate,
+      raw: true,
+    });
+
+    expect(data.length).toBeGreaterThan(0);
+
+    // Account A has a record at day -3 (0) which is NOT the first date in range.
+    // The aggregation forward-fills 0 for all prior dates.
+    // Account B has 2000, forward-filled throughout.
+    // Total should be 2000, NOT 10500 (which would be the phantom spike).
+    const firstEntry = data[0]!;
+    expect(firstEntry.accountsBalance).toBe(2000);
+
+    // Verify no entry exceeds 2000 — Account A's stale pre-range 8500
+    // should never appear in the range
+    for (const entry of data) {
+      expect(entry.accountsBalance).toBeLessThanOrEqual(2000);
+    }
+  });
+
+  it('Correctly backfills accounts that have NO records in the range', async () => {
+    // Account A has a balance record only before the range — it should be
+    // backfilled at the start of the range and forward-filled throughout.
+    const accountA = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ initialBalance: 5000 }),
+      raw: true,
+    });
+
+    // Move Account A's balance record to well before the range
+    const preRangeDate = subDays(new Date(), 20);
+    preRangeDate.setHours(0, 0, 0, 0);
+    await Balances.update({ date: preRangeDate }, { where: { accountId: accountA.id } });
+
+    // Query range: last 7 days (Account A has no records here at all)
+    const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+    const toDate = format(new Date(), 'yyyy-MM-dd');
+
+    const data = await helpers.getCombinedBalanceHistory({
+      from: fromDate,
+      to: toDate,
+      raw: true,
+    });
+
+    expect(data.length).toBeGreaterThan(0);
+
+    // Account A should be backfilled with $5000 across the entire range
+    for (const entry of data) {
+      expect(entry.accountsBalance).toBe(5000);
+    }
   });
 });

@@ -1,11 +1,18 @@
-import { NotFoundError, ValidationError } from '@js/errors';
+import { t } from '@i18n/index';
+import { ValidationError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import Portfolios from '@models/investments/Portfolios.model';
-import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
-import { Big } from 'big.js';
+
+import {
+  computeRefAmount,
+  findCurrencyOrThrow,
+  findPortfolioOrThrow,
+  negateAmount,
+  validatePositiveAmount,
+} from './transfer-validations';
 
 interface CreatePortfolioTransferParams {
   userId: number;
@@ -26,46 +33,17 @@ const createPortfolioTransferImpl = async ({
   date,
   description,
 }: CreatePortfolioTransferParams) => {
-  // Validate input
   if (fromPortfolioId === toPortfolioId) {
-    throw new ValidationError({ message: 'Source and destination portfolios must be different' });
+    throw new ValidationError({ message: t({ key: 'investments.sourceAndDestinationMustDiffer' }) });
   }
 
-  if (new Big(amount).lte(0)) {
-    throw new ValidationError({ message: 'Transfer amount must be greater than zero' });
-  }
+  validatePositiveAmount({ amount });
 
-  // Verify source portfolio exists and user owns it
-  const sourcePortfolio = await Portfolios.findOne({
-    where: { id: fromPortfolioId, userId },
-  });
+  await findPortfolioOrThrow({ portfolioId: fromPortfolioId, userId, role: 'source' });
+  await findPortfolioOrThrow({ portfolioId: toPortfolioId, userId, role: 'destination' });
+  await findCurrencyOrThrow({ currencyCode });
 
-  if (!sourcePortfolio) {
-    throw new NotFoundError({ message: 'Source portfolio not found' });
-  }
-
-  // Verify destination portfolio exists and user owns it
-  const destPortfolio = await Portfolios.findOne({
-    where: { id: toPortfolioId, userId },
-  });
-
-  if (!destPortfolio) {
-    throw new NotFoundError({ message: 'Destination portfolio not found' });
-  }
-
-  // Verify currency exists
-  const currency = await Currencies.findByPk(currencyCode);
-  if (!currency) {
-    throw new NotFoundError({ message: 'Currency not found' });
-  }
-
-  // Calculate reference amount (converted to user's base currency)
-  const refAmount = await calculateRefAmount({
-    amount: parseFloat(amount),
-    baseCode: currency.code,
-    userId,
-    date: new Date(date),
-  });
+  const refAmount = await computeRefAmount({ amount, currencyCode, userId, date });
 
   // Create the transfer record
   const transfer = await PortfolioTransfers.create({
@@ -83,12 +61,13 @@ const createPortfolioTransferImpl = async ({
 
   // Update portfolio balances
   // Subtract from source portfolio
+  const negated = negateAmount({ amount });
   await updatePortfolioBalance({
     userId,
     portfolioId: fromPortfolioId,
     currencyCode,
-    availableCashDelta: new Big(amount).times(-1).toFixed(10),
-    totalCashDelta: new Big(amount).times(-1).toFixed(10),
+    availableCashDelta: negated,
+    totalCashDelta: negated,
   });
 
   // Add to destination portfolio

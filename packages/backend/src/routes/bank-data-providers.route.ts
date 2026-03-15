@@ -18,6 +18,7 @@ import checkSync from '@controllers/bank-data-providers/sync/check-sync';
 import getSyncStatus from '@controllers/bank-data-providers/sync/get-sync-status';
 import triggerSync from '@controllers/bank-data-providers/sync/trigger-sync';
 import { authenticateSession } from '@middlewares/better-auth';
+import { blockDemoUsers } from '@middlewares/block-demo-users';
 import { validateEndpoint } from '@middlewares/validations';
 import express from 'express';
 
@@ -47,24 +48,28 @@ router.get(
 router.post(
   '/:providerType/connect',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(connectProvider.schema),
   connectProvider.handler,
 );
 router.delete(
   '/connections/:connectionId',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(disconnectProvider.schema),
   disconnectProvider.handler,
 );
 router.post(
   '/connections/:connectionId/reauthorize',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(reauthorizeConnection.schema),
   reauthorizeConnection.handler,
 );
 router.patch(
   '/connections/:connectionId',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(updateConnectionDetails.schema),
   updateConnectionDetails.handler,
 );
@@ -73,12 +78,14 @@ router.patch(
 router.get(
   '/connections/:connectionId/available-accounts',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(listExternalAccounts.schema),
   listExternalAccounts.handler,
 );
 router.post(
   '/connections/:connectionId/sync-selected-accounts',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(connectSelectedAccounts.schema),
   connectSelectedAccounts.handler,
 );
@@ -87,12 +94,14 @@ router.post(
 router.post(
   '/connections/:connectionId/sync-transactions',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(syncTransactionsForAccount.schema),
   syncTransactionsForAccount.handler,
 );
 router.post(
   '/connections/:connectionId/load-transactions-for-period',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(loadTransactionsForPeriod.schema),
   loadTransactionsForPeriod.handler,
 );
@@ -110,21 +119,41 @@ router.get(
 );
 
 // Bulk account sync endpoints
-router.get('/sync/check', authenticateSession, validateEndpoint(checkSync.schema), checkSync.handler);
-router.post('/sync/trigger', authenticateSession, validateEndpoint(triggerSync.schema), triggerSync.handler);
-router.get('/sync/status', authenticateSession, validateEndpoint(getSyncStatus.schema), getSyncStatus.handler);
+router.get('/sync/check', authenticateSession, blockDemoUsers, validateEndpoint(checkSync.schema), checkSync.handler);
+router.post(
+  '/sync/trigger',
+  authenticateSession,
+  blockDemoUsers,
+  validateEndpoint(triggerSync.schema),
+  triggerSync.handler,
+);
+router.get(
+  '/sync/status',
+  authenticateSession,
+  blockDemoUsers,
+  validateEndpoint(getSyncStatus.schema),
+  getSyncStatus.handler,
+);
 
 // Enable Banking specific endpoints
 router.post(
   '/enablebanking/countries',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(listCountries.schema),
   listCountries.handler,
 );
-router.post('/enablebanking/banks', authenticateSession, validateEndpoint(listBanks.schema), listBanks.handler);
+router.post(
+  '/enablebanking/banks',
+  authenticateSession,
+  blockDemoUsers,
+  validateEndpoint(listBanks.schema),
+  listBanks.handler,
+);
 router.post(
   '/enablebanking/oauth-callback',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(oauthCallback.schema),
   oauthCallback.handler,
 );

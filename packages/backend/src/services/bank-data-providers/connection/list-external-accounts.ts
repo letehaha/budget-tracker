@@ -1,11 +1,19 @@
-import { API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { API_ERROR_CODES, BANK_PROVIDER_TYPE, Decimal } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { ProviderAccount, bankProviderRegistry } from '@services/bank-data-providers';
 
 export const listExternalAccounts = withTransaction(
-  async ({ connectionId, userId }: { connectionId: number; userId: number }): Promise<ProviderAccount[]> => {
+  async ({
+    connectionId,
+    userId,
+  }: {
+    connectionId: number;
+    userId: number;
+  }): Promise<(Omit<ProviderAccount, 'balance'> & { balance: Decimal })[]> => {
     const connection = await BankDataProviderConnections.findOne({
       where: {
         id: connectionId,
@@ -15,7 +23,7 @@ export const listExternalAccounts = withTransaction(
 
     if (!connection) {
       throw new NotFoundError({
-        message: 'Connection not found',
+        message: t({ key: 'errors.connectionNotFound' }),
         code: API_ERROR_CODES.notFound,
       });
     }
@@ -27,7 +35,7 @@ export const listExternalAccounts = withTransaction(
       externalId: acc.externalId,
       name: acc.name,
       type: acc.type,
-      balance: acc.balance,
+      balance: Money.fromCents(acc.balance).toNumber(),
       currency: acc.currency,
       metadata: acc.metadata,
     }));

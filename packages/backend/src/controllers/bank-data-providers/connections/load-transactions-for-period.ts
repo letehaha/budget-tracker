@@ -1,6 +1,7 @@
 import { API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
@@ -15,8 +16,12 @@ export default createController(
     }),
     body: z.object({
       accountId: recordId(),
-      from: z.string().refine((val) => !isNaN(Date.parse(val)), { message: '"from" must be a valid date string' }),
-      to: z.string().refine((val) => !isNaN(Date.parse(val)), { message: '"to" must be a valid date string' }),
+      from: z
+        .string()
+        .refine((val) => !isNaN(Date.parse(val)), { message: t({ key: 'bankDataProviders.fromMustBeValidDate' }) }),
+      to: z
+        .string()
+        .refine((val) => !isNaN(Date.parse(val)), { message: t({ key: 'bankDataProviders.toMustBeValidDate' }) }),
     }),
   }),
   async ({ user, params, body }) => {
@@ -33,7 +38,7 @@ export default createController(
 
     if (!connection) {
       throw new NotFoundError({
-        message: 'Connection not found',
+        message: t({ key: 'errors.connectionNotFound' }),
         code: API_ERROR_CODES.notFound,
       });
     }
@@ -49,7 +54,7 @@ export default createController(
 
     if (!account) {
       throw new NotFoundError({
-        message: 'Account not found or not linked to this connection',
+        message: t({ key: 'bankDataProviders.accountNotLinkedToConnection' }),
         code: API_ERROR_CODES.notFound,
       });
     }
@@ -64,7 +69,10 @@ export default createController(
 
       if (requestedFrom < linkedAt) {
         throw new ValidationError({
-          message: `Cannot load transactions before account link date (${linkedAt.toISOString()}). This account was linked using "forward-only" strategy to prevent data duplication.`,
+          message: t({
+            key: 'bankDataProviders.cannotLoadBeforeLinkDate',
+            variables: { linkedAt: linkedAt.toISOString() },
+          }),
         });
       }
     }
@@ -76,13 +84,13 @@ export default createController(
 
     if (toDate.getTime() - fromDate.getTime() > oneYearInMs) {
       throw new ValidationError({
-        message: 'Date range cannot exceed 1 year.',
+        message: t({ key: 'bankDataProviders.dateRangeExceedsLimit' }),
       });
     }
 
     if (fromDate > toDate) {
       throw new ValidationError({
-        message: '"from" date must be before "to" date',
+        message: t({ key: 'bankDataProviders.fromAfterTo' }),
       });
     }
 
@@ -91,7 +99,7 @@ export default createController(
 
     if (connection.providerType !== BANK_PROVIDER_TYPE.MONOBANK) {
       throw new ValidationError({
-        message: 'Loading transactions for period is only supported for Monobank',
+        message: t({ key: 'bankDataProviders.onlySupportedForMonobank' }),
       });
     }
 
@@ -110,7 +118,10 @@ export default createController(
         jobGroupId: result.jobGroupId,
         totalBatches: result.totalBatches,
         estimatedMinutes: result.estimatedMinutes,
-        message: `Transaction loading queued. Estimated time: ${result.estimatedMinutes} minute(s)`,
+        message: t({
+          key: 'bankDataProviders.transactionLoadingQueued',
+          variables: { minutes: result.estimatedMinutes },
+        }),
       },
     };
   },

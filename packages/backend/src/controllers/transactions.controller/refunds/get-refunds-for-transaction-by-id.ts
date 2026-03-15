@@ -1,4 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeRefundTransactions } from '@root/serializers';
 import * as service from '@services/tx-refunds/get-refund-for-transaction-by-id.service';
 import { z } from 'zod';
 
@@ -21,10 +22,11 @@ export default createController(schema, async ({ user, query }) => {
   const { id: userId } = user;
   const { transactionId } = query;
 
-  const data = await service.getRefundsForTransactionById({
+  const refunds = await service.getRefundsForTransactionById({
     transactionId,
     userId,
   });
 
-  return { data };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeRefundTransactions(refunds) };
 });

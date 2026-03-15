@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // https://vitejs.dev/config/
-export default ({ mode }) => {
+export default async ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, path.resolve(__dirname, '../../'), '') };
 
   const certPath = path.resolve(__dirname, '../../docker/dev/certs/cert.pem');
@@ -33,8 +33,36 @@ export default ({ mode }) => {
     hmr: process.env.HMR_HOST ? { host: process.env.HMR_HOST } : true,
   };
 
+  // Only add Sentry plugin in production build when auth token is available
+  const sentryEnabled = mode === 'production' && process.env.SENTRY_AUTH_TOKEN;
+
+  // Dynamically import Sentry plugin only when needed
+  let sentryPlugin = null;
+  if (sentryEnabled) {
+    const { sentryVitePlugin } = await import('@sentry/vite-plugin');
+    sentryPlugin = sentryVitePlugin({
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    });
+  }
+
   return defineConfig({
-    plugins: [vue(), tailwind(), svgLoader()],
+    plugins: [vue(), tailwind(), svgLoader(), sentryPlugin].filter(Boolean),
+    build: {
+      sourcemap: true,
+      rollupOptions: {
+        output: {
+          // Split large vendor libraries into separate chunks
+          manualChunks: {
+            // Analytics - can be deferred
+            posthog: ['posthog-js'],
+            // Error tracking - separate but still loaded early
+            sentry: ['@sentry/vue'],
+          },
+        },
+      },
+    },
     server: serverConfig,
     resolve: {
       alias: [

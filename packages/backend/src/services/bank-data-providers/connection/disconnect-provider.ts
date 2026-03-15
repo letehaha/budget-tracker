@@ -2,6 +2,7 @@ import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { withTransaction } from '@root/services/common/with-transaction';
+import { unlinkAccountFromBankConnection } from '@services/accounts/unlink-from-bank-connection';
 
 import { bankProviderRegistry } from '../registry';
 
@@ -23,11 +24,16 @@ export const disconnectProvider = withTransaction(
     });
 
     if (!connection) {
-      // No connection? Deleted already
       return;
     }
 
-    // Delete associated accounts if requested
+    const linkedAccounts = await Accounts.findAll({
+      where: {
+        userId,
+        bankDataProviderConnectionId: connectionId,
+      },
+    });
+
     if (removeAssociatedAccounts) {
       await Accounts.destroy({
         where: {
@@ -35,11 +41,15 @@ export const disconnectProvider = withTransaction(
           bankDataProviderConnectionId: connectionId,
         },
       });
+    } else {
+      // Reset each account to system type, preserving connection history
+      // and transaction original IDs (same as individual account unlink)
+      for (const account of linkedAccounts) {
+        await unlinkAccountFromBankConnection({ accountId: account.id, userId });
+      }
     }
 
     const provider = bankProviderRegistry.get(connection.providerType as BANK_PROVIDER_TYPE);
     await provider.disconnect(connectionId);
-
-    return;
   },
 );

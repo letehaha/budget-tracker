@@ -1,10 +1,18 @@
-import { ACCOUNT_TYPES } from '@bt/shared/types';
+import dialogsEn from '@/i18n/locales/chunks/en/dialogs.json';
+import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
 import { buildSystemExpenseTransaction, buildSystemIncomeTransaction } from '@tests/mocks';
 import { getUahAccount } from '@tests/mocks/accounts';
 import { mount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
 
 import { getFormTypeFromTransaction } from '../helpers';
 import TypeSelectorVue from './type-selector.vue';
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'en',
+  messages: { en: dialogsEn },
+});
 
 describe('Record TypeSelector component', () => {
   describe('editing form', () => {
@@ -29,6 +37,10 @@ describe('Record TypeSelector component', () => {
           selectedTransactionType: getFormTypeFromTransaction(transaction),
           isFormCreation: false,
           transaction,
+          account: getUahAccount({ type: ACCOUNT_TYPES.monobank }) as AccountModel,
+        },
+        global: {
+          plugins: [i18n],
         },
       });
 
@@ -36,7 +48,7 @@ describe('Record TypeSelector component', () => {
 
       const desiredButton = buttons.find((item) => item.text().includes(disabledBtnLabel));
 
-      expect(desiredButton.attributes().disabled !== undefined).toBe(true);
+      expect(desiredButton!.attributes().disabled !== undefined).toBe(true);
 
       expect(buttons.filter((item) => item.attributes().disabled !== undefined).length).toBeGreaterThanOrEqual(1);
     });
@@ -49,7 +61,10 @@ describe('Record TypeSelector component', () => {
             selectedTransactionType: getFormTypeFromTransaction(transaction),
             isFormCreation: false,
             transaction,
-            account: getUahAccount(),
+            account: getUahAccount() as AccountModel,
+          },
+          global: {
+            plugins: [i18n],
           },
         });
 

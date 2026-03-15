@@ -235,11 +235,64 @@ export async function waitForSyncJobsToComplete({
   throw new Error(`Sync jobs did not complete within ${timeoutMs}ms`);
 }
 
+export function updateConnectionDetails<R extends boolean | undefined = false>({
+  connectionId,
+  providerName,
+  credentials,
+  raw,
+}: {
+  connectionId: number;
+  providerName?: string;
+  credentials?: Record<string, unknown>;
+  raw?: R;
+}) {
+  return makeRequest<
+    {
+      connection: {
+        id: number;
+        providerName: string;
+        providerType: string;
+        isActive: boolean;
+        lastSyncAt: string | null;
+        createdAt: string;
+        updatedAt: string;
+      };
+    },
+    R
+  >({
+    method: 'patch',
+    url: `/bank-data-providers/connections/${connectionId}`,
+    payload: {
+      ...(providerName !== undefined && { providerName }),
+      ...(credentials !== undefined && { credentials }),
+    },
+    raw,
+  });
+}
+
+export function disconnectProvider<R extends boolean | undefined = false>({
+  connectionId,
+  removeAssociatedAccounts = false,
+  raw,
+}: {
+  connectionId: number;
+  removeAssociatedAccounts?: boolean;
+  raw?: R;
+}) {
+  return makeRequest<{ message: string }, R>({
+    method: 'delete',
+    url: `/bank-data-providers/connections/${connectionId}?removeAssociatedAccounts=${removeAssociatedAccounts}`,
+    raw,
+  });
+}
+
 export default {
   getSupportedBankProviders,
   connectProvider,
+  disconnectProvider,
   listUserConnections,
   getConnectionDetails,
+  updateConnectionDetails,
   listExternalAccounts,
   connectSelectedAccounts,
   syncTransactionsForAccount,

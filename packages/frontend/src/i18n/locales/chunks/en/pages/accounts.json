@@ -1,0 +1,19 @@
+{
+  "accounts": {
+    "noNameSet": "No name set...",
+    "title": "Accounts",
+    "createAccount": "Create account",
+    "bankIntegrations": "Bank Integrations",
+    "sections": {
+      "hidden": "Hidden accounts",
+      "manual": "Manual accounts",
+      "connected": "Connected Accounts"
+    },
+    "empty": {
+      "title": "No Accounts Yet",
+      "description": "Connect your bank or create a manual account to start tracking your finances, balances, and transactions.",
+      "connectBank": "Connect Bank Account",
+      "createManual": "Create Manual Account"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "preferences": {
+      "title": "Preferences",
+      "description": "Customize your app experience",
+      "quickStart": {
+        "title": "Quick Start Guide",
+        "description": "The Quick Start guide helps you learn about the app's features. You can reopen it anytime if you previously dismissed it.",
+        "button": "Reopen Quick Start",
+        "activeLabel": "Currently active"
+      }
+    }
+  }
+}

@@ -3,4 +3,6 @@
 export NVM_DIR="$HOME/.nvm"
 . "$NVM_DIR/nvm.sh"
 
+npm run format
+git add -u
 npm run lint

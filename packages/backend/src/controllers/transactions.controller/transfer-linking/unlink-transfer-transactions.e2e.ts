@@ -46,6 +46,7 @@ describe('Unlink transfer transactions', () => {
         ...oppositeTx,
         transferId: null,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        updatedAt: expect.toBeAnythingOrNull(),
       });
     });
   });
@@ -93,21 +94,25 @@ describe('Unlink transfer transactions', () => {
       ...updatedA![0],
       transferNature: expect.toBeAnythingOrNull(),
       transferId: expect.toBeAnythingOrNull(),
+      updatedAt: expect.toBeAnythingOrNull(),
     });
     expect(incomeSystemTx).toEqual({
       ...updatedA![1],
       transferNature: expect.toBeAnythingOrNull(),
       transferId: expect.toBeAnythingOrNull(),
+      updatedAt: expect.toBeAnythingOrNull(),
     });
     expect(incomeExternalTx).toEqual({
       ...updatedB![0],
       transferNature: expect.toBeAnythingOrNull(),
+      updatedAt: expect.toBeAnythingOrNull(),
       transferId: expect.toBeAnythingOrNull(),
     });
     expect(expenseSystemTx).toEqual({
       ...updatedB![1],
       transferNature: expect.toBeAnythingOrNull(),
       transferId: expect.toBeAnythingOrNull(),
+      updatedAt: expect.toBeAnythingOrNull(),
     });
 
     // Now unlink all of them
@@ -118,9 +123,12 @@ describe('Unlink transfer transactions', () => {
       raw: true,
     });
 
-    // After unlinking check that transactions now are COMPLETELY SAME
+    // After unlinking check that transactions now are COMPLETELY SAME (except updatedAt)
     [expenseExternalTx, incomeExternalTx, expenseSystemTx, incomeSystemTx].forEach((tx) => {
-      expect(result.find((t) => t.id === tx!.id)).toEqual(tx);
+      expect(result.find((t) => t.id === tx!.id)).toEqual({
+        ...tx,
+        updatedAt: expect.toBeAnythingOrNull(),
+      });
     });
   });
 });

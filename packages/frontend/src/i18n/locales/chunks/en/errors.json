@@ -1,0 +1,9 @@
+{
+  "errors": {
+    "api": {
+      "failedToFetch": "Failed to fetch data from the server.",
+      "unexpectedError": "Unexpected error.",
+      "sessionExpired": "Your session has expired. Please sign in again"
+    }
+  }
+}

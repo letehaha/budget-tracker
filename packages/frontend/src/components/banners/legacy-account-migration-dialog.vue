@@ -7,21 +7,23 @@
           <div class="bg-primary/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
             <MailIcon class="text-primary h-8 w-8" />
           </div>
-          <DialogTitle class="text-center">Check your email</DialogTitle>
+          <DialogTitle class="text-center">{{ $t('components.legacyAccountMigrationDialog.checkEmail') }}</DialogTitle>
           <DialogDescription class="text-center">
-            We've sent a verification link to
-            <span class="text-foreground font-medium">{{ form.email }}</span
-            >. Please click the link to confirm your new email address.
+            {{ $t('components.legacyAccountMigrationDialog.verificationSentDescription', { email: form.email }) }}
           </DialogDescription>
         </DialogHeader>
 
         <div class="bg-muted/50 text-muted-foreground rounded-lg p-4 text-center text-sm">
-          <p>After verification, you'll need to log in again with your new email.</p>
+          <p>{{ $t('components.legacyAccountMigrationDialog.loginAgainAfterVerification') }}</p>
         </div>
 
         <DialogFooter class="flex-col gap-2 sm:flex-col">
           <Button variant="outline" :disabled="isSigningOut" class="w-full" @click="handleSignOut">
-            {{ isSigningOut ? 'Signing out...' : 'Sign Out & Log in with new email' }}
+            {{
+              isSigningOut
+                ? $t('components.legacyAccountMigrationDialog.signingOut')
+                : $t('components.legacyAccountMigrationDialog.signOutAndLogin')
+            }}
           </Button>
         </DialogFooter>
       </template>
@@ -29,40 +31,38 @@
       <!-- Initial form state -->
       <template v-else>
         <DialogHeader>
-          <DialogTitle>Update your login method</DialogTitle>
+          <DialogTitle>{{ $t('components.legacyAccountMigrationDialog.updateLoginMethod') }}</DialogTitle>
           <DialogDescription>
-            Your account uses a legacy username-based login. Please add an email address to continue using your account.
+            {{ $t('components.legacyAccountMigrationDialog.legacyLoginWarning') }}
           </DialogDescription>
         </DialogHeader>
 
         <!-- Warning -->
         <div class="bg-destructive/10 border-destructive/20 text-destructive-text rounded-md border p-3 text-sm">
-          <p class="font-medium">Action required</p>
+          <p class="font-medium">{{ $t('components.legacyAccountMigrationDialog.actionRequired') }}</p>
           <p class="mt-1 opacity-90">
-            Without updating your login method, your account data may become corrupted or inaccessible in future
-            updates.
+            {{ $t('components.legacyAccountMigrationDialog.migrationWarning') }}
           </p>
         </div>
 
         <!-- Reassurance -->
         <div class="text-muted-foreground bg-muted/50 rounded-md p-3 text-sm">
-          <p>Your email will only be used for login purposes and won't be shared or used for marketing.</p>
+          <p>{{ $t('components.legacyAccountMigrationDialog.emailPrivacy') }}</p>
         </div>
 
         <!-- Username login warning -->
         <div class="text-muted-foreground bg-muted/50 rounded-md p-3 text-sm">
           <p>
-            After migration, you will no longer be able to log in with your username. Use your email instead, or connect
-            OAuth accounts (Google) for easier access.
+            {{ $t('components.legacyAccountMigrationDialog.usernameLoginAfterMigration') }}
           </p>
         </div>
 
         <form-wrapper :error="formError" class="grid gap-4 py-4" @submit.prevent="submit">
           <input-field
             v-model="form.email"
-            label="Email Address"
+            :label="$t('components.legacyAccountMigrationDialog.emailAddressLabel')"
             type="email"
-            placeholder="your@email.com"
+            :placeholder="$t('components.legacyAccountMigrationDialog.emailPlaceholder')"
             :disabled="isLoading"
             :error-message="getFieldErrorMessage('form.email')"
           />
@@ -70,10 +70,18 @@
 
         <DialogFooter class="flex-col gap-2 sm:flex-col">
           <Button type="submit" :disabled="isLoading || isSigningOut" class="w-full" @click="submit">
-            {{ isLoading ? 'Sending verification...' : 'Send Verification Email' }}
+            {{
+              isLoading
+                ? $t('components.legacyAccountMigrationDialog.sendingVerification')
+                : $t('components.legacyAccountMigrationDialog.sendVerificationEmail')
+            }}
           </Button>
           <Button type="button" variant="outline" :disabled="isLoading || isSigningOut" @click="handleSignOut">
-            {{ isSigningOut ? 'Signing out...' : 'Sign Out' }}
+            {{
+              isSigningOut
+                ? $t('components.legacyAccountMigrationDialog.signingOut')
+                : $t('components.legacyAccountMigrationDialog.signOut')
+            }}
           </Button>
         </DialogFooter>
       </template>

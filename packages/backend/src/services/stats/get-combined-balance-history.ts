@@ -1,13 +1,13 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
-import { toSystemAmount } from '@js/helpers/system-amount';
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import ExchangeRates from '@models/ExchangeRates.model';
-import UserExchangeRates from '@models/UserExchangeRates.model';
-import UsersCurrencies from '@models/UsersCurrencies.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Portfolios from '@models/investments/Portfolios.model';
 import SecurityPricing from '@models/investments/SecurityPricing.model';
-import { eachDayOfInterval, format, parseISO } from 'date-fns';
+import UserExchangeRates from '@models/UserExchangeRates.model';
+import UsersCurrencies from '@models/UsersCurrencies.model';
+import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 
 import { getAggregatedBalanceHistory } from './get-balance-history';
@@ -58,6 +58,12 @@ const calculatePortfolioBalanceHistory = async ({
     'portfolioId' | 'securityId' | 'category' | 'date' | 'quantity' | 'refAmount' | 'refFees' | 'currencyCode'
   >;
 
+  type HoldingState = {
+    quantity: number;
+    costBasis: number;
+    currencyCode: string;
+  };
+
   const transactions: TransactionRow[] = await InvestmentTransaction.findAll({
     where: {
       portfolioId: { [Op.in]: portfolioIds },
@@ -71,7 +77,6 @@ const calculatePortfolioBalanceHistory = async ({
       ['createdAt', 'ASC'],
     ],
     attributes: ['portfolioId', 'securityId', 'category', 'date', 'quantity', 'refAmount', 'refFees', 'currencyCode'],
-    raw: true,
   });
 
   const securityIds = [...new Set(transactions.map((t: TransactionRow) => t.securityId))];
@@ -80,6 +85,10 @@ const calculatePortfolioBalanceHistory = async ({
   if (securityIds.length === 0) {
     return null;
   }
+
+  // Fetch data starting 7 days before minDate to ensure fallback lookups
+  // have prior trading-day data available for weekends/holidays
+  const dataFetchMinDate = format(subDays(parseISO(minDate), 7), 'yyyy-MM-dd');
 
   type SecurityPriceRow = Pick<SecurityPricing, 'securityId' | 'date' | 'priceClose'>;
   type ExchangeRateRow = Pick<UserExchangeRates, 'baseCode' | 'quoteCode' | 'date' | 'rate'>;
@@ -91,7 +100,7 @@ const calculatePortfolioBalanceHistory = async ({
           [Op.in]: securityIds,
         },
         date: {
-          [Op.between]: [minDate, maxDate],
+          [Op.between]: [dataFetchMinDate, maxDate],
         },
       },
       order: [
@@ -99,7 +108,6 @@ const calculatePortfolioBalanceHistory = async ({
         ['date', 'ASC'],
       ],
       attributes: ['securityId', 'date', 'priceClose'],
-      raw: true,
     }) as Promise<SecurityPriceRow[]>,
     UserExchangeRates.findAll({
       where: {
@@ -109,7 +117,7 @@ const calculatePortfolioBalanceHistory = async ({
         },
         quoteCode: userBaseCurrency.currencyCode,
         date: {
-          [Op.between]: [minDate, maxDate],
+          [Op.between]: [dataFetchMinDate, maxDate],
         },
       },
       attributes: ['baseCode', 'quoteCode', 'date', 'rate'],
@@ -122,33 +130,49 @@ const calculatePortfolioBalanceHistory = async ({
         },
         quoteCode: userBaseCurrency.currencyCode,
         date: {
-          [Op.between]: [minDate, maxDate],
+          [Op.between]: [startOfDay(parseISO(dataFetchMinDate)), endOfDay(parseISO(maxDate))],
         },
       },
+      order: [
+        ['baseCode', 'ASC'],
+        ['date', 'ASC'],
+      ],
       raw: true,
     }),
   ]);
 
+  const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
+
+  // Build price lookup with O(1) access by security+date
   const pricesBySecurity = new Map<number, Array<{ date: string; price: number }>>();
+  const pricesBySecurityAndDate = new Map<string, number>(); // "securityId_date" -> price
   for (const price of securityPrices) {
+    const dateStr = String(price.date);
+    const priceValue = price.priceClose.toNumber();
+
     if (!pricesBySecurity.has(price.securityId)) {
       pricesBySecurity.set(price.securityId, []);
     }
     pricesBySecurity.get(price.securityId)!.push({
-      date: String(price.date),
-      price: parseFloat(price.priceClose),
+      date: dateStr,
+      price: priceValue,
     });
+    pricesBySecurityAndDate.set(`${price.securityId}_${dateStr}`, priceValue);
   }
 
   const exchangeRateMap = new Map<string, number>();
-  const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
+
+  // Build user rates map first for O(1) lookup
+  const userRatesMap = new Map<string, number>();
+  for (const r of userCustomExchangeRates) {
+    userRatesMap.set(`${r.baseCode}_${formatDate(r.date)}`, r.rate);
+  }
 
   for (const rate of systemExchangeRates) {
     const key = `${rate.baseCode}_${formatDate(rate.date)}`;
-    const userRate = userCustomExchangeRates.find(
-      (r) => r.baseCode === rate.baseCode && formatDate(r.date) === formatDate(rate.date),
-    );
-    exchangeRateMap.set(key, userRate ? userRate.rate : rate.rate);
+    // O(1) lookup instead of O(n) find
+    const userRate = userRatesMap.get(key);
+    exchangeRateMap.set(key, userRate ?? rate.rate);
   }
 
   const getExchangeRate = (currencyCode: string, dateStr: string): number => {
@@ -168,7 +192,7 @@ const calculatePortfolioBalanceHistory = async ({
         const parts = k.split('_');
         return k.startsWith(`${currencyCode}_`) && parts[1] && parts[1] <= dateStr;
       })
-      .sort((a, b) => b[0].localeCompare(a[0]));
+      .toSorted((a, b) => b[0].localeCompare(a[0]));
 
     if (availableRates.length > 0) {
       return availableRates[0]![1];
@@ -179,43 +203,56 @@ const calculatePortfolioBalanceHistory = async ({
   };
 
   const findPriceForDate = (securityId: number, targetDate: string): number | null => {
+    // O(1) exact match lookup
+    const exactPrice = pricesBySecurityAndDate.get(`${securityId}_${targetDate}`);
+    if (exactPrice !== undefined) return exactPrice;
+
+    // Fallback: find latest price before target date
     const prices = pricesBySecurity.get(securityId);
-    if (!prices) return null;
+    if (!prices || prices.length === 0) return null;
 
-    const exactMatch = prices.find((p) => p.date === targetDate);
-    if (exactMatch) return exactMatch.price;
-
-    const availablePrices = prices.filter((p) => p.date <= targetDate);
-    if (availablePrices.length > 0) {
-      return availablePrices[availablePrices.length - 1]!.price;
+    // Find the last price that's <= targetDate (prices are sorted ASC)
+    let lastValidPrice: number | null = null;
+    for (const p of prices) {
+      if (p.date <= targetDate) {
+        lastValidPrice = p.price;
+      } else {
+        break; // prices are sorted, no need to continue
+      }
     }
-
-    return null;
+    return lastValidPrice;
   };
+
+  // Pre-group transactions by portfolio for O(1) lookup instead of O(n) filter
+  const transactionsByPortfolio = new Map<number, TransactionRow[]>();
+  for (const tx of transactions) {
+    if (!transactionsByPortfolio.has(tx.portfolioId)) {
+      transactionsByPortfolio.set(tx.portfolioId, []);
+    }
+    transactionsByPortfolio.get(tx.portfolioId)!.push(tx);
+  }
 
   const portfolioValuesByDate = new Map<string, number>();
 
+  // Process all portfolios, building up holdings state incrementally by date
+  // Each portfolio's transactions are already sorted by date ASC
   for (const dateStr of uniqueDates) {
     let totalValueForDate = 0;
 
     for (const portfolioId of portfolioIds) {
-      const portfolioTransactions = transactions.filter(
-        (t: TransactionRow) => t.portfolioId === portfolioId && t.date <= dateStr,
-      );
+      const portfolioTxs = transactionsByPortfolio.get(portfolioId) ?? [];
 
-      const holdings = new Map<
-        number,
-        {
-          quantity: number;
-          costBasis: number;
-          currencyCode: string;
-        }
-      >();
+      // Build holdings by processing transactions up to this date
+      // Transactions are already ordered by date ASC, so we can process incrementally
+      const holdings = new Map<number, HoldingState>();
 
-      for (const tx of portfolioTransactions) {
+      for (const tx of portfolioTxs) {
+        // Since transactions are sorted by date, once we pass the current date, stop
+        if (tx.date > dateStr) break;
+
         const securityId = tx.securityId;
-        const quantity = parseFloat(tx.quantity);
-        const totalAmount = parseFloat(tx.refAmount) + parseFloat(tx.refFees);
+        const quantity = tx.quantity.toNumber();
+        const totalAmount = tx.refAmount.toNumber() + tx.refFees.toNumber();
 
         if (!holdings.has(securityId)) {
           holdings.set(securityId, {
@@ -244,11 +281,9 @@ const calculatePortfolioBalanceHistory = async ({
       }
 
       for (const [securityId, holding] of holdings) {
-        if (holding.quantity <= 0) continue;
-
         const currentPrice = findPriceForDate(securityId, dateStr);
 
-        if (currentPrice) {
+        if (currentPrice !== null) {
           const marketValueInSecurityCurrency = holding.quantity * currentPrice;
           const exchangeRate = getExchangeRate(holding.currencyCode, dateStr);
           const marketValueInBaseCurrency = Math.floor(marketValueInSecurityCurrency * exchangeRate);
@@ -259,7 +294,7 @@ const calculatePortfolioBalanceHistory = async ({
       }
     }
 
-    portfolioValuesByDate.set(dateStr, toSystemAmount(totalValueForDate));
+    portfolioValuesByDate.set(dateStr, Money.fromDecimal(totalValueForDate).toCents());
   }
 
   return portfolioValuesByDate;
@@ -331,10 +366,16 @@ export const getCombinedBalanceHistory = async ({
       return [];
     }
 
-    // Combine accounts and portfolio balances
+    // Build Map for O(1) lookup instead of O(n) find
+    const accountsBalanceByDate = new Map<string, number>();
+    for (const item of accountsBalanceHistory) {
+      accountsBalanceByDate.set(item.date, item.amount);
+    }
+
+    // Combine accounts and portfolio balances with O(1) lookups
     const combinedHistory: CombinedBalanceHistoryItem[] = uniqueDates.map((dateStr) => {
-      const accountsBalance = accountsBalanceHistory.find((item) => item.date === dateStr)?.amount || 0;
-      const portfoliosBalance = portfolioValuesByDate?.get(dateStr) || 0;
+      const accountsBalance = accountsBalanceByDate.get(dateStr) ?? 0;
+      const portfoliosBalance = portfolioValuesByDate?.get(dateStr) ?? 0;
 
       return {
         date: dateStr,

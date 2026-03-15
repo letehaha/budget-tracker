@@ -17,17 +17,17 @@ const cloneStateSkipReadonly = (state: any): any => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any = Array.isArray(state) ? [] : {};
 
-  for (const key in state) {
+  for (const key in state as Record<string, unknown>) {
     if (Object.prototype.hasOwnProperty.call(state, key)) {
       // Skip readonly refs (query data)
-      if (isReadonly(state[key])) {
+      if (isReadonly((state as Record<string, unknown>)[key])) {
         continue;
       }
 
-      if (isObject(state[key])) {
-        result[key] = cloneStateSkipReadonly(state[key]);
+      if (isObject((state as Record<string, unknown>)[key])) {
+        result[key] = cloneStateSkipReadonly((state as Record<string, unknown>)[key]);
       } else {
-        result[key] = state[key];
+        result[key] = (state as Record<string, unknown>)[key];
       }
     }
   }

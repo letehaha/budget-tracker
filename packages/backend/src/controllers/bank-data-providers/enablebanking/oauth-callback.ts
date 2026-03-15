@@ -1,5 +1,6 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { bankProviderRegistry } from '@root/services/bank-data-providers';
@@ -33,7 +34,7 @@ export default createController(schema, async ({ body, user }) => {
   });
 
   if (!connection) {
-    throw new NotFoundError({ message: 'Connection not found or does not belong to you' });
+    throw new NotFoundError({ message: t({ key: 'errors.connectionNotFoundOrNotYours' }) });
   }
 
   // Get provider instance
@@ -49,7 +50,7 @@ export default createController(schema, async ({ body, user }) => {
 
   return {
     data: {
-      message: 'Connection successfully established',
+      message: t({ key: 'bankDataProviders.connectionEstablished' }),
       connectionId,
     },
   };

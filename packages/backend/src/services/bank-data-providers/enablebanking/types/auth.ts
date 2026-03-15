@@ -25,6 +25,7 @@ export interface EnableBankingCredentials {
 /**
  * Summary of account info stored in connection metadata.
  * Contains minimal fields needed for matching and display.
+ * @public
  */
 export interface MetadataAccountSummary {
   /** Stable identifier across sessions - used for matching */
@@ -78,6 +79,7 @@ export interface EnableBankingJWTPayload {
 /**
  * Access scope configuration
  * https://enablebanking.com/docs/api/reference/#access
+ * @public
  */
 export interface Access {
   /**
@@ -160,6 +162,7 @@ export interface CreateSessionResponse {
 /**
  * Response from GET /sessions/{session_id}
  * https://enablebanking.com/docs/api/reference/#getsessionresponse
+ * @public
  */
 export interface GetSessionResponse {
   /** Session ID */
@@ -216,6 +219,7 @@ export interface EnableBankingConnectionParams {
 /**
  * Error response
  * https://enablebanking.com/docs/api/reference/#errorresponse
+ * @public
  */
 export interface ErrorResponse {
   /** Error code */
@@ -227,6 +231,7 @@ export interface ErrorResponse {
 /**
  * Success response
  * https://enablebanking.com/docs/api/reference/#successresponse
+ * @public
  */
 export interface SuccessResponse {
   /** Success message */
@@ -236,6 +241,7 @@ export interface SuccessResponse {
 /**
  * Application information response
  * https://enablebanking.com/docs/api/reference/#getapplicationresponse
+ * @public
  */
 export interface GetApplicationResponse {
   /** Application ID */

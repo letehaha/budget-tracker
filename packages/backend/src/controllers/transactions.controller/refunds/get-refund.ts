@@ -1,5 +1,6 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeRefundTransaction } from '@root/serializers';
 import { getRefund as getRefundService } from '@services/tx-refunds/get-refund.service';
 import { z } from 'zod';
 
@@ -13,11 +14,12 @@ const schema = z.object({
 export default createController(schema, async ({ user, query }) => {
   const { id: userId } = user;
 
-  const data = await getRefundService({
+  const refund = await getRefundService({
     originalTxId: query.originalTxId,
     refundTxId: query.refundTxId,
     userId,
   });
 
-  return { data };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeRefundTransaction(refund) };
 });

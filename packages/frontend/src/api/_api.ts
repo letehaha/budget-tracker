@@ -1,5 +1,6 @@
 import { ApiBaseError } from '@/common/types';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { getCurrentLocale, i18n } from '@/i18n';
 import * as errors from '@/js/errors';
 import { router } from '@/routes';
 import { useAuthStore } from '@/stores';
@@ -16,6 +17,7 @@ interface ApiRequestConfig {
   headers: {
     'Content-Type': string;
     [SESSION_ID_HEADER_KEY]: string;
+    'Accept-Language': string;
   };
   body?: string;
   credentials: RequestCredentials;
@@ -29,6 +31,8 @@ interface ApiCall {
   data?: Record<string | number, any>;
   options?: {
     needRaw?: boolean;
+    /** When true, suppresses error toast notifications for failed requests */
+    silent?: boolean;
   };
 }
 
@@ -125,7 +129,7 @@ class ApiCaller {
       endpoint,
       options,
       query: validQuery,
-      data: params?.data,
+      data: params?.data as ApiCall['data'],
     });
   }
 
@@ -157,6 +161,7 @@ class ApiCaller {
       headers: {
         'Content-Type': 'application/json',
         'X-Session-ID': window.sessionStorage?.getItem(SESSION_ID_KEY) || '',
+        'Accept-Language': getCurrentLocale(), // Send current locale to backend
       },
       // Include credentials (cookies) for session-based authentication
       credentials: 'include',
@@ -170,26 +175,41 @@ class ApiCaller {
 
     const { addNotification } = useNotificationCenter();
 
+    const isSilent = opts.options?.silent ?? false;
+
+    // Helper to get translated text with fallback (in case i18n isn't loaded yet)
+    const t = (key: string, fallback: string) => {
+      const translated = i18n.global.t(key);
+      // If translation returns the key itself, use fallback
+      return translated === key ? fallback : translated;
+    };
+
     try {
       result = await fetch(url, config);
     } catch (e) {
       if (e instanceof TypeError && e.toString().includes('Failed to fetch')) {
-        addNotification({
-          id: 'api-fetching-error',
-          text: 'Failed to fetch data from the server.',
-          type: NotificationType.error,
-        });
+        const message = t('errors.api.failedToFetch', 'Failed to connect to server');
+        if (!isSilent) {
+          addNotification({
+            id: 'api-fetching-error',
+            text: message,
+            type: NotificationType.error,
+          });
+        }
 
-        throw new errors.NetworkError('Failed to fetch data from the server.');
+        throw new errors.NetworkError(message);
       }
 
-      addNotification({
-        id: 'unexpected-api-error',
-        text: 'Unexpected error.',
-        type: NotificationType.error,
-      });
+      const message = t('errors.api.unexpectedError', 'An unexpected error occurred');
+      if (!isSilent) {
+        addNotification({
+          id: 'unexpected-api-error',
+          text: message,
+          type: NotificationType.error,
+        });
+      }
 
-      throw new errors.UnexpectedError('Unexpected error.', {});
+      throw new errors.UnexpectedError(message, {});
     }
 
     const sessionId = result.headers.get(SESSION_ID_HEADER_KEY);
@@ -217,22 +237,13 @@ class ApiCaller {
       if (response.code === API_ERROR_CODES.unauthorized) {
         useAuthStore().logout();
 
-        // Public pages where we don't show notification or redirect
-        // Use window.location.pathname instead of router.currentRoute because during
-        // navigation guards, currentRoute may not yet reflect the actual destination
-        const publicPaths = ['/', '/privacy-policy', '/terms-of-use'];
-        const currentPath = window.location.pathname;
-        const isOnPublicPage = publicPaths.includes(currentPath);
+        router.push('/sign-in');
 
-        if (!isOnPublicPage) {
-          router.push('/sign-in');
-
-          addNotification({
-            id: 'authorization-error',
-            text: 'Your session has expired. Please sign in again',
-            type: NotificationType.error,
-          });
-        }
+        addNotification({
+          id: 'authorization-error',
+          text: t('errors.api.sessionExpired', 'Your session has expired'),
+          type: NotificationType.error,
+        });
 
         throw new errors.AuthError(response.statusText, response);
       }
@@ -240,7 +251,7 @@ class ApiCaller {
       if (response.code === API_ERROR_CODES.unexpected) {
         addNotification({
           id: 'unexpected-error',
-          text: 'Unexpected error.',
+          text: t('errors.api.unexpectedError', 'An unexpected error occurred'),
           type: NotificationType.error,
         });
       }

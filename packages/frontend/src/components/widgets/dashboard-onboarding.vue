@@ -2,8 +2,8 @@
   <div class="mx-auto w-full max-w-2xl">
     <!-- Header -->
     <div class="mb-8 text-center">
-      <h1 class="text-3xl font-semibold tracking-tight">Welcome to MoneyMatter</h1>
-      <p class="text-muted-foreground mt-2 text-base">Get started by setting up your first account</p>
+      <h1 class="text-3xl font-semibold tracking-tight">{{ $t('dashboard.onboarding.title') }}</h1>
+      <p class="text-muted-foreground mt-2 text-base">{{ $t('dashboard.onboarding.subtitle') }}</p>
     </div>
 
     <!-- Primary Options -->
@@ -16,9 +16,9 @@
             <WalletIcon class="text-primary size-5" />
           </div>
           <div>
-            <h3 class="font-medium">Create Manual Account</h3>
+            <h3 class="font-medium">{{ $t('dashboard.onboarding.createManualAccount.title') }}</h3>
             <p class="text-muted-foreground mt-1 text-sm leading-relaxed">
-              Track cash, savings, or any account manually
+              {{ $t('dashboard.onboarding.createManualAccount.description') }}
             </p>
           </div>
         </button>
@@ -32,9 +32,9 @@
           <LandmarkIcon class="text-primary size-5" />
         </div>
         <div>
-          <h3 class="font-medium">Connect Your Bank</h3>
+          <h3 class="font-medium">{{ $t('dashboard.onboarding.connectBank.title') }}</h3>
           <p class="text-muted-foreground mt-1 text-sm leading-relaxed">
-            Automatically sync transactions from your bank
+            {{ $t('dashboard.onboarding.connectBank.description') }}
           </p>
         </div>
       </button>
@@ -46,7 +46,7 @@
         <div class="border-border w-full border-t"></div>
       </div>
       <div class="relative flex justify-center">
-        <span class="bg-background text-muted-foreground px-3 text-sm">or import existing data</span>
+        <span class="bg-background text-muted-foreground px-3 text-sm">{{ $t('dashboard.onboarding.divider') }}</span>
       </div>
     </div>
 
@@ -59,8 +59,8 @@
         <FileUpIcon class="text-muted-foreground size-5" />
       </div>
       <div class="flex-1">
-        <h3 class="font-medium">Import from File</h3>
-        <p class="text-muted-foreground mt-0.5 text-sm">Import transactions from bank statements (PDF) or CSV files</p>
+        <h3 class="font-medium">{{ $t('dashboard.onboarding.importFile.title') }}</h3>
+        <p class="text-muted-foreground mt-0.5 text-sm">{{ $t('dashboard.onboarding.importFile.description') }}</p>
       </div>
       <ArrowRightIcon class="text-muted-foreground size-4 transition-transform group-hover:translate-x-0.5" />
     </button>

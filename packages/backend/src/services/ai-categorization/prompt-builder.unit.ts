@@ -1,3 +1,5 @@
+import { Money } from '@common/types/money';
+
 import {
   buildSystemPrompt,
   buildUserMessage,
@@ -28,7 +30,7 @@ describe('prompt-builder', () => {
       const transactions: TransactionForCategorization[] = [
         {
           id: 1,
-          amount: -100,
+          amount: Money.fromDecimal(-100),
           currencyCode: 'USD',
           accountName: 'Main Account',
           datetime: '2024-01-15T10:30:00Z',
@@ -47,7 +49,7 @@ describe('prompt-builder', () => {
       const transactions: TransactionForCategorization[] = [
         {
           id: 1,
-          amount: -50,
+          amount: Money.fromDecimal(-50),
           currencyCode: 'USD',
           accountName: 'Checking',
           datetime: '2024-01-15T10:00:00Z',
@@ -55,7 +57,7 @@ describe('prompt-builder', () => {
         },
         {
           id: 2,
-          amount: -25,
+          amount: Money.fromDecimal(-25),
           currencyCode: 'EUR',
           accountName: 'Savings',
           datetime: '2024-01-16T14:00:00Z',
@@ -73,7 +75,7 @@ describe('prompt-builder', () => {
       const transactions: TransactionForCategorization[] = [
         {
           id: 1,
-          amount: -100,
+          amount: Money.fromDecimal(-100),
           currencyCode: 'USD',
           accountName: 'Account',
           datetime: '2024-01-15T10:00:00Z',
@@ -90,7 +92,7 @@ describe('prompt-builder', () => {
       const transactions: TransactionForCategorization[] = [
         {
           id: 1,
-          amount: -100,
+          amount: Money.fromDecimal(-100),
           currencyCode: 'USD',
           accountName: 'Account',
           datetime: '2024-01-15T10:00:00Z',
@@ -108,7 +110,7 @@ describe('prompt-builder', () => {
       const transactions: TransactionForCategorization[] = [
         {
           id: 1,
-          amount: -100,
+          amount: Money.fromDecimal(-100),
           currencyCode: 'USD',
           accountName: 'Account',
           datetime: '2024-01-15T10:00:00Z',
@@ -127,7 +129,7 @@ describe('prompt-builder', () => {
       const transactions: TransactionForCategorization[] = [
         {
           id: 1,
-          amount: -100,
+          amount: Money.fromDecimal(-100),
           currencyCode: 'USD',
           accountName: 'Account',
           datetime: '2024-01-15T10:00:00Z',
@@ -184,7 +186,7 @@ describe('prompt-builder', () => {
       const transactions: TransactionForCategorization[] = [
         {
           id: 1,
-          amount: -50,
+          amount: Money.fromDecimal(-50),
           currencyCode: 'USD',
           accountName: 'Checking',
           datetime: '2024-01-15T10:00:00Z',

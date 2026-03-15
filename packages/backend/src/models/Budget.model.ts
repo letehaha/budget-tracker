@@ -1,4 +1,5 @@
-import { BUDGET_STATUSES } from '@bt/shared/types';
+import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
+import Categories from '@models/Categories.model';
 import Transactions from '@models/Transactions.model';
 import Users from '@models/Users.model';
 import {
@@ -19,6 +20,9 @@ import {
   Table,
 } from '@sequelize/core/decorators-legacy';
 
+import BudgetCategories from './BudgetCategories.model';
+import BudgetTransactions from './BudgetTransactions.model';
+
 @Table({
   timestamps: false,
   tableName: 'Budgets',
@@ -37,8 +41,10 @@ export default class Budgets extends Model<InferAttributes<Budgets>, InferCreati
   @NotNull
   declare status: BUDGET_STATUSES;
 
-  @Attribute(DataTypes.STRING)
-  declare categoryName: string | null;
+  @Attribute(DataTypes.ENUM({ values: Object.values(BUDGET_TYPES) }))
+  @NotNull
+  @Default(BUDGET_TYPES.manual)
+  declare type: CreationOptional<BUDGET_TYPES>;
 
   @Attribute(DataTypes.DATE)
   declare startDate: Date | null;
@@ -60,4 +66,6 @@ export default class Budgets extends Model<InferAttributes<Budgets>, InferCreati
 
   // In Sequelize v7, BelongsToMany is defined on Transactions model and automatically creates the inverse
   declare transactions?: NonAttribute<Transactions[]>;
+
+  declare categories?: NonAttribute<Categories[]>;
 }

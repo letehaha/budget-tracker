@@ -11,4 +11,5 @@ declare global {
   }
 }
 
+// oxlint-disable-next-line unicorn/require-module-specifiers -- needed to make this a module for `declare global`
 export {};

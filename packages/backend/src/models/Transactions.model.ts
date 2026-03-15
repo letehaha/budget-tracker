@@ -2,12 +2,14 @@ import {
   ACCOUNT_TYPES,
   CATEGORIZATION_SOURCE,
   CategorizationMeta,
+  FILTER_OPERATION,
   PAYMENT_TYPES,
   SORT_DIRECTIONS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TransactionModel,
 } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import { isExist, removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
@@ -16,7 +18,11 @@ import Budgets from '@models/Budget.model';
 import BudgetTransactions from '@models/BudgetTransactions.model';
 import Categories from '@models/Categories.model';
 import Currencies from '@models/Currencies.model';
+import Tags from '@models/Tags.model';
+import TransactionGroupItems from '@models/TransactionGroupItems.model';
+import TransactionGroups from '@models/TransactionGroups.model';
 import TransactionSplits from '@models/TransactionSplits.model';
+import TransactionTags from '@models/TransactionTags.model';
 import Users from '@models/Users.model';
 import {
   CreationOptional,
@@ -31,6 +37,7 @@ import {
 } from '@sequelize/core';
 import {
   AfterCreate,
+  AfterDestroy,
   AfterUpdate,
   Attribute,
   AutoIncrement,
@@ -48,40 +55,17 @@ import {
   Unique,
 } from '@sequelize/core/decorators-legacy';
 import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
+import { literal } from 'sequelize';
 
-// TODO: replace with scopes
-const prepareTXInclude = ({
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeSplits,
-  includeAll,
-  nestedInclude,
-}: {
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeSplits?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
-}) => {
-  let include: Includeable | Includeable[] | null = null;
+const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
+  const include: Includeable[] = [];
 
-  if (isExist(includeAll)) {
-    include = { all: true, nested: isExist(nestedInclude) || undefined };
-  } else {
-    include = [];
-
-    if (isExist(includeUser)) include.push({ model: Users });
-    if (isExist(includeAccount)) include.push({ model: Accounts });
-    if (isExist(includeCategory)) include.push({ model: Categories });
-    if (isExist(includeSplits)) {
-      include.push({
-        model: TransactionSplits,
-        as: 'splits',
-        include: [{ model: Categories, as: 'category' }],
-      });
-    }
+  if (includeSplits) {
+    include.push({
+      model: TransactionSplits,
+      as: 'splits',
+      include: [{ model: Categories, as: 'category' }],
+    });
   }
 
   return include;
@@ -89,9 +73,9 @@ const prepareTXInclude = ({
 
 export interface TransactionsAttributes {
   id: number;
-  amount: number;
-  // Amount in currency of base currency
-  refAmount: number;
+  amount: Money;
+  /** Amount in user's base currency */
+  refAmount: Money;
   note: string;
   time: Date;
   userId: number;
@@ -116,15 +100,17 @@ export interface TransactionsAttributes {
     hold?: boolean;
     receiptId?: string;
   } & Record<string, unknown>;
-  commissionRate: number; // should be comission calculated as refAmount
-  refCommissionRate: number; // should be comission calculated as refAmount
-  cashbackAmount: number; // add to unified
+  commissionRate: Money;
+  refCommissionRate: Money;
+  cashbackAmount: Money;
   refundLinked: boolean;
   categorizationMeta: CategorizationMeta | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 @Table({
-  timestamps: false,
+  timestamps: true,
   tableName: 'Transactions',
   freezeTableName: true,
 })
@@ -165,6 +151,20 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   })
   declare budgets?: NonAttribute<Budgets[]>;
 
+  @BelongsToMany(() => Tags, {
+    through: () => TransactionTags,
+    foreignKey: 'transactionId',
+    otherKey: 'tagId',
+  })
+  declare tags?: NonAttribute<Tags[]>;
+
+  @BelongsToMany(() => TransactionGroups, {
+    through: () => TransactionGroupItems,
+    foreignKey: 'transactionId',
+    otherKey: 'groupId',
+  })
+  declare transactionGroups?: NonAttribute<TransactionGroups[]>;
+
   @HasMany(() => TransactionSplits, 'transactionId')
   declare splits?: NonAttribute<TransactionSplits[]>;
 
@@ -189,6 +189,9 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   @Index
   declare categoryId: number | null;
 
+  @BelongsTo(() => Categories, 'categoryId')
+  declare category?: NonAttribute<Categories>;
+
   @Attribute(DataTypes.STRING(3))
   @Index
   declare currencyCode: string | null;
@@ -207,7 +210,7 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   declare transferNature: CreationOptional<TRANSACTION_TRANSFER_NATURE>;
 
   // (hash, used to connect two transactions)
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.STRING)
   declare transferId: string | null;
 
   // Stores the original id from external source
@@ -244,6 +247,10 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   // Metadata about how this transaction was categorized (manual, ai, mcc_rule, user_rule)
   @Attribute(DataTypes.JSONB)
   declare categorizationMeta: CategorizationMeta | null;
+
+  // Managed by Sequelize (timestamps: true)
+  declare createdAt: Date;
+  declare updatedAt: Date;
 
   // User should set all of requiredFields for transfer transaction
   @BeforeCreate
@@ -286,6 +293,18 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
     const newData: Transactions = (instance as any).dataValues;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const prevData: Transactions = (instance as any)._previousDataValues;
+
+    // dataValues/previousDataValues are raw DB values (cents integers), not Money.
+    // Convert in-place so downstream code that expects Money objects works correctly.
+    const MONEY_FIELDS = ['amount', 'refAmount', 'commissionRate', 'refCommissionRate', 'cashbackAmount'] as const;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newRaw = newData as any,
+      prevRaw = prevData as any;
+    for (const field of MONEY_FIELDS) {
+      newRaw[field] = Money.fromCents(newRaw[field]);
+      prevRaw[field] = Money.fromCents(prevRaw[field]);
+    }
+
     const isAccountChanged = newData.accountId !== prevData.accountId;
 
     if (newData.accountType === ACCOUNT_TYPES.system) {
@@ -355,7 +374,55 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
     }
 
     await Balances.handleTransactionChange({ data: instance, isDelete: true });
+
+    // Capture group membership BEFORE CASCADE deletes the join rows.
+    // Stored on the instance so @AfterDestroy can check only the affected groups.
+    const groupItems = await TransactionGroupItems.findAll({
+      where: { transactionId: instance.id },
+      attributes: ['groupId'],
+      raw: true,
+    });
+    (instance as unknown as Record<string, unknown>)._affectedGroupIds = groupItems.map((item) => item.groupId);
   }
+
+  @AfterDestroy
+  static async autoDissolveEmptyGroups(instance: Transactions) {
+    // After CASCADE removes the join row, check only the groups this transaction belonged to.
+    const affectedGroupIds = (instance as unknown as Record<string, unknown>)._affectedGroupIds as number[] | undefined;
+
+    if (!affectedGroupIds || affectedGroupIds.length === 0) return;
+
+    const underMinGroups = (await TransactionGroups.findAll({
+      where: {
+        id: { [Op.in]: affectedGroupIds },
+        [Op.and]: literal(`(
+          SELECT COUNT(*)
+          FROM "TransactionGroupItems"
+          WHERE "TransactionGroupItems"."groupId" = "TransactionGroups"."id"
+        ) < 2`),
+      },
+      attributes: ['id'],
+      raw: true,
+    })) as TransactionGroups[];
+
+    const idsToDelete = underMinGroups.map((g) => g.id);
+    if (idsToDelete.length > 0) {
+      await TransactionGroups.destroy({ where: { id: { [Op.in]: idsToDelete } } });
+    }
+  }
+}
+
+function buildTransferCondition(filter: FILTER_OPERATION | undefined): Record<string, unknown> | null {
+  if (filter === FILTER_OPERATION.exclude) return { transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer };
+  if (filter === FILTER_OPERATION.only)
+    return { transferNature: { [Op.ne]: TRANSACTION_TRANSFER_NATURE.not_transfer } };
+  return null;
+}
+
+function buildRefundCondition(filter: FILTER_OPERATION | undefined): Record<string, unknown> | null {
+  if (filter === FILTER_OPERATION.exclude) return { refundLinked: false };
+  if (filter === FILTER_OPERATION.only) return { refundLinked: true };
+  return null;
 }
 
 export const findWithFilters = async ({
@@ -363,24 +430,28 @@ export const findWithFilters = async ({
   limit = 20,
   accountType,
   accountIds,
+  excludeAccountIds,
   budgetIds,
   excludedBudgetIds,
+  tagIds,
+  excludedTagIds,
   userId,
   order = SORT_DIRECTIONS.desc,
-  includeUser,
-  includeAccount,
   transactionType,
-  includeCategory,
   includeSplits,
-  includeAll,
-  nestedInclude,
+  includeTags,
+  includeGroups,
   isRaw = false,
   excludeTransfer,
   excludeRefunds,
+  transferFilter,
+  refundFilter,
   startDate,
   endDate,
   amountGte,
   amountLte,
+  refAmountGte,
+  refAmountLte,
   categoryIds,
   noteSearch,
   attributes,
@@ -391,47 +462,68 @@ export const findWithFilters = async ({
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
   accountIds?: number[];
+  /** Filter: exclude transactions from these account IDs */
+  excludeAccountIds?: number[];
   budgetIds?: number[];
   excludedBudgetIds?: number[];
+  tagIds?: number[];
+  excludedTagIds?: number[];
   userId: number;
   order?: SORT_DIRECTIONS;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
   includeSplits?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
-  isRaw: boolean;
+  includeTags?: boolean;
+  includeGroups?: boolean;
+  isRaw?: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  transferFilter?: FILTER_OPERATION;
+  refundFilter?: FILTER_OPERATION;
   startDate?: string;
   endDate?: string;
-  amountGte?: number;
-  amountLte?: number;
+  /** Filter: amount >= this value */
+  amountGte?: Money;
+  /** Filter: amount <= this value */
+  amountLte?: Money;
+  /** Filter: refAmount >= this value - for cross-currency matching */
+  refAmountGte?: Money;
+  /** Filter: refAmount <= this value - for cross-currency matching */
+  refAmountLte?: Money;
   categoryIds?: number[];
   noteSearch?: string[]; // array of keywords
   attributes?: (keyof Transactions)[];
   categorizationSource?: CATEGORIZATION_SOURCE;
 }) => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeSplits,
-    includeAll,
-    nestedInclude,
-  });
-  const queryInclude: Includeable[] = Array.isArray(include) ? include : include ? [include] : [];
+  const queryInclude: Includeable[] = prepareTXInclude({ includeSplits });
+
+  // New enum params take priority over legacy booleans
+  const resolvedTransferFilter = transferFilter ?? (excludeTransfer ? FILTER_OPERATION.exclude : undefined);
+  const resolvedRefundFilter = refundFilter ?? (excludeRefunds ? FILTER_OPERATION.exclude : undefined);
+
+  const transferCondition = buildTransferCondition(resolvedTransferFilter);
+  const refundCondition = buildRefundCondition(resolvedRefundFilter);
 
   const whereClause: WhereOptions<Transactions> = {
     userId,
     ...removeUndefinedKeys({
       accountType,
       transactionType,
-      transferNature: excludeTransfer ? TRANSACTION_TRANSFER_NATURE.not_transfer : undefined,
-      refundLinked: excludeRefunds ? false : undefined,
     }),
   };
+
+  // When both filters are "only", use OR logic so the user can see
+  // "refunds OR transfers" instead of the impossible "refunds AND transfers"
+  if (
+    transferCondition &&
+    refundCondition &&
+    resolvedTransferFilter === FILTER_OPERATION.only &&
+    resolvedRefundFilter === FILTER_OPERATION.only
+  ) {
+    // Wrap in Op.and to avoid conflicting with category filter's Op.or
+    whereClause[Op.and as unknown as string] = [{ [Op.or]: [transferCondition, refundCondition] }];
+  } else {
+    if (transferCondition) Object.assign(whereClause, transferCondition);
+    if (refundCondition) Object.assign(whereClause, refundCondition);
+  }
 
   if (categoryIds && categoryIds.length > 0) {
     // Find transactions that have splits with any of the requested category IDs
@@ -464,6 +556,13 @@ export const findWithFilters = async ({
     };
   }
 
+  if (excludeAccountIds && excludeAccountIds.length > 0) {
+    whereClause.accountId = {
+      ...(whereClause.accountId as object | undefined),
+      [Op.notIn]: excludeAccountIds,
+    };
+  }
+
   if (startDate || endDate) {
     whereClause.time = {};
     if (startDate && endDate) {
@@ -481,12 +580,25 @@ export const findWithFilters = async ({
     whereClause.amount = {};
     if (amountGte && amountLte) {
       whereClause.amount = {
-        [Op.between]: [amountGte, amountLte],
+        [Op.between]: [amountGte.toCents(), amountLte.toCents()],
       };
     } else if (amountGte) {
-      whereClause.amount[Op.gte] = amountGte;
+      whereClause.amount[Op.gte] = amountGte.toCents();
     } else if (amountLte) {
-      whereClause.amount[Op.lte] = amountLte;
+      whereClause.amount[Op.lte] = amountLte.toCents();
+    }
+  }
+
+  if (refAmountGte || refAmountLte) {
+    whereClause.refAmount = {};
+    if (refAmountGte && refAmountLte) {
+      whereClause.refAmount = {
+        [Op.between]: [refAmountGte.toCents(), refAmountLte.toCents()],
+      };
+    } else if (refAmountGte) {
+      whereClause.refAmount[Op.gte] = refAmountGte.toCents();
+    } else if (refAmountLte) {
+      whereClause.refAmount[Op.lte] = refAmountLte.toCents();
     }
   }
 
@@ -517,6 +629,66 @@ export const findWithFilters = async ({
     }
   }
 
+  // Filter by tagIds - include only transactions with these tags
+  if (tagIds?.length) {
+    queryInclude.push({
+      model: Tags,
+      through: { attributes: [], where: { tagId: { [Op.in]: tagIds } } },
+      attributes: [],
+      required: true,
+    });
+  }
+
+  // Exclude transactions with specific tags
+  if (excludedTagIds?.length) {
+    const excludedTransactionIds = await TransactionTags.findAll({
+      attributes: ['transactionId'],
+      where: {
+        tagId: {
+          [Op.in]: excludedTagIds,
+        },
+      },
+      raw: true,
+    }).then((results) => results.map((r) => r.transactionId));
+
+    if (excludedTransactionIds.length > 0) {
+      // Merge with existing id exclusions if any
+      if (whereClause.id && (whereClause.id as Record<symbol, number[]>)[Op.notIn]) {
+        const existingExclusions = (whereClause.id as Record<symbol, number[]>)[Op.notIn] as number[];
+        whereClause.id = {
+          [Op.notIn]: [...new Set([...existingExclusions, ...excludedTransactionIds])],
+        };
+      } else {
+        whereClause.id = {
+          // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread
+          ...((whereClause.id as object) || {}),
+          [Op.notIn]: excludedTransactionIds,
+        };
+      }
+    }
+  }
+
+  // Include tags in response if requested
+  // Note: when filtering by tagIds, we add a separate non-required include to get all tags
+  if (includeTags) {
+    // Remove any existing Tags include from tagIds filtering (which was required: true)
+    const tagFilterIndex = queryInclude.findIndex((inc) => (inc as { model?: unknown }).model === Tags);
+    if (tagFilterIndex !== -1) {
+      queryInclude.splice(tagFilterIndex, 1);
+    }
+
+    // Add tags include for display (with filtering if tagIds provided)
+    queryInclude.push({
+      model: Tags,
+      through: {
+        attributes: [],
+        ...(tagIds?.length ? { where: { tagId: { [Op.in]: tagIds } } } : {}),
+      },
+      attributes: ['id', 'name', 'color', 'icon'],
+      required: !!tagIds?.length,
+    });
+  }
+
   // Add note search condition if provided
   if (noteSearch && noteSearch.length > 0) {
     whereClause.note = {
@@ -524,6 +696,16 @@ export const findWithFilters = async ({
         [Op.iLike]: `%${term}%`,
       })),
     };
+  }
+
+  // Include group membership info if requested
+  if (includeGroups) {
+    queryInclude.push({
+      model: TransactionGroups,
+      through: { attributes: [] },
+      attributes: ['id', 'name'],
+      required: false,
+    });
   }
 
   // Filter by categorization source (stored in JSONB field)
@@ -538,56 +720,24 @@ export const findWithFilters = async ({
     limit: Number.isFinite(limit) ? limit : undefined,
     order: [['time', order]],
     raw: isRaw,
-    // When raw is true and includeSplits is requested, use nest to preserve nested structure
-    nest: isRaw && includeSplits ? true : undefined,
+    // When raw is true and includeSplits/includeTags is requested, use nest to preserve nested structure
+    nest: isRaw && (includeSplits || includeTags) ? true : undefined,
     attributes,
   });
 
   return transactions;
 };
 
-export interface GetTransactionBySomeIdPayload {
-  userId: TransactionsAttributes['userId'];
-  id?: TransactionsAttributes['id'];
-  transferId?: TransactionsAttributes['transferId'];
-  originalId?: TransactionsAttributes['originalId'];
-}
-export const getTransactionBySomeId = ({ userId, id, transferId, originalId }: GetTransactionBySomeIdPayload) => {
-  return Transactions.findOne({
-    where: {
-      userId,
-      ...removeUndefinedKeys({ id, transferId, originalId }),
-    },
-  });
-};
-
 export const getTransactionById = ({
   id,
   userId,
-  includeUser,
-  includeAccount,
-  includeCategory,
   includeSplits,
-  includeAll,
-  nestedInclude,
 }: {
   id: number;
   userId: number;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
   includeSplits?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
 }): Promise<Transactions | null> => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeSplits,
-    includeAll,
-    nestedInclude,
-  });
+  const include = prepareTXInclude({ includeSplits });
 
   return Transactions.findOne({
     where: { id, userId },
@@ -595,37 +745,9 @@ export const getTransactionById = ({
   });
 };
 
-export const getTransactionsByTransferId = ({
-  transferId,
-  userId,
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeSplits,
-  includeAll,
-  nestedInclude,
-}: {
-  transferId: string;
-  userId: number;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeSplits?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
-}) => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeSplits,
-    includeAll,
-    nestedInclude,
-  });
-
+export const getTransactionsByTransferId = ({ transferId, userId }: { transferId: string; userId: number }) => {
   return Transactions.findAll({
     where: { transferId, userId },
-    include,
   });
 };
 
@@ -633,40 +755,19 @@ export const getTransactionsByArrayOfField = async <T extends keyof TransactionM
   fieldValues,
   fieldName,
   userId,
-  includeUser,
-  includeAccount,
-  includeCategory,
-  includeAll,
-  nestedInclude,
 }: {
   fieldValues: TransactionModel[T][];
   fieldName: T;
   userId: number;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
 }) => {
-  const include = prepareTXInclude({
-    includeUser,
-    includeAccount,
-    includeCategory,
-    includeAll,
-    nestedInclude,
-  });
-
-  const transactions = await Transactions.findAll({
+  return Transactions.findAll({
     where: {
       [fieldName]: {
         [Op.in]: fieldValues,
       },
       userId,
     },
-    include,
   });
-
-  return transactions;
 };
 
 type CreateTxRequiredParams = Pick<
@@ -711,8 +812,8 @@ export const createTransaction = async ({ userId, ...rest }: CreateTransactionPa
 export interface UpdateTransactionByIdParams {
   id: number;
   userId: number;
-  amount?: number;
-  refAmount?: number;
+  amount?: Money;
+  refAmount?: Money;
   note?: string | null;
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
@@ -724,6 +825,7 @@ export interface UpdateTransactionByIdParams {
   transferNature?: TRANSACTION_TRANSFER_NATURE;
   transferId?: string | null;
   refundLinked?: boolean;
+  categorizationMeta?: CategorizationMeta | null;
 }
 
 export const updateTransactionById = async (
@@ -747,7 +849,7 @@ export const updateTransactionById = async (
 
 export const updateTransactions = (
   payload: {
-    amount?: number;
+    amount?: Money;
     note?: string;
     time?: Date;
     transactionType?: TRANSACTION_TYPES;

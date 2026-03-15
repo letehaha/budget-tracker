@@ -132,6 +132,7 @@ export interface FmpSearchResult {
   exchangeShortName?: string;
 }
 
+/** @public */
 export interface FmpQuote {
   symbol: string;
   name: string;
@@ -157,6 +158,7 @@ export interface FmpQuote {
   timestamp: number;
 }
 
+/** @public */
 export interface FmpHistoricalPrice {
   date: string;
   open: number;
@@ -173,6 +175,7 @@ export interface FmpHistoricalPrice {
   changeOverTime: number;
 }
 
+/** @public */
 export interface FmpHistoricalLightPrice {
   symbol: string;
   date: string;
@@ -180,16 +183,19 @@ export interface FmpHistoricalLightPrice {
   volume: number;
 }
 
+/** @public */
 export interface FmpHistoricalResponse {
   symbol: string;
   historical: FmpHistoricalPrice[];
 }
 
+/** @public */
 export interface FmpHistoricalLightResponse {
   symbol: string;
   historical: FmpHistoricalLightPrice[];
 }
 
+/** @public */
 export interface FmpClientOptions {
   apiKey: string;
 }

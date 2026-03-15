@@ -1,4 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
+import { t } from '@i18n/index';
 import { UnexpectedError } from '@js/errors';
 import {
   estimateExtractionCost,
@@ -17,7 +18,7 @@ export const estimateCostController = createController(
   z.object({
     body: z.object({
       /** Base64 encoded file */
-      fileBase64: z.string().min(1, 'File content is required'),
+      fileBase64: z.string().min(1, t({ key: 'statementParser.fileContentRequired' })),
     }),
   }),
   async ({ user, body }) => {
@@ -38,7 +39,7 @@ export const estimateCostController = createController(
       const validation = validateFileBuffer({ buffer: rawBuffer });
       if (!validation.valid || !validation.fileBuffer || !validation.fileType) {
         throw new UnexpectedError({
-          message: validation.error?.message ?? 'Invalid file',
+          message: validation.error?.message ?? t({ key: 'statementParser.invalidFile' }),
         });
       }
 
@@ -65,8 +66,8 @@ export const estimateCostController = createController(
             fileType,
             suggestion:
               fileType === 'pdf'
-                ? 'Text extraction failed. The PDF may be a scanned document. Image-based extraction is not yet implemented.'
-                : 'Failed to extract text from file.',
+                ? t({ key: 'statementParser.textExtractionFailed' })
+                : t({ key: 'statementParser.failedToExtractText' }),
           },
         };
       }

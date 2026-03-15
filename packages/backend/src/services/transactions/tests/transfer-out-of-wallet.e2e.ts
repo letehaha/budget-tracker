@@ -23,9 +23,9 @@ describe('out_of_wallet transfer', () => {
         const account_after = await helpers.getAccount({ id: account.id, raw: true });
 
         if (txType === TRANSACTION_TYPES.income) {
-          expect(account_after.currentBalance).toBe(account.currentBalance + txPayload.amount);
+          expect(account_after.currentBalance).toBe(Number(account.currentBalance) + txPayload.amount);
         } else if (txType === TRANSACTION_TYPES.expense) {
-          expect(account_after.currentBalance).toBe(account.currentBalance - txPayload.amount);
+          expect(account_after.currentBalance).toBe(Number(account.currentBalance) - txPayload.amount);
         }
 
         expect(oppositeTx).toBe(undefined); // there's no opposite transaction when out_of_wallet created
@@ -110,9 +110,9 @@ describe('out_of_wallet transfer', () => {
         expect(accountA.currentBalance).toBe(accountA_after.currentBalance);
 
         if (txType === TRANSACTION_TYPES.income) {
-          expect(accountB_after.currentBalance).toBe(accountB.currentBalance + updatedTx.amount);
+          expect(accountB_after.currentBalance).toBe(Number(accountB.currentBalance) + Number(updatedTx.amount));
         } else if (txType === TRANSACTION_TYPES.expense) {
-          expect(accountB_after.currentBalance).toBe(accountB.currentBalance - updatedTx.amount);
+          expect(accountB_after.currentBalance).toBe(Number(accountB.currentBalance) - Number(updatedTx.amount));
         }
 
         expect(updatedTx.amount).toBe(newAmount);

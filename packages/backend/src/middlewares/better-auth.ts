@@ -1,5 +1,7 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types';
+import { getCurrentSessionId } from '@common/lib/cls/session-id';
 import { auth } from '@config/auth';
+import { setSentryUser } from '@js/utils/sentry';
 import Users from '@models/Users.model';
 import { NextFunction, Request, Response } from 'express';
 
@@ -31,9 +33,9 @@ export const authenticateSession = async (req: Request, res: Response, next: Nex
     // Look up the app user by authUserId
     const user = (await Users.findOne({
       where: { authUserId: session.user.id },
-      attributes: ['username', 'id', 'authUserId'],
+      attributes: ['username', 'id', 'authUserId', 'role'],
       raw: true,
-    })) as Pick<Users, 'username' | 'id' | 'authUserId'> | null;
+    })) as Pick<Users, 'username' | 'id' | 'authUserId' | 'role'> | null;
 
     if (!user) {
       return res.status(401).json({
@@ -47,8 +49,17 @@ export const authenticateSession = async (req: Request, res: Response, next: Nex
 
     // Attach user to request for downstream handlers
     req.user = user;
+
+    // Set user context for Sentry error tracking (includes sessionId for correlation)
+    setSentryUser({
+      userId: user.id,
+      username: user.username,
+      email: session.user.email,
+      sessionId: getCurrentSessionId(),
+    });
+
     next();
-  } catch (error) {
+  } catch {
     return res.status(401).json({
       status: API_RESPONSE_STATUS.error,
       response: {

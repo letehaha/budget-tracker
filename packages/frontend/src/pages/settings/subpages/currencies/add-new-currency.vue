@@ -5,28 +5,30 @@
         <select-field
           v-model="selectedCurrency"
           :values="filteredCurrencies"
-          :placeholder="isCurrenciesLoading ? 'Loading...' : 'Select currency'"
+          :placeholder="
+            isCurrenciesLoading
+              ? $t('settings.currencies.addNew.loading')
+              : $t('settings.currencies.addNew.selectCurrency')
+          "
           value-key="code"
           with-search
           :disabled="!filteredCurrencies.length"
-          :label-key="(item: CurrencyModel) => `${item.code} - ${item.currency}`"
+          :label-key="(item: CurrencyModel) => formatCurrencyLabel({ code: item.code, fallbackName: item.currency })"
         />
       </div>
       <Button :disabled="!selectedCurrency || isCurrenciesLoading" class="min-w-[100px]" @click="addCurrency">
-        Add
+        {{ $t('settings.currencies.addNew.addButton') }}
       </Button>
 
       <Tooltip.TooltipProvider>
         <Tooltip.Tooltip>
           <Tooltip.TooltipTrigger class="flex items-center gap-2">
             <InfoIcon class="size-6" />
-            How it works?
+            {{ $t('settings.currencies.addNew.howItWorks') }}
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent class="max-w-[400px] p-4">
             <span class="text-sm leading-6 opacity-90">
-              By adding custom currencies, you can create and manage accounts and transactions in those currencies.
-              You’ll also be able to adjust and update their exchange rates relative to your base currency. Linked
-              accounts will automatically create required currencies.
+              {{ $t('settings.currencies.addNew.tooltip') }}
             </span>
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>
@@ -43,17 +45,21 @@ import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent } from '@/components/lib/ui/card';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useCurrencyName } from '@/composable';
 import { useCurrenciesStore } from '@/stores';
 import { CurrencyModel } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
 import { InfoIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const currenciesStore = useCurrenciesStore();
 const { addErrorNotification } = useNotificationCenter();
 const { currencies: userCurrencies, systemCurrencies } = storeToRefs(currenciesStore);
 const queryClient = useQueryClient();
+const { t } = useI18n();
+const { formatCurrencyLabel } = useCurrencyName();
 
 const isCurrenciesLoading = ref(false);
 const selectedCurrency = ref<CurrencyModel | null>(null);
@@ -74,7 +80,7 @@ const addCurrency = async () => {
     });
     await currenciesStore.loadCurrencies();
   } catch {
-    addErrorNotification('Unexpected error. Currency is not added.');
+    addErrorNotification(t('settings.currencies.addNew.errors.addFailed'));
   } finally {
     isCurrenciesLoading.value = false;
   }

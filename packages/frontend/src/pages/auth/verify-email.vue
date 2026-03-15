@@ -5,17 +5,18 @@
         <div class="bg-primary/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
           <MailIcon class="text-primary h-8 w-8" />
         </div>
-        <h1 class="text-2xl font-semibold tracking-tight">Check your email</h1>
+        <h1 class="text-2xl font-semibold tracking-tight">{{ $t('auth.verifyEmail.title') }}</h1>
       </CardHeader>
       <CardContent class="text-center">
         <p class="text-muted-foreground mb-6">
-          We've sent a verification link to
+          {{ $t('auth.verifyEmail.description') }}
           <span v-if="email" class="text-foreground font-medium">{{ email }}</span>
-          <span v-else>your email address</span>. Please click the link to verify your account.
+          <span v-else>{{ $t('auth.verifyEmail.descriptionYourEmail') }}</span
+          >{{ $t('auth.verifyEmail.descriptionContinued') }}
         </p>
 
         <div class="bg-muted/50 text-muted-foreground rounded-lg p-4 text-sm">
-          <p>Didn't receive the email? Check your spam folder or</p>
+          <p>{{ $t('auth.verifyEmail.didntReceive') }}</p>
           <Button
             variant="link"
             class="text-primary h-auto p-0"
@@ -28,7 +29,7 @@
       </CardContent>
       <CardFooter class="flex-col gap-3">
         <router-link :to="{ name: ROUTES_NAMES.signIn }" class="w-full">
-          <Button variant="outline" class="w-full"> Back to Sign In </Button>
+          <Button variant="outline" class="w-full"> {{ $t('auth.verifyEmail.backToSignIn') }} </Button>
         </router-link>
       </CardFooter>
     </Card>
@@ -44,10 +45,12 @@ import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
 import { MailIcon } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 
 const email = ref<string | null>(null);
@@ -91,9 +94,9 @@ onUnmounted(() => {
 });
 
 const resendButtonText = computed(() => {
-  if (isResending.value) return 'Sending...';
-  if (resendCooldown.value > 0) return `Resend in ${resendCooldown.value}s`;
-  return 'click here to resend';
+  if (isResending.value) return t('auth.verifyEmail.sending');
+  if (resendCooldown.value > 0) return t('auth.verifyEmail.resendIn', { count: resendCooldown.value });
+  return t('auth.verifyEmail.resend');
 });
 
 const startCooldown = () => {
@@ -116,10 +119,10 @@ const handleResend = async () => {
       email: email.value,
       callbackURL: `${window.location.origin}/auth/callback`,
     });
-    addSuccessNotification('Verification email sent! Please check your inbox.');
+    addSuccessNotification(t('auth.verifyEmail.resendSuccess'));
     startCooldown();
   } catch {
-    addErrorNotification('Failed to resend verification email. Please try again.');
+    addErrorNotification(t('auth.verifyEmail.resendError'));
   } finally {
     isResending.value = false;
   }

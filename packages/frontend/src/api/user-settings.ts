@@ -1,10 +1,15 @@
 import { api } from '@/api/_api';
 
+export interface DashboardWidgetConfig {
+  widgetId: string;
+  colSpan: number;
+  rowSpan?: number;
+  config?: Record<string, unknown>;
+}
+
 export interface UserSettingsSchema {
-  stats: {
-    expenses: {
-      excludedCategories: number[];
-    };
+  dashboard?: {
+    widgets: DashboardWidgetConfig[];
   };
 }
 

@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, BalanceModel, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { toSystemAmount } from '@js/helpers/system-amount';
 import { logger } from '@js/utils';
@@ -80,7 +81,7 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
   }
 
   // Method to retrieve total balance history for specified dates and accounts
-  static async getTotalBalanceHistory(payload: GetTotalBalanceHistoryPayload): Promise<BalanceModel[]> {
+  static async getTotalBalanceHistory(payload: GetTotalBalanceHistoryPayload): Promise<Balances[]> {
     const { startDate, endDate, accountIds } = payload;
     return Balances.findAll({
       where: {
@@ -121,17 +122,17 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
     isDelete?: boolean;
   }) {
     const { accountId, time } = data;
-    let amount = data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount * -1;
+    let amount: Money = data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount.negate();
     const date = startOfDay(new Date(time));
 
     switch (data.accountType) {
       case ACCOUNT_TYPES.system: {
         if (isDelete) {
-          amount = -amount; // Reverse the amount if it's a deletion
+          amount = amount.negate(); // Reverse the amount if it's a deletion
         } else if (prevData) {
           const originalDate = startOfDay(new Date(prevData.time));
           const originalAmount =
-            prevData.transactionType === TRANSACTION_TYPES.income ? prevData.refAmount : prevData.refAmount * -1;
+            prevData.transactionType === TRANSACTION_TYPES.income ? prevData.refAmount : prevData.refAmount.negate();
 
           if (
             // If the account ID changed,
@@ -141,13 +142,13 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
             // the transaction type changed,
             data.transactionType !== prevData.transactionType ||
             // or the amount changed
-            amount
+            !amount.isZero()
             // THEN remove the original transaction
           ) {
             await this.updateBalanceIncremental({
               accountId: prevData.accountId,
               date: originalDate,
-              amount: -originalAmount,
+              amount: originalAmount.negate(),
             });
           }
         }
@@ -180,7 +181,7 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
             baseCode: data.currencyCode,
             quoteCode: data.refCurrencyCode,
           });
-          const refBalance = roundHalfToEven(balance * exchangeRateData.rate);
+          const refBalance = Money.fromCents(roundHalfToEven(balance * exchangeRateData.rate));
 
           await this.updateAccountBalance({ accountId, date, refBalance });
         }
@@ -199,18 +200,30 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
         const balanceAfter = externalData?.balanceAfter;
 
         if (balanceAfter) {
-          const balanceAmount = toSystemAmount(parseFloat(balanceAfter.amount));
+          const balanceDecimal = parseFloat(balanceAfter.amount);
           const exchangeRateData = await getExchangeRate({
             userId: data.userId,
             date,
             baseCode: data.currencyCode,
             quoteCode: data.refCurrencyCode,
           });
-          const refBalance = roundHalfToEven(balanceAmount * exchangeRateData.rate);
+          const refBalance = Money.fromDecimal(roundHalfToEven(balanceDecimal * exchangeRateData.rate * 100) / 100);
 
           await this.updateAccountBalance({ accountId, date, refBalance });
         }
         // If no balanceAfter, skip - balance will be set by updateAccountBalance() after sync
+        break;
+      }
+
+      case ACCOUNT_TYPES.lunchflow: {
+        // LunchFlow doesn't provide per-transaction balance info.
+        // Balance is updated from the API after the full sync completes.
+        break;
+      }
+
+      case ACCOUNT_TYPES.walutomat: {
+        // Walutomat doesn't provide per-transaction balance info.
+        // Balance is updated from the API after the full sync completes.
         break;
       }
 
@@ -346,7 +359,7 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
       }
     } else {
       // If a balance already exists, update its amount
-      balanceForTxDate.amount += amount;
+      balanceForTxDate.amount = balanceForTxDate.amount + amount;
 
       await balanceForTxDate.save();
     }
@@ -428,7 +441,7 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
   }: {
     accountId: number;
     date: Date;
-    refBalance: number;
+    refBalance: Money;
   }) {
     const normalizedDate = startOfDay(date);
 

@@ -1,4 +1,5 @@
 import type { ExtractedTransaction, StatementDuplicateMatch } from '@bt/shared/types';
+import { asCents } from '@bt/shared/types';
 import {
   type TransactionToCheck,
   detectDuplicates as genericDetectDuplicates,
@@ -28,7 +29,8 @@ export async function detectDuplicates({
 
   const transactionsToCheck: ExtractedWithBase[] = transactions.map((tx) => ({
     ...tx,
-    // ExtractedTransaction already has date, amount, type in the right format
+    // ExtractedTransaction.amount is unbranded; cast to Cents for duplicate detection
+    amount: asCents(tx.amount),
   }));
 
   const duplicates = await genericDetectDuplicates({

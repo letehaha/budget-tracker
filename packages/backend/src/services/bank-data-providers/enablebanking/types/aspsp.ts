@@ -7,6 +7,7 @@ import { AuthenticationApproach, PSUType } from './enums';
 /**
  * Authentication method credential field
  * https://enablebanking.com/docs/api/reference/#authcredential
+ * @public
  */
 export interface AuthCredential {
   /** Field description */
@@ -24,6 +25,7 @@ export interface AuthCredential {
 /**
  * Authentication method
  * https://enablebanking.com/docs/api/reference/#authmethod
+ * @public
  */
 export interface AuthMethod {
   /** Authentication approach */
@@ -41,6 +43,7 @@ export interface AuthMethod {
 /**
  * Sandbox user for testing
  * https://enablebanking.com/docs/api/reference/#sandboxuser
+ * @public
  */
 export interface SandboxUser {
   /** Test username */
@@ -54,6 +57,7 @@ export interface SandboxUser {
 /**
  * Sandbox information
  * https://enablebanking.com/docs/api/reference/#sandboxinfo
+ * @public
  */
 export interface SandboxInfo {
   /** Test users for sandbox authentication */
@@ -63,6 +67,7 @@ export interface SandboxInfo {
 /**
  * ASPSP group information
  * https://enablebanking.com/docs/api/reference/#aspspgroup
+ * @public
  */
 export interface ASPSPGroup {
   /** Group name */
@@ -73,6 +78,7 @@ export interface ASPSPGroup {
 
 /**
  * Payment type information for ASPSP
+ * @public
  */
 export interface PaymentInfo {
   /** Allowed authentication methods */
@@ -145,6 +151,7 @@ export interface ASPSP {
 /**
  * ASPSP with full data - extended response from /aspsps endpoint
  * https://enablebanking.com/docs/api/reference/#aspspdata
+ * @public
  */
 export interface ASPSPData extends ASPSP {
   /** Bank logo URL (supports transformation suffixes) */

@@ -1,5 +1,6 @@
+import { useAuthStore } from '@/stores/auth';
 import {
-  type AiCategorizationCompletedPayload,
+  type AiCategorizationProgressPayload,
   type SSEEventPayload,
   type SSEEventType,
   SSE_EVENT_TYPES,
@@ -9,7 +10,7 @@ import { EventSourceMessage, fetchEventSource } from '@microsoft/fetch-event-sou
 import { onUnmounted, ref } from 'vue';
 
 // Re-export types for consumers of this composable
-export { SSE_EVENT_TYPES, type AiCategorizationCompletedPayload, type SyncStatusChangedPayload };
+export { SSE_EVENT_TYPES, type AiCategorizationProgressPayload, type SyncStatusChangedPayload };
 
 type SSEEventHandler<T extends SSEEventPayload = SSEEventPayload> = (data: T) => void;
 
@@ -31,6 +32,12 @@ const eventHandlers = new Map<SSEEventType, Set<SSEEventHandler>>();
  * Returns a promise that resolves when the connection is established
  */
 async function connect(): Promise<void> {
+  // Don't attempt connection if user is not authenticated
+  const authStore = useAuthStore();
+  if (!authStore.isLoggedIn) {
+    return;
+  }
+
   // If already connected, return immediately
   if (isConnected.value) {
     return;
@@ -67,7 +74,7 @@ async function connect(): Promise<void> {
     fetchEventSource(url, {
       method: 'GET',
       credentials: 'include', // Send session cookie for better-auth
-      signal: abortController.signal,
+      signal: abortController!.signal,
       // Keep connection open when tab is hidden. This ensures real-time updates
       // are received even in background tabs. Trade-off: slightly higher battery
       // usage on mobile. Set to false if this becomes an issue.
@@ -82,11 +89,12 @@ async function connect(): Promise<void> {
             resolve(); // Resolve the promise when connection opens
           }
         } else if (response.status === 401) {
+          // Session expired between auth check and request - silently disconnect
           isConnecting.value = false;
           disconnect();
           if (!settled) {
             settled = true;
-            reject(new Error('Unauthorized'));
+            resolve();
           }
         } else {
           isConnecting.value = false;

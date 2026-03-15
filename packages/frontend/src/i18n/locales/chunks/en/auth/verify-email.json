@@ -1,0 +1,29 @@
+{
+  "auth": {
+    "verifyEmail": {
+      "title": "Check your email",
+      "description": "We've sent a verification link to",
+      "descriptionYourEmail": "your email address",
+      "descriptionContinued": ". Please click the link to verify your account.",
+      "didntReceive": "Didn't receive the email? Check your spam folder or",
+      "resend": "click here to resend",
+      "sending": "Sending...",
+      "resendIn": "Resend in {count}s",
+      "backToSignIn": "Back to Sign In",
+      "resendSuccess": "Verification email sent! Please check your inbox.",
+      "resendError": "Failed to resend verification email. Please try again."
+    },
+    "verifyLegacyEmail": {
+      "success": "Email verified!",
+      "failed": "Verification failed",
+      "verifying": "Verifying...",
+      "successMessage": "Your email has been updated to {email}. You can now log in with your new email.",
+      "verifyingMessage": "Please wait while we verify your email...",
+      "goToSignIn": "Go to Sign In",
+      "backToSignIn": "Back to Sign In",
+      "noToken": "Invalid verification link. No token provided.",
+      "linkExpired": "Verification failed. The link may have expired.",
+      "genericError": "Verification failed. Please try again."
+    }
+  }
+}

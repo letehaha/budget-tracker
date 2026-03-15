@@ -1,4 +1,4 @@
-import { UserModel } from '@bt/shared/types';
+import { UserModel, USER_ROLES, UserRole } from '@bt/shared/types';
 import {
   CreationOptional,
   DataTypes,
@@ -77,6 +77,16 @@ export default class Users extends Model<InferAttributes<Users>, InferCreationAt
   @Attribute(DataTypes.INTEGER)
   declare defaultCategoryId: number | null;
 
+  @Attribute(DataTypes.STRING(20))
+  @NotNull
+  @Default(USER_ROLES.common)
+  declare role: CreationOptional<UserRole>;
+
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare createdAt: CreationOptional<Date>;
+
   @BelongsToMany(() => Currencies, {
     through: () => UsersCurrencies,
     foreignKey: 'userId',
@@ -89,14 +99,6 @@ export const getUsers = async () => {
   const users = await Users.findAll();
 
   return users;
-};
-
-export const getUserById = async ({ id }: { id: number }): Promise<UserModel | null> => {
-  const user = await Users.findOne({
-    where: { id },
-  });
-
-  return user;
 };
 
 export const getUserDefaultCategory = async ({ id }: { id: number }) => {
@@ -153,6 +155,7 @@ export const createUser = async ({
   avatar,
   totalBalance = DEFAULT_TOTAL_BALANCE,
   authUserId,
+  role = USER_ROLES.common,
 }: {
   username: string;
   email?: string;
@@ -163,6 +166,7 @@ export const createUser = async ({
   avatar?: string;
   totalBalance?: number;
   authUserId?: string;
+  role?: UserRole;
 }): Promise<UserModel> => {
   const user = await Users.create({
     username,
@@ -174,14 +178,21 @@ export const createUser = async ({
     avatar,
     totalBalance,
     authUserId,
+    role,
   });
 
   return user;
 };
 
-export const getUserByAuthUserId = async ({ authUserId }: { authUserId: string }): Promise<UserModel | null> => {
+export const getUserByAuthUserId = async ({
+  authUserId,
+}: {
+  authUserId: string;
+}): Promise<Pick<UserModel, 'id' | 'username' | 'role'> | null> => {
   const user = await Users.findOne({
     where: { authUserId },
+    attributes: ['id', 'username', 'role'],
+    raw: true,
   });
 
   return user;

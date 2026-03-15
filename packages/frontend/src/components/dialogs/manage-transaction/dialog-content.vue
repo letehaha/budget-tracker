@@ -4,12 +4,13 @@ import CategorySelectField from '@/components/fields/category-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
+import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
-import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
+import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore } from '@/stores';
 import {
   ACCOUNT_TYPES,
   PAYMENT_TYPES,
@@ -22,11 +23,13 @@ import { SplitIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import AccountField from './components/account-field.vue';
 import FormRow from './components/form-row.vue';
 import LinkTransactionSection from './components/link-transaction-section.vue';
+import PortfolioLinkedView from './components/portfolio-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
@@ -76,12 +79,20 @@ const closeModal = () => {
   emit('close-modal');
 };
 
+const isPortfolioLinkedView = computed(
+  () => !!props.transaction && props.transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+);
+
 const route = useRoute();
+const { t } = useI18n();
 watch(() => route.path, closeModal);
 
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const { accountsRecord, systemAccounts } = storeToRefs(useAccountsStore());
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
+const tagsStore = useTagsStore();
+// Load tags when the dialog opens
+tagsStore.loadTags();
 
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
@@ -92,13 +103,14 @@ const form = ref<UI_FORM_STRUCT>({
   account: null,
   toAccount: null,
   targetAmount: null,
-  category: formattedCategories.value[0],
+  category: formattedCategories.value[0]!,
   time: new Date(),
-  paymentType: VERBOSE_PAYMENT_TYPES.find((item) => item.value === PAYMENT_TYPES.creditCard),
-  note: null,
+  paymentType: VERBOSE_PAYMENT_TYPES.find((item) => item.value === PAYMENT_TYPES.creditCard) ?? null,
+  note: undefined,
   type: FORM_TYPES.expense,
   refundedByTxs: undefined,
   refundsTx: undefined,
+  tagIds: [],
 });
 
 const {
@@ -136,14 +148,14 @@ const isRecordExternal = computed(() => {
   // Check the account type, not the transaction type
   // A system transaction in a monobank account should be treated as external
   const account = accountsRecord.value[transaction.value.accountId];
-  return account && account.type !== ACCOUNT_TYPES.system;
+  return (account && account.type !== ACCOUNT_TYPES.system) ?? false;
 });
 const isOppositeTxExternal = computed(() => {
   if (!oppositeTransaction.value) return false;
   // Check the account type, not the transaction type
   // A system transaction in a monobank account should be treated as external
   const account = accountsRecord.value[oppositeTransaction.value.accountId];
-  return account && account.type !== ACCOUNT_TYPES.system;
+  return (account && account.type !== ACCOUNT_TYPES.system) ?? false;
 });
 // If record is external, the account field will be disabled, so we need to preselect
 // the account
@@ -153,7 +165,7 @@ watch(
     if (value && transaction.value?.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
       nextTick(() => {
         if (transaction.value && accountsRecord.value[transaction.value.accountId]) {
-          form.value.account = accountsRecord.value[transaction.value.accountId];
+          form.value.account = accountsRecord.value[transaction.value.accountId]!;
         }
       });
     }
@@ -218,8 +230,9 @@ const isCurrenciesDifferent = computed(() => {
 });
 
 const currencyCode = computed(() => {
-  if (form.value.account?.currencyCode) {
-    return currenciesMap.value[form.value.account.currencyCode].currency.code;
+  const accountCurrencyCode = form.value.account?.currencyCode;
+  if (accountCurrencyCode) {
+    return currenciesMap.value[accountCurrencyCode]?.currency?.code;
   }
   return undefined;
 });
@@ -235,13 +248,13 @@ watch(
 
       if (isLinked) {
         form.value.amount = amount;
-        form.value.account = accountsRecord.value[accountId];
+        form.value.account = accountsRecord.value[accountId] ?? null;
       } else if (txType === FORM_TYPES.transfer) {
         if (transactionType === TRANSACTION_TYPES.income) {
           form.value.targetAmount = amount;
           form.value.amount = null;
 
-          form.value.toAccount = accountsRecord.value[accountId];
+          form.value.toAccount = accountsRecord.value[accountId] ?? null;
           form.value.account = null;
 
           if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
@@ -253,7 +266,7 @@ watch(
           form.value.amount = amount;
           form.value.targetAmount = null;
 
-          form.value.account = accountsRecord.value[accountId];
+          form.value.account = accountsRecord.value[accountId] ?? null;
           form.value.toAccount = null;
         }
       }
@@ -277,7 +290,7 @@ const submit = () => {
 
 const unlinkTransactions = () => {
   unlinkMutation.mutate({
-    transferIds: [transaction.value.transferId],
+    transferIds: [transaction.value!.transferId],
     transactionId: transaction.value?.id,
     oppositeTransactionId: oppositeTransaction.value?.id,
   });
@@ -285,11 +298,11 @@ const unlinkTransactions = () => {
 
 const deleteTransactionHandler = () => {
   // Check the account type, not the transaction type
-  const account = accountsRecord.value[transaction.value.accountId];
+  const account = accountsRecord.value[transaction.value!.accountId];
   if (account && account.type !== ACCOUNT_TYPES.system) return;
 
   deleteMutation.mutate({
-    transactionId: transaction.value.id,
+    transactionId: transaction.value!.id,
   });
 };
 
@@ -305,7 +318,7 @@ const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
 onMounted(() => {
   if (!transaction.value) {
-    form.value.account = systemAccounts.value[0];
+    form.value.account = systemAccounts.value[0] ?? null;
   } else {
     const data = prepopulateForm({
       transaction: transaction.value,
@@ -329,14 +342,27 @@ onUnmounted(() => {
     <FormRow>
       <SelectField
         v-model="form.paymentType"
-        label="Payment Type"
+        :label="$t('dialogs.manageTransaction.form.paymentTypeLabel')"
         :disabled="isFormFieldsDisabled || isRecordExternal"
         :values="VERBOSE_PAYMENT_TYPES"
+        :label-key="(item) => t(item.label)"
         is-value-preselected
       />
     </FormRow>
     <FormRow>
-      <TextareaField v-model="form.note" placeholder="Note" :disabled="isFormFieldsDisabled" label="Note (optional)" />
+      <TextareaField
+        v-model="form.note"
+        :placeholder="$t('dialogs.manageTransaction.form.notePlaceholder')"
+        :disabled="isFormFieldsDisabled"
+        :label="$t('dialogs.manageTransaction.form.noteLabel')"
+      />
+    </FormRow>
+    <FormRow>
+      <TagSelectField
+        v-model="form.tagIds"
+        :label="$t('dialogs.manageTransaction.form.tagsLabel')"
+        :disabled="isFormFieldsDisabled"
+      />
     </FormRow>
     <template v-if="!isTransferTx">
       <FormRow>
@@ -351,12 +377,18 @@ onUnmounted(() => {
           :current-transaction-splits="transaction?.splits"
           :current-amount="form.amount ? Number(form.amount) : null"
           :current-currency-code="form.account?.currencyCode"
+          :current-account-id="form.account?.id"
         />
       </FormRow>
     </template>
   </DefineMoreOptions>
 
-  <div class="rounded-t-xl">
+  <PortfolioLinkedView
+    v-if="$props.transaction && $props.transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio"
+    :transaction="$props.transaction"
+    @close-modal="closeModal"
+  />
+  <div v-else class="rounded-t-xl">
     <div
       :class="[
         'h-3 rounded-t-lg transition-[background-color] duration-200 ease-out',
@@ -368,12 +400,12 @@ onUnmounted(() => {
     <div class="mb-4 flex items-center justify-between px-6 py-3">
       <DialogTitle>
         <span class="text-2xl">
-          {{ isFormCreation ? 'Add Transaction' : 'Edit Transaction' }}
+          {{ isFormCreation ? $t('dialogs.manageTransaction.addTitle') : $t('dialogs.manageTransaction.editTitle') }}
         </span>
       </DialogTitle>
 
       <DialogClose>
-        <Button variant="ghost"> Close </Button>
+        <Button variant="ghost"> {{ $t('dialogs.manageTransaction.form.closeButton') }} </Button>
       </DialogClose>
     </div>
     <div class="relative grid grid-cols-1 md:grid-cols-[450px_minmax(0,1fr)]">
@@ -392,11 +424,11 @@ onUnmounted(() => {
           <form-row>
             <input-field
               v-model="form.amount"
-              label="Amount"
+              :label="$t('dialogs.manageTransaction.form.amountLabel')"
               type="number"
               :disabled="isFormFieldsDisabled || isAmountFieldDisabled"
               only-positive
-              placeholder="Amount"
+              :placeholder="$t('dialogs.manageTransaction.form.amountPlaceholder')"
               autofocus
             >
               <template #iconTrailing>
@@ -422,7 +454,7 @@ onUnmounted(() => {
             <form-row>
               <category-select-field
                 v-model="form.category"
-                label="Category"
+                :label="$t('dialogs.manageTransaction.form.categoryLabel')"
                 :values="formattedCategories"
                 label-key="name"
                 :disabled="isFormFieldsDisabled"
@@ -441,13 +473,17 @@ onUnmounted(() => {
                 >
                   <div class="flex items-center gap-2">
                     <SplitIcon class="text-muted-foreground size-4" />
-                    <span class="text-sm font-medium"> Split into {{ form.splits.length + 1 }} categories </span>
+                    <span class="text-sm font-medium">
+                      {{ $t('dialogs.manageTransaction.form.splitInfo', { count: (form.splits?.length ?? 0) + 1 }) }}
+                    </span>
                   </div>
                   <div class="flex items-center gap-2">
                     <span class="text-muted-foreground text-sm tabular-nums">
                       {{ formatUIAmount(splitsTotal, { currency: currencyCode }) }}
                     </span>
-                    <span class="text-muted-foreground text-xs">Edit</span>
+                    <span class="text-muted-foreground text-xs">{{
+                      $t('dialogs.manageTransaction.form.editSplit')
+                    }}</span>
                   </div>
                 </button>
               </template>
@@ -462,7 +498,7 @@ onUnmounted(() => {
                   @click="isSplitDialogOpen = true"
                 >
                   <SplitIcon class="mr-2 size-4 opacity-70" />
-                  Split into categories
+                  {{ $t('dialogs.manageTransaction.form.addSplitButton') }}
                 </Button>
               </template>
             </form-row>
@@ -483,8 +519,8 @@ onUnmounted(() => {
                 v-model="form.targetAmount"
                 :disabled="isFormFieldsDisabled || isTargetAmountFieldDisabled"
                 only-positive
-                label="Target amount"
-                placeholder="Target amount"
+                :label="$t('dialogs.manageTransaction.form.targetAmountLabel')"
+                :placeholder="$t('dialogs.manageTransaction.form.targetAmountPlaceholder')"
                 type="number"
               >
                 <template #iconTrailing>
@@ -501,6 +537,9 @@ onUnmounted(() => {
             :opposite-transaction="oppositeTransaction"
             :transaction-type="transaction?.transactionType"
             :disabled="isFormFieldsDisabled"
+            :origin-transaction-id="transaction?.id"
+            :origin-amount="form.amount ? Number(form.amount) : null"
+            :origin-account-id="form.account?.id"
             @unlink="unlinkTransactions"
           />
 
@@ -508,7 +547,7 @@ onUnmounted(() => {
             <date-field
               v-model="form.time"
               :disabled="isFormFieldsDisabled || isRecordExternal"
-              label="Datetime"
+              :label="$t('dialogs.manageTransaction.form.datetimeLabel')"
               :calendar-options="{
                 maxDate: new Date(),
               }"
@@ -519,7 +558,9 @@ onUnmounted(() => {
         <template v-if="isMobileView">
           <Drawer.Drawer>
             <Drawer.DrawerTrigger class="w-full" as-child>
-              <Button variant="secondary" size="default" class="w-full"> More options </Button>
+              <Button variant="secondary" size="default" class="w-full">
+                {{ $t('dialogs.manageTransaction.form.moreOptionsButton') }}
+              </Button>
             </Drawer.DrawerTrigger>
 
             <Drawer.DrawerContent>
@@ -536,19 +577,29 @@ onUnmounted(() => {
             v-if="transaction && accountsRecord[transaction.accountId]?.type === ACCOUNT_TYPES.system"
             class="min-w-25"
             :disabled="isFormFieldsDisabled"
-            aria-label="Delete transaction"
+            :aria-label="$t('dialogs.manageTransaction.form.deleteAriaLabel')"
             variant="destructive"
             @click="deleteTransactionHandler"
           >
-            Delete
+            {{ $t('dialogs.manageTransaction.form.deleteButton') }}
           </Button>
           <Button
             class="ml-auto min-w-30"
-            :aria-label="isFormCreation ? 'Create transaction' : 'Edit transaction'"
+            :aria-label="
+              isFormCreation
+                ? $t('dialogs.manageTransaction.form.createAriaLabel')
+                : $t('dialogs.manageTransaction.form.editAriaLabel')
+            "
             :disabled="isFormFieldsDisabled"
             @click="submit"
           >
-            {{ isLoading ? 'Loading...' : isFormCreation ? 'Create' : 'Edit' }}
+            {{
+              isLoading
+                ? $t('dialogs.manageTransaction.form.loadingButton')
+                : isFormCreation
+                  ? $t('dialogs.manageTransaction.form.createButton')
+                  : $t('dialogs.manageTransaction.form.editButton')
+            }}
           </Button>
         </div>
       </div>

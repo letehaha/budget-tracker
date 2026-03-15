@@ -5,7 +5,7 @@
 import type { StatementFileType } from '@bt/shared/types';
 
 /** Maximum file size (10MB) */
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 /** PDF magic bytes signature */
 const PDF_MAGIC_BYTES = Buffer.from([0x25, 0x50, 0x44, 0x46]); // %PDF
@@ -13,7 +13,7 @@ const PDF_MAGIC_BYTES = Buffer.from([0x25, 0x50, 0x44, 0x46]); // %PDF
 /** PKCS#7 signature container magic bytes (ASN.1 SEQUENCE tag) */
 const PKCS7_MAGIC_BYTE_START = 0x30;
 
-export interface FileValidationResult {
+interface FileValidationResult {
   valid: boolean;
   /** Detected file type */
   fileType?: StatementFileType;

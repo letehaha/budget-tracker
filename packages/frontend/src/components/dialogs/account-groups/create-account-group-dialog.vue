@@ -4,6 +4,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { useOnboardingStore } from '@/stores/onboarding';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 
@@ -22,6 +23,11 @@ const { isPending: isMutating, mutate } = useMutation({
     queryClient.invalidateQueries({
       queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
     });
+
+    // Mark onboarding task as complete
+    const onboardingStore = useOnboardingStore();
+    onboardingStore.completeTask('create-account-group');
+
     isOpen.value = false;
     form.value.name = '';
     emit('created');
@@ -41,14 +47,20 @@ const createGroup = async () => {
     </template>
 
     <template #title>
-      <span> Create group </span>
+      <span>{{ $t('dialogs.accountGroups.createDialog.title') }}</span>
     </template>
 
     <form class="mt-4" @submit.prevent="createGroup">
-      <InputField v-model="form.name" label="Group name" placeholder="Investments" />
+      <InputField
+        v-model="form.name"
+        :label="$t('dialogs.accountGroups.createDialog.nameLabel')"
+        :placeholder="$t('dialogs.accountGroups.createDialog.namePlaceholder')"
+      />
 
       <div class="mt-4 flex">
-        <UiButton class="mt-3 w-full" :disabled="isSubmitDisabled"> Create </UiButton>
+        <UiButton class="mt-3 w-full" :disabled="isSubmitDisabled">
+          {{ $t('dialogs.accountGroups.createDialog.createButton') }}
+        </UiButton>
       </div>
     </form>
   </ResponsiveDialog>

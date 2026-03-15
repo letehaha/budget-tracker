@@ -1,6 +1,7 @@
 import { deleteTransaction } from '@/api';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
+import { i18n } from '@/i18n';
 import { ApiErrorResponseError } from '@/js/errors';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
@@ -18,16 +19,16 @@ export function useDeleteTransaction({ onSuccess }: { onSuccess: () => void }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
-      addSuccessNotification('Successfully removed');
+      addSuccessNotification(i18n.global.t('common.transactions.delete.success'));
       onSuccess();
     },
     onError: (error) => {
       if (error instanceof ApiErrorResponseError) {
-        addErrorNotification(error.data.message);
+        addErrorNotification(error.data.message ?? error.message);
       } else {
         // eslint-disable-next-line no-console
         console.error(error);
-        addErrorNotification('Failed to delete transaction!');
+        addErrorNotification(i18n.global.t('common.transactions.delete.error'));
       }
     },
   });

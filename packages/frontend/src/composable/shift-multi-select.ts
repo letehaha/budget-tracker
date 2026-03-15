@@ -2,10 +2,11 @@ import { onBeforeUnmount, ref } from 'vue';
 
 /**
  * Composable for handling shift-click multi-selection functionality
- * @param selectedItems Reactive Set containing selected item IDs
+ * @param selectedItems Set containing selected item IDs
+ * @param onUpdate Optional callback to trigger reactivity updates
  * @returns Functions and state for managing multi-selection
  */
-export function useShiftMultiSelect<K>(selectedItems: Set<K>) {
+export function useShiftMultiSelect<K>(selectedItems: Set<K>, onUpdate?: () => void) {
   // Track if shift key is pressed
   const isShiftKeyPressed = ref(false);
 
@@ -70,6 +71,9 @@ export function useShiftMultiSelect<K>(selectedItems: Set<K>) {
 
     // Update last clicked index
     lastClickedIndex = index;
+
+    // Trigger reactivity update
+    onUpdate?.();
   };
 
   /**
@@ -78,6 +82,7 @@ export function useShiftMultiSelect<K>(selectedItems: Set<K>) {
   const resetSelection = () => {
     selectedItems.clear();
     lastClickedIndex = null;
+    onUpdate?.();
   };
 
   return {

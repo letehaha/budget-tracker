@@ -5,6 +5,7 @@
     "esModuleInterop": true,
     "sourceMap": true,
     "allowJs": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true
   }
 }

@@ -14,7 +14,7 @@ const VALIDATION_MODELS: Record<AI_PROVIDER, AI_MODEL_ID> = {
   [AI_PROVIDER.groq]: AI_MODEL_ID['groq/llama-3.1-8b-instant'],
 };
 
-export interface APIKeyValidationResult {
+interface APIKeyValidationResult {
   isValid: boolean;
   error?: string;
 }

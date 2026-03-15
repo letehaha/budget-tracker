@@ -1,9 +1,4 @@
-import {
-  BalanceHistoryEntity,
-  CombinedBalanceHistoryEntity,
-  getBalanceHistory,
-  getCombinedBalanceHistory,
-} from '@/api';
+import { BalanceHistoryEntity, CombinedBalanceHistoryEntity, getCombinedBalanceHistory } from '@/api';
 import { format } from 'date-fns';
 
 // TODO: optimize implementation
@@ -15,11 +10,12 @@ export function aggregateBalanceTrendData(data: BalanceHistoryEntity[]) {
   const datesList = new Set(data.map((item) => formatDate(item.date)));
 
   // Determine the earliest and latest dates in the dataset.
-  const firstDate = new Date([...datesList][0]);
-  const lastDate = new Date([...datesList].at(-1));
+  const firstDate = new Date([...datesList][0]!);
+  const lastDate = new Date([...datesList].at(-1)!);
 
   // Generate a list of all dates from the earliest to the latest.
-  const allDates = [];
+  const allDates: string[] = [];
+  // oxlint-disable-next-line no-unmodified-loop-condition -- dt is mutated via setDate()
   for (let dt = firstDate; dt <= lastDate; dt.setDate(dt.getDate() + 1)) {
     allDates.push(formatDate(dt));
   }
@@ -65,7 +61,7 @@ export function aggregateBalanceTrendData(data: BalanceHistoryEntity[]) {
   // aggregate amount for each date in the dataset.
   const aggregatedData = Object.keys(filledDataPerAccount).reduce(
     (acc, accountId) => {
-      const accountData = filledDataPerAccount[Number(accountId)];
+      const accountData = filledDataPerAccount[Number(accountId)]!;
       for (const [date, amount] of Object.entries(accountData)) {
         acc[date] = (acc[date] || 0) + (amount as number);
       }
@@ -82,14 +78,6 @@ export function aggregateBalanceTrendData(data: BalanceHistoryEntity[]) {
 
   return toArray;
 }
-
-export const loadBalanceTrendData = async ({ from, to }: { from: Date; to?: Date }) => {
-  const result = await getBalanceHistory({ from, to });
-
-  if (!result?.length) return [];
-
-  return aggregateBalanceTrendData(result);
-};
 
 export const loadCombinedBalanceTrendData = async ({
   from,

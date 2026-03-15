@@ -1,9 +1,13 @@
 <script lang="ts" setup>
 import * as AlertDialog from '@/components/lib/ui/alert-dialog';
 import type { ButtonVariantProps } from '@/components/lib/ui/button';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 defineEmits(['accept', 'cancel']);
-withDefaults(
+const props = withDefaults(
   defineProps<{
     title: string;
     description?: string; // "description" slot can be used to pass template
@@ -14,12 +18,15 @@ withDefaults(
   }>(),
   {
     description: undefined,
-    cancelLabel: 'Cancel',
-    acceptLabel: 'Accept',
+    cancelLabel: undefined,
+    acceptLabel: undefined,
     acceptDisabled: false,
     acceptVariant: 'default',
   },
 );
+
+const effectiveCancelLabel = computed(() => props.cancelLabel || t('common.actions.cancel'));
+const effectiveAcceptLabel = computed(() => props.acceptLabel || t('common.actions.accept'));
 </script>
 
 <template>
@@ -44,10 +51,10 @@ withDefaults(
         </AlertDialog.AlertDialogHeader>
         <AlertDialog.AlertDialogFooter>
           <AlertDialog.AlertDialogCancel @click="$emit('cancel')">
-            {{ cancelLabel }}
+            {{ effectiveCancelLabel }}
           </AlertDialog.AlertDialogCancel>
           <AlertDialog.AlertDialogAction :disabled="acceptDisabled" :variant="acceptVariant" @click="$emit('accept')">
-            {{ acceptLabel }}
+            {{ effectiveAcceptLabel }}
           </AlertDialog.AlertDialogAction>
         </AlertDialog.AlertDialogFooter>
       </slot>

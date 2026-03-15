@@ -1,10 +1,11 @@
 import { errorHandler } from '@controllers/helpers';
+import { t } from '@i18n/index';
 import { TooManyRequests } from '@js/errors';
 import Users from '@models/Users.model';
 import { RateLimitService } from '@services/common/rate-limit.service';
 import type { NextFunction, Request, Response } from 'express';
 
-export interface RateLimitOptions {
+interface RateLimitOptions {
   windowSeconds: number;
   maxAttempts?: number;
   keyGenerator?: (req: Request) => string;
@@ -14,7 +15,7 @@ export interface RateLimitOptions {
  * Creates a rate limiting middleware
  * @param options - Rate limiting configuration
  */
-export const createRateLimit = (options: RateLimitOptions) => {
+const createRateLimit = (options: RateLimitOptions) => {
   const { windowSeconds, maxAttempts = 1, keyGenerator } = options;
 
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -27,7 +28,7 @@ export const createRateLimit = (options: RateLimitOptions) => {
 
       if (!result.allowed) {
         const error = new TooManyRequests({
-          message: 'Too many requests. Please try again later.',
+          message: t({ key: 'middleware.tooManyRequests' }),
           details: {
             retryAfter: result.remainingSeconds || 0,
             resetTime: result.resetTime?.toISOString(),
@@ -76,18 +77,6 @@ export const securitiesPricesBulkUploadRateLimit = createRateLimit({
   keyGenerator: (req: Request) => {
     const user = req.user as Users;
     return `securities-prices-bulk-upload:user:${user.id}`;
-  },
-});
-
-/**
- * General API rate limit (per user, 60 requests per minute)
- */
-export const apiRateLimit = createRateLimit({
-  windowSeconds: 60, // 1 minute
-  maxAttempts: 60,
-  keyGenerator: (req: Request) => {
-    const user = req.user as Users;
-    return user ? `api:user:${user.id}` : `api:ip:${req.ip}`;
   },
 });
 

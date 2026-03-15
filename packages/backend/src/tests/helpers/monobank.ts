@@ -1,4 +1,4 @@
-import { BANK_PROVIDER_TYPE, ExternalMonobankTransactionResponse } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE, ExternalMonobankTransactionResponse, asCents } from '@bt/shared/types';
 import { faker } from '@faker-js/faker';
 import Accounts from '@models/Accounts.model';
 import Transactions from '@models/Transactions.model';
@@ -15,10 +15,10 @@ const getMockedTransactionData = (
   // To make balance change realistic, we store initial one here and the sub below
   let initialAccountBalance = initialBalance ?? faker.number.int({ min: 10000, max: 9999999 });
 
-  return new Array(amount).fill(0).map((_, index) => {
-    const amount = faker.number.int({ min: 1000, max: 99999 });
+  return Array.from({ length: amount }, (_, index) => {
+    const txAmount = faker.number.int({ min: 1000, max: 99999 });
     // Make expenses and incomes
-    const realisticAmount = index % 3 ? amount : amount * -1;
+    const realisticAmount = index % 3 ? txAmount : txAmount * -1;
     const newBalance = (initialAccountBalance = initialAccountBalance + realisticAmount);
 
     return {
@@ -28,12 +28,12 @@ const getMockedTransactionData = (
       mcc: faker.number.int(300),
       originalMcc: faker.number.int(300),
       hold: false,
-      amount: realisticAmount,
-      operationAmount: faker.number.int(10000),
+      amount: asCents(realisticAmount),
+      operationAmount: asCents(faker.number.int(10000)),
       currencyCode: faker.number.int({ min: 10, max: 999 }),
-      commissionRate: 0,
-      cashbackAmount: 0,
-      balance: newBalance,
+      commissionRate: asCents(0),
+      cashbackAmount: asCents(0),
+      balance: asCents(newBalance),
       comment: '',
       receiptId: '',
       invoiceId: '',
@@ -104,7 +104,7 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
       if (account) {
         // Regenerate mocked transactions with correct initial balance
         mockedTransactions = getMockedTransactionData(amount, {
-          initialBalance: account.initialBalance,
+          initialBalance: account.initialBalance.toCents(),
         });
       }
     } else {

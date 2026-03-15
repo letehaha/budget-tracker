@@ -64,5 +64,3 @@ class DataProviderFactory {
 }
 
 export const dataProviderFactory = new DataProviderFactory();
-
-export { DataProviderFactory };

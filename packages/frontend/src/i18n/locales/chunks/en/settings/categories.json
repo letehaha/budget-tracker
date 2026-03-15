@@ -1,0 +1,23 @@
+{
+  "settings": {
+    "categories": {
+      "title": "Categories",
+      "addButton": "Add Category",
+      "empty": "No categories yet. Create your first category to get started.",
+      "delete": {
+        "title": "Delete category?",
+        "description": "This will permanently delete \"{name}\". This action cannot be undone.",
+        "deleteButton": "Delete",
+        "cancelButton": "Cancel"
+      },
+      "errors": {
+        "cannotLoad": "Cannot load categories"
+      },
+      "notifications": {
+        "deleteSuccess": "Category deleted",
+        "deleteFailed": "Failed to delete category",
+        "checkFailed": "Failed to check category"
+      }
+    }
+  }
+}

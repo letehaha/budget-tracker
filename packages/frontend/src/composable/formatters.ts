@@ -1,6 +1,51 @@
 import { formatLargeNumber, formatUIAmount } from '@/js/helpers';
 import { useCurrenciesStore } from '@/stores';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
+
+/**
+ * Composable for getting translated currency names
+ */
+export const useCurrencyName = () => {
+  const { t, te } = useI18n();
+
+  /**
+   * Get the translated name of a currency by its code.
+   * Falls back to the original name if no translation exists.
+   *
+   * @param code - Currency code (e.g., "USD", "UAH")
+   * @param fallbackName - Original currency name to use if no translation exists
+   * @returns Translated currency name or fallback
+   */
+  const getCurrencyName = ({ code, fallbackName }: { code: string; fallbackName?: string }): string => {
+    const translationKey = `currencyNames.${code}`;
+
+    // Check if translation exists
+    if (te(translationKey)) {
+      return t(translationKey);
+    }
+
+    // Fall back to the original name or the code itself
+    return fallbackName || code;
+  };
+
+  /**
+   * Format currency display string (e.g., "USD - US Dollar")
+   *
+   * @param code - Currency code
+   * @param fallbackName - Original currency name
+   * @returns Formatted string like "USD - US Dollar"
+   */
+  const formatCurrencyLabel = ({ code, fallbackName }: { code: string; fallbackName?: string }): string => {
+    const name = getCurrencyName({ code, fallbackName });
+    return `${code} - ${name}`;
+  };
+
+  return {
+    getCurrencyName,
+    formatCurrencyLabel,
+  };
+};
 
 export const useFormatCurrency = () => {
   const { baseCurrency } = storeToRefs(useCurrenciesStore());
@@ -14,6 +59,21 @@ export const useFormatCurrency = () => {
     formatUIAmount(amount, {
       currency: currencyCode,
     });
+
+  /**
+   * Get the currency symbol for the base currency (e.g., "$", "€", "UAH")
+   */
+  const getCurrencySymbol = () => {
+    const code = baseCurrency.value?.currency?.code || 'USD';
+    // Format a zero amount and extract just the symbol
+    const formatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: code,
+      currencyDisplay: 'narrowSymbol',
+    }).format(0);
+    // Remove the number part to get just the symbol
+    return formatted.replace(/[\d.,\s]/g, '').trim();
+  };
 
   /**
    * Compact format for sidebar/overview display:
@@ -42,5 +102,6 @@ export const useFormatCurrency = () => {
     formatBaseCurrency,
     formatAmountByCurrencyCode,
     formatCompactAmount,
+    getCurrencySymbol,
   };
 };

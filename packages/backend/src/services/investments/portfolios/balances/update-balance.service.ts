@@ -1,3 +1,5 @@
+import { INVESTMENT_DECIMAL_SCALE, Money } from '@common/types/money';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Currencies from '@models/Currencies.model';
 import PortfolioBalances from '@models/investments/PortfolioBalances.model';
@@ -31,13 +33,13 @@ const updatePortfolioBalanceImpl = async ({
   });
 
   if (!portfolio) {
-    throw new NotFoundError({ message: 'Portfolio not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
   }
 
   // Verify currency exists
   const currency = await Currencies.findByPk(currencyCode);
   if (!currency) {
-    throw new NotFoundError({ message: 'Currency not found' });
+    throw new NotFoundError({ message: t({ key: 'investments.currencyNotFound' }) });
   }
 
   // Find or create portfolio balance record
@@ -64,29 +66,29 @@ const updatePortfolioBalanceImpl = async ({
   if (setAvailableCash !== undefined) {
     newAvailableCash = setAvailableCash;
   } else if (availableCashDelta !== undefined) {
-    newAvailableCash = new Big(balance.availableCash).plus(new Big(availableCashDelta)).toFixed(10);
+    newAvailableCash = balance.availableCash.toBig().plus(new Big(availableCashDelta)).toFixed(10);
   } else {
-    newAvailableCash = balance.availableCash;
+    newAvailableCash = balance.availableCash.toDecimalString(INVESTMENT_DECIMAL_SCALE);
   }
 
   if (setTotalCash !== undefined) {
     newTotalCash = setTotalCash;
   } else if (totalCashDelta !== undefined) {
-    newTotalCash = new Big(balance.totalCash).plus(new Big(totalCashDelta)).toFixed(10);
+    newTotalCash = balance.totalCash.toBig().plus(new Big(totalCashDelta)).toFixed(10);
   } else {
-    newTotalCash = balance.totalCash;
+    newTotalCash = balance.totalCash.toDecimalString(INVESTMENT_DECIMAL_SCALE);
   }
 
   // Calculate reference amounts (converted to user's base currency)
   const refAvailableCash = await calculateRefAmount({
-    amount: parseFloat(newAvailableCash),
+    amount: Money.fromDecimal(newAvailableCash),
     baseCode: currency.code,
     userId,
     date: new Date(),
   });
 
   const refTotalCash = await calculateRefAmount({
-    amount: parseFloat(newTotalCash),
+    amount: Money.fromDecimal(newTotalCash),
     baseCode: currency.code,
     userId,
     date: new Date(),

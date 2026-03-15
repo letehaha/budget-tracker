@@ -4,13 +4,13 @@
  */
 import { SECURITY_PROVIDER } from '@bt/shared/types';
 
-export type ExchangeRegion = 'US' | 'EU' | 'GLOBAL';
+type ExchangeRegion = 'US' | 'EU' | 'GLOBAL';
 
 /**
  * Determines if a symbol is likely a US-traded security
  * US symbols are typically 1-5 letters, no special characters
  */
-export function isUSSymbol(symbol: string): boolean {
+function isUSSymbol(symbol: string): boolean {
   const cleanSymbol = symbol.trim().toUpperCase();
 
   // US symbols are typically 1-5 letters, no special chars
@@ -22,7 +22,7 @@ export function isUSSymbol(symbol: string): boolean {
  * Determines if a symbol is likely European-traded
  * European symbols often have extensions like .L, .PA, .DE
  */
-export function isEuropeanSymbol(symbol: string): boolean {
+function isEuropeanSymbol(symbol: string): boolean {
   const cleanSymbol = symbol.trim().toUpperCase();
 
   // Common European exchange suffixes
@@ -34,7 +34,7 @@ export function isEuropeanSymbol(symbol: string): boolean {
 /**
  * Gets the likely exchange region for a symbol
  */
-export function getExchangeRegion(symbol: string): ExchangeRegion {
+function getExchangeRegion(symbol: string): ExchangeRegion {
   if (isUSSymbol(symbol)) {
     return 'US';
   }
@@ -44,23 +44,6 @@ export function getExchangeRegion(symbol: string): ExchangeRegion {
   }
 
   return 'GLOBAL';
-}
-
-/**
- * Determines if a symbol is likely an ETF
- */
-export function isETFSymbol(symbol: string): boolean {
-  const cleanSymbol = symbol.trim().toUpperCase();
-
-  // Common ETF patterns
-  return (
-    cleanSymbol.endsWith('ETF') ||
-    // /^[A-Z]{3,4}$/.test(cleanSymbol) || // Many ETFs are 3-4 letters
-    cleanSymbol.startsWith('SPY') ||
-    cleanSymbol.startsWith('QQQ') ||
-    cleanSymbol.startsWith('VT') ||
-    cleanSymbol.startsWith('IVV')
-  );
 }
 
 /**

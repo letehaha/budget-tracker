@@ -5,7 +5,10 @@
 #
 # Usage:
 #   chmod +x ./scripts/restore-backup.sh
-#   ./scripts/restore-backup.sh path/to/backup.sql.gz
+#   ./scripts/restore-backup.sh [path/to/backup.sql.gz]
+#
+# If no path is provided, the latest dump is downloaded from CF R2,
+# used for restore, and then deleted.
 #
 
 set -e
@@ -19,34 +22,6 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Check if backup file is provided
-if [[ -z "$1" ]]; then
-    echo -e "${RED}Error:${NC} Please provide a backup file path"
-    echo ""
-    echo "Usage: $0 <backup-file.sql[.gz]>"
-    echo ""
-    echo "Examples:"
-    echo "  $0 ./backup.sql.gz"
-    echo "  $0 ./backup.sql"
-    echo "  $0 ~/Downloads/db_backup_20251223_222254.sql.gz"
-    exit 1
-fi
-
-BACKUP_FILE="$1"
-
-# Check if backup file exists
-if [[ ! -f "$BACKUP_FILE" ]]; then
-    echo -e "${RED}Error:${NC} Backup file not found: $BACKUP_FILE"
-    exit 1
-fi
-
-# Check if it's a gzipped file
-IS_GZIPPED=true
-if [[ "$BACKUP_FILE" != *.gz ]]; then
-    IS_GZIPPED=false
-    echo -e "${YELLOW}Note:${NC} File doesn't have .gz extension. Will restore as raw SQL."
-fi
-
 cd "$PROJECT_DIR"
 
 # Load environment variables
@@ -59,6 +34,80 @@ fi
 set -a
 source "$ENV_FILE"
 set +a
+
+DOWNLOADED_FILE=""
+
+cleanup_download() {
+    if [[ -n "$DOWNLOADED_FILE" && -f "$DOWNLOADED_FILE" ]]; then
+        echo ""
+        echo -e "Cleaning up downloaded dump..."
+        rm -f "$DOWNLOADED_FILE"
+        echo -e "${GREEN}✓${NC} Downloaded dump deleted"
+    fi
+}
+
+trap cleanup_download EXIT
+
+if [[ -n "$1" ]]; then
+    BACKUP_FILE="$1"
+
+    if [[ ! -f "$BACKUP_FILE" ]]; then
+        echo -e "${RED}Error:${NC} Backup file not found: $BACKUP_FILE"
+        exit 1
+    fi
+else
+    # Download the latest dump from R2
+    echo ""
+    echo -e "${YELLOW}No local file provided. Downloading latest dump from R2...${NC}"
+
+    # Validate R2 config
+    if [[ -z "$R2_ENDPOINT_URL" || -z "$R2_ACCESS_KEY_ID" || -z "$R2_SECRET_ACCESS_KEY" || -z "$R2_BACKUP_BUCKET" ]]; then
+        echo -e "${RED}Error:${NC} R2 configuration is incomplete in $ENV_FILE"
+        echo "Required vars: R2_ENDPOINT_URL, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BACKUP_BUCKET"
+        exit 1
+    fi
+
+    if ! command -v aws &> /dev/null; then
+        echo -e "${RED}Error:${NC} aws CLI is not installed. Install it with: brew install awscli"
+        exit 1
+    fi
+
+    export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
+    export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
+    export AWS_DEFAULT_REGION="auto"
+
+    R2_PREFIX="${R2_BACKUP_PREFIX:-}"
+
+    echo "Listing backups in s3://$R2_BACKUP_BUCKET/$R2_PREFIX ..."
+
+    LATEST_KEY=$(aws s3 ls "s3://$R2_BACKUP_BUCKET/$R2_PREFIX" \
+        --endpoint-url "$R2_ENDPOINT_URL" \
+        | grep '\.sql\(\.gz\)\?$' \
+        | sort | tail -n 1 | awk '{print $4}')
+
+    if [[ -z "$LATEST_KEY" ]]; then
+        echo -e "${RED}Error:${NC} No dump files found in the bucket"
+        exit 1
+    fi
+
+    echo -e "Latest dump: ${GREEN}${LATEST_KEY}${NC}"
+
+    DOWNLOADED_FILE="/tmp/$LATEST_KEY"
+
+    aws s3 cp "s3://$R2_BACKUP_BUCKET/${R2_PREFIX}${LATEST_KEY}" "$DOWNLOADED_FILE" \
+        --endpoint-url "$R2_ENDPOINT_URL"
+
+    echo -e "${GREEN}✓${NC} Downloaded to $DOWNLOADED_FILE"
+
+    BACKUP_FILE="$DOWNLOADED_FILE"
+fi
+
+# Check if it's a gzipped file
+IS_GZIPPED=true
+if [[ "$BACKUP_FILE" != *.gz ]]; then
+    IS_GZIPPED=false
+    echo -e "${YELLOW}Note:${NC} File doesn't have .gz extension. Will restore as raw SQL."
+fi
 
 COMPOSE_FILE="docker/dev/docker-compose.yml"
 

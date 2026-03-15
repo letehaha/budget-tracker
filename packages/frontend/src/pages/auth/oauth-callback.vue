@@ -3,7 +3,7 @@
     <div class="text-center">
       <div v-if="isLoading" class="flex flex-col items-center gap-4">
         <div class="border-primary h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
-        <p class="text-muted-foreground">Completing sign in...</p>
+        <p class="text-muted-foreground">{{ t('auth.oauthCallback.completingSignIn') }}</p>
       </div>
     </div>
   </div>
@@ -13,7 +13,10 @@
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
+
+const { t } = useI18n();
 
 const route = useRoute();
 const router = useRouter();
@@ -25,17 +28,17 @@ const isLoading = ref(true);
  * Maps OAuth error codes to user-friendly messages.
  */
 const getErrorMessage = ({ error, isLinking }: { error: string; isLinking: boolean }): string => {
-  const action = isLinking ? 'connection' : 'authentication';
+  const actionKey = isLinking ? 'connection' : 'authentication';
 
   const errorMessages: Record<string, string> = {
-    access_denied: `You cancelled the ${action}. Please try again.`,
-    invalid_request: `Invalid ${action} request. Please try again.`,
-    unauthorized_client: 'This application is not authorized. Please contact support.',
-    server_error: `${isLinking ? 'Connection' : 'Authentication'} server error. Please try again later.`,
-    temporarily_unavailable: 'Service is temporarily unavailable. Please try again later.',
+    access_denied: t(`auth.oauthCallback.errors.accessDenied.${actionKey}`),
+    invalid_request: t(`auth.oauthCallback.errors.invalidRequest.${actionKey}`),
+    unauthorized_client: t('auth.oauthCallback.errors.unauthorizedClient'),
+    server_error: t(`auth.oauthCallback.errors.serverError.${actionKey}`),
+    temporarily_unavailable: t('auth.oauthCallback.errors.temporarilyUnavailable'),
   };
 
-  return errorMessages[error] || 'Authentication failed. Please try again.';
+  return errorMessages[error] || t('auth.oauthCallback.errors.genericError');
 };
 
 /**
@@ -102,13 +105,13 @@ onMounted(async () => {
       // Session not valid, redirect to sign-in
       router.replace({
         name: ROUTES_NAMES.signIn,
-        query: { oauth_error: 'Authentication failed. Please try again.' },
+        query: { oauth_error: t('auth.oauthCallback.errors.genericError') },
       });
     }
   } catch {
     router.replace({
       name: ROUTES_NAMES.signIn,
-      query: { oauth_error: 'Authentication failed. Please try again.' },
+      query: { oauth_error: t('auth.oauthCallback.errors.genericError') },
     });
   }
 });

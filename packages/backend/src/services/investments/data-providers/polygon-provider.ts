@@ -168,6 +168,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
       logger.error({ message: `Failed to fetch latest price for ${symbol}`, error: error as Error });
       throw new Error(
         `Failed to fetch latest price for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { cause: error },
       );
     }
   }

@@ -2,12 +2,21 @@
 import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { ref } from 'vue';
+import { trackAnalyticsEvent } from '@/lib/posthog';
+import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ManageTransactionDialogContent from './dialog-content.vue';
 
+const { t } = useI18n();
 const isOpen = ref(false);
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
+
+watch(isOpen, (open) => {
+  if (open) {
+    trackAnalyticsEvent({ event: 'transaction_creation_opened' });
+  }
+});
 </script>
 
 <template>
@@ -16,9 +25,12 @@ const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
     <Dialog.DialogTrigger as-child>
       <slot />
     </Dialog.DialogTrigger>
-    <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-[900px] p-0">
-      <Dialog.DialogTitle class="sr-only">Manage transaction</Dialog.DialogTitle>
-      <Dialog.DialogDescription class="sr-only">Create or edit a transaction</Dialog.DialogDescription>
+    <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-225 p-0">
+      <Dialog.DialogTitle class="sr-only">{{ t('dialogs.manageTransaction.title') }}</Dialog.DialogTitle>
+      <Dialog.DialogDescription class="sr-only">
+        {{ t('dialogs.manageTransaction.description') }}
+      </Dialog.DialogDescription>
+
       <ManageTransactionDialogContent @close-modal="isOpen = false" />
     </Dialog.DialogContent>
   </Dialog.Dialog>

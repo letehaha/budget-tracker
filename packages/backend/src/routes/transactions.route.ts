@@ -3,16 +3,23 @@ import {
   getTransactionsByTransferId,
   linkTransactions,
 } from '@controllers/transactions.controller';
+import bulkUpdate from '@controllers/transactions.controller/bulk-update';
 import createTransaction from '@controllers/transactions.controller/create-transaction';
 import deleteTransaction from '@controllers/transactions.controller/delete-transaction';
+import getPortfolioLink from '@controllers/transactions.controller/get-portfolio-link';
 import getTransactions from '@controllers/transactions.controller/get-transaction';
+import getTransactionsByIds from '@controllers/transactions.controller/get-transactions-by-ids';
+import linkToPortfolio from '@controllers/transactions.controller/link-to-portfolio';
 import createRefund from '@controllers/transactions.controller/refunds/create-refund';
 import deleteRefund from '@controllers/transactions.controller/refunds/delete-refund';
 import getRefund from '@controllers/transactions.controller/refunds/get-refund';
+import getRefundRecommendations from '@controllers/transactions.controller/refunds/get-refund-recommendations';
 import getRefunds from '@controllers/transactions.controller/refunds/get-refunds';
 import getRefundsForTransactionById from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';
 import deleteSplit from '@controllers/transactions.controller/splits/delete-split';
+import getTransferRecommendations from '@controllers/transactions.controller/transfer-linking/get-transfer-recommendations';
 import unlinkTransferTransactions from '@controllers/transactions.controller/transfer-linking/unlink-transfer-transactions';
+import unlinkFromPortfolio from '@controllers/transactions.controller/unlink-from-portfolio';
 import updateTransaction from '@controllers/transactions.controller/update-transaction';
 import { authenticateSession } from '@middlewares/better-auth';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
@@ -24,6 +31,18 @@ const router = Router({});
 // Define all named routes level above to avoid matching with /:id
 router.get('/refund', authenticateSession, validateEndpoint(getRefund.schema), getRefund.handler);
 router.get('/refunds', authenticateSession, validateEndpoint(getRefunds.schema), getRefunds.handler);
+router.get(
+  '/refund-recommendations',
+  authenticateSession,
+  validateEndpoint(getRefundRecommendations.schema),
+  getRefundRecommendations.handler,
+);
+router.get(
+  '/transfer-recommendations',
+  authenticateSession,
+  validateEndpoint(getTransferRecommendations.schema),
+  getTransferRecommendations.handler,
+);
 router.post(
   '/refund',
   authenticateSession,
@@ -48,7 +67,30 @@ router.delete(
   deleteSplit.handler,
 );
 
+// Portfolio linking routes
+router.post(
+  '/:transactionId/link-to-portfolio',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(linkToPortfolio.schema),
+  linkToPortfolio.handler,
+);
+router.post(
+  '/:transactionId/unlink-from-portfolio',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(unlinkFromPortfolio.schema),
+  unlinkFromPortfolio.handler,
+);
+router.get(
+  '/:transactionId/portfolio-link',
+  authenticateSession,
+  validateEndpoint(getPortfolioLink.schema),
+  getPortfolioLink.handler,
+);
+
 router.get('/', authenticateSession, validateEndpoint(getTransactions.schema), getTransactions.handler);
+router.get('/by-ids', authenticateSession, validateEndpoint(getTransactionsByIds.schema), getTransactionsByIds.handler);
 router.get('/:id', authenticateSession, validateEndpoint(getTransactionById.schema), getTransactionById.handler);
 router.get(
   '/:id/refunds',
@@ -77,6 +119,13 @@ router.put(
   unlinkTransferTransactions.handler,
 );
 router.put('/link', authenticateSession, checkBaseCurrencyLock, linkTransactions);
+router.put(
+  '/bulk',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(bulkUpdate.schema),
+  bulkUpdate.handler,
+);
 router.put(
   '/:id',
   authenticateSession,

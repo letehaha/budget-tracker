@@ -1,4 +1,6 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { t } from '@i18n/index';
 import Categories from '@models/Categories.model';
 
 import {
@@ -12,7 +14,7 @@ import {
 
 interface ValidateSplitsParams {
   splits: SplitInput[];
-  transactionAmount: number;
+  transactionAmount: Money;
   userId: number;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
 }
@@ -21,7 +23,7 @@ interface ValidateSplitsParams {
  * Validates split data for a transaction.
  * Returns an array of validation errors (empty if valid).
  */
-export const validateSplits = async ({
+const validateSplits = async ({
   splits,
   transactionAmount,
   userId,
@@ -33,7 +35,7 @@ export const validateSplits = async ({
   if (transferNature && transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
     errors.push({
       field: 'splits',
-      message: 'Cannot add splits to transfer transactions',
+      message: t({ key: 'transactions.splits.splitsOnTransfer' }),
       code: SPLIT_ERROR_CODES.SPLITS_ON_TRANSFER,
     });
     return errors; // Return early, no point validating further
@@ -43,7 +45,7 @@ export const validateSplits = async ({
   if (splits.length > MAX_SPLITS_PER_TRANSACTION) {
     errors.push({
       field: 'splits',
-      message: `Maximum ${MAX_SPLITS_PER_TRANSACTION} splits allowed per transaction`,
+      message: t({ key: 'transactions.splits.splitLimitExceeded', variables: { max: MAX_SPLITS_PER_TRANSACTION } }),
       code: SPLIT_ERROR_CODES.SPLIT_LIMIT_EXCEEDED,
     });
   }
@@ -59,7 +61,7 @@ export const validateSplits = async ({
     if (split.categoryId === undefined || split.categoryId === null) {
       errors.push({
         field: `${fieldPrefix}.categoryId`,
-        message: 'Category is required for each split',
+        message: t({ key: 'transactions.splits.missingCategory' }),
         code: SPLIT_ERROR_CODES.SPLIT_MISSING_CATEGORY,
       });
     } else {
@@ -69,23 +71,23 @@ export const validateSplits = async ({
     if (split.amount === undefined || split.amount === null) {
       errors.push({
         field: `${fieldPrefix}.amount`,
-        message: 'Amount is required for each split',
+        message: t({ key: 'transactions.splits.missingAmount' }),
         code: SPLIT_ERROR_CODES.SPLIT_MISSING_AMOUNT,
       });
     } else {
       // Check for negative amounts
-      if (split.amount < 0) {
+      if (split.amount.isNegative()) {
         errors.push({
           field: `${fieldPrefix}.amount`,
-          message: 'Split amount cannot be negative',
+          message: t({ key: 'transactions.splits.amountNegative' }),
           code: SPLIT_ERROR_CODES.SPLIT_AMOUNT_NEGATIVE,
         });
       }
       // Check minimum amount
-      else if (split.amount < MIN_SPLIT_AMOUNT) {
+      else if (split.amount.lessThan(MIN_SPLIT_AMOUNT)) {
         errors.push({
           field: `${fieldPrefix}.amount`,
-          message: `Split amount must be at least ${MIN_SPLIT_AMOUNT / 100} (system minimum)`,
+          message: t({ key: 'transactions.splits.amountTooSmall', variables: { min: MIN_SPLIT_AMOUNT.toNumber() } }),
           code: SPLIT_ERROR_CODES.SPLIT_AMOUNT_TOO_SMALL,
         });
       }
@@ -95,7 +97,7 @@ export const validateSplits = async ({
     if (split.note && split.note.length > MAX_SPLIT_NOTE_LENGTH) {
       errors.push({
         field: `${fieldPrefix}.note`,
-        message: `Split note cannot exceed ${MAX_SPLIT_NOTE_LENGTH} characters`,
+        message: t({ key: 'transactions.splits.noteTooLong', variables: { max: MAX_SPLIT_NOTE_LENGTH } }),
         code: SPLIT_ERROR_CODES.SPLIT_NOTE_TOO_LONG,
       });
     }
@@ -118,7 +120,7 @@ export const validateSplits = async ({
       if (split.categoryId && !existingCategoryIds.has(split.categoryId)) {
         errors.push({
           field: `splits[${i}].categoryId`,
-          message: `Category with id ${split.categoryId} not found or does not belong to user`,
+          message: t({ key: 'transactions.splits.invalidCategory', variables: { categoryId: split.categoryId } }),
           code: SPLIT_ERROR_CODES.SPLIT_INVALID_CATEGORY,
         });
       }
@@ -126,11 +128,14 @@ export const validateSplits = async ({
   }
 
   // Check that total splits don't exceed transaction amount
-  const totalSplitAmount = splits.reduce((sum, split) => sum + (split.amount || 0), 0);
-  if (totalSplitAmount > transactionAmount) {
+  const totalSplitAmount = Money.sum(splits.map((split) => split.amount || Money.zero()));
+  if (totalSplitAmount.greaterThan(transactionAmount)) {
     errors.push({
       field: 'splits',
-      message: `Total split amount (${totalSplitAmount}) exceeds transaction amount (${transactionAmount})`,
+      message: t({
+        key: 'transactions.splits.exceedTotal',
+        variables: { total: totalSplitAmount.toNumber(), transactionAmount: transactionAmount.toNumber() },
+      }),
       code: SPLIT_ERROR_CODES.SPLITS_EXCEED_TOTAL,
     });
   }
@@ -148,7 +153,7 @@ export const assertValidSplits = async (params: ValidateSplitsParams): Promise<v
   if (errors.length > 0) {
     const { ValidationError } = await import('@js/errors');
     throw new ValidationError({
-      message: 'Invalid split data',
+      message: t({ key: 'transactions.splits.invalidData' }),
       // @ts-expect-error - extending error with additional data
       errors,
     });

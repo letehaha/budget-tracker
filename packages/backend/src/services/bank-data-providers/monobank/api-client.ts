@@ -2,6 +2,7 @@ import {
   ExternalMonobankClientInfoResponse,
   ExternalMonobankTransactionResponse,
 } from '@bt/shared/types/external-services';
+import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, TooManyRequests } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
@@ -133,16 +134,18 @@ export class MonobankApiClient {
       // Handle specific error cases with proper error types
       if (errorDescription === "Unknown 'X-Token'") {
         logger.warn(`[MonobankApiClient] Invalid API token used in ${method}`);
-        throw new ForbiddenError({ message: 'Invalid Monobank API token' });
+        throw new ForbiddenError({ message: t({ key: 'bankDataProviders.monobank.invalidApiToken' }) });
       } else if (status === 429) {
         logger.warn(`[MonobankApiClient] Rate limit exceeded in ${method}`);
         throw new TooManyRequests({
-          message: 'Monobank API rate limit exceeded. Please try again in a minute.',
+          message: t({ key: 'bankDataProviders.monobank.rateLimitExceeded' }),
           details: { provider: 'monobank' },
         });
       } else if (status && status >= 400) {
         throw new BadRequestError({
-          message: errorDescription || `Monobank API error: ${error.message}`,
+          message:
+            errorDescription ||
+            t({ key: 'bankDataProviders.monobank.apiError', variables: { message: error.message } }),
         });
       }
     }

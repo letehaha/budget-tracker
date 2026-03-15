@@ -42,6 +42,14 @@ jobs:
         with:
           api-base-url: ${{ secrets.API_BASE_URL }}
           vue-app-api-ver: ${{ secrets.VUE_APP_API_VER }}
+          logo-dev-token: ${{ secrets.VITE_LOGO_DEV_TOKEN }}
+          posthog-key: ${{ secrets.VITE_POSTHOG_KEY }}
+          posthog-host: ${{ secrets.VITE_POSTHOG_HOST }}
+          sentry-dsn: ${{ secrets.VITE_SENTRY_DSN }}
+          sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          sentry-org: ${{ secrets.SENTRY_ORG }}
+          sentry-project: ${{ secrets.SENTRY_PROJECT }}
+          sentry-release: ${{ github.sha }}
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
           push: 'true'
@@ -51,25 +59,11 @@ jobs:
         with:
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          sentry-release: ${{ github.sha }}
           push: 'true'
 
-      - name: Actualize docker images on VPS
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
-          script: |
-            set -e
-            cd ${{ secrets.VPS_PROJECT_PATH }}
-
-            # Pull the latest image
-            docker compose pull
-
-            # Start the new containers without dependencies, so there will be almost
-            # no downtime
-            docker compose --env-file .env.production up -d --no-deps
-
-            # Remove old containers and unused images
-            docker system prune -f
+      - name: Trigger Dokploy deployment
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.DOKPLOY_DEPLOY_WEBHOOK_URL }}" | grep -q "200" \
+            || (echo "Dokploy deploy webhook failed" && exit 1)

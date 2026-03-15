@@ -6,10 +6,12 @@
         '@[450px]/accounts-groups-card:flex-row @[450px]/accounts-groups-card:items-center',
       ]"
     >
-      <h3 class="text-xl">Manage account groups</h3>
+      <h3 class="text-xl">{{ $t('settings.accountGroups.title') }}</h3>
 
       <CreateAccountGroupDialog>
-        <Button type="button" class="w-min"> Add new group <PlusIcon class="ml-2 size-5" /> </Button>
+        <Button type="button" class="w-min">
+          {{ $t('settings.accountGroups.addButton') }} <PlusIcon class="ml-2 size-5" />
+        </Button>
       </CreateAccountGroupDialog>
     </CardHeader>
 

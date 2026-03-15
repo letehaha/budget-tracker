@@ -4,12 +4,12 @@ import { describe, expect, it } from 'vitest';
 import Accounts from '@models/Accounts.model';
 import Budgets from '@models/Budget.model';
 import Categories from '@models/Categories.model';
-import Transactions from '@models/Transactions.model';
-import UserSettings from '@models/UserSettings.model';
-import Users from '@models/Users.model';
-import UsersCurrencies from '@models/UsersCurrencies.model';
 import { connection } from '@models/index';
 import Portfolios from '@models/investments/Portfolios.model';
+import Transactions from '@models/Transactions.model';
+import Users from '@models/Users.model';
+import UsersCurrencies from '@models/UsersCurrencies.model';
+import UserSettings from '@models/UserSettings.model';
 import * as helpers from '@tests/helpers';
 
 describe('User deletion (DELETE /user/delete)', () => {
@@ -383,23 +383,15 @@ describe('User deletion (DELETE /user/delete)', () => {
     expect(accountsAfter).toHaveLength(0);
   });
 
-  it('should delete user with user settings and excluded categories', async () => {
-    // Create category
-    const category = await helpers.addCustomCategory({
-      name: 'Excluded Category',
-      color: '#FF0000',
-      raw: true,
-    });
-
-    // Add to excluded categories
-    await helpers.editExcludedCategories({
-      addIds: [category.id],
-      raw: true,
+  it('should delete user with user settings', async () => {
+    // Create some settings
+    await helpers.updateUserSettings({
+      settings: { locale: 'uk' },
     });
 
     // Verify settings exist
-    const settingsBefore = await helpers.getUserSettings({ raw: true });
-    expect(settingsBefore.stats.expenses.excludedCategories).toContain(category.id);
+    const settingsBefore = await UserSettings.findAll({});
+    expect(settingsBefore).toHaveLength(1);
 
     // Delete user
     const deleteRes = await helpers.deleteUserAccount();

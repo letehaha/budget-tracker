@@ -23,6 +23,7 @@ export default {
     '@middlewares/(.*)': '<rootDir>/src/middlewares/$1',
     '@crons/(.*)': '<rootDir>/src/crons/$1',
     '@common/(.*)': '<rootDir>/src/common/$1',
+    '@i18n/(.*)': '<rootDir>/src/i18n/$1',
     '@controllers/(.*)': '<rootDir>/src/controllers/$1',
     '@migrations/(.*)': '<rootDir>/src/migrations/$1',
     '@models/(.*)': '<rootDir>/src/models/$1',

@@ -1,20 +1,25 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
+import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { removeUndefinedKeys } from '@js/helpers';
+import { serializeTransactionTuple } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
+// Amount fields now accept decimals (e.g., 100.50) - conversion to cents happens in controller
+const amountSchema = () => z.number().positive('Amount must be greater than 0').finite();
+
 const splitSchema = z.object({
   categoryId: recordId(),
-  amount: z.number().int().positive('Split amount must be greater than 0').finite(),
+  amount: amountSchema(), // decimal input
   note: z.string().max(100, 'Split note must not exceed 100 characters').nullish(),
 });
 
 const bodyZodSchema = z
   .object({
-    amount: z.number().int().positive('Amount must be greater than 0').finite().optional(),
-    destinationAmount: z.number().int().positive('Amount must be greater than 0').finite().optional(),
+    amount: amountSchema().optional(), // decimal input
+    destinationAmount: amountSchema().optional(), // decimal input
     note: z.string().max(1000, 'The string must not exceed 1000 characters.').nullish(),
     time: z.string().datetime({ message: 'Invalid ISO date string' }).optional(),
     transactionType: z.nativeEnum(TRANSACTION_TYPES).optional(),
@@ -28,6 +33,7 @@ const bodyZodSchema = z
     refundsTxId: recordId().nullish(),
     refundsSplitId: z.string().uuid().nullish(),
     splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').nullish(),
+    tagIds: z.array(recordId()).max(20, 'Maximum 20 tags allowed').nullish(),
   })
   .refine((data) => !(data.refundsSplitId && !data.refundsTxId), {
     message: '"refundsSplitId" can only be provided when "refundsTxId" is specified',
@@ -110,14 +116,23 @@ export default createController(schema, async ({ user, params, body }) => {
     refundsTxId,
     refundsSplitId,
     splits,
+    tagIds,
   } = body;
   const { id: userId } = user;
 
-  const data = await transactionsService.updateTransaction({
+  // Convert decimal amounts to Money
+  const amountAsMoney = amount !== undefined ? Money.fromDecimal(amount) : undefined;
+  const destinationAmountAsMoney = destinationAmount !== undefined ? Money.fromDecimal(destinationAmount) : undefined;
+  const splitsAsMoney = splits?.map((split) => ({
+    ...split,
+    amount: Money.fromDecimal(split.amount),
+  }));
+
+  const transactions = await transactionsService.updateTransaction({
     id: parseInt(id),
     ...removeUndefinedKeys({
-      amount,
-      destinationAmount,
+      amount: amountAsMoney,
+      destinationAmount: destinationAmountAsMoney,
       destinationTransactionId,
       note,
       time: time ? new Date(time) : undefined,
@@ -133,8 +148,12 @@ export default createController(schema, async ({ user, params, body }) => {
       refundsSplitId,
     }),
     // splits can be null to clear all splits, so don't use removeUndefinedKeys
-    ...(splits !== undefined ? { splits } : {}),
+    ...(splits !== undefined ? { splits: splits === null ? null : splitsAsMoney } : {}),
+    // tagIds can be null to clear all tags, so don't use removeUndefinedKeys
+    ...(tagIds !== undefined ? { tagIds } : {}),
   });
 
-  return { data };
+  // Serialize: convert cents to decimal for API response
+  // updateTransaction returns [baseTx, oppositeTx?] tuple
+  return { data: serializeTransactionTuple(transactions) };
 });

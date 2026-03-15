@@ -1,5 +1,6 @@
 import { authPool } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import crypto from 'crypto';
@@ -26,14 +27,14 @@ export const migrateLegacyEmail = createController(
 
     // Get the auth user ID from the app user
     if (!user.authUserId) {
-      throw new ValidationError({ message: 'User is not linked to auth system' });
+      throw new ValidationError({ message: t({ key: 'auth.migration.userNotLinked' }) });
     }
 
     // Verify this is a legacy user by checking their current email
     const currentUserResult = await authPool.query('SELECT email FROM ba_user WHERE id = $1', [user.authUserId]);
 
     if (currentUserResult.rows.length === 0) {
-      throw new ValidationError({ message: 'Auth user not found' });
+      throw new ValidationError({ message: t({ key: 'auth.migration.authUserNotFound' }) });
     }
 
     const currentEmail = currentUserResult.rows[0].email;
@@ -41,7 +42,7 @@ export const migrateLegacyEmail = createController(
     // Only allow migration for legacy users
     if (!currentEmail.endsWith(LEGACY_EMAIL_SUFFIX)) {
       throw new ValidationError({
-        message: 'Only legacy accounts can use this endpoint. Use the standard email change flow.',
+        message: t({ key: 'auth.migration.onlyLegacyAccounts' }),
       });
     }
 
@@ -52,7 +53,7 @@ export const migrateLegacyEmail = createController(
     ]);
 
     if (existingUser.rows.length > 0) {
-      throw new ValidationError({ message: 'Email is already in use' });
+      throw new ValidationError({ message: t({ key: 'auth.migration.emailAlreadyInUse' }) });
     }
 
     // Generate verification token
@@ -75,7 +76,7 @@ export const migrateLegacyEmail = createController(
     // Send verification email
     if (!resend) {
       logger.warn('Email verification skipped: RESEND_API_KEY not configured');
-      throw new ValidationError({ message: 'Email service not configured' });
+      throw new ValidationError({ message: t({ key: 'auth.migration.emailServiceNotConfigured' }) });
     }
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
@@ -87,22 +88,22 @@ export const migrateLegacyEmail = createController(
       const result = await resend.emails.send({
         from: `${appName} <${fromEmail}>`,
         to: newEmail.toLowerCase(),
-        subject: `Verify your new ${appName} email`,
+        subject: t({ key: 'emails.legacyEmailMigration.subject', variables: { appName } }),
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Verify your new email</h2>
-            <p>You requested to change your email address to this one. Click the button below to confirm:</p>
+            <h2>${t({ key: 'emails.legacyEmailMigration.heading' })}</h2>
+            <p>${t({ key: 'emails.legacyEmailMigration.body' })}</p>
             <p style="margin: 24px 0;">
               <a href="${verifyUrl}" style="background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                Verify Email
+                ${t({ key: 'emails.legacyEmailMigration.buttonText' })}
               </a>
             </p>
             <p style="color: #666; font-size: 14px;">
-              Or copy and paste this link: <br/>
+              ${t({ key: 'emails.legacyEmailMigration.orCopyLink' })} <br/>
               <a href="${verifyUrl}" style="color: #0070f3;">${verifyUrl}</a>
             </p>
             <p style="color: #999; font-size: 12px; margin-top: 32px;">
-              This link expires in 1 hour. If you didn't request this change, you can safely ignore this email.
+              ${t({ key: 'emails.legacyEmailMigration.expiryNotice' })}
             </p>
           </div>
         `,
@@ -110,10 +111,10 @@ export const migrateLegacyEmail = createController(
       logger.info(`Legacy email migration verification sent to ${newEmail}, resendId: ${result.data?.id}`);
     } catch (error) {
       logger.error({ message: 'Failed to send legacy email migration verification', error: error as Error });
-      throw new ValidationError({ message: 'Failed to send verification email' });
+      throw new ValidationError({ message: t({ key: 'auth.migration.failedToSendVerification' }) });
     }
 
-    return { data: { success: true, message: 'Verification email sent' } };
+    return { data: { success: true, message: t({ key: 'auth.migration.verificationSent' }) } };
   },
 );
 
@@ -146,7 +147,7 @@ export const verifyLegacyEmailChange = createController(
           if (new Date(row.expiresAt) < new Date()) {
             // Clean up expired token
             await authPool.query('DELETE FROM ba_verification WHERE identifier = $1', [row.identifier]);
-            throw new ValidationError({ message: 'Verification link has expired' });
+            throw new ValidationError({ message: t({ key: 'auth.migration.linkExpired' }) });
           }
 
           matchedVerification = {
@@ -164,7 +165,7 @@ export const verifyLegacyEmailChange = createController(
     }
 
     if (!matchedVerification) {
-      throw new ValidationError({ message: 'Invalid or expired verification link' });
+      throw new ValidationError({ message: t({ key: 'auth.migration.invalidOrExpiredLink' }) });
     }
 
     // Update the email in ba_user table

@@ -1,4 +1,5 @@
 import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import Balances from '@models/Balances.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Currencies from '@models/Currencies.model';
@@ -27,15 +28,15 @@ import {
   Unique,
 } from '@sequelize/core/decorators-legacy';
 
-export interface AccountsAttributes {
+interface AccountsAttributes {
   id: number;
   name: string;
-  initialBalance: number;
-  refInitialBalance: number;
-  currentBalance: number;
-  refCurrentBalance: number;
-  creditLimit: number;
-  refCreditLimit: number;
+  initialBalance: Money;
+  refInitialBalance: Money;
+  currentBalance: Money;
+  refCurrentBalance: Money;
+  creditLimit: Money;
+  refCreditLimit: Money;
   type: ACCOUNT_TYPES;
   accountCategory: ACCOUNT_CATEGORIES;
   currencyCode: string;
@@ -166,7 +167,6 @@ export const getAccounts = async (payload: GetAccountsPayload) => {
 
   const accounts = await Accounts.findAll({
     where,
-    raw: true,
   });
 
   return accounts;
@@ -184,23 +184,6 @@ export const getAccountById = async ({
   const account = await Accounts.findOne({
     where: { userId, id },
     raw,
-  });
-
-  return account;
-};
-
-export interface GetAccountsByExternalIdsPayload {
-  userId: AccountsAttributes['userId'];
-  externalIds: string[];
-}
-export const getAccountsByExternalIds = async ({ userId, externalIds }: GetAccountsByExternalIdsPayload) => {
-  const account = await Accounts.findAll({
-    where: {
-      userId,
-      externalId: {
-        [Op.in]: externalIds,
-      },
-    },
   });
 
   return account;

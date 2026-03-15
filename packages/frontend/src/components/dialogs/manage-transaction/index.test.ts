@@ -28,19 +28,19 @@ const mountComponent = ({ props = {} } = {}) =>
               categories: dataMocks.USER_CATEGORIES,
             },
             accounts: {
-              accountsRecord: dataMocks.ACCOUNTS.reduce((acc, curr) => {
-                acc[curr.id] = curr;
-                return acc;
-              }, {}),
+              accountsRecord: dataMocks.ACCOUNTS.reduce(
+                (acc: Record<number, (typeof dataMocks.ACCOUNTS)[number]>, curr) => {
+                  acc[curr.id] = curr;
+                  return acc;
+                },
+                {},
+              ),
             },
           },
         }),
         VueQueryPlugin,
         router,
       ],
-      directives: {
-        'click-outside': () => {},
-      },
     },
   });
 
@@ -62,27 +62,27 @@ const findSelectField = (wrapper: ReturnType<typeof mountComponent>, label: stri
 const fillAccountField = async (wrapper: ReturnType<typeof mountComponent>, label: string, value: string) => {
   const desiredSelectField = await findSelectField(wrapper, label);
 
-  const triggerButton = desiredSelectField.find('button');
+  const triggerButton = desiredSelectField!.find('button');
   await triggerButton.trigger('click');
 
   const desiredAccountBtn = wrapper.findAll('button[role="option"]').find((item) => item.text().includes(value));
-  await desiredAccountBtn.trigger('click');
+  await desiredAccountBtn!.trigger('click');
 };
 
-const fillCategoryField = async (wrapper: ReturnType<typeof mountComponent>, categoryName) => {
-  const categoryFieldTrigger = await findSelectField(wrapper, 'Category').find('button[aria-label="Select category"]');
+const fillCategoryField = async (wrapper: ReturnType<typeof mountComponent>, categoryName: string) => {
+  const categoryFieldTrigger = await findSelectField(wrapper, 'Category')!.find('button[aria-label="Select category"]');
   await categoryFieldTrigger.trigger('click');
 
   let desiredCategoryBtn = wrapper
     .findAll('[data-test="category-select-field"] button[role="option"]')
     .find((item) => item.text().includes(categoryName));
-  await desiredCategoryBtn.trigger('click');
+  await desiredCategoryBtn!.trigger('click');
 
   // Since that's how category selector works, we need to select it one more time
   desiredCategoryBtn = wrapper
     .findAll('[data-test="category-select-field"] button[role="option"]')
     .find((item) => item.text().includes(categoryName));
-  await desiredCategoryBtn.trigger('click');
+  await desiredCategoryBtn!.trigger('click');
 };
 
 const getTransactionsLinkingButton = (wrapper: ReturnType<typeof mountComponent>) =>
@@ -149,8 +149,8 @@ describe.skip('transactions create/update/delete form', () => {
       await wrapper.find(formTypeSelector).trigger('click');
 
       await fillAmountField(wrapper, expectedValue.amount);
-      await fillAccountField(wrapper, commonAccountFieldLabel, expectedValue.account.name);
-      await fillCategoryField(wrapper, expectedValue.category.name);
+      await fillAccountField(wrapper, commonAccountFieldLabel, expectedValue.account!.name);
+      await fillCategoryField(wrapper, expectedValue.category!.name);
 
       await submitCreation(wrapper);
 
@@ -160,8 +160,8 @@ describe.skip('transactions create/update/delete form', () => {
         time: expect.any(String),
         transactionType: expected,
         paymentType: expect.any(String),
-        accountId: expectedValue.account.id,
-        categoryId: expectedValue.category.id,
+        accountId: expectedValue.account!.id,
+        categoryId: expectedValue.category!.id,
       });
     });
 
@@ -178,8 +178,8 @@ describe.skip('transactions create/update/delete form', () => {
 
       await wrapper.find(transferFormTypeSelector).trigger('click');
 
-      await fillAccountField(wrapper, fromAccountFieldLabel, expectedValue.account.name);
-      await fillAccountField(wrapper, toAccountFieldLabel, expectedValue.targetAccount.name);
+      await fillAccountField(wrapper, fromAccountFieldLabel, expectedValue.account!.name);
+      await fillAccountField(wrapper, toAccountFieldLabel, expectedValue.targetAccount!.name);
 
       await fillAmountField(wrapper, expectedValue.amount);
       await fillTargetAlmountField(wrapper, expectedValue.targetAmount);
@@ -189,13 +189,13 @@ describe.skip('transactions create/update/delete form', () => {
       expect(createTxSpy).toHaveBeenCalledWith({
         amount: String(expectedValue.amount),
         destinationAmount: String(expectedValue.targetAmount),
-        destinationAccountId: expectedValue.targetAccount.id,
+        destinationAccountId: expectedValue.targetAccount!.id,
         note: null,
         time: expect.any(String),
         transactionType: TRANSACTION_TYPES.expense,
         transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
         paymentType: expect.any(String),
-        accountId: expectedValue.account.id,
+        accountId: expectedValue.account!.id,
       });
     });
 
@@ -212,7 +212,7 @@ describe.skip('transactions create/update/delete form', () => {
 
       await wrapper.find(transferFormTypeSelector).trigger('click');
 
-      await fillAccountField(wrapper, fromAccountFieldLabel, expectedValue.account.name);
+      await fillAccountField(wrapper, fromAccountFieldLabel, expectedValue.account!.name);
       await fillAccountField(wrapper, toAccountFieldLabel, expectedValue.targetAccount.name);
 
       await fillAmountField(wrapper, expectedValue.amount);
@@ -228,7 +228,7 @@ describe.skip('transactions create/update/delete form', () => {
         transactionType: TRANSACTION_TYPES.expense,
         transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
         paymentType: expect.any(String),
-        accountId: expectedValue.account.id,
+        accountId: expectedValue.account!.id,
       });
     });
   });
@@ -269,7 +269,7 @@ describe.skip('transactions create/update/delete form', () => {
         category: dataMocks.USER_CATEGORIES[1],
       };
       const transaction = dataMocks.buildSystemIncomeTransaction({
-        categoryId: dataMocks.USER_CATEGORIES[0].id,
+        categoryId: dataMocks.USER_CATEGORIES[0]!.id,
       });
       const wrapper = await mountComponent({
         props: { transaction },
@@ -278,14 +278,14 @@ describe.skip('transactions create/update/delete form', () => {
       await wrapper.find(expenseFormTypeSelector).trigger('click');
 
       await fillAmountField(wrapper, expectedValue.amount);
-      await fillCategoryField(wrapper, expectedValue.category.name);
+      await fillCategoryField(wrapper, expectedValue.category!.name);
 
       await submitUpdation(wrapper);
 
       expect(editTxSpy).toHaveBeenCalledWith({
         accountId: transaction.accountId,
         amount: expectedValue.amount,
-        categoryId: expectedValue.category.id,
+        categoryId: expectedValue.category!.id,
         note: null,
         paymentType: transaction.paymentType,
         time: transaction.time.toISOString(),
@@ -306,7 +306,7 @@ describe.skip('transactions create/update/delete form', () => {
         props: {
           transaction: {
             ...mock,
-            categoryId: dataMocks.USER_CATEGORIES[0].id,
+            categoryId: dataMocks.USER_CATEGORIES[0]!.id,
           },
         },
       });
@@ -322,15 +322,15 @@ describe.skip('transactions create/update/delete form', () => {
       expect(await wrapper.find(amountFieldSelector).attributes().disabled).not.toBe(undefined);
       expect(await wrapper.find('input[type="datetime-local"]').attributes().disabled).not.toBe(undefined);
 
-      expect(await findSelectField(wrapper, 'Account').attributes()['aria-disabled']).not.toBe(undefined);
-      expect(await findSelectField(wrapper, 'Payment Type').attributes()['aria-disabled']).not.toBe(undefined);
+      expect(await findSelectField(wrapper, 'Account')!.attributes()['aria-disabled']).not.toBe(undefined);
+      expect(await findSelectField(wrapper, 'Payment Type')!.attributes()['aria-disabled']).not.toBe(undefined);
       expect(await wrapper.find('textarea').attributes().disabled).toBe(undefined);
 
-      await fillCategoryField(wrapper, expectedValue.category.name);
+      await fillCategoryField(wrapper, expectedValue.category!.name);
       await submitUpdation(wrapper);
 
       expect(editTxSpy).toHaveBeenCalledWith({
-        categoryId: expectedValue.category.id,
+        categoryId: expectedValue.category!.id,
         note: null,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         txId: mock.id,
@@ -359,13 +359,13 @@ describe.skip('transactions create/update/delete form', () => {
       // expect(initialValue).toBe("");
 
       await wrapper.find(amountFieldSelector).setValue(expectedValue.amount);
-      await fillAccountField(wrapper, fromAccountFieldLabel, expectedValue.account.name);
+      await fillAccountField(wrapper, fromAccountFieldLabel, expectedValue.account!.name!);
 
       // TODO: implement and check that for income amount field is disabled and
       // reflects target amount field, and vice verse for expense
       // We still emulate like we set another value, but with the same currency
       // form should send targetAmount same as amount
-      await fillAccountField(wrapper, toAccountFieldLabel, expectedValue.targetAccount.name);
+      await fillAccountField(wrapper, toAccountFieldLabel, expectedValue.targetAccount!.name!);
       await fillTargetAlmountField(wrapper, expectedValue.targetAmount);
 
       await submitUpdation(wrapper);
@@ -406,9 +406,9 @@ describe.skip('transactions create/update/delete form', () => {
       expect(initialValue).toBe('');
 
       await wrapper.find(amountFieldSelector).setValue(expectedValue.amount);
-      await fillAccountField(wrapper, fromAccountFieldLabel, expectedValue.account.name);
+      await fillAccountField(wrapper, fromAccountFieldLabel, expectedValue.account!.name!);
       await fillTargetAlmountField(wrapper, expectedValue.targetAmount);
-      await fillAccountField(wrapper, toAccountFieldLabel, expectedValue.targetAccount.name);
+      await fillAccountField(wrapper, toAccountFieldLabel, expectedValue.targetAccount!.name!);
 
       await submitUpdation(wrapper);
 
@@ -445,14 +445,14 @@ describe.skip('transactions create/update/delete form', () => {
         .trigger('click');
 
       // Check then when changing to anoter txType, the correct account is set to field
-      expect(await findSelectField(wrapper, commonAccountFieldLabel).find('button').attributes().title).toBe(
-        dataMocks.ACCOUNTS.find((item) => item.id === transaction.accountId).name,
+      expect(await findSelectField(wrapper, commonAccountFieldLabel)!.find('button').attributes().title).toBe(
+        dataMocks.ACCOUNTS.find((item) => item.id === transaction.accountId)!.name,
       );
 
       expect(await wrapper.find<HTMLInputElement>(amountFieldSelector).element.value).toBe(String(transaction.amount));
 
       await fillAmountField(wrapper, expectedValue.amount);
-      await fillAccountField(wrapper, commonAccountFieldLabel, expectedValue.account.name);
+      await fillAccountField(wrapper, commonAccountFieldLabel, expectedValue.account!.name!);
 
       await submitUpdation(wrapper);
 
@@ -490,7 +490,7 @@ describe.skip('transactions create/update/delete form', () => {
 
       // Check that correct fields are disabled
       expect(
-        await findSelectField(wrapper, isExpense ? fromAccountFieldLabel : toAccountFieldLabel).attributes()[
+        await findSelectField(wrapper, isExpense ? fromAccountFieldLabel : toAccountFieldLabel)!.attributes()[
           'aria-disabled'
         ],
       ).not.toBe(undefined);
@@ -499,7 +499,7 @@ describe.skip('transactions create/update/delete form', () => {
           .disabled,
       ).not.toBe(undefined);
       expect(await wrapper.find('input[type="datetime-local"]').attributes().disabled).not.toBe(undefined);
-      expect(await findSelectField(wrapper, 'Payment Type').attributes()['aria-disabled']).not.toBe(undefined);
+      expect(await findSelectField(wrapper, 'Payment Type')!.attributes()['aria-disabled']).not.toBe(undefined);
 
       await wrapper
         .find<HTMLInputElement>(isExpense ? targetAmountFieldSelector : amountFieldSelector)
@@ -508,7 +508,7 @@ describe.skip('transactions create/update/delete form', () => {
       await fillAccountField(
         wrapper,
         isExpense ? toAccountFieldLabel : fromAccountFieldLabel,
-        expectedValue.account.name,
+        expectedValue.account!.name!,
       );
 
       await submitUpdation(wrapper);
@@ -558,7 +558,7 @@ describe.skip('transactions create/update/delete form', () => {
 
         // Check that correct fields are disabled
         expect(
-          await findSelectField(wrapper, isExpense ? fromAccountFieldLabel : toAccountFieldLabel).attributes()[
+          await findSelectField(wrapper, isExpense ? fromAccountFieldLabel : toAccountFieldLabel)!.attributes()[
             'aria-disabled'
           ],
         ).not.toBe(undefined);
@@ -567,7 +567,7 @@ describe.skip('transactions create/update/delete form', () => {
             .disabled,
         ).not.toBe(undefined);
         expect(await wrapper.find('input[type="datetime-local"]').attributes().disabled).not.toBe(undefined);
-        expect(await findSelectField(wrapper, 'Payment Type').attributes()['aria-disabled']).not.toBe(undefined);
+        expect(await findSelectField(wrapper, 'Payment Type')!.attributes()['aria-disabled']).not.toBe(undefined);
 
         // Switch from trasfer to desired type
         await wrapper.find(isExpense ? expenseFormTypeSelector : incomeFormTypeSelector).trigger('click');
@@ -576,27 +576,29 @@ describe.skip('transactions create/update/delete form', () => {
         // are disabled
         expect(await wrapper.find(targetAmountFieldSelector).exists()).toBe(false);
         expect(await wrapper.find(amountFieldSelector).attributes().disabled).not.toBe(undefined);
-        expect(await findSelectField(wrapper, 'Payment Type').attributes()['aria-disabled']).not.toBe(undefined);
-        expect(await findSelectField(wrapper, commonAccountFieldLabel).attributes()['aria-disabled']).not.toBe(
+        expect(await findSelectField(wrapper, 'Payment Type')!.attributes()['aria-disabled']).not.toBe(undefined);
+        expect(await findSelectField(wrapper, commonAccountFieldLabel)!.attributes()['aria-disabled']).not.toBe(
           undefined,
         );
         expect(await wrapper.find('input[type="datetime-local"]').attributes().disabled).not.toBe(undefined);
 
-        const categoryTrigger = await findSelectField(wrapper, 'Category').find('button[aria-label="Select category"]');
+        const categoryTrigger = await findSelectField(wrapper, 'Category')!.find(
+          'button[aria-label="Select category"]',
+        );
 
         expect(
           categoryTrigger
             .html()
-            .includes(dataMocks.USER_CATEGORIES.find((item) => item.id === transaction.categoryId).name),
+            .includes(dataMocks.USER_CATEGORIES.find((item) => item.id === transaction.categoryId)!.name),
         ).toBe(true);
 
-        await fillCategoryField(wrapper, expectedValue.category.name);
+        await fillCategoryField(wrapper, expectedValue.category!.name);
 
         await submitUpdation(wrapper);
 
         expect(editTxSpy).toHaveBeenCalledWith({
           note: null,
-          categoryId: expectedValue.category.id,
+          categoryId: expectedValue.category!.id,
           paymentType: expect.any(String),
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           txId: transaction.id,
@@ -664,7 +666,7 @@ describe.skip('transactions create/update/delete form', () => {
         const wrapper = await mountComponent({ props: { transaction } });
 
         await wrapper.find(transferFormTypeSelector).trigger('click');
-        await getTransactionsLinkingButton(wrapper).trigger('click');
+        await getTransactionsLinkingButton(wrapper)!.trigger('click');
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (wrapper.vm as any).linkedTransaction = oppositeTransaction;
@@ -674,17 +676,17 @@ describe.skip('transactions create/update/delete form', () => {
         const txRecordBtn = await wrapper
           .findAll('button')
           .find((btn) =>
-            btn.html().includes(dataMocks.USER_CATEGORIES.find((c) => c.id === oppositeTransaction.categoryId).name),
+            btn.html().includes(dataMocks.USER_CATEGORIES.find((c) => c.id === oppositeTransaction.categoryId)!.name),
           );
 
-        expect(txRecordBtn.exists()).toBe(true);
+        expect(txRecordBtn!.exists()).toBe(true);
 
         const amountField = wrapper.find<HTMLInputElement>(amountFieldSelector);
         expect(amountField.element.value).toBe(String(transaction.amount));
         expect(amountField.attributes().disabled).not.toBe(undefined);
 
-        expect(await findSelectField(wrapper, commonAccountFieldLabel).find('button').attributes().title).toBe(
-          dataMocks.ACCOUNTS.find((item) => item.id === transaction.accountId).name,
+        expect(await findSelectField(wrapper, commonAccountFieldLabel)!.find('button').attributes().title).toBe(
+          dataMocks.ACCOUNTS.find((item) => item.id === transaction.accountId)!.name,
         );
 
         await submitUpdation(wrapper);
@@ -715,7 +717,7 @@ describe.skip('transactions create/update/delete form', () => {
         const wrapper = await mountComponent({ props: { transaction } });
 
         await wrapper.find(transferFormTypeSelector).trigger('click');
-        await getTransactionsLinkingButton(wrapper).trigger('click');
+        await getTransactionsLinkingButton(wrapper)!.trigger('click');
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (wrapper.vm as any).linkedTransaction = oppositeTransaction;
@@ -725,17 +727,17 @@ describe.skip('transactions create/update/delete form', () => {
         const txRecordBtn = await wrapper
           .findAll('button')
           .find((btn) =>
-            btn.html().includes(dataMocks.USER_CATEGORIES.find((c) => c.id === oppositeTransaction.categoryId).name),
+            btn.html().includes(dataMocks.USER_CATEGORIES.find((c) => c.id === oppositeTransaction.categoryId)!.name),
           );
 
-        expect(txRecordBtn.exists()).toBe(true);
+        expect(txRecordBtn!.exists()).toBe(true);
 
         const amountField = wrapper.find<HTMLInputElement>(amountFieldSelector);
         expect(amountField.element.value).toBe(String(transaction.amount));
         expect(amountField.attributes().disabled).not.toBe(undefined);
 
-        expect(await findSelectField(wrapper, commonAccountFieldLabel).find('button').attributes().title).toBe(
-          dataMocks.ACCOUNTS.find((item) => item.id === transaction.accountId).name,
+        expect(await findSelectField(wrapper, commonAccountFieldLabel)!.find('button').attributes().title).toBe(
+          dataMocks.ACCOUNTS.find((item) => item.id === transaction.accountId)!.name,
         );
 
         await submitUpdation(wrapper);
@@ -778,7 +780,7 @@ describe.skip('transactions create/update/delete form', () => {
       });
 
       await wrapper.find(transferFormTypeSelector).trigger('click');
-      await getTransactionsUnlinkingButton(wrapper).trigger('click');
+      await getTransactionsUnlinkingButton(wrapper)!.trigger('click');
 
       expect(unlinkTxSpy).toHaveBeenCalledWith({
         transferIds: [transaction.transferId],

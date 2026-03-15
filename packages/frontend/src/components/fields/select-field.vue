@@ -5,9 +5,12 @@ import * as Select from '@/components/lib/ui/select';
 import { debounce } from 'lodash-es';
 import { XIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import FieldError from './components/field-error.vue';
 import FieldLabel from './components/field-label.vue';
+
+const { t } = useI18n();
 
 type StringOrNumberKeys<T> = {
   [P in keyof T]: T[P] extends string | number ? P : never;
@@ -28,7 +31,7 @@ const props = withDefaults(
     label?: string;
   }>(),
   {
-    placeholder: 'Select an option',
+    placeholder: undefined,
     disabled: false,
     withSearch: false,
     searchKeys: undefined,
@@ -83,6 +86,17 @@ watch(
     });
   }, 300),
 );
+
+// Sync filtered values when props.values changes (e.g., async-loaded data)
+watch(
+  () => props.values,
+  (newValues) => {
+    if (!searchQuery.value) {
+      debouncedFilteredValues.value = newValues;
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -94,8 +108,8 @@ watch(
     <div>
       <Select.Select v-model="selectedKey" :disabled="disabled" @update:open="isDropdownOpen = $event">
         <Select.SelectTrigger class="w-full">
-          <Select.SelectValue :placeholder="placeholder">
-            {{ selectedValue ? getLabelFromValue(selectedValue) : placeholder }}
+          <Select.SelectValue :placeholder="placeholder ?? t('fields.select.selectOption')">
+            {{ selectedValue ? getLabelFromValue(selectedValue) : (placeholder ?? t('fields.select.selectOption')) }}
           </Select.SelectValue>
         </Select.SelectTrigger>
         <Select.SelectContent>
@@ -104,7 +118,7 @@ watch(
               <input-field
                 v-model="searchQuery"
                 type="text"
-                placeholder="Search..."
+                :placeholder="t('fields.select.searchPlaceholder')"
                 trailing-icon-css-class="px-0"
                 @keydown.stop
               >

@@ -40,8 +40,9 @@ export default class Categories extends Model<InferAttributes<Categories>, Infer
   @NotNull
   declare name: string;
 
-  @Attribute(DataTypes.STRING)
-  declare imageUrl: string | null;
+  // Lucide-icons icon name
+  @Attribute(DataTypes.STRING(50))
+  declare icon: string | null;
 
   @Attribute(DataTypes.STRING)
   @NotNull
@@ -77,7 +78,7 @@ export const getCategories = async ({ userId }: { userId: number }) => {
 export interface CreateCategoryPayload {
   userId: number;
   name?: string;
-  imageUrl?: string;
+  icon?: string | null;
   color?: string;
   parentId?: number;
   type?: CATEGORY_TYPES;
@@ -112,7 +113,7 @@ export interface EditCategoryPayload {
   userId: number;
   categoryId: number;
   name?: string;
-  imageUrl?: string;
+  icon?: string | null;
   color?: string;
 }
 

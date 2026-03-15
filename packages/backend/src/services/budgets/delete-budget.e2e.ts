@@ -1,6 +1,7 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
+import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Delete Budget', () => {
   it('successfully deletes a budget without transactions', async () => {
@@ -19,8 +20,9 @@ describe('Delete Budget', () => {
     });
     expect(deleteResponse.success).toBe(true);
 
-    const budgetById = await helpers.getCustomBudgetById({ id: budget.id, raw: true });
-    expect(budgetById).toBeNull();
+    // Budget should no longer exist - API returns 404
+    const budgetByIdResponse = await helpers.getCustomBudgetById({ id: budget.id, raw: false });
+    expect(budgetByIdResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
 
     const budgets = await helpers.getCustomBudgets({ raw: true });
     expect(budgets.find((b) => b.id === budget.id)).toBeUndefined();
@@ -77,8 +79,9 @@ describe('Delete Budget', () => {
     });
     expect(deleteResponse.success).toBe(true);
 
-    const budgetById = await helpers.getCustomBudgetById({ id: budget.id, raw: true });
-    expect(budgetById).toBeNull();
+    // Budget should no longer exist - API returns 404
+    const budgetByIdResponse = await helpers.getCustomBudgetById({ id: budget.id, raw: false });
+    expect(budgetByIdResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
 
     const budgetTransactionsAfter = await helpers.getTransactions({
       budgetIds: [budget.id],

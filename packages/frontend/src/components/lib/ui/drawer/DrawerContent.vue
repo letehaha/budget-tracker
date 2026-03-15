@@ -26,11 +26,11 @@ const forwarded = useForwardPropsEmits(props, emits);
       v-bind="forwarded"
       :class="
         cn(
-          'bg-background fixed inset-x-0 bottom-0 z-(--z-dialog) mt-24 flex h-auto flex-col rounded-t-[10px] border pb-[env(safe-area-inset-bottom)]',
+          'bg-background fixed inset-x-0 bottom-0 z-(--z-dialog) mt-24 flex h-auto max-h-[95vh] flex-col rounded-t-[10px] border pb-[env(safe-area-inset-bottom)]',
           props.class,
         )
       "
-      :on-open-auto-focus="(e) => console.log(e)"
+      :on-open-auto-focus="(e: Event) => console.log(e)"
     >
       <template v-if="!customIndicator">
         <DrawerIndicator />

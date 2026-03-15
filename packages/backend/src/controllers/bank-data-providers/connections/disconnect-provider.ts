@@ -8,7 +8,11 @@ export default createController(
       connectionId: z.coerce.number(),
     }),
     query: z.object({
-      removeAssociatedAccounts: z.coerce.boolean().optional().default(false),
+      removeAssociatedAccounts: z
+        .string()
+        .optional()
+        .default('false')
+        .transform((val) => val === 'true'),
     }),
   }),
   async ({ user, params, query }) => {

@@ -1,8 +1,10 @@
 import { logger } from '@js/utils/logger';
 
 import { EnableBankingProvider } from './enablebanking';
+import { LunchFlowProvider } from './lunchflow/lunchflow.provider';
 import { MonobankProvider } from './monobank';
 import { bankProviderRegistry } from './registry';
+import { WalutomatProvider } from './walutomat';
 
 /**
  * Initialize and register all bank data providers
@@ -16,8 +18,11 @@ export function initializeBankProviders(): void {
     // Register Enable Banking provider
     bankProviderRegistry.register(new EnableBankingProvider());
 
-    // Future providers will be registered here:
-    // bankProviderRegistry.register(new LunchFlowProvider());
+    // Register LunchFlow provider
+    bankProviderRegistry.register(new LunchFlowProvider());
+
+    // Register Walutomat provider
+    bankProviderRegistry.register(new WalutomatProvider());
 
     const registeredTypes = bankProviderRegistry.listTypes();
     logger.info(

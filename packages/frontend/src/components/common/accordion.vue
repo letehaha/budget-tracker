@@ -33,7 +33,7 @@
             <CategoryCircle :category="cat" />
             <span class="truncate">{{ cat.name }}</span>
             <span v-if="isInternalCategory(cat)" class="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-xs">
-              system
+              {{ t('common.labels.system') }}
             </span>
           </div>
 
@@ -47,7 +47,27 @@
             <template #default="{ close }">
               <Button variant="ghost" class="w-full justify-start gap-2" size="sm" @click="handleEdit(cat, close)">
                 <PencilIcon class="size-4" />
-                Edit
+                {{ t('common.actions.edit') }}
+              </Button>
+
+              <Button
+                variant="ghost"
+                class="w-full justify-start gap-2"
+                size="sm"
+                @click="handleViewTransactions(cat, close)"
+              >
+                <ListIcon class="size-4" />
+                {{ t('common.actions.viewTransactions') }}
+              </Button>
+
+              <Button
+                variant="ghost"
+                class="w-full justify-start gap-2"
+                size="sm"
+                @click="handleViewAnalytics(cat, close)"
+              >
+                <LineChartIcon class="size-4" />
+                {{ t('common.actions.viewAnalytics') }}
               </Button>
 
               <Button
@@ -57,8 +77,8 @@
                 size="sm"
                 @click="handleAddSubcategory(cat, close)"
               >
-                <PlusIcon class="size-4" />
-                Add subcategory
+                <PlusIcon class="size-4 shrink-0" />
+                {{ t('common.actions.addSubcategory') }}
               </Button>
 
               <div class="bg-border my-1 h-px" />
@@ -70,7 +90,7 @@
                 @click="handleDelete(cat, close)"
               >
                 <Trash2Icon class="size-4" />
-                Delete
+                {{ t('common.actions.delete') }}
               </Button>
             </template>
           </ResponsiveMenu>
@@ -93,6 +113,8 @@
             @edit="(c) => emits('edit', c)"
             @add-subcategory="(c) => emits('add-subcategory', c)"
             @delete="(c) => emits('delete', c)"
+            @view-transactions="(c) => emits('view-transactions', c)"
+            @view-analytics="(c) => emits('view-analytics', c)"
           />
         </div>
       </div>
@@ -107,8 +129,19 @@ import ResponsiveMenu from '@/components/common/responsive-menu.vue';
 import { Button } from '@/components/lib/ui/button';
 import { cn } from '@/lib/utils';
 import { CATEGORY_TYPES } from '@bt/shared/types';
-import { ChevronRightIcon, MoreVerticalIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-vue-next';
+import {
+  ChevronRightIcon,
+  LineChartIcon,
+  ListIcon,
+  MoreVerticalIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+} from 'lucide-vue-next';
 import { computed, reactive } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const isInternalCategory = (category: FormattedCategory) => category.type === CATEGORY_TYPES.internal;
 
@@ -132,6 +165,8 @@ const emits = defineEmits<{
   edit: [category: FormattedCategory];
   'add-subcategory': [category: FormattedCategory];
   delete: [category: FormattedCategory];
+  'view-transactions': [category: FormattedCategory];
+  'view-analytics': [category: FormattedCategory];
 }>();
 
 const menuOpenState = reactive<Record<number, boolean>>({});
@@ -165,5 +200,15 @@ const handleAddSubcategory = (category: FormattedCategory, close: () => void) =>
 const handleDelete = (category: FormattedCategory, close: () => void) => {
   close();
   emits('delete', category);
+};
+
+const handleViewTransactions = (category: FormattedCategory, close: () => void) => {
+  close();
+  emits('view-transactions', category);
+};
+
+const handleViewAnalytics = (category: FormattedCategory, close: () => void) => {
+  close();
+  emits('view-analytics', category);
 };
 </script>

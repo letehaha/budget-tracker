@@ -537,7 +537,7 @@ describe('Extract Unique Values endpoint', () => {
 
       // Both should extract the same accounts and categories
       expect(result1.sourceAccounts).toEqual(result2.sourceAccounts);
-      expect(result1.sourceCategories.sort()).toEqual(result2.sourceCategories.sort());
+      expect(result1.sourceCategories.toSorted()).toEqual(result2.sourceCategories.toSorted());
     });
 
     it('should handle currency mismatch warning with existing account', async () => {

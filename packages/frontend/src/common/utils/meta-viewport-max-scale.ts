@@ -3,7 +3,7 @@ export const patchMetaViewportMaxScaleForiOS = () => {
     const el = document.querySelector('meta[name=viewport]');
 
     if (el !== null) {
-      let content = el.getAttribute('content');
+      let content = el.getAttribute('content') ?? '';
       const re = /maximum-scale=[0-9.]+/g;
 
       if (re.test(content)) {

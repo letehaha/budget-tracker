@@ -7,14 +7,20 @@ const schema = z.object({
   params: z.object({
     id: recordId(),
   }),
+  body: z
+    .object({
+      replaceWithCategoryId: recordId().optional(),
+    })
+    .optional(),
 });
 
-export default createController(schema, async ({ user, params }) => {
+export default createController(schema, async ({ user, params, body }) => {
   const { id: userId } = user;
   const { id: categoryId } = params;
 
   await categoriesService.deleteCategory({
     categoryId,
     userId,
+    replaceWithCategoryId: body?.replaceWithCategoryId,
   });
 });

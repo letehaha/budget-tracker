@@ -1,0 +1,69 @@
+{
+  "settings": {
+    "currencies": {
+      "addNew": {
+        "loading": "Loading...",
+        "selectCurrency": "Select currency",
+        "addButton": "Add",
+        "howItWorks": "How it works?",
+        "tooltip": "By adding custom currencies, you can create and manage accounts and transactions in those currencies. You'll also be able to adjust and update their exchange rates relative to your base currency. Linked accounts will automatically create required currencies.",
+        "errors": {
+          "addFailed": "Unexpected error. Currency is not added."
+        }
+      },
+      "list": {
+        "editCurrency": "Edit currency",
+        "baseCurrencyBadge": "Base currency",
+        "baseCurrencyTooltip": "Your base currency. All information on dashboard is displayed in this currency"
+      },
+      "exchangeRate": {
+        "disableLiveUpdate": "Disable live updation to be able to set custom exchange rate.",
+        "liveUpdateInfo": "When enabled, custom rate is ignored.",
+        "liveUpdateLabel": "Live update",
+        "saveButton": "Save",
+        "successfullyUpdated": "Successfully updated.",
+        "errors": {
+          "unexpectedError": "Unexpected error",
+          "updateFailed": "Unexpected error. Currency is not updated."
+        }
+      },
+      "delete": {
+        "description": "Currency can only be deleted/disconnected if there's no accounts and/or transactions associated with it.",
+        "button": "Delete currency",
+        "disabledTooltip": "You cannot delete this currency because it is still connected to account(s).",
+        "successfullyDeleted": "Successfully deleted.",
+        "errors": {
+          "deleteFailed": "Unexpected error. Currency is not deleted."
+        }
+      },
+      "setBase": {
+        "label": "Set as base currency",
+        "button": "Set as base currency",
+        "processing": "Processing...",
+        "tooltip": "Mark as a base currency. All statistics and dashboard information will be displayed in this currency.\n\nTransactions will be recalculated by exchange rate as of date of when transaction was recorded.",
+        "dialog": {
+          "title": "Change Base Currency?",
+          "warningTitle": "Warning:",
+          "warningText": "Changing the base currency should be a very well-considered decision. Ideally, this action should be performed only once, even though there are no actual restrictions.",
+          "descriptionText": "Each time you change the base currency, all transactions will be recalculated using historical exchange rates. Because of floating-point arithmetic and normal variations between base and quote currency rates, repeated recalculations may introduce small discrepancies in your reference amounts over time. Reference amounts are used to display statistics and to set your budget limits.",
+          "roundingTitle": "How exactly is rounding calculated?",
+          "roundingIntro": "Currency conversions use Banker's Rounding (IEEE 754 standard), also known as \"round half to even\". This minimizes cumulative rounding errors over many calculations.",
+          "roundingHow": "How it works:",
+          "roundingRule1": "When a value is exactly halfway (e.g., 0.5), it rounds to the nearest even number",
+          "roundingRule2": "Example: 0.5 → 0, 1.5 → 2, 2.5 → 2, 3.5 → 4",
+          "roundingStandard": "This method is recommended by IFRS/GAAP accounting standards and used by major financial systems to prevent systematic bias in currency conversions.",
+          "untouchedWarning": "Original transactions amount will always remain untouched!",
+          "processingTimeInfo": "This might take a while if your currency is not widely-common.",
+          "restrictionWarning": "You won't be able to create new accounts, transactions, and anything related to \"amounts\" while the process is in progress.",
+          "confirmation": "Are you sure you want to proceed?",
+          "changeButton": "Change Base Currency",
+          "cancelButton": "Cancel"
+        },
+        "successMessage": "Base currency changed successfully.",
+        "errors": {
+          "changeFailed": "Unexpected error. Failed to change base currency."
+        }
+      }
+    }
+  }
+}

@@ -1,11 +1,13 @@
+import { Money } from '@common/types/money';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import RefundTransactions from '@models/RefundTransactions.model';
+import Transactions from '@models/Transactions.model';
 import TransactionSplits, {
   CreateSplitPayload,
   bulkCreateSplits,
   deleteSplitsForTransaction,
 } from '@models/TransactionSplits.model';
-import Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
@@ -16,7 +18,7 @@ interface ManageSplitsParams {
   transactionId: number;
   userId: number;
   splits: SplitInput[];
-  transactionAmount: number;
+  transactionAmount: Money;
   transactionCurrencyCode: string;
   transactionTime: Date;
   transferNature?: string;
@@ -45,9 +47,9 @@ export const manageSplits = async ({
   const refundsByCategoryId = new Map<
     number,
     {
-      totalRefundedRefAmount: number;
+      totalRefundedRefAmount: Money;
       splitId: string;
-      refundAmounts: { amount: number; currencyCode: string }[];
+      refundAmounts: { amount: Money; currencyCode: string }[];
     }
   >();
 
@@ -59,9 +61,9 @@ export const manageSplits = async ({
     });
 
     if (refunds.length > 0) {
-      const totalRefunded = refunds.reduce((sum, r) => sum + Math.abs(r.refundTransaction.refAmount), 0);
+      const totalRefunded = Money.sum(refunds.map((r) => r.refundTransaction.refAmount.abs()));
       const refundAmounts = refunds.map((r) => ({
-        amount: Math.abs(r.refundTransaction.amount),
+        amount: r.refundTransaction.amount.abs(),
         currencyCode: r.refundTransaction.currencyCode,
       }));
       refundsByCategoryId.set(existingSplit.categoryId, {
@@ -122,14 +124,14 @@ export const manageSplits = async ({
 
       // Validate: if this category had refunds, new refAmount must be >= total refunded
       const existingRefundInfo = refundsByCategoryId.get(split.categoryId);
-      if (existingRefundInfo && refAmount < existingRefundInfo.totalRefundedRefAmount) {
+      if (existingRefundInfo && refAmount.lessThan(existingRefundInfo.totalRefundedRefAmount)) {
         // Format refund amounts in their original currencies for user-friendly display
         const refundDescriptions = existingRefundInfo.refundAmounts.map(
-          (r) => `${(r.amount / 100).toFixed(2)} ${r.currencyCode}`,
+          (r) => `${r.amount.toNumber().toFixed(2)} ${r.currencyCode}`,
         );
         const refundsText = refundDescriptions.join(', ');
         throw new ValidationError({
-          message: `This split has refunds totaling ${refundsText}. You cannot reduce it below the refunded amount. To reduce further, first unlink the refunds.`,
+          message: t({ key: 'transactions.splits.cannotReduceBelowRefunded', variables: { refundsText } }),
         });
       }
 
@@ -175,33 +177,4 @@ export const manageSplits = async ({
   }
 
   return createdSplits;
-};
-
-/**
- * Get splits for a transaction and calculate the primary category amount.
- */
-export const getSplitsWithPrimaryAmount = async ({
-  transaction,
-}: {
-  transaction: Transactions;
-}): Promise<{
-  splits: TransactionSplits[];
-  primaryAmount: number;
-  primaryRefAmount: number;
-}> => {
-  const splits = await TransactionSplits.findAll({
-    where: {
-      transactionId: transaction.id,
-      userId: transaction.userId,
-    },
-  });
-
-  const splitsTotal = splits.reduce((sum, split) => sum + Number(split.amount), 0);
-  const splitsRefTotal = splits.reduce((sum, split) => sum + Number(split.refAmount), 0);
-
-  return {
-    splits,
-    primaryAmount: transaction.amount - splitsTotal,
-    primaryRefAmount: transaction.refAmount - splitsRefTotal,
-  };
 };

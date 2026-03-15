@@ -10,7 +10,7 @@
       </template>
 
       <template #title>
-        <span> Edit currency </span>
+        <span> {{ $t('settings.currencies.list.editCurrency') }} </span>
       </template>
 
       <template v-if="selectedCurrency">
@@ -56,14 +56,14 @@ const { data: rates } = useQuery({
 const currenciesList = computed<CurrencyWithExchangeRate[]>(() =>
   currencies.value
     .map((item) => {
-      const rate = rates.value.find((i) => i.baseCode === item.currency.code);
+      const rate = (rates.value ?? []).find((i) => i.baseCode === item.currency?.code);
       const quoteRate = Number(Number(1 / Number(rate?.rate)).toFixed(4));
 
       return {
         ...item,
         rate: Number(rate?.rate?.toFixed(4)),
         custom: rate?.custom ?? false,
-        quoteCode: rate?.quoteCode,
+        quoteCode: rate?.quoteCode ?? '',
         quoteRate,
       };
     })

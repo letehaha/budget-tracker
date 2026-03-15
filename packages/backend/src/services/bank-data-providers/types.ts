@@ -3,48 +3,16 @@
  * This system allows users to connect multiple bank accounts from various providers
  * (Monobank, Enable Banking, etc.) in a unified, modular way.
  */
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE, Cents } from '@bt/shared/types';
 
 // ============================================================================
 // Provider Types and Enums
 // ============================================================================
 
 /**
- * Types of credential fields that providers can require
- */
-export enum CredentialFieldType {
-  TEXT = 'text',
-  PASSWORD = 'password',
-  URL = 'url',
-  EMAIL = 'email',
-}
-
-// ============================================================================
-// Provider Configuration
-// ============================================================================
-
-/**
- * Defines a credential field that a provider requires
- */
-export interface ProviderCredentialField {
-  /** Internal field name (e.g., 'apiToken', 'apiKey') */
-  name: string;
-  /** Field type for UI rendering */
-  type: CredentialFieldType;
-  /** User-facing label */
-  label: string;
-  /** Placeholder text for input */
-  placeholder?: string;
-  /** Whether this field is required */
-  required: boolean;
-  /** Help text to guide users */
-  helpText?: string;
-}
-
-/**
  * Feature capabilities of a provider
  */
-export interface ProviderFeatures {
+interface ProviderFeatures {
   /** Provider supports webhook notifications */
   supportsWebhooks: boolean;
   /** Provider supports real-time data updates */
@@ -77,39 +45,6 @@ export interface ProviderMetadata {
   documentationUrl?: string;
   /** Provider feature capabilities */
   features: ProviderFeatures;
-  /** Credential fields required by this provider */
-  credentialFields: ProviderCredentialField[];
-}
-
-// ============================================================================
-// Connection Data Types
-// ============================================================================
-
-/**
- * Represents a connection to a bank data provider
- * This is the TypeScript representation of the database model
- */
-export interface BankDataProviderConnection {
-  /** Database ID */
-  id: number;
-  /** User who owns this connection */
-  userId: number;
-  /** Type of provider */
-  providerType: BANK_PROVIDER_TYPE;
-  /** User-defined friendly name */
-  providerName: string;
-  /** Whether connection is currently active */
-  isActive: boolean;
-  /** Encrypted credentials (stored as JSONB in DB) */
-  credentials: Record<string, unknown>;
-  /** Provider-specific metadata (webhooks, clientIds, etc.) */
-  metadata: Record<string, unknown>;
-  /** Timestamp of last successful sync */
-  lastSyncAt?: Date;
-  /** Record creation timestamp */
-  createdAt: Date;
-  /** Record last update timestamp */
-  updatedAt: Date;
 }
 
 // ============================================================================
@@ -134,8 +69,8 @@ export interface ProviderAccount {
   name: string;
   /** Account type (e.g., 'debit', 'credit', 'savings') */
   type: string;
-  /** Current account balance */
-  balance: number;
+  /** Current account balance (in cents) */
+  balance: Cents;
   /** Currency code (e.g., 'UAH', 'USD') */
   currency: string;
   /** Additional provider-specific data */
@@ -148,8 +83,8 @@ export interface ProviderAccount {
 export interface ProviderTransaction {
   /** Provider's unique identifier for this transaction */
   externalId: string;
-  /** Transaction amount (positive for income, negative for expense) */
-  amount: number;
+  /** Transaction amount in cents (positive for income, negative for expense) */
+  amount: Cents;
   /** Currency code */
   currency: string;
   /** Transaction date */
@@ -168,8 +103,8 @@ export interface ProviderTransaction {
  * Account balance information from provider
  */
 export interface ProviderBalance {
-  /** Balance amount */
-  amount: number;
+  /** Balance amount (in cents) */
+  amount: Cents;
   /** Currency code */
   currency: string;
   /** Timestamp when balance was retrieved */

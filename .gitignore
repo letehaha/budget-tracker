@@ -20,7 +20,6 @@ pnpm-debug.log*
 
 # Editor directories and files
 .idea
-.vscode
 *.suo
 *.ntvs*
 *.njsproj
@@ -122,6 +121,9 @@ jspm_packages/
 # vuepress build output
 .vuepress/dist
 
+# vite-ssg temp files
+.vite-ssg-temp
+
 # Serverless directories
 .serverless/
 
@@ -145,3 +147,14 @@ dev-debug.log
 scripts/local/*
 
 docs/prds/*
+
+# i18n hook bypass flag
+.claude/i18n-bypass
+
+# Playwright
+packages/frontend/playwright-report/
+packages/frontend/test-results/
+packages/frontend/blob-report/
+
+# Astro generated files
+packages/landing/.astro/

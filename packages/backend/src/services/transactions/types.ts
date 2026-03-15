@@ -1,4 +1,5 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import * as Transactions from '@models/Transactions.model';
 
 import { SplitInput } from './splits/types';
@@ -7,18 +8,19 @@ export type CreateTransactionParams = Omit<
   Transactions.CreateTransactionPayload,
   'refAmount' | 'transferId' | 'currencyCode' | 'refCurrencyCode'
 > & {
-  destinationAmount?: number;
+  destinationAmount?: Money;
   destinationAccountId?: number;
   destinationTransactionId?: number;
   refundsTxId?: number;
   refundsSplitId?: string;
   splits?: SplitInput[];
+  tagIds?: number[];
 };
 
 interface UpdateParams {
   id: number;
   userId: number;
-  amount?: number;
+  amount?: Money;
   note?: string | null;
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
@@ -30,10 +32,11 @@ interface UpdateParams {
   refundsSplitId?: string | null;
   refundedByTxIds?: number[] | null;
   splits?: SplitInput[] | null; // null to clear all splits
+  tagIds?: number[] | null; // null to clear all tags
 }
 
 interface UpdateTransferParams {
-  destinationAmount?: number;
+  destinationAmount?: Money;
   destinationTransactionId?: number;
   destinationAccountId?: number;
   transferNature?: TRANSACTION_TRANSFER_NATURE;

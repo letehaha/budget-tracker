@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { buttonVariants } from '@/components/lib/ui/button';
+import { i18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { useVModel } from '@vueuse/core';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
@@ -55,7 +56,7 @@ const modelValue = useVModel(props, 'modelValue', emits, {
 const datePicker = ref<InstanceType<typeof DatePicker>>();
 // In this current version of v-calendar has the calendarRef instance, which is
 // required to handle arrow nav.
-const calendarRef = computed(() => datePicker.value.calendarRef);
+const calendarRef = computed(() => datePicker.value!.calendarRef);
 
 function handleNav(direction: 'prev' | 'next') {
   if (!calendarRef.value) return;
@@ -67,6 +68,12 @@ function handleNav(direction: 'prev' | 'next') {
 onMounted(async () => {
   await nextTick();
   if (modelValue.value instanceof Date && calendarRef.value) calendarRef.value.focusDate(modelValue.value);
+});
+
+// Reactive locale for v-calendar - tracks i18n locale changes
+const calendarLocale = computed(() => {
+  // Access the reactive locale value to ensure reactivity (locale is same as getCurrentLocale())
+  return i18n.global.locale.value;
 });
 
 const $slots = useSlots();
@@ -106,6 +113,7 @@ const vCalendarSlots = computed(() =>
       v-model="modelValue"
       v-bind="$attrs"
       :model-modifiers="modelModifiers"
+      :locale="calendarLocale"
       class="calendar"
       trim-weeks
       :transition="'none'"

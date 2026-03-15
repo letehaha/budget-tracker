@@ -7,6 +7,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
@@ -19,6 +20,8 @@ import { createTransaction } from '@services/transactions/create-transaction';
 const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
   [BANK_PROVIDER_TYPE.MONOBANK]: ACCOUNT_TYPES.monobank,
   [BANK_PROVIDER_TYPE.ENABLE_BANKING]: ACCOUNT_TYPES.enableBanking,
+  [BANK_PROVIDER_TYPE.LUNCHFLOW]: ACCOUNT_TYPES.lunchflow,
+  [BANK_PROVIDER_TYPE.WALUTOMAT]: ACCOUNT_TYPES.walutomat,
 };
 
 interface LinkAccountToBankConnectionPayload {
@@ -113,7 +116,7 @@ export const linkAccountToBankConnection = withTransaction(
     }
 
     // 5. Calculate balance difference
-    const systemBalance = account.currentBalance;
+    const systemBalance = account.currentBalance.toCents();
     const externalBalance = externalAccount.balance;
     const balanceDifference = externalBalance - systemBalance;
 
@@ -130,7 +133,7 @@ export const linkAccountToBankConnection = withTransaction(
       const [createdTransaction] = await createTransaction({
         userId,
         accountId: account.id,
-        amount: Math.abs(balanceDifference),
+        amount: Money.fromCents(Math.abs(balanceDifference)),
         time: new Date(),
         transactionType: balanceDifference > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
         transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,

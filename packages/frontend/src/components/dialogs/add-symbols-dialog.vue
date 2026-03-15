@@ -9,6 +9,9 @@ import type { SecuritySearchResult } from '@bt/shared/types/investments';
 import { useQuery } from '@tanstack/vue-query';
 import { CheckCheckIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{ portfolioId: number }>();
 const emit = defineEmits(['updated']);
@@ -45,12 +48,12 @@ async function addSymbol(sec: SecuritySearchResult) {
       quantity: 0,
       costBasis: 0,
     });
-    addNotification({ text: 'Holding added.', type: NotificationType.success });
+    addNotification({ text: t('dialogs.addSymbols.notifications.success'), type: NotificationType.success });
     isOpen.value = false;
     searchTerm.value = '';
     emit('updated');
   } catch {
-    addNotification({ text: 'Failed to add holding.', type: NotificationType.error });
+    addNotification({ text: t('dialogs.addSymbols.notifications.error'), type: NotificationType.error });
   }
 }
 </script>
@@ -61,19 +64,23 @@ async function addSymbol(sec: SecuritySearchResult) {
       <slot />
     </template>
 
-    <template #title> Add Symbols </template>
+    <template #title> {{ $t('dialogs.addSymbols.title') }} </template>
 
     <template #default>
       <div class="grid gap-4">
         <InputField
           v-model="searchTerm"
-          label="Search symbol or name"
-          placeholder="AAPL"
+          :label="$t('dialogs.addSymbols.searchLabel')"
+          :placeholder="$t('dialogs.addSymbols.searchPlaceholder')"
           class="max-w-[calc(100%-50px)]"
         />
 
-        <div v-if="query.isLoading.value" class="text-muted-foreground text-sm">Searching…</div>
-        <div v-else-if="query.error.value" class="text-destructive-text text-sm">Failed to search securities.</div>
+        <div v-if="query.isLoading.value" class="text-muted-foreground text-sm">
+          {{ $t('dialogs.addSymbols.searching') }}
+        </div>
+        <div v-else-if="query.error.value" class="text-destructive-text text-sm">
+          {{ $t('dialogs.addSymbols.searchError') }}
+        </div>
         <div v-else>
           <ul class="max-h-60 overflow-y-auto">
             <li
@@ -98,7 +105,7 @@ async function addSymbol(sec: SecuritySearchResult) {
               <span class="text-muted-foreground truncate text-xs">
                 {{ sec.name }}
 
-                <span v-if="sec.isInPortfolio"> (Added) </span>
+                <span v-if="sec.isInPortfolio"> {{ $t('dialogs.addSymbols.addedIndicator') }} </span>
               </span>
 
               <span class="text-muted-foreground text-right text-xs">{{ sec.exchangeName }}</span>
@@ -107,7 +114,7 @@ async function addSymbol(sec: SecuritySearchResult) {
             </li>
           </ul>
           <div v-if="debounced && (query.data.value?.length ?? 0) === 0" class="text-muted-foreground text-sm">
-            No results.
+            {{ $t('dialogs.addSymbols.noResults') }}
           </div>
         </div>
       </div>

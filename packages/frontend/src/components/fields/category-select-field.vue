@@ -24,12 +24,12 @@
           @mousedown.prevent="selectItem(item)"
         >
           <CategoryCircle :category="item" />
-          <span class="flex-grow">{{ item.name }}</span>
+          <span class="grow">{{ item.name }}</span>
         </button>
       </template>
 
       <div v-if="filteredItems.length === 0" class="text-muted-foreground p-4 text-center text-sm">
-        No categories found
+        {{ $t('fields.categorySelect.noCategoriesFound') }}
       </div>
     </div>
   </CategoryListTemplate>
@@ -44,8 +44,74 @@
     role="select"
   >
     <FieldLabel :label="label" only-template>
-      <div class="relative">
-        <!-- Mask field (always shown, triggers open) -->
+      <!-- Desktop: Popover -->
+      <template v-if="!isMobile">
+        <Popover.Popover :open="isOpen" @update:open="(open: boolean) => (isOpen = open)">
+          <Popover.PopoverTrigger as-child>
+            <button
+              type="button"
+              :disabled="disabled"
+              :class="
+                cn(
+                  'border-input bg-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
+                  'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
+                  disabled && 'cursor-not-allowed opacity-50',
+                  $attrs.class ?? '',
+                )
+              "
+              :aria-label="$t('fields.categorySelect.selectCategoryLabel')"
+              :title="selectedValue?.name || $t('fields.categorySelect.selectCategoryLabel')"
+            >
+              <CategoryCircle v-if="selectedValue" :category="selectedValue" class="shrink-0" />
+              <span
+                class="text-muted-foreground min-w-0 flex-1 truncate text-left"
+                :class="{ 'text-foreground': selectedValue }"
+              >
+                {{ selectedValue?.name || placeholder }}
+              </span>
+              <span
+                v-if="selectedValue && !disabled"
+                role="button"
+                tabindex="0"
+                class="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+                :aria-label="$t('fields.categorySelect.clearSelectionLabel')"
+                @click="clearSelection"
+                @keydown.enter.prevent="clearSelection"
+              >
+                <XIcon class="size-4" />
+              </span>
+              <ChevronDownIcon
+                class="text-popover-foreground size-5 shrink-0 transition-transform duration-150 ease-out"
+                :class="{ 'rotate-180': isOpen }"
+              />
+            </button>
+          </Popover.PopoverTrigger>
+          <Popover.PopoverContent
+            align="start"
+            class="w-[--reka-popover-trigger-width] p-0"
+            @open-auto-focus.prevent="$nextTick(() => inputRef?.focus())"
+          >
+            <!-- Search input -->
+            <div class="border-b p-2">
+              <input
+                ref="inputRef"
+                v-model="searchQuery"
+                type="text"
+                class="bg-background w-full text-sm outline-none"
+                :placeholder="$t('fields.categorySelect.searchPlaceholder')"
+                :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
+              />
+            </div>
+            <!-- Category list -->
+            <div ref="listRef" class="max-h-87.5 overflow-auto">
+              <CategoryListContent />
+            </div>
+          </Popover.PopoverContent>
+        </Popover.Popover>
+      </template>
+
+      <!-- Mobile: Button + Drawer -->
+      <template v-else>
         <button
           type="button"
           :disabled="disabled"
@@ -57,68 +123,32 @@
               $attrs.class ?? '',
             )
           "
-          aria-label="Select category"
-          :title="selectedValue?.name || 'Select category'"
+          :aria-label="$t('fields.categorySelect.selectCategoryLabel')"
+          :title="selectedValue?.name || $t('fields.categorySelect.selectCategoryLabel')"
           @click="openDropdown"
         >
           <CategoryCircle v-if="selectedValue" :category="selectedValue" class="shrink-0" />
-          <span class="min-w-0 flex-1 truncate text-left">
+          <span
+            class="text-muted-foreground min-w-0 flex-1 truncate text-left"
+            :class="{ 'text-foreground': selectedValue }"
+          >
             {{ selectedValue?.name || placeholder }}
           </span>
+          <button
+            v-if="selectedValue && !disabled"
+            type="button"
+            class="text-muted-foreground hover:text-foreground shrink-0"
+            :aria-label="$t('fields.categorySelect.clearSelectionLabel')"
+            @click="clearSelection"
+          >
+            <XIcon class="size-4" />
+          </button>
           <ChevronDownIcon
             class="text-popover-foreground size-5 shrink-0 transition-transform duration-150 ease-out"
             :class="{ 'rotate-180': isOpen }"
           />
         </button>
-
-        <!-- Desktop: Dropdown -->
-        <template v-if="!isMobile && isOpen">
-          <!-- Interactive search field -->
-          <div
-            :class="
-              cn(
-                'border-input bg-background ring-ring ring-offset-background absolute top-0 left-0 z-(--z-over-default) flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm ring-2 ring-offset-2',
-                $attrs.class ?? '',
-              )
-            "
-          >
-            <CategoryCircle v-if="selectedValue" :category="selectedValue" class="shrink-0" />
-
-            <input
-              ref="inputRef"
-              v-model="searchQuery"
-              type="text"
-              class="min-w-0 flex-1 bg-transparent outline-none"
-              :placeholder="selectedValue?.name || placeholder"
-              aria-label="Search category"
-              @blur="handleBlur"
-            />
-
-            <button
-              v-if="searchQuery.length"
-              type="button"
-              class="text-muted-foreground hover:text-foreground shrink-0"
-              aria-label="Clear search"
-              @mousedown.prevent="clearSearch"
-            >
-              <XIcon class="size-4" />
-            </button>
-
-            <ChevronDownIcon
-              class="text-popover-foreground size-5 shrink-0 rotate-180 transition-transform duration-150 ease-out"
-            />
-          </div>
-
-          <!-- Dropdown list -->
-          <div
-            :class="cn('bg-popover absolute top-full left-0 z-(--z-over-default) w-full rounded px-2 py-1 shadow-md')"
-          >
-            <div ref="listRef" class="max-h-[350px] overflow-auto">
-              <CategoryListContent />
-            </div>
-          </div>
-        </template>
-      </div>
+      </template>
     </FieldLabel>
 
     <FieldError :error-message="errorMessage" />
@@ -127,7 +157,7 @@
     <Drawer.Drawer v-if="isMobile" :open="isOpen" @update:open="handleDrawerOpenChange">
       <Drawer.DrawerContent class="px-4 pb-4">
         <Drawer.DrawerHeader class="px-0 pb-2">
-          <Drawer.DrawerTitle>Select category</Drawer.DrawerTitle>
+          <Drawer.DrawerTitle>{{ $t('fields.categorySelect.selectCategoryLabel') }}</Drawer.DrawerTitle>
         </Drawer.DrawerHeader>
 
         <!-- Search input in drawer -->
@@ -139,15 +169,15 @@
             v-model="searchQuery"
             type="text"
             class="min-w-0 flex-1 bg-transparent outline-none"
-            :placeholder="selectedValue?.name || 'Search...'"
-            aria-label="Search category"
+            :placeholder="selectedValue?.name || $t('fields.categorySelect.searchPlaceholder')"
+            :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
           />
 
           <button
             v-if="searchQuery.length"
             type="button"
             class="text-muted-foreground hover:text-foreground shrink-0"
-            aria-label="Clear search"
+            :aria-label="$t('fields.categorySelect.clearSearchLabel')"
             @click="searchQuery = ''"
           >
             <XIcon class="size-4" />
@@ -168,12 +198,15 @@ import { type FormattedCategory } from '@/common/types';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import { FieldError, FieldLabel } from '@/components/fields';
 import * as Drawer from '@/components/lib/ui/drawer';
+import * as Popover from '@/components/lib/ui/popover';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { cn } from '@/lib/utils';
 import { CATEGORY_TYPES } from '@bt/shared/types';
 import { createReusableTemplate } from '@vueuse/core';
 import { ChevronDownIcon, XIcon } from 'lucide-vue-next';
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+
+defineOptions({ inheritAttrs: false });
 
 const [CategoryListTemplate, CategoryListContent] = createReusableTemplate();
 
@@ -186,7 +219,7 @@ interface FlatCategory extends FormattedCategory {
 const props = withDefaults(
   defineProps<{
     label?: string;
-    modelValue: FormattedCategory | null;
+    modelValue?: FormattedCategory | null;
     labelKey?: string | ((value: FormattedCategory) => string);
     values: FormattedCategory[];
     placeholder?: string;
@@ -203,7 +236,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  'update:model-value': [value: FormattedCategory];
+  'update:model-value': [value: FormattedCategory | null];
 }>();
 
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
@@ -218,7 +251,9 @@ const isOpen = ref(false);
 watch(
   () => props.modelValue,
   (value) => {
-    if (value && value.id !== selectedValue.value?.id) {
+    if (value === null) {
+      selectedValue.value = null;
+    } else if (value && value.id !== selectedValue.value?.id) {
       selectedValue.value = value;
     }
   },
@@ -286,21 +321,11 @@ const shouldShowSeparator = ({ item, index }: { item: FlatCategory; index: numbe
   if (index === 0) return true;
 
   const prevItem = filteredItems.value[index - 1];
-  return prevItem.rootParentId !== item.rootParentId;
+  return prevItem!.rootParentId !== item.rootParentId;
 };
 
-const openDropdown = async () => {
+const openDropdown = () => {
   isOpen.value = true;
-  searchQuery.value = '';
-
-  if (!isMobile.value) {
-    await nextTick();
-    inputRef.value?.focus();
-  }
-};
-
-const handleBlur = () => {
-  isOpen.value = false;
   searchQuery.value = '';
 };
 
@@ -311,11 +336,6 @@ const handleDrawerOpenChange = (open: boolean) => {
   }
 };
 
-const clearSearch = () => {
-  searchQuery.value = '';
-  inputRef.value?.focus();
-};
-
 const selectItem = (item: FlatCategory) => {
   selectedValue.value = item;
   emit('update:model-value', item);
@@ -323,23 +343,16 @@ const selectItem = (item: FlatCategory) => {
   searchQuery.value = '';
 };
 
-const handleEscPress = (event: KeyboardEvent) => {
-  if (event.key === 'Escape') {
-    event.stopImmediatePropagation();
-    isOpen.value = false;
-    searchQuery.value = '';
-  }
+const clearSelection = (event: Event) => {
+  event.stopPropagation();
+  selectedValue.value = null;
+  emit('update:model-value', null);
 };
 
+// Clear search query when popover closes
 watch(isOpen, (value) => {
-  if (value && !isMobile.value) {
-    document.addEventListener('keydown', handleEscPress, true);
-  } else {
-    document.removeEventListener('keydown', handleEscPress, true);
+  if (!value) {
+    searchQuery.value = '';
   }
-});
-
-onBeforeUnmount(() => {
-  document.removeEventListener('keydown', handleEscPress, true);
 });
 </script>

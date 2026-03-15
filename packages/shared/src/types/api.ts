@@ -11,6 +11,7 @@ export enum API_ERROR_CODES {
   unexpected = 'UNEXPECTED',
   validationError = 'VALIDATION_ERROR',
   conflict = 'CONFLICT',
+  categoryHasTransactions = 'CATEGORY_HAS_TRANSACTIONS',
   forbidden = 'FORBIDDEN',
   BadRequest = 'BAD_REQUEST',
   locked = 'LOCKED',

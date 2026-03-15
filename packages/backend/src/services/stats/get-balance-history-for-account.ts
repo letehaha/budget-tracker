@@ -1,4 +1,3 @@
-import { BalanceModel } from '@bt/shared/types';
 import * as Accounts from '@models/Accounts.model';
 import * as Balances from '@models/Balances.model';
 import { Op } from 'sequelize';
@@ -16,7 +15,7 @@ import { getWhereConditionForTime } from './utils';
  * @param {number} params.accountId - The ID of the account for which balances are to be fetched.
  * @param {string} [params.from] - The start date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @param {string} [params.to] - The end date (inclusive) of the date range in 'yyyy-mm-dd' format.
- * @returns {Promise<BalanceModel[]>} - A promise that resolves to an array of balance records.
+ * @returns {Promise<Balances.default[]>} - A promise that resolves to an array of balance records.
  * @throws {Error} - Throws an error if the database query fails.
  *
  * @example
@@ -32,9 +31,9 @@ export const getBalanceHistoryForAccount = async ({
   accountId: number;
   from?: string;
   to?: string;
-}): Promise<BalanceModel[]> => {
+}): Promise<Balances.default[]> => {
   try {
-    let data: BalanceModel[] = [];
+    let data: Balances.default[] = [];
 
     const dataAttributes = ['date', 'amount'];
     const balancesInRange = await Balances.default.findAll({
@@ -47,14 +46,13 @@ export const getBalanceHistoryForAccount = async ({
           attributes: [],
         },
       ],
-      raw: true,
       attributes: dataAttributes,
     });
 
     data = balancesInRange;
 
     if (!balancesInRange.length) {
-      let balanceRecord: BalanceModel | undefined = undefined;
+      let balanceRecord: Balances.default | undefined = undefined;
 
       if (from) {
         // Check for records before "from" date
@@ -67,7 +65,6 @@ export const getBalanceHistoryForAccount = async ({
           },
           order: [['date', 'DESC']],
           attributes: dataAttributes,
-          raw: true,
         }))!;
       }
 
@@ -86,7 +83,6 @@ export const getBalanceHistoryForAccount = async ({
           },
           order: [['date', 'ASC']],
           attributes: dataAttributes,
-          raw: true,
         }))!;
       }
 
@@ -95,9 +91,10 @@ export const getBalanceHistoryForAccount = async ({
         data = [
           ...data,
           {
-            ...balanceRecord,
+            accountId: balanceRecord.accountId,
+            amount: balanceRecord.amount,
             date: new Date(to ?? from ?? new Date()),
-          },
+          } as Balances.default,
         ];
       }
     }

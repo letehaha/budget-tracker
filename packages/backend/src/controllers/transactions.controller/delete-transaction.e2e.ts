@@ -1,7 +1,8 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
+import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('Delete transaction controller', () => {
   it('should return validation error if no data passed', async () => {
@@ -24,7 +25,7 @@ describe('Delete transaction controller', () => {
     expect(txsAfterDeletion.length).toBe(0);
   });
   describe('transfer transactions', () => {
-    let transactions: TransactionModel[] = [];
+    let transactions: Transactions[] = [];
 
     beforeEach(async () => {
       const currencyA = global.MODELS_CURRENCIES!.find((item) => item.code === 'EUR');

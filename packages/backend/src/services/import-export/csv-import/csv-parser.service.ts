@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { parse } from 'csv-parse/sync';
 
@@ -12,7 +13,7 @@ interface CSVParseResult {
  * Detects the most likely CSV delimiter by testing common delimiters
  * Returns the delimiter that produces the most consistent column count
  */
-export function detectDelimiter(sample: string): string {
+function detectDelimiter(sample: string): string {
   const delimiters = [',', ';', '\t', '|'];
   const lines = sample.split('\n').slice(0, 10); // Check first 10 lines
 
@@ -78,7 +79,7 @@ export function parseCSV({
   }) as string[][];
 
   if (records.length === 0) {
-    throw new ValidationError({ message: 'CSV file is empty' });
+    throw new ValidationError({ message: t({ key: 'csvImport.csvFileEmpty' }) });
   }
 
   // First row is headers
@@ -86,7 +87,7 @@ export function parseCSV({
 
   // Validate headers
   if (!headers || headers.length === 0) {
-    throw new ValidationError({ message: 'CSV file has no headers' });
+    throw new ValidationError({ message: t({ key: 'csvImport.csvFileNoHeaders' }) });
   }
 
   // Convert data rows to objects

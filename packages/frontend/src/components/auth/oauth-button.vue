@@ -11,6 +11,7 @@
 import { Button } from '@/components/lib/ui/button';
 import { OAUTH_PROVIDER } from '@bt/shared/types';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 interface Props {
   provider: OAUTH_PROVIDER;
@@ -27,6 +28,8 @@ const emit = defineEmits<{
   click: [provider: OAUTH_PROVIDER];
 }>();
 
+const { t } = useI18n();
+
 const providerConfig: Record<OAUTH_PROVIDER, { name: string; icon: null }> = {
   [OAUTH_PROVIDER.google]: { name: 'Google', icon: null },
   [OAUTH_PROVIDER.github]: { name: 'GitHub', icon: null },
@@ -36,7 +39,9 @@ const providerIcon = computed(() => providerConfig[props.provider]?.icon);
 
 const buttonText = computed(() => {
   const providerName = providerConfig[props.provider]?.name || props.provider;
-  return props.mode === 'signup' ? `Sign up with ${providerName}` : `Sign in with ${providerName}`;
+  return props.mode === 'signup'
+    ? t('auth.shared.oauthButton.signUp', { provider: providerName })
+    : t('auth.shared.oauthButton.signIn', { provider: providerName });
 });
 
 const handleClick = () => {

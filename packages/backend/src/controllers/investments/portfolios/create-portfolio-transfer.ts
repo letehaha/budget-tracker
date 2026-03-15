@@ -1,19 +1,19 @@
-import { currencyCode } from '@common/lib/zod/custom-types';
+import { currencyCode, dateString, positiveAmountString, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { createPortfolioTransfer } from '@services/investments/portfolios/transfers';
 import { z } from 'zod';
 
+import { serializeTransferResponse } from './serialize-transfer';
+
 const schema = z.object({
   params: z.object({
-    id: z.coerce.number(),
+    id: recordId(),
   }),
   body: z.object({
     toPortfolioId: z.number(),
     currencyCode: currencyCode(),
-    amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-      message: 'Amount must be a valid number greater than 0',
-    }),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format' }),
+    amount: positiveAmountString(),
+    date: dateString(),
     description: z.string().nullable().optional(),
   }),
 });
@@ -29,5 +29,5 @@ export default createController(schema, async ({ user, params, body }) => {
     description: body.description || null,
   });
 
-  return { data: transfer };
+  return { data: serializeTransferResponse({ transfer }) };
 });

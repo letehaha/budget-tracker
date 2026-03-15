@@ -1,0 +1,107 @@
+{
+  "portfolioDetail": {
+    "loading": "Завантаження...",
+    "loadingDetails": "Завантаження деталей портфеля...",
+    "loadError": "Не вдалося завантажити деталі портфеля.",
+    "tryAgain": "Спробувати ще раз",
+    "backToInvestments": "Назад до інвестицій",
+    "subtitle": "Огляд портфеля",
+    "actions": {
+      "transfer": "Переказ",
+      "edit": "Редагувати",
+      "delete": "Видалити"
+    },
+    "balance": {
+      "totalValue": "Загальна вартість",
+      "loadError": "Не вдалося завантажити підсумок портфеля.",
+      "metrics": {
+        "costBasis": "Базова вартість",
+        "unrealized": "Нереалізований",
+        "realized": "Реалізований",
+        "totalReturn": "Загальний дохід"
+      }
+    },
+    "cashBalances": {
+      "title": "Грошові залишки",
+      "subtitle": "{count} валют",
+      "emptyState": "Немає грошових залишків",
+      "tabs": {
+        "overview": "Огляд",
+        "balances": "Баланси",
+        "cashTransactions": "Транзакції",
+        "buysSells": "Купівлі та продажі"
+      },
+      "cashTransactions": {
+        "addButton": "Додати грошову операцію",
+        "emptyState": "Немає грошових операцій",
+        "deposit": "Поповнення",
+        "withdrawal": "Зняття",
+        "transferIn": "Переказ на",
+        "transferOut": "Переказ з",
+        "deleteConfirm": "Видалити цю грошову операцію?",
+        "linkedTransactionNote": "Цей переказ має пов'язану транзакцію рахунку. Що ви хочете з нею зробити?",
+        "keepLinkedTransaction": "Залишити транзакцію рахунку. Деталі оригінальної транзакції будуть відновлені.",
+        "deleteLinkedTransaction": "Також видалити пов'язану транзакцію рахунку"
+      },
+      "buysSells": {
+        "emptyState": "Немає операцій купівлі/продажу",
+        "shares": "акцій"
+      }
+    },
+    "holdings": {
+      "title": "Утримання",
+      "subtitle": "{count} символів",
+      "filterPlaceholder": "Фільтрувати за символом або назвою...",
+      "addButton": "Додати символ"
+    },
+    "holdingsTable": {
+      "loadError": "Не вдалося завантажити утримання",
+      "empty": "Утримань ще немає",
+      "headers": {
+        "symbol": "Символ",
+        "name": "Назва",
+        "shares": "Акції",
+        "price": "Ціна",
+        "avgCostPerShare": "СВ/Акція",
+        "totalCost": "Загальна вартість",
+        "marketValue": "Ринкова вартість",
+        "unrealizedGain": "Нереалізований прибуток",
+        "realizedGain": "Реалізований прибуток"
+      },
+      "transactions": {
+        "loading": "Завантаження транзакцій…",
+        "empty": "Транзакцій не знайдено.",
+        "addFirstButton": "Додати першу транзакцію"
+      },
+      "addTransactionDialog": {
+        "title": "Додати транзакцію",
+        "description": "Додайте нову транзакцію до вашого портфеля."
+      },
+      "tryAgainLater": "Спробуйте пізніше",
+      "emptyDescription": "Додайте першу транзакцію, щоб почати відстежувати інвестиції",
+      "addFirstHolding": "Додати перший актив"
+    },
+    "transactionsList": {
+      "title": "Транзакції",
+      "addButton": "Додати транзакцію",
+      "headers": {
+        "date": "Дата",
+        "type": "Тип",
+        "quantity": "Кількість",
+        "price": "Ціна",
+        "fees": "Комісії",
+        "amount": "Сума"
+      },
+      "categories": {
+        "buy": "Купівля",
+        "sell": "Продаж",
+        "dividend": "Дивіденди",
+        "transfer": "Переказ",
+        "tax": "Податок",
+        "fee": "Комісія",
+        "cancel": "Скасування",
+        "other": "Інше"
+      }
+    }
+  }
+}

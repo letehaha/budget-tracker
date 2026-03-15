@@ -1,6 +1,7 @@
 import * as bankDataProvidersApi from '@/api/bank-data-providers';
 import type { SyncStatusResponse } from '@/api/bank-data-providers';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { SSE_EVENT_TYPES, type SyncStatusChangedPayload, useSSE } from './use-sse';
 
@@ -17,6 +18,7 @@ let sseUnsubscribe: (() => void) | null = null;
 let isSSESubscribed = false;
 
 export function useSyncStatus() {
+  const { t } = useI18n();
   const { connect, disconnect, on, isConnected } = useSSE();
 
   const isSyncing = computed(() => {
@@ -61,7 +63,7 @@ export function useSyncStatus() {
     const inProgress = summary.syncing + summary.queued;
 
     if (inProgress > 0) {
-      return `Syncing ${inProgress} accounts`;
+      return t('header.sync.syncingAccounts', { count: inProgress });
     }
     return '';
   });

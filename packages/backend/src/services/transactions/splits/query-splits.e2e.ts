@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { Money } from '@common/types/money';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Query transactions with splits', () => {
   describe('includeSplits parameter', () => {
@@ -264,8 +265,8 @@ describe('Query transactions with splits', () => {
         raw: true,
         includeSplits: true,
         accountIds: [account.id],
-        amountGte: 100,
-        amountLte: 1000,
+        amountGte: Money.fromDecimal(100),
+        amountLte: Money.fromDecimal(1000),
       });
 
       expect(transactions).toHaveLength(1);

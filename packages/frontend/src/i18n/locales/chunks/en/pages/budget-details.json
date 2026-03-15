@@ -1,0 +1,64 @@
+{
+  "pages": {
+    "budgets": {
+      "transactionsList": {
+        "selectionModeWarning": "Selection mode — choose transactions to unlink",
+        "selectAll": "Select all",
+        "selected": "{count} selected",
+        "unlink": "Unlink",
+        "cancel": "Cancel",
+        "unlinkSelected": "Unlink Selected",
+        "noMatchingTransactions": "No matching transactions",
+        "noTransactionsLinked": "No transactions linked",
+        "filterAdjustmentHint": "Try adjusting your filters to see more transactions.",
+        "addTransactionsHint": "Add transactions to this budget to start tracking your spending.",
+        "resetFilters": "Reset Filters",
+        "addTransactions": "Add Transactions",
+        "add": "Add",
+        "loadingMore": "Loading more..."
+      }
+    },
+    "budgetDetails": {
+      "notSet": "Not set",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "loading": "Loading...",
+      "uncategorized": "Uncategorized",
+      "stats": {
+        "income": "Income",
+        "expenses": "Expenses",
+        "netBalance": "Net Balance"
+      },
+      "utilization": {
+        "title": "Budget Utilization",
+        "summary": "{spent} of {limit} limit",
+        "na": "N/A"
+      },
+      "backToBudgets": "Back to Budgets",
+      "noTransactionsYet": "No transactions yet",
+      "transactions": "Transactions",
+      "transactionsLinked": "{count} transaction linked to this budget | {count} transactions linked to this budget",
+      "tabs": {
+        "statistics": "Statistics",
+        "transactions": "Transactions"
+      },
+      "statistics": {
+        "tabs": {
+          "categories": "Categories",
+          "timeline": "Timeline"
+        },
+        "errorTitle": "Failed to load statistics",
+        "errorDescription": "Something went wrong while loading the data. Please try again later.",
+        "noDataTitle": "No spending data",
+        "noDataDescription": "There's no spending data available for this budget yet.",
+        "noCategoryData": "No category spending data.",
+        "noTimelineData": "No timeline data.",
+        "total": "Total",
+        "income": "Income",
+        "expenses": "Expenses",
+        "incomeLabel": "Income:",
+        "expensesLabel": "Expenses:"
+      }
+    }
+  }
+}

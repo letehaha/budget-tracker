@@ -9,11 +9,11 @@
         )
       "
       :disabled="disabled || isExpenseDisabled"
-      aria-label="Select expense"
+      :aria-label="t('dialogs.manageTransaction.typeSelector.selectExpense')"
       :aria-selected="selectedTransactionType === FORM_TYPES.expense"
       @click="selectTransactionType(FORM_TYPES.expense)"
     >
-      Expense
+      {{ t('dialogs.manageTransaction.typeSelector.expense') }}
     </button>
     <button
       type="button"
@@ -24,11 +24,11 @@
         )
       "
       :disabled="disabled || isIncomeDisabled"
-      aria-label="Select income"
+      :aria-label="t('dialogs.manageTransaction.typeSelector.selectIncome')"
       :aria-selected="selectedTransactionType === FORM_TYPES.income"
       @click="selectTransactionType(FORM_TYPES.income)"
     >
-      Income
+      {{ t('dialogs.manageTransaction.typeSelector.income') }}
     </button>
     <button
       type="button"
@@ -39,11 +39,11 @@
         )
       "
       :disabled="disabled"
-      aria-label="Select transfer"
+      :aria-label="t('dialogs.manageTransaction.typeSelector.selectTransfer')"
       :aria-selected="selectedTransactionType === FORM_TYPES.transfer"
       @click="selectTransactionType(FORM_TYPES.transfer)"
     >
-      Transfer
+      {{ t('dialogs.manageTransaction.typeSelector.transfer') }}
     </button>
   </div>
 </template>
@@ -52,8 +52,11 @@
 import { cn } from '@/lib/utils';
 import { ACCOUNT_TYPES, type AccountModel, TRANSACTION_TYPES, type TransactionModel } from '@bt/shared/types';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { FORM_TYPES } from '../types';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   selectedTransactionType: FORM_TYPES;

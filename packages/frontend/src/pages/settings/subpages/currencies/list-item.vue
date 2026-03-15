@@ -17,21 +17,21 @@
             )
           "
         >
-          <img class="size-5 shrink-0" :src="getCurrencyIcon(currency.currency.code)" alt="icon" />
+          <img class="size-5 shrink-0" :src="getCurrencyIcon(currency.currency?.code ?? '')" alt="icon" />
           <span class="text-lg font-medium text-white">
-            {{ currency.currency.currency }}
+            {{ currency.currency?.currency }}
           </span>
 
           <ResponsiveTooltip
             v-if="currency.isDefaultCurrency"
-            content="Your base currency. All information on dashboard is displayed in this currency"
+            :content="$t('settings.currencies.list.baseCurrencyTooltip')"
             class="@[0px]/card:absolute @[0px]/card:top-0 @[0px]/card:left-0 @[370px]/card:static"
             contentClassName="max-w-[320px]"
           >
             <div
               class="bg-background border-accent flex shrink-0 items-center gap-1 rounded border px-2 py-1 text-xs whitespace-nowrap text-white"
             >
-              Base currency
+              {{ $t('settings.currencies.list.baseCurrencyBadge') }}
               <InfoIcon class="size-4" />
             </div>
           </ResponsiveTooltip>
@@ -42,16 +42,16 @@
             {{ currency.rate.toLocaleString() }}
 
             <span class="text-sm">
-              {{ currency.currency.code }} /
-              {{ baseCurrency.currency.code }}
+              {{ currency.currency?.code }} /
+              {{ baseCurrency?.currency?.code }}
             </span>
           </div>
           <div class="text-sm font-bold">
             {{ currency.quoteRate.toLocaleString() }}
 
             <span class="text-sm">
-              {{ baseCurrency.currency.code }} /
-              {{ currency.currency.code }}
+              {{ baseCurrency?.currency?.code }} /
+              {{ currency.currency?.code }}
             </span>
           </div>
         </div>

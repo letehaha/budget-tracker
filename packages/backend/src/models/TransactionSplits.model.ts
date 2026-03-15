@@ -1,3 +1,4 @@
+import { Money } from '@common/types/money';
 import {
   CreationOptional,
   DataTypes,
@@ -92,8 +93,8 @@ export interface CreateSplitPayload {
   transactionId: number;
   userId: number;
   categoryId: number;
-  amount: number;
-  refAmount: number;
+  amount: Money;
+  refAmount: Money;
   note?: string | null;
 }
 

@@ -1,0 +1,144 @@
+{
+  "dashboard": {
+    "editMode": {
+      "customize": "Налаштувати",
+      "addWidgets": "Додати віджети",
+      "emptyState": "Натисніть Налаштувати, щоб додати віджети"
+    },
+    "widgets": {
+      "balanceTrend": {
+        "title": "Тренд балансу",
+        "balanceTypes": {
+          "total": "Загалом",
+          "accounts": "Рахунки",
+          "portfolios": "Портфелі"
+        },
+        "tooltip": {
+          "accounts": "Рахунки:",
+          "portfolios": "Портфелі:",
+          "total": "Загалом:"
+        },
+        "today": "Сьогодні",
+        "vsPreviousPeriod": "до попереднього періоду",
+        "spikePanel": {
+          "accounts": "Рахунки",
+          "portfolios": "Портфелі",
+          "priceDrivenChange": "Зміна, викликана цінами — деталі транзакцій незабаром",
+          "noSignificantTransactions": "Немає значних транзакцій для цієї дати.",
+          "seeAllTransactions": "Переглянути всі транзакції"
+        },
+        "spikeSettings": {
+          "showMarkers": "Показувати маркери стрибків",
+          "showMarkersTooltip": "Перемикає кольорові маркери на графіку, що виділяють значні зміни балансу.",
+          "percentThreshold": "Мін. зміна %",
+          "percentThresholdTooltip": "Мінімальна відсоткова зміна балансу між двома послідовними днями для позначення стрибка. Достатньо перевищити цей або абсолютний поріг. Менші значення показують більше маркерів.",
+          "absoluteThreshold": "Мін. зміна $",
+          "absoluteThresholdTooltip": "Мінімальна абсолютна зміна балансу (у базовій валюті) для визнання стрибком. Достатньо перевищити цей або відсотковий поріг.",
+          "maxMarkers": "Макс. маркерів",
+          "maxMarkersTooltip": "Максимальна кількість маркерів стрибків на графіку. Коли стрибків більше за цей ліміт, відображаються лише найзначніші.",
+          "resetDefaults": "Скинути до стандартних",
+          "accept": "Застосувати",
+          "validation": {
+            "outOfRange": "Значення поза допустимим діапазоном",
+            "integer": "Має бути цілим числом"
+          }
+        }
+      },
+      "expensesStructure": {
+        "title": "Структура витрат",
+        "excludedCategories": {
+          "message": "Деякі категорії виключено з цього віджета"
+        },
+        "excludeSettings": {
+          "title": "Налаштування",
+          "excludeCategories": "Виключити категорії",
+          "dialogTitle": "Виключити категорії",
+          "dialogDescription": "Оберіть категорії, які будуть виключені з графіку та підсумків цього віджета",
+          "save": "Зберегти"
+        },
+        "today": "Сьогодні",
+        "vsPreviousPeriod": "до попереднього періоду",
+        "viewButton": "Переглянути"
+      },
+      "latestTransactions": {
+        "title": "Останні транзакції",
+        "showAll": "Показати всі"
+      },
+      "subscriptions": {
+        "title": "Підписки та рахунки",
+        "titleSubscriptions": "Підписки",
+        "titleBills": "Рахунки",
+        "configType": "Тип",
+        "configTypeAll": "Всі",
+        "configTypeSubscriptions": "Підписки",
+        "configTypeBills": "Рахунки",
+        "activeSummary": "{count} активна",
+        "perYear": " на рік"
+      },
+      "categoryTracker": {
+        "title": "Спостереження Категорій",
+        "addCategory": "Додати категорію",
+        "addCategories": "Додати категорії для відстеження",
+        "selectCategories": "Обрати категорії"
+      },
+      "cashFlow": {
+        "title": "Грошовий потік",
+        "description": "Показує ваші чисті заощадження: дохід мінус витрати за обраний період, з трендом попередніх періодів",
+        "vsPrevious": "vs попередній",
+        "income": "Дохід",
+        "expenses": "Витрати",
+        "saved": "Збережено",
+        "previousPeriodsTrend": "Тренд попередніх періодів"
+      },
+      "creditUtilization": {
+        "title": "Використання кредиту",
+        "description": "Показує, яка частина ваших кредитних лімітів зараз використовується на всіх рахунках",
+        "utilized": "використано",
+        "noAccounts": "Немає рахунків з кредитними лімітами"
+      },
+      "emptyState": "Немає даних за вибраний період часу.",
+      "registry": {
+        "balanceTrend": {
+          "name": "Тренд балансу",
+          "description": "Відстежуйте баланс з часом"
+        },
+        "categoryTracker": {
+          "name": "Спостереження Категорій",
+          "description": "Спостерігайте за витратами та доходами обраних категорій"
+        },
+        "spendingCategories": {
+          "name": "Витрати за категоріями",
+          "description": "Подивіться, куди йдуть гроші"
+        },
+        "latestRecords": {
+          "name": "Останні записи",
+          "description": "Ваші останні транзакції"
+        },
+        "subscriptions": {
+          "name": "Підписки та рахунки",
+          "description": "Огляд регулярних платежів"
+        },
+        "cashFlow": {
+          "name": "Грошовий потік",
+          "description": "Доходи та витрати зі ставкою заощаджень"
+        },
+        "creditUtilization": {
+          "name": "Використання кредиту",
+          "description": "Використання кредитного ліміту по рахунках"
+        }
+      }
+    },
+    "periodSelector": {
+      "quickSelect": "Швидкий вибір",
+      "year": "{year}",
+      "presets": {
+        "currentMonth": "Поточний місяць",
+        "last3Months": "Останні 3 місяці",
+        "last6Months": "Останні 6 місяців",
+        "lastYear": "Останні 12 місяців",
+        "thisYear": "Цей рік",
+        "previousYear": "Минулий рік"
+      }
+    }
+  }
+}

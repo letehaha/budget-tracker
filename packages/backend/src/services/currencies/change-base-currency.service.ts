@@ -1,16 +1,18 @@
 import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
-import Transactions from '@models/Transactions.model';
-import { getBaseCurrency, updateCurrencies } from '@models/UsersCurrencies.model';
 import Holdings from '@models/investments/Holdings.model';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import PortfolioBalances from '@models/investments/PortfolioBalances.model';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import Portfolios from '@models/investments/Portfolios.model';
+import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
+import Transactions from '@models/Transactions.model';
+import { getBaseCurrency, updateCurrencies } from '@models/UsersCurrencies.model';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { withLock } from '@services/common/lock';
 import * as userExchangeRateService from '@services/user-exchange-rate';
@@ -111,18 +113,18 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
 
   if (!oldBaseCurrency) {
     throw new ValidationError({
-      message: 'User does not have a base currency set',
+      message: t({ key: 'currencies.noBaseCurrency' }),
     });
   }
 
   if (oldBaseCurrency.currencyCode === newCurrencyCode) {
     throw new ValidationError({
-      message: 'The selected currency is already a base currency',
+      message: t({ key: 'currencies.alreadyBaseCurrency' }),
     });
   }
 
   // Start database transaction for atomicity
-  const result = await Transactions.sequelize!.transaction(async (t: SequelizeTransaction) => {
+  const result = await Transactions.sequelize!.transaction(async (dbTransaction: SequelizeTransaction) => {
     logger.info(
       `Starting base currency change for user ${userId} from ${oldBaseCurrency.currencyCode} to ${newCurrencyCode}`,
     );
@@ -131,14 +133,14 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
     const transactionsUpdated = await rebuildTransactions({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 2: Recalculate all accounts
     const accountsUpdated = await recalculateAccounts({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 3: Rebuild balance history
@@ -146,35 +148,35 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       userId,
       oldCurrencyCode: oldBaseCurrency.currencyCode,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 4: Recalculate investment transactions
     const investmentTransactionsUpdated = await recalculateInvestmentTransactions({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 5: Recalculate portfolio transfers
     const portfolioTransfersUpdated = await recalculatePortfolioTransfers({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 6: Recalculate holdings
     const holdingsUpdated = await recalculateHoldings({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 7: Recalculate portfolio balances
     const portfolioBalancesUpdated = await recalculatePortfolioBalances({
       userId,
       newCurrencyCode,
-      transaction: t,
+      transaction: dbTransaction,
     });
 
     // Step 8: Update the base currency flag
@@ -236,7 +238,7 @@ const localCalculateRefAmount = async ({
   date: string | Date;
   baseCode: string;
   quoteCode: string;
-  amount: number;
+  amount: Money;
   useFloorAbs?: boolean;
 }) => {
   const { rate } = await userExchangeRateService.getExchangeRate({
@@ -276,8 +278,8 @@ async function rebuildTransactions(params: {
     });
 
     // Calculate new refCommissionRate if commission exists
-    let newRefCommissionRate = 0;
-    if (tx.commissionRate) {
+    let newRefCommissionRate: Money = Money.zero();
+    if (!tx.commissionRate.isZero()) {
       newRefCommissionRate = await localCalculateRefAmount({
         amount: tx.commissionRate,
         userId,
@@ -287,19 +289,13 @@ async function rebuildTransactions(params: {
       });
     }
 
-    // Update the transaction directly using Sequelize update to bypass hooks
-    await Transactions.update(
-      {
-        refAmount: newRefAmount,
-        refCommissionRate: newRefCommissionRate,
-        refCurrencyCode: newCurrencyCode,
-      },
-      {
-        where: { id: tx.id },
-        transaction,
-        hooks: false,
-      },
-    );
+    // Use instance.save() instead of Model.update() because static update()
+    // triggers the getter (which returns Money) during SQL generation, and
+    // Sequelize can't serialize Money to an integer for the DB column.
+    tx.refAmount = newRefAmount;
+    tx.refCommissionRate = newRefCommissionRate;
+    tx.refCurrencyCode = newCurrencyCode;
+    await tx.save({ transaction, hooks: false });
   }
 
   return transactions.length;
@@ -351,7 +347,7 @@ async function recalculateAccounts(params: {
       date: today,
     });
 
-    let newRefCurrentBalance: number;
+    let newRefCurrentBalance: Money;
 
     if (account.type === ACCOUNT_TYPES.system) {
       // For system accounts: calculate from transactions (most accurate)
@@ -361,9 +357,9 @@ async function recalculateAccounts(params: {
         // Sum all transaction refAmounts (already recalculated in previous step)
         for (const tx of account.transactions) {
           if (tx.transactionType === TRANSACTION_TYPES.income) {
-            newRefCurrentBalance += tx.refAmount;
+            newRefCurrentBalance = newRefCurrentBalance.add(tx.refAmount);
           } else {
-            newRefCurrentBalance -= tx.refAmount;
+            newRefCurrentBalance = newRefCurrentBalance.subtract(tx.refAmount);
           }
         }
       }
@@ -378,19 +374,10 @@ async function recalculateAccounts(params: {
       });
     }
 
-    // Update account directly using Sequelize update to bypass hooks
-    await Accounts.update(
-      {
-        refInitialBalance: newRefInitialBalance,
-        refCurrentBalance: newRefCurrentBalance,
-        refCreditLimit: newRefCreditLimit,
-      },
-      {
-        where: { id: account.id },
-        transaction,
-        hooks: false,
-      },
-    );
+    account.refInitialBalance = newRefInitialBalance;
+    account.refCurrentBalance = newRefCurrentBalance;
+    account.refCreditLimit = newRefCreditLimit;
+    await account.save({ transaction, hooks: false });
   }
 
   return accounts.length;
@@ -439,15 +426,8 @@ async function rebuildBalances(params: {
         date: balance.date,
       });
 
-      // Update the balance amount
-      await Balances.update(
-        { amount: newAmount },
-        {
-          where: { id: balance.id },
-          transaction,
-          hooks: false,
-        },
-      );
+      balance.amount = newAmount;
+      await balance.save({ transaction, hooks: false });
 
       totalBalancesRecalculated++;
     }
@@ -490,7 +470,7 @@ async function recalculateInvestmentTransactions(params: {
   for (const tx of investmentTxs) {
     // Calculate new refAmount
     const newRefAmount = await localCalculateRefAmount({
-      amount: parseFloat(tx.amount),
+      amount: tx.amount,
       userId,
       baseCode: tx.currencyCode,
       quoteCode: newCurrencyCode,
@@ -500,7 +480,7 @@ async function recalculateInvestmentTransactions(params: {
 
     // Calculate new refFees
     const newRefFees = await localCalculateRefAmount({
-      amount: parseFloat(tx.fees),
+      amount: tx.fees,
       userId,
       baseCode: tx.currencyCode,
       quoteCode: newCurrencyCode,
@@ -510,7 +490,7 @@ async function recalculateInvestmentTransactions(params: {
 
     // Calculate new refPrice
     const newRefPrice = await localCalculateRefAmount({
-      amount: parseFloat(tx.price),
+      amount: tx.price,
       userId,
       baseCode: tx.currencyCode,
       quoteCode: newCurrencyCode,
@@ -518,18 +498,10 @@ async function recalculateInvestmentTransactions(params: {
       useFloorAbs: false,
     });
 
-    await InvestmentTransaction.update(
-      {
-        refAmount: newRefAmount.toString(),
-        refFees: newRefFees.toString(),
-        refPrice: newRefPrice.toString(),
-      },
-      {
-        where: { id: tx.id },
-        transaction,
-        hooks: false,
-      },
-    );
+    tx.refAmount = newRefAmount;
+    tx.refFees = newRefFees;
+    tx.refPrice = newRefPrice;
+    await tx.save({ transaction, hooks: false });
   }
 
   return investmentTxs.length;
@@ -554,23 +526,15 @@ async function recalculatePortfolioTransfers(params: {
 
   for (const transfer of transfers) {
     const newRefAmount = await localCalculateRefAmount({
-      amount: parseFloat(transfer.amount),
+      amount: Money.fromDecimal(transfer.amount),
       userId,
       baseCode: transfer.currencyCode,
       quoteCode: newCurrencyCode,
       date: transfer.date,
     });
 
-    await PortfolioTransfers.update(
-      {
-        refAmount: newRefAmount.toString(),
-      },
-      {
-        where: { id: transfer.id },
-        transaction,
-        hooks: false,
-      },
-    );
+    transfer.refAmount = newRefAmount;
+    await transfer.save({ transaction, hooks: false });
   }
 
   return transfers.length;
@@ -611,26 +575,15 @@ async function recalculateHoldings(params: {
   for (const holding of holdings) {
     // Calculate new refCostBasis (use today's rate - historical cost basis date unknown)
     const newRefCostBasis = await localCalculateRefAmount({
-      amount: parseFloat(holding.costBasis),
+      amount: holding.costBasis,
       userId,
       baseCode: holding.currencyCode,
       quoteCode: newCurrencyCode,
       date: today,
     });
 
-    await Holdings.update(
-      {
-        refCostBasis: newRefCostBasis.toString(),
-      },
-      {
-        where: {
-          portfolioId: holding.portfolioId,
-          securityId: holding.securityId,
-        },
-        transaction,
-        hooks: false,
-      },
-    );
+    holding.refCostBasis = newRefCostBasis;
+    await holding.save({ transaction, hooks: false });
   }
 
   return holdings.length;
@@ -671,7 +624,7 @@ async function recalculatePortfolioBalances(params: {
   for (const balance of portfolioBalances) {
     // Calculate new refAvailableCash
     const newRefAvailableCash = await localCalculateRefAmount({
-      amount: parseFloat(balance.availableCash),
+      amount: balance.availableCash,
       userId,
       baseCode: balance.currencyCode,
       quoteCode: newCurrencyCode,
@@ -680,27 +633,16 @@ async function recalculatePortfolioBalances(params: {
 
     // Calculate new refTotalCash
     const newRefTotalCash = await localCalculateRefAmount({
-      amount: parseFloat(balance.totalCash),
+      amount: balance.totalCash,
       userId,
       baseCode: balance.currencyCode,
       quoteCode: newCurrencyCode,
       date: today,
     });
 
-    await PortfolioBalances.update(
-      {
-        refAvailableCash: newRefAvailableCash.toString(),
-        refTotalCash: newRefTotalCash.toString(),
-      },
-      {
-        where: {
-          portfolioId: balance.portfolioId,
-          currencyCode: balance.currencyCode,
-        },
-        transaction,
-        hooks: false,
-      },
-    );
+    balance.refAvailableCash = newRefAvailableCash;
+    balance.refTotalCash = newRefTotalCash;
+    await balance.save({ transaction, hooks: false });
   }
 
   return portfolioBalances.length;

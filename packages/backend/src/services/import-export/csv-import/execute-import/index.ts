@@ -15,7 +15,9 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
+import { trackImportCompleted } from '@js/utils/posthog';
 import * as Accounts from '@models/Accounts.model';
 import Categories from '@models/Categories.model';
 import * as Transactions from '@models/Transactions.model';
@@ -113,9 +115,10 @@ async function executeImportImpl({
       const categoryId = row.categoryName ? categoryNameToId.get(row.categoryName) : null;
 
       // Calculate refAmount
+      // Note: row.amount is already in cents (from parseAmount in detect-duplicates)
       const refAmount = await calculateRefAmount({
         userId,
-        amount: row.amount,
+        amount: Money.fromCents(row.amount),
         baseCode: row.currencyCode,
         date: new Date(row.date),
       });
@@ -129,7 +132,7 @@ async function executeImportImpl({
       // Create transaction
       const transaction = await Transactions.createTransaction({
         userId,
-        amount: row.amount,
+        amount: Money.fromCents(row.amount),
         refAmount,
         note: row.description,
         time: new Date(row.date),
@@ -154,6 +157,15 @@ async function executeImportImpl({
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
+  }
+
+  // Track analytics event
+  if (newTransactionIds.length > 0) {
+    trackImportCompleted({
+      userId,
+      importType: 'csv',
+      transactionsCount: newTransactionIds.length,
+    });
   }
 
   return {
@@ -217,7 +229,7 @@ async function createAccountsIfNeeded({
       // Calculate ref values
       const refInitialBalance = await calculateRefAmount({
         userId,
-        amount: 0,
+        amount: Money.zero(),
         baseCode: currencyCode,
         date: new Date(),
       });
@@ -229,10 +241,10 @@ async function createAccountsIfNeeded({
         currencyCode,
         accountCategory: ACCOUNT_CATEGORIES.general,
         type: ACCOUNT_TYPES.system,
-        initialBalance: 0,
+        initialBalance: Money.zero(),
         refInitialBalance,
-        creditLimit: 0,
-        refCreditLimit: 0,
+        creditLimit: Money.zero(),
+        refCreditLimit: Money.zero(),
         isEnabled: true,
       });
 

@@ -1,6 +1,5 @@
 import { api } from '@/api/_api';
-import { fromSystemAmount } from '@/api/helpers';
-import { endpointsTypes } from '@bt/shared/types';
+import { type TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { format } from 'date-fns';
 
 const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -17,70 +16,50 @@ export interface BalanceHistoryEntity {
   accountId: number;
 }
 
-export const getBalanceHistory = async ({ from, to, ...rest }: Params = {}): Promise<BalanceHistoryEntity[]> => {
-  const params: endpointsTypes.GetBalanceHistoryPayload = {
+export const getExpensesAmountForPeriod = async ({
+  from,
+  to,
+  excludedCategoryIds,
+  ...rest
+}: Params & { excludedCategoryIds?: number[] } = {}): Promise<number> => {
+  const params: endpointsTypes.GetBalanceHistoryPayload & { excludedCategoryIds?: string } = {
     ...rest,
   };
 
   if (from) params.from = formatDate(from);
   if (to) params.to = formatDate(to);
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) params.excludedCategoryIds = excludedCategoryIds.join(',');
 
-  const history: BalanceHistoryEntity[] = await api.get('/stats/balance-history', params);
-
-  return history.map((item) => ({
-    ...item,
-    amount: fromSystemAmount(item.amount),
-  }));
-};
-
-export const getExpensesAmountForPeriod = async ({ from, to, ...rest }: Params = {}): Promise<number> => {
-  const params: endpointsTypes.GetBalanceHistoryPayload = {
-    ...rest,
-  };
-
-  if (from) params.from = formatDate(from);
-  if (to) params.to = formatDate(to);
-
-  const amount: number = await api.get('/stats/expenses-amount-for-period', params);
-
-  return fromSystemAmount(amount);
+  return api.get('/stats/expenses-amount-for-period', params);
 };
 
 export const getSpendingsByCategories = async ({
   from,
   to,
+  type,
+  categoryIds,
+  excludedCategoryIds,
   ...rest
-}: Params = {}): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
-  const params: endpointsTypes.GetBalanceHistoryPayload = {
+}: Params & {
+  type?: TRANSACTION_TYPES;
+  categoryIds?: number[];
+  excludedCategoryIds?: number[];
+} = {}): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
+  const params: endpointsTypes.GetBalanceHistoryPayload & {
+    type?: string;
+    categoryIds?: string;
+    excludedCategoryIds?: string;
+  } = {
     ...rest,
   };
 
   if (from) params.from = formatDate(from);
   if (to) params.to = formatDate(to);
+  if (type) params.type = type;
+  if (categoryIds && categoryIds.length > 0) params.categoryIds = categoryIds.join(',');
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) params.excludedCategoryIds = excludedCategoryIds.join(',');
 
-  const history: endpointsTypes.GetSpendingsByCategoriesReturnType = await api.get(
-    '/stats/spendings-by-categories',
-    params,
-  );
-
-  Object.keys(history).forEach((id) => {
-    const record = history[+id];
-    if (record) {
-      record.amount = fromSystemAmount(record.amount);
-    }
-  });
-
-  return history;
-};
-
-export const getTotalBalance = async ({ date }: { date: Date }) => {
-  const params = {
-    date: formatDate(date),
-  };
-
-  const balance: number = await api.get('/stats/total-balance', params);
-
-  return fromSystemAmount(balance);
+  return api.get('/stats/spendings-by-categories', params);
 };
 
 export interface CombinedBalanceHistoryEntity {
@@ -98,12 +77,62 @@ export const getCombinedBalanceHistory = async ({ from, to }: { from?: Date; to?
   if (from) params.from = formatDate(from);
   if (to) params.to = formatDate(to);
 
-  const history: CombinedBalanceHistoryEntity[] = await api.get('/stats/combined-balance-history', params);
+  return api.get('/stats/combined-balance-history', params);
+};
 
-  return history.map((item) => ({
-    ...item,
-    accountsBalance: fromSystemAmount(item.accountsBalance),
-    portfoliosBalance: fromSystemAmount(item.portfoliosBalance),
-    totalBalance: fromSystemAmount(item.totalBalance),
-  }));
+export const getEarliestTransactionDate = async (): Promise<string | null> => {
+  return api.get('/stats/earliest-transaction-date');
+};
+
+interface GetCashFlowParams {
+  from: Date;
+  to: Date;
+  granularity: endpointsTypes.CashFlowGranularity;
+  accountId?: number;
+  categoryIds?: number[];
+}
+
+export const getCashFlow = async ({
+  from,
+  to,
+  granularity,
+  accountId,
+  categoryIds,
+}: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
+  const params: Record<string, string | number | boolean> = {
+    from: formatDate(from),
+    to: formatDate(to),
+    granularity,
+  };
+
+  if (accountId !== undefined) params.accountId = accountId;
+  if (categoryIds !== undefined && categoryIds.length > 0) {
+    params.categoryIds = categoryIds.join(',');
+  }
+
+  return api.get('/stats/cash-flow', params);
+};
+
+interface GetCumulativeDataParams {
+  from: Date;
+  to: Date;
+  metric: endpointsTypes.CumulativeMetric;
+  accountId?: number;
+}
+
+export const getCumulativeData = async ({
+  from,
+  to,
+  metric,
+  accountId,
+}: GetCumulativeDataParams): Promise<endpointsTypes.GetCumulativeResponse> => {
+  const params: Record<string, string | number | boolean> = {
+    from: formatDate(from),
+    to: formatDate(to),
+    metric,
+  };
+
+  if (accountId !== undefined) params.accountId = accountId;
+
+  return api.get('/stats/cumulative', params);
 };

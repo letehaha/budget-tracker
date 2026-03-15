@@ -6,12 +6,12 @@ import * as helpers from '@tests/helpers';
 const mockedCategory = {
   name: 'test-category',
   color: '#FF0000',
-  imageUrl: 'https://example.com/image.jpg',
+  icon: 'food-20-filled',
 };
 const updatedCategory = {
   name: 'updated-test-category',
   color: '#00FF00',
-  imageUrl: 'https://example.com/updated-image.jpg',
+  icon: 'shopping-bag-20-filled',
 };
 
 describe('Edit custom categories', () => {
@@ -34,7 +34,7 @@ describe('Edit custom categories', () => {
 
     expect(category!.name).toBe(updatedCategory.name);
     expect(category!.color).toBe(updatedCategory.color);
-    expect(category!.imageUrl).toBe(updatedCategory.imageUrl);
+    expect(category!.icon).toBe(updatedCategory.icon);
   });
 
   it('should successfully edit a sub-category with all fields', async () => {
@@ -54,7 +54,7 @@ describe('Edit custom categories', () => {
 
     expect(category!.name).toBe(updatedCategory.name);
     expect(category!.color).toBe(updatedCategory.color);
-    expect(category!.imageUrl).toBe(updatedCategory.imageUrl);
+    expect(category!.icon).toBe(updatedCategory.icon);
   });
 
   it('should successfully edit a category with only name', async () => {
@@ -98,16 +98,6 @@ describe('Edit custom categories', () => {
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 
-  it('should return validation error for invalid image URL', async () => {
-    const res = await helpers.editCustomCategory({
-      categoryId: testCategory.id,
-      imageUrl: 'invalid-url',
-      raw: false,
-    });
-
-    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
-  });
-
   it('should return validation error for name exceeding 200 characters', async () => {
     const res = await helpers.editCustomCategory({
       categoryId: testCategory.id,
@@ -118,10 +108,10 @@ describe('Edit custom categories', () => {
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 
-  it('should return validation error for imageUrl exceeding 500 characters', async () => {
+  it('should return validation error for icon exceeding 50 characters', async () => {
     const res = await helpers.editCustomCategory({
       categoryId: testCategory.id,
-      imageUrl: `http://example.com/${'a'.repeat(500)}`,
+      icon: 'a'.repeat(51),
       raw: false,
     });
 

@@ -1,8 +1,6 @@
 import { api } from '@/api/_api';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 
-import { fromSystemAmount } from './helpers';
-
 export interface BankProvider {
   type: BANK_PROVIDER_TYPE;
   name: string;
@@ -21,13 +19,6 @@ export interface BankProvider {
     defaultSyncInterval: number;
     minSyncInterval: number;
   };
-  credentialFields: Array<{
-    key: string;
-    label: string;
-    type: 'text' | 'password';
-    required: boolean;
-    helpText?: string;
-  }>;
 }
 
 export interface BankConnection {
@@ -78,6 +69,7 @@ interface BankConnectionDetails {
     isExpired: boolean;
     isExpiringSoon: boolean;
   };
+  deactivationReason?: string | null;
 }
 
 export interface AvailableAccount {
@@ -111,14 +103,7 @@ export const getConnectionDetails = async (connectionId: number): Promise<BankCo
   const response = await api.get<{ connection: BankConnectionDetails }>(
     `/bank-data-providers/connections/${connectionId}`,
   );
-
-  return {
-    ...response.connection,
-    accounts: response.connection.accounts.map((acc) => ({
-      ...acc,
-      currentBalance: fromSystemAmount(acc.currentBalance),
-    })),
-  };
+  return response.connection;
 };
 
 export const connectProvider = async (
@@ -153,7 +138,7 @@ export const reauthorizeConnection = async (connectionId: number): Promise<{ aut
 
 export const updateConnectionDetails = async (
   connectionId: number,
-  details: { providerName: string },
+  details: { providerName?: string; credentials?: Record<string, unknown> },
 ): Promise<{ message: string; connection: BankConnectionDetails }> => {
   const response = await api.patch(`/bank-data-providers/connections/${connectionId}`, details);
   return response;
@@ -163,14 +148,7 @@ export const getAvailableAccounts = async (connectionId: number): Promise<Availa
   const response = await api.get<{ accounts: AvailableAccount[] }>(
     `/bank-data-providers/connections/${connectionId}/available-accounts`,
   );
-  return response.accounts.map((item) => ({
-    ...item,
-    balance: fromSystemAmount(item.balance),
-    metadata: {
-      ...item.metadata,
-      creditLimit: fromSystemAmount(item.metadata.creditLimit),
-    },
-  }));
+  return response.accounts;
 };
 
 export const syncSelectedAccounts = async (

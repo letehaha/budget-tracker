@@ -17,6 +17,7 @@ import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { AlertTriangleIcon, LinkIcon, PlusIcon, WalletIcon, XIcon } from 'lucide-vue-next';
 import { computed, inject, nextTick, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import AddTransactionsDialog from './add-transactions-dialog.vue';
@@ -29,6 +30,7 @@ const scrollAreaViewport = inject<ReturnType<typeof ref<{ viewportElement: HTMLE
 defineProps<{ isBudgetDataUpdating: boolean; budgetId: number }>();
 
 const { addSuccessNotification } = useNotificationCenter();
+const { t } = useI18n();
 
 const route = useRoute();
 const queryClient = useQueryClient();
@@ -105,13 +107,13 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   fetchNextPage,
   isFetchingNextPage,
   parentRef,
-  getItemKey: (index) => flatTransactions.value[index].id,
+  getItemKey: (index) => flatTransactions.value[index]!.id,
 });
 
 const { isPending: isMutating, mutate } = useMutation({
   mutationFn: removeTransactionsFromBudget,
   onSuccess: () => {
-    addSuccessNotification('Transactions unlinked successfully!');
+    addSuccessNotification(t('budgets.list.unlinkTransactionsSuccess'));
     invalidate();
     isUnlinkingSelectionEnabled.value = false;
     pickedTransactionsIds.clear();
@@ -177,7 +179,7 @@ const toggleSelectAll = () => {
       >
         <AlertTriangleIcon class="text-warning-text size-4 shrink-0" />
         <span class="text-warning-text text-xs font-medium @md:text-sm">
-          Selection mode — choose transactions to unlink
+          {{ t('pages.budgets.transactionsList.selectionModeWarning') }}
         </span>
       </div>
 
@@ -194,7 +196,7 @@ const toggleSelectAll = () => {
                   :indeterminate="isSomeSelected"
                   @update:model-value="toggleSelectAll"
                 />
-                <span class="text-muted-foreground text-sm">Select all</span>
+                <span class="text-muted-foreground text-sm">{{ t('pages.budgets.transactionsList.selectAll') }}</span>
               </label>
 
               <!-- Selection Counter Badge -->
@@ -206,7 +208,7 @@ const toggleSelectAll = () => {
                     : 'bg-muted text-muted-foreground'
                 "
               >
-                {{ pickedTransactionsIds.size }} selected
+                {{ t('pages.budgets.transactionsList.selected', { count: pickedTransactionsIds.size }) }}
               </span>
             </div>
             <div class="flex items-center gap-2">
@@ -218,11 +220,11 @@ const toggleSelectAll = () => {
                 class="flex-1"
               >
                 <LinkIcon class="mr-2 size-4" />
-                Unlink
+                {{ t('pages.budgets.transactionsList.unlink') }}
               </Button>
               <Button :disabled="isMutating" @click="cancelUnlinking" variant="outline" size="sm" class="flex-1">
                 <XIcon class="mr-2 size-4" />
-                Cancel
+                {{ t('pages.budgets.transactionsList.cancel') }}
               </Button>
             </div>
           </div>
@@ -237,7 +239,7 @@ const toggleSelectAll = () => {
                   :indeterminate="isSomeSelected"
                   @update:model-value="toggleSelectAll"
                 />
-                <span class="text-muted-foreground text-sm">Select all</span>
+                <span class="text-muted-foreground text-sm">{{ t('pages.budgets.transactionsList.selectAll') }}</span>
               </label>
 
               <!-- Selection Counter Badge -->
@@ -249,7 +251,7 @@ const toggleSelectAll = () => {
                     : 'bg-muted text-muted-foreground'
                 "
               >
-                {{ pickedTransactionsIds.size }} selected
+                {{ t('pages.budgets.transactionsList.selected', { count: pickedTransactionsIds.size }) }}
               </span>
             </div>
             <div class="flex items-center gap-2">
@@ -260,11 +262,11 @@ const toggleSelectAll = () => {
                 size="sm"
               >
                 <LinkIcon class="mr-2 size-4" />
-                Unlink Selected
+                {{ t('pages.budgets.transactionsList.unlinkSelected') }}
               </Button>
               <Button :disabled="isMutating" @click="cancelUnlinking" variant="ghost" size="sm">
                 <XIcon class="mr-2 size-4" />
-                Cancel
+                {{ t('pages.budgets.transactionsList.cancel') }}
               </Button>
             </div>
           </div>
@@ -295,13 +297,13 @@ const toggleSelectAll = () => {
                 size="sm"
               >
                 <LinkIcon class="size-4" />
-                <span>Unlink</span>
+                <span>{{ t('pages.budgets.transactionsList.unlink') }}</span>
               </Button>
               <AddTransactionsDialog>
                 <Button :disabled="isBudgetDataUpdating" size="sm">
                   <PlusIcon class="size-4" />
-                  <span class="hidden @sm:inline">Add Transactions</span>
-                  <span class="@sm:hidden">Add</span>
+                  <span class="hidden @sm:inline">{{ t('pages.budgets.transactionsList.addTransactions') }}</span>
+                  <span class="@sm:hidden">{{ t('pages.budgets.transactionsList.add') }}</span>
                 </Button>
               </AddTransactionsDialog>
             </div>
@@ -335,23 +337,29 @@ const toggleSelectAll = () => {
                 <WalletIcon class="text-muted-foreground size-8" />
               </div>
               <h3 class="mb-1 font-medium">
-                {{ isAnyFiltersApplied ? 'No matching transactions' : 'No transactions linked' }}
+                {{
+                  isAnyFiltersApplied
+                    ? t('pages.budgets.transactionsList.noMatchingTransactions')
+                    : t('pages.budgets.transactionsList.noTransactionsLinked')
+                }}
               </h3>
               <p class="text-muted-foreground mb-4 max-w-sm text-sm">
                 {{
                   isAnyFiltersApplied
-                    ? 'Try adjusting your filters to see more transactions.'
-                    : 'Add transactions to this budget to start tracking your spending.'
+                    ? t('pages.budgets.transactionsList.filterAdjustmentHint')
+                    : t('pages.budgets.transactionsList.addTransactionsHint')
                 }}
               </p>
               <template v-if="isAnyFiltersApplied">
-                <Button size="sm" variant="outline" @click="resetFilters">Reset Filters</Button>
+                <Button size="sm" variant="outline" @click="resetFilters">{{
+                  t('pages.budgets.transactionsList.resetFilters')
+                }}</Button>
               </template>
               <template v-else>
                 <AddTransactionsDialog>
                   <Button size="sm">
                     <PlusIcon class="mr-2 size-4" />
-                    Add Transactions
+                    {{ t('pages.budgets.transactionsList.addTransactions') }}
                   </Button>
                 </AddTransactionsDialog>
               </template>
@@ -378,29 +386,29 @@ const toggleSelectAll = () => {
               <label
                 v-if="flatTransactions[virtualRow.index]"
                 :class="[
-                  'grid cursor-pointer grid-cols-[min-content_minmax(0,1fr)] items-center gap-2 rounded-lg p-2 transition-colors @md:gap-3',
+                  'grid cursor-pointer grid-cols-[min-content_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 transition-colors',
                   { 'select-none': isShiftKeyPressed },
-                  pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)
-                    ? 'bg-warning-text/10 hover:bg-warning-text/15'
+                  pickedTransactionsIds.has(flatTransactions[virtualRow.index]!.id)
+                    ? 'bg-warning-text/10 hover:bg-warning-text/20'
                     : 'hover:bg-muted/50',
                 ]"
               >
                 <Checkbox
-                  :model-value="pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)"
+                  :model-value="pickedTransactionsIds.has(flatTransactions[virtualRow.index]!.id)"
                   @update:model-value="
                     handleSelection(
                       !!$event,
-                      flatTransactions[virtualRow.index].id,
+                      flatTransactions[virtualRow.index]!.id,
                       virtualRow.index,
                       flatTransactions,
                       (v) => v.id,
                     )
                   "
                 />
-                <TransactionRecord :tx="flatTransactions[virtualRow.index]" />
+                <TransactionRecord :tx="flatTransactions[virtualRow.index]!" />
               </label>
-              <div v-else class="flex h-[52px] items-center justify-center">
-                <span class="text-muted-foreground text-sm">Loading more...</span>
+              <div v-else class="flex h-13 items-center justify-center">
+                <span class="text-muted-foreground text-sm">{{ t('pages.budgets.transactionsList.loadingMore') }}</span>
               </div>
             </div>
           </div>

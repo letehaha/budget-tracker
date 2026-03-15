@@ -1,18 +1,24 @@
 <template>
-  <template
-    :is="asButton ? 'button' : 'div'"
+  <div
     :class="[
-      'grid w-full cursor-pointer rounded-md px-2 py-1 [content-visibility:auto]',
-      shouldShowGroupedTransfer || isLoadingGroupedTransfer
-        ? 'grid-cols-[minmax(0,1fr)_max-content] items-end gap-3'
-        : 'grid-cols-[minmax(0,1fr)_max-content] items-center gap-2',
+      'hover:bg-muted/50 grid w-full cursor-pointer rounded-md px-2 py-1 transition-colors [content-visibility:auto]',
+      showCheckbox
+        ? 'grid-cols-[auto_minmax(0,1fr)_max-content] items-center gap-2'
+        : shouldShowGroupedTransfer || isLoadingGroupedTransfer
+          ? 'grid-cols-[minmax(0,1fr)_max-content] items-end gap-3'
+          : 'grid-cols-[minmax(0,1fr)_max-content] items-center gap-2',
     ]"
-    :type="asButton ? 'button' : undefined"
     aria-haspopup="true"
     @click="transactionEmit"
   >
+    <!-- Selection checkbox -->
+    <label v-if="showCheckbox" class="-my-1 -ml-2 flex items-center justify-center self-stretch px-3" @click.stop>
+      <Checkbox v-if="isSelectable" v-model="checkedModel" />
+      <div v-else class="size-4" />
+    </label>
+
     <div class="flex items-center gap-2 overflow-hidden">
-      <template v-if="!isTransferTransaction && category">
+      <template v-if="!isTransferTransaction && !isPortfolioLinked && category">
         <CategoryCircle :category="category" />
       </template>
 
@@ -27,7 +33,7 @@
             <div class="h-4 w-20 animate-pulse rounded bg-white/10"></div>
           </div>
           <div class="flex items-center gap-3 text-sm">
-            <span class="text-app-expense-color font-medium tabular-nums">{{ formattedExpenseAmount }}</span>
+            <span class="text-amount text-app-expense-color">{{ formattedExpenseAmount }}</span>
             <ArrowRight :size="12" class="opacity-40" />
             <div class="h-4 w-16 animate-pulse rounded bg-white/10"></div>
           </div>
@@ -45,13 +51,26 @@
           </div>
           <!-- Show both amounts on bottom with better spacing and typography -->
           <div class="flex items-center gap-3 text-sm">
-            <span class="text-app-expense-color font-medium whitespace-nowrap tabular-nums">{{
-              formattedExpenseAmount
-            }}</span>
+            <span class="text-amount text-app-expense-color whitespace-nowrap">{{ formattedExpenseAmount }}</span>
             <ArrowRight :size="12" class="opacity-40" />
-            <span class="text-app-income-color font-medium whitespace-nowrap tabular-nums">{{
-              formattedIncomeAmount
-            }}</span>
+            <span class="text-amount text-app-income-color whitespace-nowrap">{{ formattedIncomeAmount }}</span>
+          </div>
+        </template>
+        <template v-else-if="isPortfolioLinked">
+          <div class="flex items-center gap-1.5">
+            <span class="line-clamp-1 text-sm tracking-wider">
+              {{ accountFrom?.name }}
+            </span>
+            <ArrowRight :size="14" class="shrink-0 opacity-60" />
+            <BriefcaseIcon :size="14" class="text-app-transfer-color shrink-0" />
+            <template v-if="isLoadingPortfolioLink">
+              <div class="h-4 w-16 animate-pulse rounded bg-white/10" />
+            </template>
+            <template v-else>
+              <span class="line-clamp-1 text-sm tracking-wider">
+                {{ portfolioName }}
+              </span>
+            </template>
           </div>
         </template>
         <template v-else-if="isTransferTransaction">
@@ -62,68 +81,79 @@
         <template v-else>
           <div class="flex items-center gap-2">
             <span class="text-sm tracking-wider whitespace-nowrap">
-              {{ category ? category.name : 'Other' }}
+              {{ category ? category.name : t('common.ui.other') }}
             </span>
-            <template v-if="hasSplits">
-              <div
-                class="flex items-center gap-0.5 rounded-sm border border-amber-500/60 px-1 py-0.5 text-xs text-amber-400/90"
-              >
-                <SplitIcon :size="10" />
-                <span>{{ transaction.splits.length + 1 }}</span>
-              </div>
-            </template>
-            <template v-if="isRefund">
-              <div class="border-primary rounded-sm border px-1 py-0.5 text-xs text-white/80">Refund</div>
-            </template>
+            <SplitIndicator :transaction="transaction" />
+            <RefundIndicator :transaction="transaction" />
+            <TagsIndicator :transaction="transaction" />
           </div>
         </template>
         <span
-          v-if="!shouldShowGroupedTransfer"
-          class="line-clamp-1 text-sm tracking-wider [word-break:break-word] opacity-40"
+          v-if="!shouldShowGroupedTransfer && !isLoadingGroupedTransfer"
+          class="text-muted-foreground line-clamp-1 text-sm tracking-wider [word-break:break-word]"
         >
           {{ transaction.note }}
         </span>
       </div>
     </div>
     <div v-if="shouldShowGroupedTransfer || isLoadingGroupedTransfer" class="flex items-start pt-0.5">
-      <div class="text-right text-sm whitespace-nowrap tabular-nums">
+      <div class="text-muted-foreground text-right text-xs whitespace-nowrap tabular-nums">
         {{ formateDate(transaction.time) }}
       </div>
     </div>
     <div v-else>
       <div
         :class="[
-          'text-right',
+          'text-amount text-right',
           transaction.transactionType === TRANSACTION_TYPES.income && 'text-app-income-color',
           transaction.transactionType === TRANSACTION_TYPES.expense && 'text-app-expense-color',
         ]"
       >
         {{ formattedAmount }}
       </div>
-      <div class="text-right text-sm">
+      <div class="text-muted-foreground text-right text-xs">
         {{ formateDate(transaction.time) }}
       </div>
     </div>
-  </template>
+  </div>
 </template>
 
 <script lang="ts" setup>
 import CategoryCircle from '@/components/common/category-circle.vue';
+import { Checkbox } from '@/components/lib/ui/checkbox';
 import { useOppositeTxRecord } from '@/composable/data-queries/opposite-tx-record';
+import { useTransactionPortfolioLink } from '@/composable/data-queries/portfolio-transfers';
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore } from '@/stores';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { format } from 'date-fns';
-import { ArrowRight, SplitIcon } from 'lucide-vue-next';
+import { ArrowRight, BriefcaseIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+import RefundIndicator from './indicators/refund-indicator.vue';
+import SplitIndicator from './indicators/split-indicator.vue';
+import TagsIndicator from './indicators/tags-indicator.vue';
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
     tx: TransactionModel;
     asButton?: boolean;
+    showCheckbox?: boolean;
+    isSelected?: boolean;
+    isSelectable?: boolean;
+    index?: number;
   }>(),
-  { asButton: true },
+  {
+    asButton: true,
+    showCheckbox: false,
+    isSelected: false,
+    isSelectable: true,
+    index: 0,
+  },
 );
 
 const { categoriesMap } = storeToRefs(useCategoriesStore());
@@ -131,7 +161,8 @@ const accountsStore = useAccountsStore();
 const { accountsRecord } = storeToRefs(accountsStore);
 
 const emit = defineEmits<{
-  'record-click': [[value: TransactionModel, oppositeTx: TransactionModel]];
+  'record-click': [[value: TransactionModel, oppositeTx: TransactionModel | undefined]];
+  'selection-change': [{ value: boolean; id: number; index: number }];
 }>();
 
 const transaction = reactive(props.tx);
@@ -140,10 +171,15 @@ const isTransferTransaction = computed(() =>
     transaction.transferNature,
   ),
 );
-const isRefund = computed(() => transaction.refundLinked);
-const hasSplits = computed(() => transaction.splits && transaction.splits.length > 0);
 
 const { data: oppositeTransferTransaction, isLoading: isLoadingOpposite } = useOppositeTxRecord(transaction);
+
+const isPortfolioLinked = computed(
+  () => transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+);
+const portfolioLinkId = computed(() => (isPortfolioLinked.value ? transaction.id : undefined));
+const { data: portfolioLinkData, isLoading: isLoadingPortfolioLink } = useTransactionPortfolioLink(portfolioLinkId);
+const portfolioName = computed(() => portfolioLinkData.value?.portfolioName ?? '');
 
 // Show grouped transfer display when we have both sides
 const shouldShowGroupedTransfer = computed(() => {
@@ -165,7 +201,9 @@ const isLoadingGroupedTransfer = computed(() => {
 
 const category = computed(() => categoriesMap.value[transaction.categoryId]);
 const accountFrom = computed(() => accountsRecord.value[transaction.accountId]);
-const accountTo = computed(() => accountsRecord.value[oppositeTransferTransaction.value?.accountId]);
+const accountTo = computed(() =>
+  oppositeTransferTransaction.value ? accountsRecord.value[oppositeTransferTransaction.value.accountId] : undefined,
+);
 
 const accountMovement = computed(() => {
   const separator = transaction.transactionType === TRANSACTION_TYPES.expense ? '=>' : '<=';
@@ -179,8 +217,21 @@ const accountMovement = computed(() => {
 const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMM y');
 
 const transactionEmit = () => {
-  emit('record-click', [transaction, oppositeTransferTransaction.value]);
+  emit('record-click', [transaction, oppositeTransferTransaction.value ?? undefined]);
 };
+
+// Computed with get/set for v-model binding
+const checkedModel = computed({
+  get: () => props.isSelected,
+  set: (value: boolean | 'indeterminate') => {
+    if (!props.isSelectable) return;
+    emit('selection-change', {
+      value: value === true,
+      id: transaction.id,
+      index: props.index,
+    });
+  },
+});
 
 const formattedAmount = computed(() => {
   let amount = transaction.amount;

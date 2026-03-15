@@ -108,6 +108,7 @@ export interface EnableBankingBalance {
 /**
  * Response from /accounts/{uid}/balances endpoint
  * https://enablebanking.com/docs/api/reference/#halbalances
+ * @public
  */
 export interface HalBalances {
   /** List of account balances */

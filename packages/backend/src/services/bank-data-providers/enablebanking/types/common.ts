@@ -97,6 +97,7 @@ export interface ContactDetails {
 /**
  * Clearing system member identification
  * https://enablebanking.com/docs/api/reference/#clearingsystemmemberidentification
+ * @public
  */
 export interface ClearingSystemMemberIdentification {
   /** Clearing system identification */

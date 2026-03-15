@@ -4,9 +4,12 @@ import { Button } from '@/components/lib/ui/button';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { TRANSACTION_TYPES, type TransactionModel } from '@bt/shared/types';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-import RecordList from '../record-list.vue';
+import TransferRecordsList from './transfer-records-list.vue';
 import FormRow from './form-row.vue';
+
+const { t } = useI18n();
 
 interface Props {
   isTransferTx: boolean;
@@ -14,6 +17,12 @@ interface Props {
   oppositeTransaction?: TransactionModel;
   transactionType?: TRANSACTION_TYPES;
   disabled: boolean;
+  /** Origin transaction ID (for recommendations when editing) */
+  originTransactionId?: number;
+  /** Origin transaction amount for recommendations */
+  originAmount?: number | null;
+  /** Origin account ID for recommendations */
+  originAccountId?: number | null;
 }
 
 const props = defineProps<Props>();
@@ -58,20 +67,30 @@ const handleSelectTransaction = (transaction: TransactionModel) => {
         drawer-content-class="max-h-[85dvh]"
       >
         <template #trigger>
-          <Button class="w-full" :disabled="disabled" size="sm">Link existing transaction</Button>
+          <Button class="w-full" :disabled="disabled" size="sm">{{
+            t('dialogs.manageTransaction.linkSection.linkButton')
+          }}</Button>
         </template>
 
-        <template #title>Link existing transaction</template>
-        <template #description>Select a transaction to link</template>
+        <template #title>{{ t('dialogs.manageTransaction.linkSection.title') }}</template>
+        <template #description>{{ t('dialogs.manageTransaction.linkSection.description') }}</template>
 
-        <RecordList :transaction-type="oppositeTransactionType" @select="handleSelectTransaction" />
+        <TransferRecordsList
+          :transaction-type="oppositeTransactionType"
+          :origin-transaction-id="props.originTransactionId"
+          :origin-amount="props.originAmount"
+          :origin-account-id="props.originAccountId"
+          @select="handleSelectTransaction"
+        />
       </ResponsiveDialog>
     </FormRow>
   </template>
 
   <template v-if="showUnlinkButton">
     <FormRow>
-      <Button class="w-full" :disabled="disabled" size="sm" @click="$emit('unlink')"> Unlink transactions </Button>
+      <Button class="w-full" :disabled="disabled" size="sm" @click="$emit('unlink')">{{
+        t('dialogs.manageTransaction.linkSection.unlinkButton')
+      }}</Button>
     </FormRow>
   </template>
 
@@ -79,8 +98,13 @@ const handleSelectTransaction = (transaction: TransactionModel) => {
     <FormRow class="flex items-center gap-2.5">
       <TransactionRecord class="bg-background" :tx="linkedTransaction!" />
 
-      <Button aria-label="Cancel linking" :disabled="disabled" size="sm" @click="clearLinkedTransaction">
-        Cancel
+      <Button
+        :aria-label="t('dialogs.manageTransaction.linkSection.cancelLinkingAriaLabel')"
+        :disabled="disabled"
+        size="sm"
+        @click="clearLinkedTransaction"
+      >
+        {{ t('common.actions.cancel') }}
       </Button>
     </FormRow>
   </template>

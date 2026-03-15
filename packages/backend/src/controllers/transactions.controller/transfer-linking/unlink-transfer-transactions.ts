@@ -1,4 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeTransactions } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
@@ -12,10 +13,11 @@ export default createController(schema, async ({ user, body }) => {
   const { id: userId } = user;
   const { transferIds } = body;
 
-  const data = await transactionsService.unlinkTransferTransactions({
+  const transactions = await transactionsService.unlinkTransferTransactions({
     userId,
     transferIds: [...new Set(transferIds)],
   });
 
-  return { data };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeTransactions(transactions) };
 });

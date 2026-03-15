@@ -37,7 +37,7 @@ export const usePortfolio = (portfolioId: MaybeRef<number | undefined>, queryOpt
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryFn: () => getPortfolio(unref(portfolioId)!),
+    queryFn: () => getPortfolio({ portfolioId: unref(portfolioId)! }),
     queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioDetails, portfolioId],
     enabled: () => !!unref(portfolioId),
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -56,8 +56,7 @@ export const useUpdatePortfolio = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ portfolioId, ...rest }: { portfolioId: number } & Parameters<typeof updatePortfolio>[1]) =>
-      updatePortfolio(portfolioId, rest),
+    mutationFn: (params: Parameters<typeof updatePortfolio>[0]) => updatePortfolio(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
     },
@@ -69,7 +68,7 @@ export const useDeletePortfolio = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (portfolioId: number) => deletePortfolio(portfolioId),
+    mutationFn: (portfolioId: number) => deletePortfolio({ portfolioId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
     },

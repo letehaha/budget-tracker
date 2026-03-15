@@ -7,6 +7,9 @@ import { AccountModel } from '@bt/shared/types';
 import { debounce } from 'lodash-es';
 import { InfoIcon } from 'lucide-vue-next';
 import { computed, reactive, watch, watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   account: AccountModel;
@@ -24,12 +27,12 @@ const updateVisibility = async ({ id, isEnabled }: { id: number; isEnabled: bool
     await accountsStore.editAccount({ id, isEnabled });
 
     addNotification({
-      text: 'Updated successfully',
+      text: t('pages.account.visibility.updateSuccess'),
       type: NotificationType.success,
     });
   } catch {
     addNotification({
-      text: 'Unexpected error',
+      text: t('pages.account.visibility.unexpectedError'),
       type: NotificationType.error,
     });
     form.isEnabled = !form.isEnabled;
@@ -70,7 +73,7 @@ watch(
 <template>
   <div class="flex items-center justify-between gap-2">
     <span class="flex items-center gap-2">
-      Hidden:
+      {{ t('pages.account.visibility.label') }}
 
       <Tooltip.TooltipProvider>
         <Tooltip.Tooltip>
@@ -79,8 +82,7 @@ watch(
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent class="max-w-[400px] p-4">
             <span class="text-sm leading-6 opacity-90">
-              Hidden accounts are not visible on the Dashboard, won't affect statistics, and won't be automatically
-              synced via bank connection until re-enabled.
+              {{ t('pages.account.visibility.tooltip') }}
             </span>
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>

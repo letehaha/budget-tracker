@@ -5,7 +5,7 @@ import { getAiApiKey } from '../user-settings/ai-api-key';
 import { getFeatureConfig } from '../user-settings/ai-feature-settings';
 import { getDefaultModelForFeature, isValidModelId } from './models-config';
 
-export interface AIConfigResolution {
+interface AIConfigResolution {
   /** The resolved provider */
   provider: AI_PROVIDER;
   /** The resolved model ID (provider/model format) */
@@ -143,19 +143,4 @@ export async function resolveAIConfiguration({
     apiKey: serverApiKey,
     usingUserKey: false,
   };
-}
-
-/**
- * Check if an AI feature is available for a user
- * (i.e., there's at least one way to get an API key)
- */
-export async function isAIFeatureAvailable({
-  userId,
-  feature,
-}: {
-  userId: number;
-  feature: AI_FEATURE;
-}): Promise<boolean> {
-  const resolution = await resolveAIConfiguration({ userId, feature });
-  return resolution !== null;
 }

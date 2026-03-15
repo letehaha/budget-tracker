@@ -1,8 +1,11 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
+import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
 import RefundTransactions from '@models/RefundTransactions.model';
 import * as Transactions from '@models/Transactions.model';
+import { deletePortfolioTransfer } from '@services/investments/portfolios/transfers';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
@@ -22,7 +25,7 @@ export const deleteTransaction = withTransaction(
 
       if (accountType !== ACCOUNT_TYPES.system) {
         throw new ValidationError({
-          message: "It's not allowed to manually delete external transactions",
+          message: t({ key: 'transactions.cannotDeleteExternal' }),
         });
       }
 
@@ -36,6 +39,20 @@ export const deleteTransaction = withTransaction(
         (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet && !transferId)
       ) {
         await Transactions.deleteTransactionById({ id, userId });
+      } else if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio) {
+        // Find linked portfolio transfer via PortfolioTransfers.transactionId
+        const linkedTransfer = await PortfolioTransfers.findOne({
+          where: { transactionId: id },
+        });
+
+        // Delete linked portfolio transfer (reverses portfolio balance) and the
+        // account transaction together. Passing deleteLinkedTransaction: true tells
+        // deletePortfolioTransfer to also remove the account transaction row.
+        if (linkedTransfer) {
+          await deletePortfolioTransfer({ userId, transferId: linkedTransfer.id, deleteLinkedTransaction: true });
+        } else {
+          await Transactions.deleteTransactionById({ id, userId });
+        }
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
         const transferTransactions = await Transactions.getTransactionsByArrayOfField({
           fieldValues: [transferId],
@@ -46,17 +63,15 @@ export const deleteTransaction = withTransaction(
         await Promise.all(
           // For the each transaction with the same "transferId" delete transaction
           transferTransactions.map((tx) =>
-            Promise.all([
-              Transactions.deleteTransactionById({
-                id: tx.id,
-                userId: tx.userId,
-              }),
-            ]),
+            Transactions.deleteTransactionById({
+              id: tx.id,
+              userId: tx.userId,
+            }),
           ),
         );
       } else {
         logger.error(`Unexpected issue when tried to delete transaction with id ${id}`);
-        throw new UnexpectedError({ message: 'Unexpected issue when tried to delete transaction' });
+        throw new UnexpectedError({ message: t({ key: 'transactions.unexpectedDeleteIssue' }) });
       }
     } catch (e) {
       if (process.env.NODE_ENV !== 'test') {

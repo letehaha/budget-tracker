@@ -9,6 +9,7 @@ import {
 import { Attribute, AutoIncrement, NotNull, PrimaryKey, Table, Unique } from '@sequelize/core/decorators-legacy';
 
 import Categories from './Categories.model';
+import UserMerchantCategoryCodes from './UserMerchantCategoryCodes.model';
 
 @Table({
   timestamps: false,

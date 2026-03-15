@@ -1,8 +1,9 @@
-import { SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
+import { FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { compareAsc, compareDesc, subDays } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 const dates = {
   income: '2024-08-02T00:00:00Z',
@@ -240,6 +241,82 @@ describe('Retrieve transactions with filters', () => {
     expect(res.every((t) => t.refundLinked === false)).toBe(true);
   });
 
+  it('should retrieve only transfers using transferFilter=only', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      transferFilter: FILTER_OPERATION.only,
+      raw: true,
+    });
+
+    expect(res.length).toBe(2); // transferIncome, transferExpense
+    expect(res.every((t) => t.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer)).toBe(true);
+  });
+
+  it('should retrieve only refund-linked transactions using refundFilter=only', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      refundFilter: FILTER_OPERATION.only,
+      raw: true,
+    });
+
+    expect(res.length).toBe(2); // refundOriginal, refundTx
+    expect(res.every((t) => t.refundLinked === true)).toBe(true);
+  });
+
+  it('should exclude transfers using transferFilter=exclude', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      transferFilter: FILTER_OPERATION.exclude,
+      raw: true,
+    });
+
+    expect(res.length).toBe(4); // income, expense, refunds
+    expect(res.every((t) => t.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer)).toBe(true);
+  });
+
+  it('should exclude refunds using refundFilter=exclude', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      refundFilter: FILTER_OPERATION.exclude,
+      raw: true,
+    });
+
+    expect(res.length).toBe(4);
+    expect(res.every((t) => t.refundLinked === false)).toBe(true);
+  });
+
+  it('should use OR logic when both transferFilter and refundFilter are "only"', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      transferFilter: FILTER_OPERATION.only,
+      refundFilter: FILTER_OPERATION.only,
+      raw: true,
+    });
+
+    // Should return transfers OR refunds (not AND), so 4 total:
+    // transferIncome, transferExpense, refundOriginal, refundTx
+    expect(res.length).toBe(4);
+    expect(
+      res.every((t) => t.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer || t.refundLinked === true),
+    ).toBe(true);
+  });
+
+  it('should return all transactions using transferFilter=all', async () => {
+    await createMockTransactions();
+
+    const res = await helpers.getTransactions({
+      transferFilter: FILTER_OPERATION.all,
+      raw: true,
+    });
+
+    expect(res.length).toBe(6);
+  });
+
   it.each([
     [SORT_DIRECTIONS.desc, compareDesc],
     [SORT_DIRECTIONS.asc, compareAsc],
@@ -252,7 +329,7 @@ describe('Retrieve transactions with filters', () => {
     });
 
     expect(res.length).toBe(6);
-    expect(transactions.map((t) => t!.time).sort((a, b) => comparer(new Date(a), new Date(b)))).toEqual(
+    expect(transactions.map((t) => t!.time).toSorted((a, b) => comparer(new Date(a), new Date(b)))).toEqual(
       res.map((t) => t.time),
     );
   });
@@ -269,12 +346,48 @@ describe('Retrieve transactions with filters', () => {
     expect(res.every((t) => t.accountId === expense.accountId)).toBe(true);
   });
 
+  describe('excludeAccountIds', () => {
+    it('excludes transactions from the specified account', async () => {
+      const { income, expense } = await createMockTransactions();
+
+      const res = await helpers.getTransactions({
+        excludeAccountIds: [income.accountId],
+        raw: true,
+      });
+
+      // income is in accountA, expense is in accountB
+      // accountA has: income, transferIncome, refundOriginal, refundTx (4 txs)
+      // accountB has: expense, transferExpense (2 txs)
+      expect(res.length).toBe(2);
+      expect(res.every((t) => t.accountId !== income.accountId)).toBe(true);
+    });
+
+    it('excludes transactions from multiple accounts', async () => {
+      const { income, expense } = await createMockTransactions();
+
+      const res = await helpers.getTransactions({
+        excludeAccountIds: [income.accountId, expense.accountId],
+        raw: true,
+      });
+
+      expect(res.length).toBe(0);
+    });
+
+    it('returns all transactions when excludeAccountIds is not provided', async () => {
+      await createMockTransactions();
+
+      const res = await helpers.getTransactions({ raw: true });
+
+      expect(res.length).toBe(6);
+    });
+  });
+
   describe('filter by amount', () => {
     it('`amountLte`', async () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountLte: 1000,
+        amountLte: Money.fromDecimal(1000),
         raw: true,
       });
 
@@ -287,7 +400,7 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountGte: 5000,
+        amountGte: Money.fromDecimal(5000),
         raw: true,
       });
 
@@ -300,14 +413,14 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountGte: 2000,
-        amountLte: 5000,
+        amountGte: Money.fromDecimal(2000),
+        amountLte: Money.fromDecimal(5000),
         raw: true,
       });
 
       expect(res.length).toBe(3); // income, expense, 1 of transfers
       res.forEach((tx) => {
-        expect(tx.amount >= 2000 && tx.amount <= 5000).toBe(true);
+        expect(Number(tx.amount) >= 2000 && Number(tx.amount) <= 5000).toBe(true);
       });
     });
 
@@ -315,8 +428,8 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        amountLte: 2000,
-        amountGte: 5000,
+        amountLte: Money.fromDecimal(2000),
+        amountGte: Money.fromDecimal(5000),
       });
 
       expect(res.statusCode).toBe(ERROR_CODES.ValidationError);

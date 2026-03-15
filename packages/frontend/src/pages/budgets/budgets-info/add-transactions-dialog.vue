@@ -15,7 +15,10 @@ import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
 import { computed, reactive, ref, watch, watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
+
+const { t } = useI18n();
 
 const route = useRoute();
 const { addErrorNotification } = useNotificationCenter();
@@ -61,9 +64,13 @@ const addTransactions = async () => {
     await addTransactionsToBudget(currentBudgetId.value, data);
     invalidate();
     queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.budgetStats, currentBudgetId] });
-    queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.budgetAddingTransactionList, currentBudgetId] });
-  } catch (err) {
-    addErrorNotification(err.data.message);
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetAddingTransactionList });
+    queryClient.invalidateQueries({
+      predicate: (query) => query.queryKey.includes(currentBudgetId.value),
+    });
+  } catch (err: unknown) {
+    const message = (err as any)?.data?.message ?? 'Failed to add transactions';
+    addErrorNotification(message);
   }
   isAddingTransactionModalVisible.value = false;
   resetSelection();
@@ -88,7 +95,7 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   isFetchingNextPage: isFetchingNextTransactionsPage,
   parentRef,
   enabled: isAddingTransactionModalVisible,
-  getItemKey: (index) => flatTransactions.value[index].id,
+  getItemKey: (index) => flatTransactions.value[index]!.id,
 });
 
 const isFiltersDialogOpen = ref(false);
@@ -107,11 +114,11 @@ const isMobileView = useWindowBreakpoints(1024);
     </template>
 
     <template #title>
-      <span> Add transactions </span>
+      <span>{{ t('budgets.addTransactionsDialog.title') }}</span>
     </template>
 
     <div class="grid max-h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)]">
-      <div class="relative overflow-y-auto px-1">
+      <div class="relative min-h-0 overflow-y-auto px-1">
         <template v-if="isMobileView">
           <RecordsFiltersDialog v-model:open="isFiltersDialogOpen" :isAnyFiltersApplied="isAnyFiltersApplied">
             <div class="relative max-h-[calc(100vh-var(--header-height)-32px)] overflow-auto">
@@ -136,7 +143,7 @@ const isMobileView = useWindowBreakpoints(1024);
         </template>
       </div>
 
-      <div v-if="transactionsPages" ref="parentRef" class="relative max-h-[60vh] w-full overflow-y-auto md:max-h-full">
+      <div v-if="transactionsPages" ref="parentRef" class="relative max-h-[60vh] min-h-0 w-full overflow-y-auto">
         <div :style="{ height: `${totalSize}px`, position: 'relative' }">
           <div
             v-for="virtualRow in virtualRows"
@@ -157,28 +164,31 @@ const isMobileView = useWindowBreakpoints(1024);
               ]"
             >
               <Checkbox
-                :model-value="pickedTransactionsIds.has(flatTransactions[virtualRow.index].id)"
+                :model-value="pickedTransactionsIds.has(flatTransactions[virtualRow.index]!.id)"
                 @update:model-value="
                   handleSelection(
                     !!$event,
-                    flatTransactions[virtualRow.index].id,
+                    flatTransactions[virtualRow.index]!.id,
                     virtualRow.index,
                     flatTransactions,
                     (v) => v.id,
                   )
                 "
               />
-              <TransactionRecord :tx="flatTransactions[virtualRow.index]" />
+              <TransactionRecord :tx="flatTransactions[virtualRow.index]!" />
             </label>
-            <div v-else class="flex h-[52px] items-center justify-center">Loading more...</div>
+            <div v-else class="flex h-13 items-center justify-center">{{ t('transactions.list.loadingMore') }}</div>
           </div>
         </div>
         <template v-if="!hasNextTransactionsPage">
-          <p class="flex justify-center">No more data to load</p>
+          <p class="flex justify-center">{{ t('transactions.list.noMoreData') }}</p>
         </template>
-        <div v-if="isTransactionsPicked" class="sticky -bottom-px flex gap-2">
-          <Button type="button" variant="secondary" class="hover:bg-initial mt-8 w-full" @click="addTransactions">
-            Add Selected
+        <div v-if="isTransactionsPicked" class="sticky -bottom-px flex gap-2 pt-8">
+          <Button type="button" variant="outline" class="w-full" @click="resetSelection">
+            {{ t('budgets.addTransactionsDialog.clearSelection') }}
+          </Button>
+          <Button type="button" class="w-full" @click="addTransactions">
+            {{ t('budgets.addTransactionsDialog.addSelected') }}
           </Button>
         </div>
       </div>

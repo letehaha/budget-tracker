@@ -77,10 +77,14 @@ function formatPercentage(percent: number): string {
 
 <template>
   <div class="space-y-2">
-    <h3 class="text-sm font-medium">Data Preview</h3>
+    <h3 class="text-sm font-medium">{{ $t('settings.admin.priceUpload.preview.title') }}</h3>
     <p class="text-muted-foreground text-xs">
-      {{ data.length }} record{{ data.length === 1 ? '' : 's' }} will be uploaded
-      <template v-if="dateRange"> for period between {{ dateRange.oldest }} and {{ dateRange.newest }} </template>
+      {{ $t('settings.admin.priceUpload.preview.recordsCount', { count: data.length }) }}
+      <template v-if="dateRange">
+        {{
+          $t('settings.admin.priceUpload.preview.recordsPeriod', { oldest: dateRange.oldest, newest: dateRange.newest })
+        }}
+      </template>
     </p>
 
     <!-- Warning banner for significant differences -->
@@ -103,10 +107,13 @@ function formatPercentage(percent: number): string {
         />
       </svg>
       <div>
-        <div class="font-medium">Significant price differences detected</div>
+        <div class="font-medium">{{ $t('settings.admin.priceUpload.preview.warnings.significantDifferences') }}</div>
         <div class="text-muted-foreground mt-1">
-          {{ significantDifferencesCount }} record{{ significantDifferencesCount === 1 ? '' : 's' }} have a price
-          difference greater than 4% compared to existing data. Please review carefully.
+          {{
+            $t('settings.admin.priceUpload.preview.warnings.differencesDetails', {
+              count: significantDifferencesCount,
+            })
+          }}
         </div>
       </div>
     </div>
@@ -114,22 +121,26 @@ function formatPercentage(percent: number): string {
     <!-- Filter checkbox -->
     <label v-if="hasSignificantDifferences" class="flex items-center gap-2 text-xs">
       <input v-model="showOnlyDifferences" type="checkbox" />
-      <span>Show only records with significant differences (&gt;4%)</span>
+      <span>{{ $t('settings.admin.priceUpload.preview.filterCheckbox') }}</span>
     </label>
 
-    <div class="border-border max-h-[400px] overflow-y-auto rounded border" @scroll="handleScroll">
+    <div class="border-border max-h-100 overflow-y-auto rounded border" @scroll="handleScroll">
       <table class="w-full text-sm">
         <thead class="bg-muted/50 sticky top-0">
           <tr>
-            <th class="border-border border-b px-3 py-2 text-left font-medium">Date</th>
+            <th class="border-border border-b px-3 py-2 text-left font-medium">
+              {{ $t('settings.admin.priceUpload.preview.tableHeaders.date') }}
+            </th>
             <th class="border-border border-b px-3 py-2 text-right font-medium">
-              New Price <span v-if="currency">({{ currency.toUpperCase() }})</span>
+              {{ $t('settings.admin.priceUpload.preview.tableHeaders.newPrice') }}
+              <span v-if="currency">({{ currency.toUpperCase() }})</span>
             </th>
             <th v-if="existingPrices" class="border-border border-b px-3 py-2 text-right font-medium">
-              Existing Price <span v-if="currency">({{ currency.toUpperCase() }})</span>
+              {{ $t('settings.admin.priceUpload.preview.tableHeaders.existingPrice') }}
+              <span v-if="currency">({{ currency.toUpperCase() }})</span>
             </th>
             <th v-if="existingPrices" class="border-border border-b px-3 py-2 text-right font-medium">
-              Difference (%)
+              {{ $t('settings.admin.priceUpload.preview.tableHeaders.difference') }}
             </th>
           </tr>
         </thead>
@@ -149,7 +160,9 @@ function formatPercentage(percent: number): string {
                 {{ formatAmountByCurrencyCode(row.existingPrice, row.currency) }}
               </template>
               <template v-else>
-                <span class="text-muted-foreground">N/A</span>
+                <span class="text-muted-foreground">{{
+                  $t('settings.admin.priceUpload.preview.noExistingPrice')
+                }}</span>
               </template>
             </td>
             <td v-if="existingPrices" class="border-border border-b px-3 py-2 text-right">
@@ -172,11 +185,13 @@ function formatPercentage(percent: number): string {
         </tbody>
       </table>
 
-      <div v-if="hasMore" class="text-muted-foreground p-3 text-center text-xs">Scroll for more...</div>
+      <div v-if="hasMore" class="text-muted-foreground p-3 text-center text-xs">
+        {{ $t('settings.admin.priceUpload.preview.scrollForMore') }}
+      </div>
     </div>
 
     <p v-if="showOnlyDifferences && filteredData.length === 0" class="text-muted-foreground text-center text-xs">
-      No records with significant differences found.
+      {{ $t('settings.admin.priceUpload.preview.noDifferences') }}
     </p>
   </div>
 </template>

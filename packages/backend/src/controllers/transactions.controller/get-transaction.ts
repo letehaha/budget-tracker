@@ -1,5 +1,14 @@
-import { ACCOUNT_TYPES, CATEGORIZATION_SOURCE, SORT_DIRECTIONS, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  CATEGORIZATION_SOURCE,
+  FILTER_OPERATION,
+  SORT_DIRECTIONS,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
+import { booleanQuery } from '@common/lib/zod/custom-types';
+import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeTransactions } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
@@ -44,22 +53,40 @@ const schema = z.object({
           z.array(z.number().int().positive()),
         )
         .optional(),
+      tagIds: z
+        .preprocess(
+          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
+          z.array(z.number().int().positive()),
+        )
+        .optional(),
+      excludedTagIds: z
+        .preprocess(
+          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
+          z.array(z.number().int().positive()),
+        )
+        .optional(),
       categoryIds: z
         .preprocess(
           (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
           z.array(z.number().int().positive()),
         )
         .optional(),
-      includeUser: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      includeAccount: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      includeCategory: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      includeSplits: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      includeAll: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      nestedInclude: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      excludeTransfer: z.preprocess((val) => val === 'true', z.boolean()).optional(),
-      excludeRefunds: z.preprocess((val) => val === 'true', z.boolean()).optional(),
+      excludeAccountIds: z
+        .preprocess(
+          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
+          z.array(z.number().int().positive()),
+        )
+        .optional(),
+      includeSplits: booleanQuery().optional(),
+      includeTags: booleanQuery().optional(),
+      includeGroups: booleanQuery().optional(),
+      excludeTransfer: booleanQuery().optional(),
+      excludeRefunds: booleanQuery().optional(),
+      transferFilter: z.nativeEnum(FILTER_OPERATION).optional(),
+      refundFilter: z.nativeEnum(FILTER_OPERATION).optional(),
       startDate: z.string().datetime({ message: 'Invalid ISO date string for startDate' }).optional(),
       endDate: z.string().datetime({ message: 'Invalid ISO date string for endDate' }).optional(),
+      // Amount filters now accept decimals from API
       amountLte: z.preprocess((val) => Number(val), z.number().positive()).optional(),
       amountGte: z.preprocess((val) => Number(val), z.number().positive()).optional(),
       noteSearch: z
@@ -91,10 +118,17 @@ const schema = z.object({
 export default createController(schema, async ({ user, query }) => {
   const { id: userId } = user;
 
-  const data = await transactionsService.getTransactions({
+  // Convert decimal amount filters to Money for DB query
+  const amountGte = query.amountGte !== undefined ? Money.fromDecimal(query.amountGte) : undefined;
+  const amountLte = query.amountLte !== undefined ? Money.fromDecimal(query.amountLte) : undefined;
+
+  const transactions = await transactionsService.getTransactions({
     ...query,
+    amountGte,
+    amountLte,
     userId,
   });
 
-  return { data };
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeTransactions(transactions) };
 });

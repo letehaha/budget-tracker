@@ -1,12 +1,16 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
+import { Money } from '@common/types/money';
+import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
+import Tags from '@models/Tags.model';
 import * as Transactions from '@models/Transactions.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { v4 as uuidv4 } from 'uuid';
 
 import { withTransaction } from '../common/with-transaction';
@@ -47,7 +51,7 @@ export const calcTransferTransactionRefAmount = async ({
 }: {
   userId: number;
   baseTransaction: Transactions.default;
-  destinationAmount: number;
+  destinationAmount: Money;
   oppositeTxCurrencyCode: string;
   baseCurrency?: UnwrapPromise<ReturnType<typeof UsersCurrencies.getBaseCurrency>>;
   date: Date;
@@ -59,7 +63,7 @@ export const calcTransferTransactionRefAmount = async ({
   const isSourceRef = baseTransaction.currencyCode === baseCurrency.currency.code;
   const isOppositeRef = oppositeTxCurrencyCode === baseCurrency.currency.code;
 
-  let oppositeRefAmount = destinationAmount;
+  let oppositeRefAmount: Money = destinationAmount;
 
   if (isSourceRef && !isOppositeRef) {
     oppositeRefAmount = baseTransaction.refAmount;
@@ -111,7 +115,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
 
   if (!destinationAmount || !destinationAccountId) {
     throw new ValidationError({
-      message: `One of required fields are missing: destinationAmount, destinationAccountId.`,
+      message: t({ key: 'transactions.missingRequiredFields' }),
     });
   }
 
@@ -169,7 +173,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
 export const createTransaction = withTransaction(
   async ({
     amount,
-    commissionRate = 0,
+    commissionRate = Money.zero(),
     userId,
     accountId,
     transferNature,
@@ -177,26 +181,27 @@ export const createTransaction = withTransaction(
     refundsTxId,
     refundsSplitId,
     splits,
+    tagIds,
     ...payload
   }: CreateTransactionParams) => {
     try {
       // Detect negative amounts - this is a bug in the caller code
       // Transaction amounts should ALWAYS be positive, with transactionType determining expense/income
-      if (amount < 0) {
+      if (amount.isNegative()) {
         const stack = new Error().stack;
         logger.error('Negative amount detected in createTransaction. This is a bug - amounts must be positive.', {
-          amount,
+          amount: amount.toNumber(),
           userId,
           accountId,
           transactionType: payload.transactionType,
           stack,
         });
-        amount = Math.abs(amount);
+        amount = amount.abs();
       }
 
       if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
         throw new ValidationError({
-          message: 'It is not allowed to crate a transaction that is a refund and a transfer at the same time',
+          message: t({ key: 'transactions.refundAndTransferNotAllowed' }),
         });
       }
 
@@ -217,8 +222,8 @@ export const createTransaction = withTransaction(
         time: payload.time ?? new Date(),
         amount,
         refAmount: amount,
-        commissionRate: commissionRate || 0,
-        refCommissionRate: commissionRate || 0,
+        commissionRate,
+        refCommissionRate: commissionRate,
         userId,
         accountId,
         transferNature,
@@ -237,7 +242,7 @@ export const createTransaction = withTransaction(
         });
         generalTxParams.refCommissionRate = await calculateRefAmount({
           userId,
-          amount: generalTxParams.commissionRate || 0,
+          amount: generalTxParams.commissionRate || Money.zero(),
           baseCode: generalTxCurrency.code,
           quoteCode: defaultUserCurrency.code,
           date: generalTxParams.time,
@@ -294,7 +299,7 @@ export const createTransaction = withTransaction(
               ids: [[baseTransaction!.id, destinationTransactionId]],
               result,
             });
-            throw new UnexpectedError({ message: 'Cannot create transaction with provided params' });
+            throw new UnexpectedError({ message: t({ key: 'transactions.cannotCreateWithParams' }) });
           }
         } else {
           const res = await createOppositeTransaction([
@@ -325,6 +330,39 @@ export const createTransaction = withTransaction(
         });
       }
 
+      // Handle tags for the transaction
+      if (tagIds && tagIds.length > 0) {
+        // Validate that all tagIds belong to the current user
+        const userTags = await Tags.findAll({
+          where: { userId, id: tagIds },
+          attributes: ['id'],
+        });
+
+        if (userTags.length !== tagIds.length) {
+          throw new ValidationError({
+            message: t({ key: 'transactions.invalidTagIds' }),
+          });
+        }
+
+        await baseTransaction!.$set('tags', tagIds);
+
+        // Emit event for real-time reminders check (handled by event listener)
+        eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_TAGGED, { tagIds, userId });
+      }
+
+      // Try to match the transaction to a subscription (non-critical)
+      if (transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+        try {
+          const { matchTransactionToSubscriptions } = await import('@services/subscriptions');
+          await matchTransactionToSubscriptions({ transaction: baseTransaction!, userId });
+        } catch (error) {
+          logger.error({
+            message: 'Failed to match transaction to subscriptions',
+            error: error as Error,
+          });
+        }
+      }
+
       return transactions;
     } catch (e) {
       if (process.env.NODE_ENV !== 'test') {
@@ -346,7 +384,7 @@ export const createTransaction = withTransaction(
 //   "refBalance": 6_331_767,
 // }
 
-const logDataBefore = async (params: CreateTransactionParams & { refAmount?: number }) => {
+const logDataBefore = async (params: CreateTransactionParams & { refAmount?: Money }) => {
   try {
     const { transferNature, destinationTransactionId, userId, accountId, transactionType } = params;
     const isTransfer = transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;

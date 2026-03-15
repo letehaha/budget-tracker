@@ -1,24 +1,24 @@
-import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
-import { NotificationType, useNotificationCenter } from '@/components/notification-center';
-import { useQueryClient } from '@tanstack/vue-query';
 import { onMounted, ref } from 'vue';
 
-import { AiCategorizationCompletedPayload, SSE_EVENT_TYPES, useSSE } from './use-sse';
+import { useCategorizationStatus } from './use-categorization-status';
+import { useSSE } from './use-sse';
 
 // Track if already initialized (global singleton)
 let isInitialized = false;
-let unsubscribe: (() => void) | null = null;
 
 /**
  * Initialize AI categorization event handling via SSE.
  *
  * This should be called once at app initialization (e.g., in App.vue)
- * when the user is authenticated.
+ * when the user is authenticated. It subscribes to the AI_CATEGORIZATION_PROGRESS
+ * event which handles:
+ * - Real-time progress updates during categorization
+ * - Query invalidation when categorization completes
+ * - User notifications on completion/failure
  */
 export function useAiCategorizationEvents() {
-  const { connect, on, isConnected } = useSSE();
-  const { addNotification } = useNotificationCenter();
-  const queryClient = useQueryClient();
+  const { isConnected } = useSSE();
+  const { subscribeToSSE, unsubscribeFromSSE } = useCategorizationStatus();
   const initialized = ref(false);
 
   const initialize = async () => {
@@ -27,34 +27,16 @@ export function useAiCategorizationEvents() {
       return;
     }
 
-    // Connect to SSE
-    await connect();
-
-    // Subscribe to AI categorization completed events
-    unsubscribe = on<AiCategorizationCompletedPayload>(SSE_EVENT_TYPES.AI_CATEGORIZATION_COMPLETED, (data) => {
-      // Invalidate all transaction-related queries to refetch with new categories
-      queryClient.invalidateQueries({
-        queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange],
-      });
-
-      // Show notification to user
-      if (data.categorizedCount > 0) {
-        addNotification({
-          text: `AI categorized ${data.categorizedCount} transaction${data.categorizedCount > 1 ? 's' : ''}`,
-          type: NotificationType.success,
-        });
-      }
-    });
+    // Subscribe to categorization progress events
+    // This also connects to SSE if not already connected
+    await subscribeToSSE();
 
     isInitialized = true;
     initialized.value = true;
   };
 
   const cleanup = () => {
-    if (unsubscribe) {
-      unsubscribe();
-      unsubscribe = null;
-    }
+    unsubscribeFromSSE();
     isInitialized = false;
     initialized.value = false;
   };

@@ -1,12 +1,13 @@
 import { logger } from '@js/utils';
 import { redisClient } from '@root/redis-client';
 
-export interface RateLimitResult {
+interface RateLimitResult {
   allowed: boolean;
   remainingSeconds?: number;
   resetTime?: Date;
 }
 
+// oxlint-disable-next-line typescript/no-extraneous-class -- static utility class used as a namespace
 export class RateLimitService {
   /**
    * Check if an action is allowed based on rate limiting rules

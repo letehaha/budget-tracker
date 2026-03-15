@@ -1,8 +1,8 @@
 <template>
   <div class="bg-card rounded-lg border p-6">
     <div class="mb-4">
-      <h2 class="text-lg font-semibold">Step 1: Upload CSV File</h2>
-      <p class="text-muted-foreground text-sm">Select a CSV file from your computer (max 50MB)</p>
+      <h2 class="text-lg font-semibold">{{ t('pages.importExport.csvImport.fileUpload.stepTitle') }}</h2>
+      <p class="text-muted-foreground text-sm">{{ t('pages.importExport.csvImport.fileUpload.description') }}</p>
     </div>
 
     <div
@@ -16,9 +16,9 @@
       <template v-if="!selectedFile">
         <UploadIcon class="text-muted-foreground mb-4 size-12" />
 
-        <p class="text-foreground mb-2 font-medium">Drag and drop your CSV file here</p>
-        <p class="text-muted-foreground text-sm">or click to browse</p>
-        <p class="text-muted-foreground mt-4 text-xs">Maximum file size: 50MB</p>
+        <p class="text-foreground mb-2 font-medium">{{ t('pages.importExport.csvImport.fileUpload.dragDrop') }}</p>
+        <p class="text-muted-foreground text-sm">{{ t('pages.importExport.csvImport.fileUpload.orBrowse') }}</p>
+        <p class="text-muted-foreground mt-4 text-xs">{{ t('pages.importExport.csvImport.fileUpload.maxSize') }}</p>
       </template>
 
       <template v-else>
@@ -28,7 +28,9 @@
           <p class="text-muted-foreground text-sm">
             {{ formatFileSize(selectedFile.size) }}
           </p>
-          <UiButton variant="outline" size="sm" class="mt-4" @click.stop="clearFile"> Remove file </UiButton>
+          <UiButton variant="outline" size="sm" class="mt-4" @click.stop="clearFile">{{
+            t('pages.importExport.csvImport.fileUpload.removeFile')
+          }}</UiButton>
         </div>
       </template>
 
@@ -43,9 +45,9 @@
       <UiButton @click="handleUpload" :disabled="isUploading">
         <template v-if="isUploading">
           <LoaderIcon class="mr-2 size-4 animate-spin" />
-          Parsing...
+          {{ t('pages.importExport.csvImport.fileUpload.parsing') }}
         </template>
-        <template v-else> Continue to Column Mapping </template>
+        <template v-else>{{ t('pages.importExport.csvImport.fileUpload.continueToMapping') }}</template>
       </UiButton>
     </div>
   </div>
@@ -57,6 +59,9 @@ import { useImportExportStore } from '@/stores/import-export';
 import { FileIcon, LoaderIcon, UploadIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -80,11 +85,11 @@ const handleClick = () => {
 
 const validateFile = (file: File): string | null => {
   if (!file.name.toLowerCase().endsWith('.csv')) {
-    return 'Please select a CSV file';
+    return t('pages.importExport.csvImport.fileUpload.errors.invalidFormat');
   }
 
   if (file.size > MAX_FILE_SIZE) {
-    return `File size exceeds 50MB (${formatFileSize(file.size)})`;
+    return t('pages.importExport.csvImport.fileUpload.errors.fileTooLarge', { size: formatFileSize(file.size) });
   }
 
   return null;
@@ -149,7 +154,7 @@ const handleUpload = async () => {
     // Store will update currentStep to 2 after successful parse
     // TODO: Show step 2 (column mapping) when ready
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to parse CSV file';
+    error.value = err instanceof Error ? err.message : t('pages.importExport.csvImport.fileUpload.errors.parseFailed');
   } finally {
     isUploading.value = false;
   }
