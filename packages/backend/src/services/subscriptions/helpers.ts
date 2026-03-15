@@ -1,7 +1,7 @@
 import { NotFoundError } from '@js/errors';
-import * as Accounts from '@models/Accounts.model';
-import Categories from '@models/Categories.model';
-import Subscriptions from '@models/Subscriptions.model';
+import * as Accounts from '@models/accounts.model';
+import Categories from '@models/categories.model';
+import Subscriptions from '@models/subscriptions.model';
 
 export const findSubscriptionOrThrow = async ({ id, userId }: { id: string; userId: number }) => {
   const subscription = await Subscriptions.findOne({ where: { id, userId } });

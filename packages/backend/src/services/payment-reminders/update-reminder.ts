@@ -3,7 +3,7 @@ import { Money } from '@common/types/money';
 import { NotFoundError, ValidationError } from '@js/errors';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
-import Subscriptions from '@models/Subscriptions.model';
+import Subscriptions from '@models/subscriptions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface UpdateReminderParams {

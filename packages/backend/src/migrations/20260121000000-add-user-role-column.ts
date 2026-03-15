@@ -1,4 +1,4 @@
-import { QueryInterface, Transaction } from 'sequelize';
+import { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to add role and createdAt columns to Users table.
@@ -16,7 +16,7 @@ import { QueryInterface, Transaction } from 'sequelize';
  */
 
 export default {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -82,7 +82,7 @@ export default {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

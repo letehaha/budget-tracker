@@ -1,5 +1,5 @@
 import { ERROR_CODES } from '@js/errors';
-import BudgetTransactions from '@models/BudgetTransactions.model';
+import BudgetTransactions from '@models/budget-transactions.model';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
 

@@ -61,7 +61,7 @@ async function run() {
         };
       },
     },
-    context: sequelize.getQueryInterface(),
+    context: sequelize.getAbstractQueryInterface(),
     storage: new SequelizeStorage({ sequelize }),
     logger: console,
   });

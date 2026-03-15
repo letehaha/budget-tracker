@@ -2,16 +2,16 @@ import { t } from '@i18n/index';
 import { NotFoundError, UnexpectedError } from '@js/errors';
 import { logger } from '@js/utils';
 import { CacheClient } from '@js/utils/cache';
-import * as Currencies from '@models/Currencies.model';
-import * as ExchangeRates from '@models/ExchangeRates.model';
-import * as UserExchangeRates from '@models/UserExchangeRates.model';
-import UsersCurrencies, { getBaseCurrency } from '@models/UsersCurrencies.model';
+import * as Currencies from '@models/currencies.model';
+import * as ExchangeRates from '@models/exchange-rates.model';
+import * as UserExchangeRates from '@models/user-exchange-rates.model';
+import UsersCurrencies, { getBaseCurrency } from '@models/users-currencies.model';
+import { Op } from '@sequelize/core';
 import {
   API_LAYER_BASE_CURRENCY_CODE,
   fetchExchangeRatesForDate,
 } from '@services/exchange-rates/fetch-exchange-rates-for-date';
 import { endOfDay, startOfDay } from 'date-fns';
-import { Op } from 'sequelize';
 
 // Round to 5 precision
 const formatRate = (rate: number) => Math.trunc(rate * 100000) / 100000;

@@ -1,4 +1,4 @@
-import { DataTypes, QueryInterface, QueryTypes, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, QueryTypes, Transaction } from '@sequelize/core';
 
 // Inlined to avoid path alias issues in migration context
 const DEFAULT_TAG_STRUCTURE = [
@@ -13,7 +13,7 @@ const DEFAULT_TAG_STRUCTURE = [
  * TransactionTags is a junction table for the many-to-many relationship.
  */
 export default {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -178,7 +178,7 @@ export default {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

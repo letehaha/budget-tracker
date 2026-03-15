@@ -1,12 +1,12 @@
-import { QueryInterface } from 'sequelize';
+import { AbstractQueryInterface } from '@sequelize/core';
 
 export default {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // PostgreSQL doesn't allow ALTER TYPE ADD VALUE inside a transaction
     await queryInterface.sequelize.query(`ALTER TYPE "enum_Budgets_status" ADD VALUE IF NOT EXISTS 'archived';`);
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Revert any archived budgets back to active so the data is valid
     // after removing the enum value
     await queryInterface.sequelize.query(`UPDATE "Budgets" SET status = 'active' WHERE status = 'archived';`);

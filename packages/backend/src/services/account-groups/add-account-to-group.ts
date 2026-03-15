@@ -1,9 +1,9 @@
 import { t } from '@i18n/index';
 import { NotAllowedError, NotFoundError } from '@js/errors';
 import { logger } from '@js/utils';
-import AccountGrouping from '@models/accounts-groups/AccountGrouping.model';
-import AccountGroup from '@models/accounts-groups/AccountGroups.model';
-import Accounts from '@models/Accounts.model';
+import AccountGrouping from '@models/accounts-groups/account-grouping.model';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
+import Accounts from '@models/accounts.model';
 
 import { withTransaction } from '../common/with-transaction';
 

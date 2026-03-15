@@ -1,7 +1,7 @@
 import { BUDGET_STATUSES } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
-import Budgets from '@models/Budget.model';
+import Budgets from '@models/budget.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 export const toggleBudgetArchive = withTransaction(

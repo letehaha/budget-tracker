@@ -1,8 +1,8 @@
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
-import Currencies from '@models/Currencies.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
+import Currencies from '@models/currencies.model';
+import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
+import Portfolios from '@models/investments/portfolios.model';
 
 interface GetTransactionPortfolioLinkParams {
   userId: number;

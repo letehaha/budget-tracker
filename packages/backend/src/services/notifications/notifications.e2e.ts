@@ -1,6 +1,6 @@
 import { NOTIFICATION_PRIORITIES, NOTIFICATION_STATUSES, NOTIFICATION_TYPES } from '@bt/shared/types';
-import Notifications from '@models/Notifications.model';
-import Users from '@models/Users.model';
+import Notifications from '@models/notifications.model';
+import Users from '@models/users.model';
 import * as helpers from '@tests/helpers';
 import { beforeEach, describe, expect, it } from 'vitest';
 

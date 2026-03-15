@@ -1,12 +1,12 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
-import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import Securities from '@models/investments/Securities.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
+import { Op, WhereOptions } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
 import { format, parseISO } from 'date-fns';
-import { Op, WhereOptions } from 'sequelize';
 
 interface GetTransactionsParams {
   userId: number;

@@ -5,10 +5,10 @@ import {
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { logger } from '@js/utils';
-import SubscriptionCandidates from '@models/SubscriptionCandidates.model';
-import Subscriptions from '@models/Subscriptions.model';
-import Transactions from '@models/Transactions.model';
-import { Op, QueryTypes } from 'sequelize';
+import SubscriptionCandidates from '@models/subscription-candidates.model';
+import Subscriptions from '@models/subscriptions.model';
+import Transactions from '@models/transactions.model';
+import { Op, QueryTypes } from '@sequelize/core';
 
 import {
   TransactionForGrouping,

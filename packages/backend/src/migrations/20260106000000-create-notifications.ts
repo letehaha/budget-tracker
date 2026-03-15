@@ -1,4 +1,4 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to create Notifications table for the unified notification system.
@@ -6,7 +6,7 @@ import { DataTypes, QueryInterface, Transaction } from 'sequelize';
  * with type-specific payloads stored in JSONB.
  */
 export default {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -97,7 +97,7 @@ export default {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.dropTable('Notifications');
   },
 };

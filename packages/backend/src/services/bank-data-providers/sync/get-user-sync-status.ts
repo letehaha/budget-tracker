@@ -1,6 +1,6 @@
-import Accounts from '@models/Accounts.model';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import { Op } from 'sequelize';
+import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import { Op } from '@sequelize/core';
 
 import {
   type AccountSyncStatus,

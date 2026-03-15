@@ -1,5 +1,5 @@
 import { getDefaultValue } from '@common/helpers/get-default-value-from-zod-schema';
-import UserSettings, { SettingsSchema, ZodSettingsSchema } from '@models/UserSettings.model';
+import UserSettings, { SettingsSchema, ZodSettingsSchema } from '@models/user-settings.model';
 
 import { withTransaction } from '../common/with-transaction';
 

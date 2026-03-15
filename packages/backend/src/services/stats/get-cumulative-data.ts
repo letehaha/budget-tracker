@@ -1,7 +1,8 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
-import Accounts from '@models/Accounts.model';
-import * as Transactions from '@models/Transactions.model';
+import Accounts from '@models/accounts.model';
+import * as Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import {
   addMonths,
   differenceInMonths,
@@ -15,7 +16,6 @@ import {
   startOfMonth,
   subMonths,
 } from 'date-fns';
-import { Op } from 'sequelize';
 
 import { getWhereConditionForTime } from './utils';
 

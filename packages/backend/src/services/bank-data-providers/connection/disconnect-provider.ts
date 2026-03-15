@@ -1,6 +1,6 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import Accounts from '@models/Accounts.model';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
+import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { unlinkAccountFromBankConnection } from '@services/accounts/unlink-from-bank-connection';
 

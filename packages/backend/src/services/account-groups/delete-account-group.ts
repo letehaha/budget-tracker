@@ -1,6 +1,6 @@
 import { logger } from '@js/utils';
-import AccountGrouping from '@models/accounts-groups/AccountGrouping.model';
-import AccountGroup from '@models/accounts-groups/AccountGroups.model';
+import AccountGrouping from '@models/accounts-groups/account-grouping.model';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
 import { removeAccountFromGroup } from '@services/account-groups/remove-account-from-group';
 
 import { withTransaction } from '../common/with-transaction';

@@ -1,6 +1,6 @@
-import Securities from '@models/investments/Securities.model';
+import Securities from '@models/investments/securities.model';
+import { FindOptions } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { FindOptions } from 'sequelize';
 
 /**
  * Fetches a list of securities from the database.

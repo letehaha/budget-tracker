@@ -1,7 +1,7 @@
 import { t } from '@i18n/index';
 import { NotAllowedError, NotFoundError } from '@js/errors';
-import Holdings from '@models/investments/Holdings.model';
-import Portfolios from '@models/investments/Portfolios.model';
+import Holdings from '@models/investments/holdings.model';
+import Portfolios from '@models/investments/portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteParams {

@@ -1,4 +1,4 @@
-import Portfolios from '@models/investments/Portfolios.model';
+import Portfolios from '@models/investments/portfolios.model';
 import * as helpers from '@tests/helpers';
 import { beforeEach, describe, expect, it } from 'vitest';
 

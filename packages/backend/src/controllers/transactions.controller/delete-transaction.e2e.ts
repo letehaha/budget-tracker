@@ -1,6 +1,6 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { beforeEach, describe, expect, it } from 'vitest';
 

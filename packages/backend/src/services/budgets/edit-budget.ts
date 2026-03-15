@@ -2,9 +2,9 @@ import { BUDGET_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
-import Budgets from '@models/Budget.model';
-import BudgetCategories from '@models/BudgetCategories.model';
-import Categories from '@models/Categories.model';
+import BudgetCategories from '@models/budget-categories.model';
+import Budgets from '@models/budget.model';
+import Categories from '@models/categories.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { expandCategoryIds } from './utils/expand-category-ids';

@@ -1,4 +1,4 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to create TagReminders table.
@@ -9,7 +9,7 @@ import { DataTypes, QueryInterface, Transaction } from 'sequelize';
  * - With frequency = cron-based check at specified intervals
  */
 export default {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -130,7 +130,7 @@ export default {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

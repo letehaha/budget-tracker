@@ -7,7 +7,7 @@ import {
   NotificationStatus,
   NotificationType,
 } from '@bt/shared/types';
-import Notifications from '@models/Notifications.model';
+import Notifications from '@models/notifications.model';
 
 import { withTransaction } from '../common/with-transaction';
 

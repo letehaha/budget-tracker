@@ -1,9 +1,9 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { t } from '@i18n/index';
 import { ConflictError, NotFoundError } from '@js/errors';
-import Portfolios from '@models/investments/Portfolios.model';
+import Portfolios from '@models/investments/portfolios.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 interface UpdatePortfolioParams {
   userId: number;

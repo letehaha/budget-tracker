@@ -1,8 +1,8 @@
 import { ValidationError } from '@js/errors';
-import Holdings from '@models/investments/Holdings.model';
-import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
-import PortfolioBalances from '@models/investments/PortfolioBalances.model';
-import Portfolios from '@models/investments/Portfolios.model';
+import Holdings from '@models/investments/holdings.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import PortfolioBalances from '@models/investments/portfolio-balances.model';
+import Portfolios from '@models/investments/portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DeletePortfolioParams {

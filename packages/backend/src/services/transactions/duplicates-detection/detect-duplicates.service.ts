@@ -1,5 +1,5 @@
 import { Cents, TRANSACTION_TYPES, asCents } from '@bt/shared/types';
-import * as Transactions from '@models/Transactions.model';
+import * as Transactions from '@models/transactions.model';
 
 /**
  * Generic transaction interface for duplicate detection.

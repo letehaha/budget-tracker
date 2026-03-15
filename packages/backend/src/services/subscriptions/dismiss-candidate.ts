@@ -1,6 +1,6 @@
 import { SUBSCRIPTION_CANDIDATE_STATUS } from '@bt/shared/types';
 import { ConflictError, NotFoundError } from '@js/errors';
-import SubscriptionCandidates from '@models/SubscriptionCandidates.model';
+import SubscriptionCandidates from '@models/subscription-candidates.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DismissCandidateParams {

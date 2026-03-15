@@ -1,8 +1,8 @@
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
-import Tags from '@models/Tags.model';
+import Tags from '@models/tags.model';
+import { literal } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { literal } from 'sequelize';
 
 interface CreateTagPayload {
   userId: number;

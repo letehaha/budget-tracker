@@ -1,12 +1,12 @@
 import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
-import * as Accounts from '@models/Accounts.model';
-import * as Currencies from '@models/Currencies.model';
-import * as ExchangeRates from '@models/ExchangeRates.model';
-import * as Transactions from '@models/Transactions.model';
-import * as Users from '@models/Users.model';
-import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import * as Accounts from '@models/accounts.model';
+import * as Currencies from '@models/currencies.model';
+import * as ExchangeRates from '@models/exchange-rates.model';
+import * as Transactions from '@models/transactions.model';
+import * as UsersCurrencies from '@models/users-currencies.model';
+import * as Users from '@models/users.model';
 
 import { withTransaction } from './common/with-transaction';
 import { addUserCurrencies } from './currencies/add-user-currency';

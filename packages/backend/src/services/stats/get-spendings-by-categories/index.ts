@@ -1,11 +1,11 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { endpointsTypes } from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
-import * as Categories from '@models/Categories.model';
-import RefundTransactions from '@models/RefundTransactions.model';
-import Transactions from '@models/Transactions.model';
-import TransactionSplits from '@models/TransactionSplits.model';
-import { Op } from 'sequelize';
+import * as Categories from '@models/categories.model';
+import RefundTransactions from '@models/refund-transactions.model';
+import TransactionSplits from '@models/transaction-splits.model';
+import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 
 import { getExpensesHistory } from '../get-expenses-history';
 

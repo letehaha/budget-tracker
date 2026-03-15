@@ -1,7 +1,7 @@
 import { NotFoundError } from '@js/errors';
 import { logger } from '@js/utils/logger';
-import * as RefundTransactions from '@models/RefundTransactions.model';
-import * as Transactions from '@models/Transactions.model';
+import * as RefundTransactions from '@models/refund-transactions.model';
+import * as Transactions from '@models/transactions.model';
 
 import { withTransaction } from '../common/with-transaction';
 

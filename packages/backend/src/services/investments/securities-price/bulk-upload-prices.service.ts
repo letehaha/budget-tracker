@@ -1,10 +1,10 @@
 import type { SecuritySearchResult } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
-import ExchangeRates from '@models/ExchangeRates.model';
-import SecurityPricing from '@models/investments/SecurityPricing.model';
+import ExchangeRates from '@models/exchange-rates.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
+import { Op } from '@sequelize/core';
 import { exchangeRateProviderRegistry } from '@services/exchange-rates/providers';
 import { format, startOfDay } from 'date-fns';
-import { Op } from 'sequelize';
 
 import { addSecurityFromSearch } from '../securities/add-from-search.service';
 

@@ -1,7 +1,7 @@
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { ERROR_CODES } from '@js/errors';
-import Holdings from '@models/investments/Holdings.model';
+import Holdings from '@models/investments/holdings.model';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
 

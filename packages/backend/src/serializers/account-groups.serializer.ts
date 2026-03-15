@@ -4,7 +4,7 @@
  * Handles conversion of account groups with nested accounts.
  * Ensures all monetary fields in nested accounts are properly converted.
  */
-import type AccountGroup from '@models/accounts-groups/AccountGroups.model';
+import type AccountGroup from '@models/accounts-groups/account-groups.model';
 
 import { type AccountApiResponse, serializeAccount } from './accounts.serializer';
 

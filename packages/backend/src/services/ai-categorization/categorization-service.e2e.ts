@@ -1,9 +1,9 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import * as helpers from '@tests/helpers';
 import { INVALID_GEMINI_API_KEY, VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
-import { Op } from 'sequelize';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DOMAIN_EVENTS, eventBus } from '../common/event-bus';

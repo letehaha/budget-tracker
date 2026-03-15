@@ -1,6 +1,6 @@
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
-import Portfolios from '@models/investments/Portfolios.model';
+import Portfolios from '@models/investments/portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface GetPortfolioParams {

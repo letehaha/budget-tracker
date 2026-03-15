@@ -2,7 +2,7 @@ import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types';
 import { getCurrentSessionId } from '@common/lib/cls/session-id';
 import { auth } from '@config/auth';
 import { setSentryUser } from '@js/utils/sentry';
-import Users from '@models/Users.model';
+import Users from '@models/users.model';
 import { NextFunction, Request, Response } from 'express';
 
 /**

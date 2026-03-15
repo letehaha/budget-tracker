@@ -1,10 +1,10 @@
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
-import Currencies from '@models/Currencies.model';
-import PortfolioBalances from '@models/investments/PortfolioBalances.model';
-import Portfolios from '@models/investments/Portfolios.model';
+import Currencies from '@models/currencies.model';
+import PortfolioBalances from '@models/investments/portfolio-balances.model';
+import Portfolios from '@models/investments/portfolios.model';
+import { WhereOptions } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { WhereOptions } from 'sequelize';
 
 interface GetPortfolioBalancesParams {
   userId: number;

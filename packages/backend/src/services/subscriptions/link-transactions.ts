@@ -1,9 +1,9 @@
 import { CATEGORIZATION_SOURCE, SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
 import { ConflictError, NotFoundError } from '@js/errors';
-import SubscriptionTransactions from '@models/SubscriptionTransactions.model';
-import * as Transactions from '@models/Transactions.model';
+import SubscriptionTransactions from '@models/subscription-transactions.model';
+import * as Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 import { findSubscriptionOrThrow } from './helpers';
 

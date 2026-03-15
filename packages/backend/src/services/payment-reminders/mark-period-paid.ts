@@ -2,7 +2,7 @@ import { PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { ensureNextPeriodExists } from './ensure-next-period';

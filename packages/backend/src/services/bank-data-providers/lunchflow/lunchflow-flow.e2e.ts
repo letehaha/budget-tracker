@@ -7,7 +7,8 @@ import {
   asDecimal,
 } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import * as helpers from '@tests/helpers';
 import { buildTransactionPayload } from '@tests/helpers/transactions';
 import {
@@ -24,7 +25,6 @@ import {
   getLunchFlowTransactionsMock,
 } from '@tests/mocks/lunchflow/mock-api';
 import { addDays, subDays } from 'date-fns';
-import { Op } from 'sequelize';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -1358,7 +1358,7 @@ describe('LunchFlow Data Provider E2E', () => {
 
       // Simulate auth failures by trying to list accounts with bad credentials override
       // Force deactivation by making 2 consecutive auth failures via direct DB update
-      const BankDataProviderConnections = (await import('@models/BankDataProviderConnections.model')).default;
+      const BankDataProviderConnections = (await import('@models/bank-data-provider-connections.model')).default;
       await BankDataProviderConnections.update(
         {
           isActive: false,

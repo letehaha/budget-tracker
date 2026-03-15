@@ -1,4 +1,4 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to replace imageUrl with icon on Categories and Tags tables.
@@ -228,7 +228,7 @@ const OLD_TO_FLUENT: Record<string, string> = {
 };
 
 export default {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -296,7 +296,7 @@ export default {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

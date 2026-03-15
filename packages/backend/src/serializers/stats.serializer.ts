@@ -6,7 +6,7 @@
  */
 import { type endpointsTypes } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
-import type Balances from '@models/Balances.model';
+import type Balances from '@models/balances.model';
 import type { CombinedBalanceHistoryItem } from '@services/stats/get-combined-balance-history';
 
 // ============================================================================

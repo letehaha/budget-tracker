@@ -258,7 +258,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       // Access database model directly to check metadata
-      const BankDataProviderConnections = (await import('@models/BankDataProviderConnections.model')).default;
+      const BankDataProviderConnections = (await import('@models/bank-data-provider-connections.model')).default;
       const connection = await BankDataProviderConnections.findByPk(result.connectionId);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

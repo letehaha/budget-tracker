@@ -1,5 +1,5 @@
 import { NOTIFICATION_TYPES } from '@bt/shared/types';
-import Notifications from '@models/Notifications.model';
+import Notifications from '@models/notifications.model';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
 

@@ -1,9 +1,9 @@
 import { UserModel } from '@bt/shared/types';
 import type { SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
-import Holdings from '@models/investments/Holdings.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import Securities from '@models/investments/Securities.model';
+import Holdings from '@models/investments/holdings.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
 
 import { dataProviderFactory } from '../data-providers';
 

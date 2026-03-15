@@ -5,8 +5,8 @@ import {
   type TransactionModel,
   type endpointsTypes,
 } from '@bt/shared/types';
-import Accounts from '@models/Accounts.model';
-import Currencies from '@models/Currencies.model';
+import Accounts from '@models/accounts.model';
+import Currencies from '@models/currencies.model';
 import { updateAccount as apiUpdateAccount } from '@root/services/accounts.service';
 import { Response } from 'express';
 

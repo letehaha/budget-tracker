@@ -1,9 +1,9 @@
 import { SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import Categories from '@models/Categories.model';
-import Subscriptions from '@models/Subscriptions.model';
-import Transactions from '@models/Transactions.model';
-import { Op } from 'sequelize';
+import Categories from '@models/categories.model';
+import Subscriptions from '@models/subscriptions.model';
+import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 
 import { computeNextExpectedDate } from './get-subscriptions';
 

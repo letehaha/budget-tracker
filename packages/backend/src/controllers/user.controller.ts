@@ -2,7 +2,7 @@ import { currencyCode } from '@common/lib/zod/custom-types';
 import { authPool } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
 import { ValidationError } from '@js/errors';
-import { ExchangeRatePair } from '@models/UserExchangeRates.model';
+import { ExchangeRatePair } from '@models/user-exchange-rates.model';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';
 import { deleteUser as deleteUserService } from '@services/user/delete-user.service';

@@ -1,5 +1,5 @@
 import { getDefaultValue } from '@common/helpers/get-default-value-from-zod-schema';
-import { SettingsSchema, ZodSettingsSchema } from '@models/UserSettings.model';
+import { SettingsSchema, ZodSettingsSchema } from '@models/user-settings.model';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
 

@@ -4,7 +4,7 @@ import {
   REMIND_BEFORE_PRESETS,
   SUBSCRIPTION_FREQUENCIES,
 } from '@bt/shared/types';
-import Notifications from '@models/Notifications.model';
+import Notifications from '@models/notifications.model';
 import PaymentReminderNotifications from '@models/payment-reminder-notifications.model';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';

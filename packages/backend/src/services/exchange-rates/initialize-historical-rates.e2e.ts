@@ -1,4 +1,4 @@
-import ExchangeRates from '@models/ExchangeRates.model';
+import ExchangeRates from '@models/exchange-rates.model';
 import { createOverride } from '@tests/mocks/helpers';
 import { format } from 'date-fns';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';

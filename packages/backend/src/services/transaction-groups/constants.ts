@@ -1,4 +1,4 @@
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 
 export const MIN_GROUP_SIZE = 2;
 export const MAX_GROUP_SIZE = 50;

@@ -1,6 +1,6 @@
 import { CategoryOptionValue, type ColumnMappingConfig } from '@bt/shared/types';
 import { NotFoundError } from '@js/errors';
-import Categories from '@models/Categories.model';
+import Categories from '@models/categories.model';
 
 interface ValidateExistingCategoryParams {
   userId: number;

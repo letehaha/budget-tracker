@@ -1,6 +1,6 @@
-import * as Accounts from '@models/Accounts.model';
-import * as Balances from '@models/Balances.model';
-import { Op } from 'sequelize';
+import * as Accounts from '@models/accounts.model';
+import * as Balances from '@models/balances.model';
+import { Op } from '@sequelize/core';
 
 import { getWhereConditionForTime } from './utils';
 

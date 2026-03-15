@@ -2,9 +2,9 @@ import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
-import * as Transactions from '@models/Transactions.model';
+import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 import { v4 as uuidv4 } from 'uuid';
 
 const validateTransactionLinking = ({

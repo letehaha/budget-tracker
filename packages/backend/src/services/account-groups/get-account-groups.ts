@@ -1,6 +1,6 @@
-import AccountGroup from '@models/accounts-groups/AccountGroups.model';
-import Accounts from '@models/Accounts.model';
-import { Op, type WhereOptions } from 'sequelize';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
+import Accounts from '@models/accounts.model';
+import { Op, type WhereOptions } from '@sequelize/core';
 
 export const getAccountGroups = async ({
   userId,

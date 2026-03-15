@@ -1,5 +1,5 @@
 import { NotFoundError } from '@js/errors';
-import TransactionGroups from '@models/TransactionGroups.model';
+import TransactionGroups from '@models/transaction-groups.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteTransactionGroupPayload {

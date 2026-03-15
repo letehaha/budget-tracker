@@ -1,6 +1,6 @@
 import { AccountOptionValue, type ColumnMappingConfig } from '@bt/shared/types';
 import { NotFoundError } from '@js/errors';
-import * as Accounts from '@models/Accounts.model';
+import * as Accounts from '@models/accounts.model';
 
 interface ValidateExistingAccountParams {
   userId: number;

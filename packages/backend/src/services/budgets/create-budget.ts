@@ -2,13 +2,13 @@ import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
-import Budgets from '@models/Budget.model';
-import BudgetCategories from '@models/BudgetCategories.model';
-import BudgetTransactions from '@models/BudgetTransactions.model';
-import Categories from '@models/Categories.model';
-import Transactions from '@models/Transactions.model';
+import BudgetCategories from '@models/budget-categories.model';
+import BudgetTransactions from '@models/budget-transactions.model';
+import Budgets from '@models/budget.model';
+import Categories from '@models/categories.model';
+import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 import { expandCategoryIds } from './utils/expand-category-ids';
 

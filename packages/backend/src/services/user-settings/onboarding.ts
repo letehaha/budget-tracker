@@ -1,13 +1,13 @@
-import Accounts from '@models/Accounts.model';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import Budgets from '@models/Budget.model';
-import Transactions from '@models/Transactions.model';
-import UsersCurrencies from '@models/UsersCurrencies.model';
+import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import Budgets from '@models/budget.model';
+import Transactions from '@models/transactions.model';
 import UserSettings, {
   DEFAULT_ONBOARDING_STATE,
   DEFAULT_SETTINGS,
   type OnboardingStateSchema,
-} from '@models/UserSettings.model';
+} from '@models/user-settings.model';
+import UsersCurrencies from '@models/users-currencies.model';
 
 import { withTransaction } from '../common/with-transaction';
 

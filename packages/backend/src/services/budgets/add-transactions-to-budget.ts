@@ -1,11 +1,11 @@
 import { BUDGET_TYPES } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
-import Budgets from '@models/Budget.model';
-import BudgetTransactions from '@models/BudgetTransactions.model';
-import Transactions from '@models/Transactions.model';
+import BudgetTransactions from '@models/budget-transactions.model';
+import Budgets from '@models/budget.model';
+import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 interface AddTransactionsPayload {
   budgetId: number;

@@ -1,12 +1,12 @@
 import { INVESTMENT_DECIMAL_SCALE, Money } from '@common/types/money';
-import Holdings from '@models/investments/Holdings.model';
-import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
-import Securities from '@models/investments/Securities.model';
-import SecurityPricing from '@models/investments/SecurityPricing.model';
+import Holdings from '@models/investments/holdings.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import Securities from '@models/investments/securities.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
+import { Op, WhereOptions } from '@sequelize/core';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withDeduplication } from '@services/common/with-deduplication';
 import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
-import { Op, WhereOptions } from 'sequelize';
 
 interface GetHoldingValuesParams {
   portfolioId: number;

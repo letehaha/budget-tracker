@@ -1,4 +1,4 @@
-import AccountGroup from '@models/accounts-groups/AccountGroups.model';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
 
 import { withTransaction } from '../common/with-transaction';
 

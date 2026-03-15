@@ -1,7 +1,7 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
-import Categories from '@models/Categories.model';
+import Categories from '@models/categories.model';
 
 import {
   MAX_SPLITS_PER_TRANSACTION,

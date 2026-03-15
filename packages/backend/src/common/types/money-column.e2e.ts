@@ -6,9 +6,9 @@
  * literal updates, and direct model operations.
  */
 import { BUDGET_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
-import Accounts from '@models/Accounts.model';
-import Balances from '@models/Balances.model';
-import Transactions from '@models/Transactions.model';
+import Accounts from '@models/accounts.model';
+import Balances from '@models/balances.model';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
 

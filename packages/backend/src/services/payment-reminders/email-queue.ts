@@ -2,7 +2,7 @@ import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import { connection } from '@models/index';
 import PaymentReminderNotifications from '@models/payment-reminder-notifications.model';
-import Users from '@models/Users.model';
+import Users from '@models/users.model';
 import { Job, Queue, Worker } from 'bullmq';
 import { Resend } from 'resend';
 

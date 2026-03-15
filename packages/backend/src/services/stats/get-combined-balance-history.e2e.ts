@@ -1,5 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import Balances from '@models/Balances.model';
+import Balances from '@models/balances.model';
 import * as helpers from '@tests/helpers';
 import { format, subDays } from 'date-fns';
 import { describe, expect, it } from 'vitest';

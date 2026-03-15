@@ -1,4 +1,4 @@
-import UserSettings, { type SettingsSchema } from '@models/UserSettings.model';
+import UserSettings, { type SettingsSchema } from '@models/user-settings.model';
 
 import { withTransaction } from '../common/with-transaction';
 

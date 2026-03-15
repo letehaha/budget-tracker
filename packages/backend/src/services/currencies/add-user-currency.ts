@@ -1,6 +1,6 @@
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
-import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import * as UsersCurrencies from '@models/users-currencies.model';
 
 import { withTransaction } from '../common/with-transaction';
 

@@ -1,7 +1,7 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { NotFoundError } from '@root/js/errors';
 import { bankProviderRegistry } from '@services/bank-data-providers';
 import { z } from 'zod';

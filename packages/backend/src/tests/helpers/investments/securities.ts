@@ -1,5 +1,5 @@
 import { until } from '@common/helpers';
-import type Securities from '@models/investments/Securities.model';
+import type Securities from '@models/investments/securities.model';
 import { FmpClient, type FmpSearchResult } from '@root/services/investments/data-providers/clients/fmp-client';
 import { addSecurityFromSearch } from '@root/services/investments/securities/add-from-search.service';
 import * as getSecuritiesService from '@root/services/investments/securities/get-all';

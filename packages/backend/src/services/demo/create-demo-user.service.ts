@@ -1,7 +1,7 @@
 import { USER_ROLES } from '@bt/shared/types';
 import { authPool } from '@config/auth';
 import { logger } from '@js/utils/logger';
-import { createUser } from '@models/Users.model';
+import { createUser } from '@models/users.model';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 

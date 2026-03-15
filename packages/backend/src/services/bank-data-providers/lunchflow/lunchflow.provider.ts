@@ -12,9 +12,10 @@ import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import Transactions from '@models/Transactions.model';
-import { getUserDefaultCategory } from '@models/Users.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import Transactions from '@models/transactions.model';
+import { getUserDefaultCategory } from '@models/users.model';
+import { Sequelize } from '@sequelize/core';
 import {
   BaseBankDataProvider,
   DateRange,
@@ -24,7 +25,6 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
-import { Sequelize } from 'sequelize';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';

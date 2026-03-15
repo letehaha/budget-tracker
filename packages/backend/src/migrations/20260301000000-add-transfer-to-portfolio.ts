@@ -1,7 +1,7 @@
-import { QueryInterface, DataTypes, Op } from 'sequelize';
+import { AbstractQueryInterface, DataTypes, Op } from '@sequelize/core';
 
 export default {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // PostgreSQL doesn't allow ALTER TYPE ADD VALUE inside a transaction
     await queryInterface.sequelize.query(
       `ALTER TYPE "enum_transfer_nature" ADD VALUE IF NOT EXISTS 'transfer_to_portfolio';`,
@@ -85,7 +85,7 @@ export default {
     });
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Restore original check constraint (without deposit/withdrawal)
     await queryInterface.removeConstraint('PortfolioTransfers', 'portfolio_transfers_valid_direction_check');
 

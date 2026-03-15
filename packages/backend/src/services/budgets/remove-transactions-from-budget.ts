@@ -1,9 +1,9 @@
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
-import Budgets from '@models/Budget.model';
-import BudgetTransactions from '@models/BudgetTransactions.model';
+import BudgetTransactions from '@models/budget-transactions.model';
+import Budgets from '@models/budget.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 interface RemoveTransactionsPayload {
   budgetId: number;

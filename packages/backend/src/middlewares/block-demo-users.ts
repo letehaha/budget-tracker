@@ -1,6 +1,6 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS, USER_ROLES } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
-import Users from '@models/Users.model';
+import Users from '@models/users.model';
 import type { NextFunction, Request, Response } from 'express';
 
 /**

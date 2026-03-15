@@ -1,11 +1,11 @@
 import { SUBSCRIPTION_LINK_STATUS } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { NotFoundError } from '@js/errors';
-import Accounts from '@models/Accounts.model';
-import Categories from '@models/Categories.model';
-import Subscriptions from '@models/Subscriptions.model';
-import Transactions from '@models/Transactions.model';
-import { fn, literal } from 'sequelize';
+import Accounts from '@models/accounts.model';
+import Categories from '@models/categories.model';
+import Subscriptions from '@models/subscriptions.model';
+import Transactions from '@models/transactions.model';
+import { fn, literal } from '@sequelize/core';
 
 import { computeNextExpectedDate } from './subscription-date.utils';
 

@@ -1,10 +1,10 @@
 import { ERROR_CODES } from '@js/errors';
-import ExchangeRates from '@models/ExchangeRates.model';
-import SecurityPricing from '@models/investments/SecurityPricing.model';
+import ExchangeRates from '@models/exchange-rates.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
+import { Op } from '@sequelize/core';
 import { exchangeRateProviderRegistry } from '@services/exchange-rates/providers';
 import * as helpers from '@tests/helpers';
 import { startOfDay } from 'date-fns';
-import { Op } from 'sequelize';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('POST /investments/securities/prices/bulk-upload', () => {

@@ -1,4 +1,4 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to add category-based budgeting support.
@@ -11,7 +11,7 @@ import { DataTypes, QueryInterface, Transaction } from 'sequelize';
  * Existing budgets default to 'manual' type (backward compatible).
  */
 export default {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -91,7 +91,7 @@ export default {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

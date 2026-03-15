@@ -58,8 +58,6 @@
     "pg": "8.11.5",
     "posthog-node": "^5.20.0",
     "resend": "^6.6.0",
-    "sequelize": "6.37.3",
-    "sequelize-typescript": "^2.1.6",
     "uuid": "^11.0.0",
     "walutomat-sdk": "0.2.0",
     "winston": "3.13.0",

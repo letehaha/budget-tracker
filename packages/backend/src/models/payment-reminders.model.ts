@@ -1,25 +1,43 @@
 import { RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
-import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, DataType, BeforeCreate } from 'sequelize-typescript';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Default,
+  HasMany,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
-import Categories from './Categories.model';
+import Categories from './categories.model';
 import PaymentReminderPeriods from './payment-reminder-periods.model';
-import Subscriptions from './Subscriptions.model';
-import Users from './Users.model';
+import Subscriptions from './subscriptions.model';
+import Users from './users.model';
 
 @Table({
   tableName: 'PaymentReminders',
   timestamps: true,
   freezeTableName: true,
 })
-export default class PaymentReminders extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-  })
-  declare id: string;
+export default class PaymentReminders extends Model<
+  InferAttributes<PaymentReminders>,
+  InferCreationAttributes<PaymentReminders>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<string>;
 
   @BeforeCreate
   static generateUUIDv7(instance: PaymentReminders) {
@@ -28,27 +46,18 @@ export default class PaymentReminders extends Model {
     }
   }
 
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare userId: number;
 
-  @ForeignKey(() => Subscriptions)
-  @Column({
-    type: DataType.UUID,
-    allowNull: true,
-  })
-  subscriptionId!: string | null;
+  @Attribute(DataTypes.UUID)
+  declare subscriptionId: string | null;
 
-  @Column({
-    type: DataType.STRING(200),
-    allowNull: false,
-  })
-  name!: string;
+  @Attribute(DataTypes.STRING(200))
+  @NotNull
+  declare name: string;
 
-  @Column(MoneyColumn({ storage: 'cents', allowNull: true }))
+  @Attribute(DataTypes.INTEGER)
   get expectedAmount(): Money {
     return moneyGetCents(this, 'expectedAmount');
   }
@@ -56,90 +65,63 @@ export default class PaymentReminders extends Model {
     moneySetCents(this, 'expectedAmount', val);
   }
 
-  @Column({
-    type: DataType.STRING(3),
-    allowNull: true,
-  })
-  currencyCode!: string | null;
+  @Attribute(DataTypes.STRING(3))
+  declare currencyCode: string | null;
 
-  @Column({
-    type: DataType.ENUM(...Object.values(SUBSCRIPTION_FREQUENCIES)),
-    allowNull: true,
-  })
-  frequency!: SUBSCRIPTION_FREQUENCIES | null;
+  @Attribute(DataTypes.ENUM({ values: Object.values(SUBSCRIPTION_FREQUENCIES) }))
+  declare frequency: SUBSCRIPTION_FREQUENCIES | null;
 
-  @Column({
-    type: DataType.SMALLINT,
-    allowNull: false,
-  })
-  anchorDay!: number;
+  @Attribute(DataTypes.SMALLINT)
+  @NotNull
+  declare anchorDay: number;
 
-  @Column({
-    type: DataType.DATEONLY,
-    allowNull: false,
-  })
-  dueDate!: string;
+  @Attribute(DataTypes.DATEONLY)
+  @NotNull
+  declare dueDate: string;
 
-  @Column({
-    type: DataType.JSONB,
-    allowNull: false,
-    defaultValue: [],
-  })
-  remindBefore!: RemindBeforePreset[];
+  @Attribute(DataTypes.JSONB)
+  @NotNull
+  @Default([])
+  declare remindBefore: CreationOptional<RemindBeforePreset[]>;
 
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  })
-  notifyEmail!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(false)
+  declare notifyEmail: CreationOptional<boolean>;
 
-  @Column({
-    type: DataType.SMALLINT,
-    allowNull: false,
-    defaultValue: 8,
-  })
-  preferredTime!: number;
+  @Attribute(DataTypes.SMALLINT)
+  @NotNull
+  @Default(8)
+  declare preferredTime: CreationOptional<number>;
 
-  @Column({
-    type: DataType.STRING(50),
-    allowNull: false,
-    defaultValue: 'UTC',
-  })
-  timezone!: string;
+  @Attribute(DataTypes.STRING(50))
+  @NotNull
+  @Default('UTC')
+  declare timezone: CreationOptional<string>;
 
-  @ForeignKey(() => Categories)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: true,
-  })
-  categoryId!: number | null;
+  @Attribute(DataTypes.INTEGER)
+  declare categoryId: number | null;
 
-  @Column({
-    type: DataType.TEXT,
-    allowNull: true,
-  })
-  notes!: string | null;
+  @Attribute(DataTypes.TEXT)
+  declare notes: string | null;
 
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: true,
-  })
-  isActive!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(true)
+  declare isActive: CreationOptional<boolean>;
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsTo(() => Users)
-  user!: Users;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
-  @BelongsTo(() => Subscriptions)
-  subscription!: Subscriptions | null;
+  @BelongsTo(() => Subscriptions, 'subscriptionId')
+  declare subscription?: NonAttribute<Subscriptions | null>;
 
-  @BelongsTo(() => Categories)
-  category!: Categories | null;
+  @BelongsTo(() => Categories, 'categoryId')
+  declare category?: NonAttribute<Categories | null>;
 
-  @HasMany(() => PaymentReminderPeriods, { foreignKey: 'reminderId' })
-  periods!: PaymentReminderPeriods[];
+  @HasMany(() => PaymentReminderPeriods, 'reminderId')
+  declare periods?: NonAttribute<PaymentReminderPeriods[]>;
 }

@@ -1,7 +1,7 @@
 import { ERROR_CODES } from '@js/errors';
-import Holdings from '@models/investments/Holdings.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import Securities from '@models/investments/Securities.model';
+import Holdings from '@models/investments/holdings.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
 import * as helpers from '@tests/helpers';
 import { beforeEach, describe, expect, it } from 'vitest';
 

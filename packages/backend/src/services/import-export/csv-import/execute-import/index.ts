@@ -18,9 +18,9 @@ import {
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import { trackImportCompleted } from '@js/utils/posthog';
-import * as Accounts from '@models/Accounts.model';
-import Categories from '@models/Categories.model';
-import * as Transactions from '@models/Transactions.model';
+import * as Accounts from '@models/accounts.model';
+import Categories from '@models/categories.model';
+import * as Transactions from '@models/transactions.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';

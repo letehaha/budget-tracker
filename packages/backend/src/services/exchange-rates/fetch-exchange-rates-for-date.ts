@@ -1,7 +1,7 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { BadGateway, CustomError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
-import ExchangeRates from '@models/ExchangeRates.model';
+import ExchangeRates from '@models/exchange-rates.model';
 import { withDeduplication } from '@services/common/with-deduplication';
 import { format, startOfDay } from 'date-fns';
 

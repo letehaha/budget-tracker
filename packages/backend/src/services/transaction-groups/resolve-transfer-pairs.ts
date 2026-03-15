@@ -1,6 +1,6 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
-import Transactions from '@models/Transactions.model';
-import { Op } from 'sequelize';
+import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 
 /**
  * Given a list of transaction IDs, finds any transfer-paired opposite transactions

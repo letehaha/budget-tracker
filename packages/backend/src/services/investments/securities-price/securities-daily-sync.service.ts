@@ -1,12 +1,12 @@
 import { SECURITY_PROVIDER } from '@bt/shared/types';
 import { logger } from '@js/utils';
-import Holdings from '@models/investments/Holdings.model';
-import Securities from '@models/investments/Securities.model';
-import SecurityPricing from '@models/investments/SecurityPricing.model';
+import Holdings from '@models/investments/holdings.model';
+import Securities from '@models/investments/securities.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
+import { Op } from '@sequelize/core';
 import { withLock } from '@services/common/lock';
 import { withTransaction } from '@services/common/with-transaction';
 import { endOfDay, subDays } from 'date-fns';
-import { Op } from 'sequelize';
 
 import { dataProviderFactory } from '../data-providers';
 

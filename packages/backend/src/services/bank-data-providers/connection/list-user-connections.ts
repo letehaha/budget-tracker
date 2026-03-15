@@ -1,5 +1,5 @@
-import Accounts from '@models/Accounts.model';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
+import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 
 export const listUserConnections = async ({
   userId,

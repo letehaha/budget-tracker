@@ -1,6 +1,6 @@
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
-import AccountGroup from '@models/accounts-groups/AccountGroups.model';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
 
 import { withTransaction } from '../common/with-transaction';
 

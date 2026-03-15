@@ -1,6 +1,6 @@
-import ExchangeRates from '@models/ExchangeRates.model';
+import ExchangeRates from '@models/exchange-rates.model';
+import { Op, type WhereOptions } from '@sequelize/core';
 import { parse } from 'date-fns';
-import { Op, type WhereOptions } from 'sequelize';
 
 export const getExchangeRatesForDate = async ({
   date,

@@ -1,8 +1,8 @@
 import { AccountOptionValue, type ColumnMappingConfig, CurrencyOptionValue } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
-import * as Accounts from '@models/Accounts.model';
-import * as Currencies from '@models/Currencies.model';
+import * as Accounts from '@models/accounts.model';
+import * as Currencies from '@models/currencies.model';
 
 /**
  * Validate currency code format (3-letter uppercase)

@@ -1,7 +1,7 @@
 import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
-import Accounts from '@models/Accounts.model';
-import Transactions from '@models/Transactions.model';
+import Accounts from '@models/accounts.model';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import { subDays } from 'date-fns';

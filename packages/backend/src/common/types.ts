@@ -1,7 +1,7 @@
 import { API_RESPONSE_STATUS } from '@bt/shared/types';
-import Users from '@models/Users.model';
+import Users from '@models/users.model';
+import { InferAttributes, Model } from '@sequelize/core';
 import * as Express from 'express';
-import { InferAttributes, Model } from 'sequelize';
 import { ZodIssue, z } from 'zod';
 
 // Enforce res.json(object) to always have `status` field and optional `response`

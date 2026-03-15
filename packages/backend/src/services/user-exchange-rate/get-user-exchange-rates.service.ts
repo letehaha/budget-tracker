@@ -1,5 +1,5 @@
 import { logger } from '@js/utils';
-import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import * as UsersCurrencies from '@models/users-currencies.model';
 
 import { withTransaction } from '../common/with-transaction';
 import { getExchangeRate } from './get-exchange-rate.service';

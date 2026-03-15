@@ -1,11 +1,11 @@
 import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
-import Subscriptions from '@models/Subscriptions.model';
-import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import Subscriptions from '@models/subscriptions.model';
+import * as UsersCurrencies from '@models/users-currencies.model';
+import { Op } from '@sequelize/core';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 const MONTHLY_MULTIPLIERS: Record<SUBSCRIPTION_FREQUENCIES, number> = {
   [SUBSCRIPTION_FREQUENCIES.weekly]: 4.33,

@@ -1,4 +1,4 @@
-import { SettingsSchema } from '@models/UserSettings.model';
+import { SettingsSchema } from '@models/user-settings.model';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
 

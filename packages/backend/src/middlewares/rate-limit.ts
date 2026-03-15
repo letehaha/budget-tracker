@@ -1,7 +1,7 @@
 import { errorHandler } from '@controllers/helpers';
 import { t } from '@i18n/index';
 import { TooManyRequests } from '@js/errors';
-import Users from '@models/Users.model';
+import Users from '@models/users.model';
 import { RateLimitService } from '@services/common/rate-limit.service';
 import type { NextFunction, Request, Response } from 'express';
 

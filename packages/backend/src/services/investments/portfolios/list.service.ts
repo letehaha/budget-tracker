@@ -1,7 +1,7 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
-import Portfolios from '@models/investments/Portfolios.model';
+import Portfolios from '@models/investments/portfolios.model';
+import { FindOptions, WhereOptions } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { FindOptions, WhereOptions } from 'sequelize';
 
 interface ListPortfoliosParams {
   userId: number;

@@ -1,7 +1,7 @@
 import { NOTIFICATION_TYPES, TAG_REMINDER_FREQUENCIES, TAG_REMINDER_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
-import Notifications from '@models/Notifications.model';
-import TagReminders from '@models/TagReminders.model';
-import Users from '@models/Users.model';
+import Notifications from '@models/notifications.model';
+import TagReminders from '@models/tag-reminders.model';
+import Users from '@models/users.model';
 import * as helpers from '@tests/helpers';
 import { beforeEach, describe, expect, it } from 'vitest';
 

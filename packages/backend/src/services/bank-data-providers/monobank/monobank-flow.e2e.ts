@@ -1,9 +1,9 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import * as helpers from '@tests/helpers';
 import { INVALID_MONOBANK_TOKEN, VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
-import { Op } from 'sequelize';
 import { describe, expect, it } from 'vitest';
 
 /**

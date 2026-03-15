@@ -1,9 +1,9 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import Currencies from '@models/Currencies.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
-import * as Transactions from '@models/Transactions.model';
+import Currencies from '@models/currencies.model';
+import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
+import Portfolios from '@models/investments/portfolios.model';
+import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
 
