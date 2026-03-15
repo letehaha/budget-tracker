@@ -1,10 +1,6 @@
 import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
 import { Attribute, AutoIncrement, Index, NotNull, PrimaryKey, Table, Unique } from '@sequelize/core/decorators-legacy';
 
-import Categories from './categories.model';
-import MerchantCategoryCodes from './merchant-category-codes.model';
-import Users from './users.model';
-
 @Table({
   timestamps: false,
   tableName: 'UserMerchantCategoryCodes',

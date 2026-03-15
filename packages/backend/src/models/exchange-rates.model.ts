@@ -1,8 +1,6 @@
 import { DataTypes, InferAttributes, InferCreationAttributes, Model, Op } from '@sequelize/core';
 import { Attribute, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
-import Currencies from './currencies.model';
-
 @Table({
   timestamps: true,
   createdAt: 'date',

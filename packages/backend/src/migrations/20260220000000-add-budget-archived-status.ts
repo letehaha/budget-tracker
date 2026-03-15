@@ -13,7 +13,7 @@ export default {
 
     // PostgreSQL doesn't support dropping individual enum values directly.
     // Recreate the enum without 'archived'.
-    const t = await queryInterface.sequelize.transaction();
+    const t = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       await queryInterface.sequelize.query(`CREATE TYPE "enum_Budgets_status_new" AS ENUM ('active', 'closed');`, {
         transaction: t,

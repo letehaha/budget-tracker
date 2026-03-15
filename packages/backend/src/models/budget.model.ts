@@ -3,7 +3,6 @@ import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Categories from '@models/categories.model';
 import Transactions from '@models/transactions.model';
-import Users from '@models/users.model';
 import {
   CreationOptional,
   DataTypes,
@@ -21,9 +20,6 @@ import {
   PrimaryKey,
   Table,
 } from '@sequelize/core/decorators-legacy';
-
-import BudgetCategories from './budget-categories.model';
-import BudgetTransactions from './budget-transactions.model';
 
 @Table({
   timestamps: false,

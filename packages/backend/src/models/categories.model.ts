@@ -22,7 +22,6 @@ import {
 
 import MerchantCategoryCodes from './merchant-category-codes.model';
 import UserMerchantCategoryCodes from './user-merchant-category-codes.model';
-import Users from './users.model';
 
 @Table({
   timestamps: false,

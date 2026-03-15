@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, BalanceModel, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
@@ -126,7 +126,8 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
     prevData?: Transactions;
     isDelete?: boolean;
   }) {
-    const { accountId, time } = data;
+    const accountId = data.accountId!;
+    const { time } = data;
     let amount: Money = data.transactionType === TRANSACTION_TYPES.income ? data.refAmount : data.refAmount.negate();
     const date = startOfDay(new Date(time));
 
@@ -151,7 +152,7 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
             // THEN remove the original transaction
           ) {
             await this.updateBalanceIncremental({
-              accountId: prevData.accountId,
+              accountId: prevData.accountId!,
               date: originalDate,
               amount: originalAmount.negate(),
             });
@@ -183,8 +184,8 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
           const exchangeRateData = await getExchangeRate({
             userId: data.userId,
             date,
-            baseCode: data.currencyCode,
-            quoteCode: data.refCurrencyCode,
+            baseCode: data.currencyCode!,
+            quoteCode: data.refCurrencyCode!,
           });
           const refBalance = Money.fromCents(roundHalfToEven(balance * exchangeRateData.rate));
 
@@ -209,8 +210,8 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
           const exchangeRateData = await getExchangeRate({
             userId: data.userId,
             date,
-            baseCode: data.currencyCode,
-            quoteCode: data.refCurrencyCode,
+            baseCode: data.currencyCode!,
+            quoteCode: data.refCurrencyCode!,
           });
           const refBalance = Money.fromDecimal(roundHalfToEven(balanceDecimal * exchangeRateData.rate * 100) / 100);
 
@@ -268,7 +269,7 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
   }: {
     accountId: number;
     date: Date;
-    amount: number;
+    amount: Money;
   }) {
     // If there's no record for the 1st of the month, create it based on the closest record prior it
     // so it's easier to calculate stats for the period
@@ -352,26 +353,26 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
         await this.create({
           accountId,
           date,
-          amount: account!.refInitialBalance + amount,
+          amount: account!.refInitialBalance.add(amount),
         });
       } else {
         // And then create a new record with the amount + latestBalance
         balanceForTxDate = await this.create({
           accountId,
           date,
-          amount: latestBalancePrior.amount + amount,
+          amount: latestBalancePrior.amount.add(amount),
         });
       }
     } else {
       // If a balance already exists, update its amount
-      balanceForTxDate.amount = balanceForTxDate.amount + amount;
+      balanceForTxDate.amount = balanceForTxDate.amount.add(amount);
 
       await balanceForTxDate.save();
     }
 
     // Update the amount of all balances for the account that come after the date
     await this.update(
-      { amount: sql`amount + ${amount}` },
+      { amount: sql`amount + ${amount.toCents()}` },
       {
         where: {
           accountId,
@@ -406,11 +407,11 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
 
     // If record exists, then it's account updating, otherwise account creation
     if (record && prevAccount) {
-      const diff = refInitialBalance - prevAccount.refInitialBalance;
+      const diff = refInitialBalance.subtract(prevAccount.refInitialBalance);
 
       // Update history for all the records related to that account
       await this.update(
-        { amount: sql`amount + ${diff}` },
+        { amount: sql`amount + ${diff.toCents()}` },
         {
           where: { accountId },
         },

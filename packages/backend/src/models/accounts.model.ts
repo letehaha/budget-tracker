@@ -5,7 +5,6 @@ import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Currencies from '@models/currencies.model';
 import Transactions from '@models/transactions.model';
-import Users from '@models/users.model';
 import {
   CreationOptional,
   DataTypes,
@@ -13,7 +12,6 @@ import {
   InferCreationAttributes,
   Model,
   NonAttribute,
-  Op,
 } from '@sequelize/core';
 import {
   AfterCreate,

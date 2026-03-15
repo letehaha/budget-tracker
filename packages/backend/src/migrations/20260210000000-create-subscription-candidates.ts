@@ -2,7 +2,7 @@ import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core'
 
 export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.createTable(
@@ -16,7 +16,7 @@ export default {
           userId: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            references: { model: 'Users', key: 'id' },
+            references: { model: 'Users' as any, key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -40,7 +40,7 @@ export default {
           accountId: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            references: { model: 'Accounts', key: 'id' },
+            references: { model: 'Accounts' as any, key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -69,7 +69,7 @@ export default {
           subscriptionId: {
             type: DataTypes.UUID,
             allowNull: true,
-            references: { model: 'Subscriptions', key: 'id' },
+            references: { model: 'Subscriptions' as any, key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -113,7 +113,7 @@ export default {
   },
 
   down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.dropTable('SubscriptionCandidates', { transaction: t });

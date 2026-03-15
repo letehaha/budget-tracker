@@ -146,7 +146,7 @@ export const createUser = async ({
     role,
   });
 
-  return user;
+  return user as unknown as UserModel;
 };
 
 export const getUserByAuthUserId = async ({
@@ -207,5 +207,5 @@ export const updateUserById = async ({
     where,
   });
 
-  return user;
+  return user as unknown as UserModel | null;
 };

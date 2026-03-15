@@ -116,7 +116,7 @@ export default {
       // Add composite primary key constraint
       await queryInterface.addConstraint('ExchangeRatesNew', {
         fields: ['baseCode', 'quoteCode', 'date'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'ExchangeRatesNew_pkey',
         transaction,
       });
@@ -567,7 +567,7 @@ export default {
       // Add composite primary key
       await queryInterface.addConstraint('UserExchangeRatesNew', {
         fields: ['userId', 'baseCode', 'quoteCode', 'date'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'UserExchangeRatesNew_pkey',
         transaction,
       });
@@ -1166,7 +1166,7 @@ export default {
       console.log('  - Adding Currencies primary key...');
       await queryInterface.addConstraint('Currencies', {
         fields: ['id'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'Currencies_pkey',
         transaction,
       });
@@ -1176,7 +1176,7 @@ export default {
       console.log('  - Adding ExchangeRates primary key...');
       await queryInterface.addConstraint('ExchangeRates', {
         fields: ['id'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'ExchangeRates_pkey',
         transaction,
       });
@@ -1187,7 +1187,7 @@ export default {
         console.log('  - Adding UserExchangeRates primary key...');
         await queryInterface.addConstraint('UserExchangeRates', {
           fields: ['id'],
-          type: 'primary key',
+          type: 'PRIMARY KEY',
           name: 'UserExchangeRates_pkey',
           transaction,
         });

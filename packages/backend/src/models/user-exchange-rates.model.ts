@@ -5,7 +5,6 @@ import { Attribute, Default, Index, NotNull, PrimaryKey, Table } from '@sequeliz
 
 import * as Currencies from './currencies.model';
 import * as UsersCurrencies from './users-currencies.model';
-import Users from './users.model';
 
 type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>;
 

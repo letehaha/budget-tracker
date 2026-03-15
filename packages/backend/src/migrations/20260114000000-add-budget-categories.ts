@@ -12,7 +12,7 @@ import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core'
  */
 export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Add type column to Budgets table
@@ -41,7 +41,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Budgets',
+              model: 'Budgets' as any,
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -51,7 +51,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Categories',
+              model: 'Categories' as any,
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -64,7 +64,7 @@ export default {
       // Composite primary key for the junction table
       await queryInterface.addConstraint('BudgetCategories', {
         fields: ['budgetId', 'categoryId'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'budget_categories_pkey',
         transaction: t,
       });
@@ -92,7 +92,7 @@ export default {
   },
 
   down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Drop BudgetCategories table

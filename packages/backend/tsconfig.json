@@ -32,5 +32,5 @@
     "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "./src/typings"]
   },
   "include": ["src/**/*", "src/tests/global.d.ts", "src/tests/custom-matchers.d.ts"],
-  "exclude": ["config/**/*", "dist"]
+  "exclude": ["config/**/*", "dist", "src/migrations/*.cjs"]
 }

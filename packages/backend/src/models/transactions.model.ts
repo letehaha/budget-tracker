@@ -12,19 +12,17 @@ import {
 import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { ValidationError } from '@js/errors';
-import { isExist, removeUndefinedKeys } from '@js/helpers';
+import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
-import Currencies from '@models/currencies.model';
 import Tags from '@models/tags.model';
 import TransactionGroupItems from '@models/transaction-group-items.model';
 import TransactionGroups from '@models/transaction-groups.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import TransactionTags from '@models/transaction-tags.model';
-import Users from '@models/users.model';
 import {
   CreationOptional,
   DataTypes,

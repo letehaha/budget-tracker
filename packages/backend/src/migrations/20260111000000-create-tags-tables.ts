@@ -14,7 +14,7 @@ const DEFAULT_TAG_STRUCTURE = [
  */
 export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Create Tags table
@@ -31,7 +31,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              model: 'Users' as any,
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -70,7 +70,7 @@ export default {
       // Unique constraint on (userId, name) to prevent duplicate tag names per user
       await queryInterface.addConstraint('Tags', {
         fields: ['userId', 'name'],
-        type: 'unique',
+        type: 'UNIQUE',
         name: 'tags_user_name_unique',
         transaction: t,
       });
@@ -89,7 +89,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Tags',
+              model: 'Tags' as any,
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -99,7 +99,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Transactions',
+              model: 'Transactions' as any,
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -112,7 +112,7 @@ export default {
       // Composite primary key for the junction table
       await queryInterface.addConstraint('TransactionTags', {
         fields: ['tagId', 'transactionId'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'transaction_tags_pkey',
         transaction: t,
       });
@@ -179,7 +179,7 @@ export default {
   },
 
   down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Drop TransactionTags first (depends on Tags)

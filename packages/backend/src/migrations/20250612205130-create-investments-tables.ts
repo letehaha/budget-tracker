@@ -87,7 +87,7 @@ export default {
       // Add unique constraint for user + name combination
       await queryInterface.addConstraint('Portfolios', {
         fields: ['userId', 'name'],
-        type: 'unique',
+        type: 'UNIQUE',
         name: 'portfolios_user_name_unique',
         transaction: t,
       });
@@ -165,7 +165,7 @@ export default {
       // Add composite primary key for PortfolioBalances
       await queryInterface.addConstraint('PortfolioBalances', {
         fields: ['portfolioId', 'currencyId'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'portfolio_balances_pkey',
         transaction: t,
       });
@@ -519,7 +519,7 @@ export default {
       // Add composite primary key for Holdings
       await queryInterface.addConstraint('Holdings', {
         fields: ['portfolioId', 'securityId'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'holdings_pkey',
         transaction: t,
       });

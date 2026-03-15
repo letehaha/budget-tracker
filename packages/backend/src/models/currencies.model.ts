@@ -10,7 +10,6 @@ import {
   Op,
 } from '@sequelize/core';
 import { Attribute, Default, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
-import cc from 'currency-codes';
 
 import Users from './users.model';
 

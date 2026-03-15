@@ -1,5 +1,4 @@
 import Transactions from '@models/transactions.model';
-import Users from '@models/users.model';
 import {
   CreationOptional,
   DataTypes,

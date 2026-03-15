@@ -17,7 +17,7 @@ import { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Step 1: Add role column if it doesn't exist (using raw SQL for reliability)
@@ -83,7 +83,7 @@ export default {
   },
 
   down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Remove indexes first

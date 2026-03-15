@@ -18,7 +18,7 @@ export default {
       allowNull: true,
       defaultValue: null,
       references: {
-        model: 'Transactions',
+        model: 'Transactions' as any,
         key: 'id',
       },
       onDelete: 'SET NULL',
@@ -133,7 +133,7 @@ export default {
     );
 
     // Recreate enum without 'transfer_to_portfolio'
-    const t = await queryInterface.sequelize.transaction();
+    const t = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       await queryInterface.sequelize.query(
         `CREATE TYPE "enum_transfer_nature_new" AS ENUM ('not_transfer', 'transfer_between_user_accounts', 'transfer_out_wallet');`,

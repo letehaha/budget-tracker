@@ -7,7 +7,7 @@ import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core'
  */
 export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.createTable(
@@ -22,7 +22,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              model: 'Users' as any,
               key: 'id',
             },
             onUpdate: 'CASCADE',

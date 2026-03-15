@@ -2,7 +2,7 @@ import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core'
 
 export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1. Create PaymentReminders table
@@ -17,14 +17,14 @@ export default {
           userId: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            references: { model: 'Users', key: 'id' },
+            references: { model: 'Users' as any, key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
           subscriptionId: {
             type: DataTypes.UUID,
             allowNull: true,
-            references: { model: 'Subscriptions', key: 'id' },
+            references: { model: 'Subscriptions' as any, key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -79,7 +79,7 @@ export default {
           categoryId: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            references: { model: 'Categories', key: 'id' },
+            references: { model: 'Categories' as any, key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -118,7 +118,7 @@ export default {
           reminderId: {
             type: DataTypes.UUID,
             allowNull: false,
-            references: { model: 'PaymentReminders', key: 'id' },
+            references: { model: 'PaymentReminders' as any, key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -138,7 +138,7 @@ export default {
           transactionId: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            references: { model: 'Transactions', key: 'id' },
+            references: { model: 'Transactions' as any, key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -172,7 +172,7 @@ export default {
           periodId: {
             type: DataTypes.UUID,
             allowNull: false,
-            references: { model: 'PaymentReminderPeriods', key: 'id' },
+            references: { model: 'PaymentReminderPeriods' as any, key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -226,7 +226,7 @@ export default {
       // Unique constraint: prevent duplicate notifications for same period+preset
       await queryInterface.addConstraint('PaymentReminderNotifications', {
         fields: ['periodId', 'remindBeforePreset'],
-        type: 'unique',
+        type: 'UNIQUE',
         name: 'uq_payment_reminder_notifications_period_preset',
         transaction: t,
       });
@@ -265,7 +265,7 @@ export default {
   },
 
   down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.dropTable('PaymentReminderNotifications', { transaction: t });
