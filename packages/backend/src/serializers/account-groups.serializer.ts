@@ -13,6 +13,7 @@ interface AccountGroupApiResponse {
   name: string;
   userId: number;
   parentGroupId: number | null;
+  bankDataProviderConnectionId: number | null;
   accounts: AccountApiResponse[];
   childGroups: AccountGroupApiResponse[];
 }
@@ -26,6 +27,7 @@ function serializeAccountGroup(group: AccountGroup): AccountGroupApiResponse {
     name: group.name,
     userId: group.userId,
     parentGroupId: group.parentGroupId,
+    bankDataProviderConnectionId: group.bankDataProviderConnectionId ?? null,
     accounts: (group.accounts || []).map(serializeAccount),
     childGroups: (group.childGroups || []).map(serializeAccountGroup),
   };

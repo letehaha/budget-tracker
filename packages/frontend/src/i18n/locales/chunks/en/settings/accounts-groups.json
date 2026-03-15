@@ -8,6 +8,7 @@
         "saveButton": "Save",
         "editButton": "Edit",
         "deleteButton": "Delete",
+        "deleteDisabledTooltip": "This group is linked to a bank connection and cannot be deleted manually. Disconnect the bank to remove it automatically.",
         "unlinkButton": "Unlink",
         "noData": "No group account data",
         "deleteDialog": {

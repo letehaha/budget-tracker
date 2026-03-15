@@ -2,7 +2,7 @@
   <div class="flex min-h-screen items-center justify-center px-4">
     <div class="w-full max-w-md rounded-lg p-8 shadow-lg">
       <div v-if="isProcessing" class="text-center">
-        <InfoIcon class="mb-4 size-12" />
+        <InfoIcon class="mx-auto mb-4 size-12" />
 
         <h2 class="mb-2 text-xl font-semibold">{{ t('pages.bankCallback.processing.title') }}</h2>
 

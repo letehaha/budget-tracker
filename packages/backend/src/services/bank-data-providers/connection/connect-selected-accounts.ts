@@ -4,6 +4,8 @@ import { t } from '@i18n/index';
 import { BadRequestError, NotFoundError } from '@js/errors';
 import { logger } from '@js/utils';
 import { type BankProvider, trackBankConnected } from '@js/utils/posthog';
+import AccountGrouping from '@models/accounts-groups/AccountGrouping.model';
+import AccountGroup from '@models/accounts-groups/AccountGroups.model';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import { getCurrency } from '@models/Currencies.model';
@@ -137,6 +139,26 @@ const createAccountsForConnection = withTransaction(
         provider: PROVIDER_TO_ANALYTICS_TYPE[connection.providerType as BANK_PROVIDER_TYPE],
         accountsCount: createdAccounts.length,
       });
+    }
+
+    // Auto-create or find the AccountGroup for this bank connection,
+    // then link ungrouped accounts to it
+    if (createdAccounts.length > 0) {
+      const [connectionGroup] = await AccountGroup.findOrCreate({
+        where: { bankDataProviderConnectionId: connectionId, userId },
+        defaults: { name: connection.providerName, userId, bankDataProviderConnectionId: connectionId },
+      });
+
+      for (const account of createdAccounts) {
+        // Only add if the account is not already in any group
+        const existingGrouping = await AccountGrouping.findOne({
+          where: { accountId: account.id },
+        });
+
+        if (!existingGrouping) {
+          await AccountGrouping.create({ accountId: account.id, groupId: connectionGroup.id });
+        }
+      }
     }
 
     return createdAccounts;
