@@ -275,16 +275,16 @@ jobs:
 
       - name: Install dependencies
         if: steps.prepare-env.outputs.cache-hit != 'true'
-        run: npm ci --ignore-scripts
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: bunx playwright install --with-deps chromium
         working-directory: packages/frontend
 
       - name: Run Playwright tests
         id: playwright
         continue-on-error: true
-        run: npm run test:e2e -w packages/frontend
+        run: bun run --cwd packages/frontend test:e2e
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: https://pr-${{ env.PR_NUMBER }}.preview.moneymatter.app
