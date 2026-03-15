@@ -1,4 +1,10 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_STATUSES,
+  ACCOUNT_TYPES,
+  API_ERROR_CODES,
+  BANK_PROVIDER_TYPE,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { BadRequestError, NotFoundError } from '@js/errors';
@@ -75,8 +81,8 @@ const createAccountsForConnection = withTransaction(
     // Create accounts in database
     const createdAccounts: Accounts[] = [];
     for (const providerAccount of selectedAccounts) {
-      // Check if account already exists
-      const existingAccount = await Accounts.findOne({
+      // Check if account already exists (still linked to this connection)
+      let existingAccount = await Accounts.findOne({
         where: {
           userId,
           externalId: providerAccount.externalId,
@@ -84,10 +90,32 @@ const createAccountsForConnection = withTransaction(
         },
       });
 
+      // If not found, check for a previously-linked account (archived accounts
+      // have their connection history stored in externalData after unlinking)
+      if (!existingAccount) {
+        existingAccount = await Accounts.findOne({
+          where: {
+            userId,
+            bankDataProviderConnectionId: null,
+            externalData: {
+              connectionHistory: {
+                previousConnection: {
+                  externalId: providerAccount.externalId,
+                  bankDataProviderConnectionId: connectionId,
+                },
+              },
+            },
+          },
+        });
+      }
+
       if (existingAccount) {
-        // Update existing account
+        // Re-link and re-activate the account
         await existingAccount.update({
-          isEnabled: true,
+          status: ACCOUNT_STATUSES.active,
+          type: PROVIDER_TO_ACCOUNT_TYPE[connection.providerType as BANK_PROVIDER_TYPE],
+          bankDataProviderConnectionId: connectionId,
+          externalId: providerAccount.externalId,
         });
         createdAccounts.push(existingAccount);
       } else {
@@ -122,7 +150,6 @@ const createAccountsForConnection = withTransaction(
           refCreditLimit: (providerAccount.metadata?.creditLimit as number) || 0,
           externalId: providerAccount.externalId,
           externalData: providerAccount.metadata || {},
-          isEnabled: true,
           bankDataProviderConnectionId: connectionId,
         });
         createdAccounts.push(newAccount);

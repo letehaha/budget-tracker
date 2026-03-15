@@ -41,6 +41,11 @@ export enum BANK_PROVIDER_TYPE {
   WALUTOMAT = 'walutomat',
 }
 
+export enum ACCOUNT_STATUSES {
+  active = 'active',
+  archived = 'archived',
+}
+
 export enum ACCOUNT_CATEGORIES {
   general = 'general',
   cash = 'cash',

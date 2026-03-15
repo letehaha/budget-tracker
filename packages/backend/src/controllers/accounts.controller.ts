@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES } from '@bt/shared/types';
 import { currencyCode } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { NotFoundError, Unauthorized, ValidationError } from '@js/errors';
@@ -81,14 +81,15 @@ export const updateAccount = createController(
       name: z.string().optional(),
       // Amount fields now accept decimals - conversion to cents happens below
       creditLimit: z.number().optional(),
-      isEnabled: z.boolean().optional(),
+      status: z.nativeEnum(ACCOUNT_STATUSES).optional(),
+      excludeFromStats: z.boolean().optional(),
       currentBalance: z.number().optional(),
     }),
   }),
   async ({ user, params, body }) => {
     const { id } = params;
     const { id: userId } = user;
-    const { accountCategory, name, creditLimit, isEnabled, currentBalance } = body;
+    const { accountCategory, name, creditLimit, status, excludeFromStats, currentBalance } = body;
 
     const account = await Accounts.findByPk(id);
 
@@ -111,7 +112,8 @@ export const updateAccount = createController(
       id,
       userId,
       ...removeUndefinedKeys({
-        isEnabled,
+        status,
+        excludeFromStats,
         accountCategory,
         currentBalance: currentBalance !== undefined ? Money.fromDecimal(currentBalance) : undefined,
         name,

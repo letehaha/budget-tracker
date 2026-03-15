@@ -80,6 +80,24 @@
         "noTransactions": "You have zero transactions associated.",
         "accountNameLabel": "Account name (click to copy)"
       },
+      "archive": {
+        "title": "Archive Account",
+        "description": "Archiving preserves all transactions but removes the account from your active list. Bank connections and group memberships will be disconnected.",
+        "archiveButton": "Archive Account",
+        "confirmTitle": "Archive Account",
+        "confirmDescription": "Are you sure you want to archive \"{name}\"? This will:",
+        "effect": {
+          "sidebar": "Remove the account from sidebar and dropdowns",
+          "bankSync": "Disconnect bank sync"
+        },
+        "alsoExcludeFromStats": "Also exclude from statistics",
+        "success": "Account archived",
+        "unarchiveSuccess": "Account unarchived",
+        "error": "Failed to update account",
+        "archivedTitle": "Archived Account",
+        "archivedDescription": "This account is archived. It won't appear in your sidebar or accept new transactions.",
+        "unarchiveButton": "Unarchive Account"
+      },
       "link": {
         "selectConnection": "Select a bank connection",
         "selectExternalAccount": "Select an external account",
@@ -131,10 +149,12 @@
         "notAssociated": "Not associated"
       },
       "visibility": {
-        "label": "Hidden:",
-        "tooltip": "Hidden accounts are not visible on the Dashboard, won't affect statistics, and won't be automatically synced via bank connection until re-enabled.",
         "updateSuccess": "Updated successfully",
         "unexpectedError": "Unexpected error"
+      },
+      "excludeFromStats": {
+        "label": "Exclude from statistics",
+        "tooltip": "When enabled, this account won't be included in balance totals, cash flow charts, or other statistics"
       },
       "loadTransactions": {
         "title": "Load transactions for selected period",

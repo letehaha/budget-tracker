@@ -1,3 +1,4 @@
+import { ACCOUNT_STATUSES } from '@bt/shared/types';
 import AccountGroup from '@models/accounts-groups/AccountGroups.model';
 import Accounts from '@models/Accounts.model';
 import { Op, type WhereOptions } from 'sequelize';
@@ -5,11 +6,11 @@ import { Op, type WhereOptions } from 'sequelize';
 export const getAccountGroups = async ({
   userId,
   accountIds = [],
-  hidden = false,
+  includeArchived = false,
 }: {
   userId: number;
   accountIds?: number[];
-  hidden?: boolean;
+  includeArchived?: boolean;
 }): Promise<AccountGroup[]> => {
   const accountWhere: WhereOptions<Accounts> = {};
 
@@ -17,8 +18,8 @@ export const getAccountGroups = async ({
     accountWhere.id = { [Op.in]: accountIds };
   }
 
-  if (!hidden) {
-    accountWhere.isEnabled = true;
+  if (!includeArchived) {
+    accountWhere.status = ACCOUNT_STATUSES.active;
   }
 
   return AccountGroup.findAll({

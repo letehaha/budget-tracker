@@ -7,7 +7,7 @@ import {
   unlinkAccountFromBankConnection as apiUnlinkAccountFromBankConnection,
 } from '@/api';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
-import { ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { defineStore, storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
@@ -41,7 +41,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const accountsCurrencyCodes = computed(() => [...new Set(accounts.value?.map((item) => item.currencyCode) ?? [])]);
 
   const systemAccounts = computed(() => accounts.value?.filter((item) => item.type === ACCOUNT_TYPES.system) ?? []);
-  const enabledAccounts = computed(() => accounts.value?.filter((item) => item.isEnabled) ?? []);
+  const activeAccounts = computed(
+    () => accounts.value?.filter((item) => item.status === ACCOUNT_STATUSES.active) ?? [],
+  );
 
   /**
    * Accounts that need to be re-linked due to schema migration.
@@ -107,7 +109,7 @@ export const useAccountsStore = defineStore('accounts', () => {
   return {
     accounts,
     accountsRecord,
-    enabledAccounts,
+    activeAccounts,
     systemAccounts,
     accountsCurrencyCodes,
     accountsNeedingRelink,

@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
 
 import { USER_CURRENCIES } from './currencies';
 import { USER } from './user';
@@ -24,7 +24,8 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     userId: USER.id,
     externalId: undefined,
     externalData: undefined,
-    isEnabled: true,
+    status: ACCOUNT_STATUSES.active,
+    excludeFromStats: false,
     needsRelink: false,
   },
   {
@@ -42,7 +43,8 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     userId: USER.id,
     externalId: undefined,
     externalData: undefined,
-    isEnabled: true,
+    status: ACCOUNT_STATUSES.active,
+    excludeFromStats: false,
     needsRelink: false,
   },
   {
@@ -60,7 +62,8 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     userId: USER.id,
     externalId: undefined,
     externalData: undefined,
-    isEnabled: true,
+    status: ACCOUNT_STATUSES.active,
+    excludeFromStats: false,
     needsRelink: false,
   },
   {
@@ -78,7 +81,8 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     userId: USER.id,
     externalId: undefined,
     externalData: undefined,
-    isEnabled: true,
+    status: ACCOUNT_STATUSES.active,
+    excludeFromStats: false,
     needsRelink: false,
   },
 ];
