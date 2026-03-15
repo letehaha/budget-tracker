@@ -176,7 +176,7 @@ describe('getTransferRecommendations', () => {
       });
     });
 
-    describe('date filtering (2 weeks, income.time >= expense.time)', () => {
+    describe('date filtering (±14 days symmetric window)', () => {
       it('includes income after expense within 2 weeks', async () => {
         const account1 = await helpers.createAccount({ raw: true });
         const account2 = await helpers.createAccount({ raw: true });
@@ -213,13 +213,13 @@ describe('getTransferRecommendations', () => {
         expect(response.some((tx) => tx.id === incomeAfter.id)).toBe(true);
       });
 
-      it('excludes income before expense when searching from expense', async () => {
+      it('includes income before expense within symmetric window', async () => {
         const account1 = await helpers.createAccount({ raw: true });
         const account2 = await helpers.createAccount({ raw: true });
 
         const expenseDate = startOfDay(new Date());
 
-        // Income 5 days before expense
+        // Income 5 days before expense (within ±14 days)
         const [incomeBefore] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account2.id,
@@ -246,8 +246,8 @@ describe('getTransferRecommendations', () => {
           raw: true,
         });
 
-        // Income before expense should NOT be found (money can't arrive before being sent)
-        expect(response.some((tx) => tx.id === incomeBefore.id)).toBe(false);
+        // Symmetric window: income before expense IS included
+        expect(response.some((tx) => tx.id === incomeBefore.id)).toBe(true);
       });
 
       it('includes expense before income when searching from income', async () => {
@@ -286,7 +286,7 @@ describe('getTransferRecommendations', () => {
         expect(response.some((tx) => tx.id === expenseBefore.id)).toBe(true);
       });
 
-      it('excludes transactions outside 2-week window', async () => {
+      it('excludes transactions outside 2-week window (forward)', async () => {
         const account1 = await helpers.createAccount({ raw: true });
         const account2 = await helpers.createAccount({ raw: true });
 
@@ -320,6 +320,155 @@ describe('getTransferRecommendations', () => {
         });
 
         expect(response.some((tx) => tx.id === incomeTooLate.id)).toBe(false);
+      });
+
+      it('excludes transactions outside 2-week window (backward)', async () => {
+        const account1 = await helpers.createAccount({ raw: true });
+        const account2 = await helpers.createAccount({ raw: true });
+
+        const expenseDate = startOfDay(new Date());
+
+        // Create expense
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account1.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: expenseDate.toISOString(),
+          }),
+          raw: true,
+        });
+
+        // Income 20 days before expense (outside 2 weeks backward)
+        const [incomeTooEarly] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account2.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.income,
+            time: subDays(expenseDate, 20).toISOString(),
+          }),
+          raw: true,
+        });
+
+        const response = await helpers.getTransferRecommendations({
+          transactionId: expenseTx.id,
+          raw: true,
+        });
+
+        expect(response.some((tx) => tx.id === incomeTooEarly.id)).toBe(false);
+      });
+
+      it('includes transaction exactly at 14-day boundary', async () => {
+        const account1 = await helpers.createAccount({ raw: true });
+        const account2 = await helpers.createAccount({ raw: true });
+
+        const expenseDate = startOfDay(new Date());
+
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account1.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: expenseDate.toISOString(),
+          }),
+          raw: true,
+        });
+
+        // Income exactly 14 days after (should be included due to endOfDay)
+        const [incomeAtBoundary] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account2.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.income,
+            time: addDays(expenseDate, 14).toISOString(),
+          }),
+          raw: true,
+        });
+
+        const response = await helpers.getTransferRecommendations({
+          transactionId: expenseTx.id,
+          raw: true,
+        });
+
+        expect(response.some((tx) => tx.id === incomeAtBoundary.id)).toBe(true);
+      });
+
+      it('excludes transaction at 15-day boundary', async () => {
+        const account1 = await helpers.createAccount({ raw: true });
+        const account2 = await helpers.createAccount({ raw: true });
+
+        const expenseDate = startOfDay(new Date());
+
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account1.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: expenseDate.toISOString(),
+          }),
+          raw: true,
+        });
+
+        // Income 15 days after (should be excluded)
+        const [incomeOutsideBoundary] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account2.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.income,
+            time: addDays(expenseDate, 15).toISOString(),
+          }),
+          raw: true,
+        });
+
+        const response = await helpers.getTransferRecommendations({
+          transactionId: expenseTx.id,
+          raw: true,
+        });
+
+        expect(response.some((tx) => tx.id === incomeOutsideBoundary.id)).toBe(false);
+      });
+
+      it('includes same-day transactions regardless of time-of-day differences', async () => {
+        const account1 = await helpers.createAccount({ raw: true });
+        const account2 = await helpers.createAccount({ raw: true });
+
+        const baseDate = startOfDay(new Date());
+        const expenseTime = new Date(baseDate);
+        expenseTime.setHours(14, 0, 0, 0);
+        const incomeTime = new Date(baseDate);
+        incomeTime.setHours(8, 0, 0, 0);
+
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account1.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: expenseTime.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const [incomeTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account2.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.income,
+            time: incomeTime.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const responseFromExpense = await helpers.getTransferRecommendations({
+          transactionId: expenseTx.id,
+          raw: true,
+        });
+        expect(responseFromExpense.some((tx) => tx.id === incomeTx.id)).toBe(true);
+
+        const responseFromIncome = await helpers.getTransferRecommendations({
+          transactionId: incomeTx.id,
+          raw: true,
+        });
+        expect(responseFromIncome.some((tx) => tx.id === expenseTx.id)).toBe(true);
       });
     });
 
@@ -487,7 +636,7 @@ describe('getTransferRecommendations', () => {
     });
 
     describe('result limiting', () => {
-      it('returns maximum 5 recommendations', async () => {
+      it('returns maximum 7 recommendations', async () => {
         const account1 = await helpers.createAccount({ raw: true });
         const account2 = await helpers.createAccount({ raw: true });
 
@@ -501,8 +650,8 @@ describe('getTransferRecommendations', () => {
           raw: true,
         });
 
-        // Create more than 5 income transactions
-        for (let i = 0; i < 7; i++) {
+        // Create more than 7 income transactions
+        for (let i = 0; i < 10; i++) {
           await helpers.createTransaction({
             payload: helpers.buildTransactionPayload({
               accountId: account2.id,
@@ -518,7 +667,7 @@ describe('getTransferRecommendations', () => {
           raw: true,
         });
 
-        expect(response.length).toBeLessThanOrEqual(5);
+        expect(response.length).toBeLessThanOrEqual(7);
       });
     });
 

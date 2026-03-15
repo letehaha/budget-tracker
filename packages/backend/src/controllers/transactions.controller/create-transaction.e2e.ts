@@ -13,6 +13,35 @@ describe('Create transaction controller', () => {
 
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
+
+  it('should reject negative amount', async () => {
+    const account = await helpers.createAccount({ raw: true });
+
+    const res = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: -100,
+      }),
+      raw: false,
+    });
+
+    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+  });
+
+  it('should reject zero amount', async () => {
+    const account = await helpers.createAccount({ raw: true });
+
+    const res = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 0,
+      }),
+      raw: false,
+    });
+
+    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+  });
+
   it('should successfully create a transaction base currency', async () => {
     const account = await helpers.createAccount({ raw: true });
     const txPayload = helpers.buildTransactionPayload({
