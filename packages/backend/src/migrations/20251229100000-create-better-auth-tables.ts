@@ -1,12 +1,12 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to create better-auth tables.
  * All tables use ba_ prefix to avoid conflicts with existing tables.
  */
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Create ba_user table
@@ -63,7 +63,7 @@ module.exports = {
             type: DataTypes.TEXT,
             allowNull: false,
             references: {
-              model: 'ba_user',
+              table: 'ba_user',
               key: 'id',
             },
             onDelete: 'CASCADE',
@@ -112,7 +112,7 @@ module.exports = {
             type: DataTypes.TEXT,
             allowNull: false,
             references: {
-              model: 'ba_user',
+              table: 'ba_user',
               key: 'id',
             },
             onDelete: 'CASCADE',
@@ -223,7 +223,7 @@ module.exports = {
             type: DataTypes.TEXT,
             allowNull: false,
             references: {
-              model: 'ba_user',
+              table: 'ba_user',
               key: 'id',
             },
             onDelete: 'CASCADE',
@@ -294,8 +294,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.dropTable('ba_passkey', { transaction: t });

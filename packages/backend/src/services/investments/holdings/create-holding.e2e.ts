@@ -1,21 +1,21 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/Holdings.model';
 import Portfolios from '@models/investments/Portfolios.model';
 import Securities from '@models/investments/Securities.model';
 import { restClient } from '@polygon.io/client-js';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockedRestClient = jest.mocked(restClient);
+const mockedRestClient = vi.mocked(restClient);
 const mockApi = mockedRestClient.getMockImplementation()!('test');
-const mockedAggregates = jest.mocked(mockApi.stocks.aggregates);
+const mockedAggregates = vi.mocked(mockApi.stocks.aggregates);
 
 describe('POST /holdings (create holding)', () => {
   let investmentPortfolio: Portfolios;
   let vooSecurity: Securities;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     investmentPortfolio = await helpers.createPortfolio({
       payload: helpers.buildPortfolioPayload({

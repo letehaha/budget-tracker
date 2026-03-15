@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { connection } from '@models/index';
 import * as helpers from '@tests/helpers';
 import { getCurrencyRatesApiResponseMock, getFrankfurterResponseMock } from '@tests/mocks/exchange-rates/data';

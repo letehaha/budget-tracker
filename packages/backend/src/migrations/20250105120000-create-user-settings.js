@@ -3,7 +3,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.createTable(
@@ -19,7 +19,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onDelete: 'CASCADE',
@@ -55,7 +55,7 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.dropTable('UserSettings', { transaction });

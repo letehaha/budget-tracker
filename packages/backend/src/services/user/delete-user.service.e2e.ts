@@ -1,6 +1,6 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { API_RESPONSE_STATUS } from '@bt/shared/types/api';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import Accounts from '@models/Accounts.model';
 import Budgets from '@models/Budget.model';
 import Categories from '@models/Categories.model';

@@ -1,4 +1,4 @@
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, test } from 'vitest';
 import { removeUndefinedKeys, truncateSystemAmount } from '@js/helpers';
 
 describe('helpers tests', () => {

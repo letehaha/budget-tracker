@@ -1,11 +1,11 @@
-import { QueryInterface, Transaction } from 'sequelize';
+import { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 // exactly fully lowercase to avoid any case-sensitivity issues
 const ENUM_TRANSACTION_TYPE = 'enum_transactions_transaction_type';
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       // 1. Create the new ENUM type
       await queryInterface.sequelize.query(
@@ -49,8 +49,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       // 1. Drop the ENUM-based default value
       await queryInterface.sequelize.query(

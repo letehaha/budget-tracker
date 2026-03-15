@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import _ from 'lodash';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { paginate, paginateWithNextUrl, withRetry } from './requests-calling.utils';
 
@@ -8,8 +8,7 @@ type MockItem = { id: number };
 
 describe('paginateWithNextUrl', () => {
   it('should fetch all items across multiple pages', async () => {
-    const mockFetchData =
-      jest.fn<(limit: number, cursor?: string) => Promise<{ data: MockItem[]; nextUrl?: string }>>();
+    const mockFetchData = vi.fn<(limit: number, cursor?: string) => Promise<{ data: MockItem[]; nextUrl?: string }>>();
 
     mockFetchData
       .mockResolvedValueOnce({
@@ -33,7 +32,7 @@ describe('paginateWithNextUrl', () => {
   });
 
   it('should propagate errors from the fetchData function', async () => {
-    const mockFetchData = jest.fn<() => Promise<{ data: MockItem[]; nextUrl?: string }>>();
+    const mockFetchData = vi.fn<() => Promise<{ data: MockItem[]; nextUrl?: string }>>();
     mockFetchData.mockRejectedValue(new Error('API Error'));
 
     await expect(paginateWithNextUrl({ fetchData: mockFetchData, pageSize: 10 })).rejects.toThrow('API Error');
@@ -52,7 +51,7 @@ describe('paginate', () => {
     'should correctly paginate data (pageSize: $pageSize, dataSize: $dataSize)',
     async ({ pageSize, dataSize, fetchCalls }) => {
       const fullData = _.range(dataSize);
-      const mockFetchData = jest.fn<(offset: number, count: number) => Promise<number[]>>(
+      const mockFetchData = vi.fn<(offset: number, count: number) => Promise<number[]>>(
         (offset: number, count: number) => Promise.resolve(_.slice(fullData, offset, offset + count)),
       );
 
@@ -69,11 +68,11 @@ describe('paginate', () => {
 
 describe('withRetry', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it.each<{ failAttempts: number; maxRetries: number }>`
@@ -84,7 +83,7 @@ describe('withRetry', () => {
   `(
     'should retry the correct number of times (fails: $failAttempts, max: $maxRetries)',
     async ({ failAttempts, maxRetries }) => {
-      const mockFn = jest.fn<(attempt: number) => string | Promise<string>>((attempt: number) => {
+      const mockFn = vi.fn<(attempt: number) => string | Promise<string>>((attempt: number) => {
         if (attempt < failAttempts) throw new Error(`Attempt ${attempt} fails`);
         return 'Success';
       });
@@ -94,7 +93,7 @@ describe('withRetry', () => {
       // Fast-forward through all pending timeouts
       for (let i = 0; i < failAttempts; i++) {
         await Promise.resolve(); // Allow any pending microtasks to run
-        jest.advanceTimersByTime(1000);
+        vi.advanceTimersByTime(1000);
       }
 
       const result = await resultPromise;
@@ -106,17 +105,17 @@ describe('withRetry', () => {
 
   it('should stop retrying if onError returns false', async () => {
     const exitAfterAttempts = 2;
-    const mockFn = jest.fn<() => never>(() => {
+    const mockFn = vi.fn<() => never>(() => {
       throw new Error('Failure');
     });
-    const mockOnError = jest.fn((_err: unknown, attempt: number) => attempt < exitAfterAttempts);
+    const mockOnError = vi.fn((_err: unknown, attempt: number) => attempt < exitAfterAttempts);
 
     const resultPromise = withRetry(mockFn, { maxRetries: 5, onError: mockOnError, delay: 1000 });
 
     // Fast-forward through the timeouts until we hit our exit condition
     for (let i = 0; i <= exitAfterAttempts; i++) {
       await Promise.resolve(); // Allow any pending microtasks to run
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
     }
 
     await expect(resultPromise).rejects.toThrow('Failure');

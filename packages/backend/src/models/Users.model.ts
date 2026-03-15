@@ -1,94 +1,98 @@
 import { UserModel, USER_ROLES, UserRole } from '@bt/shared/types';
-import { Table, Column, Model, DefaultScope, Scopes, BelongsToMany, Length, DataType } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
+  BelongsToMany,
+  Default,
+  NotNull,
+  PrimaryKey,
+  Table,
+  Unique,
+} from '@sequelize/core/decorators-legacy';
 
 import Currencies from './Currencies.model';
 import UsersCurrencies from './UsersCurrencies.model';
 
-const DETAULT_TOTAL_BALANCE = 0;
+const DEFAULT_TOTAL_BALANCE = 0;
 
-@DefaultScope(() => ({
-  attributes: { exclude: ['password'] },
-}))
-@Scopes(() => ({
-  withPassword: {
-    attributes: { exclude: [] },
-  },
-}))
 @Table({
   timestamps: false,
   tableName: 'Users',
   freezeTableName: true,
+  defaultScope: {
+    attributes: { exclude: ['password'] },
+  },
+  scopes: {
+    withPassword: {
+      attributes: { exclude: [] },
+    },
+  },
 })
-export default class Users extends Model {
+export default class Users extends Model<InferAttributes<Users>, InferCreationAttributes<Users>> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
+
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  @Unique
+  declare username: string;
+
+  @Attribute(DataTypes.STRING)
+  @Unique
+  declare email: string | null;
+
+  @Attribute(DataTypes.STRING)
+  declare firstName: string | null;
+
+  @Attribute(DataTypes.STRING)
+  declare lastName: string | null;
+
+  @Attribute(DataTypes.STRING)
+  declare middleName: string | null;
+
+  @Attribute(DataTypes.STRING)
+  declare password: string | null;
+
+  @Attribute(DataTypes.STRING)
+  declare authUserId: string | null;
+
+  @Attribute(DataTypes.STRING(2000))
+  declare avatar: string | null;
+
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(DEFAULT_TOTAL_BALANCE)
+  declare totalBalance: CreationOptional<number>;
+
+  @Attribute(DataTypes.INTEGER)
+  declare defaultCategoryId: number | null;
+
+  @Attribute(DataTypes.STRING(20))
+  @NotNull
+  @Default(USER_ROLES.common)
+  declare role: CreationOptional<UserRole>;
+
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare createdAt: CreationOptional<Date>;
+
   @BelongsToMany(() => Currencies, {
-    as: 'currencies',
     through: () => UsersCurrencies,
+    foreignKey: 'userId',
+    otherKey: 'currencyCode',
   })
-  @Column({
-    primaryKey: true,
-    autoIncrement: true,
-    allowNull: false,
-    unique: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
-
-  @Column({
-    unique: true,
-    allowNull: false,
-    type: DataType.STRING,
-  })
-  username!: string;
-
-  @Column({
-    unique: true,
-    allowNull: true,
-    type: DataType.STRING,
-  })
-  email!: string;
-
-  @Column({ allowNull: true, type: DataType.STRING })
-  firstName!: string;
-
-  @Column({ allowNull: true, type: DataType.STRING })
-  lastName!: string;
-
-  @Column({ allowNull: true, type: DataType.STRING })
-  middleName!: string;
-
-  @Column({ allowNull: true, type: DataType.STRING })
-  password!: string;
-
-  @Column({ allowNull: true, type: DataType.STRING })
-  authUserId!: string;
-
-  @Length({ max: 2000 })
-  @Column({ allowNull: true, type: DataType.STRING })
-  avatar!: string;
-
-  @Column({
-    defaultValue: DETAULT_TOTAL_BALANCE,
-    allowNull: false,
-    type: DataType.NUMBER,
-  })
-  totalBalance!: number;
-
-  @Column({ allowNull: true, type: DataType.NUMBER })
-  defaultCategoryId!: number;
-
-  @Column({
-    allowNull: false,
-    type: DataType.STRING(20),
-    defaultValue: USER_ROLES.common,
-  })
-  role!: UserRole;
-
-  @Column({
-    allowNull: false,
-    type: DataType.DATE,
-    defaultValue: DataType.NOW,
-  })
-  declare createdAt: Date;
+  declare currencies?: NonAttribute<Currencies[]>;
 }
 
 export const getUsers = async () => {
@@ -103,7 +107,42 @@ export const getUserDefaultCategory = async ({ id }: { id: number }) => {
     attributes: ['defaultCategoryId'],
   });
 
-  return user!.defaultCategoryId;
+  return user;
+};
+
+export const getUserCurrencies = async ({ userId }: { userId: number }) => {
+  const user = await Users.findOne({
+    where: { id: userId },
+    include: [
+      {
+        model: Currencies,
+        as: 'currencies',
+        // to remove the rows from the join table (i.e. 'UsersCurrencies' table) in the result set
+        through: { attributes: [] },
+      },
+    ],
+  });
+
+  return user;
+};
+
+export const getUserByCredentials = async ({
+  username,
+  email,
+}: {
+  username?: string;
+  email?: string;
+}): Promise<UserModel | null> => {
+  const where: Record<string, unknown> = {};
+
+  if (username) where.username = username;
+  if (email) where.email = email;
+
+  const user = await Users.withScope('withPassword').findOne({
+    where,
+  });
+
+  return user;
 };
 
 export const createUser = async ({
@@ -114,7 +153,7 @@ export const createUser = async ({
   middleName,
   password,
   avatar,
-  totalBalance = DETAULT_TOTAL_BALANCE,
+  totalBalance = DEFAULT_TOTAL_BALANCE,
   authUserId,
   role = USER_ROLES.common,
 }: {

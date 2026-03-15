@@ -11,7 +11,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.addColumn(
@@ -47,7 +47,7 @@ module.exports = {
             allowNull: false,
             type: Sequelize.INTEGER,
             references: {
-              model: 'Accounts',
+              table: 'Accounts',
               key: 'id',
             },
             onUpdate: 'CASCADE',

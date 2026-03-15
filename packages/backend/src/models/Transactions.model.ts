@@ -1,7 +1,7 @@
 import {
   ACCOUNT_TYPES,
-  CategorizationMeta,
   CATEGORIZATION_SOURCE,
+  CategorizationMeta,
   FILTER_OPERATION,
   PAYMENT_TYPES,
   SORT_DIRECTIONS,
@@ -10,9 +10,8 @@ import {
   TransactionModel,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { ValidationError } from '@js/errors';
-import { removeUndefinedKeys } from '@js/helpers';
+import { isExist, removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
 import Budgets from '@models/Budget.model';
@@ -25,25 +24,38 @@ import TransactionGroups from '@models/TransactionGroups.model';
 import TransactionSplits from '@models/TransactionSplits.model';
 import TransactionTags from '@models/TransactionTags.model';
 import Users from '@models/Users.model';
-import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
-import { Op, Includeable, WhereOptions, literal } from 'sequelize';
 import {
-  Table,
-  BeforeCreate,
+  CreationOptional,
+  DataTypes,
+  Includeable,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+  Op,
+  WhereOptions,
+} from '@sequelize/core';
+import {
   AfterCreate,
-  AfterUpdate,
   AfterDestroy,
+  AfterUpdate,
+  Attribute,
+  AutoIncrement,
+  BeforeCreate,
   BeforeDestroy,
   BeforeUpdate,
-  Column,
-  Model,
-  Length,
-  ForeignKey,
-  DataType,
   BelongsTo,
   BelongsToMany,
+  Default,
   HasMany,
-} from 'sequelize-typescript';
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+  Unique,
+} from '@sequelize/core/decorators-legacy';
+import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
+import { literal } from 'sequelize';
 
 const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
   const include: Includeable[] = [];
@@ -102,180 +114,139 @@ export interface TransactionsAttributes {
   tableName: 'Transactions',
   freezeTableName: true,
 })
-export default class Transactions extends Model {
-  @Column({
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
+export default class Transactions extends Model<InferAttributes<Transactions>, InferCreationAttributes<Transactions>> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  @Unique
+  declare id: CreationOptional<number>;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get amount(): Money {
-    return moneyGetCents(this, 'amount');
-  }
-  set amount(val: Money | number) {
-    moneySetCents(this, 'amount', val);
-  }
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
+  declare amount: CreationOptional<number>;
 
-  // Amount in curreny of account
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refAmount(): Money {
-    return moneyGetCents(this, 'refAmount');
-  }
-  set refAmount(val: Money | number) {
-    moneySetCents(this, 'refAmount', val);
-  }
+  // Amount in currency of account
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
+  declare refAmount: CreationOptional<number>;
 
-  @Length({ max: 2000 })
-  @Column({ allowNull: true, type: DataType.STRING })
-  note!: string;
+  @Attribute(DataTypes.STRING(2000))
+  declare note: string | null;
 
-  @Column({
-    defaultValue: Date.now(),
-    allowNull: false,
-    type: DataType.DATE,
-  })
-  time!: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare time: CreationOptional<Date>;
 
-  @ForeignKey(() => Users)
-  @Column({ type: DataType.INTEGER })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @Index
+  declare userId: number;
 
   @BelongsToMany(() => Budgets, {
-    through: { model: () => BudgetTransactions, unique: false },
+    through: () => BudgetTransactions,
     foreignKey: 'transactionId',
     otherKey: 'budgetId',
   })
-  budgets!: Budgets[];
+  declare budgets?: NonAttribute<Budgets[]>;
 
   @BelongsToMany(() => Tags, {
-    through: { model: () => TransactionTags, unique: false },
+    through: () => TransactionTags,
     foreignKey: 'transactionId',
     otherKey: 'tagId',
   })
-  tags!: Tags[];
+  declare tags?: NonAttribute<Tags[]>;
 
   @BelongsToMany(() => TransactionGroups, {
-    through: { model: () => TransactionGroupItems, unique: false },
+    through: () => TransactionGroupItems,
     foreignKey: 'transactionId',
     otherKey: 'groupId',
   })
-  transactionGroups!: TransactionGroups[];
+  declare transactionGroups?: NonAttribute<TransactionGroups[]>;
 
-  @HasMany(() => TransactionSplits)
-  splits!: TransactionSplits[];
+  @HasMany(() => TransactionSplits, 'transactionId')
+  declare splits?: NonAttribute<TransactionSplits[]>;
 
-  @Column({
-    allowNull: false,
-    defaultValue: TRANSACTION_TYPES.income,
-    type: DataType.ENUM(...Object.values(TRANSACTION_TYPES)),
-  })
-  transactionType!: TRANSACTION_TYPES;
+  @Attribute(DataTypes.ENUM(...Object.values(TRANSACTION_TYPES)))
+  @NotNull
+  @Default(TRANSACTION_TYPES.income)
+  declare transactionType: CreationOptional<TRANSACTION_TYPES>;
 
-  @Column({
-    allowNull: false,
-    defaultValue: PAYMENT_TYPES.creditCard,
-    type: DataType.ENUM(...Object.values(PAYMENT_TYPES)),
-  })
-  paymentType!: PAYMENT_TYPES;
+  @Attribute(DataTypes.ENUM(...Object.values(PAYMENT_TYPES)))
+  @NotNull
+  @Default(PAYMENT_TYPES.creditCard)
+  declare paymentType: CreationOptional<PAYMENT_TYPES>;
 
-  @ForeignKey(() => Accounts)
-  @Column({ allowNull: true, type: DataType.INTEGER })
-  accountId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @Index
+  declare accountId: number | null;
 
-  @BelongsTo(() => Accounts)
-  account!: Accounts;
+  @BelongsTo(() => Accounts, 'accountId')
+  declare account?: NonAttribute<Accounts>;
 
-  @ForeignKey(() => Categories)
-  @Column({ allowNull: true, type: DataType.INTEGER })
-  categoryId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @Index
+  declare categoryId: number | null;
 
-  @BelongsTo(() => Categories)
-  category!: Categories;
+  @BelongsTo(() => Categories, 'categoryId')
+  declare category?: NonAttribute<Categories>;
 
-  @ForeignKey(() => Currencies)
-  @Column({ allowNull: true, type: DataType.STRING(3) })
-  currencyCode!: string;
+  @Attribute(DataTypes.STRING(3))
+  @Index
+  declare currencyCode: string | null;
 
-  @Column({
-    allowNull: false,
-    defaultValue: ACCOUNT_TYPES.system,
-    type: DataType.ENUM(...Object.values(ACCOUNT_TYPES)),
-  })
-  accountType!: ACCOUNT_TYPES;
+  @Attribute(DataTypes.ENUM(...Object.values(ACCOUNT_TYPES)))
+  @NotNull
+  @Default(ACCOUNT_TYPES.system)
+  declare accountType: CreationOptional<ACCOUNT_TYPES>;
 
-  @ForeignKey(() => Currencies)
-  @Column({ allowNull: true, defaultValue: null, type: DataType.STRING(3) })
-  refCurrencyCode!: string;
+  @Attribute(DataTypes.STRING(3))
+  declare refCurrencyCode: string | null;
 
-  @Column({
-    type: DataType.ENUM(...Object.values(TRANSACTION_TRANSFER_NATURE)),
-    allowNull: false,
-    defaultValue: TRANSACTION_TRANSFER_NATURE.not_transfer,
-  })
-  transferNature!: TRANSACTION_TRANSFER_NATURE;
+  @Attribute(DataTypes.ENUM(...Object.values(TRANSACTION_TRANSFER_NATURE)))
+  @NotNull
+  @Default(TRANSACTION_TRANSFER_NATURE.not_transfer)
+  declare transferNature: CreationOptional<TRANSACTION_TRANSFER_NATURE>;
 
   // (hash, used to connect two transactions)
-  @Column({ allowNull: true, defaultValue: null, type: DataType.STRING })
-  transferId!: string;
+  @Attribute(DataTypes.STRING)
+  declare transferId: string | null;
 
   // Stores the original id from external source
-  @Column({
-    allowNull: true,
-    type: DataType.STRING,
-  })
-  originalId!: string;
+  @Attribute(DataTypes.STRING)
+  declare originalId: string | null;
 
   // Stores the data from external source
-  @Column({
-    type: DataType.JSONB,
-    allowNull: true,
-  })
-  externalData!: TransactionsAttributes['externalData'];
+  @Attribute(DataTypes.JSONB)
+  declare externalData: TransactionsAttributes['externalData'] | null;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get commissionRate(): Money {
-    return moneyGetCents(this, 'commissionRate');
-  }
-  set commissionRate(val: Money | number) {
-    moneySetCents(this, 'commissionRate', val);
-  }
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
+  declare commissionRate: CreationOptional<number>;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refCommissionRate(): Money {
-    return moneyGetCents(this, 'refCommissionRate');
-  }
-  set refCommissionRate(val: Money | number) {
-    moneySetCents(this, 'refCommissionRate', val);
-  }
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
+  declare refCommissionRate: CreationOptional<number>;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get cashbackAmount(): Money {
-    return moneyGetCents(this, 'cashbackAmount');
-  }
-  set cashbackAmount(val: Money | number) {
-    moneySetCents(this, 'cashbackAmount', val);
-  }
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
+  declare cashbackAmount: CreationOptional<number>;
 
   // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
-  // optimization purposes. All the related refund information is tored in the "RefundTransactions"
+  // optimization purposes. All the related refund information is stored in the "RefundTransactions"
   // table
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  })
-  refundLinked!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(false)
+  declare refundLinked: CreationOptional<boolean>;
 
   // Metadata about how this transaction was categorized (manual, ai, mcc_rule, user_rule)
-  @Column({
-    type: DataType.JSONB,
-    allowNull: true,
-  })
-  categorizationMeta!: CategorizationMeta | null;
+  @Attribute(DataTypes.JSONB)
+  declare categorizationMeta: CategorizationMeta | null;
 
   // Managed by Sequelize (timestamps: true)
   declare createdAt: Date;

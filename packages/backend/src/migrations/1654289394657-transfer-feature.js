@@ -15,7 +15,7 @@
  */
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1
@@ -192,7 +192,7 @@ module.exports = {
     }
   },
   down: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1
@@ -253,7 +253,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'TransactionEntities',
+            table: 'TransactionEntities',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -274,7 +274,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'TransactionEntities',
+            table: 'TransactionEntities',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -328,7 +328,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'PaymentTypes',
+            table: 'PaymentTypes',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -347,7 +347,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'PaymentTypes',
+            table: 'PaymentTypes',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -394,7 +394,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'TransactionTypes',
+            table: 'TransactionTypes',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -423,7 +423,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'TransactionTypes',
+            table: 'TransactionTypes',
             key: 'id',
           },
           onUpdate: 'CASCADE',

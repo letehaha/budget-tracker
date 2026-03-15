@@ -3,7 +3,7 @@ const { QueryTypes } = require('sequelize');
 
 module.exports = {
   up: async (queryInterface) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // find old currencies

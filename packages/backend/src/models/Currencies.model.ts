@@ -1,49 +1,49 @@
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
-import { Op } from 'sequelize';
-import { Table, Column, Model, BelongsToMany, DataType } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+  Op,
+} from '@sequelize/core';
+import { Attribute, Default, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
+import cc from 'currency-codes';
 
 import Users from './Users.model';
-import UsersCurrencies from './UsersCurrencies.model';
 
 @Table({
   timestamps: false,
   tableName: 'Currencies',
   freezeTableName: true,
 })
-export default class Currencies extends Model {
-  @Column({
-    allowNull: false,
-    primaryKey: true,
-    type: DataType.STRING(3),
-  })
-  code!: string;
+export default class Currencies extends Model<InferAttributes<Currencies>, InferCreationAttributes<Currencies>> {
+  @Attribute(DataTypes.STRING(3))
+  @PrimaryKey
+  @NotNull
+  declare code: string;
 
-  @Column({
-    allowNull: false,
-    type: DataType.STRING,
-  })
-  currency!: string;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare currency: string;
 
-  @Column({
-    allowNull: false,
-    type: DataType.INTEGER,
-  })
-  digits!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare digits: number;
 
-  @Column({
-    allowNull: false,
-    type: DataType.INTEGER,
-  })
-  number!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare number: number;
 
-  @BelongsToMany(() => Users, {
-    as: 'users',
-    through: () => UsersCurrencies,
-  })
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(false)
+  declare isDisabled: CreationOptional<boolean>;
 
-  @Column({ allowNull: false, defaultValue: false, type: DataType.BOOLEAN })
-  isDisabled!: boolean;
+  // In Sequelize v7, BelongsToMany is defined on Users model and automatically creates the inverse
+  declare users?: NonAttribute<Users[]>;
 }
 
 /**

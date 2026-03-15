@@ -1,6 +1,21 @@
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType, Length, BeforeCreate } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Categories from './Categories.model';
@@ -12,26 +27,19 @@ import Users from './Users.model';
   timestamps: false,
   freezeTableName: true,
   indexes: [
-    {
-      fields: ['transactionId'],
-    },
-    {
-      fields: ['userId'],
-    },
-    {
-      fields: ['categoryId'],
-    },
+    // Composite index for efficient category-based queries within transactions
     {
       fields: ['transactionId', 'categoryId'],
     },
   ],
 })
-export default class TransactionSplits extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-  })
-  declare id: string;
+export default class TransactionSplits extends Model<
+  InferAttributes<TransactionSplits>,
+  InferCreationAttributes<TransactionSplits>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<string>;
 
   @BeforeCreate
   static generateUUIDv7(instance: TransactionSplits) {
@@ -40,61 +48,43 @@ export default class TransactionSplits extends Model {
     }
   }
 
-  @ForeignKey(() => Transactions)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  transactionId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare transactionId: number;
 
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @ForeignKey(() => Categories)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  categoryId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare categoryId: number;
 
-  /** Amount in account currency (same as transaction.amount) */
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get amount(): Money {
-    return moneyGetCents(this, 'amount');
-  }
-  set amount(val: Money | number) {
-    moneySetCents(this, 'amount', val);
-  }
+  // Amount in account currency (same as transaction.amount), stored as amount*100
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare amount: number;
 
-  /** Amount in base currency (same as transaction.refAmount) */
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refAmount(): Money {
-    return moneyGetCents(this, 'refAmount');
-  }
-  set refAmount(val: Money | number) {
-    moneySetCents(this, 'refAmount', val);
-  }
+  // Amount in base currency (same as transaction.refAmount), stored as amount*100
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare refAmount: number;
 
   // Optional per-split note, max 100 chars
-  @Length({ max: 100 })
-  @Column({
-    type: DataType.STRING(100),
-    allowNull: true,
-  })
-  note!: string | null;
+  @Attribute(DataTypes.STRING(100))
+  declare note: string | null;
 
-  @BelongsTo(() => Transactions)
-  transaction!: Transactions;
+  @BelongsTo(() => Transactions, 'transactionId')
+  declare transaction?: NonAttribute<Transactions>;
 
-  @BelongsTo(() => Users)
-  user!: Users;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
-  @BelongsTo(() => Categories)
-  category!: Categories;
+  @BelongsTo(() => Categories, 'categoryId')
+  declare category?: NonAttribute<Categories>;
 }
 
 // Helper functions for working with splits
@@ -111,6 +101,13 @@ export interface CreateSplitPayload {
 export const bulkCreateSplits = async ({ data }: { data: CreateSplitPayload[] }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return TransactionSplits.bulkCreate(data as any, { individualHooks: true });
+};
+
+export const getSplitsForTransaction = async ({ transactionId, userId }: { transactionId: number; userId: number }) => {
+  return TransactionSplits.findAll({
+    where: { transactionId, userId },
+    include: [{ model: Categories, as: 'category' }],
+  });
 };
 
 export const deleteSplitsForTransaction = async ({

@@ -8,7 +8,7 @@ const isTest = process.env.NODE_ENV === 'test';
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       let data = {
@@ -57,7 +57,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'Currencies',
+            table: 'Currencies',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -72,7 +72,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'Currencies',
+            table: 'Currencies',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -158,7 +158,7 @@ module.exports = {
     }
   },
   down: async (queryInterface) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.removeColumn('Currencies', 'isDisabled', {

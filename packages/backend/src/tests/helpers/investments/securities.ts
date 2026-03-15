@@ -1,10 +1,10 @@
 import { until } from '@common/helpers';
-import { jest } from '@jest/globals';
 import type Securities from '@models/investments/Securities.model';
 import { FmpClient, type FmpSearchResult } from '@root/services/investments/data-providers/clients/fmp-client';
 import { addSecurityFromSearch } from '@root/services/investments/securities/add-from-search.service';
 import * as getSecuritiesService from '@root/services/investments/securities/get-all';
 import { searchSecurities as _searchSecurities } from '@root/services/investments/securities/search.service';
+import { vi } from 'vitest';
 
 import { type MakeRequestReturn, makeRequest } from '../common';
 
@@ -50,9 +50,9 @@ export async function seedSecurities(securitiesToSeed: SeedSecurityPayload[]) {
   // Access private property to clear cache
   dataProviderFactory.clearCache();
   // Get the global FMP client mock
-  const mockedFmpClient = jest.mocked(FmpClient);
+  const mockedFmpClient = vi.mocked(FmpClient);
   mockedFmpClient.mockReset();
-  const mockFmpSearch = jest.fn<() => Promise<FmpSearchResult[]>>();
+  const mockFmpSearch = vi.fn<() => Promise<FmpSearchResult[]>>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mockedFmpClient.mockImplementation(() => ({ search: mockFmpSearch }) as any);
 

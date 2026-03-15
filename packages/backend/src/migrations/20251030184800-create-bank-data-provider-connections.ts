@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { QueryInterface, Transaction } from 'sequelize';
+import { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to create BankDataProviderConnections table and link it to Accounts.
@@ -8,8 +8,8 @@ import { QueryInterface, Transaction } from 'sequelize';
  * Also adds bankDataProviderConnectionId to Accounts table to track which connection an account belongs to.
  */
 module.exports = {
-  up: async (queryInterface: QueryInterface, Sequelize: any): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  up: async (queryInterface: AbstractQueryInterface, Sequelize: any): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Create BankDataProviderConnections table
@@ -26,7 +26,7 @@ module.exports = {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -104,7 +104,7 @@ module.exports = {
           type: Sequelize.INTEGER,
           allowNull: true,
           references: {
-            model: 'BankDataProviderConnections',
+            table: 'BankDataProviderConnections',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -126,8 +126,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Remove the index from Accounts first

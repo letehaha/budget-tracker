@@ -1,8 +1,8 @@
-import { DataTypes, QueryInterface, QueryTypes, Transaction } from 'sequelize';
+import { AbstractQueryInterface, DataTypes, QueryTypes, Transaction } from '@sequelize/core';
 
-export default {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const transaction: Transaction = await queryInterface.sequelize.transaction();
+module.exports = {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const transaction: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // ============================================================================
@@ -84,7 +84,7 @@ export default {
             type: DataTypes.STRING(3),
             allowNull: false,
             references: {
-              model: 'CurrenciesNew',
+              table: 'CurrenciesNew',
               key: 'code',
             },
             onUpdate: 'CASCADE',
@@ -94,7 +94,7 @@ export default {
             type: DataTypes.STRING(3),
             allowNull: false,
             references: {
-              model: 'CurrenciesNew',
+              table: 'CurrenciesNew',
               key: 'code',
             },
             onUpdate: 'CASCADE',
@@ -524,7 +524,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -534,7 +534,7 @@ export default {
             type: DataTypes.STRING(3),
             allowNull: false,
             references: {
-              model: 'CurrenciesNew',
+              table: 'CurrenciesNew',
               key: 'code',
             },
             onUpdate: 'CASCADE',
@@ -544,7 +544,7 @@ export default {
             type: DataTypes.STRING(3),
             allowNull: false,
             references: {
-              model: 'CurrenciesNew',
+              table: 'CurrenciesNew',
               key: 'code',
             },
             onUpdate: 'CASCADE',
@@ -729,8 +729,8 @@ export default {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const transaction: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const transaction: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       console.log('🔄 Starting migration rollback...');

@@ -4,7 +4,7 @@ const ENUM_NAME = 'enum_transfer_nature';
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // await queryInterface.sequelize.query(`DROP TYPE "enum_transfer_nature"`, { transaction });
@@ -52,7 +52,7 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Add back the isTransfer column

@@ -31,7 +31,7 @@ module.exports = {
       },
     });
 
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.addColumn(
@@ -40,7 +40,7 @@ module.exports = {
         {
           type: Sequelize.INTEGER,
           references: {
-            model: 'Users', // name of Target model
+            table: 'Users', // name of Target model
             key: 'id', // key in Target model that we're referencing
           },
           onUpdate: 'CASCADE',
@@ -57,7 +57,7 @@ module.exports = {
   down: async (queryInterface) => {
     await queryInterface.dropTable('Categories');
 
-    const transaction = await queryInterface.sequelize.transaction();
+    const transaction = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       await queryInterface.removeColumn('Categories', 'userId', {
         transaction,

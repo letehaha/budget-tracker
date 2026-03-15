@@ -2,7 +2,7 @@ import { ACCOUNT_CATEGORIES, API_RESPONSE_STATUS, TRANSACTION_TYPES } from '@bt/
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { faker } from '@faker-js/faker';
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';

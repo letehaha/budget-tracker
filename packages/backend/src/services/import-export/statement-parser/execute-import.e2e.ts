@@ -1,6 +1,6 @@
 import type { ExtractedTransaction, TransactionImportDetails } from '@bt/shared/types';
 import { ImportSource, TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/Transactions.model';
 import * as helpers from '@tests/helpers';

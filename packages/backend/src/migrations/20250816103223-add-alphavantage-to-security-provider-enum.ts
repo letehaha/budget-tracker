@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { QueryInterface, Transaction } from 'sequelize';
+import { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 // Define constants for enum names to prevent typos
 const ENUM_SECURITY_PROVIDER = 'enum_security_provider';
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Add enum values without transaction as PostgreSQL doesn't allow enum changes in transactions
     await queryInterface.sequelize.query(
       `ALTER TYPE "${ENUM_SECURITY_PROVIDER}" ADD VALUE IF NOT EXISTS 'alphavantage';`,
@@ -14,8 +14,8 @@ module.exports = {
     await queryInterface.sequelize.query(`ALTER TYPE "${ENUM_SECURITY_PROVIDER}" ADD VALUE IF NOT EXISTS 'fmp';`);
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // PostgreSQL doesn't support dropping enum values directly

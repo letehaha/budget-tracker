@@ -1,13 +1,30 @@
-import { TRANSACTION_TYPES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, BalanceModel, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
+import { toSystemAmount } from '@js/helpers/system-amount';
 import { logger } from '@js/utils';
 import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+  Op,
+  sql,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
+  BelongsTo,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
-import { subDays, startOfMonth, startOfDay } from 'date-fns';
-import { Op } from 'sequelize';
-import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
+import { startOfDay, startOfMonth, subDays } from 'date-fns';
 
 import Accounts from './Accounts.model';
 import Transactions, { TransactionsAttributes } from './Transactions.model';
@@ -19,20 +36,15 @@ interface GetTotalBalanceHistoryPayload {
 }
 
 @Table({ timestamps: true, tableName: 'Balances', freezeTableName: true })
-export default class Balances extends Model {
-  @Column({
-    allowNull: false,
-    primaryKey: true,
-    autoIncrement: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
+export default class Balances extends Model<InferAttributes<Balances>, InferCreationAttributes<Balances>> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
 
-  @Column({
-    allowNull: false,
-    type: DataType.DATEONLY,
-  })
-  date!: Date;
+  @Attribute(DataTypes.DATEONLY)
+  @NotNull
+  declare date: Date;
 
   /**
    * Representation of the account balance at the specific date. Each time a new
@@ -41,20 +53,20 @@ export default class Balances extends Model {
    * specific date.
    * `amount` is in the BASE currency. So it represents a `refAmount` (`refBalance`)
    */
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get amount(): Money {
-    return moneyGetCents(this, 'amount');
-  }
-  set amount(val: Money | number) {
-    moneySetCents(this, 'amount', val);
-  }
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare amount: number;
 
-  @ForeignKey(() => Accounts)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  accountId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare accountId: number;
 
-  @BelongsTo(() => Accounts)
-  account!: Accounts;
+  @BelongsTo(() => Accounts, 'accountId')
+  declare account?: NonAttribute<Accounts>;
+
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
   // Method to calculate the total balance across all accounts
   static async getTotalBalance({ userId }: { userId: number }): Promise<number> {
@@ -85,19 +97,19 @@ export default class Balances extends Model {
 
   // Transactions might have positive and negative amount
   // ### Transaction creation
-  // 1. ✅ If just a new tx is created. Create a new record with date and (amount + refAmount) of tx
-  // 2. ✅ If new tx is created, but there's already record for that date, then just update the record's amount
-  // 3. ✅ If new tx is created, but there's no record before that day, then create one
+  // 1. If just a new tx is created. Create a new record with date and (amount + refAmount) of tx
+  // 2. If new tx is created, but there's already record for that date, then just update the record's amount
+  // 3. If new tx is created, but there's no record before that day, then create one
   //      more record to represent accounts' initialBalance and record for the transaction itself
 
   // ### Transaction updation
-  // 1. ✅ If tx amount, data, accountId, or transactionType is updated, update balances correspondingly
+  // 1. If tx amount, data, accountId, or transactionType is updated, update balances correspondingly
 
   // ### Transaction deletion
-  // 1. ✅ If tx is deleted, update balances for all records correspondingly
+  // 1. If tx is deleted, update balances for all records correspondingly
 
   // ### Account creation
-  // 1. ✅ Add a new record to Balances table with a `currentBalance` that is specified in Accounts table
+  // 1. Add a new record to Balances table with a `currentBalance` that is specified in Accounts table
 
   // ### Account deletion will be handled by `cascade` deletion
   static async handleTransactionChange({
@@ -251,7 +263,7 @@ export default class Balances extends Model {
   }: {
     accountId: number;
     date: Date;
-    amount: Money;
+    amount: number;
   }) {
     // If there's no record for the 1st of the month, create it based on the closest record prior it
     // so it's easier to calculate stats for the period
@@ -323,7 +335,6 @@ export default class Balances extends Model {
           where: { id: accountId },
         });
 
-        // if (account) {
         // (1) Firstly we now need to create one more record that will represent the
         // balance before that transaction
         await this.create({
@@ -336,27 +347,26 @@ export default class Balances extends Model {
         await this.create({
           accountId,
           date,
-          amount: account!.refInitialBalance.add(amount),
+          amount: account!.refInitialBalance + amount,
         });
-        // }
       } else {
         // And then create a new record with the amount + latestBalance
         balanceForTxDate = await this.create({
           accountId,
           date,
-          amount: latestBalancePrior.amount.add(amount),
+          amount: latestBalancePrior.amount + amount,
         });
       }
     } else {
       // If a balance already exists, update its amount
-      balanceForTxDate.amount = balanceForTxDate.amount.add(amount);
+      balanceForTxDate.amount = balanceForTxDate.amount + amount;
 
       await balanceForTxDate.save();
     }
 
     // Update the amount of all balances for the account that come after the date
     await this.update(
-      { amount: Balances.sequelize!.literal(`amount + ${amount.toCents()}`) },
+      { amount: sql`amount + ${amount}` },
       {
         where: {
           accountId,
@@ -391,11 +401,11 @@ export default class Balances extends Model {
 
     // If record exists, then it's account updating, otherwise account creation
     if (record && prevAccount) {
-      const diff = refInitialBalance.subtract(prevAccount.refInitialBalance);
+      const diff = refInitialBalance - prevAccount.refInitialBalance;
 
       // Update history for all the records related to that account
       await this.update(
-        { amount: Balances.sequelize!.literal(`amount + ${diff.toCents()}`) },
+        { amount: sql`amount + ${diff}` },
         {
           where: { accountId },
         },

@@ -1,27 +1,31 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Must import after mocking
 import { categorizationQueue, queueCategorizationJob } from './categorization-queue';
 
 // Mock BullMQ before importing the module under test
-jest.mock('bullmq', () => ({
-  Queue: jest.fn().mockImplementation(() => ({
-    add: jest.fn().mockResolvedValue({ id: 'test-job-id' } as never),
-    on: jest.fn(),
-  })),
-  Worker: jest.fn().mockImplementation(() => ({
-    on: jest.fn(),
-  })),
-}));
+vi.mock('bullmq', () => {
+  const mockAdd = vi.fn().mockResolvedValue({ id: 'test-job-id' } as never);
+  const mockOn = vi.fn();
+  return {
+    Queue: class MockQueue {
+      add = mockAdd;
+      on = mockOn;
+    },
+    Worker: class MockWorker {
+      on = vi.fn();
+    },
+  };
+});
 
 // Mock the categorization service to avoid DB dependencies
-jest.mock('./categorization-service', () => ({
-  categorizeTransactions: jest.fn(),
+vi.mock('./categorization-service', () => ({
+  categorizeTransactions: vi.fn(),
 }));
 
 describe('categorization-queue', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('queueCategorizationJob', () => {

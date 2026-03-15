@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { SettingsSchema } from '@models/UserSettings.model';
 import * as helpers from '@tests/helpers';
 

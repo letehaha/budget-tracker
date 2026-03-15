@@ -1,9 +1,9 @@
 import { FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { compareAsc, compareDesc, subDays } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 const dates = {
   income: '2024-08-02T00:00:00Z',

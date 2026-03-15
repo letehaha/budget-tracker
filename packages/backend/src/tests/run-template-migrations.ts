@@ -1,25 +1,22 @@
+import { DataTypes, Sequelize } from '@sequelize/core';
+import { PostgresDialect } from '@sequelize/postgres';
+import { createRequire } from 'module';
 import path from 'path';
-import { Sequelize } from 'sequelize-typescript';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
+
+// Import umzug using require for better CJS/ESM compatibility
+const { Umzug, SequelizeStorage } = require('umzug');
 
 /**
  * Standalone script to run migrations on the template database.
  * Called by setup-e2e-tests.sh before creating worker databases.
  *
- * Usage: npx ts-node src/tests/run-template-migrations.ts
+ * Usage: npx tsx src/tests/run-template-migrations.ts
  */
-// Register ts-node with transpileOnly to avoid TypeScript errors across migration files
-// Each migration file is an independent module, but ts-node in full type-check mode
-// can report false positives for redeclared variables across files
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-require('ts-node').register({
-  transpileOnly: true,
-  compilerOptions: {
-    module: 'commonjs',
-  },
-});
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const Umzug = require('umzug');
 
 const DATABASE_NAME = `${process.env.APPLICATION_DB_DATABASE}-template`;
 
@@ -31,36 +28,52 @@ async function runMigrations() {
   console.log(`Running migrations on template database: ${DATABASE_NAME}`);
 
   const sequelize = new Sequelize({
+    dialect: PostgresDialect,
     host: process.env.APPLICATION_DB_HOST,
     port: parseInt(process.env.APPLICATION_DB_PORT as string, 10),
-    username: process.env.APPLICATION_DB_USERNAME,
+    user: process.env.APPLICATION_DB_USERNAME,
     password: process.env.APPLICATION_DB_PASSWORD,
     database: DATABASE_NAME,
-    dialect: 'postgres',
     logging: false,
   });
 
+  // Create a Sequelize-like object with DataTypes for legacy migrations
+  // Legacy migrations expect (queryInterface, Sequelize) where Sequelize has type definitions
+  const SequelizeLegacy = {
+    ...DataTypes,
+    // Add any additional properties that migrations might use
+    literal: sequelize.literal.bind(sequelize),
+    fn: sequelize.fn.bind(sequelize),
+    col: sequelize.col.bind(sequelize),
+  };
+
   const umzug = new Umzug({
     migrations: {
-      path: path.join(__dirname, '../migrations'),
-      pattern: /\.(js|ts)$/,
-      params: [sequelize.getQueryInterface(), Sequelize],
+      glob: path.join(__dirname, '../migrations/*.{js,ts}'),
+      resolve: ({ name, path: migrationPath, context }) => {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const migration = require(migrationPath!);
+        return {
+          name,
+          up: async () => migration.up(context, SequelizeLegacy),
+          down: async () => migration.down(context, SequelizeLegacy),
+        };
+      },
     },
-    storage: 'sequelize',
-    storageOptions: {
-      sequelize,
-    },
+    context: sequelize.getQueryInterface(),
+    storage: new SequelizeStorage({ sequelize }),
+    logger: console,
   });
 
   try {
     console.log('Starting migrations...');
     const pending = await umzug.pending();
     console.log(`Pending migrations: ${pending.length}`);
-    pending.forEach((m) => console.log(`  - ${m.file}`));
+    pending.forEach((m) => console.log(`  - ${m.name}`));
 
     const migrations = await umzug.up();
     console.log(`Successfully ran ${migrations.length} migrations`);
-    migrations.forEach((m) => console.log(`  - ${m.file}`));
+    migrations.forEach((m) => console.log(`  - ${m.name}`));
 
     // Debug: Verify critical seed data after migrations
     const [currenciesResult] = await sequelize.query('SELECT COUNT(*) as count FROM "Currencies"');

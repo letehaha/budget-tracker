@@ -1,5 +1,5 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import * as helpers from '@tests/helpers';
 
 describe('Bank Data Providers controller', () => {

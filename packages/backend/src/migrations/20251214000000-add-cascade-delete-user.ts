@@ -1,4 +1,4 @@
-import { QueryInterface, Transaction } from 'sequelize';
+import { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to add ON DELETE CASCADE for userId foreign keys that are missing it.
@@ -10,8 +10,8 @@ import { QueryInterface, Transaction } from 'sequelize';
  * - UserMerchantCategoryCodes.userId
  */
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1. AccountGroups.userId - add CASCADE
@@ -72,8 +72,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1. AccountGroups.userId - remove CASCADE (revert to NO ACTION)
