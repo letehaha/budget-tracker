@@ -9,6 +9,8 @@ import {
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { NotFoundError, ValidationError } from '@js/errors';
+import AccountGrouping from '@models/accounts-groups/AccountGrouping.model';
+import AccountGroup from '@models/accounts-groups/AccountGroups.model';
 import Accounts from '@models/Accounts.model';
 import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
 import Transactions from '@models/Transactions.model';
@@ -193,7 +195,22 @@ export const linkAccountToBankConnection = withTransaction(
     // 10. Update connection's last sync timestamp
     await bankConnection.update({ lastSyncAt: new Date() });
 
-    // 11. Trigger automatic transaction sync for the newly linked account
+    // 11. Add account to the connection's AccountGroup if it exists and account is ungrouped
+    const connectionGroup = await AccountGroup.findOne({
+      where: { bankDataProviderConnectionId: connectionId, userId },
+    });
+
+    if (connectionGroup) {
+      const existingGrouping = await AccountGrouping.findOne({
+        where: { accountId },
+      });
+
+      if (!existingGrouping) {
+        await AccountGrouping.create({ accountId, groupId: connectionGroup.id });
+      }
+    }
+
+    // 12. Trigger automatic transaction sync for the newly linked account
     // This uses the syncTransactionsForAccount service which handles all the logic
     // including checking correct from-to dates, rate limits, and provider-specific behavior
     await syncTransactionsForAccount({
@@ -202,7 +219,7 @@ export const linkAccountToBankConnection = withTransaction(
       accountId,
     });
 
-    // 12. Fetch and return the updated account
+    // 13. Fetch and return the updated account
     const updatedAccount = await Accounts.findByPk(accountId);
 
     return {

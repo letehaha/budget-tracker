@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '.';
 
 defineProps<{
   content: string;
+  contentClassName?: string;
 }>();
 
 const hasHover = ref(false);
@@ -33,7 +34,7 @@ onUnmounted(() => {
       <TooltipTrigger as-child>
         <slot />
       </TooltipTrigger>
-      <TooltipContent>
+      <TooltipContent :class="contentClassName">
         {{ content }}
       </TooltipContent>
     </Tooltip>
