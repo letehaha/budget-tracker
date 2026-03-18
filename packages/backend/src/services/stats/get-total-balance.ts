@@ -1,28 +1,34 @@
 import { getBalanceHistory } from './get-balance-history';
+import { getCreditLimitAdjustment } from './get-credit-limit-adjustment';
 
 /**
  * Retrieves the total balance for a user on a specified date.
  *
- * If a transaction is not passed in the attributes, the method will create its
- * own transaction and commit or rollback based on the outcome of the operations.
+ * When `includeCreditLimit` is true, subtracts the total credit limit
+ * (in base currency) from the balance so credit card available credit
+ * does not inflate the total.
  *
  * @param {Object} params - The parameters for fetching the total balance.
  * @param {number} params.userId - The ID of the user for whom the total balance is to be fetched.
  * @param {string} params.date - The date in 'yyyy-mm-dd' format for which the total balance is to be calculated.
- * @returns {Promise<number>} - Total balance for asked date.
- * @throws {Error} - Throws an error if the database query fails or if there's an issue with the transaction.
- *
- * @example
- * const total = await getTotalBalance({ userId: 1, date: '2023-01-01' });
+ * @param {boolean} [params.includeCreditLimit] - Whether to subtract credit limits from the total.
+ * @returns {Promise<number>} - Total balance for asked date (in cents).
  */
-export const getTotalBalance = async ({ userId, date }: { userId: number; date: string }): Promise<number> => {
-  const balancesForDate = await getBalanceHistory({
-    userId,
-    from: date,
-    to: date,
-  });
+export const getTotalBalance = async ({
+  userId,
+  date,
+  includeCreditLimit = false,
+}: {
+  userId: number;
+  date: string;
+  includeCreditLimit?: boolean;
+}): Promise<number> => {
+  const [balancesForDate, creditLimitSum] = await Promise.all([
+    getBalanceHistory({ userId, from: date, to: date }),
+    includeCreditLimit ? getCreditLimitAdjustment({ userId }) : Promise.resolve(0),
+  ]);
 
   const totalBalance = balancesForDate.reduce((acc, value) => (acc += value.amount.toCents()), 0);
 
-  return totalBalance;
+  return totalBalance - creditLimitSum;
 };

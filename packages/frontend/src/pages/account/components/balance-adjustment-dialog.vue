@@ -5,13 +5,14 @@ import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
 import { useAdjustAccountBalance } from '@/composable/data-queries/accounts';
+import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
 import { toLocalNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { cn } from '@/lib/utils';
 import { useCurrenciesStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{ account: AccountModel }>();
@@ -20,6 +21,9 @@ const emit = defineEmits<{ close: [] }>();
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const { mutateAsync: adjustBalance, isPending } = useAdjustAccountBalance();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { hasCreditLimitAdjustment, displayBalance } = useAccountDisplayBalance({
+  account: toRef(() => props.account),
+});
 const { t } = useI18n();
 
 const isOpen = ref(true);
@@ -54,11 +58,22 @@ const currencyCode = computed(
   () => currenciesMap.value[props.account.currencyCode]?.currency?.code ?? props.account.currencyCode,
 );
 
+// Actual target balance for the API (always in real currentBalance terms)
 const computedTarget = computed<number | null>(() => {
   if (form.value.amount === null) return null;
-  if (mode.value === 'set-to') return form.value.amount;
+  if (mode.value === 'set-to') {
+    // User enters in display-balance terms; convert back to actual
+    return hasCreditLimitAdjustment.value ? form.value.amount + props.account.creditLimit : form.value.amount;
+  }
   const sign = direction.value === 'income' ? 1 : -1;
   return props.account.currentBalance + sign * form.value.amount;
+});
+
+// Display target for the preview (what the user sees as the "new balance")
+const displayTarget = computed<number | null>(() => {
+  if (form.value.amount === null) return null;
+  if (mode.value === 'set-to') return form.value.amount;
+  return displayBalance.value + (direction.value === 'income' ? 1 : -1) * form.value.amount;
 });
 
 const diff = computed<number | null>(() =>
@@ -204,9 +219,9 @@ watch(mode, () => {
         </template>
         <template v-else>
           <p class="text-muted-foreground mb-1 text-sm">
-            {{ toLocalNumber(account.currentBalance) }} {{ currencyCode }}
+            {{ toLocalNumber(displayBalance) }} {{ currencyCode }}
             →
-            <span class="text-foreground font-medium">{{ toLocalNumber(computedTarget!) }} {{ currencyCode }}</span>
+            <span class="text-foreground font-medium">{{ toLocalNumber(displayTarget!) }} {{ currencyCode }}</span>
           </p>
           <p
             class="text-sm font-medium"

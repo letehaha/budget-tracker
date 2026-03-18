@@ -128,4 +128,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   remindersList: ['reminders-list'] as const,
   reminderDetails: ['reminder-details'] as const,
   reminderPeriods: ['reminder-periods'] as const,
+
+  // user settings
+  userSettings: ['user-settings'] as const,
 });

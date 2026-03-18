@@ -11,6 +11,7 @@ import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } fr
 import { Op } from 'sequelize';
 
 import { getAggregatedBalanceHistory } from './get-balance-history';
+import { getCreditLimitAdjustment } from './get-credit-limit-adjustment';
 
 export interface CombinedBalanceHistoryItem {
   date: string;
@@ -318,10 +319,12 @@ export const getCombinedBalanceHistory = async ({
   userId,
   from,
   to,
+  includeCreditLimit = false,
 }: {
   userId: number;
   from?: string;
   to?: string;
+  includeCreditLimit?: boolean;
 }): Promise<CombinedBalanceHistoryItem[]> => {
   try {
     // Handle optional from/to parameters
@@ -353,9 +356,10 @@ export const getCombinedBalanceHistory = async ({
       end: parseISO(maxDate),
     }).map((date) => format(date, 'yyyy-MM-dd'));
 
-    const [accountsBalanceHistory, portfolioValuesByDate] = await Promise.all([
+    const [accountsBalanceHistory, portfolioValuesByDate, creditLimitSum] = await Promise.all([
       getAggregatedBalanceHistory({ userId, from: minDate, to: maxDate }),
       calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
+      includeCreditLimit ? getCreditLimitAdjustment({ userId }) : Promise.resolve(0),
     ]);
 
     // If no data at all, return empty array
@@ -374,7 +378,7 @@ export const getCombinedBalanceHistory = async ({
 
     // Combine accounts and portfolio balances with O(1) lookups
     const combinedHistory: CombinedBalanceHistoryItem[] = uniqueDates.map((dateStr) => {
-      const accountsBalance = accountsBalanceByDate.get(dateStr) ?? 0;
+      const accountsBalance = (accountsBalanceByDate.get(dateStr) ?? 0) - creditLimitSum;
       const portfoliosBalance = portfolioValuesByDate?.get(dateStr) ?? 0;
 
       return {

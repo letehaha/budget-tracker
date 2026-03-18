@@ -14,6 +14,7 @@ import {
   serializeTotalBalance,
 } from '@root/serializers';
 import * as statsService from '@services/stats';
+import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { isBefore, isEqual, isValid } from 'date-fns';
 import { z } from 'zod';
 
@@ -81,9 +82,12 @@ export const getTotalBalance = createController(totalBalanceSchema, async ({ use
     throw new ValidationError({ message: t({ key: 'validation.dateInvalid' }) });
   }
 
+  const settings = await getUserSettings({ userId });
+
   const totalBalance = await statsService.getTotalBalance({
     userId,
     date,
+    includeCreditLimit: settings.includeCreditLimitInStats,
   });
 
   // Serialize: convert cents to decimal for API response
@@ -165,10 +169,13 @@ export const getCombinedBalanceHistory = createController(combinedBalanceHistory
 
   tryBasicDateValidation({ from, to });
 
+  const settings = await getUserSettings({ userId });
+
   const combinedBalanceHistory = await statsService.getCombinedBalanceHistory({
     userId,
     from,
     to,
+    includeCreditLimit: settings.includeCreditLimitInStats,
   });
 
   // Serialize: convert cents to decimal for API response

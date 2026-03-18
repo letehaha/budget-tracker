@@ -2,14 +2,17 @@
 import Button from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable';
+import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
 import { ROUTES_NAMES } from '@/routes';
 import { AccountModel } from '@bt/shared/types';
+import { toRef } from 'vue';
 
-defineProps<{
+const props = defineProps<{
   account: AccountModel;
 }>();
 
 const { formatCompactAmount, formatAmountByCurrencyCode } = useFormatCurrency();
+const { displayBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
 </script>
 
 <template>
@@ -21,12 +24,12 @@ const { formatCompactAmount, formatAmountByCurrencyCode } = useFormatCurrency();
     <Button :variant="isActive ? 'secondary' : 'ghost'" as="div" size="default" class="h-auto w-full px-2">
       <div class="flex w-full items-center justify-between gap-x-2">
         <span class="truncate text-sm">{{ account.name }}</span>
-        <DesktopOnlyTooltip :content="formatAmountByCurrencyCode(account.currentBalance, account.currencyCode)">
+        <DesktopOnlyTooltip :content="formatAmountByCurrencyCode(displayBalance, account.currencyCode)">
           <span
             class="text-amount shrink-0 text-sm"
-            :class="account.currentBalance >= 0 ? 'text-muted-foreground' : 'text-destructive-text'"
+            :class="displayBalance >= 0 ? 'text-muted-foreground' : 'text-destructive-text'"
           >
-            {{ formatCompactAmount(account.currentBalance, account.currencyCode) }}
+            {{ formatCompactAmount(displayBalance, account.currencyCode) }}
           </span>
         </DesktopOnlyTooltip>
       </div>
