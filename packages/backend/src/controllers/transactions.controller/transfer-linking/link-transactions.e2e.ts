@@ -210,6 +210,118 @@ describe('link transactions between each other', () => {
     const [linkedExpense, linkedIncome] = linkingResult[0]!;
     expect(linkedExpense.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
     expect(linkedIncome.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(linkedExpense.transferId).toBe(linkedIncome.transferId);
+    expect(linkedExpense.transferId).toEqual(expect.any(String));
+  });
+
+  it('allows linking two transfer_out_wallet transactions (expense + income)', async () => {
+    const accountA = await helpers.createAccount({ raw: true });
+    const accountB = await helpers.createAccount({ raw: true });
+
+    const [outOfWalletExpense] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountA.id,
+        amount: 300,
+        transactionType: TRANSACTION_TYPES.expense,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      }),
+      raw: true,
+    });
+
+    const [outOfWalletIncome] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountB.id,
+        amount: 300,
+        transactionType: TRANSACTION_TYPES.income,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      }),
+      raw: true,
+    });
+
+    const linkingResult = await helpers.linkTransactions({
+      payload: {
+        ids: [[outOfWalletExpense.id, outOfWalletIncome.id]],
+      },
+      raw: true,
+    });
+
+    expect(linkingResult).toHaveLength(1);
+
+    const [linkedExpense, linkedIncome] = linkingResult[0]!;
+    expect(linkedExpense.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(linkedIncome.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(linkedExpense.transferId).toBe(linkedIncome.transferId);
+    expect(linkedExpense.transferId).toEqual(expect.any(String));
+  });
+
+  it('allows re-linking after unlinking an out_of_wallet-originated transfer', async () => {
+    const accountA = await helpers.createAccount({ raw: true });
+    const accountB = await helpers.createAccount({ raw: true });
+    const accountC = await helpers.createAccount({ raw: true });
+
+    // Step 1: Create out_of_wallet expense and regular income, then link them
+    const [outOfWalletExpense] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountA.id,
+        amount: 200,
+        transactionType: TRANSACTION_TYPES.expense,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      }),
+      raw: true,
+    });
+
+    const [regularIncome] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountB.id,
+        amount: 200,
+        transactionType: TRANSACTION_TYPES.income,
+      }),
+      raw: true,
+    });
+
+    const linkingResult = await helpers.linkTransactions({
+      payload: {
+        ids: [[outOfWalletExpense.id, regularIncome.id]],
+      },
+      raw: true,
+    });
+
+    const transferId = linkingResult[0]![0].transferId;
+    expect(transferId).toEqual(expect.any(String));
+
+    // Step 2: Unlink — both should become not_transfer
+    const unlinkedTxs = await helpers.unlinkTransferTransactions({
+      transferIds: [transferId],
+      raw: true,
+    });
+
+    unlinkedTxs.forEach((tx) => {
+      expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+      expect(tx.transferId).toBeNull();
+    });
+
+    // Step 3: Re-link the expense with a different income
+    const [newIncome] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountC.id,
+        amount: 200,
+        transactionType: TRANSACTION_TYPES.income,
+      }),
+      raw: true,
+    });
+
+    const relinkResult = await helpers.linkTransactions({
+      payload: {
+        ids: [[outOfWalletExpense.id, newIncome.id]],
+      },
+      raw: true,
+    });
+
+    expect(relinkResult).toHaveLength(1);
+    const [relinkedExpense, relinkedIncome] = relinkResult[0]!;
+    expect(relinkedExpense.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(relinkedIncome.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(relinkedExpense.transferId).toBe(relinkedIncome.transferId);
   });
 
   it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
