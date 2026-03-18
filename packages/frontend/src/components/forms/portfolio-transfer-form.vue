@@ -17,6 +17,7 @@ import {
   useLinkTransactionToPortfolio,
   usePortfolioToAccountTransfer,
 } from '@/composable/data-queries/portfolio-transfers';
+import { usePortfolioBalances } from '@/composable/data-queries/portfolio-balances';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { useFormValidation } from '@/composable/form-validator';
 import { formatUIAmount } from '@/js/helpers';
@@ -59,7 +60,7 @@ const accountToPortfolioMutation = useAccountToPortfolioTransfer();
 const portfolioToAccountMutation = usePortfolioToAccountTransfer();
 const linkToPortfolioMutation = useLinkTransactionToPortfolio();
 
-// Form state
+// Form state — defined before balance logic so balance computeds can reference it
 const form = reactive<{
   fromPortfolio: PortfolioModel | null;
   toPortfolio: PortfolioModel | null;
@@ -81,6 +82,41 @@ const form = reactive<{
   date: new Date(),
   description: '',
 });
+
+// Portfolio balance data for currency sorting
+const sourcePortfolioId = computed(() => form.fromPortfolio?.id ?? 0);
+const { data: portfolioBalances } = usePortfolioBalances(sourcePortfolioId);
+
+const balancesByCurrency = computed(() => {
+  const map = new Map<string, number>();
+  if (portfolioBalances.value) {
+    for (const balance of portfolioBalances.value) {
+      map.set(balance.currencyCode, Number(balance.availableCash));
+    }
+  }
+  return map;
+});
+
+const sortedCurrencies = computed(() => {
+  const list = [...(currencies.value || [])];
+  return list.sort((a, b) => {
+    const balA = balancesByCurrency.value.get(a.currencyCode) ?? 0;
+    const balB = balancesByCurrency.value.get(b.currencyCode) ?? 0;
+    if (balA !== 0 && balB !== 0) return balB - balA;
+    if (balA !== 0) return -1;
+    if (balB !== 0) return 1;
+    return a.currencyCode.localeCompare(b.currencyCode);
+  });
+});
+
+const currencyLabel = (currency: UserCurrencyModel) => {
+  const code = currency.currency!.code;
+  const balance = balancesByCurrency.value.get(currency.currencyCode);
+  if (balance !== undefined && balance !== 0) {
+    return `${code} (${formatAmountByCurrencyCode(balance, currency.currencyCode)})`;
+  }
+  return code;
+};
 
 // Computed values for easier access
 const transferType = computed(() => form.transferTypeOption?.value || 'portfolio-to-portfolio');
@@ -489,8 +525,12 @@ const isSubmitDisabled = computed(() => {
       :values="availableToPortfolios"
       value-key="id"
       label-key="name"
-      :placeholder="$t('forms.portfolioTransfer.toPortfolioPlaceholder')"
-      :disabled="isAnyMutationPending || disabled"
+      :placeholder="
+        availableToPortfolios.length
+          ? $t('forms.portfolioTransfer.toPortfolioPlaceholder')
+          : $t('forms.portfolioTransfer.noPortfoliosAvailable')
+      "
+      :disabled="isAnyMutationPending || disabled || !availableToPortfolios.length"
     />
 
     <SelectField
@@ -538,9 +578,9 @@ const isSubmitDisabled = computed(() => {
         v-if="transferType !== 'account-to-portfolio'"
         v-model="form.selectedCurrency"
         :label="$t('forms.portfolioTransfer.currencyLabel')"
-        :values="currencies || []"
+        :values="sortedCurrencies"
         value-key="currencyCode"
-        :label-key="(currency: UserCurrencyModel) => currency.currency!.code"
+        :label-key="currencyLabel"
         :placeholder="$t('forms.portfolioTransfer.currencyPlaceholder')"
         :disabled="isAnyMutationPending || disabled"
         :error-message="getFieldErrorMessage('form.selectedCurrency')"

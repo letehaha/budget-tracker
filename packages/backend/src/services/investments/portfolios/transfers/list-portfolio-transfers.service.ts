@@ -72,7 +72,10 @@ export async function listPortfolioTransfers({
       { model: Currencies, as: 'currency' },
       { model: Currencies, as: 'toCurrency' },
     ],
-    order: [[sortBy, sortDirection]],
+    order: [
+      [sortBy, sortDirection],
+      ['createdAt', sortDirection],
+    ],
     limit,
     offset,
   });
