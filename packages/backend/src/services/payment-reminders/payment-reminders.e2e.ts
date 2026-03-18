@@ -7,8 +7,16 @@ import {
 import { describe, expect, it } from '@jest/globals';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import * as helpers from '@tests/helpers';
+import { addMonths, addWeeks, addYears, format } from 'date-fns';
 
 import { checkPaymentReminders } from './check-reminders';
+
+/** Returns a date string N months from today, on the given day-of-month. */
+function futureDate({ monthsAhead, day }: { monthsAhead: number; day: number }): string {
+  const d = addMonths(new Date(), monthsAhead);
+  d.setDate(day);
+  return format(d, 'yyyy-MM-dd');
+}
 
 /**
  * Create a second user and return their session cookies.
@@ -657,10 +665,14 @@ describe('Payment Reminders', () => {
 
   describe('Due Date Calculation', () => {
     it('handles month-end clamping for monthly frequency', async () => {
-      // Create reminder due on May 31 — June has 30 days, so clamping applies
+      // Pick a future month that has 31 days, followed by a month with 30 days.
+      // e.g. 3 months ahead on day 31 — the next month may clamp.
+      // Use explicit May 31 -> Jun 30 -> Jul 31 pattern but in a future year-safe way.
+      // We use a fixed pattern here because clamping depends on specific calendar months.
+      const baseYear = new Date().getFullYear() + 1;
       const reminder = await helpers.createPaymentReminder({
         name: 'Month End',
-        dueDate: '2026-05-31',
+        dueDate: `${baseYear}-05-31`,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         raw: true,
       });
@@ -680,7 +692,7 @@ describe('Payment Reminders', () => {
         raw: true,
       });
       let upcoming = result.periods.find((p) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
-      expect(upcoming!.dueDate).toBe('2026-06-30');
+      expect(upcoming!.dueDate).toBe(`${baseYear}-06-30`);
 
       // Mark Jun as paid, next should be Jul 31
       await helpers.markPaymentReminderPeriodPaid({
@@ -694,13 +706,16 @@ describe('Payment Reminders', () => {
         raw: true,
       });
       upcoming = result.periods.find((p) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
-      expect(upcoming!.dueDate).toBe('2026-07-31');
+      expect(upcoming!.dueDate).toBe(`${baseYear}-07-31`);
     });
 
     it('calculates weekly next due date', async () => {
+      const dueDate = futureDate({ monthsAhead: 2, day: 1 });
+      const expectedNext = format(addWeeks(new Date(dueDate), 1), 'yyyy-MM-dd');
+
       const reminder = await helpers.createPaymentReminder({
         name: 'Weekly',
-        dueDate: '2026-04-01',
+        dueDate,
         frequency: SUBSCRIPTION_FREQUENCIES.weekly,
         raw: true,
       });
@@ -716,13 +731,16 @@ describe('Payment Reminders', () => {
         raw: true,
       });
       const upcoming = result.periods.find((p) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
-      expect(upcoming!.dueDate).toBe('2026-04-08');
+      expect(upcoming!.dueDate).toBe(expectedNext);
     });
 
     it('calculates quarterly next due date', async () => {
+      const dueDate = futureDate({ monthsAhead: 2, day: 15 });
+      const expectedNext = format(addMonths(new Date(dueDate), 3), 'yyyy-MM-dd');
+
       const reminder = await helpers.createPaymentReminder({
         name: 'Quarterly',
-        dueDate: '2026-04-15',
+        dueDate,
         frequency: SUBSCRIPTION_FREQUENCIES.quarterly,
         raw: true,
       });
@@ -738,13 +756,16 @@ describe('Payment Reminders', () => {
         raw: true,
       });
       const upcoming = result.periods.find((p) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
-      expect(upcoming!.dueDate).toBe('2026-07-15');
+      expect(upcoming!.dueDate).toBe(expectedNext);
     });
 
     it('calculates annual next due date', async () => {
+      const dueDate = futureDate({ monthsAhead: 2, day: 15 });
+      const expectedNext = format(addYears(new Date(dueDate), 1), 'yyyy-MM-dd');
+
       const reminder = await helpers.createPaymentReminder({
         name: 'Annual',
-        dueDate: '2026-03-15',
+        dueDate,
         frequency: SUBSCRIPTION_FREQUENCIES.annual,
         raw: true,
       });
@@ -760,13 +781,16 @@ describe('Payment Reminders', () => {
         raw: true,
       });
       const upcoming = result.periods.find((p) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
-      expect(upcoming!.dueDate).toBe('2027-03-15');
+      expect(upcoming!.dueDate).toBe(expectedNext);
     });
 
     it('calculates biweekly next due date', async () => {
+      const dueDate = futureDate({ monthsAhead: 2, day: 1 });
+      const expectedNext = format(addWeeks(new Date(dueDate), 2), 'yyyy-MM-dd');
+
       const reminder = await helpers.createPaymentReminder({
         name: 'Biweekly',
-        dueDate: '2026-04-01',
+        dueDate,
         frequency: SUBSCRIPTION_FREQUENCIES.biweekly,
         raw: true,
       });
@@ -782,13 +806,16 @@ describe('Payment Reminders', () => {
         raw: true,
       });
       const upcoming = result.periods.find((p) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
-      expect(upcoming!.dueDate).toBe('2026-04-15');
+      expect(upcoming!.dueDate).toBe(expectedNext);
     });
 
     it('calculates semi-annual next due date', async () => {
+      const dueDate = futureDate({ monthsAhead: 2, day: 15 });
+      const expectedNext = format(addMonths(new Date(dueDate), 6), 'yyyy-MM-dd');
+
       const reminder = await helpers.createPaymentReminder({
         name: 'Semi-Annual',
-        dueDate: '2026-04-15',
+        dueDate,
         frequency: SUBSCRIPTION_FREQUENCIES.semiAnnual,
         raw: true,
       });
@@ -804,7 +831,7 @@ describe('Payment Reminders', () => {
         raw: true,
       });
       const upcoming = result.periods.find((p) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
-      expect(upcoming!.dueDate).toBe('2026-10-15');
+      expect(upcoming!.dueDate).toBe(expectedNext);
     });
   });
 
