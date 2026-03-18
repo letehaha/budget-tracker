@@ -6,6 +6,8 @@ import PaymentReminders from '@models/payment-reminders.model';
 import Subscriptions from '@models/Subscriptions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
+import { ensureNextPeriodExists } from './ensure-next-period';
+
 interface UpdateReminderParams {
   userId: number;
   id: string;
@@ -69,7 +71,17 @@ export const updateReminder = withTransaction(async (params: UpdateReminderParam
     updateData.expectedAmount = updates.expectedAmount != null ? Money.fromDecimal(updates.expectedAmount) : null;
   }
 
+  const previousFrequency = reminder.frequency;
+
   await reminder.update(updateData);
+
+  // When frequency changes from one-time (null) to recurring, ensure a new
+  // upcoming period is created. Without this, a one-time reminder whose only
+  // period was already paid/skipped would have no upcoming period after
+  // becoming recurring.
+  if (!previousFrequency && reminder.frequency) {
+    await ensureNextPeriodExists({ reminder });
+  }
 
   return PaymentReminders.findByPk(id, {
     include: [
