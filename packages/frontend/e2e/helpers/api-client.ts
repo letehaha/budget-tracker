@@ -203,12 +203,14 @@ export async function createTransaction({
   amount,
   transactionType = 'expense',
   categoryId = 1,
+  transferNature = 'not_transfer',
 }: {
   request: APIRequestContext;
   accountId: number;
   amount: number;
   transactionType?: 'expense' | 'income';
   categoryId?: number;
+  transferNature?: 'not_transfer' | 'transfer_between_user_accounts' | 'transfer_out_wallet';
 }) {
   return apiPost({
     request,
@@ -218,10 +220,24 @@ export async function createTransaction({
       amount,
       transactionType,
       categoryId,
-      transferNature: 'not_transfer',
+      transferNature,
       paymentType: 'creditCard',
       time: new Date().toISOString(),
     },
+  });
+}
+
+export async function linkTransactions({
+  request,
+  ids,
+}: {
+  request: APIRequestContext;
+  ids: [baseTxId: number, oppositeTxId: number][];
+}) {
+  return apiPut({
+    request,
+    path: '/api/v1/transactions/link',
+    data: { ids },
   });
 }
 
