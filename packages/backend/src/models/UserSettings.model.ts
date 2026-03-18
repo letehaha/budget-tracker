@@ -107,6 +107,7 @@ export const ZodSettingsSchema = z.object({
   notifications: ZodNotificationPreferencesSchema.optional(),
   onboarding: ZodOnboardingStateSchema.optional(),
   dashboard: ZodDashboardSettingsSchema.optional(),
+  includeCreditLimitInStats: z.boolean().optional(),
 });
 
 // Infer the TypeScript type from the Zod schema
@@ -114,6 +115,7 @@ export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
 export const DEFAULT_SETTINGS: SettingsSchema = {
   locale: SUPPORTED_LOCALES.ENGLISH,
+  includeCreditLimitInStats: false,
 };
 
 @Table({

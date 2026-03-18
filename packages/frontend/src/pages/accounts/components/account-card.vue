@@ -19,7 +19,7 @@
       </div>
     </div>
     <div class="xs:text-lg font-semibold whitespace-nowrap">
-      {{ formatBalance(account) }}
+      {{ formatAmountByCurrencyCode(displayBalance, account.currencyCode) }}
     </div>
   </router-link>
 </template>
@@ -27,6 +27,7 @@
 <script setup lang="ts">
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import { useFormatCurrency } from '@/composable';
+import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
 import { useBankConnectionDetails } from '@/composable/data-queries/bank-providers/bank-connection-details';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { AccountModel } from '@bt/shared/types';
@@ -40,7 +41,5 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { data: connectionDetails } = useBankConnectionDetails({
   connectionId: toRef(() => props.account.bankDataProviderConnectionId!),
 });
-
-const formatBalance = (account: AccountModel) =>
-  formatAmountByCurrencyCode(account.currentBalance - account.creditLimit, account.currencyCode);
+const { displayBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
 </script>

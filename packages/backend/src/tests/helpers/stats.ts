@@ -113,6 +113,25 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   return result;
 }
 
+export async function getTotalBalance<R extends boolean | undefined = undefined>({
+  date,
+  raw,
+}: {
+  date: string;
+  raw?: R;
+}) {
+  const params = new URLSearchParams();
+  params.append('date', date);
+
+  const result = await helpers.makeRequest<number, R>({
+    method: 'get',
+    url: `/stats/total-balance?${params.toString()}`,
+    raw,
+  });
+
+  return result;
+}
+
 export async function getCombinedBalanceHistory<R extends boolean | undefined = undefined>({
   from,
   to,

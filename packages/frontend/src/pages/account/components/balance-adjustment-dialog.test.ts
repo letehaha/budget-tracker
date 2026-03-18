@@ -16,6 +16,17 @@ const { mockMutateAsync, mockAddSuccess, mockAddError } = vi.hoisted(() => ({
 
 /* ────────────────────────────── Module mocks ─────────────────────────── */
 
+vi.mock('@/composable/use-account-display-balance', async () => {
+  const { computed } = await import('vue');
+  return {
+    useAccountDisplayBalance: ({ account }: { account: { value: { currentBalance: number } } }) => ({
+      hasCreditLimitAdjustment: computed(() => false),
+      displayBalance: computed(() => account.value.currentBalance),
+      displayRefBalance: computed(() => account.value.currentBalance),
+    }),
+  };
+});
+
 vi.mock('@/composable/data-queries/accounts', async () => {
   const { ref } = await import('vue');
   return {

@@ -13,13 +13,14 @@ import * as Popover from '@/components/lib/ui/popover';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
+import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
 import { toLocalNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
 import { ArrowRightLeftIcon, MoreVerticalIcon, PencilIcon, ScaleIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import BalanceAdjustmentDialog from './balance-adjustment-dialog.vue';
@@ -28,6 +29,7 @@ const props = defineProps<{
   account: AccountModel;
 }>();
 const { currenciesMap, baseCurrency } = storeToRefs(useCurrenciesStore());
+const { displayBalance, displayRefBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
 const accountsStore = useAccountsStore();
 const formEditingPopoverOpen = ref(false);
 const adjustmentDialogOpen = ref(false);
@@ -172,23 +174,23 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
           @click="adjustmentDialogOpen = true"
         >
           <span class="text-amount text-3xl">
-            {{ toLocalNumber(account.currentBalance) }}
+            {{ toLocalNumber(displayBalance) }}
             {{ currenciesMap[account.currencyCode]?.currency?.code }}
           </span>
           <span v-if="baseCurrency && account.currencyCode !== baseCurrency.currencyCode" class="text-white opacity-50">
             ~
-            {{ toLocalNumber(account.refCurrentBalance) }}
+            {{ toLocalNumber(displayRefBalance) }}
             {{ baseCurrency.currency?.code }}
           </span>
         </button>
         <div v-else class="flex flex-wrap items-end justify-start gap-2">
           <span class="text-amount text-3xl">
-            {{ toLocalNumber(account.currentBalance) }}
+            {{ toLocalNumber(displayBalance) }}
             {{ currenciesMap[account.currencyCode]?.currency?.code }}
           </span>
           <span v-if="baseCurrency && account.currencyCode !== baseCurrency.currencyCode" class="text-white opacity-50">
             ~
-            {{ toLocalNumber(account.refCurrentBalance) }}
+            {{ toLocalNumber(displayRefBalance) }}
             {{ baseCurrency.currency?.code }}
           </span>
         </div>
