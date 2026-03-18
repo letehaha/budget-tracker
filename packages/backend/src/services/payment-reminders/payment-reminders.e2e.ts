@@ -1110,6 +1110,107 @@ describe('Payment Reminders', () => {
 
       expect(res.statusCode).toBe(422);
     });
+
+    it('creates upcoming period when one-time reminder with paid period is changed to recurring', async () => {
+      // 1. Create a one-time reminder (frequency = null)
+      const reminder = await helpers.createPaymentReminder({
+        name: 'One-time to Recurring',
+        dueDate: futureDate({ monthsAhead: 1, day: 15 }),
+        raw: true,
+      });
+
+      expect(reminder.frequency).toBeNull();
+      expect(reminder.periods).toHaveLength(1);
+      const periodId = reminder.periods[0]!.id;
+
+      // 2. Mark the only period as paid
+      await helpers.markPaymentReminderPeriodPaid({
+        reminderId: reminder.id,
+        periodId,
+        raw: true,
+      });
+
+      // 3. Change frequency from null to monthly
+      const updated = await helpers.updatePaymentReminder({
+        id: reminder.id,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        raw: true,
+      });
+
+      // 4. Should now have 2 periods: the paid one + a new upcoming one
+      expect(updated.periods).toHaveLength(2);
+      const upcoming = updated.periods.find((p: { status: string }) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
+      expect(upcoming).toBeDefined();
+    });
+
+    it('does not duplicate upcoming period when one-time with unpaid period is changed to recurring', async () => {
+      // Create a one-time reminder whose period is still upcoming (not paid)
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Unpaid One-time to Recurring',
+        dueDate: futureDate({ monthsAhead: 2, day: 10 }),
+        raw: true,
+      });
+
+      // Change to recurring — the existing upcoming period should suffice, no duplicate
+      const updated = await helpers.updatePaymentReminder({
+        id: reminder.id,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        raw: true,
+      });
+
+      expect(updated.periods).toHaveLength(1);
+      expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+    });
+
+    it('removes upcoming period when recurring with paid period is changed to one-time', async () => {
+      // 1. Create a recurring reminder
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Recurring to One-time (paid)',
+        dueDate: futureDate({ monthsAhead: 1, day: 15 }),
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        raw: true,
+      });
+
+      const periodId = reminder.periods[0]!.id;
+
+      // 2. Mark as paid — this auto-creates a next upcoming period
+      await helpers.markPaymentReminderPeriodPaid({
+        reminderId: reminder.id,
+        periodId,
+        raw: true,
+      });
+
+      // 3. Change to one-time
+      const updated = await helpers.updatePaymentReminder({
+        id: reminder.id,
+        frequency: null,
+        raw: true,
+      });
+
+      // 4. Should only have the paid period; the auto-created upcoming one is removed
+      expect(updated.periods).toHaveLength(1);
+      expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.paid);
+    });
+
+    it('keeps upcoming period when recurring with no paid periods is changed to one-time', async () => {
+      // Create a recurring reminder (period still upcoming, nothing paid)
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Recurring to One-time (unpaid)',
+        dueDate: futureDate({ monthsAhead: 2, day: 10 }),
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        raw: true,
+      });
+
+      // Change to one-time — the existing upcoming period should stay
+      const updated = await helpers.updatePaymentReminder({
+        id: reminder.id,
+        frequency: null,
+        raw: true,
+      });
+
+      expect(updated.periods).toHaveLength(1);
+      expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+    });
   });
 
   describe('includeInactive filter', () => {
