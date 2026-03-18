@@ -87,7 +87,8 @@
         "error": "Transfer failed. Please try again."
       },
       "linkExistingTransaction": "Link existing transaction",
-      "linkedTransactionLabel": "Transaction"
+      "linkedTransactionLabel": "Transaction",
+      "noPortfoliosAvailable": "No other portfolios available"
     },
     "createAccount": {
       "nameLabel": "Account name",

@@ -18,6 +18,7 @@ import {
   usePortfolioToAccountTransfer,
 } from '@/composable/data-queries/portfolio-transfers';
 import { useFormValidation } from '@/composable/form-validator';
+import { usePortfolioBalances } from '@/composable/data-queries/portfolio-balances';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import type { AccountModel, PortfolioModel, TransactionModel, UserCurrencyModel } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
@@ -49,6 +50,38 @@ const accountsStore = useAccountsStore();
 const { systemAccounts, accountsRecord } = storeToRefs(accountsStore);
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { formatAmountByCurrencyCode } = useFormatCurrency();
+const { data: portfolioBalances } = usePortfolioBalances(computed(() => props.portfolioId));
+
+const balancesByCurrency = computed(() => {
+  const map = new Map<string, number>();
+  if (portfolioBalances.value) {
+    for (const balance of portfolioBalances.value) {
+      map.set(balance.currencyCode, Number(balance.availableCash));
+    }
+  }
+  return map;
+});
+
+const sortedCurrencies = computed(() => {
+  const list = [...(currencies.value || [])];
+  return list.sort((a, b) => {
+    const balA = balancesByCurrency.value.get(a.currencyCode) ?? 0;
+    const balB = balancesByCurrency.value.get(b.currencyCode) ?? 0;
+    if (balA !== 0 && balB !== 0) return balB - balA;
+    if (balA !== 0) return -1;
+    if (balB !== 0) return 1;
+    return a.currencyCode.localeCompare(b.currencyCode);
+  });
+});
+
+const currencyLabel = (currency: UserCurrencyModel) => {
+  const code = currency.currency!.code;
+  const balance = balancesByCurrency.value.get(currency.currencyCode);
+  if (balance !== undefined && balance !== 0) {
+    return `${code} (${formatAmountByCurrencyCode(balance, currency.currencyCode)})`;
+  }
+  return code;
+};
 
 // Mutations
 const directCashMutation = useCreateDirectCashTransaction();
@@ -428,9 +461,9 @@ const accountLabel = computed(() =>
         <SelectField
           v-model="directForm.selectedCurrency"
           :label="$t('forms.directCashTransaction.currencyLabel')"
-          :values="currencies || []"
+          :values="sortedCurrencies"
           value-key="currencyCode"
-          :label-key="(currency: UserCurrencyModel) => currency.currency!.code"
+          :label-key="currencyLabel"
           :placeholder="$t('forms.directCashTransaction.currencyPlaceholder')"
           :disabled="isAnyMutationPending || disabled"
           :error-message="getDirectFieldError('directForm.selectedCurrency')"
@@ -501,9 +534,9 @@ const accountLabel = computed(() =>
             v-if="showTransferCurrency"
             v-model="transferForm.selectedCurrency"
             :label="$t('forms.directCashTransaction.currencyLabel')"
-            :values="currencies || []"
+            :values="sortedCurrencies"
             value-key="currencyCode"
-            :label-key="(currency: UserCurrencyModel) => currency.currency!.code"
+            :label-key="currencyLabel"
             :placeholder="$t('forms.directCashTransaction.currencyPlaceholder')"
             :disabled="isAnyMutationPending || disabled"
             :error-message="getTransferFieldError('transferForm.selectedCurrency')"

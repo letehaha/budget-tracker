@@ -87,7 +87,8 @@
         "error": "Переказ не вдався. Спробуйте ще раз."
       },
       "linkExistingTransaction": "Прив'язати існуючу транзакцію",
-      "linkedTransactionLabel": "Транзакція"
+      "linkedTransactionLabel": "Транзакція",
+      "noPortfoliosAvailable": "Немає інших доступних портфелів"
     },
     "createAccount": {
       "nameLabel": "Назва рахунку",

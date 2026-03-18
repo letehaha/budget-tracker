@@ -49,7 +49,7 @@ const { data: summary, isLoading } = usePortfolioSummary(portfolioId);
 const { formatCompactAmount } = useFormatCurrency();
 
 const hasValue = computed(
-  () => summary.value && summary.value.totalCurrentValue !== undefined && summary.value.totalCurrentValue !== null,
+  () => summary.value && summary.value.totalPortfolioValue !== undefined && summary.value.totalPortfolioValue !== null,
 );
 
 const findUserCurrency = (currencyCode: string) =>
@@ -63,7 +63,7 @@ const formatCurrency = ({ amount, currencyCode }: { amount: number; currencyCode
 const formattedValue = computed(() => {
   if (!summary.value) return '';
   return formatCurrency({
-    amount: Number(summary.value.totalCurrentValue),
+    amount: Number(summary.value.totalPortfolioValue),
     currencyCode: summary.value.currencyCode,
   });
 });
