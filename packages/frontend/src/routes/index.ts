@@ -162,6 +162,18 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/transactions'] as I18nChunkName[] },
       },
       {
+        path: '/transactions/optimizations',
+        name: ROUTES_NAMES.optimizations,
+        component: () => import('@/pages/optimizations/index.vue'),
+        meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
+      },
+      {
+        path: '/transactions/optimizations/transfers',
+        name: ROUTES_NAMES.optimizationsTransfers,
+        component: () => import('@/pages/optimizations/transfers/index.vue'),
+        meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
+      },
+      {
         path: '/import/csv',
         name: ROUTES_NAMES.importCsv,
         component: () => import('@/pages/import-export/csv-import.vue'),

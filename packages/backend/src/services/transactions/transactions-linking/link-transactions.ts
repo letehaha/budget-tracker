@@ -7,6 +7,14 @@ import { withTransaction } from '@root/services/common/with-transaction';
 import { Op } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
+// Natures that indicate a transaction is already linked as a transfer.
+// transfer_out_wallet is intentionally excluded — it can be re-linked (upgraded to common_transfer).
+// NOTE: if new TRANSACTION_TRANSFER_NATURE values are added, review whether they belong here.
+const ALREADY_LINKED_NATURES = [
+  TRANSACTION_TRANSFER_NATURE.common_transfer,
+  TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+];
+
 const validateTransactionLinking = ({
   base,
   opposite,
@@ -32,8 +40,8 @@ const validateTransactionLinking = ({
     });
   }
   if (
-    opposite.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer ||
-    (!ignoreBaseTxTypeValidation && base.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer)
+    ALREADY_LINKED_NATURES.includes(opposite.transferNature) ||
+    (!ignoreBaseTxTypeValidation && ALREADY_LINKED_NATURES.includes(base.transferNature))
   ) {
     // TODO: disabled when multiple links are available
     throw new ValidationError({

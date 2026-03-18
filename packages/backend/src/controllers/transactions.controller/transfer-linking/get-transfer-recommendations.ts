@@ -10,10 +10,8 @@ import * as transactionsService from '@services/transactions';
 import { addDays, endOfDay, startOfDay, subDays } from 'date-fns';
 import { z } from 'zod';
 
-// ±10% of refAmount for transfer recommendations
-const RECOMMENDATION_PERCENT_RANGE = 0.1;
-// ±14 days from the transaction date
-const RECOMMENDATION_DAYS_RANGE = 14;
+import { RECOMMENDATION_DAYS_RANGE, RECOMMENDATION_PERCENT_RANGE } from './constants';
+
 const RECOMMENDATION_LIMIT = 7;
 
 const schema = z.object({

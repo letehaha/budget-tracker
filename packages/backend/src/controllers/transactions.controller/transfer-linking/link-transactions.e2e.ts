@@ -134,6 +134,84 @@ describe('link transactions between each other', () => {
     },
   );
 
+  it('allows linking a transfer_out_wallet expense with a regular income', async () => {
+    const accountA = await helpers.createAccount({ raw: true });
+    const accountB = await helpers.createAccount({ raw: true });
+
+    // Create an expense marked as transfer_out_wallet
+    const [outOfWalletExpense] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountA.id,
+        amount: 500,
+        transactionType: TRANSACTION_TYPES.expense,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      }),
+      raw: true,
+    });
+
+    // Create a regular income on a different account
+    const [regularIncome] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountB.id,
+        amount: 500,
+        transactionType: TRANSACTION_TYPES.income,
+      }),
+      raw: true,
+    });
+
+    const linkingResult = await helpers.linkTransactions({
+      payload: {
+        ids: [[outOfWalletExpense.id, regularIncome.id]],
+      },
+      raw: true,
+    });
+
+    expect(linkingResult).toHaveLength(1);
+
+    const [linkedExpense, linkedIncome] = linkingResult[0]!;
+    expect(linkedExpense.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(linkedIncome.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(linkedExpense.transferId).toBe(linkedIncome.transferId);
+    expect(linkedExpense.transferId).toEqual(expect.any(String));
+  });
+
+  it('allows linking a regular expense with a transfer_out_wallet income', async () => {
+    const accountA = await helpers.createAccount({ raw: true });
+    const accountB = await helpers.createAccount({ raw: true });
+
+    const [regularExpense] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountA.id,
+        amount: 500,
+        transactionType: TRANSACTION_TYPES.expense,
+      }),
+      raw: true,
+    });
+
+    const [outOfWalletIncome] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountB.id,
+        amount: 500,
+        transactionType: TRANSACTION_TYPES.income,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      }),
+      raw: true,
+    });
+
+    const linkingResult = await helpers.linkTransactions({
+      payload: {
+        ids: [[regularExpense.id, outOfWalletIncome.id]],
+      },
+      raw: true,
+    });
+
+    expect(linkingResult).toHaveLength(1);
+
+    const [linkedExpense, linkedIncome] = linkingResult[0]!;
+    expect(linkedExpense.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(linkedIncome.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+  });
+
   it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
     'throws an error when trying to link to the transaction that is already a transfer. test %s type',
     async (txType) => {

@@ -270,6 +270,36 @@ export type GetRefundRecommendationsResponse = TransactionModel[];
 
 export type GetTransferRecommendationsResponse = TransactionModel[];
 
+// Bulk Transfer Scan
+export interface BulkTransferScanBody {
+  dateFrom: string;
+  dateTo: string;
+  limit?: number;
+  offset?: number;
+  includeOutOfWallet?: boolean;
+}
+
+export interface BulkTransferScanMatch {
+  transaction: TransactionModel;
+  confidence: number;
+}
+
+export interface BulkTransferScanItem {
+  expense: TransactionModel;
+  matches: BulkTransferScanMatch[];
+}
+
+export interface BulkTransferScanResponse {
+  total: number;
+  items: BulkTransferScanItem[];
+}
+
+// Transfer Suggestion Dismissals
+export interface DismissTransferSuggestionBody {
+  expenseTransactionId: number;
+  incomeTransactionId: number;
+}
+
 // Budget Spending Stats
 export interface BudgetSpendingByCategoryItem {
   categoryId: number;

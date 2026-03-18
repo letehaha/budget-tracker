@@ -108,3 +108,15 @@ export const loadTransferRecommendations = async (
 ): Promise<endpointsTypes.GetTransferRecommendationsResponse> => {
   return api.get('/transactions/transfer-recommendations', params);
 };
+
+export const bulkScanTransferRecommendations = async (
+  params: endpointsTypes.BulkTransferScanBody,
+): Promise<endpointsTypes.BulkTransferScanResponse> => {
+  return api.post('/transactions/transfer-recommendations/bulk-scan', params);
+};
+
+export const dismissTransferSuggestion = async (
+  params: endpointsTypes.DismissTransferSuggestionBody,
+): Promise<void> => {
+  await api.post('/transactions/transfer-recommendations/dismiss', params);
+};

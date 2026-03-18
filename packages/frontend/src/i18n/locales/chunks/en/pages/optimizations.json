@@ -1,0 +1,53 @@
+{
+  "optimizations": {
+    "title": "Optimizations",
+    "landingDescription": "Tools to help you organize and clean up your financial data.",
+    "cards": {
+      "transfers": {
+        "title": "Transfer matching",
+        "description": "Find expense-income pairs that might be transfers between your accounts and link them automatically."
+      }
+    },
+    "transferSuggestions": {
+      "description": "Find transactions that should be linked as transfers between your accounts",
+      "suggestionsFor": "Suggestions for",
+      "selectExpense": "Select a transaction to see suggestions",
+      "potentialTransfersFound": "potential transfers found",
+      "empty": {
+        "title": "No transfer suggestions found",
+        "description": "Try adjusting the date range"
+      },
+      "initial": {
+        "title": "Find transfer suggestions",
+        "description": "Scan your transactions to find income and expense pairs that should be linked as transfers between accounts"
+      },
+      "scanning": "Scanning transactions...",
+      "confirmLink": {
+        "title": "Link as transfer?",
+        "description": "Both transactions will be linked as a transfer between accounts. This will correct your statistics and analytics by excluding them from income and expense totals."
+      },
+      "presets": {
+        "last3Months": "Last 3 months",
+        "last6Months": "Last 6 months",
+        "lastYear": "Last year",
+        "thisYear": "This year",
+        "previousYear": "Previous year"
+      },
+      "includeOutOfWallet": "Include out-of-wallet transfers",
+      "skip": {
+        "action": "Skip",
+        "title": "Skip this suggestion?",
+        "description": "This pair will be hidden from future scan results. The transactions themselves won't be changed.",
+        "dontShowAgain": "Don't show this confirmation again"
+      },
+      "notifications": {
+        "loadError": "Failed to load more suggestions",
+        "scanError": "Failed to scan for transfer suggestions",
+        "linkSuccess": "Transactions linked as transfer",
+        "linkError": "Failed to link transactions",
+        "skipSuccess": "Suggestion dismissed",
+        "skipError": "Failed to skip suggestion"
+      }
+    }
+  }
+}
