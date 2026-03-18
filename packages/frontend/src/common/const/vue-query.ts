@@ -121,6 +121,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   transactionGroupsList: [transactionChange, 'transaction-groups-list'] as const,
   transactionGroupDetail: [transactionChange, 'transaction-group-detail'] as const,
 
+  // optimizations
+  bulkTransferScan: [transactionChange, 'bulk-transfer-scan'] as const,
+
   // payment reminders
   remindersList: ['reminders-list'] as const,
   reminderDetails: ['reminder-details'] as const,

@@ -36,6 +36,7 @@ import TransactionGroupsModel from './TransactionGroups.model';
 import TransactionsModel from './Transactions.model';
 import TransactionSplitsModel from './TransactionSplits.model';
 import TransactionTagsModel from './TransactionTags.model';
+import TransferSuggestionDismissalsModel from './transfer-suggestion-dismissals.model';
 import UserExchangeRatesModel from './UserExchangeRates.model';
 import UserMerchantCategoryCodesModel from './UserMerchantCategoryCodes.model';
 import UsersModel from './Users.model';
@@ -102,6 +103,7 @@ const models = [
   PaymentRemindersModel,
   PaymentReminderPeriodsModel,
   PaymentReminderNotificationsModel,
+  TransferSuggestionDismissalsModel,
 ];
 
 const sequelize = new Sequelize({

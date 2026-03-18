@@ -17,6 +17,8 @@ import getRefundRecommendations from '@controllers/transactions.controller/refun
 import getRefunds from '@controllers/transactions.controller/refunds/get-refunds';
 import getRefundsForTransactionById from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';
 import deleteSplit from '@controllers/transactions.controller/splits/delete-split';
+import bulkScanTransferRecommendations from '@controllers/transactions.controller/transfer-linking/bulk-scan-transfer-recommendations';
+import dismissTransferSuggestion from '@controllers/transactions.controller/transfer-linking/dismiss-transfer-suggestion';
 import getTransferRecommendations from '@controllers/transactions.controller/transfer-linking/get-transfer-recommendations';
 import unlinkTransferTransactions from '@controllers/transactions.controller/transfer-linking/unlink-transfer-transactions';
 import unlinkFromPortfolio from '@controllers/transactions.controller/unlink-from-portfolio';
@@ -42,6 +44,18 @@ router.get(
   authenticateSession,
   validateEndpoint(getTransferRecommendations.schema),
   getTransferRecommendations.handler,
+);
+router.post(
+  '/transfer-recommendations/bulk-scan',
+  authenticateSession,
+  validateEndpoint(bulkScanTransferRecommendations.schema),
+  bulkScanTransferRecommendations.handler,
+);
+router.post(
+  '/transfer-recommendations/dismiss',
+  authenticateSession,
+  validateEndpoint(dismissTransferSuggestion.schema),
+  dismissTransferSuggestion.handler,
 );
 router.post(
   '/refund',

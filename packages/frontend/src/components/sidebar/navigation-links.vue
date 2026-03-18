@@ -13,6 +13,7 @@ import {
   LayersIcon,
   LayoutDashboardIcon,
   RepeatIcon,
+  SparklesIcon,
   TrendingUpIcon,
   WalletIcon,
 } from 'lucide-vue-next';
@@ -49,7 +50,11 @@ watch(
 );
 
 const isTransactionsRoute = computed(
-  () => route.name === ROUTES_NAMES.transactions || route.name === ROUTES_NAMES.transactionGroups,
+  () =>
+    route.name === ROUTES_NAMES.transactions ||
+    route.name === ROUTES_NAMES.transactionGroups ||
+    route.name === ROUTES_NAMES.optimizations ||
+    route.name === ROUTES_NAMES.optimizationsTransfers,
 );
 
 const isTransactionsOpen = ref(false);
@@ -203,6 +208,17 @@ watch(
           >
             <GroupIcon :class="[navIconBase, isActive && navIconActive]" />
             <span>{{ t('transactions.transactionGroups.navigation.groups') }}</span>
+          </ui-button>
+        </router-link>
+        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.optimizations }">
+          <ui-button
+            variant="ghost"
+            as="span"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
+            size="sm"
+          >
+            <SparklesIcon :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ $t('navigation.optimizations') }}</span>
           </ui-button>
         </router-link>
       </div>
