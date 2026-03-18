@@ -1,7 +1,7 @@
 import { currencyCode } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as userCurrenciesService from '@services/currencies/add-user-currency';
-import { z } from 'zod';
+import z from 'zod';
 
 const UserCurrencySchema = z
   .object({

@@ -6,7 +6,7 @@ import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
 import { serializeAccount, serializeAccounts } from '@root/serializers';
 import * as accountsService from '@services/accounts.service';
-import { z } from 'zod';
+import z from 'zod';
 
 import { createController } from './helpers/controller-factory';
 

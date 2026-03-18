@@ -101,13 +101,17 @@ export const getUsers = async () => {
   return users;
 };
 
-export const getUserDefaultCategory = async ({ id }: { id: number }) => {
+export const getUserDefaultCategory = async ({ id }: { id: number }): Promise<number> => {
   const user = await Users.findOne({
     where: { id },
     attributes: ['defaultCategoryId'],
   });
 
-  return user;
+  if (!user) {
+    throw new Error(`User with id ${id} not found when getting default category`);
+  }
+
+  return user.defaultCategoryId;
 };
 
 export const createUser = async ({

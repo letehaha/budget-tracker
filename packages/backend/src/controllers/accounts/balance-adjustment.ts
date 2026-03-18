@@ -4,7 +4,7 @@ import { serializeTransaction } from '@root/serializers';
 import { serializeAccount } from '@root/serializers/accounts.serializer';
 import { getAccountById } from '@services/accounts.service';
 import { adjustAccountBalance } from '@services/accounts/balance-adjustment';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

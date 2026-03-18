@@ -3,7 +3,7 @@ import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import * as accountGroupService from '@services/account-groups';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

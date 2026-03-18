@@ -1,7 +1,7 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { ZodSettingsSchema } from '@models/user-settings.model';
 import * as userSettingsService from '@services/user-settings/update-settings';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   body: ZodSettingsSchema,

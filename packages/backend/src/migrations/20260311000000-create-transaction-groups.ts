@@ -18,7 +18,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users' as any,
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -58,7 +58,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'TransactionGroups' as any,
+              table: 'TransactionGroups',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -68,7 +68,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Transactions' as any,
+              table: 'Transactions',
               key: 'id',
             },
             onUpdate: 'CASCADE',

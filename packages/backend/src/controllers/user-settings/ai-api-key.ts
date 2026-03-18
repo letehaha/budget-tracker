@@ -7,7 +7,7 @@ import {
   setAiApiKey,
   setDefaultAiProvider,
 } from '@services/user-settings/ai-api-key';
-import { z } from 'zod';
+import z from 'zod';
 
 /**
  * Get information about configured AI API keys

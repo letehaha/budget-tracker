@@ -1,5 +1,5 @@
 import { Money } from '@common/types/money';
-import { z } from 'zod';
+import z from 'zod';
 
 export const recordId = () => z.coerce.number().int().positive().finite();
 export const recordArrayIds = () => z.array(recordId());

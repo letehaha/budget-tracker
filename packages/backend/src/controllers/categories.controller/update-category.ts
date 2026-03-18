@@ -1,7 +1,7 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as categoriesService from '@services/categories/edit-category';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   body: z

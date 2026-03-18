@@ -27,8 +27,8 @@ const pool = new Pool({
   password: process.env.APPLICATION_DB_PASSWORD,
   // In test environment, use per-worker database (same as Sequelize)
   database:
-    process.env.NODE_ENV === 'test' && process.env.JEST_WORKER_ID
-      ? `${process.env.APPLICATION_DB_DATABASE}-${process.env.JEST_WORKER_ID}`
+    process.env.NODE_ENV === 'test' && (process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID)
+      ? `${process.env.APPLICATION_DB_DATABASE}-${process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID}`
       : process.env.APPLICATION_DB_DATABASE,
 });
 

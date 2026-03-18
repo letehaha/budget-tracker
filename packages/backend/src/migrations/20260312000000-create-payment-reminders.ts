@@ -17,14 +17,14 @@ export default {
           userId: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            references: { model: 'Users' as any, key: 'id' },
+            references: { table: 'Users', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
           subscriptionId: {
             type: DataTypes.UUID,
             allowNull: true,
-            references: { model: 'Subscriptions' as any, key: 'id' },
+            references: { table: 'Subscriptions', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -79,7 +79,7 @@ export default {
           categoryId: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            references: { model: 'Categories' as any, key: 'id' },
+            references: { table: 'Categories', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -118,7 +118,7 @@ export default {
           reminderId: {
             type: DataTypes.UUID,
             allowNull: false,
-            references: { model: 'PaymentReminders' as any, key: 'id' },
+            references: { table: 'PaymentReminders', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -138,7 +138,7 @@ export default {
           transactionId: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            references: { model: 'Transactions' as any, key: 'id' },
+            references: { table: 'Transactions', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -172,7 +172,7 @@ export default {
           periodId: {
             type: DataTypes.UUID,
             allowNull: false,
-            references: { model: 'PaymentReminderPeriods' as any, key: 'id' },
+            references: { table: 'PaymentReminderPeriods', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },

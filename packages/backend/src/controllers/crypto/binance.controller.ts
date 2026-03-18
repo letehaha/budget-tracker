@@ -2,7 +2,7 @@ import { API_ERROR_CODES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import axios from 'axios';
 import crypto from 'crypto';
-import { z } from 'zod';
+import z from 'zod';
 
 import * as BinanceUserSettings from '../../models/binance/user-settings.model';
 

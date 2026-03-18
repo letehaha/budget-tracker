@@ -26,7 +26,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users' as any,
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -36,7 +36,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Tags' as any,
+              table: 'Tags',
               key: 'id',
             },
             onUpdate: 'CASCADE',

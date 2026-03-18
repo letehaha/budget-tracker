@@ -15,7 +15,7 @@ import {
 } from '@root/serializers';
 import * as statsService from '@services/stats';
 import { isBefore, isEqual, isValid } from 'date-fns';
-import { z } from 'zod';
+import z from 'zod';
 
 import { createController } from './helpers/controller-factory';
 

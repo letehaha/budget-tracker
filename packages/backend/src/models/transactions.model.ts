@@ -277,7 +277,6 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   declare updatedAt: Date;
 
   // User should set all of requiredFields for transfer transaction
-  @BeforeCreate
   @BeforeUpdate
   static validateTransferRelatedFields(instance: Transactions) {
     const { transferNature, transferId, refAmount, refCurrencyCode } = instance;

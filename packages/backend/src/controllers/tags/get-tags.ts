@@ -1,7 +1,7 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as tagsService from '@services/tags';
-import { z } from 'zod';
+import z from 'zod';
 
 export const getTags = createController(z.object({}), async ({ user }) => {
   const data = await tagsService.getTags({ userId: user.id });

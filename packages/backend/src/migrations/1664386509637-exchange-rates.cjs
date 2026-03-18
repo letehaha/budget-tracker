@@ -1,4 +1,4 @@
-const QueryTypes = require('sequelize').QueryTypes;
+const QueryTypes = require('@sequelize/core').QueryTypes;
 const axios = require('axios');
 const fs = require('fs');
 const { subDays } = require('date-fns');

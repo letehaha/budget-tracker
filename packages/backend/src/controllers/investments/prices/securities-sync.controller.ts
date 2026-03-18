@@ -1,6 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { securitiesDailySyncCron } from '@crons/securities-daily-sync';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(z.object({}), async () => {
   await securitiesDailySyncCron.triggerManualSync();

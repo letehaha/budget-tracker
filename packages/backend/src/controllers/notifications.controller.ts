@@ -1,7 +1,7 @@
 import { NOTIFICATION_PRIORITIES, NOTIFICATION_STATUSES, NOTIFICATION_TYPES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as notificationsService from '@services/notifications';
-import { z } from 'zod';
+import z from 'zod';
 
 const notificationTypeSchema = z
   .string()

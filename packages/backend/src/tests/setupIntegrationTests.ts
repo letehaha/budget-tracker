@@ -35,15 +35,20 @@ vi.mock('@polygon.io/client-js', () => ({
   }),
 }));
 
-vi.mock('alphavantage', () =>
-  vi.fn().mockReturnValue({
+vi.mock('alphavantage', () => ({
+  default: vi.fn().mockReturnValue({
     data: {
       search: vi.fn(),
       quote: vi.fn(),
       daily: vi.fn(),
     },
   }),
-);
+}));
+
+// Mock pdf-parse to avoid its known bug of opening test files on import
+vi.mock('pdf-parse', () => ({
+  default: vi.fn().mockResolvedValue({ text: '', numpages: 0, info: {} }),
+}));
 
 // Mock the FMP client globally
 vi.mock('../services/investments/data-providers/clients/fmp-client', () => ({

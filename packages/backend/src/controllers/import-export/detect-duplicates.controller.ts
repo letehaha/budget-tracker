@@ -6,7 +6,7 @@ import {
 } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { detectDuplicates } from '@services/import-export/csv-import/detect-duplicates';
-import { z } from 'zod';
+import z from 'zod';
 
 const categoryOptionSchema = z.discriminatedUnion('option', [
   z.object({ option: z.literal(CategoryOptionValue.mapDataSourceColumn), columnName: z.string() }),

@@ -61,6 +61,8 @@ export default class Categories extends Model<InferAttributes<Categories>, Infer
 
   @BelongsToMany(() => MerchantCategoryCodes, {
     through: () => UserMerchantCategoryCodes,
+    foreignKey: 'categoryId',
+    otherKey: 'mccId',
   })
   declare merchantCodes?: NonAttribute<MerchantCategoryCodes[]>;
 }

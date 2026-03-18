@@ -1,4 +1,3 @@
-import Transactions from '@models/transactions.model';
 import {
   CreationOptional,
   DataTypes,
@@ -7,17 +6,7 @@ import {
   Model,
   NonAttribute,
 } from '@sequelize/core';
-import {
-  Attribute,
-  AutoIncrement,
-  BelongsToMany,
-  Index,
-  NotNull,
-  PrimaryKey,
-  Table,
-} from '@sequelize/core/decorators-legacy';
-
-import TransactionGroupItems from './transaction-group-items.model';
+import { Attribute, AutoIncrement, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 @Table({
   tableName: 'TransactionGroups',
@@ -47,10 +36,6 @@ export default class TransactionGroups extends Model<
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
-  @BelongsToMany(() => Transactions, {
-    through: () => TransactionGroupItems,
-    foreignKey: 'groupId',
-    otherKey: 'transactionId',
-  })
+  // Inverse of Transactions.@BelongsToMany(TransactionGroups) — auto-created by Sequelize v7
   declare transactions?: NonAttribute<Transactions[]>;
 }

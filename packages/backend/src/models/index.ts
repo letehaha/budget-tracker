@@ -123,13 +123,12 @@ if (process.env.NODE_ENV === 'development') {
 
 // Setup self-referencing associations that cannot use decorators
 // AccountGroup parent/child self-reference
-AccountGroupsModel.belongsTo(AccountGroupsModel, {
-  foreignKey: 'parentGroupId',
-  as: 'parentGroup',
-});
 AccountGroupsModel.hasMany(AccountGroupsModel, {
   foreignKey: 'parentGroupId',
   as: 'childGroups',
+  inverse: {
+    as: 'parentGroup',
+  },
 });
 
 connection.sequelize = sequelize;

@@ -1,7 +1,7 @@
 import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as subscriptionsService from '@services/subscriptions';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   query: z.object({

@@ -92,7 +92,6 @@ export default class PortfolioTransfers
   declare description: string | null;
 
   @Attribute(DataTypes.JSONB)
-  @Default(null)
   declare metaData: Record<string, unknown> | null;
 
   @Attribute(DataTypes.INTEGER)

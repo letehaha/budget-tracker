@@ -2,7 +2,7 @@ import { API_RESPONSE_STATUS } from '@bt/shared/types';
 import { CustomRequest, CustomResponse } from '@common/types';
 import { errorHandler } from '@controllers/helpers';
 import { Request, Response } from 'express';
-import { z } from 'zod';
+import z from 'zod';
 
 type ValidatedData<T extends z.ZodType> = z.infer<T>;
 

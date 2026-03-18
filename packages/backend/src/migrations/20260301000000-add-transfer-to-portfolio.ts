@@ -18,7 +18,7 @@ export default {
       allowNull: true,
       defaultValue: null,
       references: {
-        model: 'Transactions' as any,
+        table: 'Transactions',
         key: 'id',
       },
       onDelete: 'SET NULL',

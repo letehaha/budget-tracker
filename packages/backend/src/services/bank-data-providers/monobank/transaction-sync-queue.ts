@@ -40,8 +40,8 @@ const connection = {
 // Namespace queue by Jest worker ID in test environment to prevent cross-contamination
 // when multiple test files run in parallel. Each worker gets its own isolated queue.
 const queueName =
-  process.env.NODE_ENV === 'test' && process.env.JEST_WORKER_ID
-    ? `monobank-transaction-sync-worker-${process.env.JEST_WORKER_ID}`
+  process.env.NODE_ENV === 'test' && (process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID)
+    ? `monobank-transaction-sync-worker-${process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID}`
     : 'monobank-transaction-sync';
 
 // Create queue for transaction sync jobs
@@ -94,11 +94,12 @@ async function createMonobankTransaction(
     return undefined;
   }
 
-  // Get or create MCC code
-  let mccRecord = await MerchantCategoryCodes.getByCode({ code: data.mcc });
+  // Get or create MCC code (convert numeric MCC from Monobank API to string)
+  const mccCode = String(data.mcc);
+  let mccRecord = await MerchantCategoryCodes.getByCode({ code: mccCode });
 
   if (!mccRecord) {
-    mccRecord = await MerchantCategoryCodes.addCode({ code: data.mcc });
+    mccRecord = await MerchantCategoryCodes.addCode({ code: mccCode });
   }
 
   // Get or create user MCC mapping to category
@@ -340,7 +341,12 @@ transactionSyncWorker.on('completed', async (job) => {
 });
 
 transactionSyncWorker.on('failed', (job, err) => {
+  const validationErrors = (err as any).errors?.map((e: any) => `${e.type}:${e.path}:${e.validatorKey}`).join(', ');
+  console.error('[WORKER FAILED]', job?.id, err.constructor.name, validationErrors || err.message);
   logger.error({ message: `Job ${job?.id} failed`, error: err });
+});
+transactionSyncWorker.on('completed', (job) => {
+  console.log('[WORKER COMPLETED]', job?.id);
 });
 
 transactionSyncWorker.on('error', (err) => {

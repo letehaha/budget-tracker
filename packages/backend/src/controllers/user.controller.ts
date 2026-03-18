@@ -6,7 +6,7 @@ import { ExchangeRatePair } from '@models/user-exchange-rates.model';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';
 import { deleteUser as deleteUserService } from '@services/user/delete-user.service';
-import { z } from 'zod';
+import z from 'zod';
 
 export const getUser = createController(z.object({}), async ({ user }) => {
   const userData = await userService.getUser(user.id);

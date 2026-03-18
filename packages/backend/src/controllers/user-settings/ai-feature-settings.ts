@@ -16,7 +16,7 @@ import {
 } from '@services/ai';
 import { hasAiApiKey } from '@services/user-settings/ai-api-key';
 import { getAllFeatureConfigs, getFeatureConfig, setFeatureConfig } from '@services/user-settings/ai-feature-settings';
-import { z } from 'zod';
+import z from 'zod';
 
 /**
  * Get all AI features status

@@ -19,7 +19,7 @@ import {
   Table,
   Unique,
 } from '@sequelize/core/decorators-legacy';
-import { z } from 'zod';
+import z from 'zod';
 
 import Users from './users.model';
 

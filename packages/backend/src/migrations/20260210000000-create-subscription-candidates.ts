@@ -16,7 +16,7 @@ export default {
           userId: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            references: { model: 'Users' as any, key: 'id' },
+            references: { table: 'Users', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -40,7 +40,7 @@ export default {
           accountId: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            references: { model: 'Accounts' as any, key: 'id' },
+            references: { table: 'Accounts', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -69,7 +69,7 @@ export default {
           subscriptionId: {
             type: DataTypes.UUID,
             allowNull: true,
-            references: { model: 'Subscriptions' as any, key: 'id' },
+            references: { table: 'Subscriptions', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },

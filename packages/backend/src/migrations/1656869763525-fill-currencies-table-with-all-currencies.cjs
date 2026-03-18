@@ -1,5 +1,5 @@
 const allCurrencies = require('currency-codes/data');
-const { QueryTypes } = require('sequelize');
+const { QueryTypes } = require('@sequelize/core');
 
 module.exports = {
   up: async (queryInterface) => {

@@ -7,7 +7,7 @@ import { getTransactionById } from '@models/transactions.model';
 import { serializeTransactions } from '@root/serializers';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import * as transactionsService from '@services/transactions';
-import { z } from 'zod';
+import z from 'zod';
 
 // ±50 in base currency for refund recommendations
 const RECOMMENDATION_REF_AMOUNT_RANGE = 5000;

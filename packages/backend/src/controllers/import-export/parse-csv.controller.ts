@@ -1,6 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { parseCSV } from '@root/services/import-export/csv-import/csv-parser.service';
-import { z } from 'zod';
+import z from 'zod';
 
 export const parseCsv = createController(
   z.object({

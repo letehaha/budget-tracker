@@ -22,7 +22,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users' as any,
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',

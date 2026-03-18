@@ -1,7 +1,7 @@
 import { dateString, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { listPortfolioTransfers } from '@services/investments/portfolios/transfers';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

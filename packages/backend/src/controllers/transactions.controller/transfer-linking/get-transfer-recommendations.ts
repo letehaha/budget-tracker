@@ -7,7 +7,7 @@ import Transactions, { getTransactionById } from '@models/transactions.model';
 import { serializeTransactions } from '@root/serializers';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import * as transactionsService from '@services/transactions';
-import { z } from 'zod';
+import z from 'zod';
 
 // ±10% of refAmount for transfer recommendations
 const RECOMMENDATION_PERCENT_RANGE = 0.1;

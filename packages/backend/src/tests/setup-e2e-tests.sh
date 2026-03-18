@@ -10,7 +10,8 @@ fi
 
 
 # Start the containers and run tests
-docker compose -f ../../docker/test/backend/docker-compose.yml up --build -d
+docker compose -f ../../docker/test/backend/docker-compose.yml build test-runner
+docker compose -f ../../docker/test/backend/docker-compose.yml up -d
 
 echo "Waiting a bit..."
 sleep 3
@@ -83,7 +84,7 @@ done
 echo "Running tests..."
 # Run tests from packages/backend directory so vitest resolves paths correctly
 docker compose -f ../../docker/test/backend/docker-compose.yml exec -T -w /app/packages/backend test-runner \
-  bunx vitest run --config vitest.config.e2e.ts --passWithNoTests "$@"
+  npx vitest run --config vitest.config.e2e.ts --passWithNoTests "$@"
 
 # Capture the exit code
 TEST_EXIT_CODE=$?

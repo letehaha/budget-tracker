@@ -2,7 +2,7 @@ import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeTagReminder, serializeTagReminders } from '@root/serializers';
 import * as tagRemindersService from '@services/tag-reminders';
-import { z } from 'zod';
+import z from 'zod';
 
 export const getRemindersForTag = createController(
   z.object({

@@ -2,6 +2,9 @@ FROM oven/bun:1
 
 LABEL com.docker.compose.project=test
 
+# Install Node.js for vitest (vitest runs on Node internally)
+RUN apt-get update && apt-get install -y nodejs npm && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy package files. This allows Docker to cache the
@@ -21,7 +24,7 @@ COPY packages/shared/tsconfig*.json ./packages/shared/
 COPY post-install.sh ./
 COPY docker ./docker
 RUN chmod +x ./post-install.sh
-RUN bun install
+RUN bun install --ignore-scripts && ./post-install.sh
 
 # Copy source codes
 COPY packages/backend ./packages/backend

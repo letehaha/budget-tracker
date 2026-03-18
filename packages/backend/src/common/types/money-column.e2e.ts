@@ -428,6 +428,7 @@ describe('MoneyColumn integration', () => {
       const stats = await helpers.getStats({ id: budget.id, raw: true });
 
       // Must be 1.5 (decimal), NOT 0.015 (double-converted)
+      expect(stats!.summary).toBeDefined();
       expect(stats!.summary.actualExpense).toBeCloseTo(1.5, 2);
     });
 

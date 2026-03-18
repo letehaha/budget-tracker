@@ -1,7 +1,7 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeTransactions } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   body: z.object({

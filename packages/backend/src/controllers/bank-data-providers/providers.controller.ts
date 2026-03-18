@@ -1,6 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { listSupportedProviders } from '@root/services/bank-data-providers/list-supported-providers.service';
-import { z } from 'zod';
+import z from 'zod';
 
 /**
  * GET /api/bank-data-providers

@@ -1,4 +1,3 @@
-import Transactions from '@models/transactions.model';
 import {
   CreationOptional,
   DataTypes,
@@ -10,7 +9,6 @@ import {
 import {
   Attribute,
   AutoIncrement,
-  BelongsToMany,
   HasMany,
   Index,
   NotNull,
@@ -19,8 +17,6 @@ import {
 } from '@sequelize/core/decorators-legacy';
 
 import TagReminders from './tag-reminders.model';
-import TransactionTags from './transaction-tags.model';
-
 @Table({
   tableName: 'Tags',
   timestamps: true,
@@ -53,11 +49,7 @@ export default class Tags extends Model<InferAttributes<Tags>, InferCreationAttr
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
-  @BelongsToMany(() => Transactions, {
-    through: () => TransactionTags,
-    foreignKey: 'tagId',
-    otherKey: 'transactionId',
-  })
+  // Inverse of Transactions.@BelongsToMany(Tags) — auto-created by Sequelize v7
   declare transactions?: NonAttribute<Transactions[]>;
 
   @HasMany(() => TagReminders, 'tagId')

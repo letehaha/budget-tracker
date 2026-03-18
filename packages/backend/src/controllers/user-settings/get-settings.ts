@@ -1,6 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import * as userSettingsService from '@services/user-settings/get-user-settings';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({});
 

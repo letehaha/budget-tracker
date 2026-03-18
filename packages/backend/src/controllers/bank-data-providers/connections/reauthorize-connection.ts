@@ -4,7 +4,7 @@ import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { bankProviderRegistry } from '@services/bank-data-providers/registry';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

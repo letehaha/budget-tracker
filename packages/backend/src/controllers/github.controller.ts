@@ -1,6 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { CacheClient } from '@js/utils/cache';
-import { z } from 'zod';
+import z from 'zod';
 
 const GITHUB_REPO = 'letehaha/budget-tracker';
 const CACHE_TTL_SECONDS = 12 * 60 * 60; // 12 hours

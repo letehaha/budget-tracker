@@ -5,7 +5,7 @@ import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import { serializeBudget, serializeBudgets } from '@root/serializers';
 import * as budgetService from '@services/budget.service';
-import { z } from 'zod';
+import z from 'zod';
 
 const budgetStatusValues = Object.values(BUDGET_STATUSES) as [BUDGET_STATUSES, ...BUDGET_STATUSES[]];
 

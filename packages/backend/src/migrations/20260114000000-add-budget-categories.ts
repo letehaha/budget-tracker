@@ -41,7 +41,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Budgets' as any,
+              table: 'Budgets',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -51,7 +51,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Categories' as any,
+              table: 'Categories',
               key: 'id',
             },
             onUpdate: 'CASCADE',

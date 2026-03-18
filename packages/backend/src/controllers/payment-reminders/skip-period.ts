@@ -1,6 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { skipPeriod } from '@services/payment-reminders/skip-period';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   params: z.object({
