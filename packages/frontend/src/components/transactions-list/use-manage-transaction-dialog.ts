@@ -1,15 +1,10 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 interface DialogProps {
   transaction: TransactionModel | undefined;
   oppositeTransaction: TransactionModel | undefined;
 }
-
-const DEFAULT_DIALOG_PROPS: DialogProps = {
-  transaction: undefined,
-  oppositeTransaction: undefined,
-};
 
 /**
  * Manages the transaction detail dialog state:
@@ -20,10 +15,9 @@ const DEFAULT_DIALOG_PROPS: DialogProps = {
  */
 export function useManageTransactionDialog() {
   const isDialogVisible = ref(false);
-  const dialogProps = ref<DialogProps>({ ...DEFAULT_DIALOG_PROPS });
-
-  watch(isDialogVisible, (value) => {
-    if (value === false) dialogProps.value = { ...DEFAULT_DIALOG_PROPS };
+  const dialogProps = ref<DialogProps>({
+    transaction: undefined,
+    oppositeTransaction: undefined,
   });
 
   const isCompactDialog = computed(
