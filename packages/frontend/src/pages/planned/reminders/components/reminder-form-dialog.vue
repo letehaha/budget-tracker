@@ -164,7 +164,7 @@ function handleSubmit() {
     frequency:
       form.value.frequency && form.value.frequency !== ONE_TIME_VALUE
         ? (form.value.frequency as SUBSCRIPTION_FREQUENCIES)
-        : undefined,
+        : null,
     remindBefore: form.value.remindBefore.length ? form.value.remindBefore : undefined,
     notifyEmail: form.value.notifyEmail,
     preferredTime: form.value.preferredTime,

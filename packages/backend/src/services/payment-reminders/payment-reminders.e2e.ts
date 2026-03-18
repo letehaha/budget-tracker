@@ -1161,6 +1161,56 @@ describe('Payment Reminders', () => {
       expect(updated.periods).toHaveLength(1);
       expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
     });
+
+    it('removes upcoming period when recurring with paid period is changed to one-time', async () => {
+      // 1. Create a recurring reminder
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Recurring to One-time (paid)',
+        dueDate: futureDate({ monthsAhead: 1, day: 15 }),
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        raw: true,
+      });
+
+      const periodId = reminder.periods[0]!.id;
+
+      // 2. Mark as paid — this auto-creates a next upcoming period
+      await helpers.markPaymentReminderPeriodPaid({
+        reminderId: reminder.id,
+        periodId,
+        raw: true,
+      });
+
+      // 3. Change to one-time
+      const updated = await helpers.updatePaymentReminder({
+        id: reminder.id,
+        frequency: null,
+        raw: true,
+      });
+
+      // 4. Should only have the paid period; the auto-created upcoming one is removed
+      expect(updated.periods).toHaveLength(1);
+      expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.paid);
+    });
+
+    it('keeps upcoming period when recurring with no paid periods is changed to one-time', async () => {
+      // Create a recurring reminder (period still upcoming, nothing paid)
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Recurring to One-time (unpaid)',
+        dueDate: futureDate({ monthsAhead: 2, day: 10 }),
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        raw: true,
+      });
+
+      // Change to one-time — the existing upcoming period should stay
+      const updated = await helpers.updatePaymentReminder({
+        id: reminder.id,
+        frequency: null,
+        raw: true,
+      });
+
+      expect(updated.periods).toHaveLength(1);
+      expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+    });
   });
 
   describe('includeInactive filter', () => {

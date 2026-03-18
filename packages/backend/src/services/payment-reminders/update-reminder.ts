@@ -1,10 +1,11 @@
-import { RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import { PAYMENT_REMINDER_STATUSES, RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { NotFoundError, ValidationError } from '@js/errors';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
 import Subscriptions from '@models/Subscriptions.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { Op } from 'sequelize';
 
 import { ensureNextPeriodExists } from './ensure-next-period';
 
@@ -81,6 +82,28 @@ export const updateReminder = withTransaction(async (params: UpdateReminderParam
   // becoming recurring.
   if (!previousFrequency && reminder.frequency) {
     await ensureNextPeriodExists({ reminder });
+  }
+
+  // When frequency changes from recurring to one-time, remove upcoming periods
+  // if any paid/skipped period exists (the auto-created "next cycle" period is
+  // no longer relevant). If nothing has been paid yet, keep the upcoming period
+  // as the one-time payment the user still owes.
+  if (previousFrequency && !reminder.frequency) {
+    const hasCompletedPeriod = await PaymentReminderPeriods.findOne({
+      where: {
+        reminderId: id,
+        status: { [Op.in]: [PAYMENT_REMINDER_STATUSES.paid, PAYMENT_REMINDER_STATUSES.skipped] },
+      },
+    });
+
+    if (hasCompletedPeriod) {
+      await PaymentReminderPeriods.destroy({
+        where: {
+          reminderId: id,
+          status: PAYMENT_REMINDER_STATUSES.upcoming,
+        },
+      });
+    }
   }
 
   return PaymentReminders.findByPk(id, {
