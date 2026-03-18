@@ -45,6 +45,9 @@ export interface PortfolioTransferModel {
   amount: string;
   refAmount: string;
   currencyCode: string;
+  toCurrencyCode: string | null;
+  toAmount: string | null;
+  refToAmount: string | null;
   transactionId: number | null;
   metaData: Record<string, unknown> | null;
   date: string;
@@ -59,4 +62,5 @@ export interface PortfolioTransferModel {
   fromPortfolio?: PortfolioModel;
   toPortfolio?: PortfolioModel;
   currency?: CurrencyModel;
+  toCurrency?: CurrencyModel;
 }

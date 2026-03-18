@@ -70,6 +70,7 @@ export async function listPortfolioTransfers({
       { model: Accounts, as: 'fromAccount', attributes: ['id', 'name', 'currencyCode', 'type'] },
       { model: Accounts, as: 'toAccount', attributes: ['id', 'name', 'currencyCode', 'type'] },
       { model: Currencies, as: 'currency' },
+      { model: Currencies, as: 'toCurrency' },
     ],
     order: [[sortBy, sortDirection]],
     limit,

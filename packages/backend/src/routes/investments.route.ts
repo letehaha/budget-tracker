@@ -9,6 +9,7 @@ import createPortfolioTransferController from '@controllers/investments/portfoli
 import deletePortfolioController from '@controllers/investments/portfolios/delete-portfolio';
 import deletePortfolioTransferController from '@controllers/investments/portfolios/delete-portfolio-transfer';
 import directCashTransactionController from '@controllers/investments/portfolios/direct-cash-transaction';
+import exchangeCurrencyController from '@controllers/investments/portfolios/exchange-currency';
 import getPortfolioController from '@controllers/investments/portfolios/get-portfolio';
 import getPortfolioBalanceController from '@controllers/investments/portfolios/get-portfolio-balance';
 import getPortfolioSummaryController from '@controllers/investments/portfolios/get-portfolio-summary.controller';
@@ -77,6 +78,13 @@ router.post(
   checkBaseCurrencyLock,
   validateEndpoint(createPortfolioTransferController.schema),
   createPortfolioTransferController.handler,
+);
+
+router.post(
+  '/portfolios/:id/exchange-currency',
+  checkBaseCurrencyLock,
+  validateEndpoint(exchangeCurrencyController.schema),
+  exchangeCurrencyController.handler,
 );
 
 router.post(

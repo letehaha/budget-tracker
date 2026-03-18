@@ -3,6 +3,7 @@ import {
   createPortfolioTransfer as _createPortfolioTransfer,
   deletePortfolioTransfer as _deletePortfolioTransfer,
   directCashTransaction as _directCashTransaction,
+  exchangeCurrency as _exchangeCurrency,
   getTransactionPortfolioLink as _getTransactionPortfolioLink,
   linkTransactionToPortfolio as _linkTransactionToPortfolio,
   listPortfolioTransfers as _listPortfolioTransfers,
@@ -198,6 +199,48 @@ export async function unlinkTransactionFromPortfolio<R extends boolean | undefin
   return makeRequest<Awaited<ReturnType<typeof _unlinkTransactionFromPortfolio>>, R>({
     method: 'post',
     url: `/transactions/${transactionId}/unlink-from-portfolio`,
+    raw,
+  });
+}
+
+export function buildExchangeCurrencyPayload({
+  fromCurrencyCode,
+  toCurrencyCode,
+  fromAmount = '100',
+  toAmount = '110',
+  date = new Date().toISOString().slice(0, 10),
+  description = 'Test currency exchange',
+}: {
+  fromCurrencyCode: string;
+  toCurrencyCode: string;
+  fromAmount?: string;
+  toAmount?: string;
+  date?: string;
+  description?: string | null;
+}) {
+  return {
+    fromCurrencyCode,
+    toCurrencyCode,
+    fromAmount,
+    toAmount,
+    date,
+    description,
+  };
+}
+
+export async function exchangeCurrency<R extends boolean | undefined = false>({
+  portfolioId,
+  payload,
+  raw,
+}: {
+  portfolioId: number;
+  payload: ReturnType<typeof buildExchangeCurrencyPayload>;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof _exchangeCurrency>>, R>({
+    method: 'post',
+    url: `/investments/portfolios/${portfolioId}/exchange-currency`,
+    payload,
     raw,
   });
 }

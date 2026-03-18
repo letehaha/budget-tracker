@@ -3,6 +3,7 @@ import {
   createDirectCashTransaction,
   createPortfolioTransfer,
   deletePortfolioTransfer,
+  exchangeCurrency,
   getPortfolioTransfers,
   getTransactionPortfolioLink,
   linkTransactionToPortfolio,
@@ -59,6 +60,15 @@ export const useCreateDirectCashTransaction = () => {
 
   return useMutation({
     mutationFn: (params: Parameters<typeof createDirectCashTransaction>[0]) => createDirectCashTransaction(params),
+    onSuccess: () => invalidateTransferRelatedQueries(queryClient),
+  });
+};
+
+export const useExchangeCurrency = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: Parameters<typeof exchangeCurrency>[0]) => exchangeCurrency(params),
     onSuccess: () => invalidateTransferRelatedQueries(queryClient),
   });
 };

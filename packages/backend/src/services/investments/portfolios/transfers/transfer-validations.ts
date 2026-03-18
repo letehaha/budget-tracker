@@ -84,6 +84,33 @@ export async function reverseTransferBalanceChanges({
   const amount = transfer.amount.toDecimalString(10);
   const { currencyCode } = transfer;
 
+  // Currency exchange: reverse both currency balance changes
+  if (transfer.toCurrencyCode && transfer.toAmount && transfer.fromPortfolioId) {
+    const toAmount = transfer.toAmount.toDecimalString(10);
+
+    // Add back the from-amount to the source currency
+    await updatePortfolioBalance({
+      userId,
+      portfolioId: transfer.fromPortfolioId,
+      currencyCode,
+      availableCashDelta: amount,
+      totalCashDelta: amount,
+    });
+
+    // Subtract the to-amount from the target currency
+    const negatedToAmount = negateAmount({ amount: toAmount });
+    await updatePortfolioBalance({
+      userId,
+      portfolioId: transfer.fromPortfolioId,
+      currencyCode: transfer.toCurrencyCode,
+      availableCashDelta: negatedToAmount,
+      totalCashDelta: negatedToAmount,
+    });
+
+    return;
+  }
+
+  // Regular transfer reversal
   if (transfer.fromPortfolioId) {
     await updatePortfolioBalance({
       userId,
