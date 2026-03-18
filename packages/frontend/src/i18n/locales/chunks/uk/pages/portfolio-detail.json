@@ -9,7 +9,8 @@
     "actions": {
       "transfer": "Переказ",
       "edit": "Редагувати",
-      "delete": "Видалити"
+      "delete": "Видалити",
+      "exchangeCurrency": "Обмін валют"
     },
     "balance": {
       "totalValue": "Загальна вартість",
@@ -38,6 +39,7 @@
         "withdrawal": "Зняття",
         "transferIn": "Переказ на",
         "transferOut": "Переказ з",
+        "exchange": "Обмін валют",
         "deleteConfirm": "Видалити цю грошову операцію?",
         "linkedTransactionNote": "Цей переказ має пов'язану транзакцію рахунку. Що ви хочете з нею зробити?",
         "keepLinkedTransaction": "Залишити транзакцію рахунку. Деталі оригінальної транзакції будуть відновлені.",

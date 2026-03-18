@@ -153,6 +153,30 @@
     "validators": {
       "invalidCurrencyDecimal": "Введіть коректну суму (до 2 знаків після коми)",
       "mustBePositive": "Сума має бути додатною"
+    },
+    "exchangeCurrency": {
+      "fromCurrencyLabel": "З валюти",
+      "toCurrencyLabel": "На валюту",
+      "currencyPlaceholder": "Виберіть валюту",
+      "fromAmountLabel": "Сума з",
+      "toAmountLabel": "Сума на",
+      "amountPlaceholder": "0.00",
+      "maxButton": "Максимум: {amount}",
+      "dateLabel": "Дата обміну",
+      "descriptionLabel": "Опис (необовязково)",
+      "descriptionPlaceholder": "Додайте примітку про цей обмін...",
+      "cancelButton": "Скасувати",
+      "submitButton": "Обміняти",
+      "submitButtonLoading": "Обробка...",
+      "validation": {
+        "required": "Це поле обовязкове",
+        "minValue": "Сума повинна бути більше 0",
+        "sameCurrency": "Валюти \"З\" і \"На\" повинні бути різними"
+      },
+      "notifications": {
+        "success": "Валюту успішно обміняно",
+        "error": "Не вдалося обміняти валюту"
+      }
     }
   },
   "fields": {

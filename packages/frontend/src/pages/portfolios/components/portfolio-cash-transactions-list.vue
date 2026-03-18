@@ -38,7 +38,15 @@
           </div>
 
           <div class="flex items-center gap-3">
-            <div class="text-right">
+            <div v-if="dp.type === 'exchange' && transfer.toCurrencyCode && transfer.toAmount" class="text-right">
+              <p class="text-app-expense-color text-sm font-semibold">
+                -{{ formatAmountByCurrencyCode(Number(transfer.amount), transfer.currencyCode) }}
+              </p>
+              <p class="text-app-income-color text-sm font-semibold">
+                +{{ formatAmountByCurrencyCode(Number(transfer.toAmount), transfer.toCurrencyCode) }}
+              </p>
+            </div>
+            <div v-else class="text-right">
               <p class="text-sm font-semibold" :class="dp.amountClass">
                 {{ dp.amountPrefix }}{{ formatAmountByCurrencyCode(Number(transfer.amount), transfer.currencyCode) }}
               </p>
@@ -99,7 +107,7 @@ import { useFormatCurrency } from '@/composable/formatters';
 import type { PortfolioModel } from '@bt/shared/types';
 import type { PortfolioTransferModel } from '@bt/shared/types/investments';
 import { format } from 'date-fns';
-import { ArrowDownIcon, ArrowUpIcon, Trash2Icon } from 'lucide-vue-next';
+import { ArrowDownIcon, ArrowUpIcon, RefreshCwIcon, Trash2Icon } from 'lucide-vue-next';
 import { ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -130,7 +138,22 @@ const confirmDelete = () => {
 
 const formatDate = (date: string) => format(new Date(date), 'MMM d, yyyy');
 
+function isCurrencyExchange(transfer: PortfolioTransferModel): boolean {
+  return !!transfer.toCurrencyCode && !!transfer.toAmount;
+}
+
 function getTransferDisplayProps(transfer: PortfolioTransferModel) {
+  if (isCurrencyExchange(transfer)) {
+    return {
+      type: 'exchange' as const,
+      label: t('portfolioDetail.cashBalances.cashTransactions.exchange'),
+      icon: RefreshCwIcon,
+      iconContainerClass: 'bg-app-transfer-color/10 text-app-transfer-color',
+      amountClass: 'text-app-transfer-color',
+      amountPrefix: '',
+    };
+  }
+
   let type: string;
 
   if (!transfer.fromAccountId && !transfer.fromPortfolioId && transfer.toPortfolioId) {
@@ -157,6 +180,7 @@ function getTransferDisplayProps(transfer: PortfolioTransferModel) {
   };
 
   return {
+    type: type as 'deposit' | 'withdrawal' | 'transfer-in' | 'transfer-out',
     label: labels[type] || type,
     icon: isOutgoing ? ArrowUpIcon : ArrowDownIcon,
     iconContainerClass: isOutgoing

@@ -97,8 +97,44 @@ export default class PortfolioTransfers extends Model {
   @BelongsTo(() => Portfolios, 'toPortfolioId')
   toPortfolio?: Portfolios;
 
-  @BelongsTo(() => Currencies)
+  @BelongsTo(() => Currencies, 'currencyCode')
   currency?: Currencies;
+
+  @ForeignKey(() => Currencies)
+  @Index
+  @Column({ type: DataType.STRING(3), allowNull: true, defaultValue: null })
+  toCurrencyCode!: string | null;
+
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get toAmount(): Money | null {
+    const raw = this.getDataValue('toAmount');
+    if (raw === null || raw === undefined) return null;
+    return moneyGetDecimal(this, 'toAmount');
+  }
+  set toAmount(val: Money | string | number | null) {
+    if (val === null) {
+      this.setDataValue('toAmount', null);
+      return;
+    }
+    moneySetDecimal(this, 'toAmount', val, 10);
+  }
+
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get refToAmount(): Money | null {
+    const raw = this.getDataValue('refToAmount');
+    if (raw === null || raw === undefined) return null;
+    return moneyGetDecimal(this, 'refToAmount');
+  }
+  set refToAmount(val: Money | string | number | null) {
+    if (val === null) {
+      this.setDataValue('refToAmount', null);
+      return;
+    }
+    moneySetDecimal(this, 'refToAmount', val, 10);
+  }
+
+  @BelongsTo(() => Currencies, 'toCurrencyCode')
+  toCurrency?: Currencies;
 
   @Column({ type: DataType.JSONB, allowNull: true, defaultValue: null })
   metaData!: Record<string, unknown> | null;

@@ -153,6 +153,30 @@
     "validators": {
       "invalidCurrencyDecimal": "Enter a valid amount (up to 2 decimal places)",
       "mustBePositive": "Amount must be positive"
+    },
+    "exchangeCurrency": {
+      "fromCurrencyLabel": "From Currency",
+      "toCurrencyLabel": "To Currency",
+      "currencyPlaceholder": "Select currency",
+      "fromAmountLabel": "From Amount",
+      "toAmountLabel": "To Amount",
+      "amountPlaceholder": "0.00",
+      "maxButton": "Max: {amount}",
+      "dateLabel": "Exchange Date",
+      "descriptionLabel": "Description (optional)",
+      "descriptionPlaceholder": "Add a note about this exchange...",
+      "cancelButton": "Cancel",
+      "submitButton": "Exchange",
+      "submitButtonLoading": "Processing...",
+      "validation": {
+        "required": "This field is required",
+        "minValue": "Amount must be greater than 0",
+        "sameCurrency": "From and To currencies must be different"
+      },
+      "notifications": {
+        "success": "Currency exchanged successfully",
+        "error": "Failed to exchange currency"
+      }
     }
   },
   "fields": {

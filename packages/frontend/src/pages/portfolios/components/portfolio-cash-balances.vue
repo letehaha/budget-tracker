@@ -7,19 +7,59 @@
         </div>
         <CardTitle class="text-lg">{{ $t('portfolioDetail.cashBalances.title') }}</CardTitle>
 
-        <DirectCashTransactionDialog :portfolio-id="portfolioId" :portfolio="portfolio">
-          <UiButton variant="outline" size="sm">
-            <PlusIcon class="mr-2 size-4" />
-            {{ $t('portfolioDetail.cashBalances.cashTransactions.addButton') }}
-          </UiButton>
-        </DirectCashTransactionDialog>
+        <!-- Desktop: inline buttons -->
+        <template v-if="!isMobile">
+          <DirectCashTransactionDialog :portfolio-id="portfolioId" :portfolio="portfolio">
+            <UiButton variant="outline" size="sm">
+              <PlusIcon class="mr-2 size-4" />
+              {{ $t('portfolioDetail.cashBalances.cashTransactions.addButton') }}
+            </UiButton>
+          </DirectCashTransactionDialog>
 
-        <PortfolioTransferDialog :portfolio="portfolio" context="portfolio">
-          <UiButton variant="outline" size="sm">
-            <ArrowRightLeftIcon class="mr-2 size-4" />
-            {{ $t('portfolioDetail.actions.transfer') }}
-          </UiButton>
-        </PortfolioTransferDialog>
+          <PortfolioTransferDialog :portfolio="portfolio" context="portfolio">
+            <UiButton variant="outline" size="sm">
+              <ArrowRightLeftIcon class="mr-2 size-4" />
+              {{ $t('portfolioDetail.actions.transfer') }}
+            </UiButton>
+          </PortfolioTransferDialog>
+
+          <ExchangeCurrencyDialog :portfolio-id="portfolioId" :portfolio="portfolio">
+            <UiButton variant="outline" size="sm">
+              <RefreshCwIcon class="mr-2 size-4" />
+              {{ $t('portfolioDetail.actions.exchangeCurrency') }}
+            </UiButton>
+          </ExchangeCurrencyDialog>
+        </template>
+
+        <!-- Mobile: dropdown menu -->
+        <template v-else>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <UiButton variant="outline" size="icon-sm">
+                <EllipsisVerticalIcon class="size-4" />
+              </UiButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem @click="isCashTxOpen = true">
+                <PlusIcon class="mr-2 size-4" />
+                {{ $t('portfolioDetail.cashBalances.cashTransactions.addButton') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="isTransferOpen = true">
+                <ArrowRightLeftIcon class="mr-2 size-4" />
+                {{ $t('portfolioDetail.actions.transfer') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="isExchangeOpen = true">
+                <RefreshCwIcon class="mr-2 size-4" />
+                {{ $t('portfolioDetail.actions.exchangeCurrency') }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <!-- Dialogs opened via dropdown (no trigger slots needed) -->
+          <DirectCashTransactionDialog v-model:open="isCashTxOpen" :portfolio-id="portfolioId" :portfolio="portfolio" />
+          <PortfolioTransferDialog v-model:open="isTransferOpen" :portfolio="portfolio" context="portfolio" />
+          <ExchangeCurrencyDialog v-model:open="isExchangeOpen" :portfolio-id="portfolioId" :portfolio="portfolio" />
+        </template>
       </div>
     </CardHeader>
     <CardContent class="pt-0">
@@ -40,11 +80,19 @@
 
 <script setup lang="ts">
 import DirectCashTransactionDialog from '@/components/dialogs/direct-cash-transaction-dialog.vue';
+import ExchangeCurrencyDialog from '@/components/dialogs/exchange-currency-dialog.vue';
 import PortfolioTransferDialog from '@/components/dialogs/portfolio-transfer-dialog.vue';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/common/dropdown-menu';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/lib/ui/card';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
-import { ArrowRightLeftIcon, PlusIcon, WalletIcon } from 'lucide-vue-next';
+import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
+import { ArrowRightLeftIcon, EllipsisVerticalIcon, PlusIcon, RefreshCwIcon, WalletIcon } from 'lucide-vue-next';
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -58,6 +106,13 @@ const props = defineProps<{ portfolioId: number; portfolio: PortfolioModel }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { t } = useI18n();
+
+const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
+
+// Mobile dropdown dialog state
+const isCashTxOpen = ref(false);
+const isTransferOpen = ref(false);
+const isExchangeOpen = ref(false);
 
 const activeTab = ref('balances');
 

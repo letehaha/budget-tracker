@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
-import DirectCashTransactionForm from '@/components/forms/direct-cash-transaction-form.vue';
+import ExchangeCurrencyForm from '@/components/forms/exchange-currency-form.vue';
 import type { PortfolioModel } from '@bt/shared/types';
 import { useVModel } from '@vueuse/core';
 
@@ -33,12 +33,12 @@ const handleCancel = () => {
       <slot />
     </template>
 
-    <template #title>{{ $t('dialogs.directCashTransaction.title') }}</template>
-    <template #description>{{ $t('dialogs.directCashTransaction.description') }}</template>
+    <template #title>{{ $t('dialogs.exchangeCurrency.title') }}</template>
+    <template #description>{{ $t('dialogs.exchangeCurrency.description') }}</template>
 
-    <DirectCashTransactionForm
-      :portfolio-id="props.portfolioId"
-      :portfolio="props.portfolio"
+    <ExchangeCurrencyForm
+      :portfolio-id="portfolioId"
+      :portfolio="portfolio"
       @success="handleSuccess"
       @cancel="handleCancel"
     />
