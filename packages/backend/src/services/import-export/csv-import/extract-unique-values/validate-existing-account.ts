@@ -1,5 +1,5 @@
 import { AccountOptionValue, type ColumnMappingConfig } from '@bt/shared/types';
-import { NotFoundError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import * as Accounts from '@models/Accounts.model';
 
 interface ValidateExistingAccountParams {
@@ -14,15 +14,12 @@ export async function validateExistingAccount({ userId, columnMapping }: Validat
   const accountOption = columnMapping.account;
 
   if (accountOption.option === AccountOptionValue.existingAccount) {
-    const account = await Accounts.getAccountById({
-      userId,
-      id: accountOption.accountId,
+    await findOrThrowNotFound({
+      query: Accounts.getAccountById({
+        userId,
+        id: accountOption.accountId,
+      }),
+      message: `Account with ID ${accountOption.accountId} not found or does not belong to you.`,
     });
-
-    if (!account) {
-      throw new NotFoundError({
-        message: `Account with ID ${accountOption.accountId} not found or does not belong to you.`,
-      });
-    }
   }
 }

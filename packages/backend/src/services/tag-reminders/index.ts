@@ -1,6 +1,7 @@
 import { TAG_REMINDER_TYPES, TagReminderFrequency, TagReminderSettings, TagReminderType } from '@bt/shared/types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
+import { ConflictError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import TagReminders from '@models/TagReminders.model';
 import Tags from '@models/Tags.model';
@@ -23,13 +24,10 @@ export const createReminder = withTransaction(async (payload: CreateReminderPayl
   const { userId, tagId, type, frequency = null, dayOfMonth = null, settings = {}, isEnabled = true } = payload;
 
   // Verify tag exists and belongs to user
-  const tag = await Tags.findOne({
-    where: { id: tagId, userId },
+  await findOrThrowNotFound({
+    query: Tags.findOne({ where: { id: tagId, userId } }),
+    message: t({ key: 'tags.tagNotFound' }),
   });
-
-  if (!tag) {
-    throw new NotFoundError({ message: t({ key: 'tags.tagNotFound' }) });
-  }
 
   // Check 50 reminder limit per user
   const userReminderCount = await TagReminders.count({ where: { userId } });
@@ -84,13 +82,10 @@ interface GetRemindersForTagPayload {
 
 export const getRemindersForTag = async ({ userId, tagId }: GetRemindersForTagPayload) => {
   // Verify tag exists and belongs to user
-  const tag = await Tags.findOne({
-    where: { id: tagId, userId },
+  await findOrThrowNotFound({
+    query: Tags.findOne({ where: { id: tagId, userId } }),
+    message: t({ key: 'tags.tagNotFound' }),
   });
-
-  if (!tag) {
-    throw new NotFoundError({ message: t({ key: 'tags.tagNotFound' }) });
-  }
 
   const reminders = await TagReminders.findAll({
     where: { tagId, userId },
@@ -107,14 +102,13 @@ interface GetReminderByIdPayload {
 }
 
 export const getReminderById = async ({ id, userId, tagId }: GetReminderByIdPayload) => {
-  const reminder = await TagReminders.findOne({
-    where: { id, userId, tagId },
-    include: [{ model: Tags, as: 'tag' }],
+  const reminder = await findOrThrowNotFound({
+    query: TagReminders.findOne({
+      where: { id, userId, tagId },
+      include: [{ model: Tags, as: 'tag' }],
+    }),
+    message: t({ key: 'tagReminders.reminderNotFound' }),
   });
-
-  if (!reminder) {
-    throw new NotFoundError({ message: t({ key: 'tagReminders.reminderNotFound' }) });
-  }
 
   return reminder;
 };
@@ -147,13 +141,10 @@ interface UpdateReminderPayload {
 export const updateReminder = withTransaction(async (payload: UpdateReminderPayload) => {
   const { id, userId, tagId, type, frequency, dayOfMonth, settings, isEnabled } = payload;
 
-  const reminder = await TagReminders.findOne({
-    where: { id, userId, tagId },
+  const reminder = await findOrThrowNotFound({
+    query: TagReminders.findOne({ where: { id, userId, tagId } }),
+    message: t({ key: 'tagReminders.reminderNotFound' }),
   });
-
-  if (!reminder) {
-    throw new NotFoundError({ message: t({ key: 'tagReminders.reminderNotFound' }) });
-  }
 
   const newType = type ?? reminder.type;
   const newFrequency = frequency !== undefined ? frequency : reminder.frequency;
@@ -209,13 +200,10 @@ interface DeleteReminderPayload {
 }
 
 export const deleteReminder = withTransaction(async ({ id, userId, tagId }: DeleteReminderPayload) => {
-  const reminder = await TagReminders.findOne({
-    where: { id, userId, tagId },
+  const reminder = await findOrThrowNotFound({
+    query: TagReminders.findOne({ where: { id, userId, tagId } }),
+    message: t({ key: 'tagReminders.reminderNotFound' }),
   });
-
-  if (!reminder) {
-    throw new NotFoundError({ message: t({ key: 'tagReminders.reminderNotFound' }) });
-  }
 
   await reminder.destroy();
 
@@ -273,11 +261,10 @@ export const updateReminderCheckTimes = async ({
   lastCheckedAt,
   lastTriggeredAt,
 }: UpdateReminderCheckTimesPayload) => {
-  const reminder = await TagReminders.findByPk(id);
-
-  if (!reminder) {
-    throw new NotFoundError({ message: t({ key: 'tagReminders.reminderNotFound' }) });
-  }
+  const reminder = await findOrThrowNotFound({
+    query: TagReminders.findByPk(id),
+    message: t({ key: 'tagReminders.reminderNotFound' }),
+  });
 
   await reminder.update({
     lastCheckedAt,

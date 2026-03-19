@@ -1,4 +1,4 @@
-import { NotFoundError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { logger } from '@js/utils/logger';
 import * as RefundTransactions from '@models/RefundTransactions.model';
 import * as Transactions from '@models/Transactions.model';
@@ -16,19 +16,16 @@ export const removeRefundLink = withTransaction(
   async ({ userId, originalTxId, refundTxId }: RemoveRefundLinkParams): Promise<void> => {
     try {
       // Fetch the refund link
-      const refundLink = await RefundTransactions.default.findOne({
-        where: {
-          originalTxId,
-          refundTxId,
-          userId,
-        },
+      const refundLink = await findOrThrowNotFound({
+        query: RefundTransactions.default.findOne({
+          where: {
+            originalTxId,
+            refundTxId,
+            userId,
+          },
+        }),
+        message: 'Refund link not found',
       });
-
-      if (!refundLink) {
-        throw new NotFoundError({
-          message: 'Refund link not found',
-        });
-      }
 
       // Remove the refund link
       await refundLink.destroy();

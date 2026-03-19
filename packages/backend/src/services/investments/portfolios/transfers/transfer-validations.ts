@@ -1,6 +1,7 @@
 import { Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/Accounts.model';
 import Currencies from '@models/Currencies.model';
 import Portfolios from '@models/investments/Portfolios.model';
@@ -24,19 +25,16 @@ export async function findPortfolioOrThrow({
   userId: number;
   role: 'source' | 'destination' | 'generic';
 }): Promise<Portfolios> {
-  const portfolio = await Portfolios.findOne({ where: { id: portfolioId, userId } });
+  const messageKeyMap = {
+    source: 'investments.sourcePortfolioNotFound',
+    destination: 'investments.destinationPortfolioNotFound',
+    generic: 'investments.portfolioNotFound',
+  } as const;
 
-  if (!portfolio) {
-    const messageKeyMap = {
-      source: 'investments.sourcePortfolioNotFound',
-      destination: 'investments.destinationPortfolioNotFound',
-      generic: 'investments.portfolioNotFound',
-    } as const;
-
-    throw new NotFoundError({ message: t({ key: messageKeyMap[role] }) });
-  }
-
-  return portfolio;
+  return findOrThrowNotFound({
+    query: Portfolios.findOne({ where: { id: portfolioId, userId } }),
+    message: t({ key: messageKeyMap[role] }),
+  });
 }
 
 export async function findAccountOrThrow({
@@ -48,26 +46,19 @@ export async function findAccountOrThrow({
   userId: number;
   role: 'source' | 'destination';
 }): Promise<NonNullable<Awaited<ReturnType<typeof Accounts.getAccountById>>>> {
-  const account = await Accounts.getAccountById({ userId, id: accountId });
+  const messageKey = role === 'source' ? 'investments.sourceAccountNotFound' : 'investments.destinationAccountNotFound';
 
-  if (!account) {
-    const messageKey =
-      role === 'source' ? 'investments.sourceAccountNotFound' : 'investments.destinationAccountNotFound';
-
-    throw new NotFoundError({ message: t({ key: messageKey }) });
-  }
-
-  return account;
+  return findOrThrowNotFound({
+    query: Accounts.getAccountById({ userId, id: accountId }),
+    message: t({ key: messageKey }),
+  });
 }
 
 export async function findCurrencyOrThrow({ currencyCode }: { currencyCode: string }): Promise<Currencies> {
-  const currency = await Currencies.findByPk(currencyCode);
-
-  if (!currency) {
-    throw new NotFoundError({ message: t({ key: 'investments.currencyNotFound' }) });
-  }
-
-  return currency;
+  return findOrThrowNotFound({
+    query: Currencies.findByPk(currencyCode),
+    message: t({ key: 'investments.currencyNotFound' }),
+  });
 }
 
 export function negateAmount({ amount }: { amount: string }): string {

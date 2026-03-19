@@ -1,5 +1,5 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
 import Portfolios from '@models/investments/Portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
 
@@ -9,13 +9,12 @@ interface GetPortfolioParams {
 }
 
 const getPortfolioImpl = async ({ userId, portfolioId }: GetPortfolioParams) => {
-  const portfolio = await Portfolios.findOne({
-    where: { id: portfolioId, userId },
+  const portfolio = await findOrThrowNotFound({
+    query: Portfolios.findOne({
+      where: { id: portfolioId, userId },
+    }),
+    message: t({ key: 'investments.portfolioNotFound' }),
   });
-
-  if (!portfolio) {
-    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
-  }
 
   return portfolio;
 };

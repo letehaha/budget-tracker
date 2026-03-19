@@ -1,5 +1,6 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, UnexpectedError } from '@js/errors';
+import { UnexpectedError } from '@js/errors';
 import { logger } from '@js/utils';
 import { CacheClient } from '@js/utils/cache';
 import * as Currencies from '@models/Currencies.model';
@@ -61,28 +62,27 @@ export async function getExchangeRate({
 
   // When currencies are different, make sure that base_code currency is linked
   // to user's currencies, since usually quite is always a user_default_currency
-  const userCurrency = await UsersCurrencies.findOne({
-    where: { userId },
-    attributes: ['liveRateUpdate'],
-    include: [
-      {
-        model: Currencies.default,
-        where: { code: pair.baseCode },
-        attributes: [], // No need to fetch extra attributes
-      },
-    ],
-    raw: true,
+  const userCurrency = await findOrThrowNotFound({
+    query: UsersCurrencies.findOne({
+      where: { userId },
+      attributes: ['liveRateUpdate'],
+      include: [
+        {
+          model: Currencies.default,
+          where: { code: pair.baseCode },
+          attributes: [], // No need to fetch extra attributes
+        },
+      ],
+      raw: true,
+    }),
+    message: t({ key: 'currencies.currencyNotConnected' }),
   });
-
-  if (!userCurrency) {
-    throw new NotFoundError({ message: t({ key: 'currencies.currencyNotConnected' }) });
-  }
 
   const userDefaultCurrency = await getBaseCurrency({ userId });
 
   // If user has custom live rate AND quote_code is user's base_currency, then
   // skip any checks and calculations and simply return what user has set
-  if (userCurrency && userCurrency.liveRateUpdate === false && pair.quoteCode === userDefaultCurrency.currency.code) {
+  if (userCurrency.liveRateUpdate === false && pair.quoteCode === userDefaultCurrency.currency.code) {
     const [userExchangeRate] = await UserExchangeRates.getRates({
       userId,
       pair,

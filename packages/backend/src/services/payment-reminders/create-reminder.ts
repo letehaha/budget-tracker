@@ -1,6 +1,7 @@
 import { PAYMENT_REMINDER_STATUSES, RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { ValidationError } from '@js/errors';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
 import Subscriptions from '@models/Subscriptions.model';
@@ -46,13 +47,12 @@ export const createReminder = withTransaction(async (params: CreateReminderParam
 
   // If linked to subscription, sync fields from it
   if (subscriptionId) {
-    const subscription = await Subscriptions.findOne({
-      where: { id: subscriptionId, userId },
+    const subscription = await findOrThrowNotFound({
+      query: Subscriptions.findOne({
+        where: { id: subscriptionId, userId },
+      }),
+      message: 'Subscription not found',
     });
-
-    if (!subscription) {
-      throw new NotFoundError({ message: 'Subscription not found' });
-    }
 
     finalName = subscription.name;
     // Subscription model stores expectedAmount as raw cents (INTEGER, no MoneyColumn).

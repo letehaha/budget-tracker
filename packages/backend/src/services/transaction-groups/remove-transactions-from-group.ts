@@ -1,4 +1,5 @@
-import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { ConflictError, ValidationError } from '@js/errors';
 import TransactionGroupItems from '@models/TransactionGroupItems.model';
 import TransactionGroups from '@models/TransactionGroups.model';
 import { withTransaction } from '@services/common/with-transaction';
@@ -17,13 +18,12 @@ interface RemoveTransactionsFromGroupPayload {
 export const removeTransactionsFromGroup = withTransaction(async (payload: RemoveTransactionsFromGroupPayload) => {
   const { groupId, userId, transactionIds, force = false } = payload;
 
-  const group = await TransactionGroups.findOne({
-    where: { id: groupId, userId },
+  const group = await findOrThrowNotFound({
+    query: TransactionGroups.findOne({
+      where: { id: groupId, userId },
+    }),
+    message: 'Transaction group not found.',
   });
-
-  if (!group) {
-    throw new NotFoundError({ message: 'Transaction group not found.' });
-  }
 
   // Verify the requested transactions belong to this group
   const requestedItems = await TransactionGroupItems.findAll({

@@ -1,7 +1,8 @@
 import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountExternalData, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, UnexpectedError } from '@js/errors';
+import { UnexpectedError } from '@js/errors';
 import * as Accounts from '@models/Accounts.model';
 import Balances from '@models/Balances.model';
 import * as UsersCurrencies from '@models/UsersCurrencies.model';
@@ -116,11 +117,10 @@ export const updateAccount = withTransaction(
     ...payload
   }: Accounts.UpdateAccountByIdPayload &
     (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>)) => {
-    const accountData = await Accounts.default.findByPk(id);
-
-    if (!accountData) {
-      throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
-    }
+    const accountData = await findOrThrowNotFound({
+      query: Accounts.default.findByPk(id),
+      message: t({ key: 'accounts.accountNotFound' }),
+    });
 
     // Handle archive side effects when transitioning to archived status
     const isArchiving =

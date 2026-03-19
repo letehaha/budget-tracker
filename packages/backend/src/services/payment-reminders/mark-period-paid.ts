@@ -1,5 +1,6 @@
 import { PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
-import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { ConflictError, ValidationError } from '@js/errors';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
 import Transactions from '@models/Transactions.model';
@@ -17,21 +18,19 @@ interface MarkPeriodPaidParams {
 
 export const markPeriodPaid = withTransaction(
   async ({ userId, reminderId, periodId, transactionId = null, notes = null }: MarkPeriodPaidParams) => {
-    const reminder = await PaymentReminders.findOne({
-      where: { id: reminderId, userId },
+    const reminder = await findOrThrowNotFound({
+      query: PaymentReminders.findOne({
+        where: { id: reminderId, userId },
+      }),
+      message: 'Payment reminder not found',
     });
 
-    if (!reminder) {
-      throw new NotFoundError({ message: 'Payment reminder not found' });
-    }
-
-    const period = await PaymentReminderPeriods.findOne({
-      where: { id: periodId, reminderId },
+    const period = await findOrThrowNotFound({
+      query: PaymentReminderPeriods.findOne({
+        where: { id: periodId, reminderId },
+      }),
+      message: 'Payment reminder period not found',
     });
-
-    if (!period) {
-      throw new NotFoundError({ message: 'Payment reminder period not found' });
-    }
 
     if (period.status === PAYMENT_REMINDER_STATUSES.paid) {
       throw new ConflictError({ message: 'Period is already marked as paid' });
@@ -43,13 +42,12 @@ export const markPeriodPaid = withTransaction(
 
     // Validate transaction if provided
     if (transactionId != null) {
-      const transaction = await Transactions.findOne({
-        where: { id: transactionId, userId },
+      await findOrThrowNotFound({
+        query: Transactions.findOne({
+          where: { id: transactionId, userId },
+        }),
+        message: 'Transaction not found',
       });
-
-      if (!transaction) {
-        throw new NotFoundError({ message: 'Transaction not found' });
-      }
 
       // Check if this transaction is already linked to another period of THIS reminder
       const existingLink = await PaymentReminderPeriods.findOne({

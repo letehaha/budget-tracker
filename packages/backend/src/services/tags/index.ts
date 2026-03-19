@@ -1,5 +1,6 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { ValidationError } from '@js/errors';
 import Tags from '@models/Tags.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { literal } from 'sequelize';
@@ -70,13 +71,10 @@ interface GetTagByIdPayload {
 }
 
 export const getTagById = async ({ id, userId }: GetTagByIdPayload) => {
-  const tag = await Tags.findOne({
-    where: { id, userId },
+  const tag = await findOrThrowNotFound({
+    query: Tags.findOne({ where: { id, userId } }),
+    message: t({ key: 'tags.tagNotFound' }),
   });
-
-  if (!tag) {
-    throw new NotFoundError({ message: t({ key: 'tags.tagNotFound' }) });
-  }
 
   return tag;
 };
@@ -93,13 +91,10 @@ interface UpdateTagPayload {
 export const updateTag = withTransaction(async (payload: UpdateTagPayload) => {
   const { id, userId, name, color, icon, description } = payload;
 
-  const tag = await Tags.findOne({
-    where: { id, userId },
+  const tag = await findOrThrowNotFound({
+    query: Tags.findOne({ where: { id, userId } }),
+    message: t({ key: 'tags.tagNotFound' }),
   });
-
-  if (!tag) {
-    throw new NotFoundError({ message: t({ key: 'tags.tagNotFound' }) });
-  }
 
   // Check for duplicate name if name is being updated
   if (name && name !== tag.name) {
@@ -128,13 +123,10 @@ interface DeleteTagPayload {
 }
 
 export const deleteTag = withTransaction(async ({ id, userId }: DeleteTagPayload) => {
-  const tag = await Tags.findOne({
-    where: { id, userId },
+  const tag = await findOrThrowNotFound({
+    query: Tags.findOne({ where: { id, userId } }),
+    message: t({ key: 'tags.tagNotFound' }),
   });
-
-  if (!tag) {
-    throw new NotFoundError({ message: t({ key: 'tags.tagNotFound' }) });
-  }
 
   await tag.destroy();
 

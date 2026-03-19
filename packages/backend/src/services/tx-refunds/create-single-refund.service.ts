@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as RefundTransactions from '@models/RefundTransactions.model';
@@ -47,18 +48,15 @@ export const createSingleRefund = withTransaction(
       // Fetch original and refund transactions
       const [originalTx, refundTx] = await Promise.all([
         Transactions.getTransactionById({ userId, id: originalTxId! }),
-        Transactions.getTransactionById({ userId, id: refundTxId }),
+        findOrThrowNotFound({
+          query: Transactions.getTransactionById({ userId, id: refundTxId }),
+          message: 'Refund transaction not found',
+        }),
       ]);
 
       if (originalTxId && !originalTx) {
         throw new NotFoundError({
           message: 'Original transaction not found',
-        });
-      }
-
-      if (!refundTx) {
-        throw new NotFoundError({
-          message: 'Refund transaction not found',
         });
       }
 
@@ -71,13 +69,10 @@ export const createSingleRefund = withTransaction(
           });
         }
 
-        targetSplit = await TransactionSplits.getSplitById({ id: splitId, userId });
-
-        if (!targetSplit) {
-          throw new NotFoundError({
-            message: 'Split not found',
-          });
-        }
+        targetSplit = await findOrThrowNotFound({
+          query: TransactionSplits.getSplitById({ id: splitId, userId }),
+          message: 'Split not found',
+        });
 
         if (targetSplit.transactionId !== originalTxId) {
           throw new ValidationError({

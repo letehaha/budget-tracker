@@ -1,6 +1,7 @@
 import { PAYMENT_REMINDER_STATUSES, RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { ValidationError } from '@js/errors';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
 import Subscriptions from '@models/Subscriptions.model';
@@ -29,13 +30,12 @@ interface UpdateReminderParams {
 export const updateReminder = withTransaction(async (params: UpdateReminderParams) => {
   const { userId, id, ...updates } = params;
 
-  const reminder = await PaymentReminders.findOne({
-    where: { id, userId },
+  const reminder = await findOrThrowNotFound({
+    query: PaymentReminders.findOne({
+      where: { id, userId },
+    }),
+    message: 'Payment reminder not found',
   });
-
-  if (!reminder) {
-    throw new NotFoundError({ message: 'Payment reminder not found' });
-  }
 
   // If linked to subscription, don't allow updating synced fields
   if (reminder.subscriptionId) {

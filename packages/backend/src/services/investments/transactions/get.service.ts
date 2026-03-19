@@ -1,6 +1,6 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
 import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
 import Portfolios from '@models/investments/Portfolios.model';
 import Securities from '@models/investments/Securities.model';
@@ -35,14 +35,13 @@ const serviceImpl = async ({
   // Add portfolio filter
   if (portfolioId) {
     // Check if portfolio belongs to the user and add it to the where clause in one query
-    const portfolio = await Portfolios.findOne({
-      where: { id: portfolioId, userId },
-      attributes: ['id'], // Only fetch the ID to minimize data transfer
+    await findOrThrowNotFound({
+      query: Portfolios.findOne({
+        where: { id: portfolioId, userId },
+        attributes: ['id'], // Only fetch the ID to minimize data transfer
+      }),
+      message: t({ key: 'investments.portfolioNotFound' }),
     });
-
-    if (!portfolio) {
-      throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
-    }
 
     where.portfolioId = portfolioId;
   } else {
