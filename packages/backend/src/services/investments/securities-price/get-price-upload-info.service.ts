@@ -1,5 +1,5 @@
 import { NotFoundError } from '@js/errors';
-import ExchangeRates from '@models/ExchangeRates.model';
+import ExchangeRates from '@models/exchange-rates.model';
 import { exchangeRateProviderRegistry } from '@services/exchange-rates/providers';
 import { Op } from 'sequelize';
 

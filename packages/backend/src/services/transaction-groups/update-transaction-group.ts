@@ -1,5 +1,5 @@
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
-import TransactionGroups from '@models/TransactionGroups.model';
+import TransactionGroups from '@models/transaction-groups.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface UpdateTransactionGroupPayload {

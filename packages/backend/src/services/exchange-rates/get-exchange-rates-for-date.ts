@@ -1,4 +1,4 @@
-import ExchangeRates from '@models/ExchangeRates.model';
+import ExchangeRates from '@models/exchange-rates.model';
 import { parse } from 'date-fns';
 import { Op, type WhereOptions } from 'sequelize';
 

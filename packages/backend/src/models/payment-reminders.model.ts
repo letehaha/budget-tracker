@@ -4,10 +4,10 @@ import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-c
 import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, DataType, BeforeCreate } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
-import Categories from './Categories.model';
+import Categories from './categories.model';
 import PaymentReminderPeriods from './payment-reminder-periods.model';
-import Subscriptions from './Subscriptions.model';
-import Users from './Users.model';
+import Subscriptions from './subscriptions.model';
+import Users from './users.model';
 
 @Table({
   tableName: 'PaymentReminders',

@@ -1,9 +1,9 @@
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
-import Tags from '@models/Tags.model';
-import Transactions from '@models/Transactions.model';
-import TransactionTags from '@models/TransactionTags.model';
+import Tags from '@models/tags.model';
+import TransactionTags from '@models/transaction-tags.model';
+import Transactions from '@models/transactions.model';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';

@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it } from '@jest/globals';
-import Users from '@models/Users.model';
+import Users from '@models/users.model';
 import { redisClient } from '@root/redis-client';
 
 import {

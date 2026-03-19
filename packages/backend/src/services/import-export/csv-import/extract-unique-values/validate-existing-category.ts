@@ -1,6 +1,6 @@
 import { CategoryOptionValue, type ColumnMappingConfig } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
-import Categories from '@models/Categories.model';
+import Categories from '@models/categories.model';
 
 interface ValidateExistingCategoryParams {
   userId: number;

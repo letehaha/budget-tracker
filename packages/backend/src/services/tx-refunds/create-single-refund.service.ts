@@ -2,9 +2,9 @@ import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
-import * as RefundTransactions from '@models/RefundTransactions.model';
-import * as Transactions from '@models/Transactions.model';
-import * as TransactionSplits from '@models/TransactionSplits.model';
+import * as RefundTransactions from '@models/refund-transactions.model';
+import * as TransactionSplits from '@models/transaction-splits.model';
+import * as Transactions from '@models/transactions.model';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';

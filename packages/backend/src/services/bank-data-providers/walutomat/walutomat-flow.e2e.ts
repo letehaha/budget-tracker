@@ -1,7 +1,7 @@
 import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { getMockedWalutomatFxPair, getMockedWalutomatHistory } from '@tests/mocks/walutomat/data';
 import {

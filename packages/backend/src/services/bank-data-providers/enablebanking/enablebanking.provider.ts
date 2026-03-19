@@ -10,11 +10,11 @@ import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
-import Accounts from '@models/Accounts.model';
-import Balances from '@models/Balances.model';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import Transactions from '@models/Transactions.model';
-import { getUserDefaultCategory } from '@models/Users.model';
+import Accounts from '@models/accounts.model';
+import Balances from '@models/balances.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import Transactions from '@models/transactions.model';
+import { getUserDefaultCategory } from '@models/users.model';
 import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import {
   BaseBankDataProvider,

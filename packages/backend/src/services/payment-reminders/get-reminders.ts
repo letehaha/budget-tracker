@@ -1,7 +1,7 @@
 import { PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
-import Subscriptions from '@models/Subscriptions.model';
+import Subscriptions from '@models/subscriptions.model';
 
 interface GetRemindersParams {
   userId: number;

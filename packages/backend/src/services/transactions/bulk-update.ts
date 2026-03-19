@@ -1,9 +1,9 @@
 import { TRANSACTION_TRANSFER_NATURE, endpointsTypes } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { NotFoundError, ValidationError } from '@js/errors';
-import Categories from '@models/Categories.model';
-import Tags from '@models/Tags.model';
-import * as Transactions from '@models/Transactions.model';
+import Categories from '@models/categories.model';
+import Tags from '@models/tags.model';
+import * as Transactions from '@models/transactions.model';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { Op } from 'sequelize';
 

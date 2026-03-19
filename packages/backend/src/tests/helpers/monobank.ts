@@ -1,7 +1,7 @@
 import { BANK_PROVIDER_TYPE, ExternalMonobankTransactionResponse, asCents } from '@bt/shared/types';
 import { faker } from '@faker-js/faker';
-import Accounts from '@models/Accounts.model';
-import Transactions from '@models/Transactions.model';
+import Accounts from '@models/accounts.model';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { getMockedClientData } from '@tests/mocks/monobank/data';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';

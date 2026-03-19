@@ -1,6 +1,6 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import * as Transactions from '@models/Transactions.model';
+import * as Transactions from '@models/transactions.model';
 
 import { SplitInput } from './splits/types';
 

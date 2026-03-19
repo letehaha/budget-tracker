@@ -1,8 +1,8 @@
 import { SUBSCRIPTION_CANDIDATE_STATUS, SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ConflictError } from '@js/errors';
-import SubscriptionCandidates from '@models/SubscriptionCandidates.model';
-import SubscriptionTransactions from '@models/SubscriptionTransactions.model';
+import SubscriptionCandidates from '@models/subscription-candidates.model';
+import SubscriptionTransactions from '@models/subscription-transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 

@@ -1,7 +1,7 @@
 import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { INVALID_MONOBANK_TOKEN, VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
 import { Op } from 'sequelize';

@@ -1,5 +1,5 @@
-import Accounts from '@models/Accounts.model';
-import * as Transactions from '@models/Transactions.model';
+import Accounts from '@models/accounts.model';
+import * as Transactions from '@models/transactions.model';
 import { format } from 'date-fns';
 
 interface GetEarliestTransactionDateParams {

@@ -1,5 +1,5 @@
 import { SUBSCRIPTION_LINK_STATUS } from '@bt/shared/types';
-import SubscriptionTransactions from '@models/SubscriptionTransactions.model';
+import SubscriptionTransactions from '@models/subscription-transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 

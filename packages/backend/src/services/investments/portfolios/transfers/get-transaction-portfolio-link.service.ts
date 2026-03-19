@@ -1,8 +1,8 @@
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import Currencies from '@models/Currencies.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
+import Currencies from '@models/currencies.model';
+import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
+import Portfolios from '@models/investments/portfolios.model';
 
 interface GetTransactionPortfolioLinkParams {
   userId: number;

@@ -1,9 +1,9 @@
 import { AI_FEATURE, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES, getProviderFromModelId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
-import Accounts from '@models/Accounts.model';
-import { getCategories } from '@models/Categories.model';
-import Transactions from '@models/Transactions.model';
+import Accounts from '@models/accounts.model';
+import { getCategories } from '@models/categories.model';
+import Transactions from '@models/transactions.model';
 import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
 import { sseManager } from '@services/common/sse';
 import { markApiKeyInvalid, markApiKeyValid } from '@services/user-settings/ai-api-key';

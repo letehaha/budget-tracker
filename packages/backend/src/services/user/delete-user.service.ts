@@ -1,8 +1,8 @@
 import { authPool } from '@config/auth';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
-import * as Accounts from '@models/Accounts.model';
-import * as Users from '@models/Users.model';
+import * as Accounts from '@models/accounts.model';
+import * as Users from '@models/users.model';
 
 import { transactionSyncQueue } from '../bank-data-providers/monobank/transaction-sync-queue';
 import { REDIS_KEYS as SYNC_REDIS_KEYS, clearAccountSyncStatus } from '../bank-data-providers/sync/sync-status-tracker';

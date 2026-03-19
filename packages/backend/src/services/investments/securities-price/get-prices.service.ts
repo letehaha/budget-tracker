@@ -1,4 +1,4 @@
-import SecurityPricing from '@models/investments/SecurityPricing.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op, WhereOptions } from 'sequelize';
 

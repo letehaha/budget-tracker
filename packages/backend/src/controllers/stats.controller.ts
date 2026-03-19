@@ -3,7 +3,7 @@ import { optionalCommaSeparatedIds, recordId } from '@common/lib/zod/custom-type
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
-import type Balances from '@models/Balances.model';
+import type Balances from '@models/balances.model';
 import {
   serializeBalanceHistory,
   serializeCashFlow,

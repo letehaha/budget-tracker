@@ -1,7 +1,7 @@
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 
 interface GetPeriodsParams {
   userId: number;

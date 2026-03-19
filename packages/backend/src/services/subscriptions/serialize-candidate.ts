@@ -1,6 +1,6 @@
 import { Money } from '@common/types/money';
-import SubscriptionCandidates from '@models/SubscriptionCandidates.model';
-import Subscriptions from '@models/Subscriptions.model';
+import SubscriptionCandidates from '@models/subscription-candidates.model';
+import Subscriptions from '@models/subscriptions.model';
 
 import { isFuzzyNameMatch } from './detect-candidates-utils';
 

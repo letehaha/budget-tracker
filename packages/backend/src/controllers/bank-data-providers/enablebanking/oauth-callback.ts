@@ -2,7 +2,7 @@ import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { bankProviderRegistry } from '@root/services/bank-data-providers';
 import { EnableBankingProvider } from '@root/services/bank-data-providers/enablebanking';
 import { z } from 'zod';

@@ -1,4 +1,4 @@
-import Tags from '@models/Tags.model';
+import Tags from '@models/tags.model';
 import { literal } from 'sequelize';
 
 interface GetTagsPayload {

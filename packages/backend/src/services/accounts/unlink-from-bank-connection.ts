@@ -1,8 +1,8 @@
 import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
-import Accounts from '@models/Accounts.model';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import Transactions from '@models/Transactions.model';
+import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface UnlinkAccountFromBankConnectionPayload {

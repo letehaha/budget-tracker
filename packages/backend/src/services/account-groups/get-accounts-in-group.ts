@@ -1,5 +1,5 @@
-import AccountGrouping from '@models/accounts-groups/AccountGrouping.model';
-import AccountGroup from '@models/accounts-groups/AccountGroups.model';
+import AccountGrouping from '@models/accounts-groups/account-grouping.model';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
 
 import { withTransaction } from '../common/with-transaction';
 

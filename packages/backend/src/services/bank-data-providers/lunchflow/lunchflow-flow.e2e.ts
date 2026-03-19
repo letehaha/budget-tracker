@@ -8,7 +8,7 @@ import {
 } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { buildTransactionPayload } from '@tests/helpers/transactions';
 import {
@@ -1358,7 +1358,7 @@ describe('LunchFlow Data Provider E2E', () => {
 
       // Simulate auth failures by trying to list accounts with bad credentials override
       // Force deactivation by making 2 consecutive auth failures via direct DB update
-      const BankDataProviderConnections = (await import('@models/BankDataProviderConnections.model')).default;
+      const BankDataProviderConnections = (await import('@models/bank-data-provider-connections.model')).default;
       await BankDataProviderConnections.update(
         {
           isActive: false,

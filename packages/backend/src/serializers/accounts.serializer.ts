@@ -6,7 +6,7 @@
  */
 import { ACCOUNT_STATUSES } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
-import type Accounts from '@models/Accounts.model';
+import type Accounts from '@models/accounts.model';
 
 // ============================================================================
 // Response Types

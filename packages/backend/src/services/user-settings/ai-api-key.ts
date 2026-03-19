@@ -2,7 +2,7 @@ import { AIApiKeyStatus, AIFeatureConfig, AI_PROVIDER } from '@bt/shared/types';
 import { decryptToken, encryptToken } from '@common/utils/encryption';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
-import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/UserSettings.model';
+import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-settings.model';
 import { getFirstAvailableRecommendedModel, getProviderFromModelId, validateApiKey } from '@services/ai';
 
 import { withTransaction } from '../common/with-transaction';

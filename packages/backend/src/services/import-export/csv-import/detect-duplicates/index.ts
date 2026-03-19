@@ -15,7 +15,7 @@ import {
 } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
-import * as Accounts from '@models/Accounts.model';
+import * as Accounts from '@models/accounts.model';
 import { parse } from 'csv-parse/sync';
 
 import { findDuplicates } from './find-duplicates';

@@ -3,9 +3,9 @@ import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { UnexpectedError } from '@js/errors';
-import * as Accounts from '@models/Accounts.model';
-import Balances from '@models/Balances.model';
-import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import * as Accounts from '@models/accounts.model';
+import Balances from '@models/balances.model';
+import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';

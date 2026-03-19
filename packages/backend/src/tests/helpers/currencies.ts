@@ -1,7 +1,7 @@
-import Currencies from '@models/Currencies.model';
-import ExchangeRates from '@models/ExchangeRates.model';
-import { UpdateExchangeRatePair } from '@models/UserExchangeRates.model';
-import UsersCurrencies from '@models/UsersCurrencies.model';
+import Currencies from '@models/currencies.model';
+import ExchangeRates from '@models/exchange-rates.model';
+import { UpdateExchangeRatePair } from '@models/user-exchange-rates.model';
+import UsersCurrencies from '@models/users-currencies.model';
 import { addUserCurrencies as apiAddUserCurrencies } from '@root/services/currencies/add-user-currency';
 import { editUserCurrency as apiEditUserCurrency } from '@root/services/user.service';
 

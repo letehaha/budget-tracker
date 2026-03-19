@@ -1,5 +1,5 @@
 import { ValidationError } from '@js/errors';
-import * as Transactions from '@models/Transactions.model';
+import * as Transactions from '@models/transactions.model';
 import { serializeTransactions } from '@root/serializers/transactions.serializer';
 
 import { withTransaction } from '../common/with-transaction';

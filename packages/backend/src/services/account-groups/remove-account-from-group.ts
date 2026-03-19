@@ -1,8 +1,8 @@
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { NotFoundError } from '@js/errors';
-import AccountGrouping from '@models/accounts-groups/AccountGrouping.model';
-import AccountGroup from '@models/accounts-groups/AccountGroups.model';
-import Accounts from '@models/Accounts.model';
+import AccountGrouping from '@models/accounts-groups/account-grouping.model';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
+import Accounts from '@models/accounts.model';
 
 import { withTransaction } from '../common/with-transaction';
 

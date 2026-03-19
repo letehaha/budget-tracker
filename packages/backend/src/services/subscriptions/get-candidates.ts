@@ -1,6 +1,6 @@
 import { SUBSCRIPTION_CANDIDATE_STATUS } from '@bt/shared/types';
-import SubscriptionCandidates from '@models/SubscriptionCandidates.model';
-import Subscriptions from '@models/Subscriptions.model';
+import SubscriptionCandidates from '@models/subscription-candidates.model';
+import Subscriptions from '@models/subscriptions.model';
 
 import { serializeCandidate } from './serialize-candidate';
 

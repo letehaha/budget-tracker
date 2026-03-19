@@ -2,7 +2,7 @@ import type { ParsedTransactionRow, TransactionImportDetails } from '@bt/shared/
 import { ImportSource, asCents } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 
 describe('Execute Import endpoint', () => {

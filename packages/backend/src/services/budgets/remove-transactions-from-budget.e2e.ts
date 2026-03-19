@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import BudgetTransactions from '@models/BudgetTransactions.model';
+import BudgetTransactions from '@models/budget-transactions.model';
 import * as helpers from '@tests/helpers';
 
 describe('Remove Transactions from Budget', () => {

@@ -1,4 +1,4 @@
-import Accounts from '@models/Accounts.model';
+import Accounts from '@models/accounts.model';
 import { Op } from 'sequelize';
 
 /**

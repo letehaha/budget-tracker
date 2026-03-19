@@ -1,7 +1,7 @@
 import { NOTIFICATION_PRIORITIES, NOTIFICATION_STATUSES, NOTIFICATION_TYPES } from '@bt/shared/types';
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import Notifications from '@models/Notifications.model';
-import Users from '@models/Users.model';
+import Notifications from '@models/notifications.model';
+import Users from '@models/users.model';
 import * as helpers from '@tests/helpers';
 
 describe('Notifications API', () => {

@@ -1,5 +1,5 @@
 import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules } from '@bt/shared/types';
-import Subscriptions from '@models/Subscriptions.model';
+import Subscriptions from '@models/subscriptions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { validateAccountOwnership, validateCategoryOwnership } from './helpers';

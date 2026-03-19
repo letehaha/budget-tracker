@@ -1,10 +1,10 @@
 import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import Budgets from '@models/Budget.model';
-import Categories from '@models/Categories.model';
-import * as Transactions from '@models/Transactions.model';
-import TransactionSplits from '@models/TransactionSplits.model';
+import Budgets from '@models/budget.model';
+import Categories from '@models/categories.model';
+import TransactionSplits from '@models/transaction-splits.model';
+import * as Transactions from '@models/transactions.model';
 import {
   addMonths,
   addWeeks,

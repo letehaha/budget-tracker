@@ -1,9 +1,9 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import Securities from '@models/investments/Securities.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { format, parseISO } from 'date-fns';
 import { Op, WhereOptions } from 'sequelize';

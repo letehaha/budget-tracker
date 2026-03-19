@@ -1,8 +1,8 @@
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
-import RefundTransactions from '@models/RefundTransactions.model';
-import * as TransactionSplits from '@models/TransactionSplits.model';
+import RefundTransactions from '@models/refund-transactions.model';
+import * as TransactionSplits from '@models/transaction-splits.model';
 
 import { withTransaction } from '../../common/with-transaction';
 

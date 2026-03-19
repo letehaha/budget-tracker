@@ -10,9 +10,9 @@ import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import Transactions from '@models/Transactions.model';
-import { getUserDefaultCategory } from '@models/Users.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import Transactions from '@models/transactions.model';
+import { getUserDefaultCategory } from '@models/users.model';
 import {
   BaseBankDataProvider,
   DateRange,

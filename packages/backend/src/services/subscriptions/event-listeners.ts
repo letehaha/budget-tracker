@@ -1,5 +1,5 @@
 import { logger } from '@js/utils/logger';
-import * as Transactions from '@models/Transactions.model';
+import * as Transactions from '@models/transactions.model';
 import { DOMAIN_EVENTS, TransactionsSyncedPayload, eventBus } from '@services/common/event-bus';
 import debounce from 'lodash/debounce';
 

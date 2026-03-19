@@ -1,8 +1,8 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import AccountGrouping from '@models/accounts-groups/AccountGrouping.model';
-import AccountGroup from '@models/accounts-groups/AccountGroups.model';
-import Accounts from '@models/Accounts.model';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
+import AccountGrouping from '@models/accounts-groups/account-grouping.model';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
+import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { unlinkAccountFromBankConnection } from '@services/accounts/unlink-from-bank-connection';
 

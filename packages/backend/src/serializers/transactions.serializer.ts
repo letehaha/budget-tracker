@@ -7,10 +7,10 @@
  */
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money, centsToApiDecimal } from '@common/types/money';
-import type Tags from '@models/Tags.model';
-import type TransactionGroups from '@models/TransactionGroups.model';
-import type Transactions from '@models/Transactions.model';
-import type TransactionSplits from '@models/TransactionSplits.model';
+import type Tags from '@models/tags.model';
+import type TransactionGroups from '@models/transaction-groups.model';
+import type TransactionSplits from '@models/transaction-splits.model';
+import type Transactions from '@models/transactions.model';
 
 // ============================================================================
 // Response Types

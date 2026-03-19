@@ -5,7 +5,7 @@
  * for RefundTransactions and their nested transactions.
  * - Serializers: DB (cents) → API (decimal)
  */
-import type RefundTransactions from '@models/RefundTransactions.model';
+import type RefundTransactions from '@models/refund-transactions.model';
 
 import { type TransactionApiResponse, serializeTransaction } from './transactions.serializer';
 

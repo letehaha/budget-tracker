@@ -6,7 +6,7 @@
  *
  * Priority: 3 (tertiary fallback - most comprehensive but costs money)
  */
-import Currencies from '@models/Currencies.model';
+import Currencies from '@models/currencies.model';
 import axios, { isAxiosError } from 'axios';
 
 import { ApiKeyRateLimitService } from '../../api-key-rate-limit.service';

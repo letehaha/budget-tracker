@@ -1,4 +1,4 @@
-import * as Transactions from '@models/Transactions.model';
+import * as Transactions from '@models/transactions.model';
 
 export const getTransactions = async (params: Omit<Parameters<typeof Transactions.findWithFilters>[0], 'isRaw'>) => {
   // When includeSplits, includeTags, or includeGroups is true, we need nested data (not raw) to preserve array structure

@@ -383,5 +383,18 @@
         "gifts": "Подарунки"
       }
     }
+  },
+  "paymentReminders": {
+    "reminderNotFound": "Нагадування про оплату не знайдено",
+    "periodNotFound": "Період нагадування про оплату не знайдено",
+    "cannotSkipPaidPeriod": "Неможливо пропустити оплачений період",
+    "periodAlreadySkipped": "Період вже пропущено",
+    "periodAlreadyPaid": "Період вже позначено як оплачений",
+    "periodSkippedUndoFirst": "Період пропущено. Скасуйте пропуск перед позначенням як оплачений.",
+    "periodAlreadyActive": "Період вже в активному стані",
+    "transactionAlreadyLinkedToPeriod": "Ця транзакція вже привязана до іншого періоду цього нагадування"
+  },
+  "subscriptions": {
+    "transactionsNotFoundOrNotBelongToUser": "Одну або кілька транзакцій не знайдено або вони не належать користувачу."
   }
 }

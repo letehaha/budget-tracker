@@ -22,7 +22,7 @@ export function createSessionHooks({ pool }: { pool: Pool }) {
         (async () => {
           try {
             // Dynamic import to avoid circular dependency
-            const { getUserByAuthUserId } = await import('@models/Users.model');
+            const { getUserByAuthUserId } = await import('@models/users.model');
             const appUser = await getUserByAuthUserId({ authUserId: session.userId });
 
             if (!appUser) {
@@ -84,7 +84,7 @@ export function createSessionHooks({ pool }: { pool: Pool }) {
         (async () => {
           try {
             // Dynamic imports to avoid circular dependency
-            const Users = (await import('@models/Users.model')).default;
+            const Users = (await import('@models/users.model')).default;
             const { cleanupDemoUser } = await import('@services/demo/cleanup-demo-users.service');
 
             // Check if this is a demo user

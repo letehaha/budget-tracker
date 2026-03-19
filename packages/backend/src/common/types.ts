@@ -1,5 +1,5 @@
 import { API_RESPONSE_STATUS } from '@bt/shared/types';
-import Users from '@models/Users.model';
+import Users from '@models/users.model';
 import * as Express from 'express';
 import { InferAttributes, Model } from 'sequelize';
 import { ZodIssue, z } from 'zod';

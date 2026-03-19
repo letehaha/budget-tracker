@@ -1,7 +1,7 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { ValidationError } from '@js/errors';
-import * as Transactions from '@models/Transactions.model';
+import * as Transactions from '@models/transactions.model';
 import { createDismissal } from '@models/transfer-suggestion-dismissals.model';
 import { z } from 'zod';
 

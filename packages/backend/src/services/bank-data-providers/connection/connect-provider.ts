@@ -1,5 +1,5 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 
 import { EnableBankingProvider } from '../enablebanking';

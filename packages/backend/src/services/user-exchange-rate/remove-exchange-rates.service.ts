@@ -1,4 +1,4 @@
-import * as UserExchangeRates from '@models/UserExchangeRates.model';
+import * as UserExchangeRates from '@models/user-exchange-rates.model';
 
 import { withTransaction } from '../common/with-transaction';
 

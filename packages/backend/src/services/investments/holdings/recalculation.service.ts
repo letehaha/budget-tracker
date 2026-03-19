@@ -2,8 +2,8 @@ import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import Holdings from '@models/investments/Holdings.model';
-import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
+import Holdings from '@models/investments/holdings.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Big } from 'big.js';
 

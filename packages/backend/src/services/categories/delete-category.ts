@@ -1,8 +1,8 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ConflictError, ValidationError } from '@js/errors';
-import * as Categories from '@models/Categories.model';
-import Transactions, * as TransactionsModel from '@models/Transactions.model';
+import * as Categories from '@models/categories.model';
+import Transactions, * as TransactionsModel from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteCategoryPayload extends Categories.DeleteCategoryPayload {

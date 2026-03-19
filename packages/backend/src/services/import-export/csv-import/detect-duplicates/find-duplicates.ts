@@ -1,6 +1,6 @@
 import type { DuplicateMatch, ParsedTransactionRow } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import * as Transactions from '@models/Transactions.model';
+import * as Transactions from '@models/transactions.model';
 
 interface FindDuplicatesParams {
   userId: number;

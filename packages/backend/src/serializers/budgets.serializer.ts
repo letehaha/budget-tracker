@@ -7,7 +7,7 @@
  */
 import { BUDGET_TYPES } from '@bt/shared/types';
 import { Money, centsToApiDecimal } from '@common/types/money';
-import type Budgets from '@models/Budget.model';
+import type Budgets from '@models/budget.model';
 
 // ============================================================================
 // Response Types
