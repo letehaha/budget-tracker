@@ -2,9 +2,9 @@ import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
-import Accounts from '@models/Accounts.model';
-import type Transactions from '@models/Transactions.model';
-import { getUserDefaultCategory } from '@models/Users.model';
+import Accounts from '@models/accounts.model';
+import type Transactions from '@models/transactions.model';
+import { getUserDefaultCategory } from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { createTransaction } from '@services/transactions/create-transaction';
 

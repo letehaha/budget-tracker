@@ -1,6 +1,6 @@
 import { SubscriptionMatchingRule } from '@bt/shared/types';
-import SubscriptionTransactions from '@models/SubscriptionTransactions.model';
-import * as Transactions from '@models/Transactions.model';
+import SubscriptionTransactions from '@models/subscription-transactions.model';
+import * as Transactions from '@models/transactions.model';
 import { serializeTransactions } from '@root/serializers/transactions.serializer';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { subMonths } from 'date-fns';

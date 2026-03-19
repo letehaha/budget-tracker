@@ -1,7 +1,7 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
-import AccountGroup from '@models/accounts-groups/AccountGroups.model';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface UpdateConnectionNameParams {
@@ -18,13 +18,12 @@ interface UpdateConnectionNameParams {
  */
 export const updateConnectionName = withTransaction(
   async ({ connectionId, userId, providerName }: UpdateConnectionNameParams) => {
-    const connection = await BankDataProviderConnections.findOne({
-      where: { id: connectionId, userId },
+    const connection = await findOrThrowNotFound({
+      query: BankDataProviderConnections.findOne({
+        where: { id: connectionId, userId },
+      }),
+      message: t({ key: 'errors.connectionNotFound' }),
     });
-
-    if (!connection) {
-      throw new NotFoundError({ message: t({ key: 'errors.connectionNotFound' }) });
-    }
 
     const oldProviderName = connection.providerName;
     connection.providerName = providerName;

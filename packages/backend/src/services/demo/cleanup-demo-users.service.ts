@@ -1,6 +1,6 @@
 import { USER_ROLES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
-import Users from '@models/Users.model';
+import Users from '@models/users.model';
 import { deleteUser } from '@services/user/delete-user.service';
 import { subHours } from 'date-fns';
 import { Op } from 'sequelize';

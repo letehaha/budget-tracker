@@ -1,10 +1,11 @@
 import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, ValidationError } from '@js/errors';
-import Budgets from '@models/Budget.model';
-import Categories from '@models/Categories.model';
-import * as Transactions from '@models/Transactions.model';
-import TransactionSplits from '@models/TransactionSplits.model';
+import { ValidationError } from '@js/errors';
+import Budgets from '@models/budget.model';
+import Categories from '@models/categories.model';
+import TransactionSplits from '@models/transaction-splits.model';
+import * as Transactions from '@models/transactions.model';
 import { Op } from 'sequelize';
 
 import { buildDateFilter } from './utils/build-date-filter';
@@ -20,13 +21,12 @@ export const getCategoryBudgetTransactions = async ({
   from = 0,
   limit = 50,
 }: GetCategoryBudgetTransactionsParams) => {
-  const budget = await Budgets.findByPk(budgetId, {
-    include: [{ model: Categories, as: 'categories', attributes: ['id', 'name', 'color'] }],
+  const budget = await findOrThrowNotFound({
+    query: Budgets.findByPk(budgetId, {
+      include: [{ model: Categories, as: 'categories', attributes: ['id', 'name', 'color'] }],
+    }),
+    message: t({ key: 'budgets.budgetNotFound' }),
   });
-
-  if (!budget) {
-    throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
-  }
 
   if (budget.type !== BUDGET_TYPES.category) {
     throw new ValidationError({ message: t({ key: 'budgets.notCategoryBudget' }) });

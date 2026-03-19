@@ -1,8 +1,8 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
-import Accounts from '@models/Accounts.model';
-import Categories from '@models/Categories.model';
-import * as Transactions from '@models/Transactions.model';
+import Accounts from '@models/accounts.model';
+import Categories from '@models/categories.model';
+import * as Transactions from '@models/transactions.model';
 import {
   addDays,
   addMonths,

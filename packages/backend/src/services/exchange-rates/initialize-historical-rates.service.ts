@@ -1,6 +1,6 @@
 import { logger } from '@js/utils';
-import Currencies from '@models/Currencies.model';
-import ExchangeRates from '@models/ExchangeRates.model';
+import Currencies from '@models/currencies.model';
+import ExchangeRates from '@models/exchange-rates.model';
 import { addYears, format, min, startOfDay } from 'date-fns';
 import chunk from 'lodash/chunk';
 

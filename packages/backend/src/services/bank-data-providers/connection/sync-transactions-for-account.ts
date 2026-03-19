@@ -1,8 +1,8 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
-import Accounts from '@models/Accounts.model';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
+import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 
 import { bankProviderRegistry } from '../registry';

@@ -1,8 +1,8 @@
 import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import Portfolios from '@models/investments/Portfolios.model';
-import Securities from '@models/investments/Securities.model';
-import SecurityPricing from '@models/investments/SecurityPricing.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
 import { restClient } from '@polygon.io/client-js';
 import * as helpers from '@tests/helpers';
 import alpha from 'alphavantage';

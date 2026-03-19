@@ -1,6 +1,6 @@
 import { INVESTMENT_DECIMAL_SCALE } from '@common/types/money';
-import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
-import Portfolios from '@models/investments/Portfolios.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import Portfolios from '@models/investments/portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';

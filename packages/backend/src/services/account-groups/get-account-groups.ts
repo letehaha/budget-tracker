@@ -1,6 +1,6 @@
 import { ACCOUNT_STATUSES } from '@bt/shared/types';
-import AccountGroup from '@models/accounts-groups/AccountGroups.model';
-import Accounts from '@models/Accounts.model';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
+import Accounts from '@models/accounts.model';
 import { Op, type WhereOptions } from 'sequelize';
 
 export const getAccountGroups = async ({

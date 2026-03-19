@@ -8,9 +8,9 @@ import {
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { logger } from '@js/utils/logger';
-import TagReminders from '@models/TagReminders.model';
-import * as Transactions from '@models/Transactions.model';
-import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import TagReminders from '@models/tag-reminders.model';
+import * as Transactions from '@models/transactions.model';
+import * as UsersCurrencies from '@models/users-currencies.model';
 import * as notificationsService from '@services/notifications';
 
 import { getEnabledScheduledReminders, updateReminderCheckTimes } from './index';

@@ -2,9 +2,9 @@ import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
-import RefundTransactions from '@models/RefundTransactions.model';
-import * as Transactions from '@models/Transactions.model';
+import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
+import RefundTransactions from '@models/refund-transactions.model';
+import * as Transactions from '@models/transactions.model';
 import { deletePortfolioTransfer } from '@services/investments/portfolios/transfers';
 import { Op } from 'sequelize';
 

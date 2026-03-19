@@ -1,4 +1,4 @@
-import Categories from '@models/Categories.model';
+import Categories from '@models/categories.model';
 import { Op } from 'sequelize';
 
 /**

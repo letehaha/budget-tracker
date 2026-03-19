@@ -4,7 +4,7 @@ import axios from 'axios';
 import crypto from 'crypto';
 import { z } from 'zod';
 
-import * as BinanceUserSettings from '../../models/binance/UserSettings.model';
+import * as BinanceUserSettings from '../../models/binance/user-settings.model';
 
 const createSignedGETRequestURL = ({ url, params, secretKey }) => {
   const localUrl = new URL(url);

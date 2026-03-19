@@ -380,5 +380,18 @@
         "gifts": "Gifts"
       }
     }
+  },
+  "paymentReminders": {
+    "reminderNotFound": "Payment reminder not found",
+    "periodNotFound": "Payment reminder period not found",
+    "cannotSkipPaidPeriod": "Cannot skip a paid period",
+    "periodAlreadySkipped": "Period is already skipped",
+    "periodAlreadyPaid": "Period is already marked as paid",
+    "periodSkippedUndoFirst": "Period is skipped. Undo skip before marking as paid.",
+    "periodAlreadyActive": "Period is already in an active state",
+    "transactionAlreadyLinkedToPeriod": "This transaction is already linked to another period of this reminder"
+  },
+  "subscriptions": {
+    "transactionsNotFoundOrNotBelongToUser": "One or more transactions not found or do not belong to user."
   }
 }

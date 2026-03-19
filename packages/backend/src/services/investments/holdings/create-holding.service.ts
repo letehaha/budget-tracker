@@ -1,10 +1,11 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { ConflictError, NotFoundError } from '@js/errors';
+import { ConflictError } from '@js/errors';
 import { logger } from '@js/utils';
-import { getCurrency } from '@models/Currencies.model';
-import Holdings from '@models/investments/Holdings.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import Securities from '@models/investments/Securities.model';
+import { getCurrency } from '@models/currencies.model';
+import Holdings from '@models/investments/holdings.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import { syncHistoricalPrices } from '@services/investments/securities-price/historical-sync.service';
@@ -16,21 +17,21 @@ interface CreateHoldingParams {
 }
 
 const createHoldingImpl = async ({ userId, portfolioId, securityId }: CreateHoldingParams) => {
-  const portfolio = await Portfolios.findOne({ where: { id: portfolioId, userId } });
-  if (!portfolio) {
-    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
-  }
+  await findOrThrowNotFound({
+    query: Portfolios.findOne({ where: { id: portfolioId, userId } }),
+    message: t({ key: 'investments.portfolioNotFound' }),
+  });
 
-  const security = await Securities.findByPk(securityId);
-  if (!security) {
-    throw new NotFoundError({ message: t({ key: 'investments.securityNotFound' }) });
-  }
+  const security = await findOrThrowNotFound({
+    query: Securities.findByPk(securityId),
+    message: t({ key: 'investments.securityNotFound' }),
+  });
 
   // Ensure user has the currency for this security
-  const currency = await getCurrency({ code: security.currencyCode.toUpperCase() });
-  if (!currency) {
-    throw new NotFoundError({ message: t({ key: 'investments.currencyForSecurityNotFound' }) });
-  }
+  const currency = await findOrThrowNotFound({
+    query: getCurrency({ code: security.currencyCode.toUpperCase() }),
+    message: t({ key: 'investments.currencyForSecurityNotFound' }),
+  });
   await addUserCurrencies([{ userId, currencyCode: currency.code }]);
 
   const existingHolding = await Holdings.findOne({ where: { portfolioId, securityId } });

@@ -1,6 +1,6 @@
 import { ValidationError } from '@js/errors';
-import TransactionGroupItems from '@models/TransactionGroupItems.model';
-import TransactionGroups from '@models/TransactionGroups.model';
+import TransactionGroupItems from '@models/transaction-group-items.model';
+import TransactionGroups from '@models/transaction-groups.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { MIN_GROUP_SIZE, MAX_GROUP_SIZE, INCLUDE_GROUP_TRANSACTIONS } from './constants';

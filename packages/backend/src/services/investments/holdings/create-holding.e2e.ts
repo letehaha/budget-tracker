@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import Holdings from '@models/investments/Holdings.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import Securities from '@models/investments/Securities.model';
+import Holdings from '@models/investments/holdings.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
 import { restClient } from '@polygon.io/client-js';
 import * as helpers from '@tests/helpers';
 

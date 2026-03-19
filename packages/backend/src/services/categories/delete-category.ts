@@ -1,7 +1,8 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
-import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
-import * as Categories from '@models/Categories.model';
-import Transactions, * as TransactionsModel from '@models/Transactions.model';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { ConflictError, ValidationError } from '@js/errors';
+import * as Categories from '@models/categories.model';
+import Transactions, * as TransactionsModel from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteCategoryPayload extends Categories.DeleteCategoryPayload {
@@ -9,15 +10,10 @@ interface DeleteCategoryPayload extends Categories.DeleteCategoryPayload {
 }
 
 export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayload) => {
-  const rootCategory = await Categories.default.findOne({
-    where: { id: payload.categoryId },
+  await findOrThrowNotFound({
+    query: Categories.default.findOne({ where: { id: payload.categoryId } }),
+    message: 'Category with provided id does not exist.',
   });
-
-  if (!rootCategory) {
-    throw new NotFoundError({
-      message: 'Category with provided id does not exist.',
-    });
-  }
 
   const parentCategory = await Categories.default.findOne({
     where: { parentId: payload.categoryId },
@@ -46,15 +42,12 @@ export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayl
       });
     }
 
-    const replacementCategory = await Categories.default.findOne({
-      where: { id: payload.replaceWithCategoryId, userId: payload.userId },
+    await findOrThrowNotFound({
+      query: Categories.default.findOne({
+        where: { id: payload.replaceWithCategoryId, userId: payload.userId },
+      }),
+      message: 'Replacement category does not exist.',
     });
-
-    if (!replacementCategory) {
-      throw new NotFoundError({
-        message: 'Replacement category does not exist.',
-      });
-    }
 
     await TransactionsModel.updateTransactions(
       { categoryId: payload.replaceWithCategoryId },

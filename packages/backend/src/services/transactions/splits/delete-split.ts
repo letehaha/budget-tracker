@@ -1,7 +1,8 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, ValidationError } from '@js/errors';
-import RefundTransactions from '@models/RefundTransactions.model';
-import * as TransactionSplits from '@models/TransactionSplits.model';
+import { ValidationError } from '@js/errors';
+import RefundTransactions from '@models/refund-transactions.model';
+import * as TransactionSplits from '@models/transaction-splits.model';
 
 import { withTransaction } from '../../common/with-transaction';
 
@@ -19,13 +20,10 @@ interface DeleteSplitParams {
  * 2. Split cannot be deleted if it has refunds targeting it
  */
 export const deleteSplit = withTransaction(async ({ splitId, userId }: DeleteSplitParams) => {
-  const split = await TransactionSplits.getSplitById({ id: splitId, userId });
-
-  if (!split) {
-    throw new NotFoundError({
-      message: t({ key: 'transactions.splits.splitNotFound' }),
-    });
-  }
+  await findOrThrowNotFound({
+    query: TransactionSplits.getSplitById({ id: splitId, userId }),
+    message: t({ key: 'transactions.splits.splitNotFound' }),
+  });
 
   // Check if any refunds target this split
   const refundTargetingSplit = await RefundTransactions.findOne({

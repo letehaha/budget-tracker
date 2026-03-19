@@ -4,8 +4,8 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
-import * as Currencies from '@models/Currencies.model';
-import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import * as Currencies from '@models/currencies.model';
+import * as UsersCurrencies from '@models/users-currencies.model';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 
 import { withTransaction } from './common/with-transaction';

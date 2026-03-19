@@ -1,4 +1,4 @@
-import type Transactions from '@models/Transactions.model';
+import type Transactions from '@models/transactions.model';
 import type { TransactionGroupResult } from '@services/transaction-groups/get-transaction-groups';
 
 import { serializeTransaction, TransactionApiResponse } from './transactions.serializer';

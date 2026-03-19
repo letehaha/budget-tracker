@@ -1,4 +1,4 @@
-import * as Currencies from '@models/Currencies.model';
+import * as Currencies from '@models/currencies.model';
 
 import { withTransaction } from '../common/with-transaction';
 

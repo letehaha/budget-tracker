@@ -1,6 +1,7 @@
 import { SUBSCRIPTION_CANDIDATE_STATUS } from '@bt/shared/types';
-import { ConflictError, NotFoundError } from '@js/errors';
-import SubscriptionCandidates from '@models/SubscriptionCandidates.model';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { ConflictError } from '@js/errors';
+import SubscriptionCandidates from '@models/subscription-candidates.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DismissCandidateParams {
@@ -9,13 +10,12 @@ interface DismissCandidateParams {
 }
 
 export const dismissCandidate = withTransaction(async ({ userId, candidateId }: DismissCandidateParams) => {
-  const candidate = await SubscriptionCandidates.findOne({
-    where: { id: candidateId, userId },
+  const candidate = await findOrThrowNotFound({
+    query: SubscriptionCandidates.findOne({
+      where: { id: candidateId, userId },
+    }),
+    message: 'Subscription candidate not found',
   });
-
-  if (!candidate) {
-    throw new NotFoundError({ message: 'Subscription candidate not found' });
-  }
 
   if (candidate.status !== SUBSCRIPTION_CANDIDATE_STATUS.pending) {
     throw new ConflictError({

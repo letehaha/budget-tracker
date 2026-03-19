@@ -1,6 +1,6 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import Accounts from '@models/Accounts.model';
-import Transactions from '@models/Transactions.model';
+import Accounts from '@models/accounts.model';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { getMockedWalutomatBalances, getMockedWalutomatHistory } from '@tests/mocks/walutomat/data';
 import {

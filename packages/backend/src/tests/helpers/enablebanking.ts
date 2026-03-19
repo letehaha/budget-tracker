@@ -85,7 +85,7 @@ const mockCredentials = () => ({
 const getConnectionState = async (connectionId: number): Promise<string> => {
   // We need to access the database model directly to get metadata
   // since it's not exposed in the API response
-  const BankDataProviderConnections = (await import('@models/BankDataProviderConnections.model')).default;
+  const BankDataProviderConnections = (await import('@models/bank-data-provider-connections.model')).default;
 
   const connection = await BankDataProviderConnections.findByPk(connectionId);
 

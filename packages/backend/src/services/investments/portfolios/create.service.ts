@@ -1,7 +1,7 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { t } from '@i18n/index';
 import { ConflictError } from '@js/errors';
-import Portfolios from '@models/investments/Portfolios.model';
+import Portfolios from '@models/investments/portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface CreatePortfolioParams {

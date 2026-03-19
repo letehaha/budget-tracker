@@ -1,6 +1,6 @@
 import { ConflictError, ValidationError } from '@js/errors';
-import TransactionGroupItems from '@models/TransactionGroupItems.model';
-import Transactions from '@models/Transactions.model';
+import TransactionGroupItems from '@models/transaction-group-items.model';
+import Transactions from '@models/transactions.model';
 import { Op } from 'sequelize';
 
 /**

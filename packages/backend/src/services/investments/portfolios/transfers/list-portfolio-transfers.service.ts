@@ -1,9 +1,9 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
-import Accounts from '@models/Accounts.model';
-import Currencies from '@models/Currencies.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
+import Accounts from '@models/accounts.model';
+import Currencies from '@models/currencies.model';
+import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
+import Portfolios from '@models/investments/portfolios.model';
 import { Op } from 'sequelize';
 
 interface ListPortfolioTransfersParams {
@@ -28,13 +28,12 @@ export async function listPortfolioTransfers({
   sortDirection = 'DESC',
 }: ListPortfolioTransfersParams) {
   // Verify portfolio exists and user owns it
-  const portfolio = await Portfolios.findOne({
-    where: { id: portfolioId, userId },
+  await findOrThrowNotFound({
+    query: Portfolios.findOne({
+      where: { id: portfolioId, userId },
+    }),
+    message: t({ key: 'investments.portfolioNotFound' }),
   });
-
-  if (!portfolio) {
-    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
-  }
 
   // Build date filter if provided
   const dateFilter = {};

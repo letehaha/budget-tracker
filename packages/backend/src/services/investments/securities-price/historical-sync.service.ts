@@ -1,6 +1,6 @@
 import { logger } from '@js/utils';
-import Securities from '@models/investments/Securities.model';
-import SecurityPricing from '@models/investments/SecurityPricing.model';
+import Securities from '@models/investments/securities.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
 import { withLock } from '@services/common/lock';
 import { withTransaction } from '@services/common/with-transaction';
 import { dataProviderFactory } from '@services/investments/data-providers';

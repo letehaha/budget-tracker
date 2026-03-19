@@ -1,8 +1,8 @@
 import { BUDGET_STATUSES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
 import { serializeBudget, serializeBudgets } from '@root/serializers';
 import * as budgetService from '@services/budget.service';
 import { z } from 'zod';
@@ -35,11 +35,10 @@ export const getBudgets = createController(
 export const getBudgetById = createController(
   z.object({ params: z.object({ id: recordId() }) }),
   async ({ user, params }) => {
-    const budget = await budgetService.getBudgetById({ id: params.id, userId: user.id });
-
-    if (!budget) {
-      throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
-    }
+    const budget = await findOrThrowNotFound({
+      query: budgetService.getBudgetById({ id: params.id, userId: user.id }),
+      message: t({ key: 'budgets.budgetNotFound' }),
+    });
 
     // Serialize: convert cents to decimal for API response
     return { data: serializeBudget(budget) };

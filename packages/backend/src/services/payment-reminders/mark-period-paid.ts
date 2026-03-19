@@ -1,8 +1,10 @@
 import { PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
-import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { t } from '@i18n/index';
+import { ConflictError, ValidationError } from '@js/errors';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { ensureNextPeriodExists } from './ensure-next-period';
@@ -17,39 +19,36 @@ interface MarkPeriodPaidParams {
 
 export const markPeriodPaid = withTransaction(
   async ({ userId, reminderId, periodId, transactionId = null, notes = null }: MarkPeriodPaidParams) => {
-    const reminder = await PaymentReminders.findOne({
-      where: { id: reminderId, userId },
+    const reminder = await findOrThrowNotFound({
+      query: PaymentReminders.findOne({
+        where: { id: reminderId, userId },
+      }),
+      message: t({ key: 'paymentReminders.reminderNotFound' }),
     });
 
-    if (!reminder) {
-      throw new NotFoundError({ message: 'Payment reminder not found' });
-    }
-
-    const period = await PaymentReminderPeriods.findOne({
-      where: { id: periodId, reminderId },
+    const period = await findOrThrowNotFound({
+      query: PaymentReminderPeriods.findOne({
+        where: { id: periodId, reminderId },
+      }),
+      message: t({ key: 'paymentReminders.periodNotFound' }),
     });
-
-    if (!period) {
-      throw new NotFoundError({ message: 'Payment reminder period not found' });
-    }
 
     if (period.status === PAYMENT_REMINDER_STATUSES.paid) {
-      throw new ConflictError({ message: 'Period is already marked as paid' });
+      throw new ConflictError({ message: t({ key: 'paymentReminders.periodAlreadyPaid' }) });
     }
 
     if (period.status === PAYMENT_REMINDER_STATUSES.skipped) {
-      throw new ConflictError({ message: 'Period is skipped. Undo skip before marking as paid.' });
+      throw new ConflictError({ message: t({ key: 'paymentReminders.periodSkippedUndoFirst' }) });
     }
 
     // Validate transaction if provided
     if (transactionId != null) {
-      const transaction = await Transactions.findOne({
-        where: { id: transactionId, userId },
+      await findOrThrowNotFound({
+        query: Transactions.findOne({
+          where: { id: transactionId, userId },
+        }),
+        message: t({ key: 'transactions.notFound' }),
       });
-
-      if (!transaction) {
-        throw new NotFoundError({ message: 'Transaction not found' });
-      }
 
       // Check if this transaction is already linked to another period of THIS reminder
       const existingLink = await PaymentReminderPeriods.findOne({
@@ -58,7 +57,7 @@ export const markPeriodPaid = withTransaction(
 
       if (existingLink) {
         throw new ValidationError({
-          message: 'This transaction is already linked to another period of this reminder',
+          message: t({ key: 'paymentReminders.transactionAlreadyLinkedToPeriod' }),
         });
       }
     }

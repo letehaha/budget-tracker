@@ -1,5 +1,5 @@
 import { logger } from '@js/utils';
-import Users from '@models/Users.model';
+import Users from '@models/users.model';
 import { runDetection } from '@services/subscriptions/detect-candidates';
 import { CronJob } from 'cron';
 

@@ -1,12 +1,12 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
-import ExchangeRates from '@models/ExchangeRates.model';
-import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import SecurityPricing from '@models/investments/SecurityPricing.model';
-import UserExchangeRates from '@models/UserExchangeRates.model';
-import UsersCurrencies from '@models/UsersCurrencies.model';
+import ExchangeRates from '@models/exchange-rates.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import Portfolios from '@models/investments/portfolios.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
+import UserExchangeRates from '@models/user-exchange-rates.model';
+import UsersCurrencies from '@models/users-currencies.model';
 import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 

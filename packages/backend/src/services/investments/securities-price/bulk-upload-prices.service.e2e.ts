@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import ExchangeRates from '@models/ExchangeRates.model';
-import SecurityPricing from '@models/investments/SecurityPricing.model';
+import ExchangeRates from '@models/exchange-rates.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
 import { exchangeRateProviderRegistry } from '@services/exchange-rates/providers';
 import * as helpers from '@tests/helpers';
 import { startOfDay } from 'date-fns';

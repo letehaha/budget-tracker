@@ -1,9 +1,9 @@
 import { Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
-import PortfolioBalances from '@models/investments/PortfolioBalances.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import * as UsersCurrencies from '@models/UsersCurrencies.model';
+import PortfolioBalances from '@models/investments/portfolio-balances.model';
+import Portfolios from '@models/investments/portfolios.model';
+import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { getHoldingValues } from '@services/investments/holdings/get-holding-values.service';
@@ -35,23 +35,21 @@ const getPortfolioSummaryImpl = async ({
   date,
 }: GetPortfolioSummaryParams): Promise<PortfolioSummaryResult> => {
   // Verify portfolio exists and belongs to user
-  const portfolio = await Portfolios.findOne({
-    where: { id: portfolioId, userId },
+  const portfolio = await findOrThrowNotFound({
+    query: Portfolios.findOne({
+      where: { id: portfolioId, userId },
+    }),
+    message: t({ key: 'investments.portfolioNotFound' }),
   });
-
-  if (!portfolio) {
-    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
-  }
 
   // Get user's base currency
-  const userCurrency = await UsersCurrencies.getCurrency({
-    userId,
-    isDefaultCurrency: true,
+  const userCurrency = await findOrThrowNotFound({
+    query: UsersCurrencies.getCurrency({
+      userId,
+      isDefaultCurrency: true,
+    }),
+    message: t({ key: 'investments.userBaseCurrencyNotFound' }),
   });
-
-  if (!userCurrency) {
-    throw new NotFoundError({ message: t({ key: 'investments.userBaseCurrencyNotFound' }) });
-  }
 
   const baseCurrencyCode = userCurrency.currency.code;
 

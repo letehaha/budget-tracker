@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import Portfolios from '@models/investments/Portfolios.model';
+import Portfolios from '@models/investments/portfolios.model';
 import * as helpers from '@tests/helpers';
 
 describe('Portfolio Summary with Cash (GET /investments/portfolios/:id/summary)', () => {

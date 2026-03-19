@@ -3,8 +3,8 @@ import { BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
 import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import Transactions from '@models/Transactions.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import Transactions from '@models/transactions.model';
 import {
   BaseBankDataProvider,
   DateRange,
@@ -297,7 +297,6 @@ export class MonobankProvider extends BaseBankDataProvider {
     const clientInfo = await apiClient.getClientInfo();
 
     const account = clientInfo.accounts.find((acc) => acc.id === accountExternalId);
-
     if (!account) {
       throw new NotFoundError({
         message: t({ key: 'bankDataProviders.monobank.accountNotFound', variables: { accountExternalId } }),

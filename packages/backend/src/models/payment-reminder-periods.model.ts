@@ -3,7 +3,7 @@ import { Table, Column, Model, ForeignKey, BelongsTo, DataType, BeforeCreate } f
 import { v7 as uuidv7 } from 'uuid';
 
 import PaymentReminders from './payment-reminders.model';
-import Transactions from './Transactions.model';
+import Transactions from './transactions.model';
 
 @Table({
   tableName: 'PaymentReminderPeriods',

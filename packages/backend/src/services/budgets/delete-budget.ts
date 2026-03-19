@@ -1,5 +1,5 @@
-import Budgets from '@models/Budget.model';
-import BudgetTransactions from '@models/BudgetTransactions.model';
+import BudgetTransactions from '@models/budget-transactions.model';
+import Budgets from '@models/budget.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteBudgetPayload {

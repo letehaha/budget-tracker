@@ -1,5 +1,5 @@
-import { NotFoundError } from '@js/errors';
-import TransactionGroups from '@models/TransactionGroups.model';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import TransactionGroups from '@models/transaction-groups.model';
 
 import { INCLUDE_GROUP_TRANSACTIONS } from './constants';
 
@@ -9,14 +9,13 @@ interface GetTransactionGroupByIdPayload {
 }
 
 export const getTransactionGroupById = async ({ id, userId }: GetTransactionGroupByIdPayload) => {
-  const group = await TransactionGroups.findOne({
-    where: { id, userId },
-    include: [INCLUDE_GROUP_TRANSACTIONS],
+  const group = await findOrThrowNotFound({
+    query: TransactionGroups.findOne({
+      where: { id, userId },
+      include: [INCLUDE_GROUP_TRANSACTIONS],
+    }),
+    message: 'Transaction group not found.',
   });
-
-  if (!group) {
-    throw new NotFoundError({ message: 'Transaction group not found.' });
-  }
 
   // Sort transactions by time DESC in JS to avoid Sequelize ordering issues with BelongsToMany
   if (group.transactions) {

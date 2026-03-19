@@ -1,7 +1,8 @@
 import { CATEGORIZATION_SOURCE, SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { ConflictError, NotFoundError } from '@js/errors';
-import SubscriptionTransactions from '@models/SubscriptionTransactions.model';
-import * as Transactions from '@models/Transactions.model';
+import SubscriptionTransactions from '@models/subscription-transactions.model';
+import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
@@ -24,7 +25,7 @@ export const linkTransactionsToSubscription = withTransaction(
     });
 
     if (txs.length !== transactionIds.length) {
-      throw new NotFoundError({ message: 'One or more transactions not found or do not belong to user.' });
+      throw new NotFoundError({ message: t({ key: 'subscriptions.transactionsNotFoundOrNotBelongToUser' }) });
     }
 
     // Check for existing links (active or previously unlinked)

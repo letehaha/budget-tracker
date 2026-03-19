@@ -17,10 +17,9 @@ import {
   useLinkTransactionToPortfolio,
   usePortfolioToAccountTransfer,
 } from '@/composable/data-queries/portfolio-transfers';
-import { usePortfolioBalances } from '@/composable/data-queries/portfolio-balances';
+import { usePortfolioCurrencySorting } from '@/composable/data-queries/use-portfolio-currency-sorting';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { useFormValidation } from '@/composable/form-validator';
-import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { AccountModel, PortfolioModel, TRANSACTION_TYPES, TransactionModel, UserCurrencyModel } from '@bt/shared/types';
 import { X } from 'lucide-vue-next';
@@ -85,38 +84,7 @@ const form = reactive<{
 
 // Portfolio balance data for currency sorting
 const sourcePortfolioId = computed(() => form.fromPortfolio?.id ?? 0);
-const { data: portfolioBalances } = usePortfolioBalances(sourcePortfolioId);
-
-const balancesByCurrency = computed(() => {
-  const map = new Map<string, number>();
-  if (portfolioBalances.value) {
-    for (const balance of portfolioBalances.value) {
-      map.set(balance.currencyCode, Number(balance.availableCash));
-    }
-  }
-  return map;
-});
-
-const sortedCurrencies = computed(() => {
-  const list = [...(currencies.value || [])];
-  return list.sort((a, b) => {
-    const balA = balancesByCurrency.value.get(a.currencyCode) ?? 0;
-    const balB = balancesByCurrency.value.get(b.currencyCode) ?? 0;
-    if (balA !== 0 && balB !== 0) return balB - balA;
-    if (balA !== 0) return -1;
-    if (balB !== 0) return 1;
-    return a.currencyCode.localeCompare(b.currencyCode);
-  });
-});
-
-const currencyLabel = (currency: UserCurrencyModel) => {
-  const code = currency.currency!.code;
-  const balance = balancesByCurrency.value.get(currency.currencyCode);
-  if (balance !== undefined && balance !== 0) {
-    return `${code} (${formatAmountByCurrencyCode(balance, currency.currencyCode)})`;
-  }
-  return code;
-};
+const { sortedCurrencies, currencyLabel } = usePortfolioCurrencySorting(sourcePortfolioId);
 
 // Computed values for easier access
 const transferType = computed(() => form.transferTypeOption?.value || 'portfolio-to-portfolio');

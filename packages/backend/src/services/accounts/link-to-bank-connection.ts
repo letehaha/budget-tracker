@@ -9,11 +9,11 @@ import {
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { NotFoundError, ValidationError } from '@js/errors';
-import AccountGrouping from '@models/accounts-groups/AccountGrouping.model';
-import AccountGroup from '@models/accounts-groups/AccountGroups.model';
-import Accounts from '@models/Accounts.model';
-import BankDataProviderConnections from '@models/BankDataProviderConnections.model';
-import Transactions from '@models/Transactions.model';
+import AccountGrouping from '@models/accounts-groups/account-grouping.model';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
+import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import Transactions from '@models/transactions.model';
 import { bankProviderRegistry } from '@services/bank-data-providers';
 import { syncTransactionsForAccount } from '@services/bank-data-providers/connection/sync-transactions-for-account';
 import { withTransaction } from '@services/common/with-transaction';

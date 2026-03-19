@@ -1,5 +1,5 @@
-import * as Accounts from '@models/Accounts.model';
-import * as Balances from '@models/Balances.model';
+import * as Accounts from '@models/accounts.model';
+import * as Balances from '@models/balances.model';
 import { format } from 'date-fns';
 import { Op } from 'sequelize';
 

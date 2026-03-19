@@ -2,11 +2,11 @@ import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_
 import { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
-import Accounts from '@models/Accounts.model';
-import * as MerchantCategoryCodes from '@models/MerchantCategoryCodes.model';
-import Transactions from '@models/Transactions.model';
-import * as UserMerchantCategoryCodes from '@models/UserMerchantCategoryCodes.model';
-import * as Users from '@models/Users.model';
+import Accounts from '@models/accounts.model';
+import * as MerchantCategoryCodes from '@models/merchant-category-codes.model';
+import Transactions from '@models/transactions.model';
+import * as UserMerchantCategoryCodes from '@models/user-merchant-category-codes.model';
+import * as Users from '@models/users.model';
 import * as accountsService from '@services/accounts.service';
 import * as transactionsService from '@services/transactions';
 import { Job, Queue, Worker } from 'bullmq';

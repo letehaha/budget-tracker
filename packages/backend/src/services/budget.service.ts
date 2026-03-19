@@ -1,6 +1,6 @@
 import { BUDGET_STATUSES, BudgetModel } from '@bt/shared/types';
-import Budgets from '@models/Budget.model';
-import Categories from '@models/Categories.model';
+import Budgets from '@models/budget.model';
+import Categories from '@models/categories.model';
 import { Op } from 'sequelize';
 
 import { withTransaction } from './common/with-transaction';

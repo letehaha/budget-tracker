@@ -1,6 +1,6 @@
 import { ChangelogNotificationPayload, NOTIFICATION_TYPES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
-import Notifications from '@models/Notifications.model';
+import Notifications from '@models/notifications.model';
 import { QueryTypes } from 'sequelize';
 
 import { connection } from '../../models';

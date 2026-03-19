@@ -1,15 +1,15 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { API_RESPONSE_STATUS } from '@bt/shared/types/api';
 import { describe, expect, it } from '@jest/globals';
-import Accounts from '@models/Accounts.model';
-import Budgets from '@models/Budget.model';
-import Categories from '@models/Categories.model';
+import Accounts from '@models/accounts.model';
+import Budgets from '@models/budget.model';
+import Categories from '@models/categories.model';
 import { connection } from '@models/index';
-import Portfolios from '@models/investments/Portfolios.model';
-import Transactions from '@models/Transactions.model';
-import Users from '@models/Users.model';
-import UsersCurrencies from '@models/UsersCurrencies.model';
-import UserSettings from '@models/UserSettings.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Transactions from '@models/transactions.model';
+import UserSettings from '@models/user-settings.model';
+import UsersCurrencies from '@models/users-currencies.model';
+import Users from '@models/users.model';
 import * as helpers from '@tests/helpers';
 
 describe('User deletion (DELETE /user/delete)', () => {

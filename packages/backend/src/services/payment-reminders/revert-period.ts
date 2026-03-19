@@ -1,5 +1,7 @@
 import { PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
-import { ConflictError, NotFoundError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { t } from '@i18n/index';
+import { ConflictError } from '@js/errors';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
 import { withTransaction } from '@services/common/with-transaction';
@@ -11,24 +13,22 @@ interface RevertPeriodParams {
 }
 
 export const revertPeriod = withTransaction(async ({ userId, reminderId, periodId }: RevertPeriodParams) => {
-  const reminder = await PaymentReminders.findOne({
-    where: { id: reminderId, userId },
+  const reminder = await findOrThrowNotFound({
+    query: PaymentReminders.findOne({
+      where: { id: reminderId, userId },
+    }),
+    message: t({ key: 'paymentReminders.reminderNotFound' }),
   });
 
-  if (!reminder) {
-    throw new NotFoundError({ message: 'Payment reminder not found' });
-  }
-
-  const period = await PaymentReminderPeriods.findOne({
-    where: { id: periodId, reminderId },
+  const period = await findOrThrowNotFound({
+    query: PaymentReminderPeriods.findOne({
+      where: { id: periodId, reminderId },
+    }),
+    message: t({ key: 'paymentReminders.periodNotFound' }),
   });
-
-  if (!period) {
-    throw new NotFoundError({ message: 'Payment reminder period not found' });
-  }
 
   if (period.status === PAYMENT_REMINDER_STATUSES.upcoming || period.status === PAYMENT_REMINDER_STATUSES.overdue) {
-    throw new ConflictError({ message: 'Period is already in an active state' });
+    throw new ConflictError({ message: t({ key: 'paymentReminders.periodAlreadyActive' }) });
   }
 
   // Determine correct status based on due date

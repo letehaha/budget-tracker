@@ -4,19 +4,19 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
-import Accounts from '@models/Accounts.model';
-import Balances from '@models/Balances.model';
-import Holdings from '@models/investments/Holdings.model';
-import InvestmentTransaction from '@models/investments/InvestmentTransaction.model';
-import PortfolioBalances from '@models/investments/PortfolioBalances.model';
-import Portfolios from '@models/investments/Portfolios.model';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
-import Transactions from '@models/Transactions.model';
-import { getBaseCurrency, updateCurrencies } from '@models/UsersCurrencies.model';
+import Accounts from '@models/accounts.model';
+import Balances from '@models/balances.model';
+import Holdings from '@models/investments/holdings.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import PortfolioBalances from '@models/investments/portfolio-balances.model';
+import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Transactions from '@models/transactions.model';
+import { getBaseCurrency, updateCurrencies } from '@models/users-currencies.model';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { withLock } from '@services/common/lock';
 import * as userExchangeRateService from '@services/user-exchange-rate';
-import { Transaction as SequelizeTransaction } from 'sequelize';
+import { QueryTypes, Transaction as SequelizeTransaction } from 'sequelize';
 
 /**
  * What is covered:
@@ -40,7 +40,7 @@ import { Transaction as SequelizeTransaction } from 'sequelize';
  * 6. PortfolioTransfers
  * PortfolioTransfers.refAmount
  *
- * TODO: There's a big room for performance optimizations:
+ * TODO: Remaining performance optimizations:
  * 1. N+1 Query Problem - Exchange Rate Fetching.
  *    Current problem:
  *    - Individual DB queries for each exchange rate lookup
@@ -59,25 +59,10 @@ import { Transaction as SequelizeTransaction } from 'sequelize';
  *    - Pre-calculate all values first
  *    - Use bulkUpdate with batching (e.g., 500 records at a time)
  *    - Parallelize independent calculations
+ *    Note: Model.update() doesn't work due to Money getter/setter serialization
+ *    issues with Sequelize, so this would require raw SQL with CASE expressions.
  *
- * 3. Redundant Portfolio Queries.
- *    Current problem:
- *    - Fetching portfolios 3 separate times for the same user
- *    - In recalculateInvestmentTransactions, recalculateHoldings, and recalculatePortfolioBalances
- *    Possible fix:
- *    - Fetch portfolios once at the beginning
- *    - Pass portfolio data to all functions that need it
- *
- * 4. Inefficient Account Balance Calculation.
- *    Current problem:
- *    - For system accounts, loading ALL transactions with account
- *    - Then iterating through them in memory to calculate balance
- *    Possible fix:
- *    - Use database aggregation with SUM and CASE
- *    - Eliminate in-memory transaction iteration
- *    - Don't load transaction data unnecessarily
- *
- * 5. Missing Batch Size Limits.
+ * 3. Missing Batch Size Limits.
  *    Current problem:
  *    - Loading ALL records at once with findAll (no limit)
  *    - For users with 100k+ transactions, this could cause memory issues
@@ -151,10 +136,18 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       transaction: dbTransaction,
     });
 
+    // Pre-fetch portfolios once for steps 4, 6, 7
+    const portfolios = await Portfolios.findAll({
+      where: { userId },
+      transaction: dbTransaction,
+    });
+    const portfolioIds = portfolios.map((p) => p.id);
+
     // Step 4: Recalculate investment transactions
     const investmentTransactionsUpdated = await recalculateInvestmentTransactions({
       userId,
       newCurrencyCode,
+      portfolioIds,
       transaction: dbTransaction,
     });
 
@@ -169,6 +162,7 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
     const holdingsUpdated = await recalculateHoldings({
       userId,
       newCurrencyCode,
+      portfolioIds,
       transaction: dbTransaction,
     });
 
@@ -176,6 +170,7 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
     const portfolioBalancesUpdated = await recalculatePortfolioBalances({
       userId,
       newCurrencyCode,
+      portfolioIds,
       transaction: dbTransaction,
     });
 
@@ -303,7 +298,7 @@ async function rebuildTransactions(params: {
 
 /**
  * Recalculates refInitialBalance, refCurrentBalance, and refCreditLimit for all user accounts.
- * System accounts have their currentBalance recalculated from transactions.
+ * System accounts use a SQL SUM aggregation over already-recalculated transaction refAmounts.
  * Bank accounts use today's exchange rate for currentBalance.
  */
 async function recalculateAccounts(params: {
@@ -315,16 +310,42 @@ async function recalculateAccounts(params: {
 
   const accounts = await Accounts.findAll({
     where: { userId },
-    include: [
-      {
-        model: Transactions,
-        required: false,
-      },
-    ],
     transaction,
   });
 
   logger.info(`Recalculating ${accounts.length} accounts for user ${userId}`);
+
+  // Pre-aggregate refAmount sums per account using SQL instead of loading all
+  // transactions into memory. The refAmounts were already recalculated in step 1,
+  // and we read our own writes within the same DB transaction.
+  const systemAccountIds = accounts.filter((a) => a.type === ACCOUNT_TYPES.system).map((a) => a.id);
+
+  const refAmountSums = new Map<number, number>();
+
+  if (systemAccountIds.length > 0) {
+    const rows = await Transactions.sequelize!.query<{ accountId: number; refBalanceSum: string }>(
+      `SELECT
+        "accountId",
+        COALESCE(SUM(
+          CASE WHEN "transactionType" = :income THEN "refAmount" ELSE -"refAmount" END
+        ), 0) AS "refBalanceSum"
+      FROM "Transactions"
+      WHERE "accountId" IN (:accountIds)
+      GROUP BY "accountId"`,
+      {
+        replacements: {
+          income: TRANSACTION_TYPES.income,
+          accountIds: systemAccountIds,
+        },
+        type: QueryTypes.SELECT,
+        transaction,
+      },
+    );
+
+    for (const row of rows) {
+      refAmountSums.set(row.accountId, Number(row.refBalanceSum));
+    }
+  }
 
   const today = new Date();
 
@@ -350,19 +371,9 @@ async function recalculateAccounts(params: {
     let newRefCurrentBalance: Money;
 
     if (account.type === ACCOUNT_TYPES.system) {
-      // For system accounts: calculate from transactions (most accurate)
-      newRefCurrentBalance = newRefInitialBalance;
-
-      if (account.transactions && account.transactions.length > 0) {
-        // Sum all transaction refAmounts (already recalculated in previous step)
-        for (const tx of account.transactions) {
-          if (tx.transactionType === TRANSACTION_TYPES.income) {
-            newRefCurrentBalance = newRefCurrentBalance.add(tx.refAmount);
-          } else {
-            newRefCurrentBalance = newRefCurrentBalance.subtract(tx.refAmount);
-          }
-        }
-      }
+      // For system accounts: use pre-aggregated SQL sum (already recalculated in step 1)
+      const txSum = refAmountSums.get(account.id) ?? 0;
+      newRefCurrentBalance = newRefInitialBalance.add(Money.fromCents(txSum));
     } else {
       // For bank accounts: convert using today's rate
       newRefCurrentBalance = await localCalculateRefAmount({
@@ -438,22 +449,15 @@ async function rebuildBalances(params: {
 
 /**
  * Recalculates refAmount, refFees, refPrice for all investment transactions.
- * Investment transactions are accessed through portfolios owned by the user.
+ * Uses pre-fetched portfolioIds to avoid redundant portfolio queries.
  */
 async function recalculateInvestmentTransactions(params: {
   userId: number;
   newCurrencyCode: string;
+  portfolioIds: number[];
   transaction: SequelizeTransaction;
 }): Promise<number> {
-  const { userId, newCurrencyCode, transaction } = params;
-
-  // Get all portfolios for this user
-  const portfolios = await Portfolios.findAll({
-    where: { userId },
-    transaction,
-  });
-
-  const portfolioIds = portfolios.map((p) => p.id);
+  const { userId, newCurrencyCode, portfolioIds, transaction } = params;
 
   if (portfolioIds.length === 0) {
     return 0;
@@ -542,22 +546,15 @@ async function recalculatePortfolioTransfers(params: {
 
 /**
  * Recalculates refCostBasis for all holdings.
- * Holdings are accessed through portfolios owned by the user.
+ * Uses pre-fetched portfolioIds to avoid redundant portfolio queries.
  */
 async function recalculateHoldings(params: {
   userId: number;
   newCurrencyCode: string;
+  portfolioIds: number[];
   transaction: SequelizeTransaction;
 }): Promise<number> {
-  const { userId, newCurrencyCode, transaction } = params;
-
-  // Get all portfolios for this user
-  const portfolios = await Portfolios.findAll({
-    where: { userId },
-    transaction,
-  });
-
-  const portfolioIds = portfolios.map((p) => p.id);
+  const { userId, newCurrencyCode, portfolioIds, transaction } = params;
 
   if (portfolioIds.length === 0) {
     return 0;
@@ -591,22 +588,15 @@ async function recalculateHoldings(params: {
 
 /**
  * Recalculates refAvailableCash and refTotalCash for all portfolio balances.
- * Portfolio balances are accessed through portfolios owned by the user.
+ * Uses pre-fetched portfolioIds to avoid redundant portfolio queries.
  */
 async function recalculatePortfolioBalances(params: {
   userId: number;
   newCurrencyCode: string;
+  portfolioIds: number[];
   transaction: SequelizeTransaction;
 }): Promise<number> {
-  const { userId, newCurrencyCode, transaction } = params;
-
-  // Get all portfolios for this user
-  const portfolios = await Portfolios.findAll({
-    where: { userId },
-    transaction,
-  });
-
-  const portfolioIds = portfolios.map((p) => p.id);
+  const { userId, newCurrencyCode, portfolioIds, transaction } = params;
 
   if (portfolioIds.length === 0) {
     return 0;

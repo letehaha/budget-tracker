@@ -1,5 +1,5 @@
 import { INVESTMENT_DECIMAL_SCALE } from '@common/types/money';
-import PortfolioTransfers from '@models/investments/PortfolioTransfers.model';
+import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 
 /**
  * Serializes a PortfolioTransfers model instance for API response,

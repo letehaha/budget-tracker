@@ -1,5 +1,5 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 import type { TransactionApiResponse } from '@root/serializers/transactions.serializer';
 import * as transactionsService from '@services/transactions';
 import type { getTransactionsByTransferId as apiGetTransactionsByTransferId } from '@services/transactions/get-by-transfer-id';

@@ -1,4 +1,4 @@
-import * as Categories from '@models/Categories.model';
+import * as Categories from '@models/categories.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 export const editCategory = withTransaction(async (payload: Categories.EditCategoryPayload) => {

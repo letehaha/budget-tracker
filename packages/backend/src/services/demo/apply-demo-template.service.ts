@@ -1,9 +1,9 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { logger } from '@js/utils/logger';
-import Accounts from '@models/Accounts.model';
+import Accounts from '@models/accounts.model';
 import { connection } from '@models/index';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 import { subDays } from 'date-fns';
 import { QueryTypes } from 'sequelize';
 

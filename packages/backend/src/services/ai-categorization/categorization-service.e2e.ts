@@ -1,6 +1,6 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { INVALID_GEMINI_API_KEY, VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';

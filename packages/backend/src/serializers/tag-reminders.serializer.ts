@@ -7,7 +7,7 @@
  */
 import { type TagReminderFrequency, type TagReminderSettings, type TagReminderType } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import type TagReminders from '@models/TagReminders.model';
+import type TagReminders from '@models/tag-reminders.model';
 
 // ============================================================================
 // Response Types (API format with DecimalAmount)

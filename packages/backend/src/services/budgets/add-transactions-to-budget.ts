@@ -1,9 +1,10 @@
 import { BUDGET_TYPES } from '@bt/shared/types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, ValidationError } from '@js/errors';
-import Budgets from '@models/Budget.model';
-import BudgetTransactions from '@models/BudgetTransactions.model';
-import Transactions from '@models/Transactions.model';
+import { ValidationError } from '@js/errors';
+import BudgetTransactions from '@models/budget-transactions.model';
+import Budgets from '@models/budget.model';
+import Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
@@ -16,12 +17,10 @@ interface AddTransactionsPayload {
 export const addTransactionsToBudget = withTransaction(async (payload: AddTransactionsPayload) => {
   const { budgetId, userId, transactionIds } = payload;
 
-  const budget = await Budgets.findOne({
-    where: { id: budgetId, userId },
+  const budget = await findOrThrowNotFound({
+    query: Budgets.findOne({ where: { id: budgetId, userId } }),
+    message: t({ key: 'budgets.budgetNotFound' }),
   });
-  if (!budget) {
-    throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
-  }
 
   // Category budgets auto-track transactions by category - manual linking is not allowed
   if (budget.type === BUDGET_TYPES.category) {

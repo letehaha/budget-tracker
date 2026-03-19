@@ -1,7 +1,7 @@
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 
-import Transactions from './Transactions.model';
-import Users from './Users.model';
+import Transactions from './transactions.model';
+import Users from './users.model';
 
 @Table({
   tableName: 'TransferSuggestionDismissals',

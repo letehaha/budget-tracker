@@ -1,10 +1,10 @@
 import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
-import Budgets from '@models/Budget.model';
-import Categories from '@models/Categories.model';
-import * as Transactions from '@models/Transactions.model';
-import TransactionSplits from '@models/TransactionSplits.model';
+import Budgets from '@models/budget.model';
+import Categories from '@models/categories.model';
+import TransactionSplits from '@models/transaction-splits.model';
+import * as Transactions from '@models/transactions.model';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
@@ -44,8 +44,10 @@ const getManualBudgetStats = async ({
   userId: number;
   budgetId: number;
 }): Promise<StatsResponse> => {
-  const budgetDetails = await Budgets.findByPk(budgetId);
-  if (!budgetDetails) throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
+  const budgetDetails = await findOrThrowNotFound({
+    query: Budgets.findByPk(budgetId),
+    message: t({ key: 'budgets.budgetNotFound' }),
+  });
 
   const transactions: Pick<Transactions.default, 'time' | 'amount' | 'refAmount' | 'transactionType'>[] =
     await Transactions.findWithFilters({
@@ -71,11 +73,12 @@ const getCategoryBudgetStats = async ({
   userId: number;
   budgetId: number;
 }): Promise<StatsResponse> => {
-  const budgetDetails = await Budgets.findByPk(budgetId, {
-    include: [{ model: Categories, as: 'categories', attributes: ['id'] }],
+  const budgetDetails = await findOrThrowNotFound({
+    query: Budgets.findByPk(budgetId, {
+      include: [{ model: Categories, as: 'categories', attributes: ['id'] }],
+    }),
+    message: t({ key: 'budgets.budgetNotFound' }),
   });
-
-  if (!budgetDetails) throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
 
   const categoryIds = budgetDetails.categories?.map((c) => c.id) || [];
 
@@ -225,9 +228,10 @@ const aggregateTransactionStats = ({
 
 export const getBudgetStats = withTransaction(
   async ({ userId, budgetId }: { userId: number; budgetId: number }): Promise<StatsResponse> => {
-    const budgetDetails = await Budgets.findByPk(budgetId, { attributes: ['type'] });
-
-    if (!budgetDetails) throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
+    const budgetDetails = await findOrThrowNotFound({
+      query: Budgets.findByPk(budgetId, { attributes: ['type'] }),
+      message: t({ key: 'budgets.budgetNotFound' }),
+    });
 
     if (budgetDetails.type === BUDGET_TYPES.category) {
       return getCategoryBudgetStats({ userId, budgetId });

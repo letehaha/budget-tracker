@@ -1,5 +1,5 @@
-import TransactionGroups from '@models/TransactionGroups.model';
-import type Transactions from '@models/Transactions.model';
+import TransactionGroups from '@models/transaction-groups.model';
+import type Transactions from '@models/transactions.model';
 import { literal } from 'sequelize';
 
 import { INCLUDE_GROUP_TRANSACTIONS } from './constants';

@@ -1,9 +1,10 @@
 import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES } from '@bt/shared/types';
 import { currencyCode } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
-import { NotFoundError, Unauthorized, ValidationError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { Unauthorized, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
-import Accounts from '@models/Accounts.model';
+import Accounts from '@models/accounts.model';
 import { serializeAccount, serializeAccounts } from '@root/serializers';
 import * as accountsService from '@services/accounts.service';
 import { z } from 'zod';
@@ -91,13 +92,10 @@ export const updateAccount = createController(
     const { id: userId } = user;
     const { accountCategory, name, creditLimit, status, excludeFromStats, currentBalance } = body;
 
-    const account = await Accounts.findByPk(id);
-
-    if (!account) {
-      throw new NotFoundError({
-        message: `Account with id "${id}" doesn't exist.`,
-      });
-    }
+    const account = await findOrThrowNotFound({
+      query: Accounts.findByPk(id),
+      message: `Account with id "${id}" doesn't exist.`,
+    });
 
     if (account.type !== ACCOUNT_TYPES.system) {
       if (creditLimit || currentBalance) {

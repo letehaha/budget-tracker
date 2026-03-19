@@ -1,7 +1,7 @@
-import { NotFoundError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
-import Transactions from '@models/Transactions.model';
+import Transactions from '@models/transactions.model';
 
 interface GetPeriodsParams {
   userId: number;
@@ -12,14 +12,13 @@ interface GetPeriodsParams {
 
 export async function getPeriods({ userId, reminderId, limit = 6, offset = 0 }: GetPeriodsParams) {
   // Verify reminder belongs to user
-  const reminder = await PaymentReminders.findOne({
-    where: { id: reminderId, userId },
-    attributes: ['id'],
+  await findOrThrowNotFound({
+    query: PaymentReminders.findOne({
+      where: { id: reminderId, userId },
+      attributes: ['id'],
+    }),
+    message: 'Payment reminder not found',
   });
-
-  if (!reminder) {
-    throw new NotFoundError({ message: 'Payment reminder not found' });
-  }
 
   const { rows, count } = await PaymentReminderPeriods.findAndCountAll({
     where: { reminderId },

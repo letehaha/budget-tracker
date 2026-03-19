@@ -1,6 +1,7 @@
-import { NotFoundError, ValidationError } from '@js/errors';
-import TransactionGroupItems from '@models/TransactionGroupItems.model';
-import TransactionGroups from '@models/TransactionGroups.model';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { ValidationError } from '@js/errors';
+import TransactionGroupItems from '@models/transaction-group-items.model';
+import TransactionGroups from '@models/transaction-groups.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
@@ -17,13 +18,12 @@ interface AddTransactionsToGroupPayload {
 export const addTransactionsToGroup = withTransaction(async (payload: AddTransactionsToGroupPayload) => {
   const { groupId, userId, transactionIds } = payload;
 
-  const group = await TransactionGroups.findOne({
-    where: { id: groupId, userId },
+  await findOrThrowNotFound({
+    query: TransactionGroups.findOne({
+      where: { id: groupId, userId },
+    }),
+    message: 'Transaction group not found.',
   });
-
-  if (!group) {
-    throw new NotFoundError({ message: 'Transaction group not found.' });
-  }
 
   // Auto-include opposite sides of transfer pairs
   const expandedIds = await resolveTransferPairs({ transactionIds, userId });

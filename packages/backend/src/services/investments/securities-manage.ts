@@ -1,6 +1,6 @@
 import { SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
-import Securities from '@models/investments/Securities.model';
+import Securities from '@models/investments/securities.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 const addOrUpdateFromProviderImpl = async (
