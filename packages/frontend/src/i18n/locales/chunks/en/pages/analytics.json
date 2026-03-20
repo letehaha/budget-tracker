@@ -4,7 +4,9 @@
     "timePeriods": {},
     "navigation": {
       "cashFlow": "Cash Flow",
-      "trendsComparison": "Trends Comparison"
+      "trendsComparison": "Trends Comparison",
+      "investmentCalculator": "Investment Calculator",
+      "collapse": "Collapse"
     },
     "cashFlow": {
       "income": "Income",
@@ -78,6 +80,36 @@
       "loadError": "Failed to load data",
       "noData": "No data available",
       "noDataHint": "No transactions recorded for this period"
+    },
+    "investmentCalculator": {
+      "initialBalance": "Initial balance",
+      "useCurrentBalance": "Use current balance →",
+      "monthlyContribution": "Monthly contribution",
+      "useAvgNetIncome": "Use avg net income →",
+      "timeHorizon": "Time horizon (years)",
+      "years": "Years",
+      "annualReturn": "Annual return (%)",
+      "annualInflation": "Annual inflation (%)",
+      "perMonth": "per month",
+      "totalInvested": "Total invested",
+      "nominalFinalValue": "Nominal final value",
+      "growth": "growth",
+      "realFinalValue": "Real final value",
+      "realGrowth": "real growth",
+      "realMultiplier": "Real multiplier",
+      "ofMoneyInvested": "of money invested",
+      "customIndicator": "Custom",
+      "customReturnRate": "Enter rate (%)",
+      "customInflationRate": "Enter rate (%)",
+      "inflationPresets": {
+        "low": "Low — Central bank targets (Fed, ECB)",
+        "moderate": "Moderate — Long-term US/EU average",
+        "elevated": "Elevated — Post-2020 levels, emerging markets",
+        "high": "High — High-inflation economies"
+      },
+      "inflationAdjustedSuffix": "(Inflation Adjusted)",
+      "yearN": "Year {n}",
+      "disclaimer": "Based on constant {rate}%/yr return. S&P 500 historical average is ~10%/yr. Does not account for taxes or fees."
     }
   }
 }

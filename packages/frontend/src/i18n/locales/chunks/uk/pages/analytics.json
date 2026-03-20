@@ -4,7 +4,9 @@
     "timePeriods": {},
     "navigation": {
       "cashFlow": "Грошовий потік",
-      "trendsComparison": "Порівняння трендів"
+      "trendsComparison": "Порівняння трендів",
+      "investmentCalculator": "Інвестиційний калькулятор",
+      "collapse": "Згорнути"
     },
     "cashFlow": {
       "income": "Дохід",
@@ -78,6 +80,36 @@
       "loadError": "Не вдалося завантажити дані",
       "noData": "Даних немає",
       "noDataHint": "За цей період транзакцій не зафіксовано"
+    },
+    "investmentCalculator": {
+      "initialBalance": "Початковий баланс",
+      "useCurrentBalance": "Використати поточний баланс →",
+      "monthlyContribution": "Щомісячний внесок",
+      "useAvgNetIncome": "Використати сер. чистий дохід →",
+      "timeHorizon": "Горизонт (роки)",
+      "years": "Роки",
+      "annualReturn": "Річна дохідність (%)",
+      "annualInflation": "Річна інфляція (%)",
+      "perMonth": "на місяць",
+      "totalInvested": "Всього інвестовано",
+      "nominalFinalValue": "Номінальна кінцева вартість",
+      "growth": "зростання",
+      "realFinalValue": "Реальна кінцева вартість",
+      "realGrowth": "реальне зростання",
+      "realMultiplier": "Реальний мультиплікатор",
+      "ofMoneyInvested": "від інвестованих коштів",
+      "customIndicator": "Довільний",
+      "customReturnRate": "Введіть ставку (%)",
+      "customInflationRate": "Введіть ставку (%)",
+      "inflationPresets": {
+        "low": "Низька — Цільові показники центробанків (Fed, ECB)",
+        "moderate": "Помірна — Довгострокова середня US/EU",
+        "elevated": "Підвищена — Рівні після 2020, ринки що розвиваються",
+        "high": "Висока — Економіки з високою інфляцією"
+      },
+      "inflationAdjustedSuffix": "(з урахуванням інфляції)",
+      "yearN": "Рік {n}",
+      "disclaimer": "На основі постійної дохідності {rate}%/рік. Історична середня S&P 500 ~10%/рік. Без урахування податків та комісій."
     }
   }
 }

@@ -90,6 +90,11 @@ const routes: RouteRecordRaw[] = [
             name: ROUTES_NAMES.analyticsCashFlow,
             component: () => import('@/pages/analytics/subpages/cash-flow/index.vue'),
           },
+          {
+            path: 'investment-calculator',
+            name: ROUTES_NAMES.analyticsInvestmentCalculator,
+            component: () => import('@/pages/analytics/subpages/investment-calculator/index.vue'),
+          },
         ],
       },
       {
