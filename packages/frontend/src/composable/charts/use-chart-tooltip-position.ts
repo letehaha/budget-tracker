@@ -24,7 +24,7 @@ export function useChartTooltipPosition({
   tooltip: TooltipPosition;
   strategy?: 'absolute' | 'fixed';
 }) {
-  function updateTooltipPosition(event: MouseEvent) {
+  function updateTooltipPosition(event: MouseEvent | { clientX: number; clientY: number }) {
     if (!containerRef.value || !tooltipRef.value) return;
 
     const tooltipRect = tooltipRef.value.getBoundingClientRect();
