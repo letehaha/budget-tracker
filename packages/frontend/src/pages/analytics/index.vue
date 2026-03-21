@@ -4,7 +4,8 @@
     :class="
       cn(
         'flex min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))] flex-col p-4 sm:flex-row',
-        isCollapsed && !isCompactLayout ? 'md:pr-6 md:pl-0' : 'md:px-6',
+        isTransitionReady && 'transition-all duration-200',
+        isCollapsed && !isCompactLayout ? 'md:pr-6 md:pl-2' : 'md:px-6',
         isMobileView
           ? 'min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))]'
           : 'min-h-[calc(100dvh-var(--header-height))]',
@@ -17,61 +18,58 @@
     <nav
       v-if="!isOnChildRoute || !isCompactLayout"
       :class="[
-        'border-border bg-card/50 shrink-0 rounded-lg border p-2 backdrop-blur-sm transition-all duration-200',
-        isCompactLayout ? 'w-full' : isCollapsed ? 'w-auto' : 'w-full lg:w-52',
+        'border-border bg-card/50 shrink-0 rounded-lg border p-2 backdrop-blur-sm',
+        isTransitionReady && 'transition-all duration-200',
+        isCompactLayout ? 'w-full' : isCollapsed ? 'w-14' : 'w-full lg:w-52',
       ]"
     >
-      <ul class="sticky top-(--header-height) flex flex-col gap-1">
-        <li v-for="tab in tabs" :key="tab.name">
-          <DesktopOnlyTooltip v-if="isCollapsed && !isCompactLayout" :content="tab.label">
-            <router-link
-              :to="tab.to"
-              :class="
-                cn(
-                  'text-muted-foreground flex items-center justify-center rounded-md p-2 transition-colors',
-                  'hover:bg-accent hover:text-foreground',
-                  '[&.router-link-exact-active]:bg-accent [&.router-link-exact-active]:text-foreground',
-                )
-              "
-            >
-              <component :is="tab.icon" class="size-4 shrink-0" />
-            </router-link>
-          </DesktopOnlyTooltip>
-
-          <router-link
-            v-else
-            :to="tab.to"
-            :class="
-              cn(
-                'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
-                'hover:bg-accent hover:text-foreground',
-                '[&.router-link-exact-active]:bg-accent [&.router-link-exact-active]:text-foreground',
-                isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
-              )
-            "
-          >
-            <component :is="tab.icon" :class="cn('size-4 shrink-0', isCompactLayout && 'md:size-5')" />
-            {{ tab.label }}
-            <ChevronRightIcon v-if="isCompactLayout" class="text-muted-foreground ml-auto size-4" />
-          </router-link>
-        </li>
-
+      <ul class="sticky top-(--header-height) flex flex-col gap-1 overflow-hidden">
         <!-- Collapse toggle (only on wide layout) -->
-        <li v-if="!isCompactLayout" class="border-border mt-1 border-t pt-1">
+        <li v-if="!isCompactLayout" class="border-border mb-1 border-b pb-1">
           <button
             :class="
               cn(
-                'text-muted-foreground flex w-full items-center rounded-md transition-colors',
+                'text-muted-foreground flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
                 'hover:bg-accent hover:text-foreground',
-                isCollapsed ? 'justify-center p-2' : 'gap-2 px-3 py-2 text-sm',
               )
             "
             @click="isCollapsed = !isCollapsed"
           >
             <PanelLeftCloseIcon v-if="!isCollapsed" class="size-4 shrink-0" />
             <PanelLeftOpenIcon v-else class="size-4 shrink-0" />
-            <span v-if="!isCollapsed">{{ $t('analytics.navigation.collapse') }}</span>
+            <span
+              :class="['whitespace-nowrap transition-opacity duration-200', isCollapsed ? 'opacity-0' : 'opacity-100']"
+            >
+              {{ $t('analytics.navigation.collapse') }}
+            </span>
           </button>
+        </li>
+
+        <li v-for="tab in tabs" :key="tab.name">
+          <DesktopOnlyTooltip :content="tab.label" :disabled="!isCollapsed || isCompactLayout">
+            <router-link
+              :to="tab.to"
+              :class="
+                cn(
+                  'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
+                  'hover:bg-accent hover:text-foreground',
+                  '[&.router-link-exact-active]:bg-accent [&.router-link-exact-active]:text-foreground',
+                  isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
+                )
+              "
+            >
+              <component :is="tab.icon" :class="cn('size-4 shrink-0', isCompactLayout && 'md:size-5')" />
+              <span
+                :class="[
+                  'transition-opacity duration-200',
+                  isCollapsed && !isCompactLayout ? 'opacity-0' : 'opacity-100',
+                ]"
+              >
+                {{ tab.label }}
+              </span>
+              <ChevronRightIcon v-if="isCompactLayout" class="text-muted-foreground ml-auto size-4" />
+            </router-link>
+          </DesktopOnlyTooltip>
         </li>
       </ul>
     </nav>
@@ -91,6 +89,7 @@
 <script setup lang="ts">
 import BackLink from '@/components/common/back-link.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import { useAfterMountTransition } from '@/composable/use-after-mount-transition';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
@@ -127,6 +126,8 @@ const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile, {
 
 const isCompactLayout = computed(() => containerWidth.value < 920);
 const isCollapsed = useLocalStorage('analytics-sidebar-collapsed', false);
+
+const isTransitionReady = useAfterMountTransition();
 
 const isOnChildRoute = computed(() => route.name !== ROUTES_NAMES.analytics);
 

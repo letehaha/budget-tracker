@@ -143,6 +143,15 @@ export async function completeOnboarding({
 }): Promise<void> {
   await setBaseCurrency({ request, currencyCode });
   await addUserCurrencies({ request, currencyCode });
+  await dismissOnboarding({ request });
+}
+
+export async function dismissOnboarding({ request }: { request: APIRequestContext }): Promise<void> {
+  await apiPut({
+    request,
+    path: '/api/v1/user/settings/onboarding',
+    data: { isDismissed: true, dismissedAt: new Date().toISOString() },
+  });
 }
 
 // ─── Accounts ────────────────────────────────────────────────────────

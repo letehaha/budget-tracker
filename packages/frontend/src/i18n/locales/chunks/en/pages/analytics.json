@@ -83,7 +83,7 @@
     },
     "investmentCalculator": {
       "initialBalance": "Initial balance",
-      "useCurrentBalance": "Use current balance →",
+      "useCurrentBalance": "Use current balance",
       "monthlyContribution": "Monthly contribution",
       "useAvgNetIncome": "Use avg net income →",
       "timeHorizon": "Time horizon (years)",
@@ -97,6 +97,7 @@
       "realFinalValue": "Real final value",
       "realGrowth": "real growth",
       "realMultiplier": "Real multiplier",
+      "realMultiplierTooltip": "How much your total investment grows after accounting for inflation. Unlike nominal returns, this shows real purchasing power. 1.5x means every $1 invested becomes $1.50 in today's money.",
       "ofMoneyInvested": "of money invested",
       "customIndicator": "Custom",
       "customReturnRate": "Enter rate (%)",
@@ -109,7 +110,12 @@
       },
       "inflationAdjustedSuffix": "(Inflation Adjusted)",
       "yearN": "Year {n}",
-      "disclaimer": "Based on constant {rate}%/yr return. S&P 500 historical average is ~10%/yr. Does not account for taxes or fees."
+      "disclaimer": "Based on constant {rate}%/yr return. S&P 500 historical average is ~10%/yr. Does not account for taxes or fees.",
+      "useAvgNetIncomeTooltip": "Your average monthly net income (income minus expenses) over the selected period, based on your transaction history",
+      "inflationTooltip": "How fast prices rise each year, reducing your money's real value.\n\n~1–2% — very low, stable economy\n~2–3% — normal (typical target)\n~4–6% — above average\n~7%+ — crisis-level inflation",
+      "totalInvestedBreakdown": "{initial} initial + {contributions} contributions",
+      "configure": "Configure",
+      "hideInputs": "Hide"
     }
   }
 }

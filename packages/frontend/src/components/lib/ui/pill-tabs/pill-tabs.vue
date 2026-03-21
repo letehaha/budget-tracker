@@ -24,7 +24,10 @@ const indicatorStyle = ref({ left: '0px', width: '0px' });
 function updateIndicator() {
   if (!containerRef.value) return;
   const activeBtn = containerRef.value.querySelector<HTMLElement>(`[data-value="${props.modelValue}"]`);
-  if (!activeBtn) return;
+  if (!activeBtn) {
+    indicatorStyle.value = { left: '0px', width: '0px' };
+    return;
+  }
 
   indicatorStyle.value = {
     left: `${activeBtn.offsetLeft}px`,
