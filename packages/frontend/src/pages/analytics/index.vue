@@ -46,7 +46,7 @@
         </li>
 
         <li v-for="tab in tabs" :key="tab.name">
-          <DesktopOnlyTooltip :content="tab.label" :disabled="!isCollapsed || isCompactLayout">
+          <DesktopOnlyTooltip :content="tab.label" :disabled="!isCollapsed || isCompactLayout" side="right">
             <router-link
               :to="tab.to"
               :class="

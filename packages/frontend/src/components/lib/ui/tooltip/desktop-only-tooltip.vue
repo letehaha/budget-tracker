@@ -7,6 +7,7 @@ const props = defineProps<{
   content: string;
   contentClassName?: string;
   disabled?: boolean;
+  side?: 'top' | 'right' | 'bottom' | 'left';
 }>();
 
 const hasHover = ref(false);
@@ -35,7 +36,7 @@ onUnmounted(() => {
       <TooltipTrigger as-child>
         <slot />
       </TooltipTrigger>
-      <TooltipContent :class="contentClassName">
+      <TooltipContent :class="contentClassName" :side="props.side">
         {{ content }}
       </TooltipContent>
     </Tooltip>
