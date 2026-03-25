@@ -55,6 +55,19 @@ jest.mock('../services/investments/data-providers/clients/fmp-client', () => ({
   })),
 }));
 
+// Mock yahoo-finance2 globally (v3 requires instantiation).
+// All methods reject by default so the composite provider falls back to other
+// providers (FMP, Polygon, etc.) in existing tests. Tests that specifically
+// exercise Yahoo behaviour must override these mocks per-test.
+jest.mock('yahoo-finance2', () => {
+  const MockYahooFinance = jest.fn().mockImplementation(() => ({
+    search: jest.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
+    quote: jest.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
+    chart: jest.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
+  }));
+  return { __esModule: true, default: MockYahooFinance };
+});
+
 beforeAll(async () => {
   mswMockServer.listen({ onUnhandledRequest: 'bypass' });
   // Wait for i18next to fully load all locale files before tests run

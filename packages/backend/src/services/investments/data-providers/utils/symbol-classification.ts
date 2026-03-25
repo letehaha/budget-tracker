@@ -53,11 +53,9 @@ export function getSearchProviderPreference(): {
   primary: SECURITY_PROVIDER;
   fallbacks: SECURITY_PROVIDER[];
 } {
-  // FMP has excellent global coverage for search
   return {
-    primary: SECURITY_PROVIDER.fmp,
-    fallbacks: [],
-    // fallbacks: [SECURITY_PROVIDER.alphavantage, SECURITY_PROVIDER.polygon],
+    primary: SECURITY_PROVIDER.yahoo,
+    fallbacks: [SECURITY_PROVIDER.fmp],
   };
 }
 
@@ -71,17 +69,15 @@ export function getHistoricalPriceProviderPreference(symbol: string): {
   const region = getExchangeRegion(symbol);
 
   if (region === 'US') {
-    // Polygon is excellent for US stocks with good rate limits
     return {
-      primary: SECURITY_PROVIDER.polygon,
-      fallbacks: [SECURITY_PROVIDER.alphavantage],
+      primary: SECURITY_PROVIDER.yahoo,
+      fallbacks: [SECURITY_PROVIDER.polygon, SECURITY_PROVIDER.alphavantage],
     };
   }
 
-  // For non-US stocks, AlphaVantage has broader coverage
   return {
-    primary: SECURITY_PROVIDER.alphavantage,
-    fallbacks: [],
+    primary: SECURITY_PROVIDER.yahoo,
+    fallbacks: [SECURITY_PROVIDER.alphavantage],
   };
 }
 
@@ -95,16 +91,14 @@ export function getLatestPriceProviderPreference(symbol: string): {
   const region = getExchangeRegion(symbol);
 
   if (region === 'US') {
-    // Polygon has good real-time data for US stocks
     return {
-      primary: SECURITY_PROVIDER.polygon,
-      fallbacks: [SECURITY_PROVIDER.fmp, SECURITY_PROVIDER.alphavantage],
+      primary: SECURITY_PROVIDER.yahoo,
+      fallbacks: [SECURITY_PROVIDER.polygon, SECURITY_PROVIDER.fmp, SECURITY_PROVIDER.alphavantage],
     };
   }
 
-  // For non-US, alphavantage has full coverage
   return {
-    primary: SECURITY_PROVIDER.alphavantage,
-    fallbacks: [SECURITY_PROVIDER.fmp, SECURITY_PROVIDER.polygon],
+    primary: SECURITY_PROVIDER.yahoo,
+    fallbacks: [SECURITY_PROVIDER.alphavantage, SECURITY_PROVIDER.fmp, SECURITY_PROVIDER.polygon],
   };
 }

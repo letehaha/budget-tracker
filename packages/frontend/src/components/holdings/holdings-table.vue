@@ -5,6 +5,7 @@ import { Button } from '@/components/lib/ui/button';
 import * as Dialog from '@/components/lib/ui/dialog';
 import { useGetHoldingTransactions } from '@/composable/data-queries/investment-transactions';
 import { useFormatCurrency } from '@/composable/formatters';
+import { getGainColorClass } from '@/composable/gain-color';
 import { useCurrenciesStore } from '@/stores/currencies';
 import type { HoldingModel } from '@bt/shared/types/investments';
 import {
@@ -138,12 +139,6 @@ const getRealizedGain = (holding: HoldingModel) => {
   };
 };
 
-const getGainColorClass = (gainPercent: number) => {
-  if (gainPercent > 0) return 'text-green-600';
-  if (gainPercent < 0) return 'text-destructive-text';
-  return 'text-gray-600';
-};
-
 const expandedHoldingId = ref<number | undefined>(undefined);
 const currentPage = ref(1);
 const limit = ref(10);
@@ -218,9 +213,9 @@ const theadBgStyles = 'bg-muted';
     <!-- Error State -->
     <div v-else-if="error" class="py-12 text-center">
       <div class="bg-destructive/10 mx-auto mb-3 flex size-12 items-center justify-center rounded-full">
-        <AlertCircleIcon class="text-destructive size-6" />
+        <AlertCircleIcon class="text-destructive-text size-6" />
       </div>
-      <p class="text-destructive mb-2 font-medium">{{ $t('portfolioDetail.holdingsTable.loadError') }}</p>
+      <p class="text-destructive-text mb-2 font-medium">{{ $t('portfolioDetail.holdingsTable.loadError') }}</p>
       <p class="text-muted-foreground text-sm">{{ $t('portfolioDetail.holdingsTable.tryAgainLater') }}</p>
     </div>
 
@@ -348,13 +343,13 @@ const theadBgStyles = 'bg-muted';
                 {{ formatCurrency(Number(h.marketValue || 0), h.currencyCode) }}
               </td>
               <td :class="[cellStyles, 'px-3 text-right']">
-                <div :class="getGainColorClass(getUnrealizedGain(h).percent)" class="tabular-nums">
+                <div :class="getGainColorClass({ gainPercent: getUnrealizedGain(h).percent })" class="tabular-nums">
                   <div class="font-semibold">{{ formatCurrency(getUnrealizedGain(h).value, h.currencyCode) }}</div>
                   <div class="text-xs">{{ getUnrealizedGain(h).percent.toFixed(2) }}%</div>
                 </div>
               </td>
               <td :class="[cellStyles, 'px-3 text-right']">
-                <div :class="getGainColorClass(getRealizedGain(h).percent)" class="tabular-nums">
+                <div :class="getGainColorClass({ gainPercent: getRealizedGain(h).percent })" class="tabular-nums">
                   <div class="font-semibold">{{ formatCurrency(getRealizedGain(h).value, h.currencyCode) }}</div>
                   <div class="text-xs">{{ getRealizedGain(h).percent.toFixed(2) }}%</div>
                 </div>

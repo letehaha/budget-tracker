@@ -19,6 +19,7 @@ import PortfolioBalancesModel from './investments/portfolio-balances.model';
 import PortfolioTransfersModel from './investments/portfolio-transfers.model';
 import PortfoliosModel from './investments/portfolios.model';
 import SecuritiesModel from './investments/securities.model';
+import SecurityCurrencyCacheModel from './investments/security-currency-cache.model';
 import SecurityPricingModel from './investments/security-pricing.model';
 import MerchantCategoryCodesModel from './merchant-category-codes.model';
 import NotificationsModel from './notifications.model';
@@ -93,6 +94,7 @@ const models = [
   HoldingsModel,
   InvestmentTransactionModel,
   SecuritiesModel,
+  SecurityCurrencyCacheModel,
   SecurityPricingModel,
   PortfoliosModel,
   PortfolioBalancesModel,
