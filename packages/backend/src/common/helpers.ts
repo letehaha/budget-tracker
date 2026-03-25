@@ -21,3 +21,5 @@ export const until = async <T>(
 
   return new Promise<void>(poll);
 };
+
+export const sleep = ({ ms }: { ms: number }): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));

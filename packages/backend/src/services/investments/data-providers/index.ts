@@ -2,6 +2,7 @@ export * from './base-provider';
 export * from './polygon-provider';
 export * from './alphavantage-provider';
 export * from './fmp-provider';
+export * from './yahoo-provider';
 export * from './composite-provider';
 export * from './provider-factory';
 export * from './utils';

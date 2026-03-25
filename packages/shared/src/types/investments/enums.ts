@@ -2,6 +2,7 @@ export enum SECURITY_PROVIDER {
   polygon = 'polygon',
   alphavantage = 'alphavantage',
   fmp = 'fmp',
+  yahoo = 'yahoo',
   // custom provider that uses others for different operations because each provider
   // has limitations on a free plan
   composite = 'composite',

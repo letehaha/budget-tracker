@@ -5,6 +5,7 @@ Run a comprehensive, deduplicated review of the current branch changes using an 
 ### 1. Gather context
 
 Run `git diff main...HEAD --name-only` to get the list of changed files. Determine:
+
 - Whether frontend files (`packages/frontend/`) are affected
 - Whether backend files (`packages/backend/`) are affected
 - Store the full file list — you'll pass it to each teammate's prompt
@@ -23,18 +24,18 @@ Spawn the following teammates using the `Agent` tool with `team_name: "review"`.
 
 **Always spawn:**
 
-| Name | subagent_type | Role |
-|------|--------------|------|
-| `code-simplifier` | `pr-review-toolkit:code-simplifier` | Reuse opportunities, unnecessary complexity, dead code |
-| `code-reviewer` | `pr-review-toolkit:code-reviewer` | Project guidelines, style, best practices, naming, architecture |
-| `test-analyzer` | `pr-review-toolkit:pr-test-analyzer` | Test coverage quality, missing tests, edge cases |
+| Name                    | subagent_type                             | Role                                                                     |
+| ----------------------- | ----------------------------------------- | ------------------------------------------------------------------------ |
+| `code-simplifier`       | `pr-review-toolkit:code-simplifier`       | Reuse opportunities, unnecessary complexity, dead code                   |
+| `code-reviewer`         | `pr-review-toolkit:code-reviewer`         | Project guidelines, style, best practices, naming, architecture          |
+| `test-analyzer`         | `pr-review-toolkit:pr-test-analyzer`      | Test coverage quality, missing tests, edge cases                         |
 | `silent-failure-hunter` | `pr-review-toolkit:silent-failure-hunter` | Silent failures, swallowed errors, bad fallbacks, missing error handling |
-| `type-analyzer` | `pr-review-toolkit:type-design-analyzer` | Type design quality, encapsulation, invariant expression |
+| `type-analyzer`         | `pr-review-toolkit:type-design-analyzer`  | Type design quality, encapsulation, invariant expression                 |
 
 **Conditionally spawn (only if frontend files changed):**
 
-| Name | subagent_type | Role |
-|------|--------------|------|
+| Name               | subagent_type     | Role                                                                                                                                              |
+| ------------------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `frontend-checker` | `general-purpose` | Frontend conventions compliance — read `.claude/skills/frontend-rules/SKILL.md`, then review all changed frontend files against those conventions |
 
 ### 5. Collaboration instructions for each teammate
