@@ -122,11 +122,11 @@ export async function getExchangeRate({
       logger.warn(`[getExchangeRate] Failed to fetch rates for ${date.toISOString()}, using fallback rates`);
     }
 
-    // Retry fetching the missing rates after the API call
-    if (!baseRate) {
+    // Retry fetching missing or stale rates after the API call
+    if (!baseRate || !isRateForDate(baseRate, date)) {
       baseRate = await loadRate(pair.baseCode, date);
     }
-    if (!quoteRate) {
+    if (!quoteRate || !isRateForDate(quoteRate, date)) {
       quoteRate = await loadRate(pair.quoteCode, date);
     }
   }
