@@ -8,6 +8,7 @@ import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
 import { REDIS_KEY_PREFIX, redisClient, redisReady } from '@root/redis-client';
 import { categorizationQueue, categorizationWorker } from '@services/ai-categorization/categorization-queue';
+import { flushAllPendingCategorizationBuffers } from '@services/ai-categorization/event-listeners';
 import {
   transactionSyncQueue,
   transactionSyncWorker,
@@ -341,6 +342,9 @@ beforeEach(async () => {
 
 afterAll(async () => {
   try {
+    // Flush debounced categorization buffers before closing queues
+    await flushAllPendingCategorizationBuffers();
+
     // Close ALL BullMQ workers and queues first to ensure no pending operations
     // This prevents "The client is closed" errors when workers try to access Redis
     await transactionSyncWorker.close();
