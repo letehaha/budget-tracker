@@ -2,6 +2,7 @@ import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_
 import { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
+import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import Accounts from '@models/accounts.model';
 import * as MerchantCategoryCodes from '@models/merchant-category-codes.model';
 import Transactions from '@models/transactions.model';
@@ -15,7 +16,7 @@ import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
 import { MonobankApiClient } from './api-client';
 
-interface TransactionSyncJobData {
+interface TransactionSyncJobData extends SentryTraceData {
   userId: number;
   accountId: number;
   connectionId: number;
@@ -155,160 +156,168 @@ async function createMonobankTransaction(
 export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
   queueName,
   async (job: Job<TransactionSyncJobData>) => {
-    const { userId, accountId, externalAccountId, apiToken, fromTimestamp, toTimestamp, batchIndex, totalBatches } =
-      job.data;
+    return withQueueProcessSpan({
+      queueName,
+      job,
+      fn: async () => {
+        const { userId, accountId, externalAccountId, apiToken, fromTimestamp, toTimestamp, batchIndex, totalBatches } =
+          job.data;
 
-    logger.info(
-      `[WORKER] Processing Monobank transaction sync batch ${batchIndex + 1}/${totalBatches} for account ${accountId} (externalId: ${externalAccountId})`,
-    );
+        logger.info(
+          `[WORKER] Processing Monobank transaction sync batch ${batchIndex + 1}/${totalBatches} for account ${accountId} (externalId: ${externalAccountId})`,
+        );
 
-    // Set status to SYNCING when worker starts (only for first batch)
-    if (batchIndex === 0) {
-      await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId });
-    }
-
-    // Update job progress
-    await job.updateProgress({
-      batchIndex,
-      totalBatches,
-      status: 'fetching',
-    });
-
-    try {
-      const apiClient = new MonobankApiClient(apiToken);
-
-      // Fetch transactions from Monobank API
-      const transactions = await apiClient.getStatement(externalAccountId, fromTimestamp, toTimestamp);
-
-      logger.info(`[WORKER] Fetched ${transactions.length} transactions for batch ${batchIndex + 1}/${totalBatches}`);
-
-      // Update job progress
-      await job.updateProgress({
-        batchIndex,
-        totalBatches,
-        status: 'processing',
-        transactionCount: transactions.length,
-      });
-
-      // Process each transaction and collect created IDs
-      const createdTransactionIds: number[] = [];
-
-      // Sort transactions by date (ascending) so the last transaction for each day
-      // This is important for Balances.handleTransactionChange() which uses the
-      // balance from the last-processed transaction for each date.
-      transactions.sort((a, b) => a.time - b.time);
-
-      for (let i = 0; i < transactions.length; i++) {
-        const createdId = await createMonobankTransaction(transactions[i]!, accountId, userId);
-        if (createdId !== undefined) {
-          createdTransactionIds.push(createdId);
+        // Set status to SYNCING when worker starts (only for first batch)
+        if (batchIndex === 0) {
+          await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId });
         }
 
-        // Update progress periodically
-        if (i % 10 === 0) {
+        // Update job progress
+        await job.updateProgress({
+          batchIndex,
+          totalBatches,
+          status: 'fetching',
+        });
+
+        try {
+          const apiClient = new MonobankApiClient(apiToken);
+
+          // Fetch transactions from Monobank API
+          const transactions = await apiClient.getStatement(externalAccountId, fromTimestamp, toTimestamp);
+
+          logger.info(
+            `[WORKER] Fetched ${transactions.length} transactions for batch ${batchIndex + 1}/${totalBatches}`,
+          );
+
+          // Update job progress
           await job.updateProgress({
             batchIndex,
             totalBatches,
             status: 'processing',
             transactionCount: transactions.length,
-            processedCount: i + 1,
-          });
-        }
-      }
-
-      // Emit event for this batch's transactions (AI categorization, etc.)
-      emitTransactionsSyncEvent({ userId, accountId, transactionIds: createdTransactionIds });
-
-      // Update account metadata and balance after processing all transactions in this batch
-      const account: Pick<Accounts, 'externalData' | 'currentBalance'> | null = await Accounts.findByPk(accountId, {
-        attributes: ['externalData', 'currentBalance'],
-      });
-
-      if (account) {
-        const accountDataToUpdate: Parameters<typeof accountsService.updateAccount>[0] = {
-          id: accountId,
-          userId,
-        };
-        // Update sync timestamp in externalData
-        const externalData = (account.externalData as Record<string, unknown>) || {};
-        externalData.lastSyncedAt = new Date().toISOString();
-        accountDataToUpdate.externalData = externalData;
-
-        // Update account balance to reflect the current state from Monobank
-        // Monobank API returns transactions in chronological order (oldest to newest),
-        // and each transaction includes the account balance AFTER that transaction.
-        //
-        // To ensure we always have the most up-to-date balance regardless of batch processing
-        // order, we fetch the most recent transaction from the database and use its balance.
-        // This approach is more stable and race-condition safe compared to relying on batchIndex.
-        //
-        // This ensures that:
-        // 1. The account balance stays synchronized with Monobank's records
-        // 2. We don't need to manually calculate balance by summing transactions
-        // 3. Multiple batches can process in any order without overwriting with stale data
-        if (transactions.length > 0) {
-          // Fetch the most recent transaction from database for this account
-          const newestTransactionInDb = await Transactions.findOne({
-            where: {
-              userId,
-              accountId,
-            },
-            order: [['time', 'DESC']],
-            attributes: ['externalData'],
-            raw: true,
           });
 
-          if (newestTransactionInDb) {
-            const balanceFromExternalData = newestTransactionInDb.externalData?.balance;
+          // Process each transaction and collect created IDs
+          const createdTransactionIds: number[] = [];
 
-            logger.info(
-              `Batch ${batchIndex + 1}/${totalBatches}: Updating account ${accountId} balance from newest transaction. ` +
-                `Current: ${account.currentBalance}, Latest tx balance: ${balanceFromExternalData}, Transactions processed: ${transactions.length}`,
-            );
+          // Sort transactions by date (ascending) so the last transaction for each day
+          // This is important for Balances.handleTransactionChange() which uses the
+          // balance from the last-processed transaction for each date.
+          transactions.sort((a, b) => a.time - b.time);
 
-            if (balanceFromExternalData !== undefined) {
-              accountDataToUpdate.currentBalance = Money.fromCents(balanceFromExternalData);
-            } else {
-              logger.error(
-                "[Monobank transactions sync]: latest monobank transaction doesn't have balance in externalData",
-                { newestTransactionInDb },
-              );
+          for (let i = 0; i < transactions.length; i++) {
+            const createdId = await createMonobankTransaction(transactions[i]!, accountId, userId);
+            if (createdId !== undefined) {
+              createdTransactionIds.push(createdId);
             }
-          } else {
-            logger.error(`[Monobank transactions sync]: no transactions found in the DB after syncing account: `, {
-              account,
-            });
+
+            // Update progress periodically
+            if (i % 10 === 0) {
+              await job.updateProgress({
+                batchIndex,
+                totalBatches,
+                status: 'processing',
+                transactionCount: transactions.length,
+                processedCount: i + 1,
+              });
+            }
           }
+
+          // Emit event for this batch's transactions (AI categorization, etc.)
+          emitTransactionsSyncEvent({ userId, accountId, transactionIds: createdTransactionIds });
+
+          // Update account metadata and balance after processing all transactions in this batch
+          const account: Pick<Accounts, 'externalData' | 'currentBalance'> | null = await Accounts.findByPk(accountId, {
+            attributes: ['externalData', 'currentBalance'],
+          });
+
+          if (account) {
+            const accountDataToUpdate: Parameters<typeof accountsService.updateAccount>[0] = {
+              id: accountId,
+              userId,
+            };
+            // Update sync timestamp in externalData
+            const externalData = (account.externalData as Record<string, unknown>) || {};
+            externalData.lastSyncedAt = new Date().toISOString();
+            accountDataToUpdate.externalData = externalData;
+
+            // Update account balance to reflect the current state from Monobank
+            // Monobank API returns transactions in chronological order (oldest to newest),
+            // and each transaction includes the account balance AFTER that transaction.
+            //
+            // To ensure we always have the most up-to-date balance regardless of batch processing
+            // order, we fetch the most recent transaction from the database and use its balance.
+            // This approach is more stable and race-condition safe compared to relying on batchIndex.
+            //
+            // This ensures that:
+            // 1. The account balance stays synchronized with Monobank's records
+            // 2. We don't need to manually calculate balance by summing transactions
+            // 3. Multiple batches can process in any order without overwriting with stale data
+            if (transactions.length > 0) {
+              // Fetch the most recent transaction from database for this account
+              const newestTransactionInDb = await Transactions.findOne({
+                where: {
+                  userId,
+                  accountId,
+                },
+                order: [['time', 'DESC']],
+                attributes: ['externalData'],
+                raw: true,
+              });
+
+              if (newestTransactionInDb) {
+                const balanceFromExternalData = newestTransactionInDb.externalData?.balance;
+
+                logger.info(
+                  `Batch ${batchIndex + 1}/${totalBatches}: Updating account ${accountId} balance from newest transaction. ` +
+                    `Current: ${account.currentBalance}, Latest tx balance: ${balanceFromExternalData}, Transactions processed: ${transactions.length}`,
+                );
+
+                if (balanceFromExternalData !== undefined) {
+                  accountDataToUpdate.currentBalance = Money.fromCents(balanceFromExternalData);
+                } else {
+                  logger.error(
+                    "[Monobank transactions sync]: latest monobank transaction doesn't have balance in externalData",
+                    { newestTransactionInDb },
+                  );
+                }
+              } else {
+                logger.error(`[Monobank transactions sync]: no transactions found in the DB after syncing account: `, {
+                  account,
+                });
+              }
+            }
+
+            await accountsService.updateAccount(accountDataToUpdate);
+            logger.info(`Account ${accountId} balance after save: ${account.currentBalance}`);
+          }
+
+          logger.info(`[WORKER] Completed batch ${batchIndex + 1}/${totalBatches} for account ${accountId}`);
+
+          return {
+            success: true,
+            batchIndex,
+            totalBatches,
+            transactionCount: transactions.length,
+          };
+        } catch (error) {
+          logger.error({
+            message: `[WORKER] Error processing batch ${batchIndex + 1}/${totalBatches}`,
+            error: error as Error,
+          });
+
+          // Set status to FAILED
+          await setAccountSyncStatus({
+            accountId,
+            status: SyncStatus.FAILED,
+            error: (error as Error).message,
+            userId,
+          });
+
+          throw error; // Will trigger retry
         }
-
-        await accountsService.updateAccount(accountDataToUpdate);
-        logger.info(`Account ${accountId} balance after save: ${account.currentBalance}`);
-      }
-
-      logger.info(`[WORKER] Completed batch ${batchIndex + 1}/${totalBatches} for account ${accountId}`);
-
-      return {
-        success: true,
-        batchIndex,
-        totalBatches,
-        transactionCount: transactions.length,
-      };
-    } catch (error) {
-      logger.error({
-        message: `[WORKER] Error processing batch ${batchIndex + 1}/${totalBatches}`,
-        error: error as Error,
-      });
-
-      // Set status to FAILED
-      await setAccountSyncStatus({
-        accountId,
-        status: SyncStatus.FAILED,
-        error: (error as Error).message,
-        userId,
-      });
-
-      throw error; // Will trigger retry
-    }
+      },
+    });
   },
   {
     connection,
@@ -398,26 +407,34 @@ export async function queueTransactionSync(params: {
   // Generate unique group ID for this sync operation
   const jobGroupId = `${userId}-${accountId}-${Date.now()}`;
 
-  // Queue jobs for each chunk
-  const jobs = chunks.map((chunk, index) => ({
-    name: `sync-${jobGroupId}-${index}`,
-    data: {
-      userId,
-      accountId,
-      connectionId,
-      externalAccountId,
-      apiToken,
-      fromTimestamp: Math.floor(chunk.from.getTime() / 1000),
-      toTimestamp: Math.floor(chunk.to.getTime() / 1000),
-      batchIndex: index,
-      totalBatches: chunks.length,
-    },
-    opts: {
-      jobId: `${jobGroupId}-${index}`,
-    },
-  }));
+  // Queue jobs for each chunk, wrapped in a Sentry publish span
+  await withQueuePublishSpan({
+    queueName,
+    messageId: jobGroupId,
+    payloadSize: chunks.length * 200, // approximate per-job size
+    fn: async (traceData) => {
+      const jobs = chunks.map((chunk, index) => ({
+        name: `sync-${jobGroupId}-${index}`,
+        data: {
+          userId,
+          accountId,
+          connectionId,
+          externalAccountId,
+          apiToken,
+          fromTimestamp: Math.floor(chunk.from.getTime() / 1000),
+          toTimestamp: Math.floor(chunk.to.getTime() / 1000),
+          batchIndex: index,
+          totalBatches: chunks.length,
+          ...traceData,
+        },
+        opts: {
+          jobId: `${jobGroupId}-${index}`,
+        },
+      }));
 
-  await transactionSyncQueue.addBulk(jobs);
+      await transactionSyncQueue.addBulk(jobs);
+    },
+  });
 
   logger.info(`[QUEUE] Queued ${chunks.length} batch(es) for transaction sync (group: ${jobGroupId})`);
 
