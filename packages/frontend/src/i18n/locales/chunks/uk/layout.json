@@ -50,6 +50,7 @@
   "syncStatusTooltip": {
     "title": "Статус синхронізації банків",
     "syncedSuccessfully": "Успішно синхронізовано",
+    "syncCompletedWithErrors": "Деякі акаунти не вдалось синхронізувати",
     "progress": "{current} з {total} синхронізовано",
     "progressPercentage": "{percentage}%",
     "statuses": {

@@ -5,7 +5,7 @@
  * API Documentation: https://enablebanking.com/docs/api/reference
  */
 import { t } from '@i18n/index';
-import { BadRequestError, ForbiddenError } from '@js/errors';
+import { BadGateway, BadRequestError, ForbiddenError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import axios, { AxiosInstance } from 'axios';
 
@@ -103,7 +103,9 @@ export class EnableBankingApiClient {
         });
       }
 
-      throw new Error(t({ key: 'bankDataProviders.enableBanking.apiGeneralError', variables: { message } }));
+      throw new BadGateway({
+        message: t({ key: 'bankDataProviders.enableBanking.apiGeneralError', variables: { message } }),
+      });
     }
 
     throw error;
