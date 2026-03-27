@@ -1,11 +1,13 @@
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
+import { logger } from '@js/utils/logger';
 import Tags from '@models/tags.model';
 import TransactionTags from '@models/transaction-tags.model';
 import Transactions from '@models/transactions.model';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { withTransaction } from '@services/common/with-transaction';
+import { autoResolveSuggestions } from '@services/tag-suggestions/tag-suggestions.service';
 import { Op } from 'sequelize';
 
 interface AddTransactionsToTagPayload {
@@ -54,6 +56,14 @@ export const addTransactionsToTag = withTransaction(async (payload: AddTransacti
 
     // Emit event for real-time reminders check (handled by event listener)
     eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_TAGGED, { tagIds: [tagId], userId });
+
+    // Auto-resolve any pending tag suggestions for the same tag + transactions
+    autoResolveSuggestions({ userId, transactionIds: newTransactionIds, tagId }).catch((error) => {
+      logger.error({
+        message: '[Tag Suggestions] Failed to auto-resolve suggestions after manual tagging',
+        error: error as Error,
+      });
+    });
   }
 
   return {

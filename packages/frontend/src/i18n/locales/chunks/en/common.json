@@ -24,7 +24,9 @@
       "viewAll": "View all",
       "scan": "Scan",
       "link": "Link",
-      "loadMore": "Load more"
+      "loadMore": "Load more",
+      "disable": "Disable",
+      "enable": "Enable"
     },
     "ui": {
       "close": "Close",
@@ -126,7 +128,8 @@
         "year": "Try: 2025, 2024",
         "default": "Try: 2025, Q4, Jan 2025"
       }
-    }
+    },
+    "noDescription": "No description"
   },
   "validation": {
     "minLength": "Minimal length is {length}.",

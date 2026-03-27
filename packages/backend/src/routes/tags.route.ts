@@ -1,4 +1,11 @@
 import {
+  createAutoMatchRule,
+  deleteAutoMatchRule,
+  getAutoMatchRules,
+  toggleAutoMatchRule,
+  updateAutoMatchRule,
+} from '@controllers/tag-auto-match-rules';
+import {
   createReminder,
   deleteReminder,
   getReminderById,
@@ -64,6 +71,38 @@ router.delete(
   authenticateSession,
   validateEndpoint(deleteReminder.schema),
   deleteReminder.handler,
+);
+
+// Tag auto-match rules routes
+router.get(
+  '/:tagId/auto-match-rules',
+  authenticateSession,
+  validateEndpoint(getAutoMatchRules.schema),
+  getAutoMatchRules.handler,
+);
+router.post(
+  '/:tagId/auto-match-rules',
+  authenticateSession,
+  validateEndpoint(createAutoMatchRule.schema),
+  createAutoMatchRule.handler,
+);
+router.put(
+  '/:tagId/auto-match-rules/:id',
+  authenticateSession,
+  validateEndpoint(updateAutoMatchRule.schema),
+  updateAutoMatchRule.handler,
+);
+router.delete(
+  '/:tagId/auto-match-rules/:id',
+  authenticateSession,
+  validateEndpoint(deleteAutoMatchRule.schema),
+  deleteAutoMatchRule.handler,
+);
+router.patch(
+  '/:tagId/auto-match-rules/:id/toggle',
+  authenticateSession,
+  validateEndpoint(toggleAutoMatchRule.schema),
+  toggleAutoMatchRule.handler,
 );
 
 export default router;

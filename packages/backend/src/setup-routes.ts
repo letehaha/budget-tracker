@@ -26,6 +26,7 @@ import sseRoutes from './routes/sse.route';
 import statsRoutes from './routes/stats.route';
 import subscriptionsRoutes from './routes/subscriptions.route';
 import tagRemindersRoutes from './routes/tag-reminders.route';
+import tagSuggestionsRoutes from './routes/tag-suggestions.route';
 import tagsRoutes from './routes/tags.route';
 import testsRoutes from './routes/tests.route';
 import transactionGroupsRoutes from './routes/transaction-groups.route';
@@ -74,6 +75,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/subscriptions`, subscriptionsRoutes);
   app.use(`${API_PREFIX}/tags`, tagsRoutes);
   app.use(`${API_PREFIX}/tag-reminders`, tagRemindersRoutes);
+  app.use(`${API_PREFIX}/tag-suggestions`, tagSuggestionsRoutes);
   app.use(`${API_PREFIX}/transaction-groups`, transactionGroupsRoutes);
   app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
   app.use(`${API_PREFIX}/payment-reminders`, paymentRemindersRoutes);

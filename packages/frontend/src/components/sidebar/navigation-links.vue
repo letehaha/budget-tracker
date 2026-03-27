@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
+import { useTagSuggestionsCount } from '@/composable/use-tag-suggestions-count';
 import { ROUTES_NAMES } from '@/routes';
 import {
   BellRingIcon,
@@ -22,6 +23,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 const { t } = useI18n();
+const { hasPendingSuggestions } = useTagSuggestionsCount();
 
 withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
 
@@ -54,7 +56,8 @@ const isTransactionsRoute = computed(
     route.name === ROUTES_NAMES.transactions ||
     route.name === ROUTES_NAMES.transactionGroups ||
     route.name === ROUTES_NAMES.optimizations ||
-    route.name === ROUTES_NAMES.optimizationsTransfers,
+    route.name === ROUTES_NAMES.optimizationsTransfers ||
+    route.name === ROUTES_NAMES.optimizationsTagSuggestions,
 );
 
 const isTransactionsOpen = ref(false);
@@ -217,7 +220,13 @@ watch(
             :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
             size="sm"
           >
-            <SparklesIcon :class="[navIconBase, isActive && navIconActive]" />
+            <span class="relative">
+              <SparklesIcon :class="[navIconBase, isActive && navIconActive]" />
+              <span
+                v-if="hasPendingSuggestions"
+                class="bg-destructive absolute -top-0.5 -right-0.5 size-2 rounded-full"
+              />
+            </span>
             <span>{{ $t('navigation.optimizations') }}</span>
           </ui-button>
         </router-link>

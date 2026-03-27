@@ -30,7 +30,10 @@ import RefundTransactionsModel from './refund-transactions.model';
 import SubscriptionCandidatesModel from './subscription-candidates.model';
 import SubscriptionTransactionsModel from './subscription-transactions.model';
 import SubscriptionsModel from './subscriptions.model';
+import TagAutoMatchRulesModel from './tag-auto-match-rules.model';
 import TagRemindersModel from './tag-reminders.model';
+import TagSuggestionDismissalsModel from './tag-suggestion-dismissals.model';
+import TagSuggestionsModel from './tag-suggestions.model';
 import TagsModel from './tags.model';
 import TransactionGroupItemsModel from './transaction-group-items.model';
 import TransactionGroupsModel from './transaction-groups.model';
@@ -106,6 +109,9 @@ const models = [
   PaymentReminderPeriodsModel,
   PaymentReminderNotificationsModel,
   TransferSuggestionDismissalsModel,
+  TagAutoMatchRulesModel,
+  TagSuggestionsModel,
+  TagSuggestionDismissalsModel,
 ];
 
 const sequelize = new Sequelize({

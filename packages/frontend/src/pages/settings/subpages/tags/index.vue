@@ -17,11 +17,11 @@
           </div>
         </template>
         <template v-else-if="tags.length">
-          <div
+          <RouterLink
             v-for="tag in tags"
             :key="tag.id"
+            :to="{ name: ROUTES_NAMES.settingsTagDetails, params: { id: tag.id } }"
             class="hover:bg-accent flex cursor-pointer items-center gap-3 rounded-md py-2 transition-colors sm:px-3"
-            @click="openEditDialog(tag)"
           >
             <div
               class="mt-0.5 mb-auto flex size-6 shrink-0 items-center justify-center rounded-full"
@@ -43,7 +43,7 @@
               <span>{{ tag.remindersCount }}</span>
             </div>
             <ChevronRightIcon class="text-muted-foreground size-4 shrink-0" />
-          </div>
+          </RouterLink>
         </template>
         <template v-else>
           <div class="text-muted-foreground py-8 text-center">
@@ -68,6 +68,7 @@ import TagIcon from '@/components/common/icons/tag-icon.vue';
 import TagFormDialog from '@/components/dialogs/tag-form-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card } from '@/components/lib/ui/card';
+import { ROUTES_NAMES } from '@/routes/constants';
 import { useTagsStore } from '@/stores';
 import { TagModel } from '@bt/shared/types';
 import { BellIcon, ChevronRightIcon, PlusIcon } from 'lucide-vue-next';
@@ -93,12 +94,6 @@ const dialogState = reactive<{
 
 const openCreateDialog = () => {
   dialogState.tag = undefined;
-  dialogState.key++;
-  dialogState.isOpen = true;
-};
-
-const openEditDialog = (tag: TagModel) => {
-  dialogState.tag = tag;
   dialogState.key++;
   dialogState.isOpen = true;
 };

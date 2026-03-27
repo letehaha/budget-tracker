@@ -16,6 +16,9 @@ import {
   SUBSCRIPTION_LINK_STATUS,
   SUBSCRIPTION_MATCH_SOURCE,
   SUBSCRIPTION_TYPES,
+  TAG_RULE_APPROVAL_MODE,
+  TAG_RULE_TYPE,
+  TAG_SUGGESTION_SOURCE,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TagReminderFrequency,
@@ -242,6 +245,48 @@ export interface TagModel {
   createdAt: Date;
   /** Count of reminders associated with this tag (populated on list fetch) */
   remindersCount?: number;
+  /** Count of auto-match rules associated with this tag (populated on list fetch) */
+  autoMatchRulesCount?: number;
+}
+
+interface TagAutoMatchRuleBase {
+  id: string;
+  userId: number;
+  tagId: number;
+  isEnabled: boolean;
+  approvalMode: TAG_RULE_APPROVAL_MODE;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface CodeTagAutoMatchRule extends TagAutoMatchRuleBase {
+  type: TAG_RULE_TYPE.code;
+  codePattern: string;
+  aiPrompt: null;
+}
+
+interface AITagAutoMatchRule extends TagAutoMatchRuleBase {
+  type: TAG_RULE_TYPE.ai;
+  codePattern: null;
+  aiPrompt: string;
+}
+
+export type TagAutoMatchRuleModel = CodeTagAutoMatchRule | AITagAutoMatchRule;
+
+export interface TagSuggestionModel {
+  userId: number;
+  transactionId: number;
+  tagId: number;
+  ruleId: string | null;
+  source: TAG_SUGGESTION_SOURCE;
+  createdAt: Date;
+}
+
+export interface TagSuggestionDismissalModel {
+  userId: number;
+  transactionId: number;
+  tagId: number;
+  createdAt: Date;
 }
 
 /**

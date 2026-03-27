@@ -1,19 +1,30 @@
 <script setup lang="ts">
 import { Card } from '@/components/lib/ui/card';
 import { ROUTES_NAMES } from '@/routes';
-import { ArrowRightLeftIcon } from 'lucide-vue-next';
+import { useTagSuggestionsCount } from '@/composable/use-tag-suggestions-count';
+import { ArrowRightLeftIcon, TagsIcon } from 'lucide-vue-next';
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
+const { hasPendingSuggestions } = useTagSuggestionsCount();
 
-const optimizations = [
+const optimizations = computed(() => [
   {
     icon: ArrowRightLeftIcon,
     titleKey: 'optimizations.cards.transfers.title',
     descriptionKey: 'optimizations.cards.transfers.description',
     route: ROUTES_NAMES.optimizationsTransfers,
+    showBadge: false,
   },
-];
+  {
+    icon: TagsIcon,
+    titleKey: 'optimizations.cards.tagSuggestions.title',
+    descriptionKey: 'optimizations.cards.tagSuggestions.description',
+    route: ROUTES_NAMES.optimizationsTagSuggestions,
+    showBadge: hasPendingSuggestions.value,
+  },
+]);
 </script>
 
 <template>
@@ -35,8 +46,9 @@ const optimizations = [
         @click="router.push({ name: item.route })"
       >
         <div class="flex items-start gap-4">
-          <div class="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
+          <div class="bg-primary/10 relative flex size-10 shrink-0 items-center justify-center rounded-lg">
             <component :is="item.icon" class="text-primary size-5" />
+            <span v-if="item.showBadge" class="bg-destructive absolute -top-1 -right-1 size-2.5 rounded-full" />
           </div>
           <div class="min-w-0">
             <h3 class="font-semibold">{{ $t(item.titleKey) }}</h3>

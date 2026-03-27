@@ -179,6 +179,12 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
       },
       {
+        path: '/transactions/optimizations/tag-suggestions',
+        name: ROUTES_NAMES.optimizationsTagSuggestions,
+        component: () => import('@/pages/optimizations/tag-suggestions/index.vue'),
+        meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
+      },
+      {
         path: '/import/csv',
         name: ROUTES_NAMES.importCsv,
         component: () => import('@/pages/import-export/csv-import.vue'),
@@ -219,6 +225,12 @@ const routes: RouteRecordRaw[] = [
             path: 'tags',
             name: ROUTES_NAMES.settingsTags,
             component: () => import('@/pages/settings/subpages/tags/index.vue'),
+            meta: { i18nChunks: ['settings/tags'] as I18nChunkName[] },
+          },
+          {
+            path: 'tags/:id',
+            name: ROUTES_NAMES.settingsTagDetails,
+            component: () => import('@/pages/settings/subpages/tags/tag-details.vue'),
             meta: { i18nChunks: ['settings/tags'] as I18nChunkName[] },
           },
           {

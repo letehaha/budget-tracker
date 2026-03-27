@@ -30,10 +30,25 @@ export interface CategorizationResult {
 }
 
 /**
+ * AI tag suggestion result for a single transaction
+ */
+export interface TagSuggestionResult {
+  transactionId: number;
+  tagId: number;
+}
+
+/**
  * Result of a categorization batch
  */
 export interface CategorizationBatchResult {
   successful: CategorizationResult[];
   failed: number[]; // Transaction IDs that couldn't be categorized
   errors?: string[];
+  /**
+   * Tag suggestions from AI.
+   * - `undefined`: tag matching was not enabled for this batch
+   * - `[]`: tag matching was enabled but no matches found
+   * - populated: tag matches found
+   */
+  tagSuggestions?: TagSuggestionResult[];
 }

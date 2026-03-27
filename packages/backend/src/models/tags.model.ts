@@ -2,6 +2,7 @@ import Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
 import { Table, Column, Model, ForeignKey, DataType, BelongsToMany, HasMany } from 'sequelize-typescript';
 
+import TagAutoMatchRules from './tag-auto-match-rules.model';
 import TagReminders from './tag-reminders.model';
 import TransactionTags from './transaction-tags.model';
 
@@ -41,4 +42,7 @@ export default class Tags extends Model {
 
   @HasMany(() => TagReminders, { foreignKey: 'tagId' })
   reminders!: TagReminders[];
+
+  @HasMany(() => TagAutoMatchRules, { foreignKey: 'tagId' })
+  autoMatchRules!: TagAutoMatchRules[];
 }

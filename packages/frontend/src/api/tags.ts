@@ -1,5 +1,8 @@
 import { api } from '@/api/_api';
 import {
+  TAG_RULE_APPROVAL_MODE,
+  TAG_RULE_TYPE,
+  TagAutoMatchRuleModel,
   TagModel,
   TagReminderFrequency,
   TagReminderModel,
@@ -103,4 +106,60 @@ export const updateReminder = async ({
 
 export const deleteReminder = async ({ tagId, id }: { tagId: number; id: number }): Promise<void> => {
   return api.delete(`/tags/${tagId}/reminders/${id}`);
+};
+
+// Tag Auto-Match Rules API
+
+type CreateAutoMatchRulePayload = {
+  approvalMode?: TAG_RULE_APPROVAL_MODE;
+} & (
+  | { type: TAG_RULE_TYPE.code; codePattern: string; aiPrompt?: never }
+  | { type: TAG_RULE_TYPE.ai; aiPrompt: string; codePattern?: never }
+);
+
+interface UpdateAutoMatchRulePayload {
+  approvalMode?: TAG_RULE_APPROVAL_MODE;
+  codePattern?: string;
+  aiPrompt?: string;
+  isEnabled?: boolean;
+}
+
+export const loadAutoMatchRules = async ({ tagId }: { tagId: number }): Promise<TagAutoMatchRuleModel[]> => {
+  return api.get(`/tags/${tagId}/auto-match-rules`);
+};
+
+export const createAutoMatchRule = async ({
+  tagId,
+  payload,
+}: {
+  tagId: number;
+  payload: CreateAutoMatchRulePayload;
+}): Promise<TagAutoMatchRuleModel> => {
+  return api.post(`/tags/${tagId}/auto-match-rules`, payload);
+};
+
+export const updateAutoMatchRule = async ({
+  tagId,
+  id,
+  payload,
+}: {
+  tagId: number;
+  id: string;
+  payload: UpdateAutoMatchRulePayload;
+}): Promise<TagAutoMatchRuleModel> => {
+  return api.put(`/tags/${tagId}/auto-match-rules/${id}`, payload);
+};
+
+export const deleteAutoMatchRule = async ({ tagId, id }: { tagId: number; id: string }): Promise<void> => {
+  return api.delete(`/tags/${tagId}/auto-match-rules/${id}`);
+};
+
+export const toggleAutoMatchRule = async ({
+  tagId,
+  id,
+}: {
+  tagId: number;
+  id: string;
+}): Promise<TagAutoMatchRuleModel> => {
+  return api.patch(`/tags/${tagId}/auto-match-rules/${id}/toggle`);
 };

@@ -1,4 +1,9 @@
 import { logger } from '@js/utils/logger';
+import {
+  getAITagRulesForUser,
+  processAITagSuggestions,
+  runCodeBasedMatching,
+} from '@services/tag-auto-matching/tag-auto-matching.service';
 import { Job, Queue, Worker } from 'bullmq';
 
 import { SSE_EVENT_TYPES, sseManager } from '../common/sse';
@@ -64,11 +69,47 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
       `[AI Categorization Worker] Processing job for user ${userId}, ${transactionIds.length} transactions, attempt ${job.attemptsMade + 1}`,
     );
 
+    // Step 1: Run code-based tag matching FIRST (deterministic, no AI call)
+    let codeMatchResult = { appliedCount: 0, suggestedCount: 0 };
+    try {
+      codeMatchResult = await runCodeBasedMatching({ userId, transactionIds });
+    } catch (error) {
+      logger.error({ message: '[Tag Matching] Code-based matching failed, continuing with AI', error: error as Error });
+    }
+
+    // Step 2: Load AI tag rules for combined call
+    let aiTagData: Awaited<ReturnType<typeof getAITagRulesForUser>> = null;
+    try {
+      aiTagData = await getAITagRulesForUser({ userId });
+    } catch (error) {
+      logger.error({
+        message: '[Tag Matching] Failed to load AI tag rules, continuing without tag matching',
+        error: error as Error,
+      });
+    }
+
+    // Step 3: Run AI categorization + tag matching in a single call
     const result = await categorizeTransactions({
       userId,
       transactionIds,
       totalTransactionCount: transactionIds.length,
+      tags: aiTagData?.tags,
     });
+
+    // Step 4: Process AI tag suggestions
+    let aiMatchResult = { appliedCount: 0, suggestedCount: 0 };
+    if (result.tagSuggestions && result.tagSuggestions.length > 0 && aiTagData) {
+      try {
+        aiMatchResult = await processAITagSuggestions({
+          userId,
+          suggestions: result.tagSuggestions,
+          aiRules: aiTagData.rules,
+          transactionIds,
+        });
+      } catch (error) {
+        logger.error({ message: '[Tag Matching] AI tag processing failed', error: error as Error });
+      }
+    }
 
     if (result.failed.length > 0) {
       logger.warn(`[AI Categorization Worker] ${result.failed.length} transactions failed for user ${userId}`);
@@ -77,6 +118,8 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
     return {
       successful: result.successful.length,
       failed: result.failed.length,
+      tagsApplied: codeMatchResult.appliedCount + aiMatchResult.appliedCount,
+      tagsSuggested: codeMatchResult.suggestedCount + aiMatchResult.suggestedCount,
     };
   },
   {

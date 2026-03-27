@@ -124,6 +124,11 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // optimizations
   bulkTransferScan: [transactionChange, 'bulk-transfer-scan'] as const,
 
+  // tag auto-matching
+  tagAutoMatchRules: ['tag-auto-match-rules'] as const,
+  tagSuggestions: [transactionChange, 'tag-suggestions'] as const,
+  tagSuggestionsCount: [transactionChange, 'tag-suggestions-count'] as const,
+
   // payment reminders
   remindersList: ['reminders-list'] as const,
   reminderDetails: ['reminder-details'] as const,

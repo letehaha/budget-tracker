@@ -260,6 +260,32 @@ export enum SUBSCRIPTION_CANDIDATE_STATUS {
 }
 
 /**
+ * Types of tag auto-matching rules
+ */
+export enum TAG_RULE_TYPE {
+  code = 'code',
+  ai = 'ai',
+}
+
+/**
+ * Approval modes for tag auto-matching rules
+ */
+export enum TAG_RULE_APPROVAL_MODE {
+  auto = 'auto',
+  manual = 'manual',
+}
+
+/**
+ * Source of a tag suggestion (for display purposes).
+ * Values intentionally mirror TAG_RULE_TYPE — a suggestion's source
+ * always corresponds to the rule type that generated it.
+ */
+export enum TAG_SUGGESTION_SOURCE {
+  code = 'code',
+  ai = 'ai',
+}
+
+/**
  * Payment reminder period statuses
  */
 export const PAYMENT_REMINDER_STATUSES = {

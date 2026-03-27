@@ -19,7 +19,7 @@
         "iconSearchPlaceholder": "Search icons...",
         "clearIcon": "Clear icon",
         "description": "Description",
-        "descriptionPlaceholder": "Optional description",
+        "descriptionPlaceholder": "Optional description (also used to improve AI auto-matching accuracy)",
         "saveButton": "Save",
         "previewPlaceholder": "Tag name"
       },
@@ -92,7 +92,28 @@
           "deleteSuccess": "Reminder deleted",
           "deleteFailed": "Failed to delete reminder"
         }
-      }
+      },
+      "autoMatch": "Auto-match",
+      "autoMatchDescription": "Define rules to automatically tag transactions based on their description.",
+      "addRule": "Add rule",
+      "editRule": "Edit rule",
+      "noRules": "No auto-match rules yet. Add a rule to start auto-tagging transactions.",
+      "deleteRuleTitle": "Delete rule?",
+      "deleteRuleDescription": "This rule will be permanently deleted. Existing tags applied by this rule will not be removed.",
+      "ruleType": "Rule type",
+      "ruleTypeCode": "Code",
+      "ruleTypeAi": "AI",
+      "approvalMode": "Approval mode",
+      "modeAuto": "Auto",
+      "modeManual": "Manual",
+      "modeAutoDescription": "Tags are applied automatically when a match is found.",
+      "modeManualDescription": "Matches create suggestions that you review before applying.",
+      "codePattern": "Match pattern",
+      "codePatternPlaceholder": "e.g. netflix, uber eats",
+      "aiPrompt": "AI matching prompt",
+      "aiPromptPlaceholder": "e.g. Anything related to car expenses, fuel, parking",
+      "aiRuleLimitReached": "Only one AI rule is allowed per tag.",
+      "remindersTabPlaceholder": "Manage reminders from the tag edit dialog."
     }
   }
 }

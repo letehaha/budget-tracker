@@ -6,13 +6,19 @@ import { getCategories } from '@models/categories.model';
 import Transactions from '@models/transactions.model';
 import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
 import { sseManager } from '@services/common/sse';
+import { TagForAIMatching } from '@services/tag-auto-matching/build-tag-prompt';
 import { markApiKeyInvalid, markApiKeyValid } from '@services/user-settings/ai-api-key';
 import { generateText } from 'ai';
 
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
-import { CategorizationBatchResult, CategorizationResult, TransactionForCategorization } from './types';
+import {
+  CategorizationBatchResult,
+  CategorizationResult,
+  TagSuggestionResult,
+  TransactionForCategorization,
+} from './types';
 import { buildCategoryList } from './utils/build-category-list';
-import { parseCategorizationResponse } from './utils/parse-response';
+import { parseCategorizationResponse, parseTagSuggestionResponse } from './utils/parse-response';
 
 /** Error message shown to user when API key is invalid */
 const INVALID_KEY_ERROR_MESSAGE =
@@ -35,23 +41,27 @@ interface CategorizeBatchResult extends CategorizationBatchResult {
 }
 
 /**
- * Categorize a batch of transactions using AI
+ * Categorize a batch of transactions using AI, optionally including tag matching
  */
 async function categorizeBatch({
   aiClient,
   transactions,
   categories,
+  tags,
 }: {
   aiClient: AIClientResult;
   transactions: TransactionForCategorization[];
   categories: Awaited<ReturnType<typeof getCategories>>;
+  tags?: TagForAIMatching[];
 }): Promise<CategorizeBatchResult> {
   const categoryList = buildCategoryList(categories);
+  const includeTagMatching = tags && tags.length > 0;
 
-  const systemPrompt = buildSystemPrompt();
+  const systemPrompt = buildSystemPrompt({ includeTagMatching });
   const userMessage = buildUserMessage({
     transactions,
     categories: categoryList,
+    tags: includeTagMatching ? tags : undefined,
   });
 
   try {
@@ -74,6 +84,7 @@ async function categorizeBatch({
       outputTokens,
       totalTokens,
       tokensPerTransaction,
+      includeTagMatching,
     });
 
     const validCategoryIds = new Set(categories.map((c) => c.id));
@@ -85,12 +96,24 @@ async function categorizeBatch({
       validTransactionIds,
     });
 
+    // Parse tag suggestions if tag matching is enabled
+    let tagSuggestions: TagSuggestionResult[] | undefined;
+    if (includeTagMatching) {
+      const validTagIds = new Set(tags.map((t) => t.id));
+      tagSuggestions = parseTagSuggestionResponse({
+        response: text,
+        validTagIds,
+        validTransactionIds,
+      });
+    }
+
     const successfulIds = new Set(results.map((r) => r.transactionId));
     const failed = transactions.filter((t) => !successfulIds.has(t.id)).map((t) => t.id);
 
     return {
       successful: results,
       failed,
+      tagSuggestions,
       tokenUsage: {
         inputTokens,
         outputTokens,
@@ -204,11 +227,14 @@ export async function categorizeTransactions({
   userId,
   transactionIds,
   totalTransactionCount,
+  tags,
 }: {
   userId: number;
   transactionIds: number[];
   /** Total transactions to process (for progress tracking). If not provided, uses transactionIds.length */
   totalTransactionCount?: number;
+  /** Tags with AI rules for combined tag matching. When provided, AI will also suggest tags. */
+  tags?: TagForAIMatching[];
 }): Promise<CategorizationBatchResult> {
   const totalCount = totalTransactionCount ?? transactionIds.length;
   // Create AI client for categorization feature
@@ -261,6 +287,7 @@ export async function categorizeTransactions({
     successful: [],
     failed: [],
     errors: [],
+    tagSuggestions: tags && tags.length > 0 ? [] : undefined,
   };
 
   // Track token usage across all batches for analysis
@@ -282,6 +309,7 @@ export async function categorizeTransactions({
       aiClient,
       transactions: batch,
       categories,
+      tags,
     });
 
     // Handle temporary errors (rate limit, server errors) - return early
@@ -359,6 +387,9 @@ export async function categorizeTransactions({
     allResults.failed.push(...batchResult.failed);
     if (batchResult.errors) {
       allResults.errors!.push(...batchResult.errors);
+    }
+    if (batchResult.tagSuggestions && allResults.tagSuggestions) {
+      allResults.tagSuggestions.push(...batchResult.tagSuggestions);
     }
 
     // Accumulate token usage
