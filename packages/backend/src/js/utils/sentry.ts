@@ -6,7 +6,7 @@ const SENTRY_DSN = process.env.SENTRY_DSN;
  * Check if Sentry should be enabled.
  * Only enabled in production with valid DSN.
  */
-function isSentryEnabled(): boolean {
+export function isSentryEnabled(): boolean {
   const isProduction = process.env.NODE_ENV === 'production';
   const hasDsn = Boolean(SENTRY_DSN);
 
@@ -37,25 +37,6 @@ export function initSentry(): void {
       // Express integration
       Sentry.expressIntegration(),
     ],
-    // Filter out noisy errors
-    ignoreErrors: [
-      // Network errors that are expected
-      'ECONNREFUSED',
-      'ECONNRESET',
-      'ETIMEDOUT',
-      // Client disconnects
-      'EPIPE',
-      'ENOTFOUND',
-    ],
-    // Before sending, add extra context
-    beforeSend(event, hint) {
-      // Don't send in non-production
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('[Sentry Debug]', hint.originalException);
-        return null;
-      }
-      return event;
-    },
   });
 }
 

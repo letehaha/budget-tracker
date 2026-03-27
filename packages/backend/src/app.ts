@@ -2,6 +2,7 @@ import './bootstrap';
 import './redis-client';
 
 import { logger } from '@js/utils/logger';
+import { Sentry } from '@js/utils/sentry';
 import express from 'express';
 import fs from 'fs';
 import https from 'https';
@@ -81,16 +82,20 @@ if (process.env.NODE_ENV !== 'test' && certsExist) {
 export { serverInstance };
 
 serverInstance.on('error', (error) => {
-  console.error('Server failed to start:', error);
+  logger.error(error);
 });
 
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  process.exit(1);
+  logger.error(error);
+  // Flush pending Sentry events before exiting
+  Sentry.close(2000).then(() => process.exit(1));
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+process.on('unhandledRejection', (reason) => {
+  logger.error({
+    message: 'Unhandled Rejection',
+    error: reason instanceof Error ? reason : new Error(String(reason)),
+  });
 });
 
 process.on('SIGINT', () => {
