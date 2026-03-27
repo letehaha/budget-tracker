@@ -6,7 +6,7 @@ import SecurityPricing from '@models/investments/security-pricing.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withDeduplication } from '@services/common/with-deduplication';
 import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
-import { Op, WhereOptions } from 'sequelize';
+import { Op, WhereOptions, fn, col } from 'sequelize';
 
 interface GetHoldingValuesParams {
   portfolioId: number;
@@ -79,35 +79,40 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     {} as Record<number, InvestmentTransaction[]>,
   );
 
-  // Build price query
+  // Build price query - fetch only the latest price per security
   const priceWhere: WhereOptions = {
     securityId: { [Op.in]: securityIds },
   };
 
   if (date) {
-    // Get prices for specific date (or closest before that date)
     priceWhere.date = { [Op.lte]: date };
   }
 
-  // Get the relevant prices
-  const prices = await SecurityPricing.findAll({
+  // Step 1: Get the latest price date for each security (fast GROUP BY on index)
+  const latestPriceDates = (await SecurityPricing.findAll({
     where: priceWhere,
-    order: [
-      ['securityId', 'ASC'],
-      ['date', 'DESC'], // Latest first
-    ],
-  });
+    attributes: ['securityId', [fn('MAX', col('date')), 'date']],
+    group: ['securityId'],
+    raw: true,
+  })) as unknown as Array<{ securityId: number; date: string }>;
 
-  // Group prices by securityId (latest/closest first due to ordering)
-  const pricesBySecurityId = prices.reduce(
-    (acc, price) => {
-      if (!acc[price.securityId]) {
-        acc[price.securityId] = price;
-      }
-      return acc;
-    },
-    {} as Record<number, SecurityPricing>,
-  );
+  // Step 2: Fetch only those specific price rows (exactly 1 per security)
+  const prices =
+    latestPriceDates.length > 0
+      ? await SecurityPricing.findAll({
+          where: {
+            [Op.or]: latestPriceDates.map((pd) => ({
+              securityId: pd.securityId,
+              date: pd.date,
+            })),
+          },
+        })
+      : [];
+
+  const pricesBySecurityId = Object.fromEntries(prices.map((price) => [price.securityId, price])) as Record<
+    number,
+    SecurityPricing
+  >;
 
   // Calculate market values for each holding
   const holdingValues: HoldingValue[] = [];

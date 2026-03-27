@@ -94,6 +94,12 @@ export const auth = betterAuth({
     modelName: 'ba_session',
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // Refresh session daily
+    // Cache session data in a signed cookie to avoid DB lookups on every request.
+    // Reduces ba_user queries from ~3.7k/week to ~100-200 (once per 5min per session).
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60, // 5 minutes
+    },
   },
   account: {
     modelName: 'ba_account',
