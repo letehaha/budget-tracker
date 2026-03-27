@@ -2,10 +2,38 @@
   <div class="max-w-100 min-w-70 space-y-3 p-2">
     <p class="mb-2 text-sm">{{ $t('syncStatusTooltip.title') }}</p>
 
-    <!-- Just completed: Show success message -->
-    <div v-if="showSuccessMessage" class="bg-success text-success-text flex items-center gap-2 rounded-md p-3 text-sm">
-      <CheckCircle2 class="size-5 shrink-0" />
-      <span class="font-medium">{{ $t('syncStatusTooltip.syncedSuccessfully') }}</span>
+    <!-- Just completed: Show success or failure message -->
+    <div
+      v-if="showSuccessMessage"
+      class="flex items-center gap-2 rounded-md p-3 text-sm"
+      :class="hasFailedAccounts ? 'bg-destructive/10 text-destructive-text' : 'bg-success text-success-text'"
+    >
+      <component :is="hasFailedAccounts ? XCircle : CheckCircle2" class="size-5 shrink-0" />
+      <span class="font-medium">{{
+        hasFailedAccounts ? $t('syncStatusTooltip.syncCompletedWithErrors') : $t('syncStatusTooltip.syncedSuccessfully')
+      }}</span>
+    </div>
+
+    <!-- Failed accounts list after completion -->
+    <div v-if="showSuccessMessage && failedAccounts.length > 0" class="max-h-40 space-y-2 overflow-y-auto">
+      <div
+        v-for="account in failedAccounts"
+        :key="account.accountId"
+        class="border-border flex items-center justify-between gap-2 rounded border p-2 text-xs"
+      >
+        <div class="flex-1 truncate">
+          <div class="max-w-50 truncate font-medium">{{ account.accountName }}</div>
+          <div class="text-muted-foreground text-[10px]">
+            {{ t(METAINFO_FROM_TYPE[account.providerType]?.nameKey ?? '') }}
+          </div>
+        </div>
+        <div class="flex shrink-0 items-center gap-1">
+          <XCircle class="text-destructive-text size-3" />
+          <span class="text-destructive-text text-[10px] font-medium uppercase">
+            {{ getStatusText(SyncStatus.FAILED) }}
+          </span>
+        </div>
+      </div>
     </div>
 
     <!-- Syncing in progress: Show progress bar + pending/syncing accounts -->
@@ -29,7 +57,7 @@
           </div>
         </div>
 
-        <!-- Active accounts (pending/syncing only) -->
+        <!-- Active accounts (pending/syncing/failed) -->
         <div v-if="activeAccounts.length > 0" class="max-h-60 space-y-2 overflow-y-auto">
           <div
             v-for="account in activeAccounts"
@@ -165,11 +193,22 @@ defineEmits<{
   triggerSync: [];
 }>();
 
-// Filter accounts to show only pending/queued/syncing during sync
+// Filter accounts to show pending/queued/syncing/failed during sync
 const activeAccounts = computed(() => {
   return props.accountStatuses.filter(
-    (account) => account.status === SyncStatus.QUEUED || account.status === SyncStatus.SYNCING,
+    (account) =>
+      account.status === SyncStatus.QUEUED ||
+      account.status === SyncStatus.SYNCING ||
+      account.status === SyncStatus.FAILED,
   );
+});
+
+const hasFailedAccounts = computed(() => {
+  return props.accountStatuses.some((account) => account.status === SyncStatus.FAILED);
+});
+
+const failedAccounts = computed(() => {
+  return props.accountStatuses.filter((account) => account.status === SyncStatus.FAILED);
 });
 
 const getStatusIcon = (status: SyncStatus) => {

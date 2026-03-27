@@ -782,6 +782,34 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         error: errorMessage,
         userId,
       });
+
+      // If session expired (403), mark the connection as expired so UI reflects it
+      if (error instanceof ForbiddenError) {
+        try {
+          const connection = await this.getConnection(connectionId);
+          const metadata = connection.metadata as unknown as EnableBankingMetadata;
+          const now = new Date().toISOString();
+
+          connection.isActive = false;
+          connection.metadata = {
+            ...metadata,
+            consentValidUntil: now,
+          } as any;
+          // Use { transaction: null } to bypass the current CLS transaction so
+          // this write is committed immediately even when the outer transaction rolls back.
+          // Other changes should indeed be rolled back, but since we catched the 403 session
+          // error, this exact connection status updation should not be rolled back
+          await connection.save({ transaction: null });
+
+          logger.info(`Connection ${connectionId} marked as expired due to 403 session error`);
+        } catch (updateError) {
+          logger.error({
+            message: 'Failed to mark connection as expired after 403 error',
+            error: updateError as Error,
+          });
+        }
+      }
+
       throw error; // Re-throw to maintain existing error handling
     }
   }

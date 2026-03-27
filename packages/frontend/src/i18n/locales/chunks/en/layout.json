@@ -50,6 +50,7 @@
   "syncStatusTooltip": {
     "title": "Banks connections sync status",
     "syncedSuccessfully": "Synced successfully",
+    "syncCompletedWithErrors": "Some accounts failed to sync",
     "progress": "{current} of {total} synced",
     "progressPercentage": "{percentage}%",
     "statuses": {
