@@ -484,55 +484,59 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       throw new BadRequestError({ message: t({ key: 'bankDataProviders.enableBanking.noActiveSession' }) });
     }
 
-    const apiClient = new EnableBankingApiClient(credentials);
-    const session = await apiClient.getSession(credentials.sessionId);
+    try {
+      const apiClient = new EnableBankingApiClient(credentials);
+      const session = await apiClient.getSession(credentials.sessionId);
 
-    // Fetch all account details and balances in parallel
-    const accountsData = await Promise.all(
-      session.accounts.map(async (accountId) => {
-        const [details, balances] = await Promise.all([
-          apiClient.getAccountDetails(accountId),
-          apiClient.getAccountBalances(accountId),
-        ]);
+      // Fetch all account details and balances in parallel
+      const accountsData = await Promise.all(
+        session.accounts.map(async (accountId) => {
+          const [details, balances] = await Promise.all([
+            apiClient.getAccountDetails(accountId),
+            apiClient.getAccountBalances(accountId),
+          ]);
 
-        // Get primary balance (prefer ITAV = Interim Available, then ITBD = Interim Booked)
-        const primaryBalance =
-          balances.find((b) => b.balance_type === 'ITAV') || // Interim Available
-          balances.find((b) => b.balance_type === 'ITBD') || // Interim Booked
-          balances.find((b) => b.balance_type === 'CLAV') || // Closing Available
-          balances.find((b) => b.balance_type === 'OPAV') || // Opening Available
-          balances[0];
+          // Get primary balance (prefer ITAV = Interim Available, then ITBD = Interim Booked)
+          const primaryBalance =
+            balances.find((b) => b.balance_type === 'ITAV') || // Interim Available
+            balances.find((b) => b.balance_type === 'ITBD') || // Interim Booked
+            balances.find((b) => b.balance_type === 'CLAV') || // Closing Available
+            balances.find((b) => b.balance_type === 'OPAV') || // Opening Available
+            balances[0];
 
-        // Convert balance from string to system amount (cents as integer)
-        const balanceFloat = primaryBalance?.balance_amount ? parseFloat(primaryBalance.balance_amount.amount) : 0;
-        const balanceSystemAmount = Money.fromDecimal(balanceFloat).toCents();
+          // Convert balance from string to system amount (cents as integer)
+          const balanceFloat = primaryBalance?.balance_amount ? parseFloat(primaryBalance.balance_amount.amount) : 0;
+          const balanceSystemAmount = Money.fromDecimal(balanceFloat).toCents();
 
-        return {
-          externalId: details.identification_hash,
-          name:
-            details.name ||
-            details.details ||
-            details.product ||
-            `Account ${details.account_id?.iban?.slice(-4) || accountId.slice(-4)}`,
-          type: 'debit' as const, // Enable Banking doesn't distinguish, default to debit
-          balance: balanceSystemAmount,
-          currency: details.currency,
-          metadata: {
-            iban: details.account_id?.iban,
-            product: details.product,
-            ownerName: details.owner_name,
-            accountServicer: details.account_servicer?.name,
-            bic: details.account_servicer?.bic_fi,
-            // Store the session-specific uid for API calls (balances, transactions)
-            uid: details.uid,
-            // Store complete raw payload for future reference and migrations
-            rawAccountData: details,
-          },
-        };
-      }),
-    );
+          return {
+            externalId: details.identification_hash,
+            name:
+              details.name ||
+              details.details ||
+              details.product ||
+              `Account ${details.account_id?.iban?.slice(-4) || accountId.slice(-4)}`,
+            type: 'debit' as const, // Enable Banking doesn't distinguish, default to debit
+            balance: balanceSystemAmount,
+            currency: details.currency,
+            metadata: {
+              iban: details.account_id?.iban,
+              product: details.product,
+              ownerName: details.owner_name,
+              accountServicer: details.account_servicer?.name,
+              bic: details.account_servicer?.bic_fi,
+              // Store the session-specific uid for API calls (balances, transactions)
+              uid: details.uid,
+              // Store complete raw payload for future reference and migrations
+              rawAccountData: details,
+            },
+          };
+        }),
+      );
 
-    return accountsData;
+      return accountsData;
+    } catch (error) {
+      return this.handleProviderError({ error, connectionId });
+    }
   }
 
   // ============================================================================
@@ -773,7 +777,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       // Set status to COMPLETED on success
       await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.COMPLETED, userId });
     } catch (error) {
-      console.error('Enable Banking sync error:', error);
+      logger.error({ message: 'Enable Banking sync error', error: error as Error });
       // Set status to FAILED on error
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       await setAccountSyncStatus({
@@ -783,34 +787,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         userId,
       });
 
-      // If session expired (403), mark the connection as expired so UI reflects it
-      if (error instanceof ForbiddenError) {
-        try {
-          const connection = await this.getConnection(connectionId);
-          const metadata = connection.metadata as unknown as EnableBankingMetadata;
-          const now = new Date().toISOString();
-
-          connection.isActive = false;
-          connection.metadata = {
-            ...metadata,
-            consentValidUntil: now,
-          } as any;
-          // Use { transaction: null } to bypass the current CLS transaction so
-          // this write is committed immediately even when the outer transaction rolls back.
-          // Other changes should indeed be rolled back, but since we catched the 403 session
-          // error, this exact connection status updation should not be rolled back
-          await connection.save({ transaction: null });
-
-          logger.info(`Connection ${connectionId} marked as expired due to 403 session error`);
-        } catch (updateError) {
-          logger.error({
-            message: 'Failed to mark connection as expired after 403 error',
-            error: updateError as Error,
-          });
-        }
-      }
-
-      throw error; // Re-throw to maintain existing error handling
+      return this.handleProviderError({ error, connectionId });
     }
   }
 
@@ -922,6 +899,43 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       redirect_url: redirectUrl,
       psu_type: PSUType.Personal,
     });
+  }
+
+  /**
+   * Generic provider error handler for API calls that use an active session.
+   * Handles ForbiddenError (403) by marking the connection as expired so the UI
+   * reflects the correct state. Always re-throws the original error so the caller
+   * can continue with its own error handling (e.g. setting sync status).
+   *
+   * Must be called with { transaction: null } awareness: the save bypasses the
+   * current CLS transaction intentionally so the update survives a rollback.
+   */
+  private async handleProviderError({ error, connectionId }: { error: unknown; connectionId: number }): Promise<never> {
+    if (error instanceof ForbiddenError) {
+      try {
+        const connection = await this.getConnection(connectionId);
+        const metadata = connection.metadata as unknown as EnableBankingMetadata;
+
+        connection.isActive = false;
+        const updatedMetadata: EnableBankingMetadata = {
+          ...metadata,
+          consentValidUntil: new Date().toISOString(),
+        };
+        connection.metadata = updatedMetadata as unknown as object;
+        // { transaction: null } bypasses the current CLS transaction so this write
+        // is committed immediately even if an outer transaction rolls back.
+        await connection.save({ transaction: null });
+
+        logger.info(`Connection ${connectionId} marked as expired due to 403 session error`);
+      } catch (updateError) {
+        logger.error(
+          { message: 'Failed to mark connection as expired after 403 error', error: updateError as Error },
+          { connectionId },
+        );
+      }
+    }
+
+    throw error;
   }
 
   /**

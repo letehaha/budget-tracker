@@ -8,33 +8,35 @@
       class="flex items-center gap-2 rounded-md p-3 text-sm"
       :class="hasFailedAccounts ? 'bg-destructive/10 text-destructive-text' : 'bg-success text-success-text'"
     >
-      <component :is="hasFailedAccounts ? XCircle : CheckCircle2" class="size-5 shrink-0" />
+      <component :is="hasFailedAccounts ? XCircleIcon : CheckCircle2" class="size-5 shrink-0" />
       <span class="font-medium">{{
         hasFailedAccounts ? $t('syncStatusTooltip.syncCompletedWithErrors') : $t('syncStatusTooltip.syncedSuccessfully')
       }}</span>
     </div>
 
     <!-- Failed accounts list after completion -->
-    <div v-if="showSuccessMessage && failedAccounts.length > 0" class="max-h-40 space-y-2 overflow-y-auto">
-      <div
-        v-for="account in failedAccounts"
-        :key="account.accountId"
-        class="border-border flex items-center justify-between gap-2 rounded border p-2 text-xs"
-      >
-        <div class="flex-1 truncate">
-          <div class="max-w-50 truncate font-medium">{{ account.accountName }}</div>
-          <div class="text-muted-foreground text-[10px]">
-            {{ t(METAINFO_FROM_TYPE[account.providerType]?.nameKey ?? '') }}
+    <ScrollArea v-if="showSuccessMessage && failedAccounts.length > 0" class="max-h-40">
+      <div class="space-y-2">
+        <div
+          v-for="account in failedAccounts"
+          :key="account.accountId"
+          class="border-border flex items-center justify-between gap-2 rounded border p-2 text-xs"
+        >
+          <div class="flex-1 truncate">
+            <div class="max-w-50 truncate font-medium">{{ account.accountName }}</div>
+            <div class="text-muted-foreground text-[10px]">
+              {{ getProviderName(account.providerType) }}
+            </div>
+          </div>
+          <div class="flex shrink-0 items-center gap-1">
+            <XCircleIcon class="text-destructive-text size-3" />
+            <span class="text-destructive-text text-[10px] font-medium uppercase">
+              {{ getStatusText(SyncStatus.FAILED) }}
+            </span>
           </div>
         </div>
-        <div class="flex shrink-0 items-center gap-1">
-          <XCircle class="text-destructive-text size-3" />
-          <span class="text-destructive-text text-[10px] font-medium uppercase">
-            {{ getStatusText(SyncStatus.FAILED) }}
-          </span>
-        </div>
       </div>
-    </div>
+    </ScrollArea>
 
     <!-- Syncing in progress: Show progress bar + pending/syncing accounts -->
     <div v-else-if="isSyncing">
@@ -58,30 +60,32 @@
         </div>
 
         <!-- Active accounts (pending/syncing/failed) -->
-        <div v-if="activeAccounts.length > 0" class="max-h-60 space-y-2 overflow-y-auto">
-          <div
-            v-for="account in activeAccounts"
-            :key="account.accountId"
-            class="border-border flex items-center justify-between gap-2 rounded border p-2 text-xs"
-          >
-            <div class="flex-1 truncate">
-              <div class="max-w-50 truncate font-medium">{{ account.accountName }}</div>
-              <div class="text-muted-foreground text-[10px]">
-                {{ t(METAINFO_FROM_TYPE[account.providerType]?.nameKey ?? '') }}
+        <ScrollArea v-if="activeAccounts.length > 0" class="max-h-60">
+          <div class="space-y-2">
+            <div
+              v-for="account in activeAccounts"
+              :key="account.accountId"
+              class="border-border flex items-center justify-between gap-2 rounded border p-2 text-xs"
+            >
+              <div class="flex-1 truncate">
+                <div class="max-w-50 truncate font-medium">{{ account.accountName }}</div>
+                <div class="text-muted-foreground text-[10px]">
+                  {{ getProviderName(account.providerType) }}
+                </div>
+              </div>
+              <div class="flex shrink-0 items-center gap-1">
+                <component
+                  :is="getStatusIcon(account.status)"
+                  :class="[getStatusColor(account.status), { 'animate-spin': account.status === SyncStatus.SYNCING }]"
+                  class="size-3"
+                />
+                <span :class="getStatusColor(account.status)" class="text-[10px] font-medium uppercase">
+                  {{ getStatusText(account.status) }}
+                </span>
               </div>
             </div>
-            <div class="flex shrink-0 items-center gap-1">
-              <component
-                :is="getStatusIcon(account.status)"
-                :class="[getStatusColor(account.status), { 'animate-spin': account.status === SyncStatus.SYNCING }]"
-                class="size-3"
-              />
-              <span :class="getStatusColor(account.status)" class="text-[10px] font-medium uppercase">
-                {{ getStatusText(account.status) }}
-              </span>
-            </div>
           </div>
-        </div>
+        </ScrollArea>
       </div>
     </div>
 
@@ -101,7 +105,7 @@
 
       <template v-else-if="categorizationJustCompleted && categorizationStatus?.status === 'failed'">
         <div class="flex items-center gap-2 text-xs text-red-500">
-          <XCircle class="size-4" />
+          <XCircleIcon class="size-4" />
           <span>{{ $t('header.categorization.failedShort') }}</span>
         </div>
       </template>
@@ -168,8 +172,18 @@
 import { type AccountSyncStatus, SyncStatus } from '@/api/bank-data-providers';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import type { AiCategorizationProgressPayload } from '@bt/shared/types';
-import { Building2, CheckCircle2, Circle, Clock, Loader2, RefreshCcw, SparklesIcon, XCircle } from 'lucide-vue-next';
+import {
+  Building2,
+  CheckCircle2,
+  Circle,
+  Clock,
+  Loader2,
+  RefreshCcw,
+  SparklesIcon,
+  XCircleIcon,
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -203,13 +217,22 @@ const activeAccounts = computed(() => {
   );
 });
 
-const hasFailedAccounts = computed(() => {
-  return props.accountStatuses.some((account) => account.status === SyncStatus.FAILED);
-});
-
 const failedAccounts = computed(() => {
   return props.accountStatuses.filter((account) => account.status === SyncStatus.FAILED);
 });
+
+const hasFailedAccounts = computed(() => {
+  return failedAccounts.value.length > 0;
+});
+
+const getProviderName = (providerType: string) => {
+  const meta = METAINFO_FROM_TYPE[providerType];
+  if (!meta) {
+    console.warn(`[sync-status-tooltip] Unknown provider type: ${providerType}`);
+    return '';
+  }
+  return t(meta.nameKey);
+};
 
 const getStatusIcon = (status: SyncStatus) => {
   switch (status) {
@@ -220,7 +243,7 @@ const getStatusIcon = (status: SyncStatus) => {
     case SyncStatus.COMPLETED:
       return CheckCircle2;
     case SyncStatus.FAILED:
-      return XCircle;
+      return XCircleIcon;
     default:
       return Circle;
   }
