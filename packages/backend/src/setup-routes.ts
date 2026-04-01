@@ -92,6 +92,25 @@ export function setupRoutes(app: Express) {
     app.use(`${API_PREFIX}/tests`, testsRoutes);
   }
 
+  // OAuth Protected Resource Metadata (RFC 9728)
+  // MCP clients discover the authorization server via this endpoint.
+  // Claude.ai fetches the path-aware form first, then falls back to root.
+  const protectedResourceHandler = (_req: Request, res: Response) => {
+    const baseURL = process.env.BETTER_AUTH_URL || 'https://localhost:8081';
+
+    res.json({
+      resource: `${baseURL}${API_PREFIX}/mcp`,
+      authorization_servers: [baseURL],
+      scopes_supported: ['finance:read', 'profile:read', 'offline_access'],
+      bearer_methods_supported: ['header'],
+    });
+  };
+
+  // Path-aware form (RFC 9728 Section 3.1) — Claude.ai tries this first
+  app.get(`/.well-known/oauth-protected-resource${API_PREFIX}/mcp`, protectedResourceHandler);
+  // Root form — fallback
+  app.get('/.well-known/oauth-protected-resource', protectedResourceHandler);
+
   // OAuth Authorization Server Metadata (RFC 8414)
   // MCP clients discover OAuth endpoints via /.well-known/oauth-authorization-server
   // We serve this at the root level since MCP clients look for it on the server's origin
@@ -100,7 +119,7 @@ export function setupRoutes(app: Express) {
     const authPath = `${baseURL}${API_PREFIX}/auth`;
 
     res.json({
-      issuer: authPath,
+      issuer: baseURL,
       authorization_endpoint: `${authPath}/oauth2/authorize`,
       token_endpoint: `${authPath}/oauth2/token`,
       registration_endpoint: `${authPath}/oauth2/register`,

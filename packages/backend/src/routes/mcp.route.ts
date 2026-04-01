@@ -34,11 +34,17 @@ async function authenticateMcpRequest(req: AuthenticatedRequest, res: Response):
     req.mcpAuthInfo = authInfo;
     return true;
   } catch {
-    res.status(401).json({
-      jsonrpc: '2.0',
-      error: { code: -32001, message: 'Unauthorized' },
-      id: null,
-    });
+    const baseURL = process.env.BETTER_AUTH_URL || 'https://localhost:8081';
+    const resourceMetadataUrl = `${baseURL}/.well-known/oauth-protected-resource`;
+
+    res
+      .status(401)
+      .set('WWW-Authenticate', `Bearer resource_metadata="${resourceMetadataUrl}"`)
+      .json({
+        jsonrpc: '2.0',
+        error: { code: -32001, message: 'Unauthorized' },
+        id: null,
+      });
     return false;
   }
 }
