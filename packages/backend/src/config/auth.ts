@@ -38,7 +38,13 @@ export const auth = betterAuth({
   database: pool,
   basePath: '/api/v1/auth',
   baseURL: process.env.BETTER_AUTH_URL || 'https://localhost:8081',
-  trustedOrigins: [process.env.AUTH_ORIGIN || 'https://localhost:8100'],
+  trustedOrigins: [
+    process.env.AUTH_ORIGIN || 'https://localhost:8100',
+    ...(process.env.ALLOWED_ORIGINS || '')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean),
+  ],
 
   // Custom table names with ba_ prefix to avoid conflicts
   user: {
@@ -96,6 +102,8 @@ export const auth = betterAuth({
     modelName: 'ba_session',
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // Refresh session daily
+    // Required by @better-auth/oauth-provider — sessions must be persisted in DB
+    storeSessionInDatabase: true,
     // Cache session data in a signed cookie to avoid DB lookups on every request.
     // Reduces ba_user queries from ~3.7k/week to ~100-200 (once per 5min per session).
     cookieCache: {
