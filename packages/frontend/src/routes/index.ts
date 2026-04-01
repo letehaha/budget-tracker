@@ -276,6 +276,11 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/pages/settings/subpages/security/index.vue'),
             meta: { i18nChunks: ['settings/security'] as I18nChunkName[] },
           },
+          {
+            path: 'ai-integrations',
+            name: ROUTES_NAMES.settingsAiIntegrations,
+            component: () => import('@/pages/settings/subpages/ai-integrations/index.vue'),
+          },
         ],
       },
     ],
@@ -324,6 +329,11 @@ const routes: RouteRecordRaw[] = [
         name: ROUTES_NAMES.authCallback,
         component: () => import('@/pages/auth/oauth-callback.vue'),
         meta: { i18nChunks: ['auth/welcome'] as I18nChunkName[] },
+      },
+      {
+        path: '/oauth/authorize',
+        name: ROUTES_NAMES.oauthAuthorize,
+        component: () => import('@/pages/auth/oauth-authorize.vue'),
       },
     ],
   },

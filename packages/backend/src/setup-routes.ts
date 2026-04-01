@@ -20,6 +20,7 @@ import githubRoutes from './routes/github.route';
 import csvImportExportRoutes from './routes/import-export/csv.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
 import investmentsRoutes from './routes/investments.route';
+import mcpRoutes from './routes/mcp.route';
 import notificationsRoutes from './routes/notifications.route';
 import paymentRemindersRoutes from './routes/payment-reminders.route';
 import sseRoutes from './routes/sse.route';
@@ -78,6 +79,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
   app.use(`${API_PREFIX}/payment-reminders`, paymentRemindersRoutes);
   app.use(`${API_PREFIX}/investments`, investmentsRoutes);
+  app.use(`${API_PREFIX}/mcp`, mcpRoutes);
   app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
   app.use(`${API_PREFIX}/import`, statementParserRoutes);
   app.use(`${API_PREFIX}/sse`, sseRoutes);
@@ -89,6 +91,29 @@ export function setupRoutes(app: Express) {
   if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
     app.use(`${API_PREFIX}/tests`, testsRoutes);
   }
+
+  // OAuth Authorization Server Metadata (RFC 8414)
+  // MCP clients discover OAuth endpoints via /.well-known/oauth-authorization-server
+  // We serve this at the root level since MCP clients look for it on the server's origin
+  app.get('/.well-known/oauth-authorization-server', (_req: Request, res: Response) => {
+    const baseURL = process.env.BETTER_AUTH_URL || 'https://localhost:8081';
+    const authPath = `${baseURL}${API_PREFIX}/auth`;
+
+    res.json({
+      issuer: authPath,
+      authorization_endpoint: `${authPath}/oauth2/authorize`,
+      token_endpoint: `${authPath}/oauth2/token`,
+      registration_endpoint: `${authPath}/oauth2/register`,
+      revocation_endpoint: `${authPath}/oauth2/revoke`,
+      introspection_endpoint: `${authPath}/oauth2/introspect`,
+      jwks_uri: `${authPath}/.well-known/jwks.json`,
+      response_types_supported: ['code'],
+      grant_types_supported: ['authorization_code', 'refresh_token'],
+      token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
+      code_challenge_methods_supported: ['S256'],
+      scopes_supported: ['finance:read', 'profile:read', 'offline_access'],
+    });
+  });
 
   // Block search engine crawling on the API subdomain
   app.get('/robots.txt', (_req, res) => {

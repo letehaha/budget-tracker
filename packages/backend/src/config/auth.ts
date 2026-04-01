@@ -1,3 +1,4 @@
+import { oauthProvider } from '@better-auth/oauth-provider';
 import { passkey } from '@better-auth/passkey';
 import { OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import { createSessionHooks } from '@config/auth-hooks/session-hooks';
@@ -6,6 +7,7 @@ import { identifyUser, trackSignup } from '@js/utils/posthog';
 import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
 import bcrypt from 'bcryptjs';
 import { betterAuth } from 'better-auth';
+import { jwt } from 'better-auth/plugins';
 import { Pool } from 'pg';
 import { Resend } from 'resend';
 
@@ -202,6 +204,23 @@ export const auth = betterAuth({
 
   // Plugins
   plugins: [
+    jwt(),
+    oauthProvider({
+      loginPage: `${process.env.AUTH_ORIGIN || 'https://localhost:8100'}/sign-in`,
+      consentPage: `${process.env.AUTH_ORIGIN || 'https://localhost:8100'}/oauth/authorize`,
+      scopes: ['finance:read', 'profile:read', 'offline_access'],
+      accessTokenExpiresIn: 72 * 60 * 60, // 72 hours
+      refreshTokenExpiresIn: 60 * 24 * 60 * 60, // 60 days
+      allowDynamicClientRegistration: true,
+      allowUnauthenticatedClientRegistration: false,
+      grantTypes: ['authorization_code', 'refresh_token'],
+      schema: {
+        oauthClient: { modelName: 'ba_oauth_client' },
+        oauthAccessToken: { modelName: 'ba_oauth_access_token' },
+        oauthRefreshToken: { modelName: 'ba_oauth_refresh_token' },
+        oauthConsent: { modelName: 'ba_oauth_consent' },
+      },
+    }),
     passkey({
       rpID: process.env.AUTH_RP_ID || 'localhost',
       rpName: process.env.AUTH_RP_NAME || 'MoneyMatter',
@@ -214,10 +233,10 @@ export const auth = betterAuth({
     }),
   ],
 
-  // Disable rate limiting in test/dev environments (including preview deploys).
-  // better-auth enables it by default when NODE_ENV=production.
+  // Enable rate limiting in production. Disable in test/dev environments
+  // to avoid flaky tests and local development friction.
   rateLimit: {
-    enabled: false,
+    enabled: process.env.NODE_ENV === 'production',
   },
 
   // Advanced options

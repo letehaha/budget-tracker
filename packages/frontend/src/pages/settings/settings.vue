@@ -64,6 +64,7 @@ import {
   CircleDollarSignIcon,
   KeyRoundIcon,
   LayersIcon,
+  PlugIcon,
   SettingsIcon,
   ShieldIcon,
   SparklesIcon,
@@ -153,6 +154,12 @@ const baseTabs = computed<Tab[]>(() => [
     label: t('settings.navigation.ai'),
     to: { name: ROUTES_NAMES.settingsAi },
     icon: SparklesIcon,
+  },
+  {
+    name: 'ai-integrations',
+    label: 'AI Integrations', // TODO: replace with t('settings.navigation.aiIntegrations') when i18n key is added
+    to: { name: ROUTES_NAMES.settingsAiIntegrations },
+    icon: PlugIcon,
   },
   {
     name: 'security',
