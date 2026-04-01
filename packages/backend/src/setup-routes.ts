@@ -134,6 +134,23 @@ export function setupRoutes(app: Express) {
     });
   });
 
+  // Claude.ai workaround: it ignores authorization_endpoint/token_endpoint from the
+  // AS metadata and hardcodes /authorize, /token, /register on the base URL.
+  // 307 redirects preserve the HTTP method (POST stays POST).
+  // See: https://github.com/anthropics/claude-ai-mcp/issues/82
+  const oauthProxyPaths: Record<string, string> = {
+    '/authorize': `${API_PREFIX}/auth/oauth2/authorize`,
+    '/token': `${API_PREFIX}/auth/oauth2/token`,
+    '/register': `${API_PREFIX}/auth/oauth2/register`,
+  };
+
+  for (const [shortPath, fullPath] of Object.entries(oauthProxyPaths)) {
+    app.all(shortPath, (req, res) => {
+      const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+      res.redirect(307, `${fullPath}${qs}`);
+    });
+  }
+
   // Block search engine crawling on the API subdomain
   app.get('/robots.txt', (_req, res) => {
     res.type('text/plain').send('User-agent: *\nDisallow: /');
