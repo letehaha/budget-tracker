@@ -21,8 +21,8 @@ function cleanupIdleSessions() {
     const idleTime = now - session.lastActivity;
     if (idleTime > IDLE_TIMEOUT_MS) {
       logger.info(`MCP: Cleaning up idle session ${sessionId}`);
-      session.transport.close();
       sessions.delete(sessionId);
+      session.transport.close();
     }
   }
 }
@@ -67,7 +67,7 @@ export function touchSession({ sessionId }: { sessionId: string }) {
 export function removeSession({ sessionId }: { sessionId: string }) {
   const session = sessions.get(sessionId);
   if (session) {
-    session.transport.close();
     sessions.delete(sessionId);
+    session.transport.close();
   }
 }
