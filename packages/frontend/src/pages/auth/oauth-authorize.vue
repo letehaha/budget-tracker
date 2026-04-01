@@ -89,7 +89,15 @@ const isSubmitting = ref(false);
 const { addNotification } = useNotificationCenter();
 
 const clientId = computed(() => (route.query.client_id as string) || '');
-const code = computed(() => (route.query.code as string) || '');
+
+// Reconstruct the full signed OAuth query string to send back to better-auth
+const oauthQuery = computed(() => {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(route.query)) {
+    if (value) params.set(key, String(value));
+  }
+  return params.toString();
+});
 
 const clientName = computed(() => {
   const id = clientId.value;
@@ -101,7 +109,7 @@ const clientName = computed(() => {
 async function submitConsent({ accept }: { accept: boolean }) {
   isSubmitting.value = true;
   try {
-    const response = await submitOAuthConsent({ code: code.value, accept });
+    const response = await submitOAuthConsent({ oauthQuery: oauthQuery.value, accept });
 
     if (response.redirected) {
       window.location.href = response.url;
@@ -110,8 +118,10 @@ async function submitConsent({ accept }: { accept: boolean }) {
 
     if (response.ok) {
       const data = await response.json();
-      if (data.redirectTo) {
-        window.location.href = data.redirectTo;
+      // better-auth returns the redirect URL as `url` or `redirectTo`
+      const redirectUrl = data.url || data.redirectTo;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
         return;
       }
     }

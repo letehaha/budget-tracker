@@ -32,6 +32,8 @@ async function authenticateMcpRequest(req: AuthenticatedRequest, res: Response):
     });
 
     req.mcpAuthInfo = authInfo;
+    // Set req.auth so the MCP SDK passes authInfo to tool handlers via extra.authInfo
+    (req as unknown as { auth: McpAuthInfo }).auth = authInfo;
     return true;
   } catch {
     const baseURL = process.env.BETTER_AUTH_URL || 'https://localhost:8081';

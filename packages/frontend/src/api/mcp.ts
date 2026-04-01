@@ -21,11 +21,17 @@ export function getMcpServerUrl(): string {
   return `${API_HTTP}/api/v1/mcp`;
 }
 
-export async function submitOAuthConsent({ code, accept }: { code: string; accept: boolean }): Promise<Response> {
+export async function submitOAuthConsent({
+  accept,
+  oauthQuery,
+}: {
+  accept: boolean;
+  oauthQuery: string;
+}): Promise<Response> {
   return fetch(`${API_HTTP}/api/v1/auth/oauth2/consent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ code, accept }),
+    body: JSON.stringify({ accept, oauth_query: oauthQuery }),
   });
 }

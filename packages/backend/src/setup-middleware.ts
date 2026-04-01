@@ -46,6 +46,15 @@ export function setupMiddleware(app: Express) {
 
   // Body parser with conditional limits
   app.use((req, res, next) => {
+    // Skip body parsing for better-auth routes — toNodeHandler reads the raw
+    // request stream and re-parses the body itself.  If Express consumes the
+    // stream first (especially for application/x-www-form-urlencoded), the
+    // body gets re-serialized as JSON while the Content-Type header stays
+    // urlencoded, causing a parsing mismatch in better-call.
+    if (req.path.startsWith(`${API_PREFIX}/auth/`)) {
+      return next();
+    }
+
     // Paths that need larger payloads
     const largePaths = {
       '1mb': [`${API_PREFIX}/investments/securities/prices/bulk-upload`],
@@ -80,7 +89,10 @@ export function setupMiddleware(app: Express) {
     return express.json()(req, res, next);
   });
 
-  app.use(express.urlencoded({ extended: false }));
+  app.use((req, res, next) => {
+    if (req.path.startsWith(`${API_PREFIX}/auth/`)) return next();
+    express.urlencoded({ extended: false })(req, res, next);
+  });
   if (process.env.NODE_ENV !== 'test') {
     app.use(morgan('dev'));
   }

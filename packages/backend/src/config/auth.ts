@@ -212,7 +212,13 @@ export const auth = betterAuth({
 
   // Plugins
   plugins: [
-    jwt(),
+    // jwt() must be loaded because @better-auth/oauth-provider references it
+    // internally even when disableJwtPlugin is true (unguarded getJwtPlugin calls).
+    jwt({
+      schema: {
+        jwks: { modelName: 'ba_jwks' },
+      },
+    }),
     oauthProvider({
       loginPage: `${process.env.AUTH_ORIGIN || 'https://localhost:8100'}/sign-in`,
       consentPage: `${process.env.AUTH_ORIGIN || 'https://localhost:8100'}/oauth/authorize`,
@@ -222,6 +228,13 @@ export const auth = betterAuth({
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
       grantTypes: ['authorization_code', 'refresh_token'],
+      // Use opaque tokens stored in DB (not JWTs) — our MCP auth verifies via DB lookup
+      disableJwtPlugin: true,
+      // MCP clients send the resource URL (e.g. /api/v1/mcp) as the token audience
+      validAudiences: [
+        process.env.BETTER_AUTH_URL || 'https://localhost:8081',
+        `${process.env.BETTER_AUTH_URL || 'https://localhost:8081'}${'/api/v1'}/mcp`,
+      ],
       schema: {
         oauthClient: { modelName: 'ba_oauth_client' },
         oauthAccessToken: { modelName: 'ba_oauth_access_token' },

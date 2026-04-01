@@ -113,8 +113,9 @@ export function setupRoutes(app: Express) {
 
   // OAuth Authorization Server Metadata (RFC 8414)
   // MCP clients discover OAuth endpoints via /.well-known/oauth-authorization-server
-  // We serve this at the root level since MCP clients look for it on the server's origin
-  app.get('/.well-known/oauth-authorization-server', (_req: Request, res: Response) => {
+  // Path-aware form (RFC 8414 Section 3.1) — MCP Inspector tries this first
+  // Root form — fallback for clients that don't use path-aware discovery
+  const asMetadataHandler = (_req: Request, res: Response) => {
     const baseURL = process.env.BETTER_AUTH_URL || 'https://localhost:8081';
     const authPath = `${baseURL}${API_PREFIX}/auth`;
 
@@ -132,7 +133,10 @@ export function setupRoutes(app: Express) {
       code_challenge_methods_supported: ['S256'],
       scopes_supported: ['finance:read', 'profile:read', 'offline_access'],
     });
-  });
+  };
+
+  app.get(`/.well-known/oauth-authorization-server${API_PREFIX}/mcp`, asMetadataHandler);
+  app.get('/.well-known/oauth-authorization-server', asMetadataHandler);
 
   // Claude.ai workaround: it ignores authorization_endpoint/token_endpoint from the
   // AS metadata and hardcodes /authorize, /token, /register on the base URL.

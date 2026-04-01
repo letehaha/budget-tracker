@@ -4,6 +4,7 @@ import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
 import Users from '@models/users.model';
 import { parseScopes } from '@services/mcp/tools/helpers';
+import { createHash } from 'node:crypto';
 
 type AppUser = Pick<Users, 'username' | 'id' | 'authUserId' | 'role'>;
 
@@ -34,17 +35,28 @@ export interface McpAuthInfo {
 }
 
 /**
+ * Hash a token the same way better-auth stores it: SHA-256, base64url, no padding.
+ */
+function hashToken({ token }: { token: string }): string {
+  const hash = createHash('sha256').update(token).digest();
+  return hash.toString('base64url');
+}
+
+/**
  * Verify an OAuth access token by querying the ba_oauth_access_token table directly.
+ * Tokens are stored as SHA-256 hashes (base64url) by better-auth's oauth-provider.
  * Resolves the app user from the auth user ID stored on the token.
  */
 async function verifyAccessToken({ token }: { token: string }): Promise<McpAuthInfo> {
+  const hashedToken = hashToken({ token });
+
   // Query the OAuth access token table directly
   const result = await authPool.query<TokenRow>(
     `SELECT "userId", "clientId", "scopes", "expiresAt"
      FROM "ba_oauth_access_token"
      WHERE "token" = $1
      LIMIT 1`,
-    [token],
+    [hashedToken],
   );
 
   const tokenRecord = result.rows[0];

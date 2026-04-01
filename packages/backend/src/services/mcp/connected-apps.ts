@@ -41,7 +41,7 @@ export async function getConnectedApps({ authUserId }: { authUserId: string }): 
          WHERE at."clientId" = c."id" AND at."userId" = $1
        ) AS "lastUsedAt"
      FROM "ba_oauth_consent" con
-     JOIN "ba_oauth_client" c ON con."clientId" = c."id"
+     JOIN "ba_oauth_client" c ON con."clientId" = c."clientId"
      WHERE con."userId" = $1
      ORDER BY con."createdAt" DESC`,
     [authUserId],

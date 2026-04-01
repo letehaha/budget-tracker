@@ -10,6 +10,35 @@ module.exports = {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
+      // Create jwks table (required by better-auth jwt() plugin for signing OAuth tokens)
+      await queryInterface.createTable(
+        'ba_jwks',
+        {
+          id: {
+            type: DataTypes.TEXT,
+            primaryKey: true,
+            allowNull: false,
+          },
+          publicKey: {
+            type: DataTypes.TEXT,
+            allowNull: false,
+          },
+          privateKey: {
+            type: DataTypes.TEXT,
+            allowNull: false,
+          },
+          createdAt: {
+            type: DataTypes.DATE,
+            allowNull: false,
+          },
+          expiresAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+          },
+        },
+        { transaction: t },
+      );
+
       // Create ba_oauth_client table
       await queryInterface.createTable(
         'ba_oauth_client',
@@ -169,11 +198,6 @@ module.exports = {
           clientId: {
             type: DataTypes.TEXT,
             allowNull: false,
-            references: {
-              model: 'ba_oauth_client',
-              key: 'id',
-            },
-            onDelete: 'CASCADE',
           },
           userId: {
             type: DataTypes.TEXT,
@@ -249,11 +273,6 @@ module.exports = {
           clientId: {
             type: DataTypes.TEXT,
             allowNull: false,
-            references: {
-              model: 'ba_oauth_client',
-              key: 'id',
-            },
-            onDelete: 'CASCADE',
           },
           userId: {
             type: DataTypes.TEXT,
@@ -323,11 +342,6 @@ module.exports = {
           clientId: {
             type: DataTypes.TEXT,
             allowNull: false,
-            references: {
-              model: 'ba_oauth_client',
-              key: 'id',
-            },
-            onDelete: 'CASCADE',
           },
           userId: {
             type: DataTypes.TEXT,
@@ -378,6 +392,7 @@ module.exports = {
       await queryInterface.dropTable('ba_oauth_refresh_token', { transaction: t });
       await queryInterface.dropTable('ba_oauth_access_token', { transaction: t });
       await queryInterface.dropTable('ba_oauth_client', { transaction: t });
+      await queryInterface.dropTable('ba_jwks', { transaction: t });
       await t.commit();
     } catch (err) {
       await t.rollback();
