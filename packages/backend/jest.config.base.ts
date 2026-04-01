@@ -17,6 +17,7 @@ export default {
     // Mock better-auth ESM modules with our CommonJS compatible versions
     '^better-auth$': '<rootDir>/src/tests/mocks/better-auth/index.ts',
     '^better-auth/node$': '<rootDir>/src/tests/mocks/better-auth/node.ts',
+    '^@better-auth/oauth-provider$': '<rootDir>/src/tests/mocks/better-auth/oauth-provider.ts',
     '^@better-auth/passkey$': '<rootDir>/src/tests/mocks/better-auth/passkey.ts',
     '@bt/shared/(.*)': '<rootDir>/../shared/src/$1',
     '@routes/(.*)': '<rootDir>/src/routes/$1',
