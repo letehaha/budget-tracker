@@ -172,7 +172,7 @@ jobs:
                 "ALLOWED_ORIGINS=https://pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "APP_SESSION_ID_SECRET=$PREVIEW_SESSION_SECRET" \
                 "BETTER_AUTH_SECRET=$PREVIEW_BETTER_AUTH_SECRET" \
-                "BETTER_AUTH_URL=https://pr-${PR_NUMBER}.preview.moneymatter.app" \
+                "BETTER_AUTH_URL=https://api-pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "AUTH_RP_ID=pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "AUTH_ORIGIN=https://pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "AUTH_RP_NAME=MoneyMatter-Preview" \

@@ -212,7 +212,7 @@ export const auth = betterAuth({
       accessTokenExpiresIn: 72 * 60 * 60, // 72 hours
       refreshTokenExpiresIn: 60 * 24 * 60 * 60, // 60 days
       allowDynamicClientRegistration: true,
-      allowUnauthenticatedClientRegistration: false,
+      allowUnauthenticatedClientRegistration: true,
       grantTypes: ['authorization_code', 'refresh_token'],
       schema: {
         oauthClient: { modelName: 'ba_oauth_client' },
