@@ -222,7 +222,10 @@ export const auth = betterAuth({
     oauthProvider({
       loginPage: `${process.env.AUTH_ORIGIN || 'https://localhost:8100'}/sign-in`,
       consentPage: `${process.env.AUTH_ORIGIN || 'https://localhost:8100'}/oauth/authorize`,
-      scopes: ['finance:read', 'profile:read', 'offline_access'],
+      // 'claudeai' is a no-op scope required as a workaround: Claude.ai adds it to
+      // client registration requests and better-auth rejects unknown scopes with 400.
+      // See: https://github.com/anthropics/claude-ai-mcp/issues/111
+      scopes: ['finance:read', 'profile:read', 'offline_access', 'claudeai'],
       accessTokenExpiresIn: 72 * 60 * 60, // 72 hours
       refreshTokenExpiresIn: 60 * 24 * 60 * 60, // 60 days
       allowDynamicClientRegistration: true,
