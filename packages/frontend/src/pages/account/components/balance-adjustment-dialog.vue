@@ -5,20 +5,18 @@ import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
 import { useAdjustAccountBalance } from '@/composable/data-queries/accounts';
+import { useAccountCurrencyCode } from '@/composable/use-account-currency-code';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
 import { toLocalNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { cn } from '@/lib/utils';
-import { useCurrenciesStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
-import { storeToRefs } from 'pinia';
 import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{ account: AccountModel }>();
 const emit = defineEmits<{ close: [] }>();
 
-const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const { mutateAsync: adjustBalance, isPending } = useAdjustAccountBalance();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { hasCreditLimitAdjustment, displayBalance } = useAccountDisplayBalance({
@@ -54,9 +52,7 @@ const { isFormValid, getFieldErrorMessage, touchField, resetValidation } = useFo
   },
 );
 
-const currencyCode = computed(
-  () => currenciesMap.value[props.account.currencyCode]?.currency?.code ?? props.account.currencyCode,
-);
+const currencyCode = useAccountCurrencyCode({ account: toRef(() => props.account) });
 
 // Actual target balance for the API (always in real currentBalance terms)
 const computedTarget = computed<number | null>(() => {

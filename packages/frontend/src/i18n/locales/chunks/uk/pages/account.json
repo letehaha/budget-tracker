@@ -133,6 +133,10 @@
       },
       "details": {
         "creditLimit": "Кредитний ліміт:",
+        "editCreditLimit": "Редагувати кредитний ліміт",
+        "creditLimitUpdateSuccess": "Кредитний ліміт оновлено",
+        "creditLimitUpdateError": "Не вдалося оновити кредитний ліміт",
+        "save": "Зберегти",
         "initialBalance": "Початковий баланс:",
         "accountType": "Тип рахунку:",
         "accountCategory": "Категорія рахунку:",

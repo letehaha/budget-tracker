@@ -3,23 +3,29 @@ import { ACCOUNT_CATEGORIES_TRANSLATION_KEYS } from '@/common/const';
 import * as Collapsible from '@/components/lib/ui/collapsible';
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
+import { useAccountCurrencyCode } from '@/composable/use-account-currency-code';
 import { toLocalNumber } from '@/js/helpers';
 import { useCurrenciesStore } from '@/stores';
-import { AccountModel } from '@bt/shared/types';
+import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
 import { ChevronDownIcon, ChevronUpIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { ref } from 'vue';
+import { computed, defineAsyncComponent, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+const CreditLimitEditPopover = defineAsyncComponent(() => import('./credit-limit-edit-popover.vue'));
 
 const { t } = useI18n();
 
-defineProps<{
+const props = defineProps<{
   account: AccountModel;
   tabName: string;
 }>();
 
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const isOpen = ref(false);
+
+const isSystemAccount = computed(() => props.account.type === ACCOUNT_TYPES.system);
+const currencyCode = useAccountCurrencyCode({ account: toRef(() => props.account) });
 </script>
 
 <template>
@@ -28,16 +34,18 @@ const isOpen = ref(false);
       <div class="flex items-center justify-between gap-2">
         <span>{{ t('pages.account.details.creditLimit') }}</span>
 
-        {{ toLocalNumber(account.creditLimit) }}
-        {{ currenciesMap[account.currencyCode]?.currency?.code }}
+        <div class="flex items-center gap-1.5">
+          <span>{{ toLocalNumber(account.creditLimit) }} {{ currencyCode }}</span>
+
+          <CreditLimitEditPopover v-if="isSystemAccount" :account="account" :currency-code="currencyCode" />
+        </div>
       </div>
       <Separator />
 
       <div class="flex items-center justify-between gap-2">
         <span>{{ t('pages.account.details.initialBalance') }}</span>
 
-        {{ toLocalNumber(account.initialBalance) }}
-        {{ currenciesMap[account.currencyCode]?.currency?.code }}
+        {{ toLocalNumber(account.initialBalance) }} {{ currencyCode }}
       </div>
       <Separator />
       <div class="flex items-center justify-between gap-2">
@@ -55,7 +63,7 @@ const isOpen = ref(false);
             <span>{{ t('pages.account.details.currency') }}</span>
 
             <div class="flex gap-2">
-              {{ currenciesMap[account.currencyCode]?.currency?.code }}
+              {{ currencyCode }}
 
               <span v-if="currenciesMap[account.currencyCode]?.isDefaultCurrency">
                 {{ t('pages.account.details.main') }}

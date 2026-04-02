@@ -52,12 +52,12 @@ describe('Payment Reminders', () => {
     it('creates a one-off reminder with minimal fields', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Property Tax',
-        dueDate: '2026-04-15',
+        dueDate: futureDate({ monthsAhead: 1, day: 15 }),
         raw: true,
       });
 
       expect(reminder.name).toBe('Property Tax');
-      expect(reminder.dueDate).toBe('2026-04-15');
+      expect(reminder.dueDate).toBe(futureDate({ monthsAhead: 1, day: 15 }));
       expect(reminder.frequency).toBeNull();
       expect(reminder.expectedAmount).toBeNull();
       expect(reminder.currencyCode).toBeNull();
@@ -68,13 +68,13 @@ describe('Payment Reminders', () => {
       expect(reminder.anchorDay).toBe(15);
       expect(reminder.periods).toHaveLength(1);
       expect(reminder.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
-      expect(reminder.periods[0]!.dueDate).toBe('2026-04-15');
+      expect(reminder.periods[0]!.dueDate).toBe(futureDate({ monthsAhead: 1, day: 15 }));
     });
 
     it('creates a recurring reminder with all fields', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Rent',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         expectedAmount: 120000,
         currencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
@@ -111,7 +111,7 @@ describe('Payment Reminders', () => {
 
       const reminder = await helpers.createPaymentReminder({
         name: 'ignored-name',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         subscriptionId: sub.id,
         raw: true,
       });
@@ -127,7 +127,7 @@ describe('Payment Reminders', () => {
     it('rejects creation with amount but no currency', async () => {
       const res = await helpers.createPaymentReminder({
         name: 'Bad Reminder',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         expectedAmount: 5000,
         raw: false,
       });
@@ -175,7 +175,7 @@ describe('Payment Reminders', () => {
     it('rejects creation with invalid preferredTime', async () => {
       const res = await helpers.createPaymentReminder({
         name: 'Bad Time',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         preferredTime: 7 as never,
         raw: false,
       });
@@ -186,12 +186,12 @@ describe('Payment Reminders', () => {
     it('lists reminders', async () => {
       await helpers.createPaymentReminder({
         name: 'Reminder A',
-        dueDate: '2026-05-01',
+        dueDate: futureDate({ monthsAhead: 2, day: 1 }),
         raw: true,
       });
       await helpers.createPaymentReminder({
         name: 'Reminder B',
-        dueDate: '2026-06-01',
+        dueDate: futureDate({ monthsAhead: 3, day: 1 }),
         raw: true,
       });
 
@@ -202,7 +202,7 @@ describe('Payment Reminders', () => {
     it('gets reminder by id', async () => {
       const created = await helpers.createPaymentReminder({
         name: 'Detail Reminder',
-        dueDate: '2026-04-15',
+        dueDate: futureDate({ monthsAhead: 1, day: 15 }),
         raw: true,
       });
 
@@ -222,7 +222,7 @@ describe('Payment Reminders', () => {
     it('updates a reminder', async () => {
       const created = await helpers.createPaymentReminder({
         name: 'Original',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -249,7 +249,7 @@ describe('Payment Reminders', () => {
 
       const reminder = await helpers.createPaymentReminder({
         name: 'ignored',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         subscriptionId: sub.id,
         raw: true,
       });
@@ -275,7 +275,7 @@ describe('Payment Reminders', () => {
 
       const reminder = await helpers.createPaymentReminder({
         name: 'ignored',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         subscriptionId: sub.id,
         raw: true,
       });
@@ -294,7 +294,7 @@ describe('Payment Reminders', () => {
     it('deletes a reminder', async () => {
       const created = await helpers.createPaymentReminder({
         name: 'To Delete',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -318,7 +318,7 @@ describe('Payment Reminders', () => {
     it('gets periods for a reminder', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Period Test',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         raw: true,
       });
@@ -330,14 +330,14 @@ describe('Payment Reminders', () => {
 
       expect(result.periods).toHaveLength(1);
       expect(result.total).toBe(1);
-      expect(result.periods[0]!.dueDate).toBe('2026-04-01');
+      expect(result.periods[0]!.dueDate).toBe(futureDate({ monthsAhead: 1, day: 1 }));
       expect(result.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
     });
 
     it('supports pagination on periods', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Paginated',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         raw: true,
       });
@@ -381,7 +381,7 @@ describe('Payment Reminders', () => {
     it('marks a period as paid without linking a transaction', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Pay Test',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -409,7 +409,7 @@ describe('Payment Reminders', () => {
 
       const reminder = await helpers.createPaymentReminder({
         name: 'Pay with TX',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -427,7 +427,7 @@ describe('Payment Reminders', () => {
     it('generates next period after marking recurring reminder as paid', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Recurring Pay',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         raw: true,
       });
@@ -447,13 +447,13 @@ describe('Payment Reminders', () => {
       // Find the new upcoming period
       const upcoming = result.periods.find((p) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
       expect(upcoming).toBeDefined();
-      expect(upcoming!.dueDate).toBe('2026-05-01');
+      expect(upcoming!.dueDate).toBe(futureDate({ monthsAhead: 2, day: 1 }));
     });
 
     it('does NOT generate next period for one-off reminder', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'One-off',
-        dueDate: '2026-04-15',
+        dueDate: futureDate({ monthsAhead: 1, day: 15 }),
         raw: true,
       });
 
@@ -475,7 +475,7 @@ describe('Payment Reminders', () => {
     it('rejects marking an already paid period', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Double Pay',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -507,7 +507,7 @@ describe('Payment Reminders', () => {
 
       const reminder = await helpers.createPaymentReminder({
         name: 'Duplicate TX',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         raw: true,
       });
@@ -543,7 +543,7 @@ describe('Payment Reminders', () => {
     it('skips a period', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Skip Test',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -559,7 +559,7 @@ describe('Payment Reminders', () => {
     it('generates next period after skipping recurring reminder period', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Skip Recurring',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         raw: true,
       });
@@ -578,13 +578,13 @@ describe('Payment Reminders', () => {
       expect(result.total).toBe(2);
       const upcoming = result.periods.find((p) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
       expect(upcoming).toBeDefined();
-      expect(upcoming!.dueDate).toBe('2026-05-01');
+      expect(upcoming!.dueDate).toBe(futureDate({ monthsAhead: 2, day: 1 }));
     });
 
     it('rejects skipping a paid period', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Skip Paid',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -606,7 +606,7 @@ describe('Payment Reminders', () => {
     it('rejects skipping an already skipped period', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Double Skip',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -640,7 +640,7 @@ describe('Payment Reminders', () => {
 
       const reminder = await helpers.createPaymentReminder({
         name: 'Unlink Test',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -839,7 +839,7 @@ describe('Payment Reminders', () => {
     it("cannot get another user's reminder by ID", async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'User1 Reminder',
-        dueDate: '2026-05-01',
+        dueDate: futureDate({ monthsAhead: 2, day: 1 }),
         raw: true,
       });
 
@@ -855,7 +855,7 @@ describe('Payment Reminders', () => {
     it("cannot update another user's reminder", async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'User1 Reminder',
-        dueDate: '2026-05-01',
+        dueDate: futureDate({ monthsAhead: 2, day: 1 }),
         raw: true,
       });
 
@@ -871,7 +871,7 @@ describe('Payment Reminders', () => {
     it("cannot delete another user's reminder", async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'User1 Reminder',
-        dueDate: '2026-05-01',
+        dueDate: futureDate({ monthsAhead: 2, day: 1 }),
         raw: true,
       });
 
@@ -887,7 +887,7 @@ describe('Payment Reminders', () => {
     it("cannot mark another user's period as paid", async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'User1 Reminder',
-        dueDate: '2026-05-01',
+        dueDate: futureDate({ monthsAhead: 2, day: 1 }),
         raw: true,
       });
 
@@ -908,7 +908,7 @@ describe('Payment Reminders', () => {
     it("listing reminders only returns the calling user's reminders", async () => {
       await helpers.createPaymentReminder({
         name: 'User1 Reminder',
-        dueDate: '2026-05-01',
+        dueDate: futureDate({ monthsAhead: 2, day: 1 }),
         raw: true,
       });
 
@@ -926,7 +926,7 @@ describe('Payment Reminders', () => {
     it('rejects marking a skipped period as paid', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Skip then Pay',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -948,12 +948,12 @@ describe('Payment Reminders', () => {
     it('returns 404 when period belongs to a different reminder', async () => {
       const reminder1 = await helpers.createPaymentReminder({
         name: 'Reminder 1',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
       const reminder2 = await helpers.createPaymentReminder({
         name: 'Reminder 2',
-        dueDate: '2026-05-01',
+        dueDate: futureDate({ monthsAhead: 2, day: 1 }),
         raw: true,
       });
 
@@ -970,7 +970,7 @@ describe('Payment Reminders', () => {
     it('allows marking an overdue period as paid', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Overdue Pay',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         raw: true,
       });
@@ -1004,12 +1004,12 @@ describe('Payment Reminders', () => {
     it('returns 404 when period belongs to a different reminder', async () => {
       const reminder1 = await helpers.createPaymentReminder({
         name: 'Reminder 1',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
       const reminder2 = await helpers.createPaymentReminder({
         name: 'Reminder 2',
-        dueDate: '2026-05-01',
+        dueDate: futureDate({ monthsAhead: 2, day: 1 }),
         raw: true,
       });
 
@@ -1027,12 +1027,12 @@ describe('Payment Reminders', () => {
     it('returns 404 when period belongs to a different reminder', async () => {
       const reminder1 = await helpers.createPaymentReminder({
         name: 'Reminder 1',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
       const reminder2 = await helpers.createPaymentReminder({
         name: 'Reminder 2',
-        dueDate: '2026-05-01',
+        dueDate: futureDate({ monthsAhead: 2, day: 1 }),
         raw: true,
       });
 
@@ -1048,7 +1048,7 @@ describe('Payment Reminders', () => {
     it('succeeds on a period with no transaction linked', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Unlink Empty',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -1074,7 +1074,7 @@ describe('Payment Reminders', () => {
     it('recalculates anchorDay when dueDate is updated', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Anchor Test',
-        dueDate: '2026-04-15',
+        dueDate: futureDate({ monthsAhead: 1, day: 15 }),
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         raw: true,
       });
@@ -1083,7 +1083,7 @@ describe('Payment Reminders', () => {
 
       const updated = await helpers.updatePaymentReminder({
         id: reminder.id,
-        dueDate: '2026-04-28',
+        dueDate: futureDate({ monthsAhead: 1, day: 28 }),
         raw: true,
       });
 
@@ -1094,7 +1094,7 @@ describe('Payment Reminders', () => {
       // Create with no amount/currency
       const reminder = await helpers.createPaymentReminder({
         name: 'Amount Only',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         raw: true,
       });
 
@@ -1217,7 +1217,7 @@ describe('Payment Reminders', () => {
     it('excludes inactive reminders by default', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'To Deactivate',
-        dueDate: '2026-05-01',
+        dueDate: futureDate({ monthsAhead: 2, day: 1 }),
         raw: true,
       });
 
@@ -1236,7 +1236,7 @@ describe('Payment Reminders', () => {
     it('includes inactive reminders when includeInactive=true', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Inactive Visible',
-        dueDate: '2026-05-01',
+        dueDate: futureDate({ monthsAhead: 2, day: 1 }),
         raw: true,
       });
 
@@ -1257,7 +1257,7 @@ describe('Payment Reminders', () => {
     it('deletes associated periods when reminder is deleted', async () => {
       const reminder = await helpers.createPaymentReminder({
         name: 'Cascade Test',
-        dueDate: '2026-04-01',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         raw: true,
       });
