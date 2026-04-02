@@ -18,24 +18,46 @@ export function setupMiddleware(app: Express) {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  app.use(
-    cors({
-      origin(requestOrigin, callback) {
-        if (process.env.NODE_ENV === 'test' || !requestOrigin) {
-          return callback(null, true);
-        }
+  // MCP/OAuth paths must allow any origin (MCP spec requires CORS for browser-based clients
+  // like Claude.ai that perform discovery and registration from the browser)
+  const MCP_CORS_PATHS = [
+    '/.well-known/',
+    `${API_PREFIX}/mcp`,
+    `${API_PREFIX}/auth/oauth2/`,
+    '/authorize',
+    '/token',
+    '/register',
+  ];
 
-        if (ALLOWED_ORIGINS.includes(requestOrigin)) {
-          return callback(null, true);
-        }
+  const mcpCors = cors({
+    origin: true,
+    credentials: true,
+    exposedHeaders: ['x-session-id', 'x-request-id'],
+  });
 
-        // Silently reject - don't throw error to avoid Sentry noise
-        return callback(null, false);
-      },
-      credentials: true,
-      exposedHeaders: ['x-session-id', 'x-request-id'],
-    }),
-  );
+  const appCors = cors({
+    origin(requestOrigin, callback) {
+      if (process.env.NODE_ENV === 'test' || !requestOrigin) {
+        return callback(null, true);
+      }
+
+      if (ALLOWED_ORIGINS.includes(requestOrigin)) {
+        return callback(null, true);
+      }
+
+      // Silently reject - don't throw error to avoid Sentry noise
+      return callback(null, false);
+    },
+    credentials: true,
+    exposedHeaders: ['x-session-id', 'x-request-id'],
+  });
+
+  app.use((req, res, next) => {
+    if (MCP_CORS_PATHS.some((p) => req.path.startsWith(p))) {
+      return mcpCors(req, res, next);
+    }
+    return appCors(req, res, next);
+  });
 
   logger.info(`CORS configured with origins: ${ALLOWED_ORIGINS}`);
 
