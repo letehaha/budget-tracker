@@ -210,7 +210,7 @@ describe('[Stats] Credit limit in statistics', () => {
         settings: { locale: 'en', includeCreditLimitInStats: true },
       });
 
-      // Create a foreign currency account with credit limit
+      // Create a foreign currency account with a credit limit set at creation
       const { account } = await helpers.createAccountWithNewCurrency({
         currency: 'EUR',
       });
@@ -222,17 +222,18 @@ describe('[Stats] Credit limit in statistics', () => {
         raw: true,
       });
 
-      // Re-fetch account to get updated refCreditLimit (API returns decimals, not Money)
+      // Re-fetch account to get updated refCreditLimit
       const updatedAccount = await helpers.getAccount({ id: account.id, raw: true });
 
       const today = format(new Date(), 'yyyy-MM-dd');
       const totalBalance = await helpers.getTotalBalance({ date: today, raw: true });
 
-      // The adjustment should use refCreditLimit (base currency), not creditLimit (EUR)
-      // API returns decimals, cast from Money type
-      const refBalance = Number(updatedAccount.refCurrentBalance);
+      // Credit limit doesn't affect balance, so refCurrentBalance stays at 0 (initial).
+      // Stats should subtract refCreditLimit (base currency), not creditLimit (EUR).
       const refLimit = Number(updatedAccount.refCreditLimit);
-      expect(totalBalance).toBe(refBalance - refLimit);
+      expect(refLimit).toBeGreaterThan(0);
+      // totalBalance = balance record (refInitialBalance=0) - refCreditLimit
+      expect(totalBalance).toBe(0 - refLimit);
     });
   });
 

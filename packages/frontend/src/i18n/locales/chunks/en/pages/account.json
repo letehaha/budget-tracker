@@ -133,6 +133,10 @@
       },
       "details": {
         "creditLimit": "Credit Limit:",
+        "editCreditLimit": "Edit credit limit",
+        "creditLimitUpdateSuccess": "Credit limit updated",
+        "creditLimitUpdateError": "Failed to update credit limit",
+        "save": "Save",
         "initialBalance": "Initial Balance:",
         "accountType": "Account Type:",
         "accountCategory": "Account Category:",

@@ -43,7 +43,7 @@ export const createAccount = createController(
       type: z.nativeEnum(ACCOUNT_TYPES).default(ACCOUNT_TYPES.system),
       // Amount fields now accept decimals - conversion to cents happens below
       initialBalance: z.number().optional().default(0),
-      creditLimit: z.number().optional().default(0),
+      creditLimit: z.number().min(0).optional().default(0),
     }),
   }),
   async ({ user, body }) => {
@@ -81,7 +81,7 @@ export const updateAccount = createController(
       accountCategory: z.nativeEnum(ACCOUNT_CATEGORIES).optional(),
       name: z.string().optional(),
       // Amount fields now accept decimals - conversion to cents happens below
-      creditLimit: z.number().optional(),
+      creditLimit: z.number().min(0).optional(),
       status: z.nativeEnum(ACCOUNT_STATUSES).optional(),
       excludeFromStats: z.boolean().optional(),
       currentBalance: z.number().optional(),
@@ -93,12 +93,12 @@ export const updateAccount = createController(
     const { accountCategory, name, creditLimit, status, excludeFromStats, currentBalance } = body;
 
     const account = await findOrThrowNotFound({
-      query: Accounts.findByPk(id),
+      query: Accounts.findOne({ where: { id, userId } }),
       message: `Account with id "${id}" doesn't exist.`,
     });
 
     if (account.type !== ACCOUNT_TYPES.system) {
-      if (creditLimit || currentBalance) {
+      if (creditLimit !== undefined || currentBalance !== undefined) {
         throw new ValidationError({
           message: `'creditLimit', 'currentBalance' are only allowed to be changed for "${ACCOUNT_TYPES.system}" account type`,
         });

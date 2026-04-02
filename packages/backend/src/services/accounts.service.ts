@@ -118,7 +118,7 @@ export const updateAccount = withTransaction(
   }: Accounts.UpdateAccountByIdPayload &
     (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>)) => {
     const accountData = await findOrThrowNotFound({
-      query: Accounts.default.findByPk(id),
+      query: Accounts.getAccountById({ id, userId: payload.userId }),
       message: t({ key: 'accounts.accountNotFound' }),
     });
 
@@ -140,8 +140,8 @@ export const updateAccount = withTransaction(
      * but without creating adjustment transaction, so instead we change both `initialBalance`
      * and `currentBalance` on the same diff
      */
-    if (currentBalanceIsChanging && payload.currentBalance !== undefined) {
-      const diff = payload.currentBalance.subtract(accountData.currentBalance);
+    if (currentBalanceIsChanging) {
+      const diff = payload.currentBalance!.subtract(accountData.currentBalance);
       const refDiff = await calculateRefAmount({
         userId: accountData.userId,
         amount: diff,
@@ -161,13 +161,31 @@ export const updateAccount = withTransaction(
       refCurrentBalance = refCurrentBalance.add(refDiff);
     }
 
+    // When credit limit changes, recalculate refCreditLimit for the new value.
+    // Credit limit is separate from balance — it doesn't affect currentBalance
+    // or refCurrentBalance. The display layer handles the visual impact via
+    // `displayBalance = currentBalance - creditLimit`.
+    const creditLimitIsChanging =
+      payload.creditLimit !== undefined && !payload.creditLimit.equals(accountData.creditLimit);
+    let adjustedRefCreditLimit: Money | undefined;
+
+    if (creditLimitIsChanging) {
+      adjustedRefCreditLimit = await calculateRefAmount({
+        userId: accountData.userId,
+        amount: payload.creditLimit!,
+        baseCode: accountData.currencyCode,
+        date: new Date(),
+      });
+    }
+
     const result = await Accounts.updateAccountById({
       id,
       externalId,
+      ...payload,
       initialBalance,
       refInitialBalance,
       refCurrentBalance,
-      ...payload,
+      ...(adjustedRefCreditLimit !== undefined ? { refCreditLimit: adjustedRefCreditLimit } : {}),
     });
 
     if (!result) {
