@@ -257,10 +257,10 @@ export const auth = betterAuth({
     }),
   ],
 
-  // Enable rate limiting in production. Disable in test/dev environments
-  // to avoid flaky tests and local development friction.
+  // Enable rate limiting in production only. Disable in test/dev/preview
+  // environments to avoid flaky Playwright tests and local dev friction.
   rateLimit: {
-    enabled: process.env.NODE_ENV === 'production',
+    enabled: process.env.NODE_ENV === 'production' && process.env.DISABLE_AUTH_RATE_LIMIT !== 'true',
   },
 
   // Advanced options

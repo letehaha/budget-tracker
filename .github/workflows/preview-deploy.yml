@@ -179,6 +179,7 @@ jobs:
                 "CURRENCY_RATES_API_URL=http://${CURRENCY_RATES_CONTAINER}:8080" \
                 "FRANKFURTER_BASE_URL=http://${FRANKFURTER_CONTAINER}:8080" \
                 "PREVIEW_DB_PASSWORD=$PREVIEW_DB_PASSWORD" \
+                "DISABLE_AUTH_RATE_LIMIT=true" \
                 > .env
 
               # Start DB + Redis first

@@ -1,45 +1,41 @@
-import { logger } from "@js/utils/logger";
-import { requestIdMiddleware } from "@middlewares/request-id";
-import { sessionMiddleware } from "@middlewares/session-id";
-import cors from "cors";
-import express, { Express, Request } from "express";
-import morgan from "morgan";
+import { logger } from '@js/utils/logger';
+import { requestIdMiddleware } from '@middlewares/request-id';
+import { sessionMiddleware } from '@middlewares/session-id';
+import cors from 'cors';
+import express, { Express, Request } from 'express';
+import morgan from 'morgan';
 
-import { API_PREFIX } from "./config";
-import { addI18nextToRequest, detectLanguage } from "./i18n/middleware";
+import { API_PREFIX } from './config';
+import { addI18nextToRequest, detectLanguage } from './i18n/middleware';
 
 export function setupMiddleware(app: Express) {
   app.use(requestIdMiddleware);
 
-  app.set("port", process.env.APPLICATION_PORT);
+  app.set('port', process.env.APPLICATION_PORT);
 
-  const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
-    .split(",")
+  const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
   // MCP/OAuth paths must allow any origin (MCP spec requires CORS for browser-based clients
   // like Claude.ai that perform discovery and registration from the browser)
-  const MCP_CORS_PREFIX_PATHS = [
-    "/.well-known/",
-    `${API_PREFIX}/mcp`,
-    `${API_PREFIX}/auth/oauth2/`,
-  ];
+  const MCP_CORS_PREFIX_PATHS = ['/.well-known/', `${API_PREFIX}/mcp`, `${API_PREFIX}/auth/oauth2/`];
   // Claude.ai ignores AS metadata and hardcodes /authorize, /token, /register on the
   // base URL (see setup-routes.ts oauthProxyPaths). These 307-redirect endpoints still
   // need permissive CORS so the browser preflight succeeds before the redirect.
   // WARNING: keep in sync with oauthProxyPaths in setup-routes.ts.
-  const MCP_CORS_EXACT_PATHS = new Set(["/authorize", "/token", "/register"]);
+  const MCP_CORS_EXACT_PATHS = new Set(['/authorize', '/token', '/register']);
 
   const mcpCors = cors({
     origin: true,
     credentials: true,
-    exposedHeaders: ["x-session-id", "x-request-id"],
+    exposedHeaders: ['x-session-id', 'x-request-id'],
   });
 
   const appCors = cors({
     origin(requestOrigin, callback) {
-      if (process.env.NODE_ENV === "test" || !requestOrigin) {
+      if (process.env.NODE_ENV === 'test' || !requestOrigin) {
         return callback(null, true);
       }
 
@@ -51,13 +47,11 @@ export function setupMiddleware(app: Express) {
       return callback(null, false);
     },
     credentials: true,
-    exposedHeaders: ["x-session-id", "x-request-id"],
+    exposedHeaders: ['x-session-id', 'x-request-id'],
   });
 
   app.use((req, res, next) => {
-    const isMcpPath =
-      MCP_CORS_PREFIX_PATHS.some((p) => req.path.startsWith(p)) ||
-      MCP_CORS_EXACT_PATHS.has(req.path);
+    const isMcpPath = MCP_CORS_PREFIX_PATHS.some((p) => req.path.startsWith(p)) || MCP_CORS_EXACT_PATHS.has(req.path);
     if (isMcpPath) {
       return mcpCors(req, res, next);
     }
@@ -84,8 +78,8 @@ export function setupMiddleware(app: Express) {
 
     // Paths that need larger payloads
     const largePaths = {
-      "1mb": [`${API_PREFIX}/investments/securities/prices/bulk-upload`],
-      "10mb": [
+      '1mb': [`${API_PREFIX}/investments/securities/prices/bulk-upload`],
+      '10mb': [
         `${API_PREFIX}/import/csv/parse`,
         `${API_PREFIX}/import/csv/extract-unique-values`,
         `${API_PREFIX}/import/csv/detect-duplicates`,
@@ -120,8 +114,8 @@ export function setupMiddleware(app: Express) {
     if (req.path.startsWith(`${API_PREFIX}/auth/`)) return next();
     express.urlencoded({ extended: false })(req, res, next);
   });
-  if (process.env.NODE_ENV !== "test") {
-    app.use(morgan("dev"));
+  if (process.env.NODE_ENV !== 'test') {
+    app.use(morgan('dev'));
   }
   app.use(sessionMiddleware);
   // i18next language detection middleware (uses Accept-Language header from frontend)
