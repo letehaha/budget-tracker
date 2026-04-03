@@ -2,7 +2,7 @@ import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
   // TODO: fix because it's wrong ignoring them
-  ignoreBinaries: ['knip', 'vue-tsc', 'vitest', 'storybook', 'playwright', 'oxlint'],
+  ignoreBinaries: ['knip', 'vue-tsc', 'vitest', 'storybook', 'playwright', 'oxlint', 'vite'],
   ignore: [
     'wallaby.js',
     'tests/**/**',
