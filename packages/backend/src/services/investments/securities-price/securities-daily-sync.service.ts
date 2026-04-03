@@ -128,9 +128,10 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
 
         result.successfulUpdates = securityPricesToUpsert.length;
         logger.info(`Bulk created/updated ${securityPricesToUpsert.length} security prices`);
-      } catch {
-        logger.warn(
-          `Bulk create failed, falling back to individual upserts for ${securityPricesToUpsert.length} records`,
+      } catch (bulkError) {
+        const bulkErrorMessage = bulkError instanceof Error ? bulkError.message : 'Unknown error';
+        logger.info(
+          `Bulk create failed (${bulkErrorMessage}), falling back to individual upserts for ${securityPricesToUpsert.length} records`,
         );
 
         for (const priceData of securityPricesToUpsert) {
@@ -151,7 +152,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
               error: errorMessage,
             });
 
-            logger.warn(
+            logger.error(
               `Failed to upsert price for security ${security?.symbol || priceData.securityId}: ${errorMessage}`,
             );
           }

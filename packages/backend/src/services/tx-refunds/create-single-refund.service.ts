@@ -103,7 +103,7 @@ export const createSingleRefund = withTransaction(
 
         // Check if refund amount is not greater than target amount
         // When targeting a split, compare against split's refAmount; otherwise use transaction's refAmount
-        const targetRefAmount = targetSplit ? Number(targetSplit.refAmount) : originalTx.refAmount.toNumber();
+        const targetRefAmount = targetSplit ? targetSplit.refAmount.toNumber() : originalTx.refAmount.toNumber();
         if (Math.abs(refundTx.refAmount.toNumber()) > Math.abs(targetRefAmount)) {
           throw new ValidationError({
             message: targetSplit
@@ -160,7 +160,7 @@ export const createSingleRefund = withTransaction(
         }, Math.abs(refundTx.refAmount.toNumber()));
 
         // Check if the new refund would exceed the target amount (split or transaction)
-        const targetRefAmount = targetSplit ? Number(targetSplit.refAmount) : originalTx.refAmount.toNumber();
+        const targetRefAmount = targetSplit ? targetSplit.refAmount.toNumber() : originalTx.refAmount.toNumber();
         if (totalRefundedAmount > Math.abs(targetRefAmount)) {
           throw new ValidationError({
             message: targetSplit

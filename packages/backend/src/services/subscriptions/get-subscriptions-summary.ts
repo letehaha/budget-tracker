@@ -51,6 +51,7 @@ const getSubscriptionsSummaryImpl = async ({ userId, type }: GetSubscriptionsSum
         userId,
         date: new Date(),
         baseCode: sub.expectedCurrencyCode!,
+        quoteCode: baseCurrencyCode,
       });
 
       const multiplier = MONTHLY_MULTIPLIERS[sub.frequency] ?? 1;
