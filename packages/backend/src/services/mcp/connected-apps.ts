@@ -92,7 +92,7 @@ export async function revokeConnectedApp({
       authUserId,
     ]);
     await client.query(`DELETE FROM "ba_oauth_consent" WHERE "clientId" = $1 AND "userId" = $2`, [
-      internalClientId,
+      clientId,
       authUserId,
     ]);
     await client.query('COMMIT');

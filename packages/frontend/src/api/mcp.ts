@@ -21,6 +21,13 @@ export function getMcpServerUrl(): string {
   return `${API_HTTP}/api/v1/mcp`;
 }
 
+/**
+ * Raw `fetch` is used intentionally here instead of the `api` client because
+ * the OAuth consent flow needs access to the raw `Response` object to detect
+ * HTTP redirects (`response.redirected`, `response.url`) and to read the
+ * response body conditionally. The `api` client unwraps responses automatically
+ * and doesn't expose the raw `Response`.
+ */
 export async function submitOAuthConsent({
   accept,
   oauthQuery,
@@ -34,4 +41,9 @@ export async function submitOAuthConsent({
     credentials: 'include',
     body: JSON.stringify({ accept, oauth_query: oauthQuery }),
   });
+}
+
+export function getOAuthAuthorizeUrl({ queryParams }: { queryParams: Record<string, string> }): string {
+  const params = new URLSearchParams(queryParams);
+  return `${API_HTTP}/api/v1/auth/oauth2/authorize?${params.toString()}`;
 }

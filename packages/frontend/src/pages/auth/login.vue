@@ -121,7 +121,7 @@
 </template>
 
 <script lang="ts" setup>
-import { API_HTTP } from '@/api/_api';
+import { getOAuthAuthorizeUrl } from '@/api/mcp';
 import { AuthDivider, GithubIcon, GoogleIcon, OAuthButton, PasskeyButton } from '@/components/auth';
 import { InputField } from '@/components/fields';
 import FormWrapper from '@/components/fields/form-wrapper.vue';
@@ -256,11 +256,11 @@ const navigateAfterLogin = () => {
   // If this login was triggered by an OAuth authorization flow, redirect back
   // to the authorize endpoint so better-auth can continue with consent.
   if (route.query.response_type && route.query.client_id) {
-    const params = new URLSearchParams();
+    const queryParams: Record<string, string> = {};
     for (const [key, value] of Object.entries(route.query)) {
-      if (value) params.set(key, String(value));
+      if (value) queryParams[key] = String(value);
     }
-    window.location.href = `${API_HTTP}/api/v1/auth/oauth2/authorize?${params.toString()}`;
+    window.location.href = getOAuthAuthorizeUrl({ queryParams });
     return;
   }
 

@@ -73,7 +73,7 @@ beforeAll(async () => {
   mswMockServer.listen({ onUnhandledRequest: 'bypass' });
   // Wait for i18next to fully load all locale files before tests run
   await i18nextReady;
-});
+}, 30_000);
 afterEach(() => {
   mswMockServer.resetHandlers();
   // Reset Enable Banking session counter to ensure test isolation

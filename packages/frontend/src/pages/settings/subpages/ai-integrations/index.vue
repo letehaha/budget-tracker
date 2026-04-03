@@ -56,8 +56,15 @@
           Apps that have access to your financial data. You can revoke access at any time.
         </p>
 
-        <div v-if="isLoading" class="flex items-center justify-center py-8">
-          <Loader2Icon class="text-muted-foreground size-6 animate-spin" />
+        <div v-if="isLoading" class="flex flex-col gap-3">
+          <div v-for="i in 2" :key="i" class="border-border flex items-center justify-between rounded-lg border p-4">
+            <div class="flex-1 space-y-2">
+              <div class="bg-muted/50 h-5 w-36 animate-pulse rounded" />
+              <div class="bg-muted/30 h-3 w-48 animate-pulse rounded" />
+              <div class="bg-muted/30 h-3 w-28 animate-pulse rounded" />
+            </div>
+            <div class="bg-muted/40 h-8 w-16 animate-pulse rounded" />
+          </div>
         </div>
 
         <div v-else-if="!connectedApps?.length" class="text-muted-foreground py-8 text-center text-sm">
@@ -114,14 +121,13 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useClipboard } from '@vueuse/core';
 import { format, formatDistanceToNow } from 'date-fns';
-import { BotIcon, CheckIcon, CopyIcon, Loader2Icon, PlugIcon, SparklesIcon } from 'lucide-vue-next';
+import { BotIcon, CheckIcon, CopyIcon, PlugIcon, SparklesIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
-import { useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
 
-const isRevoking = ref(false);
 const isRevokeDialogOpen = ref(false);
 const revokeTargetClientId = ref<string | null>(null);
 
@@ -133,6 +139,21 @@ const { data: connectedApps, isLoading } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.mcpConnectedApps,
   queryFn: getConnectedApps,
   placeholderData: [],
+});
+
+const { mutate: revokeMutation, isPending: isRevoking } = useMutation({
+  mutationFn: ({ clientId }: { clientId: string }) => revokeConnectedApp({ clientId }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.mcpConnectedApps });
+    addSuccessNotification('App access revoked successfully');
+  },
+  onError: () => {
+    addErrorNotification('Failed to revoke app access');
+  },
+  onSettled: () => {
+    isRevokeDialogOpen.value = false;
+    revokeTargetClientId.value = null;
+  },
 });
 
 function copyUrl() {
@@ -170,20 +191,8 @@ function handleRevoke(clientId: string) {
   isRevokeDialogOpen.value = true;
 }
 
-async function confirmRevoke() {
+function confirmRevoke() {
   if (!revokeTargetClientId.value) return;
-
-  isRevoking.value = true;
-  try {
-    await revokeConnectedApp({ clientId: revokeTargetClientId.value });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.mcpConnectedApps });
-    addSuccessNotification('App access revoked successfully');
-  } catch {
-    addErrorNotification('Failed to revoke app access');
-  } finally {
-    isRevoking.value = false;
-    isRevokeDialogOpen.value = false;
-    revokeTargetClientId.value = null;
-  }
+  revokeMutation({ clientId: revokeTargetClientId.value });
 }
 </script>

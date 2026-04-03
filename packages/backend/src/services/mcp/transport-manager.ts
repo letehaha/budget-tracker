@@ -1,3 +1,5 @@
+import { API_ERROR_CODES } from '@bt/shared/types';
+import { CustomError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
@@ -22,7 +24,13 @@ function cleanupIdleSessions() {
     if (idleTime > IDLE_TIMEOUT_MS) {
       logger.info(`MCP: Cleaning up idle session ${sessionId}`);
       sessions.delete(sessionId);
-      session.transport.close();
+      try {
+        session.transport.close();
+      } catch (err) {
+        logger.error(`Failed to close idle MCP session ${sessionId}`, {
+          error: (err as Error).message,
+        });
+      }
     }
   }
 }
@@ -47,7 +55,7 @@ export function registerSession({
   userId: number;
 }) {
   if (sessions.size >= MAX_SESSIONS) {
-    throw new Error('Maximum number of concurrent MCP sessions reached');
+    throw new CustomError(503, API_ERROR_CODES.unexpected, 'Maximum number of concurrent MCP sessions reached');
   }
 
   sessions.set(sessionId, {
@@ -68,6 +76,12 @@ export function removeSession({ sessionId }: { sessionId: string }) {
   const session = sessions.get(sessionId);
   if (session) {
     sessions.delete(sessionId);
-    session.transport.close();
+    try {
+      session.transport.close();
+    } catch (err) {
+      logger.error(`Failed to close MCP session ${sessionId}`, {
+        error: (err as Error).message,
+      });
+    }
   }
 }

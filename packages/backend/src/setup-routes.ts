@@ -22,6 +22,7 @@ import statementParserRoutes from './routes/import-export/text-source.route';
 import investmentsRoutes from './routes/investments.route';
 import mcpRoutes from './routes/mcp.route';
 import notificationsRoutes from './routes/notifications.route';
+import { setupOAuthMetadataRoutes } from './routes/oauth-metadata.route';
 import paymentRemindersRoutes from './routes/payment-reminders.route';
 import sseRoutes from './routes/sse.route';
 import statsRoutes from './routes/stats.route';
@@ -92,68 +93,7 @@ export function setupRoutes(app: Express) {
     app.use(`${API_PREFIX}/tests`, testsRoutes);
   }
 
-  // OAuth Protected Resource Metadata (RFC 9728)
-  // MCP clients discover the authorization server via this endpoint.
-  // Claude.ai fetches the path-aware form first, then falls back to root.
-  const protectedResourceHandler = (_req: Request, res: Response) => {
-    const baseURL = process.env.BETTER_AUTH_URL || 'https://localhost:8081';
-
-    res.json({
-      resource: `${baseURL}${API_PREFIX}/mcp`,
-      authorization_servers: [baseURL],
-      scopes_supported: ['finance:read', 'profile:read', 'offline_access'],
-      bearer_methods_supported: ['header'],
-    });
-  };
-
-  // Path-aware form (RFC 9728 Section 3.1) — Claude.ai tries this first
-  app.get(`/.well-known/oauth-protected-resource${API_PREFIX}/mcp`, protectedResourceHandler);
-  // Root form — fallback
-  app.get('/.well-known/oauth-protected-resource', protectedResourceHandler);
-
-  // OAuth Authorization Server Metadata (RFC 8414)
-  // MCP clients discover OAuth endpoints via /.well-known/oauth-authorization-server
-  // Path-aware form (RFC 8414 Section 3.1) — MCP Inspector tries this first
-  // Root form — fallback for clients that don't use path-aware discovery
-  const asMetadataHandler = (_req: Request, res: Response) => {
-    const baseURL = process.env.BETTER_AUTH_URL || 'https://localhost:8081';
-    const authPath = `${baseURL}${API_PREFIX}/auth`;
-
-    res.json({
-      issuer: baseURL,
-      authorization_endpoint: `${authPath}/oauth2/authorize`,
-      token_endpoint: `${authPath}/oauth2/token`,
-      registration_endpoint: `${authPath}/oauth2/register`,
-      revocation_endpoint: `${authPath}/oauth2/revoke`,
-      introspection_endpoint: `${authPath}/oauth2/introspect`,
-      jwks_uri: `${authPath}/.well-known/jwks.json`,
-      response_types_supported: ['code'],
-      grant_types_supported: ['authorization_code', 'refresh_token'],
-      token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
-      code_challenge_methods_supported: ['S256'],
-      scopes_supported: ['finance:read', 'profile:read', 'offline_access'],
-    });
-  };
-
-  app.get(`/.well-known/oauth-authorization-server${API_PREFIX}/mcp`, asMetadataHandler);
-  app.get('/.well-known/oauth-authorization-server', asMetadataHandler);
-
-  // Claude.ai workaround: it ignores authorization_endpoint/token_endpoint from the
-  // AS metadata and hardcodes /authorize, /token, /register on the base URL.
-  // 307 redirects preserve the HTTP method (POST stays POST).
-  // See: https://github.com/anthropics/claude-ai-mcp/issues/82
-  const oauthProxyPaths: Record<string, string> = {
-    '/authorize': `${API_PREFIX}/auth/oauth2/authorize`,
-    '/token': `${API_PREFIX}/auth/oauth2/token`,
-    '/register': `${API_PREFIX}/auth/oauth2/register`,
-  };
-
-  for (const [shortPath, fullPath] of Object.entries(oauthProxyPaths)) {
-    app.all(shortPath, (req, res) => {
-      const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
-      res.redirect(307, `${fullPath}${qs}`);
-    });
-  }
+  setupOAuthMetadataRoutes({ app });
 
   // Block search engine crawling on the API subdomain
   app.get('/robots.txt', (_req, res) => {

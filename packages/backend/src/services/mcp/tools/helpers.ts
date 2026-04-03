@@ -27,7 +27,9 @@ export function parseScopes({ scopes }: { scopes: string | null }): string[] {
   if (!scopes) return [];
 
   try {
-    return JSON.parse(scopes);
+    const parsed = JSON.parse(scopes);
+    if (Array.isArray(parsed)) return parsed;
+    return scopes.split(',').map((s) => s.trim());
   } catch {
     return scopes.split(',').map((s) => s.trim());
   }

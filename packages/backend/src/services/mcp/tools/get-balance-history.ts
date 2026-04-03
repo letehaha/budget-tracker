@@ -1,3 +1,4 @@
+import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { serializeBalanceHistory, serializeCombinedBalanceHistory } from '@root/serializers/stats.serializer';
 import { getBalanceHistoryForAccount } from '@services/stats/get-balance-history-for-account';
@@ -7,16 +8,23 @@ import { z } from 'zod';
 import { getUserId, jsonContent } from './helpers';
 
 export function registerGetBalanceHistory(server: McpServer) {
-  server.tool(
+  server.registerTool(
     'get_balance_history',
-    'Get account balance over time. If accountId is provided, returns balance history for that specific account. Otherwise, returns combined balance across all accounts.',
     {
-      startDate: z.string().optional().describe('Start date (ISO 8601). Default: 30 days ago'),
-      endDate: z.string().optional().describe('End date (ISO 8601). Default: today'),
-      accountId: z.number().optional().describe('Specific account ID. Omit for combined balance across all accounts.'),
+      description:
+        'Get account balance over time. If accountId is provided, returns balance history for that specific account. Otherwise, returns combined balance across all accounts.',
+      inputSchema: {
+        startDate: z.string().optional().describe('Start date (ISO 8601). Default: 30 days ago'),
+        endDate: z.string().optional().describe('End date (ISO 8601). Default: today'),
+        accountId: z
+          .number()
+          .optional()
+          .describe('Specific account ID. Omit for combined balance across all accounts.'),
+      },
     },
     async (args, extra) => {
       const userId = getUserId({ extra });
+      trackMcpToolUsed({ userId, tool: 'get_balance_history', clientId: extra.authInfo?.clientId });
 
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);

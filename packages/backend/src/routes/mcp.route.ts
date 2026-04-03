@@ -1,3 +1,4 @@
+import { CustomError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { McpAuthInfo, verifyMcpToken } from '@services/mcp/auth';
@@ -12,20 +13,49 @@ import {
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 
+import { BETTER_AUTH_BASE_URL } from '../config';
+
 const router = Router();
 
-// Start the idle session cleanup interval
-startSessionCleanup();
+// Start the idle session cleanup interval (skip in tests to avoid open handles)
+if (process.env.NODE_ENV !== 'test') {
+  startSessionCleanup();
+}
 
-interface AuthenticatedRequest extends Request {
-  mcpAuthInfo?: McpAuthInfo;
+declare module 'express' {
+  interface Request {
+    auth?: McpAuthInfo;
+    mcpAuthInfo?: McpAuthInfo;
+  }
+}
+
+/**
+ * Extract the MCP session ID from the request header, handling the string[] case.
+ */
+function getSessionId({ req }: { req: Request }): string | undefined {
+  const header = req.headers['mcp-session-id'];
+  return Array.isArray(header) ? header[0] : header;
+}
+
+/**
+ * Shared error handler for MCP route catch blocks.
+ */
+function handleMcpError({ error, res, label }: { error: unknown; res: Response; label: string }) {
+  logger.error(`MCP ${label} handler error`, { error: (error as Error).message });
+  if (!res.headersSent) {
+    res.status(500).json({
+      jsonrpc: '2.0',
+      error: { code: -32603, message: 'Internal server error' },
+      id: null,
+    });
+  }
 }
 
 /**
  * Authenticate MCP requests via OAuth bearer token.
  * Returns 401 if the token is missing, invalid, or expired.
  */
-async function authenticateMcpRequest(req: AuthenticatedRequest, res: Response): Promise<boolean> {
+async function authenticateMcpRequest({ req, res }: { req: Request; res: Response }): Promise<boolean> {
   try {
     const authInfo = await verifyMcpToken({
       authorizationHeader: req.headers.authorization,
@@ -33,11 +63,10 @@ async function authenticateMcpRequest(req: AuthenticatedRequest, res: Response):
 
     req.mcpAuthInfo = authInfo;
     // Set req.auth so the MCP SDK passes authInfo to tool handlers via extra.authInfo
-    (req as unknown as { auth: McpAuthInfo }).auth = authInfo;
+    req.auth = authInfo;
     return true;
   } catch {
-    const baseURL = process.env.BETTER_AUTH_URL || 'https://localhost:8081';
-    const resourceMetadataUrl = `${baseURL}/.well-known/oauth-protected-resource`;
+    const resourceMetadataUrl = `${BETTER_AUTH_BASE_URL}/.well-known/oauth-protected-resource`;
 
     res
       .status(401)
@@ -53,16 +82,10 @@ async function authenticateMcpRequest(req: AuthenticatedRequest, res: Response):
 
 /**
  * Lookup an existing session transport by session ID from the request header.
- * Returns the transport if found, or sends a 400 error and returns null.
+ * Returns the transport if found, or sends a 400/403 error and returns null.
  */
-function resolveSessionTransport({
-  req,
-  res,
-}: {
-  req: AuthenticatedRequest;
-  res: Response;
-}): StreamableHTTPServerTransport | null {
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
+function resolveSessionTransport({ req, res }: { req: Request; res: Response }): StreamableHTTPServerTransport | null {
+  const sessionId = getSessionId({ req });
 
   if (!sessionId) {
     res.status(400).json({
@@ -101,35 +124,23 @@ function resolveSessionTransport({
  * POST /api/v1/mcp — Handle MCP JSON-RPC requests (initialization + tool calls)
  */
 // oxlint-disable-next-line oxc/no-async-endpoint-handlers -- handler has internal try/catch for all async operations
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
-  if (!(await authenticateMcpRequest(req, res))) return;
+router.post('/', async (req: Request, res: Response) => {
+  if (!(await authenticateMcpRequest({ req, res }))) return;
 
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
+  const sessionId = getSessionId({ req });
 
   try {
     // Reuse existing transport for established sessions
     if (sessionId) {
-      const session = getSession({ sessionId });
+      const transport = resolveSessionTransport({ req, res });
+      if (!transport) return;
 
-      if (session) {
-        // Verify session belongs to authenticated user
-        if (session.userId !== req.mcpAuthInfo!.extra.userId) {
-          res.status(403).json({
-            jsonrpc: '2.0',
-            error: { code: -32001, message: 'Session does not belong to authenticated user' },
-            id: null,
-          });
-          return;
-        }
-
-        touchSession({ sessionId });
-        await session.transport.handleRequest(req, res, req.body);
-        return;
-      }
+      await transport.handleRequest(req, res, req.body);
+      return;
     }
 
     // New session — must be an initialization request
-    if (!sessionId && req.body?.method === 'initialize') {
+    if (req.body?.method === 'initialize') {
       const userId = req.mcpAuthInfo!.extra.userId;
 
       const transport = new StreamableHTTPServerTransport({
@@ -139,6 +150,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
         },
       });
 
+      // oxlint-disable-next-line unicorn/prefer-add-event-listener -- StreamableHTTPServerTransport only exposes onclose setter
       transport.onclose = () => {
         const sid = transport.sessionId;
         if (sid) removeSession({ sessionId: sid });
@@ -157,14 +169,17 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       id: null,
     });
   } catch (error) {
-    logger.error('MCP POST handler error', { error: (error as Error).message });
-    if (!res.headersSent) {
-      res.status(500).json({
-        jsonrpc: '2.0',
-        error: { code: -32603, message: 'Internal server error' },
-        id: null,
-      });
+    if (error instanceof CustomError && error.httpCode === 503) {
+      if (!res.headersSent) {
+        res.status(503).json({
+          jsonrpc: '2.0',
+          error: { code: -32000, message: (error as Error).message },
+          id: null,
+        });
+      }
+      return;
     }
+    handleMcpError({ error, res, label: 'POST' });
   }
 });
 
@@ -172,8 +187,8 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
  * GET /api/v1/mcp — SSE stream for server-to-client notifications
  */
 // oxlint-disable-next-line oxc/no-async-endpoint-handlers -- handler has internal try/catch for all async operations
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
-  if (!(await authenticateMcpRequest(req, res))) return;
+router.get('/', async (req: Request, res: Response) => {
+  if (!(await authenticateMcpRequest({ req, res }))) return;
 
   const transport = resolveSessionTransport({ req, res });
   if (!transport) return;
@@ -181,14 +196,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
     await transport.handleRequest(req, res);
   } catch (error) {
-    logger.error('MCP GET handler error', { error: (error as Error).message });
-    if (!res.headersSent) {
-      res.status(500).json({
-        jsonrpc: '2.0',
-        error: { code: -32603, message: 'Internal server error' },
-        id: null,
-      });
-    }
+    handleMcpError({ error, res, label: 'GET' });
   }
 });
 
@@ -196,10 +204,10 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
  * DELETE /api/v1/mcp — Terminate an MCP session
  */
 // oxlint-disable-next-line oxc/no-async-endpoint-handlers -- handler has internal try/catch for all async operations
-router.delete('/', async (req: AuthenticatedRequest, res: Response) => {
-  if (!(await authenticateMcpRequest(req, res))) return;
+router.delete('/', async (req: Request, res: Response) => {
+  if (!(await authenticateMcpRequest({ req, res }))) return;
 
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
+  const sessionId = getSessionId({ req });
 
   const transport = resolveSessionTransport({ req, res });
   if (!transport) return;
@@ -208,15 +216,8 @@ router.delete('/', async (req: AuthenticatedRequest, res: Response) => {
     await transport.handleRequest(req, res);
     if (sessionId) removeSession({ sessionId });
   } catch (error) {
-    logger.error('MCP DELETE handler error', { error: (error as Error).message });
     if (sessionId) removeSession({ sessionId });
-    if (!res.headersSent) {
-      res.status(500).json({
-        jsonrpc: '2.0',
-        error: { code: -32603, message: 'Internal server error' },
-        id: null,
-      });
-    }
+    handleMcpError({ error, res, label: 'DELETE' });
   }
 });
 

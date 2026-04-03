@@ -51,6 +51,10 @@ services:
     labels:
       - 'com.docker.compose.project=test'
 
+  # IMPORTANT: Docker Desktop must be allocated at least 10 GB RAM for tests to pass.
+  # With 6 Jest workers (~1 GB each) + Postgres (~512 MB) + Redis, total usage is ~7-8 GB.
+  # If workers get SIGKILL (OOM) or random tests timeout, check:
+  #   Docker Desktop → Settings → Resources → Memory (should be 12+ GB)
   test-runner:
     build:
       context: ../../..
