@@ -3,8 +3,8 @@ import { syncExchangeRates } from '@services/exchange-rates/sync-exchange-rates'
 import { CronJob } from 'cron';
 
 export const loadCurrencyRatesJob = new CronJob(
-  // Every day at 1am
-  '0 1 * * *',
+  // Every day at 18:00 UTC (after ECB publishes rates ~16:00 CET)
+  '0 18 * * *',
   async function () {
     try {
       await syncExchangeRates();
