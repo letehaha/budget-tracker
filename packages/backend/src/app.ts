@@ -40,43 +40,42 @@ logger.info('Attempting to start server...');
 
 let serverInstance: https.Server | ReturnType<typeof app.listen>;
 
-const certPath = path.join(__dirname, '../../../docker/dev/certs/cert.pem');
-const keyPath = path.join(__dirname, '../../../docker/dev/certs/key.pem');
-const certsExist = fs.existsSync(certPath) && fs.existsSync(keyPath);
+const isProduction = process.env.NODE_ENV === 'production';
+const isTest = process.env.NODE_ENV === 'test';
 
-// Use HTTPS when certs exist (dev or prod), HTTP for tests or when no certs
-if (process.env.NODE_ENV !== 'test' && certsExist) {
-  const httpsOptions = {
-    key: fs.readFileSync(keyPath),
-    cert: fs.readFileSync(certPath),
-  };
+const onServerReady = ({ protocol }: { protocol: 'http' | 'https' }) => {
+  const port = app.get('port') as number;
+  logger.info(`[OK] ${protocol.toUpperCase()} Server is running on ${protocol}://localhost:${port}`);
+  logger.info(`API Prefix: ${API_PREFIX}`);
+  initializeBackgroundJobs();
+};
 
-  serverInstance = https.createServer(httpsOptions, app);
-  serverInstance.listen(app.get('port'), () => {
-    logger.info(`[OK] HTTPS Server is running on https://localhost:${app.get('port')}`);
-    logger.info(`API Prefix: ${API_PREFIX}`);
-    initializeBackgroundJobs();
-  });
-} else if (process.env.NODE_ENV !== 'test' && !certsExist) {
-  // Non-test mode without certs - warn but allow HTTP (for CI/CD or reverse proxy setups)
-  logger.warn(`SSL certificates not found at ${certPath} and ${keyPath}`);
-  logger.warn('Running in HTTP mode. For HTTPS, run: cd docker/dev/certs && mkcert localhost 127.0.0.1 ::1');
-
-  serverInstance = app.listen(app.get('port'), () => {
-    logger.info(`[OK] HTTP Server is running on http://localhost:${app.get('port')}`);
-    logger.info(`API Prefix: ${API_PREFIX}`);
-    initializeBackgroundJobs();
-  });
+if (isTest) {
+  // Test mode: HTTP on a random port to avoid conflicts with parallel runs
+  serverInstance = app.listen(0, () => onServerReady({ protocol: 'http' }));
+} else if (isProduction) {
+  // Production: always HTTP — TLS is terminated by the reverse proxy (Traefik)
+  serverInstance = app.listen(app.get('port'), () => onServerReady({ protocol: 'http' }));
 } else {
-  // Test mode uses HTTP for simplicity
-  // Cause some tests can be parallelized, the port might be in use, so we need to allow dynamic port
-  serverInstance = app.listen(0, () => {
-    logger.info(
-      `[OK] ${String(process.env.NODE_ENV).toUpperCase()} server is running on http://localhost:${app.get('port')}`,
-    );
-    logger.info(`API Prefix: ${API_PREFIX}`);
-    initializeBackgroundJobs();
-  });
+  // Dev: use HTTPS if local certs exist, otherwise fall back to HTTP
+  const certPath = path.join(__dirname, '../../../docker/dev/certs/cert.pem');
+  const keyPath = path.join(__dirname, '../../../docker/dev/certs/key.pem');
+  const certsExist = fs.existsSync(certPath) && fs.existsSync(keyPath);
+
+  if (certsExist) {
+    const httpsOptions = {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath),
+    };
+
+    serverInstance = https.createServer(httpsOptions, app);
+    serverInstance.listen(app.get('port'), () => onServerReady({ protocol: 'https' }));
+  } else {
+    logger.warn(`SSL certificates not found at ${certPath} and ${keyPath}`);
+    logger.warn('Running in HTTP mode. For HTTPS, run: cd docker/dev/certs && mkcert localhost 127.0.0.1 ::1');
+
+    serverInstance = app.listen(app.get('port'), () => onServerReady({ protocol: 'http' }));
+  }
 }
 
 export { serverInstance };
