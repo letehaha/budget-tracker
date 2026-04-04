@@ -20,7 +20,7 @@ export function setupMiddleware(app: Express) {
 
   // MCP/OAuth paths must allow any origin (MCP spec requires CORS for browser-based clients
   // like Claude.ai that perform discovery and registration from the browser)
-  const MCP_CORS_PREFIX_PATHS = ['/.well-known/', `${API_PREFIX}/mcp`, `${API_PREFIX}/auth/oauth2/`];
+  const MCP_CORS_PREFIX_PATHS = ['/.well-known/', '/mcp', `${API_PREFIX}/auth/oauth2/`];
   // Claude.ai ignores AS metadata and hardcodes /authorize, /token, /register on the
   // base URL (see setup-routes.ts oauthProxyPaths). These 307-redirect endpoints still
   // need permissive CORS so the browser preflight succeeds before the redirect.

@@ -1,6 +1,6 @@
 import { Express, Request, Response } from 'express';
 
-import { API_PREFIX, BETTER_AUTH_BASE_URL } from '../config';
+import { API_PREFIX, MCP_BASE_URL } from '../config';
 
 const MCP_SCOPES_SUPPORTED = ['finance:read', 'profile:read', 'offline_access'];
 
@@ -16,15 +16,15 @@ export function setupOAuthMetadataRoutes({ app }: { app: Express }) {
   // Claude.ai fetches the path-aware form first, then falls back to root.
   const protectedResourceHandler = (_req: Request, res: Response) => {
     res.json({
-      resource: `${BETTER_AUTH_BASE_URL}${API_PREFIX}/mcp`,
-      authorization_servers: [BETTER_AUTH_BASE_URL],
+      resource: `${MCP_BASE_URL}/mcp`,
+      authorization_servers: [MCP_BASE_URL],
       scopes_supported: MCP_SCOPES_SUPPORTED,
       bearer_methods_supported: ['header'],
     });
   };
 
   // Path-aware form (RFC 9728 Section 3.1) — Claude.ai tries this first
-  app.get(`/.well-known/oauth-protected-resource${API_PREFIX}/mcp`, protectedResourceHandler);
+  app.get('/.well-known/oauth-protected-resource/mcp', protectedResourceHandler);
   // Root form — fallback
   app.get('/.well-known/oauth-protected-resource', protectedResourceHandler);
 
@@ -33,10 +33,10 @@ export function setupOAuthMetadataRoutes({ app }: { app: Express }) {
   // Path-aware form (RFC 8414 Section 3.1) — MCP Inspector tries this first
   // Root form — fallback for clients that don't use path-aware discovery
   const asMetadataHandler = (_req: Request, res: Response) => {
-    const authPath = `${BETTER_AUTH_BASE_URL}${API_PREFIX}/auth`;
+    const authPath = `${MCP_BASE_URL}${API_PREFIX}/auth`;
 
     res.json({
-      issuer: BETTER_AUTH_BASE_URL,
+      issuer: MCP_BASE_URL,
       authorization_endpoint: `${authPath}/oauth2/authorize`,
       token_endpoint: `${authPath}/oauth2/token`,
       registration_endpoint: `${authPath}/oauth2/register`,
@@ -51,7 +51,7 @@ export function setupOAuthMetadataRoutes({ app }: { app: Express }) {
     });
   };
 
-  app.get(`/.well-known/oauth-authorization-server${API_PREFIX}/mcp`, asMetadataHandler);
+  app.get('/.well-known/oauth-authorization-server/mcp', asMetadataHandler);
   app.get('/.well-known/oauth-authorization-server', asMetadataHandler);
 
   // Claude.ai workaround: it ignores authorization_endpoint/token_endpoint from the

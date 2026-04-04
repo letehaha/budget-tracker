@@ -60,6 +60,7 @@ jobs:
         with:
           api-base-url: https://api-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app
           vue-app-api-ver: /api/v1
+          mcp-base-url: https://mcp-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app
           image-tag: pr-${{ env.PR_NUMBER }}
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
@@ -173,6 +174,7 @@ jobs:
                 "APP_SESSION_ID_SECRET=$PREVIEW_SESSION_SECRET" \
                 "BETTER_AUTH_SECRET=$PREVIEW_BETTER_AUTH_SECRET" \
                 "BETTER_AUTH_URL=https://api-pr-${PR_NUMBER}.preview.moneymatter.app" \
+                "MCP_BASE_URL=https://mcp-pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "AUTH_RP_ID=pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "AUTH_ORIGIN=https://pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "AUTH_RP_NAME=MoneyMatter-Preview" \
@@ -248,6 +250,7 @@ jobs:
             |---------|-----|
             | Frontend | https://pr-${{ env.PR_NUMBER }}.preview.moneymatter.app |
             | API | https://api-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app |
+            | MCP | https://mcp-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app/mcp |
 
             _Last deployed: ${{ github.sha }} at ${{ github.event.pull_request.updated_at }}_
 

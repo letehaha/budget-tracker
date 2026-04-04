@@ -13,7 +13,7 @@ import {
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 
-import { BETTER_AUTH_BASE_URL } from '../config';
+import { MCP_BASE_URL } from '../config';
 
 const router = Router();
 
@@ -66,7 +66,7 @@ async function authenticateMcpRequest({ req, res }: { req: Request; res: Respons
     req.auth = authInfo;
     return true;
   } catch {
-    const resourceMetadataUrl = `${BETTER_AUTH_BASE_URL}/.well-known/oauth-protected-resource`;
+    const resourceMetadataUrl = `${MCP_BASE_URL}/.well-known/oauth-protected-resource`;
 
     res
       .status(401)
@@ -121,7 +121,7 @@ function resolveSessionTransport({ req, res }: { req: Request; res: Response }):
 }
 
 /**
- * POST /api/v1/mcp — Handle MCP JSON-RPC requests (initialization + tool calls)
+ * POST /mcp — Handle MCP JSON-RPC requests (initialization + tool calls)
  */
 // oxlint-disable-next-line oxc/no-async-endpoint-handlers -- handler has internal try/catch for all async operations
 router.post('/', async (req: Request, res: Response) => {
@@ -184,7 +184,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/v1/mcp — SSE stream for server-to-client notifications
+ * GET /mcp — SSE stream for server-to-client notifications
  */
 // oxlint-disable-next-line oxc/no-async-endpoint-handlers -- handler has internal try/catch for all async operations
 router.get('/', async (req: Request, res: Response) => {
@@ -201,7 +201,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/v1/mcp — Terminate an MCP session
+ * DELETE /mcp — Terminate an MCP session
  */
 // oxlint-disable-next-line oxc/no-async-endpoint-handlers -- handler has internal try/catch for all async operations
 router.delete('/', async (req: Request, res: Response) => {

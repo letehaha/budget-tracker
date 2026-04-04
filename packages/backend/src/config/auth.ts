@@ -233,10 +233,11 @@ export const auth = betterAuth({
       grantTypes: ['authorization_code', 'refresh_token'],
       // Use opaque tokens stored in DB (not JWTs) — our MCP auth verifies via DB lookup
       disableJwtPlugin: true,
-      // MCP clients send the resource URL (e.g. /api/v1/mcp) as the token audience
+      // MCP clients send the resource URL (e.g. https://mcp.moneymatter.app/mcp) as the token audience
       validAudiences: [
         process.env.BETTER_AUTH_URL || 'https://localhost:8081',
-        `${process.env.BETTER_AUTH_URL || 'https://localhost:8081'}${'/api/v1'}/mcp`,
+        process.env.MCP_BASE_URL || process.env.BETTER_AUTH_URL || 'https://localhost:8081',
+        `${process.env.MCP_BASE_URL || process.env.BETTER_AUTH_URL || 'https://localhost:8081'}/mcp`,
       ],
       schema: {
         oauthClient: { modelName: 'ba_oauth_client' },

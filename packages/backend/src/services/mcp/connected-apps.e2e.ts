@@ -162,7 +162,7 @@ describe('OAuth Discovery Endpoints', () => {
     });
 
     it('returns same metadata from path-aware form', async () => {
-      const res = await request(app).get('/.well-known/oauth-authorization-server/api/v1/mcp');
+      const res = await request(app).get('/.well-known/oauth-authorization-server/mcp');
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({
@@ -185,7 +185,7 @@ describe('OAuth Discovery Endpoints', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({
-        resource: expect.stringContaining('/api/v1/mcp'),
+        resource: expect.stringContaining('/mcp'),
         authorization_servers: expect.any(Array),
         scopes_supported: expect.arrayContaining(['finance:read', 'profile:read', 'offline_access']),
         bearer_methods_supported: ['header'],
@@ -194,11 +194,11 @@ describe('OAuth Discovery Endpoints', () => {
     });
 
     it('returns valid OAuth protected resource metadata from path-aware form', async () => {
-      const res = await request(app).get('/.well-known/oauth-protected-resource/api/v1/mcp');
+      const res = await request(app).get('/.well-known/oauth-protected-resource/mcp');
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({
-        resource: expect.stringContaining('/api/v1/mcp'),
+        resource: expect.stringContaining('/mcp'),
         authorization_servers: expect.any(Array),
         scopes_supported: expect.arrayContaining(['finance:read', 'profile:read', 'offline_access']),
         bearer_methods_supported: ['header'],

@@ -18,7 +18,10 @@ export const revokeConnectedApp = async ({ clientId }: { clientId: string }): Pr
 };
 
 export function getMcpServerUrl(): string {
-  return `${API_HTTP}/api/v1/mcp`;
+  if (import.meta.env.VITE_MCP_BASE_URL) {
+    return `${import.meta.env.VITE_MCP_BASE_URL}/mcp`;
+  }
+  return `${API_HTTP}/mcp`;
 }
 
 /**

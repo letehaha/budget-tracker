@@ -80,7 +80,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
   app.use(`${API_PREFIX}/payment-reminders`, paymentRemindersRoutes);
   app.use(`${API_PREFIX}/investments`, investmentsRoutes);
-  app.use(`${API_PREFIX}/mcp`, mcpRoutes);
+  app.use('/mcp', mcpRoutes);
   app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
   app.use(`${API_PREFIX}/import`, statementParserRoutes);
   app.use(`${API_PREFIX}/sse`, sseRoutes);
