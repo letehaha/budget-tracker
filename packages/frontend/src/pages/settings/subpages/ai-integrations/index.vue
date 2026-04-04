@@ -32,18 +32,102 @@
       <div>
         <h3 class="mb-2 text-lg font-medium">Quick Connect</h3>
         <p class="text-muted-foreground mb-4 text-sm leading-relaxed">
-          Click a button to open the AI assistant's settings page where you can paste the MCP server URL.
+          Choose an AI assistant below. Click the button to open its settings, then follow the steps.
         </p>
 
-        <div class="flex flex-wrap gap-3">
-          <UiButton variant="outline" class="gap-2" @click="openClaudeSettings">
-            <SparklesIcon class="size-4" />
-            Connect to Claude
-          </UiButton>
-          <UiButton variant="outline" class="gap-2" @click="openChatGptSettings">
-            <BotIcon class="size-4" />
-            Connect to ChatGPT
-          </UiButton>
+        <div class="flex flex-col gap-4">
+          <!-- Claude -->
+          <Collapsible v-model:open="isClaudeOpen">
+            <div class="border-border rounded-lg border">
+              <div class="flex items-center justify-between p-4">
+                <div class="flex items-center gap-2">
+                  <SparklesIcon class="size-4" />
+                  <span class="font-medium">Claude</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <UiButton variant="outline" size="sm" @click="openClaudeSettings">
+                    Open Settings
+                    <ExternalLinkIcon class="ml-1 size-3" />
+                  </UiButton>
+                  <CollapsibleTrigger as-child>
+                    <UiButton variant="ghost" size="icon-sm">
+                      <ChevronDownIcon class="size-4 transition-transform" :class="{ 'rotate-180': isClaudeOpen }" />
+                    </UiButton>
+                  </CollapsibleTrigger>
+                </div>
+              </div>
+              <CollapsibleContent>
+                <div class="border-border border-t px-4 pt-3 pb-4">
+                  <ol class="text-muted-foreground list-inside list-decimal space-y-2 text-sm">
+                    <li>
+                      Click the
+                      <strong class="text-foreground">+</strong>
+                      icon next to "Connectors" to create a new connector
+                    </li>
+                    <li>
+                      Select
+                      <strong class="text-foreground">Add custom connector</strong>
+                    </li>
+                    <li>
+                      For "Name" enter
+                      <ClickToCopy value="MoneyMatter" />
+                    </li>
+                    <li>
+                      For "Remote MCP server URL" paste
+                      <ClickToCopy :value="mcpServerUrl" />
+                    </li>
+                    <li>
+                      Leave Advanced settings empty and click
+                      <strong class="text-foreground">Add</strong>
+                    </li>
+                    <li>You will be redirected to MoneyMatter to authorize access</li>
+                  </ol>
+                </div>
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
+
+          <!-- ChatGPT -->
+          <Collapsible v-model:open="isChatGptOpen">
+            <div class="border-border rounded-lg border">
+              <div class="flex items-center justify-between p-4">
+                <div class="flex items-center gap-2">
+                  <BotIcon class="size-4" />
+                  <span class="font-medium">ChatGPT</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <UiButton variant="outline" size="sm" @click="openChatGptSettings">
+                    Open Settings
+                    <ExternalLinkIcon class="ml-1 size-3" />
+                  </UiButton>
+                  <CollapsibleTrigger as-child>
+                    <UiButton variant="ghost" size="icon-sm">
+                      <ChevronDownIcon class="size-4 transition-transform" :class="{ 'rotate-180': isChatGptOpen }" />
+                    </UiButton>
+                  </CollapsibleTrigger>
+                </div>
+              </div>
+              <CollapsibleContent>
+                <div class="border-border border-t px-4 pt-3 pb-4">
+                  <ol class="text-muted-foreground list-inside list-decimal space-y-2 text-sm">
+                    <li>
+                      Click
+                      <strong class="text-foreground">Add connector</strong>
+                    </li>
+                    <li>
+                      For "URL" paste
+                      <ClickToCopy :value="mcpServerUrl" />
+                    </li>
+                    <li>
+                      Click
+                      <strong class="text-foreground">Add</strong>
+                    </li>
+                    <li>You will be redirected to MoneyMatter to authorize access</li>
+                  </ol>
+                </div>
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
         </div>
       </div>
 
@@ -112,22 +196,34 @@
 
 <script setup lang="ts">
 import { getConnectedApps, getMcpServerUrl, revokeConnectedApp } from '@/api/mcp';
+import { ClickToCopy } from '@/components/common';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { Separator } from '@/components/lib/ui/separator';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useClipboard } from '@vueuse/core';
 import { format, formatDistanceToNow } from 'date-fns';
-import { BotIcon, CheckIcon, CopyIcon, PlugIcon, SparklesIcon } from 'lucide-vue-next';
+import {
+  BotIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+  PlugIcon,
+  SparklesIcon,
+} from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
 
+const isClaudeOpen = ref(false);
+const isChatGptOpen = ref(false);
 const isRevokeDialogOpen = ref(false);
 const revokeTargetClientId = ref<string | null>(null);
 
@@ -162,11 +258,11 @@ function copyUrl() {
 }
 
 function openClaudeSettings() {
-  window.open('https://claude.ai/settings/integrations', '_blank');
+  window.open('https://claude.ai/customize/connectors', '_blank');
 }
 
 function openChatGptSettings() {
-  window.open('https://chatgpt.com/settings', '_blank');
+  window.open('https://chatgpt.com/settings#settings/Connectors', '_blank');
 }
 
 function formatDate(dateStr: string) {
