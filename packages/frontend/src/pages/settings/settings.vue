@@ -34,6 +34,7 @@
           >
             <component :is="tab.icon" :class="cn('size-4 shrink-0', isCompactLayout && 'md:size-5')" />
             {{ tab.label }}
+            <NewBadge v-if="tab.badgeSince" :since="tab.badgeSince" :ttl-days="tab.badgeTtlDays" />
             <ChevronRightIcon v-if="isCompactLayout" class="text-muted-foreground ml-auto size-4" />
           </router-link>
         </li>
@@ -54,6 +55,7 @@
 
 <script setup lang="ts">
 import BackLink from '@/components/common/back-link.vue';
+import NewBadge from '@/components/common/new-badge.vue';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
@@ -82,6 +84,8 @@ interface Tab {
   label: string;
   to: RouteLocationRaw;
   icon: Component;
+  badgeSince?: string;
+  badgeTtlDays?: number;
 }
 
 const route = useRoute();
@@ -160,6 +164,7 @@ const baseTabs = computed<Tab[]>(() => [
     label: 'AI Integrations', // TODO: replace with t('settings.navigation.aiIntegrations') when i18n key is added
     to: { name: ROUTES_NAMES.settingsAiIntegrations },
     icon: PlugIcon,
+    badgeSince: '2026-04-01',
   },
   {
     name: 'security',
