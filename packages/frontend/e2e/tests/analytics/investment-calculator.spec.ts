@@ -105,24 +105,13 @@ test.describe('Investment Calculator', () => {
     const balanceInput = page.locator('input[type="number"]').first();
     await expect(balanceInput).toBeVisible({ timeout: 10_000 });
 
-    // Record summary text before change
-    const summary = summaryCards(page);
-    await expect(summary).toBeVisible();
-    const beforeText = await summary.textContent();
-
-    // Set a specific large balance
+    // Set a specific large balance and blur to trigger native @change
     await balanceInput.fill('100000');
-    await balanceInput.dispatchEvent('change');
+    await balanceInput.blur();
 
-    // Wait for Vue reactivity
-    await page.waitForTimeout(300);
-
-    // Summary should have updated
-    const afterText = await summary.textContent();
-    expect(afterText).not.toEqual(beforeText);
-
-    // $100,000 should appear in the summary breakdown
-    await expect(summary.getByText(/100,000/).first()).toBeVisible();
+    // $100,000 should appear in the summary breakdown (auto-retries until visible)
+    const summary = summaryCards(page);
+    await expect(summary.getByText(/100,000/).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('indicator selector changes return rate and updates results', async ({ page }) => {
