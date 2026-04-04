@@ -10,7 +10,7 @@ const config: KnipConfig = {
     // jest config files
     'jest.config.*.ts',
   ],
-  ignoreBinaries: ['knip', 'ts-node', 'nodemon', 'cross-env', 'sequelize-cli', 'jest', 'oxlint'],
+  ignoreBinaries: ['knip', 'ts-node', 'nodemon', 'cross-env', 'sequelize-cli', 'jest', 'oxlint', 'vite'],
   ignore: [
     'config/**',
     'src/migrations/**',
