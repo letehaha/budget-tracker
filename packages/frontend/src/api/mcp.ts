@@ -17,6 +17,10 @@ export const revokeConnectedApp = async ({ clientId }: { clientId: string }): Pr
   return api.delete(`/user/settings/mcp/connected-apps/${clientId}`);
 };
 
+export const getOAuthClientName = async ({ clientId }: { clientId: string }): Promise<{ name: string | null }> => {
+  return api.get(`/auth/oauth2/client-info?client_id=${encodeURIComponent(clientId)}`);
+};
+
 export function getMcpServerUrl(): string {
   if (import.meta.env.VITE_MCP_BASE_URL) {
     return `${import.meta.env.VITE_MCP_BASE_URL}/mcp`;

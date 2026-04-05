@@ -134,6 +134,55 @@ describe('MCP Connected Apps API', () => {
   });
 });
 
+describe('GET /auth/oauth2/client-info', () => {
+  afterEach(async () => {
+    await mcpHelpers.cleanupTestOAuthData();
+  });
+
+  it('returns the client name for a valid client_id', async () => {
+    const client = await mcpHelpers.createTestOAuthClient({ name: 'My Test App' });
+
+    const res = await mcpHelpers.getOAuthClientInfo({ clientId: client.clientId });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe(API_RESPONSE_STATUS.success);
+    expect(res.body.response).toEqual({ name: 'My Test App' });
+  });
+
+  it('returns null name when client_id does not exist', async () => {
+    const res = await mcpHelpers.getOAuthClientInfo({ clientId: 'non-existent-client' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe(API_RESPONSE_STATUS.success);
+    expect(res.body.response).toEqual({ name: null });
+  });
+
+  it('returns null name when the client exists but has a null name', async () => {
+    // createTestOAuthClient defaults name to 'Test MCP App', so we insert
+    // directly with NULL to test the null-name path.
+    const { authPool } = await import('@config/auth');
+    await authPool.query(
+      `INSERT INTO "ba_oauth_client" (id, "clientId", name, "redirectUris", scopes, "createdAt", "updatedAt")
+       VALUES ($1, $2, NULL, $3, $4, NOW(), NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      ['test-internal-client-id', 'test-public-client-id', 'https://example.com/callback', '["finance:read"]'],
+    );
+
+    const res = await mcpHelpers.getOAuthClientInfo({ clientId: 'test-public-client-id' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe(API_RESPONSE_STATUS.success);
+    expect(res.body.response).toEqual({ name: null });
+  });
+
+  it('returns 400 when client_id query param is missing', async () => {
+    const res = await mcpHelpers.getOAuthClientInfo({} as unknown as { clientId: string });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
+  });
+});
+
 describe('OAuth Discovery Endpoints', () => {
   describe('GET /.well-known/oauth-authorization-server', () => {
     it('returns valid OAuth authorization server metadata', async () => {

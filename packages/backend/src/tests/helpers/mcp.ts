@@ -3,6 +3,24 @@ import { ConnectedApp } from '@services/mcp/connected-apps';
 import * as helpers from '@tests/helpers';
 import { CustomResponse } from '@tests/helpers';
 
+export async function getOAuthClientInfo({
+  clientId,
+}: {
+  clientId?: string;
+}): Promise<CustomResponse<{ name: string | null }>> {
+  const url = clientId
+    ? `/auth/oauth2/client-info?client_id=${encodeURIComponent(clientId)}`
+    : '/auth/oauth2/client-info';
+
+  const result = await helpers.makeRequest({
+    method: 'get',
+    url,
+    raw: false,
+  });
+
+  return result;
+}
+
 export async function getConnectedApps({ raw }: { raw?: false }): Promise<CustomResponse<ConnectedApp[]>>;
 export async function getConnectedApps({ raw }: { raw?: true }): Promise<ConnectedApp[]>;
 export async function getConnectedApps({

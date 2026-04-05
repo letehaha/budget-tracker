@@ -80,8 +80,9 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Separator } from '@/components/lib/ui/separator';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { getOAuthClientName } from '@/api/mcp';
 import { CheckCircleIcon, ShieldCheckIcon, XCircleIcon } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
@@ -89,6 +90,7 @@ const isSubmitting = ref(false);
 const { addNotification } = useNotificationCenter();
 
 const clientId = computed(() => (route.query.client_id as string) || '');
+const fetchedClientName = ref<string | null>(null);
 
 // Reconstruct the full signed OAuth query string to send back to better-auth
 const oauthQuery = computed(() => {
@@ -99,11 +101,20 @@ const oauthQuery = computed(() => {
   return params.toString();
 });
 
+onMounted(async () => {
+  if (clientId.value) {
+    try {
+      const { name } = await getOAuthClientName({ clientId: clientId.value });
+      fetchedClientName.value = name;
+    } catch {
+      // Fall through to fallback name
+    }
+  }
+});
+
 const clientName = computed(() => {
-  const id = clientId.value;
-  if (id.toLowerCase().includes('claude') || id.toLowerCase().includes('anthropic')) return 'Claude';
-  if (id.toLowerCase().includes('chatgpt') || id.toLowerCase().includes('openai')) return 'ChatGPT';
-  return id || 'An application';
+  if (fetchedClientName.value) return fetchedClientName.value;
+  return clientId.value || 'An application';
 });
 
 async function submitConsent({ accept }: { accept: boolean }) {
