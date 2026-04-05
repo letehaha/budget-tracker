@@ -22,6 +22,10 @@ inputs:
     description: 'VITE_SENTRY_DSN - Sentry DSN for error tracking'
     required: false
     default: ''
+  mcp-base-url:
+    description: 'VITE_MCP_BASE_URL - Base URL for the MCP subdomain (e.g. https://mcp.moneymatter.app)'
+    required: false
+    default: ''
   logo-dev-token:
     description: 'VITE_LOGO_DEV_TOKEN - Logo.dev CDN publishable token for subscription logos'
     required: false
@@ -69,6 +73,7 @@ runs:
       with:
         envkey_VITE_APP_API_HTTP: ${{ inputs.api-base-url }}
         envkey_VITE_APP_API_VER: ${{ inputs.vue-app-api-ver }}
+        envkey_VITE_MCP_BASE_URL: ${{ inputs.mcp-base-url }}
         envkey_VITE_POSTHOG_KEY: ${{ inputs.posthog-key }}
         envkey_VITE_POSTHOG_HOST: ${{ inputs.posthog-host }}
         envkey_VITE_LOGO_DEV_TOKEN: ${{ inputs.logo-dev-token }}

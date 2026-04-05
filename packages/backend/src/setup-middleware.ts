@@ -18,24 +18,45 @@ export function setupMiddleware(app: Express) {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  app.use(
-    cors({
-      origin(requestOrigin, callback) {
-        if (process.env.NODE_ENV === 'test' || !requestOrigin) {
-          return callback(null, true);
-        }
+  // MCP/OAuth paths must allow any origin (MCP spec requires CORS for browser-based clients
+  // like Claude.ai that perform discovery and registration from the browser)
+  const MCP_CORS_PREFIX_PATHS = ['/.well-known/', '/mcp', `${API_PREFIX}/auth/oauth2/`];
+  // Claude.ai ignores AS metadata and hardcodes /authorize, /token, /register on the
+  // base URL (see setup-routes.ts oauthProxyPaths). These 307-redirect endpoints still
+  // need permissive CORS so the browser preflight succeeds before the redirect.
+  // WARNING: keep in sync with oauthProxyPaths in setup-routes.ts.
+  const MCP_CORS_EXACT_PATHS = new Set(['/authorize', '/token', '/register']);
 
-        if (ALLOWED_ORIGINS.includes(requestOrigin)) {
-          return callback(null, true);
-        }
+  const mcpCors = cors({
+    origin: true,
+    credentials: true,
+    exposedHeaders: ['x-session-id', 'x-request-id'],
+  });
 
-        // Silently reject - don't throw error to avoid Sentry noise
-        return callback(null, false);
-      },
-      credentials: true,
-      exposedHeaders: ['x-session-id', 'x-request-id'],
-    }),
-  );
+  const appCors = cors({
+    origin(requestOrigin, callback) {
+      if (process.env.NODE_ENV === 'test' || !requestOrigin) {
+        return callback(null, true);
+      }
+
+      if (ALLOWED_ORIGINS.includes(requestOrigin)) {
+        return callback(null, true);
+      }
+
+      // Silently reject - don't throw error to avoid Sentry noise
+      return callback(null, false);
+    },
+    credentials: true,
+    exposedHeaders: ['x-session-id', 'x-request-id'],
+  });
+
+  app.use((req, res, next) => {
+    const isMcpPath = MCP_CORS_PREFIX_PATHS.some((p) => req.path.startsWith(p)) || MCP_CORS_EXACT_PATHS.has(req.path);
+    if (isMcpPath) {
+      return mcpCors(req, res, next);
+    }
+    return appCors(req, res, next);
+  });
 
   logger.info(`CORS configured with origins: ${ALLOWED_ORIGINS}`);
 
@@ -46,6 +67,15 @@ export function setupMiddleware(app: Express) {
 
   // Body parser with conditional limits
   app.use((req, res, next) => {
+    // Skip body parsing for better-auth routes — toNodeHandler reads the raw
+    // request stream and re-parses the body itself.  If Express consumes the
+    // stream first (especially for application/x-www-form-urlencoded), the
+    // body gets re-serialized as JSON while the Content-Type header stays
+    // urlencoded, causing a parsing mismatch in better-call.
+    if (req.path.startsWith(`${API_PREFIX}/auth/`)) {
+      return next();
+    }
+
     // Paths that need larger payloads
     const largePaths = {
       '1mb': [`${API_PREFIX}/investments/securities/prices/bulk-upload`],
@@ -80,7 +110,10 @@ export function setupMiddleware(app: Express) {
     return express.json()(req, res, next);
   });
 
-  app.use(express.urlencoded({ extended: false }));
+  app.use((req, res, next) => {
+    if (req.path.startsWith(`${API_PREFIX}/auth/`)) return next();
+    express.urlencoded({ extended: false })(req, res, next);
+  });
   if (process.env.NODE_ENV !== 'test') {
     app.use(morgan('dev'));
   }

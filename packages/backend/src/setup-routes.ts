@@ -20,7 +20,9 @@ import githubRoutes from './routes/github.route';
 import csvImportExportRoutes from './routes/import-export/csv.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
 import investmentsRoutes from './routes/investments.route';
+import mcpRoutes from './routes/mcp.route';
 import notificationsRoutes from './routes/notifications.route';
+import { setupOAuthMetadataRoutes } from './routes/oauth-metadata.route';
 import paymentRemindersRoutes from './routes/payment-reminders.route';
 import sseRoutes from './routes/sse.route';
 import statsRoutes from './routes/stats.route';
@@ -78,6 +80,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
   app.use(`${API_PREFIX}/payment-reminders`, paymentRemindersRoutes);
   app.use(`${API_PREFIX}/investments`, investmentsRoutes);
+  app.use('/mcp', mcpRoutes);
   app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
   app.use(`${API_PREFIX}/import`, statementParserRoutes);
   app.use(`${API_PREFIX}/sse`, sseRoutes);
@@ -89,6 +92,8 @@ export function setupRoutes(app: Express) {
   if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
     app.use(`${API_PREFIX}/tests`, testsRoutes);
   }
+
+  setupOAuthMetadataRoutes({ app });
 
   // Block search engine crawling on the API subdomain
   app.get('/robots.txt', (_req, res) => {

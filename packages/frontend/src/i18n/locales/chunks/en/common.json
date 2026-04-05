@@ -2,6 +2,7 @@
   "common": {
     "from": "From",
     "to": "To",
+    "new": "New",
     "actions": {
       "loading": "Loading...",
       "signUp": "Sign up",

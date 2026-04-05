@@ -1,6 +1,7 @@
 import addUserCurrencies from '@controllers/currencies/add-user-currencies';
 import changeBaseCurrency from '@controllers/currencies/change-base-currency.controller';
 import editCurrencyExchangeRate from '@controllers/currencies/edit-currency-exchange-rate';
+import { getConnectedAppsController, revokeConnectedAppController } from '@controllers/mcp/connected-apps.controller';
 import {
   deleteAiApiKey,
   deleteAllAiApiKeys,
@@ -176,6 +177,20 @@ router.get(
   authenticateSession,
   validateEndpoint(getAvailableModelsController.schema),
   getAvailableModelsController.handler,
+);
+
+// MCP Connected Apps
+router.get(
+  '/settings/mcp/connected-apps',
+  authenticateSession,
+  validateEndpoint(getConnectedAppsController.schema),
+  getConnectedAppsController.handler,
+);
+router.delete(
+  '/settings/mcp/connected-apps/:clientId',
+  authenticateSession,
+  validateEndpoint(revokeConnectedAppController.schema),
+  revokeConnectedAppController.handler,
 );
 
 export default router;

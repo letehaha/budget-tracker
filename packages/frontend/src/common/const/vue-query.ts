@@ -131,4 +131,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // user settings
   userSettings: ['user-settings'] as const,
+
+  // MCP connected apps
+  mcpConnectedApps: ['mcp-connected-apps'] as const,
 });

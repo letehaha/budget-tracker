@@ -43,6 +43,9 @@ const I18N_CHUNKS = [
   'settings/ai',
   'settings/security',
   'settings/admin',
+  'settings/ai-integrations',
+  // Auth pages (OAuth)
+  'auth/oauth-authorize',
 ] as const;
 
 export type I18nChunkName = (typeof I18N_CHUNKS)[number];

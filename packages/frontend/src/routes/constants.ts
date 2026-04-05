@@ -44,6 +44,7 @@ export const ROUTES_NAMES = Object.freeze({
   settingsAiKeys: `${ROUTER_LAYOUTS.dashboard}.settings.ai.keys`,
   settingsSecurity: `${ROUTER_LAYOUTS.dashboard}.settings.security`,
   settingsAdmin: `${ROUTER_LAYOUTS.dashboard}.settings.admin`,
+  settingsAiIntegrations: `${ROUTER_LAYOUTS.dashboard}.settings.ai-integrations`,
   importCsv: `${ROUTER_LAYOUTS.dashboard}.import-csv`,
   importStatement: `${ROUTER_LAYOUTS.dashboard}.import-statement`,
 
@@ -54,4 +55,5 @@ export const ROUTES_NAMES = Object.freeze({
   verifyLegacyEmail: `${ROUTER_LAYOUTS.auth}.verify-legacy-email`,
   welcome: `${ROUTER_LAYOUTS.auth}.welcome`,
   authCallback: `${ROUTER_LAYOUTS.auth}.callback`,
+  oauthAuthorize: `${ROUTER_LAYOUTS.auth}.oauth-authorize`,
 });
