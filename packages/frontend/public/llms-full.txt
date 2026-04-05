@@ -1,0 +1,149 @@
+# MoneyMatter
+
+> Free, open-source budget tracking and personal finance app. Self-host for full data ownership or use the cloud version. Supports AI integration via MCP (Model Context Protocol) for querying your finances with Claude, ChatGPT, or any MCP-compatible client.
+
+## About
+
+MoneyMatter is a privacy-first alternative to apps like Mint, YNAB, and other commercial budget trackers. Unlike those services, MoneyMatter is:
+
+- **Free forever** — no subscription fees, no premium tiers
+- **Open source** — MIT-licensed, fully auditable code
+- **Self-hostable** — run on your own server with Docker, or use the hosted cloud version
+- **Privacy-first** — your data is never sold, shared, or used for advertising
+
+The app is built with a Node.js/Express backend, Vue.js frontend, PostgreSQL database, and Redis for job queues. It deploys as a set of Docker containers.
+
+Website: https://moneymatter.app
+Source code: https://github.com/letehaha/budget-tracker
+License: MIT
+
+## Features
+
+### Bank Account Synchronization
+
+Connect bank accounts to automatically sync transactions. Currently supports Monobank, EnableBanking, and LunchFlow, with more banking integrations planned. Transactions are pulled automatically so you always have an up-to-date view of your finances.
+
+### AI-Powered Transaction Categorization
+
+MoneyMatter uses AI to learn your spending patterns. Categorize a transaction once, and the AI will automatically categorize similar future transactions. No more manual sorting of every purchase.
+
+### Budget Tracking
+
+Set budgets by category and track your progress with visual indicators. See at a glance whether you're on track, approaching your limit, or over budget. Budgets support custom time periods and flexible category groupings.
+
+### Investment Portfolio Tracking (Beta)
+
+Track investment portfolios alongside your regular budget. Monitor performance, gains/losses, and asset allocation in one place. Supports real-time market data for securities pricing.
+
+### Multi-Currency Support
+
+Track accounts in any currency with automatic exchange rate conversion. Ideal for travelers, expats, freelancers with international clients, or anyone managing money across borders.
+
+### Transaction Import
+
+Import transactions from CSV files and bank statements. An AI-assisted parser can handle various formats, making it easy to migrate from other apps or import historical data without losing your financial history.
+
+### Custom Categories and Tags
+
+Organize spending with unlimited custom categories — no forced structure. Add tags and notes to individual transactions for detailed tracking. Build your own organizational system that matches how you think about money.
+
+### Recurring Transactions
+
+Track recurring expenses and income. See subscriptions and regular payments in one view so nothing slips through the cracks.
+
+### Analytics and Reports
+
+Detailed spending analytics with breakdowns by category, time period, and account. Visualize trends, compare periods, and understand where your money goes.
+
+### Data Export
+
+Export all your data at any time. You are never locked in — your financial data belongs to you.
+
+### Progressive Web App (PWA)
+
+MoneyMatter works as a PWA, meaning you can install it on your phone's home screen for a native-app experience. It is fully responsive and mobile-friendly.
+
+## AI Integration via MCP (Model Context Protocol)
+
+MoneyMatter exposes a remote MCP server that provides AI assistants with read-only, OAuth-secured access to your financial data. This is one of MoneyMatter's most distinctive features — you can have a natural-language conversation with an AI about your finances.
+
+### What you can do
+
+Ask complex questions that go beyond what any dashboard can show:
+
+- "Compare my dining out spending this month to my 3-month average"
+- "Which of my subscriptions have increased in price over the past 6 months?"
+- "I want to save $500/month — analyze my spending and suggest where to realistically cut"
+- "What's my average weekly grocery spend and how has it trended?"
+- "Show me all transactions over $100 in the last quarter that weren't recurring"
+
+### Automation with AI agents
+
+Use AI agent frameworks (OpenClaw, Claude, ChatGPT) to automate financial analysis:
+
+- **Weekly spending digest** — get a breakdown of your week's spending every Monday
+- **Anomaly detection** — automatically flag unusual transactions or spending spikes
+- **Monthly budget health check** — automated review with saving recommendations and goal tracking
+
+### Security and privacy
+
+- **Read-only access** — AI can query your data but cannot modify it
+- **OAuth secured** — standard OAuth 2.0 authentication flow
+- **Revoke anytime** — disconnect AI access instantly from your account settings
+- **No data sharing** — your financial data stays between you and your chosen AI client
+
+### Compatible AI clients
+
+- Claude (Anthropic)
+- ChatGPT (OpenAI)
+- OpenClaw
+- Any MCP-compatible client or agent framework
+
+## Deployment
+
+### Cloud (Hosted)
+
+Sign up at https://moneymatter.app — no setup required. The hosted version is free, your data is never sold, and you can export everything or switch to self-hosting at any time.
+
+### Self-Hosted (Docker)
+
+Deploy MoneyMatter on your own server for maximum privacy and control:
+
+- Your data never leaves your server
+- Deploy with Docker in minutes
+- Full control over backups, updates, and configuration
+- Audit the open-source code yourself
+
+Setup guide and Docker configuration: https://github.com/letehaha/budget-tracker
+
+## Comparison with Alternatives
+
+| Feature | Mint & others | YNAB | MoneyMatter |
+|---|---|---|---|
+| Price | Free (you're the product) | $99/year | Free forever |
+| Open Source | No | No | Yes (MIT) |
+| Self-Hostable | No | No | Yes |
+| Data Privacy | Sells data | Stored on their servers | You own it 100% |
+| Investment Tracking | No | No | Yes |
+| AI Categorization | No | No | Yes |
+| AI Integration (MCP) | No | No | Yes |
+| Custom Categories | Limited | Yes | Yes |
+| Data Export | Limited | Yes | Yes |
+
+## Technology Stack
+
+- **Backend**: Node.js, Express, TypeScript
+- **Frontend**: Vue.js 3, TypeScript, Vite
+- **Database**: PostgreSQL with Sequelize ORM
+- **Job Queue**: BullMQ with Redis
+- **Landing Page**: Astro (Static Site Generation)
+- **Deployment**: Docker, nginx
+- **Analytics**: PostHog (privacy-focused, self-hostable)
+
+## Links
+
+- [Homepage](https://moneymatter.app/): Landing page with feature overview and sign-up
+- [GitHub Repository](https://github.com/letehaha/budget-tracker): Source code, Docker setup guide, and issue tracker
+- [Privacy Policy](https://moneymatter.app/privacy-policy): Data handling and privacy practices
+- [Terms of Use](https://moneymatter.app/terms-of-use): Terms of service
+- [Try Demo](https://moneymatter.app): Create a free account or try the demo

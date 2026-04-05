@@ -2,3 +2,4 @@ User-agent: *
 Disallow:
 
 Sitemap: https://moneymatter.app/sitemap.xml
+LLMs-txt: https://moneymatter.app/llms.txt
