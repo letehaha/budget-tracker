@@ -1,10 +1,12 @@
 import { requestContext } from '@common/request-context';
+import { logger } from '@js/utils/logger';
 import { Sentry } from '@js/utils/sentry';
 import { toNodeHandler } from 'better-auth/node';
 import { Express, Request, Response } from 'express';
+import http from 'node:http';
 
 import { API_PREFIX } from './config';
-import { auth } from './config/auth';
+import { auth, authPool } from './config/auth';
 import { SUPPORTED_LOCALES } from './i18n';
 import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
@@ -49,6 +51,96 @@ export function setupRoutes(app: Express) {
   // This handles: signup, signin, signout, session, oauth callbacks, passkey, etc.
   // We wrap the handler to preserve AsyncLocalStorage context for locale-aware category creation
   const authHandler = toNodeHandler(auth);
+
+  // Patch OAuth2 dynamic client registration requests so they always register as
+  // public clients.  better-auth's oauth-provider treats clients without
+  // `token_endpoint_auth_method: "none"` as confidential and rejects unauthenticated
+  // registration with 401 — even when allowUnauthenticatedClientRegistration is true.
+  // MCP clients (e.g. Claude.ai) often omit this field, so we default it here.
+  //
+  // We can't patch the stream in-place (Node 23's Fetch API reads the internal
+  // buffer directly), so we proxy the request through a local HTTP call with the
+  // modified body.
+  app.post(`${API_PREFIX}/auth/oauth2/register`, (req: Request, res: Response, next) => {
+    // Skip if already patched (avoid infinite loop on the proxied request)
+    if (req.headers['x-register-patched']) return next();
+
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => {
+      let body: Buffer;
+      try {
+        const parsed = JSON.parse(Buffer.concat(chunks).toString());
+        const isUnauthenticated = !req.headers.authorization && !req.headers.cookie;
+        const isConfidential = parsed.token_endpoint_auth_method && parsed.token_endpoint_auth_method !== 'none';
+
+        // Unauthenticated + confidential always fails in better-auth (401), so
+        // downgrade to public client.  Authenticated registrations and requests
+        // that are already public pass through unchanged.
+        if (isUnauthenticated && isConfidential) {
+          parsed.token_endpoint_auth_method = 'none';
+        }
+        body = Buffer.from(JSON.stringify(parsed));
+      } catch {
+        // Not valid JSON — proxy the original bytes and let better-auth error
+        logger.warn('[register-patch] Failed to parse request body as JSON');
+        body = Buffer.concat(chunks);
+      }
+
+      const proxyReq = http.request(
+        {
+          hostname: '127.0.0.1',
+          port: Number(req.app.get('port')) || 8080,
+          path: req.originalUrl,
+          method: 'POST',
+          headers: {
+            ...req.headers,
+            'content-length': body.length.toString(),
+            'x-register-patched': '1',
+          },
+        },
+        (proxyRes) => {
+          res.writeHead(proxyRes.statusCode ?? 500, proxyRes.headers);
+          proxyRes.pipe(res);
+        },
+      );
+      proxyReq.on('error', (err) => {
+        logger.error({ message: '[register-patch] Proxy request failed', error: err });
+        if (!res.headersSent) res.status(502).json({ error: 'registration proxy failed' });
+      });
+      proxyReq.write(body);
+      proxyReq.end();
+    });
+    req.on('error', (err) => {
+      logger.error({ message: '[register-patch] Request stream error', error: err });
+      next();
+    });
+  });
+
+  // Public endpoint for the consent page to resolve a client_id to a display name.
+  // Must be registered before the app.all catch-all so better-auth doesn't swallow it.
+  // oxlint-disable-next-line oxc/no-async-endpoint-handlers
+  app.get(`${API_PREFIX}/auth/oauth2/client-info`, async (req: Request, res: Response) => {
+    const clientId = req.query.client_id;
+    if (!clientId || typeof clientId !== 'string') {
+      res.status(400).json({ status: 'error', response: 'client_id is required' });
+      return;
+    }
+    try {
+      const result = await authPool.query<{ name: string | null }>(
+        `SELECT "name" FROM "ba_oauth_client" WHERE "clientId" = $1 LIMIT 1`,
+        [clientId],
+      );
+      res.json({ status: 'success', response: { name: result.rows[0]?.name ?? null } });
+    } catch (e) {
+      logger.error({
+        message: '[client-info] Failed to look up client',
+        error: e instanceof Error ? e : new Error(String(e)),
+      });
+      res.status(500).json({ status: 'error', response: 'Failed to look up client' });
+    }
+  });
+
   app.all(`${API_PREFIX}/auth/*`, (req: Request, res: Response) => {
     // Extract locale from Accept-Language header (same logic as detectLanguage middleware)
     const supportedLocales = SUPPORTED_LOCALES;
