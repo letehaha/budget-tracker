@@ -28,7 +28,7 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
       const quotes = searchResult.quotes ?? [];
 
       if (quotes.length === 0) {
-        logger.warn(`No search results found for query: ${query}`);
+        logger.info(`No search results found for query: ${query}`);
         return [];
       }
 
@@ -70,7 +70,7 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
       }
 
       if (droppedSymbols.length > 0) {
-        logger.warn(
+        logger.info(
           `Yahoo search: dropped ${droppedSymbols.length} symbols without currency: ${droppedSymbols.join(', ')}`,
         );
       }
@@ -97,7 +97,7 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
 
       const priceClose = quote.regularMarketPreviousClose;
       if (!quote.regularMarketTime) {
-        logger.warn(`Missing regularMarketTime for ${symbol}, using current time as fallback`);
+        logger.info(`Missing regularMarketTime for ${symbol}, using current time as fallback`);
       }
       const marketTime = quote.regularMarketTime ? new Date(quote.regularMarketTime) : new Date();
 
@@ -189,7 +189,7 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
           fetchedPrices.push(prices[0]);
           logger.info(`Fetched price for ${symbol} on ${forDate.toISOString().split('T')[0]}: ${prices[0].priceClose}`);
         } else {
-          logger.warn(`No price data found for ${symbol} on ${forDate.toISOString().split('T')[0]}`);
+          logger.info(`No price data found for ${symbol} on ${forDate.toISOString().split('T')[0]}`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -223,7 +223,7 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      logger.warn(`Failed to read currency cache: ${errorMsg}. Proceeding with API calls`);
+      logger.info(`Failed to read currency cache: ${errorMsg}. Proceeding with API calls`);
     }
 
     // Tier 2: Fetch uncached symbols from Yahoo API in batches
@@ -256,7 +256,7 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
       if (toCache.length > 0) {
         SecurityCurrencyCache.bulkCreate(toCache, { ignoreDuplicates: true }).catch((error) => {
           const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-          logger.warn(`Failed to store currency cache entries: ${errorMsg}`);
+          logger.info(`Failed to store currency cache entries: ${errorMsg}`);
         });
       }
     }

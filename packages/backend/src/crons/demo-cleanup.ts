@@ -17,7 +17,7 @@ class DemoCleanupCronService {
    */
   public startCron(): void {
     if (this.cronJob) {
-      logger.warn('Demo cleanup cron job is already running');
+      logger.info('Demo cleanup cron job is already running');
       return;
     }
 
@@ -66,7 +66,7 @@ class DemoCleanupCronService {
    */
   private async runCleanup(): Promise<number> {
     if (this.isJobRunning) {
-      logger.warn('Demo cleanup job is already running, skipping this execution');
+      logger.info('Demo cleanup job is already running, skipping this execution');
       return 0;
     }
 

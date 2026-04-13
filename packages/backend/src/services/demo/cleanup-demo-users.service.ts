@@ -28,7 +28,7 @@ export async function cleanupDemoUser({ userId }: { userId: number }): Promise<v
     });
 
     if (!user) {
-      logger.warn(`Demo user ${userId} not found or not a demo user`);
+      logger.info(`Demo user ${userId} not found or not a demo user`);
       return;
     }
 

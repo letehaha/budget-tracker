@@ -78,8 +78,8 @@ if (isTest) {
     serverInstance = https.createServer(httpsOptions, app);
     serverInstance.listen(app.get('port'), () => onServerReady({ protocol: 'https' }));
   } else {
-    logger.warn(`SSL certificates not found at ${certPath} and ${keyPath}`);
-    logger.warn('Running in HTTP mode. For HTTPS, run: cd docker/dev/certs && mkcert localhost 127.0.0.1 ::1');
+    logger.info(`SSL certificates not found at ${certPath} and ${keyPath}`);
+    logger.info('Running in HTTP mode. For HTTPS, run: cd docker/dev/certs && mkcert localhost 127.0.0.1 ::1');
 
     serverInstance = app.listen(app.get('port'), () => onServerReady({ protocol: 'http' }));
   }

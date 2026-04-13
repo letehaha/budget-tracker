@@ -26,7 +26,7 @@ export function createSessionHooks({ pool }: { pool: Pool }) {
             const appUser = await getUserByAuthUserId({ authUserId: session.userId });
 
             if (!appUser) {
-              logger.warn(`PostHog: App user not found for authUserId: ${session.userId}`);
+              logger.info(`PostHog: App user not found for authUserId: ${session.userId}`);
               return;
             }
 

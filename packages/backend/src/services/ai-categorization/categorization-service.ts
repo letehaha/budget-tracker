@@ -286,7 +286,7 @@ export async function categorizeTransactions({
 
     // Handle temporary errors (rate limit, server errors) - return early
     if (batchResult.isTemporaryError) {
-      logger.warn('Temporary AI error, returning early without marking key invalid', {
+      logger.info('Temporary AI error, returning early without marking key invalid', {
         userId,
         provider: aiClient.provider,
         usingUserKey: aiClient.usingUserKey,

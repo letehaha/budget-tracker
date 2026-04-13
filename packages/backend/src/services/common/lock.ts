@@ -32,7 +32,7 @@ export function withLock<T extends unknown[], R>(
     const acquired = await redisClient.set(lockKey, lockValue, 'EX', ttl, 'NX');
 
     if (!acquired) {
-      logger.warn(`Could not acquire lock for key: "${lockKey}". Process is already running.`);
+      logger.info(`Could not acquire lock for key: "${lockKey}". Process is already running.`);
       throw new LockedError({
         message: t({ key: 'common.processAlreadyLocked', variables: { lockKey } }),
       });

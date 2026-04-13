@@ -44,7 +44,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
           if (isAxiosError(error)) {
             // Only retry on rate limit errors
             if (error.response?.status === 429) {
-              logger.warn(`Rate limit hit on Polygon daily prices (attempt ${attempt}), retrying...`);
+              logger.info(`Rate limit hit on Polygon daily prices (attempt ${attempt}), retrying...`);
               return true;
             }
             logger.error({ message: `Non-retryable error on Polygon daily prices (attempt ${attempt}).`, error });
@@ -57,7 +57,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
     );
 
     if (!allPricing.results || !allPricing.results.length) {
-      logger.warn(`No daily prices found for ${dateStr}.`);
+      logger.info(`No daily prices found for ${dateStr}.`);
       return [];
     }
 
@@ -108,7 +108,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
       const tickerDetails = await this.client.reference.tickerDetails(query);
 
       if (!tickerDetails.results) {
-        logger.warn(`No search results found for query: ${query}`);
+        logger.info(`No search results found for query: ${query}`);
         return [];
       }
 
@@ -188,7 +188,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
     const allDailyPrices = await this.getDailyPrices(forDate);
 
     if (allDailyPrices.length === 0) {
-      logger.warn(`No daily prices available for date: ${forDate.toISOString().split('T')[0]}`);
+      logger.info(`No daily prices available for date: ${forDate.toISOString().split('T')[0]}`);
       return [];
     }
 

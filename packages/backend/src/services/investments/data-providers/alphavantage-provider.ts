@@ -25,7 +25,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
       const searchResponse = await this.client.data.search(query);
 
       if (!searchResponse || !searchResponse['bestMatches']) {
-        logger.warn(`No search results found for query: ${query}`);
+        logger.info(`No search results found for query: ${query}`);
         return [];
       }
 
@@ -208,7 +208,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
           fetchedPrices.push(priceData);
           logger.info(`Fetched price for ${symbol} on ${forDate.toISOString().split('T')[0]}: ${priceData.priceClose}`);
         } else {
-          logger.warn(`No price data found for ${symbol} on ${forDate.toISOString().split('T')[0]}`);
+          logger.info(`No price data found for ${symbol} on ${forDate.toISOString().split('T')[0]}`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';

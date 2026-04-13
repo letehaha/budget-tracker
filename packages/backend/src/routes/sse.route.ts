@@ -35,7 +35,7 @@ router.get('/events', authenticateSession, async (req, res) => {
     res.write(': connected\n\n');
   } catch {
     // Connection closed immediately - nothing to do
-    logger.warn(`[SSE] Connection ${connectionId} closed before setup for user ${userId}`);
+    logger.info(`[SSE] Connection ${connectionId} closed before setup for user ${userId}`);
     return;
   }
 

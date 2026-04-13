@@ -7,7 +7,7 @@ const addOrUpdateFromProviderImpl = async (
   securitiesFromProvider: SecuritySearchResult[],
 ): Promise<{ newCount: number }> => {
   if (!securitiesFromProvider || securitiesFromProvider.length === 0) {
-    logger.warn('No securities provided to sync. Aborting.');
+    logger.info('No securities provided to sync. Aborting.');
     return { newCount: 0 };
   }
 

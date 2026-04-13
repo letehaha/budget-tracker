@@ -29,11 +29,11 @@ export function parseCategorizationResponse({
 
     // Validate the result
     if (!validTransactionIds.has(transactionId)) {
-      logger.warn(`AI returned unknown transaction ID: ${transactionId}`);
+      logger.info(`AI returned unknown transaction ID: ${transactionId}`);
       continue;
     }
     if (!validCategoryIds.has(categoryId)) {
-      logger.warn(`AI returned invalid category ID: ${categoryId}`);
+      logger.info(`AI returned invalid category ID: ${categoryId}`);
       continue;
     }
 
