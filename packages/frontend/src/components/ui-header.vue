@@ -1,7 +1,7 @@
 <template>
   <div ref="headerRef">
     <DemoBanner />
-    <div class="shadow-header border-border flex items-center justify-between border-b px-6 py-2">
+    <div class="shadow-header border-border flex items-center justify-between border-b px-4 py-2 sm:px-6">
       <div class="flex items-center gap-4">
         <template v-if="isMobileView">
           <Sheet.Sheet :open="isMobileSheetOpen" @update:open="isMobileSheetOpen = $event">
@@ -32,6 +32,13 @@
             <span class="md:hidden">{{ $t('header.add') }}</span>
           </Button>
         </ManageTransactionDialog>
+
+        <RouterLink :to="{ name: ROUTES_NAMES.settingsDataManagement }" class="hidden md:block">
+          <Button variant="secondary" size="sm" class="flex items-center gap-1">
+            <ImportIcon class="size-4" />
+            {{ $t('header.importData') }}
+          </Button>
+        </RouterLink>
       </div>
 
       <div class="ml-auto flex items-center gap-2">
@@ -133,12 +140,13 @@ import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-
 import { useDateLocale } from '@/composable/use-date-locale';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
+import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
 // MoonStar, Sun removed - theme toggle temporarily disabled
-import { CloudCheckIcon, MenuIcon, PlusIcon, RefreshCcw, SparklesIcon } from 'lucide-vue-next';
+import { CloudCheckIcon, ImportIcon, MenuIcon, PlusIcon, RefreshCcw, SparklesIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { RouterLink, useRoute } from 'vue-router';
 
 const accountsStore = useAccountsStore();
 const { accountsNeedingRelink } = storeToRefs(accountsStore);

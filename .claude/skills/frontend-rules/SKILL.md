@@ -37,7 +37,29 @@ Route paths are defined as constants in `routes/constants.ts`. Always use those 
 
 ### Responsive breakpoints
 
-The project defines `CUSTOM_BREAKPOINTS` and provides the `useWindowBreakpoints` composable. Always use those for responsive logic — never use custom media queries or magic pixel values.
+The project defines `CUSTOM_BREAKPOINTS` and provides the `useWindowBreakpoints` composable. Use those for JS-based responsive logic — never use custom media queries or magic pixel values.
+
+### Container queries for content-area layout
+
+The app has a ~300px sidebar visible on screens wider than 768px, so the **content area is significantly narrower than the viewport** (e.g., 900px screen = ~600px content). Viewport breakpoints (`md:`, `lg:`) don't account for this and can produce wrong results for content layout.
+
+**Prefer CSS container queries** (`@container`) when the layout depends on the available content width — multi-column grids, card arrangements, etc. Use Tailwind's named container syntax:
+
+```vue
+<!-- Parent: define the container -->
+<Card class="@container/my-section max-w-4xl">
+  <!-- Child: query the container width, NOT the viewport -->
+  <div class="grid grid-cols-1 @sm/my-section:grid-cols-2">
+    ...
+  </div>
+</Card>
+```
+
+Container queries aren't needed everywhere — use judgement:
+
+- **Container queries** (`@container`): multi-column grids, card layouts, anything where the sidebar makes viewport breakpoints inaccurate
+- **Viewport breakpoints** (`md:`, `lg:`): showing/hiding the sidebar, header layout, simple show/hide toggles that genuinely depend on screen size
+- **`useWindowBreakpoints`**: JS-based responsive logic — toggling components, conditional rendering based on device class
 
 ---
 

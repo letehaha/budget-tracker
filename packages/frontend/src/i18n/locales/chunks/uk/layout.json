@@ -26,9 +26,10 @@
     }
   },
   "header": {
-    "newTransaction": "Нова транзакція",
     "add": "Додати",
+    "importData": "Імпорт даних",
     "language": "Мова",
+    "newTransaction": "Нова транзакція",
     "sync": {
       "syncing": "Синхронізація",
       "synchronizing": "Синхронізація...",
