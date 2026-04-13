@@ -5,6 +5,7 @@ import { parseCategorizationResponse } from './parse-response';
 // Only mock the logger
 jest.mock('@js/utils/logger', () => ({
   logger: {
+    info: jest.fn(),
     warn: jest.fn(),
   },
 }));
