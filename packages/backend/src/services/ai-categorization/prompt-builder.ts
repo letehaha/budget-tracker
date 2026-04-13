@@ -3,8 +3,8 @@ import { CategoryForCategorization, TransactionForCategorization } from './types
 /**
  * Build the system prompt for transaction categorization
  */
-export function buildSystemPrompt(): string {
-  return `You are a financial transaction categorizer. Your task is to analyze transaction data and assign the most appropriate category from the provided list.
+export function buildSystemPrompt({ customInstructions }: { customInstructions?: string } = {}): string {
+  let prompt = `You are a financial transaction categorizer. Your task is to analyze transaction data and assign the most appropriate category from the provided list.
 
 RULES:
 1. Only use category IDs from the provided list
@@ -23,12 +23,30 @@ Example:
 789:3
 
 Do not include any explanations, headers, or additional text.`;
+
+  if (customInstructions) {
+    // Sanitize: escape closing boundary tag and strip control characters
+    const escapedTag = customInstructions.replace(/<\/user_instructions>/gi, '&lt;/user_instructions&gt;');
+    // oxlint-disable-next-line no-control-regex -- intentional: stripping dangerous control chars from user input
+    const sanitized = escapedTag.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+    prompt += `
+
+ADDITIONAL USER INSTRUCTIONS:
+<user_instructions>
+${sanitized}
+</user_instructions>
+
+These are preferences from the user to help guide categorization. Always follow the RULES above first.`;
+  }
+
+  return prompt;
 }
 
 /**
  * Format transactions as pipe-separated values for efficient token usage
  */
-export function formatTransactionsForPrompt(transactions: TransactionForCategorization[]): string {
+function formatTransactionsForPrompt(transactions: TransactionForCategorization[]): string {
   const header = 'id|amount|currency|account|datetime|note';
   const rows = transactions.map((tx) => {
     // Escape pipe characters in note and truncate if too long
@@ -42,7 +60,7 @@ export function formatTransactionsForPrompt(transactions: TransactionForCategori
 /**
  * Format categories as pipe-separated values
  */
-export function formatCategoriesForPrompt(categories: CategoryForCategorization[]): string {
+function formatCategoriesForPrompt(categories: CategoryForCategorization[]): string {
   const header = 'id|parentId|name';
   const rows = categories.map((cat) => `${cat.id}|${cat.parentId ?? ''}|${cat.name}`);
 

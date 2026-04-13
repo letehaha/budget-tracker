@@ -61,6 +61,24 @@ export const resetAiFeatureConfig = async ({ feature }: { feature: AI_FEATURE })
   return api.delete(`/user/settings/ai/features/${feature}`);
 };
 
+// ===== Custom Instructions =====
+
+export interface CustomInstructionsResponse {
+  instructions: string | null;
+}
+
+export const getCustomInstructions = async (): Promise<CustomInstructionsResponse> => {
+  return api.get('/user/settings/ai/custom-instructions');
+};
+
+export const setCustomInstructions = async ({
+  instructions,
+}: {
+  instructions: string;
+}): Promise<{ success: boolean }> => {
+  return api.put('/user/settings/ai/custom-instructions', { instructions });
+};
+
 // ===== Available Models =====
 
 export interface AvailableModelsResponse {

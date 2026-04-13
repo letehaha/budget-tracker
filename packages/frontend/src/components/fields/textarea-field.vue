@@ -10,7 +10,7 @@
       <textarea
         :class="
           cn(
-            'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[80px] w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+            'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-20 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
             $attrs.class ?? '',
           )
         "
@@ -29,7 +29,7 @@
       />
     </FieldLabel>
 
-    <span v-if="maxlength" class="text-field__length">
+    <span v-if="maxlength" class="text-muted-foreground mt-1 block text-right text-xs">
       {{ `${currentLength}/${maxlength}` }}
     </span>
 
@@ -40,7 +40,7 @@
 <script lang="ts" setup>
 import { FieldError, FieldLabel } from '@/components/fields';
 import { cn } from '@/lib/utils';
-import { onMounted, ref } from 'vue';
+import { computed } from 'vue';
 
 const MODEL_EVENTS = Object.freeze({
   input: 'update:modelValue',
@@ -84,15 +84,10 @@ const props = withDefaults(
   },
 );
 
-const currentLength = ref(0);
-
-onMounted(() => {
-  if (props.modelValue) currentLength.value = String(props.modelValue).length;
-});
+const currentLength = computed(() => String(props.modelValue ?? '').length);
 
 const onInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
-  if (props.maxlength) currentLength.value = target.value.length;
   emit(MODEL_EVENTS.input, target.value);
 };
 </script>

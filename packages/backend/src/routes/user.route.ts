@@ -10,6 +10,10 @@ import {
   setDefaultAiProviderController,
 } from '@controllers/user-settings/ai-api-key';
 import {
+  getCustomInstructionsController,
+  setCustomInstructionsController,
+} from '@controllers/user-settings/ai-custom-instructions';
+import {
   getAvailableModelsController,
   getFeatureConfigController,
   getFeaturesStatus,
@@ -169,6 +173,20 @@ router.delete(
   authenticateSession,
   validateEndpoint(resetFeatureConfigController.schema),
   resetFeatureConfigController.handler,
+);
+
+// AI Custom Instructions
+router.get(
+  '/settings/ai/custom-instructions',
+  authenticateSession,
+  validateEndpoint(getCustomInstructionsController.schema),
+  getCustomInstructionsController.handler,
+);
+router.put(
+  '/settings/ai/custom-instructions',
+  authenticateSession,
+  validateEndpoint(setCustomInstructionsController.schema),
+  setCustomInstructionsController.handler,
 );
 
 // AI Models

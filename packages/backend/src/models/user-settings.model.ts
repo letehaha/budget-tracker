@@ -1,5 +1,5 @@
 import { SUPPORTED_LOCALES } from '@bt/shared/i18n/locales';
-import { AI_FEATURE, AI_PROVIDER, NOTIFICATION_TYPES } from '@bt/shared/types';
+import { AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH, AI_FEATURE, AI_PROVIDER, NOTIFICATION_TYPES } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import { z } from 'zod';
 
@@ -26,6 +26,7 @@ const ZodAiSettingsSchema = z.object({
   apiKeys: z.array(ZodAiApiKeySchema).default([]),
   defaultProvider: z.nativeEnum(AI_PROVIDER).optional(),
   featureConfigs: z.array(ZodAiFeatureConfigSchema).default([]),
+  customInstructions: z.string().max(AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH).optional(),
 });
 
 /**
