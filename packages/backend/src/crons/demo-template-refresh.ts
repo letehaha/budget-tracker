@@ -12,7 +12,7 @@ class DemoTemplateRefreshCronService {
 
   public startCron(): void {
     if (this.cronJob) {
-      logger.warn('Demo template refresh cron job is already running');
+      logger.info('Demo template refresh cron job is already running');
       return;
     }
 

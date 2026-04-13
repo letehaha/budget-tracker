@@ -76,7 +76,7 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
         });
 
         if (result.failed.length > 0) {
-          logger.warn(`[AI Categorization Worker] ${result.failed.length} transactions failed for user ${userId}`);
+          logger.info(`[AI Categorization Worker] ${result.failed.length} transactions failed for user ${userId}`);
         }
 
         return {

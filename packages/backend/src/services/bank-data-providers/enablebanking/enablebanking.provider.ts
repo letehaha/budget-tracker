@@ -1007,7 +1007,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const credentials = await this.getValidatedCredentials(connectionId);
 
     if (!credentials.sessionId) {
-      logger.warn(`Cannot refresh account metadata: no active session for connection ${connectionId}`);
+      logger.info(`Cannot refresh account metadata: no active session for connection ${connectionId}`);
       return null;
     }
 
@@ -1114,7 +1114,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         | undefined;
 
       if (!rawTransaction) {
-        logger.warn(`Transaction ${tx.id} has no rawTransaction in externalData, skipping migration`);
+        logger.info(`Transaction ${tx.id} has no rawTransaction in externalData, skipping migration`);
         continue;
       }
 

@@ -36,7 +36,7 @@ export const searchSecurities = async ({
 
   // Validate input
   if (!query) {
-    logger.warn('Search query too short or empty');
+    logger.info('Search query too short or empty');
     return [];
   }
 

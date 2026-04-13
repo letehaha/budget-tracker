@@ -114,7 +114,7 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
     const fetchPromises = Array.from(symbolsByProvider.entries()).map(async ([providerName, symbolList]) => {
       const provider = this.providers.get(providerName);
       if (!provider) {
-        logger.warn(`Provider ${providerName} not available, skipping ${symbolList.length} symbols`);
+        logger.info(`Provider ${providerName} not available, skipping ${symbolList.length} symbols`);
         return { fetched: [] as PriceData[], failed: symbolList };
       }
 
@@ -139,7 +139,7 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
 
     // Phase 2: Retry failed symbols with fallback providers
     if (failedSymbols.length > 0) {
-      logger.warn(
+      logger.info(
         `${failedSymbols.length} symbols failed primary provider, attempting fallbacks: ${failedSymbols.join(', ')}`,
       );
 
