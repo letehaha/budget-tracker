@@ -1,22 +1,27 @@
 import {
   type AiApiKeyStatusResponse,
   type AiFeaturesStatusResponse,
+  type CustomInstructionsResponse,
   deleteAiApiKey,
   getAiApiKeyStatus,
   getAiFeaturesStatus,
+  getCustomInstructions,
   resetAiFeatureConfig,
   setAiApiKey,
   setAiFeatureConfig,
+  setCustomInstructions,
   setDefaultAiProvider,
 } from '@/api/ai-settings';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
 import { useOnboardingStore } from '@/stores/onboarding';
 import { AI_FEATURE } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed } from 'vue';
 
 const QUERY_KEYS = {
-  apiKeyStatus: ['ai-settings', 'api-keys'] as const,
-  featuresStatus: ['ai-settings', 'features'] as const,
+  apiKeyStatus: VUE_QUERY_CACHE_KEYS.aiApiKeyStatus,
+  featuresStatus: VUE_QUERY_CACHE_KEYS.aiFeaturesStatus,
+  customInstructions: VUE_QUERY_CACHE_KEYS.aiCustomInstructions,
 };
 
 export const useAiSettings = () => {
@@ -79,6 +84,21 @@ export const useAiSettings = () => {
     },
   });
 
+  // ===== Custom Instructions =====
+
+  const customInstructionsQuery = useQuery<CustomInstructionsResponse, Error>({
+    queryKey: [...QUERY_KEYS.customInstructions],
+    queryFn: getCustomInstructions,
+    staleTime: Infinity,
+  });
+
+  const setCustomInstructionsMutation = useMutation({
+    mutationFn: setCustomInstructions,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customInstructions });
+    },
+  });
+
   // ===== Computed Helpers =====
 
   const configuredProviders = computed(() => apiKeyStatusQuery.data.value?.providers ?? []);
@@ -86,6 +106,8 @@ export const useAiSettings = () => {
   const hasAnyApiKey = computed(() => apiKeyStatusQuery.data.value?.hasApiKey ?? false);
 
   const defaultProvider = computed(() => apiKeyStatusQuery.data.value?.defaultProvider);
+
+  const customInstructions = computed(() => customInstructionsQuery.data.value?.instructions ?? null);
 
   const featuresStatus = computed(() => featuresStatusQuery.data.value?.features ?? []);
 
@@ -109,6 +131,7 @@ export const useAiSettings = () => {
     configuredProviders,
     hasAnyApiKey,
     defaultProvider,
+    customInstructions,
     featuresStatus,
     getFeatureStatus,
 
@@ -128,6 +151,10 @@ export const useAiSettings = () => {
 
     resetFeatureConfig: resetFeatureConfigMutation.mutateAsync,
     isResettingFeatureConfig: resetFeatureConfigMutation.isPending,
+
+    // Custom instructions mutations
+    setCustomInstructions: setCustomInstructionsMutation.mutateAsync,
+    isSettingCustomInstructions: setCustomInstructionsMutation.isPending,
 
     // Invalidation
     invalidateAll,

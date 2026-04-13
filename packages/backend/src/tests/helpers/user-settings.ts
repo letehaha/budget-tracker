@@ -87,3 +87,28 @@ export async function deleteAllAiApiKeys<R extends boolean | undefined = undefin
     raw,
   });
 }
+
+// AI Custom Instructions helpers
+
+export async function getCustomInstructions<R extends boolean | undefined = undefined>({ raw }: { raw?: R }) {
+  return makeRequest<{ instructions: string | null }, R>({
+    method: 'get',
+    url: '/user/settings/ai/custom-instructions',
+    raw,
+  });
+}
+
+export async function setCustomInstructions<R extends boolean | undefined = undefined>({
+  instructions,
+  raw,
+}: {
+  instructions: string;
+  raw?: R;
+}) {
+  return makeRequest<{ success: boolean }, R>({
+    method: 'put',
+    url: '/user/settings/ai/custom-instructions',
+    payload: { instructions },
+    raw,
+  });
+}

@@ -134,4 +134,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // MCP connected apps
   mcpConnectedApps: ['mcp-connected-apps'] as const,
+
+  // AI settings
+  aiApiKeyStatus: ['ai-settings', 'api-keys'] as const,
+  aiFeaturesStatus: ['ai-settings', 'features'] as const,
+  aiCustomInstructions: ['ai-settings', 'custom-instructions'] as const,
 });

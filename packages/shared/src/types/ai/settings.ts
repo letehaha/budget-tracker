@@ -122,6 +122,8 @@ export interface AISettingsSchema {
   defaultProvider?: AI_PROVIDER;
   /** Per-feature model configurations */
   featureConfigs: AIFeatureConfig[];
+  /** Custom instructions for AI categorization */
+  customInstructions?: string;
 }
 
 /**
@@ -149,6 +151,9 @@ export interface AIFeatureDisplayInfo {
   /** Feature description */
   description: string;
 }
+
+/** Maximum character length for custom AI categorization instructions */
+export const AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH = 2000;
 
 /**
  * Helper to extract provider from combined model ID
