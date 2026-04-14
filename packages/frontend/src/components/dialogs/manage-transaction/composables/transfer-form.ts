@@ -6,6 +6,8 @@ import { Ref, computed, watch } from 'vue';
 
 import { UI_FORM_STRUCT } from '../types';
 
+export type TransferDestinationType = 'account' | 'portfolio';
+
 export const useTransferFormLogic = ({
   form,
   isTransferTx,
@@ -14,6 +16,7 @@ export const useTransferFormLogic = ({
   transaction,
   oppositeTransaction,
   linkedTransaction,
+  transferDestinationType,
 }: {
   form: Ref<UI_FORM_STRUCT>;
   isTransferTx: Ref<boolean>;
@@ -22,6 +25,7 @@ export const useTransferFormLogic = ({
   transaction: TransactionModel | undefined;
   oppositeTransaction: TransactionModel | undefined;
   linkedTransaction: Ref<TransactionModel | null>;
+  transferDestinationType: Ref<TransferDestinationType>;
 }) => {
   const { currenciesMap } = storeToRefs(useCurrenciesStore());
   const { systemAccounts } = storeToRefs(useAccountsStore());
@@ -29,9 +33,8 @@ export const useTransferFormLogic = ({
   const toAccount = computed(() => form.value.toAccount);
 
   const isTargetFieldVisible = computed(() => {
-    if (isTransferTx.value && linkedTransaction.value) {
-      return false;
-    }
+    if (isTransferTx.value && linkedTransaction.value) return false;
+    if (transferDestinationType.value === 'portfolio') return false;
     return isTransferTx.value;
   });
 

@@ -1,7 +1,9 @@
 import { createTransaction, editTransaction, linkTransactions } from '@/api';
+import { accountToPortfolioTransfer, linkTransactionToPortfolio } from '@/api/portfolios';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
 import { getInvalidationQueryKey } from '@/composable/data-queries/opposite-tx-record';
+import { invalidateTransferRelatedQueries } from '@/composable/data-queries/portfolio-transfers';
 import { i18n } from '@/i18n';
 import { ApiErrorResponseError } from '@/js/errors';
 import { trackAnalyticsEvent } from '@/lib/posthog';
@@ -52,6 +54,16 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
       } = params;
 
       if (isFormCreation) {
+        if (isTransferTx && form.toPortfolio) {
+          return accountToPortfolioTransfer({
+            portfolioId: form.toPortfolio.id,
+            accountId: form.account!.id,
+            amount: String(form.amount!),
+            date: form.time.toISOString().split('T')[0]!,
+            description: form.note,
+          });
+        }
+
         return createTransaction(
           prepareTxCreationParams({
             form,
@@ -62,6 +74,11 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
       } else if (linkedTransaction) {
         return linkTransactions({
           ids: [[transaction!.id, linkedTransaction.id]],
+        });
+      } else if (isTransferTx && form.toPortfolio && transaction) {
+        return linkTransactionToPortfolio({
+          transactionId: transaction.id,
+          portfolioId: form.toPortfolio.id,
         });
       } else {
         return editTransaction(
@@ -78,10 +95,10 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
       }
     },
     onMutate: async (params): Promise<OptimisticUpdateContext | undefined> => {
-      const { form, isFormCreation, transaction, isRecordExternal, linkedTransaction } = params;
+      const { form, isFormCreation, transaction, isRecordExternal, linkedTransaction, isTransferTx } = params;
 
-      // Only apply optimistic updates for edits (not creation or linking)
-      if (isFormCreation || linkedTransaction || !transaction) {
+      // Only apply optimistic updates for edits (not creation, linking, or portfolio conversion)
+      if (isFormCreation || linkedTransaction || !transaction || (isTransferTx && form.toPortfolio)) {
         return undefined;
       }
 
@@ -106,6 +123,10 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
     },
     onSuccess: (_, params) => {
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+
+      if (params.isTransferTx && params.form.toPortfolio) {
+        invalidateTransferRelatedQueries(queryClient);
+      }
 
       if (params.transaction?.id) {
         queryClient.invalidateQueries({

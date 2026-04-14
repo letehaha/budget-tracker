@@ -20,7 +20,7 @@ export type TransferContext = 'portfolio' | 'account';
 export type TransferType = 'portfolio-to-portfolio' | 'portfolio-to-account' | 'account-to-portfolio';
 
 /** Invalidates all queries affected by portfolio transfer operations. */
-function invalidateTransferRelatedQueries(queryClient: QueryClient): void {
+export function invalidateTransferRelatedQueries(queryClient: QueryClient): void {
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioTransfers });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioBalances });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioSummary });

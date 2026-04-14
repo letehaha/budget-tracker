@@ -117,7 +117,11 @@
         "selectAccountPlaceholder": "Виберіть рахунок",
         "noAccountExists": "Рахунків не існує",
         "addNewAccountButton": "Додати новий рахунок +",
-        "createAccountLink": "Створити рахунок"
+        "createAccountLink": "Створити рахунок",
+        "destinationTypeAccount": "Рахунок",
+        "destinationTypePortfolio": "Портфель",
+        "toPortfolioLabel": "До портфелю",
+        "selectPortfolioPlaceholder": "Оберіть портфель"
       },
       "refundRecordsList": {
         "filtersDialogTitle": "Вибрати фільтри",
