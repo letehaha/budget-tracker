@@ -4,9 +4,17 @@
 
 A personal budget tracking application. Track your balances and transactions with bank connections or manual entry, categorize and analyze expenses and income, and many more.
 
-## Local Application setup
+## Self-Hosting
 
-To set up the application locally, please refer to the [instructions here](./docs/application-setup.md).
+### Railway (One-Click Deploy)
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/money-matter)
+
+Deploy your own instance of Budget Tracker on Railway with managed Postgres, Redis, and exchange rate services.
+
+### Docker Compose
+
+To set up the application locally or on your own server, refer to the [local setup instructions](./docs/application-setup.md).
 
 ## License
 

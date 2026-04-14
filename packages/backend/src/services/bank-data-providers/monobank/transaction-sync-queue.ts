@@ -1,5 +1,6 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
+import { getRedisConnectionConfig } from '@common/redis-connection-config';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
@@ -31,8 +32,8 @@ interface TransactionSyncJobData extends SentryTraceData {
 // Redis connection configuration for BullMQ
 // Uses same resilient settings as main redisClient to prevent "Connection is closed" errors in CI
 const connection = {
-  host: process.env.APPLICATION_REDIS_HOST,
-  maxRetriesPerRequest: null, // Required for BullMQ
+  ...getRedisConnectionConfig(),
+  maxRetriesPerRequest: null as null, // Required for BullMQ
   connectTimeout: 20000, // 20s connection timeout for slower CI environments
   keepAlive: 10000, // Send TCP keepalive to prevent idle disconnection
   retryStrategy: (times: number) => Math.min(times * 100, 3000), // Exponential backoff, max 3s
