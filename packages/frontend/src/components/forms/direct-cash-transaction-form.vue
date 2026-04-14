@@ -19,6 +19,7 @@ import {
 } from '@/composable/data-queries/portfolio-transfers';
 import { usePortfolioCurrencySorting } from '@/composable/data-queries/use-portfolio-currency-sorting';
 import { useFormValidation } from '@/composable/form-validator';
+import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import type { AccountModel, PortfolioModel, TransactionModel, UserCurrencyModel } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
@@ -47,7 +48,7 @@ const emit = defineEmits<Emit>();
 const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
-const { systemAccounts, accountsRecord } = storeToRefs(accountsStore);
+const { systemAccountsActiveFirst, accountsRecord } = storeToRefs(accountsStore);
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { sortedCurrencies, currencyLabel } = usePortfolioCurrencySorting(computed(() => props.portfolioId));
@@ -479,13 +480,17 @@ const accountLabel = computed(() =>
           <SelectField
             v-model="transferForm.selectedAccount"
             :label="accountLabel"
-            :values="systemAccounts"
+            :values="systemAccountsActiveFirst"
             value-key="id"
-            label-key="name"
+            :label-key="getAccountDisplayLabel"
             :placeholder="$t('forms.directCashTransaction.accountPlaceholder')"
             :disabled="isAnyMutationPending || disabled"
             :error-message="getTransferFieldError('transferForm.selectedAccount')"
-          />
+          >
+            <template #item="{ item, label }">
+              <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
+            </template>
+          </SelectField>
 
           <InputField
             v-model="transferForm.amount"

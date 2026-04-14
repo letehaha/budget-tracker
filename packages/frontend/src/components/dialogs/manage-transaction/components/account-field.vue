@@ -14,6 +14,9 @@
           :model-value="account"
           @update:model-value="updateFormAccount"
         >
+          <template #item="{ item, label }">
+            <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
+          </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
               <UiButton type="button" class="mt-4 w-full" variant="link">
@@ -47,6 +50,9 @@
           :model-value="toAccount"
           @update:model-value="updateToAccount"
         >
+          <template #item="{ item, label }">
+            <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
+          </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
               <UiButton type="button" class="mt-4 w-full" variant="link">
@@ -85,6 +91,9 @@
           :model-value="account"
           @update:model-value="updateFormAccount"
         >
+          <template #item="{ item, label }">
+            <span :class="{ 'text-muted-foreground': isAccountArchived(item) }">{{ label }}</span>
+          </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
               <UiButton type="button" class="mt-4 w-full" variant="link">
@@ -122,6 +131,7 @@ import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
+import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';
 import { AccountModel, PortfolioModel, TRANSACTION_TYPES } from '@bt/shared/types';
 import { BriefcaseIcon, WalletIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -132,12 +142,12 @@ import FormRow from './form-row.vue';
 
 const { t } = useI18n();
 
-// Helper to get account label - translates if it's a translation key (for OUT_OF_WALLET_ACCOUNT_MOCK)
+// Translate the OUT_OF_WALLET_ACCOUNT_MOCK label (its `name` is an i18n key); real accounts use the shared helper.
 const getAccountLabel = (account: AccountModel & { _isOutOfWallet?: boolean }) => {
   if (account._isOutOfWallet) {
     return t(account.name);
   }
-  return account.name;
+  return getAccountDisplayLabel(account);
 };
 
 const destinationTypeItems = computed(() => [

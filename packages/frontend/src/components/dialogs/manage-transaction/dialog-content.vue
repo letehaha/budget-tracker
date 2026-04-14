@@ -91,7 +91,7 @@ const { t } = useI18n();
 watch(() => route.path, closeModal);
 
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
-const { accountsRecord, systemAccounts } = storeToRefs(useAccountsStore());
+const { accountsRecord, activeSystemAccounts, systemAccountsActiveFirst } = storeToRefs(useAccountsStore());
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
 const tagsStore = useTagsStore();
 // Load tags when the dialog opens
@@ -339,7 +339,7 @@ const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
 onMounted(() => {
   if (!transaction.value) {
-    form.value.account = systemAccounts.value[0] ?? null;
+    form.value.account = activeSystemAccounts.value[0] ?? null;
   } else {
     const data = prepopulateForm({
       transaction: transaction.value,
@@ -467,7 +467,7 @@ onUnmounted(() => {
             :is-transfer-transaction="isTransferTx"
             :is-transaction-linking="!!linkedTransaction"
             :transaction-type="transaction?.transactionType || TRANSACTION_TYPES.expense"
-            :accounts="isTransferTx ? transferSourceAccounts : systemAccounts"
+            :accounts="isTransferTx ? transferSourceAccounts : systemAccountsActiveFirst"
             :from-account-disabled="fromAccountFieldDisabled"
             :to-account-disabled="toAccountFieldDisabled"
             :filtered-accounts="transferDestinationAccounts"

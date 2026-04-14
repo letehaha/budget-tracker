@@ -44,6 +44,15 @@ export const useAccountsStore = defineStore('accounts', () => {
   const activeAccounts = computed(
     () => accounts.value?.filter((item) => item.status === ACCOUNT_STATUSES.active) ?? [],
   );
+  const activeSystemAccounts = computed(() =>
+    systemAccounts.value.filter((item) => item.status === ACCOUNT_STATUSES.active),
+  );
+  // Active accounts first, archived appended at the end — so selectors can render
+  // archived as de-emphasized entries without losing access to them.
+  const systemAccountsActiveFirst = computed(() => [
+    ...activeSystemAccounts.value,
+    ...systemAccounts.value.filter((item) => item.status === ACCOUNT_STATUSES.archived),
+  ]);
 
   /**
    * Accounts that need to be re-linked due to schema migration.
@@ -111,6 +120,8 @@ export const useAccountsStore = defineStore('accounts', () => {
     accountsRecord,
     activeAccounts,
     systemAccounts,
+    activeSystemAccounts,
+    systemAccountsActiveFirst,
     accountsCurrencyCodes,
     accountsNeedingRelink,
     isAccountsFetched,

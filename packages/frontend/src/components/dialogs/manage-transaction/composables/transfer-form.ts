@@ -28,7 +28,7 @@ export const useTransferFormLogic = ({
   transferDestinationType: Ref<TransferDestinationType>;
 }) => {
   const { currenciesMap } = storeToRefs(useCurrenciesStore());
-  const { systemAccounts } = storeToRefs(useAccountsStore());
+  const { systemAccountsActiveFirst } = storeToRefs(useAccountsStore());
 
   const toAccount = computed(() => form.value.toAccount);
 
@@ -77,7 +77,7 @@ export const useTransferFormLogic = ({
     return false;
   });
 
-  const transferSourceAccounts = computed(() => [OUT_OF_WALLET_ACCOUNT_MOCK, ...systemAccounts.value]);
+  const transferSourceAccounts = computed(() => [OUT_OF_WALLET_ACCOUNT_MOCK, ...systemAccountsActiveFirst.value]);
 
   const transferDestinationAccounts = computed(() =>
     transferSourceAccounts.value.filter((item) => item.id !== form.value.account?.id),
