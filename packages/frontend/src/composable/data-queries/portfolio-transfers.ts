@@ -20,12 +20,15 @@ export type TransferContext = 'portfolio' | 'account';
 export type TransferType = 'portfolio-to-portfolio' | 'portfolio-to-account' | 'account-to-portfolio';
 
 /** Invalidates all queries affected by portfolio transfer operations. */
-function invalidateTransferRelatedQueries(queryClient: QueryClient): void {
+export function invalidateTransferRelatedQueries(queryClient: QueryClient): void {
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioTransfers });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioBalances });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioSummary });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts });
+  // Account-to-portfolio and portfolio-to-account transfers create/delete rows in Transactions,
+  // so all transactionChange-prefixed consumers (account tx list, widgets, analytics) must refetch.
+  queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
 }
 
 export const useCreatePortfolioTransfer = () => {

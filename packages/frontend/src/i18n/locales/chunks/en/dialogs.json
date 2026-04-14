@@ -117,7 +117,11 @@
         "selectAccountPlaceholder": "Select account",
         "noAccountExists": "No account exists",
         "addNewAccountButton": "Add new account +",
-        "createAccountLink": "Create account"
+        "createAccountLink": "Create account",
+        "destinationTypeAccount": "Account",
+        "destinationTypePortfolio": "Portfolio",
+        "toPortfolioLabel": "To portfolio",
+        "selectPortfolioPlaceholder": "Select portfolio"
       },
       "refundRecordsList": {
         "filtersDialogTitle": "Select filters",
