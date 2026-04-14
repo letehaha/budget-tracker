@@ -23,7 +23,8 @@ interface UseTransactionsDisplayOptions {
 
 /**
  * Processes raw transactions for display:
- * - Deduplicates transfers (shows only the expense side of common transfers)
+ * - Deduplicates transfers (shows expense side of common transfers when both legs are present;
+ *   shows whichever single leg is present when only one side is in the list, e.g. account view)
  * - Groups transactions by groupId into collapsed group rows (unless content filters are active)
  * - Applies optional maxDisplay limit
  */
@@ -36,20 +37,27 @@ export function useTransactionsDisplay({
     const txs = toValue(transactions);
     const filtersActive = toValue(contentFiltersActive) ?? false;
     const max = toValue(maxDisplay);
-    const seen = new Set<string>();
+    // Collect which transferIds have their expense side present in this list.
+    // Used to decide whether the income side of a pair should be shown (when the
+    // expense side is absent — e.g. account-scoped view) or suppressed (when both
+    // sides are present and we only want to show one).
+    const transferIdsWithExpense = new Set(
+      txs
+        .filter(
+          (tx) =>
+            tx.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
+            tx.transactionType === TRANSACTION_TYPES.expense,
+        )
+        .map((tx) => tx.transferId as string),
+    );
 
     const deduplicated = txs.filter((tx) => {
-      if (!tx.transferId) return true;
-      if (tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return true;
-      if (tx.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
-        if (seen.has(tx.transferId)) return false;
-        if (tx.transactionType === TRANSACTION_TYPES.expense) {
-          seen.add(tx.transferId);
-          return true;
-        }
-        return false;
-      }
-      return true;
+      if (tx.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) return true;
+      if (tx.transactionType === TRANSACTION_TYPES.expense) return true;
+      // Income side: only suppress it when the expense side is also in this list
+      // (i.e. we're on the all-transactions view). When viewing a single account
+      // that only has the income leg, show it.
+      return !transferIdsWithExpense.has(tx.transferId as string);
     });
 
     // When content filters are active, dissolve groups — show individual transactions
