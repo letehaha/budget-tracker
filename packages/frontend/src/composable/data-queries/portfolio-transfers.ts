@@ -26,6 +26,9 @@ export function invalidateTransferRelatedQueries(queryClient: QueryClient): void
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioSummary });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts });
+  // Account-to-portfolio and portfolio-to-account transfers create/delete rows in Transactions,
+  // so all transactionChange-prefixed consumers (account tx list, widgets, analytics) must refetch.
+  queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
 }
 
 export const useCreatePortfolioTransfer = () => {
