@@ -56,4 +56,16 @@ export const GOOGLE_MODELS: Record<Extract<AI_MODEL_ID, `google/${string}`>, AIM
     costTier: 'free',
     pricing: { inputPerMillion: 0.1, outputPerMillion: 0.4 },
   },
+
+  // Gemma (open-weight, very generous free-tier limits)
+  [AI_MODEL_ID['google/gemma-4-31b-it']]: {
+    id: AI_MODEL_ID['google/gemma-4-31b-it'],
+    name: 'Gemma 4 31B',
+    provider: AI_PROVIDER.google,
+    description: 'Open-weight Google model, 1.5K requests/day free',
+    contextWindow: 128_000,
+    capabilities: ['text-generation', 'fast-inference'],
+    costTier: 'free',
+    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
+  },
 };
