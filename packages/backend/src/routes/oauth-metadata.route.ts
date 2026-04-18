@@ -9,6 +9,11 @@ const MCP_SCOPES_SUPPORTED = ['finance:read', 'profile:read', 'offline_access'];
  *
  * These are mounted at root-level well-known paths (RFC 9728, RFC 8414)
  * and cannot live under a prefixed Router.
+ *
+ * Keep in sync with static mirrors on the landing domain (nginx config):
+ *   - packages/frontend/public/.well-known/oauth-authorization-server
+ *   - packages/frontend/public/.well-known/oauth-protected-resource
+ * Any change to issuer, endpoints, or scopes here must be reflected there.
  */
 export function setupOAuthMetadataRoutes({ app }: { app: Express }) {
   // OAuth Protected Resource Metadata (RFC 9728)
