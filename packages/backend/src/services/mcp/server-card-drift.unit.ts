@@ -52,16 +52,16 @@ function extractServerVersionFromSource(): string {
 describe('MCP server-card drift', () => {
   it('tools array matches tools registered in tools/*.ts sources', () => {
     const card = readServerCard();
-    const cardTools = card.tools.map((t) => t.name).sort();
-    const sourceTools = extractToolNamesFromSources().sort();
+    const cardTools = card.tools.map((t) => t.name).toSorted();
+    const sourceTools = extractToolNamesFromSources().toSorted();
 
     expect(cardTools).toEqual(sourceTools);
   });
 
   it('prompts array matches prompt name constants in prompts/*.ts sources', () => {
     const card = readServerCard();
-    const cardPrompts = card.prompts.map((p) => p.name).sort();
-    const sourcePrompts = extractPromptNamesFromSources().sort();
+    const cardPrompts = card.prompts.map((p) => p.name).toSorted();
+    const sourcePrompts = extractPromptNamesFromSources().toSorted();
 
     expect(cardPrompts).toEqual(sourcePrompts);
   });
