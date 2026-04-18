@@ -1,0 +1,83 @@
+{
+  "serverInfo": {
+    "name": "MoneyMatter Finance Tracker",
+    "version": "1.0.0",
+    "title": "MoneyMatter — Personal Finance MCP Server",
+    "description": "Read-only, OAuth-secured access to your MoneyMatter financial data: accounts, transactions, budgets, cash flow, balance history, categories, tags, and spending analytics. Enables natural-language queries about your personal finances.",
+    "website": "https://moneymatter.app",
+    "documentation": "https://moneymatter.app/llms-full.txt",
+    "vendor": {
+      "name": "MoneyMatter",
+      "url": "https://moneymatter.app"
+    },
+    "icons": [
+      {
+        "src": "https://moneymatter.app/favicon.svg",
+        "type": "image/svg+xml"
+      },
+      {
+        "src": "https://moneymatter.app/web-app-manifest-512x512.png",
+        "type": "image/png",
+        "sizes": "512x512"
+      }
+    ],
+    "license": "CC-BY-NC-SA-4.0",
+    "sourceCode": "https://github.com/letehaha/budget-tracker"
+  },
+  "transport": {
+    "type": "streamable-http",
+    "url": "https://mcp.moneymatter.app/mcp"
+  },
+  "capabilities": {
+    "tools": {},
+    "prompts": {},
+    "logging": {}
+  },
+  "authentication": {
+    "oauth2": {
+      "authorizationServer": "https://mcp.moneymatter.app",
+      "metadata": "https://moneymatter.app/.well-known/oauth-authorization-server",
+      "protectedResourceMetadata": "https://moneymatter.app/.well-known/oauth-protected-resource",
+      "scopes": ["finance:read", "profile:read", "offline_access"]
+    }
+  },
+  "tools": [
+    {
+      "name": "get_user_profile",
+      "description": "Retrieve the authenticated user's profile (name, email, default currency)."
+    },
+    {
+      "name": "get_accounts",
+      "description": "List the user's financial accounts with balances, types, and currencies."
+    },
+    {
+      "name": "search_transactions",
+      "description": "Search and filter transactions across accounts by date, category, tag, amount, or merchant."
+    },
+    {
+      "name": "get_categories",
+      "description": "List spending and income categories, including custom user-defined categories."
+    },
+    { "name": "get_tags", "description": "List transaction tags used to annotate spending." },
+    {
+      "name": "get_budgets",
+      "description": "Retrieve active and historical budgets with progress and overspending details."
+    },
+    {
+      "name": "get_spending_by_categories",
+      "description": "Aggregate spending by category over a specified date range."
+    },
+    { "name": "get_cash_flow", "description": "Summarize income vs expenses over a specified date range." },
+    {
+      "name": "get_balance_history",
+      "description": "Time-series of account balances for a given range and granularity."
+    },
+    { "name": "get_expenses_for_period", "description": "Summarize expenses for a given time period with breakdowns." }
+  ],
+  "prompts": [
+    {
+      "name": "financial_data_guide",
+      "description": "Guide for working with MoneyMatter's financial data, including data model and common query patterns."
+    }
+  ]
+}
