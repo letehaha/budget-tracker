@@ -101,14 +101,14 @@ const handleEdit = () => {
     <!-- Desktop: full action buttons -->
     <div class="hidden items-center justify-center gap-2 sm:flex">
       <Button variant="outline" size="sm" :disabled="!hasSelection || isLoading" @click="emit('edit')">
-        <Pencil class="mr-2 size-4" />
+        <Pencil class="size-4" />
         {{ t('transactions.bulkEdit.editButton') }}
       </Button>
 
       <Popover v-model:open="isGroupPopoverOpen">
         <PopoverTrigger as-child>
           <Button variant="outline" size="sm" :disabled="!hasSelection || isLoading">
-            <GroupIcon class="mr-2 size-4" />
+            <GroupIcon class="size-4" />
             {{ t('transactions.transactionGroups.bulkActions.groupButton') }}
           </Button>
         </PopoverTrigger>
@@ -120,11 +120,11 @@ const handleEdit = () => {
             :disabled="selectedCount < 2"
             @click="handleCreateGroup"
           >
-            <PlusIcon class="mr-2 size-4" />
+            <PlusIcon class="size-4" />
             {{ t('transactions.transactionGroups.bulkActions.createNewGroup') }}
           </Button>
           <Button variant="ghost" size="sm" class="w-full justify-start" @click="handleAddToGroup">
-            <ListPlusIcon class="mr-2 size-4" />
+            <ListPlusIcon class="size-4" />
             {{ t('transactions.transactionGroups.bulkActions.addToExistingGroup') }}
           </Button>
         </PopoverContent>

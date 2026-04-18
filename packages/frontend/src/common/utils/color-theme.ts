@@ -7,34 +7,49 @@ export enum Themes {
   light = 'light',
 }
 
-export const currentTheme = ref<Themes>(Themes.dark);
+export enum ThemePreference {
+  light = 'light',
+  dark = 'dark',
+  system = 'system',
+}
 
-const setTheme = (theme: Themes, save = false) => {
+export const currentTheme = ref<Themes>(Themes.dark);
+export const themePreference = ref<ThemePreference>(ThemePreference.system);
+
+const systemPrefersDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+const resolveTheme = (pref: ThemePreference): Themes => {
+  if (pref === ThemePreference.system) {
+    return systemPrefersDark() ? Themes.dark : Themes.light;
+  }
+  return pref === ThemePreference.dark ? Themes.dark : Themes.light;
+};
+
+const applyTheme = (theme: Themes) => {
   currentTheme.value = theme;
   document.documentElement.classList.remove(Themes.dark);
   document.documentElement.classList.remove(Themes.light);
   document.documentElement.classList.add(theme);
-
-  if (save) localStorage.setItem(THEME_LS_KEY, theme);
 };
 
-// Theme toggle temporarily disabled - light theme coming soon
-// export const toggleTheme = () => {
-//   setTheme(currentTheme.value === Themes.dark ? Themes.light : Themes.dark, true);
-// };
+const isValidPreference = (value: string | null): value is ThemePreference =>
+  value !== null && Object.values(ThemePreference).includes(value as ThemePreference);
+
+export const setThemePreference = (pref: ThemePreference) => {
+  themePreference.value = pref;
+  localStorage.setItem(THEME_LS_KEY, pref);
+  applyTheme(resolveTheme(pref));
+};
 
 export const identifyCurrentTheme = () => {
-  // Force dark theme - light theme coming soon
-  setTheme(Themes.dark);
+  const stored = localStorage.getItem(THEME_LS_KEY);
+  const pref = isValidPreference(stored) ? stored : ThemePreference.system;
+  themePreference.value = pref;
+  applyTheme(resolveTheme(pref));
 
-  // Original logic:
-  // const preferredTheme = localStorage.getItem(THEME_LS_KEY) as Themes;
-  //
-  // if (Object.values(Themes).includes(preferredTheme)) {
-  //   setTheme(preferredTheme);
-  // } else {
-  //   const matched = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  //
-  //   setTheme(matched ? Themes.dark : Themes.light);
-  // }
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (themePreference.value === ThemePreference.system) {
+      applyTheme(resolveTheme(ThemePreference.system));
+    }
+  });
 };

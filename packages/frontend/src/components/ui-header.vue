@@ -42,16 +42,7 @@
       </div>
 
       <div class="ml-auto flex items-center gap-2">
-        <!-- Theme toggle temporarily disabled - light theme coming soon
-      <Button variant="ghost" size="icon" @click="toggleTheme">
-        <template v-if="currentTheme === Themes.dark">
-          <MoonStar :size="20" />
-        </template>
-        <template v-else>
-          <Sun :size="20" />
-        </template>
-      </Button>
-      -->
+        <ThemeSelector />
 
         <template v-if="accountsNeedingRelink.length > 0">
           <AccountsRelinkWarning />
@@ -121,10 +112,9 @@
 </template>
 
 <script setup lang="ts">
-// Theme toggle temporarily disabled - light theme coming soon
-// import { Themes, currentTheme, toggleTheme } from '@/common/utils';
 import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
 import LanguageSelector from '@/components/common/language-selector.vue';
+import ThemeSelector from '@/components/common/theme-selector.vue';
 import DemoBanner from '@/components/demo/demo-banner.vue';
 import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
@@ -142,7 +132,6 @@ import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
-// MoonStar, Sun removed - theme toggle temporarily disabled
 import { CloudCheckIcon, ImportIcon, MenuIcon, PlusIcon, RefreshCcw, SparklesIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
