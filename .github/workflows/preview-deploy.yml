@@ -227,6 +227,13 @@ jobs:
                   docker exec -i preview-pr-${PR_NUMBER}-db psql -U preview -d budget_tracker_preview
 
                 echo "Database restore completed!"
+
+                # JWKS private keys in the backup are AES-encrypted with the prod
+                # BETTER_AUTH_SECRET. Preview uses a different secret, so better-auth
+                # would throw on every getSession (oauth-provider plugin forces the jwt
+                # code path). Clear them so better-auth regenerates with the preview secret.
+                docker exec -i preview-pr-${PR_NUMBER}-db \
+                  psql -U preview -d budget_tracker_preview -c 'TRUNCATE ba_jwks;'
               fi
 
               # Start the full stack (backend will auto-run migrations)
@@ -281,8 +288,28 @@ jobs:
         if: steps.prepare-env.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts
 
+      - name: Resolve Playwright version
+        id: playwright-version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+        working-directory: packages/frontend
+
+      - name: Install Playwright OS deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
         working-directory: packages/frontend
 
       - name: Run Playwright tests
