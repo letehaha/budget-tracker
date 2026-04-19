@@ -30,10 +30,15 @@ export function invalidateAppUserCache({ authUserId }: { authUserId: string }): 
  */
 export const authenticateSession = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Get session from better-auth using request headers (cookies)
-    const session = await auth.api.getSession({
-      headers: req.headers as unknown as Headers,
-    });
+    // better-auth expects a Fetch API Headers instance, not Express's plain
+    // headers object. Cast-only was silently throwing inside getSession.
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (value === undefined) continue;
+      headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+    }
+
+    const session = await auth.api.getSession({ headers });
 
     if (!session || !session.user) {
       return res.status(401).json({

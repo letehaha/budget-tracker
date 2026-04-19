@@ -117,7 +117,7 @@ test.describe('Manage-transaction dialog: account-to-portfolio transfer', () => 
     await createTransaction({
       request: page.request,
       accountId: testAccount.id,
-      amount: -75,
+      amount: 75,
       transactionType: 'expense',
     });
 
