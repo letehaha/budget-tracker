@@ -19,6 +19,10 @@ import { registerSearchTransactions } from './tools/search-transactions';
 /**
  * Creates a new MCP server instance with all tools and prompts registered.
  * Each MCP session gets its own server instance.
+ *
+ * When adding, removing, or renaming tools / prompts, also update:
+ *   packages/frontend/public/.well-known/mcp/server-card.json
+ * The drift test at ./server-card-drift.unit.ts will fail otherwise.
  */
 export function createMcpServer(): McpServer {
   const server = new McpServer(

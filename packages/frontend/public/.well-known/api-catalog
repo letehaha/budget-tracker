@@ -1,0 +1,29 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://mcp.moneymatter.app/mcp",
+      "service-desc": [
+        {
+          "href": "https://moneymatter.app/.well-known/mcp/server-card.json",
+          "type": "application/json"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://moneymatter.app/llms-full.txt",
+          "type": "text/plain"
+        }
+      ],
+      "service-meta": [
+        {
+          "href": "https://moneymatter.app/.well-known/oauth-protected-resource",
+          "type": "application/json"
+        },
+        {
+          "href": "https://moneymatter.app/.well-known/oauth-authorization-server",
+          "type": "application/json"
+        }
+      ]
+    }
+  ]
+}
