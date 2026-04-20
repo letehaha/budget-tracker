@@ -87,6 +87,27 @@ describe('Account to Portfolio Transfer (POST /investments/portfolios/:id/transf
     expect(transfer.transactionId).toBe(tx.id);
   });
 
+  it('should include the portfolio-transfer transaction when filtering by accountIds', async () => {
+    await helpers.accountToPortfolioTransfer({
+      portfolioId: portfolio.id,
+      payload: {
+        accountId: account.id,
+        amount: '250',
+        date: '2025-06-15',
+      },
+      raw: true,
+    });
+
+    const transactions = await helpers.getTransactions({
+      accountIds: [account.id],
+      raw: true,
+    });
+
+    expect(transactions.length).toBe(1);
+    expect(transactions[0]!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
+    expect(transactions[0]!.accountId).toBe(account.id);
+  });
+
   it('should handle multiple transfers accumulating balance', async () => {
     await helpers.accountToPortfolioTransfer({
       portfolioId: portfolio.id,

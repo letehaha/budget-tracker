@@ -17,9 +17,10 @@ import {
   useLinkTransactionToPortfolio,
   usePortfolioToAccountTransfer,
 } from '@/composable/data-queries/portfolio-transfers';
+import { usePortfolioCurrencySorting } from '@/composable/data-queries/use-portfolio-currency-sorting';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { useFormValidation } from '@/composable/form-validator';
-import { formatUIAmount } from '@/js/helpers';
+import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { AccountModel, PortfolioModel, TRANSACTION_TYPES, TransactionModel, UserCurrencyModel } from '@bt/shared/types';
 import { X } from 'lucide-vue-next';
@@ -49,7 +50,7 @@ const emit = defineEmits<Emit>();
 const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
-const { systemAccounts, accountsRecord } = storeToRefs(useAccountsStore());
+const { systemAccountsActiveFirst, accountsRecord } = storeToRefs(useAccountsStore());
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { data: portfolios } = usePortfolios();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
@@ -59,7 +60,7 @@ const accountToPortfolioMutation = useAccountToPortfolioTransfer();
 const portfolioToAccountMutation = usePortfolioToAccountTransfer();
 const linkToPortfolioMutation = useLinkTransactionToPortfolio();
 
-// Form state
+// Form state — defined before balance logic so balance computeds can reference it
 const form = reactive<{
   fromPortfolio: PortfolioModel | null;
   toPortfolio: PortfolioModel | null;
@@ -81,6 +82,10 @@ const form = reactive<{
   date: new Date(),
   description: '',
 });
+
+// Portfolio balance data for currency sorting
+const sourcePortfolioId = computed(() => form.fromPortfolio?.id ?? 0);
+const { sortedCurrencies, currencyLabel } = usePortfolioCurrencySorting(sourcePortfolioId);
 
 // Computed values for easier access
 const transferType = computed(() => form.transferTypeOption?.value || 'portfolio-to-portfolio');
@@ -159,12 +164,12 @@ const availableToPortfolios = computed(() => {
 const availableFromAccounts = computed(() => {
   if (props.context === 'portfolio') return [];
   if (transferType.value !== 'account-to-portfolio') return [];
-  return systemAccounts.value.filter((a) => a.id !== form.toAccount?.id);
+  return systemAccountsActiveFirst.value.filter((a) => a.id !== form.toAccount?.id);
 });
 
 const availableToAccounts = computed(() => {
   if (transferType.value === 'portfolio-to-portfolio' || transferType.value === 'account-to-portfolio') return [];
-  return systemAccounts.value.filter((a) => a.id !== form.fromAccount?.id);
+  return systemAccountsActiveFirst.value.filter((a) => a.id !== form.fromAccount?.id);
 });
 
 // Field visibility based on context and transfer type
@@ -477,10 +482,14 @@ const isSubmitDisabled = computed(() => {
       :label="$t('forms.portfolioTransfer.fromAccountLabel')"
       :values="availableFromAccounts"
       value-key="id"
-      label-key="name"
+      :label-key="getAccountDisplayLabel"
       :placeholder="$t('forms.portfolioTransfer.fromAccountPlaceholder')"
       :disabled="isAnyMutationPending || disabled || props.context === 'account'"
-    />
+    >
+      <template #item="{ item, label }">
+        <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
+      </template>
+    </SelectField>
 
     <SelectField
       v-if="showToPortfolio"
@@ -489,8 +498,12 @@ const isSubmitDisabled = computed(() => {
       :values="availableToPortfolios"
       value-key="id"
       label-key="name"
-      :placeholder="$t('forms.portfolioTransfer.toPortfolioPlaceholder')"
-      :disabled="isAnyMutationPending || disabled"
+      :placeholder="
+        availableToPortfolios.length
+          ? $t('forms.portfolioTransfer.toPortfolioPlaceholder')
+          : $t('forms.portfolioTransfer.noPortfoliosAvailable')
+      "
+      :disabled="isAnyMutationPending || disabled || !availableToPortfolios.length"
     />
 
     <SelectField
@@ -499,10 +512,14 @@ const isSubmitDisabled = computed(() => {
       :label="$t('forms.portfolioTransfer.toAccountLabel')"
       :values="availableToAccounts"
       value-key="id"
-      label-key="name"
+      :label-key="getAccountDisplayLabel"
       :placeholder="$t('forms.portfolioTransfer.toAccountPlaceholder')"
       :disabled="isAnyMutationPending || disabled"
-    />
+    >
+      <template #item="{ item, label }">
+        <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
+      </template>
+    </SelectField>
 
     <!-- Link existing transaction -->
     <template v-if="supportsLinking">
@@ -538,9 +555,9 @@ const isSubmitDisabled = computed(() => {
         v-if="transferType !== 'account-to-portfolio'"
         v-model="form.selectedCurrency"
         :label="$t('forms.portfolioTransfer.currencyLabel')"
-        :values="currencies || []"
+        :values="sortedCurrencies"
         value-key="currencyCode"
-        :label-key="(currency: UserCurrencyModel) => currency.currency!.code"
+        :label-key="currencyLabel"
         :placeholder="$t('forms.portfolioTransfer.currencyPlaceholder')"
         :disabled="isAnyMutationPending || disabled"
         :error-message="getFieldErrorMessage('form.selectedCurrency')"

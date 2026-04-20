@@ -1,5 +1,5 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
 import Currencies from '@models/currencies.model';
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -14,13 +14,12 @@ interface GetPortfolioBalancesParams {
 
 const getPortfolioBalancesImpl = async ({ userId, portfolioId, currencyCode }: GetPortfolioBalancesParams) => {
   // Verify portfolio exists and user owns it
-  const portfolio = await Portfolios.findOne({
-    where: { id: portfolioId, userId },
+  await findOrThrowNotFound({
+    query: Portfolios.findOne({
+      where: { id: portfolioId, userId },
+    }),
+    message: t({ key: 'investments.portfolioNotFound' }),
   });
-
-  if (!portfolio) {
-    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
-  }
 
   // Build where clause for balance query
   const where: WhereOptions<PortfolioBalances> = { portfolioId };

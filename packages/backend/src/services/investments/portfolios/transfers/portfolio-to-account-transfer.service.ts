@@ -1,7 +1,8 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { ValidationError } from '@js/errors';
 import Currencies from '@models/currencies.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -51,14 +52,13 @@ const portfolioToAccountTransferImpl = async ({
 
   if (existingTransactionId) {
     // Link to an existing income transaction
-    const existingTx = await Transactions.getTransactionById({
-      id: existingTransactionId,
-      userId,
+    const existingTx = await findOrThrowNotFound({
+      query: Transactions.getTransactionById({
+        id: existingTransactionId,
+        userId,
+      }),
+      message: t({ key: 'transactions.notFound' }),
     });
-
-    if (!existingTx) {
-      throw new NotFoundError({ message: t({ key: 'transactions.notFound' }) });
-    }
 
     if (existingTx.transactionType !== TRANSACTION_TYPES.income) {
       throw new ValidationError({

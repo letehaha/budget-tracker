@@ -138,7 +138,9 @@ watch(
             :key="getKeyFromItem(item as T)"
             :value="getKeyFromItem(item as T)"
           >
-            {{ getLabelFromValue(item as T) }}
+            <slot name="item" :item="item" :label="getLabelFromValue(item as T)">
+              {{ getLabelFromValue(item as T) }}
+            </slot>
           </Select.SelectItem>
 
           <slot name="select-bottom-content" />

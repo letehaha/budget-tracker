@@ -75,7 +75,7 @@ export const getExpensesHistory = async ({
     include: [
       {
         model: Accounts,
-        where: { isEnabled: true },
+        where: { excludeFromStats: false },
         attributes: [],
       },
     ],

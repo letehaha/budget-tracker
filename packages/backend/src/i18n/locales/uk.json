@@ -37,6 +37,7 @@
     "accountGroupNotFound": "Групу рахунків з таким id не знайдено."
   },
   "transactions": {
+    "notFound": "Транзакція не знайдена",
     "missingRequiredFields": "Одне з обов'язкових полів відсутнє: destinationAmount, destinationAccountId.",
     "refundAndTransferNotAllowed": "Не дозволено створювати транзакцію, яка є одночасно поверненням і переказом",
     "cannotCreateWithParams": "Не вдалося створити транзакцію з наданими параметрами",
@@ -140,10 +141,13 @@
     "transferAmountMustBePositive": "Сума переказу повинна бути більше нуля",
     "sourcePortfolioNotFound": "Вихідний портфель не знайдено",
     "destinationPortfolioNotFound": "Цільовий портфель не знайдено",
+    "sourceAccountNotFound": "Вихідний рахунок не знайдено",
+    "destinationAccountNotFound": "Цільовий рахунок не знайдено",
     "cannotDeleteHoldingWithActivePosition": "Не можна видалити актив з активною позицією. Будь ласка, спочатку продайте або перекажіть всі акції.",
     "transactionAlreadyTransfer": "Транзакція вже позначена як переказ і не може бути прив'язана до портфеля.",
     "transactionAlreadyLinkedToPortfolio": "Транзакція вже прив'язана до переказу в портфель.",
-    "portfolioTransferNotFound": "Переказ портфеля не знайдено"
+    "portfolioTransferNotFound": "Переказ портфеля не знайдено",
+    "exchangeCurrenciesMustDiffer": "Валюти обміну мають бути різними"
   },
   "errors": {
     "connectionNotFound": "З'єднання не знайдено",
@@ -382,5 +386,18 @@
         "gifts": "Подарунки"
       }
     }
+  },
+  "paymentReminders": {
+    "reminderNotFound": "Нагадування про оплату не знайдено",
+    "periodNotFound": "Період нагадування про оплату не знайдено",
+    "cannotSkipPaidPeriod": "Неможливо пропустити оплачений період",
+    "periodAlreadySkipped": "Період вже пропущено",
+    "periodAlreadyPaid": "Період вже позначено як оплачений",
+    "periodSkippedUndoFirst": "Період пропущено. Скасуйте пропуск перед позначенням як оплачений.",
+    "periodAlreadyActive": "Період вже в активному стані",
+    "transactionAlreadyLinkedToPeriod": "Ця транзакція вже привязана до іншого періоду цього нагадування"
+  },
+  "subscriptions": {
+    "transactionsNotFoundOrNotBelongToUser": "Одну або кілька транзакцій не знайдено або вони не належать користувачу."
   }
 }

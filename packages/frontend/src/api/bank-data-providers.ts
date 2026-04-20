@@ -29,6 +29,7 @@ export interface BankConnection {
   lastSyncAt: string | null;
   accountsCount: number;
   createdAt: string;
+  bankName: string | null;
 }
 
 interface BankConnectionDetails {

@@ -1,9 +1,24 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types';
 import { getCurrentSessionId } from '@common/lib/cls/session-id';
 import { auth } from '@config/auth';
+import { CacheClient } from '@js/utils/cache';
 import { setSentryUser } from '@js/utils/sentry';
 import Users from '@models/users.model';
 import { NextFunction, Request, Response } from 'express';
+
+type AppUser = Pick<Users, 'username' | 'id' | 'authUserId' | 'role'>;
+
+const CACHE_KEY_PREFIX = 'auth_user:';
+
+const appUserCache = new CacheClient<AppUser>({
+  ttl: 60, // 60 seconds
+  logPrefix: 'AuthUserCache',
+});
+
+/** Remove a user from the cache (e.g., after profile update). */
+export function invalidateAppUserCache({ authUserId }: { authUserId: string }): void {
+  appUserCache.delete(`${CACHE_KEY_PREFIX}${authUserId}`);
+}
 
 /**
  * Middleware to authenticate requests using better-auth sessions.
@@ -15,10 +30,15 @@ import { NextFunction, Request, Response } from 'express';
  */
 export const authenticateSession = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Get session from better-auth using request headers (cookies)
-    const session = await auth.api.getSession({
-      headers: req.headers as unknown as Headers,
-    });
+    // better-auth expects a Fetch API Headers instance, not Express's plain
+    // headers object. Cast-only was silently throwing inside getSession.
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (value === undefined) continue;
+      headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+    }
+
+    const session = await auth.api.getSession({ headers });
 
     if (!session || !session.user) {
       return res.status(401).json({
@@ -30,12 +50,24 @@ export const authenticateSession = async (req: Request, res: Response, next: Nex
       });
     }
 
-    // Look up the app user by authUserId
-    const user = (await Users.findOne({
-      where: { authUserId: session.user.id },
-      attributes: ['username', 'id', 'authUserId', 'role'],
-      raw: true,
-    })) as Pick<Users, 'username' | 'id' | 'authUserId' | 'role'> | null;
+    const authUserId = session.user.id;
+    const cacheKey = `${CACHE_KEY_PREFIX}${authUserId}`;
+
+    // Check Redis cache first
+    let user = await appUserCache.read(cacheKey);
+
+    if (!user) {
+      // Cache miss — look up the app user by authUserId
+      user = (await Users.findOne({
+        where: { authUserId },
+        attributes: ['username', 'id', 'authUserId', 'role'],
+        raw: true,
+      })) as AppUser | null;
+
+      if (user) {
+        await appUserCache.write({ key: cacheKey, value: user });
+      }
+    }
 
     if (!user) {
       return res.status(401).json({

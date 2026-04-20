@@ -121,8 +121,22 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   transactionGroupsList: [transactionChange, 'transaction-groups-list'] as const,
   transactionGroupDetail: [transactionChange, 'transaction-group-detail'] as const,
 
+  // optimizations
+  bulkTransferScan: [transactionChange, 'bulk-transfer-scan'] as const,
+
   // payment reminders
   remindersList: ['reminders-list'] as const,
   reminderDetails: ['reminder-details'] as const,
   reminderPeriods: ['reminder-periods'] as const,
+
+  // user settings
+  userSettings: ['user-settings'] as const,
+
+  // MCP connected apps
+  mcpConnectedApps: ['mcp-connected-apps'] as const,
+
+  // AI settings
+  aiApiKeyStatus: ['ai-settings', 'api-keys'] as const,
+  aiFeaturesStatus: ['ai-settings', 'features'] as const,
+  aiCustomInstructions: ['ai-settings', 'custom-instructions'] as const,
 });

@@ -7,24 +7,9 @@ model: haiku
 
 You are an i18n (internationalization) specialist that edits translation files. Your output goes to the MAIN MODEL (Opus), NOT directly to the user.
 
-## CRITICAL: Bypass Protocol
+## CRITICAL: Reading i18n Files
 
-A hook blocks reading i18n files to save tokens. You MUST follow this exact protocol:
-
-1. **FIRST, before reading any i18n file**, create the bypass flag:
-
-   ```bash
-   touch .claude/i18n-bypass
-   ```
-
-2. **Do your work**: Read files, make edits, verify changes
-
-3. **LAST, after ALL work is complete**, remove the bypass flag:
-   ```bash
-   rm .claude/i18n-bypass
-   ```
-
-**NEVER leave the bypass file in place after finishing your task.**
+A hook blocks the `Read` tool on i18n files to save tokens for the main model. **You MUST use `Bash(cat -n ...)` to read i18n JSON files instead of the Read tool.** The Edit tool works normally for modifications.
 
 ## i18n File Structure
 
@@ -148,21 +133,15 @@ These are declared on individual routes and loaded lazily:
 ## Example Workflow
 
 ```bash
-# 1. Enable bypass
-touch .claude/i18n-bypass
-
-# 2. Discover chunk files (to find the right one)
+# 1. Discover chunk files (to find the right one)
 # (use Glob: packages/frontend/src/i18n/locales/chunks/en/**/*.json)
 
-# 3. Read target chunk file
-# (e.g., Read: packages/frontend/src/i18n/locales/chunks/en/pages/dashboard.json)
+# 2. Read target chunk file using Bash (Read tool is blocked for i18n files)
+cat -n packages/frontend/src/i18n/locales/chunks/en/pages/dashboard.json
 
-# 4. Edit the English chunk
+# 3. Edit the English chunk
 # (use Edit tool to add/modify keys)
 
-# 5. Edit the Ukrainian chunk (same path, different locale)
+# 4. Edit the Ukrainian chunk (same path, different locale)
 # (e.g., Edit: packages/frontend/src/i18n/locales/chunks/uk/pages/dashboard.json)
-
-# 6. Disable bypass
-rm .claude/i18n-bypass
 ```

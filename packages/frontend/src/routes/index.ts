@@ -90,6 +90,11 @@ const routes: RouteRecordRaw[] = [
             name: ROUTES_NAMES.analyticsCashFlow,
             component: () => import('@/pages/analytics/subpages/cash-flow/index.vue'),
           },
+          {
+            path: 'investment-calculator',
+            name: ROUTES_NAMES.analyticsInvestmentCalculator,
+            component: () => import('@/pages/analytics/subpages/investment-calculator/index.vue'),
+          },
         ],
       },
       {
@@ -160,6 +165,18 @@ const routes: RouteRecordRaw[] = [
         name: ROUTES_NAMES.transactionGroups,
         component: () => import('@/pages/transaction-groups/index.vue'),
         meta: { i18nChunks: ['pages/transactions'] as I18nChunkName[] },
+      },
+      {
+        path: '/transactions/optimizations',
+        name: ROUTES_NAMES.optimizations,
+        component: () => import('@/pages/optimizations/index.vue'),
+        meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
+      },
+      {
+        path: '/transactions/optimizations/transfers',
+        name: ROUTES_NAMES.optimizationsTransfers,
+        component: () => import('@/pages/optimizations/transfers/index.vue'),
+        meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
       },
       {
         path: '/import/csv',
@@ -259,6 +276,12 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/pages/settings/subpages/security/index.vue'),
             meta: { i18nChunks: ['settings/security'] as I18nChunkName[] },
           },
+          {
+            path: 'ai-integrations',
+            name: ROUTES_NAMES.settingsAiIntegrations,
+            component: () => import('@/pages/settings/subpages/ai-integrations/index.vue'),
+            meta: { i18nChunks: ['settings/ai-integrations'] as I18nChunkName[] },
+          },
         ],
       },
     ],
@@ -307,6 +330,12 @@ const routes: RouteRecordRaw[] = [
         name: ROUTES_NAMES.authCallback,
         component: () => import('@/pages/auth/oauth-callback.vue'),
         meta: { i18nChunks: ['auth/welcome'] as I18nChunkName[] },
+      },
+      {
+        path: '/oauth/authorize',
+        name: ROUTES_NAMES.oauthAuthorize,
+        component: () => import('@/pages/auth/oauth-authorize.vue'),
+        meta: { i18nChunks: ['auth/oauth-authorize'] as I18nChunkName[] },
       },
     ],
   },

@@ -12,10 +12,10 @@
       <div class="grid gap-6">
         <template v-for="key in Object.keys(groupedAccounts) as AccountTypeKey[]">
           <template v-if="groupedAccounts[key].length">
-            <Section :default-open="key === 'hidden' ? false : true">
+            <Section :default-open="key === 'archived' ? false : true">
               <template #trigger-content>
                 <h2 class="xs:text-lg text-base font-semibold">
-                  <template v-if="key === 'hidden'">{{ $t('accounts.sections.hidden') }}</template>
+                  <template v-if="key === 'archived'">{{ $t('accounts.sections.archived') }}</template>
                   <template v-else-if="key === 'manual'">{{ $t('accounts.sections.manual') }}</template>
                   <template v-else-if="key === 'integrations'">{{ $t('accounts.sections.connected') }}</template>
                 </h2>
@@ -77,7 +77,7 @@ import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue'
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import AddIntegrationDialog from '@/pages/accounts/integrations/components/add-integration-dialog.vue';
 import { useAccountsStore } from '@/stores';
-import { AccountModel } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, AccountModel } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { LandmarkIcon, LinkIcon, PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -89,13 +89,13 @@ import Section from './components/section.vue';
 const { accounts } = storeToRefs(useAccountsStore());
 const queryClient = useQueryClient();
 
-type AccountTypeKey = 'integrations' | 'manual' | 'hidden';
+type AccountTypeKey = 'integrations' | 'manual' | 'archived';
 
 const groupedAccounts = computed(() =>
   (accounts.value ?? []).reduce(
     (acc, account) => {
-      if (!account.isEnabled) {
-        acc.hidden.push(account);
+      if (account.status === ACCOUNT_STATUSES.archived) {
+        acc.archived.push(account);
       } else {
         if (typeof account.bankDataProviderConnectionId === 'number') {
           acc.integrations.push(account);
@@ -105,7 +105,7 @@ const groupedAccounts = computed(() =>
       }
       return acc;
     },
-    { integrations: [], manual: [], hidden: [] } as Record<AccountTypeKey, AccountModel[]>,
+    { integrations: [], manual: [], archived: [] } as Record<AccountTypeKey, AccountModel[]>,
   ),
 );
 

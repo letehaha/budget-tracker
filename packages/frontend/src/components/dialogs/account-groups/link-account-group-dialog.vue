@@ -2,6 +2,7 @@
 import { linkAccountToGroup, loadAccountGroups, removeAccountFromGroup } from '@/api/account-groups';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AccountGroups } from '@/common/types/models';
+import AccountGroupName from '@/components/common/account-group-name.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useAccountGroupForAccount } from '@/composable/data-queries/account-groups';
@@ -112,7 +113,7 @@ const isGroupChanged = computed(
           :disabled="isFormPending"
           @click="() => handleSelection(group)"
         >
-          {{ group.name }}
+          <AccountGroupName :group="group" />
 
           <template v-if="group.id === selectedGroup?.id">
             <CheckIcon class="text-primary size-5" />

@@ -1,5 +1,5 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import Currencies from '@models/currencies.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
@@ -28,13 +28,12 @@ export async function listPortfolioTransfers({
   sortDirection = 'DESC',
 }: ListPortfolioTransfersParams) {
   // Verify portfolio exists and user owns it
-  const portfolio = await Portfolios.findOne({
-    where: { id: portfolioId, userId },
+  await findOrThrowNotFound({
+    query: Portfolios.findOne({
+      where: { id: portfolioId, userId },
+    }),
+    message: t({ key: 'investments.portfolioNotFound' }),
   });
-
-  if (!portfolio) {
-    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
-  }
 
   // Build date filter if provided
   const dateFilter = {};
@@ -70,8 +69,12 @@ export async function listPortfolioTransfers({
       { model: Accounts, as: 'fromAccount', attributes: ['id', 'name', 'currencyCode', 'type'] },
       { model: Accounts, as: 'toAccount', attributes: ['id', 'name', 'currencyCode', 'type'] },
       { model: Currencies, as: 'currency' },
+      { model: Currencies, as: 'toCurrency' },
     ],
-    order: [[sortBy, sortDirection]],
+    order: [
+      [sortBy, sortDirection],
+      ['createdAt', sortDirection],
+    ],
     limit,
     offset,
   });

@@ -9,7 +9,7 @@ const config: KnipConfig = {
     'src/**/*.unit.ts',
     'src/tests/**',
   ],
-  ignoreBinaries: ['knip', 'cross-env', 'oxlint', 'dist/app.js'],
+  ignoreBinaries: ['knip', 'cross-env', 'oxlint', 'dist/app.js', 'vite'],
   ignore: [
     'src/migrations/**',
     // False positive: imported via @common/types path alias which knip doesn't resolve

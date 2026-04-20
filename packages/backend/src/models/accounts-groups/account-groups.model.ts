@@ -19,6 +19,7 @@ import {
 } from '@sequelize/core/decorators-legacy';
 
 import Accounts from '../accounts.model';
+import BankDataProviderConnections from '../bank-data-provider-connections.model';
 import Users from '../users.model';
 import AccountGrouping from './account-grouping.model';
 
@@ -57,11 +58,18 @@ export default class AccountGroup extends Model<InferAttributes<AccountGroup>, I
   @Attribute(DataTypes.INTEGER)
   declare parentGroupId: number | null;
 
+  @Attribute(DataTypes.INTEGER)
+  @Index
+  declare bankDataProviderConnectionId: number | null;
+
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
   @BelongsTo(() => Users, 'userId')
   declare user?: NonAttribute<Users>;
+
+  @BelongsTo(() => BankDataProviderConnections, 'bankDataProviderConnectionId')
+  declare bankDataProviderConnection?: NonAttribute<BankDataProviderConnections>;
 
   // Self-referencing associations cannot use decorators in Sequelize v7
   // They are defined programmatically in models/index.ts after initialization

@@ -19,7 +19,7 @@ export const getEarliestTransactionDate = async ({
     include: [
       {
         model: Accounts,
-        where: { isEnabled: true },
+        where: { excludeFromStats: false },
         attributes: [],
       },
     ],

@@ -131,7 +131,7 @@ export class CurrencyRatesApiProvider extends BaseExchangeRateProvider {
       });
       return response.data?.status === 'ok';
     } catch {
-      this.logWarn('Currency Rates API is not available');
+      this.logInfo('Currency Rates API is not available');
       return false;
     }
   }
@@ -187,7 +187,7 @@ export class CurrencyRatesApiProvider extends BaseExchangeRateProvider {
       });
 
       if (!response.data || !response.data.rates) {
-        this.logWarn(`Invalid response for date ${formattedDate}`);
+        this.logInfo(`Invalid response for date ${formattedDate}`);
         return null;
       }
 
@@ -239,7 +239,7 @@ export class CurrencyRatesApiProvider extends BaseExchangeRateProvider {
       });
 
       if (!response.data || !response.data.rates) {
-        this.logWarn(`Invalid response for range ${formattedStartDate} to ${formattedEndDate}`);
+        this.logInfo(`Invalid response for range ${formattedStartDate} to ${formattedEndDate}`);
         return [];
       }
 
@@ -305,7 +305,7 @@ export class CurrencyRatesApiProvider extends BaseExchangeRateProvider {
       }
 
       if (statusCode === 404) {
-        this.logWarn(`No data available for ${date}`);
+        this.logInfo(`No data available for ${date}`);
         return;
       }
 

@@ -101,6 +101,25 @@ export const portfolioToAccountTransfer = async ({
   return result;
 };
 
+interface ExchangeCurrencyRequest {
+  fromCurrencyCode: string;
+  toCurrencyCode: string;
+  fromAmount: string;
+  toAmount: string;
+  date: string;
+  description?: string;
+}
+
+type ExchangeCurrencyParams = { portfolioId: number } & ExchangeCurrencyRequest;
+
+export const exchangeCurrency = async ({
+  portfolioId,
+  ...params
+}: ExchangeCurrencyParams): Promise<PortfolioTransferModel> => {
+  const result = await api.post(`/investments/portfolios/${portfolioId}/exchange-currency`, params);
+  return result;
+};
+
 export const getPortfolioBalances = async ({
   portfolioId,
 }: {

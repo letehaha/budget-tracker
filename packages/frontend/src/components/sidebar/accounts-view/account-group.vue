@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AccountGroups } from '@/common/types/models';
+import AccountGroupName from '@/components/common/account-group-name.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { ChevronRightIcon, FolderIcon } from 'lucide-vue-next';
@@ -31,8 +32,8 @@ watch(
       <Button variant="ghost" as="div" size="default" class="w-full px-2">
         <div class="flex w-full items-center gap-2">
           <ChevronRightIcon :class="['size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isOpen }]" />
-          <FolderIcon class="text-muted-foreground size-4 shrink-0" />
-          <span class="truncate text-sm">{{ group.name }}</span>
+          <FolderIcon v-if="!group.bankDataProviderConnectionId" class="text-muted-foreground size-4 shrink-0" />
+          <AccountGroupName :group="group" class="min-w-0 text-sm" />
           <span class="text-muted-foreground ml-auto text-xs tabular-nums">
             {{ group.accounts.length }}
           </span>

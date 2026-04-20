@@ -637,12 +637,18 @@ export const findWithFilters = async ({
   }
 
   if (budgetIds?.length) {
-    queryInclude.push({
-      model: Budgets,
-      through: { attributes: [], where: { budgetId: { [Op.in]: budgetIds } } },
-      attributes: [],
-      required: true,
-    });
+    const budgetTransactionIds = await BudgetTransactions.findAll({
+      attributes: ['transactionId'],
+      where: {
+        budgetId: { [Op.in]: budgetIds },
+      },
+      raw: true,
+    }).then((results) => results.map((r) => r.transactionId));
+
+    whereClause.id = {
+      ...(whereClause.id as object),
+      [Op.in]: budgetTransactionIds,
+    };
   }
 
   if (excludedBudgetIds?.length) {
@@ -658,6 +664,7 @@ export const findWithFilters = async ({
 
     if (excludedTransactionIds.length > 0) {
       whereClause.id = {
+        ...(whereClause.id as object),
         [Op.notIn]: excludedTransactionIds,
       };
     }
@@ -690,12 +697,12 @@ export const findWithFilters = async ({
       if (whereClause.id && (whereClause.id as Record<symbol, number[]>)[Op.notIn]) {
         const existingExclusions = (whereClause.id as Record<symbol, number[]>)[Op.notIn] as number[];
         whereClause.id = {
+          ...(whereClause.id as object),
           [Op.notIn]: [...new Set([...existingExclusions, ...excludedTransactionIds])],
         };
       } else {
         whereClause.id = {
-          // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread
-          ...((whereClause.id as object) || {}),
+          ...(whereClause.id as object),
           [Op.notIn]: excludedTransactionIds,
         };
       }

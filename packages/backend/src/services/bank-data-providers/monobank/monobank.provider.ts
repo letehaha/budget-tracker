@@ -298,7 +298,6 @@ export class MonobankProvider extends BaseBankDataProvider {
     const clientInfo = await apiClient.getClientInfo();
 
     const account = clientInfo.accounts.find((acc) => acc.id === accountExternalId);
-
     if (!account) {
       throw new NotFoundError({
         message: t({ key: 'bankDataProviders.monobank.accountNotFound', variables: { accountExternalId } }),

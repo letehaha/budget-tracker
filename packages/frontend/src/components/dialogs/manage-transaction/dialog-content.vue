@@ -33,6 +33,8 @@ import PortfolioLinkedView from './components/portfolio-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
+import { usePortfolios } from '@/composable/data-queries/portfolios';
+
 import {
   getRefundInfo,
   useDeleteTransaction,
@@ -40,6 +42,7 @@ import {
   useTransferFormLogic,
   useUnlinkTransactions,
 } from './composables';
+import type { TransferDestinationType } from './composables/transfer-form';
 import { prepopulateForm } from './helpers';
 import { FORM_TYPES, UI_FORM_STRUCT } from './types';
 
@@ -88,7 +91,7 @@ const { t } = useI18n();
 watch(() => route.path, closeModal);
 
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
-const { accountsRecord, systemAccounts } = storeToRefs(useAccountsStore());
+const { accountsRecord, activeSystemAccounts, systemAccountsActiveFirst } = storeToRefs(useAccountsStore());
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
 const tagsStore = useTagsStore();
 // Load tags when the dialog opens
@@ -102,6 +105,7 @@ const form = ref<UI_FORM_STRUCT>({
   amount: null,
   account: null,
   toAccount: null,
+  toPortfolio: null,
   targetAmount: null,
   category: formattedCategories.value[0]!,
   time: new Date(),
@@ -112,6 +116,10 @@ const form = ref<UI_FORM_STRUCT>({
   refundsTx: undefined,
   tagIds: [],
 });
+
+const transferDestinationType = ref<TransferDestinationType>('account');
+
+const { data: portfolios } = usePortfolios();
 
 const {
   isInitialRefundsDataLoaded,
@@ -201,6 +209,7 @@ const {
   transaction: transaction.value,
   oppositeTransaction: oppositeTransaction.value,
   linkedTransaction,
+  transferDestinationType,
 });
 
 // TODO:
@@ -237,9 +246,21 @@ const currencyCode = computed(() => {
   return undefined;
 });
 
+watch(transferDestinationType, (type) => {
+  if (type === 'portfolio') {
+    form.value.toAccount = null;
+  } else {
+    form.value.toPortfolio = null;
+  }
+});
+
 watch(
   () => [currentTxType.value, linkedTransaction.value],
   ([txType, isLinked], [prevTxType]) => {
+    if (txType !== FORM_TYPES.transfer) {
+      transferDestinationType.value = 'account';
+      form.value.toPortfolio = null;
+    }
     if (transaction.value) {
       // If it's a transaction coming from props it means user currectly edits the form.
       // When switching between transfer type and others we need to keep consistent fields
@@ -318,7 +339,7 @@ const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
 onMounted(() => {
   if (!transaction.value) {
-    form.value.account = systemAccounts.value[0] ?? null;
+    form.value.account = activeSystemAccounts.value[0] ?? null;
   } else {
     const data = prepopulateForm({
       transaction: transaction.value,
@@ -440,14 +461,17 @@ onUnmounted(() => {
           <account-field
             v-model:account="form.account"
             v-model:to-account="form.toAccount"
+            v-model:to-portfolio="form.toPortfolio"
+            v-model:destination-type="transferDestinationType"
             :disabled="isFormFieldsDisabled"
             :is-transfer-transaction="isTransferTx"
             :is-transaction-linking="!!linkedTransaction"
             :transaction-type="transaction?.transactionType || TRANSACTION_TYPES.expense"
-            :accounts="isTransferTx ? transferSourceAccounts : systemAccounts"
+            :accounts="isTransferTx ? transferSourceAccounts : systemAccountsActiveFirst"
             :from-account-disabled="fromAccountFieldDisabled"
             :to-account-disabled="toAccountFieldDisabled"
             :filtered-accounts="transferDestinationAccounts"
+            :portfolios="portfolios ?? []"
           />
 
           <template v-if="currentTxType !== FORM_TYPES.transfer">
@@ -531,6 +555,7 @@ onUnmounted(() => {
           </template>
 
           <LinkTransactionSection
+            v-if="transferDestinationType === 'account'"
             v-model:linked-transaction="linkedTransaction"
             :is-transfer-tx="isTransferTx"
             :is-form-creation="isFormCreation"

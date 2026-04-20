@@ -14,6 +14,9 @@
           :model-value="account"
           @update:model-value="updateFormAccount"
         >
+          <template #item="{ item, label }">
+            <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
+          </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
               <UiButton type="button" class="mt-4 w-full" variant="link">
@@ -25,6 +28,17 @@
       </form-row>
 
       <form-row>
+        <PillTabs
+          :model-value="destinationType"
+          :items="destinationTypeItems"
+          size="sm"
+          :disabled="disabled || toAccountDisabled"
+          class="w-full"
+          @update:model-value="updateDestinationType"
+        />
+      </form-row>
+
+      <form-row v-if="destinationType === 'account'">
         <select-field
           :label="$t('dialogs.manageTransaction.form.toAccountLabel')"
           :placeholder="$t('dialogs.manageTransaction.form.selectAccountPlaceholder')"
@@ -36,6 +50,9 @@
           :model-value="toAccount"
           @update:model-value="updateToAccount"
         >
+          <template #item="{ item, label }">
+            <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
+          </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
               <UiButton type="button" class="mt-4 w-full" variant="link">
@@ -44,6 +61,20 @@
             </CreateAccountDialog>
           </template>
         </select-field>
+      </form-row>
+
+      <form-row v-else>
+        <select-field
+          :label="$t('dialogs.manageTransaction.form.toPortfolioLabel')"
+          :placeholder="$t('dialogs.manageTransaction.form.selectPortfolioPlaceholder')"
+          :values="portfolios"
+          label-key="name"
+          value-key="id"
+          with-search
+          :disabled="disabled || toAccountDisabled"
+          :model-value="toPortfolio"
+          @update:model-value="updateToPortfolio"
+        />
       </form-row>
     </template>
     <template v-else>
@@ -60,6 +91,9 @@
           :model-value="account"
           @update:model-value="updateFormAccount"
         >
+          <template #item="{ item, label }">
+            <span :class="{ 'text-muted-foreground': isAccountArchived(item) }">{{ label }}</span>
+          </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
               <UiButton type="button" class="mt-4 w-full" variant="link">
@@ -96,25 +130,46 @@ import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue'
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { AccountModel, TRANSACTION_TYPES } from '@bt/shared/types';
+import { PillTabs } from '@/components/lib/ui/pill-tabs';
+import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';
+import { AccountModel, PortfolioModel, TRANSACTION_TYPES } from '@bt/shared/types';
+import { BriefcaseIcon, WalletIcon } from 'lucide-vue-next';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import type { TransferDestinationType } from '../composables/transfer-form';
 import FormRow from './form-row.vue';
 
 const { t } = useI18n();
 
-// Helper to get account label - translates if it's a translation key (for OUT_OF_WALLET_ACCOUNT_MOCK)
+// Translate the OUT_OF_WALLET_ACCOUNT_MOCK label (its `name` is an i18n key); real accounts use the shared helper.
 const getAccountLabel = (account: AccountModel & { _isOutOfWallet?: boolean }) => {
   if (account._isOutOfWallet) {
     return t(account.name);
   }
-  return account.name;
+  return getAccountDisplayLabel(account);
 };
+
+const destinationTypeItems = computed(() => [
+  {
+    value: 'account' as TransferDestinationType,
+    label: t('dialogs.manageTransaction.form.destinationTypeAccount'),
+    icon: WalletIcon,
+  },
+  {
+    value: 'portfolio' as TransferDestinationType,
+    label: t('dialogs.manageTransaction.form.destinationTypePortfolio'),
+    icon: BriefcaseIcon,
+  },
+]);
 
 withDefaults(
   defineProps<{
     account?: AccountModel | null;
     toAccount?: AccountModel | null;
+    toPortfolio?: PortfolioModel | null;
+    destinationType?: TransferDestinationType;
+    portfolios?: PortfolioModel[];
     isTransferTransaction: boolean;
     accounts: AccountModel[];
     filteredAccounts: AccountModel[];
@@ -127,13 +182,21 @@ withDefaults(
   {
     account: null,
     toAccount: null,
+    toPortfolio: null,
+    destinationType: 'account',
+    portfolios: () => [],
     isTransactionLinking: false,
     fromAccountDisabled: false,
     toAccountDisabled: false,
   },
 );
 
-const emit = defineEmits(['update:account', 'update:to-account']);
+const emit = defineEmits<{
+  'update:account': [account: AccountModel | null];
+  'update:to-account': [account: AccountModel | null];
+  'update:to-portfolio': [portfolio: PortfolioModel | null];
+  'update:destination-type': [type: TransferDestinationType];
+}>();
 
 const updateFormAccount = (account: AccountModel | null) => {
   emit('update:account', account);
@@ -141,5 +204,13 @@ const updateFormAccount = (account: AccountModel | null) => {
 
 const updateToAccount = (account: AccountModel | null) => {
   emit('update:to-account', account);
+};
+
+const updateToPortfolio = (portfolio: PortfolioModel | null) => {
+  emit('update:to-portfolio', portfolio);
+};
+
+const updateDestinationType = (type: string) => {
+  emit('update:destination-type', type as TransferDestinationType);
 };
 </script>

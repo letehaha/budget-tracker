@@ -2,20 +2,20 @@
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import DirectCashTransactionForm from '@/components/forms/direct-cash-transaction-form.vue';
 import type { PortfolioModel } from '@bt/shared/types';
-import { ref } from 'vue';
-
-interface Emit {
-  (e: 'success'): void;
-}
+import { useVModel } from '@vueuse/core';
 
 const props = defineProps<{
   portfolioId: number;
   portfolio: PortfolioModel;
+  open?: boolean;
 }>();
 
-const emit = defineEmits<Emit>();
+const emit = defineEmits<{
+  (e: 'success'): void;
+  (e: 'update:open', value: boolean): void;
+}>();
 
-const isOpen = ref(false);
+const isOpen = useVModel(props, 'open', emit, { passive: true });
 
 const handleSuccess = () => {
   isOpen.value = false;

@@ -5,6 +5,7 @@ import { parseCategorizationResponse } from './parse-response';
 // Only mock the logger
 vi.mock('@js/utils/logger', () => ({
   logger: {
+    info: vi.fn(),
     warn: vi.fn(),
   },
 }));

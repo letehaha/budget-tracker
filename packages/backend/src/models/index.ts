@@ -19,6 +19,7 @@ import PortfolioBalancesModel from './investments/portfolio-balances.model';
 import PortfolioTransfersModel from './investments/portfolio-transfers.model';
 import PortfoliosModel from './investments/portfolios.model';
 import SecuritiesModel from './investments/securities.model';
+import SecurityCurrencyCacheModel from './investments/security-currency-cache.model';
 import SecurityPricingModel from './investments/security-pricing.model';
 import MerchantCategoryCodesModel from './merchant-category-codes.model';
 import NotificationsModel from './notifications.model';
@@ -36,6 +37,7 @@ import TransactionGroupsModel from './transaction-groups.model';
 import TransactionSplitsModel from './transaction-splits.model';
 import TransactionTagsModel from './transaction-tags.model';
 import TransactionsModel from './transactions.model';
+import TransferSuggestionDismissalsModel from './transfer-suggestion-dismissals.model';
 import UserExchangeRatesModel from './user-exchange-rates.model';
 import UserMerchantCategoryCodesModel from './user-merchant-category-codes.model';
 import UserSettingsModel from './user-settings.model';
@@ -80,6 +82,7 @@ const models = [
   HoldingsModel,
   InvestmentTransactionModel,
   SecuritiesModel,
+  SecurityCurrencyCacheModel,
   SecurityPricingModel,
   PortfoliosModel,
   PortfolioBalancesModel,
@@ -90,6 +93,7 @@ const models = [
   PaymentRemindersModel,
   PaymentReminderPeriodsModel,
   PaymentReminderNotificationsModel,
+  TransferSuggestionDismissalsModel,
 ];
 
 const databaseName =

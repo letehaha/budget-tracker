@@ -200,7 +200,7 @@ export class ApiLayerProvider extends BaseExchangeRateProvider {
     if (statusCode === 429) {
       // Rate limited - mark key and try next
       await ApiKeyRateLimitService.markAsRateLimited('apilayer', apiKey, 'HTTP 429 Too Many Requests');
-      this.logWarn(`Rate limit hit for key ${keyIndex + 1}/${totalKeys}`, params);
+      this.logInfo(`Rate limit hit for key ${keyIndex + 1}/${totalKeys}`, params);
       return true; // Try next key
     }
 

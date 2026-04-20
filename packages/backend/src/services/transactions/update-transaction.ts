@@ -1,5 +1,6 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -35,16 +36,13 @@ const validateTransaction = async (newData: UpdateTransactionParams, prevData: T
   // Check the account type, not the transaction type
   // A system transaction in a monobank account should be treated as external
   // accountId is null only for portfolio-linked transactions, which don't flow through this service.
-  const account = await Accounts.getAccountById({
-    userId: newData.userId,
-    id: prevData.accountId!,
+  const account = await findOrThrowNotFound({
+    query: Accounts.getAccountById({
+      userId: newData.userId,
+      id: prevData.accountId!,
+    }),
+    message: t({ key: 'accounts.accountNotFoundForTransaction' }),
   });
-
-  if (!account) {
-    throw new NotFoundError({
-      message: t({ key: 'accounts.accountNotFoundForTransaction' }),
-    });
-  }
 
   const isExternalAccount = account.type !== ACCOUNT_TYPES.system;
 
@@ -394,16 +392,13 @@ export const updateTransaction = withTransaction(
     payload: UpdateTransactionParams,
   ): Promise<[baseTx: Transactions.default, oppositeTx?: Transactions.default]> => {
     try {
-      const prevData = await getTransactionById({
-        id: payload.id,
-        userId: payload.userId,
+      const prevData = await findOrThrowNotFound({
+        query: getTransactionById({
+          id: payload.id,
+          userId: payload.userId,
+        }),
+        message: t({ key: 'transactions.transactionIdNotExist' }),
       });
-
-      if (!prevData) {
-        throw new NotFoundError({
-          message: t({ key: 'transactions.transactionIdNotExist' }),
-        });
-      }
 
       // Validate that passed parameters are not breaking anything
       await validateTransaction(payload, prevData);

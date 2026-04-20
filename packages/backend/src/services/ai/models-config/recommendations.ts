@@ -8,6 +8,7 @@ import { AI_MODEL_ID } from './model-ids';
  */
 export const FEATURE_RECOMMENDATIONS: Record<AI_FEATURE, AI_MODEL_ID[]> = {
   [AI_FEATURE.categorization]: [
+    AI_MODEL_ID['google/gemma-4-31b-it'], // Generous free-tier (1.5K/day), ~92% agreement with Gemini 3 Flash
     AI_MODEL_ID['google/gemini-2.5-flash'], // Fast, cheap, great for bulk categorization
     AI_MODEL_ID['google/gemini-2.5-flash-lite'], // Ultra-lightweight, highest throughput
     AI_MODEL_ID['openai/gpt-4o-mini'], // Good balance of quality and cost
@@ -34,6 +35,6 @@ export const FEATURE_RECOMMENDATIONS: Record<AI_FEATURE, AI_MODEL_ID[]> = {
  * These are used as server fallback.
  */
 export const FEATURE_DEFAULTS: Record<AI_FEATURE, AI_MODEL_ID> = {
-  [AI_FEATURE.categorization]: AI_MODEL_ID['google/gemini-2.5-flash'],
+  [AI_FEATURE.categorization]: AI_MODEL_ID['google/gemma-4-31b-it'],
   [AI_FEATURE.statementParsing]: AI_MODEL_ID['google/gemini-3-flash-preview'],
 };

@@ -27,6 +27,12 @@
         <UiButton variant="ghost" size="icon" @click="router.push({ name: ROUTES_NAMES.accountIntegrations })">
           <span class="text-xl">←</span>
         </UiButton>
+        <img
+          v-if="institutionLogoUrl"
+          :src="institutionLogoUrl"
+          :alt="connectionDetails.providerName"
+          class="size-7 shrink-0 rounded-sm"
+        />
         <h1 class="text-2xl tracking-wider">{{ connectionDetails.providerName }}</h1>
         <UiButton variant="ghost" size="icon" @click="openEditNameDialog">
           <PencilIcon class="size-4" />
@@ -532,14 +538,17 @@
 
 <script lang="ts" setup>
 import {
+  type BankConnection,
   disconnectProvider,
   getAvailableAccounts,
+  listConnections,
   reauthorizeConnection,
   syncSelectedAccounts,
   updateConnectionDetails,
 } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
+import { getBankInstitutionLogoUrl } from '@/common/utils/find-bank-institution';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
@@ -595,6 +604,19 @@ const isConnectionValidityOpen = ref(false);
 const isReconnectPending = ref(false);
 
 const { data: connectionDetails, isLoading, error } = useBankConnectionDetails({ connectionId: connectionId });
+
+const { data: bankConnections } = useQuery({
+  queryFn: listConnections,
+  queryKey: VUE_QUERY_CACHE_KEYS.bankConnections,
+  staleTime: Infinity,
+  placeholderData: [] as BankConnection[],
+});
+
+const institutionLogoUrl = computed(() => {
+  const conn = bankConnections.value?.find((c) => c.id === connectionId.value);
+  if (!conn?.bankName) return null;
+  return getBankInstitutionLogoUrl({ bankName: conn.bankName });
+});
 
 const isDeactivatedDueToAuth = computed(
   () =>

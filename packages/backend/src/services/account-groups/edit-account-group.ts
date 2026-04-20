@@ -1,5 +1,5 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
 
 import { withTransaction } from '../common/with-transaction';
@@ -13,20 +13,16 @@ export const updateAccountGroup = withTransaction(
     groupId: number;
     userId: number;
   } & Partial<Pick<AccountGroup, 'name' | 'parentGroupId'>>): Promise<AccountGroup[]> => {
-    const existingGroup = await AccountGroup.findByPk(groupId);
-
-    if (!existingGroup) {
-      throw new NotFoundError({ message: t({ key: 'accountGroups.groupNotFound' }) });
-    }
+    await findOrThrowNotFound({
+      query: AccountGroup.findByPk(groupId),
+      message: t({ key: 'accountGroups.groupNotFound' }),
+    });
 
     if (updates.parentGroupId) {
-      const existingParent = await AccountGroup.findByPk(updates.parentGroupId);
-
-      if (!existingParent) {
-        throw new NotFoundError({
-          message: t({ key: 'accountGroups.parentGroupNotExist' }),
-        });
-      }
+      await findOrThrowNotFound({
+        query: AccountGroup.findByPk(updates.parentGroupId),
+        message: t({ key: 'accountGroups.parentGroupNotExist' }),
+      });
     }
 
     const [, updatedGroup] = await AccountGroup.update(updates, {

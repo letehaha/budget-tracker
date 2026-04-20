@@ -1,3 +1,4 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { NotFoundError } from '@js/errors';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
@@ -7,12 +8,10 @@ import { withTransaction } from '../common/with-transaction';
 
 export const removeAccountFromGroup = withTransaction(
   async ({ accountIds, groupId }: { accountIds: number[]; groupId: number }): Promise<void> => {
-    const group = await AccountGroup.findByPk(groupId);
-    if (!group) {
-      throw new NotFoundError({
-        message: 'Group with provided id does not exist',
-      });
-    }
+    await findOrThrowNotFound({
+      query: AccountGroup.findByPk(groupId),
+      message: 'Group with provided id does not exist',
+    });
     const existingAccounts = await Accounts.findAll({
       where: { id: accountIds },
     });

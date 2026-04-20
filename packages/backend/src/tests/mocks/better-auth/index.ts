@@ -198,9 +198,15 @@ export function betterAuth(config: BetterAuthConfig): AuthInstance {
 
     api: {
       getSession: async ({ headers }: { headers: unknown }) => {
-        // Check for session cookie in headers
-        const headerObj = headers as Record<string, string | undefined>;
-        const cookie = headerObj.cookie || headerObj.Cookie;
+        // Middleware may pass a Fetch Headers instance (real better-auth shape)
+        // or a plain object (older callers). Support both.
+        let cookie: string | undefined;
+        if (headers instanceof Headers) {
+          cookie = headers.get('cookie') ?? headers.get('Cookie') ?? undefined;
+        } else {
+          const headerObj = headers as Record<string, string | undefined>;
+          cookie = headerObj.cookie || headerObj.Cookie;
+        }
         const sessionToken = extractSessionToken(cookie);
 
         if (sessionToken) {

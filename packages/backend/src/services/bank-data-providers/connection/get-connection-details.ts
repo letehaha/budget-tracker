@@ -1,3 +1,4 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
@@ -55,23 +56,22 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
   const { connectionId, userId } = params;
 
   // Fetch connection with associated accounts
-  const connection = await BankDataProviderConnections.findOne({
-    where: {
-      id: connectionId,
-      userId,
-    },
-    include: [
-      {
-        model: Accounts,
-        as: 'accounts',
-        attributes: ['id', 'name', 'externalId', 'currentBalance', 'currencyCode', 'type'],
+  const connection = await findOrThrowNotFound({
+    query: BankDataProviderConnections.findOne({
+      where: {
+        id: connectionId,
+        userId,
       },
-    ],
+      include: [
+        {
+          model: Accounts,
+          as: 'accounts',
+          attributes: ['id', 'name', 'externalId', 'currentBalance', 'currencyCode', 'type'],
+        },
+      ],
+    }),
+    message: t({ key: 'errors.connectionNotFound' }),
   });
-
-  if (!connection) {
-    throw new NotFoundError({ message: t({ key: 'errors.connectionNotFound' }) });
-  }
 
   // Get provider metadata
   const provider = bankProviderRegistry.get(connection.providerType);

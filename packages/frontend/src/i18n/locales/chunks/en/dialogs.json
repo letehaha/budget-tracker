@@ -117,7 +117,11 @@
         "selectAccountPlaceholder": "Select account",
         "noAccountExists": "No account exists",
         "addNewAccountButton": "Add new account +",
-        "createAccountLink": "Create account"
+        "createAccountLink": "Create account",
+        "destinationTypeAccount": "Account",
+        "destinationTypePortfolio": "Portfolio",
+        "toPortfolioLabel": "To portfolio",
+        "selectPortfolioPlaceholder": "Select portfolio"
       },
       "refundRecordsList": {
         "filtersDialogTitle": "Select filters",
@@ -342,6 +346,10 @@
         "success": "Thanks for your feedback!",
         "error": "Failed to send feedback. Please try again."
       }
+    },
+    "exchangeCurrency": {
+      "title": "Exchange Currency",
+      "description": "Exchange cash between different currencies within your portfolio"
     }
   }
 }

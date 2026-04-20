@@ -1,6 +1,6 @@
 import { SUBSCRIPTION_LINK_STATUS } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { NotFoundError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
 import Subscriptions from '@models/subscriptions.model';
@@ -62,24 +62,23 @@ export const getSubscriptions = async ({ userId, isActive, type }: GetSubscripti
 };
 
 export const getSubscriptionById = async ({ id, userId }: { id: string; userId: number }) => {
-  const subscription = await Subscriptions.findOne({
-    where: { id, userId },
-    include: [
-      { model: Accounts, attributes: ['id', 'name', 'currencyCode'] },
-      { model: Categories, attributes: ['id', 'name', 'color', 'icon'] },
-      {
-        model: Transactions,
-        through: {
-          attributes: ['matchSource', 'matchedAt', 'status'],
-          where: { status: SUBSCRIPTION_LINK_STATUS.active },
+  const subscription = await findOrThrowNotFound({
+    query: Subscriptions.findOne({
+      where: { id, userId },
+      include: [
+        { model: Accounts, attributes: ['id', 'name', 'currencyCode'] },
+        { model: Categories, attributes: ['id', 'name', 'color', 'icon'] },
+        {
+          model: Transactions,
+          through: {
+            attributes: ['matchSource', 'matchedAt', 'status'],
+            where: { status: SUBSCRIPTION_LINK_STATUS.active },
+          },
         },
-      },
-    ],
+      ],
+    }),
+    message: 'Subscription not found.',
   });
-
-  if (!subscription) {
-    throw new NotFoundError({ message: 'Subscription not found.' });
-  }
 
   const raw = subscription.toJSON() as InferAttributes<Subscriptions> & {
     transactions?: (InferAttributes<Transactions> & { SubscriptionTransactions?: Record<string, unknown> })[];

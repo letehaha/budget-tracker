@@ -47,7 +47,13 @@
             @click="goToConnectionDetails(connection.id)"
           >
             <CardHeader class="p-4">
-              <div class="mb-2 text-lg font-medium tracking-wide">
+              <div class="mb-2 flex items-center gap-2 text-lg font-medium tracking-wide">
+                <img
+                  v-if="connectionLogos.get(connection.id)"
+                  :src="connectionLogos.get(connection.id)!"
+                  :alt="connection.providerName"
+                  class="size-6 shrink-0"
+                />
                 {{ connection.providerName }}
               </div>
               <div class="mt-3 flex items-center gap-2 text-base">
@@ -107,6 +113,7 @@ import {
 } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
+import { getBankInstitutionLogoUrl } from '@/common/utils/find-bank-institution';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import { DemoRestricted } from '@/components/demo';
@@ -118,7 +125,7 @@ import { useUserStore } from '@/stores';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -192,6 +199,14 @@ const handleDisconnectConfirm = (removeAssociatedAccounts: boolean) => {
 const goToConnectionDetails = (connectionId: number) => {
   router.push({ name: ROUTES_NAMES.accountIntegrationDetails, params: { connectionId } });
 };
+
+const connectionLogos = computed(() => {
+  const map = new Map<number, string | null>();
+  for (const conn of connections.value ?? []) {
+    map.set(conn.id, conn.bankName ? getBankInstitutionLogoUrl({ bankName: conn.bankName }) : null);
+  }
+  return map;
+});
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString(undefined, {

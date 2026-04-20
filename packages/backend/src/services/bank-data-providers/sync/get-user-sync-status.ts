@@ -1,3 +1,4 @@
+import { ACCOUNT_STATUSES } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { Op } from '@sequelize/core';
@@ -21,7 +22,7 @@ export async function getUserBankAccounts(userId: number): Promise<AccountWithCo
     where: {
       userId,
       bankDataProviderConnectionId: { [Op.ne]: null },
-      isEnabled: true,
+      status: ACCOUNT_STATUSES.active,
     },
     include: [
       {

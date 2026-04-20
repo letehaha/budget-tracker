@@ -35,14 +35,14 @@ services:
       - internal
     labels:
       - 'traefik.enable=true'
-      # HTTP → HTTPS redirect
-      - 'traefik.http.routers.preview-pr-${PR_NUMBER}-be-http.rule=Host(`api-pr-${PR_NUMBER}.preview.moneymatter.app`)'
+      # HTTP → HTTPS redirect (API)
+      - 'traefik.http.routers.preview-pr-${PR_NUMBER}-be-http.rule=Host(`api-pr-${PR_NUMBER}.preview.moneymatter.app`) || Host(`mcp-pr-${PR_NUMBER}.preview.moneymatter.app`)'
       - 'traefik.http.routers.preview-pr-${PR_NUMBER}-be-http.entrypoints=web'
       - 'traefik.http.routers.preview-pr-${PR_NUMBER}-be-http.middlewares=preview-pr-${PR_NUMBER}-be-redirect'
       - 'traefik.http.middlewares.preview-pr-${PR_NUMBER}-be-redirect.redirectscheme.scheme=https'
       - 'traefik.http.middlewares.preview-pr-${PR_NUMBER}-be-redirect.redirectscheme.permanent=true'
-      # HTTPS
-      - 'traefik.http.routers.preview-pr-${PR_NUMBER}-be.rule=Host(`api-pr-${PR_NUMBER}.preview.moneymatter.app`)'
+      # HTTPS (API + MCP subdomain)
+      - 'traefik.http.routers.preview-pr-${PR_NUMBER}-be.rule=Host(`api-pr-${PR_NUMBER}.preview.moneymatter.app`) || Host(`mcp-pr-${PR_NUMBER}.preview.moneymatter.app`)'
       - 'traefik.http.routers.preview-pr-${PR_NUMBER}-be.entrypoints=websecure'
       - 'traefik.http.routers.preview-pr-${PR_NUMBER}-be.tls=true'
       - 'traefik.http.routers.preview-pr-${PR_NUMBER}-be.tls.certresolver=letsencrypt'

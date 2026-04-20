@@ -13,7 +13,7 @@ export const useAccountGroupForAccount = (
     queryFn: async (): Promise<AccountGroups | null> => {
       const result = await loadAccountGroups({
         accountIds: [Number(accountId.value)],
-        hidden: true,
+        includeArchived: true,
       });
       return result.length ? result[0]! : null;
     },

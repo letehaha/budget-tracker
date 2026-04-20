@@ -34,7 +34,7 @@
     <div v-if="selectedOption === AccountOptionValue.existingAccount">
       <SelectField
         :model-value="selectedAccount"
-        :values="enabledAccounts"
+        :values="activeAccounts"
         :label="t('pages.importExport.accountAssignment.accountLabel')"
         label-key="name"
         value-key="id"
@@ -75,7 +75,7 @@ interface OptionItem {
 
 const importStore = useImportExportStore();
 const accountsStore = useAccountsStore();
-const { enabledAccounts } = storeToRefs(accountsStore);
+const { activeAccounts } = storeToRefs(accountsStore);
 
 const accountOptions = computed<OptionItem[]>(() => [
   {
@@ -121,7 +121,7 @@ const accountColumnObject = computed(() => {
 const selectedAccount = computed<AccountModel | null>(() => {
   const acc = importStore.columnMapping.account;
   if (acc && acc.option === AccountOptionValue.existingAccount) {
-    return enabledAccounts.value.find((a) => a.id === acc.accountId) ?? null;
+    return activeAccounts.value.find((a) => a.id === acc.accountId) ?? null;
   }
   return null;
 });

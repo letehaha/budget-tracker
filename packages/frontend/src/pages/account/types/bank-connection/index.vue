@@ -5,6 +5,7 @@ import BankProviderLogo from '@/components/common/bank-providers/bank-provider-l
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
+import AccountArchiveSection from '@/pages/account/components/account-archive-section.vue';
 import AccountDeletionSection from '@/pages/account/components/account-deletion-section.vue';
 import AccountDetailsTab from '@/pages/account/components/account-details-tab.vue';
 import SettingAccountGroup from '@/pages/account/components/account-group.vue';
@@ -59,6 +60,8 @@ const tabItems = computed(() => [
         <SettingAccountGroup :account="account" />
 
         <Separator />
+
+        <AccountArchiveSection :account="account" />
 
         <AccountDeletionSection :account="account" :transactions="transactions" />
       </div>

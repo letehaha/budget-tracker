@@ -1,4 +1,4 @@
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { redisClient } from '@root/redis-client';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
@@ -234,7 +234,7 @@ describe('Sync Flow E2E', () => {
       // Disable the first account
       await helpers.updateAccount({
         id: syncedAccounts[0]!.id,
-        payload: { isEnabled: false },
+        payload: { status: ACCOUNT_STATUSES.archived },
         raw: true,
       });
 
@@ -251,7 +251,7 @@ describe('Sync Flow E2E', () => {
       expect(response.body.response.accountResults[0]!.accountId).toBe(syncedAccounts[1]!.id);
     });
 
-    it('should include account in sync after re-enabling it', async () => {
+    it('should not include account in sync after archiving and re-activating (bank connection is unlinked on archive)', async () => {
       // Setup: Connect provider and account
       const connectionResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.MONOBANK,
@@ -272,34 +272,33 @@ describe('Sync Flow E2E', () => {
 
       const accountId = syncedAccounts[0]!.id;
 
-      // Disable the account
+      // Archive the account (this also unlinks the bank connection)
       await helpers.updateAccount({
         id: accountId,
-        payload: { isEnabled: false },
+        payload: { status: ACCOUNT_STATUSES.archived },
         raw: true,
       });
 
-      // Verify sync skips disabled account
+      // Verify sync skips archived account
       let response = await helpers.makeRequest({
         method: 'post',
         url: '/bank-data-providers/sync/trigger',
       });
       expect(response.body.response.totalAccounts).toBe(0);
 
-      // Re-enable the account
+      // Re-activate the account (but bank connection remains unlinked)
       await helpers.updateAccount({
         id: accountId,
-        payload: { isEnabled: true },
+        payload: { status: ACCOUNT_STATUSES.active },
         raw: true,
       });
 
-      // Verify sync now includes the account
+      // Verify sync still excludes the account because bank connection was unlinked during archive
       response = await helpers.makeRequest({
         method: 'post',
         url: '/bank-data-providers/sync/trigger',
       });
-      expect(response.body.response.totalAccounts).toBe(1);
-      expect(response.body.response.accountResults[0]!.accountId).toBe(accountId);
+      expect(response.body.response.totalAccounts).toBe(0);
     });
   });
 

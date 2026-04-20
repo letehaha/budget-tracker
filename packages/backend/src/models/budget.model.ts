@@ -14,12 +14,15 @@ import {
 import {
   Attribute,
   AutoIncrement,
+  BelongsToMany,
   Default,
   Index,
   NotNull,
   PrimaryKey,
   Table,
 } from '@sequelize/core/decorators-legacy';
+
+import BudgetCategories from './budget-categories.model';
 
 @Table({
   timestamps: false,
@@ -70,5 +73,10 @@ export default class Budgets extends Model<InferAttributes<Budgets>, InferCreati
   // In Sequelize v7, BelongsToMany is defined on Transactions model and automatically creates the inverse
   declare transactions?: NonAttribute<Transactions[]>;
 
+  @BelongsToMany(() => Categories, {
+    through: () => BudgetCategories,
+    foreignKey: 'budgetId',
+    otherKey: 'categoryId',
+  })
   declare categories?: NonAttribute<Categories[]>;
 }

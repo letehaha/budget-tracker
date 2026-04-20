@@ -21,7 +21,7 @@ import AccountsSkeleton from './accounts-skeleton.vue';
 import { useActiveAccountGroups } from './helpers/use-active-account-groups';
 
 const accountsStore = useAccountsStore();
-const { enabledAccounts, isAccountsFetched } = storeToRefs(accountsStore);
+const { activeAccounts, isAccountsFetched } = storeToRefs(accountsStore);
 const { data: accountGroups, isLoading: isGroupsLoading } = useQuery({
   queryFn: () => loadAccountGroups(),
   queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
@@ -52,7 +52,7 @@ const accountsInGroups = computed(() => {
 
   return flattenAccounts(accountGroups.value ?? []);
 });
-const accountsWithoutGroups = computed(() => enabledAccounts.value.filter((i) => !accountsInGroups.value[i.id]));
+const accountsWithoutGroups = computed(() => activeAccounts.value.filter((i) => !accountsInGroups.value[i.id]));
 
 const isPopoverOpen = ref(false);
 </script>

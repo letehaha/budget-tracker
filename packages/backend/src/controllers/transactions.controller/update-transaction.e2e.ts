@@ -6,6 +6,30 @@ import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
 
 describe('Update transaction controller', () => {
+  it('should reject negative amount', async () => {
+    const [baseTx] = await helpers.createTransaction({ raw: true });
+
+    const res = await helpers.updateTransaction({
+      id: baseTx.id,
+      payload: { amount: -100 },
+      raw: false,
+    });
+
+    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+  });
+
+  it('should reject zero amount', async () => {
+    const [baseTx] = await helpers.createTransaction({ raw: true });
+
+    const res = await helpers.updateTransaction({
+      id: baseTx.id,
+      payload: { amount: 0 },
+      raw: false,
+    });
+
+    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+  });
+
   it('should make basic updation', async () => {
     const [baseTx] = await helpers.createTransaction({ raw: true });
     const txAmount = Number(baseTx.amount);

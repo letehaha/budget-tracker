@@ -4,6 +4,7 @@
  * Serializes account model instances for API responses.
  * Money fields auto-convert via .toNumber().
  */
+import { ACCOUNT_STATUSES } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type Accounts from '@models/accounts.model';
 
@@ -26,7 +27,8 @@ export interface AccountApiResponse {
   userId: number;
   externalId: string | null;
   externalData: Record<string, unknown> | null;
-  isEnabled: boolean;
+  status: ACCOUNT_STATUSES;
+  excludeFromStats: boolean;
   bankDataProviderConnectionId: number | null;
   needsRelink?: boolean;
 }
@@ -54,7 +56,8 @@ export function serializeAccount(account: Accounts & { needsRelink?: boolean }):
     userId: account.userId,
     externalId: account.externalId ?? null,
     externalData: account.externalData ?? null,
-    isEnabled: account.isEnabled,
+    status: account.status,
+    excludeFromStats: account.excludeFromStats,
     bankDataProviderConnectionId: account.bankDataProviderConnectionId ?? null,
   };
 

@@ -40,6 +40,9 @@
           <li>{{ $t('settings.ai.categorization.howItWorks.points.override') }}</li>
         </ul>
       </div>
+
+      <!-- Custom instructions for categorization -->
+      <CustomInstructions />
     </template>
   </ModelSelectorCard>
 </template>
@@ -51,6 +54,7 @@ import { ChevronDownIcon, LightbulbIcon, Loader2Icon } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 import ModelSelectorCard from '../shared/model-selector-card.vue';
+import CustomInstructions from './custom-instructions.vue';
 
 defineProps<{
   featureStatus: AIFeatureStatus;

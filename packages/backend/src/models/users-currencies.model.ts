@@ -1,4 +1,4 @@
-import { NotFoundError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { removeUndefinedKeys } from '@js/helpers';
 import {
   CreationOptional,
@@ -137,13 +137,10 @@ export const addCurrency = async ({
   liveRateUpdate?: boolean;
   isDefaultCurrency?: boolean;
 }) => {
-  const currency = await Currencies.findByPk(currencyCode);
-
-  if (!currency) {
-    throw new NotFoundError({
-      message: 'Currency with provided code does not exist!',
-    });
-  }
+  await findOrThrowNotFound({
+    query: Currencies.findByPk(currencyCode),
+    message: 'Currency with provided code does not exist!',
+  });
 
   const existingCurrency = await UsersCurrencies.findOne({
     where: { userId, currencyCode },

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AccountGroupName from '@/components/common/account-group-name.vue';
 import LinkAccountGroup from '@/components/dialogs/account-groups/link-account-group-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Tooltip from '@/components/lib/ui/tooltip';
@@ -48,7 +49,7 @@ watch(
 
     <div class="flex items-center gap-2">
       <template v-if="accountGroupData">
-        {{ (accountGroupData as any)?.name }}
+        <AccountGroupName :group="accountGroupData" />
       </template>
       <template v-else>
         <span>{{ t('pages.account.group.notAssociated') }}</span>

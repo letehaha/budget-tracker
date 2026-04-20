@@ -1,3 +1,4 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { NotFoundError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as RefundTransactions from '@models/refund-transactions.model';
@@ -14,29 +15,26 @@ interface GetRefundParams {
 export const getRefund = withTransaction(
   async ({ userId, originalTxId, refundTxId }: GetRefundParams): Promise<RefundTransactions.default> => {
     try {
-      const refundLink = await RefundTransactions.default.findOne({
-        where: {
-          originalTxId,
-          refundTxId,
-          userId,
-        },
-        include: [
-          {
-            model: Transactions.default,
-            as: 'originalTransaction',
+      const refundLink = await findOrThrowNotFound({
+        query: RefundTransactions.default.findOne({
+          where: {
+            originalTxId,
+            refundTxId,
+            userId,
           },
-          {
-            model: Transactions.default,
-            as: 'refundTransaction',
-          },
-        ],
+          include: [
+            {
+              model: Transactions.default,
+              as: 'originalTransaction',
+            },
+            {
+              model: Transactions.default,
+              as: 'refundTransaction',
+            },
+          ],
+        }),
+        message: 'Refund link not found',
       });
-
-      if (!refundLink) {
-        throw new NotFoundError({
-          message: 'Refund link not found',
-        });
-      }
 
       const haveNoAccess =
         refundLink.originalTransaction!.userId !== userId || refundLink.refundTransaction!.userId !== userId;

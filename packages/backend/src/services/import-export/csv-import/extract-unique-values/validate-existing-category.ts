@@ -1,5 +1,5 @@
 import { CategoryOptionValue, type ColumnMappingConfig } from '@bt/shared/types';
-import { NotFoundError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import Categories from '@models/categories.model';
 
 interface ValidateExistingCategoryParams {
@@ -17,17 +17,14 @@ export async function validateExistingCategory({
   const categoryOption = columnMapping.category;
 
   if (categoryOption.option === CategoryOptionValue.existingCategory) {
-    const category = await Categories.findOne({
-      where: {
-        id: categoryOption.categoryId,
-        userId,
-      },
+    await findOrThrowNotFound({
+      query: Categories.findOne({
+        where: {
+          id: categoryOption.categoryId,
+          userId,
+        },
+      }),
+      message: `Category with ID ${categoryOption.categoryId} not found or does not belong to you.`,
     });
-
-    if (!category) {
-      throw new NotFoundError({
-        message: `Category with ID ${categoryOption.categoryId} not found or does not belong to you.`,
-      });
-    }
   }
 }

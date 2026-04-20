@@ -1,12 +1,13 @@
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
+import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import { connection } from '@models/index';
 import PaymentReminderNotifications from '@models/payment-reminder-notifications.model';
 import Users from '@models/users.model';
 import { Job, Queue, Worker } from 'bullmq';
 import { Resend } from 'resend';
 
-interface ReminderEmailJobData {
+interface ReminderEmailJobData extends SentryTraceData {
   userId: number;
   reminderId: string;
   periodId: string;
@@ -60,46 +61,52 @@ const appUrl = process.env.APP_URL || 'https://moneymatter.app';
 const reminderEmailWorker = new Worker<ReminderEmailJobData>(
   queueName,
   async (job: Job<ReminderEmailJobData>) => {
-    if (!resend) {
-      logger.warn('[Payment Reminder Email] Resend not configured, skipping email');
-      return;
-    }
+    return withQueueProcessSpan({
+      queueName,
+      job,
+      fn: async () => {
+        if (!resend) {
+          logger.warn('[Payment Reminder Email] Resend not configured, skipping email');
+          return;
+        }
 
-    const { reminderName, dueDate, expectedAmount, currencyCode, reminderId } = job.data;
+        const { reminderName, dueDate, expectedAmount, currencyCode, reminderId } = job.data;
 
-    // expectedAmount is already decimal (converted by model getter via Money.toJSON())
-    const amountDisplay = expectedAmount != null && currencyCode ? `${expectedAmount} ${currencyCode}` : null;
+        // expectedAmount is already decimal (converted by model getter via Money.toJSON())
+        const amountDisplay = expectedAmount != null && currencyCode ? `${expectedAmount} ${currencyCode}` : null;
 
-    const deepLink = `${appUrl}/planned/reminders/${reminderId}`;
+        const deepLink = `${appUrl}/planned/reminders/${reminderId}`;
 
-    const html = buildEmailHtml({ reminderName, dueDate, amountDisplay, deepLink });
+        const html = buildEmailHtml({ reminderName, dueDate, amountDisplay, deepLink });
 
-    // Fetch user's email from better-auth table via authUserId
-    const appUser = await Users.findByPk(job.data.userId, { attributes: ['authUserId'] });
+        // Fetch user's email from better-auth table via authUserId
+        const appUser = await Users.findByPk(job.data.userId, { attributes: ['authUserId'] });
 
-    if (!appUser?.authUserId) {
-      logger.warn(`[Payment Reminder Email] No authUserId found for user ${job.data.userId}`);
-      return;
-    }
+        if (!appUser?.authUserId) {
+          logger.warn(`[Payment Reminder Email] No authUserId found for user ${job.data.userId}`);
+          return;
+        }
 
-    const [rows] = await connection.sequelize.query('SELECT email FROM ba_user WHERE id = :authUserId LIMIT 1', {
-      replacements: { authUserId: appUser.authUserId },
+        const [rows] = await connection.sequelize.query('SELECT email FROM ba_user WHERE id = :authUserId LIMIT 1', {
+          replacements: { authUserId: appUser.authUserId },
+        });
+        const email = (rows as { email: string }[])[0]?.email;
+
+        if (!email) {
+          logger.warn(`[Payment Reminder Email] No email found for user ${job.data.userId}`);
+          return;
+        }
+
+        await resend.emails.send({
+          from: `${appName} <${fromEmail}>`,
+          to: email,
+          subject: `Payment reminder: ${reminderName} due ${dueDate}`,
+          html,
+        });
+
+        logger.info(`[Payment Reminder Email] Sent email to user ${job.data.userId} for reminder "${reminderName}"`);
+      },
     });
-    const email = (rows as { email: string }[])[0]?.email;
-
-    if (!email) {
-      logger.warn(`[Payment Reminder Email] No email found for user ${job.data.userId}`);
-      return;
-    }
-
-    await resend.emails.send({
-      from: `${appName} <${fromEmail}>`,
-      to: email,
-      subject: `Payment reminder: ${reminderName} due ${dueDate}`,
-      html,
-    });
-
-    logger.info(`[Payment Reminder Email] Sent email to user ${job.data.userId} for reminder "${reminderName}"`);
   },
   {
     connection: redisConnection,
@@ -146,7 +153,14 @@ reminderEmailWorker.on('error', (err) => {
 export async function queueReminderEmail(data: ReminderEmailJobData): Promise<string> {
   const jobId = `reminder-email-${data.reminderId}-${data.periodId}-${Date.now()}`;
 
-  await reminderEmailQueue.add(jobId, data, { jobId });
+  await withQueuePublishSpan({
+    queueName,
+    messageId: jobId,
+    payloadSize: JSON.stringify(data).length,
+    fn: async (traceData) => {
+      await reminderEmailQueue.add(jobId, { ...data, ...traceData }, { jobId });
+    },
+  });
 
   logger.info(`[Payment Reminder Email] Queued email for user ${data.userId}, reminder "${data.reminderName}"`);
 

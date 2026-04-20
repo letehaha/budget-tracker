@@ -6,6 +6,8 @@ import { Ref, computed, watch } from 'vue';
 
 import { UI_FORM_STRUCT } from '../types';
 
+export type TransferDestinationType = 'account' | 'portfolio';
+
 export const useTransferFormLogic = ({
   form,
   isTransferTx,
@@ -14,6 +16,7 @@ export const useTransferFormLogic = ({
   transaction,
   oppositeTransaction,
   linkedTransaction,
+  transferDestinationType,
 }: {
   form: Ref<UI_FORM_STRUCT>;
   isTransferTx: Ref<boolean>;
@@ -22,16 +25,16 @@ export const useTransferFormLogic = ({
   transaction: TransactionModel | undefined;
   oppositeTransaction: TransactionModel | undefined;
   linkedTransaction: Ref<TransactionModel | null>;
+  transferDestinationType: Ref<TransferDestinationType>;
 }) => {
   const { currenciesMap } = storeToRefs(useCurrenciesStore());
-  const { systemAccounts } = storeToRefs(useAccountsStore());
+  const { systemAccountsActiveFirst } = storeToRefs(useAccountsStore());
 
   const toAccount = computed(() => form.value.toAccount);
 
   const isTargetFieldVisible = computed(() => {
-    if (isTransferTx.value && linkedTransaction.value) {
-      return false;
-    }
+    if (isTransferTx.value && linkedTransaction.value) return false;
+    if (transferDestinationType.value === 'portfolio') return false;
     return isTransferTx.value;
   });
 
@@ -74,7 +77,7 @@ export const useTransferFormLogic = ({
     return false;
   });
 
-  const transferSourceAccounts = computed(() => [OUT_OF_WALLET_ACCOUNT_MOCK, ...systemAccounts.value]);
+  const transferSourceAccounts = computed(() => [OUT_OF_WALLET_ACCOUNT_MOCK, ...systemAccountsActiveFirst.value]);
 
   const transferDestinationAccounts = computed(() =>
     transferSourceAccounts.value.filter((item) => item.id !== form.value.account?.id),

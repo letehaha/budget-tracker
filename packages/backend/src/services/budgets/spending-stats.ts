@@ -1,6 +1,6 @@
 import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import TransactionSplits from '@models/transaction-splits.model';
@@ -341,8 +341,10 @@ const getManualBudgetSpendingStats = async ({
   userId: number;
   budgetId: number;
 }): Promise<SpendingStatsResponse> => {
-  const budgetDetails = await Budgets.findOne({ where: { id: budgetId, userId } });
-  if (!budgetDetails) throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
+  const budgetDetails = await findOrThrowNotFound({
+    query: Budgets.findOne({ where: { id: budgetId, userId } }),
+    message: t({ key: 'budgets.budgetNotFound' }),
+  });
 
   const transactions = await Transactions.findWithFilters({
     userId,
@@ -391,12 +393,13 @@ const getCategoryBudgetSpendingStats = async ({
   userId: number;
   budgetId: number;
 }): Promise<SpendingStatsResponse> => {
-  const budgetDetails = await Budgets.findOne({
-    where: { id: budgetId, userId },
-    include: [{ model: Categories, as: 'categories', attributes: ['id'] }],
+  const budgetDetails = await findOrThrowNotFound({
+    query: Budgets.findOne({
+      where: { id: budgetId, userId },
+      include: [{ model: Categories, as: 'categories', attributes: ['id'] }],
+    }),
+    message: t({ key: 'budgets.budgetNotFound' }),
   });
-
-  if (!budgetDetails) throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
 
   const budgetCategoryIds = budgetDetails.categories?.map((c) => c.id) || [];
 
@@ -520,9 +523,10 @@ export const getBudgetSpendingStats = async ({
   userId: number;
   budgetId: number;
 }): Promise<SpendingStatsResponse> => {
-  const budgetDetails = await Budgets.findOne({ where: { id: budgetId, userId }, attributes: ['type'] });
-
-  if (!budgetDetails) throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
+  const budgetDetails = await findOrThrowNotFound({
+    query: Budgets.findOne({ where: { id: budgetId, userId }, attributes: ['type'] }),
+    message: t({ key: 'budgets.budgetNotFound' }),
+  });
 
   if (budgetDetails.type === BUDGET_TYPES.category) {
     return getCategoryBudgetSpendingStats({ userId, budgetId });

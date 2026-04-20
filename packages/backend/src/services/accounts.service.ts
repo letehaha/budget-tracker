@@ -1,12 +1,14 @@
-import { ACCOUNT_TYPES, AccountExternalData, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountExternalData, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, UnexpectedError } from '@js/errors';
+import { UnexpectedError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
+import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
 import { withTransaction } from './common/with-transaction';
 
 type AccountWithRelinkStatus = Accounts.default & { needsRelink?: boolean };
@@ -115,10 +117,16 @@ export const updateAccount = withTransaction(
     ...payload
   }: Accounts.UpdateAccountByIdPayload &
     (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>)) => {
-    const accountData = await Accounts.default.findByPk(id);
+    const accountData = await findOrThrowNotFound({
+      query: Accounts.getAccountById({ id, userId: payload.userId }),
+      message: t({ key: 'accounts.accountNotFound' }),
+    });
 
-    if (!accountData) {
-      throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
+    // Handle archive side effects when transitioning to archived status
+    const isArchiving =
+      payload.status === ACCOUNT_STATUSES.archived && accountData.status !== ACCOUNT_STATUSES.archived;
+    if (isArchiving) {
+      await performArchiveSideEffects({ account: accountData, userId: accountData.userId });
     }
 
     const currentBalanceIsChanging =
@@ -132,8 +140,8 @@ export const updateAccount = withTransaction(
      * but without creating adjustment transaction, so instead we change both `initialBalance`
      * and `currentBalance` on the same diff
      */
-    if (currentBalanceIsChanging && payload.currentBalance !== undefined) {
-      const diff = payload.currentBalance.subtract(accountData.currentBalance);
+    if (currentBalanceIsChanging) {
+      const diff = payload.currentBalance!.subtract(accountData.currentBalance);
       const refDiff = await calculateRefAmount({
         userId: accountData.userId,
         amount: diff,
@@ -153,13 +161,31 @@ export const updateAccount = withTransaction(
       refCurrentBalance = refCurrentBalance.add(refDiff);
     }
 
+    // When credit limit changes, recalculate refCreditLimit for the new value.
+    // Credit limit is separate from balance — it doesn't affect currentBalance
+    // or refCurrentBalance. The display layer handles the visual impact via
+    // `displayBalance = currentBalance - creditLimit`.
+    const creditLimitIsChanging =
+      payload.creditLimit !== undefined && !payload.creditLimit.equals(accountData.creditLimit);
+    let adjustedRefCreditLimit: Money | undefined;
+
+    if (creditLimitIsChanging) {
+      adjustedRefCreditLimit = await calculateRefAmount({
+        userId: accountData.userId,
+        amount: payload.creditLimit!,
+        baseCode: accountData.currencyCode,
+        date: new Date(),
+      });
+    }
+
     const result = await Accounts.updateAccountById({
       id,
       externalId,
+      ...payload,
       initialBalance,
       refInitialBalance,
       refCurrentBalance,
-      ...payload,
+      ...(adjustedRefCreditLimit !== undefined ? { refCreditLimit: adjustedRefCreditLimit } : {}),
     });
 
     if (!result) {

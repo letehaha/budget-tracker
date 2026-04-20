@@ -357,8 +357,9 @@ const clearSelection = () => {
 };
 
 // Check if we have stacked bars (multiple categories with data for current metric)
+// Savings mode never uses stacked bars — it shows net flow as simple bars
 const hasStackedBars = computed(() => {
-  return chartCategories.value.length > 1;
+  return props.metric !== 'savings' && chartCategories.value.length > 1;
 });
 
 // Categories from API response for legend, filtered by metric
@@ -422,6 +423,10 @@ const getCategoryAmount = (cat: endpointsTypes.CashFlowCategoryData): number => 
 // Get the displayed value for a period (what the bar actually shows)
 // For stacked bars, this is the sum of category amounts; otherwise the metric total
 const getDisplayedValue = (period: endpointsTypes.CashFlowPeriodData): number => {
+  // Savings always uses the period-level netFlow (not category breakdown)
+  if (props.metric === 'savings') {
+    return getMetricValue(period);
+  }
   // If we have categories and they're being displayed as stacked bars,
   // use the sum of category amounts to match what's visually shown
   if (period.categories && period.categories.length > 0) {

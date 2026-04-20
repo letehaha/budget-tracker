@@ -60,6 +60,7 @@ jobs:
         with:
           api-base-url: https://api-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app
           vue-app-api-ver: /api/v1
+          mcp-base-url: https://mcp-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app
           image-tag: pr-${{ env.PR_NUMBER }}
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
@@ -172,13 +173,15 @@ jobs:
                 "ALLOWED_ORIGINS=https://pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "APP_SESSION_ID_SECRET=$PREVIEW_SESSION_SECRET" \
                 "BETTER_AUTH_SECRET=$PREVIEW_BETTER_AUTH_SECRET" \
-                "BETTER_AUTH_URL=https://pr-${PR_NUMBER}.preview.moneymatter.app" \
+                "BETTER_AUTH_URL=https://api-pr-${PR_NUMBER}.preview.moneymatter.app" \
+                "MCP_BASE_URL=https://mcp-pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "AUTH_RP_ID=pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "AUTH_ORIGIN=https://pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "AUTH_RP_NAME=MoneyMatter-Preview" \
                 "CURRENCY_RATES_API_URL=http://${CURRENCY_RATES_CONTAINER}:8080" \
                 "FRANKFURTER_BASE_URL=http://${FRANKFURTER_CONTAINER}:8080" \
                 "PREVIEW_DB_PASSWORD=$PREVIEW_DB_PASSWORD" \
+                "DISABLE_AUTH_RATE_LIMIT=true" \
                 > .env
 
               # Start DB + Redis first
@@ -224,6 +227,13 @@ jobs:
                   docker exec -i preview-pr-${PR_NUMBER}-db psql -U preview -d budget_tracker_preview
 
                 echo "Database restore completed!"
+
+                # JWKS private keys in the backup are AES-encrypted with the prod
+                # BETTER_AUTH_SECRET. Preview uses a different secret, so better-auth
+                # would throw on every getSession (oauth-provider plugin forces the jwt
+                # code path). Clear them so better-auth regenerates with the preview secret.
+                docker exec -i preview-pr-${PR_NUMBER}-db \
+                  psql -U preview -d budget_tracker_preview -c 'TRUNCATE ba_jwks;'
               fi
 
               # Start the full stack (backend will auto-run migrations)
@@ -247,6 +257,7 @@ jobs:
             |---------|-----|
             | Frontend | https://pr-${{ env.PR_NUMBER }}.preview.moneymatter.app |
             | API | https://api-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app |
+            | MCP | https://mcp-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app/mcp |
 
             _Last deployed: ${{ github.sha }} at ${{ github.event.pull_request.updated_at }}_
 
@@ -277,8 +288,28 @@ jobs:
         if: steps.prepare-env.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile --ignore-scripts
 
+      - name: Resolve Playwright version
+        id: playwright-version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright browsers
-        run: bunx playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: packages/frontend
+
+      - name: Install Playwright OS deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
         working-directory: packages/frontend
 
       - name: Run Playwright tests

@@ -10,17 +10,20 @@ import {
   getLatestPriceProviderPreference,
   getSearchProviderPreference,
 } from './utils';
+import { YahooDataProvider } from './yahoo-provider';
 
 interface CompositeProviderOptions {
   fmpApiKey?: string;
   polygonApiKey?: string;
   alphaVantageApiKey?: string;
+  /** Defaults to true (Yahoo requires no API key). Set to false to explicitly disable. */
+  yahooEnabled?: boolean;
 }
 
 export class CompositeDataProvider extends BaseSecurityDataProvider {
   readonly providerName = SECURITY_PROVIDER.composite;
 
-  private providers: Map<string, BaseSecurityDataProvider> = new Map();
+  private providers: Map<SECURITY_PROVIDER, BaseSecurityDataProvider> = new Map();
 
   constructor(options: CompositeProviderOptions) {
     super();
@@ -38,11 +41,15 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
       this.providers.set(SECURITY_PROVIDER.alphavantage, new AlphaVantageDataProvider(options.alphaVantageApiKey));
     }
 
+    if (options.yahooEnabled !== false) {
+      this.providers.set(SECURITY_PROVIDER.yahoo, new YahooDataProvider());
+    }
+
     logger.info(`Composite provider initialized with: ${Array.from(this.providers.keys()).join(', ')}`);
   }
 
   /**
-   * Routes search requests to the best provider (typically FMP for global coverage)
+   * Routes search requests to the best provider (typically Yahoo for global coverage)
    */
   public async searchSecurities(query: string): Promise<SecuritySearchResult[]> {
     const preference = getSearchProviderPreference();
@@ -93,43 +100,88 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
   }
 
   /**
-   * Routes bulk price fetching to the best provider for each symbol
+   * Routes bulk price fetching to the best provider for each symbol.
+   * Phase 1: Fetch from primary providers. Phase 2: Retry failed symbols with fallbacks.
    */
   public async fetchPricesForSecurities(symbols: string[], forDate: Date): Promise<PriceData[]> {
     // Group symbols by their preferred provider
     const symbolsByProvider = this.groupSymbolsByProvider(symbols);
 
     const allResults: PriceData[] = [];
+    const failedSymbols: string[] = [];
 
-    // Fetch from each provider concurrently
-    const fetchPromises = Object.entries(symbolsByProvider).map(async ([providerName, symbolList]) => {
+    // Phase 1: Fetch from primary providers concurrently
+    const fetchPromises = Array.from(symbolsByProvider.entries()).map(async ([providerName, symbolList]) => {
       const provider = this.providers.get(providerName);
       if (!provider) {
-        logger.warn(`Provider ${providerName} not available, skipping ${symbolList.length} symbols`);
-        return [];
+        logger.info(`Provider ${providerName} not available, skipping ${symbolList.length} symbols`);
+        return { fetched: [] as PriceData[], failed: symbolList };
       }
-
-      // TODO:
-      // 1. Use not only a single provider, but primary + fallbacks
-      // 2. Define `getLatestPriceProviderPreference` alternative for `fetchPricesForSecurities`
-      // to define fallbacks.
-      // 3. If all primary+fallbacks fail - then return nothing and it will be logged out
 
       try {
         logger.info(`Fetching prices for ${symbolList.length} symbols from ${providerName}`);
         const res = await provider.fetchPricesForSecurities(symbolList, forDate);
-        return res;
+        // Detect partial failures: symbols requested but not returned
+        const fetchedSymbols = new Set(res.map((p) => p.symbol));
+        const failed = symbolList.filter((s) => !fetchedSymbols.has(s));
+        return { fetched: res, failed };
       } catch (error) {
         logger.error({ message: `Provider ${providerName} failed for bulk fetch:`, error: error as Error });
-        return [];
+        return { fetched: [] as PriceData[], failed: symbolList };
       }
     });
 
     const results = await Promise.all(fetchPromises);
-    results.forEach((result) => allResults.push(...result));
+    for (const { fetched, failed } of results) {
+      allResults.push(...fetched);
+      failedSymbols.push(...failed);
+    }
+
+    // Phase 2: Retry failed symbols with fallback providers
+    if (failedSymbols.length > 0) {
+      logger.info(
+        `${failedSymbols.length} symbols failed primary provider, attempting fallbacks: ${failedSymbols.join(', ')}`,
+      );
+
+      const stillMissing: string[] = [];
+
+      for (const symbol of failedSymbols) {
+        const preference = getHistoricalPriceProviderPreference(symbol);
+        // Skip the primary (already failed) and try only fallback providers
+        const fallbackNames = preference.fallbacks.filter((f) => f !== preference.primary);
+        let fetched = false;
+
+        for (const fallbackName of fallbackNames) {
+          const fallbackProvider = this.providers.get(fallbackName);
+          if (!fallbackProvider) continue;
+
+          try {
+            const prices = await fallbackProvider.fetchPricesForSecurities([symbol], forDate);
+            if (prices.length > 0) {
+              allResults.push(...prices);
+              fetched = true;
+              logger.info(`Fallback ${fallbackName} succeeded for ${symbol}`);
+              break;
+            }
+          } catch {
+            // Continue to next fallback
+          }
+        }
+
+        if (!fetched) {
+          stillMissing.push(symbol);
+        }
+      }
+
+      if (stillMissing.length > 0) {
+        logger.error(
+          `${stillMissing.length}/${symbols.length} symbols failed ALL providers: ${stillMissing.join(', ')}`,
+        );
+      }
+    }
 
     logger.info(
-      `Composite provider fetched ${allResults.length} prices from ${Object.keys(symbolsByProvider).length} providers`,
+      `Composite provider fetched ${allResults.length}/${symbols.length} prices from ${symbolsByProvider.size} providers`,
     );
     return allResults;
   }
@@ -137,18 +189,20 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
   /**
    * Groups symbols by their preferred provider for bulk operations
    */
-  private groupSymbolsByProvider(symbols: string[]): Record<string, string[]> {
-    const groups: Record<string, string[]> = {};
+  private groupSymbolsByProvider(symbols: string[]): Map<SECURITY_PROVIDER, string[]> {
+    const groups = new Map<SECURITY_PROVIDER, string[]>();
 
     symbols.forEach((symbol) => {
       const preference = getHistoricalPriceProviderPreference(symbol);
       const providerName = this.findAvailableProvider(preference.primary, preference.fallbacks);
 
       if (providerName) {
-        if (!groups[providerName]) {
-          groups[providerName] = [];
+        const list = groups.get(providerName);
+        if (list) {
+          list.push(symbol);
+        } else {
+          groups.set(providerName, [symbol]);
         }
-        groups[providerName].push(symbol);
       } else {
         logger.warn(`No available provider for symbol: ${symbol}`);
       }
@@ -161,8 +215,8 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
    * Executes an operation with fallback logic
    */
   private async executeWithFallback<T>(
-    primaryProvider: string,
-    fallbacks: string[],
+    primaryProvider: SECURITY_PROVIDER,
+    fallbacks: SECURITY_PROVIDER[],
     operation: (provider: BaseSecurityDataProvider) => Promise<T>,
     operationName: string,
   ): Promise<T> {
@@ -197,7 +251,7 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
   /**
    * Finds the first available provider from a preference list
    */
-  private findAvailableProvider(primary: string, fallbacks: string[]): string | null {
+  private findAvailableProvider(primary: SECURITY_PROVIDER, fallbacks: SECURITY_PROVIDER[]): SECURITY_PROVIDER | null {
     const candidates = [primary, ...fallbacks];
 
     for (const candidate of candidates) {
@@ -214,9 +268,10 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
    */
   public getProviderStatus(): Record<string, boolean> {
     return {
-      fmp: this.providers.has('fmp'),
-      polygon: this.providers.has('polygon'),
-      alphavantage: this.providers.has('alphavantage'),
+      [SECURITY_PROVIDER.yahoo]: this.providers.has(SECURITY_PROVIDER.yahoo),
+      [SECURITY_PROVIDER.fmp]: this.providers.has(SECURITY_PROVIDER.fmp),
+      [SECURITY_PROVIDER.polygon]: this.providers.has(SECURITY_PROVIDER.polygon),
+      [SECURITY_PROVIDER.alphavantage]: this.providers.has(SECURITY_PROVIDER.alphavantage),
     };
   }
 }

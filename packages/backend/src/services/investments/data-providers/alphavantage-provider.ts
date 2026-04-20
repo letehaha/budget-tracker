@@ -1,4 +1,5 @@
 import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import { sleep } from '@common/helpers';
 import { logger } from '@js/utils';
 import alpha from 'alphavantage';
 import { endOfDay, isWithinInterval, startOfDay } from 'date-fns';
@@ -24,7 +25,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
       const searchResponse = await this.client.data.search(query);
 
       if (!searchResponse || !searchResponse['bestMatches']) {
-        logger.warn(`No search results found for query: ${query}`);
+        logger.info(`No search results found for query: ${query}`);
         return [];
       }
 
@@ -181,7 +182,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
           if (timeSinceLastRequest < MINUTE_DELAY) {
             const waitTime = MINUTE_DELAY - timeSinceLastRequest;
             logger.info(`Alpha Vantage rate limit: waiting ${waitTime}ms before next batch`);
-            await this.sleep(waitTime);
+            await sleep({ ms: waitTime });
           }
           requestsThisMinute = 0;
         }
@@ -190,7 +191,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
         if (lastRequestTime > 0) {
           const timeSinceLastRequest = Date.now() - lastRequestTime;
           if (timeSinceLastRequest < REQUEST_DELAY) {
-            await this.sleep(REQUEST_DELAY - timeSinceLastRequest);
+            await sleep({ ms: REQUEST_DELAY - timeSinceLastRequest });
           }
         }
 
@@ -207,7 +208,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
           fetchedPrices.push(priceData);
           logger.info(`Fetched price for ${symbol} on ${forDate.toISOString().split('T')[0]}: ${priceData.priceClose}`);
         } else {
-          logger.warn(`No price data found for ${symbol} on ${forDate.toISOString().split('T')[0]}`);
+          logger.info(`No price data found for ${symbol} on ${forDate.toISOString().split('T')[0]}`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -218,13 +219,6 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
 
     logger.info(`Alpha Vantage fetch complete: ${fetchedPrices.length}/${symbolsToProcess.length} securities fetched`);
     return fetchedPrices;
-  }
-
-  /**
-   * Sleep utility for rate limiting
-   */
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**

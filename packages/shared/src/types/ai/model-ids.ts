@@ -21,6 +21,7 @@ export enum AI_MODEL_ID {
   'google/gemini-2.5-pro' = 'google/gemini-2.5-pro',
   'google/gemini-2.5-flash' = 'google/gemini-2.5-flash',
   'google/gemini-2.5-flash-lite' = 'google/gemini-2.5-flash-lite',
+  'google/gemma-4-31b-it' = 'google/gemma-4-31b-it',
 
   // Groq
   'groq/llama-3.3-70b-versatile' = 'groq/llama-3.3-70b-versatile',

@@ -1,5 +1,8 @@
 {
   "common": {
+    "from": "From",
+    "to": "To",
+    "new": "New",
     "actions": {
       "loading": "Loading...",
       "signUp": "Sign up",
@@ -19,7 +22,10 @@
       "scrollToTop": "Top",
       "done": "Done",
       "failed": "Failed",
-      "viewAll": "View all"
+      "viewAll": "View all",
+      "scan": "Scan",
+      "link": "Link",
+      "loadMore": "Load more"
     },
     "ui": {
       "close": "Close",

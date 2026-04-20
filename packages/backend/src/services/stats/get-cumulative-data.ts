@@ -128,7 +128,7 @@ async function getPeriodData({
     include: [
       {
         model: Accounts,
-        where: { isEnabled: true },
+        where: { excludeFromStats: false },
         attributes: [],
       },
     ],

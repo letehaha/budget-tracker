@@ -1,5 +1,6 @@
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as helpers from '@tests/helpers';
 import {
   FixedTransaction,
@@ -11,6 +12,7 @@ import {
   MOCK_IDENTIFICATION_HASH_2,
   getAllMockAccountUIDs,
 } from '@tests/mocks/enablebanking/data';
+import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('Enable Banking Data Provider E2E', () => {
@@ -264,7 +266,6 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       // Access database model directly to check metadata
-      const BankDataProviderConnections = (await import('@models/bank-data-provider-connections.model')).default;
       const connection = await BankDataProviderConnections.findByPk(result.connectionId);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -787,10 +788,10 @@ describe('Enable Banking Data Provider E2E', () => {
 
       const firstAccountId = firstConnect[0]!.id;
 
-      // Disable the account
+      // Archive the account (this also unlinks bank connection)
       await helpers.updateAccount({
         id: firstAccountId,
-        payload: { isEnabled: false },
+        payload: { status: ACCOUNT_STATUSES.archived },
       });
 
       // Reconnect the same account
@@ -807,7 +808,7 @@ describe('Enable Banking Data Provider E2E', () => {
         raw: true,
       });
 
-      expect(account.isEnabled).toBe(true);
+      expect(account.status).toBe('active');
     });
 
     it('should update accountsCount after connecting accounts', async () => {
@@ -1726,6 +1727,246 @@ describe('Enable Banking Data Provider E2E', () => {
         raw: true,
       });
       expect(txAfterThirdSync.length).toBe(1);
+    });
+  });
+
+  describe('403 session expiry handling', () => {
+    /**
+     * Helper to create a fully-active connection with one linked account.
+     * Returns connectionId and the linked system accountId.
+     */
+    async function setupActiveConnection(): Promise<{ connectionId: number; accountId: number }> {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
+        raw: true,
+      });
+
+      return {
+        connectionId: connectResult.connectionId,
+        accountId: syncedAccounts[0]!.id,
+      };
+    }
+
+    it('should mark connection as inactive when transactions API returns 403', async () => {
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      // Verify connection is active before sync
+      const { connection: connectionBefore } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId,
+        raw: true,
+      });
+      expect(connectionBefore.isActive).toBe(true);
+
+      // Override transactions endpoint to return 403 (session expired)
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/transactions', () => {
+          return new HttpResponse(JSON.stringify({ message: 'Session expired' }), { status: 403 });
+        }),
+      );
+
+      // Trigger sync — it will fail with ForbiddenError
+      const syncResult = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+        payload: { accountId },
+      });
+
+      expect(syncResult.status).toEqual(ERROR_CODES.Forbidden);
+
+      // Connection must be marked inactive
+      const { connection: connectionAfter } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId,
+        raw: true,
+      });
+      expect(connectionAfter.isActive).toBe(false);
+    });
+
+    it('should set consentValidUntil to approximately current time when 403 occurs', async () => {
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      // Verify consentValidUntil is a future date before sync
+      const connectionBefore = await BankDataProviderConnections.findByPk(connectionId);
+      const metadataBefore = connectionBefore!.metadata as { consentValidUntil: string };
+      expect(new Date(metadataBefore.consentValidUntil).getTime()).toBeGreaterThan(Date.now());
+
+      const syncStartedAt = new Date();
+
+      // Override transactions endpoint to return 403
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/transactions', () => {
+          return new HttpResponse(JSON.stringify({ message: 'Session expired' }), { status: 403 });
+        }),
+      );
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+        payload: { accountId },
+      });
+
+      // Verify consentValidUntil is now set to approximately the current time
+      const connectionAfter = await BankDataProviderConnections.findByPk(connectionId);
+      const metadataAfter = connectionAfter!.metadata as { consentValidUntil: string };
+      expect(metadataAfter.consentValidUntil).toBeDefined();
+
+      const consentValidUntil = new Date(metadataAfter.consentValidUntil);
+      // Should be at or after sync start, and not more than 500ms in the future
+      expect(consentValidUntil.getTime()).toBeGreaterThanOrEqual(syncStartedAt.getTime() - 1000);
+      expect(consentValidUntil.getTime()).toBeLessThanOrEqual(Date.now() + 500);
+    });
+
+    it('should mark connection as inactive when balance API returns 403', async () => {
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      const syncStartedAt = new Date();
+
+      // Override balances endpoint to return 403 (transactions succeed, balance fails)
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/balances', () => {
+          return new HttpResponse(JSON.stringify({ message: 'Session expired' }), { status: 403 });
+        }),
+      );
+
+      const syncResult = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+        payload: { accountId },
+      });
+
+      expect(syncResult.status).toEqual(ERROR_CODES.Forbidden);
+
+      const { connection: connectionAfter } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId,
+        raw: true,
+      });
+      expect(connectionAfter.isActive).toBe(false);
+
+      // Verify consentValidUntil is reset to approximately current time (not a future consent date)
+      const dbConnection = await BankDataProviderConnections.findByPk(connectionId);
+      const metadata = dbConnection!.metadata as { consentValidUntil: string };
+      const consentValidUntil = new Date(metadata.consentValidUntil);
+      expect(consentValidUntil.getTime()).toBeGreaterThanOrEqual(syncStartedAt.getTime() - 1000);
+      expect(consentValidUntil.getTime()).toBeLessThanOrEqual(Date.now() + 500);
+    });
+
+    it('should not mark connection as inactive for non-403 errors', async () => {
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      // Override transactions endpoint to return 500 (server error, not session expiry)
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/transactions', () => {
+          return new HttpResponse(JSON.stringify({ message: 'Internal Server Error' }), { status: 500 });
+        }),
+      );
+
+      const syncResult = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+        payload: { accountId },
+      });
+
+      // Sync should fail with bad gateway (external provider error, not a session expiry)
+      expect(syncResult.status).toEqual(ERROR_CODES.BadGateway);
+
+      // But connection should remain active (500 is not a session expiry)
+      const { connection: connectionAfter } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId,
+        raw: true,
+      });
+      expect(connectionAfter.isActive).toBe(true);
+    });
+
+    describe('fetchAccounts (listExternalAccounts endpoint)', () => {
+      it('should mark connection as inactive when session endpoint returns 403', async () => {
+        const { connectionId } = await setupActiveConnection();
+
+        global.mswMockServer.use(
+          http.get('https://api.enablebanking.com/sessions/:sessionId', () => {
+            return new HttpResponse(JSON.stringify({ message: 'Session expired' }), { status: 403 });
+          }),
+        );
+
+        const result = await helpers.bankDataProviders.listExternalAccounts({ connectionId });
+
+        expect(result.status).toEqual(ERROR_CODES.Forbidden);
+
+        const { connection } = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+        expect(connection.isActive).toBe(false);
+      });
+
+      it('should mark connection as inactive when account details endpoint returns 403', async () => {
+        const { connectionId } = await setupActiveConnection();
+
+        global.mswMockServer.use(
+          http.get('https://api.enablebanking.com/accounts/:accountId/details', () => {
+            return new HttpResponse(JSON.stringify({ message: 'Session expired' }), { status: 403 });
+          }),
+        );
+
+        const result = await helpers.bankDataProviders.listExternalAccounts({ connectionId });
+
+        expect(result.status).toEqual(ERROR_CODES.Forbidden);
+
+        const { connection } = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+        expect(connection.isActive).toBe(false);
+      });
+
+      it('should set consentValidUntil to current time when fetchAccounts gets 403', async () => {
+        const { connectionId } = await setupActiveConnection();
+
+        const syncStartedAt = new Date();
+
+        global.mswMockServer.use(
+          http.get('https://api.enablebanking.com/sessions/:sessionId', () => {
+            return new HttpResponse(JSON.stringify({ message: 'Session expired' }), { status: 403 });
+          }),
+        );
+
+        await helpers.bankDataProviders.listExternalAccounts({ connectionId });
+
+        const dbConnection = await BankDataProviderConnections.findByPk(connectionId);
+        const metadata = dbConnection!.metadata as { consentValidUntil: string };
+        const consentValidUntil = new Date(metadata.consentValidUntil);
+
+        expect(consentValidUntil.getTime()).toBeGreaterThanOrEqual(syncStartedAt.getTime() - 1000);
+        expect(consentValidUntil.getTime()).toBeLessThanOrEqual(Date.now() + 500);
+      });
+
+      it('should not mark connection as inactive for non-403 errors in fetchAccounts', async () => {
+        const { connectionId } = await setupActiveConnection();
+
+        global.mswMockServer.use(
+          http.get('https://api.enablebanking.com/sessions/:sessionId', () => {
+            return new HttpResponse(JSON.stringify({ message: 'Internal Server Error' }), { status: 500 });
+          }),
+        );
+
+        const result = await helpers.bankDataProviders.listExternalAccounts({ connectionId });
+
+        expect(result.status).toEqual(ERROR_CODES.BadGateway);
+
+        const { connection } = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+        expect(connection.isActive).toBe(true);
+      });
     });
   });
 });

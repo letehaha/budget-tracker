@@ -11,6 +11,7 @@ export interface UserSettingsSchema {
   dashboard?: {
     widgets: DashboardWidgetConfig[];
   };
+  includeCreditLimitInStats?: boolean;
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {

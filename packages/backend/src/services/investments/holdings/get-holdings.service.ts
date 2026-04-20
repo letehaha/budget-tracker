@@ -1,3 +1,4 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Portfolios from '@models/investments/portfolios.model';
@@ -20,10 +21,10 @@ const getHoldingsImpl = async ({
     throw new NotFoundError({ message: t({ key: 'investments.portfolioIdRequired' }) });
   }
 
-  const portfolio = await Portfolios.findOne({ where: { id: portfolioId, userId } });
-  if (!portfolio) {
-    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
-  }
+  await findOrThrowNotFound({
+    query: Portfolios.findOne({ where: { id: portfolioId, userId } }),
+    message: t({ key: 'investments.portfolioNotFound' }),
+  });
 
   // Get holdings with calculated market values
   const holdingValues = await getHoldingValues({ portfolioId, date, userId });

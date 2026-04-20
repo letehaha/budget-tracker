@@ -1,5 +1,5 @@
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
 import Currencies from '@models/currencies.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -10,20 +10,17 @@ interface GetTransactionPortfolioLinkParams {
 }
 
 export const getTransactionPortfolioLink = async ({ userId, transactionId }: GetTransactionPortfolioLinkParams) => {
-  const transfer = await PortfolioTransfers.findOne({
-    where: { transactionId, userId },
-    include: [
-      { model: Portfolios, as: 'fromPortfolio' },
-      { model: Portfolios, as: 'toPortfolio' },
-      { model: Currencies, as: 'currency' },
-    ],
+  const transfer = await findOrThrowNotFound({
+    query: PortfolioTransfers.findOne({
+      where: { transactionId, userId },
+      include: [
+        { model: Portfolios, as: 'fromPortfolio' },
+        { model: Portfolios, as: 'toPortfolio' },
+        { model: Currencies, as: 'currency' },
+      ],
+    }),
+    message: t({ key: 'investments.portfolioTransferNotFound' }),
   });
-
-  if (!transfer) {
-    throw new NotFoundError({
-      message: t({ key: 'investments.portfolioTransferNotFound' }),
-    });
-  }
 
   // fromAccountId + toPortfolioId = deposit (money flows from account to portfolio)
   // fromPortfolioId + toAccountId = withdrawal (money flows from portfolio to account)

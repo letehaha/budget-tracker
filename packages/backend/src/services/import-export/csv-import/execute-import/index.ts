@@ -245,7 +245,6 @@ async function createAccountsIfNeeded({
         refInitialBalance,
         creditLimit: Money.zero(),
         refCreditLimit: Money.zero(),
-        isEnabled: true,
       });
 
       if (newAccount) {

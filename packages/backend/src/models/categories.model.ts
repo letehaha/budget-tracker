@@ -1,5 +1,6 @@
 import { CATEGORY_TYPES } from '@bt/shared/types';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { ValidationError } from '@js/errors';
 import {
   CreationOptional,
   DataTypes,
@@ -123,12 +124,10 @@ export interface EditCategoryPayload {
 }
 
 export const editCategory = async ({ userId, categoryId, ...params }: EditCategoryPayload) => {
-  const existingCategory = await Categories.findByPk(categoryId);
-  if (!existingCategory) {
-    throw new NotFoundError({
-      message: 'Category with provided id does not exist!',
-    });
-  }
+  await findOrThrowNotFound({
+    query: Categories.findByPk(categoryId),
+    message: 'Category with provided id does not exist!',
+  });
   const [, categories] = await Categories.update(params, {
     where: {
       id: categoryId,

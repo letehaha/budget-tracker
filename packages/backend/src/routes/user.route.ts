@@ -1,6 +1,7 @@
 import addUserCurrencies from '@controllers/currencies/add-user-currencies';
 import changeBaseCurrency from '@controllers/currencies/change-base-currency.controller';
 import editCurrencyExchangeRate from '@controllers/currencies/edit-currency-exchange-rate';
+import { getConnectedAppsController, revokeConnectedAppController } from '@controllers/mcp/connected-apps.controller';
 import {
   deleteAiApiKey,
   deleteAllAiApiKeys,
@@ -8,6 +9,10 @@ import {
   setAiApiKeyController,
   setDefaultAiProviderController,
 } from '@controllers/user-settings/ai-api-key';
+import {
+  getCustomInstructionsController,
+  setCustomInstructionsController,
+} from '@controllers/user-settings/ai-custom-instructions';
 import {
   getAvailableModelsController,
   getFeatureConfigController,
@@ -170,12 +175,40 @@ router.delete(
   resetFeatureConfigController.handler,
 );
 
+// AI Custom Instructions
+router.get(
+  '/settings/ai/custom-instructions',
+  authenticateSession,
+  validateEndpoint(getCustomInstructionsController.schema),
+  getCustomInstructionsController.handler,
+);
+router.put(
+  '/settings/ai/custom-instructions',
+  authenticateSession,
+  validateEndpoint(setCustomInstructionsController.schema),
+  setCustomInstructionsController.handler,
+);
+
 // AI Models
 router.get(
   '/settings/ai/models',
   authenticateSession,
   validateEndpoint(getAvailableModelsController.schema),
   getAvailableModelsController.handler,
+);
+
+// MCP Connected Apps
+router.get(
+  '/settings/mcp/connected-apps',
+  authenticateSession,
+  validateEndpoint(getConnectedAppsController.schema),
+  getConnectedAppsController.handler,
+);
+router.delete(
+  '/settings/mcp/connected-apps/:clientId',
+  authenticateSession,
+  validateEndpoint(revokeConnectedAppController.schema),
+  revokeConnectedAppController.handler,
 );
 
 export default router;

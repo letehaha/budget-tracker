@@ -11,7 +11,15 @@ export default defineConfig({
       // Mock better-auth ESM modules
       'better-auth': resolve(__dirname, './src/tests/mocks/better-auth/index.ts'),
       'better-auth/node': resolve(__dirname, './src/tests/mocks/better-auth/node.ts'),
+      'better-auth/plugins': resolve(__dirname, './src/tests/mocks/better-auth/plugins.ts'),
+      '@better-auth/oauth-provider': resolve(__dirname, './src/tests/mocks/better-auth/oauth-provider.ts'),
       '@better-auth/passkey': resolve(__dirname, './src/tests/mocks/better-auth/passkey.ts'),
+      // Mock MCP SDK ESM modules
+      '@modelcontextprotocol/sdk/server/mcp.js': resolve(__dirname, './src/tests/mocks/mcp-sdk/server-mcp.ts'),
+      '@modelcontextprotocol/sdk/server/streamableHttp.js': resolve(
+        __dirname,
+        './src/tests/mocks/mcp-sdk/server-streamable-http.ts',
+      ),
       '@bt/shared': resolve(__dirname, '../shared/src'),
       '@routes': resolve(__dirname, './src/routes'),
       '@middlewares': resolve(__dirname, './src/middlewares'),

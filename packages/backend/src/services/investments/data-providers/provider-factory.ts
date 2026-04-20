@@ -5,6 +5,7 @@ import { BaseSecurityDataProvider } from './base-provider';
 import { CompositeDataProvider } from './composite-provider';
 import { FmpDataProvider } from './fmp-provider';
 import { PolygonDataProvider } from './polygon-provider';
+import { YahooDataProvider } from './yahoo-provider';
 
 class DataProviderFactory {
   private providers = new Map<SECURITY_PROVIDER, BaseSecurityDataProvider>();
@@ -42,11 +43,16 @@ class DataProviderFactory {
         return new FmpDataProvider(apiKey);
       }
 
+      case SECURITY_PROVIDER.yahoo: {
+        return new YahooDataProvider();
+      }
+
       case SECURITY_PROVIDER.composite: {
         return new CompositeDataProvider({
           fmpApiKey: process.env.FMP_API_KEY,
           polygonApiKey: process.env.POLYGON_API_KEY,
           alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY,
+          yahooEnabled: process.env.YAHOO_FINANCE_ENABLED !== 'false',
         });
       }
 
@@ -59,7 +65,7 @@ class DataProviderFactory {
    * Used in tests to clear cached providers to avoid mocking issues
    */
   public clearCache() {
-    return this.providers.clear();
+    this.providers.clear();
   }
 }
 

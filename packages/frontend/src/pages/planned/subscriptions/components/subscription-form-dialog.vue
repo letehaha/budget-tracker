@@ -63,7 +63,7 @@ const accountOptions = computed(() => [
     label: t('planned.subscriptions.form.noAccount'),
     value: 0,
   },
-  ...accountsStore.enabledAccounts.map((a) => ({
+  ...accountsStore.activeAccounts.map((a) => ({
     label: `${a.name} (${a.currencyCode})`,
     value: a.id,
   })),

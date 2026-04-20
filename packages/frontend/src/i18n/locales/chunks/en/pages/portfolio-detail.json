@@ -9,7 +9,8 @@
     "actions": {
       "transfer": "Transfer",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "exchangeCurrency": "Exchange Currency"
     },
     "balance": {
       "totalValue": "Total Value",
@@ -38,6 +39,7 @@
         "withdrawal": "Withdrawal",
         "transferIn": "Transfer In",
         "transferOut": "Transfer Out",
+        "exchange": "Currency Exchange",
         "deleteConfirm": "Delete this cash transaction?",
         "linkedTransactionNote": "This transfer has a linked account transaction. What would you like to do with it?",
         "keepLinkedTransaction": "Keep account transaction. Original transaction details will be restored.",

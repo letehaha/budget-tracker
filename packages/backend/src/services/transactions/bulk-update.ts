@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, endpointsTypes } from '@bt/shared/types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Categories from '@models/categories.model';
 import Tags from '@models/tags.model';
@@ -44,15 +45,12 @@ export const bulkUpdate = withTransaction(
 
     // Validate category if provided
     if (hasCategory) {
-      const category = await Categories.findOne({
-        where: { id: categoryId, userId },
+      await findOrThrowNotFound({
+        query: Categories.findOne({
+          where: { id: categoryId, userId },
+        }),
+        message: 'Category not found',
       });
-
-      if (!category) {
-        throw new NotFoundError({
-          message: 'Category not found',
-        });
-      }
     }
 
     // Validate tags if provided

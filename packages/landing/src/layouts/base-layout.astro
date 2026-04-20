@@ -54,6 +54,14 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
   </body>
 </html>
 
+<script>
+  // Expose landing-page actions to browser-based AI agents via WebMCP
+  // (draft API). Safe no-op where unsupported.
+  import { initWebMcp } from '@/lib/webmcp';
+
+  initWebMcp();
+</script>
+
 <style is:global>
   @import '../styles/global.css';
 </style>

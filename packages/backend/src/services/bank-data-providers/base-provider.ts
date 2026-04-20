@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
@@ -34,15 +35,10 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @throws NotFoundError if connection not found
    */
   protected async getConnection(connectionId: number): Promise<BankDataProviderConnections> {
-    const connection = await BankDataProviderConnections.findByPk(connectionId);
-
-    if (!connection) {
-      throw new NotFoundError({
-        message: t({ key: 'errors.connectionIdNotFound', variables: { connectionId } }),
-      });
-    }
-
-    return connection;
+    return findOrThrowNotFound({
+      query: BankDataProviderConnections.findByPk(connectionId),
+      message: t({ key: 'errors.connectionIdNotFound', variables: { connectionId } }),
+    });
   }
 
   /**
@@ -60,15 +56,10 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @throws NotFoundError if account not found
    */
   protected async getSystemAccount(systemAccountId: number): Promise<Accounts> {
-    const account = await Accounts.findByPk(systemAccountId);
-
-    if (!account) {
-      throw new NotFoundError({
-        message: t({ key: 'errors.accountIdNotFound', variables: { accountId: systemAccountId } }),
-      });
-    }
-
-    return account;
+    return findOrThrowNotFound({
+      query: Accounts.findByPk(systemAccountId),
+      message: t({ key: 'errors.accountIdNotFound', variables: { accountId: systemAccountId } }),
+    });
   }
 
   /**

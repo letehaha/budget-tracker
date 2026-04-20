@@ -97,6 +97,38 @@ export default class PortfolioTransfers extends Model<
   @Index
   declare transactionId: number | null;
 
+  @Attribute({ type: DataTypes.STRING(3), defaultValue: null })
+  @Index
+  declare toCurrencyCode: string | null;
+
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  get toAmount(): Money | null {
+    const raw = this.getDataValue('toAmount');
+    if (raw === null || raw === undefined) return null;
+    return moneyGetDecimal(this, 'toAmount');
+  }
+  set toAmount(val: Money | string | number | null) {
+    if (val === null) {
+      this.setDataValue('toAmount', null);
+      return;
+    }
+    moneySetDecimal(this, 'toAmount', val, 10);
+  }
+
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  get refToAmount(): Money | null {
+    const raw = this.getDataValue('refToAmount');
+    if (raw === null || raw === undefined) return null;
+    return moneyGetDecimal(this, 'refToAmount');
+  }
+  set refToAmount(val: Money | string | number | null) {
+    if (val === null) {
+      this.setDataValue('refToAmount', null);
+      return;
+    }
+    moneySetDecimal(this, 'refToAmount', val, 10);
+  }
+
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
@@ -118,6 +150,9 @@ export default class PortfolioTransfers extends Model<
 
   @BelongsTo(() => Currencies, 'currencyCode')
   declare currency?: NonAttribute<Currencies>;
+
+  @BelongsTo(() => Currencies, 'toCurrencyCode')
+  declare toCurrency?: NonAttribute<Currencies>;
 
   @BelongsTo(() => Transactions, 'transactionId')
   declare transaction?: NonAttribute<Transactions>;

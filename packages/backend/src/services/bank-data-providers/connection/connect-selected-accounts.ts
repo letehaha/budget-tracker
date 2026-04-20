@@ -1,9 +1,17 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_STATUSES,
+  ACCOUNT_TYPES,
+  API_ERROR_CODES,
+  BANK_PROVIDER_TYPE,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { BadRequestError, NotFoundError } from '@js/errors';
 import { logger } from '@js/utils';
 import { type BankProvider, trackBankConnected } from '@js/utils/posthog';
+import AccountGrouping from '@models/accounts-groups/account-grouping.model';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { getCurrency } from '@models/currencies.model';
@@ -73,8 +81,8 @@ const createAccountsForConnection = withTransaction(
     // Create accounts in database
     const createdAccounts: Accounts[] = [];
     for (const providerAccount of selectedAccounts) {
-      // Check if account already exists
-      const existingAccount = await Accounts.findOne({
+      // Check if account already exists (still linked to this connection)
+      let existingAccount = await Accounts.findOne({
         where: {
           userId,
           externalId: providerAccount.externalId,
@@ -82,10 +90,32 @@ const createAccountsForConnection = withTransaction(
         },
       });
 
+      // If not found, check for a previously-linked account (archived accounts
+      // have their connection history stored in externalData after unlinking)
+      if (!existingAccount) {
+        existingAccount = await Accounts.findOne({
+          where: {
+            userId,
+            bankDataProviderConnectionId: null,
+            externalData: {
+              connectionHistory: {
+                previousConnection: {
+                  externalId: providerAccount.externalId,
+                  bankDataProviderConnectionId: connectionId,
+                },
+              },
+            },
+          },
+        });
+      }
+
       if (existingAccount) {
-        // Update existing account
+        // Re-link and re-activate the account
         await existingAccount.update({
-          isEnabled: true,
+          status: ACCOUNT_STATUSES.active,
+          type: PROVIDER_TO_ACCOUNT_TYPE[connection.providerType as BANK_PROVIDER_TYPE],
+          bankDataProviderConnectionId: connectionId,
+          externalId: providerAccount.externalId,
         });
         createdAccounts.push(existingAccount);
       } else {
@@ -120,7 +150,6 @@ const createAccountsForConnection = withTransaction(
           refCreditLimit: Money.fromCents((providerAccount.metadata?.creditLimit as number) || 0),
           externalId: providerAccount.externalId,
           externalData: providerAccount.metadata || {},
-          isEnabled: true,
           bankDataProviderConnectionId: connectionId,
         });
         createdAccounts.push(newAccount);
@@ -137,6 +166,26 @@ const createAccountsForConnection = withTransaction(
         provider: PROVIDER_TO_ANALYTICS_TYPE[connection.providerType as BANK_PROVIDER_TYPE],
         accountsCount: createdAccounts.length,
       });
+    }
+
+    // Auto-create or find the AccountGroup for this bank connection,
+    // then link ungrouped accounts to it
+    if (createdAccounts.length > 0) {
+      const [connectionGroup] = await AccountGroup.findOrCreate({
+        where: { bankDataProviderConnectionId: connectionId, userId },
+        defaults: { name: connection.providerName, userId, bankDataProviderConnectionId: connectionId },
+      });
+
+      for (const account of createdAccounts) {
+        // Only add if the account is not already in any group
+        const existingGrouping = await AccountGrouping.findOne({
+          where: { accountId: account.id },
+        });
+
+        if (!existingGrouping) {
+          await AccountGrouping.create({ accountId: account.id, groupId: connectionGroup.id });
+        }
+      }
     }
 
     return createdAccounts;

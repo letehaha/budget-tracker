@@ -1,9 +1,11 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { NotFoundError } from '@root/js/errors';
 import { bankProviderRegistry } from '@services/bank-data-providers';
+import { updateConnectionName } from '@services/bank-data-providers/connection/update-connection-name';
 import z from 'zod';
 
 export default createController(
@@ -21,22 +23,23 @@ export default createController(
       }),
   }),
   async ({ user, params, body }) => {
-    const connection = await BankDataProviderConnections.findOne({
-      where: {
-        id: params.connectionId,
-        userId: user.id,
-      },
+    const connection = await findOrThrowNotFound({
+      query: BankDataProviderConnections.findOne({
+        where: {
+          id: params.connectionId,
+          userId: user.id,
+        },
+      }),
+      message: t({ key: 'errors.connectionNotFound' }),
     });
 
-    if (!connection) {
-      throw new NotFoundError({
-        message: t({ key: 'errors.connectionNotFound' }),
-      });
-    }
-
     if (body.providerName !== undefined) {
-      connection.providerName = body.providerName;
-      await connection.save();
+      await updateConnectionName({
+        connectionId: connection.id,
+        userId: user.id,
+        providerName: body.providerName,
+      });
+      await connection.reload();
     }
 
     // If credentials are provided, validate and update via the provider

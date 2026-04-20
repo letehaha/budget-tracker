@@ -1,0 +1,46 @@
+# MoneyMatter
+
+> Free, open-source budget tracking and personal finance app. Self-host for full data ownership or use the cloud version. Supports AI integration via MCP (Model Context Protocol) for querying your finances with Claude, ChatGPT, or any MCP-compatible client.
+
+MoneyMatter is a privacy-first alternative to apps like Mint and YNAB. It is free, MIT-licensed, and designed for people who want control over their financial data. The app runs as a web application with a Node.js/Express backend and Vue.js frontend, deployable via Docker.
+
+## Key Features
+
+- Bank account synchronization (Monobank, EnableBanking, LunchFlow, with more integrations planned)
+- AI-powered transaction categorization that learns your spending patterns
+- Budget tracking with visual progress indicators
+- Investment portfolio tracking with real-time market data
+- Multi-currency support with automatic exchange rates
+- CSV and bank statement import (including AI-assisted parsing)
+- Custom categories, tags, and notes for transactions
+- Recurring transaction tracking
+- Detailed analytics and spending reports
+- Full data export
+- Dark mode, mobile-friendly responsive design
+- PWA (Progressive Web App) support
+
+## AI Integration (MCP)
+
+MoneyMatter exposes a remote MCP server that gives AI assistants read-only, OAuth-secured access to your financial data. This lets you ask natural-language questions like:
+
+- "Compare my dining out this month to my 3-month average"
+- "Which subscriptions have increased in the past 6 months?"
+- "I want to save $500/month — where can I realistically cut?"
+
+Works with Claude, ChatGPT, OpenClaw, and any MCP-compatible client. Access can be revoked anytime.
+
+## Deployment Options
+
+- **Cloud**: Sign up at https://moneymatter.app — no setup required, data never sold
+- **Self-hosted**: Deploy with Docker on your own server for maximum privacy. Source code and setup guide at https://github.com/letehaha/budget-tracker
+
+## Links
+
+- [Homepage](https://moneymatter.app/): Landing page with feature overview and sign-up
+- [GitHub Repository](https://github.com/letehaha/budget-tracker): Source code, Docker setup guide, and issue tracker
+- [Privacy Policy](https://moneymatter.app/privacy-policy): Data handling and privacy practices
+- [Terms of Use](https://moneymatter.app/terms-of-use): Terms of service
+
+## Optional
+
+- [Try Demo](https://moneymatter.app): Create a free account or try the demo

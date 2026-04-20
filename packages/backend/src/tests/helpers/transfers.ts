@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { BulkTransferScanResponse } from '@bt/shared/types/endpoints';
 import * as helpers from '@tests/helpers';
 
 import { MakeRequestReturn } from './common';
@@ -17,6 +18,42 @@ export function getTransferRecommendations<R extends boolean | undefined = undef
   return helpers.makeRequest<TransactionModel[], R>({
     method: 'get',
     url: '/transactions/transfer-recommendations',
+    payload: params,
+    raw,
+  });
+}
+
+interface BulkScanTransferRecommendationsParams {
+  dateFrom: string;
+  dateTo: string;
+  limit?: number;
+  offset?: number;
+  includeOutOfWallet?: boolean;
+}
+
+export function dismissTransferSuggestion<R extends boolean | undefined = undefined>({
+  raw,
+  ...params
+}: {
+  expenseTransactionId: number;
+  incomeTransactionId: number;
+  raw?: R;
+}): Promise<MakeRequestReturn<void, R>> {
+  return helpers.makeRequest<void, R>({
+    method: 'post',
+    url: '/transactions/transfer-recommendations/dismiss',
+    payload: params,
+    raw,
+  });
+}
+
+export function bulkScanTransferRecommendations<R extends boolean | undefined = undefined>({
+  raw,
+  ...params
+}: BulkScanTransferRecommendationsParams & { raw?: R }): Promise<MakeRequestReturn<BulkTransferScanResponse, R>> {
+  return helpers.makeRequest<BulkTransferScanResponse, R>({
+    method: 'post',
+    url: '/transactions/transfer-recommendations/bulk-scan',
     payload: params,
     raw,
   });

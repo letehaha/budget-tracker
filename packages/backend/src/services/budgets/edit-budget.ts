@@ -1,7 +1,7 @@
 import { BUDGET_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
 import BudgetCategories from '@models/budget-categories.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
@@ -21,13 +21,10 @@ interface EditBudgetPayload {
 }
 
 export const editBudget = withTransaction(async ({ id, userId, categoryIds, ...params }: EditBudgetPayload) => {
-  const budget = await Budgets.findOne({
-    where: { id, userId },
+  const budget = await findOrThrowNotFound({
+    query: Budgets.findOne({ where: { id, userId } }),
+    message: t({ key: 'budgets.budgetNotFound' }),
   });
-
-  if (!budget) {
-    throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
-  }
 
   const { startDate, endDate, limitAmount, ...rest } = params;
   const updates: Parameters<typeof budget.update>[0] = { ...rest };

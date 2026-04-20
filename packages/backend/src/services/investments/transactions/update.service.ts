@@ -1,8 +1,9 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { INVESTMENT_DECIMAL_SCALE, Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { ValidationError } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -26,26 +27,24 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
   const { userId, transactionId, ...updateFields } = params;
 
   // Find the transaction and verify ownership through portfolio
-  const transaction = await InvestmentTransaction.findOne({
-    where: { id: transactionId },
-    include: [{ model: Portfolios, as: 'portfolio', where: { userId }, required: true }],
+  const transaction = await findOrThrowNotFound({
+    query: InvestmentTransaction.findOne({
+      where: { id: transactionId },
+      include: [{ model: Portfolios, as: 'portfolio', where: { userId }, required: true }],
+    }),
+    message: t({ key: 'investments.transactionNotFound' }),
   });
-
-  if (!transaction) {
-    throw new NotFoundError({ message: t({ key: 'investments.transactionNotFound' }) });
-  }
 
   // Store the portfolioId and securityId for recalculation
   const { portfolioId, securityId } = transaction;
 
   // Get the holding for validation
-  const holding = await Holdings.findOne({
-    where: { portfolioId, securityId },
+  const holding = await findOrThrowNotFound({
+    query: Holdings.findOne({
+      where: { portfolioId, securityId },
+    }),
+    message: t({ key: 'investments.holdingNotFound' }),
   });
-
-  if (!holding) {
-    throw new NotFoundError({ message: t({ key: 'investments.holdingNotFound' }) });
-  }
 
   // Business rule: Check for sufficient shares when updating to a sell transaction
   const finalCategory = updateFields.category ?? transaction.category;

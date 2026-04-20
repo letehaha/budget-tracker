@@ -3,8 +3,11 @@ import { onMounted, onUnmounted, ref } from 'vue';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '.';
 
-defineProps<{
+const props = defineProps<{
   content: string;
+  contentClassName?: string;
+  disabled?: boolean;
+  side?: 'top' | 'right' | 'bottom' | 'left';
 }>();
 
 const hasHover = ref(false);
@@ -28,12 +31,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <TooltipProvider v-if="hasHover" :delay-duration="100">
+  <TooltipProvider v-if="hasHover && !props.disabled" :delay-duration="100">
     <Tooltip>
       <TooltipTrigger as-child>
         <slot />
       </TooltipTrigger>
-      <TooltipContent>
+      <TooltipContent :class="contentClassName" :side="props.side">
         {{ content }}
       </TooltipContent>
     </Tooltip>

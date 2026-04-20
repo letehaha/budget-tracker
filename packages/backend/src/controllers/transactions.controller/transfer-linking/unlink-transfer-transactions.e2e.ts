@@ -50,6 +50,57 @@ describe('Unlink transfer transactions', () => {
       });
     });
   });
+
+  it('unlink transactions that were originally out_of_wallet before linking', async () => {
+    const accountA = await helpers.createAccount({ raw: true });
+    const accountB = await helpers.createAccount({ raw: true });
+
+    // Create an out_of_wallet expense
+    const [outOfWalletExpense] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountA.id,
+        amount: 400,
+        transactionType: TRANSACTION_TYPES.expense,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      }),
+      raw: true,
+    });
+
+    // Create a regular income
+    const [regularIncome] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountB.id,
+        amount: 400,
+        transactionType: TRANSACTION_TYPES.income,
+      }),
+      raw: true,
+    });
+
+    // Link them — both become common_transfer
+    const linkingResult = await helpers.linkTransactions({
+      payload: {
+        ids: [[outOfWalletExpense.id, regularIncome.id]],
+      },
+      raw: true,
+    });
+
+    const transferId = linkingResult[0]![0].transferId;
+    expect(linkingResult[0]![0].transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(linkingResult[0]![1].transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+
+    // Unlink — both should become not_transfer (original out_of_wallet nature is NOT preserved)
+    const unlinkedTxs = await helpers.unlinkTransferTransactions({
+      transferIds: [transferId],
+      raw: true,
+    });
+
+    expect(unlinkedTxs).toHaveLength(2);
+    unlinkedTxs.forEach((tx) => {
+      expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+      expect(tx.transferId).toBeNull();
+    });
+  });
+
   it('unlink external transactions', async () => {
     // Firstly create external expense + income
     await helpers.monobank.pair();

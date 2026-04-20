@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Balances from '@models/balances.model';
@@ -46,7 +46,8 @@ interface AccountsAttributes {
   // maskedPan: string; // move to additionalFields
   // type: string; // move to additionalFields
   // iban: string; // move to additionalFields
-  isEnabled: boolean; // represents "if account is active and should be visible in stats"
+  status: ACCOUNT_STATUSES;
+  excludeFromStats: boolean;
   bankDataProviderConnectionId?: number; // FK to BankDataProviderConnections
 }
 
@@ -155,11 +156,15 @@ export default class Accounts extends Model<InferAttributes<Accounts>, InferCrea
   // type: string;
   // iban: string;
 
-  // represents "if account is active and should be visible in stats"
+  @Attribute(DataTypes.ENUM({ values: Object.values(ACCOUNT_STATUSES) }))
+  @NotNull
+  @Default(ACCOUNT_STATUSES.active)
+  declare status: CreationOptional<ACCOUNT_STATUSES>;
+
   @Attribute(DataTypes.BOOLEAN)
   @NotNull
-  @Default(true)
-  declare isEnabled: CreationOptional<boolean>;
+  @Default(false)
+  declare excludeFromStats: CreationOptional<boolean>;
 
   @Attribute(DataTypes.INTEGER)
   @Index
@@ -221,7 +226,8 @@ export const getAccountById = async ({
 export interface CreateAccountPayload {
   externalId?: AccountsAttributes['externalId'];
   externalData?: AccountsAttributes['externalData'];
-  isEnabled?: AccountsAttributes['isEnabled'];
+  status?: AccountsAttributes['status'];
+  excludeFromStats?: AccountsAttributes['excludeFromStats'];
   accountCategory: AccountsAttributes['accountCategory'];
   currencyCode: AccountsAttributes['currencyCode'];
   name: AccountsAttributes['name'];
@@ -236,13 +242,15 @@ export interface CreateAccountPayload {
 export const createAccount = async ({
   userId,
   type = ACCOUNT_TYPES.system,
-  isEnabled = true,
+  status = ACCOUNT_STATUSES.active,
+  excludeFromStats = false,
   ...rest
 }: CreateAccountPayload) => {
   const response = await Accounts.create({
     userId,
     type,
-    isEnabled,
+    status,
+    excludeFromStats,
     currentBalance: rest.initialBalance,
     refCurrentBalance: rest.refInitialBalance,
     ...rest,
@@ -270,7 +278,8 @@ export interface UpdateAccountByIdPayload {
   refCurrentBalance?: AccountsAttributes['refCurrentBalance'];
   creditLimit?: AccountsAttributes['creditLimit'];
   refCreditLimit?: AccountsAttributes['refCreditLimit'];
-  isEnabled?: AccountsAttributes['isEnabled'];
+  status?: AccountsAttributes['status'];
+  excludeFromStats?: AccountsAttributes['excludeFromStats'];
   externalData?: AccountsAttributes['externalData'];
 }
 

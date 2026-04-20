@@ -21,9 +21,9 @@
     <!-- Error State -->
     <div v-else-if="error" class="p-6 text-center">
       <div class="bg-destructive/10 mx-auto mb-3 flex size-10 items-center justify-center rounded-full">
-        <TrendingDownIcon class="text-destructive size-5" />
+        <TrendingDownIcon class="text-destructive-text size-5" />
       </div>
-      <p class="text-destructive text-sm">{{ $t('portfolioDetail.balance.loadError') }}</p>
+      <p class="text-destructive-text text-sm">{{ $t('portfolioDetail.balance.loadError') }}</p>
     </div>
 
     <!-- Content -->
@@ -42,7 +42,7 @@
             <h2 class="text-3xl font-semibold tracking-tight">
               {{ formatCurrency(Number(summary.totalPortfolioValue), summary.currencyCode) }}
             </h2>
-            <div :class="getGainColorClass(getTotalGainPercent())" class="flex items-center gap-1.5">
+            <div :class="getGainColorClass({ gainPercent: getTotalGainPercent() })" class="flex items-center gap-1.5">
               <component :is="getTotalGainValue() >= 0 ? TrendingUpIcon : TrendingDownIcon" class="size-4" />
               <span class="text-sm font-medium">
                 {{ getTotalGainValue() >= 0 ? '+' : '' }}{{ formatCurrency(getTotalGainValue(), summary.currencyCode) }}
@@ -74,7 +74,7 @@
             <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
               {{ $t('portfolioDetail.balance.metrics.unrealized') }}
             </p>
-            <div :class="getGainColorClass(Number(summary.unrealizedGainPercent))">
+            <div :class="getGainColorClass({ gainPercent: Number(summary.unrealizedGainPercent) })">
               <p class="text-base font-semibold">
                 {{ Number(summary.unrealizedGainValue) >= 0 ? '+' : ''
                 }}{{ formatCurrency(Number(summary.unrealizedGainValue), summary.currencyCode) }}
@@ -91,7 +91,7 @@
             <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
               {{ $t('portfolioDetail.balance.metrics.realized') }}
             </p>
-            <div :class="getGainColorClass(Number(summary.realizedGainPercent))">
+            <div :class="getGainColorClass({ gainPercent: Number(summary.realizedGainPercent) })">
               <p class="text-base font-semibold">
                 {{ Number(summary.realizedGainValue) >= 0 ? '+' : ''
                 }}{{ formatCurrency(Number(summary.realizedGainValue), summary.currencyCode) }}
@@ -108,7 +108,7 @@
             <p class="text-muted-foreground text-xs font-medium tracking-wide whitespace-nowrap uppercase">
               {{ $t('portfolioDetail.balance.metrics.totalReturn') }}
             </p>
-            <div :class="getGainColorClass(getTotalGainPercent())">
+            <div :class="getGainColorClass({ gainPercent: getTotalGainPercent() })">
               <p class="text-base font-semibold">
                 {{ getTotalGainValue() >= 0 ? '+' : '' }}{{ formatCurrency(getTotalGainValue(), summary.currencyCode) }}
               </p>
@@ -125,6 +125,7 @@
 import { Card } from '@/components/lib/ui/card';
 import { usePortfolioSummary } from '@/composable/data-queries/portfolio-summary';
 import { useFormatCurrency } from '@/composable/formatters';
+import { getGainColorClass } from '@/composable/gain-color';
 import { useCurrenciesStore } from '@/stores/currencies';
 import { TrendingDownIcon, TrendingUpIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -147,12 +148,6 @@ const formatCurrency = (amount: number, currencyCode: string) => {
     });
   }
   return formatAmountByCurrencyCode(amount, userCurrency.currencyCode);
-};
-
-const getGainColorClass = (gainPercent: number) => {
-  if (gainPercent > 0) return 'text-green-600';
-  if (gainPercent < 0) return 'text-destructive-text';
-  return 'text-gray-600';
 };
 
 const getTotalGainValue = () => {

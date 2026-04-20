@@ -1,6 +1,7 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { ConflictError, NotFoundError } from '@js/errors';
+import { ConflictError } from '@js/errors';
 import Portfolios from '@models/investments/portfolios.model';
 import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
@@ -23,13 +24,12 @@ const updatePortfolioImpl = async ({
   isEnabled,
 }: UpdatePortfolioParams) => {
   // Find the portfolio and verify ownership
-  const portfolio = await Portfolios.findOne({
-    where: { id: portfolioId, userId },
+  const portfolio = await findOrThrowNotFound({
+    query: Portfolios.findOne({
+      where: { id: portfolioId, userId },
+    }),
+    message: t({ key: 'investments.portfolioNotFound' }),
   });
-
-  if (!portfolio) {
-    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
-  }
 
   // Check if another portfolio with same name already exists for this user (only if name is being updated)
   if (name !== undefined) {

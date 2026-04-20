@@ -2,6 +2,7 @@ import { currencyCode } from '@common/lib/zod/custom-types';
 import { authPool } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
 import { ValidationError } from '@js/errors';
+import { invalidateAppUserCache } from '@middlewares/better-auth';
 import { ExchangeRatePair } from '@models/user-exchange-rates.model';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';
@@ -43,6 +44,10 @@ export const updateUser = createController(
       id: user.id,
       ...body,
     });
+
+    // Invalidate cached user so the next request picks up the new username/role
+    invalidateAppUserCache({ authUserId: user.authUserId });
+
     return { data: userData };
   },
 );

@@ -3,6 +3,8 @@ import { getCurrentSessionId } from '@common/lib/cls/session-id';
 import winston, { format, transports } from 'winston';
 import LokiTransport from 'winston-loki';
 
+import { isSentryEnabled, Sentry } from './sentry';
+
 const transportsArray: winston.transport[] = [new transports.Console()];
 const { GRAFANA_LOKI_HOST, GRAFANA_LOKI_AUTH, GRAFANA_LOKI_USER_ID } = process.env;
 const isGrafanaConfigured = Boolean(GRAFANA_LOKI_HOST && GRAFANA_LOKI_AUTH && GRAFANA_LOKI_USER_ID);
@@ -59,6 +61,17 @@ const createLogger =
         ...meta,
       });
     }
+
+    if (severity === 'warn' && isSentryEnabled()) {
+      Sentry.withScope((scope) => {
+        scope.setExtras(meta);
+        const requestId = getCurrentRequestId();
+        const sessionId = getCurrentSessionId();
+        if (requestId) scope.setTag('requestId', requestId);
+        if (sessionId) scope.setTag('sessionId', sessionId);
+        Sentry.captureMessage(message, 'warning');
+      });
+    }
   };
 
 const formatErrorToString = (error: string | Error) => {
@@ -103,6 +116,33 @@ function loggerErrorHandler(
       message: messageResult,
       requestId: getCurrentRequestId() ?? null,
       ...extra,
+    });
+  }
+
+  if (isSentryEnabled()) {
+    Sentry.withScope((scope) => {
+      scope.setExtras(extra);
+      const requestId = getCurrentRequestId();
+      const sessionId = getCurrentSessionId();
+      if (requestId) scope.setTag('requestId', requestId);
+      if (sessionId) scope.setTag('sessionId', sessionId);
+
+      // Extract the Error object for proper stack traces in Sentry
+      const errorObj =
+        messageParam instanceof Error
+          ? messageParam
+          : typeof messageParam === 'object' && messageParam.error
+            ? messageParam.error
+            : null;
+
+      if (errorObj) {
+        if (typeof messageParam === 'object' && 'message' in messageParam && messageParam.message) {
+          scope.setExtra('errorContext', messageParam.message);
+        }
+        Sentry.captureException(errorObj);
+      } else {
+        Sentry.captureMessage(messageResult, 'error');
+      }
     });
   }
 }

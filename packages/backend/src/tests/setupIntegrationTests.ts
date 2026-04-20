@@ -7,6 +7,7 @@ import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
 import { REDIS_KEY_PREFIX, redisClient, redisReady } from '@root/redis-client';
 import { categorizationQueue, categorizationWorker } from '@services/ai-categorization/categorization-queue';
+import { flushAllPendingCategorizationBuffers } from '@services/ai-categorization/event-listeners';
 import {
   transactionSyncQueue,
   transactionSyncWorker,
@@ -60,11 +61,24 @@ vi.mock('../services/investments/data-providers/clients/fmp-client', () => ({
   })),
 }));
 
+// Mock yahoo-finance2 globally (v3 requires instantiation).
+// All methods reject by default so the composite provider falls back to other
+// providers (FMP, Polygon, etc.) in existing tests. Tests that specifically
+// exercise Yahoo behaviour must override these mocks per-test.
+jest.mock('yahoo-finance2', () => {
+  const MockYahooFinance = jest.fn().mockImplementation(() => ({
+    search: jest.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
+    quote: jest.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
+    chart: jest.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
+  }));
+  return { __esModule: true, default: MockYahooFinance };
+});
+
 beforeAll(async () => {
   mswMockServer.listen({ onUnhandledRequest: 'bypass' });
   // Wait for i18next to fully load all locale files before tests run
   await i18nextReady;
-});
+}, 30_000);
 afterEach(() => {
   mswMockServer.resetHandlers();
   // Reset Enable Banking session counter to ensure test isolation
@@ -333,6 +347,9 @@ beforeEach(async () => {
 
 afterAll(async () => {
   try {
+    // Flush debounced categorization buffers before closing queues
+    await flushAllPendingCategorizationBuffers();
+
     // Close ALL BullMQ workers and queues first to ensure no pending operations
     // This prevents "The client is closed" errors when workers try to access Redis
     await transactionSyncWorker.close();

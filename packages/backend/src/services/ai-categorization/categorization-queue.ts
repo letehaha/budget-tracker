@@ -1,10 +1,11 @@
 import { logger } from '@js/utils/logger';
+import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import { Job, Queue, Worker } from 'bullmq';
 
 import { SSE_EVENT_TYPES, sseManager } from '../common/sse';
 import { categorizeTransactions } from './categorization-service';
 
-interface CategorizationJobData {
+interface CategorizationJobData extends SentryTraceData {
   userId: number;
   transactionIds: number[];
 }
@@ -58,26 +59,32 @@ categorizationQueue.on('error', (err) => {
 export const categorizationWorker = new Worker<CategorizationJobData>(
   queueName,
   async (job: Job<CategorizationJobData>) => {
-    const { userId, transactionIds } = job.data;
+    return withQueueProcessSpan({
+      queueName,
+      job,
+      fn: async () => {
+        const { userId, transactionIds } = job.data;
 
-    logger.info(
-      `[AI Categorization Worker] Processing job for user ${userId}, ${transactionIds.length} transactions, attempt ${job.attemptsMade + 1}`,
-    );
+        logger.info(
+          `[AI Categorization Worker] Processing job for user ${userId}, ${transactionIds.length} transactions, attempt ${job.attemptsMade + 1}`,
+        );
 
-    const result = await categorizeTransactions({
-      userId,
-      transactionIds,
-      totalTransactionCount: transactionIds.length,
+        const result = await categorizeTransactions({
+          userId,
+          transactionIds,
+          totalTransactionCount: transactionIds.length,
+        });
+
+        if (result.failed.length > 0) {
+          logger.info(`[AI Categorization Worker] ${result.failed.length} transactions failed for user ${userId}`);
+        }
+
+        return {
+          successful: result.successful.length,
+          failed: result.failed.length,
+        };
+      },
     });
-
-    if (result.failed.length > 0) {
-      logger.warn(`[AI Categorization Worker] ${result.failed.length} transactions failed for user ${userId}`);
-    }
-
-    return {
-      successful: result.successful.length,
-      failed: result.failed.length,
-    };
   },
   {
     connection,
@@ -149,17 +156,16 @@ export async function queueCategorizationJob({
   }
 
   const jobId = `categorization-${userId}-${Date.now()}`;
+  const data = { userId, transactionIds };
 
-  await categorizationQueue.add(
-    jobId,
-    {
-      userId,
-      transactionIds,
+  await withQueuePublishSpan({
+    queueName,
+    messageId: jobId,
+    payloadSize: JSON.stringify(data).length,
+    fn: async (traceData) => {
+      await categorizationQueue.add(jobId, { ...data, ...traceData }, { jobId });
     },
-    {
-      jobId,
-    },
-  );
+  });
 
   // Send queued event to notify frontend that categorization is scheduled
   sseManager.sendToUser({

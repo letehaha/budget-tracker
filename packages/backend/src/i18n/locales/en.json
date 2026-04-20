@@ -37,6 +37,7 @@
     "accountGroupNotFound": "Account group with such id is not found."
   },
   "transactions": {
+    "notFound": "Transaction not found",
     "missingRequiredFields": "One of required fields are missing: destinationAmount, destinationAccountId.",
     "refundAndTransferNotAllowed": "It is not allowed to create a transaction that is a refund and a transfer at the same time",
     "cannotCreateWithParams": "Cannot create transaction with provided params",
@@ -137,10 +138,13 @@
     "transferAmountMustBePositive": "Transfer amount must be greater than zero",
     "sourcePortfolioNotFound": "Source portfolio not found",
     "destinationPortfolioNotFound": "Destination portfolio not found",
+    "sourceAccountNotFound": "Source account not found",
+    "destinationAccountNotFound": "Destination account not found",
     "cannotDeleteHoldingWithActivePosition": "Cannot delete a holding with an active position. Please sell or transfer all shares first.",
     "transactionAlreadyTransfer": "Transaction is already marked as a transfer and cannot be linked to a portfolio.",
     "transactionAlreadyLinkedToPortfolio": "Transaction is already linked to a portfolio transfer.",
-    "portfolioTransferNotFound": "Portfolio transfer not found"
+    "portfolioTransferNotFound": "Portfolio transfer not found",
+    "exchangeCurrenciesMustDiffer": "Exchange currencies must be different"
   },
   "errors": {
     "connectionNotFound": "Connection not found",
@@ -379,5 +383,18 @@
         "gifts": "Gifts"
       }
     }
+  },
+  "paymentReminders": {
+    "reminderNotFound": "Payment reminder not found",
+    "periodNotFound": "Payment reminder period not found",
+    "cannotSkipPaidPeriod": "Cannot skip a paid period",
+    "periodAlreadySkipped": "Period is already skipped",
+    "periodAlreadyPaid": "Period is already marked as paid",
+    "periodSkippedUndoFirst": "Period is skipped. Undo skip before marking as paid.",
+    "periodAlreadyActive": "Period is already in an active state",
+    "transactionAlreadyLinkedToPeriod": "This transaction is already linked to another period of this reminder"
+  },
+  "subscriptions": {
+    "transactionsNotFoundOrNotBelongToUser": "One or more transactions not found or do not belong to user."
   }
 }

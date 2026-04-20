@@ -1,4 +1,5 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
@@ -25,17 +26,16 @@ export default createController(schema, async ({ body, user }) => {
   const { connectionId, code, state, error, error_description } = body;
 
   // Verify connection exists and belongs to user
-  const connection = await BankDataProviderConnections.findOne({
-    where: {
-      id: connectionId,
-      userId: user.id,
-      providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
-    },
+  await findOrThrowNotFound({
+    query: BankDataProviderConnections.findOne({
+      where: {
+        id: connectionId,
+        userId: user.id,
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+      },
+    }),
+    message: t({ key: 'errors.connectionNotFoundOrNotYours' }),
   });
-
-  if (!connection) {
-    throw new NotFoundError({ message: t({ key: 'errors.connectionNotFoundOrNotYours' }) });
-  }
 
   // Get provider instance
   const provider = bankProviderRegistry.get(BANK_PROVIDER_TYPE.ENABLE_BANKING) as EnableBankingProvider;

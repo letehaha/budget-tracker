@@ -1,10 +1,11 @@
 import { type UserSettingsSchema, getUserSettings, updateUserSettings } from '@/api/user-settings';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 
 export const useUserSettings = (
   queryOptions: Partial<Parameters<typeof useQuery<UserSettingsSchema, Error>>[0]> = {},
 ) => {
-  const queryArray = ['user-settings'];
+  const queryArray = [...VUE_QUERY_CACHE_KEYS.userSettings];
   const queryClient = useQueryClient();
   const query = useQuery({
     queryFn: getUserSettings,

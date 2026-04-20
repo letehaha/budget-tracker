@@ -33,12 +33,18 @@ export async function updateAccountGroup<R extends boolean | undefined = undefin
 
 export async function getAccountGroups<R extends boolean | undefined = undefined>({
   raw,
+  includeArchived,
 }: {
   raw?: R;
+  includeArchived?: boolean;
 } = {}) {
+  const query: Record<string, string> = {};
+  if (includeArchived !== undefined) query.includeArchived = String(includeArchived);
+
   return makeRequest<Awaited<ReturnType<typeof accountGroupService.getAccountGroups>>, R>({
     method: 'get',
     url: '/account-group',
+    payload: Object.keys(query).length ? query : undefined,
     raw,
   });
 }

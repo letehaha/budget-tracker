@@ -1,5 +1,6 @@
 import { SUBSCRIPTION_CANDIDATE_STATUS, SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
-import { ConflictError, NotFoundError } from '@js/errors';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { ConflictError } from '@js/errors';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import { Op } from '@sequelize/core';
@@ -21,13 +22,12 @@ interface ResolveCandidateParams {
  */
 export const resolveCandidate = withTransaction(
   async ({ userId, candidateId, subscriptionId }: ResolveCandidateParams) => {
-    const candidate = await SubscriptionCandidates.findOne({
-      where: { id: candidateId, userId },
+    const candidate = await findOrThrowNotFound({
+      query: SubscriptionCandidates.findOne({
+        where: { id: candidateId, userId },
+      }),
+      message: 'Subscription candidate not found',
     });
-
-    if (!candidate) {
-      throw new NotFoundError({ message: 'Subscription candidate not found' });
-    }
 
     if (candidate.status !== SUBSCRIPTION_CANDIDATE_STATUS.pending) {
       throw new ConflictError({

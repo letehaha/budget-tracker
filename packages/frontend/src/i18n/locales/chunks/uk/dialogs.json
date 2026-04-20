@@ -117,7 +117,11 @@
         "selectAccountPlaceholder": "Виберіть рахунок",
         "noAccountExists": "Рахунків не існує",
         "addNewAccountButton": "Додати новий рахунок +",
-        "createAccountLink": "Створити рахунок"
+        "createAccountLink": "Створити рахунок",
+        "destinationTypeAccount": "Рахунок",
+        "destinationTypePortfolio": "Портфель",
+        "toPortfolioLabel": "До портфелю",
+        "selectPortfolioPlaceholder": "Оберіть портфель"
       },
       "refundRecordsList": {
         "filtersDialogTitle": "Вибрати фільтри",
@@ -342,6 +346,10 @@
         "success": "Thanks for your feedback!",
         "error": "Failed to send feedback. Please try again."
       }
+    },
+    "exchangeCurrency": {
+      "title": "Обмін валют",
+      "description": "Обміняти готівку між різними валютами у вашому портфелі"
     }
   }
 }

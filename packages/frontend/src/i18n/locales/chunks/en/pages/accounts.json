@@ -5,7 +5,7 @@
     "createAccount": "Create account",
     "bankIntegrations": "Bank Integrations",
     "sections": {
-      "hidden": "Hidden accounts",
+      "archived": "Archived",
       "manual": "Manual accounts",
       "connected": "Connected Accounts"
     },

@@ -1,7 +1,8 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { ValidationError } from '@js/errors';
 import Currencies from '@models/currencies.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -28,11 +29,10 @@ const linkTransactionToPortfolioImpl = async ({
   transactionId,
   portfolioId,
 }: LinkTransactionToPortfolioParams) => {
-  const tx = await Transactions.getTransactionById({ id: transactionId, userId });
-
-  if (!tx) {
-    throw new NotFoundError({ message: t({ key: 'transactions.notFound' }) });
-  }
+  const tx = await findOrThrowNotFound({
+    query: Transactions.getTransactionById({ id: transactionId, userId }),
+    message: t({ key: 'transactions.notFound' }),
+  });
 
   if (DISALLOWED_TRANSFER_NATURES.includes(tx.transferNature)) {
     throw new ValidationError({

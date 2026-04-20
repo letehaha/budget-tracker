@@ -7,7 +7,7 @@ import {
   unlinkAccountFromBankConnection as apiUnlinkAccountFromBankConnection,
 } from '@/api';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
-import { ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { defineStore, storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
@@ -41,7 +41,18 @@ export const useAccountsStore = defineStore('accounts', () => {
   const accountsCurrencyCodes = computed(() => [...new Set(accounts.value?.map((item) => item.currencyCode) ?? [])]);
 
   const systemAccounts = computed(() => accounts.value?.filter((item) => item.type === ACCOUNT_TYPES.system) ?? []);
-  const enabledAccounts = computed(() => accounts.value?.filter((item) => item.isEnabled) ?? []);
+  const activeAccounts = computed(
+    () => accounts.value?.filter((item) => item.status === ACCOUNT_STATUSES.active) ?? [],
+  );
+  const activeSystemAccounts = computed(() =>
+    systemAccounts.value.filter((item) => item.status === ACCOUNT_STATUSES.active),
+  );
+  // Active accounts first, archived appended at the end — so selectors can render
+  // archived as de-emphasized entries without losing access to them.
+  const systemAccountsActiveFirst = computed(() => [
+    ...activeSystemAccounts.value,
+    ...systemAccounts.value.filter((item) => item.status === ACCOUNT_STATUSES.archived),
+  ]);
 
   /**
    * Accounts that need to be re-linked due to schema migration.
@@ -107,8 +118,10 @@ export const useAccountsStore = defineStore('accounts', () => {
   return {
     accounts,
     accountsRecord,
-    enabledAccounts,
+    activeAccounts,
     systemAccounts,
+    activeSystemAccounts,
+    systemAccountsActiveFirst,
     accountsCurrencyCodes,
     accountsNeedingRelink,
     isAccountsFetched,

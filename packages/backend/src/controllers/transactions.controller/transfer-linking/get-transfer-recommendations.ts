@@ -7,13 +7,12 @@ import Transactions, { getTransactionById } from '@models/transactions.model';
 import { serializeTransactions } from '@root/serializers';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import * as transactionsService from '@services/transactions';
+import { addDays, endOfDay, startOfDay, subDays } from 'date-fns';
 import z from 'zod';
 
-// ±10% of refAmount for transfer recommendations
-const RECOMMENDATION_PERCENT_RANGE = 0.1;
-// 2 weeks date range
-const RECOMMENDATION_DAYS_RANGE = 14;
-const RECOMMENDATION_LIMIT = 5;
+import { RECOMMENDATION_DAYS_RANGE, RECOMMENDATION_PERCENT_RANGE } from './constants';
+
+const RECOMMENDATION_LIMIT = 7;
 
 const schema = z.object({
   query: z
@@ -105,30 +104,14 @@ export default createController(schema, async ({ user, query }) => {
   const refAmountGte = Money.fromCents(Math.max(0, Math.floor(centerCents * (1 - RECOMMENDATION_PERCENT_RANGE))));
   const refAmountLte = Money.fromCents(Math.ceil(centerCents * (1 + RECOMMENDATION_PERCENT_RANGE)));
 
-  // Calculate date range based on transaction type
-  // For transfers: income.time >= expense.time (money arrives after being sent)
-  let startDate: Date;
-  let endDate: Date;
-
-  if (query.transactionId) {
-    // Source is existing transaction
-    if (searchTransactionType === TRANSACTION_TYPES.income) {
-      // Source is expense, searching for income: income.time >= expense.time
-      startDate = new Date(sourceTime);
-      endDate = new Date(sourceTime);
-      endDate.setDate(endDate.getDate() + RECOMMENDATION_DAYS_RANGE);
-    } else {
-      // Source is income, searching for expense: expense.time <= income.time
-      startDate = new Date(sourceTime);
-      startDate.setDate(startDate.getDate() - RECOMMENDATION_DAYS_RANGE);
-      endDate = new Date(sourceTime);
-    }
-  } else {
-    // Form data - use current time as reference
-    startDate = new Date();
-    startDate.setDate(startDate.getDate() - RECOMMENDATION_DAYS_RANGE);
-    endDate = new Date();
-  }
+  // ±N days from the transaction date (symmetric window).
+  // For form data (new transaction), sourceTime is already set to `new Date()` above
+  // and we don't look forward since the transaction hasn't happened yet.
+  const referenceDate = new Date(sourceTime);
+  const startDate = subDays(startOfDay(referenceDate), RECOMMENDATION_DAYS_RANGE);
+  const endDate = query.transactionId
+    ? addDays(endOfDay(referenceDate), RECOMMENDATION_DAYS_RANGE)
+    : endOfDay(referenceDate);
 
   // Fetch more than needed to allow for filtering and sorting
   const fetchLimit = RECOMMENDATION_LIMIT * 3;

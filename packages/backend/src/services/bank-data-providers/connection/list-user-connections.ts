@@ -1,3 +1,4 @@
+import { ACCOUNT_STATUSES } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 
@@ -9,7 +10,7 @@ export const listUserConnections = async ({
   (Pick<
     BankDataProviderConnections,
     'id' | 'providerType' | 'providerName' | 'isActive' | 'lastSyncAt' | 'createdAt'
-  > & { accountsCount: number })[]
+  > & { accountsCount: number; bankName: string | null })[]
 > => {
   const connections = await BankDataProviderConnections.findAll({
     where: { userId },
@@ -17,7 +18,7 @@ export const listUserConnections = async ({
       {
         model: Accounts,
         as: 'accounts',
-        where: { isEnabled: true },
+        where: { status: ACCOUNT_STATUSES.active },
         required: false,
       },
     ],
@@ -32,5 +33,9 @@ export const listUserConnections = async ({
     lastSyncAt: conn.lastSyncAt,
     accountsCount: conn.accounts?.length || 0,
     createdAt: conn.createdAt,
+    bankName:
+      typeof (conn.metadata as Record<string, unknown>)?.bankName === 'string'
+        ? ((conn.metadata as Record<string, unknown>).bankName as string)
+        : null,
   }));
 };

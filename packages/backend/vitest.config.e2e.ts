@@ -15,8 +15,22 @@ export default defineConfig({
     alias: [
       // better-auth mocks — subpath MUST come before the base package
       { find: 'better-auth/node', replacement: resolve(__dirname, './src/tests/mocks/better-auth/node.ts') },
+      { find: 'better-auth/plugins', replacement: resolve(__dirname, './src/tests/mocks/better-auth/plugins.ts') },
       { find: 'better-auth', replacement: resolve(__dirname, './src/tests/mocks/better-auth/index.ts') },
+      {
+        find: '@better-auth/oauth-provider',
+        replacement: resolve(__dirname, './src/tests/mocks/better-auth/oauth-provider.ts'),
+      },
       { find: '@better-auth/passkey', replacement: resolve(__dirname, './src/tests/mocks/better-auth/passkey.ts') },
+      // MCP SDK mocks
+      {
+        find: '@modelcontextprotocol/sdk/server/mcp.js',
+        replacement: resolve(__dirname, './src/tests/mocks/mcp-sdk/server-mcp.ts'),
+      },
+      {
+        find: '@modelcontextprotocol/sdk/server/streamableHttp.js',
+        replacement: resolve(__dirname, './src/tests/mocks/mcp-sdk/server-streamable-http.ts'),
+      },
       // Path aliases
       { find: '@bt/shared', replacement: resolve(__dirname, '../shared/src') },
       { find: '@routes', replacement: resolve(__dirname, './src/routes') },

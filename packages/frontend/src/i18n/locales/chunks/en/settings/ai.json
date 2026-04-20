@@ -152,6 +152,15 @@
         },
         "addKeyHint": "Add your own API key to select from all available models.",
         "addKeyHintLink": "Add API key →"
+      },
+      "customInstructions": {
+        "title": "Custom Instructions",
+        "description": "Provide context to help AI categorize your transactions. These instructions are included when categorizing transactions during bank sync and manual import.",
+        "placeholder": "e.g., Transactions from 'Starbucks' should be 'Coffee'. My freelance income comes from 'Acme Corp'.",
+        "requiresApiKey": "Add a personal API key to use custom instructions.",
+        "save": "Save",
+        "saved": "Saved!",
+        "saveFailed": "Failed to save custom instructions. Please try again."
       }
     }
   }

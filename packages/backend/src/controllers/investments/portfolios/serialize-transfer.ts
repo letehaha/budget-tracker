@@ -10,5 +10,7 @@ export function serializeTransferResponse({ transfer }: { transfer: PortfolioTra
     ...transfer.toJSON(),
     amount: transfer.amount.toDecimalString(INVESTMENT_DECIMAL_SCALE),
     refAmount: transfer.refAmount.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+    toAmount: transfer.toAmount?.toDecimalString(INVESTMENT_DECIMAL_SCALE) ?? null,
+    refToAmount: transfer.refToAmount?.toDecimalString(INVESTMENT_DECIMAL_SCALE) ?? null,
   };
 }

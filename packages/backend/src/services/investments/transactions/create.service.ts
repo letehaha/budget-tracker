@@ -1,8 +1,9 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { ValidationError } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -30,22 +31,20 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
   const { portfolioId, securityId, userId, category, quantity, price, fees, date } = params;
 
   // Verify portfolio exists and user owns it
-  const portfolio = await Portfolios.findOne({
-    where: { id: portfolioId, userId },
+  await findOrThrowNotFound({
+    query: Portfolios.findOne({
+      where: { id: portfolioId, userId },
+    }),
+    message: t({ key: 'investments.portfolioNotFound' }),
   });
 
-  if (!portfolio) {
-    throw new NotFoundError({ message: t({ key: 'investments.portfolioNotFound' }) });
-  }
-
-  const holding = await Holdings.findOne({
-    where: { portfolioId, securityId },
-    include: [{ model: Portfolios, as: 'portfolio', where: { userId }, required: true }],
+  const holding = await findOrThrowNotFound({
+    query: Holdings.findOne({
+      where: { portfolioId, securityId },
+      include: [{ model: Portfolios, as: 'portfolio', where: { userId }, required: true }],
+    }),
+    message: t({ key: 'investments.holdingNotFoundAddSecurity' }),
   });
-
-  if (!holding) {
-    throw new NotFoundError({ message: t({ key: 'investments.holdingNotFoundAddSecurity' }) });
-  }
 
   // Disallow selling more shares than currently owned
   if (category === INVESTMENT_TRANSACTION_CATEGORY.sell) {

@@ -7,6 +7,7 @@ import Transactions from '@models/transactions.model';
 import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
 import { sseManager } from '@services/common/sse';
 import { markApiKeyInvalid, markApiKeyValid } from '@services/user-settings/ai-api-key';
+import { getCustomInstructions } from '@services/user-settings/ai-custom-instructions';
 import { generateText } from 'ai';
 
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
@@ -41,14 +42,16 @@ async function categorizeBatch({
   aiClient,
   transactions,
   categories,
+  customInstructions,
 }: {
   aiClient: AIClientResult;
   transactions: TransactionForCategorization[];
   categories: Awaited<ReturnType<typeof getCategories>>;
+  customInstructions?: string;
 }): Promise<CategorizeBatchResult> {
   const categoryList = buildCategoryList(categories);
 
-  const systemPrompt = buildSystemPrompt();
+  const systemPrompt = buildSystemPrompt({ customInstructions });
   const userMessage = buildUserMessage({
     transactions,
     categories: categoryList,
@@ -255,6 +258,16 @@ export async function categorizeTransactions({
     };
   }
 
+  // Fetch custom instructions only when using user's own key
+  let customInstructions: string | undefined;
+  if (aiClient.usingUserKey) {
+    try {
+      customInstructions = await getCustomInstructions({ userId });
+    } catch (error) {
+      logger.error({ message: 'Failed to fetch custom instructions, proceeding without them', error: error as Error });
+    }
+  }
+
   logger.info(`Starting AI categorization for ${transactions.length} transactions for user ${userId}`);
 
   const allResults: CategorizationBatchResult = {
@@ -282,11 +295,12 @@ export async function categorizeTransactions({
       aiClient,
       transactions: batch,
       categories,
+      customInstructions,
     });
 
     // Handle temporary errors (rate limit, server errors) - return early
     if (batchResult.isTemporaryError) {
-      logger.warn('Temporary AI error, returning early without marking key invalid', {
+      logger.info('Temporary AI error, returning early without marking key invalid', {
         userId,
         provider: aiClient.provider,
         usingUserKey: aiClient.usingUserKey,
@@ -328,6 +342,7 @@ export async function categorizeTransactions({
           });
 
           aiClient = fallbackClient;
+          customInstructions = undefined;
           hasTriedFallback = true;
 
           // Retry this batch with the fallback client
