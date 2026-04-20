@@ -35,6 +35,8 @@
 
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-border: var(--secondary-border);
 
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
@@ -55,15 +57,17 @@
   --color-card-tooltip: var(--card-tooltip);
   --color-card-tooltip-foreground: var(--card-tooltip-foreground);
 
+  --color-input-background: var(--input-background);
+
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-success-text: var(--success-text);
 
   --color-warning: rgb(230 126 34);
   --color-warning-text: var(--warning-text);
-  --color-app-income-color: #2ecc71;
-  --color-app-expense-color: #e74c3c;
-  --color-app-transfer-color: #95a5a6;
+  --color-app-income-color: var(--app-income-color);
+  --color-app-expense-color: var(--app-expense-color);
+  --color-app-transfer-color: var(--app-transfer-color);
 
   /* Border radius */
   --radius-lg: var(--radius);
@@ -188,38 +192,42 @@
       'Segoe UI Symbol', 'Noto Color Emoji';
     --header-height: 69px;
 
-    --background: rgb(248, 243, 232);
-    --foreground: rgb(38, 32, 24);
+    --background: rgb(247, 246, 244);
+    --foreground: rgb(32, 28, 22);
 
-    --base-text: rgb(38, 32, 24);
+    --base-text: rgb(32, 28, 22);
 
-    --card: rgb(253, 249, 240);
-    --card-foreground: rgb(38, 32, 24);
+    --card: rgb(255, 255, 255);
+    --card-foreground: rgb(32, 28, 22);
 
-    --card-tooltip: rgb(245, 239, 225);
-    --card-tooltip-foreground: rgb(38, 32, 24);
+    --card-tooltip: rgb(255, 255, 255);
+    --card-tooltip-foreground: rgb(32, 28, 22);
 
-    --popover: rgb(253, 249, 240);
-    --popover-foreground: rgb(38, 32, 24);
+    --popover: rgb(255, 255, 255);
+    --popover-foreground: rgb(32, 28, 22);
+
+    --input-background: rgb(242, 241, 238);
 
     --primary: rgb(115, 85, 190);
     --primary-foreground: rgb(255, 255, 255);
 
-    --secondary: rgb(237, 229, 215);
-    --secondary-foreground: rgb(38, 32, 24);
+    --secondary: rgb(229, 231, 223);
+    --secondary-foreground: rgb(32, 28, 22);
+    --secondary-hover: rgb(212, 215, 202);
+    --secondary-border: rgb(203, 208, 192);
 
-    --muted: rgb(237, 229, 215);
-    --muted-foreground: rgb(110, 98, 80);
+    --muted: rgb(244, 238, 226);
+    --muted-foreground: rgb(118, 107, 91);
 
-    --accent: rgb(237, 229, 215);
-    --accent-foreground: rgb(38, 32, 24);
+    --accent: rgb(244, 244, 236);
+    --accent-foreground: rgb(32, 28, 22);
 
     --destructive: rgb(217, 90, 58);
     --destructive-foreground: rgb(249, 249, 249);
     --destructive-text: rgb(172, 60, 38);
 
-    --border: rgb(225, 215, 196);
-    --input: rgb(225, 215, 196);
+    --border: rgb(232, 223, 205);
+    --input: rgb(210, 208, 204);
     --ring: rgb(115, 85, 190);
     --radius: 0.75rem;
 
@@ -231,6 +239,11 @@
 
     /* Custom colors */
     --error-message: rgb(201, 75, 54);
+
+    /* Amount colors — more muted, sophisticated tones for light theme */
+    --app-income-color: rgb(42, 141, 82);
+    --app-expense-color: rgb(217, 84, 62);
+    --app-transfer-color: rgb(128, 135, 138);
   }
 
   :root.dark {
@@ -248,11 +261,15 @@
     --popover: rgb(22, 20, 19);
     --popover-foreground: rgb(245, 243, 240);
 
+    --input-background: rgb(11, 9, 8);
+
     --primary: rgb(130, 100, 205);
     --primary-foreground: rgb(255, 255, 255);
 
     --secondary: rgb(42, 40, 38);
     --secondary-foreground: rgb(249, 248, 246);
+    --secondary-hover: rgb(50, 46, 42);
+    --secondary-border: transparent;
 
     --muted: rgb(40, 38, 36);
     --muted-foreground: rgb(163, 160, 155);
@@ -276,6 +293,11 @@
 
     /* Custom colors */
     --error-message: rgb(228, 105, 89);
+
+    /* Amount colors — brighter tones for dark theme contrast */
+    --app-income-color: #2ecc71;
+    --app-expense-color: #e74c3c;
+    --app-transfer-color: #95a5a6;
   }
 }
 

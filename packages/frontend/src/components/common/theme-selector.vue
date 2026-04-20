@@ -6,12 +6,12 @@
         <Sun v-else class="size-5" />
       </Button>
     </Popover.PopoverTrigger>
-    <Popover.PopoverContent class="w-44" align="end">
+    <Popover.PopoverContent class="w-44 p-2" align="end">
       <div class="space-y-1">
         <button
           v-for="option in options"
           :key="option.value"
-          class="hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors"
+          class="hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"
           :class="{ 'bg-accent': themePreference === option.value }"
           @click="setThemePreference(option.value)"
         >

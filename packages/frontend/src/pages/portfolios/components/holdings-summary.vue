@@ -22,7 +22,7 @@
               v-model="filterText"
               type="text"
               :placeholder="$t('portfolioDetail.holdings.filterPlaceholder')"
-              class="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring h-9 w-full rounded-md border pr-8 pl-9 text-sm focus-visible:ring-1 focus-visible:outline-none"
+              class="border-input bg-input-background placeholder:text-muted-foreground focus-visible:ring-ring h-9 w-full rounded-md border pr-8 pl-9 text-sm focus-visible:ring-1 focus-visible:outline-none"
             />
             <button
               v-if="filterText"

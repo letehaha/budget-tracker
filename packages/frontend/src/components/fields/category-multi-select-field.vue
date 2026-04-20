@@ -8,7 +8,7 @@
             :disabled="disabled"
             :class="
               cn(
-                'border-input bg-background ring-offset-background flex min-h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
+                'border-input bg-input-background ring-offset-background flex min-h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
                 'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
                 disabled && 'cursor-not-allowed opacity-50',
               )
@@ -36,7 +36,9 @@
         </PopoverTrigger>
         <PopoverContent class="w-80 p-0" align="start">
           <div class="border-border border-b p-2">
-            <div class="border-input bg-background flex h-9 w-full items-center gap-2 rounded-md border px-3 text-sm">
+            <div
+              class="border-input bg-input-background flex h-9 w-full items-center gap-2 rounded-md border px-3 text-sm"
+            >
               <SearchIcon class="text-muted-foreground size-4" />
               <input
                 v-model="searchQuery"
