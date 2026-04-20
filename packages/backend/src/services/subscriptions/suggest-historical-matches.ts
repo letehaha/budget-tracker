@@ -175,6 +175,11 @@ async function filterByCrossCurrencyAmount({
         continue;
       }
 
+      if (!tx.currencyCode) {
+        matchesAllRules = false;
+        break;
+      }
+
       // Cross-currency: convert transaction amount to rule's currency
       try {
         const converted = await calculateRefAmount({

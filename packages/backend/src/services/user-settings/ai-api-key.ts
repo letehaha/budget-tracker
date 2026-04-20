@@ -84,6 +84,7 @@ export const setAiApiKey = withTransaction(
     const [userSettings] = await UserSettings.findOrCreate({
       where: { userId },
       defaults: {
+        userId,
         settings: DEFAULT_SETTINGS,
       },
     });

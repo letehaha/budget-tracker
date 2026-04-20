@@ -1,5 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { INVESTMENT_TRANSACTION_CATEGORY, InvestmentTransactionModel } from '@bt/shared/types/investments';
+import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
@@ -29,10 +29,10 @@ import Securities from './securities.model';
   timestamps: true,
   tableName: 'InvestmentTransactions',
 })
-export default class InvestmentTransaction
-  extends Model<InferAttributes<InvestmentTransaction>, InferCreationAttributes<InvestmentTransaction>>
-  implements InvestmentTransactionModel
-{
+export default class InvestmentTransaction extends Model<
+  InferAttributes<InvestmentTransaction>,
+  InferCreationAttributes<InvestmentTransaction>
+> {
   /**
    * IMPORTANT: Investment transactionType Logic
    *
@@ -181,7 +181,7 @@ export default class InvestmentTransaction
   @Attribute(DataTypes.STRING)
   @NotNull
   @Default('USD')
-  declare currencyCode: string;
+  declare currencyCode: CreationOptional<string>;
 
   /**
    * A category that classifies the nature of the investment transaction.

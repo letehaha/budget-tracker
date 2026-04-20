@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
 import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
@@ -321,7 +322,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     const balance = await this.fetchBalance(connectionId, account.externalId);
 
     await account.update({
-      currentBalance: balance.amount,
+      currentBalance: Money.fromCents(balance.amount),
       // TODO: calculate and update refCurrentBalance
     });
   }

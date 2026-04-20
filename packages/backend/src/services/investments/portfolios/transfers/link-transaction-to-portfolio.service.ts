@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Currencies from '@models/currencies.model';
@@ -53,7 +54,7 @@ const linkTransactionToPortfolioImpl = async ({
 
   const amount = tx.amount.toDecimalString(10);
   const date = format(tx.time, 'yyyy-MM-dd');
-  const currencyCode = tx.currencyCode;
+  const currencyCode = tx.currencyCode!;
 
   const refAmount = await computeRefAmount({ amount, currencyCode, userId, date });
 
@@ -68,8 +69,8 @@ const linkTransactionToPortfolioImpl = async ({
     toPortfolioId: isExpense ? portfolioId : null,
     fromPortfolioId: isExpense ? null : portfolioId,
     toAccountId: isExpense ? null : tx.accountId,
-    amount,
-    refAmount,
+    amount: Money.fromDecimal(amount),
+    refAmount: Money.fromDecimal(refAmount),
     currencyCode,
     date,
     transactionId,

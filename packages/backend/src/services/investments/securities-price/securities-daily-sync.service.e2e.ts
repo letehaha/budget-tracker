@@ -1,4 +1,5 @@
 import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
@@ -112,8 +113,8 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
     // Add some existing price data to test prioritization
     await SecurityPricing.create({
       securityId: securityWithStaleData.id,
-      date: subDays(new Date(), 5),
-      priceClose: '100.00',
+      date: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+      priceClose: Money.fromDecimal('100.00'),
       source: SECURITY_PROVIDER.polygon,
     });
   });

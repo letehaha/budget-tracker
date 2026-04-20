@@ -15,7 +15,7 @@ declare module 'express' {
 declare global {
   namespace Express {
     interface Request {
-      user?: { id: number; username: string; authUserId: string; role: string } | null;
+      user?: { id: number; username: string; authUserId: string | null; role: string } | null;
     }
   }
 }

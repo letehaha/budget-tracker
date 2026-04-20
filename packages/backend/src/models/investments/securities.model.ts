@@ -1,4 +1,4 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecurityModel } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import {
   CreationOptional,
   DataTypes,
@@ -29,10 +29,7 @@ import SecurityPricing from './security-pricing.model';
   freezeTableName: true,
   timestamps: true,
 })
-export default class Securities
-  extends Model<InferAttributes<Securities>, InferCreationAttributes<Securities>>
-  implements SecurityModel
-{
+export default class Securities extends Model<InferAttributes<Securities>, InferCreationAttributes<Securities>> {
   @Attribute(DataTypes.INTEGER)
   @PrimaryKey
   @AutoIncrement

@@ -62,7 +62,7 @@ describe('getRefundTransactions', () => {
       });
 
       const response = await helpers.getRefundTransactions({
-        categoryId: categoryId,
+        categoryId: categoryId ?? undefined,
       });
 
       expect(response.statusCode).toBe(200);
@@ -162,7 +162,7 @@ describe('getRefundTransactions', () => {
 
       const response = await helpers.getRefundTransactions(
         {
-          categoryId,
+          categoryId: categoryId ?? undefined,
           transactionType: TRANSACTION_TYPES.expense,
           accountId: account.id,
         },

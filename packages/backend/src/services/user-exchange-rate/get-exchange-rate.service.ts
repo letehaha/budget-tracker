@@ -14,7 +14,7 @@ import {
 import { endOfDay, startOfDay } from 'date-fns';
 
 // Round to 5 precision
-const formatRate = (rate: number) => Math.trunc(rate * 100000) / 100000;
+const formatRate = (rate: number | null) => Math.trunc((rate ?? 0) * 100000) / 100000;
 
 const exchangeRateCache = new CacheClient<ExchangeRateReturnType>({
   logPrefix: 'ExchangeRate',

@@ -2,7 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "strict": true,
-    "target": "ES2022",
+    "target": "ES2023",
+    "lib": ["ES2023"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "useDefineForClassFields": false,

@@ -35,13 +35,15 @@ Always test through the actual API endpoints to ensure full integration testing.
 **CRITICAL: Running Tests**
 
 - **Run e2e tests automatically** after implementing changes that affect backend logic (new endpoints, bug fixes, refactors). Do not wait for user confirmation — just run them.
-- **NEVER** use `npx jest` directly. Always use the npm scripts.
+- **NEVER** use `npx vitest` or `npx jest` directly. Always use the npm scripts.
 - **ALWAYS** use the `test-runner` subagent to run tests. The main agent must NEVER run tests directly.
 - Backend e2e tests: `npm run test:e2e` from `packages/backend/`
-- To run a specific test file: `npm run test:e2e -- --testPathPattern='<pattern>'`
-- Example: `npm run test:e2e -- --testPathPattern='subscriptions/subscriptions.e2e'`
-- **NEVER** run e2e tests in parallel (no concurrent test-runner agents for e2e). The Docker-based test environment does not support parallel runs. To test multiple files, combine them in a single `--testPathPattern` regex.
-- Example (multiple files): `npm run test:e2e -- --testPathPattern='subscriptions/(subscriptions|matching-disambiguation).e2e'`
+- The test runner is **Vitest** (migrated from Jest). File filtering uses positional path arguments, not `--testPathPattern`. To filter by test name, use `-t "<name>"`.
+- To run a specific test file: `npm run test:e2e -- <path-from-backend-root>`
+- Example: `npm run test:e2e -- src/controllers/subscriptions/subscriptions.e2e.ts`
+- **NEVER** run e2e tests in parallel (no concurrent test-runner agents for e2e). The Docker-based test environment does not support parallel runs. To test multiple files, pass multiple positional path args or a glob pattern.
+- Example (multiple files): `npm run test:e2e -- src/controllers/subscriptions/subscriptions.e2e.ts src/controllers/subscriptions/matching-disambiguation.e2e.ts`
+- Example (glob): `npm run test:e2e -- 'src/controllers/subscriptions/*.e2e.ts'`
 
 Other instructions:
 

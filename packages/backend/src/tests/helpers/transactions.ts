@@ -119,7 +119,7 @@ export function getTransactionsByTransferId<R extends boolean | undefined = unde
   transferId,
 }: {
   raw?: R;
-  transferId: string;
+  transferId: string | null;
 }) {
   return makeRequest<Awaited<ReturnType<typeof apiGetTransactionsByTransferId>>, R>({
     method: 'get',

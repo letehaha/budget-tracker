@@ -2,7 +2,7 @@ import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
-import { Op } from '@sequelize/core';
+import { InferAttributes, Op } from '@sequelize/core';
 
 import { getWhereConditionForTime } from './utils';
 
@@ -48,7 +48,7 @@ export const getExpensesHistory = async ({
   transactionType?: TRANSACTION_TYPES;
   excludedCategoryIds?: number[];
 }): Promise<GetExpensesHistoryResponseSchema[]> => {
-  const dataAttributes: (keyof Transactions.default)[] = [
+  const dataAttributes: (keyof InferAttributes<Transactions.default>)[] = [
     'id',
     'accountId',
     'time',

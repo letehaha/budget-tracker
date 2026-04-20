@@ -1,6 +1,6 @@
 import { UserExchangeRatesModel } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
-import { DataTypes, InferAttributes, InferCreationAttributes, Model, Op } from '@sequelize/core';
+import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model, Op } from '@sequelize/core';
 import { Attribute, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 import * as Currencies from './currencies.model';
@@ -44,7 +44,8 @@ export default class UserExchangeRates extends Model<
   @Attribute(DataTypes.DATE)
   @PrimaryKey
   @NotNull
-  declare date: Date;
+  @Default(DataTypes.NOW)
+  declare date: CreationOptional<Date>;
 
   // TODO:
   // 1. Add date fields to UserExchangeRates: "effectiveFrom", "effectiveTo"

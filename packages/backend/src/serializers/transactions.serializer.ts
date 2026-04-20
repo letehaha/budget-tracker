@@ -42,9 +42,9 @@ export interface TransactionApiResponse {
   userId: number;
   transactionType: string;
   paymentType: string;
-  accountId: number;
+  accountId: number | null;
   categoryId: number | null;
-  currencyCode: string;
+  currencyCode: string | null;
   accountType: string;
   refCurrencyCode: string | null;
   transferNature: string;

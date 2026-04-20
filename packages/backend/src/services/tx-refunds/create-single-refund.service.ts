@@ -161,7 +161,7 @@ export const createSingleRefund = withTransaction(
 
         // Calculate the total refunded amount
         const totalRefundedAmount = existingRefunds.reduce((sum, refund) => {
-          return sum + Math.abs(refund.refundTransaction.refAmount.toNumber());
+          return sum + Math.abs(refund.refundTransaction!.refAmount.toNumber());
         }, Math.abs(refundTx.refAmount.toNumber()));
 
         // Check if the new refund would exceed the target amount (split or transaction)

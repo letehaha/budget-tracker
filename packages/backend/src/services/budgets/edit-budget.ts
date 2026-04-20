@@ -29,7 +29,13 @@ export const editBudget = withTransaction(async ({ id, userId, categoryIds, ...p
     throw new NotFoundError({ message: t({ key: 'budgets.budgetNotFound' }) });
   }
 
-  await budget.update(params);
+  const { startDate, endDate, limitAmount, ...rest } = params;
+  const updates: Parameters<typeof budget.update>[0] = { ...rest };
+  if (startDate !== undefined) updates.startDate = startDate ? new Date(startDate) : null;
+  if (endDate !== undefined) updates.endDate = endDate ? new Date(endDate) : null;
+  if (limitAmount !== undefined) updates.limitAmount = limitAmount;
+
+  await budget.update(updates);
 
   // Update categories if provided and budget is category-based
   if (categoryIds !== undefined && budget.type === BUDGET_TYPES.category) {

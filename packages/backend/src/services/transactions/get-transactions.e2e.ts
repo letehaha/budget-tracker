@@ -338,7 +338,7 @@ describe('Retrieve transactions with filters', () => {
     const { expense } = await createMockTransactions();
 
     const res = await helpers.getTransactions({
-      accountIds: [expense.accountId],
+      accountIds: [expense.accountId!],
       raw: true,
     });
 
@@ -351,7 +351,7 @@ describe('Retrieve transactions with filters', () => {
       const { income, expense } = await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        excludeAccountIds: [income.accountId],
+        excludeAccountIds: [income.accountId!],
         raw: true,
       });
 
@@ -366,7 +366,7 @@ describe('Retrieve transactions with filters', () => {
       const { income, expense } = await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        excludeAccountIds: [income.accountId, expense.accountId],
+        excludeAccountIds: [income.accountId!, expense.accountId!],
         raw: true,
       });
 

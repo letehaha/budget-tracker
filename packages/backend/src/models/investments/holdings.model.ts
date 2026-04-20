@@ -1,4 +1,3 @@
-import { HoldingModel } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
@@ -50,10 +49,7 @@ import Securities from './securities.model';
   timestamps: true,
   tableName: 'Holdings',
 })
-export default class Holdings
-  extends Model<InferAttributes<Holdings>, InferCreationAttributes<Holdings>>
-  implements HoldingModel
-{
+export default class Holdings extends Model<InferAttributes<Holdings>, InferCreationAttributes<Holdings>> {
   @Attribute(DataTypes.INTEGER)
   @PrimaryKey
   @NotNull

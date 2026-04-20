@@ -8,6 +8,8 @@ import {
 } from '@sequelize/core';
 import { Attribute, AutoIncrement, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
+import type Transactions from './transactions.model';
+
 @Table({
   tableName: 'TransactionGroups',
   timestamps: true,

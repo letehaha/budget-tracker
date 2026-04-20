@@ -107,7 +107,13 @@ describe('Monobank Data Provider E2E', () => {
       expect(connectionDetails.accounts.length).toBe(accountIdsToConnect.length);
 
       connectionDetails.accounts.forEach(
-        (account: { externalId: string; id: number; name: string; currentBalance: number; currencyCode: string }) => {
+        (account: {
+          externalId: string | null;
+          id: number;
+          name: string;
+          currentBalance: number;
+          currencyCode: string;
+        }) => {
           expect(accountIdsToConnect).toContain(account.externalId);
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
@@ -663,7 +669,7 @@ describe('Monobank Data Provider E2E', () => {
         (account: {
           id: number;
           name: string;
-          externalId: string;
+          externalId: string | null;
           currentBalance: number;
           currencyCode: string;
           type: string;

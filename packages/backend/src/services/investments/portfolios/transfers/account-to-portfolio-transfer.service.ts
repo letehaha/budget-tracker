@@ -65,7 +65,7 @@ const accountToPortfolioTransferImpl = async ({
     toPortfolioId: portfolioId,
     fromPortfolioId: null,
     toAccountId: null,
-    amount,
+    amount: txAmount,
     refAmount,
     currencyCode,
     date,

@@ -123,7 +123,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
 
     if (price) {
       latestPrice = price.priceClose.toDecimalString(INVESTMENT_DECIMAL_SCALE);
-      priceDate = price.date;
+      priceDate = new Date(price.date);
       const priceClose = price.priceClose.toBig();
       marketValue = quantity.times(priceClose).toFixed(10);
 

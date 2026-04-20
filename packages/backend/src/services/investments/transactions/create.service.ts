@@ -80,9 +80,13 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
     }),
   ]);
 
+  const { quantity: _q, price: _p, fees: _f, ...paramsWithoutMoney } = params;
   const newTx = await InvestmentTransaction.create({
-    ...params,
-    amount: amountStr,
+    ...paramsWithoutMoney,
+    quantity: Money.fromDecimal(quantity),
+    price: Money.fromDecimal(price),
+    fees: Money.fromDecimal(fees),
+    amount: Money.fromDecimal(amountStr),
     refAmount,
     refPrice,
     refFees,

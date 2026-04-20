@@ -107,8 +107,8 @@ export const getUserDefaultCategory = async ({ id }: { id: number }): Promise<nu
     attributes: ['defaultCategoryId'],
   });
 
-  if (!user) {
-    throw new Error(`User with id ${id} not found when getting default category`);
+  if (!user || user.defaultCategoryId == null) {
+    throw new Error(`User with id ${id} not found or has no default category`);
   }
 
   return user.defaultCategoryId;

@@ -40,7 +40,7 @@ describe('paginateWithNextUrl', () => {
 });
 
 describe('paginate', () => {
-  it.each<{ pageSize: number; dataSize: number; fetchCalls: number }>`
+  it.each`
     pageSize | dataSize | fetchCalls
     ${10}    | ${0}     | ${1}
     ${10}    | ${1}     | ${1}
@@ -49,7 +49,7 @@ describe('paginate', () => {
     ${10}    | ${20}    | ${3}
   `(
     'should correctly paginate data (pageSize: $pageSize, dataSize: $dataSize)',
-    async ({ pageSize, dataSize, fetchCalls }) => {
+    async ({ pageSize, dataSize, fetchCalls }: { pageSize: number; dataSize: number; fetchCalls: number }) => {
       const fullData = _.range(dataSize);
       const mockFetchData = vi.fn<(offset: number, count: number) => Promise<number[]>>(
         (offset: number, count: number) => Promise.resolve(_.slice(fullData, offset, offset + count)),
@@ -75,14 +75,14 @@ describe('withRetry', () => {
     vi.useRealTimers();
   });
 
-  it.each<{ failAttempts: number; maxRetries: number }>`
+  it.each`
     failAttempts | maxRetries
     ${0}         | ${5}
     ${1}         | ${5}
     ${5}         | ${5}
   `(
     'should retry the correct number of times (fails: $failAttempts, max: $maxRetries)',
-    async ({ failAttempts, maxRetries }) => {
+    async ({ failAttempts, maxRetries }: { failAttempts: number; maxRetries: number }) => {
       const mockFn = vi.fn<(attempt: number) => string | Promise<string>>((attempt: number) => {
         if (attempt < failAttempts) throw new Error(`Attempt ${attempt} fails`);
         return 'Success';

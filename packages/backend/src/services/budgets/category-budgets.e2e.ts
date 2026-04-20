@@ -67,7 +67,7 @@ describe('Category-Based Budgets', () => {
 
       expect(budget.type).toBe(BUDGET_TYPES.category);
       expect(budget.categories).toHaveLength(3);
-      const categoryIds = budget.categories.map((c) => c.id);
+      const categoryIds = budget.categories!.map((c) => c.id);
       expect(categoryIds).toContain(category1.id);
       expect(categoryIds).toContain(category2.id);
       expect(categoryIds).toContain(category3.id);
@@ -106,7 +106,7 @@ describe('Category-Based Budgets', () => {
       expect(budget.type).toBe(BUDGET_TYPES.category);
       // Should have parent + 2 children
       expect(budget.categories).toHaveLength(3);
-      const categoryIds = budget.categories.map((c) => c.id);
+      const categoryIds = budget.categories!.map((c) => c.id);
       expect(categoryIds).toContain(parentCategory.id);
       expect(categoryIds).toContain(child1.id);
       expect(categoryIds).toContain(child2.id);

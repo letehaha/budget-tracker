@@ -125,7 +125,13 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(connectionDetails.accounts.length).toBe(accountIdsToConnect.length);
 
       connectionDetails.accounts.forEach(
-        (account: { externalId: string; id: number; name: string; currentBalance: number; currencyCode: string }) => {
+        (account: {
+          externalId: string | null;
+          id: number;
+          name: string;
+          currentBalance: number;
+          currencyCode: string;
+        }) => {
           expect(accountIdsToConnect).toContain(account.externalId);
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
@@ -554,7 +560,13 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(details.accounts.length).toBe(2);
 
       details.accounts.forEach(
-        (account: { id: number; name: string; externalId: string; currentBalance: number; currencyCode: string }) => {
+        (account: {
+          id: number;
+          name: string;
+          externalId: string | null;
+          currentBalance: number;
+          currencyCode: string;
+        }) => {
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
           expect(account).toHaveProperty('externalId');

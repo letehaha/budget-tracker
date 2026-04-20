@@ -1,4 +1,5 @@
 import type { SecuritySearchResult } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import ExchangeRates from '@models/exchange-rates.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
@@ -108,8 +109,8 @@ export const bulkUploadSecurityPrices = async (params: bulkUploadSecurityPrices)
   // Prepare data for bulk insert
   const pricingData = filteredPrices.map((p) => ({
     securityId,
-    date: startOfDay(new Date(p.date)),
-    priceClose: p.price.toString(),
+    date: format(startOfDay(new Date(p.date)), 'yyyy-MM-dd'),
+    priceClose: Money.fromDecimal(p.price),
     source: 'manual-upload',
   }));
 

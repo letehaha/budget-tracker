@@ -167,7 +167,7 @@ interface TransactionWithCategory {
   amount: number;
   note: string | null;
   categoryId: number | null;
-  accountId: number;
+  accountId: number | null;
   /** For split transactions, this is the split's category */
   effectiveCategory?: {
     id: number;

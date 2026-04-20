@@ -1,4 +1,4 @@
-import { PaymentReminderNotificationModel, RemindBeforePreset } from '@bt/shared/types';
+import { RemindBeforePreset } from '@bt/shared/types';
 import {
   CreationOptional,
   DataTypes,
@@ -25,10 +25,10 @@ import PaymentReminderPeriods from './payment-reminder-periods.model';
   timestamps: false,
   freezeTableName: true,
 })
-export default class PaymentReminderNotifications
-  extends Model<InferAttributes<PaymentReminderNotifications>, InferCreationAttributes<PaymentReminderNotifications>>
-  implements PaymentReminderNotificationModel
-{
+export default class PaymentReminderNotifications extends Model<
+  InferAttributes<PaymentReminderNotifications>,
+  InferCreationAttributes<PaymentReminderNotifications>
+> {
   @Attribute(DataTypes.UUID)
   @PrimaryKey
   declare id: CreationOptional<string>;

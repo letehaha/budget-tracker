@@ -6,7 +6,7 @@ export const updateUserSettings = withTransaction(
   async ({ userId, settings }: { userId: number; settings: SettingsSchema }): Promise<SettingsSchema> => {
     const [existingSettings, created] = await UserSettings.findOrCreate({
       where: { userId },
-      defaults: { settings },
+      defaults: { userId, settings },
     });
 
     if (!created) {

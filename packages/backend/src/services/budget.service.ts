@@ -49,6 +49,6 @@ export const getBudgetById = withTransaction(
       ],
     });
 
-    return budget;
+    return budget as BudgetByIdReturnType | null;
   },
 );

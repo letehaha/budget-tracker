@@ -31,7 +31,7 @@ export default {
 
     await queryInterface.addConstraint('PortfolioTransfers', {
       fields: ['fromAccountId', 'toPortfolioId', 'fromPortfolioId', 'toAccountId'],
-      type: 'check',
+      type: 'CHECK',
       name: 'portfolio_transfers_valid_direction_check',
       where: {
         [Op.or]: [
@@ -91,7 +91,7 @@ export default {
 
     await queryInterface.addConstraint('PortfolioTransfers', {
       fields: ['fromAccountId', 'toPortfolioId', 'fromPortfolioId', 'toAccountId'],
-      type: 'check',
+      type: 'CHECK',
       name: 'portfolio_transfers_valid_direction_check',
       where: {
         [Op.or]: [

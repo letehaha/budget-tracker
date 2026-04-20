@@ -268,6 +268,7 @@ async function rebuildTransactions(params: {
   logger.info(`Recalculating ${transactions.length} transactions for user ${userId}`);
 
   for (const tx of transactions) {
+    if (!tx.currencyCode) continue;
     // Calculate new refAmount using the transaction's original date
     const newRefAmount = await localCalculateRefAmount({
       amount: tx.amount,

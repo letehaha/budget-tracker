@@ -34,7 +34,7 @@ export const getBalanceHistory = async ({
   from?: string;
   to?: string;
 }): Promise<Balances.default[]> => {
-  const dataAttributes = ['date', 'amount', 'accountId'];
+  const dataAttributes: ('date' | 'amount' | 'accountId')[] = ['date', 'amount', 'accountId'];
 
   const [allUserAccounts, balancesInRange] = await Promise.all([
     Accounts.default.findAll({

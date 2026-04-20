@@ -1,4 +1,11 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "effortLevel": "high",
+  "alwaysThinkingEnabled": true,
+  "includeCoAuthoredBy": false,
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"
+  },
   "hooks": {
     "PostToolUse": [
       {

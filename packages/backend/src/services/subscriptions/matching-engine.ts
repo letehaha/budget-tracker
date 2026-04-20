@@ -122,6 +122,10 @@ async function calculateMatchScore({
 
   let txAmountInSubCurrency: Money;
 
+  if (!transaction.currencyCode) {
+    return 0;
+  }
+
   if (transaction.currencyCode === subscription.expectedCurrencyCode) {
     txAmountInSubCurrency = transaction.amount.abs();
   } else {
@@ -140,7 +144,7 @@ async function calculateMatchScore({
     }
   }
 
-  const expected = Money.fromCents(subscription.expectedAmount);
+  const expected = subscription.expectedAmount;
   const deviation = txAmountInSubCurrency.subtract(expected).abs().toNumber() / expected.toNumber();
 
   // score = 1 - deviation, clamped to [0, 1]
@@ -166,6 +170,9 @@ async function evaluateRule({ rule, transaction, userId }: EvaluateRuleParams): 
       }
 
       // Cross-currency: convert transaction amount to rule's currency, then compare with ±5% tolerance
+      if (!transaction.currencyCode) {
+        return false;
+      }
       try {
         const converted = await calculateRefAmount({
           amount,

@@ -1,4 +1,3 @@
-import { PortfolioBalanceModel } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
@@ -18,10 +17,10 @@ import Portfolios from './portfolios.model';
   timestamps: true,
   tableName: 'PortfolioBalances',
 })
-export default class PortfolioBalances
-  extends Model<InferAttributes<PortfolioBalances>, InferCreationAttributes<PortfolioBalances>>
-  implements PortfolioBalanceModel
-{
+export default class PortfolioBalances extends Model<
+  InferAttributes<PortfolioBalances>,
+  InferCreationAttributes<PortfolioBalances>
+> {
   @Attribute(DataTypes.INTEGER)
   @PrimaryKey
   @NotNull

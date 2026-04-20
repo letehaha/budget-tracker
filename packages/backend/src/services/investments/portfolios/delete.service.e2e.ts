@@ -1,5 +1,6 @@
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import * as helpers from '@tests/helpers';
@@ -112,24 +113,18 @@ describe('Delete Portfolio Service E2E', () => {
         // Create holdings directly in the database with portfolioId since the service is still account-based
         await Holdings.create({
           portfolioId: createdPortfolio.id,
-          accountId: investmentAccount.id, // Required during transition period
           securityId: vooSecurity.id,
-          quantity: '0',
-          costBasis: '0',
-          refCostBasis: '0',
-          value: '0',
-          refValue: '0',
+          quantity: Money.fromDecimal('0'),
+          costBasis: Money.fromDecimal('0'),
+          refCostBasis: Money.fromDecimal('0'),
           currencyCode: 'USD',
         });
         await Holdings.create({
           portfolioId: createdPortfolio.id,
-          accountId: investmentAccount.id, // Required during transition period
           securityId: aaplSecurity.id,
-          quantity: '0',
-          costBasis: '0',
-          refCostBasis: '0',
-          value: '0',
-          refValue: '0',
+          quantity: Money.fromDecimal('0'),
+          costBasis: Money.fromDecimal('0'),
+          refCostBasis: Money.fromDecimal('0'),
           currencyCode: 'USD',
         });
 
@@ -201,13 +196,10 @@ describe('Delete Portfolio Service E2E', () => {
         // Create holding directly in the database with portfolioId since the service is still account-based
         await Holdings.create({
           portfolioId: createdPortfolio.id,
-          accountId: investmentAccount.id, // Required during transition period
           securityId: teslaSecurity.id,
-          quantity: '0',
-          costBasis: '0',
-          refCostBasis: '0',
-          value: '0',
-          refValue: '0',
+          quantity: Money.fromDecimal('0'),
+          costBasis: Money.fromDecimal('0'),
+          refCostBasis: Money.fromDecimal('0'),
           currencyCode: 'USD',
         });
         await helpers.createInvestmentTransaction({

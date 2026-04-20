@@ -1,4 +1,4 @@
-import { PORTFOLIO_TYPE, PortfolioModel } from '@bt/shared/types/investments';
+import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import {
   CreationOptional,
   DataTypes,
@@ -29,10 +29,7 @@ import PortfolioBalances from './portfolio-balances.model';
   timestamps: true,
   tableName: 'Portfolios',
 })
-export default class Portfolios
-  extends Model<InferAttributes<Portfolios>, InferCreationAttributes<Portfolios>>
-  implements PortfolioModel
-{
+export default class Portfolios extends Model<InferAttributes<Portfolios>, InferCreationAttributes<Portfolios>> {
   @Attribute(DataTypes.INTEGER)
   @PrimaryKey
   @AutoIncrement

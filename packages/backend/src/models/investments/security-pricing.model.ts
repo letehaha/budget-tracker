@@ -1,4 +1,3 @@
-import { SecurityPricingModel } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
@@ -40,10 +39,10 @@ import Securities from './securities.model';
     },
   ],
 })
-export default class SecurityPricing
-  extends Model<InferAttributes<SecurityPricing>, InferCreationAttributes<SecurityPricing>>
-  implements SecurityPricingModel
-{
+export default class SecurityPricing extends Model<
+  InferAttributes<SecurityPricing>,
+  InferCreationAttributes<SecurityPricing>
+> {
   @Attribute(DataTypes.INTEGER)
   @PrimaryKey
   @AutoIncrement

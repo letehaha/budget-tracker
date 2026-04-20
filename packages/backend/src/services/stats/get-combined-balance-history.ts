@@ -165,6 +165,7 @@ const calculatePortfolioBalanceHistory = async ({
   // Build user rates map first for O(1) lookup
   const userRatesMap = new Map<string, number>();
   for (const r of userCustomExchangeRates) {
+    if (r.rate == null) continue;
     userRatesMap.set(`${r.baseCode}_${formatDate(r.date)}`, r.rate);
   }
 

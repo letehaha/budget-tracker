@@ -78,7 +78,7 @@ export const getCategories = async ({ userId }: { userId: number }) => {
 
 export interface CreateCategoryPayload {
   userId: number;
-  name?: string;
+  name: string;
   icon?: string | null;
   color?: string;
   parentId?: number;
@@ -98,6 +98,10 @@ export const createCategory = async ({ parentId, color, userId, ...params }: Cre
     }
 
     if (!color) color = parent.get('color');
+  }
+
+  if (!color) {
+    throw new ValidationError({ message: 'Color is required when parentId is not provided.' });
   }
 
   const category = await Categories.create({

@@ -91,7 +91,9 @@ const unlinkRefundTransaction = withTransaction(async (id: number) => {
 
   if (!refundTx) return undefined;
 
-  const transactionIdsToUpdate = [refundTx.refundTxId, refundTx.originalTxId].filter((i) => Boolean(i) && i !== id);
+  const transactionIdsToUpdate = [refundTx.refundTxId, refundTx.originalTxId].filter(
+    (i): i is number => i != null && i !== id,
+  );
 
   if (transactionIdsToUpdate.length) {
     await Transactions.default.update(

@@ -1,4 +1,5 @@
 import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import Subscriptions from '@models/subscriptions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
@@ -44,7 +45,7 @@ export const createSubscription = withTransaction(
       accountId,
       categoryId,
       matchingRules,
-      expectedAmount,
+      expectedAmount: (expectedAmount !== null ? Money.fromCents(expectedAmount) : null) as Money,
       expectedCurrencyCode,
       endDate,
       notes,

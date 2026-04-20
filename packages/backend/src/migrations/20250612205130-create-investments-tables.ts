@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Op } from '@sequelize/core';
-import type { AbstractAbstractQueryInterface, Transaction } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 // Define constants for enum names to prevent typos
 const ENUM_SECURITY_PROVIDER = 'enum_security_provider';
@@ -13,7 +13,7 @@ const ENUM_TRANSACTION_TYPE = 'enum_transactions_transaction_type'; // exactly f
 const ENUM_TRANSFER_NATURE = 'enum_transfer_nature';
 
 export default {
-  up: async (queryInterface: AbstractAbstractQueryInterface, Sequelize: any): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface, Sequelize: any): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
@@ -281,7 +281,7 @@ export default {
       // Add check constraint for valid transfer direction
       await queryInterface.addConstraint('PortfolioTransfers', {
         fields: ['fromAccountId', 'toPortfolioId', 'fromPortfolioId', 'toAccountId'],
-        type: 'check',
+        type: 'CHECK',
         name: 'portfolio_transfers_valid_direction_check',
         where: {
           [Op.or]: [
@@ -723,7 +723,7 @@ export default {
 
       await queryInterface.addConstraint('Securities', {
         fields: ['symbol', 'cusip', 'isin'],
-        type: 'check',
+        type: 'CHECK',
         name: 'securities_identifier_check',
         where: {
           [Op.or]: [{ symbol: { [Op.ne]: null } }, { cusip: { [Op.ne]: null } }, { isin: { [Op.ne]: null } }],

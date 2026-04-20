@@ -412,7 +412,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     const balance = await this.fetchBalance(connectionId, account.externalId);
 
     await account.update({
-      currentBalance: balance.amount,
+      currentBalance: Money.fromCents(balance.amount),
     });
   }
 

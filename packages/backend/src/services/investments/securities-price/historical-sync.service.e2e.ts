@@ -1,11 +1,12 @@
 import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import { restClient } from '@polygon.io/client-js';
 import * as helpers from '@tests/helpers';
 import alpha from 'alphavantage';
-import { subDays } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FmpClient } from '../data-providers/clients/fmp-client';
@@ -76,8 +77,8 @@ describe('Historical Price Sync Service (via Holdings Creation)', () => {
     // Pre-populate existing security with some price data
     await SecurityPricing.create({
       securityId: existingSecurity.id,
-      date: subDays(new Date(), 1),
-      priceClose: '100.00',
+      date: format(subDays(new Date(), 1), 'yyyy-MM-dd'),
+      priceClose: Money.fromDecimal('100.00'),
       source: SECURITY_PROVIDER.polygon,
     });
   });

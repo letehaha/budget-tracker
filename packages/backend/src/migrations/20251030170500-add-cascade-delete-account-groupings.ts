@@ -19,7 +19,7 @@ export default {
       // Add the foreign key constraint with CASCADE delete
       await queryInterface.addConstraint('AccountGroupings', {
         fields: ['accountId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'AccountGroupings_accountId_fkey',
         references: {
           table: 'Accounts',
@@ -49,7 +49,7 @@ export default {
       // Add back the original foreign key constraint without CASCADE
       await queryInterface.addConstraint('AccountGroupings', {
         fields: ['accountId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'AccountGroupings_accountId_fkey',
         references: {
           table: 'Accounts',

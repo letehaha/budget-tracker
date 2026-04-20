@@ -20,7 +20,7 @@ export default {
       });
       await queryInterface.addConstraint('AccountGroups', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'AccountGroups_userId_fkey',
         references: {
           table: 'Users',
@@ -37,7 +37,7 @@ export default {
       });
       await queryInterface.addConstraint('BinanceUserSettings', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'BinanceUserSettings_userId_fkey',
         references: {
           table: 'Users',
@@ -54,7 +54,7 @@ export default {
       });
       await queryInterface.addConstraint('UserMerchantCategoryCodes', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'UserMerchantCategoryCodes_userId_fkey',
         references: {
           table: 'Users',
@@ -82,7 +82,7 @@ export default {
       });
       await queryInterface.addConstraint('AccountGroups', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'AccountGroups_userId_fkey',
         references: {
           table: 'Users',
@@ -99,7 +99,7 @@ export default {
       });
       await queryInterface.addConstraint('BinanceUserSettings', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'BinanceUserSettings_userId_fkey',
         references: {
           table: 'Users',
@@ -116,7 +116,7 @@ export default {
       });
       await queryInterface.addConstraint('UserMerchantCategoryCodes', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'UserMerchantCategoryCodes_userId_fkey',
         references: {
           table: 'Users',

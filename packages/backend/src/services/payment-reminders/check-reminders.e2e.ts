@@ -100,14 +100,14 @@ describe('Payment Reminders - Check Reminders (Cron Logic)', () => {
       // Mark as paid
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
       await checkPaymentReminders();
 
       const period = await PaymentReminderPeriods.findOne({
-        where: { id: reminder.periods[0]!.id },
+        where: { id: reminder.periods![0]!.id },
       });
       expect(period!.status).toBe(PAYMENT_REMINDER_STATUSES.paid);
     });

@@ -1,4 +1,4 @@
-import { DataTypes, Sequelize } from '@sequelize/core';
+import { DataTypes, Sequelize, col, fn, literal } from '@sequelize/core';
 import { PostgresDialect } from '@sequelize/postgres';
 import path from 'path';
 import { Umzug, SequelizeStorage } from 'umzug';
@@ -37,10 +37,9 @@ async function runMigrations() {
   // Legacy migrations expect (queryInterface, Sequelize) where Sequelize has type definitions
   const SequelizeLegacy = {
     ...DataTypes,
-    // Add any additional properties that migrations might use
-    literal: sequelize.literal.bind(sequelize),
-    fn: sequelize.fn.bind(sequelize),
-    col: sequelize.col.bind(sequelize),
+    literal,
+    fn,
+    col,
   };
 
   const umzug = new Umzug({
@@ -62,7 +61,7 @@ async function runMigrations() {
         };
       },
     },
-    context: sequelize.getQueryInterface(),
+    context: sequelize.queryInterface,
     storage: new SequelizeStorage({ sequelize }),
     logger: console,
   });

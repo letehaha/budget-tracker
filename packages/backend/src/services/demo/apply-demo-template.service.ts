@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
@@ -68,8 +69,8 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
 
     return {
       userId,
-      amount: tx.amount,
-      refAmount,
+      amount: Money.fromCents(tx.amount),
+      refAmount: Money.fromCents(refAmount),
       transactionType: tx.transactionType,
       categoryId,
       accountId,
@@ -80,9 +81,9 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
       paymentType: tx.paymentType,
       note: tx.note,
       time,
-      commissionRate: 0,
-      refCommissionRate: 0,
-      cashbackAmount: 0,
+      commissionRate: Money.zero(),
+      refCommissionRate: Money.zero(),
+      cashbackAmount: Money.zero(),
       refundLinked: false,
     };
   });

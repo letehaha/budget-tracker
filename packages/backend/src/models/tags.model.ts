@@ -17,6 +17,7 @@ import {
 } from '@sequelize/core/decorators-legacy';
 
 import TagReminders from './tag-reminders.model';
+import type Transactions from './transactions.model';
 @Table({
   tableName: 'Tags',
   timestamps: true,

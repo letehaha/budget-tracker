@@ -1,4 +1,3 @@
-import { PortfolioTransferModel } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
@@ -30,10 +29,10 @@ import Portfolios from './portfolios.model';
   timestamps: true,
   tableName: 'PortfolioTransfers',
 })
-export default class PortfolioTransfers
-  extends Model<InferAttributes<PortfolioTransfers>, InferCreationAttributes<PortfolioTransfers>>
-  implements PortfolioTransferModel
-{
+export default class PortfolioTransfers extends Model<
+  InferAttributes<PortfolioTransfers>,
+  InferCreationAttributes<PortfolioTransfers>
+> {
   @Attribute(DataTypes.INTEGER)
   @PrimaryKey
   @AutoIncrement

@@ -36,7 +36,7 @@ export interface ConnectionDetailsResponse {
   accounts: Array<{
     id: number;
     name: string;
-    externalId: string;
+    externalId: string | null;
     currentBalance: number;
     currencyCode: string;
     type: string;
@@ -123,7 +123,7 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
       documentationUrl: providerMetadata.documentationUrl,
       features: providerMetadata.features,
     },
-    accounts: connection.accounts.map((account) => ({
+    accounts: (connection.accounts ?? []).map((account) => ({
       id: account.id,
       name: account.name,
       externalId: account.externalId,

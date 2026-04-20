@@ -55,7 +55,7 @@ export default createController(schema, async ({ user, query }) => {
       userId,
     });
 
-    if (!transaction) {
+    if (!transaction || transaction.accountId == null || transaction.currencyCode == null) {
       return { data: [] };
     }
 

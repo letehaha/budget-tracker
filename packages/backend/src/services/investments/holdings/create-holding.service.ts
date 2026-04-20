@@ -1,3 +1,4 @@
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ConflictError, NotFoundError } from '@js/errors';
 import { logger } from '@js/utils';
@@ -42,11 +43,9 @@ const createHoldingImpl = async ({ userId, portfolioId, securityId }: CreateHold
     portfolioId,
     securityId,
     currencyCode: security.currencyCode,
-    quantity: '0',
-    costBasis: '0',
-    refCostBasis: '0',
-    value: '0', // Deprecated - will be removed
-    refValue: '0', // Deprecated - will be removed
+    quantity: Money.zero(),
+    costBasis: Money.zero(),
+    refCostBasis: Money.zero(),
   });
 
   return { newHolding, securityId };

@@ -1,4 +1,4 @@
-import { PaymentReminderPeriodModel, PaymentReminderStatus, PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
+import { PaymentReminderStatus, PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
 import {
   CreationOptional,
   DataTypes,
@@ -26,10 +26,10 @@ import Transactions from './transactions.model';
   timestamps: true,
   freezeTableName: true,
 })
-export default class PaymentReminderPeriods
-  extends Model<InferAttributes<PaymentReminderPeriods>, InferCreationAttributes<PaymentReminderPeriods>>
-  implements PaymentReminderPeriodModel
-{
+export default class PaymentReminderPeriods extends Model<
+  InferAttributes<PaymentReminderPeriods>,
+  InferCreationAttributes<PaymentReminderPeriods>
+> {
   @Attribute(DataTypes.UUID)
   @PrimaryKey
   declare id: CreationOptional<string>;

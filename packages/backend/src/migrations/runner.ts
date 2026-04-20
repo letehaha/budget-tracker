@@ -1,4 +1,4 @@
-import { DataTypes, Sequelize } from '@sequelize/core';
+import { DataTypes, Sequelize, literal, fn, col } from '@sequelize/core';
 import { PostgresDialect } from '@sequelize/postgres';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -22,9 +22,9 @@ if (!command || !['up', 'down', 'pending'].includes(command)) {
 // Provide DataTypes and helpers that legacy CJS migrations expect as the second argument
 const SequelizeLegacy = {
   ...DataTypes,
-  literal: undefined as unknown, // Set after sequelize is created
-  fn: undefined as unknown,
-  col: undefined as unknown,
+  literal,
+  fn,
+  col,
 };
 
 async function run() {
@@ -37,10 +37,6 @@ async function run() {
     database: process.env.APPLICATION_DB_DATABASE,
     logging: false,
   });
-
-  SequelizeLegacy.literal = sequelize.literal.bind(sequelize);
-  SequelizeLegacy.fn = sequelize.fn.bind(sequelize);
-  SequelizeLegacy.col = sequelize.col.bind(sequelize);
 
   const umzug = new Umzug({
     migrations: {
@@ -61,7 +57,7 @@ async function run() {
         };
       },
     },
-    context: sequelize.getAbstractQueryInterface(),
+    context: sequelize.queryInterface,
     storage: new SequelizeStorage({ sequelize }),
     logger: console,
   });

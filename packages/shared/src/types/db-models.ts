@@ -25,15 +25,15 @@ import {
 export interface UserModel {
   id: number;
   username: string;
-  email: string;
-  password?: string;
-  firstName: string;
-  lastName: string;
-  middleName: string;
-  avatar: string;
+  email: string | null;
+  password?: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  middleName: string | null;
+  avatar: string | null;
   totalBalance: number;
-  defaultCategoryId: number;
-  authUserId?: string;
+  defaultCategoryId: number | null;
+  authUserId: string | null;
   /** User role for access control. Defaults to 'common' for regular users. */
   role: UserRole;
   /** @deprecated Use role === 'admin' instead */
@@ -59,7 +59,7 @@ export interface AccountExternalData {
   bankConnection?: {
     linkedAt: string; // ISO date string
     linkingStrategy: 'forward-only' | 'full-reconciliation';
-    balanceReconciliation: {
+    balanceReconciliation?: {
       systemBalance: number;
       externalBalance: number;
       difference: number;

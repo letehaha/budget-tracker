@@ -147,16 +147,16 @@ export const bulkUpdate = withTransaction(
         switch (tagMode) {
           case 'replace':
             // Replace all existing tags with new ones
-            await tx.$set('tags', tagIds);
+            await tx.setTags(tagIds);
             break;
           case 'remove':
             // Remove specified tags from existing ones
-            await tx.$remove('tags', tagIds);
+            await tx.removeTags(tagIds);
             break;
           case 'add':
           default:
             // Add tags to existing ones
-            await tx.$add('tags', tagIds);
+            await tx.addTags(tagIds);
             break;
         }
       }

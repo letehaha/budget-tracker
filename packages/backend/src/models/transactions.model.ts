@@ -24,6 +24,9 @@ import TransactionGroups from '@models/transaction-groups.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import TransactionTags from '@models/transaction-tags.model';
 import {
+  BelongsToManyAddAssociationsMixin,
+  BelongsToManyRemoveAssociationsMixin,
+  BelongsToManySetAssociationsMixin,
   CreationOptional,
   DataTypes,
   Includeable,
@@ -167,6 +170,10 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   })
   declare tags?: NonAttribute<Tags[]>;
 
+  declare setTags: BelongsToManySetAssociationsMixin<Tags, number>;
+  declare addTags: BelongsToManyAddAssociationsMixin<Tags, number>;
+  declare removeTags: BelongsToManyRemoveAssociationsMixin<Tags, number>;
+
   @BelongsToMany(() => TransactionGroups, {
     through: () => TransactionGroupItems,
     foreignKey: 'transactionId',
@@ -233,7 +240,7 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  get commissionRate(): Money {
+  get commissionRate(): CreationOptional<Money> {
     return moneyGetCents(this, 'commissionRate');
   }
   set commissionRate(val: Money | number) {
@@ -243,7 +250,7 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  get refCommissionRate(): Money {
+  get refCommissionRate(): CreationOptional<Money> {
     return moneyGetCents(this, 'refCommissionRate');
   }
   set refCommissionRate(val: Money | number) {
@@ -253,7 +260,7 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Default(0)
-  get cashbackAmount(): Money {
+  get cashbackAmount(): CreationOptional<Money> {
     return moneyGetCents(this, 'cashbackAmount');
   }
   set cashbackAmount(val: Money | number) {
@@ -273,8 +280,8 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   declare categorizationMeta: CategorizationMeta | null;
 
   // Managed by Sequelize (timestamps: true)
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
   // User should set all of requiredFields for transfer transaction
   @BeforeUpdate
@@ -296,14 +303,14 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
     const { accountType, accountId, userId, currencyCode, refAmount, amount, transactionType } = instance;
 
-    if (accountType === ACCOUNT_TYPES.system) {
+    if (accountType === ACCOUNT_TYPES.system && accountId !== null) {
       await updateAccountBalanceForChangedTx({
         userId,
         accountId,
         amount,
         refAmount,
         transactionType,
-        currencyCode,
+        currencyCode: currencyCode ?? undefined,
       });
     }
 
@@ -333,25 +340,29 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
     if (newData.accountType === ACCOUNT_TYPES.system) {
       if (isAccountChanged) {
         // Update old tx
-        await updateAccountBalanceForChangedTx({
-          userId: prevData.userId,
-          accountId: prevData.accountId,
-          prevAmount: prevData.amount,
-          prevRefAmount: prevData.refAmount,
-          transactionType: prevData.transactionType,
-          currencyCode: prevData.currencyCode,
-        });
+        if (prevData.accountId !== null) {
+          await updateAccountBalanceForChangedTx({
+            userId: prevData.userId,
+            accountId: prevData.accountId,
+            prevAmount: prevData.amount,
+            prevRefAmount: prevData.refAmount,
+            transactionType: prevData.transactionType,
+            currencyCode: prevData.currencyCode ?? undefined,
+          });
+        }
 
         // Update new tx
-        await updateAccountBalanceForChangedTx({
-          userId: newData.userId,
-          accountId: newData.accountId,
-          amount: newData.amount,
-          refAmount: newData.refAmount,
-          transactionType: newData.transactionType,
-          currencyCode: newData.currencyCode,
-        });
-      } else {
+        if (newData.accountId !== null) {
+          await updateAccountBalanceForChangedTx({
+            userId: newData.userId,
+            accountId: newData.accountId,
+            amount: newData.amount,
+            refAmount: newData.refAmount,
+            transactionType: newData.transactionType,
+            currencyCode: newData.currencyCode ?? undefined,
+          });
+        }
+      } else if (newData.accountId !== null) {
         await updateAccountBalanceForChangedTx({
           userId: newData.userId,
           accountId: newData.accountId,
@@ -361,7 +372,7 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
           prevRefAmount: prevData.refAmount,
           transactionType: newData.transactionType,
           prevTransactionType: prevData.transactionType,
-          currencyCode: newData.currencyCode,
+          currencyCode: newData.currencyCode ?? undefined,
         });
       }
     }
@@ -385,14 +396,14 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
     const { accountType, accountId, userId, currencyCode, refAmount, amount, transactionType } = instance;
 
-    if (accountType === ACCOUNT_TYPES.system) {
+    if (accountType === ACCOUNT_TYPES.system && accountId !== null) {
       await updateAccountBalanceForChangedTx({
         userId,
         accountId,
         prevAmount: amount,
         prevRefAmount: refAmount,
         transactionType,
-        currencyCode,
+        currencyCode: currencyCode ?? undefined,
       });
     }
 
@@ -513,7 +524,7 @@ export const findWithFilters = async ({
   refAmountLte?: Money;
   categoryIds?: number[];
   noteSearch?: string[]; // array of keywords
-  attributes?: (keyof Transactions)[];
+  attributes?: (keyof InferAttributes<Transactions>)[];
   categorizationSource?: CATEGORIZATION_SOURCE;
 }) => {
   const queryInclude: Includeable[] = prepareTXInclude({ includeSplits });
@@ -748,7 +759,10 @@ export const findWithFilters = async ({
     attributes,
   });
 
-  return transactions;
+  // When includeSplits/includeTags/includeGroups is used, the nested result contains the associated
+  // properties (either on a model instance or as a nested plain object). Cast to Transactions[] so
+  // callers can access `splits`, `tags`, `transactionGroups`.
+  return transactions as unknown as Transactions[];
 };
 
 export const getTransactionById = ({

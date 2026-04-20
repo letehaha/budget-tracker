@@ -179,7 +179,7 @@ async function sendRemindBeforeNotifications(): Promise<{
   });
 
   for (const reminder of reminders) {
-    for (const period of reminder.periods) {
+    for (const period of reminder.periods!) {
       checked++;
 
       for (const preset of reminder.remindBefore) {

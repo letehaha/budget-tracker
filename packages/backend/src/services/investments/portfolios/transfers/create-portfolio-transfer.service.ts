@@ -1,3 +1,4 @@
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import Currencies from '@models/currencies.model';
@@ -52,7 +53,7 @@ const createPortfolioTransferImpl = async ({
     toPortfolioId,
     fromAccountId: null,
     toAccountId: null,
-    amount,
+    amount: Money.fromDecimal(amount),
     refAmount,
     currencyCode,
     date,
