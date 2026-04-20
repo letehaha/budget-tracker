@@ -228,7 +228,7 @@
 
     --border: rgb(232, 223, 205);
     --input: rgb(210, 208, 204);
-    --ring: rgb(115, 85, 190);
+    --ring: rgba(115, 85, 190, 0.6);
     --radius: 0.75rem;
 
     --success: rgb(42, 141, 82);

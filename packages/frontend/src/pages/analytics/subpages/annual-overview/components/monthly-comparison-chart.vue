@@ -16,7 +16,7 @@
           :multiple="true"
           class="w-full"
         >
-          <Combobox.ComboboxAnchor class="border-none p-0">
+          <Combobox.ComboboxAnchor>
             <Combobox.ComboboxTrigger
               class="ring-offset-background focus-visible:ring-ring flex w-full justify-between rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
