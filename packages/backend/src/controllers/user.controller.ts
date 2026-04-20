@@ -46,7 +46,9 @@ export const updateUser = createController(
     });
 
     // Invalidate cached user so the next request picks up the new username/role
-    invalidateAppUserCache({ authUserId: user.authUserId });
+    if (user.authUserId) {
+      invalidateAppUserCache({ authUserId: user.authUserId });
+    }
 
     return { data: userData };
   },

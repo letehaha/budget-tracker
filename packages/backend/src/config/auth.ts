@@ -8,6 +8,7 @@ import { createUserWithDefaults } from '@services/user/create-user-with-defaults
 import bcrypt from 'bcryptjs';
 import { betterAuth } from 'better-auth';
 import { jwt } from 'better-auth/plugins';
+import type { BetterAuthPlugin } from 'better-auth/types';
 import { Pool } from 'pg';
 import { Resend } from 'resend';
 
@@ -54,7 +55,7 @@ export const auth = betterAuth({
       enabled: true,
       // Send verification to the NEW email address (not the old one)
       // This is critical for legacy @app.migrated users who can't receive emails at their current address
-      sendChangeEmailVerification: async ({ newEmail, url }) => {
+      sendChangeEmailConfirmation: async ({ newEmail, url }) => {
         if (!resend) {
           logger.warn('Email change verification skipped: RESEND_API_KEY not configured');
           return;
@@ -255,7 +256,7 @@ export const auth = betterAuth({
           modelName: 'ba_passkey',
         },
       },
-    }),
+    }) as unknown as BetterAuthPlugin,
   ],
 
   // Enable rate limiting in production only. Disable in test/dev/preview

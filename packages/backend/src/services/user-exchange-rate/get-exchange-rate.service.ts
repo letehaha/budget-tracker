@@ -62,7 +62,7 @@ export async function getExchangeRate({
 
   // When currencies are different, make sure that base_code currency is linked
   // to user's currencies, since usually quite is always a user_default_currency
-  const userCurrency = await findOrThrowNotFound({
+  const userCurrency = (await findOrThrowNotFound({
     query: UsersCurrencies.findOne({
       where: { userId },
       attributes: ['liveRateUpdate'],
@@ -76,7 +76,7 @@ export async function getExchangeRate({
       raw: true,
     }),
     message: t({ key: 'currencies.currencyNotConnected' }),
-  });
+  })) as { liveRateUpdate: boolean };
 
   const userDefaultCurrency = await getBaseCurrency({ userId });
 

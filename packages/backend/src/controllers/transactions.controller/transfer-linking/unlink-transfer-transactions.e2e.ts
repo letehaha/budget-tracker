@@ -90,7 +90,7 @@ describe('Unlink transfer transactions', () => {
 
     // Unlink — both should become not_transfer (original out_of_wallet nature is NOT preserved)
     const unlinkedTxs = await helpers.unlinkTransferTransactions({
-      transferIds: [transferId],
+      transferIds: [transferId!],
       raw: true,
     });
 

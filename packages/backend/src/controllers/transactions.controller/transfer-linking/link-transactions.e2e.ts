@@ -291,7 +291,7 @@ describe('link transactions between each other', () => {
 
     // Step 2: Unlink — both should become not_transfer
     const unlinkedTxs = await helpers.unlinkTransferTransactions({
-      transferIds: [transferId],
+      transferIds: [transferId!],
       raw: true,
     });
 

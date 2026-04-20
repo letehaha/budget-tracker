@@ -24,7 +24,7 @@ async function getTestUserId(): Promise<number> {
 async function setupFakeApiKey({ userId }: { userId: number }) {
   const [settings] = await UserSettings.findOrCreate({
     where: { userId },
-    defaults: { settings: DEFAULT_SETTINGS },
+    defaults: { userId, settings: DEFAULT_SETTINGS },
   });
 
   const now = new Date().toISOString();

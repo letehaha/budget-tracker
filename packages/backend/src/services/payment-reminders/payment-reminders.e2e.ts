@@ -1121,7 +1121,7 @@ describe('Payment Reminders', () => {
 
       expect(reminder.frequency).toBeNull();
       expect(reminder.periods).toHaveLength(1);
-      const periodId = reminder.periods[0]!.id;
+      const periodId = reminder.periods![0]!.id;
 
       // 2. Mark the only period as paid
       await helpers.markPaymentReminderPeriodPaid({
@@ -1139,7 +1139,9 @@ describe('Payment Reminders', () => {
 
       // 4. Should now have 2 periods: the paid one + a new upcoming one
       expect(updated.periods).toHaveLength(2);
-      const upcoming = updated.periods.find((p: { status: string }) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
+      const upcoming = updated.periods!.find(
+        (p: { status: string }) => p.status === PAYMENT_REMINDER_STATUSES.upcoming,
+      );
       expect(upcoming).toBeDefined();
     });
 
@@ -1159,7 +1161,7 @@ describe('Payment Reminders', () => {
       });
 
       expect(updated.periods).toHaveLength(1);
-      expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+      expect(updated.periods![0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
     });
 
     it('removes upcoming period when recurring with paid period is changed to one-time', async () => {
@@ -1171,7 +1173,7 @@ describe('Payment Reminders', () => {
         raw: true,
       });
 
-      const periodId = reminder.periods[0]!.id;
+      const periodId = reminder.periods![0]!.id;
 
       // 2. Mark as paid — this auto-creates a next upcoming period
       await helpers.markPaymentReminderPeriodPaid({
@@ -1189,7 +1191,7 @@ describe('Payment Reminders', () => {
 
       // 4. Should only have the paid period; the auto-created upcoming one is removed
       expect(updated.periods).toHaveLength(1);
-      expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.paid);
+      expect(updated.periods![0]!.status).toBe(PAYMENT_REMINDER_STATUSES.paid);
     });
 
     it('keeps upcoming period when recurring with no paid periods is changed to one-time', async () => {
@@ -1209,7 +1211,7 @@ describe('Payment Reminders', () => {
       });
 
       expect(updated.periods).toHaveLength(1);
-      expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+      expect(updated.periods![0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
     });
   });
 
