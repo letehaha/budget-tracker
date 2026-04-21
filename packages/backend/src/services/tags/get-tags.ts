@@ -1,5 +1,5 @@
 import Tags from '@models/tags.model';
-import { literal } from 'sequelize';
+import { literal } from '@sequelize/core';
 
 interface GetTagsPayload {
   userId: number;

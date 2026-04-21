@@ -1,6 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { searchSecurities } from '@services/investments/securities/search.service';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

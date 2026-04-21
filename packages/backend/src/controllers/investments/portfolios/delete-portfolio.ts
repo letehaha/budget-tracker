@@ -1,7 +1,7 @@
 import { booleanQuery, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { deletePortfolio } from '@services/investments/portfolios/delete.service';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

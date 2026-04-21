@@ -1,45 +1,4 @@
-import { DataType } from 'sequelize-typescript';
-
 import { Money } from './money';
-
-// ---------------------------------------------------------------------------
-// Column config helper (type + allowNull + defaultValue only, NO get/set)
-// ---------------------------------------------------------------------------
-
-/**
- * Returns Sequelize column type configuration for money fields.
- * Use with class getter/setter pairs and the moneyGet / moneySet helpers.
- *
- * @example
- * // INTEGER column storing cents:
- * @Column(MoneyColumn({ storage: 'cents' }))
- * get amount(): Money { return moneyGetCents(this, 'amount'); }
- * set amount(val: Money | number) { moneySetCents(this, 'amount', val); }
- *
- * // DECIMAL column (investments):
- * @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
- * get quantity(): Money { return moneyGetDecimal(this, 'quantity'); }
- * set quantity(val: Money | string | number) { moneySetDecimal(this, 'quantity', val, 10); }
- */
-export function MoneyColumn(opts: MoneyColumnCentsOptions): MoneyColumnConfig;
-export function MoneyColumn(opts: MoneyColumnDecimalOptions): MoneyColumnConfig;
-export function MoneyColumn(opts: MoneyColumnOptions): MoneyColumnConfig {
-  if (opts.storage === 'cents') {
-    return {
-      type: DataType.INTEGER,
-      allowNull: opts.allowNull ?? false,
-      defaultValue: opts.defaultValue ?? 0,
-    };
-  }
-
-  // storage === 'decimal'
-  const { precision = 20, scale = 10 } = opts;
-  return {
-    type: DataType.DECIMAL(precision, scale),
-    allowNull: opts.allowNull ?? false,
-    defaultValue: opts.defaultValue ?? '0',
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Getter/setter helpers for use inside class getter/setter pairs
@@ -96,27 +55,3 @@ export function moneySetDecimal(
     model.setDataValue(field, val);
   }
 }
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface MoneyColumnBaseOptions {
-  allowNull?: boolean;
-  defaultValue?: number | string;
-}
-
-interface MoneyColumnCentsOptions extends MoneyColumnBaseOptions {
-  storage: 'cents';
-}
-
-interface MoneyColumnDecimalOptions extends MoneyColumnBaseOptions {
-  storage: 'decimal';
-  precision?: number;
-  scale?: number;
-}
-
-type MoneyColumnOptions = MoneyColumnCentsOptions | MoneyColumnDecimalOptions;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MoneyColumnConfig = Record<string, any>;

@@ -1,5 +1,5 @@
+import { AbstractQueryInterface, QueryTypes } from '@sequelize/core';
 import crypto from 'crypto';
-import { QueryInterface, QueryTypes } from 'sequelize';
 
 /**
  * Migration to fix Enable Banking transaction originalId values.
@@ -83,8 +83,8 @@ function generateTransactionHash({
   return crypto.createHash('sha256').update(JSON.stringify(hashData)).digest('hex');
 }
 
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const sequelize = queryInterface.sequelize;
 
     // Fetch all Enable Banking transactions with their account's externalId

@@ -9,8 +9,8 @@ import { logger } from '@js/utils/logger';
 import PaymentReminderNotifications from '@models/payment-reminder-notifications.model';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
+import { Op } from '@sequelize/core';
 import * as notificationsService from '@services/notifications';
-import { Op } from 'sequelize';
 
 import { calculateNextDueDate } from './calculate-next-due-date';
 import { queueReminderEmail } from './email-queue';
@@ -179,7 +179,7 @@ async function sendRemindBeforeNotifications(): Promise<{
   });
 
   for (const reminder of reminders) {
-    for (const period of reminder.periods) {
+    for (const period of reminder.periods!) {
       checked++;
 
       for (const preset of reminder.remindBefore) {

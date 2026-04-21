@@ -1,5 +1,14 @@
-import cls from 'cls-hooked';
-import { Sequelize } from 'sequelize-typescript';
+import { Sequelize } from '@sequelize/core';
+import { PostgresDialect } from '@sequelize/postgres';
+import pg from 'pg';
+
+// Ensure TIMESTAMP/TIMESTAMPTZ/DATE columns are parsed as Date objects.
+// @sequelize/postgres uses pg's nested pg-types instance, so we register via
+// pg.types (not the hoisted pg-types) so raw: true queries return Date.
+const toDate = (value: string | null) => (value === null ? null : new Date(value));
+pg.types.setTypeParser(1082, toDate); // DATE
+pg.types.setTypeParser(1114, toDate); // TIMESTAMP WITHOUT TIME ZONE
+pg.types.setTypeParser(1184, toDate); // TIMESTAMP WITH TIME ZONE
 
 import AccountGroupingModel from './accounts-groups/account-grouping.model';
 import AccountGroupsModel from './accounts-groups/account-groups.model';
@@ -44,24 +53,12 @@ import UserSettingsModel from './user-settings.model';
 import UsersCurrenciesModel from './users-currencies.model';
 import UsersModel from './users.model';
 
-export const namespace = cls.createNamespace('budget-tracker-namespace');
-Sequelize.useCLS(namespace);
-
 const connection: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sequelize?: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Sequelize?: any;
 } = {};
-
-const DBConfig: Record<string, unknown> = {
-  host: process.env.APPLICATION_DB_HOST,
-  username: process.env.APPLICATION_DB_USERNAME,
-  password: process.env.APPLICATION_DB_PASSWORD,
-  database: process.env.APPLICATION_DB_DATABASE,
-  port: process.env.APPLICATION_DB_PORT,
-  dialect: process.env.APPLICATION_DB_DIALECT,
-};
 
 const models = [
   UsersModel,
@@ -108,23 +105,45 @@ const models = [
   TransferSuggestionDismissalsModel,
 ];
 
+const databaseName =
+  process.env.NODE_ENV === 'test'
+    ? `${process.env.APPLICATION_DB_DATABASE}-${process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID || '1'}`
+    : process.env.APPLICATION_DB_DATABASE!;
+
 const sequelize = new Sequelize({
-  ...DBConfig,
-  database:
-    process.env.NODE_ENV === 'test'
-      ? `${DBConfig.database}-${process.env.JEST_WORKER_ID}`
-      : (DBConfig.database as string),
+  dialect: PostgresDialect,
+  pgModule: pg,
+  host: process.env.APPLICATION_DB_HOST,
+  user: process.env.APPLICATION_DB_USERNAME,
+  password: process.env.APPLICATION_DB_PASSWORD,
+  database: databaseName,
+  port: Number(process.env.APPLICATION_DB_PORT),
   models,
   pool: {
     max: 50,
     evict: 10000,
   },
-  logging: process.env.DB_QUERY_LOGGING === 'true',
+  logging: process.env.DB_QUERY_LOGGING === 'true' ? console.log : false,
 });
 
 if (process.env.NODE_ENV === 'development') {
-  console.log('DBConfig', DBConfig);
+  console.log('DBConfig', {
+    host: process.env.APPLICATION_DB_HOST,
+    user: process.env.APPLICATION_DB_USERNAME,
+    database: databaseName,
+    port: process.env.APPLICATION_DB_PORT,
+  });
 }
+
+// Setup self-referencing associations that cannot use decorators
+// AccountGroup parent/child self-reference
+AccountGroupsModel.hasMany(AccountGroupsModel, {
+  foreignKey: 'parentGroupId',
+  as: 'childGroups',
+  inverse: {
+    as: 'parentGroup',
+  },
+});
 
 connection.sequelize = sequelize;
 connection.Sequelize = Sequelize;

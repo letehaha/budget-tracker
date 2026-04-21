@@ -61,10 +61,10 @@ export const manageSplits = async ({
     });
 
     if (refunds.length > 0) {
-      const totalRefunded = Money.sum(refunds.map((r) => r.refundTransaction.refAmount.abs()));
+      const totalRefunded = Money.sum(refunds.map((r) => r.refundTransaction!.refAmount.abs()));
       const refundAmounts = refunds.map((r) => ({
-        amount: r.refundTransaction.amount.abs(),
-        currencyCode: r.refundTransaction.currencyCode,
+        amount: r.refundTransaction!.amount.abs(),
+        currencyCode: r.refundTransaction!.currencyCode!,
       }));
       refundsByCategoryId.set(existingSplit.categoryId, {
         totalRefundedRefAmount: totalRefunded,

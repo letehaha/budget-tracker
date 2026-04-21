@@ -7,11 +7,11 @@ import {
   USER_ROLES,
 } from '@bt/shared/types';
 import { authPool } from '@config/auth';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { connection } from '@models/index';
 import Users from '@models/users.model';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 import { clearMockSession, registerMockSession } from '@tests/mocks/better-auth';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * Extracts the session token value from a cookie string.
@@ -553,7 +553,7 @@ describe('Demo Mode', () => {
 
       // Verify Balances records exist
       const [balanceRows] = await connection.sequelize.query(
-        `SELECT COUNT(*) as count FROM "Balances" WHERE "accountId" IN (:accountIds)`,
+        `SELECT COUNT(*) as count FROM "Balances" WHERE "accountId" = ANY(:accountIds)`,
         { replacements: { accountIds } },
       );
 

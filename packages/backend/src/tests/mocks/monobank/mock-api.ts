@@ -24,7 +24,7 @@ export const getMonobankTransactionsMock = ({
 };
 
 export const monobankHandlers = [
-  http.get(MONOBANK_URLS_MOCK.clientInfo, ({ request }) => {
+  http.get('https://api.monobank.ua/personal/client-info', ({ request }) => {
     const token = request.headers.get('X-Token');
 
     if (token === INVALID_MONOBANK_TOKEN) {

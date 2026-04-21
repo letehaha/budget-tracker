@@ -1,5 +1,21 @@
-import { PaymentReminderPeriodModel, PaymentReminderStatus, PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType, BeforeCreate } from 'sequelize-typescript';
+import { PaymentReminderStatus, PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Default,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import PaymentReminders from './payment-reminders.model';
@@ -10,12 +26,13 @@ import Transactions from './transactions.model';
   timestamps: true,
   freezeTableName: true,
 })
-export default class PaymentReminderPeriods extends Model implements PaymentReminderPeriodModel {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-  })
-  declare id: string;
+export default class PaymentReminderPeriods extends Model<
+  InferAttributes<PaymentReminderPeriods>,
+  InferCreationAttributes<PaymentReminderPeriods>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<string>;
 
   @BeforeCreate
   static generateUUIDv7(instance: PaymentReminderPeriods) {
@@ -24,51 +41,34 @@ export default class PaymentReminderPeriods extends Model implements PaymentRemi
     }
   }
 
-  @ForeignKey(() => PaymentReminders)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-  })
-  reminderId!: string;
+  @Attribute(DataTypes.UUID)
+  @NotNull
+  declare reminderId: string;
 
-  @Column({
-    type: DataType.DATEONLY,
-    allowNull: false,
-  })
-  dueDate!: string;
+  @Attribute(DataTypes.DATEONLY)
+  @NotNull
+  declare dueDate: string;
 
-  @Column({
-    type: DataType.ENUM(...Object.values(PAYMENT_REMINDER_STATUSES)),
-    allowNull: false,
-    defaultValue: PAYMENT_REMINDER_STATUSES.upcoming,
-  })
-  status!: PaymentReminderStatus;
+  @Attribute(DataTypes.ENUM({ values: Object.values(PAYMENT_REMINDER_STATUSES) }))
+  @NotNull
+  @Default(PAYMENT_REMINDER_STATUSES.upcoming)
+  declare status: CreationOptional<PaymentReminderStatus>;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  paidAt!: Date | null;
+  @Attribute(DataTypes.DATE)
+  declare paidAt: Date | null;
 
-  @ForeignKey(() => Transactions)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: true,
-  })
-  transactionId!: number | null;
+  @Attribute(DataTypes.INTEGER)
+  declare transactionId: number | null;
 
-  @Column({
-    type: DataType.TEXT,
-    allowNull: true,
-  })
-  notes!: string | null;
+  @Attribute(DataTypes.TEXT)
+  declare notes: string | null;
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsTo(() => PaymentReminders, { foreignKey: 'reminderId', onDelete: 'CASCADE' })
-  reminder!: PaymentReminders;
+  @BelongsTo(() => PaymentReminders, 'reminderId')
+  declare reminder?: NonAttribute<PaymentReminders>;
 
-  @BelongsTo(() => Transactions, { foreignKey: 'transactionId', onDelete: 'SET NULL' })
-  transaction!: Transactions | null;
+  @BelongsTo(() => Transactions, 'transactionId')
+  declare transaction?: NonAttribute<Transactions | null>;
 }

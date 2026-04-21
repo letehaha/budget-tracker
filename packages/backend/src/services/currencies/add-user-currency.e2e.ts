@@ -1,6 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Add user currencies', () => {
   it('should successfully add user currencies', async () => {

@@ -1,6 +1,6 @@
 import { UserModel } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
-import { z } from 'zod';
+import z from 'zod';
 
 import { getUsers as getUsersModel } from '../models/users.model';
 

@@ -8,7 +8,7 @@ import { serializeTransactions } from '@root/serializers';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import * as transactionsService from '@services/transactions';
 import { addDays, endOfDay, startOfDay, subDays } from 'date-fns';
-import { z } from 'zod';
+import z from 'zod';
 
 import { RECOMMENDATION_DAYS_RANGE, RECOMMENDATION_PERCENT_RANGE } from './constants';
 
@@ -54,7 +54,7 @@ export default createController(schema, async ({ user, query }) => {
       userId,
     });
 
-    if (!transaction) {
+    if (!transaction || transaction.accountId == null || transaction.currencyCode == null) {
       return { data: [] };
     }
 

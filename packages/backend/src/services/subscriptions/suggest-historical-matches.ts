@@ -2,9 +2,9 @@ import { SubscriptionMatchingRule } from '@bt/shared/types';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import * as Transactions from '@models/transactions.model';
 import { serializeTransactions } from '@root/serializers/transactions.serializer';
+import { Op, WhereOptions } from '@sequelize/core';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { subMonths } from 'date-fns';
-import { Op, WhereOptions } from 'sequelize';
 
 import { findSubscriptionOrThrow } from './helpers';
 
@@ -173,6 +173,11 @@ async function filterByCrossCurrencyAmount({
           break;
         }
         continue;
+      }
+
+      if (!tx.currencyCode) {
+        matchesAllRules = false;
+        break;
       }
 
       // Cross-currency: convert transaction amount to rule's currency

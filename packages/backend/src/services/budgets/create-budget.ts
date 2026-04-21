@@ -7,8 +7,8 @@ import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 import { expandCategoryIds } from './utils/expand-category-ids';
 
@@ -16,7 +16,7 @@ interface CreateBudgetPayload {
   id?: number;
   userId: number;
   name: string;
-  status: string;
+  status: BUDGET_STATUSES;
   type?: BUDGET_TYPES;
   categoryIds?: number[];
   startDate?: Date | null;
@@ -84,12 +84,11 @@ export const createBudget = withTransaction(async (payload: CreateBudgetPayload)
 
   // For manual budgets with autoInclude, link transactions by date range
   if (budgetType === BUDGET_TYPES.manual && payload.autoInclude && payload.startDate && payload.endDate) {
-    const transactionFilters = prepareTransactionFilters(budgetData);
     const transactions = await Transactions.findAll({
       where: {
-        userId: transactionFilters.userId,
+        userId: payload.userId,
         time: {
-          [Op.between]: [transactionFilters.startDate, transactionFilters.endDate],
+          [Op.between]: [payload.startDate, payload.endDate],
         },
       },
     });
@@ -135,7 +134,7 @@ const createBudgetModel = async ({
     startDate: startDate || null,
     endDate: endDate || null,
     autoInclude: autoInclude ?? false,
-    limitAmount: limitAmount ?? null,
+    limitAmount: (limitAmount ?? null) as Money,
   };
 
   const budget = await Budgets.create(budgetData);

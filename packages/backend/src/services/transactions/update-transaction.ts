@@ -11,10 +11,10 @@ import Tags from '@models/tags.model';
 import { deleteSplitsForTransaction } from '@models/transaction-splits.model';
 import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
+import { Op } from '@sequelize/core';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import * as refundsService from '@services/tx-refunds';
-import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { calcTransferTransactionRefAmount, createOppositeTransaction } from './create-transaction';
@@ -35,10 +35,11 @@ const validateTransaction = async (newData: UpdateTransactionParams, prevData: T
 
   // Check the account type, not the transaction type
   // A system transaction in a monobank account should be treated as external
+  // accountId is null only for portfolio-linked transactions, which don't flow through this service.
   const account = await findOrThrowNotFound({
     query: Accounts.getAccountById({
       userId: newData.userId,
-      id: prevData.accountId,
+      id: prevData.accountId!,
     }),
     message: t({ key: 'accounts.accountNotFoundForTransaction' }),
   });
@@ -96,9 +97,10 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
   });
 
   // Check the account type, not the transaction type
+  // accountId is null only for portfolio-linked transactions, which don't flow through this service.
   const account = await Accounts.getAccountById({
     userId: newData.userId,
-    id: prevData.accountId,
+    id: prevData.accountId!,
   });
 
   const isSystemAccount = account?.type === ACCOUNT_TYPES.system;
@@ -123,7 +125,7 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
     accountId: newData.accountId,
     categoryId: newData.categoryId,
     transferNature: newData.transferNature,
-    currencyCode: prevData.currencyCode,
+    currencyCode: prevData.currencyCode!,
     refundLinked: prevData.refundLinked,
   };
 
@@ -182,7 +184,7 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
           where: {
             userId: newData.userId,
             id: {
-              [Op.in]: newData.refundedByTxIds,
+              [Op.in]: newData.refundedByTxIds!,
             },
           },
           attributes: ['refAmount'],
@@ -265,7 +267,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 
   const oppositeTx = (
     await Transactions.getTransactionsByArrayOfField({
-      fieldValues: [prevData.transferId],
+      fieldValues: [prevData.transferId!],
       fieldName: 'transferId',
       userId,
     })
@@ -288,7 +290,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     time,
     paymentType,
     categoryId,
-    currencyCode: oppositeTx.currencyCode,
+    currencyCode: oppositeTx.currencyCode!,
   });
 
   // If accountId was changed to a new one
@@ -332,7 +334,7 @@ const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
 
   const notBaseTransaction = (
     await Transactions.getTransactionsByArrayOfField({
-      fieldValues: [prevData.transferId],
+      fieldValues: [prevData.transferId!],
       fieldName: 'transferId',
       userId: newData.userId,
     })
@@ -471,7 +473,7 @@ export const updateTransaction = withTransaction(
             userId: payload.userId,
             splits: payload.splits,
             transactionAmount: baseTransaction.amount,
-            transactionCurrencyCode: baseTransaction.currencyCode,
+            transactionCurrencyCode: baseTransaction.currencyCode!,
             transactionTime: baseTransaction.time,
             transferNature: baseTransaction.transferNature,
           });
@@ -488,7 +490,7 @@ export const updateTransaction = withTransaction(
       if (payload.tagIds !== undefined) {
         if (payload.tagIds === null || payload.tagIds.length === 0) {
           // Clear all tags
-          await baseTransaction.$set('tags', []);
+          await baseTransaction.setTags([]);
         } else {
           // Validate that all tagIds belong to the current user
           const userTags = await Tags.findAll({
@@ -503,7 +505,7 @@ export const updateTransaction = withTransaction(
           }
 
           // Set new tags
-          await baseTransaction.$set('tags', payload.tagIds);
+          await baseTransaction.setTags(payload.tagIds);
 
           if (payload.tagIds?.length) {
             // Emit event for real-time reminders check (handled by event listener)

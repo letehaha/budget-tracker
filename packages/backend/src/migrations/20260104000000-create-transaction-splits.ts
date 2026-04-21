@@ -1,13 +1,13 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to create TransactionSplits table for split transaction feature.
  * This table stores additional category splits for transactions (primary category remains in Transactions.categoryId).
  * Also adds splitId column to RefundTransactions to allow refunds to target specific splits.
  */
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Create TransactionSplits table
@@ -24,7 +24,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Transactions',
+              table: 'Transactions',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -34,7 +34,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -44,7 +44,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Categories',
+              table: 'Categories',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -96,7 +96,7 @@ module.exports = {
           type: DataTypes.UUID,
           allowNull: true,
           references: {
-            model: 'TransactionSplits',
+            table: 'TransactionSplits',
             key: 'id',
           },
           onUpdate: 'CASCADE',
@@ -117,8 +117,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Remove splitId from RefundTransactions first (due to FK dependency)

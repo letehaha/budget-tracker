@@ -1,5 +1,5 @@
 import Categories from '@models/categories.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 /**
  * Expands a list of category IDs to include all child categories.

@@ -1,4 +1,4 @@
-import { DataTypes, QueryInterface, QueryTypes, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, QueryTypes, Transaction } from '@sequelize/core';
 
 // Inlined to avoid path alias issues in migration context
 const DEFAULT_TAG_STRUCTURE = [
@@ -12,9 +12,9 @@ const DEFAULT_TAG_STRUCTURE = [
  * Tags allow users to categorize transactions with custom labels.
  * TransactionTags is a junction table for the many-to-many relationship.
  */
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Create Tags table
@@ -31,7 +31,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -70,7 +70,7 @@ module.exports = {
       // Unique constraint on (userId, name) to prevent duplicate tag names per user
       await queryInterface.addConstraint('Tags', {
         fields: ['userId', 'name'],
-        type: 'unique',
+        type: 'UNIQUE',
         name: 'tags_user_name_unique',
         transaction: t,
       });
@@ -89,7 +89,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Tags',
+              table: 'Tags',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -99,7 +99,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Transactions',
+              table: 'Transactions',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -112,7 +112,7 @@ module.exports = {
       // Composite primary key for the junction table
       await queryInterface.addConstraint('TransactionTags', {
         fields: ['tagId', 'transactionId'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'transaction_tags_pkey',
         transaction: t,
       });
@@ -178,8 +178,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Drop TransactionTags first (depends on Tags)

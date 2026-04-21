@@ -1,5 +1,5 @@
 import { SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import {
   type TransactionForGrouping,

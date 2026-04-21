@@ -1,6 +1,6 @@
 import * as Accounts from '@models/accounts.model';
 import * as Balances from '@models/balances.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import { getWhereConditionForTime } from './utils';
 
@@ -35,7 +35,7 @@ export const getBalanceHistoryForAccount = async ({
   try {
     let data: Balances.default[] = [];
 
-    const dataAttributes = ['date', 'amount'];
+    const dataAttributes: ('date' | 'amount')[] = ['date', 'amount'];
     const balancesInRange = await Balances.default.findAll({
       where: getWhereConditionForTime({ from, to, columnName: 'date' }),
       order: [['date', 'ASC']],

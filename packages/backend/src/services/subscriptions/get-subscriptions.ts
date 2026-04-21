@@ -5,7 +5,7 @@ import Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
 import Subscriptions from '@models/subscriptions.model';
 import Transactions from '@models/transactions.model';
-import { fn, literal } from 'sequelize';
+import { fn, literal, InferAttributes } from '@sequelize/core';
 
 import { computeNextExpectedDate } from './subscription-date.utils';
 
@@ -55,7 +55,7 @@ export const getSubscriptions = async ({ userId, isActive, type }: GetSubscripti
     const plain = s.toJSON();
     return {
       ...plain,
-      expectedAmount: plain.expectedAmount !== null ? Money.fromCents(plain.expectedAmount).toNumber() : null,
+      expectedAmount: plain.expectedAmount !== null ? plain.expectedAmount.toNumber() : null,
       linkedTransactionsCount: Number((plain as Record<string, unknown>).linkedTransactionsCount ?? 0),
     };
   });
@@ -80,10 +80,12 @@ export const getSubscriptionById = async ({ id, userId }: { id: string; userId: 
     message: 'Subscription not found.',
   });
 
-  const raw = subscription.toJSON();
+  const raw = subscription.toJSON() as InferAttributes<Subscriptions> & {
+    transactions?: (InferAttributes<Transactions> & { SubscriptionTransactions?: Record<string, unknown> })[];
+  };
   const plain = {
     ...raw,
-    expectedAmount: raw.expectedAmount !== null ? Money.fromCents(raw.expectedAmount).toNumber() : null,
+    expectedAmount: raw.expectedAmount !== null ? raw.expectedAmount.toNumber() : null,
   };
   const nextExpectedDate = computeNextExpectedDate({
     startDate: plain.startDate,

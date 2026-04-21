@@ -1,7 +1,7 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('link transactions between each other', () => {
   it('link two valid transactions', async () => {
@@ -291,7 +291,7 @@ describe('link transactions between each other', () => {
 
     // Step 2: Unlink — both should become not_transfer
     const unlinkedTxs = await helpers.unlinkTransferTransactions({
-      transferIds: [transferId],
+      transferIds: [transferId!],
       raw: true,
     });
 

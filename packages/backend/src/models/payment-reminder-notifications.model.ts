@@ -1,5 +1,21 @@
-import { PaymentReminderNotificationModel, RemindBeforePreset } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType, BeforeCreate } from 'sequelize-typescript';
+import { RemindBeforePreset } from '@bt/shared/types';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Default,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import PaymentReminderPeriods from './payment-reminder-periods.model';
@@ -9,12 +25,13 @@ import PaymentReminderPeriods from './payment-reminder-periods.model';
   timestamps: false,
   freezeTableName: true,
 })
-export default class PaymentReminderNotifications extends Model implements PaymentReminderNotificationModel {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-  })
-  declare id: string;
+export default class PaymentReminderNotifications extends Model<
+  InferAttributes<PaymentReminderNotifications>,
+  InferCreationAttributes<PaymentReminderNotifications>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<string>;
 
   @BeforeCreate
   static generateUUIDv7(instance: PaymentReminderNotifications) {
@@ -23,39 +40,27 @@ export default class PaymentReminderNotifications extends Model implements Payme
     }
   }
 
-  @ForeignKey(() => PaymentReminderPeriods)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-  })
-  periodId!: string;
+  @Attribute(DataTypes.UUID)
+  @NotNull
+  declare periodId: string;
 
-  @Column({
-    type: DataType.STRING(20),
-    allowNull: false,
-  })
-  remindBeforePreset!: RemindBeforePreset;
+  @Attribute(DataTypes.STRING(20))
+  @NotNull
+  declare remindBeforePreset: RemindBeforePreset;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: false,
-    defaultValue: DataType.NOW,
-  })
-  sentAt!: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare sentAt: CreationOptional<Date>;
 
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  })
-  emailSent!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(false)
+  declare emailSent: CreationOptional<boolean>;
 
-  @Column({
-    type: DataType.TEXT,
-    allowNull: true,
-  })
-  emailError!: string | null;
+  @Attribute(DataTypes.TEXT)
+  declare emailError: string | null;
 
-  @BelongsTo(() => PaymentReminderPeriods, { foreignKey: 'periodId', onDelete: 'CASCADE' })
-  period!: PaymentReminderPeriods;
+  @BelongsTo(() => PaymentReminderPeriods, 'periodId')
+  declare period?: NonAttribute<PaymentReminderPeriods>;
 }

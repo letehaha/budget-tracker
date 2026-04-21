@@ -1,66 +1,82 @@
 import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Categories from '@models/categories.model';
 import Transactions from '@models/transactions.model';
-import Users from '@models/users.model';
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
+  BelongsToMany,
+  Default,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 
 import BudgetCategories from './budget-categories.model';
-import BudgetTransactions from './budget-transactions.model';
 
 @Table({
   timestamps: false,
+  tableName: 'Budgets',
 })
-export default class Budgets extends Model {
-  @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  declare id: number;
+export default class Budgets extends Model<InferAttributes<Budgets>, InferCreationAttributes<Budgets>> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
 
-  @Column({ allowNull: false, type: DataType.STRING(200) })
-  name!: string;
+  @Attribute(DataTypes.STRING(200))
+  @NotNull
+  declare name: string;
 
-  @Column({ allowNull: false, type: DataType.ENUM({ values: Object.values(BUDGET_STATUSES) }) })
-  status!: BUDGET_STATUSES;
+  @Attribute(DataTypes.ENUM({ values: Object.values(BUDGET_STATUSES) }))
+  @NotNull
+  declare status: BUDGET_STATUSES;
 
-  @Column({
-    allowNull: false,
-    defaultValue: BUDGET_TYPES.manual,
-    type: DataType.ENUM(...Object.values(BUDGET_TYPES)),
-  })
-  type!: BUDGET_TYPES;
+  @Attribute(DataTypes.ENUM({ values: Object.values(BUDGET_TYPES) }))
+  @NotNull
+  @Default(BUDGET_TYPES.manual)
+  declare type: CreationOptional<BUDGET_TYPES>;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  startDate!: Date;
+  @Attribute(DataTypes.DATE)
+  declare startDate: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  endDate!: Date;
+  @Attribute(DataTypes.DATE)
+  declare endDate: Date | null;
 
-  @Column({ defaultValue: false, type: DataType.BOOLEAN })
-  autoInclude!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @Default(false)
+  declare autoInclude: CreationOptional<boolean>;
 
-  @Column(MoneyColumn({ storage: 'cents', allowNull: true }))
+  @Attribute(DataTypes.INTEGER)
   get limitAmount(): Money {
     return moneyGetCents(this, 'limitAmount');
   }
-  set limitAmount(val: Money | number) {
+  set limitAmount(val: Money | number | null) {
     moneySetCents(this, 'limitAmount', val);
   }
 
-  @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @BelongsToMany(() => Transactions, {
-    through: { model: () => BudgetTransactions, unique: false },
-    foreignKey: 'budgetId',
-    otherKey: 'transactionId',
-  })
-  transactions!: number[];
+  // In Sequelize v7, BelongsToMany is defined on Transactions model and automatically creates the inverse
+  declare transactions?: NonAttribute<Transactions[]>;
 
   @BelongsToMany(() => Categories, {
-    through: { model: () => BudgetCategories, unique: false },
+    through: () => BudgetCategories,
     foreignKey: 'budgetId',
     otherKey: 'categoryId',
   })
-  categories!: Categories[];
+  declare categories?: NonAttribute<Categories[]>;
 }

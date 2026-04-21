@@ -3,10 +3,10 @@ import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
+import { Op, WhereOptions, fn, col } from '@sequelize/core';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withDeduplication } from '@services/common/with-deduplication';
 import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
-import { Op, WhereOptions, fn, col } from 'sequelize';
 
 interface GetHoldingValuesParams {
   portfolioId: number;
@@ -128,7 +128,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
 
     if (price) {
       latestPrice = price.priceClose.toDecimalString(INVESTMENT_DECIMAL_SCALE);
-      priceDate = price.date;
+      priceDate = new Date(price.date);
       const priceClose = price.priceClose.toBig();
       marketValue = quantity.times(priceClose).toFixed(10);
 

@@ -1,9 +1,9 @@
 import { USER_ROLES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import Users from '@models/users.model';
+import { Op } from '@sequelize/core';
 import { deleteUser } from '@services/user/delete-user.service';
 import { subHours } from 'date-fns';
-import { Op } from 'sequelize';
 
 // Demo users expire after 4 hours
 const DEMO_EXPIRY_HOURS = 4;

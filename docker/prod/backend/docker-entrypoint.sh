@@ -5,7 +5,7 @@ echo "Starting entrypoint script"
 
 # Run migrations
 echo "Running migrations..."
-if npm run migrate; then
+if bun run migrate; then
     echo "Migrations completed successfully"
 else
     echo "Migration failed. Exiting..."

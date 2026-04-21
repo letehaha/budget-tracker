@@ -1,7 +1,7 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { createController } from '@controllers/helpers/controller-factory';
 import { createPortfolio } from '@services/investments/portfolios/create.service';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

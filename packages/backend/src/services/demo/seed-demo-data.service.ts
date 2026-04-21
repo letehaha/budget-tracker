@@ -1,4 +1,10 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, BUDGET_STATUSES, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_TYPES,
+  BUDGET_STATUSES,
+  SUBSCRIPTION_FREQUENCIES,
+  SUBSCRIPTION_TYPES,
+} from '@bt/shared/types';
 import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { Money } from '@common/types/money';
@@ -222,8 +228,8 @@ export async function createSubscriptions({
     id: uuidv7(),
     userId,
     name: sub.name,
-    type: 'subscription' as const,
-    expectedAmount: sub.expectedAmount,
+    type: SUBSCRIPTION_TYPES.subscription,
+    expectedAmount: Money.fromCents(sub.expectedAmount),
     expectedCurrencyCode: DEMO_CONFIG.baseCurrency,
     frequency: sub.frequency,
     startDate: format(setDate(startBase, sub.dayOfMonth), 'yyyy-MM-dd'),
@@ -267,7 +273,7 @@ export async function setupDashboardSettings({
 
   await UserSettings.findOrCreate({
     where: { userId },
-    defaults: { settings },
+    defaults: { userId, settings },
   });
 
   logger.info(`Configured demo dashboard with spending watchlist (${selectedCategoryIds.length} categories)`);

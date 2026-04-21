@@ -1,34 +1,43 @@
-import Transactions from '@models/transactions.model';
-import Users from '@models/users.model';
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import { Attribute, AutoIncrement, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
-import TransactionGroupItems from './transaction-group-items.model';
+import type Transactions from './transactions.model';
 
 @Table({
   tableName: 'TransactionGroups',
   timestamps: true,
 })
-export default class TransactionGroups extends Model {
-  @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  declare id: number;
+export default class TransactionGroups extends Model<
+  InferAttributes<TransactionGroups>,
+  InferCreationAttributes<TransactionGroups>
+> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
 
-  @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @Column({ allowNull: false, type: DataType.STRING(100) })
-  name!: string;
+  @Attribute(DataTypes.STRING(100))
+  @NotNull
+  declare name: string;
 
-  @Column({ allowNull: true, type: DataType.STRING(500) })
-  note!: string | null;
+  @Attribute(DataTypes.STRING(500))
+  declare note: string | null;
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsToMany(() => Transactions, {
-    through: { model: () => TransactionGroupItems, unique: false },
-    foreignKey: 'groupId',
-    otherKey: 'transactionId',
-  })
-  transactions!: Transactions[];
+  // Inverse of Transactions.@BelongsToMany(TransactionGroups) — auto-created by Sequelize v7
+  declare transactions?: NonAttribute<Transactions[]>;
 }

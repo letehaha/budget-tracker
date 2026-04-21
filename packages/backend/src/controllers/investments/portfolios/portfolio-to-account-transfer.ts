@@ -1,7 +1,7 @@
 import { currencyCode, dateString, positiveAmountString, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { portfolioToAccountTransfer } from '@services/investments/portfolios/transfers';
-import { z } from 'zod';
+import z from 'zod';
 
 import { serializeTransferResponse } from './serialize-transfer';
 

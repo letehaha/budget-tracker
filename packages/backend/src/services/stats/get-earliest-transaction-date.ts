@@ -1,4 +1,3 @@
-import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
 import { format } from 'date-fns';
 
@@ -18,7 +17,7 @@ export const getEarliestTransactionDate = async ({
     where: { userId },
     include: [
       {
-        model: Accounts,
+        association: 'account',
         where: { excludeFromStats: false },
         attributes: [],
       },

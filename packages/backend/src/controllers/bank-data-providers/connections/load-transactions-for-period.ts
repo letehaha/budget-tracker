@@ -7,7 +7,7 @@ import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { MonobankProvider } from '@root/services/bank-data-providers/monobank/monobank.provider';
 import { bankProviderRegistry } from '@root/services/bank-data-providers/registry';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

@@ -1,5 +1,5 @@
 import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { Money } from '@common/types/money';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
@@ -8,40 +8,41 @@ import { restClient } from '@polygon.io/client-js';
 import * as helpers from '@tests/helpers';
 import alpha from 'alphavantage';
 import { format, isToday, subDays } from 'date-fns';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import YahooFinance from 'yahoo-finance2';
 
 import { FmpClient } from '../data-providers/clients/fmp-client';
 import { dataProviderFactory } from '../data-providers/provider-factory';
 
 // Mock data provider clients
-const mockedRestClient = jest.mocked(restClient);
+const mockedRestClient = vi.mocked(restClient);
 const mockPolygonApi = mockedRestClient.getMockImplementation()!('test');
-const mockedPolygonAggregates = jest.mocked(mockPolygonApi.stocks.aggregatesGroupedDaily);
+const mockedPolygonAggregates = vi.mocked(mockPolygonApi.stocks.aggregatesGroupedDaily);
 
-const mockedAlpha = jest.mocked(alpha);
+const mockedAlpha = vi.mocked(alpha);
 const mockAlphaVantage = mockedAlpha.getMockImplementation()!({ key: 'test' });
-const mockedAlphaDaily = jest.mocked(mockAlphaVantage.data.daily);
+const mockedAlphaDaily = vi.mocked(mockAlphaVantage.data.daily);
 
-const mockedFmpClient = jest.mocked(FmpClient);
-const mockedFmpHistoricalPrices = jest.fn();
+const mockedFmpClient = vi.mocked(FmpClient);
+const mockedFmpHistoricalPrices = vi.fn();
 
 mockedFmpClient.mockImplementation(
   () =>
     ({
       getHistoricalPrices: mockedFmpHistoricalPrices,
-      search: jest.fn(),
-      getQuote: jest.fn(),
-      getHistoricalPricesFull: jest.fn(),
+      search: vi.fn(),
+      getQuote: vi.fn(),
+      getHistoricalPricesFull: vi.fn(),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
 );
 
 // Yahoo is now the primary provider for all operations.
 // Override constructor to use shared mocks so tests can configure per-test.
-const mockedYahooFinance = jest.mocked(YahooFinance);
-const mockedYahooSearch = jest.fn<any>();
-const mockedYahooQuote = jest.fn<any>();
-const mockedYahooChart = jest.fn<any>();
+const mockedYahooFinance = vi.mocked(YahooFinance);
+const mockedYahooSearch = vi.fn<any>();
+const mockedYahooQuote = vi.fn<any>();
+const mockedYahooChart = vi.fn<any>();
 
 mockedYahooFinance.mockImplementation(
   () =>
@@ -61,7 +62,7 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
   let securityWithExcludedHolding: Securities;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Yahoo mocks default to rejecting so seedSecurities falls back to FMP
     mockedYahooSearch.mockRejectedValue(new Error('Yahoo mock: not configured'));
@@ -136,8 +137,8 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
     // Add some existing price data to test prioritization
     await SecurityPricing.create({
       securityId: securityWithStaleData.id,
-      date: subDays(new Date(), 5),
-      priceClose: '100.00',
+      date: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+      priceClose: Money.fromDecimal('100.00'),
       source: SECURITY_PROVIDER.polygon,
     });
 
@@ -385,14 +386,14 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
       // Mock database constraint error that would cause bulk create to fail
       const originalBulkCreate = SecurityPricing.bulkCreate;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mockBulkCreate = jest.fn<any>().mockRejectedValue(new Error('Bulk create constraint violation'));
+      const mockBulkCreate = vi.fn<any>().mockRejectedValue(new Error('Bulk create constraint violation'));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       SecurityPricing.bulkCreate = mockBulkCreate as any;
 
       // Mock individual upsert to succeed
       const originalUpsert = SecurityPricing.upsert;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mockUpsert = jest.fn<any>().mockResolvedValue([{} as SecurityPricing, true]);
+      const mockUpsert = vi.fn<any>().mockResolvedValue([{} as SecurityPricing, true]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       SecurityPricing.upsert = mockUpsert as any;
 
@@ -414,7 +415,8 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
     });
 
     it('should handle scenario with only excluded holdings', async () => {
-      jest.clearAllMocks();
+      // Clear previous test mocks first
+      vi.clearAllMocks();
 
       // Reset Yahoo mocks after clearAllMocks
       mockedYahooSearch.mockRejectedValue(new Error('Yahoo mock: not configured'));

@@ -1,11 +1,12 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import { connection } from '@models/index';
 import Transactions from '@models/transactions.model';
+import { QueryTypes } from '@sequelize/core';
 import { subDays } from 'date-fns';
-import { QueryTypes } from 'sequelize';
 
 import { getDemoTemplate } from './demo-template-cache.service';
 import {
@@ -68,8 +69,8 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
 
     return {
       userId,
-      amount: tx.amount,
-      refAmount,
+      amount: Money.fromCents(tx.amount),
+      refAmount: Money.fromCents(refAmount),
       transactionType: tx.transactionType,
       categoryId,
       accountId,
@@ -80,9 +81,9 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
       paymentType: tx.paymentType,
       note: tx.note,
       time,
-      commissionRate: 0,
-      refCommissionRate: 0,
-      cashbackAmount: 0,
+      commissionRate: Money.zero(),
+      refCommissionRate: Money.zero(),
+      cashbackAmount: Money.zero(),
       refundLinked: false,
     };
   });
@@ -159,7 +160,7 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
   if (accountIds.length === 0) return;
 
   // Delete initial balance records (will be replaced by full rebuild)
-  await sequelize.query(`DELETE FROM "Balances" WHERE "accountId" IN (:accountIds)`, {
+  await sequelize.query(`DELETE FROM "Balances" WHERE "accountId" = ANY(:accountIds)`, {
     replacements: { accountIds },
     type: QueryTypes.DELETE,
   });
@@ -211,7 +212,7 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
   // Re-insert balance records for accounts with no transactions (e.g. Savings).
   // The rebuild CTE only covers accounts that appear in the Transactions table.
   const accountsWithBalances: { accountId: number }[] = await sequelize.query(
-    `SELECT DISTINCT "accountId" FROM "Balances" WHERE "accountId" IN (:accountIds)`,
+    `SELECT DISTINCT "accountId" FROM "Balances" WHERE "accountId" = ANY(:accountIds)`,
     { replacements: { accountIds }, type: QueryTypes.SELECT },
   );
 
@@ -222,7 +223,7 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
     await sequelize.query(
       `INSERT INTO "Balances" ("accountId", "date", "amount", "createdAt", "updatedAt")
        SELECT id, CURRENT_DATE, "refInitialBalance", NOW(), NOW()
-       FROM "Accounts" WHERE id IN (:ids)`,
+       FROM "Accounts" WHERE id = ANY(:ids)`,
       { replacements: { ids: accountsMissingBalances }, type: QueryTypes.INSERT },
     );
   }

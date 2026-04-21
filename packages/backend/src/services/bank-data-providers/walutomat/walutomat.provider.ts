@@ -13,6 +13,7 @@ import { logger } from '@js/utils';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
+import { Op, Sequelize } from '@sequelize/core';
 import {
   BaseBankDataProvider,
   DateRange,
@@ -23,7 +24,6 @@ import {
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
-import { Op, Sequelize } from 'sequelize';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
@@ -473,7 +473,7 @@ export class WalutomatProvider extends BaseBankDataProvider {
     const balance = await this.fetchBalance(connectionId, account.externalId);
 
     await account.update({
-      currentBalance: balance.amount,
+      currentBalance: Money.fromCents(balance.amount),
     });
   }
 

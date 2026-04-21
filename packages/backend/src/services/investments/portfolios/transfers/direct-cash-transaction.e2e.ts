@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import Portfolios from '@models/investments/portfolios.model';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('Direct Cash Transaction (POST /investments/portfolios/:id/cash-transaction)', () => {
   let portfolio: Portfolios;

@@ -6,7 +6,7 @@ import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import * as Transactions from '@models/transactions.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import { buildDateFilter } from './utils/build-date-filter';
 
@@ -167,7 +167,7 @@ interface TransactionWithCategory {
   amount: number;
   note: string | null;
   categoryId: number | null;
-  accountId: number;
+  accountId: number | null;
   /** For split transactions, this is the split's category */
   effectiveCategory?: {
     id: number;

@@ -5,7 +5,7 @@ import * as Categories from '@models/categories.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import Transactions from '@models/transactions.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import { getExpensesHistory } from '../get-expenses-history';
 
@@ -55,7 +55,7 @@ export async function getSpendingsByCategories(params: {
   // Collect all transaction IDs that need to be fetched (not in current period)
   const missingTxIds = new Set<number>();
   for (const refund of refunds) {
-    if (!txMap.has(refund.originalTxId)) missingTxIds.add(refund.originalTxId);
+    if (refund.originalTxId !== null && !txMap.has(refund.originalTxId)) missingTxIds.add(refund.originalTxId);
     if (!txMap.has(refund.refundTxId)) missingTxIds.add(refund.refundTxId);
   }
 
@@ -228,7 +228,8 @@ function groupAndAdjustData(params: {
   }
 
   // Helper to add amount to a category
-  const addToCategory = (categoryId: number, amount: number) => {
+  const addToCategory = (categoryId: number | null, amount: number) => {
+    if (categoryId === null) return;
     const groupId = getGroupId(categoryId);
     if (groupId === null) return;
 
@@ -273,6 +274,7 @@ function groupAndAdjustData(params: {
   // describe ref currency
   for (const refund of refunds) {
     // O(1) Map lookups instead of O(n) array.find()
+    if (refund.originalTxId === null) continue;
     const baseTx = txMap.get(refund.originalTxId);
     const refundTx = txMap.get(refund.refundTxId);
 
@@ -280,7 +282,7 @@ function groupAndAdjustData(params: {
     if (!baseTx || !refundTx) continue;
 
     // Determine which category to adjust based on refund target
-    let wantedCategoryId: number;
+    let wantedCategoryId: number | null;
 
     if (refund.splitId) {
       // Refund targets a specific split - O(1) lookup instead of searching
@@ -291,6 +293,7 @@ function groupAndAdjustData(params: {
       wantedCategoryId = baseTx.transactionType === TRANSACTION_TYPES.expense ? baseTx.categoryId : refundTx.categoryId;
     }
 
+    if (wantedCategoryId === null) continue;
     const groupId = getGroupId(wantedCategoryId);
     if (groupId === null) continue;
 

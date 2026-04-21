@@ -8,6 +8,7 @@ import { createUserWithDefaults } from '@services/user/create-user-with-defaults
 import bcrypt from 'bcryptjs';
 import { betterAuth } from 'better-auth';
 import { jwt } from 'better-auth/plugins';
+import type { BetterAuthPlugin } from 'better-auth/types';
 import { Pool } from 'pg';
 import { Resend } from 'resend';
 
@@ -29,8 +30,8 @@ const pool = new Pool({
   password: process.env.APPLICATION_DB_PASSWORD,
   // In test environment, use per-worker database (same as Sequelize)
   database:
-    process.env.NODE_ENV === 'test' && process.env.JEST_WORKER_ID
-      ? `${process.env.APPLICATION_DB_DATABASE}-${process.env.JEST_WORKER_ID}`
+    process.env.NODE_ENV === 'test' && (process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID)
+      ? `${process.env.APPLICATION_DB_DATABASE}-${process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID}`
       : process.env.APPLICATION_DB_DATABASE,
 });
 
@@ -54,7 +55,7 @@ export const auth = betterAuth({
       enabled: true,
       // Send verification to the NEW email address (not the old one)
       // This is critical for legacy @app.migrated users who can't receive emails at their current address
-      sendChangeEmailVerification: async ({ newEmail, url }) => {
+      sendChangeEmailConfirmation: async ({ newEmail, url }) => {
         if (!resend) {
           logger.warn('Email change verification skipped: RESEND_API_KEY not configured');
           return;
@@ -255,7 +256,7 @@ export const auth = betterAuth({
           modelName: 'ba_passkey',
         },
       },
-    }),
+    }) as unknown as BetterAuthPlugin,
   ],
 
   // Enable rate limiting in production only. Disable in test/dev/preview

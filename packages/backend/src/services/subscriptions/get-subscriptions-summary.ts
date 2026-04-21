@@ -3,9 +3,9 @@ import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Subscriptions from '@models/subscriptions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
+import { Op } from '@sequelize/core';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 const MONTHLY_MULTIPLIERS: Record<SUBSCRIPTION_FREQUENCIES, number> = {
   [SUBSCRIPTION_FREQUENCIES.weekly]: 4.33,
@@ -47,7 +47,7 @@ const getSubscriptionsSummaryImpl = async ({ userId, type }: GetSubscriptionsSum
   for (const sub of subscriptions) {
     try {
       const refAmount = await calculateRefAmount({
-        amount: Money.fromCents(sub.expectedAmount!),
+        amount: sub.expectedAmount,
         userId,
         date: new Date(),
         baseCode: sub.expectedCurrencyCode!,

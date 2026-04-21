@@ -1,5 +1,23 @@
 import { SUBSCRIPTION_CANDIDATE_STATUS, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType, BeforeCreate } from 'sequelize-typescript';
+import { Money } from '@common/types/money';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Default,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
@@ -11,12 +29,13 @@ import Users from './users.model';
   timestamps: false,
   freezeTableName: true,
 })
-export default class SubscriptionCandidates extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-  })
-  declare id: string;
+export default class SubscriptionCandidates extends Model<
+  InferAttributes<SubscriptionCandidates>,
+  InferCreationAttributes<SubscriptionCandidates>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<string>;
 
   @BeforeCreate
   static generateUUIDv7(instance: SubscriptionCandidates) {
@@ -25,109 +44,76 @@ export default class SubscriptionCandidates extends Model {
     }
   }
 
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare userId: number;
 
-  @Column({
-    type: DataType.STRING(200),
-    allowNull: false,
-  })
-  suggestedName!: string;
+  @Attribute(DataTypes.STRING(200))
+  @NotNull
+  declare suggestedName: string;
 
-  @Column({
-    type: DataType.ENUM(...Object.values(SUBSCRIPTION_FREQUENCIES)),
-    allowNull: false,
-  })
-  detectedFrequency!: SUBSCRIPTION_FREQUENCIES;
+  @Attribute(DataTypes.ENUM({ values: Object.values(SUBSCRIPTION_FREQUENCIES) }))
+  @NotNull
+  declare detectedFrequency: SUBSCRIPTION_FREQUENCIES;
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-    comment: 'Average amount in cents',
-  })
-  averageAmount!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  get averageAmount(): Money {
+    return moneyGetCents(this, 'averageAmount');
+  }
+  set averageAmount(val: Money | number) {
+    moneySetCents(this, 'averageAmount', val);
+  }
 
-  @Column({
-    type: DataType.STRING(3),
-    allowNull: false,
-  })
-  currencyCode!: string;
+  @Attribute(DataTypes.STRING(3))
+  @NotNull
+  declare currencyCode: string;
 
-  @ForeignKey(() => Accounts)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: true,
-  })
-  accountId!: number | null;
+  @Attribute(DataTypes.INTEGER)
+  declare accountId: number | null;
 
-  @Column({
-    type: DataType.ARRAY(DataType.INTEGER),
-    allowNull: false,
-    defaultValue: [],
-  })
-  sampleTransactionIds!: number[];
+  @Attribute(DataTypes.ARRAY(DataTypes.INTEGER))
+  @NotNull
+  @Default([])
+  declare sampleTransactionIds: CreationOptional<number[]>;
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  occurrenceCount!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare occurrenceCount: number;
 
-  @Column({
-    type: DataType.FLOAT,
-    allowNull: false,
-  })
-  confidenceScore!: number;
+  @Attribute(DataTypes.FLOAT)
+  @NotNull
+  declare confidenceScore: number;
 
-  @Column({
-    type: DataType.FLOAT,
-    allowNull: false,
-  })
-  medianIntervalDays!: number;
+  @Attribute(DataTypes.FLOAT)
+  @NotNull
+  declare medianIntervalDays: number;
 
-  @Column({
-    type: DataType.ENUM(...Object.values(SUBSCRIPTION_CANDIDATE_STATUS)),
-    allowNull: false,
-    defaultValue: SUBSCRIPTION_CANDIDATE_STATUS.pending,
-  })
-  status!: SUBSCRIPTION_CANDIDATE_STATUS;
+  @Attribute(DataTypes.ENUM({ values: Object.values(SUBSCRIPTION_CANDIDATE_STATUS) }))
+  @NotNull
+  @Default(SUBSCRIPTION_CANDIDATE_STATUS.pending)
+  declare status: CreationOptional<SUBSCRIPTION_CANDIDATE_STATUS>;
 
-  @ForeignKey(() => Subscriptions)
-  @Column({
-    type: DataType.UUID,
-    allowNull: true,
-  })
-  subscriptionId!: string | null;
+  @Attribute(DataTypes.UUID)
+  declare subscriptionId: string | null;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: false,
-    defaultValue: DataType.NOW,
-  })
-  detectedAt!: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare detectedAt: CreationOptional<Date>;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  lastOccurrenceAt!: Date | null;
+  @Attribute(DataTypes.DATE)
+  declare lastOccurrenceAt: Date | null;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  resolvedAt!: Date | null;
+  @Attribute(DataTypes.DATE)
+  declare resolvedAt: Date | null;
 
-  @BelongsTo(() => Users)
-  user!: Users;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
-  @BelongsTo(() => Accounts)
-  account!: Accounts;
+  @BelongsTo(() => Accounts, 'accountId')
+  declare account?: NonAttribute<Accounts>;
 
-  @BelongsTo(() => Subscriptions)
-  subscription!: Subscriptions;
+  @BelongsTo(() => Subscriptions, 'subscriptionId')
+  declare subscription?: NonAttribute<Subscriptions>;
 }

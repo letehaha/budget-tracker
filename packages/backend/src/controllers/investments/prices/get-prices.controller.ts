@@ -1,7 +1,7 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { getPrices } from '@root/services/investments/securities-price/get-prices.service';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

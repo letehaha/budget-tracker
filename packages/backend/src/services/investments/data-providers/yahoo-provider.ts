@@ -2,8 +2,8 @@ import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared
 import { sleep } from '@common/helpers';
 import { logger } from '@js/utils';
 import SecurityCurrencyCache from '@models/investments/security-currency-cache.model';
+import { Op } from '@sequelize/core';
 import { subYears } from 'date-fns';
-import { Op } from 'sequelize';
 import YahooFinance from 'yahoo-finance2';
 
 import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';

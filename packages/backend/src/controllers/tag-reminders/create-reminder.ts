@@ -3,7 +3,7 @@ import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { deserializeCreateTagReminder, serializeTagReminder } from '@root/serializers';
 import * as tagRemindersService from '@services/tag-reminders';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   params: z.object({

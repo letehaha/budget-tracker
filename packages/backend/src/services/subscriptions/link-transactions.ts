@@ -3,8 +3,8 @@ import { t } from '@i18n/index';
 import { ConflictError, NotFoundError } from '@js/errors';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import * as Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 import { findSubscriptionOrThrow } from './helpers';
 

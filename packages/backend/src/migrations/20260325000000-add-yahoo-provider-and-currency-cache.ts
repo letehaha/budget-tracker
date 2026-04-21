@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { QueryInterface, DataTypes, Transaction } from 'sequelize';
+import { AbstractQueryInterface, DataTypes, Transaction } from '@sequelize/core';
 
 const ENUM_SECURITY_PROVIDER = 'enum_security_provider';
 const TABLE_NAME = 'SecurityCurrencyCaches';
 
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Part A: Add 'yahoo' to the security provider enum
     // PostgreSQL doesn't allow enum changes in transactions
     await queryInterface.sequelize.query(`ALTER TYPE "${ENUM_SECURITY_PROVIDER}" ADD VALUE IF NOT EXISTS 'yahoo';`);
@@ -36,8 +36,8 @@ module.exports = {
     });
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Drop the cache table first

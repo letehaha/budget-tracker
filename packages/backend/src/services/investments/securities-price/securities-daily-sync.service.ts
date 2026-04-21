@@ -1,12 +1,13 @@
 import { SECURITY_PROVIDER } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
+import { Op } from '@sequelize/core';
 import { withLock } from '@services/common/lock';
 import { withTransaction } from '@services/common/with-transaction';
-import { endOfDay, subDays } from 'date-fns';
-import { Op } from 'sequelize';
+import { endOfDay, format, subDays } from 'date-fns';
 
 import { dataProviderFactory } from '../data-providers';
 
@@ -85,9 +86,9 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
 
     const securityPricesToUpsert: {
       securityId: number;
-      date: Date;
-      priceClose: string;
-      source: SECURITY_PROVIDER | undefined;
+      date: string;
+      priceClose: Money;
+      source: SECURITY_PROVIDER | null;
     }[] = [];
 
     let securitiesIdsToPatch: number[] = [];
@@ -103,9 +104,9 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
       // Store the price
       securityPricesToUpsert.push({
         securityId: securityData.id,
-        date: priceData.date,
-        priceClose: priceData.priceClose.toString(),
-        source: priceData.providerName,
+        date: format(priceData.date, 'yyyy-MM-dd'),
+        priceClose: Money.fromDecimal(priceData.priceClose),
+        source: priceData.providerName ?? null,
       });
 
       securitiesIdsToPatch.push(securityData.id);

@@ -1,8 +1,8 @@
 import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import { redisClient } from '@root/redis-client';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
+import { describe, expect, it } from 'vitest';
 
 import { REDIS_KEYS, SyncStatus } from './sync-status-tracker';
 

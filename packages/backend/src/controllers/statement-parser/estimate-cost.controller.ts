@@ -6,7 +6,7 @@ import {
   extractTextFromFile,
   validateFileBuffer,
 } from '@services/import-export/statement-parser';
-import { z } from 'zod';
+import z from 'zod';
 
 /**
  * Estimate the cost of extracting transactions from a statement file

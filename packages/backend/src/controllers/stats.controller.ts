@@ -16,7 +16,7 @@ import {
 import * as statsService from '@services/stats';
 import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { isBefore, isEqual, isValid } from 'date-fns';
-import { z } from 'zod';
+import z from 'zod';
 
 import { createController } from './helpers/controller-factory';
 

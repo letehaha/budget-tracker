@@ -3,9 +3,10 @@ import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import { NotFoundError } from '@root/js/errors';
 import { bankProviderRegistry } from '@services/bank-data-providers';
 import { updateConnectionName } from '@services/bank-data-providers/connection/update-connection-name';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

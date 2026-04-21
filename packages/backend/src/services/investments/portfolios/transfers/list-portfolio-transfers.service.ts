@@ -4,7 +4,7 @@ import Accounts from '@models/accounts.model';
 import Currencies from '@models/currencies.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 interface ListPortfolioTransfersParams {
   userId: number;

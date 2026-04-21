@@ -1,3 +1,4 @@
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
@@ -5,7 +6,7 @@ import { withLock } from '@services/common/lock';
 import { withTransaction } from '@services/common/with-transaction';
 import { dataProviderFactory } from '@services/investments/data-providers';
 import { PriceData } from '@services/investments/data-providers/base-provider';
-import { subYears } from 'date-fns';
+import { format, subYears } from 'date-fns';
 
 const syncHistoricalPricesImpl = async (securityId: number): Promise<{ count: number }> => {
   logger.info(`Starting historical price sync for securityId: ${securityId}`);
@@ -36,9 +37,9 @@ const syncHistoricalPricesImpl = async (securityId: number): Promise<{ count: nu
 
   const pricesToCreate = prices.map((price) => ({
     securityId: security.id,
-    date: price.date,
-    priceClose: price.priceClose.toString(),
-    source: price.providerName,
+    date: format(price.date, 'yyyy-MM-dd'),
+    priceClose: Money.fromDecimal(price.priceClose),
+    source: price.providerName ?? null,
   }));
 
   await SecurityPricing.bulkCreate(pricesToCreate, {

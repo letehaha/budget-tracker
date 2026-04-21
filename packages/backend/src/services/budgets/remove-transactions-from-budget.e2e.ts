@@ -1,7 +1,7 @@
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import BudgetTransactions from '@models/budget-transactions.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Remove Transactions from Budget', () => {
   it('successfully removes transactions from a budget', async () => {

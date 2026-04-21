@@ -18,7 +18,7 @@ jobs:
         uses: ./.github/actions/prepare-local-env
       - name: Install dependencies
         if: steps.prepare-env.outputs.cache-hit != 'true'
-        run: npm ci
+        run: bun install --frozen-lockfile
 
   detect-changes:
     name: Detect code changes
@@ -51,7 +51,7 @@ jobs:
         if: needs.detect-changes.outputs.backend-only != 'true'
       - name: Run ${{ matrix.task }}
         if: needs.detect-changes.outputs.backend-only != 'true'
-        run: npm run ${{ matrix.task }} -w packages/frontend
+        run: bun run --cwd packages/frontend ${{ matrix.task }}
 
   frontend-docker-build:
     name: Build frontend Docker image
@@ -117,14 +117,14 @@ jobs:
           fail_on_empty: true # fail if any env variable is empty
       - name: Run ${{ matrix.task }}
         if: needs.detect-changes.outputs.frontend-only != 'true' && matrix.task != 'test'
-        run: npm run ${{ matrix.task }} -w packages/backend
+        run: bun run --cwd packages/backend ${{ matrix.task }}
 
       - name: Run ${{ matrix.task }} (with retry)
         if: needs.detect-changes.outputs.frontend-only != 'true' && matrix.task == 'test'
         run: |
           for attempt in 1 2 3; do
             echo "=== Attempt $attempt of 3 ==="
-            if npm run test -w packages/backend; then
+            if bun run --cwd packages/backend test; then
               exit 0
             fi
             if [ $attempt -lt 3 ]; then

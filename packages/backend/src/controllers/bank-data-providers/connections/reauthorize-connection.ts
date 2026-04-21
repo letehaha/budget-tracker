@@ -2,9 +2,10 @@ import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
+import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { bankProviderRegistry } from '@services/bank-data-providers/registry';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

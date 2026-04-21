@@ -1,5 +1,5 @@
+import { AbstractQueryInterface, Transaction } from '@sequelize/core';
 import crypto from 'crypto';
-import { QueryInterface, Transaction } from 'sequelize';
 
 interface ExistingUser {
   id: number;
@@ -12,9 +12,9 @@ interface ExistingUser {
  * Migration to move existing users to better-auth tables.
  * Creates ba_user and ba_account records for each existing user.
  */
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Get all existing users that haven't been migrated yet
@@ -92,8 +92,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Get all migrated users (those with authUserId set)

@@ -1,30 +1,36 @@
 import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
-import { Table, Column, Model, DataType } from 'sequelize-typescript';
+import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
+import { Attribute, Default, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 @Table({
   tableName: 'SecurityCurrencyCaches',
   freezeTableName: true,
   timestamps: true,
 })
-export default class SecurityCurrencyCache extends Model {
-  @Column({
-    primaryKey: true,
-    type: DataType.STRING,
-  })
+export default class SecurityCurrencyCache extends Model<
+  InferAttributes<SecurityCurrencyCache>,
+  InferCreationAttributes<SecurityCurrencyCache>
+> {
+  @Attribute(DataTypes.STRING)
+  @PrimaryKey
+  @NotNull
   declare symbol: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
+  @Attribute(DataTypes.STRING)
+  @NotNull
   declare currencyCode: string;
 
-  @Column({
-    type: DataType.ENUM(...Object.values(SECURITY_PROVIDER)),
-    allowNull: false,
-  })
+  @Attribute(DataTypes.ENUM(...Object.values(SECURITY_PROVIDER)))
+  @NotNull
   declare providerName: SECURITY_PROVIDER;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare createdAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare createdAt: CreationOptional<Date>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare updatedAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare updatedAt: CreationOptional<Date>;
 }

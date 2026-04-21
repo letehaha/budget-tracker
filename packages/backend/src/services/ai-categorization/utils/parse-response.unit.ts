@@ -1,12 +1,12 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 
 import { parseCategorizationResponse } from './parse-response';
 
 // Only mock the logger
-jest.mock('@js/utils/logger', () => ({
+vi.mock('@js/utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 

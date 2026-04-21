@@ -1,6 +1,5 @@
 import { AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH, AI_PROVIDER } from '@bt/shared/types';
 import { encryptToken } from '@common/utils/encryption';
-import { describe, expect, it, beforeEach } from '@jest/globals';
 import UserSettings, { DEFAULT_SETTINGS } from '@models/user-settings.model';
 import Users from '@models/users.model';
 import { app } from '@root/app';
@@ -25,7 +24,7 @@ async function getTestUserId(): Promise<number> {
 async function setupFakeApiKey({ userId }: { userId: number }) {
   const [settings] = await UserSettings.findOrCreate({
     where: { userId },
-    defaults: { settings: DEFAULT_SETTINGS },
+    defaults: { userId, settings: DEFAULT_SETTINGS },
   });
 
   const now = new Date().toISOString();

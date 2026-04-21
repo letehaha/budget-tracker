@@ -1,7 +1,7 @@
-import { QueryInterface } from 'sequelize';
+import { AbstractQueryInterface } from '@sequelize/core';
 
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Fix transactions that have negative amount, refAmount, or cashbackAmount.
     // All monetary values in Transactions should be stored as positive integers
     // (the sign is determined by transactionType: expense vs income).

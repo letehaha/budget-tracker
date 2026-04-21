@@ -4,11 +4,12 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import Subscriptions from '@models/subscriptions.model';
 import Transactions from '@models/transactions.model';
-import { Op, QueryTypes } from 'sequelize';
+import { Op, QueryTypes } from '@sequelize/core';
 
 import {
   TransactionForGrouping,
@@ -128,15 +129,16 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
   });
 
   // Map to TransactionForGrouping (amount as cents number) and filter out linked transactions
+  // and transactions with null fields (accountId/currencyCode are null for portfolio-linked tx)
   const transactions: TransactionForGrouping[] = rawTransactions
-    .filter((tx) => !linkedSet.has(tx.id))
+    .filter((tx) => !linkedSet.has(tx.id) && tx.note !== null && tx.accountId !== null && tx.currencyCode !== null)
     .map((tx) => ({
       id: tx.id,
       amount: tx.amount.toCents(),
-      note: tx.note,
+      note: tx.note!,
       time: tx.time,
-      accountId: tx.accountId,
-      currencyCode: tx.currencyCode,
+      accountId: tx.accountId!,
+      currencyCode: tx.currencyCode!,
     }));
 
   if (transactions.length === 0) {
@@ -227,7 +229,7 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
       userId,
       suggestedName,
       detectedFrequency: frequency,
-      averageAmount,
+      averageAmount: Money.fromCents(averageAmount),
       currencyCode: group.currencyCode,
       accountId: group.accountId,
       sampleTransactionIds,

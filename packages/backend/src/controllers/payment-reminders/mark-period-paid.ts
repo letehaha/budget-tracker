@@ -1,7 +1,7 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { markPeriodPaid } from '@services/payment-reminders/mark-period-paid';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   params: z.object({

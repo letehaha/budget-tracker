@@ -1,5 +1,6 @@
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
+import { NotFoundError } from '@js/errors';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
 
 import { withTransaction } from '../common/with-transaction';

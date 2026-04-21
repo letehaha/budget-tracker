@@ -193,8 +193,8 @@ export default createController(schema, async ({ user, body }) => {
         matchRefAmountCents: incomeRefCents,
         expenseTime,
         matchTime: incomeTime,
-        expenseCurrency: expense.currencyCode,
-        matchCurrency: income.currencyCode,
+        expenseCurrency: expense.currencyCode ?? '',
+        matchCurrency: income.currencyCode ?? '',
       });
 
       matchCandidates.push({ transaction: income, confidence });

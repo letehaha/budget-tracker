@@ -4,7 +4,7 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { changeBaseCurrency } from '@root/services/currencies/change-base-currency.service';
 import { exchangeRateProviderRegistry } from '@services/exchange-rates/providers';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   body: z.object({

@@ -5,7 +5,7 @@ import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import crypto from 'crypto';
 import { Resend } from 'resend';
-import { z } from 'zod';
+import z from 'zod';
 
 const LEGACY_EMAIL_SUFFIX = '@app.migrated';
 const TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour

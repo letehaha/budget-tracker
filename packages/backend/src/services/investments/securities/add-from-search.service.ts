@@ -1,8 +1,10 @@
 import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { format } from 'date-fns';
 
 import { dataProviderFactory } from '../data-providers';
 import { addOrUpdateFromProvider } from '../securities-manage';
@@ -53,8 +55,8 @@ const addSecurityFromSearchImpl = async ({
       // Store the price in SecurityPricing table
       await SecurityPricing.create({
         securityId: security.id,
-        date: priceData.date,
-        priceClose: priceData.priceClose.toString(),
+        date: format(priceData.date, 'yyyy-MM-dd'),
+        priceClose: Money.fromDecimal(priceData.priceClose),
         source: provider.providerName,
       });
 

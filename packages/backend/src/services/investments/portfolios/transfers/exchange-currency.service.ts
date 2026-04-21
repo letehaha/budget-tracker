@@ -1,3 +1,4 @@
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import Currencies from '@models/currencies.model';
@@ -55,11 +56,11 @@ const exchangeCurrencyImpl = async ({
     toPortfolioId: portfolioId,
     fromAccountId: null,
     toAccountId: null,
-    amount: fromAmount,
+    amount: Money.fromDecimal(fromAmount),
     refAmount,
     currencyCode: fromCurrencyCode,
     toCurrencyCode,
-    toAmount,
+    toAmount: Money.fromDecimal(toAmount),
     refToAmount,
     date,
     description,

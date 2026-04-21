@@ -5,7 +5,7 @@ import { createHolding } from '@services/investments/holdings/create-holding.ser
 import { deleteHolding } from '@services/investments/holdings/delete-holding.service';
 import { getHoldings } from '@services/investments/holdings/get-holdings.service';
 import { addSecurityFromSearch } from '@services/investments/securities/add-from-search.service';
-import { z } from 'zod';
+import z from 'zod';
 
 // Zod schema for SecuritySearchResult (matching the shared type)
 const SecuritySearchResultSchema = z.object({

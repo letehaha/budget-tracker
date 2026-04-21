@@ -1,12 +1,31 @@
 import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Currencies from '@models/currencies.model';
 import Transactions from '@models/transactions.model';
-import Users from '@models/users.model';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType, AfterCreate, HasMany } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  AfterCreate,
+  Attribute,
+  AutoIncrement,
+  BelongsTo,
+  Default,
+  HasMany,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+  Unique,
+} from '@sequelize/core/decorators-legacy';
 
 interface AccountsAttributes {
   id: number;
@@ -37,31 +56,20 @@ interface AccountsAttributes {
   tableName: 'Accounts',
   freezeTableName: true,
 })
-export default class Accounts extends Model {
-  @BelongsTo(() => Currencies, {
-    as: 'currency',
-    foreignKey: 'currencyCode',
-  })
-  @BelongsTo(() => BankDataProviderConnections, {
-    as: 'bankDataProviderConnection',
-    foreignKey: 'bankDataProviderConnectionId',
-  })
-  @HasMany(() => Transactions)
-  transactions!: Transactions[];
+export default class Accounts extends Model<InferAttributes<Accounts>, InferCreationAttributes<Accounts>> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  @Unique
+  declare id: CreationOptional<number>;
 
-  @Column({
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare name: string;
 
-  @Column({ allowNull: false, type: DataType.STRING })
-  name!: string;
-
-  @Column(MoneyColumn({ storage: 'cents' }))
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
   get initialBalance(): Money {
     return moneyGetCents(this, 'initialBalance');
   }
@@ -69,7 +77,9 @@ export default class Accounts extends Model {
     moneySetCents(this, 'initialBalance', val);
   }
 
-  @Column(MoneyColumn({ storage: 'cents' }))
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
   get refInitialBalance(): Money {
     return moneyGetCents(this, 'refInitialBalance');
   }
@@ -77,7 +87,9 @@ export default class Accounts extends Model {
     moneySetCents(this, 'refInitialBalance', val);
   }
 
-  @Column(MoneyColumn({ storage: 'cents' }))
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
   get currentBalance(): Money {
     return moneyGetCents(this, 'currentBalance');
   }
@@ -85,7 +97,9 @@ export default class Accounts extends Model {
     moneySetCents(this, 'currentBalance', val);
   }
 
-  @Column(MoneyColumn({ storage: 'cents' }))
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
   get refCurrentBalance(): Money {
     return moneyGetCents(this, 'refCurrentBalance');
   }
@@ -93,7 +107,9 @@ export default class Accounts extends Model {
     moneySetCents(this, 'refCurrentBalance', val);
   }
 
-  @Column(MoneyColumn({ storage: 'cents' }))
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
   get creditLimit(): Money {
     return moneyGetCents(this, 'creditLimit');
   }
@@ -101,7 +117,9 @@ export default class Accounts extends Model {
     moneySetCents(this, 'creditLimit', val);
   }
 
-  @Column(MoneyColumn({ storage: 'cents' }))
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
   get refCreditLimit(): Money {
     return moneyGetCents(this, 'refCreditLimit');
   }
@@ -109,65 +127,57 @@ export default class Accounts extends Model {
     moneySetCents(this, 'refCreditLimit', val);
   }
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-    defaultValue: ACCOUNT_TYPES.system,
-  })
-  type!: ACCOUNT_TYPES;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  @Default(ACCOUNT_TYPES.system)
+  declare type: CreationOptional<ACCOUNT_TYPES>;
 
-  @Column({
-    allowNull: false,
-    defaultValue: ACCOUNT_CATEGORIES.general,
-    type: DataType.ENUM({ values: Object.values(ACCOUNT_CATEGORIES) }),
-  })
-  accountCategory!: ACCOUNT_CATEGORIES;
+  @Attribute(DataTypes.ENUM({ values: Object.values(ACCOUNT_CATEGORIES) }))
+  @NotNull
+  @Default(ACCOUNT_CATEGORIES.general)
+  declare accountCategory: CreationOptional<ACCOUNT_CATEGORIES>;
 
-  @ForeignKey(() => Currencies)
-  @Column({ type: DataType.STRING(3) })
-  currencyCode!: string;
+  @Attribute(DataTypes.STRING(3))
+  @Index
+  declare currencyCode: string;
 
-  @ForeignKey(() => Users)
-  @Column({ type: DataType.INTEGER })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @Index
+  declare userId: number;
 
   // represents id from the original external system if exists
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
-  })
-  externalId!: string;
+  @Attribute(DataTypes.STRING)
+  declare externalId: string | null;
 
-  @Column({
-    type: DataType.JSONB,
-    allowNull: true,
-  })
-  externalData!: AccountExternalData | null; // JSON of any addition fields
+  @Attribute(DataTypes.JSONB)
+  declare externalData: AccountExternalData | null;
   // cashbackType: string;
   // maskedPan: string;
   // type: string;
   // iban: string;
 
-  @Column({
-    type: DataType.ENUM({ values: Object.values(ACCOUNT_STATUSES) }),
-    allowNull: false,
-    defaultValue: ACCOUNT_STATUSES.active,
-  })
-  status!: ACCOUNT_STATUSES;
+  @Attribute(DataTypes.ENUM({ values: Object.values(ACCOUNT_STATUSES) }))
+  @NotNull
+  @Default(ACCOUNT_STATUSES.active)
+  declare status: CreationOptional<ACCOUNT_STATUSES>;
 
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  })
-  excludeFromStats!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(false)
+  declare excludeFromStats: CreationOptional<boolean>;
 
-  @ForeignKey(() => BankDataProviderConnections)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: true,
-  })
-  bankDataProviderConnectionId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @Index
+  declare bankDataProviderConnectionId: number | null;
+
+  @BelongsTo(() => Currencies, 'currencyCode')
+  declare currency?: NonAttribute<Currencies>;
+
+  @BelongsTo(() => BankDataProviderConnections, 'bankDataProviderConnectionId')
+  declare bankDataProviderConnection?: NonAttribute<BankDataProviderConnections>;
+
+  @HasMany(() => Transactions, 'accountId')
+  declare transactions?: NonAttribute<Transactions[]>;
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Accounts) {

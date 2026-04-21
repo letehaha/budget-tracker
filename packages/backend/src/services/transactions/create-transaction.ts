@@ -150,13 +150,13 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     userId: baseTransaction.userId,
     amount: destinationAmount,
     refAmount: oppositeRefAmount,
-    note: baseTransaction.note,
+    note: baseTransaction.note ?? undefined,
     time: new Date(baseTransaction.time),
     transactionType:
       transactionType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
     paymentType: baseTransaction.paymentType,
     accountId: destinationAccountId,
-    categoryId: baseTransaction.categoryId,
+    categoryId: baseTransaction.categoryId ?? undefined,
     accountType: ACCOUNT_TYPES.system,
     currencyCode: oppositeTxCurrency.code,
     refCurrencyCode: defaultUserCurrency.currency.code,
@@ -344,7 +344,7 @@ export const createTransaction = withTransaction(
           });
         }
 
-        await baseTransaction!.$set('tags', tagIds);
+        await baseTransaction!.setTags(tagIds);
 
         // Emit event for real-time reminders check (handled by event listener)
         eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_TAGGED, { tagIds, userId });

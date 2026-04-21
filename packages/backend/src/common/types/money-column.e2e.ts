@@ -5,12 +5,18 @@
  * Sequelize query patterns: normal queries, raw: true, aggregates,
  * literal updates, and direct model operations.
  */
-import { BUDGET_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import {
+  ACCOUNT_TYPES,
+  BUDGET_TYPES,
+  PAYMENT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 import { Money } from './money';
 
@@ -92,12 +98,12 @@ describe('MoneyColumn integration', () => {
         accountId: account.id,
         userId: global.APP_USER_ID,
         transactionType: TRANSACTION_TYPES.expense,
-        paymentType: 'creditCard',
-        transferNature: 'not_transfer',
+        paymentType: PAYMENT_TYPES.creditCard,
+        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         time: new Date(),
         categoryId: 1,
         currencyCode: global.BASE_CURRENCY.code,
-        accountType: 'system',
+        accountType: ACCOUNT_TYPES.system,
         refCurrencyCode: null,
       });
 
@@ -422,6 +428,7 @@ describe('MoneyColumn integration', () => {
       const stats = await helpers.getStats({ id: budget.id, raw: true });
 
       // Must be 1.5 (decimal), NOT 0.015 (double-converted)
+      expect(stats!.summary).toBeDefined();
       expect(stats!.summary.actualExpense).toBeCloseTo(1.5, 2);
     });
 

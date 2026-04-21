@@ -38,13 +38,13 @@ export interface TransactionApiResponse {
   refCommissionRate: number;
   cashbackAmount: number;
   note: string | null;
-  time: Date;
+  time: string;
   userId: number;
   transactionType: string;
   paymentType: string;
-  accountId: number;
+  accountId: number | null;
   categoryId: number | null;
-  currencyCode: string;
+  currencyCode: string | null;
   accountType: string;
   refCurrencyCode: string | null;
   transferNature: string;
@@ -52,8 +52,8 @@ export interface TransactionApiResponse {
   originalId: string | null;
   externalData: Record<string, unknown> | null;
   refundLinked: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   splits?: TransactionSplitApiResponse[];
   tags?: Array<{
     id: number;
@@ -169,7 +169,7 @@ export function serializeTransaction(
     refCommissionRate: centsToApiDecimal(tx.refCommissionRate),
     cashbackAmount: centsToApiDecimal(tx.cashbackAmount),
     note: tx.note,
-    time: tx.time,
+    time: tx.time instanceof Date ? tx.time.toISOString() : new Date(tx.time).toISOString(),
     userId: tx.userId,
     transactionType: tx.transactionType,
     paymentType: tx.paymentType,
@@ -183,8 +183,8 @@ export function serializeTransaction(
     originalId: tx.originalId,
     externalData: tx.externalData,
     refundLinked: tx.refundLinked,
-    createdAt: tx.createdAt,
-    updatedAt: tx.updatedAt,
+    createdAt: tx.createdAt instanceof Date ? tx.createdAt.toISOString() : new Date(tx.createdAt).toISOString(),
+    updatedAt: tx.updatedAt instanceof Date ? tx.updatedAt.toISOString() : new Date(tx.updatedAt).toISOString(),
     ...(tx.splits && {
       splits: tx.splits.map((split) =>
         serializeTransactionSplit(

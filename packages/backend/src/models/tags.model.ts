@@ -1,44 +1,58 @@
-import Transactions from '@models/transactions.model';
-import Users from '@models/users.model';
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany, HasMany } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  AutoIncrement,
+  HasMany,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 
 import TagReminders from './tag-reminders.model';
-import TransactionTags from './transaction-tags.model';
-
+import type Transactions from './transactions.model';
 @Table({
   tableName: 'Tags',
   timestamps: true,
 })
-export default class Tags extends Model {
-  @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  declare id: number;
+export default class Tags extends Model<InferAttributes<Tags>, InferCreationAttributes<Tags>> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: CreationOptional<number>;
 
-  @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @Column({ allowNull: false, type: DataType.STRING(100) })
-  name!: string;
+  @Attribute(DataTypes.STRING(100))
+  @NotNull
+  declare name: string;
 
-  @Column({ allowNull: false, type: DataType.STRING(7) })
-  color!: string;
+  @Attribute(DataTypes.STRING(7))
+  @NotNull
+  declare color: string;
 
-  @Column({ allowNull: true, type: DataType.STRING(50) })
-  icon!: string | null;
+  @Attribute(DataTypes.STRING(50))
+  declare icon: string | null;
 
-  @Column({ allowNull: true, type: DataType.TEXT })
-  description!: string | null;
+  @Attribute(DataTypes.TEXT)
+  declare description: string | null;
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsToMany(() => Transactions, {
-    through: { model: () => TransactionTags, unique: false },
-    foreignKey: 'tagId',
-    otherKey: 'transactionId',
-  })
-  transactions!: Transactions[];
+  // Inverse of Transactions.@BelongsToMany(Tags) — auto-created by Sequelize v7
+  declare transactions?: NonAttribute<Transactions[]>;
 
-  @HasMany(() => TagReminders, { foreignKey: 'tagId' })
-  reminders!: TagReminders[];
+  @HasMany(() => TagReminders, 'tagId')
+  declare reminders?: NonAttribute<TagReminders[]>;
 }

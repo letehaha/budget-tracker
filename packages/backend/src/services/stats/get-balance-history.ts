@@ -1,7 +1,7 @@
 import * as Accounts from '@models/accounts.model';
 import * as Balances from '@models/balances.model';
+import { Op } from '@sequelize/core';
 import { format } from 'date-fns';
-import { Op } from 'sequelize';
 
 import { getWhereConditionForTime } from './utils';
 
@@ -34,7 +34,7 @@ export const getBalanceHistory = async ({
   from?: string;
   to?: string;
 }): Promise<Balances.default[]> => {
-  const dataAttributes = ['date', 'amount', 'accountId'];
+  const dataAttributes: ('date' | 'amount' | 'accountId')[] = ['date', 'amount', 'accountId'];
 
   const [allUserAccounts, balancesInRange] = await Promise.all([
     Accounts.default.findAll({

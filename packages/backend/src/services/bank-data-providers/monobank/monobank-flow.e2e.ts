@@ -1,10 +1,10 @@
 import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import * as helpers from '@tests/helpers';
 import { INVALID_MONOBANK_TOKEN, VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
-import { Op } from 'sequelize';
+import { describe, expect, it } from 'vitest';
 
 /**
  * E2E tests for Monobank Data Provider using the new unified connection flow
@@ -107,7 +107,13 @@ describe('Monobank Data Provider E2E', () => {
       expect(connectionDetails.accounts.length).toBe(accountIdsToConnect.length);
 
       connectionDetails.accounts.forEach(
-        (account: { externalId: string; id: number; name: string; currentBalance: number; currencyCode: string }) => {
+        (account: {
+          externalId: string | null;
+          id: number;
+          name: string;
+          currentBalance: number;
+          currencyCode: string;
+        }) => {
           expect(accountIdsToConnect).toContain(account.externalId);
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
@@ -663,7 +669,7 @@ describe('Monobank Data Provider E2E', () => {
         (account: {
           id: number;
           name: string;
-          externalId: string;
+          externalId: string | null;
           currentBalance: number;
           currencyCode: string;
           type: string;

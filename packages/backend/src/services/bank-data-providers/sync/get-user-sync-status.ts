@@ -1,7 +1,7 @@
 import { ACCOUNT_STATUSES } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import {
   type AccountSyncStatus,

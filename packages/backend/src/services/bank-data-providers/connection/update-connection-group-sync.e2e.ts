@@ -1,5 +1,4 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
 
@@ -46,7 +45,7 @@ describe('Bank connection account group lifecycle', () => {
       expect(group).toBeDefined();
       expect(group.name).toBe('My Bank');
       expect(group.bankDataProviderConnectionId).toBe(connectionId);
-      expect(group.accounts.length).toBeGreaterThan(0);
+      expect(group.accounts!.length).toBeGreaterThan(0);
     });
 
     it('should reuse existing group when connecting additional accounts', async () => {
@@ -102,7 +101,7 @@ describe('Bank connection account group lifecycle', () => {
       const userGroupAfter = groups.find((g) => g.id === userGroup.id);
 
       expect(userGroupAfter).toBeDefined();
-      expect(userGroupAfter!.accounts.some((a) => a.id === manualAccount.id)).toBe(true);
+      expect(userGroupAfter!.accounts!.some((a) => a.id === manualAccount.id)).toBe(true);
     });
   });
 

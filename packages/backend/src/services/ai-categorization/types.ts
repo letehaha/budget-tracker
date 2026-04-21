@@ -6,7 +6,7 @@ import { Money } from '@common/types/money';
 export interface TransactionForCategorization {
   id: number;
   amount: Money;
-  currencyCode: string;
+  currencyCode: string | null;
   accountName: string;
   datetime: string;
   note: string | null;

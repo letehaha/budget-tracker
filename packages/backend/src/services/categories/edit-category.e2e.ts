@@ -1,7 +1,7 @@
 import { CategoryModel } from '@bt/shared/types';
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const mockedCategory = {
   name: 'test-category',

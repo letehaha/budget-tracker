@@ -5,7 +5,7 @@ import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import * as Transactions from '@models/transactions.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import { withTransaction } from '../common/with-transaction';
 import { buildDateFilter } from './utils/build-date-filter';

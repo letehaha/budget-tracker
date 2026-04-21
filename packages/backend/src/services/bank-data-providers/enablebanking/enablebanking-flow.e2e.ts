@@ -1,5 +1,4 @@
 import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as helpers from '@tests/helpers';
@@ -14,6 +13,7 @@ import {
   getAllMockAccountUIDs,
 } from '@tests/mocks/enablebanking/data';
 import { HttpResponse, http } from 'msw';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('Enable Banking Data Provider E2E', () => {
   // Reset mock session counter before each test to ensure predictable behavior
@@ -140,7 +140,13 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(connectionDetails.accounts.length).toBe(accountIdsToConnect.length);
 
       connectionDetails.accounts.forEach(
-        (account: { externalId: string; id: number; name: string; currentBalance: number; currencyCode: string }) => {
+        (account: {
+          externalId: string | null;
+          id: number;
+          name: string;
+          currentBalance: number;
+          currencyCode: string;
+        }) => {
           expect(accountIdsToConnect).toContain(account.externalId);
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
@@ -603,7 +609,7 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(transactions.length).toBeGreaterThan(0);
 
       // Verify transactions belong to the correct account
-      transactions.forEach((tx: { accountId: number }) => {
+      transactions.forEach((tx) => {
         expect(tx.accountId).toBe(createdAccountId);
       });
     });
@@ -910,7 +916,7 @@ describe('Enable Banking Data Provider E2E', () => {
         (account: {
           id: number;
           name: string;
-          externalId: string;
+          externalId: string | null;
           currentBalance: number;
           currencyCode: string;
           type: string;
@@ -1590,8 +1596,8 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(initialTxDate).toBe(valueDate);
 
       // Verify externalData has only value_date, no booking_date
-      expect(initialTx.externalData.valueDate).toBe(valueDate);
-      expect(initialTx.externalData.bookingDate).toBeUndefined();
+      expect(initialTx.externalData!.valueDate).toBe(valueDate);
+      expect(initialTx.externalData!.bookingDate).toBeUndefined();
 
       // Step 4: Update mock to return same transaction with booking_date added
       const updatedTransactions: FixedTransaction[] = [
@@ -1632,8 +1638,8 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(updatedTx.id).toBe(initialTx.id);
 
       // Verify externalData now has both dates
-      expect(updatedTx.externalData.valueDate).toBe(valueDate);
-      expect(updatedTx.externalData.bookingDate).toBe(bookingDate);
+      expect(updatedTx.externalData!.valueDate).toBe(valueDate);
+      expect(updatedTx.externalData!.bookingDate).toBe(bookingDate);
     });
 
     it('should not create duplicates when syncing transactions with same entry_reference', async () => {

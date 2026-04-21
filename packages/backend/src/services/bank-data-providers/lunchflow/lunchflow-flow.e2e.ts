@@ -6,9 +6,9 @@ import {
   TRANSACTION_TYPES,
   asDecimal,
 } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import * as helpers from '@tests/helpers';
 import { buildTransactionPayload } from '@tests/helpers/transactions';
 import {
@@ -25,7 +25,7 @@ import {
   getLunchFlowTransactionsMock,
 } from '@tests/mocks/lunchflow/mock-api';
 import { addDays, subDays } from 'date-fns';
-import { Op } from 'sequelize';
+import { describe, expect, it } from 'vitest';
 
 /**
  * E2E tests for LunchFlow Data Provider
@@ -125,7 +125,13 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(connectionDetails.accounts.length).toBe(accountIdsToConnect.length);
 
       connectionDetails.accounts.forEach(
-        (account: { externalId: string; id: number; name: string; currentBalance: number; currencyCode: string }) => {
+        (account: {
+          externalId: string | null;
+          id: number;
+          name: string;
+          currentBalance: number;
+          currencyCode: string;
+        }) => {
           expect(accountIdsToConnect).toContain(account.externalId);
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
@@ -554,7 +560,13 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(details.accounts.length).toBe(2);
 
       details.accounts.forEach(
-        (account: { id: number; name: string; externalId: string; currentBalance: number; currencyCode: string }) => {
+        (account: {
+          id: number;
+          name: string;
+          externalId: string | null;
+          currentBalance: number;
+          currencyCode: string;
+        }) => {
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
           expect(account).toHaveProperty('externalId');

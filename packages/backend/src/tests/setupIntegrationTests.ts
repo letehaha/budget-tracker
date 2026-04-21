@@ -2,7 +2,6 @@
 import { until } from '@common/helpers';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { i18nextReady } from '@i18n/index';
-import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
@@ -15,6 +14,7 @@ import {
 } from '@services/bank-data-providers/monobank/transaction-sync-queue';
 import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from 'vitest';
 
 import { resetSessionCounter } from './mocks/enablebanking/mock-api';
 import { setupMswServer } from './mocks/setup-mock-server';
@@ -23,49 +23,55 @@ import { retryWithBackoff } from './utils/retry-db-operation-with-backoff';
 const mswMockServer = setupMswServer();
 
 // Mock the entire module globally. Mocked implementation will be per-test
-jest.mock('@polygon.io/client-js', () => ({
-  restClient: jest.fn().mockReturnValue({
+vi.mock('@polygon.io/client-js', () => ({
+  restClient: vi.fn().mockReturnValue({
     reference: {
-      tickers: jest.fn(),
-      exchanges: jest.fn(),
+      tickers: vi.fn(),
+      exchanges: vi.fn(),
     },
     stocks: {
-      aggregatesGroupedDaily: jest.fn(),
-      aggregates: jest.fn(),
+      aggregatesGroupedDaily: vi.fn(),
+      aggregates: vi.fn(),
     },
   }),
 }));
 
-jest.mock('alphavantage', () =>
-  jest.fn().mockReturnValue({
+vi.mock('alphavantage', () => ({
+  default: vi.fn().mockReturnValue({
     data: {
-      search: jest.fn(),
-      quote: jest.fn(),
-      daily: jest.fn(),
+      search: vi.fn(),
+      quote: vi.fn(),
+      daily: vi.fn(),
     },
   }),
-);
+}));
+
+// Mock pdf-parse to avoid its known bug of opening test files on import
+vi.mock('pdf-parse', () => ({
+  default: vi.fn().mockResolvedValue({ text: '', numpages: 0, info: {} }),
+}));
 
 // Mock the FMP client globally
-jest.mock('../services/investments/data-providers/clients/fmp-client', () => ({
-  FmpClient: jest.fn().mockImplementation(() => ({
-    search: jest.fn(),
-    getQuote: jest.fn(),
-    getHistoricalPrices: jest.fn(),
-    getHistoricalPricesFull: jest.fn(),
-  })),
+vi.mock('../services/investments/data-providers/clients/fmp-client', () => ({
+  __esModule: true,
+  FmpClient: vi.fn(function (this: Record<string, unknown>) {
+    this.search = vi.fn();
+    this.getQuote = vi.fn();
+    this.getHistoricalPrices = vi.fn();
+    this.getHistoricalPricesFull = vi.fn();
+  }),
 }));
 
 // Mock yahoo-finance2 globally (v3 requires instantiation).
 // All methods reject by default so the composite provider falls back to other
 // providers (FMP, Polygon, etc.) in existing tests. Tests that specifically
 // exercise Yahoo behaviour must override these mocks per-test.
-jest.mock('yahoo-finance2', () => {
-  const MockYahooFinance = jest.fn().mockImplementation(() => ({
-    search: jest.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
-    quote: jest.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
-    chart: jest.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
-  }));
+vi.mock('yahoo-finance2', () => {
+  const MockYahooFinance = vi.fn(function (this: Record<string, unknown>) {
+    this.search = vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test'));
+    this.quote = vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test'));
+    this.chart = vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test'));
+  });
   return { __esModule: true, default: MockYahooFinance };
 });
 

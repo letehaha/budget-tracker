@@ -159,7 +159,7 @@ export interface DuplicateMatch {
     date: string;
     amount: Cents;
     note: string;
-    accountId: number;
+    accountId: number | null;
   };
   matchType: 'originalId' | 'exact' | 'fuzzy';
   confidence: number; // 0-100

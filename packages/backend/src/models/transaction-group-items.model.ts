@@ -1,15 +1,18 @@
-import TransactionGroups from '@models/transaction-groups.model';
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
-
-import Transactions from './transactions.model';
+import { DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
+import { Attribute, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 @Table({ tableName: 'TransactionGroupItems', timestamps: false })
-export default class TransactionGroupItems extends Model {
-  @ForeignKey(() => TransactionGroups)
-  @Column({ primaryKey: true, allowNull: false, type: DataType.INTEGER })
-  groupId!: number;
+export default class TransactionGroupItems extends Model<
+  InferAttributes<TransactionGroupItems>,
+  InferCreationAttributes<TransactionGroupItems>
+> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @NotNull
+  declare groupId: number;
 
-  @ForeignKey(() => Transactions)
-  @Column({ primaryKey: true, allowNull: false, type: DataType.INTEGER })
-  transactionId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @NotNull
+  declare transactionId: number;
 }

@@ -1,10 +1,10 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { getMockedWalutomatHistory } from '@tests/mocks/walutomat/data';
 import { getWalutomatBalancesMock, getWalutomatHistoryMock } from '@tests/mocks/walutomat/mock-api';
+import { describe, expect, it } from 'vitest';
 
 import type { Currency, HistoryItem } from './api-client';
 

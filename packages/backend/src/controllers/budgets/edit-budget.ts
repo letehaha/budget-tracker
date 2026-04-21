@@ -3,7 +3,7 @@ import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeBudget } from '@root/serializers';
 import * as editBudgetService from '@services/budgets/edit-budget';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   params: z.object({

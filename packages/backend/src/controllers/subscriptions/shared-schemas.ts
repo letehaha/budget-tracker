@@ -1,5 +1,5 @@
 import { recordId } from '@common/lib/zod/custom-types';
-import { z } from 'zod';
+import z from 'zod';
 
 export const matchingRuleSchema = z.discriminatedUnion('field', [
   z.object({

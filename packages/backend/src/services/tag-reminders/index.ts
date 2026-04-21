@@ -5,8 +5,8 @@ import { ConflictError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import TagReminders from '@models/tag-reminders.model';
 import Tags from '@models/tags.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 const MAX_REMINDERS_PER_USER = 50;
 

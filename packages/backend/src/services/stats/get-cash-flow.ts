@@ -1,8 +1,8 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
-import Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
 import * as Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import {
   addDays,
   addMonths,
@@ -17,7 +17,6 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
-import { Op } from 'sequelize';
 
 import { getWhereConditionForTime } from './utils';
 
@@ -271,7 +270,7 @@ export const getCashFlow = async ({
     }),
     include: [
       {
-        model: Accounts,
+        association: 'account',
         where: { excludeFromStats: false },
         attributes: [],
       },

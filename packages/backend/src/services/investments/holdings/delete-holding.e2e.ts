@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { Money } from '@common/types/money';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('DELETE /investments/holding (delete holding)', () => {
   let investmentPortfolio: Portfolios;
@@ -64,7 +65,7 @@ describe('DELETE /investments/holding (delete holding)', () => {
     });
     // Manually set quantity to non-zero
     await Holdings.update(
-      { quantity: '1.0000000000' },
+      { quantity: Money.fromDecimal('1.0000000000') },
       { where: { portfolioId: investmentPortfolio.id, securityId: vooSecurity.id } },
     );
     // Try to delete

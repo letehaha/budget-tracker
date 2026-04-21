@@ -1,4 +1,4 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to create TagReminders table.
@@ -8,9 +8,9 @@ import { DataTypes, QueryInterface, Transaction } from 'sequelize';
  * - No schedule (frequency = null) = real-time trigger on tagging (24h cooldown)
  * - With frequency = cron-based check at specified intervals
  */
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.createTable(
@@ -26,7 +26,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -36,7 +36,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Tags',
+              table: 'Tags',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -130,8 +130,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       const tableExists = await queryInterface.tableExists('TagReminders');

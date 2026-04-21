@@ -3,7 +3,7 @@
  */
 import { auth } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
-import { z } from 'zod';
+import z from 'zod';
 
 /**
  * Set password for OAuth-only users.

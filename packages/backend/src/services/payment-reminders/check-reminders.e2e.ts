@@ -4,12 +4,12 @@ import {
   REMIND_BEFORE_PRESETS,
   SUBSCRIPTION_FREQUENCIES,
 } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import PaymentReminderNotifications from '@models/payment-reminder-notifications.model';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 import { checkPaymentReminders } from './check-reminders';
 
@@ -100,14 +100,14 @@ describe('Payment Reminders - Check Reminders (Cron Logic)', () => {
       // Mark as paid
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
       await checkPaymentReminders();
 
       const period = await PaymentReminderPeriods.findOne({
-        where: { id: reminder.periods[0]!.id },
+        where: { id: reminder.periods![0]!.id },
       });
       expect(period!.status).toBe(PAYMENT_REMINDER_STATUSES.paid);
     });

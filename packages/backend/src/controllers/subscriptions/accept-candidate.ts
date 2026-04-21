@@ -1,6 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { resolveCandidate } from '@services/subscriptions/resolve-candidate';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   params: z.object({

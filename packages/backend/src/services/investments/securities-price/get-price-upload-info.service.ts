@@ -1,7 +1,7 @@
 import { NotFoundError } from '@js/errors';
 import ExchangeRates from '@models/exchange-rates.model';
+import { Op } from '@sequelize/core';
 import { exchangeRateProviderRegistry } from '@services/exchange-rates/providers';
-import { Op } from 'sequelize';
 
 interface getPriceUploadInfo {
   currencyCode: string;

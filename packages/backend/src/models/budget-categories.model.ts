@@ -1,7 +1,5 @@
-import Budgets from '@models/budget.model';
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
-
-import Categories from './categories.model';
+import { DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
+import { Attribute, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 /**
  * Junction table for many-to-many relationship between Budgets and Categories.
@@ -20,12 +18,17 @@ import Categories from './categories.model';
  * - Efficient querying: Easy to find "all budgets tracking category X"
  */
 @Table({ tableName: 'BudgetCategories', timestamps: false })
-export default class BudgetCategories extends Model {
-  @ForeignKey(() => Budgets)
-  @Column({ primaryKey: true, allowNull: false, type: DataType.INTEGER })
-  budgetId!: number;
+export default class BudgetCategories extends Model<
+  InferAttributes<BudgetCategories>,
+  InferCreationAttributes<BudgetCategories>
+> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @NotNull
+  declare budgetId: number;
 
-  @ForeignKey(() => Categories)
-  @Column({ primaryKey: true, allowNull: false, type: DataType.INTEGER })
-  categoryId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @NotNull
+  declare categoryId: number;
 }

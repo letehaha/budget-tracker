@@ -1,5 +1,4 @@
 import {
-  NotificationModel,
   NotificationPayload,
   NotificationPriority,
   NotificationStatus,
@@ -7,7 +6,23 @@ import {
   NOTIFICATION_PRIORITIES,
   NOTIFICATION_STATUSES,
 } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType, BeforeCreate } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Default,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Users from './users.model';
@@ -17,12 +32,13 @@ import Users from './users.model';
   timestamps: false,
   freezeTableName: true,
 })
-export default class Notifications extends Model implements NotificationModel {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-  })
-  declare id: string;
+export default class Notifications extends Model<
+  InferAttributes<Notifications>,
+  InferCreationAttributes<Notifications>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<string>;
 
   @BeforeCreate
   static generateUUIDv7(instance: Notifications) {
@@ -31,71 +47,47 @@ export default class Notifications extends Model implements NotificationModel {
     }
   }
 
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare userId: number;
 
-  @Column({
-    type: DataType.STRING(50),
-    allowNull: false,
-  })
-  type!: NotificationType;
+  @Attribute(DataTypes.STRING(50))
+  @NotNull
+  declare type: NotificationType;
 
-  @Column({
-    type: DataType.STRING(200),
-    allowNull: false,
-  })
-  title!: string;
+  @Attribute(DataTypes.STRING(200))
+  @NotNull
+  declare title: string;
 
-  @Column({
-    type: DataType.TEXT,
-    allowNull: true,
-  })
-  message!: string | null;
+  @Attribute(DataTypes.TEXT)
+  declare message: string | null;
 
-  @Column({
-    type: DataType.JSONB,
-    allowNull: false,
-    defaultValue: {},
-  })
-  payload!: NotificationPayload;
+  @Attribute(DataTypes.JSONB)
+  @NotNull
+  @Default({})
+  declare payload: CreationOptional<NotificationPayload>;
 
-  @Column({
-    type: DataType.STRING(20),
-    allowNull: false,
-    defaultValue: NOTIFICATION_STATUSES.unread,
-  })
-  status!: NotificationStatus;
+  @Attribute(DataTypes.STRING(20))
+  @NotNull
+  @Default(NOTIFICATION_STATUSES.unread)
+  declare status: CreationOptional<NotificationStatus>;
 
-  @Column({
-    type: DataType.STRING(20),
-    allowNull: false,
-    defaultValue: NOTIFICATION_PRIORITIES.normal,
-  })
-  priority!: NotificationPriority;
+  @Attribute(DataTypes.STRING(20))
+  @NotNull
+  @Default(NOTIFICATION_PRIORITIES.normal)
+  declare priority: CreationOptional<NotificationPriority>;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: false,
-    defaultValue: DataType.NOW,
-  })
-  declare createdAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare createdAt: CreationOptional<Date>;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  readAt!: Date | null;
+  @Attribute(DataTypes.DATE)
+  declare readAt: Date | null;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  expiresAt!: Date | null;
+  @Attribute(DataTypes.DATE)
+  declare expiresAt: Date | null;
 
-  @BelongsTo(() => Users)
-  user!: Users;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 }

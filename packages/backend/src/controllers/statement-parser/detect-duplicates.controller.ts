@@ -1,7 +1,7 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { detectDuplicates } from '@services/import-export/statement-parser/detect-duplicates.service';
-import { z } from 'zod';
+import z from 'zod';
 
 const extractedTransactionSchema = z.object({
   date: z.string(),

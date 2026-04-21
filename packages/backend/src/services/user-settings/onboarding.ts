@@ -39,6 +39,7 @@ export const updateOnboardingState = withTransaction(
     const [settings, created] = await UserSettings.findOrCreate({
       where: { userId },
       defaults: {
+        userId,
         settings: {
           ...DEFAULT_SETTINGS,
           onboarding: { ...DEFAULT_ONBOARDING_STATE, ...onboardingState },
@@ -69,6 +70,7 @@ export const markTaskComplete = withTransaction(
     const [settings, created] = await UserSettings.findOrCreate({
       where: { userId },
       defaults: {
+        userId,
         settings: {
           ...DEFAULT_SETTINGS,
           onboarding: {

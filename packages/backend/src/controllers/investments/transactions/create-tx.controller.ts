@@ -2,7 +2,7 @@ import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { numericString, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { createInvestmentTransaction } from '@services/investments/transactions/create.service';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

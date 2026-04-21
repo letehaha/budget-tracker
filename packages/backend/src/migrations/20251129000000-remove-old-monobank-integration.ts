@@ -1,6 +1,6 @@
 'use strict';
 
-import { DataTypes, QueryInterface } from 'sequelize';
+import { DataTypes, AbstractQueryInterface } from '@sequelize/core';
 
 /**
  * Migration to remove the old Monobank integration that used direct API tokens.
@@ -13,8 +13,8 @@ import { DataTypes, QueryInterface } from 'sequelize';
  * The new Monobank integration uses BankDataProviderConnections and accounts with
  * bankDataProviderConnectionId set. Those accounts keep type='monobank'.
  */
-module.exports = {
-  async up(queryInterface: QueryInterface) {
+export default {
+  async up(queryInterface: AbstractQueryInterface) {
     // Step 1: Convert old monobank accounts (without bankDataProviderConnectionId) to system accounts
     // Using hardcoded strings as migrations should be self-contained and not depend on app code
     await queryInterface.sequelize.query(`
@@ -30,7 +30,7 @@ module.exports = {
     await queryInterface.dropTable('MonobankUsers');
   },
 
-  async down(queryInterface: QueryInterface) {
+  async down(queryInterface: AbstractQueryInterface) {
     // Recreate MonobankUsers table
     await queryInterface.createTable('MonobankUsers', {
       id: {
@@ -59,7 +59,7 @@ module.exports = {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-          model: 'Users',
+          table: 'Users',
           key: 'id',
         },
         onDelete: 'CASCADE',

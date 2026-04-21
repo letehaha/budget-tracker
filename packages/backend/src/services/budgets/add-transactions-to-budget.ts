@@ -5,8 +5,8 @@ import { ValidationError } from '@js/errors';
 import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 interface AddTransactionsPayload {
   budgetId: number;

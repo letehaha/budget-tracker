@@ -2,7 +2,7 @@ import { CATEGORY_TYPES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as categoriesService from '@root/services/categories/create-category';
 import * as onboardingService from '@services/user-settings/onboarding';
-import { z } from 'zod';
+import z from 'zod';
 
 const CreateCategoryPayloadSchema = z
   .object({

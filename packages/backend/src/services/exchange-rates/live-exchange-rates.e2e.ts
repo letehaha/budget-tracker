@@ -1,6 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { format } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 import { API_LAYER_DATE_FORMAT } from './fetch-exchange-rates-for-date';
 

@@ -1,6 +1,6 @@
 import { Money } from '@common/types/money';
-import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Query transactions with splits', () => {
   describe('includeSplits parameter', () => {

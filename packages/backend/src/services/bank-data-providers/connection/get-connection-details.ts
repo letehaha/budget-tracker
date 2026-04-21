@@ -1,5 +1,6 @@
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
+import { NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 
@@ -36,7 +37,7 @@ export interface ConnectionDetailsResponse {
   accounts: Array<{
     id: number;
     name: string;
-    externalId: string;
+    externalId: string | null;
     currentBalance: number;
     currencyCode: string;
     type: string;
@@ -122,7 +123,7 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
       documentationUrl: providerMetadata.documentationUrl,
       features: providerMetadata.features,
     },
-    accounts: connection.accounts.map((account) => ({
+    accounts: (connection.accounts ?? []).map((account) => ({
       id: account.id,
       name: account.name,
       externalId: account.externalId,

@@ -1,7 +1,7 @@
 import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
 import { createController } from '@controllers/helpers/controller-factory';
 import { bulkUploadSecurityPrices } from '@root/services/investments/securities-price/bulk-upload-prices.service';
-import { z } from 'zod';
+import z from 'zod';
 
 // Zod schema for SecuritySearchResult
 const SecuritySearchResultSchema = z.object({

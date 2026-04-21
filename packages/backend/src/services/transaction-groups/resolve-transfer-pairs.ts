@@ -1,6 +1,6 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import Transactions from '@models/transactions.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 /**
  * Given a list of transaction IDs, finds any transfer-paired opposite transactions
@@ -27,7 +27,7 @@ export const resolveTransferPairs = async ({
     raw: true,
   });
 
-  const transferIds = transferTxs.map((tx) => tx.transferId).filter(Boolean);
+  const transferIds = transferTxs.map((tx) => tx.transferId).filter((id): id is string => Boolean(id));
 
   if (transferIds.length === 0) return transactionIds;
 

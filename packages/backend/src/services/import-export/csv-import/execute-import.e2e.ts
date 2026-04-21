@@ -1,9 +1,9 @@
 import type { ParsedTransactionRow, TransactionImportDetails } from '@bt/shared/types';
 import { ImportSource, asCents } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Execute Import endpoint', () => {
   // Helper to create valid parsed rows

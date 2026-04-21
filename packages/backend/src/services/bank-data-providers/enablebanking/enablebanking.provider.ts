@@ -860,7 +860,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     // Update account balance
     await account.update({
-      currentBalance: balance,
+      currentBalance: Money.fromCents(balance),
       refCurrentBalance: refBalance,
     });
 

@@ -1,6 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { getAllSystemCurrencies } from '@services/system-currencies';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({});
 

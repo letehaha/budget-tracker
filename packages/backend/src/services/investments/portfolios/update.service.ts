@@ -3,8 +3,8 @@ import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ConflictError } from '@js/errors';
 import Portfolios from '@models/investments/portfolios.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 interface UpdatePortfolioParams {
   userId: number;
