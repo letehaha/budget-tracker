@@ -94,13 +94,13 @@ test.describe('Transaction Groups', () => {
     await checkboxes.nth(1).click();
     await checkboxes.nth(2).click();
 
-    // Open the Group popover (desktop)
+    // Open the Group dropdown (desktop)
     const groupButton = page.locator('button').filter({ hasText: /group/i }).first();
     await expect(groupButton).toBeVisible();
     await groupButton.click();
 
     // Click "Create New Group"
-    const createOption = page.locator('button').filter({ hasText: /create new group/i });
+    const createOption = page.getByRole('menuitem', { name: /create new group/i });
     await expect(createOption).toBeVisible();
     await createOption.click();
 
@@ -253,13 +253,13 @@ test.describe('Transaction Groups', () => {
     // Need to find ungrouped transactions - pick the first available checkbox
     await checkboxes.nth(0).click();
 
-    // Open Group popover
+    // Open Group dropdown
     const groupButton = page.locator('button').filter({ hasText: /group/i }).first();
     await expect(groupButton).toBeVisible();
     await groupButton.click();
 
     // Click "Add to Existing Group"
-    const addOption = page.locator('button').filter({ hasText: /add to existing/i });
+    const addOption = page.getByRole('menuitem', { name: /add to existing/i });
     await expect(addOption).toBeVisible();
     await addOption.click();
 
@@ -516,13 +516,13 @@ test.describe('Transaction Groups', () => {
     const checkboxes = page.locator('[aria-haspopup="true"] label');
     await checkboxes.nth(0).click();
 
-    // Open Group popover
+    // Open Group dropdown
     const groupButton = page.locator('button').filter({ hasText: /group/i }).first();
     await expect(groupButton).toBeVisible();
     await groupButton.click();
 
     // "Create New Group" should be disabled when only 1 is selected
-    const createOption = page.locator('button').filter({ hasText: /create new group/i });
+    const createOption = page.getByRole('menuitem', { name: /create new group/i });
     await expect(createOption).toBeDisabled();
   });
 
@@ -538,13 +538,10 @@ test.describe('Transaction Groups', () => {
     const checkboxes = page.locator('[aria-haspopup="true"] label');
     await checkboxes.nth(0).click();
 
-    // Open Group popover > Add to existing
+    // Open Group dropdown > Add to existing
     const groupButton = page.locator('button').filter({ hasText: /group/i }).first();
     await groupButton.click();
-    await page
-      .locator('button')
-      .filter({ hasText: /add to existing/i })
-      .click();
+    await page.getByRole('menuitem', { name: /add to existing/i }).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 5_000 });
