@@ -376,7 +376,7 @@ export async function setupInvestments({
         name: sec.name,
         assetClass: sec.assetClass,
         currencyCode: sec.currencyCode,
-        providerName: SECURITY_PROVIDER.composite,
+        providerName: SECURITY_PROVIDER.yahoo,
         exchangeAcronym: sec.exchangeAcronym,
         exchangeMic: sec.exchangeMic,
         exchangeName: sec.exchangeName,
@@ -406,8 +406,6 @@ export async function setupInvestments({
       quantity: quantityStr,
       costBasis: costBasisStr,
       refCostBasis: costBasisStr,
-      value: '0',
-      refValue: '0',
       excluded: false,
     });
 

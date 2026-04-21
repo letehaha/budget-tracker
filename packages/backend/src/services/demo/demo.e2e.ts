@@ -288,9 +288,9 @@ describe('Demo Mode', () => {
         raw: true,
       });
 
-      expect(Array.isArray(res)).toBe(true);
-      expect(res.length).toBeGreaterThanOrEqual(1);
-      expect(res[0]?.name).toBe('Growth Portfolio');
+      expect(Array.isArray(res.data)).toBe(true);
+      expect(res.data.length).toBeGreaterThanOrEqual(1);
+      expect(res.data[0]?.name).toBe('Growth Portfolio');
     });
 
     it('blocks investment portfolio creation for demo users', async () => {
