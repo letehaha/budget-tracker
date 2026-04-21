@@ -48,13 +48,15 @@
             {{ t('pages.integrations.monobank.backButton') }}
           </UiButton>
 
-          <UiButton @click="handleConnectProvider" :disabled="!apiToken || isLoading">
-            {{
-              isLoading
-                ? t('pages.integrations.monobank.connectingButton')
-                : t('pages.integrations.monobank.connectButton')
-            }}
-          </UiButton>
+          <DemoRestricted :message="t('demo.featureNotAvailable')">
+            <UiButton @click="handleConnectProvider" :disabled="!apiToken || isLoading || isDemo">
+              {{
+                isLoading
+                  ? t('pages.integrations.monobank.connectingButton')
+                  : t('pages.integrations.monobank.connectButton')
+              }}
+            </UiButton>
+          </DemoRestricted>
         </div>
       </div>
     </template>
@@ -90,13 +92,15 @@
               {{ t('pages.integrations.monobank.backButton') }}
             </UiButton>
 
-            <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading">
-              {{
-                isLoading
-                  ? t('pages.integrations.monobank.syncingButton')
-                  : t('pages.integrations.monobank.syncButton', { count: selectedAccountIds.length })
-              }}
-            </UiButton>
+            <DemoRestricted :message="t('demo.featureNotAvailable')">
+              <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading || isDemo">
+                {{
+                  isLoading
+                    ? t('pages.integrations.monobank.syncingButton')
+                    : t('pages.integrations.monobank.syncButton', { count: selectedAccountIds.length })
+                }}
+              </UiButton>
+            </DemoRestricted>
           </div>
         </template>
       </div>
@@ -112,12 +116,14 @@ import {
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
+import { DemoRestricted } from '@/components/demo';
 import ExternalLink from '@/components/external-link.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
-import { useAccountsStore, useOnboardingStore } from '@/stores';
+import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { InfoIcon } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -130,6 +136,7 @@ const emit = defineEmits<{
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { isDemo } = storeToRefs(useUserStore());
 
 const currentStep = ref(1);
 const isLoading = ref(false);
@@ -144,7 +151,7 @@ const availableAccounts = ref<AvailableAccount[]>([]);
 const selectedAccountIds = ref<string[]>([]);
 
 const handleConnectProvider = async () => {
-  if (!apiToken.value || isLoading.value) return;
+  if (!apiToken.value || isLoading.value || isDemo.value) return;
 
   try {
     isLoading.value = true;
@@ -173,7 +180,7 @@ const handleConnectProvider = async () => {
 };
 
 const handleSyncAccounts = async () => {
-  if (!connectionId.value || selectedAccountIds.value.length === 0 || isLoading.value) {
+  if (!connectionId.value || selectedAccountIds.value.length === 0 || isLoading.value || isDemo.value) {
     return;
   }
 

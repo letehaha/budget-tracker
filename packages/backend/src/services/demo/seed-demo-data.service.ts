@@ -1,9 +1,27 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, BUDGET_STATUSES, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_TYPES,
+  BUDGET_STATUSES,
+  SUBSCRIPTION_FREQUENCIES,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
+import {
+  ASSET_CLASS,
+  INVESTMENT_TRANSACTION_CATEGORY,
+  PORTFOLIO_TYPE,
+  SECURITY_PROVIDER,
+} from '@bt/shared/types/investments';
 import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
+import Holdings from '@models/investments/holdings.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import PortfolioBalances from '@models/investments/portfolio-balances.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
 import Subscriptions from '@models/subscriptions.model';
 import UserSettings, { DEFAULT_SETTINGS, type SettingsSchema } from '@models/user-settings.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
@@ -12,7 +30,8 @@ import { createBudget } from '@services/budgets/create-budget';
 import * as categoriesService from '@services/categories.service';
 import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
-import { format, subMonths, setDate } from 'date-fns';
+import { Big } from 'big.js';
+import { format, setDate, subDays, subMonths } from 'date-fns';
 import { v7 as uuidv7 } from 'uuid';
 
 // Demo data configuration based on PRD
@@ -271,4 +290,161 @@ export async function setupDashboardSettings({
   });
 
   logger.info(`Configured demo dashboard with spending watchlist (${selectedCategoryIds.length} categories)`);
+}
+
+interface DemoSecurityConfig {
+  symbol: string;
+  name: string;
+  assetClass: ASSET_CLASS;
+  currencyCode: string;
+  exchangeAcronym: string;
+  exchangeMic: string;
+  exchangeName: string;
+  currentPrice: number;
+  purchasePrice: number;
+  quantity: number;
+  purchaseDaysAgo: number;
+}
+
+const DEMO_SECURITIES: DemoSecurityConfig[] = [
+  {
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    assetClass: ASSET_CLASS.stocks,
+    currencyCode: 'USD',
+    exchangeAcronym: 'NASDAQ',
+    exchangeMic: 'XNAS',
+    exchangeName: 'NASDAQ',
+    currentPrice: 185.5,
+    purchasePrice: 150.0,
+    quantity: 10,
+    purchaseDaysAgo: 120,
+  },
+  {
+    symbol: 'VOO',
+    name: 'Vanguard S&P 500 ETF',
+    assetClass: ASSET_CLASS.stocks,
+    currencyCode: 'USD',
+    exchangeAcronym: 'NYSEARCA',
+    exchangeMic: 'ARCX',
+    exchangeName: 'NYSE Arca',
+    currentPrice: 480.25,
+    purchasePrice: 410.0,
+    quantity: 5,
+    purchaseDaysAgo: 180,
+  },
+  {
+    symbol: 'MSFT',
+    name: 'Microsoft Corporation',
+    assetClass: ASSET_CLASS.stocks,
+    currencyCode: 'USD',
+    exchangeAcronym: 'NASDAQ',
+    exchangeMic: 'XNAS',
+    exchangeName: 'NASDAQ',
+    currentPrice: 415.75,
+    purchasePrice: 370.0,
+    quantity: 8,
+    purchaseDaysAgo: 90,
+  },
+];
+
+const DEMO_INVESTMENT_STARTING_CASH = 5000;
+
+export async function setupInvestments({
+  userId,
+  referenceDate,
+}: {
+  userId: number;
+  referenceDate: Date;
+}): Promise<void> {
+  const portfolio = await Portfolios.create({
+    userId,
+    name: 'Growth Portfolio',
+    portfolioType: PORTFOLIO_TYPE.investment,
+    description: 'Demo portfolio of US equities and ETFs',
+    isEnabled: true,
+  });
+
+  const pricingDate = format(referenceDate, 'yyyy-MM-dd');
+  let totalInvested = new Big(0);
+
+  for (const sec of DEMO_SECURITIES) {
+    const [security] = await Securities.findOrCreate({
+      where: { symbol: sec.symbol },
+      defaults: {
+        symbol: sec.symbol,
+        name: sec.name,
+        assetClass: sec.assetClass,
+        currencyCode: sec.currencyCode,
+        providerName: SECURITY_PROVIDER.composite,
+        exchangeAcronym: sec.exchangeAcronym,
+        exchangeMic: sec.exchangeMic,
+        exchangeName: sec.exchangeName,
+        pricingLastSyncedAt: referenceDate,
+        isBrokerageCash: false,
+      },
+    });
+
+    await SecurityPricing.findOrCreate({
+      where: { securityId: security.id, date: pricingDate },
+      defaults: {
+        securityId: security.id,
+        date: pricingDate,
+        priceClose: sec.currentPrice.toFixed(10),
+        priceAsOf: referenceDate,
+        source: 'demo',
+      },
+    });
+
+    const quantityStr = new Big(sec.quantity).toFixed(10);
+    const costBasisStr = new Big(sec.purchasePrice).times(sec.quantity).toFixed(10);
+
+    await Holdings.create({
+      portfolioId: portfolio.id,
+      securityId: security.id,
+      currencyCode: sec.currencyCode,
+      quantity: quantityStr,
+      costBasis: costBasisStr,
+      refCostBasis: costBasisStr,
+      value: '0',
+      refValue: '0',
+      excluded: false,
+    });
+
+    const buyDate = format(subDays(referenceDate, sec.purchaseDaysAgo), 'yyyy-MM-dd');
+    await InvestmentTransaction.create({
+      portfolioId: portfolio.id,
+      securityId: security.id,
+      transactionType: TRANSACTION_TYPES.expense,
+      date: buyDate,
+      name: `Bought ${sec.quantity} shares of ${sec.symbol}`,
+      amount: costBasisStr,
+      refAmount: costBasisStr,
+      fees: '0',
+      refFees: '0',
+      quantity: quantityStr,
+      price: sec.purchasePrice.toFixed(10),
+      refPrice: sec.purchasePrice.toFixed(10),
+      currencyCode: sec.currencyCode,
+      category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+    });
+
+    totalInvested = totalInvested.plus(costBasisStr);
+  }
+
+  // Remaining cash after all simulated purchases
+  const startingDeposit = totalInvested.plus(DEMO_INVESTMENT_STARTING_CASH);
+  const remainingCash = startingDeposit.minus(totalInvested).toFixed(10);
+
+  // Demo base currency is USD, so ref amounts mirror direct amounts 1:1.
+  await PortfolioBalances.create({
+    portfolioId: portfolio.id,
+    currencyCode: 'USD',
+    availableCash: remainingCash,
+    totalCash: remainingCash,
+    refAvailableCash: remainingCash,
+    refTotalCash: remainingCash,
+  });
+
+  logger.info(`Created demo portfolio with ${DEMO_SECURITIES.length} holdings for user ${userId}`);
 }

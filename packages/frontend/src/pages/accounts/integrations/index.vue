@@ -3,16 +3,14 @@
     <div class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl tracking-wider">{{ t('pages.integrations.title') }}</h1>
 
-      <DemoRestricted :message="t('demo.bankConnectionsRestricted.title')">
-        <UiButton :disabled="isDemo" @click="openAddIntegrationDialog">
-          <PlusIcon class="size-5" />
+      <UiButton @click="openAddIntegrationDialog">
+        <PlusIcon class="size-5" />
 
-          <span>
-            {{ t('pages.integrations.addButton') }}
-            <span class="max-sm:hidden">{{ t('pages.integrations.addButtonFull') }}</span>
-          </span>
-        </UiButton>
-      </DemoRestricted>
+        <span>
+          {{ t('pages.integrations.addButton') }}
+          <span class="max-sm:hidden">{{ t('pages.integrations.addButtonFull') }}</span>
+        </span>
+      </UiButton>
     </div>
 
     <div v-if="isLoadingProviders || isLoadingConnections" class="py-8 text-center">
@@ -31,12 +29,10 @@
           {{ t('pages.integrations.empty.description') }}
         </p>
 
-        <DemoRestricted :message="t('demo.bankConnectionsRestricted.title')">
-          <UiButton :disabled="isDemo" @click="openAddIntegrationDialog">
-            <PlusIcon class="size-4" />
-            {{ t('pages.integrations.empty.addFirstButton') }}
-          </UiButton>
-        </DemoRestricted>
+        <UiButton @click="openAddIntegrationDialog">
+          <PlusIcon class="size-4" />
+          {{ t('pages.integrations.empty.addFirstButton') }}
+        </UiButton>
       </div>
 
       <!-- Existing connections -->
@@ -116,15 +112,12 @@ import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import { getBankInstitutionLogoUrl } from '@/common/utils/find-bank-institution';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import PageWrapper from '@/components/common/page-wrapper.vue';
-import { DemoRestricted } from '@/components/demo';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes';
-import { useUserStore } from '@/stores';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { PlusIcon } from 'lucide-vue-next';
-import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -135,8 +128,6 @@ import DisconnectIntegrationDialog from './components/disconnect-integration-dia
 const router = useRouter();
 const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
-const userStore = useUserStore();
-const { isDemo } = storeToRefs(userStore);
 const queryClient = useQueryClient();
 
 const isDialogOpen = ref(false);
