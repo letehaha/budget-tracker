@@ -10,6 +10,7 @@ export default defineConfig({
     testTimeout: 30000,
     pool: 'forks',
     maxConcurrency: Number(process.env.VITEST_WORKERS_AMOUNT) || undefined,
+    maxWorkers: Number(process.env.JEST_WORKERS_AMOUNT) || 6,
   },
   resolve: {
     alias: [
