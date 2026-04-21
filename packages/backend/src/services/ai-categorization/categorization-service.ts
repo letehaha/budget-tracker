@@ -1,7 +1,6 @@
 import { AI_FEATURE, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES, getProviderFromModelId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
-import Accounts from '@models/accounts.model';
 import { getCategories } from '@models/categories.model';
 import Transactions from '@models/transactions.model';
 import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
@@ -178,7 +177,7 @@ async function getUncategorizedTransactions({
     },
     include: [
       {
-        model: Accounts,
+        association: 'account',
         attributes: ['name'],
       },
     ],

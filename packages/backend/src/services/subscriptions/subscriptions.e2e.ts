@@ -40,7 +40,8 @@ describe('Subscriptions', () => {
       });
 
       expect(sub.name).toBe('Spotify');
-      expect(sub.expectedAmount).toBe(999);
+      // DB stores 999 cents; API serializes Money to decimal (9.99)
+      expect(sub.expectedAmount).toBe(9.99);
       expect(sub.accountId).toBe(account.id);
       expect(sub.categoryId).toBe(1);
       expect(sub.notes).toBe('Family plan');

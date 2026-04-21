@@ -1,6 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
-import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
 import { InferAttributes, Op } from '@sequelize/core';
 
@@ -74,7 +73,7 @@ export const getExpensesHistory = async ({
     }),
     include: [
       {
-        model: Accounts,
+        association: 'account',
         where: { excludeFromStats: false },
         attributes: [],
       },

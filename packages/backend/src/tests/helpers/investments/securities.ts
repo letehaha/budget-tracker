@@ -53,8 +53,9 @@ export async function seedSecurities(securitiesToSeed: SeedSecurityPayload[]) {
   const mockedFmpClient = vi.mocked(FmpClient);
   mockedFmpClient.mockReset();
   const mockFmpSearch = vi.fn<() => Promise<FmpSearchResult[]>>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mockedFmpClient.mockImplementation(() => ({ search: mockFmpSearch }) as any);
+  mockedFmpClient.mockImplementation(function (this: Record<string, unknown>) {
+    this.search = mockFmpSearch;
+  } as unknown as typeof FmpClient);
 
   // For each security, mock the search and add it to database
   const createdSecurities: Securities[] = [];

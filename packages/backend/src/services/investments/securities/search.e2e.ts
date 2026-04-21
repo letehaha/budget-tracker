@@ -11,8 +11,9 @@ const mockedFmpClient = vi.mocked(FmpClient);
 const mockedFmpSearch = vi.fn<() => Promise<FmpSearchResult[]>>();
 
 // Configure the FMP client mock to return our controlled search function
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-mockedFmpClient.mockImplementation(() => ({ search: mockedFmpSearch }) as any);
+mockedFmpClient.mockImplementation(function (this: Record<string, unknown>) {
+  this.search = mockedFmpSearch;
+} as unknown as typeof FmpClient);
 
 describe('GET /investments/securities/search', () => {
   beforeEach(async () => {
@@ -199,8 +200,9 @@ describe('GET /investments/securities/search', () => {
 
     // Re-establish mock binding after seedSecurities (which resets the mock and clears cache)
     dataProviderFactory.clearCache();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mockedFmpClient.mockImplementation(() => ({ search: mockedFmpSearch }) as any);
+    mockedFmpClient.mockImplementation(function (this: Record<string, unknown>) {
+      this.search = mockedFmpSearch;
+    } as unknown as typeof FmpClient);
 
     // Mock FMP client response with AAPL and GOOG
     mockedFmpSearch.mockResolvedValue([

@@ -338,7 +338,7 @@ export const getCombinedBalanceHistory = async ({
       const oldestTransaction = await InvestmentTransaction.findOne({
         include: [
           {
-            model: Portfolios,
+            association: 'portfolio',
             // Filter out transactions for userId
             where: { userId, isEnabled: true },
             attributes: [],

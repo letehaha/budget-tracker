@@ -23,16 +23,12 @@ const mockedFmpClient = vi.mocked(FmpClient);
 const mockedFmpSearch = vi.fn<() => Promise<FmpSearchResult[]>>();
 
 // Configure the constructor to return our mock instance
-mockedFmpClient.mockImplementation(
-  () =>
-    ({
-      search: mockedFmpSearch,
-      getQuote: vi.fn(),
-      getHistoricalPrices: vi.fn(),
-      getHistoricalPricesFull: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as any,
-);
+mockedFmpClient.mockImplementation(function (this: Record<string, unknown>) {
+  this.search = mockedFmpSearch;
+  this.getQuote = vi.fn();
+  this.getHistoricalPrices = vi.fn();
+  this.getHistoricalPricesFull = vi.fn();
+} as unknown as typeof FmpClient);
 
 // Yahoo is the primary search provider. Override constructor to use shared mocks
 // so individual tests can control Yahoo behaviour.
@@ -41,15 +37,11 @@ const mockedYahooSearch = vi.fn<any>();
 const mockedYahooQuote = vi.fn<any>();
 const mockedYahooChart = vi.fn<any>();
 
-mockedYahooFinance.mockImplementation(
-  () =>
-    ({
-      search: mockedYahooSearch,
-      quote: mockedYahooQuote,
-      chart: mockedYahooChart,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as any,
-);
+mockedYahooFinance.mockImplementation(function (this: Record<string, unknown>) {
+  this.search = mockedYahooSearch;
+  this.quote = mockedYahooQuote;
+  this.chart = mockedYahooChart;
+} as unknown as typeof YahooFinance);
 
 /**
  * Shared setup: clear factory cache and reset Yahoo mocks to "reject" so that

@@ -553,7 +553,7 @@ describe('Demo Mode', () => {
 
       // Verify Balances records exist
       const [balanceRows] = await connection.sequelize.query(
-        `SELECT COUNT(*) as count FROM "Balances" WHERE "accountId" IN (:accountIds)`,
+        `SELECT COUNT(*) as count FROM "Balances" WHERE "accountId" = ANY(:accountIds)`,
         { replacements: { accountIds } },
       );
 

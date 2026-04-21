@@ -331,7 +331,7 @@ async function recalculateAccounts(params: {
           CASE WHEN "transactionType" = :income THEN "refAmount" ELSE -"refAmount" END
         ), 0) AS "refBalanceSum"
       FROM "Transactions"
-      WHERE "accountId" IN (:accountIds)
+      WHERE "accountId" = ANY(:accountIds)
       GROUP BY "accountId"`,
       {
         replacements: {

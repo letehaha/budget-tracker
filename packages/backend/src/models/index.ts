@@ -1,5 +1,14 @@
 import { Sequelize } from '@sequelize/core';
 import { PostgresDialect } from '@sequelize/postgres';
+import pg from 'pg';
+
+// Ensure TIMESTAMP/TIMESTAMPTZ/DATE columns are parsed as Date objects.
+// @sequelize/postgres uses pg's nested pg-types instance, so we register via
+// pg.types (not the hoisted pg-types) so raw: true queries return Date.
+const toDate = (value: string | null) => (value === null ? null : new Date(value));
+pg.types.setTypeParser(1082, toDate); // DATE
+pg.types.setTypeParser(1114, toDate); // TIMESTAMP WITHOUT TIME ZONE
+pg.types.setTypeParser(1184, toDate); // TIMESTAMP WITH TIME ZONE
 
 import AccountGroupingModel from './accounts-groups/account-grouping.model';
 import AccountGroupsModel from './accounts-groups/account-groups.model';
@@ -103,6 +112,7 @@ const databaseName =
 
 const sequelize = new Sequelize({
   dialect: PostgresDialect,
+  pgModule: pg,
   host: process.env.APPLICATION_DB_HOST,
   user: process.env.APPLICATION_DB_USERNAME,
   password: process.env.APPLICATION_DB_PASSWORD,

@@ -160,7 +160,7 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
   if (accountIds.length === 0) return;
 
   // Delete initial balance records (will be replaced by full rebuild)
-  await sequelize.query(`DELETE FROM "Balances" WHERE "accountId" IN (:accountIds)`, {
+  await sequelize.query(`DELETE FROM "Balances" WHERE "accountId" = ANY(:accountIds)`, {
     replacements: { accountIds },
     type: QueryTypes.DELETE,
   });
@@ -212,7 +212,7 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
   // Re-insert balance records for accounts with no transactions (e.g. Savings).
   // The rebuild CTE only covers accounts that appear in the Transactions table.
   const accountsWithBalances: { accountId: number }[] = await sequelize.query(
-    `SELECT DISTINCT "accountId" FROM "Balances" WHERE "accountId" IN (:accountIds)`,
+    `SELECT DISTINCT "accountId" FROM "Balances" WHERE "accountId" = ANY(:accountIds)`,
     { replacements: { accountIds }, type: QueryTypes.SELECT },
   );
 
@@ -223,7 +223,7 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
     await sequelize.query(
       `INSERT INTO "Balances" ("accountId", "date", "amount", "createdAt", "updatedAt")
        SELECT id, CURRENT_DATE, "refInitialBalance", NOW(), NOW()
-       FROM "Accounts" WHERE id IN (:ids)`,
+       FROM "Accounts" WHERE id = ANY(:ids)`,
       { replacements: { ids: accountsMissingBalances }, type: QueryTypes.INSERT },
     );
   }

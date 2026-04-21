@@ -53,12 +53,13 @@ vi.mock('pdf-parse', () => ({
 
 // Mock the FMP client globally
 vi.mock('../services/investments/data-providers/clients/fmp-client', () => ({
-  FmpClient: vi.fn().mockImplementation(() => ({
-    search: vi.fn(),
-    getQuote: vi.fn(),
-    getHistoricalPrices: vi.fn(),
-    getHistoricalPricesFull: vi.fn(),
-  })),
+  __esModule: true,
+  FmpClient: vi.fn(function (this: Record<string, unknown>) {
+    this.search = vi.fn();
+    this.getQuote = vi.fn();
+    this.getHistoricalPrices = vi.fn();
+    this.getHistoricalPricesFull = vi.fn();
+  }),
 }));
 
 // Mock yahoo-finance2 globally (v3 requires instantiation).
@@ -66,11 +67,11 @@ vi.mock('../services/investments/data-providers/clients/fmp-client', () => ({
 // providers (FMP, Polygon, etc.) in existing tests. Tests that specifically
 // exercise Yahoo behaviour must override these mocks per-test.
 vi.mock('yahoo-finance2', () => {
-  const MockYahooFinance = vi.fn().mockImplementation(() => ({
-    search: vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
-    quote: vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
-    chart: vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test')),
-  }));
+  const MockYahooFinance = vi.fn(function (this: Record<string, unknown>) {
+    this.search = vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test'));
+    this.quote = vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test'));
+    this.chart = vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test'));
+  });
   return { __esModule: true, default: MockYahooFinance };
 });
 

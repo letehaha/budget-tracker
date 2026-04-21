@@ -49,7 +49,7 @@ export default class UsersCurrencies extends Model<
   // Since base currency is always the same, here we're setting exchange rate
   // between currencyCode to user's base currency
   // TODO: probably deprecated?
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.DOUBLE)
   declare exchangeRate: number | null;
 
   @Attribute(DataTypes.BOOLEAN)
@@ -152,7 +152,7 @@ export const addCurrency = async ({
     {
       userId,
       currencyCode,
-      exchangeRate,
+      exchangeRate: exchangeRate ?? null,
       liveRateUpdate,
       isDefaultCurrency,
     },
