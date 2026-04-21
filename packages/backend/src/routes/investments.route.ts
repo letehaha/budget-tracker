@@ -38,9 +38,10 @@ import { Router } from 'express';
 
 const router = Router({});
 
-// All investment routes are blocked for demo users
-// Demo users see a "Not available in demo" placeholder on the frontend
-router.use(authenticateSession, blockDemoUsers);
+// Demo users get a pre-seeded portfolio and can edit it freely. Creating new
+// portfolios and deleting existing ones are blocked per-route below; admin-only
+// endpoints enforce their own access checks.
+router.use(authenticateSession);
 
 // Portfolio routes
 router.get('/portfolios', validateEndpoint(listPortfoliosController.schema), listPortfoliosController.handler);
@@ -123,6 +124,7 @@ router.put(
 
 router.delete(
   '/portfolios/:id',
+  blockDemoUsers,
   checkBaseCurrencyLock,
   validateEndpoint(deletePortfolioController.schema),
   deletePortfolioController.handler,
@@ -130,6 +132,7 @@ router.delete(
 
 router.post(
   '/portfolios',
+  blockDemoUsers,
   checkBaseCurrencyLock,
   validateEndpoint(createPortfolioController.schema),
   createPortfolioController.handler,

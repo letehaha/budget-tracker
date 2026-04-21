@@ -65,13 +65,15 @@
             {{ t('pages.integrations.enableBankingConnector.buttons.back') }}
           </UiButton>
 
-          <UiButton @click="handleLoadBanks" :disabled="!appId || !privateKey || isLoading">
-            {{
-              isLoading
-                ? t('pages.integrations.enableBankingConnector.buttons.loading')
-                : t('pages.integrations.enableBankingConnector.buttons.next')
-            }}
-          </UiButton>
+          <DemoRestricted :message="t('demo.featureNotAvailable')">
+            <UiButton @click="handleLoadBanks" :disabled="!appId || !privateKey || isLoading || isDemo">
+              {{
+                isLoading
+                  ? t('pages.integrations.enableBankingConnector.buttons.loading')
+                  : t('pages.integrations.enableBankingConnector.buttons.next')
+              }}
+            </UiButton>
+          </DemoRestricted>
         </div>
       </div>
     </template>
@@ -225,13 +227,15 @@
           </div>
 
           <div class="flex gap-2 pt-4">
-            <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading">
-              {{
-                isLoading
-                  ? t('pages.integrations.enableBankingConnector.buttons.syncing')
-                  : t('pages.integrations.enableBankingConnector.buttons.sync', { count: selectedAccountIds.length })
-              }}
-            </UiButton>
+            <DemoRestricted :message="t('demo.featureNotAvailable')">
+              <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading || isDemo">
+                {{
+                  isLoading
+                    ? t('pages.integrations.enableBankingConnector.buttons.syncing')
+                    : t('pages.integrations.enableBankingConnector.buttons.sync', { count: selectedAccountIds.length })
+                }}
+              </UiButton>
+            </DemoRestricted>
           </div>
         </template>
       </div>
@@ -252,11 +256,13 @@ import {
   getEnableBankingCountries,
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
+import { DemoRestricted } from '@/components/demo';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
-import { useAccountsStore, useOnboardingStore } from '@/stores';
+import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { InfoIcon, TriangleAlertIcon } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -271,6 +277,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { isDemo } = storeToRefs(useUserStore());
 
 const currentStep = ref(1);
 const isLoading = ref(false);
@@ -314,7 +321,7 @@ const filteredBanks = computed(() => {
 });
 
 const handleLoadBanks = async () => {
-  if (!appId.value || !privateKey.value || isLoading.value) return;
+  if (!appId.value || !privateKey.value || isLoading.value || isDemo.value) return;
 
   try {
     isLoading.value = true;
@@ -413,7 +420,7 @@ const loadAccounts = async (connId: number) => {
 };
 
 const handleSyncAccounts = async () => {
-  if (!connectionId.value || selectedAccountIds.value.length === 0 || isLoading.value) {
+  if (!connectionId.value || selectedAccountIds.value.length === 0 || isLoading.value || isDemo.value) {
     return;
   }
 

@@ -188,8 +188,10 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       dismissedAt.value = data.dismissedAt;
       isInitialized.value = true;
 
-      // Auto-open panel on first visit if not dismissed and not all complete
-      if (!data.isDismissed && completedTasks.value.length < allTasks.value.length) {
+      // Auto-open panel on first visit if not dismissed and not all complete.
+      // Demo users land on a data-rich dashboard — starting collapsed avoids
+      // shrinking the page content on first impression.
+      if (!data.isDismissed && completedTasks.value.length < allTasks.value.length && !isDemo.value) {
         isPanelOpen.value = true;
 
         // Expand the first category that has incomplete tasks

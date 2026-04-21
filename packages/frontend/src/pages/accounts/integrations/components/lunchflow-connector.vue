@@ -36,13 +36,15 @@
             {{ t('pages.integrations.lunchflow.backButton') }}
           </UiButton>
 
-          <UiButton @click="handleConnectProvider" :disabled="!apiKey || isLoading">
-            {{
-              isLoading
-                ? t('pages.integrations.lunchflow.connectingButton')
-                : t('pages.integrations.lunchflow.connectButton')
-            }}
-          </UiButton>
+          <DemoRestricted :message="t('demo.featureNotAvailable')">
+            <UiButton @click="handleConnectProvider" :disabled="!apiKey || isLoading || isDemo">
+              {{
+                isLoading
+                  ? t('pages.integrations.lunchflow.connectingButton')
+                  : t('pages.integrations.lunchflow.connectButton')
+              }}
+            </UiButton>
+          </DemoRestricted>
         </div>
       </div>
     </template>
@@ -109,13 +111,18 @@
                 </Tooltip.Tooltip>
               </Tooltip.TooltipProvider>
 
-              <UiButton @click="handleImportAccounts" :disabled="availableAccounts.length === 0 || isLoading">
-                {{
-                  isLoading
-                    ? t('pages.integrations.lunchflow.importingButton')
-                    : t('pages.integrations.lunchflow.importButton', { count: availableAccounts.length })
-                }}
-              </UiButton>
+              <DemoRestricted :message="t('demo.featureNotAvailable')">
+                <UiButton
+                  @click="handleImportAccounts"
+                  :disabled="availableAccounts.length === 0 || isLoading || isDemo"
+                >
+                  {{
+                    isLoading
+                      ? t('pages.integrations.lunchflow.importingButton')
+                      : t('pages.integrations.lunchflow.importButton', { count: availableAccounts.length })
+                  }}
+                </UiButton>
+              </DemoRestricted>
             </div>
           </div>
         </template>
@@ -131,13 +138,15 @@ import {
   getAvailableAccounts,
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
+import { DemoRestricted } from '@/components/demo';
 import ExternalLink from '@/components/external-link.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
-import { useAccountsStore, useOnboardingStore } from '@/stores';
+import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { BuildingIcon, InfoIcon } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -150,6 +159,7 @@ const emit = defineEmits<{
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { isDemo } = storeToRefs(useUserStore());
 
 const currentStep = ref(1);
 const isLoading = ref(false);
@@ -162,7 +172,7 @@ const connectionId = ref<number | null>(null);
 const availableAccounts = ref<AvailableAccount[]>([]);
 
 const handleConnectProvider = async () => {
-  if (!apiKey.value || isLoading.value) return;
+  if (!apiKey.value || isLoading.value || isDemo.value) return;
 
   try {
     isLoading.value = true;
@@ -188,7 +198,7 @@ const handleSkipImport = () => {
 };
 
 const handleImportAccounts = async () => {
-  if (!connectionId.value || availableAccounts.value.length === 0 || isLoading.value) {
+  if (!connectionId.value || availableAccounts.value.length === 0 || isLoading.value || isDemo.value) {
     return;
   }
 

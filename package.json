@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "lint": "npm -w budget-tracker-be run lint && npm -w budget-tracker-fe run lint",
+    "typecheck": "npm -w budget-tracker-be run typecheck && npm -w budget-tracker-fe run typecheck",
     "landing:dev": "npm -w packages/landing run dev",
     "landing:build": "npm -w packages/landing run build",
     "test": "cross-env NODE_ENV=test npm -w packages/backend run test && npm -w packages/frontend run test",
