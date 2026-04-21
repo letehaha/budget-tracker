@@ -54,7 +54,7 @@ const buildTree = (): FormattedCategory[] => {
   return [food, transport, transfers];
 };
 
-const flatTree = (): FlatCategory[] => flattenCategories({ categories: sortInternalLast(buildTree()) });
+const flatTree = (): FlatCategory[] => flattenCategories({ categories: sortInternalLast({ roots: buildTree() }) });
 
 const findFlat = (items: FlatCategory[], id: number): FlatCategory => {
   const found = items.find((i) => i.id === id);
@@ -65,25 +65,25 @@ const findFlat = (items: FlatCategory[], id: number): FlatCategory => {
 describe('collectDescendantIds', () => {
   it('returns ids of all nested descendants in depth-first order', () => {
     const [food] = buildTree();
-    expect(collectDescendantIds(food!)).toEqual([2, 3, 4, 5]);
+    expect(collectDescendantIds({ category: food! })).toEqual([2, 3, 4, 5]);
   });
 
   it('returns empty array for leaf categories', () => {
     const leaf = makeCategory({ id: 99, name: 'Leaf' });
-    expect(collectDescendantIds(leaf)).toEqual([]);
+    expect(collectDescendantIds({ category: leaf })).toEqual([]);
   });
 });
 
 describe('sortInternalLast', () => {
   it('moves internal categories to the end while preserving other order', () => {
-    const sorted = sortInternalLast(buildTree());
+    const sorted = sortInternalLast({ roots: buildTree() });
     expect(sorted.map((c) => c.id)).toEqual([1, 10, 100]);
   });
 
   it('does not mutate the input array', () => {
     const roots = buildTree();
     const originalOrder = roots.map((c) => c.id);
-    sortInternalLast(roots);
+    sortInternalLast({ roots });
     expect(roots.map((c) => c.id)).toEqual(originalOrder);
   });
 });

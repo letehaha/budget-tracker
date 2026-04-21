@@ -16,6 +16,7 @@ import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
+import { connection } from '@models/index';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
@@ -357,92 +358,120 @@ export async function setupInvestments({
   userId: number;
   referenceDate: Date;
 }): Promise<void> {
-  const portfolio = await Portfolios.create({
-    userId,
-    name: 'Growth Portfolio',
-    portfolioType: PORTFOLIO_TYPE.investment,
-    description: 'Demo portfolio of US equities and ETFs',
-    isEnabled: true,
-  });
+  const transaction = await connection.sequelize.transaction();
 
-  const pricingDate = format(referenceDate, 'yyyy-MM-dd');
-  let totalInvested = new Big(0);
-
-  for (const sec of DEMO_SECURITIES) {
-    const [security] = await Securities.findOrCreate({
-      where: { symbol: sec.symbol },
-      defaults: {
-        symbol: sec.symbol,
-        name: sec.name,
-        assetClass: sec.assetClass,
-        currencyCode: sec.currencyCode,
-        providerName: SECURITY_PROVIDER.yahoo,
-        exchangeAcronym: sec.exchangeAcronym,
-        exchangeMic: sec.exchangeMic,
-        exchangeName: sec.exchangeName,
-        pricingLastSyncedAt: referenceDate,
-        isBrokerageCash: false,
+  try {
+    const portfolio = await Portfolios.create(
+      {
+        userId,
+        name: 'Growth Portfolio',
+        portfolioType: PORTFOLIO_TYPE.investment,
+        description: 'Demo portfolio of US equities and ETFs',
+        isEnabled: true,
       },
-    });
+      { transaction },
+    );
 
-    await SecurityPricing.findOrCreate({
-      where: { securityId: security.id, date: pricingDate },
-      defaults: {
-        securityId: security.id,
-        date: pricingDate,
-        priceClose: sec.currentPrice.toFixed(10),
-        priceAsOf: referenceDate,
-        source: 'demo',
+    const pricingDate = format(referenceDate, 'yyyy-MM-dd');
+
+    for (const sec of DEMO_SECURITIES) {
+      const [security, created] = await Securities.findOrCreate({
+        where: { symbol: sec.symbol },
+        defaults: {
+          symbol: sec.symbol,
+          name: sec.name,
+          assetClass: sec.assetClass,
+          currencyCode: sec.currencyCode,
+          providerName: SECURITY_PROVIDER.yahoo,
+          exchangeAcronym: sec.exchangeAcronym,
+          exchangeMic: sec.exchangeMic,
+          exchangeName: sec.exchangeName,
+          pricingLastSyncedAt: referenceDate,
+          isBrokerageCash: false,
+        },
+        transaction,
+      });
+
+      // Securities is a shared reference table. If a row for the same symbol
+      // already exists (e.g. seeded by a real user sync), findOrCreate silently
+      // reuses it and `defaults` are not applied. Surface metadata drift so
+      // demo inconsistencies are at least visible in logs.
+      if (!created && security.exchangeMic !== sec.exchangeMic) {
+        logger.warn(
+          `Demo security ${sec.symbol}: existing exchangeMic=${security.exchangeMic} differs from demo config exchangeMic=${sec.exchangeMic}. Using existing row.`,
+        );
+      }
+
+      await SecurityPricing.findOrCreate({
+        where: { securityId: security.id, date: pricingDate },
+        defaults: {
+          securityId: security.id,
+          date: pricingDate,
+          priceClose: sec.currentPrice.toFixed(10),
+          priceAsOf: referenceDate,
+          source: 'demo',
+        },
+        transaction,
+      });
+
+      const quantityStr = new Big(sec.quantity).toFixed(10);
+      const costBasisStr = new Big(sec.purchasePrice).times(sec.quantity).toFixed(10);
+
+      await Holdings.create(
+        {
+          portfolioId: portfolio.id,
+          securityId: security.id,
+          currencyCode: sec.currencyCode,
+          quantity: quantityStr,
+          costBasis: costBasisStr,
+          refCostBasis: costBasisStr,
+          excluded: false,
+        },
+        { transaction },
+      );
+
+      const buyDate = format(subDays(referenceDate, sec.purchaseDaysAgo), 'yyyy-MM-dd');
+      await InvestmentTransaction.create(
+        {
+          portfolioId: portfolio.id,
+          securityId: security.id,
+          transactionType: TRANSACTION_TYPES.expense,
+          date: buyDate,
+          name: `Bought ${sec.quantity} shares of ${sec.symbol}`,
+          amount: costBasisStr,
+          refAmount: costBasisStr,
+          fees: '0',
+          refFees: '0',
+          quantity: quantityStr,
+          price: sec.purchasePrice.toFixed(10),
+          refPrice: sec.purchasePrice.toFixed(10),
+          currencyCode: sec.currencyCode,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        },
+        { transaction },
+      );
+    }
+
+    const remainingCash = new Big(DEMO_INVESTMENT_STARTING_CASH).toFixed(10);
+
+    // Demo base currency is USD, so ref amounts mirror direct amounts 1:1.
+    await PortfolioBalances.create(
+      {
+        portfolioId: portfolio.id,
+        currencyCode: 'USD',
+        availableCash: remainingCash,
+        totalCash: remainingCash,
+        refAvailableCash: remainingCash,
+        refTotalCash: remainingCash,
       },
-    });
+      { transaction },
+    );
 
-    const quantityStr = new Big(sec.quantity).toFixed(10);
-    const costBasisStr = new Big(sec.purchasePrice).times(sec.quantity).toFixed(10);
-
-    await Holdings.create({
-      portfolioId: portfolio.id,
-      securityId: security.id,
-      currencyCode: sec.currencyCode,
-      quantity: quantityStr,
-      costBasis: costBasisStr,
-      refCostBasis: costBasisStr,
-      excluded: false,
-    });
-
-    const buyDate = format(subDays(referenceDate, sec.purchaseDaysAgo), 'yyyy-MM-dd');
-    await InvestmentTransaction.create({
-      portfolioId: portfolio.id,
-      securityId: security.id,
-      transactionType: TRANSACTION_TYPES.expense,
-      date: buyDate,
-      name: `Bought ${sec.quantity} shares of ${sec.symbol}`,
-      amount: costBasisStr,
-      refAmount: costBasisStr,
-      fees: '0',
-      refFees: '0',
-      quantity: quantityStr,
-      price: sec.purchasePrice.toFixed(10),
-      refPrice: sec.purchasePrice.toFixed(10),
-      currencyCode: sec.currencyCode,
-      category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-    });
-
-    totalInvested = totalInvested.plus(costBasisStr);
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
   }
-
-  // Remaining cash after all simulated purchases
-  const startingDeposit = totalInvested.plus(DEMO_INVESTMENT_STARTING_CASH);
-  const remainingCash = startingDeposit.minus(totalInvested).toFixed(10);
-
-  // Demo base currency is USD, so ref amounts mirror direct amounts 1:1.
-  await PortfolioBalances.create({
-    portfolioId: portfolio.id,
-    currencyCode: 'USD',
-    availableCash: remainingCash,
-    totalCash: remainingCash,
-    refAvailableCash: remainingCash,
-    refTotalCash: remainingCash,
-  });
 
   logger.info(`Created demo portfolio with ${DEMO_SECURITIES.length} holdings for user ${userId}`);
 }

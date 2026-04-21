@@ -51,6 +51,12 @@
       "transactions": "транзакцій"
     }
   },
+  "themeSelector": {
+    "toggle": "Перемкнути тему",
+    "light": "Світла",
+    "dark": "Темна",
+    "system": "Системна"
+  },
   "syncStatusTooltip": {
     "title": "Статус синхронізації банків",
     "syncedSuccessfully": "Успішно синхронізовано",

@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { readonly, ref } from 'vue';
 
 const THEME_LS_KEY = 'preferred-theme';
 
@@ -13,10 +13,18 @@ export enum ThemePreference {
   system = 'system',
 }
 
-export const currentTheme = ref<Themes>(Themes.dark);
-export const themePreference = ref<ThemePreference>(ThemePreference.system);
+const _currentTheme = ref<Themes>(Themes.dark);
+const _themePreference = ref<ThemePreference>(ThemePreference.system);
 
-const systemPrefersDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
+export const currentTheme = readonly(_currentTheme);
+export const themePreference = readonly(_themePreference);
+
+const darkMediaQuery: MediaQueryList | null =
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-color-scheme: dark)')
+    : null;
+
+const systemPrefersDark = (): boolean => darkMediaQuery?.matches ?? false;
 
 const resolveTheme = (pref: ThemePreference): Themes => {
   if (pref === ThemePreference.system) {
@@ -26,30 +34,56 @@ const resolveTheme = (pref: ThemePreference): Themes => {
 };
 
 const applyTheme = (theme: Themes) => {
-  currentTheme.value = theme;
-  document.documentElement.classList.remove(Themes.dark);
-  document.documentElement.classList.remove(Themes.light);
+  _currentTheme.value = theme;
+  document.documentElement.classList.remove(Themes.dark, Themes.light);
   document.documentElement.classList.add(theme);
 };
 
 const isValidPreference = (value: string | null): value is ThemePreference =>
   value !== null && Object.values(ThemePreference).includes(value as ThemePreference);
 
+const readStoredPreference = (): string | null => {
+  try {
+    return localStorage.getItem(THEME_LS_KEY);
+  } catch (error) {
+    console.warn('[color-theme] Failed to read stored theme preference:', error);
+    return null;
+  }
+};
+
+const writeStoredPreference = (pref: ThemePreference): void => {
+  try {
+    localStorage.setItem(THEME_LS_KEY, pref);
+  } catch (error) {
+    console.warn('[color-theme] Failed to persist theme preference:', error);
+  }
+};
+
 export const setThemePreference = (pref: ThemePreference) => {
-  themePreference.value = pref;
-  localStorage.setItem(THEME_LS_KEY, pref);
+  _themePreference.value = pref;
+  writeStoredPreference(pref);
   applyTheme(resolveTheme(pref));
 };
 
+const onSystemPreferenceChange = () => {
+  if (_themePreference.value === ThemePreference.system) {
+    applyTheme(resolveTheme(ThemePreference.system));
+  }
+};
+
+let systemListenerAttached = false;
+
 export const identifyCurrentTheme = () => {
-  const stored = localStorage.getItem(THEME_LS_KEY);
+  const stored = readStoredPreference();
+  if (stored !== null && !isValidPreference(stored)) {
+    console.warn(`[color-theme] Ignoring invalid stored preference: ${stored}`);
+  }
   const pref = isValidPreference(stored) ? stored : ThemePreference.system;
-  themePreference.value = pref;
+  _themePreference.value = pref;
   applyTheme(resolveTheme(pref));
 
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (themePreference.value === ThemePreference.system) {
-      applyTheme(resolveTheme(ThemePreference.system));
-    }
-  });
+  if (darkMediaQuery && !systemListenerAttached) {
+    darkMediaQuery.addEventListener('change', onSystemPreferenceChange);
+    systemListenerAttached = true;
+  }
 };

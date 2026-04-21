@@ -9,18 +9,18 @@ export interface FlatCategory extends FormattedCategory {
   descendantIds: number[];
 }
 
-export const collectDescendantIds = (category: FormattedCategory): number[] => {
+export const collectDescendantIds = ({ category }: { category: FormattedCategory }): number[] => {
   const ids: number[] = [];
   if (category.subCategories?.length) {
     for (const child of category.subCategories) {
       ids.push(child.id);
-      ids.push(...collectDescendantIds(child));
+      ids.push(...collectDescendantIds({ category: child }));
     }
   }
   return ids;
 };
 
-export const sortInternalLast = (roots: FormattedCategory[]): FormattedCategory[] =>
+export const sortInternalLast = ({ roots }: { roots: FormattedCategory[] }): FormattedCategory[] =>
   [...roots].sort((a, b) => {
     if (a.type === CATEGORY_TYPES.internal && b.type !== CATEGORY_TYPES.internal) return 1;
     if (a.type !== CATEGORY_TYPES.internal && b.type === CATEGORY_TYPES.internal) return -1;
@@ -46,7 +46,7 @@ export const flattenCategories = ({
       depth,
       rootParentId: currentRoot.id,
       rootParentName: currentRoot.name,
-      descendantIds: collectDescendantIds(category),
+      descendantIds: collectDescendantIds({ category }),
     });
 
     if (category.subCategories?.length > 0) {
@@ -139,10 +139,10 @@ export const computeSessionRootOrder = ({
 }): number[] => {
   const rootHasSelection = (root: FormattedCategory): boolean => {
     if (selectedIds.has(root.id)) return true;
-    return collectDescendantIds(root).some((id) => selectedIds.has(id));
+    return collectDescendantIds({ category: root }).some((id) => selectedIds.has(id));
   };
 
-  const sorted = sortInternalLast(roots);
+  const sorted = sortInternalLast({ roots });
   const selectedRoots = sorted.filter(rootHasSelection);
   const otherRoots = sorted.filter((r) => !rootHasSelection(r));
   return [...selectedRoots, ...otherRoots].map((r) => r.id);

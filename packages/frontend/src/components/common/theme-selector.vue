@@ -1,23 +1,25 @@
 <template>
   <Popover.Popover>
     <Popover.PopoverTrigger as-child>
-      <Button variant="secondary" size="icon">
-        <MoonStar v-if="currentTheme === Themes.dark" class="size-5" />
-        <Sun v-else class="size-5" />
+      <Button variant="secondary" size="icon" :aria-label="$t('layout.themeSelector.toggle')">
+        <MoonStarIcon v-if="currentTheme === Themes.dark" class="size-5" />
+        <SunIcon v-else class="size-5" />
       </Button>
     </Popover.PopoverTrigger>
     <Popover.PopoverContent class="w-44 p-2" align="end">
       <div class="space-y-1">
-        <button
+        <Button
           v-for="option in options"
           :key="option.value"
-          class="hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"
+          variant="ghost"
+          size="sm"
+          class="w-full justify-start"
           :class="{ 'bg-accent': themePreference === option.value }"
           @click="setThemePreference(option.value)"
         >
           <component :is="option.icon" class="size-4" />
-          <span>{{ option.label }}</span>
-        </button>
+          <span>{{ $t(option.labelKey) }}</span>
+        </Button>
       </div>
     </Popover.PopoverContent>
   </Popover.Popover>
@@ -27,11 +29,18 @@
 import { ThemePreference, Themes, currentTheme, setThemePreference, themePreference } from '@/common/utils';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
-import { MonitorIcon, MoonStar, Sun } from 'lucide-vue-next';
+import { MonitorIcon, MoonStarIcon, SunIcon } from 'lucide-vue-next';
+import type { Component } from 'vue';
 
-const options = [
-  { value: ThemePreference.light, label: 'Light', icon: Sun },
-  { value: ThemePreference.dark, label: 'Dark', icon: MoonStar },
-  { value: ThemePreference.system, label: 'System', icon: MonitorIcon },
+interface ThemeOption {
+  value: ThemePreference;
+  labelKey: string;
+  icon: Component;
+}
+
+const options: ThemeOption[] = [
+  { value: ThemePreference.light, labelKey: 'layout.themeSelector.light', icon: SunIcon },
+  { value: ThemePreference.dark, labelKey: 'layout.themeSelector.dark', icon: MoonStarIcon },
+  { value: ThemePreference.system, labelKey: 'layout.themeSelector.system', icon: MonitorIcon },
 ];
 </script>

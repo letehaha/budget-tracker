@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/common/dropdown-menu';
-import { GroupIcon, ListOrderedIcon, Pencil, PlusIcon, ListPlusIcon, ChevronDownIcon } from 'lucide-vue-next';
+import { GroupIcon, ListOrderedIcon, PencilIcon, PlusIcon, ListPlusIcon, ChevronDownIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -75,7 +75,7 @@ const handleEdit = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="min-w-48">
           <DropdownMenuItem @select="handleEdit">
-            <Pencil class="mr-2 size-4" />
+            <PencilIcon class="mr-2 size-4" />
             {{ t('transactions.bulkEdit.editButton') }}
           </DropdownMenuItem>
           <DropdownMenuItem :disabled="selectedCount < 2" @select="handleCreateGroup">
@@ -93,7 +93,7 @@ const handleEdit = () => {
     <!-- Desktop: full action buttons -->
     <div class="hidden items-center justify-center gap-2 sm:flex">
       <Button variant="outline" size="sm" :disabled="!hasSelection || isLoading" @click="emit('edit')">
-        <Pencil class="size-4" />
+        <PencilIcon class="size-4" />
         {{ t('transactions.bulkEdit.editButton') }}
       </Button>
 

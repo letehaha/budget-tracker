@@ -182,7 +182,7 @@ const filteredCategories = computed(() => {
 
 const isSelected = (categoryId: number) => selectedCategoryIds.value.has(categoryId);
 
-const getDescendantCount = (category: FormattedCategory): number => collectDescendantIds(category).length;
+const getDescendantCount = (category: FormattedCategory): number => collectDescendantIds({ category }).length;
 
 const toggleCategory = (categoryId: number) => {
   const currentIds = new Set(props.modelValue ?? []);
@@ -192,7 +192,7 @@ const toggleCategory = (categoryId: number) => {
 
   // Find the category in the formatted structure to get its descendants
   const formattedCategory = findCategory(availableCategories.value, (cat) => cat.id === categoryId);
-  const descendantIds = formattedCategory ? collectDescendantIds(formattedCategory) : [];
+  const descendantIds = formattedCategory ? collectDescendantIds({ category: formattedCategory }) : [];
 
   if (currentIds.has(categoryId)) {
     // Uncheck: remove this category and all its descendants

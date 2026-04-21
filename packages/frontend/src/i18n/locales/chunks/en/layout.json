@@ -51,6 +51,12 @@
       "transactions": "transactions"
     }
   },
+  "themeSelector": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "syncStatusTooltip": {
     "title": "Banks connections sync status",
     "syncedSuccessfully": "Synced successfully",
