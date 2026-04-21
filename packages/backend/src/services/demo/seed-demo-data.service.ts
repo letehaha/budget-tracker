@@ -254,13 +254,13 @@ export async function setupDashboardSettings({
     ...DEFAULT_SETTINGS,
     dashboard: {
       widgets: [
-        { widgetId: 'balance-trend', colSpan: 1, rowSpan: 1 },
+        { widgetId: 'balance-trend', colSpan: 2, rowSpan: 1 },
+        { widgetId: 'latest-records', colSpan: 1, rowSpan: 1 },
         { widgetId: 'cash-flow', colSpan: 1, rowSpan: 1 },
+        { widgetId: 'spending-categories', colSpan: 1, rowSpan: 1 },
         { widgetId: 'category-spending-tracker', colSpan: 1, rowSpan: 1, config: { selectedCategoryIds } },
-        { widgetId: 'latest-records', colSpan: 1, rowSpan: 2 },
         { widgetId: 'credit-utilization', colSpan: 1, rowSpan: 1 },
         { widgetId: 'subscriptions-overview', colSpan: 1, rowSpan: 1 },
-        { widgetId: 'spending-categories', colSpan: 1, rowSpan: 1 },
       ],
     },
   };
