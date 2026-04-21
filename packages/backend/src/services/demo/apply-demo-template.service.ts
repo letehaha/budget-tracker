@@ -17,6 +17,7 @@ import {
   createTags,
   setupCurrencies,
   setupDashboardSettings,
+  setupInvestments,
 } from './seed-demo-data.service';
 
 const ACCOUNT_NAME_TO_KEY: Record<string, string> = {
@@ -107,6 +108,7 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
   }
 
   await setupDashboardSettings({ userId, categoryMap });
+  await setupInvestments({ userId, referenceDate: template.generatedAt });
 
   const duration = Date.now() - startTime;
   logger.info(`Demo template applied for user ${userId} in ${duration}ms (${rows.length} transactions)`);

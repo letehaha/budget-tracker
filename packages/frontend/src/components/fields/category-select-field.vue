@@ -15,7 +15,7 @@
         </div>
 
         <button
-          class="text-popover-foreground hover:bg-popover-foreground/10 relative flex w-full cursor-pointer items-center gap-2 overflow-hidden border-none p-2 text-left text-sm leading-tight text-ellipsis transition-colors duration-300 ease-out"
+          class="text-popover-foreground hover:bg-popover-foreground/10 relative flex w-full cursor-pointer items-center gap-2 border-none p-2 text-left text-sm leading-tight transition-colors duration-300 ease-out"
           type="button"
           :class="{ 'bg-primary/15 hover:bg-primary/20': selectedValue?.id === item.id }"
           :style="{ paddingLeft: `${16 + (isSearching ? 0 : item.depth) * 12}px` }"
@@ -23,8 +23,8 @@
           :aria-selected="selectedValue?.id === item.id"
           @mousedown.prevent="selectItem(item)"
         >
-          <CategoryCircle :category="item" />
-          <span class="grow">{{ item.name }}</span>
+          <CategoryCircle :category="item" class="shrink-0" />
+          <span class="min-w-0 grow truncate">{{ item.name }}</span>
         </button>
       </template>
 
@@ -88,20 +88,18 @@
           </Popover.PopoverTrigger>
           <Popover.PopoverContent
             align="start"
-            class="w-[--reka-popover-trigger-width] p-0"
+            class="w-(--reka-popover-trigger-width) max-w-(--reka-popover-trigger-width) min-w-(--reka-popover-trigger-width) p-0"
             @open-auto-focus.prevent="$nextTick(() => inputRef?.focus())"
           >
             <!-- Search input -->
-            <div class="border-b p-2">
-              <input
-                ref="inputRef"
-                v-model="searchQuery"
-                type="text"
-                class="bg-background w-full text-sm outline-none"
-                :placeholder="$t('fields.categorySelect.searchPlaceholder')"
-                :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
-              />
-            </div>
+            <input
+              ref="inputRef"
+              v-model="searchQuery"
+              type="text"
+              class="w-full border-b bg-transparent px-3 py-2 text-sm outline-none"
+              :placeholder="$t('fields.categorySelect.searchPlaceholder')"
+              :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
+            />
             <!-- Category list -->
             <div ref="listRef" class="max-h-87.5 overflow-auto">
               <CategoryListContent />

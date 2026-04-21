@@ -47,13 +47,15 @@
             {{ t('pages.integrations.walutomat.backButton') }}
           </UiButton>
 
-          <UiButton :disabled="!canConnect || isLoading" @click="handleConnect">
-            {{
-              isLoading
-                ? t('pages.integrations.walutomat.connectingButton')
-                : t('pages.integrations.walutomat.connectButton')
-            }}
-          </UiButton>
+          <DemoRestricted :message="t('demo.featureNotAvailable')">
+            <UiButton :disabled="!canConnect || isLoading || isDemo" @click="handleConnect">
+              {{
+                isLoading
+                  ? t('pages.integrations.walutomat.connectingButton')
+                  : t('pages.integrations.walutomat.connectButton')
+              }}
+            </UiButton>
+          </DemoRestricted>
         </div>
       </div>
     </template>
@@ -113,13 +115,15 @@
               {{ t('pages.integrations.walutomat.backButton') }}
             </UiButton>
 
-            <UiButton :disabled="selectedIds.size === 0 || isLoading" @click="handleImport">
-              {{
-                isLoading
-                  ? t('pages.integrations.walutomat.importingButton')
-                  : t('pages.integrations.walutomat.importButton', { count: selectedIds.size })
-              }}
-            </UiButton>
+            <DemoRestricted :message="t('demo.featureNotAvailable')">
+              <UiButton :disabled="selectedIds.size === 0 || isLoading || isDemo" @click="handleImport">
+                {{
+                  isLoading
+                    ? t('pages.integrations.walutomat.importingButton')
+                    : t('pages.integrations.walutomat.importButton', { count: selectedIds.size })
+                }}
+              </UiButton>
+            </DemoRestricted>
           </div>
         </template>
       </div>
@@ -137,11 +141,13 @@ import {
   getAvailableAccounts,
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
+import { DemoRestricted } from '@/components/demo';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
-import { useAccountsStore, useOnboardingStore } from '@/stores';
+import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { InfoIcon } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -156,6 +162,7 @@ const emit = defineEmits<{
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { isDemo } = storeToRefs(useUserStore());
 
 const currentStep = ref(1);
 const isLoading = ref(false);
@@ -173,7 +180,7 @@ const selectedIds = ref<Set<string>>(new Set());
 const canConnect = computed(() => apiKey.value.length > 0 && privateKey.value.length > 0);
 
 const handleConnect = async () => {
-  if (!canConnect.value || isLoading.value) return;
+  if (!canConnect.value || isLoading.value || isDemo.value) return;
 
   try {
     isLoading.value = true;
@@ -219,7 +226,7 @@ const toggleAccount = (externalId: string) => {
 };
 
 const handleImport = async () => {
-  if (!connectionId.value || selectedIds.value.size === 0 || isLoading.value) {
+  if (!connectionId.value || selectedIds.value.size === 0 || isLoading.value || isDemo.value) {
     return;
   }
 

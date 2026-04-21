@@ -3,7 +3,7 @@
     "name": "MoneyMatter Finance Tracker",
     "version": "1.0.0",
     "title": "MoneyMatter — Personal Finance MCP Server",
-    "description": "Read-only, OAuth-secured access to your MoneyMatter financial data: accounts, transactions, budgets, cash flow, balance history, categories, tags, and spending analytics. Enables natural-language queries about your personal finances.",
+    "description": "Read-only, OAuth-secured access to your MoneyMatter financial data: accounts, transactions, budgets, cash flow, balance history, categories, tags, spending analytics, and investment portfolios (holdings, cash balances, and investment transactions). Enables natural-language queries about your personal finances.",
     "website": "https://moneymatter.app",
     "documentation": "https://moneymatter.app/llms-full.txt",
     "vendor": {
@@ -72,7 +72,27 @@
       "name": "get_balance_history",
       "description": "Time-series of account balances for a given range and granularity."
     },
-    { "name": "get_expenses_for_period", "description": "Summarize expenses for a given time period with breakdowns." }
+    { "name": "get_expenses_for_period", "description": "Summarize expenses for a given time period with breakdowns." },
+    {
+      "name": "get_portfolios",
+      "description": "List the user's investment portfolios with type, enabled state, and metadata."
+    },
+    {
+      "name": "get_portfolio_summary",
+      "description": "Portfolio-level aggregates: total value, cost basis, realized and unrealized gains, and cash balances in the user's base currency."
+    },
+    {
+      "name": "get_portfolio_holdings",
+      "description": "Positions held in a portfolio with market value, cost basis, and realized/unrealized gains. Includes embedded security details."
+    },
+    {
+      "name": "get_portfolio_balances",
+      "description": "Cash balances held in a portfolio, broken down per currency (original and base-currency equivalents)."
+    },
+    {
+      "name": "get_investment_transactions",
+      "description": "Investment transaction history (buy, sell, dividend, transfer, tax, fee) with security and portfolio details."
+    }
   ],
   "prompts": [
     {

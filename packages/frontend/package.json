@@ -6,6 +6,7 @@
   "scripts": {
     "build": "vue-tsc --noEmit && vite build",
     "lint": "oxlint .",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json",
     "dev": "vite --host",
     "prod": "vite --mode production",
     "docker-build": "docker build . -t letehaha/budget-tracker-fe",
