@@ -18,10 +18,7 @@ import {
   WalletIcon,
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
-
-const { t } = useI18n();
 
 withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
 
@@ -196,7 +193,7 @@ watch(
             size="sm"
           >
             <CreditCardIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ t('transactions.transactionGroups.navigation.allTransactions') }}</span>
+            <span>{{ $t('navigation.allTransactions') }}</span>
           </ui-button>
         </router-link>
         <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactionGroups }">
@@ -207,7 +204,7 @@ watch(
             size="sm"
           >
             <GroupIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ t('transactions.transactionGroups.navigation.groups') }}</span>
+            <span>{{ $t('navigation.transactionGroups') }}</span>
           </ui-button>
         </router-link>
         <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.optimizations }">
