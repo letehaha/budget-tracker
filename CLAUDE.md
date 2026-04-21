@@ -101,12 +101,11 @@ Other instructions:
    - All API responses MUST return monetary amounts as **decimals** (not cents). `Money` auto-serializes via `toJSON()` in `res.json()`. For explicit conversion, use serializers with `centsToApiDecimal()` from `@common/types/money`.
    - Money fields on transactions: `amount`, `refAmount`, `commissionRate`, `refCommissionRate`, `cashbackAmount`
    - **Frontend ALWAYS works with decimals.** The API returns decimals, forms accept decimals, and the frontend sends decimals back. **NEVER** manually convert between cents and decimals in frontend code.
-7. **i18n Files - DO NOT EDIT UNLESS EXPLICITLY ASKED**
-   - i18n locale files are BLOCKED from reading (hook saves tokens)
-   - **NEVER** proactively add/update translations when implementing features
-   - **ONLY** edit i18n files when the user explicitly asks for translation work
-   - When asked, use the `i18n-editor` subagent
-   - If a feature needs translations, mention it in your response and let the user decide when to add them
+7. **i18n Files - use the `i18n-editor` subagent**
+   - i18n locale files are BLOCKED from reading by the main agent (hook saves tokens) — always delegate to the `i18n-editor` subagent.
+   - When a feature genuinely needs new translation keys (i.e. you just added a `$t('...')` reference that doesn't exist yet), proactively trigger the `i18n-editor` subagent to add them — do NOT ask for permission first. Add both `en` and `uk` translations in the same call. Briefly summarize what keys were added in your final response.
+   - Do NOT touch i18n files for unrelated work (don't "improve" existing translations, don't reorganize keys, don't bulk-translate English-only strings you encounter) — only add/update keys that the current task requires.
+   - If a translation's wording is non-obvious (e.g., domain terminology, formal vs. casual tone), ask the user for the copy before delegating to the subagent.
 8. For Chrome extenstion use Brave browser, not Chrome
 9. **Frontend env vars (`VITE_*`) must also be added to CI** — they are inlined at build time. Add as input + envkey in `.github/actions/frontend-docker-build/action.yml`, then pass the secret in `.github/workflows/image-to-docker-hub.yml`.
 10. **CRITICAL: No Git Commits or Pushes**

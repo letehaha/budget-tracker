@@ -91,10 +91,6 @@
       "tagModeRemove": "Видалити ці теги"
     },
     "transactionGroups": {
-      "navigation": {
-        "allTransactions": "Всі транзакції",
-        "groups": "Групи"
-      },
       "bulkActions": {
         "createNewGroup": "Створити нову групу",
         "addToExistingGroup": "Додати до існуючої групи",

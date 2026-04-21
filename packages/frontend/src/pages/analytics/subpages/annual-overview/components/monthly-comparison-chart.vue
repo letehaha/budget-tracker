@@ -8,77 +8,8 @@
       </h3>
 
       <!-- Category multi-select (hidden for savings metric) -->
-      <div v-if="props.metric !== 'savings'" class="w-52">
-        <Combobox.Combobox
-          :model-value="undefined"
-          v-model:searchTerm="searchTerm"
-          v-model:open="isComboboxOpen"
-          :multiple="true"
-          class="w-full"
-        >
-          <Combobox.ComboboxAnchor class="border-none p-0">
-            <Combobox.ComboboxTrigger
-              class="ring-offset-background focus-visible:ring-ring flex w-full justify-between rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-              <div class="flex items-center gap-2">
-                <span
-                  class="inline-flex h-5 min-w-5 items-center justify-center rounded-full border px-1.5 text-xs font-medium"
-                >
-                  {{ selectedCategoryIds.length === 0 ? categories.length : selectedCategoryIds.length }}
-                </span>
-                <span class="text-muted-foreground">
-                  {{
-                    selectedCategoryIds.length === 0
-                      ? t('analytics.trends.monthlyComparison.allCategories')
-                      : selectedCategoryIds.length === 1
-                        ? t('analytics.trends.monthlyComparison.categorySelected', { count: 1 })
-                        : t('analytics.trends.monthlyComparison.categoriesSelected', {
-                            count: selectedCategoryIds.length,
-                          })
-                  }}
-                </span>
-              </div>
-
-              <template v-if="selectedCategoryIds.length > 0">
-                <Button variant="ghost" size="icon" class="size-5" @click.stop="clearSelection">
-                  <XIcon class="text-muted-foreground size-3" />
-                </Button>
-              </template>
-              <template v-else>
-                <ChevronDown class="text-muted-foreground size-4" />
-              </template>
-            </Combobox.ComboboxTrigger>
-          </Combobox.ComboboxAnchor>
-
-          <Combobox.ComboboxList class="max-h-80 w-(--reka-combobox-trigger-width)" :avoid-collisions="false">
-            <div class="relative w-full items-center p-2 pb-0">
-              <Combobox.ComboboxInput
-                class="h-8 w-full rounded-md border pl-8 text-sm focus-visible:ring-0"
-                :placeholder="t('analytics.trends.monthlyComparison.searchCategories')"
-              />
-              <SearchIcon class="text-muted-foreground absolute top-[60%] left-4 size-4 -translate-y-1/2" />
-            </div>
-            <div class="max-h-60 overflow-y-auto p-1">
-              <Combobox.ComboboxEmpty class="text-muted-foreground py-2 text-center text-xs" />
-
-              <Combobox.ComboboxGroup>
-                <Combobox.ComboboxItem
-                  v-for="category in displayedCategories"
-                  :key="category.id"
-                  :value="category"
-                  class="hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5"
-                  @select.prevent="toggleCategory(category)"
-                >
-                  <div class="flex items-center gap-2">
-                    <span class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: category.color }"></span>
-                    <span class="text-sm">{{ category.name }}</span>
-                  </div>
-                  <CheckIcon v-if="isCategorySelected(category.id)" class="size-4" />
-                </Combobox.ComboboxItem>
-              </Combobox.ComboboxGroup>
-            </div>
-          </Combobox.ComboboxList>
-        </Combobox.Combobox>
+      <div v-if="props.metric !== 'savings'" class="w-72">
+        <ComboboxCategories v-model:category-ids="selectedCategoryIds" />
       </div>
     </div>
 
@@ -197,18 +128,16 @@
 <script setup lang="ts">
 import { getCashFlow } from '@/api';
 import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import Button from '@/components/lib/ui/button/Button.vue';
-import * as Combobox from '@/components/lib/ui/combobox';
+import ComboboxCategories from '@/components/common/combobox-categories.vue';
 import { useFormatCurrency } from '@/composable';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
-import { type CategoryModel, TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
+import { TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { useSessionStorage } from '@vueuse/core';
 import * as d3 from 'd3';
-import { CheckIcon, ChevronDown, SearchIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -266,9 +195,6 @@ const tooltipRef = ref<HTMLDivElement | null>(null);
 
 // Category multi-select state with session persistence
 const selectedCategoryIds = useSessionStorage<number[]>('trends-comparison-categories', []);
-const searchTerm = ref('');
-const isComboboxOpen = ref(false);
-const sessionOrder = ref<number[]>([]);
 
 const tooltip = reactive({
   visible: false,
@@ -315,46 +241,6 @@ const {
   staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
   gcTime: QUERY_CACHE_STALE_TIME.ANALYTICS * 2,
 });
-
-// When combobox opens, reorder to show selected categories first
-watch(isComboboxOpen, (open) => {
-  if (open) {
-    const selectedIds = new Set(selectedCategoryIds.value);
-    const selectedFirst = categories.value.filter((c) => selectedIds.has(c.id));
-    const others = categories.value.filter((c) => !selectedIds.has(c.id));
-    sessionOrder.value = [...selectedFirst, ...others].map((c) => c.id);
-  }
-});
-
-// Category selection helpers - show selected categories at top when dropdown is open
-const orderedCategories = computed(() => {
-  if (isComboboxOpen.value && sessionOrder.value.length) {
-    const byId = new Map(categories.value.map((c) => [c.id, c] as const));
-    return sessionOrder.value.map((id) => byId.get(id)!).filter(Boolean);
-  }
-  return categories.value;
-});
-
-const displayedCategories = computed(() => {
-  const term = searchTerm.value.trim().toLowerCase();
-  if (!term) return orderedCategories.value;
-  return orderedCategories.value.filter((c) => c.name.toLowerCase().includes(term));
-});
-
-const isCategorySelected = (categoryId: number) => selectedCategoryIds.value.includes(categoryId);
-
-const toggleCategory = (category: CategoryModel) => {
-  const isSelected = isCategorySelected(category.id);
-  if (isSelected) {
-    selectedCategoryIds.value = selectedCategoryIds.value.filter((id) => id !== category.id);
-  } else {
-    selectedCategoryIds.value = [...selectedCategoryIds.value, category.id];
-  }
-};
-
-const clearSelection = () => {
-  selectedCategoryIds.value = [];
-};
 
 // Check if we have stacked bars (multiple categories with data for current metric)
 // Savings mode never uses stacked bars — it shows net flow as simple bars

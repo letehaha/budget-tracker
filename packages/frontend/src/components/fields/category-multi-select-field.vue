@@ -80,6 +80,7 @@
 
 <script setup lang="ts">
 import { type FormattedCategory } from '@/common/types';
+import { collectDescendantIds } from '@/components/common/combobox-categories.helpers';
 import { FieldError, FieldLabel } from '@/components/fields';
 import CategoryItem from '@/components/fields/category-multi-select-item.vue';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
@@ -179,26 +180,7 @@ const filteredCategories = computed(() => {
 
 const isSelected = (categoryId: number) => selectedCategoryIds.value.has(categoryId);
 
-/**
- * Recursively collects all descendant IDs from a category
- */
-const collectAllDescendantIds = (category: FormattedCategory): number[] => {
-  const ids: number[] = [];
-  if (category.subCategories?.length) {
-    for (const child of category.subCategories) {
-      ids.push(child.id);
-      ids.push(...collectAllDescendantIds(child));
-    }
-  }
-  return ids;
-};
-
-/**
- * Gets the total count of all descendants (not just direct children)
- */
-const getDescendantCount = (category: FormattedCategory): number => {
-  return collectAllDescendantIds(category).length;
-};
+const getDescendantCount = (category: FormattedCategory): number => collectDescendantIds(category).length;
 
 const toggleCategory = (categoryId: number) => {
   const currentIds = new Set(props.modelValue ?? []);
@@ -208,7 +190,7 @@ const toggleCategory = (categoryId: number) => {
 
   // Find the category in the formatted structure to get its descendants
   const formattedCategory = findCategory(availableCategories.value, (cat) => cat.id === categoryId);
-  const descendantIds = formattedCategory ? collectAllDescendantIds(formattedCategory) : [];
+  const descendantIds = formattedCategory ? collectDescendantIds(formattedCategory) : [];
 
   if (currentIds.has(categoryId)) {
     // Uncheck: remove this category and all its descendants
