@@ -17,8 +17,10 @@ import {
   TrendingUpIcon,
   WalletIcon,
 } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
+
+import { useSidebarNavCollapse } from './use-nav-collapse';
 
 withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
 
@@ -28,6 +30,7 @@ const navIconBase = 'size-4 shrink-0';
 const navIconActive = 'text-primary';
 
 const route = useRoute();
+const { isAccountsOpen, isTransactionsOpen, isPlannedOpen } = useSidebarNavCollapse();
 
 const isAccountsRoute = computed(
   () =>
@@ -37,7 +40,6 @@ const isAccountsRoute = computed(
     route.name === ROUTES_NAMES.accountIntegrationDetails,
 );
 
-const isAccountsOpen = ref(false);
 watch(
   isAccountsRoute,
   (val) => {
@@ -54,7 +56,6 @@ const isTransactionsRoute = computed(
     route.name === ROUTES_NAMES.optimizationsTransfers,
 );
 
-const isTransactionsOpen = ref(false);
 watch(
   isTransactionsRoute,
   (val) => {
@@ -74,7 +75,6 @@ const isPlannedRoute = computed(
     route.name === ROUTES_NAMES.plannedReminderDetails,
 );
 
-const isPlannedOpen = ref(false);
 watch(
   isPlannedRoute,
   (val) => {

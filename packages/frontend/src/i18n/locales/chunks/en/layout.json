@@ -24,7 +24,8 @@
     "accountsView": {
       "title": "Accounts",
       "newAccount": "New account",
-      "newAccountsGroup": "New accounts group"
+      "newAccountsGroup": "New accounts group",
+      "collapseNavigation": "Collapse navigation"
     }
   },
   "header": {

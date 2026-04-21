@@ -24,7 +24,8 @@
     "accountsView": {
       "title": "Рахунки",
       "newAccount": "Новий рахунок",
-      "newAccountsGroup": "Нова група рахунків"
+      "newAccountsGroup": "Нова група рахунків",
+      "collapseNavigation": "Згорнути навігацію"
     }
   },
   "header": {
