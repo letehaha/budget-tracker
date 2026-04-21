@@ -60,7 +60,7 @@ const onScrollAreaMounted = (el: unknown) => {
   <UseScrollArea>
     <div
       :ref="(el) => !props.noInternalScroll && onScrollAreaMounted(el)"
-      :class="[props.noInternalScroll ? 'contents' : 'scrollable-area min-h-0 flex-1 overflow-y-auto']"
+      :class="[props.noInternalScroll ? 'contents' : 'scrollable-area min-h-0 flex-1 overflow-y-auto px-1 py-1']"
       :data-can-scroll-up="!props.noInternalScroll ? canScrollUp : undefined"
       :data-can-scroll-down="!props.noInternalScroll ? canScrollDown : undefined"
       @scroll="!props.noInternalScroll && onScroll($event)"

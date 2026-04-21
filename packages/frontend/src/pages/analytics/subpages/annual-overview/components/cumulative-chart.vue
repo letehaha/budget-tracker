@@ -50,6 +50,7 @@
 </template>
 
 <script setup lang="ts">
+import { currentTheme } from '@/common/utils/color-theme';
 import { useFormatCurrency } from '@/composable';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import type { endpointsTypes } from '@bt/shared/types';
@@ -391,5 +392,7 @@ onUnmounted(() => {
   }
 });
 
-watch([() => props.currentPeriodData, () => props.previousPeriodData, () => props.metric], renderChart, { deep: true });
+watch([() => props.currentPeriodData, () => props.previousPeriodData, () => props.metric, currentTheme], renderChart, {
+  deep: true,
+});
 </script>

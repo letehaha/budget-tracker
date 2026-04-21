@@ -45,6 +45,7 @@
 </template>
 
 <script setup lang="ts">
+import { currentTheme } from '@/common/utils/color-theme';
 import { useFormatCurrency } from '@/composable';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useDateLocale } from '@/composable/use-date-locale';
@@ -294,5 +295,5 @@ onUnmounted(() => {
   if (resizeObserver) resizeObserver.disconnect();
 });
 
-watch([() => props.data, () => props.granularity], renderChart, { deep: true });
+watch([() => props.data, () => props.granularity, currentTheme], renderChart, { deep: true });
 </script>

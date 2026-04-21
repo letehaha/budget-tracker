@@ -197,6 +197,7 @@
 <script setup lang="ts">
 import { getCashFlow } from '@/api';
 import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { currentTheme } from '@/common/utils/color-theme';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Combobox from '@/components/lib/ui/combobox';
 import { useFormatCurrency } from '@/composable';
@@ -1184,7 +1185,7 @@ watch(containerRef, (newVal) => {
 });
 
 watch(
-  [chartData, () => props.metric, locale, selectedCategoryIds],
+  [chartData, () => props.metric, locale, selectedCategoryIds, currentTheme],
   () => {
     // Use nextTick to ensure DOM is updated before rendering
     // (SVG container is in v-else block that appears when data loads)

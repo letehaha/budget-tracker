@@ -55,6 +55,7 @@
 </template>
 
 <script setup lang="ts">
+import { currentTheme } from '@/common/utils/color-theme';
 import { useFormatCurrency } from '@/composable';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import * as d3 from 'd3';
@@ -413,5 +414,5 @@ onUnmounted(() => {
   }
 });
 
-watch([() => props.data, () => props.indicatorLabel], renderChart, { deep: true });
+watch([() => props.data, () => props.indicatorLabel, currentTheme], renderChart, { deep: true });
 </script>
