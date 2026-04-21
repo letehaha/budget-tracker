@@ -92,16 +92,14 @@
             @open-auto-focus.prevent="$nextTick(() => inputRef?.focus())"
           >
             <!-- Search input -->
-            <div class="border-b p-2">
-              <input
-                ref="inputRef"
-                v-model="searchQuery"
-                type="text"
-                class="bg-background w-full text-sm outline-none"
-                :placeholder="$t('fields.categorySelect.searchPlaceholder')"
-                :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
-              />
-            </div>
+            <input
+              ref="inputRef"
+              v-model="searchQuery"
+              type="text"
+              class="w-full border-b bg-transparent px-3 py-2 text-sm outline-none"
+              :placeholder="$t('fields.categorySelect.searchPlaceholder')"
+              :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
+            />
             <!-- Category list -->
             <div ref="listRef" class="max-h-87.5 overflow-auto">
               <CategoryListContent />
