@@ -202,7 +202,9 @@
     },
     "comboboxCategories": {
       "searchPlaceholder": "Search categories...",
-      "unselectedPlaceholder": "All categories"
+      "unselectedPlaceholder": "All categories",
+      "category": "category selected",
+      "categoriesSelected": "categories selected"
     },
     "tagSelect": {
       "placeholder": "Select tags...",

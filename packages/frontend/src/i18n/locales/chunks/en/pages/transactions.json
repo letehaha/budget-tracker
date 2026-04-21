@@ -91,10 +91,6 @@
       "tagModeRemove": "Remove these tags"
     },
     "transactionGroups": {
-      "navigation": {
-        "allTransactions": "All Transactions",
-        "groups": "Groups"
-      },
       "bulkActions": {
         "createNewGroup": "Create new group",
         "addToExistingGroup": "Add to existing group",
