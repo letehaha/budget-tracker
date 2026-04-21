@@ -3,7 +3,8 @@
 MoneyMatter exposes a remote Model Context Protocol (MCP) server. Connecting an
 agent to this server gives the agent read-only, OAuth-secured access to the
 user's financial data (accounts, transactions, budgets, categories, tags,
-cash flow, balance history).
+cash flow, balance history, investment portfolios, holdings, and investment
+transactions).
 
 Use this skill when the user asks to "connect Claude to my budget", "hook up
 ChatGPT to MoneyMatter", "let my AI see my finances", or similar.
@@ -41,18 +42,23 @@ connected app at any time from the MoneyMatter settings page.
 
 ## Available tools
 
-| Tool                         | Purpose                                                  |
-| ---------------------------- | -------------------------------------------------------- |
-| `get_user_profile`           | Base currency, configured currencies, profile basics     |
-| `get_accounts`               | List accounts with balances, types, currencies           |
-| `search_transactions`        | Filter transactions by date, category, tag, amount, etc. |
-| `get_categories`             | List spending/income categories                          |
-| `get_tags`                   | List transaction tags                                    |
-| `get_budgets`                | Budgets with progress and overspend state                |
-| `get_spending_by_categories` | Aggregate spending by category over a range              |
-| `get_cash_flow`              | Income vs expenses over a range                          |
-| `get_balance_history`        | Time-series of account balances                          |
-| `get_expenses_for_period`    | Expenses summary for a time period                       |
+| Tool                          | Purpose                                                  |
+| ----------------------------- | -------------------------------------------------------- |
+| `get_user_profile`            | Base currency, configured currencies, profile basics     |
+| `get_accounts`                | List accounts with balances, types, currencies           |
+| `search_transactions`         | Filter transactions by date, category, tag, amount, etc. |
+| `get_categories`              | List spending/income categories                          |
+| `get_tags`                    | List transaction tags                                    |
+| `get_budgets`                 | Budgets with progress and overspend state                |
+| `get_spending_by_categories`  | Aggregate spending by category over a range              |
+| `get_cash_flow`               | Income vs expenses over a range                          |
+| `get_balance_history`         | Time-series of account balances                          |
+| `get_expenses_for_period`     | Expenses summary for a time period                       |
+| `get_portfolios`              | List investment portfolios (types, enabled state)        |
+| `get_portfolio_summary`       | Portfolio totals, P&L, cash balances                     |
+| `get_portfolio_holdings`      | Positions with market value and gains/losses             |
+| `get_portfolio_balances`      | Portfolio cash balances per currency                     |
+| `get_investment_transactions` | Buy/sell/dividend/fee history for investments            |
 
 Call `get_user_profile` **first** — it reveals the user's base currency, which
 is required to interpret `ref*` fields (refAmount, refBalance) that normalize
@@ -65,6 +71,13 @@ multi-currency data.
   Use them for cross-account totals when accounts have different currencies.
 - Transaction types: `income`, `expense`, `transfer`. Transfers are **not**
   income or expense — exclude them from spend/earn aggregations.
+- Investment vs regular transactions are **separate datasets**.
+  `search_transactions` returns regular (spending) transactions; investment
+  activity (buy/sell/dividend/fee) lives in `get_investment_transactions` and
+  does not appear in `search_transactions`.
+- Portfolio queries are gated by `portfolioId`. Call `get_portfolios` first
+  to discover ids before calling `get_portfolio_summary`,
+  `get_portfolio_holdings`, or `get_portfolio_balances`.
 
 ## Troubleshooting
 
