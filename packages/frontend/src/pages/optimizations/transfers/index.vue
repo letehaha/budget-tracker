@@ -259,7 +259,9 @@ function handleTransactionClick(tx: TransactionModel, oppositeTx: TransactionMod
 </script>
 
 <template>
-  <div class="flex h-[calc(100dvh-var(--header-height))] flex-col gap-4 overflow-hidden p-4 md:p-6">
+  <div
+    class="flex h-[calc(100dvh-var(--header-height))] flex-col gap-4 overflow-hidden p-4 max-md:h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))] md:p-6"
+  >
     <!-- Header -->
     <div class="shrink-0">
       <h1 class="text-2xl font-bold tracking-tight">
@@ -335,7 +337,7 @@ function handleTransactionClick(tx: TransactionModel, oppositeTx: TransactionMod
       <!-- Empty state (after scan, no results) -->
       <div
         v-else-if="hasScanned && allItems.length === 0 && !isScanning"
-        class="flex flex-1 flex-col items-center justify-center gap-3"
+        class="flex flex-1 flex-col items-center justify-center gap-3 px-6"
       >
         <SearchXIcon class="text-muted-foreground size-12" />
         <div class="text-center">
@@ -347,7 +349,7 @@ function handleTransactionClick(tx: TransactionModel, oppositeTx: TransactionMod
       </div>
 
       <!-- Initial state (before first scan) -->
-      <div v-else-if="!hasScanned && !isScanning" class="flex flex-1 flex-col items-center justify-center gap-3">
+      <div v-else-if="!hasScanned && !isScanning" class="flex flex-1 flex-col items-center justify-center gap-3 px-6">
         <SparklesIcon class="text-muted-foreground size-12" />
         <div class="text-center">
           <p class="font-medium">{{ $t('optimizations.transferSuggestions.initial.title') }}</p>
