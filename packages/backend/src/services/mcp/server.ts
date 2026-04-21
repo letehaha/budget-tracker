@@ -11,6 +11,11 @@ import { registerGetBudgets } from './tools/get-budgets';
 import { registerGetCashFlow } from './tools/get-cash-flow';
 import { registerGetCategories } from './tools/get-categories';
 import { registerGetExpensesForPeriod } from './tools/get-expenses-for-period';
+import { registerGetInvestmentTransactions } from './tools/get-investment-transactions';
+import { registerGetPortfolioBalances } from './tools/get-portfolio-balances';
+import { registerGetPortfolioHoldings } from './tools/get-portfolio-holdings';
+import { registerGetPortfolioSummary } from './tools/get-portfolio-summary';
+import { registerGetPortfolios } from './tools/get-portfolios';
 import { registerGetSpendingByCategories } from './tools/get-spending-by-categories';
 import { registerGetTags } from './tools/get-tags';
 import { registerGetUserProfile } from './tools/get-user-profile';
@@ -61,6 +66,11 @@ export function createMcpServer(): McpServer {
   registerGetCashFlow(server);
   registerGetBalanceHistory(server);
   registerGetExpensesForPeriod(server);
+  registerGetPortfolios(server);
+  registerGetPortfolioSummary(server);
+  registerGetPortfolioHoldings(server);
+  registerGetPortfolioBalances(server);
+  registerGetInvestmentTransactions(server);
 
   return server;
 }
