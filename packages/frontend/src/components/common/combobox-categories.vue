@@ -7,13 +7,15 @@
         <span
           class="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border px-2 text-sm font-medium"
         >
-          {{ isAllSelected ? totalLeafCount : selectedLeafCount }}
+          {{ isAllSelected ? totalCategoryCount : selectedCategoryCount }}
         </span>
         <span class="min-w-0 flex-1 truncate text-left font-medium">
           {{
             isAllSelected
               ? $t('fields.comboboxCategories.unselectedPlaceholder')
-              : `${selectedLeafCount === 1 ? 'category' : 'categories'} selected`
+              : selectedCategoryCount === 1
+                ? $t('fields.comboboxCategories.category')
+                : $t('fields.comboboxCategories.categoriesSelected')
           }}
         </span>
       </div>
@@ -92,9 +94,8 @@ import CategoryCircle from '@/components/common/category-circle.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import * as Popover from '@/components/lib/ui/popover';
-import { useWindowBreakpoints } from '@/composable/window-breakpoints';
+import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useCategoriesStore } from '@/stores';
-import { isEqual } from 'lodash-es';
 import { CheckIcon, ChevronDownIcon, MinusIcon, SearchIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -121,21 +122,10 @@ const { formattedCategories } = storeToRefs(useCategoriesStore());
 const searchTerm = ref('');
 const isOpen = ref(false);
 
-const isMobile = useWindowBreakpoints(1024);
+const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiDesktop);
 const dropdownSide = computed(() => (isMobile.value ? 'top' : 'bottom'));
 
-const selectedIds = ref<number[]>([]);
-
-watch(
-  () => props.categoryIds,
-  (newIds) => {
-    if (isEqual([...newIds].sort(), [...selectedIds.value].sort())) return;
-    selectedIds.value = [...newIds];
-  },
-  { immediate: true },
-);
-
-const selectedIdsSet = computed(() => new Set(selectedIds.value));
+const selectedIdsSet = computed(() => new Set(props.categoryIds));
 
 const baseOrderedCategories = computed(() =>
   flattenCategories({ categories: sortInternalLast(formattedCategories.value) }),
@@ -188,7 +178,7 @@ const shouldShowSeparator = ({ item, index }: { item: FlatCategory; index: numbe
   if (!isSearching.value) return false;
   if (index === 0) return true;
   const prev = displayedItems.value[index - 1];
-  return prev!.rootParentId !== item.rootParentId;
+  return prev?.rootParentId !== item.rootParentId;
 };
 
 const isCategoryChecked = (item: FlatCategory) =>
@@ -217,10 +207,10 @@ onBeforeUnmount(() => {
 });
 
 const handleToggle = ({ item, index }: { item: FlatCategory; index: number }) => {
-  selectedIds.value = toggleCategorySelection({
+  const next = toggleCategorySelection({
     item,
     clickedIndex: index,
-    currentSelection: selectedIds.value,
+    currentSelection: props.categoryIds,
     displayedItems: displayedItems.value,
     isSearching: isSearching.value,
     isShiftPressed: isShiftPressed.value,
@@ -228,17 +218,16 @@ const handleToggle = ({ item, index }: { item: FlatCategory; index: number }) =>
   });
 
   lastClickedIndex = index;
-  emit('update:categoryIds', selectedIds.value);
+  emit('update:categoryIds', next);
 };
 
-const totalLeafCount = computed(() => baseOrderedCategories.value.length);
+const totalCategoryCount = computed(() => baseOrderedCategories.value.length);
 
-const selectedLeafCount = computed(() => selectedIds.value.length);
+const selectedCategoryCount = computed(() => props.categoryIds.length);
 
-const isAllSelected = computed(() => selectedIds.value.length === 0);
+const isAllSelected = computed(() => props.categoryIds.length === 0);
 
 const clearSelection = () => {
-  selectedIds.value = [];
   lastClickedIndex = null;
   emit('update:categoryIds', []);
 };

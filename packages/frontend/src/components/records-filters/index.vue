@@ -35,7 +35,7 @@
       @update:accounts="$emit('update:filters', { ...filters, accounts: $event })"
     />
 
-    <CategoryFilter
+    <ComboboxCategories
       :category-ids="filters.categoryIds"
       @update:category-ids="$emit('update:filters', { ...filters, categoryIds: $event })"
     />
@@ -64,9 +64,10 @@
 <script lang="ts" setup>
 import UiButton from '@/components/lib/ui/button/Button.vue';
 
+import ComboboxCategories from '@/components/common/combobox-categories.vue';
+
 import { FiltersStruct } from './const';
 import AmountRangeFilter from './filters/amount-range-filter.vue';
-import CategoryFilter from './filters/category-filter.vue';
 import AccountsFilter from './filters/combobox-accounts.vue';
 import DateRangeFilter from './filters/date-range-filter.vue';
 import ExclusionsFilter from './filters/exclusions.vue';

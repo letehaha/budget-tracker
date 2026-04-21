@@ -202,7 +202,9 @@
     },
     "comboboxCategories": {
       "searchPlaceholder": "Шукати категорії...",
-      "unselectedPlaceholder": "Всі категорії"
+      "unselectedPlaceholder": "Всі категорії",
+      "category": "категорія вибрана",
+      "categoriesSelected": "категорій вибрано"
     },
     "tagSelect": {
       "placeholder": "Виберіть теги...",

@@ -110,6 +110,24 @@ describe('flattenCategories', () => {
     expect(findFlat(flat, 3).descendantIds).toEqual([4, 5]);
     expect(findFlat(flat, 2).descendantIds).toEqual([]);
   });
+
+  it('returns an empty list for an empty input', () => {
+    expect(flattenCategories({ categories: [] })).toEqual([]);
+  });
+
+  it('propagates the original root parent to grandchildren beyond depth 2', () => {
+    // Food (1) > Restaurants (3) > Fast Food (4) > Bao Place (200)
+    const baoPlace = makeCategory({ id: 200, name: 'Bao Place', parentId: 4 });
+    const fastFood = makeCategory({ id: 4, name: 'Fast Food', parentId: 3, subCategories: [baoPlace] });
+    const restaurants = makeCategory({ id: 3, name: 'Restaurants', parentId: 1, subCategories: [fastFood] });
+    const food = makeCategory({ id: 1, name: 'Food', subCategories: [restaurants] });
+
+    const flat = flattenCategories({ categories: [food] });
+    const grandchild = findFlat(flat, 200);
+    expect(grandchild.depth).toBe(3);
+    expect(grandchild.rootParentId).toBe(1);
+    expect(grandchild.rootParentName).toBe('Food');
+  });
 });
 
 describe('computeCheckedState', () => {
@@ -151,6 +169,16 @@ describe('computeCheckedState', () => {
         isSearching: false,
       }),
     ).toBe(false);
+  });
+
+  it('returns indeterminate when parent is selected but descendants are only partially selected', () => {
+    expect(
+      computeCheckedState({
+        item: findFlat(flat, 1),
+        selectedIds: new Set([1, 2]),
+        isSearching: false,
+      }),
+    ).toBe('indeterminate');
   });
 
   it('ignores descendants when searching — reflects only self', () => {
@@ -227,6 +255,19 @@ describe('toggleCategorySelection', () => {
     expect(next.sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
   });
 
+  it('fills in descendants when parent is already selected but descendants are missing', () => {
+    const next = toggleCategorySelection({
+      item: findFlat(flat, 1),
+      clickedIndex: 0,
+      currentSelection: [1],
+      displayedItems: flat,
+      isSearching: false,
+      isShiftPressed: false,
+      lastClickedIndex: null,
+    });
+    expect(next.sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
+  });
+
   it('only toggles the clicked item when searching, even for parents with descendants', () => {
     const next = toggleCategorySelection({
       item: findFlat(flat, 1),
@@ -279,6 +320,50 @@ describe('toggleCategorySelection', () => {
     });
     expect(next).toEqual([2]);
   });
+
+  it('only toggles the clicked item when shift-clicking the same index as last click', () => {
+    // lastClickedIndex === clickedIndex: range is empty beyond the clicked item
+    const next = toggleCategorySelection({
+      item: findFlat(flat, 2),
+      clickedIndex: 1,
+      currentSelection: [],
+      displayedItems: flat,
+      isSearching: false,
+      isShiftPressed: true,
+      lastClickedIndex: 1,
+    });
+    expect(next).toEqual([2]);
+  });
+
+  it('deselects a range via shift-click when the anchor is already selected', () => {
+    // currentSelection already has the first two leaves; shift-clicking a selected range deselects
+    const next = toggleCategorySelection({
+      item: findFlat(flat, 5), // Fine Dining at index 4
+      clickedIndex: 4,
+      currentSelection: [2, 3, 4, 5],
+      displayedItems: flat,
+      isSearching: false,
+      isShiftPressed: true,
+      lastClickedIndex: 3, // Fast Food
+    });
+    // Clicking Fine Dining with it already selected → deselect; range covers idx 3..4 (Fast Food, Fine Dining)
+    expect(next.sort((a, b) => a - b)).toEqual([2, 3]);
+  });
+
+  it('toggles self only for each item in the shift-click range when searching', () => {
+    // In search mode, range selection must not pull in descendants — only self ids
+    const next = toggleCategorySelection({
+      item: findFlat(flat, 3), // Restaurants (has descendants 4, 5)
+      clickedIndex: 2,
+      currentSelection: [],
+      displayedItems: flat,
+      isSearching: true,
+      isShiftPressed: true,
+      lastClickedIndex: 1, // Groceries
+    });
+    // Range covers Groceries(2) and Restaurants(3); descendants 4, 5 must NOT be added
+    expect(next.sort((a, b) => a - b)).toEqual([2, 3]);
+  });
 });
 
 describe('computeSessionRootOrder', () => {
@@ -307,12 +392,17 @@ describe('computeSessionRootOrder', () => {
     expect(order).toEqual([1, 10, 100]);
   });
 
-  it('ranks multiple selected roots before unselected, preserving relative order', () => {
+  it('lifts a later-declared root above an earlier-declared unselected one', () => {
+    // Only Transport (10) has a selected descendant; verifies selected-first partition actually reorders.
     const roots = buildTree();
     const order = computeSessionRootOrder({
       roots,
-      selectedIds: new Set([5, 11]),
+      selectedIds: new Set([12]),
     });
-    expect(order).toEqual([1, 10, 100]);
+    expect(order).toEqual([10, 1, 100]);
+  });
+
+  it('returns an empty order when given no roots', () => {
+    expect(computeSessionRootOrder({ roots: [], selectedIds: new Set() })).toEqual([]);
   });
 });
