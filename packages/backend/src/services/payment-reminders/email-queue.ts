@@ -1,3 +1,4 @@
+import { getRedisConnectionConfig } from '@common/redis-connection-config';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
@@ -19,7 +20,7 @@ interface ReminderEmailJobData extends SentryTraceData {
 
 // Redis connection configuration for BullMQ
 const redisConnection = {
-  host: process.env.APPLICATION_REDIS_HOST,
+  ...getRedisConnectionConfig(),
   maxRetriesPerRequest: null as null,
   connectTimeout: 20000,
   keepAlive: 10000,

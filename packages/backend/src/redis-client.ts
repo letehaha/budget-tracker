@@ -1,5 +1,6 @@
 import './bootstrap';
 
+import { getRedisConnectionConfig } from '@common/redis-connection-config';
 import { logger } from '@js/utils/logger';
 import Redis from 'ioredis';
 
@@ -11,7 +12,7 @@ logger.info('Initializing Redis client...');
 export const REDIS_KEY_PREFIX = process.env.JEST_WORKER_ID ? `${process.env.JEST_WORKER_ID}:` : undefined;
 
 export const redisClient = new Redis({
-  host: process.env.APPLICATION_REDIS_HOST,
+  ...getRedisConnectionConfig(),
   keyPrefix: REDIS_KEY_PREFIX,
   lazyConnect: true,
   maxRetriesPerRequest: 3,
