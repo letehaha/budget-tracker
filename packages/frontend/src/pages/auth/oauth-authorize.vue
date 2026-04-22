@@ -1,88 +1,95 @@
 <template>
-  <div class="flex min-h-screen items-center justify-center p-4">
-    <Card class="w-full max-w-md">
-      <CardHeader class="text-center">
-        <div class="bg-primary/10 mx-auto mb-4 flex size-16 items-center justify-center rounded-full">
-          <ShieldCheckIcon class="text-primary size-8" />
-        </div>
-        <h1 class="text-xl font-semibold">
-          {{ $t('oauth.authorize.title', { name: clientName }) }}
-        </h1>
-      </CardHeader>
+  <div class="h-dvh overflow-y-auto">
+    <div class="flex min-h-full items-center justify-center p-4">
+      <Card class="w-full max-w-md">
+        <CardHeader class="text-center">
+          <div class="bg-primary/10 mx-auto mb-4 flex size-16 items-center justify-center rounded-full">
+            <ShieldCheckIcon class="text-primary size-8" />
+          </div>
+          <h1 class="text-xl font-semibold">
+            {{ $t('oauth.authorize.title', { name: clientName }) }}
+          </h1>
+        </CardHeader>
 
-      <CardContent class="flex flex-col gap-6">
-        <div>
-          <p class="text-muted-foreground mb-3 text-sm font-medium">
-            {{ $t('oauth.authorize.description') }}
-          </p>
+        <CardContent class="flex flex-col gap-6">
+          <div>
+            <p class="text-muted-foreground mb-3 text-sm font-medium">
+              {{ $t('oauth.authorize.description') }}
+            </p>
 
-          <ul class="space-y-3">
-            <li
-              v-for="item in scopeItems"
-              :key="item.scope"
-              :class="
-                cn('flex gap-3 rounded-md border p-3', item.destructive && 'border-destructive/40 bg-destructive/5')
-              "
-            >
-              <div class="pt-0.5">
-                <Checkbox
-                  v-if="item.togglable"
-                  :model-value="approvals[item.scope]"
-                  :aria-label="$t(item.labelKey)"
-                  @update:model-value="(val) => (approvals[item.scope] = !!val)"
-                />
-                <CheckCircleIcon v-else class="text-app-income-color size-4" />
-              </div>
-
-              <div class="flex-1 text-sm">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="font-medium">{{ $t(item.labelKey) }}</span>
-                  <span
-                    :class="
-                      cn(
-                        'rounded-full px-2 py-0.5 text-xs',
-                        item.togglable
-                          ? item.destructive
-                            ? 'bg-destructive/10 text-destructive-text'
-                            : 'bg-muted text-muted-foreground'
-                          : 'bg-muted text-muted-foreground',
-                      )
-                    "
-                  >
-                    {{ item.togglable ? $t('oauth.authorize.optional') : $t('oauth.authorize.always_granted') }}
-                  </span>
+            <ul class="space-y-3">
+              <li
+                v-for="item in scopeItems"
+                :key="item.scope"
+                :class="
+                  cn('flex gap-3 rounded-md border p-3', item.destructive && 'border-destructive/40 bg-destructive/5')
+                "
+              >
+                <div class="pt-0.5">
+                  <Checkbox
+                    v-if="item.togglable"
+                    :model-value="approvals[item.scope]"
+                    :aria-label="$t(item.labelKey)"
+                    @update:model-value="(val) => (approvals[item.scope] = !!val)"
+                  />
+                  <CheckCircleIcon v-else class="text-app-income-color size-4" />
                 </div>
-                <p class="text-muted-foreground mt-1">{{ $t(item.descKey) }}</p>
-                <p v-if="item.destructive" class="text-destructive-text mt-2 flex items-center gap-1.5 text-xs">
-                  <AlertTriangleIcon class="size-3.5 shrink-0" />
-                  {{ $t('oauth.authorize.delete_warning') }}
-                </p>
-              </div>
-            </li>
-          </ul>
-        </div>
 
-        <Separator />
+                <div class="flex-1 text-sm">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-medium">{{ $t(item.labelKey) }}</span>
+                    <span
+                      :class="
+                        cn(
+                          'rounded-full px-2 py-0.5 text-xs',
+                          item.togglable
+                            ? item.destructive
+                              ? 'bg-destructive/10 text-destructive-text'
+                              : 'bg-muted text-muted-foreground'
+                            : 'bg-muted text-muted-foreground',
+                        )
+                      "
+                    >
+                      {{ item.togglable ? $t('oauth.authorize.optional') : $t('oauth.authorize.always_granted') }}
+                    </span>
+                  </div>
+                  <p class="text-muted-foreground mt-1">{{ $t(item.descKey) }}</p>
+                  <p v-if="item.destructive" class="text-destructive-text mt-2 flex items-center gap-1.5 text-xs">
+                    <AlertTriangleIcon class="size-3.5 shrink-0" />
+                    {{ $t('oauth.authorize.delete_warning') }}
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
 
-        <div class="flex gap-3">
-          <UiButton variant="outline" class="flex-1" :disabled="isSubmitting" @click="submitConsent({ accept: false })">
-            {{ $t('oauth.authorize.deny') }}
-          </UiButton>
-          <UiButton
-            class="flex-1"
-            :disabled="isSubmitting"
-            :loading="isSubmitting"
-            @click="submitConsent({ accept: true })"
-          >
-            {{ $t('oauth.authorize.approve') }}
-          </UiButton>
-        </div>
+          <Separator />
 
-        <p class="text-muted-foreground text-center text-xs">
-          {{ $t('oauth.authorize.footer') }}
-        </p>
-      </CardContent>
-    </Card>
+          <div class="flex gap-3">
+            <UiButton
+              variant="outline"
+              class="flex-1"
+              :disabled="isSubmitting"
+              @click="submitConsent({ accept: false })"
+            >
+              {{ $t('oauth.authorize.deny') }}
+            </UiButton>
+            <UiButton
+              class="flex-1"
+              :disabled="isSubmitting"
+              :loading="isSubmitting"
+              @click="submitConsent({ accept: true })"
+            >
+              {{ $t('oauth.authorize.approve') }}
+            </UiButton>
+          </div>
+
+          <p class="text-muted-foreground text-center text-xs">
+            {{ $t('oauth.authorize.footer') }}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   </div>
 </template>
 
