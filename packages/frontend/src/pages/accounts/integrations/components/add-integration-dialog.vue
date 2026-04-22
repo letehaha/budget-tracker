@@ -47,7 +47,7 @@
                     :content="
                       t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.difficultyTooltipKey)
                     "
-                    content-class-name="w-screen max-w-105 text-balance"
+                    content-class-name="max-w-xs text-wrap"
                   >
                     <span
                       :class="
