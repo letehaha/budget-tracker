@@ -13,6 +13,17 @@ export function getUserId({ extra }: { extra: { authInfo?: { extra?: { userId?: 
   return userId;
 }
 
+/**
+ * Assert the caller's access token was granted a specific scope.
+ * Write and delete MCP tools call this after getUserId to enforce scope gating.
+ */
+export function requireScope({ extra, scope }: { extra: { authInfo?: { scopes?: string[] } }; scope: string }): void {
+  const scopes = extra?.authInfo?.scopes ?? [];
+  if (!scopes.includes(scope)) {
+    throw new Error(`Missing required scope: ${scope}. Re-connect the app and grant it.`);
+  }
+}
+
 /** Return a JSON text content block for MCP tool responses. */
 export function jsonContent({ data }: { data: unknown }) {
   return {

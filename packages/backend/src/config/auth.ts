@@ -225,7 +225,10 @@ export const auth = betterAuth({
       // 'claudeai' is a no-op scope required as a workaround: Claude.ai adds it to
       // client registration requests and better-auth rejects unknown scopes with 400.
       // See: https://github.com/anthropics/claude-ai-mcp/issues/111
-      scopes: ['finance:read', 'profile:read', 'offline_access', 'claudeai'],
+      // finance:write and finance:delete gate mutation tools. They're accepted by the
+      // consent flow but not advertised in public metadata until the first tool using
+      // them ships — see oauth-metadata.route.ts and the static .well-known mirrors.
+      scopes: ['finance:read', 'finance:write', 'finance:delete', 'profile:read', 'offline_access', 'claudeai'],
       accessTokenExpiresIn: 72 * 60 * 60, // 72 hours
       refreshTokenExpiresIn: 60 * 24 * 60 * 60, // 60 days
       allowDynamicClientRegistration: true,

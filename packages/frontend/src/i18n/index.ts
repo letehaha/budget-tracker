@@ -29,6 +29,7 @@ const chunkRegistry: ChunkRegistry = {
     'auth/sign-up': () => import('./locales/chunks/en/auth/sign-up.json'),
     'auth/verify-email': () => import('./locales/chunks/en/auth/verify-email.json'),
     'auth/welcome': () => import('./locales/chunks/en/auth/welcome.json'),
+    'auth/oauth-authorize': () => import('./locales/chunks/en/auth/oauth-authorize.json'),
     // Page chunks
     'pages/dashboard': () => import('./locales/chunks/en/pages/dashboard.json'),
     'pages/accounts': () => import('./locales/chunks/en/pages/accounts.json'),
@@ -69,6 +70,7 @@ const chunkRegistry: ChunkRegistry = {
     'auth/sign-up': () => import('./locales/chunks/uk/auth/sign-up.json'),
     'auth/verify-email': () => import('./locales/chunks/uk/auth/verify-email.json'),
     'auth/welcome': () => import('./locales/chunks/uk/auth/welcome.json'),
+    'auth/oauth-authorize': () => import('./locales/chunks/uk/auth/oauth-authorize.json'),
     // Page chunks
     'pages/dashboard': () => import('./locales/chunks/uk/pages/dashboard.json'),
     'pages/accounts': () => import('./locales/chunks/uk/pages/accounts.json'),

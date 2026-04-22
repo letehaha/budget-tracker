@@ -629,7 +629,10 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div v-if="!isMobileView" class="bg-muted shadow-foreground/10 px-6 pt-6 shadow-[inset_2px_4px_12px]">
+      <div
+        v-if="!isMobileView"
+        class="bg-muted shadow-foreground/10 px-6 pt-6 shadow-[inset_2px_4px_12px] dark:bg-black/20 dark:shadow-black/40"
+      >
         <ReuseMoreOptions />
       </div>
     </div>
