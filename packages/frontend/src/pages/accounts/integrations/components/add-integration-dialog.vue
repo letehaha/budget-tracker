@@ -5,99 +5,122 @@
         <DialogTitle>{{ dialogTitle }}</DialogTitle>
       </DialogHeader>
 
-      <!-- Step 1: Select Provider -->
-      <template v-if="currentStep === 'select-provider'">
-        <div class="space-y-2">
-          <p class="text-muted-foreground mt-4 mb-8 text-sm">
-            {{ t('pages.integrations.addDialog.selectProviderHint') }}
-          </p>
+      <div class="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
+        <!-- Step 1: Select Provider -->
+        <template v-if="currentStep === 'select-provider'">
+          <div class="space-y-2">
+            <p class="text-muted-foreground mt-4 mb-8 text-sm">
+              {{ t('pages.integrations.addDialog.selectProviderHint') }}
+            </p>
 
-          <UiButton
-            v-for="provider in providers"
-            :key="provider.type"
-            variant="outline"
-            class="h-max w-full justify-start whitespace-normal"
-            @click="handleSelectProvider(provider.type)"
-          >
-            <div class="flex items-center gap-3 sm:gap-6">
-              <BankProviderLogo class="size-12" :provider="provider.type" />
+            <UiButton
+              v-for="provider in sortedProviders"
+              :key="provider.type"
+              variant="outline"
+              class="h-max w-full justify-start whitespace-normal"
+              @click="handleSelectProvider(provider.type)"
+            >
+              <div class="flex items-center gap-3 sm:gap-6">
+                <BankProviderLogo class="size-12" :provider="provider.type" />
 
-              <div class="flex flex-col text-left">
-                <p class="mb-1 flex items-center gap-2 text-lg">
-                  {{ provider.name }}
-                  <span
-                    v-if="provider.type === BANK_PROVIDER_TYPE.ENABLE_BANKING"
-                    class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
-                  >
-                    {{ t('pages.integrations.addDialog.betaBadge') }}
-                  </span>
-                </p>
-                <p class="text-sm opacity-70">
-                  {{ t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.descriptionKey) }}
-                </p>
-                <div class="mt-2 flex items-center gap-2">
-                  <span
-                    :class="
-                      pricingBadgeClass(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.pricing)
-                    "
-                  >
-                    {{ t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.pricingLabelKey) }}
-                  </span>
-                  <ResponsiveTooltip
-                    :content="
-                      t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.difficultyTooltipKey)
-                    "
-                    content-class-name="w-screen max-w-105 text-balance"
-                  >
+                <div class="flex flex-col text-left">
+                  <p class="mb-1 flex items-center gap-2 text-lg">
+                    {{ provider.name }}
+                    <span
+                      v-if="provider.type === BANK_PROVIDER_TYPE.ENABLE_BANKING"
+                      class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
+                    >
+                      {{ t('pages.integrations.addDialog.betaBadge') }}
+                    </span>
+                  </p>
+                  <p class="text-sm opacity-70">
+                    {{ t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.descriptionKey) }}
+                  </p>
+                  <div class="mt-2 flex flex-wrap items-center gap-2">
                     <span
                       :class="
-                        difficultyBadgeClass(
-                          METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.difficulty,
-                        )
+                        pricingBadgeClass(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.pricing)
                       "
-                      class="inline-flex items-center gap-1"
                     >
-                      {{ t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.difficultyLabelKey) }}
-                      <InfoIcon class="size-3" />
+                      {{ t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.pricingLabelKey) }}
                     </span>
-                  </ResponsiveTooltip>
+                    <ResponsiveTooltip
+                      :content="
+                        t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.difficultyTooltipKey)
+                      "
+                      content-class-name="max-w-xs text-wrap"
+                    >
+                      <span
+                        :class="
+                          difficultyBadgeClass(
+                            METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.difficulty,
+                          )
+                        "
+                        class="inline-flex items-center gap-1"
+                      >
+                        {{
+                          t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.difficultyLabelKey)
+                        }}
+                        <InfoIcon class="size-3" />
+                      </span>
+                    </ResponsiveTooltip>
+                  </div>
+                  <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span
+                      v-for="region in METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.regions"
+                      :key="region.code"
+                      class="bg-muted text-foreground inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
+                    >
+                      <img
+                        :src="`/img/flags/${region.code}.svg`"
+                        :alt="t(region.labelKey)"
+                        class="h-3 w-4 rounded-xs object-cover"
+                      />
+                      {{ t(region.labelKey) }}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </UiButton>
-        </div>
-      </template>
+            </UiButton>
+          </div>
+        </template>
 
-      <!-- Step 2: Provider-specific connection flow -->
-      <template v-else-if="currentStep === 'connect-provider' && selectedProviderType">
-        <MonobankConnector
-          v-if="selectedProviderType === BANK_PROVIDER_TYPE.MONOBANK"
-          @connected="handleProviderConnected"
-          @cancel="handleCancel"
-        />
-        <EnableBankingConnector
-          v-else-if="selectedProviderType === BANK_PROVIDER_TYPE.ENABLE_BANKING"
-          @connected="handleProviderConnected"
-          @cancel="handleCancel"
-        />
-        <LunchFlowConnector
-          v-else-if="selectedProviderType === BANK_PROVIDER_TYPE.LUNCHFLOW"
-          @connected="handleProviderConnected"
-          @cancel="handleCancel"
-        />
-        <WalutomatConnector
-          v-else-if="selectedProviderType === BANK_PROVIDER_TYPE.WALUTOMAT"
-          @connected="handleProviderConnected"
-          @cancel="handleCancel"
-        />
-      </template>
+        <!-- Step 2: Provider-specific connection flow -->
+        <template v-else-if="currentStep === 'connect-provider' && selectedProviderType">
+          <MonobankConnector
+            v-if="selectedProviderType === BANK_PROVIDER_TYPE.MONOBANK"
+            @connected="handleProviderConnected"
+            @cancel="handleCancel"
+          />
+          <EnableBankingConnector
+            v-else-if="selectedProviderType === BANK_PROVIDER_TYPE.ENABLE_BANKING"
+            @connected="handleProviderConnected"
+            @cancel="handleCancel"
+          />
+          <LunchFlowConnector
+            v-else-if="selectedProviderType === BANK_PROVIDER_TYPE.LUNCHFLOW"
+            @connected="handleProviderConnected"
+            @cancel="handleCancel"
+          />
+          <WalutomatConnector
+            v-else-if="selectedProviderType === BANK_PROVIDER_TYPE.WALUTOMAT"
+            @connected="handleProviderConnected"
+            @cancel="handleCancel"
+          />
+        </template>
+      </div>
     </DialogContent>
   </Dialog>
 </template>
 
 <script lang="ts" setup>
 import type { BankProvider } from '@/api/bank-data-providers';
-import { type DifficultyType, METAINFO_FROM_TYPE, type PricingType } from '@/common/const/bank-providers';
+import {
+  type DifficultyType,
+  METAINFO_FROM_TYPE,
+  type PricingType,
+  PROVIDER_DISPLAY_ORDER,
+} from '@/common/const/bank-providers';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
@@ -138,6 +161,14 @@ const dialogTitle = computed(() => {
   }
   const provider = props.providers.find((p) => p.type === selectedProviderType.value);
   return t('pages.integrations.addDialog.titleConnect', { provider: provider?.name || 'Provider' });
+});
+
+const sortedProviders = computed(() => {
+  const orderIndex = (type: string) => {
+    const index = PROVIDER_DISPLAY_ORDER.indexOf(type);
+    return index === -1 ? PROVIDER_DISPLAY_ORDER.length : index;
+  };
+  return [...props.providers].sort((a, b) => orderIndex(a.type) - orderIndex(b.type));
 });
 
 const BADGE_BASE = 'rounded px-1.5 py-0.5 text-xs font-medium';

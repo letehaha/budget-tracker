@@ -380,6 +380,16 @@
         "mediumSetup": "Medium setup",
         "veryDifficultSetup": "Very difficult to setup"
       },
+      "regions": {
+        "ukraine": "Ukraine",
+        "eu": "EU",
+        "uk": "UK",
+        "usa": "USA",
+        "poland": "Poland",
+        "canada": "Canada",
+        "australia": "Australia",
+        "newZealand": "New Zealand"
+      },
       "tooltips": {
         "monobank": "Requires manually copying an API token from the Monobank mobile app",
         "enableBanking": "Since smooth integration requires several thousands $ per month to be paid, it's only possible to connect by creating own EnableBanking dev account, and setting up \"test\" application with real connection to own banks, storing certificates and keys and uploading them here. Moderate technical knowledge required",
