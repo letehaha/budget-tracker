@@ -590,7 +590,7 @@ onUnmounted(() => {
 
             <Drawer.DrawerContent>
               <Drawer.DrawerTitle></Drawer.DrawerTitle>
-              <div class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
+              <div class="bg-card dark:bg-muted dark:shadow-foreground/10 px-6 pt-6 dark:shadow-[inset_2px_4px_12px]">
                 <ReuseMoreOptions />
               </div>
             </Drawer.DrawerContent>
@@ -629,7 +629,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div v-if="!isMobileView" class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
+      <div v-if="!isMobileView" class="bg-muted shadow-foreground/10 px-6 pt-6 shadow-[inset_2px_4px_12px]">
         <ReuseMoreOptions />
       </div>
     </div>

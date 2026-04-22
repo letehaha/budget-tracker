@@ -138,6 +138,7 @@ import {
   useSpikeDetection,
 } from '@/composable/charts/use-spike-detection';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
+import { currentTheme } from '@/common/utils/color-theme';
 import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { loadCombinedBalanceTrendData } from '@/services';
@@ -860,7 +861,7 @@ onUnmounted(() => {
 // Watch for data changes and re-render chart
 // Use flush: 'post' to ensure DOM is updated before rendering
 watch(
-  [chartData, () => actualDataPeriod.value],
+  [chartData, () => actualDataPeriod.value, currentTheme],
   async () => {
     closeSpikePanel();
     await nextTick();

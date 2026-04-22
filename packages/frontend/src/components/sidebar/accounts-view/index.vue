@@ -11,10 +11,11 @@ import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { PlusIcon } from 'lucide-vue-next';
+import { ChevronsUpDownIcon, PlusIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { Ref, computed, provide, ref } from 'vue';
 
+import { useSidebarNavCollapse } from '../use-nav-collapse';
 import AccountGroupsList from './account-groups-list.vue';
 import AccountsList from './accounts-list.vue';
 import AccountsSkeleton from './accounts-skeleton.vue';
@@ -55,14 +56,25 @@ const accountsInGroups = computed(() => {
 const accountsWithoutGroups = computed(() => activeAccounts.value.filter((i) => !accountsInGroups.value[i.id]));
 
 const isPopoverOpen = ref(false);
+const { hasAnyOpen, collapseAll } = useSidebarNavCollapse();
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-hidden">
+  <div class="flex min-h-25 flex-1 flex-col gap-1.5 overflow-y-hidden">
     <div class="flex items-center justify-between px-1">
-      <p class="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
-        {{ $t('sidebar.accountsView.title') }}
-      </p>
+      <button
+        type="button"
+        class="text-muted-foreground -mx-1 flex items-center gap-1 rounded px-1 py-0.5 transition-colors"
+        :class="hasAnyOpen ? 'hover:text-foreground cursor-pointer' : 'cursor-default opacity-70'"
+        :disabled="!hasAnyOpen"
+        :aria-label="$t('sidebar.accountsView.collapseNavigation')"
+        @click="collapseAll"
+      >
+        <span class="text-[11px] font-semibold tracking-wider uppercase">
+          {{ $t('sidebar.accountsView.title') }}
+        </span>
+        <ChevronsUpDownIcon v-if="hasAnyOpen" class="size-3" />
+      </button>
 
       <Popover.Popover :open="isPopoverOpen" @update:open="isPopoverOpen = $event">
         <Popover.PopoverTrigger as-child>

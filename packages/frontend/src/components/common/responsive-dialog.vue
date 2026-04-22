@@ -19,6 +19,9 @@ const props = defineProps<{
   /** When true, disables the internal scroll wrapper (display: contents).
    * Use when the dialog content manages its own scrolling layout. */
   noInternalScroll?: boolean;
+  /** When true, the footer slot is not rendered in drawer (mobile) mode.
+   * Use when the footer only contains a close action — swipe-to-close is enough on mobile. */
+  hideDrawerFooter?: boolean;
 }>();
 
 const emit = defineEmits(['update:open']);
@@ -60,7 +63,7 @@ const onScrollAreaMounted = (el: unknown) => {
   <UseScrollArea>
     <div
       :ref="(el) => !props.noInternalScroll && onScrollAreaMounted(el)"
-      :class="[props.noInternalScroll ? 'contents' : 'scrollable-area min-h-0 flex-1 overflow-y-auto']"
+      :class="[props.noInternalScroll ? 'contents' : 'scrollable-area min-h-0 flex-1 overflow-y-auto px-1 py-1']"
       :data-can-scroll-up="!props.noInternalScroll ? canScrollUp : undefined"
       :data-can-scroll-down="!props.noInternalScroll ? canScrollDown : undefined"
       @scroll="!props.noInternalScroll && onScroll($event)"
@@ -78,7 +81,7 @@ const onScrollAreaMounted = (el: unknown) => {
       <Drawer.DrawerContent :class="['px-4 pb-4', drawerContentClass]">
         <component
           :is="$slots.title || $slots.description ? Drawer.DrawerHeader : 'div'"
-          class="mb-2 px-0 pb-0 text-center"
+          class="mb-2 px-0 pt-6 pb-0 text-center"
         >
           <Drawer.DrawerTitle>
             <slot name="title" />
@@ -90,7 +93,7 @@ const onScrollAreaMounted = (el: unknown) => {
 
         <ScrollAreaContent />
 
-        <Drawer.DrawerFooter v-if="$slots.footer" class="px-0">
+        <Drawer.DrawerFooter v-if="$slots.footer && !hideDrawerFooter" class="px-0">
           <FooterSlotContent />
         </Drawer.DrawerFooter>
       </Drawer.DrawerContent>

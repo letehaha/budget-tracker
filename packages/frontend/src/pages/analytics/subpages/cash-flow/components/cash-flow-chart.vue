@@ -12,18 +12,18 @@
       >
         <div class="mb-1 font-medium">{{ tooltip.period }}</div>
         <div class="flex items-center gap-2">
-          <span class="bg-success-text inline-block size-2.5 rounded-full"></span>
+          <span class="bg-app-income-color inline-block size-2.5 rounded-full"></span>
           <span>{{ t('analytics.cashFlow.income') }}:</span>
           <span class="font-medium">{{ formatBaseCurrency(tooltip.income) }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="bg-destructive-text inline-block size-2.5 rounded-full"></span>
+          <span class="bg-app-expense-color inline-block size-2.5 rounded-full"></span>
           <span>{{ t('analytics.cashFlow.expenses') }}:</span>
           <span class="font-medium">{{ formatBaseCurrency(tooltip.expenses) }}</span>
         </div>
         <div class="border-border mt-1 border-t pt-1">
           <span class="mr-2">{{ t('analytics.cashFlow.netFlow') }}:</span>
-          <span :class="tooltip.netFlow >= 0 ? 'text-success-text' : 'text-destructive-text'" class="font-medium">
+          <span :class="tooltip.netFlow >= 0 ? 'text-app-income-color' : 'text-app-expense-color'" class="font-medium">
             {{ formatBaseCurrency(tooltip.netFlow) }}
           </span>
         </div>
@@ -33,11 +33,11 @@
     <!-- Legend -->
     <div class="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm">
       <div class="flex items-center gap-2">
-        <span class="bg-success-text inline-block size-3 rounded-sm"></span>
+        <span class="bg-app-income-color inline-block size-3 rounded-sm"></span>
         <span class="text-muted-foreground">{{ t('analytics.cashFlow.income') }}</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="bg-destructive-text inline-block size-3 rounded-sm"></span>
+        <span class="bg-app-expense-color inline-block size-3 rounded-sm"></span>
         <span class="text-muted-foreground">{{ t('analytics.cashFlow.expenses') }}</span>
       </div>
       <div v-if="showMovingAverage" class="flex items-center gap-2">
@@ -49,6 +49,7 @@
 </template>
 
 <script setup lang="ts">
+import { currentTheme } from '@/common/utils/color-theme';
 import { useFormatCurrency } from '@/composable';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useDateLocale } from '@/composable/use-date-locale';
@@ -105,8 +106,8 @@ const getColors = () => {
   const root = document.documentElement;
   const style = getComputedStyle(root);
   return {
-    income: style.getPropertyValue('--success-text').trim() || 'rgb(46, 204, 113)',
-    expenses: style.getPropertyValue('--destructive-text').trim() || 'rgb(239, 68, 68)',
+    income: style.getPropertyValue('--app-income-color').trim() || 'rgb(46, 204, 113)',
+    expenses: style.getPropertyValue('--app-expense-color').trim() || 'rgb(239, 68, 68)',
     grid: style.getPropertyValue('--border').trim() || 'rgb(39, 39, 42)',
     text: style.getPropertyValue('--muted-foreground').trim() || 'rgb(161, 161, 170)',
     movingAverage: 'rgb(59, 130, 246)', // blue-500
@@ -505,5 +506,7 @@ onUnmounted(() => {
   }
 });
 
-watch([() => props.data, () => props.chartType, () => props.showMovingAverage, locale], renderChart, { deep: true });
+watch([() => props.data, () => props.chartType, () => props.showMovingAverage, locale, currentTheme], renderChart, {
+  deep: true,
+});
 </script>

@@ -31,14 +31,14 @@
         <div v-if="portfolio" class="flex flex-wrap items-center gap-2">
           <EditPortfolioDialog :portfolio="portfolio" @updated="refetch">
             <UiButton variant="outline" size="sm">
-              <PencilIcon class="mr-2 size-4" />
+              <PencilIcon class="size-4" />
               {{ $t('portfolioDetail.actions.edit') }}
             </UiButton>
           </EditPortfolioDialog>
 
           <DeletePortfolioDialog :portfolio-id="portfolio.id" @deleted="handleDeletion">
             <UiButton variant="destructive" size="sm">
-              <Trash2Icon class="mr-2 size-4" />
+              <Trash2Icon class="size-4" />
               {{ $t('portfolioDetail.actions.delete') }}
             </UiButton>
           </DeletePortfolioDialog>

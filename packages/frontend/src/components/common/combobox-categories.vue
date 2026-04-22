@@ -128,7 +128,7 @@ const dropdownSide = computed(() => (isMobile.value ? 'top' : 'bottom'));
 const selectedIdsSet = computed(() => new Set(props.categoryIds));
 
 const baseOrderedCategories = computed(() =>
-  flattenCategories({ categories: sortInternalLast(formattedCategories.value) }),
+  flattenCategories({ categories: sortInternalLast({ roots: formattedCategories.value }) }),
 );
 
 const sessionRootOrder = ref<number[]>([]);

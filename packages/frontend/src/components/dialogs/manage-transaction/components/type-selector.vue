@@ -1,11 +1,12 @@
 <template>
-  <div class="grid grid-cols-3 rounded-xl bg-black/40">
+  <div class="bg-muted grid grid-cols-3 rounded-xl p-1">
     <button
       type="button"
       :class="
         cn(
-          'cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50',
-          selectedTransactionType === FORM_TYPES.expense && 'rounded-[10px] bg-white text-black',
+          'text-muted-foreground cursor-pointer rounded-[10px] p-1.5 text-center text-base transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50',
+          selectedTransactionType === FORM_TYPES.expense &&
+            'dark:bg-foreground dark:text-background text-foreground bg-white shadow-sm',
         )
       "
       :disabled="disabled || isExpenseDisabled"
@@ -19,8 +20,9 @@
       type="button"
       :class="
         cn(
-          'cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50',
-          selectedTransactionType === FORM_TYPES.income && 'rounded-[10px] bg-white text-black',
+          'text-muted-foreground cursor-pointer rounded-[10px] p-1.5 text-center text-base transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50',
+          selectedTransactionType === FORM_TYPES.income &&
+            'dark:bg-foreground dark:text-background text-foreground bg-white shadow-sm',
         )
       "
       :disabled="disabled || isIncomeDisabled"
@@ -34,8 +36,9 @@
       type="button"
       :class="
         cn(
-          'cursor-pointer p-1.5 text-center text-base text-white transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50',
-          selectedTransactionType === FORM_TYPES.transfer && 'rounded-[10px] bg-white text-black',
+          'text-muted-foreground cursor-pointer rounded-[10px] p-1.5 text-center text-base transition-all duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-50',
+          selectedTransactionType === FORM_TYPES.transfer &&
+            'dark:bg-foreground dark:text-background text-foreground bg-white shadow-sm',
         )
       "
       :disabled="disabled"

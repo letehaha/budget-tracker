@@ -53,7 +53,7 @@
               :disabled="disabled"
               :class="
                 cn(
-                  'border-input bg-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
+                  'border-input bg-input-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
                   'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
                   disabled && 'cursor-not-allowed opacity-50',
                   $attrs.class ?? '',
@@ -115,7 +115,7 @@
           :disabled="disabled"
           :class="
             cn(
-              'border-input bg-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
+              'border-input bg-input-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
               'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
               disabled && 'cursor-not-allowed opacity-50',
               $attrs.class ?? '',
@@ -160,7 +160,7 @@
 
         <!-- Search input in drawer -->
         <div
-          class="border-input bg-background mb-3 flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm"
+          class="border-input bg-input-background mb-3 flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm"
         >
           <input
             ref="drawerInputRef"

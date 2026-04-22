@@ -66,12 +66,16 @@
       <form-row v-else>
         <select-field
           :label="$t('dialogs.manageTransaction.form.toPortfolioLabel')"
-          :placeholder="$t('dialogs.manageTransaction.form.selectPortfolioPlaceholder')"
+          :placeholder="
+            portfolios.length
+              ? $t('dialogs.manageTransaction.form.selectPortfolioPlaceholder')
+              : $t('dialogs.manageTransaction.form.noPortfoliosExist')
+          "
           :values="portfolios"
           label-key="name"
           value-key="id"
           with-search
-          :disabled="disabled || toAccountDisabled"
+          :disabled="disabled || toAccountDisabled || !portfolios.length"
           :model-value="toPortfolio"
           @update:model-value="updateToPortfolio"
         />

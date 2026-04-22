@@ -4,7 +4,7 @@ import type { VariantProps } from 'class-variance-authority';
 export { default as PillTabs } from './pill-tabs.vue';
 
 export const pillTabsContainerVariants = cva(
-  'bg-muted/50 relative inline-flex items-center self-start no-scrollbar max-w-full overflow-x-auto',
+  'bg-muted border-border/50 relative inline-flex items-center self-start overflow-x-auto border no-scrollbar max-w-full',
   {
     variants: {
       size: {
@@ -18,7 +18,7 @@ export const pillTabsContainerVariants = cva(
 );
 
 export const pillTabsIndicatorVariants = cva(
-  'bg-background absolute rounded-md shadow-sm transition-all duration-200 ease-out',
+  'bg-card dark:bg-background absolute rounded-md shadow-sm transition-all duration-200 ease-out',
   {
     variants: {
       size: {

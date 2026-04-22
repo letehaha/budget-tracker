@@ -185,7 +185,12 @@ const handleCreateDialogClose = (open: boolean) => {
 </script>
 
 <template>
-  <ResponsiveDialog :open="open" dialog-content-class="max-w-lg" @update:open="emit('update:open', $event)">
+  <ResponsiveDialog
+    :open="open"
+    dialog-content-class="max-w-lg"
+    hide-drawer-footer
+    @update:open="emit('update:open', $event)"
+  >
     <template #title>{{ t('planned.subscriptions.candidates.title') }}</template>
     <template #description>
       {{ t('planned.subscriptions.candidates.description') }}

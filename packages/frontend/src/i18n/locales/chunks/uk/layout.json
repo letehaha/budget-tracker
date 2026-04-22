@@ -24,7 +24,8 @@
     "accountsView": {
       "title": "Рахунки",
       "newAccount": "Новий рахунок",
-      "newAccountsGroup": "Нова група рахунків"
+      "newAccountsGroup": "Нова група рахунків",
+      "collapseNavigation": "Згорнути навігацію"
     }
   },
   "header": {
@@ -49,6 +50,12 @@
       "queued": "Очікує на початок...",
       "transactions": "транзакцій"
     }
+  },
+  "themeSelector": {
+    "toggle": "Перемкнути тему",
+    "light": "Світла",
+    "dark": "Темна",
+    "system": "Системна"
   },
   "syncStatusTooltip": {
     "title": "Статус синхронізації банків",

@@ -8,7 +8,9 @@
       <ui-header class="bg-background sticky top-0 z-10" />
 
       <template v-if="isAppInitialized">
-        <router-view />
+        <div class="max-md:pb-4">
+          <router-view />
+        </div>
       </template>
 
       <ScrollBar />

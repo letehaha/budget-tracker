@@ -121,7 +121,8 @@
         "destinationTypeAccount": "Account",
         "destinationTypePortfolio": "Portfolio",
         "toPortfolioLabel": "To portfolio",
-        "selectPortfolioPlaceholder": "Select portfolio"
+        "selectPortfolioPlaceholder": "Select portfolio",
+        "noPortfoliosExist": "No portfolios exist"
       },
       "refundRecordsList": {
         "filtersDialogTitle": "Select filters",

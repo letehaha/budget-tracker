@@ -121,7 +121,8 @@
         "destinationTypeAccount": "Рахунок",
         "destinationTypePortfolio": "Портфель",
         "toPortfolioLabel": "До портфелю",
-        "selectPortfolioPlaceholder": "Оберіть портфель"
+        "selectPortfolioPlaceholder": "Оберіть портфель",
+        "noPortfoliosExist": "Портфелів немає"
       },
       "refundRecordsList": {
         "filtersDialogTitle": "Вибрати фільтри",
