@@ -1,7 +1,7 @@
 <template>
   <Popover.Popover>
     <Popover.PopoverTrigger as-child>
-      <Button variant="secondary" size="icon" :aria-label="$t('layout.themeSelector.toggle')">
+      <Button variant="secondary" size="icon" :aria-label="$t('themeSelector.toggle')">
         <MoonStarIcon v-if="currentTheme === Themes.dark" class="size-5" />
         <SunIcon v-else class="size-5" />
       </Button>
@@ -39,8 +39,8 @@ interface ThemeOption {
 }
 
 const options: ThemeOption[] = [
-  { value: ThemePreference.light, labelKey: 'layout.themeSelector.light', icon: SunIcon },
-  { value: ThemePreference.dark, labelKey: 'layout.themeSelector.dark', icon: MoonStarIcon },
-  { value: ThemePreference.system, labelKey: 'layout.themeSelector.system', icon: MonitorIcon },
+  { value: ThemePreference.light, labelKey: 'themeSelector.light', icon: SunIcon },
+  { value: ThemePreference.dark, labelKey: 'themeSelector.dark', icon: MoonStarIcon },
+  { value: ThemePreference.system, labelKey: 'themeSelector.system', icon: MonitorIcon },
 ];
 </script>
