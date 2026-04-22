@@ -3,7 +3,7 @@
     "name": "MoneyMatter Finance Tracker",
     "version": "1.0.0",
     "title": "MoneyMatter — Personal Finance MCP Server",
-    "description": "Read-only, OAuth-secured access to your MoneyMatter financial data: accounts, transactions, budgets, cash flow, balance history, categories, tags, spending analytics, and investment portfolios (holdings, cash balances, and investment transactions). Enables natural-language queries about your personal finances.",
+    "description": "OAuth-secured read/write access to your MoneyMatter financial data: accounts, transactions (including splits, refunds, transfers, and groups), budgets, subscriptions, categories, tags, cash flow, balance history, spending analytics, and investment portfolios (holdings, cash balances, and investment transactions). Supports creating, editing, and deleting records when the corresponding scopes are granted. Enables natural-language queries and automation of your personal finances.",
     "website": "https://moneymatter.app",
     "documentation": "https://moneymatter.app/llms-full.txt",
     "vendor": {
@@ -38,7 +38,7 @@
       "authorizationServer": "https://mcp.moneymatter.app",
       "metadata": "https://moneymatter.app/.well-known/oauth-authorization-server",
       "protectedResourceMetadata": "https://moneymatter.app/.well-known/oauth-protected-resource",
-      "scopes": ["finance:read", "profile:read", "offline_access"]
+      "scopes": ["finance:read", "finance:write", "finance:delete", "profile:read", "offline_access"]
     }
   },
   "tools": [
@@ -58,21 +58,58 @@
       "name": "get_categories",
       "description": "List spending and income categories, including custom user-defined categories."
     },
-    { "name": "get_tags", "description": "List transaction tags used to annotate spending." },
+    {
+      "name": "get_tags",
+      "description": "List transaction tags used to annotate spending."
+    },
     {
       "name": "get_budgets",
       "description": "Retrieve active and historical budgets with progress and overspending details."
     },
     {
+      "name": "create_budget",
+      "description": "Create a new budget with an optional spending limit, date range, and linked categories."
+    },
+    {
+      "name": "update_budget",
+      "description": "Update an existing budget's name, date range, spending limit, or linked categories."
+    },
+    {
+      "name": "delete_budget",
+      "description": "Permanently delete a budget and all its transaction links."
+    },
+    {
+      "name": "archive_budget",
+      "description": "Archive or restore a budget (sets status to archived or active)."
+    },
+    {
+      "name": "add_transactions_to_budget",
+      "description": "Manually link transactions to a manual-type budget."
+    },
+    {
+      "name": "remove_transactions_from_budget",
+      "description": "Unlink transactions from a budget without deleting them."
+    },
+    {
+      "name": "get_budget_spending_stats",
+      "description": "Spending breakdown by category and time-series of expense vs income for a budget."
+    },
+    {
       "name": "get_spending_by_categories",
       "description": "Aggregate spending by category over a specified date range."
     },
-    { "name": "get_cash_flow", "description": "Summarize income vs expenses over a specified date range." },
+    {
+      "name": "get_cash_flow",
+      "description": "Summarize income vs expenses over a specified date range."
+    },
     {
       "name": "get_balance_history",
       "description": "Time-series of account balances for a given range and granularity."
     },
-    { "name": "get_expenses_for_period", "description": "Summarize expenses for a given time period with breakdowns." },
+    {
+      "name": "get_expenses_for_period",
+      "description": "Summarize expenses for a given time period with breakdowns."
+    },
     {
       "name": "get_portfolios",
       "description": "List the user's investment portfolios with type, enabled state, and metadata."
@@ -92,6 +129,190 @@
     {
       "name": "get_investment_transactions",
       "description": "Investment transaction history (buy, sell, dividend, transfer, tax, fee) with security and portfolio details."
+    },
+    {
+      "name": "search_securities",
+      "description": "Search for securities by ticker or company name. Returns securityId needed for create_investment_transaction."
+    },
+    {
+      "name": "create_portfolio",
+      "description": "Create a new investment portfolio (requires finance:write scope)."
+    },
+    {
+      "name": "update_portfolio",
+      "description": "Update portfolio name, type, description, or enabled state (requires finance:write scope)."
+    },
+    {
+      "name": "delete_portfolio",
+      "description": "Permanently delete a portfolio and optionally all its data (requires finance:delete scope)."
+    },
+    {
+      "name": "create_investment_transaction",
+      "description": "Record a new investment transaction (buy, sell, dividend, fee, etc.) in a portfolio (requires finance:write scope)."
+    },
+    {
+      "name": "update_investment_transaction",
+      "description": "Update an existing investment transaction's category, date, quantity, price, or fees (requires finance:write scope)."
+    },
+    {
+      "name": "delete_investment_transaction",
+      "description": "Permanently delete an investment transaction and recalculate affected holding (requires finance:delete scope)."
+    },
+    {
+      "name": "adjust_account_balance",
+      "description": "Set an account to a specific balance by creating an adjustment transaction for the difference."
+    },
+    {
+      "name": "archive_account",
+      "description": "Archive or unarchive a user account, with full side-effect handling (group removal, subscription unlinking)."
+    },
+    {
+      "name": "get_transaction_groups",
+      "description": "List all transaction groups with aggregate counts and date ranges, or with full embedded transactions."
+    },
+    {
+      "name": "create_transaction_group",
+      "description": "Create a new transaction group bundling related transactions (e.g. a split bill). Requires finance:write scope."
+    },
+    {
+      "name": "update_transaction_group",
+      "description": "Update the name or note of an existing transaction group. Requires finance:write scope."
+    },
+    {
+      "name": "delete_transaction_group",
+      "description": "Permanently delete a transaction group (transactions themselves are kept). Requires finance:delete scope."
+    },
+    {
+      "name": "add_transactions_to_group",
+      "description": "Add transactions to an existing transaction group. Requires finance:write scope."
+    },
+    {
+      "name": "remove_transactions_from_group",
+      "description": "Remove transactions from a group, optionally dissolving it if too few remain. Requires finance:write scope."
+    },
+    {
+      "name": "get_subscriptions",
+      "description": "List all subscriptions and recurring bills with frequency, expected amount, and linked transaction count."
+    },
+    {
+      "name": "get_subscription_by_id",
+      "description": "Retrieve a single subscription with all linked transactions and the computed next expected payment date."
+    },
+    {
+      "name": "create_subscription",
+      "description": "Create a new subscription or recurring bill. Requires finance:write scope."
+    },
+    {
+      "name": "update_subscription",
+      "description": "Update fields on an existing subscription or bill. Requires finance:write scope."
+    },
+    {
+      "name": "delete_subscription",
+      "description": "Permanently delete a subscription and its transaction links. Requires finance:delete scope."
+    },
+    {
+      "name": "toggle_subscription_active",
+      "description": "Activate or deactivate a subscription to include or exclude it from upcoming payment calculations. Requires finance:write scope."
+    },
+    {
+      "name": "detect_subscription_candidates",
+      "description": "Scan past 12 months of transactions to detect recurring payment patterns. Cached for 1 hour. Requires finance:write scope."
+    },
+    {
+      "name": "list_subscription_candidates",
+      "description": "List auto-detected subscription candidates sorted by confidence score."
+    },
+    {
+      "name": "dismiss_subscription_candidate",
+      "description": "Dismiss a pending subscription candidate so it no longer appears in the list. Requires finance:write scope."
+    },
+    {
+      "name": "link_transactions_to_subscription",
+      "description": "Link transactions to a subscription to mark them as payment instances. Requires finance:write scope."
+    },
+    {
+      "name": "unlink_transactions_from_subscription",
+      "description": "Unlink transactions from a subscription without deleting them. Requires finance:write scope."
+    },
+    {
+      "name": "get_upcoming_subscription_payments",
+      "description": "List upcoming subscription payments sorted by next expected payment date."
+    },
+    {
+      "name": "get_subscriptions_summary",
+      "description": "Aggregate estimated monthly and projected yearly cost across all active subscriptions in the user's base currency."
+    },
+    {
+      "name": "create_transaction",
+      "description": "Create a new income, expense, or transfer transaction with optional splits, tags, and category."
+    },
+    {
+      "name": "update_transaction",
+      "description": "Update an existing transaction's amount, date, category, tags, note, or splits. Requires finance:write scope."
+    },
+    {
+      "name": "delete_transaction",
+      "description": "Permanently delete a transaction. For transfers, both sides are deleted. Requires finance:delete scope."
+    },
+    {
+      "name": "bulk_update_transactions",
+      "description": "Update multiple transactions at once — set category, note, or add/replace/remove tags. Requires finance:write scope."
+    },
+    {
+      "name": "split_transaction",
+      "description": "Split a transaction across multiple categories; amounts must sum to the transaction total. Requires finance:write scope."
+    },
+    {
+      "name": "delete_split",
+      "description": "Delete a single split from a transaction by its split ID. Requires finance:delete scope."
+    },
+    {
+      "name": "link_transfer",
+      "description": "Link two existing transactions as a transfer pair (opposite types, different accounts). Requires finance:write scope."
+    },
+    {
+      "name": "unlink_transfer",
+      "description": "Unlink a transfer pair by transferId; both transactions become independent entries. Requires finance:write scope."
+    },
+    {
+      "name": "link_refund",
+      "description": "Mark an existing transaction as a refund of another transaction. Requires finance:write scope."
+    },
+    {
+      "name": "unlink_refund",
+      "description": "Remove a refund link between two transactions. Requires finance:write scope."
+    },
+    {
+      "name": "assign_tags_to_transaction",
+      "description": "Assign one or more tags to a transaction; already-assigned tags are silently skipped. Requires finance:write scope."
+    },
+    {
+      "name": "remove_tags_from_transaction",
+      "description": "Remove tags from one or more transactions. Requires finance:write scope."
+    },
+    {
+      "name": "create_category",
+      "description": "Create a new transaction category, optionally nested under a parent. Requires finance:write scope."
+    },
+    {
+      "name": "update_category",
+      "description": "Rename, recolor, or change the icon of a category. Requires finance:write scope."
+    },
+    {
+      "name": "delete_category",
+      "description": "Permanently delete a category; supply replaceWithCategoryId to reassign linked transactions. Requires finance:delete scope."
+    },
+    {
+      "name": "create_tag",
+      "description": "Create a new tag that can be assigned to transactions. Requires finance:write scope."
+    },
+    {
+      "name": "update_tag",
+      "description": "Rename, recolor, or update the description of a tag. Requires finance:write scope."
+    },
+    {
+      "name": "delete_tag",
+      "description": "Permanently delete a tag and unlink it from all transactions. Requires finance:delete scope."
     }
   ],
   "prompts": [

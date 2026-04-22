@@ -1,6 +1,6 @@
 {
   "resource": "https://mcp.moneymatter.app/mcp",
   "authorization_servers": ["https://mcp.moneymatter.app"],
-  "scopes_supported": ["finance:read", "profile:read", "offline_access"],
+  "scopes_supported": ["finance:read", "finance:write", "finance:delete", "profile:read", "offline_access"],
   "bearer_methods_supported": ["header"]
 }

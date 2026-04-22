@@ -1,0 +1,33 @@
+import { trackMcpToolUsed } from '@js/utils/posthog';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { addTransactionsToBudget } from '@services/budgets/add-transactions-to-budget';
+import { z } from 'zod';
+
+import { getUserId, jsonContent, requireScope } from './helpers';
+
+export function registerAddTransactionsToBudget(server: McpServer) {
+  server.registerTool(
+    'add_transactions_to_budget',
+    {
+      description:
+        'Manually link one or more transactions to a manual-type budget. Category-type budgets do not support manual linking. Returns a success message on completion.',
+      inputSchema: {
+        budgetId: z.number().describe('ID of the budget to link transactions to'),
+        transactionIds: z.array(z.number()).describe('IDs of the transactions to add to the budget'),
+      },
+    },
+    async (args, extra) => {
+      const userId = getUserId({ extra });
+      requireScope({ extra, scope: 'finance:write' });
+      trackMcpToolUsed({ userId, tool: 'add_transactions_to_budget', clientId: extra.authInfo?.clientId });
+
+      const result = await addTransactionsToBudget({
+        budgetId: args.budgetId,
+        userId,
+        transactionIds: args.transactionIds,
+      });
+
+      return jsonContent({ data: result });
+    },
+  );
+}

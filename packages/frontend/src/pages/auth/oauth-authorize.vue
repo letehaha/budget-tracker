@@ -5,56 +5,68 @@
         <div class="bg-primary/10 mx-auto mb-4 flex size-16 items-center justify-center rounded-full">
           <ShieldCheckIcon class="text-primary size-8" />
         </div>
-        <h1 class="text-xl font-semibold">{{ clientName }} wants to access your MoneyMatter data</h1>
+        <h1 class="text-xl font-semibold">
+          {{ $t('oauth.authorize.title', { name: clientName }) }}
+        </h1>
       </CardHeader>
 
       <CardContent class="flex flex-col gap-6">
-        <!-- What will be shared -->
         <div>
-          <p class="text-muted-foreground mb-3 text-sm font-medium">This will allow {{ clientName }} to:</p>
-          <ul class="space-y-2">
-            <li class="flex items-center gap-2 text-sm">
-              <CheckCircleIcon class="text-app-income-color size-4 shrink-0" />
-              View your accounts and balances
-            </li>
-            <li class="flex items-center gap-2 text-sm">
-              <CheckCircleIcon class="text-app-income-color size-4 shrink-0" />
-              View your transactions
-            </li>
-            <li class="flex items-center gap-2 text-sm">
-              <CheckCircleIcon class="text-app-income-color size-4 shrink-0" />
-              View your budgets and spending stats
-            </li>
-            <li class="flex items-center gap-2 text-sm">
-              <CheckCircleIcon class="text-app-income-color size-4 shrink-0" />
-              View your categories and tags
+          <p class="text-muted-foreground mb-3 text-sm font-medium">
+            {{ $t('oauth.authorize.description') }}
+          </p>
+
+          <ul class="space-y-3">
+            <li
+              v-for="item in scopeItems"
+              :key="item.scope"
+              :class="
+                cn('flex gap-3 rounded-md border p-3', item.destructive && 'border-destructive/40 bg-destructive/5')
+              "
+            >
+              <div class="pt-0.5">
+                <Checkbox
+                  v-if="item.togglable"
+                  :model-value="approvals[item.scope]"
+                  :aria-label="$t(item.labelKey)"
+                  @update:model-value="(val) => (approvals[item.scope] = !!val)"
+                />
+                <CheckCircleIcon v-else class="text-app-income-color size-4" />
+              </div>
+
+              <div class="flex-1 text-sm">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-medium">{{ $t(item.labelKey) }}</span>
+                  <span
+                    :class="
+                      cn(
+                        'rounded-full px-2 py-0.5 text-xs',
+                        item.togglable
+                          ? item.destructive
+                            ? 'bg-destructive/10 text-destructive-text'
+                            : 'bg-muted text-muted-foreground'
+                          : 'bg-muted text-muted-foreground',
+                      )
+                    "
+                  >
+                    {{ item.togglable ? $t('oauth.authorize.optional') : $t('oauth.authorize.always_granted') }}
+                  </span>
+                </div>
+                <p class="text-muted-foreground mt-1">{{ $t(item.descKey) }}</p>
+                <p v-if="item.destructive" class="text-destructive-text mt-2 flex items-center gap-1.5 text-xs">
+                  <AlertTriangleIcon class="size-3.5 shrink-0" />
+                  {{ $t('oauth.authorize.delete_warning') }}
+                </p>
+              </div>
             </li>
           </ul>
         </div>
 
         <Separator />
 
-        <!-- What will NOT be shared -->
-        <div>
-          <p class="text-muted-foreground mb-3 text-sm font-medium">This will NOT allow {{ clientName }} to:</p>
-          <ul class="space-y-2">
-            <li class="flex items-center gap-2 text-sm">
-              <XCircleIcon class="text-app-expense-color size-4 shrink-0" />
-              Create, edit, or delete any data
-            </li>
-            <li class="flex items-center gap-2 text-sm">
-              <XCircleIcon class="text-app-expense-color size-4 shrink-0" />
-              Access your login credentials
-            </li>
-          </ul>
-        </div>
-
-        <Separator />
-
-        <!-- Action Buttons -->
         <div class="flex gap-3">
           <UiButton variant="outline" class="flex-1" :disabled="isSubmitting" @click="submitConsent({ accept: false })">
-            Deny
+            {{ $t('oauth.authorize.deny') }}
           </UiButton>
           <UiButton
             class="flex-1"
@@ -62,12 +74,12 @@
             :loading="isSubmitting"
             @click="submitConsent({ accept: true })"
           >
-            Approve
+            {{ $t('oauth.authorize.approve') }}
           </UiButton>
         </div>
 
         <p class="text-muted-foreground text-center text-xs">
-          You can revoke access at any time from Settings &gt; AI Integrations.
+          {{ $t('oauth.authorize.footer') }}
         </p>
       </CardContent>
     </Card>
@@ -75,24 +87,127 @@
 </template>
 
 <script setup lang="ts">
-import { submitOAuthConsent } from '@/api/mcp';
-import UiButton from '@/components/lib/ui/button/Button.vue';
+import { getOAuthClientName, submitOAuthConsent } from '@/api/mcp';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
+import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Checkbox } from '@/components/lib/ui/checkbox';
 import { Separator } from '@/components/lib/ui/separator';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
-import { getOAuthClientName } from '@/api/mcp';
-import { CheckCircleIcon, ShieldCheckIcon, XCircleIcon } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { cn } from '@/lib/utils';
+import { AlertTriangleIcon, CheckCircleIcon, ShieldCheckIcon } from 'lucide-vue-next';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
-const route = useRoute();
-const isSubmitting = ref(false);
-const { addNotification } = useNotificationCenter();
+interface ScopeMeta {
+  scope: string;
+  labelKey: string;
+  descKey: string;
+  togglable: boolean;
+  defaultOn: boolean;
+  destructive?: boolean;
+}
 
-const clientId = computed(() => (route.query.client_id as string) || '');
+// `claudeai` is a Claude.ai client-registration workaround and has no user-visible
+// meaning — hide it from the consent UI but still auto-grant it if requested.
+const HIDDEN_SCOPES = new Set(['claudeai']);
+
+const KNOWN_SCOPES: ScopeMeta[] = [
+  {
+    scope: 'finance:read',
+    labelKey: 'oauth.scopes.finance_read.label',
+    descKey: 'oauth.scopes.finance_read.desc',
+    togglable: false,
+    defaultOn: true,
+  },
+  {
+    scope: 'finance:write',
+    labelKey: 'oauth.scopes.finance_write.label',
+    descKey: 'oauth.scopes.finance_write.desc',
+    togglable: true,
+    defaultOn: true,
+  },
+  {
+    scope: 'finance:delete',
+    labelKey: 'oauth.scopes.finance_delete.label',
+    descKey: 'oauth.scopes.finance_delete.desc',
+    togglable: true,
+    defaultOn: false,
+    destructive: true,
+  },
+  {
+    scope: 'profile:read',
+    labelKey: 'oauth.scopes.profile_read.label',
+    descKey: 'oauth.scopes.profile_read.desc',
+    togglable: false,
+    defaultOn: true,
+  },
+  {
+    scope: 'offline_access',
+    labelKey: 'oauth.scopes.offline_access.label',
+    descKey: 'oauth.scopes.offline_access.desc',
+    togglable: false,
+    defaultOn: true,
+  },
+];
+
+const SCOPE_META_BY_KEY: Record<string, ScopeMeta> = Object.fromEntries(KNOWN_SCOPES.map((s) => [s.scope, s]));
+
+const route = useRoute();
+const { t } = useI18n();
+const { addNotification } = useNotificationCenter();
+const isSubmitting = ref(false);
 const fetchedClientName = ref<string | null>(null);
 
-// Reconstruct the full signed OAuth query string to send back to better-auth
+const clientId = computed(() => (route.query.client_id as string) || '');
+
+const clientName = computed(() => {
+  if (fetchedClientName.value) return fetchedClientName.value;
+  return clientId.value || t('oauth.authorize.unknown_app');
+});
+
+const requestedScopes = computed<string[]>(() => {
+  const raw = route.query.scope;
+  if (typeof raw !== 'string' || raw.trim() === '') return [];
+  return raw.split(/\s+/).filter(Boolean);
+});
+
+const scopeItems = computed<ScopeMeta[]>(() =>
+  requestedScopes.value
+    .filter((s) => !HIDDEN_SCOPES.has(s))
+    .map(
+      (s): ScopeMeta =>
+        SCOPE_META_BY_KEY[s] ?? {
+          scope: s,
+          labelKey: 'oauth.scopes.unknown.label',
+          descKey: 'oauth.scopes.unknown.desc',
+          togglable: false,
+          defaultOn: true,
+        },
+    ),
+);
+
+const approvals = reactive<Record<string, boolean>>({});
+
+function initApprovals() {
+  for (const item of scopeItems.value) {
+    if (item.togglable) approvals[item.scope] = item.defaultOn;
+  }
+}
+
+initApprovals();
+
+const approvedScopeString = computed(() => {
+  const approved = requestedScopes.value.filter((s) => {
+    if (HIDDEN_SCOPES.has(s)) return true;
+    const meta = SCOPE_META_BY_KEY[s];
+    if (!meta) return true;
+    if (!meta.togglable) return true;
+    return approvals[s] === true;
+  });
+  return approved.join(' ');
+});
+
 const oauthQuery = computed(() => {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(route.query)) {
@@ -112,15 +227,14 @@ onMounted(async () => {
   }
 });
 
-const clientName = computed(() => {
-  if (fetchedClientName.value) return fetchedClientName.value;
-  return clientId.value || 'An application';
-});
-
 async function submitConsent({ accept }: { accept: boolean }) {
   isSubmitting.value = true;
   try {
-    const response = await submitOAuthConsent({ oauthQuery: oauthQuery.value, accept });
+    const response = await submitOAuthConsent({
+      oauthQuery: oauthQuery.value,
+      accept,
+      scope: accept ? approvedScopeString.value : undefined,
+    });
 
     if (response.redirected) {
       window.location.href = response.url;
@@ -129,7 +243,6 @@ async function submitConsent({ accept }: { accept: boolean }) {
 
     if (response.ok) {
       const data = await response.json();
-      // better-auth returns the redirect URL as `url` or `redirectTo`
       const redirectUrl = data.url || data.redirectTo;
       if (redirectUrl) {
         window.location.href = redirectUrl;
@@ -142,17 +255,16 @@ async function submitConsent({ accept }: { accept: boolean }) {
       return;
     }
 
-    // If we get here, something unexpected happened
     addNotification({
       id: 'oauth-consent-error',
-      text: 'Unexpected response from server. Please try again.',
+      text: t('oauth.authorize.unexpected_response'),
       type: NotificationType.error,
     });
     isSubmitting.value = false;
   } catch {
     addNotification({
       id: 'oauth-consent-error',
-      text: 'Failed to process request. Please try again.',
+      text: t('oauth.authorize.error'),
       type: NotificationType.error,
     });
     isSubmitting.value = false;

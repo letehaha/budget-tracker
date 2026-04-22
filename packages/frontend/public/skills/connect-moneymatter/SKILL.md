@@ -1,10 +1,11 @@
 # Connect an AI agent to MoneyMatter
 
 MoneyMatter exposes a remote Model Context Protocol (MCP) server. Connecting an
-agent to this server gives the agent read-only, OAuth-secured access to the
-user's financial data (accounts, transactions, budgets, categories, tags,
-cash flow, balance history, investment portfolios, holdings, and investment
-transactions).
+agent to this server gives the agent OAuth-secured access to the user's
+financial data (accounts, transactions, budgets, subscriptions, categories,
+tags, cash flow, balance history, investment portfolios, holdings, and
+investment transactions). The agent can read these records and — when the
+user grants the corresponding scopes — create, edit, and delete them.
 
 Use this skill when the user asks to "connect Claude to my budget", "hook up
 ChatGPT to MoneyMatter", "let my AI see my finances", or similar.
@@ -16,16 +17,21 @@ ChatGPT to MoneyMatter", "let my AI see my finances", or similar.
 - **OAuth Authorization Server metadata**: <https://moneymatter.app/.well-known/oauth-authorization-server>
 - **OAuth Protected Resource metadata**: <https://moneymatter.app/.well-known/oauth-protected-resource>
 
-## Required OAuth scopes
+## OAuth scopes
 
-| Scope            | Purpose                                                |
-| ---------------- | ------------------------------------------------------ |
-| `finance:read`   | Read accounts, transactions, budgets, and analytics    |
-| `profile:read`   | Read the user's profile (name, email, base currency)   |
-| `offline_access` | Receive a refresh token so sessions survive expiration |
+| Scope            | Purpose                                                         |
+| ---------------- | --------------------------------------------------------------- |
+| `finance:read`   | Read accounts, transactions, budgets, subscriptions, analytics  |
+| `finance:write`  | Create and edit transactions, budgets, subscriptions, and more  |
+| `finance:delete` | Permanently delete records (transactions, budgets, portfolios…) |
+| `profile:read`   | Read the user's profile (name, email, base currency)            |
+| `offline_access` | Receive a refresh token so sessions survive expiration          |
 
-MCP access is **read-only** — no scope exists for writes. Users can revoke a
-connected app at any time from the MoneyMatter settings page.
+The MoneyMatter consent screen lets the user grant or deny `finance:write` and
+`finance:delete` independently. Always request the narrowest set of scopes
+sufficient for the job — read-only agents should not request write or delete.
+Users can revoke a connected app at any time from the MoneyMatter settings
+page.
 
 ## Setup steps (Claude Desktop, Claude.ai, ChatGPT, OpenClaw)
 
@@ -42,23 +48,76 @@ connected app at any time from the MoneyMatter settings page.
 
 ## Available tools
 
-| Tool                          | Purpose                                                  |
-| ----------------------------- | -------------------------------------------------------- |
-| `get_user_profile`            | Base currency, configured currencies, profile basics     |
-| `get_accounts`                | List accounts with balances, types, currencies           |
-| `search_transactions`         | Filter transactions by date, category, tag, amount, etc. |
-| `get_categories`              | List spending/income categories                          |
-| `get_tags`                    | List transaction tags                                    |
-| `get_budgets`                 | Budgets with progress and overspend state                |
-| `get_spending_by_categories`  | Aggregate spending by category over a range              |
-| `get_cash_flow`               | Income vs expenses over a range                          |
-| `get_balance_history`         | Time-series of account balances                          |
-| `get_expenses_for_period`     | Expenses summary for a time period                       |
-| `get_portfolios`              | List investment portfolios (types, enabled state)        |
-| `get_portfolio_summary`       | Portfolio totals, P&L, cash balances                     |
-| `get_portfolio_holdings`      | Positions with market value and gains/losses             |
-| `get_portfolio_balances`      | Portfolio cash balances per currency                     |
-| `get_investment_transactions` | Buy/sell/dividend/fee history for investments            |
+| Tool                                    | Purpose                                                                                        |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `get_user_profile`                      | Base currency, configured currencies, profile basics                                           |
+| `get_accounts`                          | List accounts with balances, types, currencies                                                 |
+| `search_transactions`                   | Filter transactions by date, category, tag, amount, etc.                                       |
+| `get_categories`                        | List spending/income categories                                                                |
+| `get_tags`                              | List transaction tags                                                                          |
+| `get_budgets`                           | Budgets with progress and overspend state                                                      |
+| `create_budget`                         | Create a new budget with limit, date range, categories (`finance:write`)                       |
+| `update_budget`                         | Update name, date range, limit, or categories of a budget (`finance:write`)                    |
+| `delete_budget`                         | Permanently delete a budget and its transaction links (`finance:delete`)                       |
+| `archive_budget`                        | Archive or restore a budget — active ↔ archived (`finance:write`)                              |
+| `add_transactions_to_budget`            | Link transactions to a manual budget (`finance:write`)                                         |
+| `remove_transactions_from_budget`       | Unlink transactions from a budget (`finance:write`)                                            |
+| `get_budget_spending_stats`             | Category breakdown and time-series spending for a budget                                       |
+| `get_spending_by_categories`            | Aggregate spending by category over a range                                                    |
+| `get_cash_flow`                         | Income vs expenses over a range                                                                |
+| `get_balance_history`                   | Time-series of account balances                                                                |
+| `get_expenses_for_period`               | Expenses summary for a time period                                                             |
+| `get_portfolios`                        | List investment portfolios (types, enabled state)                                              |
+| `get_portfolio_summary`                 | Portfolio totals, P&L, cash balances                                                           |
+| `get_portfolio_holdings`                | Positions with market value and gains/losses                                                   |
+| `get_portfolio_balances`                | Portfolio cash balances per currency                                                           |
+| `get_investment_transactions`           | Buy/sell/dividend/fee history for investments                                                  |
+| `search_securities`                     | Search securities by ticker/name; resolves to securityId                                       |
+| `create_portfolio`                      | Create a new investment portfolio (`finance:write`)                                            |
+| `update_portfolio`                      | Rename, recategorize, or disable a portfolio (`finance:write`)                                 |
+| `delete_portfolio`                      | Delete a portfolio and optionally all its data (`finance:delete`)                              |
+| `create_investment_transaction`         | Record a buy/sell/dividend/fee transaction (`finance:write`)                                   |
+| `update_investment_transaction`         | Correct a transaction's date, quantity, price, or fees (`finance:write`)                       |
+| `delete_investment_transaction`         | Delete an investment transaction (`finance:delete`)                                            |
+| `adjust_account_balance`                | Set an account to a target balance via an adjustment transaction (`finance:write`)             |
+| `archive_account`                       | Archive or unarchive an account; handles side effects (`finance:write`)                        |
+| `get_transaction_groups`                | List transaction groups with counts/dates or full embedded transactions                        |
+| `create_transaction_group`              | Bundle related transactions into a group (e.g. split bill) (`finance:write`)                   |
+| `update_transaction_group`              | Rename or add a note to an existing group (`finance:write`)                                    |
+| `delete_transaction_group`              | Delete a group — transactions kept (`finance:delete`)                                          |
+| `add_transactions_to_group`             | Add transactions to an existing group (`finance:write`)                                        |
+| `remove_transactions_from_group`        | Remove transactions from a group, optionally dissolving it (`finance:write`)                   |
+| `get_subscriptions`                     | List subscriptions/bills with frequency, amount, and linked count                              |
+| `get_subscription_by_id`                | Single subscription with linked transactions and next payment date                             |
+| `create_subscription`                   | Create a subscription or recurring bill (`finance:write`)                                      |
+| `update_subscription`                   | Update subscription fields (`finance:write`)                                                   |
+| `delete_subscription`                   | Delete a subscription and its transaction links (`finance:delete`)                             |
+| `toggle_subscription_active`            | Activate or deactivate a subscription (`finance:write`)                                        |
+| `detect_subscription_candidates`        | Scan 12 months of transactions to auto-detect recurring patterns (`finance:write`)             |
+| `list_subscription_candidates`          | List auto-detected candidates sorted by confidence score                                       |
+| `dismiss_subscription_candidate`        | Dismiss a pending candidate (`finance:write`)                                                  |
+| `link_transactions_to_subscription`     | Mark transactions as payment instances of a subscription (`finance:write`)                     |
+| `unlink_transactions_from_subscription` | Remove transaction links from a subscription (`finance:write`)                                 |
+| `get_upcoming_subscription_payments`    | Upcoming payments sorted by next expected date                                                 |
+| `get_subscriptions_summary`             | Monthly/yearly estimated cost across active subscriptions in base currency                     |
+| `create_transaction`                    | Create an income, expense, or transfer transaction with optional splits/tags (`finance:write`) |
+| `update_transaction`                    | Update amount, date, category, tags, note, or splits on a transaction (`finance:write`)        |
+| `delete_transaction`                    | Permanently delete a transaction; transfer pairs are deleted together (`finance:delete`)       |
+| `bulk_update_transactions`              | Update category, note, or tags on multiple transactions at once (`finance:write`)              |
+| `split_transaction`                     | Split a transaction across multiple categories (`finance:write`)                               |
+| `delete_split`                          | Delete a single split by split ID (`finance:delete`)                                           |
+| `link_transfer`                         | Link two existing transactions as a transfer pair (`finance:write`)                            |
+| `unlink_transfer`                       | Unlink a transfer pair by transferId (`finance:write`)                                         |
+| `link_refund`                           | Mark a transaction as a refund of another (`finance:write`)                                    |
+| `unlink_refund`                         | Remove the refund link between two transactions (`finance:write`)                              |
+| `assign_tags_to_transaction`            | Assign tags to a transaction (`finance:write`)                                                 |
+| `remove_tags_from_transaction`          | Remove tags from one or more transactions (`finance:write`)                                    |
+| `create_category`                       | Create a new category, optionally nested (`finance:write`)                                     |
+| `update_category`                       | Rename, recolor, or change a category's icon (`finance:write`)                                 |
+| `delete_category`                       | Delete a category; supply replacement for linked transactions (`finance:delete`)               |
+| `create_tag`                            | Create a new transaction tag (`finance:write`)                                                 |
+| `update_tag`                            | Rename, recolor, or update a tag (`finance:write`)                                             |
+| `delete_tag`                            | Permanently delete a tag and unlink it from all transactions (`finance:delete`)                |
 
 Call `get_user_profile` **first** — it reveals the user's base currency, which
 is required to interpret `ref*` fields (refAmount, refBalance) that normalize
