@@ -13,7 +13,7 @@
           </p>
 
           <UiButton
-            v-for="provider in providers"
+            v-for="provider in sortedProviders"
             :key="provider.type"
             variant="outline"
             class="h-max w-full justify-start whitespace-normal"
@@ -35,7 +35,7 @@
                 <p class="text-sm opacity-70">
                   {{ t(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.descriptionKey) }}
                 </p>
-                <div class="mt-2 flex items-center gap-2">
+                <div class="mt-2 flex flex-wrap items-center gap-2">
                   <span
                     :class="
                       pricingBadgeClass(METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.pricing)
@@ -61,6 +61,20 @@
                       <InfoIcon class="size-3" />
                     </span>
                   </ResponsiveTooltip>
+                </div>
+                <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span
+                    v-for="region in METAINFO_FROM_TYPE[provider.type as keyof typeof METAINFO_FROM_TYPE]!.regions"
+                    :key="region.code"
+                    class="bg-muted text-foreground inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
+                  >
+                    <img
+                      :src="`/img/flags/${region.code}.svg`"
+                      :alt="t(region.labelKey)"
+                      class="h-3 w-4 rounded-xs object-cover"
+                    />
+                    {{ t(region.labelKey) }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -97,7 +111,12 @@
 
 <script lang="ts" setup>
 import type { BankProvider } from '@/api/bank-data-providers';
-import { type DifficultyType, METAINFO_FROM_TYPE, type PricingType } from '@/common/const/bank-providers';
+import {
+  type DifficultyType,
+  METAINFO_FROM_TYPE,
+  type PricingType,
+  PROVIDER_DISPLAY_ORDER,
+} from '@/common/const/bank-providers';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
@@ -138,6 +157,14 @@ const dialogTitle = computed(() => {
   }
   const provider = props.providers.find((p) => p.type === selectedProviderType.value);
   return t('pages.integrations.addDialog.titleConnect', { provider: provider?.name || 'Provider' });
+});
+
+const sortedProviders = computed(() => {
+  const orderIndex = (type: string) => {
+    const index = PROVIDER_DISPLAY_ORDER.indexOf(type);
+    return index === -1 ? PROVIDER_DISPLAY_ORDER.length : index;
+  };
+  return [...props.providers].sort((a, b) => orderIndex(a.type) - orderIndex(b.type));
 });
 
 const BADGE_BASE = 'rounded px-1.5 py-0.5 text-xs font-medium';
