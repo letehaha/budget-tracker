@@ -121,6 +121,14 @@ const createAccountsForConnection = withTransaction(
       } else {
         // Ensure user has the currency for this account
         const currency = await getCurrency({ code: providerAccount.currency.toUpperCase() });
+        if (!currency) {
+          throw new BadRequestError({
+            message: t({
+              key: 'bankDataProviders.accountCurrencyNotSupported',
+              variables: { currency: providerAccount.currency },
+            }),
+          });
+        }
         await addUserCurrencies([{ userId, currencyCode: currency.code }]);
 
         const now = new Date();

@@ -1,16 +1,19 @@
-import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, API_ERROR_CODES, API_RESPONSE_STATUS, BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
+import Currencies from '@models/currencies.model';
 import Transactions from '@models/transactions.model';
 import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import * as helpers from '@tests/helpers';
 import {
   INVALID_MONOBANK_TOKEN,
+  MONOBANK_URLS_MOCK,
   VALID_MONOBANK_TOKEN,
   getMonobankTransactionsMock,
 } from '@tests/mocks/monobank/mock-api';
+import { HttpResponse, http } from 'msw';
 import { Op } from 'sequelize';
 
 /**
@@ -661,6 +664,74 @@ describe('Monobank Data Provider E2E', () => {
       });
 
       expect(new Date(afterResync.lastSyncAt!).getTime()).toBeGreaterThan(new Date(initialLastSyncAt!).getTime());
+    });
+
+    it('should return a 4xx error when the provider returns an unsupported currency', async () => {
+      // We pick DJF (Djiboutian Franc, ISO 4217 code 262), delete it from the
+      // Currencies table, and then mock Monobank to return an account with that currency.
+
+      // Pre-flight: make sure DJF is present, then remove it.
+      const djfBefore = await Currencies.findOne({ where: { code: 'DJF' } });
+      expect(djfBefore).not.toBeNull();
+      await Currencies.destroy({ where: { code: 'DJF' } });
+
+      try {
+        // Override /personal/client-info to return a single account in DJF.
+        global.mswMockServer.use(
+          http.get(MONOBANK_URLS_MOCK.clientInfo, () => {
+            return HttpResponse.json({
+              clientId: 'test-client',
+              name: 'Test User',
+              webHookUrl: '',
+              permissions: '',
+              accounts: [
+                {
+                  id: 'djf-account',
+                  sendId: 'sid-djf',
+                  balance: asCents(10000),
+                  creditLimit: asCents(0),
+                  type: 'black',
+                  currencyCode: 262, // DJF
+                  cashbackType: 'None',
+                  maskedPan: [],
+                  iban: 'djf-iban',
+                },
+              ],
+              jars: [],
+            });
+          }),
+        );
+
+        const { connectionId } = await helpers.bankDataProviders.connectProvider({
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
+          credentials: { apiToken: VALID_MONOBANK_TOKEN },
+          raw: true,
+        });
+
+        const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+          connectionId,
+          raw: true,
+        });
+        const djfExternal = externalAccounts.find((a: { currency: string }) => a.currency === 'DJF')!;
+        expect(djfExternal).toBeDefined();
+
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+        const response = await helpers.bankDataProviders.connectSelectedAccounts({
+          connectionId,
+          accountExternalIds: [djfExternal.externalId],
+        });
+
+        // The endpoint must respond with a handled 4xx error, not a 500/crash from
+        // `currency.code` on null.
+        expect(response.statusCode).toBeGreaterThanOrEqual(400);
+        expect(response.statusCode).toBeLessThan(500);
+        expect(response.body.status).toBe(API_RESPONSE_STATUS.error);
+        expect((response.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.BadRequest);
+      } finally {
+        // Restore DJF so later tests in the suite are unaffected.
+        await Currencies.create(djfBefore!.get({ plain: true }));
+      }
     });
 
     it('should enable existing disabled accounts when reconnecting', async () => {
