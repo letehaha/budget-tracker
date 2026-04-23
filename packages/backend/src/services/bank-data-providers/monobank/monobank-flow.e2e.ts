@@ -607,6 +607,62 @@ describe('Monobank Data Provider E2E', () => {
       expect(connectionAfter?.lastSyncAt).not.toBeNull();
     });
 
+    it('should advance connection lastSyncAt after a repeat Monobank sync', async () => {
+      // Regression: Monobank's queue-based sync wrote lastSyncAt only on the
+      // initial connect (via connect-selected-accounts). Subsequent syncs ran
+      // through the BullMQ worker, which updated account-level externalData
+      // timestamps but never the connection row — so the list view's "Last
+      // synced" column was frozen at connect-time.
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+
+      // Give the initial sync time to hit the worker's 'completed' handler.
+      await helpers.sleep(1000);
+
+      const { connection: afterConnect } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+      const initialLastSyncAt = afterConnect.lastSyncAt;
+      expect(initialLastSyncAt).not.toBeNull();
+
+      // Wait so a new timestamp would be visibly different.
+      await helpers.sleep(1100);
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+      await helpers.bankDataProviders.syncTransactionsForAccount({
+        connectionId: connectionResult.connectionId,
+        accountId: syncedAccounts[0]!.id,
+        raw: true,
+      });
+
+      // Wait for all queued batches to complete.
+      await helpers.sleep(2000);
+
+      const { connection: afterResync } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      expect(new Date(afterResync.lastSyncAt!).getTime()).toBeGreaterThan(new Date(initialLastSyncAt!).getTime());
+    });
+
     it('should enable existing disabled accounts when reconnecting', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.MONOBANK,

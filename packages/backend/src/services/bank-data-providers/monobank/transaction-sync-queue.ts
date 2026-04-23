@@ -4,6 +4,7 @@ import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as MerchantCategoryCodes from '@models/merchant-category-codes.model';
 import Transactions from '@models/transactions.model';
 import * as UserMerchantCategoryCodes from '@models/user-merchant-category-codes.model';
@@ -338,12 +339,19 @@ transactionSyncWorker.on('completed', async (job) => {
 
   // Extract jobGroupId and check if all batches are completed
   const jobGroupId = job.id?.substring(0, job.id.lastIndexOf('-')) || '';
-  const { totalBatches, accountId, userId } = job.data;
+  const { totalBatches, accountId, userId, connectionId } = job.data;
 
   const progress = await getJobGroupProgress(jobGroupId);
 
   if (progress.completedBatches === totalBatches) {
-    await setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId });
+    await Promise.all([
+      setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId }),
+      // Mark the connection as synced. Enable Banking does this via
+      // base-provider's `updateLastSync`; Monobank's queue-based flow needs
+      // the equivalent write so the list view's "Last synced" column reflects
+      // reality for the connection, not just the account.
+      BankDataProviderConnections.update({ lastSyncAt: new Date() }, { where: { id: connectionId } }),
+    ]);
     logger.info(`All batches completed for account ${accountId}, status set to COMPLETED`);
   }
 });
