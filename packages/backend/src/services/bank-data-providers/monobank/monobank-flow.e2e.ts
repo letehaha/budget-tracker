@@ -1,9 +1,16 @@
 import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Accounts from '@models/accounts.model';
 import Transactions from '@models/transactions.model';
+import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import * as helpers from '@tests/helpers';
-import { INVALID_MONOBANK_TOKEN, VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
+import {
+  INVALID_MONOBANK_TOKEN,
+  VALID_MONOBANK_TOKEN,
+  getMonobankTransactionsMock,
+} from '@tests/mocks/monobank/mock-api';
 import { Op } from 'sequelize';
 
 /**
@@ -386,9 +393,6 @@ describe('Monobank Data Provider E2E', () => {
 
       const accountIds = externalAccounts.slice(0, 2).map((acc: { externalId: string }) => acc.externalId);
 
-      // Mock transaction data for the Monobank API
-      const { getMonobankTransactionsMock } = await import('@tests/mocks/monobank/mock-api');
-
       global.mswMockServer.use(
         ...accountIds.map((id) =>
           getMonobankTransactionsMock({ accountId: id, response: helpers.monobank.mockedTransactionData(MOCK_AMOUNT) }),
@@ -500,6 +504,80 @@ describe('Monobank Data Provider E2E', () => {
       expect(account.currentBalance).toBe(selectedExternal.balance);
       expect(account.initialBalance).toBe(selectedExternal.balance);
       expect(account.currencyCode).toBe(selectedExternal.currency);
+    });
+
+    it('should convert refCreditLimit to base currency when account currency differs', async () => {
+      // Regression: refCreditLimit used to be copied raw from the provider's
+      // native cents — causing order-of-magnitude errors in base-currency
+      // credit totals for non-base-currency accounts. It must now be converted
+      // via calculateRefAmount, consistent with refInitialBalance/refCurrentBalance.
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      // Mock has a UAH account with creditLimit = 2000 UAH (200_000 cents).
+      // Test base currency is AED (set in setupIntegrationTests.ts).
+      const uahExternal = externalAccounts.find((a: { currency: string }) => a.currency === 'UAH')!;
+      expect(uahExternal).toBeDefined();
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: [uahExternal.externalId],
+        raw: true,
+      });
+
+      const created = await Accounts.findByPk(syncedAccounts[0]!.id);
+      const creditLimitCents = created!.creditLimit.toCents();
+      const refCreditLimitCents = created!.refCreditLimit.toCents();
+
+      expect(creditLimitCents).toBe(200000);
+      expect(refCreditLimitCents).not.toBe(creditLimitCents);
+
+      const expected = await calculateRefAmount({
+        amount: Money.fromCents(creditLimitCents),
+        userId: created!.userId,
+        date: new Date(),
+        baseCode: 'UAH',
+      });
+      expect(refCreditLimitCents).toEqualRefValue(expected.toCents());
+    });
+
+    it('should set refCreditLimit = 0 when the account has no credit limit', async () => {
+      // Mock's USD account has creditLimit = 0. Both fields must be zero.
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      const usdExternal = externalAccounts.find((a: { currency: string }) => a.currency === 'USD')!;
+      expect(usdExternal).toBeDefined();
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: [usdExternal.externalId],
+        raw: true,
+      });
+
+      const created = await Accounts.findByPk(syncedAccounts[0]!.id);
+      expect(created!.creditLimit.toCents()).toBe(0);
+      expect(created!.refCreditLimit.toCents()).toBe(0);
     });
 
     it('should update connection lastSyncAt after connecting accounts', async () => {

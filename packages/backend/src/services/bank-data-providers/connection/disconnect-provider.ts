@@ -1,4 +1,6 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { t } from '@i18n/index';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
@@ -18,16 +20,15 @@ export const disconnectProvider = withTransaction(
     userId: number;
     removeAssociatedAccounts?: boolean;
   }): Promise<void> => {
-    const connection = await BankDataProviderConnections.findOne({
-      where: {
-        id: connectionId,
-        userId,
-      },
+    const connection = await findOrThrowNotFound({
+      query: BankDataProviderConnections.findOne({
+        where: {
+          id: connectionId,
+          userId,
+        },
+      }),
+      message: t({ key: 'errors.connectionNotFound' }),
     });
-
-    if (!connection) {
-      return;
-    }
 
     const linkedAccounts = await Accounts.findAll({
       where: {
