@@ -123,12 +123,24 @@ const createAccountsForConnection = withTransaction(
         const currency = await getCurrency({ code: providerAccount.currency.toUpperCase() });
         await addUserCurrencies([{ userId, currencyCode: currency.code }]);
 
+        const now = new Date();
         const accountRefBalance = await calculateRefAmount({
           amount: Money.fromCents(providerAccount.balance),
           userId,
-          date: new Date(),
+          date: now,
           baseCode: providerAccount.currency,
         });
+
+        const creditLimitCents = (providerAccount.metadata?.creditLimit as number) || 0;
+        const refCreditLimit =
+          creditLimitCents > 0
+            ? await calculateRefAmount({
+                amount: Money.fromCents(creditLimitCents),
+                userId,
+                date: now,
+                baseCode: providerAccount.currency,
+              })
+            : Money.zero();
 
         // Create new account
         const accountName =
@@ -146,8 +158,8 @@ const createAccountsForConnection = withTransaction(
           refInitialBalance: accountRefBalance,
           currentBalance: providerAccount.balance,
           refCurrentBalance: accountRefBalance,
-          creditLimit: (providerAccount.metadata?.creditLimit as number) || 0,
-          refCreditLimit: (providerAccount.metadata?.creditLimit as number) || 0,
+          creditLimit: creditLimitCents,
+          refCreditLimit,
           externalId: providerAccount.externalId,
           externalData: providerAccount.metadata || {},
           bankDataProviderConnectionId: connectionId,
