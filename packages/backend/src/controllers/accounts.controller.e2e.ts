@@ -470,4 +470,36 @@ describe('Accounts controller', () => {
       expect(brokenUpdate.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
+  describe('delete account', () => {
+    it('returns 404 when deleting a non-existent account', async () => {
+      const res = await helpers.deleteAccount({ id: 999999, raw: false });
+
+      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it('deletes own account successfully', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const res = await helpers.deleteAccount({ id: account.id, raw: false });
+      expect(res.statusCode).toBe(200);
+
+      const accountsAfter = await helpers.getAccounts();
+      expect(accountsAfter.some((a) => a.id === account.id)).toBe(false);
+    });
+
+    it('returns 404 when deleting another user account and leaves it intact', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const user2Cookies = await createSecondUser();
+
+      const res = await asUser({
+        cookies: user2Cookies,
+        fn: () => helpers.deleteAccount({ id: account.id, raw: false }),
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+      const stillExists = await helpers.getAccount({ id: account.id, raw: true });
+      expect(stillExists.id).toBe(account.id);
+    });
+  });
 });

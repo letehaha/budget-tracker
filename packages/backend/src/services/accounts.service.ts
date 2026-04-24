@@ -2,7 +2,7 @@ import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountExternalData, TRANSACTION_TYPES
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { UnexpectedError } from '@js/errors';
+import { NotFoundError, UnexpectedError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
@@ -298,8 +298,14 @@ async function updateAccountBalanceForChangedTxImpl({
 
 export const updateAccountBalanceForChangedTx = withTransaction(updateAccountBalanceForChangedTxImpl);
 
-export const deleteAccountById = async ({ id }: { id: number }) => {
-  return Accounts.deleteAccountById({ id });
+export const deleteAccountById = async ({ id, userId }: { id: number; userId: number }) => {
+  const affectedRows = await Accounts.deleteAccountById({ id, userId });
+
+  if (affectedRows === 0) {
+    throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
+  }
+
+  return affectedRows;
 };
 
 export { unlinkAccountFromBankConnection } from './accounts/unlink-from-bank-connection';
