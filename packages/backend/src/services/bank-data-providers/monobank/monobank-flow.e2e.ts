@@ -3,8 +3,16 @@ import { Money } from '@common/types/money';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Currencies from '@models/currencies.model';
 import Transactions from '@models/transactions.model';
+import { redisClient } from '@root/redis-client';
+import { handleCompletedBatch } from '@root/services/bank-data-providers/monobank/transaction-sync-queue';
+import {
+  REDIS_KEYS,
+  SyncStatus,
+  setAccountSyncStatus,
+} from '@root/services/bank-data-providers/sync/sync-status-tracker';
 import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import * as helpers from '@tests/helpers';
 import {
@@ -13,6 +21,7 @@ import {
   VALID_MONOBANK_TOKEN,
   getMonobankTransactionsMock,
 } from '@tests/mocks/monobank/mock-api';
+import { Job } from 'bullmq';
 import { HttpResponse, http } from 'msw';
 import { Op } from 'sequelize';
 
@@ -953,6 +962,175 @@ describe('Monobank Data Provider E2E', () => {
       const countAfter = connectionsAfter.length;
 
       expect(countAfter).toBe(countBefore); // No new connection created
+    });
+  });
+
+  describe('Multi-batch completion accounting', () => {
+    // Regression: the 'completed' handler used to derive "all batches done"
+    // from the queue's completed set. Under concurrent syncs the queue's
+    // `removeOnComplete` eviction removes earlier batches from that set,
+    // so the query returns fewer than `totalBatches` and the final
+    // COMPLETED transition is never triggered — the account sits SYNCING
+    // until the 20-minute stale sweep. The counter-based implementation
+    // increments a dedicated Redis key per jobGroupId, so each batch
+    // contributes exactly one INCR no matter how the queue trims itself.
+    //
+    // This test calls `handleCompletedBatch` directly for N fabricated
+    // batches of a single group. None of them are real jobs in BullMQ, so
+    // any queue-snapshot-based implementation would see zero completed
+    // jobs in the group on every call and never fire the transition.
+    // Only the counter approach accumulates across calls, reaches
+    // totalBatches, and sets COMPLETED.
+    const buildFakeJob = (params: {
+      jobGroupId: string;
+      batchIndex: number;
+      totalBatches: number;
+      userId: number;
+      accountId: number;
+      connectionId: number;
+      externalAccountId: string;
+    }): Job =>
+      ({
+        id: `${params.jobGroupId}-${params.batchIndex}`,
+        data: {
+          userId: params.userId,
+          accountId: params.accountId,
+          connectionId: params.connectionId,
+          externalAccountId: params.externalAccountId,
+          apiToken: 'unused-in-handler',
+          fromTimestamp: 0,
+          toTimestamp: 0,
+          batchIndex: params.batchIndex,
+          totalBatches: params.totalBatches,
+        },
+      }) as unknown as Job;
+
+    it('should flip account to COMPLETED exactly when the Nth batch of N completes', async () => {
+      const { connectionId } = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId,
+        raw: true,
+      });
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+      const account = await Accounts.findByPk(accountId);
+      const userId = account!.userId;
+
+      // Put the account into SYNCING, mirroring the worker's mid-sync state.
+      await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId });
+
+      const totalBatches = 3;
+      const jobGroupId = `${userId}-${accountId}-${Date.now()}`;
+
+      for (let i = 0; i < totalBatches; i++) {
+        await handleCompletedBatch(
+          buildFakeJob({
+            jobGroupId,
+            batchIndex: i,
+            totalBatches,
+            userId,
+            accountId,
+            connectionId,
+            externalAccountId: externalAccounts[0]!.externalId,
+          }),
+        );
+
+        const raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
+        const parsed = JSON.parse(raw!);
+
+        if (i < totalBatches - 1) {
+          // Intermediate batches must not fire the final transition.
+          expect(parsed.status).toBe(SyncStatus.SYNCING);
+        } else {
+          // Last batch flips it.
+          expect(parsed.status).toBe(SyncStatus.COMPLETED);
+        }
+      }
+
+      // The connection's lastSyncAt is also bumped so the list view's
+      // "Last synced" column reflects this group, not just connect-time.
+      const reloadedConnection = await BankDataProviderConnections.findByPk(connectionId);
+      expect(reloadedConnection!.lastSyncAt).not.toBeNull();
+
+      // And the counter key is cleaned up once the group is settled —
+      // otherwise Redis slowly fills with orphan keys from every sync.
+      const counterKey = `jobgroup:${jobGroupId}:completions`;
+      const counterValue = await redisClient.get(counterKey);
+      expect(counterValue).toBeNull();
+    });
+
+    it('should not be confused by two concurrent groups on the same account', async () => {
+      // Two sync operations for one account running in parallel (rare but
+      // possible — e.g., auto-sync kicks in just as a manual load-for-period
+      // is triggered). Each group has its own jobGroupId → its own counter.
+      // The second group must be able to complete independently, even after
+      // the first already cleared its counter.
+      const { connectionId } = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId,
+        raw: true,
+      });
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+      const account = await Accounts.findByPk(accountId);
+      const userId = account!.userId;
+
+      const groupA = `${userId}-${accountId}-${Date.now()}-a`;
+      const groupB = `${userId}-${accountId}-${Date.now()}-b`;
+      const commonArgs = {
+        totalBatches: 2,
+        userId,
+        accountId,
+        connectionId,
+        externalAccountId: externalAccounts[0]!.externalId,
+      };
+
+      await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId });
+
+      // Finish group A completely.
+      await handleCompletedBatch(buildFakeJob({ ...commonArgs, jobGroupId: groupA, batchIndex: 0 }));
+      await handleCompletedBatch(buildFakeJob({ ...commonArgs, jobGroupId: groupA, batchIndex: 1 }));
+
+      let raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
+      expect(JSON.parse(raw!).status).toBe(SyncStatus.COMPLETED);
+
+      // Back to SYNCING for group B, then finish it.
+      await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId });
+      await handleCompletedBatch(buildFakeJob({ ...commonArgs, jobGroupId: groupB, batchIndex: 0 }));
+
+      raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
+      expect(JSON.parse(raw!).status).toBe(SyncStatus.SYNCING);
+
+      await handleCompletedBatch(buildFakeJob({ ...commonArgs, jobGroupId: groupB, batchIndex: 1 }));
+
+      raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
+      expect(JSON.parse(raw!).status).toBe(SyncStatus.COMPLETED);
     });
   });
 });
