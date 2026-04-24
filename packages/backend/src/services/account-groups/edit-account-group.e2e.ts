@@ -1,6 +1,39 @@
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
+async function asUser<T>({ cookies, fn }: { cookies: string; fn: () => Promise<T> }): Promise<T> {
+  const original = global.APP_AUTH_COOKIES;
+  global.APP_AUTH_COOKIES = cookies;
+  try {
+    return await fn();
+  } finally {
+    global.APP_AUTH_COOKIES = original;
+  }
+}
+
+async function createSecondUser(): Promise<string> {
+  const signupRes = await helpers.makeAuthRequest({
+    method: 'post',
+    url: '/auth/sign-up/email',
+    payload: {
+      email: `user2-${Date.now()}@test.local`,
+      password: 'testpassword123',
+      name: 'Second User',
+    },
+  });
+  const cookies = helpers.extractCookies(signupRes);
+  await asUser({
+    cookies,
+    fn: () =>
+      helpers.makeRequest({
+        method: 'post',
+        url: '/user/currencies/base',
+        payload: { currencyCode: global.BASE_CURRENCY.code },
+      }),
+  });
+  return cookies;
+}
+
 describe('Update account group', () => {
   const defaultName = 'Test group';
 
@@ -109,5 +142,49 @@ describe('Update account group', () => {
     });
 
     expect(updation.statusCode).toBe(404);
+  });
+
+  it("returns 404 when user B tries to update user A's group", async () => {
+    const userAGroup = await helpers.createAccountGroup({
+      name: defaultName,
+      raw: true,
+    });
+
+    const userBCookies = await createSecondUser();
+
+    const res = await asUser({
+      cookies: userBCookies,
+      fn: () =>
+        helpers.updateAccountGroup({
+          groupId: userAGroup.id,
+          name: 'hacked',
+        }),
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 404 when user B tries to reparent their group under user A's group", async () => {
+    const userAGroup = await helpers.createAccountGroup({
+      name: defaultName,
+      raw: true,
+    });
+
+    const userBCookies = await createSecondUser();
+    const userBGroup = await asUser({
+      cookies: userBCookies,
+      fn: () => helpers.createAccountGroup({ name: 'userB-group', raw: true }),
+    });
+
+    const res = await asUser({
+      cookies: userBCookies,
+      fn: () =>
+        helpers.updateAccountGroup({
+          groupId: userBGroup.id,
+          parentGroupId: userAGroup.id,
+        }),
+    });
+
+    expect(res.statusCode).toBe(404);
   });
 });

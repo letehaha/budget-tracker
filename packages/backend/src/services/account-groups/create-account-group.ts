@@ -16,7 +16,7 @@ export const createAccountGroup = withTransaction(
   }): Promise<AccountGroup> => {
     if (parentGroupId) {
       await findOrThrowNotFound({
-        query: AccountGroup.findByPk(parentGroupId),
+        query: AccountGroup.findOne({ where: { id: parentGroupId, userId } }),
         message: t({ key: 'accountGroups.parentGroupDoesNotExist' }),
       });
     }
