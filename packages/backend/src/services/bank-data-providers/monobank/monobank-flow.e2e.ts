@@ -1133,4 +1133,77 @@ describe('Monobank Data Provider E2E', () => {
       expect(JSON.parse(raw!).status).toBe(SyncStatus.COMPLETED);
     });
   });
+
+  describe('Provider outage vs. invalid credentials', () => {
+    it('connect: should not treat a provider 5xx as invalid credentials', async () => {
+      global.mswMockServer.use(
+        http.get(MONOBANK_URLS_MOCK.clientInfo, () => {
+          return new HttpResponse(null, { status: 503, statusText: 'Service Unavailable' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.MONOBANK}/connect`,
+        payload: {
+          credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        },
+      });
+
+      // A provider outage must NOT be reported to the user as an auth failure.
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
+    });
+
+    it('connect: should surface a 429 as TooManyRequests, not as invalid credentials', async () => {
+      global.mswMockServer.use(
+        http.get(MONOBANK_URLS_MOCK.clientInfo, () => {
+          return HttpResponse.json(
+            { errorDescription: 'Too many requests' },
+            { status: 429, statusText: 'Too Many Requests' },
+          );
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.MONOBANK}/connect`,
+        payload: {
+          credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        },
+      });
+
+      // Rate limiting is distinct from invalid credentials.
+      expect(result.status).toEqual(ERROR_CODES.TooManyRequests);
+    });
+
+    it('refreshCredentials: should not treat a provider 5xx as invalid credentials', async () => {
+      // Set up an active connection with valid credentials first.
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      // Simulate provider outage during the refresh attempt.
+      global.mswMockServer.use(
+        http.get(MONOBANK_URLS_MOCK.clientInfo, () => {
+          return new HttpResponse(null, { status: 503, statusText: 'Service Unavailable' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'patch',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}`,
+        payload: {
+          credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        },
+      });
+
+      // User attempted to refresh their (valid) token but the provider was down —
+      // we must NOT tell them the credentials are invalid.
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
+    });
+  });
 });

@@ -2052,4 +2052,52 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(connection.consent!.isExpiringSoon).toBe(false);
     });
   });
+
+  describe('Provider outage vs. invalid credentials', () => {
+    const APPLICATION_URL = 'https://api.enablebanking.com/application';
+
+    it('connect: should surface a provider 5xx as 502 BadGateway, not as invalid credentials', async () => {
+      global.mswMockServer.use(
+        http.get(APPLICATION_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.ENABLE_BANKING}/connect`,
+        payload: {
+          credentials: helpers.enablebanking.mockCredentials(),
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toEqual(ERROR_CODES.BadGateway);
+    });
+
+    it('refreshCredentials: should surface a provider 5xx as 502 BadGateway, not as invalid credentials', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      global.mswMockServer.use(
+        http.get(APPLICATION_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'patch',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}`,
+        payload: {
+          credentials: helpers.enablebanking.mockCredentials(),
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toEqual(ERROR_CODES.BadGateway);
+    });
+  });
 });

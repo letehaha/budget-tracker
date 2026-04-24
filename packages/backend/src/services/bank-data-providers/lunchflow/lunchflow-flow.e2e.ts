@@ -25,6 +25,7 @@ import {
   getLunchFlowTransactionsMock,
 } from '@tests/mocks/lunchflow/mock-api';
 import { addDays, subDays } from 'date-fns';
+import { HttpResponse, http } from 'msw';
 import { Op } from 'sequelize';
 
 /**
@@ -1455,6 +1456,54 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       expect(reactivated.isActive).toBe(true);
+    });
+  });
+
+  describe('Provider outage vs. invalid credentials', () => {
+    const LUNCHFLOW_ACCOUNTS_URL = 'https://lunchflow.app/api/v1/accounts';
+
+    it('connect: should not treat a provider 5xx as invalid credentials', async () => {
+      global.mswMockServer.use(
+        http.get(LUNCHFLOW_ACCOUNTS_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.LUNCHFLOW}/connect`,
+        payload: {
+          credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
+    });
+
+    it('refreshCredentials: should not treat a provider 5xx as invalid credentials', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
+        credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        raw: true,
+      });
+
+      global.mswMockServer.use(
+        http.get(LUNCHFLOW_ACCOUNTS_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'patch',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}`,
+        payload: {
+          credentials: { apiKey: VALID_LUNCHFLOW_API_KEY_2 },
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
     });
   });
 });

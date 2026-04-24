@@ -112,11 +112,10 @@ export class LunchFlowProvider extends BaseBankDataProvider {
 
     const apiClient = new LunchFlowApiClient(credentials.apiKey);
 
-    try {
-      return await apiClient.testConnection();
-    } catch {
-      return false;
-    }
+    // testConnection returns false only for 401/403.
+    // Network/5xx errors propagate so callers can distinguish "invalid key"
+    // from "provider is down".
+    return await apiClient.testConnection();
   }
 
   async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {

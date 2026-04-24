@@ -437,11 +437,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     const apiClient = new EnableBankingApiClient({ appId, privateKey });
 
-    try {
-      return await apiClient.testConnection();
-    } catch {
-      return false;
-    }
+    // testConnection returns false only for 401/403.
+    // Network/5xx errors propagate so callers can distinguish "invalid creds"
+    // from "provider is down".
+    return await apiClient.testConnection();
   }
 
   async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {
