@@ -90,8 +90,11 @@ const createAccountsForConnection = withTransaction(
         },
       });
 
-      // If not found, check for a previously-linked account (archived accounts
-      // have their connection history stored in externalData after unlinking)
+      // If not found, check for a previously-linked account (disconnected
+      // accounts have their connection history stored in externalData after
+      // unlinking). Match by providerType + externalId — NOT by the stored
+      // connectionId, which is the OLD disconnected connection's id and will
+      // never equal the new one after a fresh connect.
       if (!existingAccount) {
         existingAccount = await Accounts.findOne({
           where: {
@@ -101,7 +104,7 @@ const createAccountsForConnection = withTransaction(
               connectionHistory: {
                 previousConnection: {
                   externalId: providerAccount.externalId,
-                  bankDataProviderConnectionId: connectionId,
+                  providerType: connection.providerType,
                 },
               },
             },
