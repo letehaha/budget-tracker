@@ -14,7 +14,7 @@
       </div>
     </template>
     <template v-if="widgetConfigRef" #action>
-      <SpikeSettingsPopover />
+      <BalanceTrendSettingsPopover />
     </template>
     <template v-if="isInitialLoading">
       <LoadingState />
@@ -153,9 +153,9 @@ import { computed, inject, nextTick, onMounted, onUnmounted, reactive, ref, watc
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import BalanceTrendSettingsPopover from './components/balance-trend-settings-popover.vue';
 import EmptyState from './components/empty-state.vue';
 import LoadingState from './components/loading-state.vue';
-import SpikeSettingsPopover from './components/spike-settings-popover.vue';
 import SpikeTransactionsPanel from './components/spike-transactions-panel.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
@@ -216,6 +216,13 @@ const spikeSettings = computed<SpikeDetectionOptions>(() => {
   };
 });
 
+// When true, the chart x-axis is trimmed to the most recent data point.
+// When false, it spans the full selected period (future dates appear empty).
+const fitToLatestData = computed<boolean>(() => {
+  const cfg = widgetConfigRef?.value?.config;
+  return (cfg?.fitToLatestData as boolean | undefined) ?? true;
+});
+
 // D3 chart refs
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
@@ -249,7 +256,7 @@ const prevDataPeriod = ref(props.selectedPeriod);
 const periodQueryKey = computed(() => `${props.selectedPeriod.from.getTime()}-${props.selectedPeriod.to.getTime()}`);
 
 // For data fetching, cap the 'to' date at today - we can't have balance history
-// for future dates. The chart x-axis will still show the full period range.
+// for future dates. The chart x-axis end is controlled separately by `chartXAxisEnd`.
 const fetchPeriod = computed(() => ({
   from: props.selectedPeriod.from,
   to: min([props.selectedPeriod.to, new Date()]),
@@ -312,8 +319,13 @@ watch(
 
 const isDataEmpty = computed(() => !balanceHistory.value || balanceHistory.value.every((i) => i.totalBalance === 0));
 
+// End date the chart x-axis should reach. Trimmed to today when fitToLatestData is on.
+const chartXAxisEnd = computed(() =>
+  fitToLatestData.value ? min([actualDataPeriod.value.to, new Date()]) : actualDataPeriod.value.to,
+);
+
 // Key for the chart component - changes when period changes to trigger CSS transition
-const chartKey = computed(() => `${actualDataPeriod.value.from.getTime()}-${actualDataPeriod.value.to.getTime()}`);
+const chartKey = computed(() => `${actualDataPeriod.value.from.getTime()}-${chartXAxisEnd.value.getTime()}`);
 
 const periodLabel = computed(() => {
   const from = props.selectedPeriod.from;
@@ -549,7 +561,7 @@ const renderChart = () => {
   const pixelsPerTick = isMobile ? 80 : 120;
   const ticksAmount = Math.min(7, Math.max(2, Math.round(innerWidth / pixelsPerTick)));
   const fromDate = actualDataPeriod.value.from;
-  const toDate = actualDataPeriod.value.to;
+  const toDate = chartXAxisEnd.value;
   const xAxisTicks = generateDateSteps({ datesToShow: ticksAmount, fromDate, toDate });
 
   // X scale
@@ -873,6 +885,11 @@ watch(
 
 // Re-render chart when spike settings change (after Accept / save)
 watch(spikePoints, () => {
+  renderChart();
+});
+
+// Re-render chart when the x-axis end date changes (toggle "Fit to latest data")
+watch(chartXAxisEnd, () => {
   renderChart();
 });
 
