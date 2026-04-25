@@ -60,6 +60,12 @@
                     }}</span>
                   </span>
                 </template>
+                <template v-else-if="syncStatus.syncStuck.value">
+                  <AlertTriangleIcon class="text-destructive-text" :size="16" />
+                  <span class="hidden text-sm font-medium lg:inline">
+                    {{ $t('header.sync.stuck') }}
+                  </span>
+                </template>
                 <template v-else-if="categorizationStatus.isCategorizing.value">
                   <SparklesIcon class="text-primary animate-pulse" :size="16" />
                   <span class="hidden text-sm font-medium lg:inline">
@@ -85,6 +91,7 @@
                 :last-sync-timestamp="syncStatus.lastSyncTimestamp.value"
                 :is-loading="syncStatus.isLoading.value"
                 :is-syncing="syncStatus.isSyncing.value"
+                :sync-stuck="syncStatus.syncStuck.value"
                 :show-success-message="syncStatus.showSuccessMessage.value"
                 :categorization-status="categorizationStatus.categorizationStatus.value"
                 :is-categorizing="categorizationStatus.isCategorizing.value"
@@ -132,7 +139,15 @@ import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
-import { CloudCheckIcon, ImportIcon, MenuIcon, PlusIcon, RefreshCcw, SparklesIcon } from 'lucide-vue-next';
+import {
+  AlertTriangleIcon,
+  CloudCheckIcon,
+  ImportIcon,
+  MenuIcon,
+  PlusIcon,
+  RefreshCcw,
+  SparklesIcon,
+} from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';

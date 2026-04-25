@@ -96,12 +96,10 @@ export class MonobankProvider extends BaseBankDataProvider {
     const { apiToken } = credentials;
     const apiClient = new MonobankApiClient(apiToken);
 
-    try {
-      return await apiClient.testConnection();
-    } catch {
-      // Network or other errors - consider as invalid
-      return false;
-    }
+    // testConnection returns false only for a genuine auth failure.
+    // Network/5xx/429 errors propagate so callers can distinguish "invalid token"
+    // from "provider is down".
+    return await apiClient.testConnection();
   }
 
   async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {

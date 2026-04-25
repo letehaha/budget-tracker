@@ -158,12 +158,12 @@ export class WalutomatProvider extends BaseBankDataProvider {
       return false;
     }
 
-    try {
-      const client = this.createApiClient(credentials);
-      return await client.testConnection();
-    } catch {
-      return false;
-    }
+    const client = this.createApiClient(credentials);
+
+    // testConnection returns false only for 401/403 or signing errors (bad private key).
+    // Network/5xx errors propagate so callers can distinguish "invalid creds"
+    // from "provider is down".
+    return await client.testConnection();
   }
 
   async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {

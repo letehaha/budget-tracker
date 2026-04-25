@@ -89,15 +89,20 @@ export async function setAccountSyncStatus({
 }): Promise<void> {
   if (!isRedisReady()) return;
 
+  // startedAt is required to detect stale active syncs (isStaleStatus uses it).
+  // Stamp it for QUEUED too — otherwise an account that never transitions out
+  // of QUEUED never gets cleaned up by the staleness check and the UI keeps
+  // showing it as in-progress until the Redis TTL expires.
   const statusData: AccountSyncStatus = {
     accountId,
     status,
-    startedAt: status === SyncStatus.SYNCING ? new Date().toISOString() : null,
+    startedAt: isActiveSync(status) ? new Date().toISOString() : null,
     completedAt: [SyncStatus.COMPLETED, SyncStatus.FAILED].includes(status) ? new Date().toISOString() : null,
     error: error ?? null,
   };
 
-  // Get existing data to preserve startedAt
+  // Preserve the original startedAt across QUEUED → SYNCING → COMPLETED/FAILED
+  // transitions so isStaleStatus measures from the true start of the activity.
   const existing = await getAccountSyncStatus(accountId);
   if (existing?.startedAt && status !== SyncStatus.SYNCING) {
     statusData.startedAt = existing.startedAt;
