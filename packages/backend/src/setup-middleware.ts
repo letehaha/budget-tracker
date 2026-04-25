@@ -9,9 +9,22 @@ import { API_PREFIX } from './config';
 import { addI18nextToRequest, detectLanguage } from './i18n/middleware';
 
 export function setupMiddleware(app: Express) {
+  // Drop the default `X-Powered-By: Express` info-disclosure header.
+  app.disable('x-powered-by');
+
   app.use(requestIdMiddleware);
 
   app.set('port', process.env.APPLICATION_PORT);
+
+  // HSTS on the API host. Only emitted in production where TLS is terminated
+  // by the reverse proxy; sending it over plain HTTP in dev would be a no-op
+  // anyway, but this keeps response noise out of local logs.
+  if (process.env.NODE_ENV === 'production') {
+    app.use((_req, res, next) => {
+      res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+      next();
+    });
+  }
 
   const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
     .split(',')

@@ -7,7 +7,10 @@ services:
     # Mount SSL certificates for local HTTPS testing (optional - ignored on VPS where Traefik handles SSL)
     volumes:
       - ../../docker/dev/certs:/app/docker/dev/certs:ro
-    ports: ['${APPLICATION_PORT}:${APPLICATION_PORT}']
+    # No host port mapping: Traefik reaches the backend over the Docker
+    # network, and `expose` is documentation-only — same-network containers
+    # already resolve `backend:${APPLICATION_PORT}`.
+    expose: ['${APPLICATION_PORT}']
     depends_on: ['db', 'redis', 'frankfurter', 'currency-rates-api']
     env_file: ../../.env.production
 
@@ -37,13 +40,14 @@ services:
       - POSTGRES_USER=${APPLICATION_DB_USERNAME}
       - POSTGRES_PASSWORD=${APPLICATION_DB_PASSWORD}
       - POSTGRES_DB=${APPLICATION_DB_DATABASE}
-    ports: ['${APPLICATION_DB_PORT}:5432']
+    # Internal-only: backend resolves it as `db:5432`. Don't publish to host —
+    # one firewall misstep shouldn't be a breach.
 
   redis:
     image: redis:7
     container_name: prod-budget-tracker-redis
     volumes: ['redis_data:/data']
-    ports: ['6379:6379']
+    # Internal-only: backend resolves it as `redis:6379`. Don't publish to host.
 
   # Currency Rates API: Custom exchange rate service (primary provider)
   # Uses ECB + NBU data sources for comprehensive currency coverage
@@ -81,15 +85,8 @@ services:
         max-size: '10m'
         max-file: '3'
 
-  pgadmin:
-    image: dpage/pgadmin4:8.11
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
-      - PGADMIN_LISTEN_PORT=${PGADMIN_LISTEN_PORT}
-    ports: ['8001:8001']
-    depends_on: ['db']
-    attach: false
+  # pgAdmin removed from prod compose. If admin DB access is needed, use an
+  # ad-hoc SSH tunnel into the VPS instead of running it 24/7.
 
 volumes:
   db_data:

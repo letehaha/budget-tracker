@@ -192,6 +192,22 @@ export function setupRoutes(app: Express) {
     res.type('text/plain').send('User-agent: *\nDisallow: /');
   });
 
+  // RFC 9116 — security disclosure contact. Served on api.moneymatter.app and
+  // mcp.moneymatter.app; the SPA host has a static mirror in nginx.
+  // Refresh `Expires` before it lapses, otherwise scanners flag it as expired.
+  const securityTxt = [
+    'Contact: https://github.com/letehaha/budget-tracker/security/advisories/new',
+    'Expires: 2027-04-25T00:00:00.000Z',
+    'Preferred-Languages: en',
+    'Canonical: https://api.moneymatter.app/.well-known/security.txt',
+    '',
+  ].join('\n');
+  const serveSecurityTxt = (_req: Request, res: Response) => {
+    res.type('text/plain').send(securityTxt);
+  };
+  app.get('/.well-known/security.txt', serveSecurityTxt);
+  app.get('/security.txt', serveSecurityTxt);
+
   // Sentry error handler - must be after routes but before other error handlers
   // Only set up in production when Sentry is actually initialized
   if (process.env.NODE_ENV === 'production') {

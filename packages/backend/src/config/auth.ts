@@ -14,6 +14,15 @@ import { Resend } from 'resend';
 // Initialize Resend for transactional emails
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+// Fail-fast: AUTH_ORIGIN must be set in production. Without it, OAuth error
+// redirects, login/consent pages, and trusted origins all fall back to
+// localhost:8100, which would break the auth flow on the live site.
+if (process.env.NODE_ENV === 'production' && !process.env.AUTH_ORIGIN) {
+  throw new Error(
+    'AUTH_ORIGIN env var is required in production (used by trustedOrigins, OAuth pages, passkey origin, and error redirects).',
+  );
+}
+
 // Track emails that were recently verified via changeEmail flow
 // This prevents duplicate verification emails (better-auth bug workaround)
 // See: https://github.com/better-auth/better-auth/issues/3742
@@ -130,10 +139,11 @@ export const auth = betterAuth({
     enabled: true,
     // Require email verification for new signups (not legacy @app.migrated users)
     requireEmailVerification: Boolean(process.env.RESEND_API_KEY),
-    // Use bcrypt compatible with existing password hashes
+    // Cost 12 follows OWASP 2026 guidance. Verify works against any cost,
+    // so legacy cost-10 hashes keep working without a rehash.
     password: {
       hash: async (password: string) => {
-        const salt = bcrypt.genSaltSync(10);
+        const salt = bcrypt.genSaltSync(12);
         return bcrypt.hashSync(password, salt);
       },
       verify: async ({ password, hash }: { password: string; hash: string }) => {

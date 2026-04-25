@@ -227,6 +227,8 @@
     "headersCannotBeParsed": "Неможливо розпарсити заголовки",
     "csvFileEmpty": "CSV файл порожній",
     "csvFileNoHeaders": "CSV файл не містить заголовків",
+    "csvFileTooManyRows": "CSV файл перевищує максимально дозволену кількість рядків {{max}}.",
+    "csvFileForbiddenHeader": "CSV файл містить назву заголовку, яка не дозволена.",
     "invalidDateFormat": "Недійсний формат дати: \"{{dateStr}}\". Очікується формат ISO (РРРР-ММ-ДД).",
     "invalidAmount": "Недійсна сума: \"{{amountStr}}\". Очікується числове значення.",
     "accountNameEmpty": "Назва рахунку порожня",
