@@ -167,6 +167,15 @@ export async function queueReminderEmail(data: ReminderEmailJobData): Promise<st
   return jobId;
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function buildEmailHtml({
   reminderName,
   dueDate,
@@ -178,8 +187,12 @@ function buildEmailHtml({
   amountDisplay: string | null;
   deepLink: string;
 }): string {
+  const safeAppName = escapeHtml(appName);
+  const safeReminderName = escapeHtml(reminderName);
+  const safeDueDate = escapeHtml(dueDate);
+  const safeDeepLink = escapeHtml(deepLink);
   const amountLine = amountDisplay
-    ? `<tr><td style="padding: 0 0 6px 0; font-size: 15px; color: #6b7280;">Amount</td><td style="padding: 0 0 6px 0; font-size: 15px; color: #1a1a1a; text-align: right;"><strong>${amountDisplay}</strong></td></tr>`
+    ? `<tr><td style="padding: 0 0 6px 0; font-size: 15px; color: #6b7280;">Amount</td><td style="padding: 0 0 6px 0; font-size: 15px; color: #1a1a1a; text-align: right;"><strong>${escapeHtml(amountDisplay)}</strong></td></tr>`
     : '';
 
   return `
@@ -206,7 +219,7 @@ function buildEmailHtml({
           <!-- Brand -->
           <tr>
             <td style="padding: 32px 40px 0 40px;">
-              <span style="font-size: 20px; font-weight: 700; color: #8b5cf6; letter-spacing: -0.3px;">${appName}</span>
+              <span style="font-size: 20px; font-weight: 700; color: #8b5cf6; letter-spacing: -0.3px;">${safeAppName}</span>
             </td>
           </tr>
           <!-- Title -->
@@ -221,11 +234,11 @@ function buildEmailHtml({
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
                 <tr>
                   <td style="padding: 0 0 6px 0; font-size: 15px; color: #6b7280;">Name</td>
-                  <td style="padding: 0 0 6px 0; font-size: 15px; color: #1a1a1a; text-align: right;"><strong>${reminderName}</strong></td>
+                  <td style="padding: 0 0 6px 0; font-size: 15px; color: #1a1a1a; text-align: right;"><strong>${safeReminderName}</strong></td>
                 </tr>
                 <tr>
                   <td style="padding: 0 0 6px 0; font-size: 15px; color: #6b7280;">Due date</td>
-                  <td style="padding: 0 0 6px 0; font-size: 15px; color: #1a1a1a; text-align: right;"><strong>${dueDate}</strong></td>
+                  <td style="padding: 0 0 6px 0; font-size: 15px; color: #1a1a1a; text-align: right;"><strong>${safeDueDate}</strong></td>
                 </tr>
                 ${amountLine}
               </table>
@@ -234,13 +247,13 @@ function buildEmailHtml({
           <!-- CTA button -->
           <tr>
             <td style="padding: 32px 40px 0 40px;">
-              <a href="${deepLink}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">View in App</a>
+              <a href="${safeDeepLink}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">View in App</a>
             </td>
           </tr>
           <!-- Footer -->
           <tr>
             <td style="padding: 32px 40px 36px 40px;">
-              <p style="margin: 0; font-size: 13px; color: #9ca3af; line-height: 1.5;">You're receiving this because you enabled email notifications for this payment reminder in ${appName}.</p>
+              <p style="margin: 0; font-size: 13px; color: #9ca3af; line-height: 1.5;">You're receiving this because you enabled email notifications for this payment reminder in ${safeAppName}.</p>
             </td>
           </tr>
         </table>

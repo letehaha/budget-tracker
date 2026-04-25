@@ -224,6 +224,8 @@
     "headersCannotBeParsed": "Headers cannot be parsed",
     "csvFileEmpty": "CSV file is empty",
     "csvFileNoHeaders": "CSV file has no headers",
+    "csvFileTooManyRows": "CSV file exceeds the maximum allowed row count of {{max}} rows.",
+    "csvFileForbiddenHeader": "CSV file contains a header name that is not allowed.",
     "invalidDateFormat": "Invalid date format: \"{{dateStr}}\". Expected ISO format (YYYY-MM-DD).",
     "invalidAmount": "Invalid amount: \"{{amountStr}}\". Expected numeric value.",
     "accountNameEmpty": "Account name is empty",

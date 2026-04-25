@@ -88,3 +88,17 @@ export const authRateLimit = createRateLimit({
   maxAttempts: 5,
   keyGenerator: (req: Request) => `auth:ip:${req.ip}`,
 });
+
+/**
+ * CSV import rate limit (per user, 30 attempts per 5 minutes).
+ * Bounds the cost of repeated 10MB CSV submissions across the import flow
+ * (parse / extract-unique-values / detect-duplicates / execute).
+ */
+export const csvImportRateLimit = createRateLimit({
+  windowSeconds: 5 * 60,
+  maxAttempts: 30,
+  keyGenerator: (req: Request) => {
+    const user = req.user as Users;
+    return `csv-import:user:${user.id}`;
+  },
+});
