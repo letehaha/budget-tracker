@@ -204,6 +204,30 @@ export async function setPortfolioCash({
   });
 }
 
+// ─── Categories ──────────────────────────────────────────────────────
+
+async function apiGet({ request, path }: { request: APIRequestContext; path: string }) {
+  const response = await request.get(`${API_BASE_URL}${path}`);
+  await assertOk({ response, label: `API GET ${path} failed` });
+  return response.json();
+}
+
+const categoryIdCache = new WeakMap<APIRequestContext, number>();
+
+async function resolveDefaultCategoryId({ request }: { request: APIRequestContext }): Promise<number> {
+  const cached = categoryIdCache.get(request);
+  if (cached !== undefined) return cached;
+
+  const result = await apiGet({ request, path: '/api/v1/categories' });
+  const categories: Array<{ id: number }> = result.response ?? result;
+  if (!Array.isArray(categories) || categories.length === 0) {
+    throw new Error('No categories available for the test user');
+  }
+  const id = categories[0]!.id;
+  categoryIdCache.set(request, id);
+  return id;
+}
+
 // ─── Transactions ────────────────────────────────────────────────────
 
 export async function createTransaction({
@@ -211,7 +235,7 @@ export async function createTransaction({
   accountId,
   amount,
   transactionType = 'expense',
-  categoryId = 1,
+  categoryId,
   transferNature = 'not_transfer',
 }: {
   request: APIRequestContext;
@@ -221,6 +245,7 @@ export async function createTransaction({
   categoryId?: number;
   transferNature?: 'not_transfer' | 'transfer_between_user_accounts' | 'transfer_out_wallet';
 }) {
+  const resolvedCategoryId = categoryId ?? (await resolveDefaultCategoryId({ request }));
   return apiPost({
     request,
     path: '/api/v1/transactions',
@@ -228,7 +253,7 @@ export async function createTransaction({
       accountId,
       amount,
       transactionType,
-      categoryId,
+      categoryId: resolvedCategoryId,
       transferNature,
       paymentType: 'creditCard',
       time: new Date().toISOString(),
