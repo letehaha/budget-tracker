@@ -283,8 +283,8 @@ export async function updateAccountById({ id, userId, ...payload }: UpdateAccoun
   return account;
 }
 
-export const deleteAccountById = ({ id }: { id: number }) => {
-  return Accounts.destroy({ where: { id } });
+export const deleteAccountById = ({ id, userId }: { id: number; userId: number }) => {
+  return Accounts.destroy({ where: { id, userId } });
 };
 
 export const getAccountCurrency = async ({ userId, id }: { userId: number; id: number }) => {

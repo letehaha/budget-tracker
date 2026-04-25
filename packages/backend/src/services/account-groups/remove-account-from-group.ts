@@ -1,4 +1,5 @@
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
@@ -7,13 +8,14 @@ import Accounts from '@models/accounts.model';
 import { withTransaction } from '../common/with-transaction';
 
 export const removeAccountFromGroup = withTransaction(
-  async ({ accountIds, groupId }: { accountIds: number[]; groupId: number }): Promise<void> => {
+  async ({ accountIds, groupId, userId }: { accountIds: number[]; groupId: number; userId: number }): Promise<void> => {
     await findOrThrowNotFound({
-      query: AccountGroup.findByPk(groupId),
-      message: 'Group with provided id does not exist',
+      query: AccountGroup.findOne({ where: { id: groupId, userId } }),
+      message: t({ key: 'accountGroups.accountGroupNotFound' }),
     });
+
     const existingAccounts = await Accounts.findAll({
-      where: { id: accountIds },
+      where: { id: accountIds, userId },
     });
 
     const missingAccountIds = accountIds.filter((id) => !existingAccounts.some((acc) => acc.id === id));

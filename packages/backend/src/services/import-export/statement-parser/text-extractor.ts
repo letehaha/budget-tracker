@@ -3,7 +3,7 @@
  */
 import type { StatementFileType } from '@bt/shared/types';
 import { type Tiktoken, getEncoding } from 'js-tiktoken';
-import pdfParse from 'pdf-parse';
+import { extractText, getDocumentProxy } from 'unpdf';
 
 /** Cached tokenizer encoder instance */
 let tokenEncoder: Tiktoken | null = null;
@@ -27,31 +27,23 @@ interface TextExtractionResult {
   error?: string;
 }
 
-interface PdfParseResult {
-  numpages: number;
-  numrender: number;
-  info: Record<string, unknown>;
-  metadata: Record<string, unknown> | null;
-  text: string;
-  version: string;
-}
-
 /**
  * Extract text content from a PDF buffer
  */
 async function extractTextFromPDF({ buffer }: { buffer: Buffer }): Promise<TextExtractionResult> {
   try {
-    const data: PdfParseResult = await pdfParse(buffer);
+    // Disable eval explicitly: hardens against malicious PDFs (CVE-2024-4367-class).
+    const pdf = await getDocumentProxy(new Uint8Array(buffer), { isEvalSupported: false });
+    const { text, totalPages } = await extractText(pdf, { mergePages: true });
 
-    // Check if we got any meaningful text
-    const text = data.text?.trim() || '';
-    const pageCount = data.numpages || 1;
+    const trimmed = text.trim();
+    const pageCount = totalPages || 1;
 
-    if (!text || text.length < 50) {
+    if (!trimmed || trimmed.length < 50) {
       // Very little text extracted - likely a scanned/image PDF
       return {
         success: false,
-        text,
+        text: trimmed,
         pageCount,
         fileType: 'pdf',
         error: 'PDF contains too little extractable text. It may be a scanned document.',
@@ -60,7 +52,7 @@ async function extractTextFromPDF({ buffer }: { buffer: Buffer }): Promise<TextE
 
     return {
       success: true,
-      text,
+      text: trimmed,
       pageCount,
       fileType: 'pdf',
     };

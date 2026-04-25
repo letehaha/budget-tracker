@@ -26,7 +26,7 @@ export const deleteAccountGroup = withTransaction(
 
       if (groupAccountMappings.length > 0) {
         const accountIds = groupAccountMappings.map((mapping) => mapping.accountId);
-        await removeAccountFromGroup({ accountIds, groupId });
+        await removeAccountFromGroup({ accountIds, groupId, userId });
       }
 
       await group.destroy();

@@ -1,11 +1,13 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
 import { Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
+import Categories from '@models/categories.model';
 import Tags from '@models/tags.model';
 import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
@@ -202,6 +204,13 @@ export const createTransaction = withTransaction(
       if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) {
         throw new ValidationError({
           message: t({ key: 'transactions.refundAndTransferNotAllowed' }),
+        });
+      }
+
+      if (payload.categoryId !== undefined && payload.categoryId !== null) {
+        await findOrThrowNotFound({
+          query: Categories.findOne({ where: { id: payload.categoryId, userId } }),
+          message: 'Category not found or does not belong to user.',
         });
       }
 

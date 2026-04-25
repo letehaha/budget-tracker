@@ -130,8 +130,9 @@ export const deleteAccount = createController(
       id: z.coerce.number(),
     }),
   }),
-  async ({ params }) => {
+  async ({ user, params }) => {
     const { id } = params;
-    await accountsService.deleteAccountById({ id });
+    const { id: userId } = user;
+    await accountsService.deleteAccountById({ id, userId });
   },
 );

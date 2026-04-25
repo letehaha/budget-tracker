@@ -6,6 +6,7 @@ import { NotFoundError, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
+import Categories from '@models/categories.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import Tags from '@models/tags.model';
 import { deleteSplitsForTransaction } from '@models/transaction-splits.model';
@@ -400,6 +401,13 @@ export const updateTransaction = withTransaction(
 
       // Validate that passed parameters are not breaking anything
       await validateTransaction(payload, prevData);
+
+      if (payload.categoryId !== undefined && payload.categoryId !== null) {
+        await findOrThrowNotFound({
+          query: Categories.findOne({ where: { id: payload.categoryId, userId: payload.userId } }),
+          message: 'Category not found or does not belong to user.',
+        });
+      }
 
       // Make basic updation to the base transaction. "Transfer" transactions
       // handled down in the code

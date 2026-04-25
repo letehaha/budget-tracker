@@ -12,10 +12,11 @@ export default createController(
       accountIds: recordArrayIds(),
     }),
   }),
-  async ({ params, body }) => {
+  async ({ user, params, body }) => {
     await accountGroupService.removeAccountFromGroup({
       accountIds: body.accountIds,
       groupId: params.groupId,
+      userId: user.id,
     });
   },
 );

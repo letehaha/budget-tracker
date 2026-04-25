@@ -10,10 +10,11 @@ export default createController(
       groupId: recordId(),
     }),
   }),
-  async ({ params }) => {
+  async ({ user, params }) => {
     const data = await accountGroupService.addAccountToGroup({
       accountId: params.accountId,
       groupId: params.groupId,
+      userId: user.id,
     });
 
     return { data };

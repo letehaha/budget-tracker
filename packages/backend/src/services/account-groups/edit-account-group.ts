@@ -14,13 +14,13 @@ export const updateAccountGroup = withTransaction(
     userId: number;
   } & Partial<Pick<AccountGroup, 'name' | 'parentGroupId'>>): Promise<AccountGroup[]> => {
     await findOrThrowNotFound({
-      query: AccountGroup.findByPk(groupId),
+      query: AccountGroup.findOne({ where: { id: groupId, userId } }),
       message: t({ key: 'accountGroups.groupNotFound' }),
     });
 
     if (updates.parentGroupId) {
       await findOrThrowNotFound({
-        query: AccountGroup.findByPk(updates.parentGroupId),
+        query: AccountGroup.findOne({ where: { id: updates.parentGroupId, userId } }),
         message: t({ key: 'accountGroups.parentGroupNotExist' }),
       });
     }
