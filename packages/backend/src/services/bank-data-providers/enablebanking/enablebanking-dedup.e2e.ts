@@ -1,5 +1,6 @@
 import { BANK_PROVIDER_TYPE, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { FixedTransaction, MOCK_IDENTIFICATION_HASH_1 } from '@tests/mocks/enablebanking/data';
 
@@ -278,36 +279,59 @@ describe('Enable Banking dedup improvements (E2E)', () => {
   // ==========================================================================
   describe('#4 reconciliation of existing duplicates', () => {
     /**
-     * Helper: insert a "manual orphan" — a transaction created via the
-     * regular POST /transactions endpoint on a bank account. It has no
-     * externalData.entryReference, mimicking what a pre-#1 sync would have
-     * left behind.
+     * Helper: insert an orphan that mimics a pre-#1 sync row — a transaction
+     * created via POST /transactions then patched directly on the model so its
+     * `externalData` carries the counterparty IBAN that a real sync would have
+     * stored. The reconcile path's IBAN gate matches on `creditorAccount`
+     * (expense) / `debtorAccount` (income), so orphans without one are skipped
+     * by design.
+     *
+     * Defaults `categoryId` to whatever an existing tx on the same account
+     * already has — pre-#1 orphans came from the same sync path as the
+     * canonical and shared its default category. Tests that want a divergent
+     * category override this explicitly.
      */
     async function insertManualOrphan({
       accountId,
       amount,
       time,
       isExpense = true,
+      counterpartyIban,
+      categoryId,
     }: {
       accountId: number;
       amount: number;
       time: string;
       isExpense?: boolean;
+      counterpartyIban?: string;
+      categoryId?: number;
     }) {
-      const userCategory = (await helpers.getCategoriesList()) as { id: number }[];
-      const categoryId = userCategory[0]!.id;
+      let resolvedCategoryId = categoryId;
+      if (resolvedCategoryId === undefined) {
+        const existing = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+        if (existing.length > 0) {
+          resolvedCategoryId = existing[0]!.categoryId;
+        } else {
+          const userCategory = (await helpers.getCategoriesList()) as { id: number }[];
+          resolvedCategoryId = userCategory[0]!.id;
+        }
+      }
       const [tx] = await helpers.createTransaction({
         payload: {
           amount,
           accountId,
           time,
-          categoryId,
+          categoryId: resolvedCategoryId,
           transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
           paymentType: PAYMENT_TYPES.bankTransfer,
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         },
         raw: true,
       });
+      if (counterpartyIban) {
+        const externalData = isExpense ? { creditorAccount: counterpartyIban } : { debtorAccount: counterpartyIban };
+        await Transactions.update({ externalData }, { where: { id: tx.id } });
+      }
       return tx;
     }
 
@@ -330,11 +354,13 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       const canonicalTx = txsAfterSync[0]!;
       expect(canonicalTx.externalData?.entryReference).toBe('canonical_ref_001');
 
-      // Step 2: simulate a pre-#1 orphan — same fingerprint, no entry_reference
+      // Step 2: simulate a pre-#1 orphan — same fingerprint, no entry_reference,
+      // but with the same counterparty IBAN that the canonical row stored.
       const orphan = await insertManualOrphan({
         accountId,
         amount: 50.0,
         time: new Date('2024-09-10').toISOString(),
+        counterpartyIban: 'FI9999999999999999',
       });
       expect((await helpers.getTransactions({ accountIds: [accountId], raw: true })).length).toBe(2);
 
@@ -372,6 +398,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
         accountId,
         amount: 75.0,
         time: new Date('2024-10-05').toISOString(),
+        counterpartyIban: 'FI1010101010101010',
       });
 
       // Attach a tag to the orphan — this makes it unsafe to delete
@@ -414,6 +441,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
         accountId,
         amount: 11.0,
         time: new Date('2024-11-01').toISOString(),
+        counterpartyIban: 'FI2020202020202020',
       });
 
       const r1 = (await helpers.makeRequest({
@@ -435,6 +463,155 @@ describe('Enable Banking dedup improvements (E2E)', () => {
 
       const finalTxs = await helpers.getTransactions({ accountIds: [accountId], raw: true });
       expect(finalTxs.length).toBe(1);
+    });
+
+    it('does not merge an orphan that has no counterparty IBAN — manual entries are not auto-collapsed', async () => {
+      // Bank-synced canonical with IBAN
+      helpers.enablebanking.setFixedTransactions([
+        {
+          amount: '20.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: '2024-12-01',
+          counterpartyIban: 'FI3030303030303030',
+          entryReference: 'no_iban_canonical',
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      // Orphan with no IBAN — could be an unrelated manual cash expense that
+      // happens to share amount/currency/type. Must not be merged.
+      await insertManualOrphan({
+        accountId,
+        amount: 20.0,
+        time: new Date('2024-12-01').toISOString(),
+      });
+
+      const result = (await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
+        payload: { accountId },
+        raw: true,
+      })) as { mergedCount: number; skippedCount: number };
+
+      expect(result.mergedCount).toBe(0);
+      // The IBAN gate short-circuits before the safety check, so the orphan
+      // is not even counted as a candidate — it is simply ignored.
+      expect(result.skippedCount).toBe(0);
+      expect((await helpers.getTransactions({ accountIds: [accountId], raw: true })).length).toBe(2);
+    });
+
+    it('does not merge an orphan whose counterparty IBAN differs from the canonical', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          amount: '30.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: '2024-12-05',
+          counterpartyIban: 'FI4040404040404040',
+          entryReference: 'diff_iban_canonical',
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      await insertManualOrphan({
+        accountId,
+        amount: 30.0,
+        time: new Date('2024-12-05').toISOString(),
+        counterpartyIban: 'FI5050505050505050',
+      });
+
+      const result = (await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
+        payload: { accountId },
+        raw: true,
+      })) as { mergedCount: number; skippedCount: number };
+
+      expect(result.mergedCount).toBe(0);
+      expect(result.skippedCount).toBe(0);
+      expect((await helpers.getTransactions({ accountIds: [accountId], raw: true })).length).toBe(2);
+    });
+
+    it('does not merge an orphan whose user-edited note diverges from the canonical', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          amount: '60.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: '2024-12-10',
+          counterpartyIban: 'FI6060606060606060',
+          entryReference: 'note_canonical',
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const orphan = await insertManualOrphan({
+        accountId,
+        amount: 60.0,
+        time: new Date('2024-12-10').toISOString(),
+        counterpartyIban: 'FI6060606060606060',
+      });
+      // User annotated the orphan — destroying it would silently lose the note.
+      await helpers.updateTransaction({
+        id: orphan.id,
+        payload: { note: 'Coffee with Tom' },
+      });
+
+      const result = (await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
+        payload: { accountId },
+        raw: true,
+      })) as { mergedCount: number; skippedCount: number };
+
+      expect(result.mergedCount).toBe(0);
+      expect(result.skippedCount).toBe(1);
+      expect((await helpers.getTransactions({ accountIds: [accountId], raw: true })).length).toBe(2);
+    });
+
+    it('does not merge an orphan whose user-edited categoryId diverges from the canonical', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          amount: '70.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: '2024-12-15',
+          counterpartyIban: 'FI7070707070707070',
+          entryReference: 'cat_canonical',
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const canonicalRows = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const canonicalCategoryId = canonicalRows[0]!.categoryId;
+
+      // Pick a user-defined category that is different from the canonical's.
+      const userCategories = (await helpers.getCategoriesList()) as { id: number }[];
+      const otherCategory = userCategories.find((c) => c.id !== canonicalCategoryId);
+      expect(otherCategory).toBeDefined();
+
+      const orphan = await insertManualOrphan({
+        accountId,
+        amount: 70.0,
+        time: new Date('2024-12-15').toISOString(),
+        counterpartyIban: 'FI7070707070707070',
+      });
+      await helpers.updateTransaction({
+        id: orphan.id,
+        payload: { categoryId: otherCategory!.id },
+      });
+
+      const result = (await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
+        payload: { accountId },
+        raw: true,
+      })) as { mergedCount: number; skippedCount: number };
+
+      expect(result.mergedCount).toBe(0);
+      expect(result.skippedCount).toBe(1);
+      expect((await helpers.getTransactions({ accountIds: [accountId], raw: true })).length).toBe(2);
     });
   });
 });

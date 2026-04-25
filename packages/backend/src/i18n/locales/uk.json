@@ -179,6 +179,7 @@
     "fromMustBeValidDate": "\"from\" повинен бути дійсним рядком дати",
     "toMustBeValidDate": "\"to\" повинен бути дійсним рядком дати",
     "onlySupportedForMonobank": "Завантаження транзакцій за період підтримується лише для Monobank",
+    "reconciliationOnlyForEnableBanking": "Узгодження дублікатів доступне лише для з'єднань Enable Banking",
     "transactionLoadingQueued": "Завантаження транзакцій додано в чергу. Орієнтовний час: {{minutes}} хв.",
     "noValidAccountIds": "Жоден з обраних ID рахунків не є дійсним",
     "accountCurrencyNotSupported": "Валюта рахунку \"{{currency}}\" не підтримується системою.",

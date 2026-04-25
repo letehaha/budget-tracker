@@ -1229,9 +1229,13 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    * One-time reconciliation: find pre-existing duplicate pairs (one row with
    * entryReference, one without) within ±2 days and delete the orphan.
    *
-   * Conservative: skips any orphan that has dependent rows (splits, tags,
-   * refunds, transferId, group membership, etc.) so user data is never lost.
-   * Returns counts for observability and idempotency assertions.
+   * Conservative: only collapses when (a) both rows share the same
+   * counterparty IBAN — mirroring the live-sync gate in
+   * findExistingTransactionForSync so different-party same-amount payments
+   * don't get merged — and (b) the orphan has no dependent rows and no
+   * user-edited scalars (note / categoryId / paymentType) that diverge from
+   * the canonical. Returns counts for observability and idempotency
+   * assertions.
    */
   async reconcileDuplicateTransactionsForAccount({
     accountId,
@@ -1245,8 +1249,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     });
 
     // Bucket by (amount, currency, transactionType) so we only compare candidates
-    // that could plausibly be the same logical tx. The date-window check happens
-    // inside each bucket.
+    // that could plausibly be the same logical tx. The date-window + IBAN gate
+    // happen inside each bucket.
     const buckets = new Map<string, Transactions[]>();
     for (const tx of allTxs) {
       const key = `${tx.amount.toCents()}|${tx.currencyCode}|${tx.transactionType}`;
@@ -1271,15 +1275,28 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       if (canonicalRows.length === 0 || orphanRows.length === 0) continue;
 
       for (const orphan of orphanRows) {
+        // IBAN gate: require both rows to share the same counterparty IBAN.
+        // Expenses use creditorAccount (money going out to a creditor), income
+        // uses debtorAccount. If the orphan has no IBAN (e.g. a manual entry
+        // that happens to share amount/currency/type with a bank row), skip —
+        // same rule findExistingTransactionForSync applies for live syncs.
+        const orphanIban = this.getCounterpartyIban(orphan);
+        if (!orphanIban) continue;
+
         const canonical = canonicalRows.find(
-          (c) => Math.abs(c.time.getTime() - orphan.time.getTime()) <= 2 * 24 * 60 * 60 * 1000 && c.id !== orphan.id,
+          (c) =>
+            c.id !== orphan.id &&
+            Math.abs(c.time.getTime() - orphan.time.getTime()) <= 2 * 24 * 60 * 60 * 1000 &&
+            this.getCounterpartyIban(c) === orphanIban,
         );
         if (!canonical) continue;
 
-        const safeToDelete = await this.orphanIsSafeToDelete({ orphanId: orphan.id });
+        const safeToDelete = await this.orphanIsSafeToDelete({ orphan, canonical });
         if (!safeToDelete) {
           skippedCount++;
-          logger.info(`Reconcile: skipping orphan tx ${orphan.id} (account ${account.id}) — has dependent rows`);
+          logger.info(
+            `Reconcile: skipping orphan tx ${orphan.id} (account ${account.id}) — has dependent rows or divergent user edits`,
+          );
           continue;
         }
 
@@ -1295,12 +1312,40 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     return { mergedCount, skippedCount };
   }
 
+  private getCounterpartyIban(tx: Transactions): string | null {
+    const externalData = tx.externalData as Record<string, unknown> | null;
+    if (!externalData) return null;
+    const field = tx.transactionType === TRANSACTION_TYPES.expense ? 'creditorAccount' : 'debtorAccount';
+    const iban = externalData[field];
+    return typeof iban === 'string' && iban.length > 0 ? iban : null;
+  }
+
   /**
-   * Conservative dependency check used by reconciliation. If any of these
-   * exist for the orphan, we keep it — silent data loss is much worse than
-   * leaving a duplicate behind.
+   * Conservative safety check used by reconciliation. Refuses deletion when
+   *   - dependent rows exist (splits, tags, refunds, transferId, group
+   *     membership, etc.), OR
+   *   - the orphan has user-mutable scalars (note, categoryId, paymentType)
+   *     that diverge from the canonical — those values would be silently lost
+   *     on destroy(), which is strictly worse than leaving a duplicate behind.
    */
-  private async orphanIsSafeToDelete({ orphanId }: { orphanId: number }): Promise<boolean> {
+  private async orphanIsSafeToDelete({
+    orphan,
+    canonical,
+  }: {
+    orphan: Transactions;
+    canonical: Transactions;
+  }): Promise<boolean> {
+    if (orphan.transferId) return false;
+    if (orphan.refundLinked) return false;
+
+    // User-edited scalar divergence check. Treat null/empty note as "not set"
+    // on either side so a sync-default empty note doesn't block merging.
+    const orphanNote = orphan.note ?? '';
+    const canonicalNote = canonical.note ?? '';
+    if (orphanNote !== canonicalNote && orphanNote !== '') return false;
+    if (orphan.categoryId !== canonical.categoryId) return false;
+    if (orphan.paymentType !== canonical.paymentType) return false;
+
     // Loaded lazily to avoid a circular import wave at module load.
     const TransactionTags = (await import('@models/transaction-tags.model')).default;
     const TransactionSplits = (await import('@models/transaction-splits.model')).default;
@@ -1309,11 +1354,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const SubscriptionTransactions = (await import('@models/subscription-transactions.model')).default;
     const TransactionGroupItems = (await import('@models/transaction-group-items.model')).default;
 
-    const orphan = await Transactions.findByPk(orphanId);
-    if (!orphan) return false;
-    if (orphan.transferId) return false;
-    if (orphan.refundLinked) return false;
-
+    const orphanId = orphan.id;
     const [tagCount, splitCount, refundFromCount, refundToCount, budgetCount, subCount, groupCount] = await Promise.all(
       [
         TransactionTags.count({ where: { transactionId: orphanId } }),

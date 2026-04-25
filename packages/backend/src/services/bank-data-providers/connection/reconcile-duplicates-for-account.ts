@@ -38,7 +38,7 @@ export const reconcileDuplicatesForAccount = withTransaction(
 
     if (connection.providerType !== BANK_PROVIDER_TYPE.ENABLE_BANKING) {
       throw new BadRequestError({
-        message: 'Reconciliation is only available for Enable Banking connections',
+        message: t({ key: 'bankDataProviders.reconciliationOnlyForEnableBanking' }),
       });
     }
 
