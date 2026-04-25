@@ -25,6 +25,7 @@ import {
   getLunchFlowTransactionsMock,
 } from '@tests/mocks/lunchflow/mock-api';
 import { addDays, subDays } from 'date-fns';
+import { HttpResponse, http } from 'msw';
 import { Op } from 'sequelize';
 
 /**
@@ -854,6 +855,11 @@ describe('LunchFlow Data Provider E2E', () => {
 
     it('should sync transactions after reconnecting', async () => {
       const MOCK_AMOUNT = 3;
+      // Use the same mocked transaction set for both syncs so the secondary
+      // dedup (via externalData.originalSource.originalId) can re-match the
+      // pre-disconnect transactions — otherwise we end up with unrelated
+      // transactions from both syncs on the re-linked account.
+      const mockedTransactions = helpers.lunchflow.mockedTransactionData(MOCK_AMOUNT);
 
       // Connect and sync
       const firstConnect = await helpers.bankDataProviders.connectProvider({
@@ -869,7 +875,7 @@ describe('LunchFlow Data Provider E2E', () => {
 
       global.mswMockServer.use(
         getLunchFlowTransactionsMock({
-          response: helpers.lunchflow.mockedTransactionData(MOCK_AMOUNT),
+          response: mockedTransactions,
           accountId: externalAccounts1[0]!.externalId,
         }),
         getLunchFlowBalanceMock({ accountId: externalAccounts1[0]!.externalId }),
@@ -903,7 +909,7 @@ describe('LunchFlow Data Provider E2E', () => {
       // Set up mocks for second connection sync
       global.mswMockServer.use(
         getLunchFlowTransactionsMock({
-          response: helpers.lunchflow.mockedTransactionData(MOCK_AMOUNT),
+          response: mockedTransactions,
           accountId: externalAccounts2[0]!.externalId,
         }),
         getLunchFlowBalanceMock({ accountId: externalAccounts2[0]!.externalId }),
@@ -915,7 +921,7 @@ describe('LunchFlow Data Provider E2E', () => {
         raw: true,
       });
 
-      // New account should have synced transactions
+      // Re-linked account should have the same transactions — no duplicates
       const transactions = await Transactions.findAll({
         where: { accountId: syncedAccounts[0]!.id },
         raw: true,
@@ -1021,6 +1027,74 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(relinkedAccount.type).toBe(ACCOUNT_TYPES.lunchflow);
       expect(relinkedAccount.bankDataProviderConnectionId).toBe(secondConnect.connectionId);
       expect(relinkedAccount.externalId).toBe(externalAccountId);
+    });
+
+    it('should re-link (not duplicate) the existing account when reconnecting via connectSelectedAccounts with a fresh connection', async () => {
+      // Regression: after a disconnect, externalData.connectionHistory stores the
+      // OLD connectionId. A fresh connectProvider returns a NEW connectionId.
+      // The fallback matcher in connectSelectedAccounts used to require
+      // previousConnection.bankDataProviderConnectionId === <new connectionId>,
+      // which is impossible — so a duplicate account was created.
+      const externalAccountId = getMockedLunchFlowAccounts().accounts[0]!.id.toString();
+
+      // 1. Connect + select account
+      const firstConnect = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
+        credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        raw: true,
+      });
+
+      global.mswMockServer.use(
+        getLunchFlowTransactionsMock({ accountId: externalAccountId }),
+        getLunchFlowBalanceMock({ accountId: externalAccountId }),
+      );
+
+      const { syncedAccounts: firstSelected } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: firstConnect.connectionId,
+        accountExternalIds: [externalAccountId],
+        raw: true,
+      });
+      const originalAccountId = firstSelected[0]!.id;
+
+      // 2. Disconnect (keep accounts → stores previousConnection metadata)
+      await helpers.bankDataProviders.disconnectProvider({
+        connectionId: firstConnect.connectionId,
+        removeAssociatedAccounts: false,
+        raw: true,
+      });
+
+      // 3. Create a brand-new connection (NEW connectionId)
+      const secondConnect = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
+        credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        raw: true,
+      });
+      expect(secondConnect.connectionId).not.toBe(firstConnect.connectionId);
+
+      // 4. Call connectSelectedAccounts (the auto-matching path — NOT manual link)
+      global.mswMockServer.use(
+        getLunchFlowTransactionsMock({ accountId: externalAccountId }),
+        getLunchFlowBalanceMock({ accountId: externalAccountId }),
+      );
+
+      const { syncedAccounts: secondSelected } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: secondConnect.connectionId,
+        accountExternalIds: [externalAccountId],
+        raw: true,
+      });
+
+      // 5. Expect the SAME account was re-linked, not a duplicate
+      expect(secondSelected).toHaveLength(1);
+      expect(secondSelected[0]!.id).toBe(originalAccountId);
+
+      const allAccounts = await helpers.getAccounts();
+      const matchingRows = allAccounts.filter((a) => a.externalId === externalAccountId);
+      expect(matchingRows).toHaveLength(1);
+
+      const relinked = await helpers.getAccount({ id: originalAccountId, raw: true });
+      expect(relinked.type).toBe(ACCOUNT_TYPES.lunchflow);
+      expect(relinked.bankDataProviderConnectionId).toBe(secondConnect.connectionId);
+      expect(relinked.externalId).toBe(externalAccountId);
     });
   });
 
@@ -1382,6 +1456,54 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       expect(reactivated.isActive).toBe(true);
+    });
+  });
+
+  describe('Provider outage vs. invalid credentials', () => {
+    const LUNCHFLOW_ACCOUNTS_URL = 'https://lunchflow.app/api/v1/accounts';
+
+    it('connect: should not treat a provider 5xx as invalid credentials', async () => {
+      global.mswMockServer.use(
+        http.get(LUNCHFLOW_ACCOUNTS_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.LUNCHFLOW}/connect`,
+        payload: {
+          credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
+    });
+
+    it('refreshCredentials: should not treat a provider 5xx as invalid credentials', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
+        credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        raw: true,
+      });
+
+      global.mswMockServer.use(
+        http.get(LUNCHFLOW_ACCOUNTS_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'patch',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}`,
+        payload: {
+          credentials: { apiKey: VALID_LUNCHFLOW_API_KEY_2 },
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
     });
   });
 });
