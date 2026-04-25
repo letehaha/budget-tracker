@@ -77,9 +77,9 @@ export const getAllCurrencies = async () => {
   return currencies;
 };
 
-export async function getCurrency({ currency }: { currency: string }): Promise<Currencies | null>;
-export async function getCurrency({ number }: { number: number }): Promise<Currencies | null>;
-export async function getCurrency({ code }: { code: string }): Promise<Currencies | null>;
+export async function getCurrency({ currency }: { currency: string }): Promise<Currencies>;
+export async function getCurrency({ number }: { number: number }): Promise<Currencies>;
+export async function getCurrency({ code }: { code: string }): Promise<Currencies>;
 export async function getCurrency({
   currency,
   number,

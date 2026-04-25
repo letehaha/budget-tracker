@@ -12,7 +12,6 @@ import {
   getWalutomatHistoryByCurrencyMock,
   getWalutomatHistoryMock,
 } from '@tests/mocks/walutomat/mock-api';
-import { HttpResponse, http } from 'msw';
 import { Op } from 'sequelize';
 
 describe('Walutomat Data Provider E2E', () => {
@@ -437,56 +436,6 @@ describe('Walutomat Data Provider E2E', () => {
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
       const connection = connections.find((c: { id: number }) => c.id === connectionId);
       expect(connection).toBeUndefined();
-    });
-  });
-
-  describe('Provider outage vs. invalid credentials', () => {
-    const WALUTOMAT_BALANCES_URL = 'https://api.walutomat.pl/api/v2.0.0/account/balances';
-
-    it('connect: should not treat a provider 5xx as invalid credentials', async () => {
-      global.mswMockServer.use(
-        http.get(WALUTOMAT_BALANCES_URL, () => {
-          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
-        }),
-      );
-
-      const result = await helpers.makeRequest({
-        method: 'post',
-        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.WALUTOMAT}/connect`,
-        payload: {
-          credentials: {
-            apiKey: VALID_WALUTOMAT_API_KEY,
-            privateKey: VALID_WALUTOMAT_PRIVATE_KEY,
-          },
-        },
-      });
-
-      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
-      expect(result.status).toBeGreaterThanOrEqual(400);
-    });
-
-    it('refreshCredentials: should not treat a provider 5xx as invalid credentials', async () => {
-      const { connectionId } = await helpers.walutomat.pair();
-
-      global.mswMockServer.use(
-        http.get(WALUTOMAT_BALANCES_URL, () => {
-          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
-        }),
-      );
-
-      const result = await helpers.makeRequest({
-        method: 'patch',
-        url: `/bank-data-providers/connections/${connectionId}`,
-        payload: {
-          credentials: {
-            apiKey: VALID_WALUTOMAT_API_KEY,
-            privateKey: VALID_WALUTOMAT_PRIVATE_KEY,
-          },
-        },
-      });
-
-      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
-      expect(result.status).toBeGreaterThanOrEqual(400);
     });
   });
 });

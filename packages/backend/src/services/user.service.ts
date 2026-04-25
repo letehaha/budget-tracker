@@ -209,9 +209,6 @@ const setDefaultUserCurrency = withTransaction(
     });
 
     const currency = await Currencies.getCurrency({ code: currencyCode });
-    if (!currency) {
-      throw new UnexpectedError({ message: t({ key: 'userCurrencies.currencyCodeNotExist' }) });
-    }
 
     await Transactions.updateTransactions(
       {

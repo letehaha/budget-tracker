@@ -4,12 +4,10 @@ import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import Accounts from '@models/accounts.model';
-import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as MerchantCategoryCodes from '@models/merchant-category-codes.model';
 import Transactions from '@models/transactions.model';
 import * as UserMerchantCategoryCodes from '@models/user-merchant-category-codes.model';
 import * as Users from '@models/users.model';
-import { redisClient } from '@root/redis-client';
 import * as accountsService from '@services/accounts.service';
 import * as transactionsService from '@services/transactions';
 import { Job, Queue, Worker } from 'bullmq';
@@ -334,55 +332,21 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
   },
 );
 
-// 24h safety TTL: if the worker crashes between intermediate batches, the
-// counter key expires rather than lingering in Redis forever.
-const JOB_GROUP_COMPLETIONS_TTL_SECONDS = 24 * 60 * 60;
-
-function jobGroupCompletionsKey(jobGroupId: string): string {
-  return `jobgroup:${jobGroupId}:completions`;
-}
-
-/**
- * Handles a batch job's 'completed' event.
- *
- * Uses an atomic Redis counter (INCR) keyed by jobGroupId rather than
- * enumerating the queue's completed set. The queue trims completed jobs via
- * `removeOnComplete.count` — under concurrent syncs this can evict earlier
- * batches of *this* group before the last one fires, and any approach that
- * derives "are we done?" from the queue snapshot is racy. A dedicated counter
- * is immune: each successful batch contributes exactly one INCR, and the call
- * that returns `totalBatches` is the one that fires the final transition.
- *
- * Exported for direct testing.
- */
-export async function handleCompletedBatch(job: Job<TransactionSyncJobData>): Promise<void> {
+// Worker event listeners
+transactionSyncWorker.on('completed', async (job) => {
   logger.info(`Job ${job.id} completed successfully`);
 
-  const jobId = job.id;
-  if (!jobId) return;
-  const jobGroupId = jobId.substring(0, jobId.lastIndexOf('-'));
-  const { totalBatches, accountId, userId, connectionId } = job.data;
+  // Extract jobGroupId and check if all batches are completed
+  const jobGroupId = job.id?.substring(0, job.id.lastIndexOf('-')) || '';
+  const { totalBatches, accountId, userId } = job.data;
 
-  const counterKey = jobGroupCompletionsKey(jobGroupId);
-  const completedCount = await redisClient.incr(counterKey);
-  await redisClient.expire(counterKey, JOB_GROUP_COMPLETIONS_TTL_SECONDS);
+  const progress = await getJobGroupProgress(jobGroupId);
 
-  if (completedCount < totalBatches) return;
-
-  await Promise.all([
-    setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId }),
-    // Mark the connection as synced. Enable Banking does this via
-    // base-provider's `updateLastSync`; Monobank's queue-based flow needs
-    // the equivalent write so the list view's "Last synced" column reflects
-    // reality for the connection, not just the account.
-    BankDataProviderConnections.update({ lastSyncAt: new Date() }, { where: { id: connectionId } }),
-  ]);
-  await redisClient.del(counterKey);
-  logger.info(`All batches completed for account ${accountId}, status set to COMPLETED`);
-}
-
-// Worker event listeners
-transactionSyncWorker.on('completed', (job) => handleCompletedBatch(job));
+  if (progress.completedBatches === totalBatches) {
+    await setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId });
+    logger.info(`All batches completed for account ${accountId}, status set to COMPLETED`);
+  }
+});
 
 transactionSyncWorker.on('failed', (job, err) => {
   logger.error({ message: `Job ${job?.id} failed`, error: err });

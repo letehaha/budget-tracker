@@ -245,21 +245,13 @@ interface MockTransactionConfig {
 }
 
 export interface FixedTransaction {
-  /** Optional. Omit to simulate ASPSPs that don't return entry_reference initially. */
-  entryReference?: string;
+  entryReference: string;
   amount: string;
   currency: string;
   isExpense: boolean;
   bookingDate?: string;
   valueDate?: string;
   transactionDate?: string;
-  /**
-   * Optional override for the counterparty IBAN (creditor IBAN if expense, debtor IBAN if income).
-   * Defaults to a fixed placeholder. Use a stable per-tx value to make fingerprint matches work.
-   */
-  counterpartyIban?: string;
-  /** Optional override for remittance_information lines. */
-  remittanceInformation?: string[];
 }
 
 let mockTransactionConfig: MockTransactionConfig = {
@@ -291,33 +283,27 @@ export const resetMockTransactionConfig = () => {
 export const getMockedTransactions = (accountId: string, count: number = 10) => {
   // If fixed transactions are configured, use those
   if (mockTransactionConfig.fixedTransactions) {
-    return mockTransactionConfig.fixedTransactions.map((ft, idx) => {
-      const counterpartyIban = ft.counterpartyIban || 'FI0000000000000000';
-      const ownIban = getMockedAccountDetails(accountId).account_id.iban;
+    return mockTransactionConfig.fixedTransactions.map((ft) => {
       const tx: Record<string, unknown> = {
-        transaction_id: `tx_${accountId}_${ft.entryReference || `idx${idx}`}`,
+        transaction_id: `tx_${accountId}_${ft.entryReference}`,
         transaction_amount: {
           amount: ft.amount,
           currency: ft.currency,
         },
         credit_debit_indicator: ft.isExpense ? 'DBIT' : 'CRDT',
-        remittance_information: ft.remittanceInformation || ['Test transaction'],
+        remittance_information: ['Test transaction'],
         debtor: { name: ft.isExpense ? 'John Doe' : 'Test Company' },
         debtor_account: {
-          iban: ft.isExpense ? ownIban : counterpartyIban,
+          iban: ft.isExpense ? getMockedAccountDetails(accountId).account_id.iban : 'FI0000000000000000',
         },
         creditor: { name: ft.isExpense ? 'Test Company' : 'John Doe' },
         creditor_account: {
-          iban: ft.isExpense ? counterpartyIban : ownIban,
+          iban: ft.isExpense ? 'FI0000000000000000' : getMockedAccountDetails(accountId).account_id.iban,
         },
+        entry_reference: ft.entryReference,
         balance_after_transaction: { amount: '1000.00', currency: ft.currency },
         status: 'BOOK',
       };
-
-      // Only set entry_reference when provided — simulates ASPSPs that omit it.
-      if (ft.entryReference !== undefined) {
-        tx.entry_reference = ft.entryReference;
-      }
 
       // Add optional date fields if present
       if (ft.bookingDate) {

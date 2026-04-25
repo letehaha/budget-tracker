@@ -176,10 +176,8 @@
     "fromMustBeValidDate": "\"from\" must be a valid date string",
     "toMustBeValidDate": "\"to\" must be a valid date string",
     "onlySupportedForMonobank": "Loading transactions for period is only supported for Monobank",
-    "reconciliationOnlyForEnableBanking": "Reconciliation is only available for Enable Banking connections",
     "transactionLoadingQueued": "Transaction loading queued. Estimated time: {{minutes}} minute(s)",
     "noValidAccountIds": "None of the selected account IDs are valid",
-    "accountCurrencyNotSupported": "Account currency \"{{currency}}\" is not supported by this system.",
     "monobank": {
       "invalidCredentialsFormat": "Invalid credentials format for Monobank",
       "invalidApiToken": "Invalid Monobank API token",

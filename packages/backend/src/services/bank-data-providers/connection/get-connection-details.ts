@@ -88,38 +88,23 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const metadata = connection.metadata as any;
 
-  const parseValidDate = (raw: unknown): Date | null => {
-    if (!raw) return null;
-    const parsed = new Date(raw as string);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  };
-
   if (metadata?.consentValidUntil) {
-    const validUntil = parseValidDate(metadata.consentValidUntil);
-    const validFrom = parseValidDate(metadata.consentValidFrom);
+    const now = new Date();
+    const validUntil = new Date(metadata.consentValidUntil);
+    const validFrom = metadata.consentValidFrom ? new Date(metadata.consentValidFrom) : null;
 
-    if (validUntil) {
-      const msRemaining = validUntil.getTime() - Date.now();
-      const daysRemaining = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
-      const isExpired = msRemaining <= 0;
-      const isExpiringSoon = !isExpired && daysRemaining <= 7;
+    const msRemaining = validUntil.getTime() - now.getTime();
+    const daysRemaining = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
+    const isExpired = msRemaining <= 0;
+    const isExpiringSoon = !isExpired && daysRemaining <= 7;
 
-      consentInfo = {
-        validFrom: validFrom?.toISOString() || null,
-        validUntil: validUntil.toISOString(),
-        daysRemaining: isExpired ? 0 : daysRemaining,
-        isExpired,
-        isExpiringSoon,
-      };
-    } else {
-      consentInfo = {
-        validFrom: validFrom?.toISOString() || null,
-        validUntil: null,
-        daysRemaining: null,
-        isExpired: false,
-        isExpiringSoon: false,
-      };
-    }
+    consentInfo = {
+      validFrom: validFrom?.toISOString() || null,
+      validUntil: validUntil.toISOString(),
+      daysRemaining: isExpired ? 0 : daysRemaining,
+      isExpired,
+      isExpiringSoon,
+    };
   }
 
   return {
@@ -141,7 +126,7 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
       id: account.id,
       name: account.name,
       externalId: account.externalId,
-      currentBalance: account.currentBalance?.toNumber() ?? 0,
+      currentBalance: account.currentBalance.toNumber(),
       currencyCode: account.currencyCode,
       type: account.type,
     })),

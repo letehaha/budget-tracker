@@ -155,22 +155,21 @@ export class MonobankApiClient {
   }
 
   /**
-   * Test if the API token is valid.
-   * Returns false only for a genuine auth failure (Monobank returns 403 with
-   * "Unknown 'X-Token'", which `handleApiError` converts to ForbiddenError).
-   * Network/5xx/429 errors propagate so callers can distinguish "invalid token"
-   * from "provider is down".
+   * Test if the API token is valid by making a simple API call
+   * @returns True if token is valid, false otherwise
    */
   async testConnection(): Promise<boolean> {
     try {
-      // Bypass cache: this is a live connectivity check, not a data read.
-      // A stale cache hit would falsely report a now-invalid token as valid.
-      await this.getClientInfo({ bypassCache: true });
+      await this.getClientInfo();
       return true;
     } catch (error) {
-      if (error instanceof ForbiddenError) {
-        return false;
+      if (axios.isAxiosError(error)) {
+        const errorDescription = error.response?.data?.errorDescription;
+        if (errorDescription === "Unknown 'X-Token'") {
+          return false;
+        }
       }
+      // For other errors (network, timeout, etc.), rethrow
       throw error;
     }
   }
