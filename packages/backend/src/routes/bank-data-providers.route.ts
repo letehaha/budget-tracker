@@ -8,6 +8,7 @@ import listExternalAccounts from '@controllers/bank-data-providers/connections/l
 import listUserConnections from '@controllers/bank-data-providers/connections/list-user-connections';
 import loadTransactionsForPeriod from '@controllers/bank-data-providers/connections/load-transactions-for-period';
 import reauthorizeConnection from '@controllers/bank-data-providers/connections/reauthorize-connection';
+import reconcileDuplicatesForAccount from '@controllers/bank-data-providers/connections/reconcile-duplicates-for-account';
 import syncTransactionsForAccount from '@controllers/bank-data-providers/connections/sync-transactions-for-account';
 import updateConnectionDetails from '@controllers/bank-data-providers/connections/update-connection-details';
 import listBanks from '@controllers/bank-data-providers/enablebanking/list-banks';
@@ -97,6 +98,13 @@ router.post(
   blockDemoUsers,
   validateEndpoint(syncTransactionsForAccount.schema),
   syncTransactionsForAccount.handler,
+);
+router.post(
+  '/connections/:connectionId/reconcile-duplicates',
+  authenticateSession,
+  blockDemoUsers,
+  validateEndpoint(reconcileDuplicatesForAccount.schema),
+  reconcileDuplicatesForAccount.handler,
 );
 router.post(
   '/connections/:connectionId/load-transactions-for-period',

@@ -90,8 +90,11 @@ const createAccountsForConnection = withTransaction(
         },
       });
 
-      // If not found, check for a previously-linked account (archived accounts
-      // have their connection history stored in externalData after unlinking)
+      // If not found, check for a previously-linked account (disconnected
+      // accounts have their connection history stored in externalData after
+      // unlinking). Match by providerType + externalId — NOT by the stored
+      // connectionId, which is the OLD disconnected connection's id and will
+      // never equal the new one after a fresh connect.
       if (!existingAccount) {
         existingAccount = await Accounts.findOne({
           where: {
@@ -101,7 +104,7 @@ const createAccountsForConnection = withTransaction(
               connectionHistory: {
                 previousConnection: {
                   externalId: providerAccount.externalId,
-                  bankDataProviderConnectionId: connectionId,
+                  providerType: connection.providerType,
                 },
               },
             },
@@ -121,14 +124,34 @@ const createAccountsForConnection = withTransaction(
       } else {
         // Ensure user has the currency for this account
         const currency = await getCurrency({ code: providerAccount.currency.toUpperCase() });
+        if (!currency) {
+          throw new BadRequestError({
+            message: t({
+              key: 'bankDataProviders.accountCurrencyNotSupported',
+              variables: { currency: providerAccount.currency },
+            }),
+          });
+        }
         await addUserCurrencies([{ userId, currencyCode: currency.code }]);
 
+        const now = new Date();
         const accountRefBalance = await calculateRefAmount({
           amount: Money.fromCents(providerAccount.balance),
           userId,
-          date: new Date(),
+          date: now,
           baseCode: providerAccount.currency,
         });
+
+        const creditLimitCents = (providerAccount.metadata?.creditLimit as number) || 0;
+        const refCreditLimit =
+          creditLimitCents > 0
+            ? await calculateRefAmount({
+                amount: Money.fromCents(creditLimitCents),
+                userId,
+                date: now,
+                baseCode: providerAccount.currency,
+              })
+            : Money.zero();
 
         // Create new account
         const accountName =
@@ -146,8 +169,8 @@ const createAccountsForConnection = withTransaction(
           refInitialBalance: accountRefBalance,
           currentBalance: providerAccount.balance,
           refCurrentBalance: accountRefBalance,
-          creditLimit: (providerAccount.metadata?.creditLimit as number) || 0,
-          refCreditLimit: (providerAccount.metadata?.creditLimit as number) || 0,
+          creditLimit: creditLimitCents,
+          refCreditLimit,
           externalId: providerAccount.externalId,
           externalData: providerAccount.metadata || {},
           bankDataProviderConnectionId: connectionId,

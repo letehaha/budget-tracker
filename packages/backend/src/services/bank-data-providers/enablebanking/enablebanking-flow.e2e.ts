@@ -2,6 +2,7 @@ import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import { connection as dbConnection } from '@models/index';
 import * as helpers from '@tests/helpers';
 import {
   FixedTransaction,
@@ -1961,6 +1962,142 @@ describe('Enable Banking Data Provider E2E', () => {
         const { connection } = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
         expect(connection.isActive).toBe(true);
       });
+    });
+  });
+
+  describe('getConnectionDetails resilience to malformed stored data', () => {
+    async function setupActiveConnection(): Promise<{ connectionId: number; accountId: number }> {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
+        raw: true,
+      });
+
+      return {
+        connectionId: connectResult.connectionId,
+        accountId: syncedAccounts[0]!.id,
+      };
+    }
+
+    it('should not crash when an account has a null currentBalance (legacy/historical rows)', async () => {
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      // Simulate a historical row where currentBalance is NULL. The live schema
+      // is NOT NULL, so relax the constraint for this test and restore it
+      // afterwards to avoid polluting sibling tests in the same worker.
+      await dbConnection.sequelize.query(`ALTER TABLE "Accounts" ALTER COLUMN "currentBalance" DROP NOT NULL`);
+      try {
+        await dbConnection.sequelize.query(`UPDATE "Accounts" SET "currentBalance" = NULL WHERE id = :accountId`, {
+          replacements: { accountId },
+        });
+
+        const response = await helpers.bankDataProviders.getConnectionDetails({ connectionId });
+        expect(response.statusCode).toBe(200);
+
+        const { connection } = await helpers.bankDataProviders.getConnectionDetails({
+          connectionId,
+          raw: true,
+        });
+
+        const account = connection.accounts.find((acc) => acc.id === accountId)!;
+        expect(account).toBeDefined();
+        expect(account.currentBalance).toBe(0);
+      } finally {
+        await dbConnection.sequelize.query(`UPDATE "Accounts" SET "currentBalance" = 0 WHERE "currentBalance" IS NULL`);
+        await dbConnection.sequelize.query(`ALTER TABLE "Accounts" ALTER COLUMN "currentBalance" SET NOT NULL`);
+      }
+    });
+
+    it('should not crash when consentValidUntil is an unparseable date string', async () => {
+      const { connectionId } = await setupActiveConnection();
+
+      const dbRow = await BankDataProviderConnections.findByPk(connectionId);
+      const existingMetadata = (dbRow!.metadata as Record<string, unknown>) || {};
+      await BankDataProviderConnections.update(
+        { metadata: { ...existingMetadata, consentValidUntil: 'not-a-date', consentValidFrom: 'also-bad' } },
+        { where: { id: connectionId } },
+      );
+
+      const response = await helpers.bankDataProviders.getConnectionDetails({ connectionId });
+      expect(response.statusCode).toBe(200);
+
+      const { connection } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId,
+        raw: true,
+      });
+
+      expect(connection.consent).toBeDefined();
+      expect(connection.consent!.validUntil).toBeNull();
+      expect(connection.consent!.validFrom).toBeNull();
+      expect(connection.consent!.daysRemaining).toBeNull();
+      expect(connection.consent!.isExpired).toBe(false);
+      expect(connection.consent!.isExpiringSoon).toBe(false);
+    });
+  });
+
+  describe('Provider outage vs. invalid credentials', () => {
+    const APPLICATION_URL = 'https://api.enablebanking.com/application';
+
+    it('connect: should surface a provider 5xx as 502 BadGateway, not as invalid credentials', async () => {
+      global.mswMockServer.use(
+        http.get(APPLICATION_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.ENABLE_BANKING}/connect`,
+        payload: {
+          credentials: helpers.enablebanking.mockCredentials(),
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toEqual(ERROR_CODES.BadGateway);
+    });
+
+    it('refreshCredentials: should surface a provider 5xx as 502 BadGateway, not as invalid credentials', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      global.mswMockServer.use(
+        http.get(APPLICATION_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'patch',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}`,
+        payload: {
+          credentials: helpers.enablebanking.mockCredentials(),
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toEqual(ERROR_CODES.BadGateway);
     });
   });
 });

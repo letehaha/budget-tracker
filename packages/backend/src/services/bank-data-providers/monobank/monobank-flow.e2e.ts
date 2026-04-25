@@ -1,9 +1,28 @@
-import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, API_ERROR_CODES, API_RESPONSE_STATUS, BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import Currencies from '@models/currencies.model';
 import Transactions from '@models/transactions.model';
+import { redisClient } from '@root/redis-client';
+import { handleCompletedBatch } from '@root/services/bank-data-providers/monobank/transaction-sync-queue';
+import {
+  REDIS_KEYS,
+  SyncStatus,
+  setAccountSyncStatus,
+} from '@root/services/bank-data-providers/sync/sync-status-tracker';
+import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import * as helpers from '@tests/helpers';
-import { INVALID_MONOBANK_TOKEN, VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
+import {
+  INVALID_MONOBANK_TOKEN,
+  MONOBANK_URLS_MOCK,
+  VALID_MONOBANK_TOKEN,
+  getMonobankTransactionsMock,
+} from '@tests/mocks/monobank/mock-api';
+import { Job } from 'bullmq';
+import { HttpResponse, http } from 'msw';
 import { Op } from 'sequelize';
 
 /**
@@ -386,9 +405,6 @@ describe('Monobank Data Provider E2E', () => {
 
       const accountIds = externalAccounts.slice(0, 2).map((acc: { externalId: string }) => acc.externalId);
 
-      // Mock transaction data for the Monobank API
-      const { getMonobankTransactionsMock } = await import('@tests/mocks/monobank/mock-api');
-
       global.mswMockServer.use(
         ...accountIds.map((id) =>
           getMonobankTransactionsMock({ accountId: id, response: helpers.monobank.mockedTransactionData(MOCK_AMOUNT) }),
@@ -502,6 +518,80 @@ describe('Monobank Data Provider E2E', () => {
       expect(account.currencyCode).toBe(selectedExternal.currency);
     });
 
+    it('should convert refCreditLimit to base currency when account currency differs', async () => {
+      // Regression: refCreditLimit used to be copied raw from the provider's
+      // native cents — causing order-of-magnitude errors in base-currency
+      // credit totals for non-base-currency accounts. It must now be converted
+      // via calculateRefAmount, consistent with refInitialBalance/refCurrentBalance.
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      // Mock has a UAH account with creditLimit = 2000 UAH (200_000 cents).
+      // Test base currency is AED (set in setupIntegrationTests.ts).
+      const uahExternal = externalAccounts.find((a: { currency: string }) => a.currency === 'UAH')!;
+      expect(uahExternal).toBeDefined();
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: [uahExternal.externalId],
+        raw: true,
+      });
+
+      const created = await Accounts.findByPk(syncedAccounts[0]!.id);
+      const creditLimitCents = created!.creditLimit.toCents();
+      const refCreditLimitCents = created!.refCreditLimit.toCents();
+
+      expect(creditLimitCents).toBe(200000);
+      expect(refCreditLimitCents).not.toBe(creditLimitCents);
+
+      const expected = await calculateRefAmount({
+        amount: Money.fromCents(creditLimitCents),
+        userId: created!.userId,
+        date: new Date(),
+        baseCode: 'UAH',
+      });
+      expect(refCreditLimitCents).toEqualRefValue(expected.toCents());
+    });
+
+    it('should set refCreditLimit = 0 when the account has no credit limit', async () => {
+      // Mock's USD account has creditLimit = 0. Both fields must be zero.
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      const usdExternal = externalAccounts.find((a: { currency: string }) => a.currency === 'USD')!;
+      expect(usdExternal).toBeDefined();
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: [usdExternal.externalId],
+        raw: true,
+      });
+
+      const created = await Accounts.findByPk(syncedAccounts[0]!.id);
+      expect(created!.creditLimit.toCents()).toBe(0);
+      expect(created!.refCreditLimit.toCents()).toBe(0);
+    });
+
     it('should update connection lastSyncAt after connecting accounts', async () => {
       const connectionResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.MONOBANK,
@@ -527,6 +617,130 @@ describe('Monobank Data Provider E2E', () => {
       const { connections: connectionsAfter } = await helpers.bankDataProviders.listUserConnections({ raw: true });
       const connectionAfter = connectionsAfter.find((c: { id: number }) => c.id === connectionResult.connectionId);
       expect(connectionAfter?.lastSyncAt).not.toBeNull();
+    });
+
+    it('should advance connection lastSyncAt after a repeat Monobank sync', async () => {
+      // Regression: Monobank's queue-based sync wrote lastSyncAt only on the
+      // initial connect (via connect-selected-accounts). Subsequent syncs ran
+      // through the BullMQ worker, which updated account-level externalData
+      // timestamps but never the connection row — so the list view's "Last
+      // synced" column was frozen at connect-time.
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+
+      // Give the initial sync time to hit the worker's 'completed' handler.
+      await helpers.sleep(1000);
+
+      const { connection: afterConnect } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+      const initialLastSyncAt = afterConnect.lastSyncAt;
+      expect(initialLastSyncAt).not.toBeNull();
+
+      // Wait so a new timestamp would be visibly different.
+      await helpers.sleep(1100);
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+      await helpers.bankDataProviders.syncTransactionsForAccount({
+        connectionId: connectionResult.connectionId,
+        accountId: syncedAccounts[0]!.id,
+        raw: true,
+      });
+
+      // Wait for all queued batches to complete.
+      await helpers.sleep(2000);
+
+      const { connection: afterResync } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      expect(new Date(afterResync.lastSyncAt!).getTime()).toBeGreaterThan(new Date(initialLastSyncAt!).getTime());
+    });
+
+    it('should return a 4xx error when the provider returns an unsupported currency', async () => {
+      // We pick DJF (Djiboutian Franc, ISO 4217 code 262), delete it from the
+      // Currencies table, and then mock Monobank to return an account with that currency.
+
+      // Pre-flight: make sure DJF is present, then remove it.
+      const djfBefore = await Currencies.findOne({ where: { code: 'DJF' } });
+      expect(djfBefore).not.toBeNull();
+      await Currencies.destroy({ where: { code: 'DJF' } });
+
+      try {
+        // Override /personal/client-info to return a single account in DJF.
+        global.mswMockServer.use(
+          http.get(MONOBANK_URLS_MOCK.clientInfo, () => {
+            return HttpResponse.json({
+              clientId: 'test-client',
+              name: 'Test User',
+              webHookUrl: '',
+              permissions: '',
+              accounts: [
+                {
+                  id: 'djf-account',
+                  sendId: 'sid-djf',
+                  balance: asCents(10000),
+                  creditLimit: asCents(0),
+                  type: 'black',
+                  currencyCode: 262, // DJF
+                  cashbackType: 'None',
+                  maskedPan: [],
+                  iban: 'djf-iban',
+                },
+              ],
+              jars: [],
+            });
+          }),
+        );
+
+        const { connectionId } = await helpers.bankDataProviders.connectProvider({
+          providerType: BANK_PROVIDER_TYPE.MONOBANK,
+          credentials: { apiToken: VALID_MONOBANK_TOKEN },
+          raw: true,
+        });
+
+        const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+          connectionId,
+          raw: true,
+        });
+        const djfExternal = externalAccounts.find((a: { currency: string }) => a.currency === 'DJF')!;
+        expect(djfExternal).toBeDefined();
+
+        global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+        const response = await helpers.bankDataProviders.connectSelectedAccounts({
+          connectionId,
+          accountExternalIds: [djfExternal.externalId],
+        });
+
+        // The endpoint must respond with a handled 4xx error, not a 500/crash from
+        // `currency.code` on null.
+        expect(response.statusCode).toBeGreaterThanOrEqual(400);
+        expect(response.statusCode).toBeLessThan(500);
+        expect(response.body.status).toBe(API_RESPONSE_STATUS.error);
+        expect((response.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.BadRequest);
+      } finally {
+        // Restore DJF so later tests in the suite are unaffected.
+        await Currencies.create(djfBefore!.get({ plain: true }));
+      }
     });
 
     it('should enable existing disabled accounts when reconnecting', async () => {
@@ -748,6 +962,248 @@ describe('Monobank Data Provider E2E', () => {
       const countAfter = connectionsAfter.length;
 
       expect(countAfter).toBe(countBefore); // No new connection created
+    });
+  });
+
+  describe('Multi-batch completion accounting', () => {
+    // Regression: the 'completed' handler used to derive "all batches done"
+    // from the queue's completed set. Under concurrent syncs the queue's
+    // `removeOnComplete` eviction removes earlier batches from that set,
+    // so the query returns fewer than `totalBatches` and the final
+    // COMPLETED transition is never triggered — the account sits SYNCING
+    // until the 20-minute stale sweep. The counter-based implementation
+    // increments a dedicated Redis key per jobGroupId, so each batch
+    // contributes exactly one INCR no matter how the queue trims itself.
+    //
+    // This test calls `handleCompletedBatch` directly for N fabricated
+    // batches of a single group. None of them are real jobs in BullMQ, so
+    // any queue-snapshot-based implementation would see zero completed
+    // jobs in the group on every call and never fire the transition.
+    // Only the counter approach accumulates across calls, reaches
+    // totalBatches, and sets COMPLETED.
+    const buildFakeJob = (params: {
+      jobGroupId: string;
+      batchIndex: number;
+      totalBatches: number;
+      userId: number;
+      accountId: number;
+      connectionId: number;
+      externalAccountId: string;
+    }): Job =>
+      ({
+        id: `${params.jobGroupId}-${params.batchIndex}`,
+        data: {
+          userId: params.userId,
+          accountId: params.accountId,
+          connectionId: params.connectionId,
+          externalAccountId: params.externalAccountId,
+          apiToken: 'unused-in-handler',
+          fromTimestamp: 0,
+          toTimestamp: 0,
+          batchIndex: params.batchIndex,
+          totalBatches: params.totalBatches,
+        },
+      }) as unknown as Job;
+
+    it('should flip account to COMPLETED exactly when the Nth batch of N completes', async () => {
+      const { connectionId } = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId,
+        raw: true,
+      });
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+      const account = await Accounts.findByPk(accountId);
+      const userId = account!.userId;
+
+      // Put the account into SYNCING, mirroring the worker's mid-sync state.
+      await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId });
+
+      const totalBatches = 3;
+      const jobGroupId = `${userId}-${accountId}-${Date.now()}`;
+
+      for (let i = 0; i < totalBatches; i++) {
+        await handleCompletedBatch(
+          buildFakeJob({
+            jobGroupId,
+            batchIndex: i,
+            totalBatches,
+            userId,
+            accountId,
+            connectionId,
+            externalAccountId: externalAccounts[0]!.externalId,
+          }),
+        );
+
+        const raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
+        const parsed = JSON.parse(raw!);
+
+        if (i < totalBatches - 1) {
+          // Intermediate batches must not fire the final transition.
+          expect(parsed.status).toBe(SyncStatus.SYNCING);
+        } else {
+          // Last batch flips it.
+          expect(parsed.status).toBe(SyncStatus.COMPLETED);
+        }
+      }
+
+      // The connection's lastSyncAt is also bumped so the list view's
+      // "Last synced" column reflects this group, not just connect-time.
+      const reloadedConnection = await BankDataProviderConnections.findByPk(connectionId);
+      expect(reloadedConnection!.lastSyncAt).not.toBeNull();
+
+      // And the counter key is cleaned up once the group is settled —
+      // otherwise Redis slowly fills with orphan keys from every sync.
+      const counterKey = `jobgroup:${jobGroupId}:completions`;
+      const counterValue = await redisClient.get(counterKey);
+      expect(counterValue).toBeNull();
+    });
+
+    it('should not be confused by two concurrent groups on the same account', async () => {
+      // Two sync operations for one account running in parallel (rare but
+      // possible — e.g., auto-sync kicks in just as a manual load-for-period
+      // is triggered). Each group has its own jobGroupId → its own counter.
+      // The second group must be able to complete independently, even after
+      // the first already cleared its counter.
+      const { connectionId } = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId,
+        raw: true,
+      });
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+
+      const accountId = syncedAccounts[0]!.id;
+      const account = await Accounts.findByPk(accountId);
+      const userId = account!.userId;
+
+      const groupA = `${userId}-${accountId}-${Date.now()}-a`;
+      const groupB = `${userId}-${accountId}-${Date.now()}-b`;
+      const commonArgs = {
+        totalBatches: 2,
+        userId,
+        accountId,
+        connectionId,
+        externalAccountId: externalAccounts[0]!.externalId,
+      };
+
+      await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId });
+
+      // Finish group A completely.
+      await handleCompletedBatch(buildFakeJob({ ...commonArgs, jobGroupId: groupA, batchIndex: 0 }));
+      await handleCompletedBatch(buildFakeJob({ ...commonArgs, jobGroupId: groupA, batchIndex: 1 }));
+
+      let raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
+      expect(JSON.parse(raw!).status).toBe(SyncStatus.COMPLETED);
+
+      // Back to SYNCING for group B, then finish it.
+      await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId });
+      await handleCompletedBatch(buildFakeJob({ ...commonArgs, jobGroupId: groupB, batchIndex: 0 }));
+
+      raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
+      expect(JSON.parse(raw!).status).toBe(SyncStatus.SYNCING);
+
+      await handleCompletedBatch(buildFakeJob({ ...commonArgs, jobGroupId: groupB, batchIndex: 1 }));
+
+      raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
+      expect(JSON.parse(raw!).status).toBe(SyncStatus.COMPLETED);
+    });
+  });
+
+  describe('Provider outage vs. invalid credentials', () => {
+    it('connect: should not treat a provider 5xx as invalid credentials', async () => {
+      global.mswMockServer.use(
+        http.get(MONOBANK_URLS_MOCK.clientInfo, () => {
+          return new HttpResponse(null, { status: 503, statusText: 'Service Unavailable' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.MONOBANK}/connect`,
+        payload: {
+          credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        },
+      });
+
+      // A provider outage must NOT be reported to the user as an auth failure.
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
+    });
+
+    it('connect: should surface a 429 as TooManyRequests, not as invalid credentials', async () => {
+      global.mswMockServer.use(
+        http.get(MONOBANK_URLS_MOCK.clientInfo, () => {
+          return HttpResponse.json(
+            { errorDescription: 'Too many requests' },
+            { status: 429, statusText: 'Too Many Requests' },
+          );
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.MONOBANK}/connect`,
+        payload: {
+          credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        },
+      });
+
+      // Rate limiting is distinct from invalid credentials.
+      expect(result.status).toEqual(ERROR_CODES.TooManyRequests);
+    });
+
+    it('refreshCredentials: should not treat a provider 5xx as invalid credentials', async () => {
+      // Set up an active connection with valid credentials first.
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      // Simulate provider outage during the refresh attempt.
+      global.mswMockServer.use(
+        http.get(MONOBANK_URLS_MOCK.clientInfo, () => {
+          return new HttpResponse(null, { status: 503, statusText: 'Service Unavailable' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'patch',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}`,
+        payload: {
+          credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        },
+      });
+
+      // User attempted to refresh their (valid) token but the provider was down —
+      // we must NOT tell them the credentials are invalid.
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
     });
   });
 });

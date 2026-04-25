@@ -26,7 +26,8 @@ import {
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
 import crypto from 'crypto';
-import { startOfDay } from 'date-fns';
+import { addDays, startOfDay, subDays } from 'date-fns';
+import { Op, Sequelize } from 'sequelize';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
@@ -436,11 +437,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     const apiClient = new EnableBankingApiClient({ appId, privateKey });
 
-    try {
-      return await apiClient.testConnection();
-    } catch {
-      return false;
-    }
+    // testConnection returns false only for 401/403.
+    // Network/5xx errors propagate so callers can distinguish "invalid creds"
+    // from "provider is down".
+    return await apiClient.testConnection();
   }
 
   async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {
@@ -701,26 +701,38 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       let updatedCount = 0;
 
       for (const tx of providerTransactions) {
-        // Check if transaction already exists
-        const existingTx = await Transactions.findOne({
-          where: {
-            accountId: account.id,
-            originalId: tx.externalId,
-          },
+        // Match an existing tx using a tiered strategy that survives hash drift:
+        //   1. by entry_reference (ASPSP-promised stable id, may appear later)
+        //   2. by current originalId (the legacy hash)
+        //   3. by ±2-day fingerprint (amount + counterparty IBAN), as a final
+        //      fallback for ASPSPs that never populate entry_reference and
+        //      shift the date used in the hash between syncs
+        const existingTx = await this.findExistingTransactionForSync({
+          accountId: account.id,
+          tx,
         });
 
         if (existingTx) {
-          // Check if booking_date appeared (wasn't there before but is now)
-          // This handles cases where dates are progressively populated by the bank
-          const existingBookingDate = (existingTx.externalData as typeof tx.metadata)?.bookingDate;
-          const newBookingDate = tx.metadata?.bookingDate;
-          const bookingDateAppeared = !existingBookingDate && newBookingDate;
-
+          // Re-anchor originalId when matched by a non-hash path so subsequent
+          // syncs hit the canonical hash directly and don't pay the fallback cost.
+          const updates: Partial<{ originalId: string; time: Date; externalData: typeof tx.metadata }> = {};
+          if (existingTx.originalId !== tx.externalId) {
+            updates.originalId = tx.externalId;
+          }
+          // Backfill bookingDate / refresh metadata when the bank populates
+          // fields after the initial sync.
+          const existingMeta = existingTx.externalData as typeof tx.metadata;
+          const bookingDateAppeared = !existingMeta?.bookingDate && tx.metadata?.bookingDate;
           if (bookingDateAppeared) {
-            await existingTx.update({
-              time: tx.date, // Update to best available date
-              externalData: tx.metadata, // Update with latest payload including bookingDate
-            });
+            updates.time = tx.date;
+            updates.externalData = tx.metadata;
+          } else if (updates.originalId) {
+            // Even without a date change, refresh metadata so entryReference is persisted.
+            updates.externalData = { ...existingMeta, ...tx.metadata };
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await existingTx.update(updates);
             updatedCount++;
           }
           continue;
@@ -1137,6 +1149,233 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     logger.info(`Migrated ${migratedCount} transaction hashes for account ${account.id}`);
 
     return migratedCount;
+  }
+
+  /**
+   * Tiered match for an incoming provider transaction against existing rows.
+   * Order matters — earlier paths are stronger guarantees.
+   */
+  private async findExistingTransactionForSync({
+    accountId,
+    tx,
+  }: {
+    accountId: number;
+    tx: ProviderTransaction;
+  }): Promise<Transactions | null> {
+    const entryReference = tx.metadata?.entryReference as string | undefined;
+
+    // (1) entry_reference: ASPSP promises this is unique + immutable per account.
+    // Cheapest, strongest match — short-circuits the rest.
+    if (entryReference) {
+      const byEntryRef = await Transactions.findOne({
+        where: {
+          accountId,
+          [Op.and]: [Sequelize.where(Sequelize.literal(`"externalData"->>'entryReference'`), entryReference)],
+        },
+      });
+      if (byEntryRef) return byEntryRef;
+    }
+
+    // (2) originalId: the legacy hash. Catches the steady state where the bank
+    // consistently returns the same fields (or no entry_reference at all).
+    const byOriginalId = await Transactions.findOne({
+      where: { accountId, originalId: tx.externalId },
+    });
+    if (byOriginalId) return byOriginalId;
+
+    // (3) ±2-day fingerprint fallback. Final safety net for ASPSPs that never
+    // populate entry_reference and shift the date used in the hash between
+    // syncs, OR for the moment a previously entry_reference-less tx finally
+    // gets one. Gated to require matching counterparty IBAN so recurring
+    // same-amount payments to different parties don't collapse.
+    //
+    // Crucially, match only against rows whose stored entryReference is null:
+    //   - if a row already has entry_reference X, step (1) would have caught
+    //     it when the incoming ref matches; if refs differ, the rows are
+    //     genuinely different and must not be collapsed.
+    //   - if a row has no entry_reference, it's an orphan from before #1
+    //     landed (or from an ASPSP that never returns one), and the
+    //     fingerprint is the only signal we have.
+    const isExpense = tx.metadata?.isExpense === true;
+    const counterpartyIban = isExpense
+      ? (tx.metadata?.creditorAccount as string | undefined)
+      : (tx.metadata?.debtorAccount as string | undefined);
+
+    if (!counterpartyIban) return null;
+
+    const fingerprintConditions: ReturnType<typeof Sequelize.where>[] = [
+      Sequelize.where(
+        Sequelize.literal(`"externalData"->>'${isExpense ? 'creditorAccount' : 'debtorAccount'}'`),
+        counterpartyIban,
+      ),
+      // Only consider rows that have no entryReference yet — anything with
+      // one already would have been handled by step (1).
+      Sequelize.where(Sequelize.literal(`"externalData"->>'entryReference'`), { [Op.is]: null as unknown as null }),
+    ];
+
+    return Transactions.findOne({
+      where: {
+        accountId,
+        amount: Math.abs(tx.amount),
+        currencyCode: tx.currency,
+        transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
+        time: { [Op.between]: [subDays(tx.date, 2), addDays(tx.date, 2)] },
+        [Op.and]: fingerprintConditions,
+      },
+    });
+  }
+
+  /**
+   * One-time reconciliation: find pre-existing duplicate pairs (one row with
+   * entryReference, one without) within ±2 days and delete the orphan.
+   *
+   * Conservative: only collapses when (a) both rows share the same
+   * counterparty IBAN — mirroring the live-sync gate in
+   * findExistingTransactionForSync so different-party same-amount payments
+   * don't get merged — and (b) the orphan has no dependent rows and no
+   * user-edited scalars (note / categoryId / paymentType) that diverge from
+   * the canonical. Returns counts for observability and idempotency
+   * assertions.
+   */
+  async reconcileDuplicateTransactionsForAccount({
+    accountId,
+  }: {
+    accountId: number;
+  }): Promise<{ mergedCount: number; skippedCount: number }> {
+    const account = await this.getSystemAccount(accountId);
+    const allTxs = await Transactions.findAll({
+      where: { accountId: account.id },
+      order: [['time', 'ASC']],
+    });
+
+    // Bucket by (amount, currency, transactionType) so we only compare candidates
+    // that could plausibly be the same logical tx. The date-window + IBAN gate
+    // happen inside each bucket.
+    const buckets = new Map<string, Transactions[]>();
+    for (const tx of allTxs) {
+      const key = `${tx.amount.toCents()}|${tx.currencyCode}|${tx.transactionType}`;
+      const list = buckets.get(key) ?? [];
+      list.push(tx);
+      buckets.set(key, list);
+    }
+
+    let mergedCount = 0;
+    let skippedCount = 0;
+
+    for (const candidates of buckets.values()) {
+      if (candidates.length < 2) continue;
+
+      const canonicalRows = candidates.filter(
+        (c) => ((c.externalData as Record<string, unknown> | null)?.entryReference ?? null) !== null,
+      );
+      const orphanRows = candidates.filter(
+        (c) => ((c.externalData as Record<string, unknown> | null)?.entryReference ?? null) === null,
+      );
+
+      if (canonicalRows.length === 0 || orphanRows.length === 0) continue;
+
+      for (const orphan of orphanRows) {
+        // IBAN gate: require both rows to share the same counterparty IBAN.
+        // Expenses use creditorAccount (money going out to a creditor), income
+        // uses debtorAccount. If the orphan has no IBAN (e.g. a manual entry
+        // that happens to share amount/currency/type with a bank row), skip —
+        // same rule findExistingTransactionForSync applies for live syncs.
+        const orphanIban = this.getCounterpartyIban(orphan);
+        if (!orphanIban) continue;
+
+        const canonical = canonicalRows.find(
+          (c) =>
+            c.id !== orphan.id &&
+            Math.abs(c.time.getTime() - orphan.time.getTime()) <= 2 * 24 * 60 * 60 * 1000 &&
+            this.getCounterpartyIban(c) === orphanIban,
+        );
+        if (!canonical) continue;
+
+        const safeToDelete = await this.orphanIsSafeToDelete({ orphan, canonical });
+        if (!safeToDelete) {
+          skippedCount++;
+          logger.info(
+            `Reconcile: skipping orphan tx ${orphan.id} (account ${account.id}) — has dependent rows or divergent user edits`,
+          );
+          continue;
+        }
+
+        await orphan.destroy();
+        mergedCount++;
+      }
+    }
+
+    if (mergedCount > 0 || skippedCount > 0) {
+      logger.info(`Reconcile complete for account ${account.id}: merged=${mergedCount} skipped=${skippedCount}`);
+    }
+
+    return { mergedCount, skippedCount };
+  }
+
+  private getCounterpartyIban(tx: Transactions): string | null {
+    const externalData = tx.externalData as Record<string, unknown> | null;
+    if (!externalData) return null;
+    const field = tx.transactionType === TRANSACTION_TYPES.expense ? 'creditorAccount' : 'debtorAccount';
+    const iban = externalData[field];
+    return typeof iban === 'string' && iban.length > 0 ? iban : null;
+  }
+
+  /**
+   * Conservative safety check used by reconciliation. Refuses deletion when
+   *   - dependent rows exist (splits, tags, refunds, transferId, group
+   *     membership, etc.), OR
+   *   - the orphan has user-mutable scalars (note, categoryId, paymentType)
+   *     that diverge from the canonical — those values would be silently lost
+   *     on destroy(), which is strictly worse than leaving a duplicate behind.
+   */
+  private async orphanIsSafeToDelete({
+    orphan,
+    canonical,
+  }: {
+    orphan: Transactions;
+    canonical: Transactions;
+  }): Promise<boolean> {
+    if (orphan.transferId) return false;
+    if (orphan.refundLinked) return false;
+
+    // User-edited scalar divergence check. Treat null/empty note as "not set"
+    // on either side so a sync-default empty note doesn't block merging.
+    const orphanNote = orphan.note ?? '';
+    const canonicalNote = canonical.note ?? '';
+    if (orphanNote !== canonicalNote && orphanNote !== '') return false;
+    if (orphan.categoryId !== canonical.categoryId) return false;
+    if (orphan.paymentType !== canonical.paymentType) return false;
+
+    // Loaded lazily to avoid a circular import wave at module load.
+    const TransactionTags = (await import('@models/transaction-tags.model')).default;
+    const TransactionSplits = (await import('@models/transaction-splits.model')).default;
+    const RefundTransactions = (await import('@models/refund-transactions.model')).default;
+    const BudgetTransactions = (await import('@models/budget-transactions.model')).default;
+    const SubscriptionTransactions = (await import('@models/subscription-transactions.model')).default;
+    const TransactionGroupItems = (await import('@models/transaction-group-items.model')).default;
+
+    const orphanId = orphan.id;
+    const [tagCount, splitCount, refundFromCount, refundToCount, budgetCount, subCount, groupCount] = await Promise.all(
+      [
+        TransactionTags.count({ where: { transactionId: orphanId } }),
+        TransactionSplits.count({ where: { transactionId: orphanId } }),
+        RefundTransactions.count({ where: { originalTxId: orphanId } }),
+        RefundTransactions.count({ where: { refundTxId: orphanId } }),
+        BudgetTransactions.count({ where: { transactionId: orphanId } }),
+        SubscriptionTransactions.count({ where: { transactionId: orphanId } }),
+        TransactionGroupItems.count({ where: { transactionId: orphanId } }),
+      ],
+    );
+
+    return (
+      tagCount === 0 &&
+      splitCount === 0 &&
+      refundFromCount === 0 &&
+      refundToCount === 0 &&
+      budgetCount === 0 &&
+      subCount === 0 &&
+      groupCount === 0
+    );
   }
 
   /**

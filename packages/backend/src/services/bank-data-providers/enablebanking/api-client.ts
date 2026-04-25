@@ -112,7 +112,10 @@ export class EnableBankingApiClient {
   }
 
   /**
-   * Test connection by fetching application info
+   * Test connection by fetching application info.
+   * Returns false only for a genuine auth failure (401/403). Network/5xx errors
+   * propagate via handleApiError so callers can distinguish "invalid creds" from
+   * "provider is down".
    * @link https://enablebanking.com/docs/api/reference#application-get
    */
   async testConnection(): Promise<boolean> {
@@ -122,6 +125,12 @@ export class EnableBankingApiClient {
       });
       return true;
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if (status === 401 || status === 403) {
+          return false;
+        }
+      }
       this.handleApiError(error, 'testConnection');
     }
   }
