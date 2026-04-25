@@ -38,7 +38,8 @@
       "synchronizing": "Синхронізація...",
       "syncedTime": "{time}",
       "connectBank": "Підключити банк",
-      "syncingAccounts": "Синхронізація {count} рахунків"
+      "syncingAccounts": "Синхронізація {count} рахунків",
+      "stuck": "Синхронізація зависла"
     },
     "categorization": {
       "title": "AI Категоризація",
@@ -61,6 +62,8 @@
     "title": "Статус синхронізації банків",
     "syncedSuccessfully": "Успішно синхронізовано",
     "syncCompletedWithErrors": "Деякі акаунти не вдалось синхронізувати",
+    "syncStuckTitle": "Синхронізація зависла",
+    "syncStuckDescription": "Деякі банківські з'єднання не відповіли вчасно. Спробуйте ще раз або перепідключіть їх на сторінці інтеграцій.",
     "progress": "{current} з {total} синхронізовано",
     "progressPercentage": "{percentage}%",
     "statuses": {
@@ -75,6 +78,8 @@
     "syncNowButton": "Синхронізувати зараз",
     "noBankAccounts": "Немає підключених банківських рахунків",
     "connectButton": "Підключити",
+    "retrySyncButton": "Повторити синхронізацію",
+    "manageConnectionsButton": "Керувати з'єднаннями",
     "timeAgo": {
       "justNow": "Щойно",
       "secondsAgo": "{count} секунду тому | {count} секунди тому | {count} секунд тому",

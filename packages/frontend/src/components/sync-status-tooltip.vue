@@ -1,11 +1,11 @@
 <template>
-  <div class="max-w-100 min-w-70 space-y-3 p-2">
-    <p class="mb-2 text-sm">{{ $t('syncStatusTooltip.title') }}</p>
+  <div class="max-w-100 min-w-70 p-2">
+    <p class="mb-3 text-sm">{{ $t('syncStatusTooltip.title') }}</p>
 
-    <!-- Just completed: Show success or failure message -->
+    <!-- Just completed: success / partial-failure banner -->
     <div
       v-if="showSuccessMessage"
-      class="flex items-center gap-2 rounded-md p-3 text-sm"
+      class="mb-3 flex items-center gap-2 rounded-md p-3 text-sm"
       :class="hasFailedAccounts ? 'bg-destructive/10 text-destructive-text' : 'bg-success text-success-text'"
     >
       <component :is="hasFailedAccounts ? XCircleIcon : CheckCircle2" class="size-5 shrink-0" />
@@ -14,83 +14,92 @@
       }}</span>
     </div>
 
-    <!-- Failed accounts list after completion -->
-    <ScrollArea v-if="showSuccessMessage && failedAccounts.length > 0" class="max-h-40">
-      <div class="space-y-2">
+    <!-- Stuck-sync banner -->
+    <div v-if="syncStuck" class="bg-destructive/10 text-destructive-text mb-3 space-y-1 rounded-md p-3 text-sm">
+      <div class="flex items-center gap-2 font-medium">
+        <AlertTriangleIcon class="size-5 shrink-0" />
+        {{ $t('syncStatusTooltip.syncStuckTitle') }}
+      </div>
+      <p class="text-xs opacity-80">{{ $t('syncStatusTooltip.syncStuckDescription') }}</p>
+    </div>
+
+    <!-- In-progress: progress bar -->
+    <div v-if="isSyncing" class="mb-3 space-y-2">
+      <div class="flex items-center justify-between text-xs">
+        <span class="font-medium">{{
+          $t('syncStatusTooltip.progress', { current: syncProgress.current, total: syncProgress.total })
+        }}</span>
+        <span class="text-muted-foreground">{{
+          $t('syncStatusTooltip.progressPercentage', { percentage: syncProgress.percentage })
+        }}</span>
+      </div>
+      <div class="bg-muted h-2 overflow-hidden rounded-full">
+        <div class="bg-primary h-full transition-all duration-300" :style="{ width: `${syncProgress.percentage}%` }" />
+      </div>
+    </div>
+
+    <!-- Default view header: last sync time -->
+    <div v-if="showDefaultHeader" class="text-muted-foreground mb-3 text-xs">
+      <template v-if="lastSyncTimestamp">
+        {{ $t('syncStatusTooltip.lastSynced') }} {{ formatLastSyncTime(lastSyncTimestamp) }}
+      </template>
+      <template v-else>{{ $t('syncStatusTooltip.neverSynced') }}</template>
+    </div>
+
+    <!-- Empty state: no bank accounts -->
+    <div
+      v-if="!isSyncing && accountStatuses.length === 0"
+      class="text-muted-foreground flex flex-col items-center gap-2 py-4 text-center text-sm"
+    >
+      <Building2 class="size-10 opacity-50" />
+      <span>{{ $t('syncStatusTooltip.noBankAccounts') }}</span>
+      <Button as-child size="sm" class="mt-4 w-full">
+        <RouterLink :to="{ name: ROUTES_NAMES.accountIntegrations }">{{
+          $t('syncStatusTooltip.connectButton')
+        }}</RouterLink>
+      </Button>
+    </div>
+
+    <!-- Scrollable account list (accounts in progress, queued, or failed). Cap
+         the viewport height directly — the popover doesn't establish a
+         definite height, so flex-1/min-h-0 on the root won't constrain. -->
+    <ScrollArea v-if="visibleAccounts.length > 0" class="-mx-2" viewport-class="max-h-[40dvh]">
+      <div class="space-y-2 px-2">
         <div
-          v-for="account in failedAccounts"
+          v-for="account in visibleAccounts"
           :key="account.accountId"
-          class="border-border flex items-center justify-between gap-2 rounded border p-2 text-xs"
+          class="border-border flex flex-col gap-1 rounded border p-2 text-xs"
         >
-          <div class="flex-1 truncate">
-            <div class="max-w-50 truncate font-medium">{{ account.accountName }}</div>
-            <div class="text-muted-foreground text-[10px]">
-              {{ getProviderName(account.providerType) }}
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex-1 truncate">
+              <div class="max-w-50 truncate font-medium">{{ account.accountName }}</div>
+              <div class="text-muted-foreground text-[10px]">
+                {{ getProviderName(account.providerType) }}
+              </div>
+            </div>
+            <div class="flex shrink-0 items-center gap-1">
+              <component
+                :is="getStatusIcon(account.status)"
+                :class="[getStatusColor(account.status), { 'animate-spin': account.status === SyncStatus.SYNCING }]"
+                class="size-3"
+              />
+              <span :class="getStatusColor(account.status)" class="text-[10px] font-medium uppercase">
+                {{ getStatusText(account.status) }}
+              </span>
             </div>
           </div>
-          <div class="flex shrink-0 items-center gap-1">
-            <XCircleIcon class="text-destructive-text size-3" />
-            <span class="text-destructive-text text-[10px] font-medium uppercase">
-              {{ getStatusText(SyncStatus.FAILED) }}
-            </span>
-          </div>
+          <p
+            v-if="account.status === SyncStatus.FAILED && account.error"
+            class="text-muted-foreground line-clamp-2 text-[10px] wrap-break-word"
+          >
+            {{ account.error }}
+          </p>
         </div>
       </div>
     </ScrollArea>
 
-    <!-- Syncing in progress: Show progress bar + pending/syncing accounts -->
-    <div v-else-if="isSyncing">
-      <div class="space-y-3">
-        <!-- Progress bar -->
-        <div class="space-y-2">
-          <div class="flex items-center justify-between text-xs">
-            <span class="font-medium">{{
-              $t('syncStatusTooltip.progress', { current: syncProgress.current, total: syncProgress.total })
-            }}</span>
-            <span class="text-muted-foreground">{{
-              $t('syncStatusTooltip.progressPercentage', { percentage: syncProgress.percentage })
-            }}</span>
-          </div>
-          <div class="bg-muted h-2 overflow-hidden rounded-full">
-            <div
-              class="bg-primary h-full transition-all duration-300"
-              :style="{ width: `${syncProgress.percentage}%` }"
-            />
-          </div>
-        </div>
-
-        <!-- Active accounts (pending/syncing/failed) -->
-        <ScrollArea v-if="activeAccounts.length > 0" class="max-h-60">
-          <div class="space-y-2">
-            <div
-              v-for="account in activeAccounts"
-              :key="account.accountId"
-              class="border-border flex items-center justify-between gap-2 rounded border p-2 text-xs"
-            >
-              <div class="flex-1 truncate">
-                <div class="max-w-50 truncate font-medium">{{ account.accountName }}</div>
-                <div class="text-muted-foreground text-[10px]">
-                  {{ getProviderName(account.providerType) }}
-                </div>
-              </div>
-              <div class="flex shrink-0 items-center gap-1">
-                <component
-                  :is="getStatusIcon(account.status)"
-                  :class="[getStatusColor(account.status), { 'animate-spin': account.status === SyncStatus.SYNCING }]"
-                  class="size-3"
-                />
-                <span :class="getStatusColor(account.status)" class="text-[10px] font-medium uppercase">
-                  {{ getStatusText(account.status) }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </ScrollArea>
-      </div>
-    </div>
-
-    <!-- AI Categorization Section -->
-    <div v-if="isCategorizing || categorizationJustCompleted" class="border-border space-y-2 border-t pt-3">
+    <!-- AI categorization section (always rendered, doesn't scroll with the list) -->
+    <div v-if="isCategorizing || categorizationJustCompleted" class="border-border mt-3 space-y-2 border-t pt-3">
       <div class="flex items-center gap-2">
         <SparklesIcon class="text-primary size-4" />
         <span class="text-sm font-medium">{{ $t('header.categorization.title') }}</span>
@@ -104,14 +113,13 @@
       </template>
 
       <template v-else-if="categorizationJustCompleted && categorizationStatus?.status === 'failed'">
-        <div class="flex items-center gap-2 text-xs text-red-500">
+        <div class="text-destructive-text flex items-center gap-2 text-xs">
           <XCircleIcon class="size-4" />
           <span>{{ $t('header.categorization.failedShort') }}</span>
         </div>
       </template>
 
       <template v-else-if="isCategorizing && categorizationStatus">
-        <!-- Progress bar -->
         <div class="space-y-1">
           <div class="flex items-center justify-between text-xs">
             <span class="text-muted-foreground">
@@ -134,36 +142,27 @@
       </template>
     </div>
 
-    <!-- Default view: Show last sync time and sync button -->
-    <div v-if="!isSyncing && !showSuccessMessage" class="space-y-3">
-      <div
-        v-if="accountStatuses.length === 0"
-        class="text-muted-foreground flex flex-col items-center gap-2 py-4 text-center text-sm"
+    <!-- Action buttons -->
+    <div v-if="showActions" class="mt-3 flex flex-col gap-2">
+      <Button
+        v-if="canSync"
+        class="w-full"
+        size="sm"
+        :disabled="isLoading || accountStatuses.length === 0"
+        @click="$emit('triggerSync')"
       >
-        <Building2 class="size-10 opacity-50" />
-        <span>{{ $t('syncStatusTooltip.noBankAccounts') }}</span>
-
-        <Button as-child size="sm" class="mt-4 w-full">
-          <RouterLink to="/accounts/integrations">{{ $t('syncStatusTooltip.connectButton') }}</RouterLink>
-        </Button>
-      </div>
-
-      <template v-else-if="accountStatuses.length !== 0">
-        <div v-if="lastSyncTimestamp" class="text-muted-foreground text-xs">
-          {{ $t('syncStatusTooltip.lastSynced') }} {{ formatLastSyncTime(lastSyncTimestamp) }}
-        </div>
-        <div v-else class="text-muted-foreground text-xs">{{ $t('syncStatusTooltip.neverSynced') }}</div>
-
-        <Button
-          class="w-full"
-          size="sm"
-          :disabled="isLoading || accountStatuses.length === 0"
-          @click="$emit('triggerSync')"
-        >
-          <RefreshCcw :class="{ 'animate-spin': isLoading }" class="mr-2 size-4" />
-          {{ $t('syncStatusTooltip.syncNowButton') }}
-        </Button>
-      </template>
+        <RefreshCcw :class="{ 'animate-spin': isLoading }" class="mr-2 size-4" />
+        {{
+          syncStuck || hasFailedAccounts
+            ? $t('syncStatusTooltip.retrySyncButton')
+            : $t('syncStatusTooltip.syncNowButton')
+        }}
+      </Button>
+      <Button v-if="hasFailedAccounts || syncStuck" as-child variant="outline" size="sm" class="w-full">
+        <RouterLink :to="{ name: ROUTES_NAMES.accountIntegrations }">
+          {{ $t('syncStatusTooltip.manageConnectionsButton') }}
+        </RouterLink>
+      </Button>
     </div>
   </div>
 </template>
@@ -173,8 +172,10 @@ import { type AccountSyncStatus, SyncStatus } from '@/api/bank-data-providers';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { ROUTES_NAMES } from '@/routes/constants';
 import type { AiCategorizationProgressPayload } from '@bt/shared/types';
 import {
+  AlertTriangleIcon,
   Building2,
   CheckCircle2,
   Circle,
@@ -195,6 +196,7 @@ const props = defineProps<{
   lastSyncTimestamp: number | null;
   isLoading?: boolean;
   isSyncing?: boolean;
+  syncStuck?: boolean;
   showSuccessMessage?: boolean;
   // AI Categorization props
   categorizationStatus?: AiCategorizationProgressPayload | null;
@@ -207,23 +209,34 @@ defineEmits<{
   triggerSync: [];
 }>();
 
-// Filter accounts to show pending/queued/syncing/failed during sync
-const activeAccounts = computed(() => {
-  return props.accountStatuses.filter(
-    (account) =>
-      account.status === SyncStatus.QUEUED ||
-      account.status === SyncStatus.SYNCING ||
-      account.status === SyncStatus.FAILED,
-  );
+// Accounts surfaced in the scrollable list:
+// - while syncing: anything not yet COMPLETED
+// - otherwise: only FAILED ones, so the user can see and act on them
+const visibleAccounts = computed<AccountSyncStatus[]>(() => {
+  if (props.isSyncing) {
+    return props.accountStatuses.filter(
+      (account) =>
+        account.status === SyncStatus.QUEUED ||
+        account.status === SyncStatus.SYNCING ||
+        account.status === SyncStatus.FAILED,
+    );
+  }
+  return props.accountStatuses.filter((account) => account.status === SyncStatus.FAILED);
 });
 
 const failedAccounts = computed(() => {
   return props.accountStatuses.filter((account) => account.status === SyncStatus.FAILED);
 });
 
-const hasFailedAccounts = computed(() => {
-  return failedAccounts.value.length > 0;
-});
+const hasFailedAccounts = computed(() => failedAccounts.value.length > 0);
+
+const showDefaultHeader = computed(
+  () => !props.isSyncing && !props.showSuccessMessage && !props.syncStuck && props.accountStatuses.length > 0,
+);
+
+const canSync = computed(() => !props.isSyncing && props.accountStatuses.length > 0);
+
+const showActions = computed(() => canSync.value || props.syncStuck);
 
 const getProviderName = (providerType: string) => {
   const meta = METAINFO_FROM_TYPE[providerType];
@@ -258,7 +271,7 @@ const getStatusColor = (status: SyncStatus) => {
     case SyncStatus.COMPLETED:
       return 'text-green-500';
     case SyncStatus.FAILED:
-      return 'text-red-500';
+      return 'text-destructive-text';
     default:
       return 'text-gray-400';
   }
