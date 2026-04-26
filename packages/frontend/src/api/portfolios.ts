@@ -144,6 +144,7 @@ interface DirectCashTransactionRequest {
   currencyCode: string;
   date: string;
   description?: string | null;
+  isHistorical?: boolean;
 }
 
 type DirectCashTransactionParams = { portfolioId: number } & DirectCashTransactionRequest;

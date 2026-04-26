@@ -139,6 +139,12 @@ export default class PortfolioTransfers extends Model {
   @Column({ type: DataType.JSONB, allowNull: true, defaultValue: null })
   metaData!: Record<string, unknown> | null;
 
+  // True for backfilled cash flows that record a deposit/withdrawal which
+  // happened before the user started tracking. The row participates in
+  // IRR / cash-flow stats but skips the cash-balance update on create/delete.
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
+  isHistorical!: boolean;
+
   @ForeignKey(() => Transactions)
   @Index
   @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: null, onDelete: 'SET NULL' })

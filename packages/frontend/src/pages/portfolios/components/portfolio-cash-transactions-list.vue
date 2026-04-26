@@ -29,7 +29,16 @@
               <component :is="dp.icon" class="size-4" />
             </div>
             <div>
-              <p class="text-sm font-medium">{{ dp.label }}</p>
+              <p class="flex items-center gap-2 text-sm font-medium">
+                {{ dp.label }}
+                <span
+                  v-if="transfer.isHistorical"
+                  class="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase"
+                  :title="$t('portfolioDetail.cashBalances.cashTransactions.historicalBadgeTooltip')"
+                >
+                  {{ $t('portfolioDetail.cashBalances.cashTransactions.historicalBadge') }}
+                </span>
+              </p>
               <p class="text-muted-foreground text-xs">
                 {{ formatDate(transfer.date) }}
                 <span v-if="transfer.description"> &middot; {{ transfer.description }}</span>

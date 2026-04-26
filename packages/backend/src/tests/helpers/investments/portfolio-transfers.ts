@@ -161,6 +161,7 @@ export async function directCashTransaction<R extends boolean | undefined = fals
     currencyCode: string;
     date: string;
     description?: string | null;
+    isHistorical?: boolean;
   };
   raw?: R;
 }) {

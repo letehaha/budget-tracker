@@ -72,6 +72,9 @@ export async function reverseTransferBalanceChanges({
   transfer: PortfolioTransfers;
   userId: number;
 }): Promise<void> {
+  // Historical rows never moved cash on creation — there is nothing to reverse.
+  if (transfer.isHistorical) return;
+
   const amount = transfer.amount.toDecimalString(10);
   const { currencyCode } = transfer;
 

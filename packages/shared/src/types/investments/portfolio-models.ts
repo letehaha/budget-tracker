@@ -50,6 +50,7 @@ export interface PortfolioTransferModel {
   refToAmount: string | null;
   transactionId: number | null;
   metaData: Record<string, unknown> | null;
+  isHistorical: boolean;
   date: string;
   description: string | null;
   createdAt: Date;

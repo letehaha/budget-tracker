@@ -43,7 +43,9 @@
         "deleteConfirm": "Delete this cash transaction?",
         "linkedTransactionNote": "This transfer has a linked account transaction. What would you like to do with it?",
         "keepLinkedTransaction": "Keep account transaction. Original transaction details will be restored.",
-        "deleteLinkedTransaction": "Also delete the linked account transaction"
+        "deleteLinkedTransaction": "Also delete the linked account transaction",
+        "historicalBadge": "Historical",
+        "historicalBadgeTooltip": "Recorded for stats only — did not affect the current balance"
       },
       "buysSells": {
         "emptyState": "No buy/sell transactions",

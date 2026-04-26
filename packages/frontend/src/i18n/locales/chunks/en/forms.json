@@ -149,7 +149,9 @@
       "notifications": {
         "success": "Cash transaction created successfully",
         "error": "Failed to create cash transaction"
-      }
+      },
+      "historicalLabel": "Historical record only",
+      "historicalDescription": "Records the cash flow for IRR / stats purposes without changing the current cash balance. Use this to backfill deposits or withdrawals from before you started tracking."
     },
     "validators": {
       "invalidCurrencyDecimal": "Enter a valid amount (up to 2 decimal places)",

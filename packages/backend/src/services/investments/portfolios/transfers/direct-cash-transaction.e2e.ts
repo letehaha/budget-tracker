@@ -251,6 +251,166 @@ describe('Direct Cash Transaction (POST /investments/portfolios/:id/cash-transac
     });
   });
 
+  describe('historical flag', () => {
+    it('records a historical deposit without changing the cash balance', async () => {
+      const transfer = await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: {
+          type: 'deposit',
+          amount: '5000',
+          currencyCode,
+          date: '2022-01-15',
+          description: 'Backfilled pre-tracking deposit',
+          isHistorical: true,
+        },
+        raw: true,
+      });
+
+      expect(transfer).toMatchObject({
+        id: expect.any(Number),
+        toPortfolioId: portfolio.id,
+        amount: expect.toBeNumericEqual('5000'),
+        isHistorical: true,
+      });
+
+      // Balance must NOT change.
+      const balances = await helpers.getPortfolioBalance({
+        portfolioId: portfolio.id,
+        currencyCode,
+        raw: true,
+      });
+      if (balances.length > 0) {
+        expect(balances[0]!.availableCash).toBeNumericEqual(0);
+        expect(balances[0]!.totalCash).toBeNumericEqual(0);
+      }
+    });
+
+    it('records a historical withdrawal without changing the cash balance', async () => {
+      // Seed real cash so we can prove the withdrawal didn't touch it.
+      await helpers.updatePortfolioBalance({
+        portfolioId: portfolio.id,
+        currencyCode,
+        setAvailableCash: '1000',
+        setTotalCash: '1000',
+      });
+
+      const transfer = await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: {
+          type: 'withdrawal',
+          amount: '500',
+          currencyCode,
+          date: '2022-06-01',
+          isHistorical: true,
+        },
+        raw: true,
+      });
+
+      expect(transfer.isHistorical).toBe(true);
+
+      const [balance] = await helpers.getPortfolioBalance({
+        portfolioId: portfolio.id,
+        currencyCode,
+        raw: true,
+      });
+      expect(balance!.availableCash).toBeNumericEqual(1000);
+      expect(balance!.totalCash).toBeNumericEqual(1000);
+    });
+
+    it('does not reverse balance when a historical transfer is deleted', async () => {
+      await helpers.updatePortfolioBalance({
+        portfolioId: portfolio.id,
+        currencyCode,
+        setAvailableCash: '750',
+        setTotalCash: '750',
+      });
+
+      const transfer = await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: {
+          type: 'deposit',
+          amount: '2000',
+          currencyCode,
+          date: '2021-08-10',
+          isHistorical: true,
+        },
+        raw: true,
+      });
+
+      await helpers.deletePortfolioTransfer({
+        portfolioId: portfolio.id,
+        transferId: transfer.id,
+        raw: true,
+      });
+
+      // Balance must remain at the pre-transfer real value.
+      const [balance] = await helpers.getPortfolioBalance({
+        portfolioId: portfolio.id,
+        currencyCode,
+        raw: true,
+      });
+      expect(balance!.availableCash).toBeNumericEqual(750);
+      expect(balance!.totalCash).toBeNumericEqual(750);
+    });
+
+    it('counts historical flows in extended-stats totals (totalDeposits, firstTransactionDate)', async () => {
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: {
+          type: 'deposit',
+          amount: '10000',
+          currencyCode,
+          date: '2022-03-15',
+          isHistorical: true,
+        },
+        raw: true,
+      });
+
+      // Plus a real recent deposit so both kinds are present.
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: {
+          type: 'deposit',
+          amount: '500',
+          currencyCode,
+          date: '2025-12-01',
+        },
+        raw: true,
+      });
+
+      const stats = await helpers.getPortfolioExtendedStats({
+        portfolioId: portfolio.id,
+        raw: true,
+      });
+
+      expect(parseFloat(stats.totalDeposits)).toBeGreaterThanOrEqual(10500);
+      // Earliest of (real deposit, historical deposit, first buy) — historical wins.
+      expect(stats.firstTransactionDate).toBe('2022-03-15');
+    });
+
+    it('defaults to non-historical when the flag is omitted', async () => {
+      const transfer = await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: {
+          type: 'deposit',
+          amount: '100',
+          currencyCode,
+          date: '2025-06-15',
+        },
+        raw: true,
+      });
+
+      expect(transfer.isHistorical).toBe(false);
+
+      const [balance] = await helpers.getPortfolioBalance({
+        portfolioId: portfolio.id,
+        currencyCode,
+        raw: true,
+      });
+      expect(balance!.availableCash).toBeNumericEqual(100);
+    });
+  });
+
   describe('error cases', () => {
     it('should reject zero amount', async () => {
       const response = await helpers.directCashTransaction({

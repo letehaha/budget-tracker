@@ -20,6 +20,11 @@ interface DirectCashTransactionParams {
   currencyCode: string;
   date: string;
   description?: string | null;
+  // When true: record the cash-flow event for stats purposes (IRR, deposits/
+  // withdrawals totals, portfolio age) but do NOT change the running cash
+  // balance. Used to backfill flows that pre-date when the user started
+  // tracking — e.g., a deposit that funded buys already in the system.
+  isHistorical?: boolean;
 }
 
 const directCashTransactionImpl = async ({
@@ -30,6 +35,7 @@ const directCashTransactionImpl = async ({
   currencyCode,
   date,
   description,
+  isHistorical = false,
 }: DirectCashTransactionParams) => {
   validatePositiveAmount({ amount });
 
@@ -53,17 +59,19 @@ const directCashTransactionImpl = async ({
     currencyCode,
     date,
     description,
+    isHistorical,
   });
 
-  // Update portfolio cash balance
-  const delta = isDeposit ? amount : negateAmount({ amount });
-  await updatePortfolioBalance({
-    userId,
-    portfolioId,
-    currencyCode,
-    availableCashDelta: delta,
-    totalCashDelta: delta,
-  });
+  if (!isHistorical) {
+    const delta = isDeposit ? amount : negateAmount({ amount });
+    await updatePortfolioBalance({
+      userId,
+      portfolioId,
+      currencyCode,
+      availableCashDelta: delta,
+      totalCashDelta: delta,
+    });
+  }
 
   return transfer.reload({
     include: [
