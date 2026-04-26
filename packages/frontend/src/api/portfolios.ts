@@ -5,6 +5,7 @@ import {
   PortfolioModel,
   PortfolioTransferModel,
 } from '@bt/shared/types/investments';
+import type { PortfolioExtendedStatsModel } from '@bt/shared/types/investments/portfolio-extended-stats.model';
 import type { PortfolioSummaryModel } from '@bt/shared/types/investments/portfolio-summary.model';
 
 interface CreatePortfolioRequest {
@@ -216,5 +217,14 @@ export const getPortfolioSummary = async ({
 }): Promise<PortfolioSummaryModel> => {
   const params = date ? { date } : {};
   const result = await api.get(`/investments/portfolios/${portfolioId}/summary`, params);
+  return result;
+};
+
+export const getPortfolioExtendedStats = async ({
+  portfolioId,
+}: {
+  portfolioId: number;
+}): Promise<PortfolioExtendedStatsModel> => {
+  const result = await api.get(`/investments/portfolios/${portfolioId}/extended-stats`);
   return result;
 };

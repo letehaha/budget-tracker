@@ -12,6 +12,7 @@ import directCashTransactionController from '@controllers/investments/portfolios
 import exchangeCurrencyController from '@controllers/investments/portfolios/exchange-currency';
 import getPortfolioController from '@controllers/investments/portfolios/get-portfolio';
 import getPortfolioBalanceController from '@controllers/investments/portfolios/get-portfolio-balance';
+import getPortfolioExtendedStatsController from '@controllers/investments/portfolios/get-portfolio-extended-stats.controller';
 import getPortfolioSummaryController from '@controllers/investments/portfolios/get-portfolio-summary.controller';
 import listPortfolioTransfersController from '@controllers/investments/portfolios/list-portfolio-transfers';
 import listPortfoliosController from '@controllers/investments/portfolios/list-portfolios';
@@ -58,6 +59,12 @@ router.get(
   '/portfolios/:id/summary',
   validateEndpoint(getPortfolioSummaryController.schema),
   getPortfolioSummaryController.handler,
+);
+
+router.get(
+  '/portfolios/:id/extended-stats',
+  validateEndpoint(getPortfolioExtendedStatsController.schema),
+  getPortfolioExtendedStatsController.handler,
 );
 
 router.put(

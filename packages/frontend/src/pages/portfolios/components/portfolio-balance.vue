@@ -117,6 +117,11 @@
           </div>
         </div>
       </div>
+
+      <!-- Expandable extended stats -->
+      <div class="mt-5">
+        <PortfolioExtendedStats :portfolio-id="portfolioId" />
+      </div>
     </div>
   </Card>
 </template>
@@ -130,6 +135,8 @@ import { useCurrenciesStore } from '@/stores/currencies';
 import { TrendingDownIcon, TrendingUpIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { toRef } from 'vue';
+
+import PortfolioExtendedStats from './portfolio-extended-stats.vue';
 
 const props = defineProps<{ portfolioId: number }>();
 const portfolioId = toRef(props, 'portfolioId');

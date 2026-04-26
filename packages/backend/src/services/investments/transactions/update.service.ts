@@ -10,6 +10,7 @@ import Portfolios from '@models/investments/portfolios.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
+import { invalidatePortfolioExtendedStatsCache } from '@services/investments/portfolios/extended-stats/get-portfolio-extended-stats.service';
 import { Big } from 'big.js';
 
 interface UpdateTransactionParams {
@@ -160,6 +161,8 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
 
   // After updating the transaction, trigger a full recalculation of the holding
   await recalculateHolding({ portfolioId, securityId });
+
+  await invalidatePortfolioExtendedStatsCache({ userId, portfolioId });
 
   // Return the updated transaction
   await transaction.reload();

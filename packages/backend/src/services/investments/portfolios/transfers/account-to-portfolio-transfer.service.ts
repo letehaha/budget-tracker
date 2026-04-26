@@ -6,6 +6,7 @@ import Portfolios from '@models/investments/portfolios.model';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
+import { invalidatePortfolioExtendedStatsCache } from '@services/investments/portfolios/extended-stats/get-portfolio-extended-stats.service';
 
 import {
   computeRefAmount,
@@ -81,6 +82,8 @@ const accountToPortfolioTransferImpl = async ({
     availableCashDelta: amount,
     totalCashDelta: amount,
   });
+
+  await invalidatePortfolioExtendedStatsCache({ userId, portfolioId });
 
   return transfer.reload({
     include: [

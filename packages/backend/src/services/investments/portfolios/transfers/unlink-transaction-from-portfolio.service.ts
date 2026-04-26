@@ -4,6 +4,7 @@ import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { invalidatePortfolioExtendedStatsCache } from '@services/investments/portfolios/extended-stats/get-portfolio-extended-stats.service';
 
 import { reverseTransferBalanceChanges } from './transfer-validations';
 
@@ -36,7 +37,17 @@ const unlinkTransactionFromPortfolioImpl = async ({ userId, transactionId }: Unl
     transferNature: originalState?.transferNature ?? TRANSACTION_TRANSFER_NATURE.not_transfer,
   });
 
+  const affectedPortfolioIds = new Set<number>();
+  if (transfer.fromPortfolioId !== null) affectedPortfolioIds.add(transfer.fromPortfolioId);
+  if (transfer.toPortfolioId !== null) affectedPortfolioIds.add(transfer.toPortfolioId);
+
   await transfer.destroy();
+
+  await Promise.all(
+    Array.from(affectedPortfolioIds).map((portfolioId) =>
+      invalidatePortfolioExtendedStatsCache({ userId, portfolioId }),
+    ),
+  );
 
   return { success: true };
 };

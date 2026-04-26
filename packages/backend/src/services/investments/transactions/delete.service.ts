@@ -4,6 +4,7 @@ import Portfolios from '@models/investments/portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
+import { invalidatePortfolioExtendedStatsCache } from '@services/investments/portfolios/extended-stats/get-portfolio-extended-stats.service';
 import { Big } from 'big.js';
 
 import { calculateCashDelta } from './cash-balance-utils';
@@ -51,6 +52,8 @@ const deleteInvestmentTransactionImpl = async ({ userId, transactionId }: Delete
       totalCashDelta: reversedDelta,
     });
   }
+
+  await invalidatePortfolioExtendedStatsCache({ userId, portfolioId });
 
   return { success: true };
 };

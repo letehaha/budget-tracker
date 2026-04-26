@@ -107,5 +107,39 @@
         "other": "Інше"
       }
     }
+  },
+  "portfolioExtendedStats": {
+    "showMore": "Більше статистики",
+    "hideMore": "Сховати статистику",
+    "loadError": "Не вдалося завантажити розширену статистику.",
+    "unknownSecurity": "Невідомо",
+    "sections": {
+      "activity": "Активність",
+      "returns": "Доходність",
+      "topHoldings": "Найкращі позиції",
+      "closedPositions": "Закриті позиції"
+    },
+    "totalDeposits": "Усього внесків",
+    "totalWithdrawals": "Усього виведень",
+    "netInvested": "Чисто інвестовано",
+    "totalDividends": "Усього дивідендів",
+    "averageMonthlyDividends": "Сер. дивіденди/міс",
+    "portfolioAge": "Вік портфеля",
+    "irr": "Річна дохідність (XIRR)",
+    "irrHint": "Дохідність з урахуванням часу твоїх внесків і виведень (money-weighted). Показується як — коли портфель надто молодий або значення виходить надто екстремальним.",
+    "twr": "Time-weighted дохідність",
+    "twrHint": "Прибирає вплив часу грошових потоків — корисно для порівняння з бенчмарками. Показується як — коли портфель надто молодий або значення виходить надто екстремальним.",
+    "bestByPercent": "Найкращий за %",
+    "worstByPercent": "Найгірший за %",
+    "bestByValue": "Найкращий за сумою",
+    "worstByValue": "Найгірший за сумою",
+    "closedCount": "Закритих позицій",
+    "winRate": "Частка прибуткових",
+    "winRateHint": "{winning} з {total} закритих позицій закінчились з прибутком.",
+    "avgReturnDollar": "Сер. результат закриття",
+    "avgReturnPercent": "Сер. % закриття",
+    "ageYearsMonths": "{years} р. {months} міс (з {since})",
+    "ageMonths": "{months} міс (з {since})",
+    "ageDays": "{days} дн (з {since})"
   }
 }

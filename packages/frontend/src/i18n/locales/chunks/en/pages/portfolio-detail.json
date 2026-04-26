@@ -107,5 +107,39 @@
         "other": "Other"
       }
     }
+  },
+  "portfolioExtendedStats": {
+    "showMore": "See more stats",
+    "hideMore": "Hide stats",
+    "loadError": "Failed to load extended stats.",
+    "unknownSecurity": "Unknown",
+    "sections": {
+      "activity": "Activity",
+      "returns": "Returns",
+      "topHoldings": "Top Holdings",
+      "closedPositions": "Closed Positions"
+    },
+    "totalDeposits": "Total deposits",
+    "totalWithdrawals": "Total withdrawals",
+    "netInvested": "Net invested",
+    "totalDividends": "Total dividends",
+    "averageMonthlyDividends": "Avg monthly dividends",
+    "portfolioAge": "Portfolio age",
+    "irr": "Annualized return (XIRR)",
+    "irrHint": "Money-weighted return that accounts for the timing of your deposits and withdrawals. Shown as — when the portfolio is too young or the implied annual return is too extreme to be meaningful.",
+    "twr": "Time-weighted return",
+    "twrHint": "Strips out the impact of cash flow timing — useful for comparing to benchmarks. Shown as — when the portfolio is too young or the implied annual return is too extreme to be meaningful.",
+    "bestByPercent": "Best by %",
+    "worstByPercent": "Worst by %",
+    "bestByValue": "Best by amount",
+    "worstByValue": "Worst by amount",
+    "closedCount": "Closed positions",
+    "winRate": "Win rate",
+    "winRateHint": "{winning} of {total} closed positions ended with a profit.",
+    "avgReturnDollar": "Avg return per close",
+    "avgReturnPercent": "Avg % per close",
+    "ageYearsMonths": "{years}y {months}mo (since {since})",
+    "ageMonths": "{months}mo (since {since})",
+    "ageDays": "{days}d (since {since})"
   }
 }

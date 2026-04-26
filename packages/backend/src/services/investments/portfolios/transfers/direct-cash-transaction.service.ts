@@ -3,6 +3,7 @@ import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
+import { invalidatePortfolioExtendedStatsCache } from '@services/investments/portfolios/extended-stats/get-portfolio-extended-stats.service';
 
 import {
   computeRefAmount,
@@ -72,6 +73,8 @@ const directCashTransactionImpl = async ({
       totalCashDelta: delta,
     });
   }
+
+  await invalidatePortfolioExtendedStatsCache({ userId, portfolioId });
 
   return transfer.reload({
     include: [

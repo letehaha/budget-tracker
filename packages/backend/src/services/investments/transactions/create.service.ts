@@ -11,6 +11,7 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
+import { invalidatePortfolioExtendedStatsCache } from '@services/investments/portfolios/extended-stats/get-portfolio-extended-stats.service';
 import { Big } from 'big.js';
 
 import { calculateCashDelta } from './cash-balance-utils';
@@ -110,6 +111,8 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
       totalCashDelta: cashDelta,
     });
   }
+
+  await invalidatePortfolioExtendedStatsCache({ userId, portfolioId });
 
   return newTx;
 };
