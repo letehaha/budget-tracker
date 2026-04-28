@@ -21,7 +21,7 @@
         "sizes": "512x512"
       }
     ],
-    "license": "CC-BY-NC-SA-4.0",
+    "license": "AGPL-3.0-only",
     "sourceCode": "https://github.com/letehaha/budget-tracker"
   },
   "transport": {
