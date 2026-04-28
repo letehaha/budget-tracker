@@ -2,5 +2,5 @@ User-agent: *
 Content-Signal: search=yes, ai-input=yes, ai-train=no
 Disallow:
 
-Sitemap: https://moneymatter.app/sitemap.xml
+Sitemap: https://moneymatter.app/sitemap-index.xml
 LLMs-txt: https://moneymatter.app/llms.txt
