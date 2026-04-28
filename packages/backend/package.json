@@ -2,7 +2,7 @@
   "name": "budget-tracker-be",
   "version": "0.0.1",
   "description": "",
-  "license": "ISC",
+  "license": "AGPL-3.0-only",
   "author": "",
   "scripts": {
     "start": "npm run dev",

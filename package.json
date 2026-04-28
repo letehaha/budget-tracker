@@ -2,7 +2,7 @@
   "name": "budget-tracker",
   "private": true,
   "description": "",
-  "license": "ISC",
+  "license": "AGPL-3.0-only",
   "author": "letehaha",
   "workspaces": [
     "packages/*"

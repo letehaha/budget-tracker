@@ -1,6 +1,6 @@
 # Terms of Service
 
-Last updated: December 21, 2025
+Last updated: April 28, 2026
 
 ## 1. Acceptance of Terms
 
@@ -37,7 +37,7 @@ You are responsible for the accuracy of the data you enter and for maintaining b
 
 ## 6. Open Source License
 
-MoneyMatter is open source software licensed under CC BY-NC-SA 4.0. You may self-host and modify the software in accordance with this license. The source code is available on [GitHub](https://github.com/letehaha/budget-tracker).
+MoneyMatter is open source software licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). You may self-host, study, and modify the software in accordance with this license. If you run a modified version of MoneyMatter as a network service, you must publish your modifications under the same license. The source code is available on [GitHub](https://github.com/letehaha/budget-tracker).
 
 ## 7. Disclaimer of Warranties
 

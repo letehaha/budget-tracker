@@ -2,7 +2,7 @@
 
 > Free, open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host for full control or use our cloud — your data stays yours.
 
-MoneyMatter is a privacy-first alternative to apps like Mint and YNAB. It is free, open-source (CC BY-NC-SA 4.0), and designed for people who want control over their financial data.
+MoneyMatter is a privacy-first alternative to apps like Mint and YNAB. It is free, open-source (AGPL-3.0), and designed for people who want control over their financial data.
 
 ## Why MoneyMatter
 
@@ -56,4 +56,4 @@ Works with Claude, ChatGPT, OpenClaw, and any MCP-compatible client. Access can 
 
 ## License
 
-MoneyMatter is released under CC BY-NC-SA 4.0. Source: <https://github.com/letehaha/budget-tracker>.
+MoneyMatter is released under the GNU Affero General Public License v3.0 (AGPL-3.0). Source: <https://github.com/letehaha/budget-tracker>.
