@@ -32,6 +32,8 @@ interface ExecuteImportParams {
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
   skipDuplicateIndices: number[];
+  defaultAccountId?: number;
+  defaultCategoryId?: number;
 }
 
 /**
@@ -44,6 +46,8 @@ async function executeImportImpl({
   accountMapping,
   categoryMapping,
   skipDuplicateIndices,
+  defaultAccountId,
+  defaultCategoryId,
 }: ExecuteImportParams): Promise<ExecuteImportResponse> {
   const batchId = uuidv4();
   const importedAt = new Date();
@@ -77,6 +81,7 @@ async function executeImportImpl({
     userId,
     rowsToImport,
     accountMapping,
+    defaultAccountId,
   });
 
   // Create categories that need to be created
@@ -112,7 +117,7 @@ async function executeImportImpl({
         continue;
       }
 
-      const categoryId = row.categoryName ? categoryNameToId.get(row.categoryName) : null;
+      const categoryId = row.categoryName ? categoryNameToId.get(row.categoryName) : defaultCategoryId;
 
       // Calculate refAmount
       // Note: row.amount is already in cents (from parseAmount in detect-duplicates)
@@ -185,12 +190,14 @@ interface CreateAccountsParams {
   userId: number;
   rowsToImport: ParsedTransactionRow[];
   accountMapping: AccountMappingConfig;
+  defaultAccountId?: number;
 }
 
 async function createAccountsIfNeeded({
   userId,
   rowsToImport,
   accountMapping,
+  defaultAccountId,
 }: CreateAccountsParams): Promise<Map<string, number>> {
   const accountNameToId = new Map<string, number>();
 
@@ -201,6 +208,19 @@ async function createAccountsIfNeeded({
     const mapping = accountMapping[accountName];
 
     if (!mapping) {
+      // Fallback: when the user picked "single existing account" for the whole import,
+      // accountName is empty for every row and per-name mapping is empty. Use defaultAccountId.
+      if (defaultAccountId !== undefined) {
+        const account = await Accounts.getAccountById({ userId, id: defaultAccountId });
+        if (!account) {
+          throw new ValidationError({
+            message: `Account with ID ${defaultAccountId} not found`,
+          });
+        }
+        accountNameToId.set(accountName, account.id);
+        continue;
+      }
+
       throw new ValidationError({
         message: `No mapping found for account "${accountName}"`,
       });

@@ -132,6 +132,8 @@ interface ExecuteImportParams {
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
   skipDuplicateIndices: number[];
+  defaultAccountId?: number;
+  defaultCategoryId?: number;
 }
 
 export function executeImport<R extends boolean | undefined = false>({

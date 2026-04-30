@@ -392,6 +392,78 @@ describe('Execute Import endpoint', () => {
     });
   });
 
+  describe('single existing account/category fallbacks', () => {
+    // Reproduces the bug where the user picks "assign all rows to a single existing account"
+    // in the column-mapping step. detectDuplicates returns rows with accountName === ""
+    // (because there is no account column to read from) and accountMapping is empty.
+    // executeImport must fall back to defaultAccountId for those rows.
+    it('should import rows with empty accountName when defaultAccountId is provided', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows = createValidRows({
+        accountName: '',
+        currencyCode: account.currencyCode,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {},
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+          defaultAccountId: account.id,
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(3);
+      expect(result.summary.errors).toHaveLength(0);
+      expect(result.newTransactionIds).toHaveLength(3);
+
+      const transactions = await helpers.getTransactions({ raw: true });
+      const created = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+      expect(created).toHaveLength(3);
+      expect(created.every((tx) => tx.accountId === account.id)).toBe(true);
+    });
+
+    // Reproduces the silent bug where the user picks "assign all rows to a single existing
+    // category". detectDuplicates returns rows with categoryName === undefined and
+    // categoryMapping is empty. Without a fallback the transactions are imported with no
+    // category at all, even though the user explicitly chose one.
+    it('should assign defaultCategoryId to rows with undefined categoryName', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const existingCategories = await helpers.getCategoriesList();
+      const categoryId = existingCategories[0]!.id;
+
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      }).map((row) => ({ ...row, categoryName: undefined }));
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+          defaultCategoryId: categoryId,
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(3);
+      expect(result.summary.errors).toHaveLength(0);
+
+      const transactions = await helpers.getTransactions({ raw: true });
+      const created = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+      expect(created).toHaveLength(3);
+      expect(created.every((tx) => tx.categoryId === categoryId)).toBe(true);
+    });
+  });
+
   describe('mixed account and category mappings', () => {
     it('should handle mixed account mappings (some new, some existing)', async () => {
       const accountsBefore = await helpers.getAccounts();

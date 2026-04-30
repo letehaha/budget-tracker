@@ -194,6 +194,10 @@ export interface ExecuteImportRequest {
   categoryMapping: CategoryMappingConfig;
   /** Row indices to skip (confirmed duplicates) */
   skipDuplicateIndices: number[];
+  /** Fallback account for rows whose accountName is empty (used when "single existing account" was chosen) */
+  defaultAccountId?: number;
+  /** Fallback category for rows whose categoryName is empty (used when "single existing category" was chosen) */
+  defaultCategoryId?: number;
 }
 
 /**
