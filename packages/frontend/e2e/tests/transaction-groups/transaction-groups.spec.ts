@@ -132,8 +132,9 @@ test.describe('Transaction Groups', () => {
     const groupRow = page.locator('.border-dashed').filter({ hasText: 'E2E Test Group' });
     await expect(groupRow).toBeVisible({ timeout: 10_000 });
 
-    // Should show "3" somewhere in the count text
-    await expect(groupRow.getByText('3')).toBeVisible();
+    // Match the count <p> specifically so we don't collide with dates that start with "3"
+    // (e.g. "30 Apr 2026", which previously caused a strict-mode locator violation).
+    await expect(groupRow.getByText('3 transactions')).toBeVisible();
   });
 
   // ─── 3. Click on group row opens group detail dialog ────────────────
