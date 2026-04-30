@@ -5,7 +5,7 @@
  * API Documentation: https://enablebanking.com/docs/api/reference
  */
 import { t } from '@i18n/index';
-import { BadGateway, BadRequestError, ForbiddenError } from '@js/errors';
+import { BadGateway, BadRequestError, ForbiddenError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import axios, { AxiosInstance } from 'axios';
 
@@ -166,6 +166,17 @@ export class EnableBankingApiClient {
       });
       return response.data;
     } catch (error) {
+      // User-side misconfig: their Enable Banking app's redirect URL allowlist
+      // doesn't include the URL we sent. Surface as a validation error so it
+      // reaches the user instead of crashing into Sentry.
+      if (axios.isAxiosError(error) && error.response?.data?.error === 'REDIRECT_URI_NOT_ALLOWED') {
+        throw new ValidationError({
+          message: t({
+            key: 'bankDataProviders.enableBanking.redirectUriNotAllowed',
+            variables: { redirectUrl: request.redirect_url },
+          }),
+        });
+      }
       this.handleApiError(error, 'startAuthorization');
     }
   }

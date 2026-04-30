@@ -31,7 +31,9 @@ describe('Enable Banking Data Provider E2E', () => {
   describe('Complete connection flow', () => {
     it('should complete the full OAuth flow: list providers -> connect -> OAuth callback -> list connections -> list external accounts -> connect accounts -> get details', async () => {
       // Step 1: Fetch supported providers
-      const { providers } = await helpers.bankDataProviders.getSupportedBankProviders({ raw: true });
+      const { providers } = await helpers.bankDataProviders.getSupportedBankProviders({
+        raw: true,
+      });
 
       expect(Array.isArray(providers)).toBe(true);
       expect(providers.length).toBeGreaterThan(0);
@@ -154,7 +156,9 @@ describe('Enable Banking Data Provider E2E', () => {
 
   describe('Step 1: List supported providers', () => {
     it('should include Enable Banking in providers list', async () => {
-      const { providers } = await helpers.bankDataProviders.getSupportedBankProviders({ raw: true });
+      const { providers } = await helpers.bankDataProviders.getSupportedBankProviders({
+        raw: true,
+      });
 
       const enableBankingProvider = providers.find(
         (p: { type: string }) => p.type === BANK_PROVIDER_TYPE.ENABLE_BANKING,
@@ -269,6 +273,39 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(metadata.authUrl).toBeDefined();
       expect(metadata.bankName).toBe(MOCK_BANK_NAME);
       expect(metadata.bankCountry).toBe(MOCK_BANK_COUNTRY);
+    });
+
+    it('should return user-facing validation error when Enable Banking rejects redirect URI', async () => {
+      // Simulate the user not having registered our redirect URL on their
+      // Enable Banking app (the cause of MONEY-MATTER-BACKEND-3Q).
+      global.mswMockServer.use(
+        http.post('https://api.enablebanking.com/auth', () => {
+          return HttpResponse.json(
+            {
+              code: 400,
+              error: 'REDIRECT_URI_NOT_ALLOWED',
+              message: 'Redirect URI not allowed',
+              detail: null,
+            },
+            { status: 400 },
+          );
+        }),
+      );
+
+      const credentials = helpers.enablebanking.mockCredentials();
+      const result = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.ENABLE_BANKING}/connect`,
+        payload: { credentials },
+      });
+
+      // Should NOT be a 5xx/BadGateway (which would crash to Sentry); should be
+      // a clear ValidationError that the UI can display verbatim.
+      expect(result.status).toEqual(ERROR_CODES.ValidationError);
+      // The message must include the URL we sent, so the user knows exactly
+      // which URL to add to their Enable Banking app's allowlist.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((result.body as any).response.message).toContain(credentials.redirectUrl);
     });
   });
 
@@ -714,7 +751,10 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       const createdAccount = syncedAccounts[0]!;
-      const account = await helpers.getAccount({ id: createdAccount.id, raw: true });
+      const account = await helpers.getAccount({
+        id: createdAccount.id,
+        raw: true,
+      });
 
       expect(account.currentBalance).toBe(selectedExternal.balance);
       expect(account.initialBalance).toBe(selectedExternal.balance);
@@ -1150,8 +1190,14 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(account2Id).toBeDefined();
 
       // Verify accounts have externalIds based on identification_hash
-      const account1Before = await helpers.getAccount({ id: account1Id!, raw: true });
-      const account2Before = await helpers.getAccount({ id: account2Id!, raw: true });
+      const account1Before = await helpers.getAccount({
+        id: account1Id!,
+        raw: true,
+      });
+      const account2Before = await helpers.getAccount({
+        id: account2Id!,
+        raw: true,
+      });
       expect(account1Before.externalId).toBe(MOCK_IDENTIFICATION_HASH_1);
       expect(account2Before.externalId).toBe(MOCK_IDENTIFICATION_HASH_2);
 
@@ -1175,8 +1221,14 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       // Step 4: Verify externalIds remain STABLE (identification_hash doesn't change)
-      const account1After = await helpers.getAccount({ id: account1Id!, raw: true });
-      const account2After = await helpers.getAccount({ id: account2Id!, raw: true });
+      const account1After = await helpers.getAccount({
+        id: account1Id!,
+        raw: true,
+      });
+      const account2After = await helpers.getAccount({
+        id: account2Id!,
+        raw: true,
+      });
 
       // externalId should be the same since identification_hash is stable across sessions
       expect(account1After.externalId).toBe(MOCK_IDENTIFICATION_HASH_1);
@@ -1271,7 +1323,10 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       // Verify account externalId remains stable (identification_hash doesn't change)
-      const accountAfterReconnect = await helpers.getAccount({ id: accountId, raw: true });
+      const accountAfterReconnect = await helpers.getAccount({
+        id: accountId,
+        raw: true,
+      });
       expect(accountAfterReconnect.externalId).toBe(MOCK_IDENTIFICATION_HASH_1);
 
       // Trigger transaction sync - this should work with stable externalId
@@ -1320,7 +1375,10 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       const accountId = syncedAccounts[0]!.id;
-      const accountBefore = await helpers.getAccount({ id: accountId, raw: true });
+      const accountBefore = await helpers.getAccount({
+        id: accountId,
+        raw: true,
+      });
 
       // Reauthorize and complete OAuth
       await helpers.makeRequest({
@@ -1340,7 +1398,10 @@ describe('Enable Banking Data Provider E2E', () => {
         },
       });
 
-      const accountAfter = await helpers.getAccount({ id: accountId, raw: true });
+      const accountAfter = await helpers.getAccount({
+        id: accountId,
+        raw: true,
+      });
 
       // All data should be preserved including externalId (based on stable identification_hash)
       expect(accountAfter.id).toBe(accountBefore.id);
@@ -1418,7 +1479,9 @@ describe('Enable Banking Data Provider E2E', () => {
       const accountId = syncedAccounts[0]!.id;
 
       // Get balance history count after account connection
-      const balanceHistoryBefore = await helpers.getBalanceHistory({ raw: true });
+      const balanceHistoryBefore = await helpers.getBalanceHistory({
+        raw: true,
+      });
       const accountBalancesBefore = balanceHistoryBefore.filter(
         (b: { accountId: number }) => b.accountId === accountId,
       );
@@ -1442,7 +1505,9 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(transactions.length).toBeGreaterThan(0);
 
       // Get balance history count after transaction sync
-      const balanceHistoryAfter = await helpers.getBalanceHistory({ raw: true });
+      const balanceHistoryAfter = await helpers.getBalanceHistory({
+        raw: true,
+      });
       const accountBalancesAfter = balanceHistoryAfter.filter((b: { accountId: number }) => b.accountId === accountId);
 
       // Balance history SHOULD be maintained after transaction sync
@@ -1480,7 +1545,9 @@ describe('Enable Banking Data Provider E2E', () => {
       const accountId = syncedAccounts[0]!.id;
 
       // Get balance history after initial connection
-      const balanceHistoryBefore = await helpers.getBalanceHistory({ raw: true });
+      const balanceHistoryBefore = await helpers.getBalanceHistory({
+        raw: true,
+      });
       const accountBalancesBefore = balanceHistoryBefore.filter(
         (b: { accountId: number }) => b.accountId === accountId,
       );
@@ -1515,7 +1582,9 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       // Get balance history after reauthorization and sync
-      const balanceHistoryAfter = await helpers.getBalanceHistory({ raw: true });
+      const balanceHistoryAfter = await helpers.getBalanceHistory({
+        raw: true,
+      });
       const accountBalancesAfter = balanceHistoryAfter.filter((b: { accountId: number }) => b.accountId === accountId);
 
       // Balance history SHOULD be maintained after refresh/resync
@@ -1730,7 +1799,10 @@ describe('Enable Banking Data Provider E2E', () => {
      * Helper to create a fully-active connection with one linked account.
      * Returns connectionId and the linked system accountId.
      */
-    async function setupActiveConnection(): Promise<{ connectionId: number; accountId: number }> {
+    async function setupActiveConnection(): Promise<{
+      connectionId: number;
+      accountId: number;
+    }> {
       const connectResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
@@ -1800,7 +1872,9 @@ describe('Enable Banking Data Provider E2E', () => {
 
       // Verify consentValidUntil is a future date before sync
       const connectionBefore = await BankDataProviderConnections.findByPk(connectionId);
-      const metadataBefore = connectionBefore!.metadata as { consentValidUntil: string };
+      const metadataBefore = connectionBefore!.metadata as {
+        consentValidUntil: string;
+      };
       expect(new Date(metadataBefore.consentValidUntil).getTime()).toBeGreaterThan(Date.now());
 
       const syncStartedAt = new Date();
@@ -1820,7 +1894,9 @@ describe('Enable Banking Data Provider E2E', () => {
 
       // Verify consentValidUntil is now set to approximately the current time
       const connectionAfter = await BankDataProviderConnections.findByPk(connectionId);
-      const metadataAfter = connectionAfter!.metadata as { consentValidUntil: string };
+      const metadataAfter = connectionAfter!.metadata as {
+        consentValidUntil: string;
+      };
       expect(metadataAfter.consentValidUntil).toBeDefined();
 
       const consentValidUntil = new Date(metadataAfter.consentValidUntil);
@@ -1900,11 +1976,16 @@ describe('Enable Banking Data Provider E2E', () => {
           }),
         );
 
-        const result = await helpers.bankDataProviders.listExternalAccounts({ connectionId });
+        const result = await helpers.bankDataProviders.listExternalAccounts({
+          connectionId,
+        });
 
         expect(result.status).toEqual(ERROR_CODES.Forbidden);
 
-        const { connection } = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+        const { connection } = await helpers.bankDataProviders.getConnectionDetails({
+          connectionId,
+          raw: true,
+        });
         expect(connection.isActive).toBe(false);
       });
 
@@ -1917,11 +1998,16 @@ describe('Enable Banking Data Provider E2E', () => {
           }),
         );
 
-        const result = await helpers.bankDataProviders.listExternalAccounts({ connectionId });
+        const result = await helpers.bankDataProviders.listExternalAccounts({
+          connectionId,
+        });
 
         expect(result.status).toEqual(ERROR_CODES.Forbidden);
 
-        const { connection } = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+        const { connection } = await helpers.bankDataProviders.getConnectionDetails({
+          connectionId,
+          raw: true,
+        });
         expect(connection.isActive).toBe(false);
       });
 
@@ -1939,7 +2025,9 @@ describe('Enable Banking Data Provider E2E', () => {
         await helpers.bankDataProviders.listExternalAccounts({ connectionId });
 
         const dbConnection = await BankDataProviderConnections.findByPk(connectionId);
-        const metadata = dbConnection!.metadata as { consentValidUntil: string };
+        const metadata = dbConnection!.metadata as {
+          consentValidUntil: string;
+        };
         const consentValidUntil = new Date(metadata.consentValidUntil);
 
         expect(consentValidUntil.getTime()).toBeGreaterThanOrEqual(syncStartedAt.getTime() - 1000);
@@ -1955,18 +2043,26 @@ describe('Enable Banking Data Provider E2E', () => {
           }),
         );
 
-        const result = await helpers.bankDataProviders.listExternalAccounts({ connectionId });
+        const result = await helpers.bankDataProviders.listExternalAccounts({
+          connectionId,
+        });
 
         expect(result.status).toEqual(ERROR_CODES.BadGateway);
 
-        const { connection } = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+        const { connection } = await helpers.bankDataProviders.getConnectionDetails({
+          connectionId,
+          raw: true,
+        });
         expect(connection.isActive).toBe(true);
       });
     });
   });
 
   describe('getConnectionDetails resilience to malformed stored data', () => {
-    async function setupActiveConnection(): Promise<{ connectionId: number; accountId: number }> {
+    async function setupActiveConnection(): Promise<{
+      connectionId: number;
+      accountId: number;
+    }> {
       const connectResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
@@ -2009,7 +2105,9 @@ describe('Enable Banking Data Provider E2E', () => {
           replacements: { accountId },
         });
 
-        const response = await helpers.bankDataProviders.getConnectionDetails({ connectionId });
+        const response = await helpers.bankDataProviders.getConnectionDetails({
+          connectionId,
+        });
         expect(response.statusCode).toBe(200);
 
         const { connection } = await helpers.bankDataProviders.getConnectionDetails({
@@ -2032,11 +2130,19 @@ describe('Enable Banking Data Provider E2E', () => {
       const dbRow = await BankDataProviderConnections.findByPk(connectionId);
       const existingMetadata = (dbRow!.metadata as Record<string, unknown>) || {};
       await BankDataProviderConnections.update(
-        { metadata: { ...existingMetadata, consentValidUntil: 'not-a-date', consentValidFrom: 'also-bad' } },
+        {
+          metadata: {
+            ...existingMetadata,
+            consentValidUntil: 'not-a-date',
+            consentValidFrom: 'also-bad',
+          },
+        },
         { where: { id: connectionId } },
       );
 
-      const response = await helpers.bankDataProviders.getConnectionDetails({ connectionId });
+      const response = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId,
+      });
       expect(response.statusCode).toBe(200);
 
       const { connection } = await helpers.bankDataProviders.getConnectionDetails({
@@ -2059,7 +2165,10 @@ describe('Enable Banking Data Provider E2E', () => {
     it('connect: should surface a provider 5xx as 502 BadGateway, not as invalid credentials', async () => {
       global.mswMockServer.use(
         http.get(APPLICATION_URL, () => {
-          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+          return new HttpResponse(null, {
+            status: 500,
+            statusText: 'Internal Server Error',
+          });
         }),
       );
 
@@ -2084,7 +2193,10 @@ describe('Enable Banking Data Provider E2E', () => {
 
       global.mswMockServer.use(
         http.get(APPLICATION_URL, () => {
-          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+          return new HttpResponse(null, {
+            status: 500,
+            statusText: 'Internal Server Error',
+          });
         }),
       );
 
