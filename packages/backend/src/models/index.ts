@@ -117,7 +117,8 @@ const sequelize = new Sequelize({
   models,
   pool: {
     max: 50,
-    evict: 10000,
+    min: 5,
+    evict: 60_000,
   },
   logging: process.env.DB_QUERY_LOGGING === 'true',
 });
