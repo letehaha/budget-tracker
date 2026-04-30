@@ -1,5 +1,6 @@
 {
   "oxc.fmt.configPath": ".oxfmtrc.json",
+  "prettier.enable": false,
   "editor.defaultFormatter": "oxc.oxc-vscode",
   "editor.formatOnSave": true,
   "[vue]": {
