@@ -5,6 +5,8 @@ import { i18nextReady } from '@i18n/index';
 import * as categoriesService from '@services/categories.service';
 import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
+import { randomBytes } from 'crypto';
+import { UniqueConstraintError } from 'sequelize';
 
 /**
  * Creates a new app user with default categories, subcategories, and tags.
@@ -31,11 +33,11 @@ export async function createUserWithDefaults({
   // Get translated categories for the user's locale
   const translatedCategories = getTranslatedCategories({ locale });
 
-  // Create the app user linked to the auth user
-  const appUser = await userService.createUser({
-    username,
-    authUserId,
-  });
+  // Create the app user linked to the auth user. Username is unique at the DB
+  // level, but the value here comes from the auth provider's `name` (or email
+  // prefix), which is not guaranteed unique across users. On collision, retry
+  // once with a random suffix — the chance of a second collision is negligible.
+  const appUser = await createUserWithUniqueUsername({ username, authUserId });
 
   // Create default categories for the new user
   const defaultCategories = translatedCategories.main.map((item) => ({
@@ -116,4 +118,18 @@ export async function createUserWithDefaults({
   }
 
   return appUser;
+}
+
+async function createUserWithUniqueUsername({ username, authUserId }: { username: string; authUserId: string }) {
+  try {
+    return await userService.createUser({ username, authUserId });
+  } catch (error) {
+    const isUsernameConflict =
+      error instanceof UniqueConstraintError && error.errors?.some((e) => e.path === 'username');
+
+    if (!isUsernameConflict) throw error;
+
+    const uniqueUsername = `${username}-${randomBytes(4).toString('hex')}`;
+    return userService.createUser({ username: uniqueUsername, authUserId });
+  }
 }

@@ -47,10 +47,14 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
               logger.info(`Rate limit hit on Polygon daily prices (attempt ${attempt}), retrying...`);
               return true;
             }
-            logger.error({ message: `Non-retryable error on Polygon daily prices (attempt ${attempt}).`, error });
+            // Composite provider aggregates and reports if all providers fail.
+            const errorMsg = error.response?.data?.message || error.message;
+            logger.info(`Non-retryable error on Polygon daily prices (attempt ${attempt}): ${errorMsg}`);
             return false; // stop retrying
           } else {
-            logger.error({ message: 'Unexpected error', error: error as Error });
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            logger.info(`Unexpected error on Polygon daily prices (attempt ${attempt}): ${errorMsg}`);
+            return false; // stop retrying
           }
         },
       },

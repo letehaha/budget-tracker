@@ -170,6 +170,25 @@ export class LunchFlowProvider extends BaseBankDataProvider {
       activeAccounts.map((account) => apiClient.getBalance({ accountId: account.id })),
     );
 
+    // Per-account balance failures are expected (fall back to 0). But when
+    // most accounts in one sync fail simultaneously, that's a strong signal
+    // the balance API itself is degraded — escalate to Sentry. Min count of 2
+    // avoids firing for single-account connections where one bad account
+    // would otherwise look like a 100% failure rate.
+    const rejectedCount = balanceResults.filter((r) => r.status === 'rejected').length;
+    if (rejectedCount >= 2 && rejectedCount / activeAccounts.length > 0.5) {
+      logger.error(
+        {
+          message: '[LunchFlow] Majority of balance fetches failed in a single sync. Possible API degradation.',
+        },
+        {
+          connectionId,
+          rejectedCount,
+          accountCount: activeAccounts.length,
+        },
+      );
+    }
+
     return activeAccounts.reduce<ProviderAccount[]>((result, account, index) => {
       const balanceResult = balanceResults[index]!;
       let balance: Cents = asCents(0);
