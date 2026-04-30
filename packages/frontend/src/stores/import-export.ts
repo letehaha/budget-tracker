@@ -1,8 +1,10 @@
 import {
   type AccountMappingConfig,
   type AccountOption,
+  AccountOptionValue,
   type CategoryMappingConfig,
   type CategoryOption,
+  CategoryOptionValue,
   type CurrencyOption,
   type DetectDuplicatesResponse,
   type DuplicateMatch,
@@ -122,7 +124,7 @@ export const useImportExportStore = defineStore('importExport', () => {
       fileContent: fileContent.value,
     });
 
-    csvHeaders.value = response.headers;
+    csvHeaders.value = response.headers.filter((h) => h !== '');
     csvPreview.value = response.preview;
     detectedDelimiter.value = response.detectedDelimiter;
     totalRows.value = response.totalRows;
@@ -180,11 +182,21 @@ export const useImportExportStore = defineStore('importExport', () => {
         .filter((d) => !unmarkedDuplicateIndices.value.has(d.rowIndex))
         .map((d) => d.rowIndex);
 
+      const accountOption = columnMapping.value.account;
+      const defaultAccountId =
+        accountOption?.option === AccountOptionValue.existingAccount ? accountOption.accountId : undefined;
+
+      const categoryOption = columnMapping.value.category;
+      const defaultCategoryId =
+        categoryOption?.option === CategoryOptionValue.existingCategory ? categoryOption.categoryId : undefined;
+
       const response = await executeImportApi({
         validRows: validRows.value,
         accountMapping: accountMapping.value,
         categoryMapping: categoryMapping.value,
         skipDuplicateIndices,
+        defaultAccountId,
+        defaultCategoryId,
       });
 
       importResult.value = response;
