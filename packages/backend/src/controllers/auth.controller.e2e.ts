@@ -31,6 +31,26 @@ describe('Auth Integration', () => {
       expect(res.body.user).toBeDefined();
     });
 
+    it('should succeed when the requested username already exists (handles unique constraint)', async () => {
+      // The default integration test user has username='test1'.
+      // Signing up with the same name would conflict on the unique
+      // username column inside the `databaseHooks.user.create.after` hook.
+      // Without proper handling, the hook re-throws the
+      // SequelizeUniqueConstraintError and the auth endpoint fails.
+      const res = await makeAuthRequest({
+        method: 'post',
+        url: '/auth/sign-up/email',
+        payload: {
+          email: 'second@test.local',
+          password: 'password123',
+          name: 'test1',
+        },
+      });
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.user).toBeDefined();
+    });
+
     it('should route sign-in endpoint correctly', async () => {
       const res = await makeAuthRequest({
         method: 'post',
