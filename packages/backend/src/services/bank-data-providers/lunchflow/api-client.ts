@@ -82,17 +82,17 @@ export class LunchFlowApiClient {
   }
 
   /**
-   * Handle API errors with proper logging and throw appropriate custom errors
+   * Map raw axios errors to typed application errors.
+   * Callers decide whether to log/report — this method does not log to avoid
+   * duplicate Sentry events when callers gracefully handle the error
+   * (e.g., Promise.allSettled fallback paths).
    */
   private handleApiError(error: unknown, method: string): never {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       const errorMessage = error.response?.data?.message;
 
-      logger.error({
-        message: `[LunchFlowApiClient] ${method} failed: status=${status}, errorMessage=${errorMessage}`,
-        error,
-      });
+      logger.info(`[LunchFlowApiClient] ${method} failed: status=${status}, errorMessage=${errorMessage}`);
 
       if (status === 401 || status === 403) {
         throw new ForbiddenError({
@@ -114,10 +114,6 @@ export class LunchFlowApiClient {
       }
     }
 
-    logger.error({
-      message: `[LunchFlowApiClient] ${method} unexpected error:`,
-      error: error as Error,
-    });
     throw error;
   }
 }

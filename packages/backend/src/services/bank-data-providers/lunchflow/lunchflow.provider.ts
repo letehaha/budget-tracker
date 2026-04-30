@@ -179,7 +179,9 @@ export class LunchFlowProvider extends BaseBankDataProvider {
         balance = Money.fromDecimal(balanceResult.value.balance.amount).toCents();
         currency = balanceResult.value.balance.currency || currency;
       } else {
-        logger.warn(`[LunchFlow] Failed to fetch balance for account ${account.id}, defaulting to 0`);
+        const reason =
+          balanceResult.reason instanceof Error ? balanceResult.reason.message : String(balanceResult.reason);
+        logger.info(`[LunchFlow] Failed to fetch balance for account ${account.id}, defaulting to 0: ${reason}`);
       }
 
       if (!currency) {

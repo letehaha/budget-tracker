@@ -100,14 +100,25 @@ async function categorizeBatch({
       },
     };
   } catch (error) {
-    logger.error({ message: 'AI categorization batch failed', error: error as Error });
+    const isTemp = isTemporaryError(error);
+    const isAuth = isAuthError(error);
+
+    if (isTemp || isAuth) {
+      // Handled by parent: temporary errors return early, auth errors fall back to server key.
+      // Avoid Sentry noise for these expected paths.
+      logger.info(
+        `AI categorization batch failed (handled: ${isTemp ? 'temporary' : 'auth'}): ${(error as Error).message}`,
+      );
+    } else {
+      logger.error({ message: 'AI categorization batch failed', error: error as Error });
+    }
 
     return {
       successful: [],
       failed: transactions.map((t) => t.id),
       errors: [(error as Error).message],
-      isAuthError: isAuthError(error),
-      isTemporaryError: isTemporaryError(error),
+      isAuthError: isAuth,
+      isTemporaryError: isTemp,
     };
   }
 }

@@ -107,6 +107,8 @@ function loggerErrorHandler(
     messageResult = `${messageParam.message} \n ${formatErrorToString(messageParam.error)}`;
   } else if (messageParam.error) {
     messageResult = formatErrorToString(messageParam.error);
+  } else if (messageParam.message) {
+    messageResult = messageParam.message;
   } else {
     messageResult = 'Default error message from logger';
   }

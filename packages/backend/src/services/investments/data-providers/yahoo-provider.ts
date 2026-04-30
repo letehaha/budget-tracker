@@ -193,7 +193,9 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        logger.error(`Failed to fetch price for ${symbol}: ${errorMessage}`);
+        // Per-symbol failures are expected (delisted, unsupported by provider, etc.).
+        // The composite provider aggregates and reports if ALL providers fail.
+        logger.info(`Failed to fetch price for ${symbol}: ${errorMessage}`);
       }
     }
 
