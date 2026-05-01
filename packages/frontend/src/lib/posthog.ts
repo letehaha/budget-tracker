@@ -41,6 +41,8 @@ type AnalyticsEvent =
   | { event: 'ai_settings_visited' }
   | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } }
   // Feedback
+  | { event: 'feedback_button_clicked' }
+  | { event: 'feedback_button_hovered' }
   | {
       event: 'user_feedback_submitted';
       properties: {

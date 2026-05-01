@@ -5,9 +5,10 @@ import Label from '@/components/lib/ui/label/Label.vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/lib/ui/select';
 import { useNotificationCenter } from '@/components/notification-center';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import { MessageSquareIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import FeedbackPulseButton from './feedback-pulse-button.vue';
 
 type FeedbackType = 'bug' | 'feature_request' | 'other';
 
@@ -59,10 +60,7 @@ const submit = () => {
 <template>
   <ResponsiveDialog v-model:open="isOpen">
     <template #trigger>
-      <ui-button variant="ghost-primary" class="w-full justify-start gap-2 px-3" size="default">
-        <MessageSquareIcon class="size-4 shrink-0" />
-        <span>{{ t('dialogs.feedback.sidebarButton') }}</span>
-      </ui-button>
+      <FeedbackPulseButton :label="t('dialogs.feedback.sidebarButton')" />
     </template>
 
     <template #title>{{ t('dialogs.feedback.title') }}</template>
