@@ -2,6 +2,7 @@ import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { requestContext } from '@common/request-context';
 import { i18nextReady } from '@i18n/index';
+import { logger } from '@js/utils/logger';
 import * as categoriesService from '@services/categories.service';
 import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
@@ -55,6 +56,14 @@ export async function createAppUserWithUniqueUsername({
     if (!isUsernameConflict) throw error;
 
     const uniqueUsername = `${slug}-${randomBytes(4).toString('hex')}`;
+
+    // Surface collision retries so a sudden spike (or a slug pointing at a
+    // popular human name) is visible in logs / log-based metrics. Without
+    // this, the first-attempt failure is swallowed entirely.
+    logger.warn(
+      `Username collision on signup: requested="${slug}", retrying with="${uniqueUsername}", authUserId="${authUserId}"`,
+    );
+
     return userService.createUser({ username: uniqueUsername, ...baseInput });
   }
 }

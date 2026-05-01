@@ -99,6 +99,48 @@ describe('Signup flow', () => {
       expect(appUser!.lastName).toBeNull();
     });
 
+    it('should treat a whitespace-only name as missing and fall through to the email-prefix branch', async () => {
+      // Without trimming at the source, "   " is truthy in JS and would skip
+      // the email-prefix fallback, yielding the generic "user" slug. The hook
+      // trims so the email prefix is preferred over a meaningless fallback.
+      const res = await makeAuthRequest({
+        method: 'post',
+        url: '/auth/sign-up/email',
+        payload: {
+          email: 'whitespace-only@test.local',
+          password: 'password123',
+          name: '   ',
+        },
+      });
+
+      expect(res.statusCode).toEqual(200);
+      const appUser = await Users.findOne({ where: { authUserId: res.body.user.id }, raw: true });
+      expect(appUser).not.toBeNull();
+      expect(appUser!.username).toMatch(/^whitespace-only(-[0-9a-f]{8})?$/);
+      expect(appUser!.firstName).toBeNull();
+      expect(appUser!.middleName).toBeNull();
+      expect(appUser!.lastName).toBeNull();
+    });
+
+    it('should trim leading/trailing whitespace before slugifying and parsing the name', async () => {
+      const res = await makeAuthRequest({
+        method: 'post',
+        url: '/auth/sign-up/email',
+        payload: {
+          email: 'padded-name@test.local',
+          password: 'password123',
+          name: '   Felix Ironwood   ',
+        },
+      });
+
+      expect(res.statusCode).toEqual(200);
+      const appUser = await Users.findOne({ where: { authUserId: res.body.user.id }, raw: true });
+      expect(appUser).not.toBeNull();
+      expect(appUser!.username).toEqual('felix-ironwood');
+      expect(appUser!.firstName).toEqual('Felix');
+      expect(appUser!.lastName).toEqual('Ironwood');
+    });
+
     it('should handle two distinct emails sharing the same name without affecting each other', async () => {
       // Two new signups with the same fresh name (not colliding with the seed
       // user) — first succeeds with the literal name, second must take the

@@ -312,18 +312,22 @@ export const auth = betterAuth({
         //      to Sentry and return — better than locking out a working
         //      account because of a non-critical seed step.
         after: async (user) => {
+          // Trim user.name at the source so whitespace-only values (e.g. " ")
+          // are treated as missing — without this they're truthy and skip
+          // the email-prefix fallback, producing a generic "user" slug.
+          const trimmedName = typeof user.name === 'string' ? user.name.trim() : '';
           // `username` becomes the slug; `fullName` becomes firstName/lastName.
           // We deliberately don't pass the email-prefix or "user" fallbacks as
           // fullName — those aren't real human names and would clutter the
           // display fields.
-          const usernameSource = user.name || user.email?.split('@')[0] || 'user';
+          const usernameSource = trimmedName || user.email?.split('@')[0] || 'user';
           let appUser: Awaited<ReturnType<typeof createAppUserWithUniqueUsername>>;
 
           try {
             logger.info(`Creating app user profile for auth user: ${user.id}`);
             appUser = await createAppUserWithUniqueUsername({
               username: usernameSource,
-              fullName: user.name,
+              fullName: trimmedName || null,
               authUserId: user.id,
             });
             logger.info(`Successfully created app user profile with id: ${appUser.id}`);
