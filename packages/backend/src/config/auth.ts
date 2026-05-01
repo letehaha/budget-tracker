@@ -4,7 +4,8 @@ import { OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import { createSessionHooks } from '@config/auth-hooks/session-hooks';
 import { logger } from '@js/utils/logger';
 import { identifyUser, trackSignup } from '@js/utils/posthog';
-import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
+import { captureException } from '@js/utils/sentry';
+import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import bcrypt from 'bcryptjs';
 import { betterAuth } from 'better-auth';
 import { jwt } from 'better-auth/plugins';
@@ -295,19 +296,88 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        // After a new auth user is created, create the app user profile
+        // After a new auth user is created, create the matching app user.
+        //
+        // Better-auth commits ba_user/ba_account BEFORE this hook fires, so
+        // failures here have two distinct shapes:
+        //
+        //   1. App-user creation fails (no Users row at all). The user is
+        //      unusable: they can't retry signup (email taken in ba_user) and
+        //      can't sign in (no app user → 401). We delete the orphan
+        //      ba_user (cascades to ba_account/ba_session) and re-throw so
+        //      the signup endpoint returns 5xx and the client can retry.
+        //
+        //   2. Default seeding fails AFTER the user row exists. The account
+        //      is usable; categories/tags can be reconciled manually. We log
+        //      to Sentry and return — better than locking out a working
+        //      account because of a non-critical seed step.
         after: async (user) => {
+          const requestedName = user.name || user.email?.split('@')[0] || 'user';
+          let appUser: Awaited<ReturnType<typeof createAppUserWithUniqueUsername>>;
+
           try {
             logger.info(`Creating app user profile for auth user: ${user.id}`);
-
-            const appUser = await createUserWithDefaults({
-              username: user.name || user.email?.split('@')[0] || 'user',
+            appUser = await createAppUserWithUniqueUsername({
+              username: requestedName,
               authUserId: user.id,
             });
-
             logger.info(`Successfully created app user profile with id: ${appUser.id}`);
+          } catch (error) {
+            logger.error({
+              message: 'Failed to create app user — rolling back ba_user',
+              error: error as Error,
+            });
+            captureException({
+              error,
+              context: {
+                stage: 'createAppUserWithUniqueUsername',
+                authUserId: user.id,
+                email: user.email,
+                requestedName: user.name,
+                errorName: error instanceof Error ? error.name : 'unknown',
+              },
+            });
 
-            // Track signup in PostHog
+            // Compensating delete so the email is freed and the user can
+            // retry signup. ba_account / ba_session cascade via FK.
+            try {
+              await pool.query('DELETE FROM ba_user WHERE id = $1', [user.id]);
+            } catch (rollbackError) {
+              captureException({
+                error: rollbackError,
+                context: {
+                  stage: 'rollbackOrphanBaUser',
+                  authUserId: user.id,
+                  email: user.email,
+                  originalError: error instanceof Error ? error.message : String(error),
+                },
+              });
+            }
+
+            throw error;
+          }
+
+          try {
+            await seedUserDefaults({ userId: appUser.id });
+          } catch (error) {
+            logger.error({
+              message: 'Failed to seed default categories/tags for new user (non-fatal)',
+              error: error as Error,
+            });
+            captureException({
+              error,
+              context: {
+                stage: 'seedUserDefaults',
+                authUserId: user.id,
+                appUserId: appUser.id,
+                errorName: error instanceof Error ? error.name : 'unknown',
+              },
+            });
+            // Do NOT re-throw: the user has a usable app account, partial
+            // seed state is recoverable manually.
+          }
+
+          try {
             identifyUser({
               userId: appUser.id,
               properties: {
@@ -327,9 +397,11 @@ export const auth = betterAuth({
               username: appUser.username,
               method: 'email',
             });
-          } catch (error) {
-            logger.error({ message: 'Failed to create app user profile', error: error as Error });
-            throw error;
+          } catch (analyticsError) {
+            logger.warn('Analytics tracking failed during signup (non-fatal)', {
+              error: analyticsError instanceof Error ? analyticsError.message : String(analyticsError),
+              authUserId: user.id,
+            });
           }
         },
       },
