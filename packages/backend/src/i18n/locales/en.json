@@ -257,6 +257,9 @@
     "excludedCategoriesNotFound": "One or more excluded categories not found",
     "userSettingsNotFound": "User settings not found"
   },
+  "users": {
+    "usernameAlreadyTaken": "Username \"{{username}}\" is already taken"
+  },
   "userCurrencies": {
     "baseCurrencyExists": "Base currency already exists!",
     "currencyCodeNotExist": "Currency with passed code does not exist.",
