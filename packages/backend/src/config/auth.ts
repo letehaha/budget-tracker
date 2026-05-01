@@ -312,13 +312,18 @@ export const auth = betterAuth({
         //      to Sentry and return — better than locking out a working
         //      account because of a non-critical seed step.
         after: async (user) => {
-          const requestedName = user.name || user.email?.split('@')[0] || 'user';
+          // `username` becomes the slug; `fullName` becomes firstName/lastName.
+          // We deliberately don't pass the email-prefix or "user" fallbacks as
+          // fullName — those aren't real human names and would clutter the
+          // display fields.
+          const usernameSource = user.name || user.email?.split('@')[0] || 'user';
           let appUser: Awaited<ReturnType<typeof createAppUserWithUniqueUsername>>;
 
           try {
             logger.info(`Creating app user profile for auth user: ${user.id}`);
             appUser = await createAppUserWithUniqueUsername({
-              username: requestedName,
+              username: usernameSource,
+              fullName: user.name,
               authUserId: user.id,
             });
             logger.info(`Successfully created app user profile with id: ${appUser.id}`);
@@ -343,6 +348,14 @@ export const auth = betterAuth({
             try {
               await pool.query('DELETE FROM ba_user WHERE id = $1', [user.id]);
             } catch (rollbackError) {
+              // Critical: original signup failed AND we couldn't free the
+              // email. The user is locked out until ops intervenes. Log to
+              // both Sentry (production) and the local logger (so non-prod
+              // environments without DSN still surface the issue).
+              logger.error({
+                message: 'CRITICAL: failed to roll back orphaned ba_user; user locked out',
+                error: rollbackError as Error,
+              });
               captureException({
                 error: rollbackError,
                 context: {

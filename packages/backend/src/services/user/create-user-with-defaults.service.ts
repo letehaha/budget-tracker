@@ -8,34 +8,54 @@ import * as userService from '@services/user.service';
 import { randomBytes } from 'crypto';
 import { UniqueConstraintError } from 'sequelize';
 
+import { parseFullName } from './parse-full-name';
+import { slugifyUsername } from './slugify-username';
+
 /**
  * Creates the app user row linked to a better-auth user.
  *
- * Username is unique at the DB level, but the value here comes from the auth
- * provider's `name` (or email prefix), which is not guaranteed unique across
- * users. On collision, retry once with a random suffix — the chance of a
- * second collision is negligible.
+ * Two distinct concerns from one input:
+ *   - `username` (identity slug): slugified — lowercase, hyphenated,
+ *     ASCII-only — to make a stable, URL-safe identifier.
+ *   - `firstName` / `middleName` / `lastName` (display): parsed from
+ *     `fullName` if provided, preserving original casing and punctuation.
+ *
+ * `username` is unique at the DB level, but two users whose names slugify
+ * to the same value are entirely possible (e.g. "John" and "john" both →
+ * "john"). On collision we retry once with a short random hex suffix.
+ *
+ * `fullName` is the actual human-readable name from the auth provider
+ * (OAuth `user.name`). Pass `undefined` when the only available value is
+ * an email prefix or a synthetic fallback — those shouldn't pollute the
+ * display-name fields.
  *
  * Throws on any failure — the caller is responsible for compensating actions
  * (e.g. rolling back the orphaned ba_user row).
  */
 export async function createAppUserWithUniqueUsername({
   username,
+  fullName,
   authUserId,
 }: {
   username: string;
+  fullName?: string | null;
   authUserId: string;
 }) {
+  const slug = slugifyUsername(username);
+  const { firstName, middleName, lastName } = parseFullName(fullName);
+
+  const baseInput = { firstName, middleName, lastName, authUserId };
+
   try {
-    return await userService.createUser({ username, authUserId });
+    return await userService.createUser({ username: slug, ...baseInput });
   } catch (error) {
     const isUsernameConflict =
       error instanceof UniqueConstraintError && error.errors?.some((e) => e.path === 'username');
 
     if (!isUsernameConflict) throw error;
 
-    const uniqueUsername = `${username}-${randomBytes(4).toString('hex')}`;
-    return userService.createUser({ username: uniqueUsername, authUserId });
+    const uniqueUsername = `${slug}-${randomBytes(4).toString('hex')}`;
+    return userService.createUser({ username: uniqueUsername, ...baseInput });
   }
 }
 
@@ -125,26 +145,4 @@ export async function seedUserDefaults({ userId, locale: providedLocale }: { use
       tags: defaultTags,
     });
   }
-}
-
-/**
- * One-shot helper: create an app user AND seed all defaults. Used by tests
- * and the demo flow where partial failures are not a concern.
- *
- * The auth hook does NOT use this — it calls the two stages separately so it
- * can apply different error-handling per stage (rollback ba_user on user
- * creation failure vs. tolerate seeding failures).
- */
-export async function createUserWithDefaults({
-  username,
-  authUserId,
-  locale,
-}: {
-  username: string;
-  authUserId: string;
-  locale?: string;
-}) {
-  const appUser = await createAppUserWithUniqueUsername({ username, authUserId });
-  await seedUserDefaults({ userId: appUser.id, locale });
-  return appUser;
 }
