@@ -115,10 +115,7 @@ const sequelize = new Sequelize({
       ? `${DBConfig.database}-${process.env.JEST_WORKER_ID}`
       : (DBConfig.database as string),
   models,
-  pool: {
-    max: 50,
-    evict: 10000,
-  },
+  pool: process.env.NODE_ENV === 'test' ? { max: 50, min: 0, evict: 10_000 } : { max: 50, min: 5, evict: 60_000 },
   logging: process.env.DB_QUERY_LOGGING === 'true',
 });
 

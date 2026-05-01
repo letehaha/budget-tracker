@@ -1005,6 +1005,27 @@ describe('Monobank Data Provider E2E', () => {
         },
       }) as unknown as Job;
 
+    // `connectSelectedAccounts` enqueues a real BullMQ job. The worker
+    // processes it asynchronously and its 'completed' listener fires
+    // `handleCompletedBatch` for the real job, which writes COMPLETED to
+    // the same Redis key these tests assert on. If we start the manual
+    // scenario before that real-job listener has run, it can land between
+    // a `setAccountSyncStatus(SYNCING)` and the next status read, flipping
+    // the assertion. Wait for the real sync to reach a terminal state so
+    // its writes are settled before manipulating state by hand.
+    const waitForBackgroundSyncToSettle = async (accountId: number, timeoutMs = 10_000): Promise<void> => {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        const raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
+        if (raw) {
+          const { status } = JSON.parse(raw) as { status: SyncStatus };
+          if (status === SyncStatus.COMPLETED || status === SyncStatus.FAILED) return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      throw new Error(`Background sync for account ${accountId} did not settle within ${timeoutMs}ms`);
+    };
+
     it('should flip account to COMPLETED exactly when the Nth batch of N completes', async () => {
       const { connectionId } = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.MONOBANK,
@@ -1028,6 +1049,8 @@ describe('Monobank Data Provider E2E', () => {
       const accountId = syncedAccounts[0]!.id;
       const account = await Accounts.findByPk(accountId);
       const userId = account!.userId;
+
+      await waitForBackgroundSyncToSettle(accountId);
 
       // Put the account into SYNCING, mirroring the worker's mid-sync state.
       await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId });
@@ -1100,6 +1123,8 @@ describe('Monobank Data Provider E2E', () => {
       const accountId = syncedAccounts[0]!.id;
       const account = await Accounts.findByPk(accountId);
       const userId = account!.userId;
+
+      await waitForBackgroundSyncToSettle(accountId);
 
       const groupA = `${userId}-${accountId}-${Date.now()}-a`;
       const groupB = `${userId}-${accountId}-${Date.now()}-b`;
