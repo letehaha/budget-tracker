@@ -22,6 +22,7 @@ export const useCreateInvestmentTransaction = () => {
       queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioDetails, portfolioId] });
       // Invalidate holding-transactions queries to refresh transaction lists
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingTransactions });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioExtendedStats });
     },
   });
 };
@@ -36,6 +37,7 @@ export const useDeleteInvestmentTransaction = () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingTransactions });
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingsList });
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioDetails });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioExtendedStats });
     },
   });
 };

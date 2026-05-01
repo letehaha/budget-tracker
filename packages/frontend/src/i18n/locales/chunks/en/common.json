@@ -86,6 +86,10 @@
       "statementParsing": {
         "name": "Statement Parser",
         "description": "Extract transactions from bank statements (PDF, CSV, TXT) using AI"
+      },
+      "portfolioCashFlowImport": {
+        "name": "Portfolio Cash Flow Import",
+        "description": "AI extraction of deposit and withdrawal records from pasted text into an investment portfolio."
       }
     },
     "transactions": {

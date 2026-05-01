@@ -1,3 +1,4 @@
+import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { INVESTMENT_DECIMAL_SCALE, Money } from '@common/types/money';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
@@ -6,6 +7,7 @@ import SecurityPricing from '@models/investments/security-pricing.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withDeduplication } from '@services/common/with-deduplication';
 import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
+import { Big } from 'big.js';
 import { Op, WhereOptions, fn, col } from 'sequelize';
 
 interface GetHoldingValuesParams {
@@ -33,6 +35,52 @@ interface HoldingValue {
   unrealizedGainPercent?: string;
   realizedGainValue?: string;
   realizedGainPercent?: string;
+  realizedCostBasis?: string;
+}
+
+function calculatePositionSnapshot(transactions: InvestmentTransaction[]) {
+  let totalQuantity = new Big(0);
+  let totalCostBasis = new Big(0);
+  let totalRefCostBasis = new Big(0);
+
+  for (const tx of transactions) {
+    const quantity = tx.quantity.toBig();
+    const amount = tx.amount.toBig();
+    const refAmount = tx.refAmount.toBig();
+
+    switch (tx.category) {
+      case INVESTMENT_TRANSACTION_CATEGORY.buy:
+        totalQuantity = totalQuantity.plus(quantity);
+        totalCostBasis = totalCostBasis.plus(amount);
+        totalRefCostBasis = totalRefCostBasis.plus(refAmount);
+        break;
+
+      case INVESTMENT_TRANSACTION_CATEGORY.sell: {
+        let costBasisReduction = new Big(0);
+        let refCostBasisReduction = new Big(0);
+
+        if (!totalQuantity.eq(0)) {
+          const proportion = quantity.div(totalQuantity);
+          costBasisReduction = totalCostBasis.times(proportion);
+          refCostBasisReduction = totalRefCostBasis.times(proportion);
+        }
+
+        totalCostBasis = totalCostBasis.minus(costBasisReduction);
+        totalRefCostBasis = totalRefCostBasis.minus(refCostBasisReduction);
+        totalQuantity = totalQuantity.minus(quantity);
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+
+  return {
+    quantity: totalQuantity.lt(0) ? new Big(0) : totalQuantity,
+    costBasis: totalCostBasis.lt(0) ? new Big(0) : totalCostBasis,
+    refCostBasis: totalRefCostBasis.lt(0) ? new Big(0) : totalRefCostBasis,
+  };
 }
 
 /**
@@ -119,7 +167,14 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
 
   for (const holding of holdings) {
     const price = pricesBySecurityId[holding.securityId];
-    const quantity = holding.quantity.toBig();
+    const securityTransactions = transactionsBySecurityId[holding.securityId] || [];
+    const effectiveTransactions = date
+      ? securityTransactions.filter((tx) => new Date(tx.date).getTime() <= date.getTime())
+      : securityTransactions;
+    const snapshot = date ? calculatePositionSnapshot(effectiveTransactions) : null;
+    const quantity = snapshot?.quantity ?? holding.quantity.toBig();
+    const costBasis = snapshot?.costBasis ?? holding.costBasis.toBig();
+    const refCostBasis = snapshot?.refCostBasis ?? holding.refCostBasis.toBig();
 
     let marketValue = '0';
     let refMarketValue = '0';
@@ -150,11 +205,10 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     }
 
     // Calculate gains/losses
-    const securityTransactions = transactionsBySecurityId[holding.securityId] || [];
     const gains = calculateAllGains(
       parseFloat(marketValue),
-      holding.costBasis.toNumber(),
-      securityTransactions.map((tx) => ({
+      costBasis.toNumber(),
+      effectiveTransactions.map((tx) => ({
         date: tx.date,
         category: tx.category,
         quantity: tx.quantity.toDecimalString(INVESTMENT_DECIMAL_SCALE),
@@ -166,9 +220,9 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     holdingValues.push({
       portfolioId: holding.portfolioId,
       securityId: holding.securityId,
-      quantity: holding.quantity.toDecimalString(INVESTMENT_DECIMAL_SCALE),
-      costBasis: holding.costBasis.toDecimalString(INVESTMENT_DECIMAL_SCALE),
-      refCostBasis: holding.refCostBasis.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+      quantity: quantity.toFixed(INVESTMENT_DECIMAL_SCALE),
+      costBasis: costBasis.toFixed(INVESTMENT_DECIMAL_SCALE),
+      refCostBasis: refCostBasis.toFixed(INVESTMENT_DECIMAL_SCALE),
       currencyCode: holding.currencyCode,
       excluded: holding.excluded,
       security: holding.security,
@@ -180,6 +234,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       unrealizedGainPercent: gains.unrealizedGainPercent.toFixed(2),
       realizedGainValue: gains.realizedGainValue.toFixed(2),
       realizedGainPercent: gains.realizedGainPercent.toFixed(2),
+      realizedCostBasis: gains.realizedCostBasis.toFixed(10),
     });
   }
 

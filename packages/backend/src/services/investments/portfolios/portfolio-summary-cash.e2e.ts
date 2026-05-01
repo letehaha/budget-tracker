@@ -1,5 +1,8 @@
+import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
 import * as helpers from '@tests/helpers';
 
 describe('Portfolio Summary with Cash (GET /investments/portfolios/:id/summary)', () => {
@@ -11,6 +14,20 @@ describe('Portfolio Summary with Cash (GET /investments/portfolios/:id/summary)'
       raw: true,
     });
   });
+
+  const createBaseCurrencyHolding = async (symbol: string): Promise<Securities> => {
+    const [security] = await helpers.seedSecurities([
+      { symbol, name: `${symbol} Test Equity`, currencyCode: global.BASE_CURRENCY_CODE },
+    ]);
+    if (!security) throw new Error(`${symbol} security not found after seeding`);
+
+    await helpers.createHolding({
+      payload: { portfolioId: portfolio.id, securityId: security.id },
+      raw: true,
+    });
+
+    return security;
+  };
 
   it('should return zero cash values when portfolio has no cash', async () => {
     const summary = await helpers.getPortfolioSummary({
@@ -122,5 +139,104 @@ describe('Portfolio Summary with Cash (GET /investments/portfolios/:id/summary)'
     // Without any holdings, totalPortfolioValue = cash only
     expect(summary.totalCurrentValue).toBe('0.00');
     expect(parseFloat(summary.totalPortfolioValue)).toEqual(parseFloat(summary.totalCashInBaseCurrency));
+  });
+
+  it('should calculate realized gain percent from sold cost basis after a full close', async () => {
+    const security = await createBaseCurrencyHolding('REALIZED');
+
+    await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: portfolio.id,
+        securityId: security.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        date: '2024-01-01',
+        quantity: '10',
+        price: '100',
+        fees: '0',
+      },
+      raw: true,
+    });
+
+    await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: portfolio.id,
+        securityId: security.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+        date: '2024-02-01',
+        quantity: '10',
+        price: '120',
+        fees: '0',
+      },
+      raw: true,
+    });
+
+    const summary = await helpers.getPortfolioSummary({
+      portfolioId: portfolio.id,
+      raw: true,
+    });
+
+    expect(summary.totalCostBasis).toBe('0.00');
+    expect(summary.realizedGainValue).toBe('200.00');
+    expect(summary.realizedGainPercent).toBe('20.00');
+  });
+
+  it('should calculate historical summary from transactions and cash flows up to the requested date', async () => {
+    const account = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ name: 'Cash Source' }),
+      raw: true,
+    });
+    const security = await createBaseCurrencyHolding('HISTSUM');
+
+    await SecurityPricing.create({
+      securityId: security.id,
+      date: new Date('2024-01-10T00:00:00.000Z'),
+      priceClose: '100',
+      source: 'test',
+    });
+
+    await helpers.accountToPortfolioTransfer({
+      portfolioId: portfolio.id,
+      payload: { accountId: account.id, amount: '1000', date: '2024-01-01' },
+      raw: true,
+    });
+
+    await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: portfolio.id,
+        securityId: security.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        date: '2024-01-10',
+        quantity: '4',
+        price: '50',
+        fees: '0',
+      },
+      raw: true,
+    });
+
+    await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: portfolio.id,
+        securityId: security.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        date: '2024-02-01',
+        quantity: '2',
+        price: '50',
+        fees: '0',
+      },
+      raw: true,
+    });
+
+    const summary = await helpers.getPortfolioSummary({
+      portfolioId: portfolio.id,
+      date: '2024-01-15T00:00:00.000Z',
+      raw: true,
+    });
+
+    expect(summary.totalCurrentValue).toBe('400.00');
+    expect(summary.totalCostBasis).toBe('200.00');
+    expect(summary.unrealizedGainValue).toBe('200.00');
+    expect(summary.unrealizedGainPercent).toBe('100.00');
+    expect(summary.totalCashInBaseCurrency).toBe('800.00');
+    expect(summary.totalPortfolioValue).toBe('1200.00');
   });
 });

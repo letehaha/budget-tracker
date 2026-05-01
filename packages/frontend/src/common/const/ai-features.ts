@@ -23,6 +23,10 @@ const AI_FEATURE_DISPLAY_INFO: Record<AI_FEATURE, AIFeatureDisplayInfoKeys> = {
     nameKey: 'common.aiFeatures.statementParsing.name',
     descriptionKey: 'common.aiFeatures.statementParsing.description',
   },
+  [AI_FEATURE.portfolioCashFlowImport]: {
+    nameKey: 'common.aiFeatures.portfolioCashFlowImport.name',
+    descriptionKey: 'common.aiFeatures.portfolioCashFlowImport.description',
+  },
 };
 
 /**

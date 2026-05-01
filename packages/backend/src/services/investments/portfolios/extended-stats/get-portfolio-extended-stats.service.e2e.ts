@@ -2,6 +2,7 @@ import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
 import * as helpers from '@tests/helpers';
 
 describe('GET /investments/portfolios/:id/extended-stats', () => {
@@ -171,6 +172,96 @@ describe('GET /investments/portfolios/:id/extended-stats', () => {
       expect(stats.bestPerformerByPercent).not.toBeNull();
       expect(stats.bestPerformerByPercent!.symbol).toBe('VOO');
       expect(parseFloat(stats.bestPerformerByPercent!.returnPercent)).toBeCloseTo(20, 6);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('groups multiple external cash flows on the same day for TWR', async () => {
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Cash Source' }),
+        raw: true,
+      });
+
+      await helpers.accountToPortfolioTransfer({
+        portfolioId: portfolio.id,
+        payload: { accountId: account.id, amount: '500', date: '2024-01-01' },
+        raw: true,
+      });
+      await helpers.accountToPortfolioTransfer({
+        portfolioId: portfolio.id,
+        payload: { accountId: account.id, amount: '700', date: '2024-01-01' },
+        raw: true,
+      });
+
+      const stats = await helpers.getPortfolioExtendedStats({ portfolioId: portfolio.id, raw: true });
+
+      expect(stats.totalDeposits).toBe('1200.00');
+      expect(stats.totalWithdrawals).toBe('0.00');
+      expect(stats.netInvested).toBe('1200.00');
+      expect(stats.twr).toBe('0.00');
+    });
+
+    it('uses net dividend cash after fees in dividend totals', async () => {
+      const [security] = await helpers.seedSecurities([
+        { symbol: 'DIVFEE', name: 'Dividend Fee Equity', currencyCode: global.BASE_CURRENCY_CODE },
+      ]);
+      if (!security) throw new Error('DIVFEE security not found after seeding');
+
+      await helpers.createHolding({
+        payload: { portfolioId: portfolio.id, securityId: security.id },
+        raw: true,
+      });
+
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: security.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.dividend,
+          date: '2024-02-01',
+          quantity: '10',
+          price: '2',
+          fees: '3',
+        },
+        raw: true,
+      });
+
+      const stats = await helpers.getPortfolioExtendedStats({ portfolioId: portfolio.id, raw: true });
+
+      expect(stats.totalDividends).toBe('17.00');
+    });
+
+    it('reports open performer return value in the portfolio base currency', async () => {
+      await helpers.createHolding({
+        payload: { portfolioId: portfolio.id, securityId: voo.id },
+        raw: true,
+      });
+
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: voo.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          date: '2024-01-01',
+          quantity: '10',
+          price: '100',
+          fees: '0',
+        },
+        raw: true,
+      });
+
+      await SecurityPricing.create({
+        securityId: voo.id,
+        date: new Date(),
+        priceClose: '150',
+        source: 'test',
+      });
+
+      const stats = await helpers.getPortfolioExtendedStats({ portfolioId: portfolio.id, raw: true });
+
+      expect(stats.bestPerformerByValue).not.toBeNull();
+      expect(stats.bestPerformerByValue!.symbol).toBe('VOO');
+      expect(parseFloat(stats.bestPerformerByValue!.returnValue)).toBeGreaterThan(1000);
+      expect(parseFloat(stats.bestPerformerByValue!.returnPercent)).toBeGreaterThan(0);
     });
   });
 });

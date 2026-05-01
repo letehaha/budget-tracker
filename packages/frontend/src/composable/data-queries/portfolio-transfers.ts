@@ -26,6 +26,9 @@ export function invalidateTransferRelatedQueries(queryClient: QueryClient): void
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioSummary });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts });
+  // portfolioExtendedStats starts with `securityPriceChange`, so the
+  // [transactionChange] global invalidate below doesn't reach it — invalidate explicitly.
+  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioExtendedStats });
   // Account-to-portfolio and portfolio-to-account transfers create/delete rows in Transactions,
   // so all transactionChange-prefixed consumers (account tx list, widgets, analytics) must refetch.
   queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
@@ -121,12 +124,16 @@ export const useUnlinkTransactionFromPortfolio = () => {
 
 // Portfolio transfers listing composable - focused on data fetching only
 /** @public */
-export const usePortfolioTransfers = (portfolioId: MaybeRef<number | undefined>, queryOptions = {}) => {
+export const usePortfolioTransfers = (
+  portfolioId: MaybeRef<number | undefined>,
+  options: { limit?: MaybeRef<number | undefined>; queryOptions?: object } = {},
+) => {
   const queryClient = useQueryClient();
+  const { limit, queryOptions = {} } = options;
 
   const query = useQuery({
-    queryFn: () => getPortfolioTransfers({ portfolioId: unref(portfolioId)! }),
-    queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioTransfers, portfolioId],
+    queryFn: () => getPortfolioTransfers({ portfolioId: unref(portfolioId)!, limit: unref(limit) }),
+    queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioTransfers, portfolioId, limit],
     enabled: () => !!unref(portfolioId),
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...queryOptions,

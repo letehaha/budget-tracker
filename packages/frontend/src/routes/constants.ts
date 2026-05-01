@@ -47,6 +47,7 @@ export const ROUTES_NAMES = Object.freeze({
   settingsAiIntegrations: `${ROUTER_LAYOUTS.dashboard}.settings.ai-integrations`,
   importCsv: `${ROUTER_LAYOUTS.dashboard}.import-csv`,
   importStatement: `${ROUTER_LAYOUTS.dashboard}.import-statement`,
+  importPortfolioCashFlows: `${ROUTER_LAYOUTS.dashboard}.import-portfolio-cash-flows`,
 
   auth: ROUTER_LAYOUTS.auth,
   signIn: `${ROUTER_LAYOUTS.auth}.sign-in`,

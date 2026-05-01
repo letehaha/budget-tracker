@@ -1,10 +1,14 @@
 import type {
   AccountMappingConfig,
+  CashFlowDetectDuplicatesResponse,
+  CashFlowExecuteResponse,
+  CashFlowExecuteRow,
   CategoryMappingConfig,
   ColumnMappingConfig,
   DetectDuplicatesResponse,
   ExecuteImportResponse,
   ExtractUniqueValuesResponse,
+  ExtractedCashFlowRow,
   ExtractedMetadata,
   ExtractedTransaction,
   ParsedTransactionRow,
@@ -195,5 +199,61 @@ export function statementExecuteImport<R extends boolean | undefined = false>({
     url: '/import/text-source/execute',
     payload,
     raw,
+  });
+}
+
+// ============================================
+// Portfolio cash-flow import endpoints
+// ============================================
+
+interface CashFlowDetectDuplicatesParams {
+  portfolioId: number;
+  rows: ExtractedCashFlowRow[];
+}
+
+export function portfolioCashFlowDetectDuplicates<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: CashFlowDetectDuplicatesParams;
+  raw?: R;
+}): UtilizeReturnType<() => CashFlowDetectDuplicatesResponse, R> {
+  return makeRequest<CashFlowDetectDuplicatesResponse, R>({
+    method: 'post',
+    url: '/import/portfolio-cash-flows/detect-duplicates',
+    payload,
+    raw,
+  });
+}
+
+interface CashFlowExecuteImportParams {
+  portfolioId: number;
+  rows: CashFlowExecuteRow[];
+}
+
+export function portfolioCashFlowExecuteImport<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: CashFlowExecuteImportParams;
+  raw?: R;
+}): UtilizeReturnType<() => CashFlowExecuteResponse, R> {
+  return makeRequest<CashFlowExecuteResponse, R>({
+    method: 'post',
+    url: '/import/portfolio-cash-flows/execute',
+    payload,
+    raw,
+  });
+}
+
+type CashFlowExtractParams =
+  | { portfolioId: number; text: string; userHint?: string | null }
+  | { portfolioId: number; fileBase64: string; fileName?: string; userHint?: string | null };
+
+export function portfolioCashFlowExtract({ payload }: { payload: CashFlowExtractParams }) {
+  return makeRequest({
+    method: 'post',
+    url: '/import/portfolio-cash-flows/extract',
+    payload,
   });
 }

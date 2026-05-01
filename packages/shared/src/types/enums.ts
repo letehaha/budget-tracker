@@ -170,6 +170,7 @@ export enum AI_PROVIDER {
 export enum AI_FEATURE {
   categorization = 'categorization',
   statementParsing = 'statement_parsing',
+  portfolioCashFlowImport = 'portfolio_cash_flow_import',
   // Future features:
   // insights = 'insights',
   // budgetSuggestions = 'budget_suggestions',

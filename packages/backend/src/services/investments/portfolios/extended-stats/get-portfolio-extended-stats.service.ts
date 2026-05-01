@@ -17,6 +17,7 @@ import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { getHoldingValues } from '@services/investments/holdings/get-holding-values.service';
+import { calculateRefCashDelta } from '@services/investments/transactions/cash-balance-utils';
 import { Op } from 'sequelize';
 
 import { type DividendFlow, type ExternalCashFlow, summarizeCashFlows } from './utils/cash-flow-summary';
@@ -24,7 +25,11 @@ import { calculateClosedPositions } from './utils/closed-positions';
 import { type TwrPoint, calculateTwr } from './utils/twr';
 import { type XirrCashFlow, calculateXirr } from './utils/xirr';
 
-const CACHE_TTL_SECONDS = 12 * 60 * 60; // 12h
+// Short TTL because the response embeds market value (refMarketValue) — the
+// daily price sync and manual bulk-upload of prices both update SecurityPricing
+// without going through any of the call-sites that invalidate this cache, so we
+// rely on TTL expiry to bound the staleness rather than per-mutation invalidation.
+const CACHE_TTL_SECONDS = 60 * 60; // 1h
 
 // Skip the Redis cache in development so iterating on the calculation always
 // reflects the latest code; production and tests still cache.
@@ -71,6 +76,13 @@ const isDeposit = ({ tr, portfolioId }: { tr: PortfolioTransfers; portfolioId: n
 
 const isWithdrawal = ({ tr, portfolioId }: { tr: PortfolioTransfers; portfolioId: number }) =>
   tr.fromPortfolioId === portfolioId && tr.toPortfolioId !== portfolioId;
+
+const refCashDeltaForInvestmentTx = (tx: InvestmentTransaction): number | null =>
+  calculateRefCashDelta({
+    category: tx.category,
+    refFees: tx.refFees.toDecimalString(10),
+    refAmount: tx.refAmount.toDecimalString(10),
+  });
 
 const convertToBase = async ({
   amount,
@@ -165,7 +177,7 @@ const getPortfolioExtendedStatsImpl = async ({
   const dividends: DividendFlow[] = [];
   for (const tx of investmentTxs) {
     if (tx.category !== INVESTMENT_TRANSACTION_CATEGORY.dividend) continue;
-    dividends.push({ date: tx.date, amount: tx.refAmount.toNumber() });
+    dividends.push({ date: tx.date, amount: refCashDeltaForInvestmentTx(tx) ?? 0 });
   }
 
   // Portfolio age starts at the first buy, not the first deposit.
@@ -217,14 +229,22 @@ const getPortfolioExtendedStatsImpl = async ({
       closedCount += 1;
       if (gainInBase > 0) winningCount += 1;
       totalGainBase += gainInBase;
-      totalGainPercent += pos.gainPercent;
+      const costBasisInBase = await convertToBase({
+        amount: pos.costBasis,
+        baseCode: securityCurrency,
+        quoteCode: baseCurrencyCode,
+        userId,
+        date: pos.closedAt,
+      });
+      const gainPercentInBase = costBasisInBase > 0 ? (gainInBase / costBasisInBase) * 100 : 0;
+      totalGainPercent += gainPercentInBase;
 
       closedPositionEntries.push({
         securityId: sample.securityId,
         symbol: security?.symbol ?? null,
         name: security?.name ?? null,
         returnValue: fmt(gainInBase),
-        returnPercent: fmt(pos.gainPercent),
+        returnPercent: fmt(gainPercentInBase),
       });
     }
   }
@@ -236,13 +256,20 @@ const getPortfolioExtendedStatsImpl = async ({
   // Performers: open holdings (unrealized) + each closed position cycle.
   const openPositionEntries: PortfolioPerformer[] = holdingValues
     .filter((h) => h.unrealizedGainValue !== undefined && h.unrealizedGainPercent !== undefined)
-    .map((h) => ({
-      securityId: h.securityId,
-      symbol: h.security?.symbol ?? null,
-      name: h.security?.name ?? null,
-      returnValue: parseFloat(h.unrealizedGainValue!).toFixed(2),
-      returnPercent: parseFloat(h.unrealizedGainPercent!).toFixed(2),
-    }));
+    .map((h) => {
+      const refMarketValue = parseFloat(h.refMarketValue ?? '0');
+      const refCostBasis = parseFloat(h.refCostBasis ?? '0');
+      const returnValue = refMarketValue - refCostBasis;
+      const returnPercent = refCostBasis > 0 ? (returnValue / refCostBasis) * 100 : 0;
+
+      return {
+        securityId: h.securityId,
+        symbol: h.security?.symbol ?? null,
+        name: h.security?.name ?? null,
+        returnValue: returnValue.toFixed(2),
+        returnPercent: returnPercent.toFixed(2),
+      };
+    });
   const performers = pickPerformers([...openPositionEntries, ...closedPositionEntries]);
 
   // Current portfolio value: cash (refTotalCash sum) + holdings (refMarketValue sum).
@@ -348,12 +375,19 @@ const computeTwr = async ({
 }): Promise<number | null> => {
   const realTransfers = transfers.filter((tr) => !tr.isHistorical);
 
-  const flows = realTransfers
-    .filter((tr) => isDeposit({ tr, portfolioId }) || isWithdrawal({ tr, portfolioId }))
-    .map((tr) => ({
-      date: new Date(tr.date),
-      cashFlow: isDeposit({ tr, portfolioId }) ? tr.refAmount.toNumber() : -tr.refAmount.toNumber(),
+  const flowsByDate = new Map<string, number>();
+  for (const tr of realTransfers) {
+    if (!isDeposit({ tr, portfolioId }) && !isWithdrawal({ tr, portfolioId })) continue;
+    const cashFlow = isDeposit({ tr, portfolioId }) ? tr.refAmount.toNumber() : -tr.refAmount.toNumber();
+    flowsByDate.set(tr.date, (flowsByDate.get(tr.date) ?? 0) + cashFlow);
+  }
+
+  const flows = Array.from(flowsByDate.entries())
+    .map(([date, cashFlow]) => ({
+      date: new Date(date),
+      cashFlow,
     }))
+    .filter((flow) => flow.cashFlow !== 0)
     .toSorted((a, b) => a.date.getTime() - b.date.getTime());
 
   if (flows.length === 0) return null;
@@ -421,24 +455,8 @@ const computeTwr = async ({
     }
     for (const tx of investmentTxs) {
       if (new Date(tx.date) > date) continue;
-      const refAmt = tx.refAmount.toNumber();
-      switch (tx.category) {
-        case INVESTMENT_TRANSACTION_CATEGORY.buy:
-          cashApprox -= refAmt;
-          break;
-        case INVESTMENT_TRANSACTION_CATEGORY.sell:
-          cashApprox += refAmt;
-          break;
-        case INVESTMENT_TRANSACTION_CATEGORY.dividend:
-          cashApprox += refAmt;
-          break;
-        case INVESTMENT_TRANSACTION_CATEGORY.fee:
-        case INVESTMENT_TRANSACTION_CATEGORY.tax:
-          cashApprox -= refAmt;
-          break;
-        default:
-          break;
-      }
+      const delta = refCashDeltaForInvestmentTx(tx);
+      if (delta !== null) cashApprox += delta;
     }
 
     return holdingsValue + cashApprox;

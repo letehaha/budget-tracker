@@ -158,3 +158,5 @@ packages/frontend/blob-report/
 
 # Astro generated files
 packages/landing/.astro/
+
+.codex

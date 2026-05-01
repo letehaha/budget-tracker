@@ -20,6 +20,7 @@ import demoRoutes from './routes/demo.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
 import githubRoutes from './routes/github.route';
 import csvImportExportRoutes from './routes/import-export/csv.route';
+import portfolioCashFlowImportRoutes from './routes/import-export/portfolio-cash-flows.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
 import investmentsRoutes from './routes/investments.route';
 import mcpRoutes from './routes/mcp.route';
@@ -175,6 +176,7 @@ export function setupRoutes(app: Express) {
   app.use('/mcp', mcpRoutes);
   app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
   app.use(`${API_PREFIX}/import`, statementParserRoutes);
+  app.use(`${API_PREFIX}/import`, portfolioCashFlowImportRoutes);
   app.use(`${API_PREFIX}/sse`, sseRoutes);
   app.use(`${API_PREFIX}/webhooks`, webhooksRoutes);
   app.use(`${API_PREFIX}/github`, githubRoutes);

@@ -97,9 +97,17 @@ export function setupMiddleware(app: Express) {
         `${API_PREFIX}/import/csv/extract-unique-values`,
         `${API_PREFIX}/import/csv/detect-duplicates`,
         `${API_PREFIX}/import/csv/execute`,
-        // Statement parser endpoints need 10MB for base64 encoded files (max 10MB = ~13.3MB base64)
+        // Portfolio cash-flow JSON-only endpoints — large extracted row sets can
+        // exceed the default 100KB body limit.
+        `${API_PREFIX}/import/portfolio-cash-flows/detect-duplicates`,
+        `${API_PREFIX}/import/portfolio-cash-flows/execute`,
+      ],
+      // Endpoints that receive base64-encoded files: a 10MB raw file becomes
+      // ~13.3MB base64, so we allow 15MB here to keep the UI's 10MB file cap honest.
+      '15mb': [
         `${API_PREFIX}/import/text-source/estimate-cost`,
         `${API_PREFIX}/import/text-source/extract`,
+        `${API_PREFIX}/import/portfolio-cash-flows/extract`,
       ],
     };
 

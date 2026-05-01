@@ -45,7 +45,8 @@
         "keepLinkedTransaction": "Keep account transaction. Original transaction details will be restored.",
         "deleteLinkedTransaction": "Also delete the linked account transaction",
         "historicalBadge": "Historical",
-        "historicalBadgeTooltip": "Recorded for stats only — did not affect the current balance"
+        "historicalBadgeTooltip": "Recorded for stats only — did not affect the current balance",
+        "aiImportButton": "Import with AI"
       },
       "buysSells": {
         "emptyState": "No buy/sell transactions",

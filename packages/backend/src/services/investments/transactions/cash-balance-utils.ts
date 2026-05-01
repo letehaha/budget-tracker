@@ -52,3 +52,36 @@ export function calculateCashDelta({
       return null;
   }
 }
+
+export function calculateRefCashDelta({
+  category,
+  refFees,
+  refAmount,
+}: {
+  category: INVESTMENT_TRANSACTION_CATEGORY;
+  refFees: string | number;
+  refAmount: string | number;
+}): number | null {
+  const bigRefFees = new Big(refFees || '0');
+  const bigRefAmount = new Big(refAmount || '0');
+
+  switch (category) {
+    case INVESTMENT_TRANSACTION_CATEGORY.buy:
+      return bigRefAmount.times(-1).toNumber();
+
+    case INVESTMENT_TRANSACTION_CATEGORY.sell:
+    case INVESTMENT_TRANSACTION_CATEGORY.dividend:
+      // Stored refAmount follows amount = qty*price + fees, so net cash is
+      // (qty*price - fees) = refAmount - fees - fees.
+      return bigRefAmount.minus(bigRefFees.times(2)).toNumber();
+
+    case INVESTMENT_TRANSACTION_CATEGORY.fee:
+    case INVESTMENT_TRANSACTION_CATEGORY.tax:
+      return bigRefAmount.times(-1).toNumber();
+
+    case INVESTMENT_TRANSACTION_CATEGORY.transfer:
+    case INVESTMENT_TRANSACTION_CATEGORY.cancel:
+    case INVESTMENT_TRANSACTION_CATEGORY.other:
+      return null;
+  }
+}

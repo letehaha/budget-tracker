@@ -44,6 +44,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/crypto': () => import('./locales/chunks/en/pages/crypto.json'),
     'pages/import-csv': () => import('./locales/chunks/en/pages/import-csv.json'),
     'pages/import-statement': () => import('./locales/chunks/en/pages/import-statement.json'),
+    'pages/portfolio-cash-flow-import': () => import('./locales/chunks/en/pages/portfolio-cash-flow-import.json'),
     'pages/planned': () => import('./locales/chunks/en/pages/planned.json'),
     'pages/optimizations': () => import('./locales/chunks/en/pages/optimizations.json'),
     // Settings chunks
@@ -85,6 +86,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/crypto': () => import('./locales/chunks/uk/pages/crypto.json'),
     'pages/import-csv': () => import('./locales/chunks/uk/pages/import-csv.json'),
     'pages/import-statement': () => import('./locales/chunks/uk/pages/import-statement.json'),
+    'pages/portfolio-cash-flow-import': () => import('./locales/chunks/uk/pages/portfolio-cash-flow-import.json'),
     'pages/planned': () => import('./locales/chunks/uk/pages/planned.json'),
     'pages/optimizations': () => import('./locales/chunks/uk/pages/optimizations.json'),
     // Settings chunks

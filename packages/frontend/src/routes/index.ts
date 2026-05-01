@@ -191,6 +191,12 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/import-statement'] as I18nChunkName[] },
       },
       {
+        path: '/import/portfolio-cash-flows/:portfolioId',
+        name: ROUTES_NAMES.importPortfolioCashFlows,
+        component: () => import('@/pages/import-export/portfolio-cash-flow-import/index.vue'),
+        meta: { i18nChunks: ['pages/portfolio-cash-flow-import'] as I18nChunkName[] },
+      },
+      {
         path: '/settings',
         name: ROUTES_NAMES.settings,
         component: () => import('@/pages/settings/settings.vue'),

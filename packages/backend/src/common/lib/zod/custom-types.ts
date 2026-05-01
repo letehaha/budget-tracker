@@ -102,9 +102,23 @@ export const booleanQuery = () =>
     return z.NEVER;
   });
 
-/** Validates a YYYY-MM-DD date string. */
+/** Validates a YYYY-MM-DD calendar date — rejects format errors AND impossible dates like 2025-02-29. */
 export const dateString = () =>
-  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format' });
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format' })
+    .refine(
+      (s) => {
+        const [year, month, day] = s.split('-').map(Number) as [number, number, number];
+        if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+        // Round-trip via UTC: an invalid calendar date (e.g. 2025-02-29) gets
+        // normalized by the Date constructor to a different day, so the parts
+        // won't match what we put in.
+        const d = new Date(Date.UTC(year, month - 1, day));
+        return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
+      },
+      { message: 'Not a valid calendar date' },
+    );
 
 /** Validates a positive decimal amount string (rejects zero and negative by default). */
 export const positiveAmountString = () =>

@@ -1,0 +1,67 @@
+{
+  "portfolioCashFlowImport": {
+    "pageTitle": "Import deposits & withdrawals",
+    "pageDescription": "Paste a list of cash flows and let AI structure them into deposits and withdrawals for this portfolio. You can review every row, mark possible duplicates, and decide which ones should be historical-only.",
+    "backToPortfolio": "Back to portfolio",
+    "input": {
+      "intro": "Paste any text or upload a file (PDF, CSV, TXT) describing your deposits and withdrawals — the AI will read it. The format doesn't have to be structured; if it's unusual, just describe it in the hints below.",
+      "textLabel": "Source text",
+      "textPlaceholder": "e.g.\n2024-03-15: deposited $1,000 from chase\n2024-04-02: withdrew 250 USD\n…or paste a CSV, statement excerpt, or anything.",
+      "hintLabel": "Hints for the AI (optional)",
+      "hintPlaceholder": "Optional: explain the structure of your input, the date format, currencies to assume, anything the AI should know.",
+      "tabs": {
+        "text": "Paste text",
+        "file": "Upload file"
+      },
+      "file": {
+        "dragDrop": "Drag & drop your file here",
+        "browseButton": "Browse",
+        "supportedFormats": "Supports PDF, CSV, or TXT files up to 10MB",
+        "fileSize": "{size} KB",
+        "removeButton": "Remove"
+      },
+      "fileGenericError": "Unable to read this file. Try another format.",
+      "parseButton": "Extract with AI",
+      "parsing": "Extracting…",
+      "overLimit": "Input is too long — please shorten or split into smaller batches.",
+      "timingNote": "It might take a while — 60+ seconds is generally acceptable, and the more data you send the longer it can take. Link your own API key and choose a smarter or faster model in Settings to speed this up."
+    },
+    "review": {
+      "parsedSummary": "AI extracted {count} rows using {model}. Pick which to import.",
+      "markAllHistorical": "Mark all rows as historical",
+      "headers": {
+        "include": "Import",
+        "date": "Date",
+        "direction": "Direction",
+        "amount": "Amount",
+        "historical": "Historical",
+        "notes": "Notes"
+      },
+      "direction": {
+        "deposit": "Deposit",
+        "withdrawal": "Withdrawal"
+      },
+      "duplicateBadge": "Possible duplicate",
+      "duplicateTooltipTitle": "Looks like an existing transfer:",
+      "backButton": "Back",
+      "includedSummary": "Importing {included} of {total} ({historical} as historical)",
+      "importButton": "Import selected",
+      "importing": "Importing…",
+      "noneSelected": "No rows are selected for import."
+    },
+    "results": {
+      "titleSuccess": "Import complete",
+      "titleWithErrors": "Import finished with errors",
+      "summary": "{count} new cash flow records added.",
+      "errorsTitle": "Errors",
+      "errorLine": "Row {row}: {message}",
+      "startOverButton": "Import another batch",
+      "backToPortfolioButton": "Back to portfolio"
+    },
+    "notifications": {
+      "parseError": "AI extraction failed. Please try again.",
+      "importError": "Import failed. No rows were saved.",
+      "noRowsFound": "The AI couldn't find any cash flows in the input."
+    }
+  }
+}

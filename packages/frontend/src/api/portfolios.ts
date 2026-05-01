@@ -132,10 +132,12 @@ export const getPortfolioBalances = async ({
 
 export const getPortfolioTransfers = async ({
   portfolioId,
+  limit,
 }: {
   portfolioId: number;
+  limit?: number;
 }): Promise<PortfolioTransferModel[]> => {
-  const result = await api.get(`/investments/portfolios/${portfolioId}/transfers`);
+  const result = await api.get(`/investments/portfolios/${portfolioId}/transfers`, limit ? { limit } : undefined);
   return result.data;
 };
 

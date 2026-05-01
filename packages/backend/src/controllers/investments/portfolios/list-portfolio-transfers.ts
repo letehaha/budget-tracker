@@ -12,7 +12,7 @@ export default createController(
       .object({
         dateFrom: dateString().optional(),
         dateTo: dateString().optional(),
-        limit: z.coerce.number().int().min(1).max(100).default(20),
+        limit: z.coerce.number().int().min(1).max(500).default(20),
         offset: z.coerce.number().int().min(0).default(0),
         page: z.coerce.number().int().min(1).optional(),
         sortBy: z.enum(['date', 'amount']).default('date'),

@@ -45,6 +45,7 @@ describe('Gains Calculator Utils', () => {
 
       expect(result.realizedGainValue).toBe(0);
       expect(result.realizedGainPercent).toBe(0);
+      expect(result.realizedCostBasis).toBe(0);
     });
 
     it('should handle only buy transactions', () => {
@@ -62,6 +63,7 @@ describe('Gains Calculator Utils', () => {
 
       expect(result.realizedGainValue).toBe(0);
       expect(result.realizedGainPercent).toBe(0);
+      expect(result.realizedCostBasis).toBe(0);
     });
 
     it('should calculate simple buy-sell scenario with profit', () => {
@@ -91,6 +93,7 @@ describe('Gains Calculator Utils', () => {
       // Percentage: ($485 / $1,005) * 100 = ~48.26%
       expect(result.realizedGainValue).toBeCloseTo(485, 2);
       expect(result.realizedGainPercent).toBeCloseTo(48.26, 2);
+      expect(result.realizedCostBasis).toBeCloseTo(1005, 2);
     });
 
     it('should calculate simple buy-sell scenario with loss', () => {
@@ -119,6 +122,7 @@ describe('Gains Calculator Utils', () => {
       // Percentage: (-$515 / $2,005) * 100 = ~-25.69%
       expect(result.realizedGainValue).toBeCloseTo(-515, 2);
       expect(result.realizedGainPercent).toBeCloseTo(-25.69, 2);
+      expect(result.realizedCostBasis).toBeCloseTo(2005, 2);
     });
 
     it('should handle FIFO (First In, First Out) correctly', () => {
@@ -153,6 +157,7 @@ describe('Gains Calculator Utils', () => {
       // Percentage: ($500 / $500) * 100 = 100%
       expect(result.realizedGainValue).toBeCloseTo(500, 2);
       expect(result.realizedGainPercent).toBeCloseTo(100, 2);
+      expect(result.realizedCostBasis).toBeCloseTo(500, 2);
     });
 
     it('should handle partial sales across multiple lots', () => {
@@ -190,6 +195,7 @@ describe('Gains Calculator Utils', () => {
       // Percentage: ($1,250 / $1,750) * 100 = ~71.43%
       expect(result.realizedGainValue).toBeCloseTo(1250, 2);
       expect(result.realizedGainPercent).toBeCloseTo(71.43, 2);
+      expect(result.realizedCostBasis).toBeCloseTo(1750, 2);
     });
 
     it('should handle multiple buy and sell transactions', () => {
@@ -233,6 +239,7 @@ describe('Gains Calculator Utils', () => {
       // Percentage: ($225 / $750) * 100 = 30%
       expect(result.realizedGainValue).toBeCloseTo(225, 2);
       expect(result.realizedGainPercent).toBeCloseTo(30, 2);
+      expect(result.realizedCostBasis).toBeCloseTo(750, 2);
     });
 
     it('should handle transactions with string values', () => {
@@ -261,6 +268,7 @@ describe('Gains Calculator Utils', () => {
       // Percentage: ($512.50 / $1,055) * 100 = ~48.58%
       expect(result.realizedGainValue).toBeCloseTo(512.5, 2);
       expect(result.realizedGainPercent).toBeCloseTo(48.58, 2);
+      expect(result.realizedCostBasis).toBeCloseTo(1055, 2);
     });
 
     it('should handle selling more than owned (phantom shares)', () => {
@@ -287,6 +295,7 @@ describe('Gains Calculator Utils', () => {
       // 50 phantom shares: 15 * 50 = $750 gain (zero cost basis)
       // Total: $1,250 gain
       expect(result.realizedGainValue).toBeCloseTo(1250, 2);
+      expect(result.realizedCostBasis).toBeCloseTo(1000, 2);
     });
 
     it('should handle user example: sell 15 shares when owning 10, last 5 sold for $250', () => {
@@ -316,6 +325,7 @@ describe('Gains Calculator Utils', () => {
 
       // Percentage based on cost basis of real shares: $2,750 / $1,000 = 275%
       expect(result.realizedGainPercent).toBeCloseTo(275, 2);
+      expect(result.realizedCostBasis).toBeCloseTo(1000, 2);
     });
 
     it('should handle pure phantom shares scenario', () => {
@@ -336,6 +346,7 @@ describe('Gains Calculator Utils', () => {
 
       // Pure phantom shares should return 100% (pure profit with no investment)
       expect(result.realizedGainPercent).toBe(100);
+      expect(result.realizedCostBasis).toBe(0);
     });
   });
 
@@ -367,6 +378,7 @@ describe('Gains Calculator Utils', () => {
       expect(result.unrealizedGainPercent).toBe(-40); // (-$800 / $2,000) * 100 = -40%
       expect(result.realizedGainValue).toBe(500); // Sold 100 shares: (100 * $15) - (100 * $10) = $500
       expect(result.realizedGainPercent).toBe(50); // ($500 / $1,000) * 100 = 50%
+      expect(result.realizedCostBasis).toBe(1000);
     });
   });
 });

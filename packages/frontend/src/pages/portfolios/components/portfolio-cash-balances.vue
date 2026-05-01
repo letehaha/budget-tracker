@@ -29,6 +29,13 @@
               {{ $t('portfolioDetail.actions.exchangeCurrency') }}
             </UiButton>
           </ExchangeCurrencyDialog>
+
+          <RouterLink :to="{ name: ROUTES_NAMES.importPortfolioCashFlows, params: { portfolioId } }">
+            <UiButton variant="outline" size="sm">
+              <SparklesIcon class="mr-2 size-4" />
+              {{ $t('portfolioDetail.cashBalances.cashTransactions.aiImportButton') }}
+            </UiButton>
+          </RouterLink>
         </template>
 
         <!-- Mobile: dropdown menu -->
@@ -51,6 +58,12 @@
               <DropdownMenuItem @click="isExchangeOpen = true">
                 <RefreshCwIcon class="mr-2 size-4" />
                 {{ $t('portfolioDetail.actions.exchangeCurrency') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                @click="$router.push({ name: ROUTES_NAMES.importPortfolioCashFlows, params: { portfolioId } })"
+              >
+                <SparklesIcon class="mr-2 size-4" />
+                {{ $t('portfolioDetail.cashBalances.cashTransactions.aiImportButton') }}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -92,7 +105,15 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/lib/ui/card';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { ArrowRightLeftIcon, EllipsisVerticalIcon, PlusIcon, RefreshCwIcon, WalletIcon } from 'lucide-vue-next';
+import { ROUTES_NAMES } from '@/routes/constants';
+import {
+  ArrowRightLeftIcon,
+  EllipsisVerticalIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SparklesIcon,
+  WalletIcon,
+} from 'lucide-vue-next';
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 

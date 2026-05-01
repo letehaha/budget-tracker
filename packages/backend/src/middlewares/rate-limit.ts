@@ -102,3 +102,18 @@ export const csvImportRateLimit = createRateLimit({
     return `csv-import:user:${user.id}`;
   },
 });
+
+/**
+ * Rate limit for the AI-powered portfolio cash-flow import endpoints
+ * (extract / detect-duplicates / execute).
+ * Same shape as csvImportRateLimit since both bound the cost of repeated
+ * large-payload submissions across a multi-step wizard.
+ */
+export const portfolioCashFlowImportRateLimit = createRateLimit({
+  windowSeconds: 5 * 60,
+  maxAttempts: 30,
+  keyGenerator: (req: Request) => {
+    const user = req.user as Users;
+    return `portfolio-cash-flow-import:user:${user.id}`;
+  },
+});

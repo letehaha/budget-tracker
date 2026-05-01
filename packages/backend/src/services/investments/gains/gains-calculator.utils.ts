@@ -16,6 +16,7 @@ interface UnrealizedGainsResult {
 interface RealizedGainsResult {
   realizedGainValue: number;
   realizedGainPercent: number;
+  realizedCostBasis: number;
 }
 
 /**
@@ -124,6 +125,7 @@ export function calculateRealizedGains(transactions: TransactionForGains[]): Rea
   return {
     realizedGainValue: totalRealizedGain,
     realizedGainPercent,
+    realizedCostBasis: totalCostBasisOfSoldShares,
   };
 }
 

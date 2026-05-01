@@ -126,7 +126,7 @@ const portfolioId = toRef(props, 'portfolioId');
 const { t } = useI18n();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 
-const { data: transfers, isLoading } = usePortfolioTransfers(portfolioId);
+const { data: transfers, isLoading } = usePortfolioTransfers(portfolioId, { limit: 500 });
 const deleteMutation = useDeletePortfolioTransfer();
 
 const linkedTxAction = ref<'keep' | 'delete'>('keep');

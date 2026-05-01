@@ -9,6 +9,7 @@ export * from './investments';
 export * from './api';
 export * from './import-export';
 export * from './statement-parser';
+export * from './portfolio-cash-flow-import';
 export * from './sse';
 export * from './ai';
 export * from './money';
