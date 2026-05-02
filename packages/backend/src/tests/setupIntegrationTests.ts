@@ -13,7 +13,7 @@ import {
   transactionSyncQueue,
   transactionSyncWorker,
 } from '@services/bank-data-providers/monobank/transaction-sync-queue';
-import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
+import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 
 import { resetSessionCounter } from './mocks/enablebanking/mock-api';
@@ -267,13 +267,14 @@ beforeEach(async () => {
     const testEmail = 'test1@test.local';
     const testPassword = 'testpassword123';
 
-    // Create the app user with default categories using the shared service
-    // Pass 'en' locale explicitly since tests run without AsyncLocalStorage context
-    await createUserWithDefaults({
+    // Create the app user with default categories.
+    // Pass 'en' locale explicitly since tests run without AsyncLocalStorage context.
+    // authUserId must match what the better-auth mock returns.
+    const seedAppUser = await createAppUserWithUniqueUsername({
       username: 'test1',
-      authUserId: 'test-user-id', // This must match what the mock returns
-      locale: 'en',
+      authUserId: 'test-user-id',
     });
+    await seedUserDefaults({ userId: seedAppUser.id, locale: 'en' });
 
     // Create better-auth records (ba_*) for test user
     // Since auth is mocked via MSW, we need to manually create these records

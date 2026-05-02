@@ -260,6 +260,9 @@
     "excludedCategoriesNotFound": "Одну або декілька виключених категорій не знайдено",
     "userSettingsNotFound": "Налаштування користувача не знайдено"
   },
+  "users": {
+    "usernameAlreadyTaken": "Ім'я користувача \"{{username}}\" вже зайняте"
+  },
   "userCurrencies": {
     "baseCurrencyExists": "Базова валюта вже існує!",
     "currencyCodeNotExist": "Валюта з переданим кодом не існує.",

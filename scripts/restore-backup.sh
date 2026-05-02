@@ -149,7 +149,7 @@ echo -e "${YELLOW}[2/4]${NC} Dropping existing database..."
 
 docker compose -f "$COMPOSE_FILE" exec -T db \
     psql -U "$APPLICATION_DB_USERNAME" -d postgres \
-    -c "DROP DATABASE IF EXISTS \"$APPLICATION_DB_DATABASE\";"
+    -c "DROP DATABASE IF EXISTS \"$APPLICATION_DB_DATABASE\" WITH (FORCE);"
 
 echo -e "${GREEN}✓${NC} Database dropped"
 
