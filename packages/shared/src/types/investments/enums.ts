@@ -17,6 +17,14 @@ export enum ASSET_CLASS {
   other = 'other',
 }
 
+/**
+ * Asset classes the product currently supports for user-facing search and
+ * holding creation. Anything else is filtered from search results and rejected
+ * by the createHolding endpoint. Crypto, options, cash, and "other" require
+ * dedicated UX/data flows that don't exist yet.
+ */
+export const SUPPORTED_ASSET_CLASSES: readonly ASSET_CLASS[] = [ASSET_CLASS.stocks, ASSET_CLASS.fixed_income] as const;
+
 export enum INVESTMENT_TRANSACTION_CATEGORY {
   buy = 'buy',
   sell = 'sell',

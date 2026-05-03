@@ -1,3 +1,4 @@
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
@@ -5,6 +6,7 @@ import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import { restClient } from '@polygon.io/client-js';
 import * as helpers from '@tests/helpers';
+import { makeRequest } from '@tests/helpers/common';
 
 const mockedRestClient = jest.mocked(restClient);
 const mockApi = mockedRestClient.getMockImplementation()!('test');
@@ -161,6 +163,30 @@ describe('POST /holdings (create holding)', () => {
     expect(typeof holding.currencyCode).toBe('string');
     expect(holding.portfolioId).toBe(investmentPortfolio.id);
     expect(holding.securityId).toBe(vooSecurity.id);
+  });
+
+  it('rejects searchResult with unsupported asset class (e.g. crypto)', async () => {
+    const response = await makeRequest({
+      method: 'post',
+      url: '/investments/holding',
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        searchResult: {
+          symbol: 'BTC-USD',
+          name: 'Bitcoin USD',
+          assetClass: ASSET_CLASS.crypto,
+          providerName: SECURITY_PROVIDER.yahoo,
+          currencyCode: 'USD',
+          exchangeName: 'CCC',
+          exchangeAcronym: 'CCC',
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const created = await Securities.findOne({ where: { symbol: 'BTC-USD' } });
+    expect(created).toBeNull();
   });
 
   it.todo('prevents race condition on duplicate (only one succeeds)');

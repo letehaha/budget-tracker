@@ -177,6 +177,36 @@ describe('GET /investments/securities/search', () => {
     expect(results[0]!.isInPortfolio).toBe(false);
   });
 
+  it('filters out unsupported asset classes (crypto, options, cash, other)', async () => {
+    // FmpDataProvider.mapToAssetClass classifies anything containing BTC/ETH/CRYPTO as crypto.
+    // Mix one stock and one crypto-classified result in the same response.
+    mockedFmpSearch.mockResolvedValue([
+      {
+        symbol: 'AAPL',
+        name: 'Apple Inc.',
+        currency: 'USD',
+        stockExchange: 'NASDAQ Global Select',
+        exchangeShortName: 'NASDAQ',
+      },
+      {
+        symbol: 'BTCUSD',
+        name: 'Bitcoin USD',
+        currency: 'USD',
+        stockExchange: 'CCC',
+        exchangeShortName: 'CCC',
+      },
+    ]);
+
+    const results = await helpers.searchSecurities({ payload: { query: 'btc' }, raw: true });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      symbol: 'AAPL',
+      assetClass: ASSET_CLASS.stocks,
+    });
+    expect(results.find((r) => r.assetClass === ASSET_CLASS.crypto)).toBeUndefined();
+  });
+
   it('should mark securities as in portfolio when they exist in holdings', async () => {
     // Create a portfolio
     const portfolio = await helpers.createPortfolio({ raw: true });
