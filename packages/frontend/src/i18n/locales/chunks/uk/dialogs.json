@@ -31,6 +31,9 @@
     "createPortfolio": {
       "title": "Створити портфель",
       "description": "Створіть новий інвестиційний портфель для відстеження ваших утримань та транзакцій.",
+      "assetSupportNotice": "Наразі підтримуються лише акції. Криптовалюти, облігації та інші цінні папери незабаром — {roadmapLink} або {feedbackLink}.",
+      "assetSupportRoadmapLink": "проголосуйте за наступні фічі",
+      "assetSupportFeedbackLink": "запросіть фічу",
       "form": {
         "nameLabel": "Назва портфеля",
         "namePlaceholder": "Мій інвестиційний портфель",
