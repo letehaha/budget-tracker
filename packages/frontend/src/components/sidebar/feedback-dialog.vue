@@ -5,6 +5,7 @@ import Label from '@/components/lib/ui/label/Label.vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/lib/ui/select';
 import { useNotificationCenter } from '@/components/notification-center';
 import { trackAnalyticsEvent } from '@/lib/posthog';
+import { useVModel } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -12,11 +13,24 @@ import FeedbackPulseButton from './feedback-pulse-button.vue';
 
 type FeedbackType = 'bug' | 'feature_request' | 'other';
 
+const props = defineProps<{
+  open?: boolean;
+  /**
+   * Suppresses the bundled sidebar pulse-button trigger. Use when opening the
+   * dialog programmatically via v-model:open from another surface.
+   */
+  triggerless?: boolean;
+  /** Initial feedback type when the dialog is opened. */
+  defaultType?: FeedbackType;
+}>();
+
+const emit = defineEmits<{ 'update:open': [value: boolean] }>();
+
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { t } = useI18n();
 
-const isOpen = ref(false);
-const feedbackType = ref<FeedbackType>('bug');
+const isOpen = useVModel(props, 'open', emit, { passive: true, defaultValue: false });
+const feedbackType = ref<FeedbackType>(props.defaultType ?? 'bug');
 const message = ref('');
 const isSubmitting = ref(false);
 
@@ -27,8 +41,8 @@ const FEEDBACK_TYPES = computed(() => [
 ]);
 
 watch(isOpen, (open) => {
-  if (!open) {
-    feedbackType.value = 'bug';
+  if (open) {
+    feedbackType.value = props.defaultType ?? 'bug';
     message.value = '';
   }
 });
@@ -59,7 +73,7 @@ const submit = () => {
 
 <template>
   <ResponsiveDialog v-model:open="isOpen">
-    <template #trigger>
+    <template v-if="!triggerless" #trigger>
       <FeedbackPulseButton :label="t('dialogs.feedback.sidebarButton')" />
     </template>
 

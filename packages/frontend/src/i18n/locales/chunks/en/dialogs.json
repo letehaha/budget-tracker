@@ -31,6 +31,9 @@
     "createPortfolio": {
       "title": "Create Portfolio",
       "description": "Create a new investment portfolio to track your holdings and transactions.",
+      "assetSupportNotice": "Only stocks are supported for now. Crypto, bonds & other securities are coming soon — {roadmapLink}, or {feedbackLink}.",
+      "assetSupportRoadmapLink": "vote for what's next",
+      "assetSupportFeedbackLink": "request a feature",
       "form": {
         "nameLabel": "Portfolio name",
         "namePlaceholder": "My Investment Portfolio",

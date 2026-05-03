@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { searchSecurities } from '@/api/securities';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import InputField from '@/components/fields/input-field.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import FeedbackDialog from '@/components/sidebar/feedback-dialog.vue';
 import { useCreateHolding } from '@/composable/data-queries/holdings';
 import { cn } from '@/lib/utils';
 import type { SecuritySearchResult } from '@bt/shared/types/investments';
 import { useQuery } from '@tanstack/vue-query';
-import { CheckCheckIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, CheckCheckIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -17,7 +19,16 @@ const props = defineProps<{ portfolioId: number }>();
 const emit = defineEmits(['updated']);
 
 const isOpen = ref(false);
+const isFeedbackOpen = ref(false);
+const tooltipKey = ref(0);
 const searchTerm = ref('');
+
+const openFeedback = () => {
+  // Force-remount the tooltip so it dismisses immediately instead of lingering
+  // over the feedback dialog until the cursor moves.
+  tooltipKey.value += 1;
+  isFeedbackOpen.value = true;
+};
 
 const debounced = ref('');
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -64,7 +75,40 @@ async function addSymbol(sec: SecuritySearchResult) {
       <slot />
     </template>
 
-    <template #title> {{ $t('dialogs.addSymbols.title') }} </template>
+    <template #title>
+      <span class="inline-flex items-center gap-2">
+        {{ $t('dialogs.addSymbols.title') }}
+
+        <ResponsiveTooltip :key="tooltipKey" content-class-name="max-w-72" :delay-duration="100">
+          <AlertTriangleIcon class="text-warning size-4 cursor-help" />
+          <template #content>
+            <i18n-t keypath="dialogs.createPortfolio.assetSupportNotice" tag="p">
+              <template #roadmapLink>
+                <a
+                  href="https://moneymatter.featurebase.app/dashboard/roadmap"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="font-medium underline underline-offset-2 hover:no-underline"
+                >
+                  {{ $t('dialogs.createPortfolio.assetSupportRoadmapLink') }}
+                </a>
+              </template>
+              <template #feedbackLink>
+                <button
+                  type="button"
+                  class="font-medium underline underline-offset-2 hover:no-underline"
+                  @click="openFeedback"
+                >
+                  {{ $t('dialogs.createPortfolio.assetSupportFeedbackLink') }}
+                </button>
+              </template>
+            </i18n-t>
+          </template>
+        </ResponsiveTooltip>
+
+        <FeedbackDialog v-model:open="isFeedbackOpen" triggerless default-type="feature_request" />
+      </span>
+    </template>
 
     <template #default>
       <div class="grid gap-4">

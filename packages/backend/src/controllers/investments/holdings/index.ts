@@ -1,6 +1,12 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import {
+  ASSET_CLASS,
+  SECURITY_PROVIDER,
+  SUPPORTED_ASSET_CLASSES,
+  SecuritySearchResult,
+} from '@bt/shared/types/investments';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { ValidationError } from '@js/errors';
 import { createHolding } from '@services/investments/holdings/create-holding.service';
 import { deleteHolding } from '@services/investments/holdings/delete-holding.service';
 import { getHoldings } from '@services/investments/holdings/get-holdings.service';
@@ -42,6 +48,12 @@ export const createHoldingController = createController(
 
     // If searchResult is provided, create the security first
     if (searchResult) {
+      if (!SUPPORTED_ASSET_CLASSES.includes(searchResult.assetClass)) {
+        throw new ValidationError({
+          message: `Asset class "${searchResult.assetClass}" is not supported yet.`,
+        });
+      }
+
       const { security } = await addSecurityFromSearch({ searchResult });
       finalSecurityId = security.id;
     }

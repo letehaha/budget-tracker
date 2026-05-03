@@ -1,5 +1,5 @@
 import { UserModel } from '@bt/shared/types';
-import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import { SUPPORTED_ASSET_CLASSES, type SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -44,8 +44,10 @@ export const searchSecurities = async ({
     const provider = dataProviderFactory.getProvider();
     const searchResults = await provider.searchSecurities(query);
 
+    const supportedResults = searchResults.filter((r) => SUPPORTED_ASSET_CLASSES.includes(r.assetClass));
+
     // Apply limit if specified
-    let limitedResults = limit ? searchResults.slice(0, limit) : searchResults;
+    let limitedResults = limit ? supportedResults.slice(0, limit) : supportedResults;
 
     // If portfolioId is provided, check which securities are already in the portfolio
     if (portfolioId) {
