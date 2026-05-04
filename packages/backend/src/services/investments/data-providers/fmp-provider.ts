@@ -2,7 +2,7 @@ import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared
 import { sleep } from '@common/helpers';
 import { logger } from '@js/utils';
 
-import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
+import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData, SecurityPriceFetchInput } from './base-provider';
 import { FmpClient, FmpSearchResult } from './clients';
 
 export class FmpDataProvider extends BaseSecurityDataProvider {
@@ -152,16 +152,17 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
    * FMP free tier has 250 requests/day limit.
    * Paid tiers have much higher limits (300-3000 requests/minute).
    */
-  public async fetchPricesForSecurities(symbols: string[], forDate: Date): Promise<PriceData[]> {
+  public async fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]> {
     const FMP_FREE_DAILY_LIMIT = 250;
     const FMP_MINUTE_LIMIT = 5; // Conservative limit for free tier
     const MINUTE_DELAY = 60 * 1000 + 1000; // 61 seconds to be safe
     const REQUEST_DELAY = 12 * 1000; // 12 seconds between requests for free tier
 
-    if (symbols.length === 0) {
+    if (securities.length === 0) {
       return [];
     }
 
+    const symbols = securities.map((s) => s.symbol);
     logger.info(`FMP: Starting fetch for ${symbols.length} securities`);
 
     // Apply daily limit

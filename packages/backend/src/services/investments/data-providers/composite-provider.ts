@@ -2,13 +2,14 @@ import { SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/invest
 import { logger } from '@js/utils';
 
 import { AlphaVantageDataProvider } from './alphavantage-provider';
-import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
+import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData, SecurityPriceFetchInput } from './base-provider';
 import { FmpDataProvider } from './fmp-provider';
 import { PolygonDataProvider } from './polygon-provider';
 import {
   getHistoricalPriceProviderPreference,
   getLatestPriceProviderPreference,
   getSearchProviderPreference,
+  partitionByMarketStatus,
 } from './utils';
 import { YahooDataProvider } from './yahoo-provider';
 
@@ -103,50 +104,49 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
    * Routes bulk price fetching to the best provider for each symbol.
    * Phase 1: Fetch from primary providers. Phase 2: Retry failed symbols with fallbacks.
    */
-  public async fetchPricesForSecurities(symbols: string[], forDate: Date): Promise<PriceData[]> {
-    // Group symbols by their preferred provider
-    const symbolsByProvider = this.groupSymbolsByProvider(symbols);
+  public async fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]> {
+    const securitiesByProvider = this.groupSecuritiesByProvider(securities);
 
     const allResults: PriceData[] = [];
-    const failedSymbols: string[] = [];
+    const failedSecurities: SecurityPriceFetchInput[] = [];
 
     // Phase 1: Fetch from primary providers concurrently
-    const fetchPromises = Array.from(symbolsByProvider.entries()).map(async ([providerName, symbolList]) => {
+    const fetchPromises = Array.from(securitiesByProvider.entries()).map(async ([providerName, securityList]) => {
       const provider = this.providers.get(providerName);
       if (!provider) {
-        logger.info(`Provider ${providerName} not available, skipping ${symbolList.length} symbols`);
-        return { fetched: [] as PriceData[], failed: symbolList };
+        logger.info(`Provider ${providerName} not available, skipping ${securityList.length} symbols`);
+        return { fetched: [] as PriceData[], failed: securityList };
       }
 
       try {
-        logger.info(`Fetching prices for ${symbolList.length} symbols from ${providerName}`);
-        const res = await provider.fetchPricesForSecurities(symbolList, forDate);
+        logger.info(`Fetching prices for ${securityList.length} symbols from ${providerName}`);
+        const res = await provider.fetchPricesForSecurities(securityList, forDate);
         // Detect partial failures: symbols requested but not returned
         const fetchedSymbols = new Set(res.map((p) => p.symbol));
-        const failed = symbolList.filter((s) => !fetchedSymbols.has(s));
+        const failed = securityList.filter((s) => !fetchedSymbols.has(s.symbol));
         return { fetched: res, failed };
       } catch (error) {
         logger.error({ message: `Provider ${providerName} failed for bulk fetch:`, error: error as Error });
-        return { fetched: [] as PriceData[], failed: symbolList };
+        return { fetched: [] as PriceData[], failed: securityList };
       }
     });
 
     const results = await Promise.all(fetchPromises);
     for (const { fetched, failed } of results) {
       allResults.push(...fetched);
-      failedSymbols.push(...failed);
+      failedSecurities.push(...failed);
     }
 
     // Phase 2: Retry failed symbols with fallback providers
-    if (failedSymbols.length > 0) {
+    if (failedSecurities.length > 0) {
       logger.info(
-        `${failedSymbols.length} symbols failed primary provider, attempting fallbacks: ${failedSymbols.join(', ')}`,
+        `${failedSecurities.length} symbols failed primary provider, attempting fallbacks: ${failedSecurities.map((s) => s.symbol).join(', ')}`,
       );
 
-      const stillMissing: string[] = [];
+      const stillMissing: SecurityPriceFetchInput[] = [];
 
-      for (const symbol of failedSymbols) {
-        const preference = getHistoricalPriceProviderPreference(symbol);
+      for (const security of failedSecurities) {
+        const preference = getHistoricalPriceProviderPreference(security.symbol);
         // Skip the primary (already failed) and try only fallback providers
         const fallbackNames = preference.fallbacks.filter((f) => f !== preference.primary);
         let fetched = false;
@@ -156,11 +156,11 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
           if (!fallbackProvider) continue;
 
           try {
-            const prices = await fallbackProvider.fetchPricesForSecurities([symbol], forDate);
+            const prices = await fallbackProvider.fetchPricesForSecurities([security], forDate);
             if (prices.length > 0) {
               allResults.push(...prices);
               fetched = true;
-              logger.info(`Fallback ${fallbackName} succeeded for ${symbol}`);
+              logger.info(`Fallback ${fallbackName} succeeded for ${security.symbol}`);
               break;
             }
           } catch {
@@ -169,42 +169,57 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
         }
 
         if (!fetched) {
-          stillMissing.push(symbol);
+          stillMissing.push(security);
         }
       }
 
       if (stillMissing.length > 0) {
-        logger.error(
-          `${stillMissing.length}/${symbols.length} symbols failed ALL providers: ${stillMissing.join(', ')}`,
-        );
+        const { expectedClosed, actuallyMissing } = partitionByMarketStatus({
+          items: stillMissing,
+          date: forDate,
+        });
+
+        if (expectedClosed.length > 0) {
+          logger.info(
+            `${expectedClosed.length}/${securities.length} symbols had no data because their markets were closed on ${forDate.toISOString()}: ${expectedClosed.map((s) => s.symbol).join(', ')}`,
+          );
+        }
+
+        if (actuallyMissing.length > 0) {
+          logger.error(
+            `${actuallyMissing.length}/${securities.length} symbols failed ALL providers: ${actuallyMissing.map((s) => s.symbol).join(', ')}`,
+          );
+        }
       }
     }
 
     logger.info(
-      `Composite provider fetched ${allResults.length}/${symbols.length} prices from ${symbolsByProvider.size} providers`,
+      `Composite provider fetched ${allResults.length}/${securities.length} prices from ${securitiesByProvider.size} providers`,
     );
     return allResults;
   }
 
   /**
-   * Groups symbols by their preferred provider for bulk operations
+   * Groups securities by their preferred provider for bulk operations
    */
-  private groupSymbolsByProvider(symbols: string[]): Map<SECURITY_PROVIDER, string[]> {
-    const groups = new Map<SECURITY_PROVIDER, string[]>();
+  private groupSecuritiesByProvider(
+    securities: SecurityPriceFetchInput[],
+  ): Map<SECURITY_PROVIDER, SecurityPriceFetchInput[]> {
+    const groups = new Map<SECURITY_PROVIDER, SecurityPriceFetchInput[]>();
 
-    symbols.forEach((symbol) => {
-      const preference = getHistoricalPriceProviderPreference(symbol);
+    securities.forEach((security) => {
+      const preference = getHistoricalPriceProviderPreference(security.symbol);
       const providerName = this.findAvailableProvider(preference.primary, preference.fallbacks);
 
       if (providerName) {
         const list = groups.get(providerName);
         if (list) {
-          list.push(symbol);
+          list.push(security);
         } else {
-          groups.set(providerName, [symbol]);
+          groups.set(providerName, [security]);
         }
       } else {
-        logger.warn(`No available provider for symbol: ${symbol}`);
+        logger.warn(`No available provider for symbol: ${security.symbol}`);
       }
     });
 

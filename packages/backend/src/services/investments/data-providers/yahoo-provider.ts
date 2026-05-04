@@ -6,7 +6,7 @@ import { subYears } from 'date-fns';
 import { Op } from 'sequelize';
 import YahooFinance from 'yahoo-finance2';
 
-import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
+import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData, SecurityPriceFetchInput } from './base-provider';
 
 const DEFAULT_HISTORY_YEARS = 5;
 const CURRENCY_RESOLVE_CONCURRENCY = 5;
@@ -168,9 +168,10 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
     }
   }
 
-  public async fetchPricesForSecurities(symbols: string[], forDate: Date): Promise<PriceData[]> {
-    if (symbols.length === 0) return [];
+  public async fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]> {
+    if (securities.length === 0) return [];
 
+    const symbols = securities.map((s) => s.symbol);
     logger.info(`Yahoo: Starting fetch for ${symbols.length} securities`);
 
     const fetchedPrices: PriceData[] = [];

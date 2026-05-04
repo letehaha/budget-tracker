@@ -12,7 +12,7 @@ import {
 import { isAxiosError } from 'axios';
 import { formatDate, subYears } from 'date-fns';
 
-import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
+import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData, SecurityPriceFetchInput } from './base-provider';
 
 // Since the library doesn't export these types directly, we derive them.
 type TickerTypes = ITickersQuery['type'];
@@ -181,11 +181,12 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
    * Fetch prices for multiple securities efficiently using batch daily prices API.
    * Makes a single API call to get all daily prices, then filters for requested symbols.
    */
-  public async fetchPricesForSecurities(symbols: string[], forDate: Date): Promise<PriceData[]> {
-    if (symbols.length === 0) {
+  public async fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]> {
+    if (securities.length === 0) {
       return [];
     }
 
+    const symbols = securities.map((s) => s.symbol);
     logger.info(`Polygon: Starting batch fetch for ${symbols.length} securities using getDailyPrices`);
 
     // Fetch all daily prices in a single API call
