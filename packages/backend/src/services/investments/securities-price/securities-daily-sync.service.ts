@@ -173,19 +173,6 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
       securitiesIdsToPatch = securitiesIdsToPatch.filter((i) => !failedPricesUpdates.some((e) => e.securityId === i));
     }
 
-    if (securitiesIdsToPatch.length > 0) {
-      await Securities.update(
-        { pricingLastSyncedAt: new Date() },
-        {
-          where: {
-            id: { [Op.in]: securitiesIdsToPatch },
-          },
-        },
-      );
-
-      logger.info(`Updated pricingLastSyncedAt for ${securitiesIdsToPatch.length} securities`);
-    }
-
     // Step 4: Handle securities that didn't get price data from provider
     const fetchedSymbols = new Set(fetchedPrices.map((p) => p.symbol));
     const missedInputs = securitiesInputs.filter((s) => !fetchedSymbols.has(s.symbol));
@@ -198,6 +185,12 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
 
       if (expectedClosed.length > 0) {
         result.skippedClosedMarket = expectedClosed.length;
+        // Advance pricingLastSyncedAt for closed-market symbols so they don't dominate
+        // the staleness queue on every weekend/holiday run.
+        for (const { symbol } of expectedClosed) {
+          const id = securitiesMapBySymbol.get(symbol)?.id;
+          if (id !== undefined) securitiesIdsToPatch.push(id);
+        }
         logger.info(
           `${expectedClosed.length} symbols skipped (markets closed on ${yesterday.toISOString()}): ${expectedClosed.map((s) => s.symbol).join(', ')}`,
         );
@@ -217,6 +210,19 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
           });
         }
       }
+    }
+
+    if (securitiesIdsToPatch.length > 0) {
+      await Securities.update(
+        { pricingLastSyncedAt: new Date() },
+        {
+          where: {
+            id: { [Op.in]: securitiesIdsToPatch },
+          },
+        },
+      );
+
+      logger.info(`Updated pricingLastSyncedAt for ${securitiesIdsToPatch.length} securities`);
     }
   } catch (error) {
     // Handle total failure

@@ -493,6 +493,57 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
     });
   });
 
+  describe('Closed Market Handling', () => {
+    it('advances pricingLastSyncedAt for symbols when yesterday was a weekend (no provider data)', async () => {
+      // Freeze "today" to a Monday so `yesterday` is Sunday — markets closed,
+      // providers return no data, and the sync should still advance pricingLastSyncedAt
+      // for those symbols so they don't dominate the staleness queue forever.
+      jest.useFakeTimers({
+        now: new Date('2026-05-04T12:00:00Z'), // Monday
+        doNotFake: ['setTimeout', 'setInterval', 'setImmediate', 'queueMicrotask', 'nextTick', 'performance'],
+      });
+
+      try {
+        // Wait for any background work from beforeEach's createHolding to settle, then
+        // snapshot the price-row count so we can assert this sync added none.
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const pricesBefore = await SecurityPricing.count();
+
+        // All providers return empty results — simulating "no data because markets were closed"
+        mockedYahooChart.mockResolvedValue({ quotes: [] });
+        mockedPolygonAggregates.mockResolvedValue({ results: [] });
+        mockedAlphaDaily.mockResolvedValue({ 'Time Series (Daily)': {} });
+
+        const response = await helpers.triggerSecuritiesSync();
+        expect(response.statusCode).toBe(200);
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // pricingLastSyncedAt must advance for every closed-market symbol, even though
+        // no SecurityPricing rows were created.
+        const securities = await helpers.getAllSecurities({ raw: true });
+        const apple = securities.find((s) => s.id === usSecurity.id)!;
+        const asml = securities.find((s) => s.id === nonUsSecurity.id)!;
+        const msft = securities.find((s) => s.id === securityWithStaleData.id)!;
+
+        expect(apple.pricingLastSyncedAt).not.toBeNull();
+        expect(asml.pricingLastSyncedAt).not.toBeNull();
+        expect(msft.pricingLastSyncedAt).not.toBeNull();
+
+        // MSFT was seeded with pricingLastSyncedAt = 10 days ago; it must have been bumped forward.
+        expect(new Date(msft.pricingLastSyncedAt!).getTime()).toBeGreaterThan(
+          new Date('2026-05-03T00:00:00Z').getTime(),
+        );
+
+        // The sync itself must not create new price rows when providers returned nothing.
+        const pricesAfter = await SecurityPricing.count();
+        expect(pricesAfter).toBe(pricesBefore);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
+
   describe('Concurrent Execution Prevention', () => {
     it('should prevent concurrent sync execution with locking', async () => {
       // Wait for any async work from previous tests to release the lock
