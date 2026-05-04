@@ -163,8 +163,8 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
               logger.info(`Fallback ${fallbackName} succeeded for ${security.symbol}`);
               break;
             }
-          } catch {
-            // Continue to next fallback
+          } catch (error) {
+            logger.warn(`Fallback ${fallbackName} threw for ${security.symbol}: ${(error as Error).message}`);
           }
         }
 
