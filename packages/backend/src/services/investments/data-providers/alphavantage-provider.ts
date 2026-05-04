@@ -4,7 +4,7 @@ import { logger } from '@js/utils';
 import alpha from 'alphavantage';
 import { endOfDay, isWithinInterval, startOfDay } from 'date-fns';
 
-import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
+import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData, SecurityPriceFetchInput } from './base-provider';
 
 export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
   readonly providerName = SECURITY_PROVIDER.alphavantage;
@@ -148,16 +148,17 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
    * Fetch prices for multiple securities efficiently with rate limiting.
    * Alpha Vantage has a 25 requests/day and 5 requests/minute limit.
    */
-  public async fetchPricesForSecurities(symbols: string[], forDate: Date): Promise<PriceData[]> {
+  public async fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]> {
     const ALPHA_VANTAGE_DAILY_LIMIT = 25;
     const ALPHA_VANTAGE_MINUTE_LIMIT = 5;
     const MINUTE_DELAY = 60 * 1000 + 1000; // 61 seconds to be safe
     const REQUEST_DELAY = 12 * 1000; // 12 seconds between requests to stay under 5/minute
 
-    if (symbols.length === 0) {
+    if (securities.length === 0) {
       return [];
     }
 
+    const symbols = securities.map((s) => s.symbol);
     logger.info(`Alpha Vantage: Starting fetch for ${symbols.length} securities`);
 
     // Apply daily limit

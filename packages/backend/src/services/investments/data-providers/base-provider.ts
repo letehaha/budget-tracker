@@ -1,4 +1,4 @@
-import type { SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import type { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
 
 /**
  * Represents normalized price data for a single security on a specific date.
@@ -14,6 +14,16 @@ export interface PriceData {
 export interface HistoricalPriceOptions {
   startDate?: Date;
   endDate?: Date;
+}
+
+/**
+ * Minimal info needed to fetch a price for a security. assetClass lets the
+ * composite provider correctly classify market-closed conditions (e.g. crypto
+ * trades 24/7, equities don't) without guessing from the symbol shape.
+ */
+export interface SecurityPriceFetchInput {
+  symbol: string;
+  assetClass: ASSET_CLASS;
 }
 
 export abstract class BaseSecurityDataProvider {
@@ -50,11 +60,11 @@ export abstract class BaseSecurityDataProvider {
    * This method only handles fetching and normalizing price data.
    * Database operations should be handled by the calling service.
    *
-   * @param symbols - Array of security symbols to fetch prices for
+   * @param securities - Securities to fetch prices for (symbol + assetClass)
    * @param forDate - The date to fetch prices for
    * @returns Array of fetched price data
    */
-  abstract fetchPricesForSecurities(symbols: string[], forDate: Date): Promise<PriceData[]>;
+  abstract fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]>;
 
   // TODO: processSearchToSecurity method, because each security after search can provide different schema
   // and it should be processed uniquely when adding security from the search

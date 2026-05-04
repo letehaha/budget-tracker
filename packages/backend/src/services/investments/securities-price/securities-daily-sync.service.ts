@@ -9,6 +9,7 @@ import { endOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 
 import { dataProviderFactory } from '../data-providers';
+import { partitionByMarketStatus } from '../data-providers/utils';
 
 const SECURITIES_PRICES_SYNC_LOCK_KEY = 'lock:sync:securities-prices';
 
@@ -16,6 +17,7 @@ interface SecuritiesPricesSyncResult {
   totalProcessed: number;
   successfulUpdates: number;
   failedUpdates: number;
+  skippedClosedMarket: number;
   errors: Array<{ securityId: number; symbol: string | null; error: string }>;
 }
 
@@ -58,6 +60,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
       totalProcessed: 0,
       successfulUpdates: 0,
       failedUpdates: 0,
+      skippedClosedMarket: 0,
       errors: [],
     };
   }
@@ -68,6 +71,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
     totalProcessed: securitiesFromDb.length,
     successfulUpdates: 0,
     failedUpdates: 0,
+    skippedClosedMarket: 0,
     errors: [],
   };
 
@@ -76,12 +80,16 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
 
   const securitiesMapBySymbol = new Map(securitiesFromDb.filter((s) => s.symbol).map((s) => [s.symbol!, s]));
   const symbols = [...securitiesMapBySymbol.keys()];
+  const securitiesInputs = [...securitiesMapBySymbol.values()].map((s) => ({
+    symbol: s.symbol!,
+    assetClass: s.assetClass,
+  }));
 
   logger.info(`Fetching prices for ${securitiesMapBySymbol.size} symbols using composite provider`);
 
   try {
     // Let composite provider handle all routing, grouping, and bulk fetching internally
-    const fetchedPrices = await compositeProvider.fetchPricesForSecurities(symbols, yesterday);
+    const fetchedPrices = await compositeProvider.fetchPricesForSecurities(securitiesInputs, yesterday);
 
     const securityPricesToUpsert: {
       securityId: number;
@@ -165,6 +173,45 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
       securitiesIdsToPatch = securitiesIdsToPatch.filter((i) => !failedPricesUpdates.some((e) => e.securityId === i));
     }
 
+    // Step 4: Handle securities that didn't get price data from provider
+    const fetchedSymbols = new Set(fetchedPrices.map((p) => p.symbol));
+    const missedInputs = securitiesInputs.filter((s) => !fetchedSymbols.has(s.symbol));
+
+    if (missedInputs.length > 0) {
+      const { expectedClosed, actuallyMissing } = partitionByMarketStatus({
+        items: missedInputs,
+        date: yesterday,
+      });
+
+      if (expectedClosed.length > 0) {
+        result.skippedClosedMarket = expectedClosed.length;
+        // Advance pricingLastSyncedAt for closed-market symbols so they don't dominate
+        // the staleness queue on every weekend/holiday run.
+        for (const { symbol } of expectedClosed) {
+          const id = securitiesMapBySymbol.get(symbol)?.id;
+          if (id !== undefined) securitiesIdsToPatch.push(id);
+        }
+        logger.info(
+          `${expectedClosed.length} symbols skipped (markets closed on ${yesterday.toISOString()}): ${expectedClosed.map((s) => s.symbol).join(', ')}`,
+        );
+      }
+
+      if (actuallyMissing.length > 0) {
+        logger.warn(
+          `${actuallyMissing.length} symbols had no price data from provider: ${actuallyMissing.map((s) => s.symbol).join(', ')}`,
+        );
+
+        for (const { symbol } of actuallyMissing) {
+          result.failedUpdates++;
+          result.errors.push({
+            securityId: securitiesMapBySymbol.get(symbol)?.id || 0,
+            symbol,
+            error: 'No price data returned from provider',
+          });
+        }
+      }
+    }
+
     if (securitiesIdsToPatch.length > 0) {
       await Securities.update(
         { pricingLastSyncedAt: new Date() },
@@ -176,23 +223,6 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
       );
 
       logger.info(`Updated pricingLastSyncedAt for ${securitiesIdsToPatch.length} securities`);
-    }
-
-    // Step 4: Handle securities that didn't get price data from provider
-    const fetchedSymbols = new Set(fetchedPrices.map((p) => p.symbol));
-    const missedSymbols = symbols.filter((symbol) => !fetchedSymbols.has(symbol));
-
-    if (missedSymbols.length > 0) {
-      logger.warn(`${missedSymbols.length} symbols had no price data from provider: ${missedSymbols.join(', ')}`);
-
-      for (const symbol of missedSymbols) {
-        result.failedUpdates++;
-        result.errors.push({
-          securityId: securitiesMapBySymbol.get(symbol)?.id || 0,
-          symbol,
-          error: 'No price data returned from provider',
-        });
-      }
     }
   } catch (error) {
     // Handle total failure
@@ -215,7 +245,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
   }
 
   logger.info(
-    `Securities prices daily sync completed. Processed: ${result.totalProcessed}, Success: ${result.successfulUpdates}, Failed: ${result.failedUpdates}`,
+    `Securities prices daily sync completed. Processed: ${result.totalProcessed}, Success: ${result.successfulUpdates}, Failed: ${result.failedUpdates}, SkippedClosedMarket: ${result.skippedClosedMarket}`,
   );
 
   return result;
