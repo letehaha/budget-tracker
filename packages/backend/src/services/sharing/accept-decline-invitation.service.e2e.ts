@@ -11,8 +11,12 @@ import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import Users from '@models/users.model';
+import { app } from '@root/app';
+import { API_PREFIX } from '@root/config';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
+import { Op } from 'sequelize';
+import request from 'supertest';
 
 async function findAppUserByEmail(email: string) {
   const baUserRes = await authPool.query<{ id: string }>('SELECT id FROM ba_user WHERE email = $1', [email]);
@@ -223,6 +227,89 @@ describe('Share invitations: accept', () => {
       // accept rejects without rewriting the row.
       const row = await ShareInvitations.findOne({ where: { id: invitation.id } });
       expect(row!.status).toBe(SHARE_INVITATION_STATUSES.pending);
+    });
+
+    it('serializes concurrent accepts so only one wins the last slot (advisory lock)', async () => {
+      // Cap is 2. Pre-fill with 1 share so exactly 1 slot remains. Then race two
+      // recipients into that slot via Promise.all. Without the advisory lock both
+      // count() queries would read 1 and both inserts would succeed — exceeding the cap.
+      const account = await helpers.createAccount({ raw: true });
+      expect(SHARING_LIMITS.maxRecipientsPerResource).toBe(2);
+
+      const filler = await provisionSecondUserWithBaseCurrency();
+      const fillerApp = await findAppUserByEmail(filler.email);
+      await ResourceShares.create({
+        ownerUserId: account.userId,
+        sharedWithUserId: fillerApp.id,
+        resourceType: RESOURCE_TYPES.account,
+        resourceId: String(account.id),
+        permission: SHARE_PERMISSIONS.read,
+        policy: null,
+        acceptedAt: new Date(),
+      });
+
+      const [racerA, racerB] = await Promise.all([
+        provisionSecondUserWithBaseCurrency(),
+        provisionSecondUserWithBaseCurrency(),
+      ]);
+      const [racerAApp, racerBApp] = await Promise.all([
+        findAppUserByEmail(racerA.email),
+        findAppUserByEmail(racerB.email),
+      ]);
+
+      const [invitationA, invitationB] = await Promise.all([
+        ShareInvitations.create({
+          ownerUserId: account.userId,
+          inviteeEmail: racerA.email.toLowerCase(),
+          inviteeUserId: racerAApp.id,
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: String(account.id),
+          permission: SHARE_PERMISSIONS.read,
+          policy: null,
+          token: `race-a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          status: SHARE_INVITATION_STATUSES.pending,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        }),
+        ShareInvitations.create({
+          ownerUserId: account.userId,
+          inviteeEmail: racerB.email.toLowerCase(),
+          inviteeUserId: racerBApp.id,
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: String(account.id),
+          permission: SHARE_PERMISSIONS.read,
+          policy: null,
+          token: `race-b-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          status: SHARE_INVITATION_STATUSES.pending,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        }),
+      ]);
+
+      // Use raw supertest with explicit cookies — `asUser` toggles a global, which
+      // doesn't survive parallel calls from different users. Each .post() reads its
+      // own Cookie header before the first await, so cookies are correctly bound.
+      const acceptAs = (cookies: string, token: string) =>
+        request(app)
+          .post(`${API_PREFIX}/share/invitations/${encodeURIComponent(token)}/accept`)
+          .set('Cookie', cookies);
+
+      const results = await Promise.all([
+        acceptAs(racerA.cookies, invitationA.token),
+        acceptAs(racerB.cookies, invitationB.token),
+      ]);
+      const statuses = results.map((r) => r.statusCode).toSorted();
+
+      // Exactly one should win (200) and one should hit the cap (409). Without the
+      // lock both would return 200 and the DB would have 3 accepted shares.
+      expect(statuses).toEqual([200, 409]);
+
+      const acceptedCount = await ResourceShares.count({
+        where: {
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: String(account.id),
+          acceptedAt: { [Op.not]: null },
+        },
+      });
+      expect(acceptedCount).toBe(SHARING_LIMITS.maxRecipientsPerResource);
     });
 
     it('returns 409 when the recipient cap is full (race-safe: enforced at accept-time too)', async () => {

@@ -6,12 +6,13 @@ import {
   ShareInvitationModel,
 } from '@bt/shared/types';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
+import { connection } from '@models/index';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 
 import { resolveResourceName } from './can-user-access-resource.service';
 import { getEmailForUser } from './find-user-by-email.service';
@@ -131,6 +132,19 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
   // recipients racing to accept could both win and exceed the cap. Existing-share path
   // skips this check — the recipient already has a slot, accepting again is idempotent.
   if (!existingShare) {
+    // Serialize accept on (resourceType, resourceId) so concurrent recipients can't both
+    // pass the count check below. The unique constraint only blocks same-recipient
+    // duplicates; without this lock two different recipients could both insert and exceed
+    // the cap. Transaction-scoped (`pg_advisory_xact_lock`) — released automatically on
+    // commit/rollback. CLS picks up the surrounding transaction from `withTransaction`.
+    await connection.sequelize.query('SELECT pg_advisory_xact_lock(hashtext(:resourceType), hashtext(:resourceId))', {
+      replacements: {
+        resourceType: invitation.resourceType,
+        resourceId: invitation.resourceId,
+      },
+      type: QueryTypes.SELECT,
+    });
+
     const acceptedCount = await ResourceShares.count({
       where: {
         resourceType: invitation.resourceType,
