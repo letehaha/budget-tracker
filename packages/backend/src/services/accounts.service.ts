@@ -1,10 +1,17 @@
-import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountExternalData, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_STATUSES,
+  ACCOUNT_TYPES,
+  AccountExternalData,
+  BANK_PROVIDER_TYPE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotFoundError, UnexpectedError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
@@ -14,6 +21,7 @@ import {
   getSharedAccountById,
   getSharedAccountsForUser,
 } from '@services/sharing/get-shared-accounts.service';
+import { Op } from 'sequelize';
 
 import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
 import { withTransaction } from './common/with-transaction';
@@ -21,7 +29,33 @@ import { withTransaction } from './common/with-transaction';
 type AccountWithRelinkStatus = Accounts.default & {
   needsRelink?: boolean;
   _shareContext?: AccountShareContext;
+  _bankProviderType?: BANK_PROVIDER_TYPE | null;
 };
+
+/**
+ * Batch-load provider types for accounts that have a `bankDataProviderConnectionId` and
+ * stamp `_bankProviderType` on each account in place. Lets the serializer expose the
+ * provider type so the frontend can render the bank logo without a per-account
+ * connection-details lookup (which is owner-scoped and unreachable for share recipients).
+ */
+async function attachBankProviderTypes(accounts: AccountWithRelinkStatus[]): Promise<void> {
+  const connectionIds = Array.from(
+    new Set(accounts.map((a) => a.bankDataProviderConnectionId).filter((id): id is number => typeof id === 'number')),
+  );
+  if (!connectionIds.length) return;
+
+  const connections = await BankDataProviderConnections.findAll({
+    where: { id: { [Op.in]: connectionIds } },
+    attributes: ['id', 'providerType'],
+  });
+  const providerTypeById = new Map(connections.map((c) => [c.id, c.providerType as BANK_PROVIDER_TYPE]));
+
+  for (const account of accounts) {
+    if (typeof account.bankDataProviderConnectionId === 'number') {
+      account._bankProviderType = providerTypeById.get(account.bankDataProviderConnectionId) ?? null;
+    }
+  }
+}
 
 /**
  * Check if an Enable Banking account needs to be re-linked.
@@ -89,7 +123,9 @@ export const getAccounts = withTransaction(
     const shared = await getSharedAccountsForUser({ userId: payload.userId, type: payload.type });
     // Shared instances aren't passed through `addNeedsRelinkFlag` because non-owners
     // shouldn't see relink state for someone else's bank-linked account.
-    return [...owned, ...shared];
+    const all = [...owned, ...shared];
+    await attachBankProviderTypes(all);
+    return all;
   },
 );
 
@@ -103,11 +139,14 @@ export const getAccountById = withTransaction(
       if (ownerUser) {
         enriched._shareContext = await buildOwnerShareContext({ ownerUser });
       }
+      await attachBankProviderTypes([enriched]);
       return enriched;
     }
 
     // Fall through to shared lookup; returns null if the caller has no accepted share.
-    return getSharedAccountById({ userId: payload.userId, id: payload.id });
+    const shared = await getSharedAccountById({ userId: payload.userId, id: payload.id });
+    if (shared) await attachBankProviderTypes([shared]);
+    return shared;
   },
 );
 

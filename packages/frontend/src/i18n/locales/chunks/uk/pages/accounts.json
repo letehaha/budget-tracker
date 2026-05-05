@@ -7,7 +7,8 @@
     "sections": {
       "archived": "Архівовані",
       "manual": "Ручні рахунки",
-      "connected": "Підключені рахунки"
+      "connected": "Підключені рахунки",
+      "sharedWithMe": "Поділено зі мною"
     },
     "empty": {
       "title": "Рахунків ще немає",
@@ -15,6 +16,6 @@
       "connectBank": "Підключити банківський рахунок",
       "createManual": "Створити ручний рахунок"
     },
-    "sharedBy": "Поділено з @{username}"
+    "sharedBy": "Поділено з {handle}"
   }
 }

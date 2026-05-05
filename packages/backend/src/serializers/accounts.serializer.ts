@@ -4,7 +4,7 @@
  * Serializes account model instances for API responses.
  * Money fields auto-convert via .toNumber().
  */
-import { ACCOUNT_STATUSES, AccountShareInfo } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, AccountShareInfo, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type Accounts from '@models/accounts.model';
 import type { AccountShareContext } from '@services/sharing/get-shared-accounts.service';
@@ -31,6 +31,10 @@ export interface AccountApiResponse {
   status: ACCOUNT_STATUSES;
   excludeFromStats: boolean;
   bankDataProviderConnectionId: number | null;
+  /** Provider type denormalized from the connection so the frontend can render the
+   *  bank logo without a per-account connection-details lookup (which is owner-scoped
+   *  and unreachable for share recipients). */
+  bankProviderType: BANK_PROVIDER_TYPE | null;
   needsRelink?: boolean;
   /** Present on user-facing list/detail responses; absent on internal serializations. */
   share?: AccountShareInfo;
@@ -44,7 +48,11 @@ export interface AccountApiResponse {
  * Serialize an account from DB format to API response
  */
 export function serializeAccount(
-  account: Accounts & { needsRelink?: boolean; _shareContext?: AccountShareContext },
+  account: Accounts & {
+    needsRelink?: boolean;
+    _shareContext?: AccountShareContext;
+    _bankProviderType?: BANK_PROVIDER_TYPE | null;
+  },
 ): AccountApiResponse {
   const response: AccountApiResponse = {
     id: account.id,
@@ -64,6 +72,7 @@ export function serializeAccount(
     status: account.status,
     excludeFromStats: account.excludeFromStats,
     bankDataProviderConnectionId: account.bankDataProviderConnectionId ?? null,
+    bankProviderType: account._bankProviderType ?? null,
   };
 
   if (account.needsRelink !== undefined) {
@@ -86,7 +95,11 @@ export function serializeAccount(
  * Serialize multiple accounts
  */
 export function serializeAccounts(
-  accounts: (Accounts & { needsRelink?: boolean; _shareContext?: AccountShareContext })[],
+  accounts: (Accounts & {
+    needsRelink?: boolean;
+    _shareContext?: AccountShareContext;
+    _bankProviderType?: BANK_PROVIDER_TYPE | null;
+  })[],
 ): AccountApiResponse[] {
   return accounts.map(serializeAccount);
 }

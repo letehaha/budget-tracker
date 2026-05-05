@@ -7,7 +7,8 @@
     "sections": {
       "archived": "Archived",
       "manual": "Manual accounts",
-      "connected": "Connected Accounts"
+      "connected": "Connected Accounts",
+      "sharedWithMe": "Shared with me"
     },
     "empty": {
       "title": "No Accounts Yet",
@@ -15,6 +16,6 @@
       "connectBank": "Connect Bank Account",
       "createManual": "Create Manual Account"
     },
-    "sharedBy": "Shared by @{username}"
+    "sharedBy": "Shared by {handle}"
   }
 }

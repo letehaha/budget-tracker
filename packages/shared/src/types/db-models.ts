@@ -2,6 +2,7 @@ import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
+  BANK_PROVIDER_TYPE,
   BUDGET_TYPES,
   CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
@@ -108,6 +109,12 @@ export interface AccountModel {
   status: ACCOUNT_STATUSES;
   excludeFromStats: boolean;
   bankDataProviderConnectionId?: number;
+  /**
+   * Provider type denormalized from the connection so the account list / card can render
+   * the bank logo without a per-account `GET /connections/:id` round-trip. Safe to expose
+   * to share recipients (who can't reach the owner-scoped connection-details endpoint).
+   */
+  bankProviderType?: BANK_PROVIDER_TYPE | null;
   /** Present on user-facing list/detail responses; absent on internal serializations. */
   share?: AccountShareInfo;
 }

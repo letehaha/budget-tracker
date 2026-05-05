@@ -8,12 +8,8 @@
   >
     <div class="flex flex-col gap-1 overflow-hidden">
       <div class="flex items-center gap-4 overflow-hidden">
-        <template v-if="props.account.bankDataProviderConnectionId">
-          <div class="size-6">
-            <template v-if="connectionDetails">
-              <BankProviderLogo class="size-6" :provider="connectionDetails.providerType" />
-            </template>
-          </div>
+        <template v-if="account.bankProviderType">
+          <BankProviderLogo class="size-6 shrink-0" :provider="account.bankProviderType" />
         </template>
         <div class="xs:max-w-[calc(100%-60px)] truncate text-base tracking-wide whitespace-nowrap">
           {{ account.name || t('accounts.noNameSet') }}
@@ -22,7 +18,7 @@
 
       <div v-if="isSharedWithMe" class="text-muted-foreground inline-flex items-center gap-1 truncate text-xs">
         <UsersIcon class="size-3 shrink-0" />
-        <span class="truncate">{{ $t('accounts.sharedBy', { username: account.share!.owner.username }) }}</span>
+        <span class="truncate">{{ $t('accounts.sharedBy', { handle: `@${account.share!.owner.username}` }) }}</span>
       </div>
     </div>
 
@@ -36,7 +32,6 @@
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import { useFormatCurrency } from '@/composable';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
-import { useBankConnectionDetails } from '@/composable/data-queries/bank-providers/bank-connection-details';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { AccountModel } from '@bt/shared/types';
 import { UsersIcon } from 'lucide-vue-next';
@@ -47,9 +42,6 @@ const { t } = useI18n();
 const props = defineProps<{ account: AccountModel }>();
 
 const { formatAmountByCurrencyCode } = useFormatCurrency();
-const { data: connectionDetails } = useBankConnectionDetails({
-  connectionId: toRef(() => props.account.bankDataProviderConnectionId!),
-});
 const { displayBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
 
 const isSharedWithMe = computed(() => props.account.share?.isOwner === false);
