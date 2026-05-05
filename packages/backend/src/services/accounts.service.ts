@@ -6,12 +6,22 @@ import { NotFoundError, UnexpectedError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
+import Users from '@models/users.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import {
+  AccountShareContext,
+  buildOwnerShareContext,
+  getSharedAccountById,
+  getSharedAccountsForUser,
+} from '@services/sharing/get-shared-accounts.service';
 
 import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
 import { withTransaction } from './common/with-transaction';
 
-type AccountWithRelinkStatus = Accounts.default & { needsRelink?: boolean };
+type AccountWithRelinkStatus = Accounts.default & {
+  needsRelink?: boolean;
+  _shareContext?: AccountShareContext;
+};
 
 /**
  * Check if an Enable Banking account needs to be re-linked.
@@ -56,22 +66,48 @@ function addNeedsRelinkFlag(accounts: Accounts.default[]): AccountWithRelinkStat
   );
 }
 
+/**
+ * User-facing account list. Returns the caller's owned accounts plus any accounts that
+ * have been shared with them (accepted shares only). Each item carries a `_shareContext`
+ * marker that the serializer turns into the public `share` block.
+ *
+ * Internal callers that should remain owner-scoped (e.g. balance recalculation) must use
+ * the model-level `Accounts.getAccountById` / `Accounts.getAccounts` directly.
+ */
 export const getAccounts = withTransaction(
   async (payload: Accounts.GetAccountsPayload): Promise<AccountWithRelinkStatus[]> => {
-    const accounts = await Accounts.getAccounts(payload);
-    return addNeedsRelinkFlag(accounts);
+    const ownedRaw = await Accounts.getAccounts(payload);
+    const ownedWithRelink = addNeedsRelinkFlag(ownedRaw);
+
+    const ownerUser = ownedWithRelink.length ? await Users.findByPk(payload.userId) : null;
+    const ownerContext = ownerUser ? await buildOwnerShareContext({ ownerUser }) : null;
+
+    const owned = ownedWithRelink.map((account) =>
+      ownerContext ? Object.assign(account, { _shareContext: ownerContext }) : account,
+    );
+
+    const shared = await getSharedAccountsForUser({ userId: payload.userId, type: payload.type });
+    // Shared instances aren't passed through `addNeedsRelinkFlag` because non-owners
+    // shouldn't see relink state for someone else's bank-linked account.
+    return [...owned, ...shared];
   },
 );
 
 export const getAccountById = withTransaction(
   async (payload: { id: number; userId: number }): Promise<AccountWithRelinkStatus | null> => {
-    const account = await Accounts.getAccountById({ ...payload });
+    const owned = await Accounts.getAccountById({ ...payload });
 
-    if (!account) return null;
+    if (owned) {
+      const enriched = Object.assign(owned, { needsRelink: checkNeedsRelink(owned) }) as AccountWithRelinkStatus;
+      const ownerUser = await Users.findByPk(payload.userId);
+      if (ownerUser) {
+        enriched._shareContext = await buildOwnerShareContext({ ownerUser });
+      }
+      return enriched;
+    }
 
-    return Object.assign(account, {
-      needsRelink: checkNeedsRelink(account),
-    });
+    // Fall through to shared lookup; returns null if the caller has no accepted share.
+    return getSharedAccountById({ userId: payload.userId, id: payload.id });
   },
 );
 
@@ -276,7 +312,10 @@ async function updateAccountBalanceForChangedTxImpl({
   prevTransactionType?: TRANSACTION_TYPES;
   currencyCode?: string;
 }): Promise<void> {
-  const account = await getAccountById({ id: accountId, userId });
+  // Model-level lookup, not the service-level `getAccountById`: balance updates only
+  // run for the account's actual owner (writes by recipients are not supported in
+  // Stage A; S4 will route shared writes through the auth service and update by id).
+  const account = await Accounts.getAccountById({ id: accountId, userId });
 
   if (!account) return undefined;
 

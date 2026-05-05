@@ -9,16 +9,24 @@ import {
   useNotifications,
   useUnreadNotificationsCount,
 } from '@/composable/data-queries/notifications';
-import { NOTIFICATION_STATUSES, NOTIFICATION_TYPES } from '@bt/shared/types';
+import {
+  NOTIFICATION_STATUSES,
+  NOTIFICATION_TYPES,
+  RESOURCE_TYPES,
+  type ShareInvitationNotificationPayload,
+  type ShareLifecycleNotificationPayload,
+} from '@bt/shared/types';
 import { BellIcon, BellOffIcon, Loader2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 
 import NotificationItem from './notification-item.vue';
 
 withDefaults(defineProps<{ sidebar?: boolean }>(), { sidebar: false });
 
 const { t } = useI18n();
+const router = useRouter();
 const isOpen = ref(false);
 
 const { data: notifications, isLoading } = useNotifications();
@@ -48,6 +56,28 @@ const getActionUrl = (notification: NotificationStruct): string | null => {
 const handleNotificationClick = (notification: NotificationStruct) => {
   if (notification.status === NOTIFICATION_STATUSES.unread) {
     markAsReadMutation.mutate({ id: notification.id });
+  }
+
+  // Share notifications use SPA navigation so the globally-mounted dialog opens
+  // (or the account page renders) without a full page reload.
+  if (notification.type === NOTIFICATION_TYPES.shareInvitationReceived) {
+    const payload = notification.payload as ShareInvitationNotificationPayload;
+    if (payload?.token) {
+      isOpen.value = false;
+      router.push({ path: '/accounts', query: { invitation_token: payload.token } });
+    }
+    return;
+  }
+  if (notification.type === NOTIFICATION_TYPES.shareAccepted) {
+    const payload = notification.payload as ShareLifecycleNotificationPayload;
+    if (payload?.resourceType === RESOURCE_TYPES.account) {
+      const accountId = Number(payload.resourceId);
+      if (Number.isInteger(accountId)) {
+        isOpen.value = false;
+        router.push(`/accounts/${accountId}`);
+      }
+    }
+    return;
   }
 
   const actionUrl = getActionUrl(notification);

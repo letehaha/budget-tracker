@@ -497,7 +497,13 @@ export const findWithFilters = async ({
   excludedBudgetIds?: number[];
   tagIds?: number[];
   excludedTagIds?: number[];
-  userId: number;
+  /**
+   * Creator scope. Optional because the public-facing read-path uses an account-scoped
+   * query (see `services/sharing/get-accessible-account-ids.service.ts`) so it can
+   * surface transactions on shared accounts regardless of who created them. Internal
+   * callers pass `userId` to keep their owner-scoped semantics.
+   */
+  userId?: number;
   order?: SORT_DIRECTIONS;
   includeSplits?: boolean;
   includeTags?: boolean;
@@ -532,7 +538,7 @@ export const findWithFilters = async ({
   const refundCondition = buildRefundCondition(resolvedRefundFilter);
 
   const whereClause: WhereOptions<Transactions> = {
-    userId,
+    ...(userId !== undefined ? { userId } : {}),
     ...removeUndefinedKeys({
       accountType,
       transactionType,
@@ -555,13 +561,15 @@ export const findWithFilters = async ({
   }
 
   if (categoryIds && categoryIds.length > 0) {
-    // Find transactions that have splits with any of the requested category IDs
+    // Find transactions that have splits with any of the requested category IDs.
+    // When `userId` is unset (account-scoped public read-path), we widen the lookup to
+    // any user's splits — the outer accountId filter constrains the final rows to the
+    // caller's accessible accounts, so this stays safe.
+    const splitsWhere: Record<string, unknown> = { categoryId: { [Op.in]: categoryIds } };
+    if (userId !== undefined) splitsWhere.userId = userId;
     const transactionIdsWithMatchingSplits = await TransactionSplits.findAll({
       attributes: ['transactionId'],
-      where: {
-        userId,
-        categoryId: { [Op.in]: categoryIds },
-      },
+      where: splitsWhere,
       raw: true,
     }).then((results) => [...new Set(results.map((r) => r.transactionId))]);
 

@@ -24,6 +24,7 @@ export * from './tags';
 export * from './transaction-groups';
 export * from './subscriptions';
 export * from './payment-reminders';
+export * from './share';
 export * from './investments/securities';
 export * from './investments/prices';
 export * from './investments/holdings';

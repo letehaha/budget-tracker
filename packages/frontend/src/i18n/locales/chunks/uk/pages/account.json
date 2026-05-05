@@ -16,7 +16,8 @@
         "accountActions": "Дії з рахунком",
         "renameAccount": "Перейменувати рахунок",
         "adjustBalance": "Коригувати баланс",
-        "adjustBalanceTooltip": "Доступно лише для рахунків з ручним керуванням"
+        "adjustBalanceTooltip": "Доступно лише для рахунків з ручним керуванням",
+        "share": "Поділитися рахунком"
       },
       "balanceAdjustmentDialog": {
         "title": "Коригування балансу",

@@ -27,6 +27,8 @@ import PaymentReminderNotificationsModel from './payment-reminder-notifications.
 import PaymentReminderPeriodsModel from './payment-reminder-periods.model';
 import PaymentRemindersModel from './payment-reminders.model';
 import RefundTransactionsModel from './refund-transactions.model';
+import ResourceSharesModel from './resource-shares.model';
+import ShareInvitationsModel from './share-invitations.model';
 import SubscriptionCandidatesModel from './subscription-candidates.model';
 import SubscriptionTransactionsModel from './subscription-transactions.model';
 import SubscriptionsModel from './subscriptions.model';
@@ -74,6 +76,8 @@ const models = [
   MerchantCategoryCodesModel,
   NotificationsModel,
   RefundTransactionsModel,
+  ResourceSharesModel,
+  ShareInvitationsModel,
   TransactionsModel,
   UserExchangeRatesModel,
   UserMerchantCategoryCodesModel,

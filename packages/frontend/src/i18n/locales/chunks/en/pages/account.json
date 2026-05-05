@@ -16,7 +16,8 @@
         "accountActions": "Account actions",
         "renameAccount": "Rename account",
         "adjustBalance": "Adjust balance",
-        "adjustBalanceTooltip": "Only available for manually-managed accounts"
+        "adjustBalanceTooltip": "Only available for manually-managed accounts",
+        "share": "Share account"
       },
       "balanceAdjustmentDialog": {
         "title": "Adjust Balance",

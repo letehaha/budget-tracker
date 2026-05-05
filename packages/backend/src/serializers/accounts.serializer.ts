@@ -4,9 +4,10 @@
  * Serializes account model instances for API responses.
  * Money fields auto-convert via .toNumber().
  */
-import { ACCOUNT_STATUSES } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, AccountShareInfo } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type Accounts from '@models/accounts.model';
+import type { AccountShareContext } from '@services/sharing/get-shared-accounts.service';
 
 // ============================================================================
 // Response Types
@@ -31,6 +32,8 @@ export interface AccountApiResponse {
   excludeFromStats: boolean;
   bankDataProviderConnectionId: number | null;
   needsRelink?: boolean;
+  /** Present on user-facing list/detail responses; absent on internal serializations. */
+  share?: AccountShareInfo;
 }
 
 // ============================================================================
@@ -40,7 +43,9 @@ export interface AccountApiResponse {
 /**
  * Serialize an account from DB format to API response
  */
-export function serializeAccount(account: Accounts & { needsRelink?: boolean }): AccountApiResponse {
+export function serializeAccount(
+  account: Accounts & { needsRelink?: boolean; _shareContext?: AccountShareContext },
+): AccountApiResponse {
   const response: AccountApiResponse = {
     id: account.id,
     name: account.name,
@@ -65,12 +70,23 @@ export function serializeAccount(account: Accounts & { needsRelink?: boolean }):
     response.needsRelink = account.needsRelink;
   }
 
+  if (account._shareContext) {
+    response.share = {
+      isOwner: account._shareContext.isOwner,
+      owner: account._shareContext.owner,
+      permission: account._shareContext.permission,
+      policy: account._shareContext.policy,
+    };
+  }
+
   return response;
 }
 
 /**
  * Serialize multiple accounts
  */
-export function serializeAccounts(accounts: (Accounts & { needsRelink?: boolean })[]): AccountApiResponse[] {
+export function serializeAccounts(
+  accounts: (Accounts & { needsRelink?: boolean; _shareContext?: AccountShareContext })[],
+): AccountApiResponse[] {
   return accounts.map(serializeAccount);
 }

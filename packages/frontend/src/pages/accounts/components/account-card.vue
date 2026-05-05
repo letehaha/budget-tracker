@@ -6,18 +6,26 @@
     }"
     class="hover:bg-accent max-xs:justify-between max-xs:items-center max-xs:gap-5 max-xs:py-2 xs:rounded-lg xs:flex-col relative flex h-full gap-3 border p-4 shadow-xs"
   >
-    <div class="flex items-center gap-4 overflow-hidden">
-      <template v-if="props.account.bankDataProviderConnectionId">
-        <div class="size-6">
-          <template v-if="connectionDetails">
-            <BankProviderLogo class="size-6" :provider="connectionDetails.providerType" />
-          </template>
+    <div class="flex flex-col gap-1 overflow-hidden">
+      <div class="flex items-center gap-4 overflow-hidden">
+        <template v-if="props.account.bankDataProviderConnectionId">
+          <div class="size-6">
+            <template v-if="connectionDetails">
+              <BankProviderLogo class="size-6" :provider="connectionDetails.providerType" />
+            </template>
+          </div>
+        </template>
+        <div class="xs:max-w-[calc(100%-60px)] truncate text-base tracking-wide whitespace-nowrap">
+          {{ account.name || t('accounts.noNameSet') }}
         </div>
-      </template>
-      <div class="xs:max-w-[calc(100%-60px)] truncate text-base tracking-wide whitespace-nowrap">
-        {{ account.name || t('accounts.noNameSet') }}
+      </div>
+
+      <div v-if="isSharedWithMe" class="text-muted-foreground inline-flex items-center gap-1 truncate text-xs">
+        <UsersIcon class="size-3 shrink-0" />
+        <span class="truncate">{{ $t('accounts.sharedBy', { username: account.share!.owner.username }) }}</span>
       </div>
     </div>
+
     <div class="xs:text-lg font-semibold whitespace-nowrap">
       {{ formatAmountByCurrencyCode(displayBalance, account.currencyCode) }}
     </div>
@@ -31,7 +39,8 @@ import { useAccountDisplayBalance } from '@/composable/use-account-display-balan
 import { useBankConnectionDetails } from '@/composable/data-queries/bank-providers/bank-connection-details';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { AccountModel } from '@bt/shared/types';
-import { toRef } from 'vue';
+import { UsersIcon } from 'lucide-vue-next';
+import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -42,4 +51,6 @@ const { data: connectionDetails } = useBankConnectionDetails({
   connectionId: toRef(() => props.account.bankDataProviderConnectionId!),
 });
 const { displayBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
+
+const isSharedWithMe = computed(() => props.account.share?.isOwner === false);
 </script>

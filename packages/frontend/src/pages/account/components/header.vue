@@ -6,6 +6,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/common/dropdown-menu';
 import PortfolioTransferDialog from '@/components/dialogs/portfolio-transfer-dialog.vue';
+import ShareAccountDialog from '@/components/dialogs/share-account-dialog.vue';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { CardHeader } from '@/components/lib/ui/card';
@@ -18,7 +19,7 @@ import { toLocalNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
-import { ArrowRightLeftIcon, MoreVerticalIcon, PencilIcon, ScaleIcon } from 'lucide-vue-next';
+import { ArrowRightLeftIcon, MoreVerticalIcon, PencilIcon, ScaleIcon, Share2Icon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -33,10 +34,14 @@ const { displayBalance, displayRefBalance } = useAccountDisplayBalance({ account
 const accountsStore = useAccountsStore();
 const formEditingPopoverOpen = ref(false);
 const adjustmentDialogOpen = ref(false);
+const shareDialogOpen = ref(false);
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { t } = useI18n();
 
 const isSystemAccount = computed(() => props.account.type === ACCOUNT_TYPES.system);
+// Treat accounts with no `share` block as owned (legacy / internal callers); otherwise
+// follow the explicit isOwner flag from the API.
+const isOwner = computed(() => props.account.share?.isOwner ?? true);
 
 const accountNameForm = ref({
   name: props.account.name,
@@ -161,6 +166,11 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
                   </Tooltip.TooltipContent>
                 </Tooltip.Tooltip>
               </Tooltip.TooltipProvider>
+
+              <DropdownMenuItem v-if="isOwner" class="gap-2" @click="shareDialogOpen = true">
+                <Share2Icon class="size-4" />
+                {{ t('pages.account.header.share') }}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -198,5 +208,6 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
     </div>
 
     <BalanceAdjustmentDialog v-if="adjustmentDialogOpen" :account="account" @close="adjustmentDialogOpen = false" />
+    <ShareAccountDialog v-model:open="shareDialogOpen" :account="account" />
   </CardHeader>
 </template>

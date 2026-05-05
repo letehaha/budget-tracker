@@ -14,6 +14,7 @@
       "description": "Connect your bank or create a manual account to start tracking your finances, balances, and transactions.",
       "connectBank": "Connect Bank Account",
       "createManual": "Create Manual Account"
-    }
+    },
+    "sharedBy": "Shared by @{username}"
   }
 }

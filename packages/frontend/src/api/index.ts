@@ -11,3 +11,4 @@ export * from './investments';
 export * from './import-export';
 export * from './notifications';
 export * from './demo';
+export * from './share';
