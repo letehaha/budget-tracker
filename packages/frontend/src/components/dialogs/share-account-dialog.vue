@@ -5,6 +5,7 @@ import { InputField, SelectField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
+import { ApiErrorResponseError } from '@/js/errors';
 import {
   type AccountModel,
   RESOURCE_TYPES,
@@ -97,10 +98,8 @@ const mutation = useMutation({
     isOpen.value = false;
   },
   onError: (err: unknown) => {
-    const fallback = t('dialogs.shareAccountDialog.error');
-    const message = (err as { response?: { data?: { response?: { message?: string } } }; message?: string })?.response
-      ?.data?.response?.message;
-    addErrorNotification(message || (err as Error)?.message || fallback);
+    const message = err instanceof ApiErrorResponseError ? err.data?.message : undefined;
+    addErrorNotification(message || t('dialogs.shareAccountDialog.error'));
   },
 });
 
