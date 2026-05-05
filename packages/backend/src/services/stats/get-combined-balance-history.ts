@@ -199,7 +199,7 @@ const calculatePortfolioBalanceHistory = async ({
       return availableRates[0]![1];
     }
 
-    logger.warn(`No exchange rate found for ${currencyCode} on ${dateStr}, using 1:1`);
+    logger.warn('Exchange rate fallback to 1:1', { currencyCode, date: dateStr });
     return 1;
   };
 

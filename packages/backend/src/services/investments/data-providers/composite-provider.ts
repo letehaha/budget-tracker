@@ -1,5 +1,6 @@
 import { SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
+import { isAxiosError } from 'axios';
 
 import { AlphaVantageDataProvider } from './alphavantage-provider';
 import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData, SecurityPriceFetchInput } from './base-provider';
@@ -164,7 +165,21 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
               break;
             }
           } catch (error) {
-            logger.warn(`Fallback ${fallbackName} threw for ${security.symbol}: ${(error as Error).message}`);
+            const status = isAxiosError(error) ? error.response?.status : undefined;
+            // 404 = provider doesn't carry this symbol; 429 = rate-limited after retries.
+            // Both are normal "try the next fallback" cases — keep them out of Sentry.
+            const isExpected = status === 404 || status === 429;
+            if (isExpected) {
+              logger.info(`Fallback ${fallbackName} skipped ${security.symbol} (HTTP ${status})`);
+            } else {
+              logger.warn('Provider fallback failed unexpectedly', {
+                provider: fallbackName,
+                symbol: security.symbol,
+                httpStatus: status,
+                errorName: error instanceof Error ? error.constructor.name : typeof error,
+                errorMessage: error instanceof Error ? error.message || '(empty)' : String(error),
+              });
+            }
           }
         }
 
