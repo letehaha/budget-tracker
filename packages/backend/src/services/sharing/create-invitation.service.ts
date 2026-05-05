@@ -10,6 +10,7 @@ import {
   TRANSACTIONS_WRITE_SCOPES,
 } from '@bt/shared/types';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
+import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
@@ -185,6 +186,16 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
           expiresAt,
         },
       });
+    } else {
+      // Owner row missing for an authenticated owner — data-integrity issue. Skip the
+      // in-app notification but report so it surfaces instead of disappearing.
+      logger.error(
+        {
+          message: 'Owner not found when emitting invitation-received notification',
+          error: new Error(`Users.findByPk returned null for ownerUserId=${ownerUserId}`),
+        },
+        { ownerUserId, invitationId: invitation.id, inviteeUserId: invitee.appUser.id },
+      );
     }
   }
 
@@ -211,6 +222,17 @@ export const createInvitation = async (params: CreateInvitationParams): Promise<
   // (Phase 5 will add the "sign up to accept" email; see PRD F17).
   if (result.resolvedInvitee) {
     const owner = await Users.findByPk(params.ownerUserId);
+    if (!owner) {
+      // Owner row missing for an authenticated owner — data-integrity issue. Continue with
+      // a generic display name so the email still goes out, but report for investigation.
+      logger.error(
+        {
+          message: 'Owner not found when sending invitation email',
+          error: new Error(`Users.findByPk returned null for ownerUserId=${params.ownerUserId}`),
+        },
+        { ownerUserId: params.ownerUserId, invitationId: result.invitation.id },
+      );
+    }
     const ownerDisplayName = owner?.username ?? 'A MoneyMatter user';
     await sendInvitationEmail({
       toEmail: result.resolvedInvitee.email,

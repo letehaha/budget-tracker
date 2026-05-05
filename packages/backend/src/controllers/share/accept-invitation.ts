@@ -1,10 +1,11 @@
+import { SHARING_LIMITS } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { acceptInvitation } from '@services/sharing/accept-invitation.service';
 import { z } from 'zod';
 
 const schema = z.object({
   params: z.object({
-    token: z.string().min(1).max(64),
+    token: z.string().length(SHARING_LIMITS.invitationTokenLength),
   }),
 });
 

@@ -382,5 +382,7 @@ export const SHARING_LIMITS = {
   maxPendingInvitationsPerResource: 10,
   maxPendingInvitationsPerResourceTest: 3,
   invitationExpirationDays: 7,
+  // 32 random bytes encoded as base64url → exactly 43 ASCII chars (see generate-invitation-token.ts).
+  invitationTokenLength: 43,
   resendPerInviteeRateLimit: { count: 3, windowMs: 24 * 60 * 60 * 1000 },
 } as const;

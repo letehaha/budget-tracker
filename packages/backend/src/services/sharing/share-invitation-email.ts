@@ -131,7 +131,7 @@ const buildEmailHtml = ({
             <a href="${safeUrl}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">View invitation</a>
           </td></tr>
           <tr><td style="padding: 32px 40px 36px 40px;">
-            <p style="margin: 0; font-size: 13px; color: #9ca3af; line-height: 1.5;">If you weren't expecting this invitation, you can safely ignore this email — it expires in 7 days.</p>
+            <p style="margin: 0; font-size: 13px; color: #9ca3af; line-height: 1.5;">If you weren't expecting this invitation, you can safely ignore this email — it expires on ${safeExpires}.</p>
           </td></tr>`,
   });
 };

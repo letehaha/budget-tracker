@@ -13,6 +13,7 @@ import UsersCurrencies from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
+import { generateInvitationToken } from '@services/sharing/generate-invitation-token';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
 import { Op } from 'sequelize';
@@ -162,7 +163,9 @@ describe('Share invitations: accept', () => {
       const recipient = await provisionSecondUserWithBaseCurrency();
       const res = await helpers.asUser({
         cookies: recipient.cookies,
-        fn: () => helpers.acceptShareInvitation({ token: 'no-such-token' }),
+        // Well-formed but unknown token — exercises the service-level not-found path
+        // rather than the controller-level length validation.
+        fn: () => helpers.acceptShareInvitation({ token: 'a'.repeat(SHARING_LIMITS.invitationTokenLength) }),
       });
       expect(res.statusCode).toBe(404);
     });
@@ -266,7 +269,7 @@ describe('Share invitations: accept', () => {
           resourceId: String(account.id),
           permission: SHARE_PERMISSIONS.read,
           policy: null,
-          token: `race-a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          token: generateInvitationToken(),
           status: SHARE_INVITATION_STATUSES.pending,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         }),
@@ -278,7 +281,7 @@ describe('Share invitations: accept', () => {
           resourceId: String(account.id),
           permission: SHARE_PERMISSIONS.read,
           policy: null,
-          token: `race-b-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          token: generateInvitationToken(),
           status: SHARE_INVITATION_STATUSES.pending,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         }),
@@ -347,7 +350,7 @@ describe('Share invitations: accept', () => {
         resourceId: String(account.id),
         permission: SHARE_PERMISSIONS.read,
         policy: null,
-        token: `test-overflow-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        token: generateInvitationToken(),
         status: SHARE_INVITATION_STATUSES.pending,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       });

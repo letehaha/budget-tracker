@@ -1,5 +1,6 @@
 import { SHARE_INVITATION_STATUSES, ShareInvitationModel } from '@bt/shared/types';
 import { ConflictError, NotFoundError } from '@js/errors';
+import { logger } from '@js/utils/logger';
 import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
@@ -55,6 +56,18 @@ const declineImpl = async ({ token, userId }: { token: string; userId: number })
   await invitation.save();
 
   const recipient = await Users.findByPk(userId);
+  if (!recipient) {
+    // Authenticated user has no Users row — should never happen (auth middleware guarantees
+    // it). The notification still goes out below with the snapshotUser sentinel fallback,
+    // but we report so this doesn't disappear into "Unknown user" in the owner's UI.
+    logger.error(
+      {
+        message: 'Authenticated user not found when emitting share-declined notification',
+        error: new Error(`Users.findByPk returned null for userId=${userId}`),
+      },
+      { userId, invitationId: invitation.id },
+    );
+  }
   const resourceName =
     (await resolveResourceName({
       resourceType: invitation.resourceType,

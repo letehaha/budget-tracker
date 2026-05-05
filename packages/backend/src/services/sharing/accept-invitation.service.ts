@@ -6,6 +6,7 @@ import {
   ShareInvitationModel,
 } from '@bt/shared/types';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
+import { logger } from '@js/utils/logger';
 import { connection } from '@models/index';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
@@ -195,6 +196,17 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
       },
       permission: invitation.permission,
     });
+  } else {
+    // Authenticated user has no Users row — should never happen (auth middleware guarantees
+    // it). Indicates a data-integrity bug or DB hiccup. Skip the notification but flag it
+    // for investigation rather than silently swallowing.
+    logger.error(
+      {
+        message: 'Authenticated user not found when emitting share-accepted notification',
+        error: new Error(`Users.findByPk returned null for userId=${userId}`),
+      },
+      { userId, invitationId: invitation.id, shareId: share.id },
+    );
   }
 
   return {
