@@ -1,5 +1,6 @@
 import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
+import Accounts from '@models/accounts.model';
 import * as helpers from '@tests/helpers';
 import { CustomResponse } from '@tests/helpers/common';
 
@@ -119,6 +120,92 @@ describe('Shared resource visibility (S3)', () => {
       // The existing endpoint returns null when the user has no access (controller-level
       // semantics — we keep it consistent for the shared case).
       expect((res as unknown as CustomResponse<null>).body.response).toBeNull();
+    });
+  });
+
+  // Owner-side bank-link metadata (externalId / externalData / connection FK) carries
+  // PII (IBAN, owner name, address) and provider-internal identifiers like
+  // identification_hash. Recipients have no use for it and shouldn't see it.
+  describe('owner-side bank-link metadata is redacted for recipients', () => {
+    type SharedAccountResponse = {
+      id: number;
+      externalId: string | null;
+      externalData: Record<string, unknown> | null;
+      bankDataProviderConnectionId: number | null;
+      share?: { isOwner: boolean };
+    };
+
+    const SENSITIVE_EXTERNAL_DATA = {
+      iban: 'BE67967310247287',
+      ownerName: 'Owner Name',
+      rawAccountData: { identification_hash: 'stable-hash-123' },
+    };
+    const SENSITIVE_EXTERNAL_ID = 'stable-hash-123';
+
+    async function createAccountWithBankMetadata() {
+      const account = await helpers.createAccount({ raw: true });
+      await Accounts.update(
+        { externalId: SENSITIVE_EXTERNAL_ID, externalData: SENSITIVE_EXTERNAL_DATA },
+        { where: { id: account.id } },
+      );
+      return account;
+    }
+
+    it('redacts externalId, externalData, and bankDataProviderConnectionId on GET /accounts for the recipient', async () => {
+      const account = await createAccountWithBankMetadata();
+      const recipient = await provisionSecondUserWithBaseCurrency();
+      const invitation = await shareAccountReadOnly({ accountId: account.id, recipientEmail: recipient.email });
+      await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: true }),
+      });
+
+      const accounts = (await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getAccounts(),
+      })) as unknown as SharedAccountResponse[];
+
+      const found = accounts.find((a) => a.id === account.id);
+      expect(found).toBeDefined();
+      expect(found!.share).toBeDefined();
+      expect(found!.share!.isOwner).toBe(false);
+      expect(found!.externalId).toBeNull();
+      expect(found!.externalData).toBeNull();
+      expect(found!.bankDataProviderConnectionId).toBeNull();
+    });
+
+    it('redacts externalId, externalData, and bankDataProviderConnectionId on GET /accounts/:id for the recipient', async () => {
+      const account = await createAccountWithBankMetadata();
+      const recipient = await provisionSecondUserWithBaseCurrency();
+      const invitation = await shareAccountReadOnly({ accountId: account.id, recipientEmail: recipient.email });
+      await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: true }),
+      });
+
+      const res = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getAccount({ id: account.id, raw: false }),
+      });
+      expect(res.statusCode).toBe(200);
+      const body = (res as unknown as CustomResponse<SharedAccountResponse>).body.response;
+      expect(body.share).toBeDefined();
+      expect(body.share!.isOwner).toBe(false);
+      expect(body.externalId).toBeNull();
+      expect(body.externalData).toBeNull();
+      expect(body.bankDataProviderConnectionId).toBeNull();
+    });
+
+    it('still exposes bank-link metadata to the owner on the same account', async () => {
+      const account = await createAccountWithBankMetadata();
+
+      const accounts = (await helpers.getAccounts()) as unknown as SharedAccountResponse[];
+      const found = accounts.find((a) => a.id === account.id);
+      expect(found).toBeDefined();
+      expect(found!.share).toBeDefined();
+      expect(found!.share!.isOwner).toBe(true);
+      expect(found!.externalId).toBe(SENSITIVE_EXTERNAL_ID);
+      expect(found!.externalData).toEqual(SENSITIVE_EXTERNAL_DATA);
     });
   });
 

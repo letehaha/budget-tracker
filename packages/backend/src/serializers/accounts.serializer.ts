@@ -54,6 +54,12 @@ export function serializeAccount(
     _bankProviderType?: BANK_PROVIDER_TYPE | null;
   },
 ): AccountApiResponse {
+  // Owner-side bank-link metadata (externalId, externalData, connection FK) leaks PII —
+  // IBAN, owner name/address, identification_hash — and owner-internal state to share
+  // recipients, who have no use for it. bankProviderType stays so the recipient UI can
+  // still render the bank logo.
+  const isRecipient = account._shareContext !== undefined && !account._shareContext.isOwner;
+
   const response: AccountApiResponse = {
     id: account.id,
     name: account.name,
@@ -67,11 +73,11 @@ export function serializeAccount(
     accountCategory: account.accountCategory,
     currencyCode: account.currencyCode,
     userId: account.userId,
-    externalId: account.externalId ?? null,
-    externalData: account.externalData ?? null,
+    externalId: isRecipient ? null : (account.externalId ?? null),
+    externalData: isRecipient ? null : (account.externalData ?? null),
     status: account.status,
     excludeFromStats: account.excludeFromStats,
-    bankDataProviderConnectionId: account.bankDataProviderConnectionId ?? null,
+    bankDataProviderConnectionId: isRecipient ? null : (account.bankDataProviderConnectionId ?? null),
     bankProviderType: account._bankProviderType ?? null,
   };
 
