@@ -1,13 +1,11 @@
 import {
   API_ERROR_CODES,
-  RESOURCE_TYPES,
   ResourceShareModel,
   SHARE_INVITATION_STATUSES,
   SHARING_LIMITS,
   ShareInvitationModel,
 } from '@bt/shared/types';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
-import Accounts from '@models/accounts.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import { getBaseCurrency } from '@models/users-currencies.model';
@@ -15,6 +13,7 @@ import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
+import { resolveResourceName } from './can-user-access-resource.service';
 import { getEmailForUser } from './find-user-by-email.service';
 import { notifyInvitationAccepted } from './share-notifications';
 
@@ -22,26 +21,6 @@ interface AcceptInvitationResult {
   invitation: ShareInvitationModel;
   share: ResourceShareModel;
 }
-
-interface ResolvedResource {
-  resourceName: string;
-}
-
-const fetchResource = async ({
-  resourceType,
-  resourceId,
-}: {
-  resourceType: string;
-  resourceId: string;
-}): Promise<ResolvedResource | null> => {
-  if (resourceType === RESOURCE_TYPES.account) {
-    const numeric = Number(resourceId);
-    if (!Number.isInteger(numeric) || numeric <= 0) return null;
-    const account = await Accounts.findOne({ where: { id: numeric } });
-    return account ? { resourceName: account.name } : null;
-  }
-  return null;
-};
 
 /**
  * Verifies that the logged-in user is the rightful recipient of this invitation. Returns
@@ -105,11 +84,11 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
     throw new ConflictError({ message: 'This invitation has expired.' });
   }
 
-  const resource = await fetchResource({
+  const resourceName = await resolveResourceName({
     resourceType: invitation.resourceType,
     resourceId: invitation.resourceId,
   });
-  if (!resource) {
+  if (!resourceName) {
     throw new NotFoundError({ message: 'Shared resource is no longer available' });
   }
 
@@ -198,7 +177,7 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
       resource: {
         type: invitation.resourceType,
         id: invitation.resourceId,
-        name: resource.resourceName,
+        name: resourceName,
       },
       permission: invitation.permission,
     });

@@ -1,10 +1,9 @@
 import { SHARE_INVITATION_STATUSES, ShareInvitationModel } from '@bt/shared/types';
-import { RESOURCE_TYPES } from '@bt/shared/types';
-import Accounts from '@models/accounts.model';
 import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
 import { Op, WhereOptions } from 'sequelize';
 
+import { resolveResourceName } from './can-user-access-resource.service';
 import { getEmailForUser } from './find-user-by-email.service';
 
 /**
@@ -16,30 +15,6 @@ interface InvitationListItem extends ShareInvitationModel {
   owner: { id: number; username: string; avatar: string | null } | null;
   invitee: { id: number; username: string; avatar: string | null } | null;
 }
-
-interface ResourceMeta {
-  name: string;
-}
-
-const fetchResourceMeta = async ({
-  resourceType,
-  resourceId,
-}: {
-  resourceType: string;
-  resourceId: string;
-}): Promise<ResourceMeta | null> => {
-  if (resourceType === RESOURCE_TYPES.account) {
-    const numeric = Number(resourceId);
-    if (!Number.isInteger(numeric)) return null;
-    const account = (await Accounts.findOne({
-      where: { id: numeric },
-      attributes: ['name'],
-      raw: true,
-    })) as { name: string } | null;
-    return account ? { name: account.name } : null;
-  }
-  return null;
-};
 
 const userSnapshot = (user: Users | null | undefined) =>
   user ? { id: user.id, username: user.username, avatar: user.avatar ?? null } : null;
@@ -53,20 +28,19 @@ const hydrate = async (rows: ShareInvitations[]): Promise<InvitationListItem[]> 
   const users = userIds.size ? await Users.findAll({ where: { id: { [Op.in]: Array.from(userIds) } } }) : [];
   const usersById = new Map(users.map((u) => [u.id, u]));
 
-  const resourceCache = new Map<string, ResourceMeta | null>();
+  const nameCache = new Map<string, string | null>();
   const items: InvitationListItem[] = [];
   for (const row of rows) {
     const cacheKey = `${row.resourceType}:${row.resourceId}`;
-    if (!resourceCache.has(cacheKey)) {
-      resourceCache.set(
+    if (!nameCache.has(cacheKey)) {
+      nameCache.set(
         cacheKey,
-        await fetchResourceMeta({ resourceType: row.resourceType, resourceId: row.resourceId }),
+        await resolveResourceName({ resourceType: row.resourceType, resourceId: row.resourceId }),
       );
     }
-    const meta = resourceCache.get(cacheKey) ?? null;
     items.push({
       ...(row.toJSON() as ShareInvitationModel),
-      resourceName: meta?.name ?? null,
+      resourceName: nameCache.get(cacheKey) ?? null,
       owner: userSnapshot(usersById.get(row.ownerUserId)),
       invitee: row.inviteeUserId !== null ? userSnapshot(usersById.get(row.inviteeUserId)) : null,
     });

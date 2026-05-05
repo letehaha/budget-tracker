@@ -1,37 +1,16 @@
-import { RESOURCE_TYPES, SHARE_INVITATION_STATUSES, ShareInvitationModel } from '@bt/shared/types';
+import { SHARE_INVITATION_STATUSES, ShareInvitationModel } from '@bt/shared/types';
 import { ConflictError, NotFoundError } from '@js/errors';
-import Accounts from '@models/accounts.model';
 import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
 
+import { resolveResourceName } from './can-user-access-resource.service';
 import { getEmailForUser } from './find-user-by-email.service';
 import { notifyInvitationDeclined } from './share-notifications';
 
 interface DeclineInvitationResult {
   invitation: ShareInvitationModel;
 }
-
-const resolveResourceName = async ({
-  resourceType,
-  resourceId,
-}: {
-  resourceType: string;
-  resourceId: string;
-}): Promise<string> => {
-  if (resourceType === RESOURCE_TYPES.account) {
-    const numeric = Number(resourceId);
-    if (Number.isInteger(numeric) && numeric > 0) {
-      const account = (await Accounts.findOne({
-        where: { id: numeric },
-        attributes: ['name'],
-        raw: true,
-      })) as { name: string } | null;
-      if (account) return account.name;
-    }
-  }
-  return 'Shared resource';
-};
 
 const declineImpl = async ({ token, userId }: { token: string; userId: number }): Promise<DeclineInvitationResult> => {
   const invitation = await ShareInvitations.findOne({ where: { token } });
@@ -76,10 +55,11 @@ const declineImpl = async ({ token, userId }: { token: string; userId: number })
   await invitation.save();
 
   const recipient = await Users.findByPk(userId);
-  const resourceName = await resolveResourceName({
-    resourceType: invitation.resourceType,
-    resourceId: invitation.resourceId,
-  });
+  const resourceName =
+    (await resolveResourceName({
+      resourceType: invitation.resourceType,
+      resourceId: invitation.resourceId,
+    })) ?? 'Shared resource';
 
   await notifyInvitationDeclined({
     ownerUserId: invitation.ownerUserId,

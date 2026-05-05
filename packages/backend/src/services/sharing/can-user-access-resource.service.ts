@@ -54,6 +54,38 @@ const RESOURCE_OWNER_RESOLVERS: Record<ResourceType, ResourceOwnerResolver> = {
   },
 };
 
+type ResourceNameResolver = (resourceId: string) => Promise<string | null>;
+
+const RESOURCE_NAME_RESOLVERS: Record<ResourceType, ResourceNameResolver> = {
+  [RESOURCE_TYPES.account]: async (resourceId) => {
+    const numericId = Number(resourceId);
+    if (!Number.isInteger(numericId) || numericId <= 0) return null;
+    const account = (await Accounts.findOne({
+      where: { id: numericId },
+      attributes: ['name'],
+      raw: true,
+    })) as { name: string } | null;
+    return account?.name ?? null;
+  },
+};
+
+/**
+ * Resolves the display name for a polymorphic resource. Returns `null` when the resource
+ * doesn't exist or the type isn't supported. New resource types extend `RESOURCE_NAME_RESOLVERS`
+ * without touching callers.
+ */
+export const resolveResourceName = async ({
+  resourceType,
+  resourceId,
+}: {
+  resourceType: ResourceType;
+  resourceId: string;
+}): Promise<string | null> => {
+  const resolver = RESOURCE_NAME_RESOLVERS[resourceType];
+  if (!resolver) return null;
+  return resolver(resourceId);
+};
+
 const denied = (ownerUserId: number | null): ResourceAccessResult => ({
   granted: false,
   isOwner: false,
