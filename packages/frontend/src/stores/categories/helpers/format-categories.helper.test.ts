@@ -4,6 +4,7 @@ import { buildCategiesObjectGraph } from './format-categories.helper';
 
 const category = (id: number) => ({
   id,
+  key: null,
   color: '',
   name: 'test',
   icon: null,

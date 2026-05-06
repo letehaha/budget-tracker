@@ -49,6 +49,11 @@ export interface CategoryModel {
   color: string;
   id: number;
   icon: null | string;
+  /**
+   * Stable, locale-independent identifier for seeded default categories (kebab-case).
+   * Null for user-created categories.
+   */
+  key: null | string;
   name: string;
   parentId: null | number;
   type: CATEGORY_TYPES;

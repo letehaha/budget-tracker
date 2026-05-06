@@ -275,7 +275,7 @@
       "vehicle": "Авто",
       "life": "Життя та розваги",
       "communication": "Зв'язок, ПК",
-      "financialExpenses": "Фінансові витрати",
+      "financial-expenses": "Фінансові витрати",
       "investments": "Інвестиції",
       "income": "Дохід",
       "other": "Інше"
@@ -284,88 +284,88 @@
       "food": {
         "groceries": "Продукти",
         "restaurant": "Ресторан, фаст-фуд",
-        "barCafe": "Бар, кафе"
+        "bar-cafe": "Бар, кафе"
       },
       "shopping": {
-        "clothesShoes": "Одяг та взуття",
-        "jewelsAccessories": "Прикраси, аксесуари",
-        "healthBeauty": "Здоров'я та краса",
+        "clothes-shoes": "Одяг та взуття",
+        "jewels-accessories": "Прикраси, аксесуари",
+        "health-beauty": "Здоров'я та краса",
         "kids": "Діти",
-        "homeGarden": "Дім, сад",
-        "petsAnimals": "Домашні тварини",
-        "electronicsAccessories": "Електроніка, аксесуари",
-        "giftsJoy": "Подарунки, радість",
-        "stationeryTools": "Канцелярія, інструменти",
-        "freeTime": "Вільний час",
-        "drugstoreChemist": "Аптека, хімія"
+        "home-garden": "Дім, сад",
+        "pets-animals": "Домашні тварини",
+        "electronics-accessories": "Електроніка, аксесуари",
+        "gifts-joy": "Подарунки, радість",
+        "stationery-tools": "Канцелярія, інструменти",
+        "free-time": "Вільний час",
+        "drugstore-chemist": "Аптека, хімія"
       },
       "housing": {
         "rent": "Оренда",
         "mortgage": "Іпотека",
-        "energyUtilities": "Енергія, комунальні",
+        "energy-utilities": "Енергія, комунальні",
         "services": "Послуги",
-        "maintenanceRepairs": "Обслуговування, ремонт",
-        "propertyInsurance": "Страхування нерухомості"
+        "maintenance-repairs": "Обслуговування, ремонт",
+        "property-insurance": "Страхування нерухомості"
       },
       "transportation": {
-        "publicTransport": "Громадський транспорт",
+        "public-transport": "Громадський транспорт",
         "taxi": "Таксі",
-        "longDistance": "Далекі поїздки",
-        "businessTrips": "Відрядження"
+        "long-distance": "Далекі поїздки",
+        "business-trips": "Відрядження"
       },
       "vehicle": {
         "fuel": "Пальне",
         "parking": "Паркування",
-        "vehicleMaintenance": "Обслуговування авто",
+        "vehicle-maintenance": "Обслуговування авто",
         "rentals": "Оренда",
-        "vehicleInsurance": "Страхування авто",
+        "vehicle-insurance": "Страхування авто",
         "leasing": "Лізинг"
       },
       "life": {
-        "healthCareDoctor": "Медицина, лікар",
-        "wellnessBeauty": "Велнес, краса",
-        "activeSportFitness": "Активний спорт, фітнес",
-        "cultureSportEvents": "Культура, спортивні події",
+        "health-care-doctor": "Медицина, лікар",
+        "wellness-beauty": "Велнес, краса",
+        "active-sport-fitness": "Активний спорт, фітнес",
+        "culture-sport-events": "Культура, спортивні події",
         "hobbies": "Хобі",
-        "educationDevelopment": "Освіта, розвиток",
-        "booksAudioSubscriptions": "Книги, аудіо, підписки",
-        "tvStreaming": "ТБ, стрімінг",
-        "holidayTripsHotels": "Відпустка, подорожі, готелі",
-        "charityGifts": "Благодійність, подарунки",
-        "alcoholTobacco": "Алкоголь, тютюн",
-        "lotteryGambling": "Лотерея, азартні ігри"
+        "education-development": "Освіта, розвиток",
+        "books-audio-subscriptions": "Книги, аудіо, підписки",
+        "tv-streaming": "ТБ, стрімінг",
+        "holiday-trips-hotels": "Відпустка, подорожі, готелі",
+        "charity-gifts": "Благодійність, подарунки",
+        "alcohol-tobacco": "Алкоголь, тютюн",
+        "lottery-gambling": "Лотерея, азартні ігри"
       },
       "communication": {
-        "phoneCellPhone": "Телефон, мобільний",
+        "phone-cell-phone": "Телефон, мобільний",
         "internet": "Інтернет",
-        "softwareAppsGames": "Програми, додатки, ігри",
-        "postalServices": "Поштові послуги"
+        "software-apps-games": "Програми, додатки, ігри",
+        "postal-services": "Поштові послуги"
       },
-      "financialExpenses": {
+      "financial-expenses": {
         "taxes": "Податки",
         "insurances": "Страхування",
-        "loanInterests": "Кредит, відсотки",
+        "loan-interests": "Кредит, відсотки",
         "fines": "Штрафи",
         "advisory": "Консультації",
-        "chargesFees": "Збори, комісії",
-        "childSupport": "Аліменти"
+        "charges-fees": "Збори, комісії",
+        "child-support": "Аліменти"
       },
       "investments": {
         "realty": "Нерухомість",
-        "vehiclesChattels": "Транспорт, майно",
-        "financialInvestments": "Фінансові інвестиції",
+        "vehicles-chattels": "Транспорт, майно",
+        "financial-investments": "Фінансові інвестиції",
         "savings": "Заощадження",
         "collections": "Колекції"
       },
       "income": {
-        "wageInvoices": "Зарплата, рахунки",
-        "interestsDividends": "Відсотки, дивіденди",
+        "wage-invoices": "Зарплата, рахунки",
+        "interests-dividends": "Відсотки, дивіденди",
         "sale": "Продаж",
-        "rentalIncome": "Дохід від оренди",
-        "duesGrants": "Внески та гранти",
-        "lendingRenting": "Позики, здача в оренду",
-        "checksCoupons": "Чеки, купони",
-        "lotteryGambling": "Лотерея, азартні ігри",
+        "rental-income": "Дохід від оренди",
+        "dues-grants": "Внески та гранти",
+        "lending-renting": "Позики, здача в оренду",
+        "checks-coupons": "Чеки, купони",
+        "lottery-gambling": "Лотерея, азартні ігри",
         "refunds": "Повернення (податки, покупки)",
         "freelance": "Фріланс",
         "gifts": "Подарунки"

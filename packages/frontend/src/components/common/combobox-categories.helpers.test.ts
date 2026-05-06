@@ -14,6 +14,7 @@ import {
 
 const makeCategory = (overrides: Partial<FormattedCategory> & { id: number; name: string }): FormattedCategory => ({
   id: overrides.id,
+  key: overrides.key ?? null,
   name: overrides.name,
   color: '#000',
   icon: null,
