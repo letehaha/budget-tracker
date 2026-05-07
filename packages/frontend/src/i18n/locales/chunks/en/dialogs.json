@@ -125,7 +125,11 @@
         "destinationTypePortfolio": "Portfolio",
         "toPortfolioLabel": "To portfolio",
         "selectPortfolioPlaceholder": "Select portfolio",
-        "noPortfoliosExist": "No portfolios exist"
+        "noPortfoliosExist": "No portfolios exist",
+        "validation": {
+          "required": "This field is required",
+          "minValue": "Amount must be greater than zero"
+        }
       },
       "refundRecordsList": {
         "filtersDialogTitle": "Select filters",

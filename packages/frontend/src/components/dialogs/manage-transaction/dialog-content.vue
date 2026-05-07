@@ -8,6 +8,7 @@ import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
+import { useFormValidation } from '@/composable/form-validator';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore } from '@/stores';
@@ -18,6 +19,7 @@ import {
   TRANSACTION_TYPES,
   type TransactionModel,
 } from '@bt/shared/types';
+import { minValue, required } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { SplitIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -295,7 +297,66 @@ watch(
   },
 );
 
+// In transfer mode, when source and destination accounts share the same currency,
+// mirror the missing side from the populated one. Covers the income → transfer
+// edit flow where `amount` starts empty after the user picks a source account.
+watch(
+  () => [form.value.account?.currencyCode, form.value.toAccount?.currencyCode] as const,
+  ([fromCurrency, toCurrency]) => {
+    if (!isTransferTx.value) return;
+    if (!fromCurrency || !toCurrency) return;
+    if (fromCurrency !== toCurrency) return;
+
+    if (form.value.amount == null && form.value.targetAmount != null) {
+      form.value.amount = form.value.targetAmount;
+    } else if (form.value.targetAmount == null && form.value.amount != null) {
+      form.value.targetAmount = form.value.amount;
+    }
+  },
+);
+
+const isAmountRequired = computed(() => !isAmountFieldDisabled.value);
+const isTargetAmountRequired = computed(
+  () =>
+    isTargetFieldVisible.value &&
+    !isTargetAmountFieldDisabled.value &&
+    // When currencies match, the watcher above mirrors the missing side, so requiring
+    // both would surface a redundant error before the mirror has a chance to run.
+    isCurrenciesDifferent.value,
+);
+
+// Wrap the entire structure in one computed so the rules lookup inside
+// `getFieldErrorMessage` (which uses lodash get on the original rules object)
+// resolves through `rules.value.form.amount` instead of failing on a nested
+// ComputedRef and silently dropping the error message.
+const validationRules = computed(() => ({
+  form: {
+    amount: isAmountRequired.value ? { required, minValue: minValue(0.01) } : {},
+    targetAmount: isTargetAmountRequired.value ? { required, minValue: minValue(0.01) } : {},
+  },
+}));
+
+const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation(
+  { form },
+  validationRules,
+  {},
+  {
+    customValidationMessages: {
+      required: t('dialogs.manageTransaction.form.validation.required'),
+      minValue: t('dialogs.manageTransaction.form.validation.minValue'),
+    },
+  },
+);
+
+const amountErrorMessage = computed(() => getFieldErrorMessage('form.amount'));
+const targetAmountErrorMessage = computed(() => getFieldErrorMessage('form.targetAmount'));
+
 const submit = () => {
+  touchField('form.amount');
+  touchField('form.targetAmount');
+
+  if (!isFormValid('form')) return;
+
   submitMutation.mutate({
     form: form.value,
     isFormCreation: isFormCreation.value,
@@ -450,7 +511,9 @@ onUnmounted(() => {
               :disabled="isFormFieldsDisabled || isAmountFieldDisabled"
               only-positive
               :placeholder="$t('dialogs.manageTransaction.form.amountPlaceholder')"
+              :error-message="amountErrorMessage"
               autofocus
+              @blur="touchField('form.amount')"
             >
               <template #iconTrailing>
                 <span>{{ currencyCode }}</span>
@@ -546,6 +609,8 @@ onUnmounted(() => {
                 :label="$t('dialogs.manageTransaction.form.targetAmountLabel')"
                 :placeholder="$t('dialogs.manageTransaction.form.targetAmountPlaceholder')"
                 type="number"
+                :error-message="targetAmountErrorMessage"
+                @blur="touchField('form.targetAmount')"
               >
                 <template #iconTrailing>
                   <span>{{ targetCurrency?.currency?.code }}</span>

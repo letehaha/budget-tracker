@@ -125,7 +125,11 @@
         "destinationTypePortfolio": "Портфель",
         "toPortfolioLabel": "До портфелю",
         "selectPortfolioPlaceholder": "Оберіть портфель",
-        "noPortfoliosExist": "Портфелів немає"
+        "noPortfoliosExist": "Портфелів немає",
+        "validation": {
+          "required": "Це поле обов'язкове",
+          "minValue": "Сума повинна бути більше нуля"
+        }
       },
       "refundRecordsList": {
         "filtersDialogTitle": "Вибрати фільтри",
