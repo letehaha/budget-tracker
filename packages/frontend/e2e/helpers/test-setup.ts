@@ -2,6 +2,10 @@ import { randomBytes } from 'crypto';
 
 import { signUpViaFetch, verifyEmailViaFetch } from './api-client';
 
+// Inlined from shared/src/types/testing.ts: shared has no "type": "module",
+// so Playwright loads it as CJS and named ESM imports break.
+const TEST_EMAIL_DOMAIN = 'test.local';
+
 // Required for raw fetch() calls (local dev uses self-signed certs)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
@@ -18,7 +22,7 @@ export interface TestCredentials {
 export function buildTestCredentials({ prefix }: { prefix: string }): TestCredentials {
   const runId = randomBytes(4).toString('hex');
   return {
-    email: `pw-${prefix}-${runId}@test.local`,
+    email: `pw-${prefix}-${runId}@${TEST_EMAIL_DOMAIN}`,
     password: 'E2eTestPass123!',
     name: `pw-${prefix}-${runId}`,
   };

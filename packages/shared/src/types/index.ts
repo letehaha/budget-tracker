@@ -12,4 +12,5 @@ export * from './statement-parser';
 export * from './sse';
 export * from './ai';
 export * from './money';
+export * from './testing';
 export { endpointsTypes };

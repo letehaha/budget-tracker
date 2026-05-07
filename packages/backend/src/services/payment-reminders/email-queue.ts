@@ -1,11 +1,10 @@
-import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import { connection } from '@models/index';
 import PaymentReminderNotifications from '@models/payment-reminder-notifications.model';
 import Users from '@models/users.model';
+import { sendEmail } from '@services/email/send-email';
 import { Job, Queue, Worker } from 'bullmq';
-import { Resend } from 'resend';
 
 interface ReminderEmailJobData extends SentryTraceData {
   userId: number;
@@ -53,7 +52,6 @@ reminderEmailQueue.on('error', (err) => {
   }
 });
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 const appName = process.env.AUTH_RP_NAME || 'MoneyMatter';
 const appUrl = process.env.APP_URL || 'https://moneymatter.app';
@@ -65,11 +63,6 @@ const reminderEmailWorker = new Worker<ReminderEmailJobData>(
       queueName,
       job,
       fn: async () => {
-        if (!resend) {
-          logger.warn('[Payment Reminder Email] Resend not configured, skipping email');
-          return;
-        }
-
         const { reminderName, dueDate, expectedAmount, currencyCode, reminderId } = job.data;
 
         // expectedAmount is already decimal (converted by model getter via Money.toJSON())
@@ -97,14 +90,16 @@ const reminderEmailWorker = new Worker<ReminderEmailJobData>(
           return;
         }
 
-        await resend.emails.send({
+        const result = await sendEmail({
           from: `${appName} <${fromEmail}>`,
           to: email,
           subject: `Payment reminder: ${reminderName} due ${dueDate}`,
           html,
         });
 
-        logger.info(`[Payment Reminder Email] Sent email to user ${job.data.userId} for reminder "${reminderName}"`);
+        if (result) {
+          logger.info(`[Payment Reminder Email] Sent email to user ${job.data.userId} for reminder "${reminderName}"`);
+        }
       },
     });
   },

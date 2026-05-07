@@ -5,15 +5,12 @@ import { createSessionHooks } from '@config/auth-hooks/session-hooks';
 import { logger } from '@js/utils/logger';
 import { identifyUser, trackSignup } from '@js/utils/posthog';
 import { captureException } from '@js/utils/sentry';
+import { sendEmail } from '@services/email/send-email';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import bcrypt from 'bcryptjs';
 import { betterAuth } from 'better-auth';
 import { jwt } from 'better-auth/plugins';
 import { Pool } from 'pg';
-import { Resend } from 'resend';
-
-// Initialize Resend for transactional emails
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Fail-fast: AUTH_ORIGIN must be set in production. Without it, OAuth error
 // redirects, login/consent pages, and trusted origins all fall back to
@@ -65,16 +62,11 @@ export const auth = betterAuth({
       // Send verification to the NEW email address (not the old one)
       // This is critical for legacy @app.migrated users who can't receive emails at their current address
       sendChangeEmailVerification: async ({ newEmail, url }) => {
-        if (!resend) {
-          logger.warn('Email change verification skipped: RESEND_API_KEY not configured');
-          return;
-        }
-
         const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
         const appName = process.env.AUTH_RP_NAME || 'MoneyMatter';
 
         try {
-          const result = await resend.emails.send({
+          const result = await sendEmail({
             from: `${appName} <${fromEmail}>`,
             to: newEmail, // Send to NEW email, not current
             subject: `Verify your new ${appName} email`,
@@ -97,7 +89,9 @@ export const auth = betterAuth({
               </div>
             `,
           });
-          logger.info(`Email change verification sent to ${newEmail}, resendId: ${result.data?.id}`);
+          if (result) {
+            logger.info(`Email change verification sent to ${newEmail}, resendId: ${result.data?.id}`);
+          }
 
           // Track this email to prevent duplicate verification email
           recentlyChangedEmails.set(newEmail, Date.now());
@@ -158,11 +152,6 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      if (!resend) {
-        logger.warn('Email verification skipped: RESEND_API_KEY not configured');
-        return;
-      }
-
       // Check if this email was recently changed via changeEmail flow
       // If so, skip sending duplicate verification (better-auth bug workaround)
       const changedAt = recentlyChangedEmails.get(user.email);
@@ -176,7 +165,7 @@ export const auth = betterAuth({
       const appName = process.env.AUTH_RP_NAME || 'MoneyMatter';
 
       try {
-        const result = await resend.emails.send({
+        const result = await sendEmail({
           from: `${appName} <${fromEmail}>`,
           to: user.email,
           subject: `Verify your ${appName} email`,
@@ -199,7 +188,9 @@ export const auth = betterAuth({
             </div>
           `,
         });
-        logger.info(`Verification email sent to ${user.email}, resendId: ${result.data?.id}`);
+        if (result) {
+          logger.info(`Verification email sent to ${user.email}, resendId: ${result.data?.id}`);
+        }
       } catch (error) {
         logger.error({ message: 'Failed to send verification email', error: error as Error });
         throw error;
