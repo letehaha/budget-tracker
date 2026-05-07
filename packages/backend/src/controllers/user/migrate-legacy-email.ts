@@ -3,15 +3,12 @@ import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
+import { isEmailServiceConfigured, sendEmail } from '@services/email/send-email';
 import crypto from 'crypto';
-import { Resend } from 'resend';
 import { z } from 'zod';
 
 const LEGACY_EMAIL_SUFFIX = '@app.migrated';
 const TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
-
-// Initialize Resend for verification emails
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 /**
  * Step 1: Request email change - sends verification email to new address
@@ -74,7 +71,7 @@ export const migrateLegacyEmail = createController(
     );
 
     // Send verification email
-    if (!resend) {
+    if (!isEmailServiceConfigured()) {
       logger.warn('Email verification skipped: RESEND_API_KEY not configured');
       throw new ValidationError({ message: t({ key: 'auth.migration.emailServiceNotConfigured' }) });
     }
@@ -85,7 +82,7 @@ export const migrateLegacyEmail = createController(
     const verifyUrl = `${frontendOrigin}/auth/verify-legacy-email?token=${token}`;
 
     try {
-      const result = await resend.emails.send({
+      const result = await sendEmail({
         from: `${appName} <${fromEmail}>`,
         to: newEmail.toLowerCase(),
         subject: t({ key: 'emails.legacyEmailMigration.subject', variables: { appName } }),
@@ -108,7 +105,9 @@ export const migrateLegacyEmail = createController(
           </div>
         `,
       });
-      logger.info(`Legacy email migration verification sent to ${newEmail}, resendId: ${result.data?.id}`);
+      if (result) {
+        logger.info(`Legacy email migration verification sent to ${newEmail}, resendId: ${result.data?.id}`);
+      }
     } catch (error) {
       logger.error({ message: 'Failed to send legacy email migration verification', error: error as Error });
       throw new ValidationError({ message: t({ key: 'auth.migration.failedToSendVerification' }) });

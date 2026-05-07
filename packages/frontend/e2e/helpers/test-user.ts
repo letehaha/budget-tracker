@@ -1,6 +1,10 @@
 import type { APIRequestContext } from '@playwright/test';
 import { randomBytes } from 'crypto';
 
+// Inlined from shared/src/types/testing.ts: shared has no "type": "module",
+// so Playwright loads it as CJS and named ESM imports break.
+const TEST_EMAIL_DOMAIN = 'test.local';
+
 const API_BASE_URL = process.env.PLAYWRIGHT_API_BASE_URL || 'https://localhost:8081';
 
 export interface TestUser {
@@ -17,7 +21,7 @@ export interface TestUser {
 export function buildTestUser({ workerIndex }: { workerIndex: number }): TestUser {
   const runId = randomBytes(4).toString('hex');
   return {
-    email: `pw-${runId}-w${workerIndex}@test.local`,
+    email: `pw-${runId}-w${workerIndex}@${TEST_EMAIL_DOMAIN}`,
     name: `pw-${runId}-w${workerIndex}`,
     password: 'E2eTestPass123!',
   };
