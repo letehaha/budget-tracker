@@ -49,8 +49,7 @@
     },
     "placeholders": {
       "email": "your{'@'}email.com",
-      "password": "Your password",
-      "username": "ie. johnsnow"
+      "password": "Your password"
     },
     "dialogs": {
       "createAccount": "Create account"

@@ -35,7 +35,6 @@ import {
   setBaseUserCurrency,
   updateUser,
 } from '@controllers/user.controller';
-import { migrateLegacyEmail, verifyLegacyEmailChange } from '@controllers/user/migrate-legacy-email';
 import { authenticateSession } from '@middlewares/better-auth';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
@@ -45,16 +44,6 @@ const router = Router({});
 router.get('/', authenticateSession, validateEndpoint(getUser.schema), getUser.handler);
 router.put('/update', authenticateSession, validateEndpoint(updateUser.schema), updateUser.handler);
 router.delete('/delete', authenticateSession, validateEndpoint(deleteUser.schema), deleteUser.handler);
-
-// Legacy user email migration
-router.post(
-  '/migrate-legacy-email',
-  authenticateSession,
-  validateEndpoint(migrateLegacyEmail.schema),
-  migrateLegacyEmail.handler,
-);
-// Verification endpoint - no auth required (user clicks link from email)
-router.post('/verify-legacy-email', validateEndpoint(verifyLegacyEmailChange.schema), verifyLegacyEmailChange.handler);
 
 router.get('/currencies', authenticateSession, validateEndpoint(getUserCurrencies.schema), getUserCurrencies.handler);
 router.get(

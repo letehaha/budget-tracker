@@ -11,19 +11,6 @@
     </div>
 
     <template v-else>
-      <!-- Legacy account warning -->
-      <div v-if="isLegacyUser" class="bg-warning/10 border-warning/20 text-warning-foreground rounded-lg border p-4">
-        <div class="flex items-start gap-3">
-          <AlertTriangleIcon class="text-warning mt-0.5 size-5 shrink-0" />
-          <div>
-            <p class="font-medium">{{ $t('settings.security.loginMethods.legacyWarning.title') }}</p>
-            <p class="text-muted-foreground mt-1 text-sm">
-              {{ $t('settings.security.loginMethods.legacyWarning.description') }}
-            </p>
-          </div>
-        </div>
-      </div>
-
       <!-- OAuth Providers -->
       <div v-for="provider in OAUTH_PROVIDERS_LIST" :key="provider" class="border-border rounded-lg border p-4">
         <div class="flex items-center justify-between">
@@ -63,7 +50,7 @@
             <Button
               variant="outline"
               size="sm"
-              :disabled="isConnecting || isLegacyUser || isDemo"
+              :disabled="isConnecting || isDemo"
               @click="handleConnectOAuth({ provider })"
             >
               <Loader2Icon v-if="isConnecting" class="mr-2 size-4 animate-spin" />
@@ -119,12 +106,7 @@
             </div>
           </div>
           <DemoRestricted>
-            <Button
-              variant="outline"
-              size="sm"
-              :disabled="isAddingPasskey || isLegacyUser || isDemo"
-              @click="handleAddPasskey"
-            >
+            <Button variant="outline" size="sm" :disabled="isAddingPasskey || isDemo" @click="handleAddPasskey">
               <Loader2Icon v-if="isAddingPasskey" class="mr-2 size-4 animate-spin" />
               <PlusIcon v-else class="mr-2 size-4" />
               {{ $t('settings.security.loginMethods.passkeys.addButton') }}
@@ -173,7 +155,7 @@ import { GithubIcon, GoogleIcon } from '@/components/auth';
 import DemoRestricted from '@/components/demo/demo-restricted.vue';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
-import { authClient, getSession } from '@/lib/auth-client';
+import { authClient } from '@/lib/auth-client';
 import { useAuthStore, useUserStore } from '@/stores';
 import { OAUTH_PROVIDER, OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import {
@@ -194,8 +176,6 @@ const providerConfig: Record<OAUTH_PROVIDER, { name: string; icon: Component }> 
   [OAUTH_PROVIDER.google]: { name: 'Google', icon: GoogleIcon },
   [OAUTH_PROVIDER.github]: { name: 'GitHub', icon: GithubIcon },
 };
-
-const LEGACY_EMAIL_SUFFIX = '@app.migrated';
 
 interface Passkey {
   id: string;
@@ -227,14 +207,10 @@ const isDeletingPasskey = ref<string | null>(null);
 const accounts = ref<Account[]>([]);
 const passkeys = ref<Passkey[]>([]);
 const hasPassword = ref(false);
-const userEmail = ref<string | null>(null);
 
 const getAccountByProvider = (provider: OAUTH_PROVIDER) => accounts.value.find((a) => a.providerId === provider);
 
 const hasAnyOAuthAccount = computed(() => OAUTH_PROVIDERS_LIST.some((p) => getAccountByProvider(p)));
-
-// Check if user is a legacy user (email ends with @app.migrated)
-const isLegacyUser = computed(() => userEmail.value?.endsWith(LEGACY_EMAIL_SUFFIX) ?? false);
 
 // Count total login methods
 const loginMethodCount = computed(() => {
@@ -345,15 +321,6 @@ const handleDeletePasskey = async (passkeyId: string) => {
   }
 };
 
-const loadUserEmail = async () => {
-  try {
-    const session = await getSession();
-    userEmail.value = session?.data?.user?.email || null;
-  } catch (e) {
-    console.error('Failed to load user email:', e);
-  }
-};
-
 onMounted(async () => {
   // Check for OAuth error from callback redirect
   const oauthError = route.query.oauth_error as string | undefined;
@@ -364,7 +331,7 @@ onMounted(async () => {
   }
 
   isLoading.value = true;
-  await Promise.all([loadAccounts(), loadPasskeys(), loadUserEmail()]);
+  await Promise.all([loadAccounts(), loadPasskeys()]);
   isLoading.value = false;
 });
 </script>

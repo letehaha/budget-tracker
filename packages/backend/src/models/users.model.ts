@@ -1,19 +1,11 @@
 import { UserModel, USER_ROLES, UserRole } from '@bt/shared/types';
-import { Table, Column, Model, DefaultScope, Scopes, BelongsToMany, Length, DataType } from 'sequelize-typescript';
+import { Table, Column, Model, BelongsToMany, Length, DataType } from 'sequelize-typescript';
 
 import Currencies from './currencies.model';
 import UsersCurrencies from './users-currencies.model';
 
 const DETAULT_TOTAL_BALANCE = 0;
 
-@DefaultScope(() => ({
-  attributes: { exclude: ['password'] },
-}))
-@Scopes(() => ({
-  withPassword: {
-    attributes: { exclude: [] },
-  },
-}))
 @Table({
   timestamps: false,
   tableName: 'Users',
@@ -55,9 +47,6 @@ export default class Users extends Model {
 
   @Column({ allowNull: true, type: DataType.STRING })
   middleName!: string;
-
-  @Column({ allowNull: true, type: DataType.STRING })
-  password!: string;
 
   @Column({ allowNull: true, type: DataType.STRING })
   authUserId!: string;
@@ -112,7 +101,6 @@ export const createUser = async ({
   firstName,
   lastName,
   middleName,
-  password,
   avatar,
   totalBalance = DETAULT_TOTAL_BALANCE,
   authUserId,
@@ -123,7 +111,6 @@ export const createUser = async ({
   firstName?: string;
   lastName?: string;
   middleName?: string;
-  password?: string;
   avatar?: string;
   totalBalance?: number;
   authUserId?: string;
@@ -135,7 +122,6 @@ export const createUser = async ({
     firstName,
     lastName,
     middleName,
-    password,
     avatar,
     totalBalance,
     authUserId,
@@ -166,7 +152,6 @@ export const updateUserById = async ({
   firstName,
   lastName,
   middleName,
-  password,
   avatar,
   totalBalance,
   defaultCategoryId,
@@ -174,7 +159,6 @@ export const updateUserById = async ({
   id: number;
   username?: string;
   email?: string;
-  password?: string;
   firstName?: string;
   lastName?: string;
   middleName?: string;
@@ -191,7 +175,6 @@ export const updateUserById = async ({
   if (lastName) updateFields.lastName = lastName;
   if (middleName) updateFields.middleName = middleName;
   if (avatar) updateFields.avatar = avatar;
-  if (password) updateFields.password = password;
   if (totalBalance) updateFields.totalBalance = totalBalance;
   if (defaultCategoryId) updateFields.defaultCategoryId = defaultCategoryId;
 

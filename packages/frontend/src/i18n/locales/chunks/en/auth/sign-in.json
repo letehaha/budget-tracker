@@ -4,13 +4,9 @@
       "title": "Log in to account",
       "divider": "Or continue with email",
       "submitButton": "Log in",
-      "submitButtonUsername": "Log in with username",
-      "toggleLegacy": "Have a legacy account? Login with username",
-      "backToEmail": "Back to email login",
       "noAccount": "Don't have an account?",
       "errors": {
         "incorrectEmailOrPassword": "Incorrect email or password.",
-        "incorrectUsernameOrPassword": "Incorrect username or password.",
         "incorrectPassword": "Incorrect password.",
         "userNotFound": "User not found.",
         "emailNotVerified": "Please verify your email before signing in.",

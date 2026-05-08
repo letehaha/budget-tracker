@@ -49,8 +49,7 @@
     },
     "placeholders": {
       "email": "your{'@'}email.com",
-      "password": "Ваш пароль",
-      "username": "напр. johnsnow"
+      "password": "Ваш пароль"
     },
     "dialogs": {
       "createAccount": "Створити рахунок"

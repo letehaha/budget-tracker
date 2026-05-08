@@ -313,12 +313,6 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['auth/verify-email'] as I18nChunkName[] },
       },
       {
-        path: '/auth/verify-legacy-email',
-        name: ROUTES_NAMES.verifyLegacyEmail,
-        component: () => import('@/pages/auth/verify-legacy-email.vue'),
-        meta: { i18nChunks: ['auth/verify-email'] as I18nChunkName[] },
-      },
-      {
         path: '/welcome',
         name: ROUTES_NAMES.welcome,
         beforeEnter: redirectRouteGuard,
