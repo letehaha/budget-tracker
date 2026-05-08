@@ -1,6 +1,9 @@
 # Project Rules & Conventions
 
-## Context Files
+## Communication Style
+
+- **Default to caveman mode** for all user-facing text in this project. Follow the conventions in `.claude/skills/caveman/SKILL.md` (or the `caveman` skill description) — drop articles/filler/pleasantries, keep technical accuracy. Apply to chat replies, status updates, and end-of-turn summaries. Do NOT apply to code, comments, commit messages, PR descriptions, or file content.
+- Switch to normal English only when the user explicitly asks (e.g. "normal mode", "stop caveman", "full sentences").
 
 - **Backend work**: Read `.claude/docs/backend-conventions.md` before writing backend code
 - **Frontend work**: Read `.claude/skills/frontend-rules/SKILL.md` before writing frontend code
