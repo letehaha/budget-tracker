@@ -138,12 +138,21 @@ export const prepopulateForm = ({
         initialFormValues.toAccount = OUT_OF_WALLET_ACCOUNT_MOCK;
       }
     } else {
-      initialFormValues.amount = transaction.amount;
-      initialFormValues.account = accounts[transaction.accountId]!;
+      // The form maps "amount/account" to the source (expense) side and
+      // "targetAmount/toAccount" to the destination (income) side. When the primary
+      // `transaction` is the income side (typical for external income transfers),
+      // the source is the opposite transaction — flip the assignment accordingly so
+      // the form-data layout doesn't depend on which side the caller treats as primary.
+      const isTxIncome = transaction.transactionType === TRANSACTION_TYPES.income;
+      const sourceTx = isTxIncome && oppositeTransaction ? oppositeTransaction : transaction;
+
+      initialFormValues.amount = sourceTx.amount;
+      initialFormValues.account = accounts[sourceTx.accountId]!;
 
       if (oppositeTransaction) {
-        initialFormValues.toAccount = accounts[oppositeTransaction.accountId]!;
-        initialFormValues.targetAmount = oppositeTransaction.amount;
+        const destinationTx = isTxIncome ? transaction : oppositeTransaction;
+        initialFormValues.toAccount = accounts[destinationTx.accountId]!;
+        initialFormValues.targetAmount = destinationTx.amount;
       }
     }
     return initialFormValues;

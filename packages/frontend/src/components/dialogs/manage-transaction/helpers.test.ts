@@ -162,6 +162,42 @@ describe('components/modals/modify-record/helpers', () => {
       });
     });
 
+    it('flips source/destination when transaction is the income side of a transfer', () => {
+      // Mirrors the external income → transfer flow where the user-facing primary
+      // tx is the income side; the form-data layout still expects amount/account
+      // to be the source (expense) side.
+      const incomeAccount = getUahAccount();
+      const expenseAccount = getUah2Account();
+
+      const transaction = buildSystemTransferExpenseTransaction({
+        accountId: incomeAccount.id,
+        amount: 800,
+        transactionType: TRANSACTION_TYPES.income,
+      });
+      const oppositeTransaction = buildSystemTransferExpenseTransaction({
+        accountId: expenseAccount.id,
+        amount: 800,
+        transactionType: TRANSACTION_TYPES.expense,
+        transferId: transaction.transferId,
+      });
+
+      const result = prepopulateForm({
+        transaction,
+        oppositeTransaction,
+        accounts: accountsRecord,
+        categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
+      });
+
+      expect(result).toMatchObject({
+        type: FORM_TYPES.transfer,
+        amount: oppositeTransaction.amount,
+        account: expenseAccount,
+        toAccount: incomeAccount,
+        targetAmount: transaction.amount,
+      });
+    });
+
     it('populates form for out-of-wallet income transaction (external → account)', () => {
       const destinationAccount = getUahAccount();
 

@@ -161,11 +161,17 @@ export async function createAccount({
   name,
   currencyCode,
   initialBalance,
+  type,
 }: {
   request: APIRequestContext;
   name: string;
   currencyCode: string;
   initialBalance: number;
+  /**
+   * Account type. Defaults to "system" (regular user account).
+   * Use "monobank" to create an external account — only allowed outside production.
+   */
+  type?: 'system' | 'monobank';
 }) {
   return apiPost({
     request,
@@ -176,6 +182,7 @@ export async function createAccount({
       initialBalance,
       creditLimit: 0,
       accountCategory: 'general',
+      ...(type && { type }),
     },
   });
 }

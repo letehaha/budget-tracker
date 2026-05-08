@@ -1,4 +1,6 @@
+import { useAccountsStore } from '@/stores';
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
 interface DialogProps {
@@ -14,6 +16,8 @@ interface DialogProps {
  * - Compact dialog detection (for portfolio transfers)
  */
 export function useManageTransactionDialog() {
+  const { accountsRecord } = storeToRefs(useAccountsStore());
+
   const isDialogVisible = ref(false);
   const dialogProps = ref<DialogProps>({
     transaction: undefined,
@@ -24,12 +28,22 @@ export function useManageTransactionDialog() {
     () => dialogProps.value.transaction?.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
   );
 
+  // Derive externality from the actual account record rather than tx.accountType.
+  // Transactions can carry a stale/default accountType (the create-tx API defaults
+  // it to "system" when not provided), but the account's own type is authoritative.
+  const isAccountExternal = (tx: TransactionModel | undefined): boolean => {
+    if (!tx) return false;
+    const account = accountsRecord.value[tx.accountId];
+    return !!account && account.type !== ACCOUNT_TYPES.system;
+  };
+
   const handleRecordClick = ([baseTx, oppositeTx]: [
     baseTx: TransactionModel,
     oppositeTx: TransactionModel | undefined,
   ]) => {
-    const isExternalTransfer =
-      baseTx.accountType !== ACCOUNT_TYPES.system || (oppositeTx && oppositeTx.accountType !== ACCOUNT_TYPES.system);
+    const isBaseExternal = isAccountExternal(baseTx);
+    const isOppositeExternal = isAccountExternal(oppositeTx);
+    const isExternalTransfer = isBaseExternal || isOppositeExternal;
 
     const modalOptions: DialogProps = {
       transaction: baseTx,
@@ -37,8 +51,6 @@ export function useManageTransactionDialog() {
     };
 
     if (isExternalTransfer) {
-      const isBaseExternal = baseTx.accountType !== ACCOUNT_TYPES.system;
-
       modalOptions.transaction = isBaseExternal ? baseTx : oppositeTx;
       modalOptions.oppositeTransaction = isBaseExternal ? oppositeTx : baseTx;
     } else if (baseTx.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
