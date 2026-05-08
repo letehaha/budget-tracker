@@ -51,6 +51,9 @@ jobs:
           sentry-org: ${{ secrets.SENTRY_ORG }}
           sentry-project: ${{ secrets.SENTRY_PROJECT }}
           sentry-release: ${{ github.sha }}
+          csp-extra-connect: ${{ secrets.CSP_EXTRA_CONNECT }}
+          csp-extra-form-action: ${{ secrets.CSP_EXTRA_FORM_ACTION }}
+          csp-extra-analytics: ${{ secrets.CSP_EXTRA_ANALYTICS }}
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
           push: 'true'

@@ -61,6 +61,8 @@ jobs:
           api-base-url: https://api-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app
           vue-app-api-ver: /api/v1
           mcp-base-url: https://mcp-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app
+          csp-extra-connect: https://*.preview.moneymatter.app
+          csp-extra-form-action: https://*.preview.moneymatter.app
           image-tag: pr-${{ env.PR_NUMBER }}
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
