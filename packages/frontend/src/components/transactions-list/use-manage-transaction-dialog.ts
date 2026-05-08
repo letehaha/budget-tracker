@@ -31,10 +31,14 @@ export function useManageTransactionDialog() {
   // Derive externality from the actual account record rather than tx.accountType.
   // Transactions can carry a stale/default accountType (the create-tx API defaults
   // it to "system" when not provided), but the account's own type is authoritative.
+  // Fall back to tx.accountType when the account record isn't loaded (archived
+  // account, store still hydrating) — strictly better than silently classifying as
+  // system, which would re-trigger the original external-transfer normalization bug.
   const isAccountExternal = (tx: TransactionModel | undefined): boolean => {
     if (!tx) return false;
     const account = accountsRecord.value[tx.accountId];
-    return !!account && account.type !== ACCOUNT_TYPES.system;
+    if (account) return account.type !== ACCOUNT_TYPES.system;
+    return tx.accountType !== ACCOUNT_TYPES.system;
   };
 
   const handleRecordClick = ([baseTx, oppositeTx]: [

@@ -1,22 +1,27 @@
 import { test, expect } from '@playwright/test';
 
-import { completeOnboarding, createAccount, createTransaction, linkTransactions } from '../../helpers/api-client';
+import {
+  API_BASE_URL,
+  completeOnboarding,
+  createAccount,
+  createTransaction,
+  extractId,
+  getTransaction,
+  linkTransactions,
+} from '../../helpers/api-client';
 import { loginViaUI } from '../../helpers/auth';
 import { buildTestCredentials, signUpAndVerify } from '../../helpers/test-setup';
 
 const CURRENCY = 'USD';
 const creds = buildTestCredentials({ prefix: 'ext-rev' });
 
-/** Extract entity ID from API response, handling several response shapes */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractId(apiResult: any): number {
-  const resp = apiResult.response;
-  const id = Array.isArray(resp) ? resp[0]?.id : (resp?.id ?? apiResult.id);
-  if (!id || id <= 0) {
-    throw new Error(`Failed to extract valid ID from API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
-  }
-  return id;
-}
+// External (`monobank`) accounts can only be created when the backend runs in
+// `test`/`development` mode. The preview deploy runs as `production`, where the
+// `/api/v1/accounts` endpoint hard-rejects any non-`system` account type. The
+// regression we're guarding against is impossible to reproduce without an
+// external account on either side, so skip the whole suite in that env rather
+// than failing CI for an environmental constraint.
+const isPreviewEnv = API_BASE_URL.includes('preview.');
 
 let externalAccount: { id: number; name: string };
 let systemAccount: { id: number; name: string };
@@ -25,6 +30,7 @@ let dataSeeded = false;
 test.describe.configure({ mode: 'serial' });
 
 test.beforeAll(async () => {
+  if (isPreviewEnv) return;
   await signUpAndVerify({ creds });
 });
 
@@ -41,6 +47,11 @@ test.beforeAll(async () => {
  *        instead of just unlinking the original external income.
  */
 test.describe('Manage transaction dialog: external transfer revert', () => {
+  test.skip(
+    isPreviewEnv,
+    'External account creation is only allowed outside production (preview blocks `type: monobank`)',
+  );
+
   test.use({
     ignoreHTTPSErrors: true,
     actionTimeout: 15_000,
@@ -112,8 +123,11 @@ test.describe('Manage transaction dialog: external transfer revert', () => {
 
     await page.goto(`/account/${externalAccount.id}`);
 
-    // Open the external income tx
-    const txRecord = page.locator('[aria-haspopup="true"]').first();
+    // Open the external income tx — filter by amount to stay isolated from prior tests' txs.
+    const txRecord = page
+      .locator('[aria-haspopup="true"]')
+      .filter({ hasText: String(amount) })
+      .first();
     await expect(txRecord).toBeVisible({ timeout: 10_000 });
     await txRecord.click();
 
@@ -216,23 +230,21 @@ test.describe('Manage transaction dialog: external transfer revert', () => {
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10_000 });
 
     // Verify backend state via API:
-    // - external income should be back to a regular not_transfer income
-    // - system expense should be unlinked but still expense (NOT income)
-    const externalRes = await page.request.get(`https://localhost:8081/api/v1/transactions/${externalIncomeId}`);
-    expect(externalRes.ok()).toBeTruthy();
-    const externalBody = await externalRes.json();
+    // - external income should be back to a regular not_transfer income, amount preserved
+    // - system expense should be unlinked but still expense (NOT income), amount preserved
+    const externalBody = await getTransaction({ request: page.request, id: externalIncomeId });
     const externalTx = externalBody.response ?? externalBody;
     expect(externalTx.transactionType).toBe('income');
     expect(externalTx.transferNature).toBe('not_transfer');
     expect(externalTx.transferId).toBeFalsy();
+    expect(Number(externalTx.amount)).toBe(amount);
 
-    const systemRes = await page.request.get(`https://localhost:8081/api/v1/transactions/${systemExpenseId}`);
-    expect(systemRes.ok()).toBeTruthy();
-    const systemBody = await systemRes.json();
+    const systemBody = await getTransaction({ request: page.request, id: systemExpenseId });
     const systemTx = systemBody.response ?? systemBody;
     // The pre-fix bug flipped this to "income" — that's exactly what we're guarding against.
     expect(systemTx.transactionType).toBe('expense');
     expect(systemTx.transferNature).toBe('not_transfer');
     expect(systemTx.transferId).toBeFalsy();
+    expect(Number(systemTx.amount)).toBe(amount);
   });
 });

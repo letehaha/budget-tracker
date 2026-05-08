@@ -5,6 +5,23 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'https://localhost:8100';
 
 export { API_BASE_URL, BASE_URL };
 
+/**
+ * Extract a numeric entity ID from API responses, handling shapes:
+ *   { response: { id } } | { response: [{ id }] } | { id }
+ */
+export function extractId(apiResult: unknown): number {
+  if (!apiResult || typeof apiResult !== 'object') {
+    throw new Error(`Invalid API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
+  }
+  const r = apiResult as { response?: { id?: number } | { id?: number }[]; id?: number };
+  const resp = r.response;
+  const id = Array.isArray(resp) ? resp[0]?.id : (resp?.id ?? r.id);
+  if (typeof id !== 'number' || id <= 0) {
+    throw new Error(`Failed to extract numeric ID from API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
+  }
+  return id;
+}
+
 // ─── Generic request helpers ─────────────────────────────────────────
 
 async function assertOk({
@@ -170,6 +187,8 @@ export async function createAccount({
   /**
    * Account type. Defaults to "system" (regular user account).
    * Use "monobank" to create an external account — only allowed outside production.
+   * Mirrors the e2e-relevant subset of `ACCOUNT_TYPES` from `@bt/shared/types`
+   * (kept inline because the e2e tsconfig has no path mapping for shared types).
    */
   type?: 'system' | 'monobank';
 }) {
@@ -182,7 +201,7 @@ export async function createAccount({
       initialBalance,
       creditLimit: 0,
       accountCategory: 'general',
-      ...(type && { type }),
+      ...(type !== undefined && { type }),
     },
   });
 }
@@ -266,6 +285,10 @@ export async function createTransaction({
       time: new Date().toISOString(),
     },
   });
+}
+
+export async function getTransaction({ request, id }: { request: APIRequestContext; id: number }) {
+  return apiGet({ request, path: `/api/v1/transactions/${id}` });
 }
 
 export async function linkTransactions({
