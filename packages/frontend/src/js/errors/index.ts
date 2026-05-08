@@ -15,6 +15,9 @@ export class ApiErrorResponseError extends Error {
   }
 }
 
+export const isNotFoundError = (error: unknown): error is ApiErrorResponseError =>
+  error instanceof ApiErrorResponseError && error.data?.code === API_ERROR_CODES.notFound;
+
 /**
  * Extracts the first validation error message from an ApiErrorResponseError.
  * Returns undefined if the error is not a validation error or has no messages.

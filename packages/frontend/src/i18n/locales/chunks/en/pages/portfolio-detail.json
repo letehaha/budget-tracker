@@ -4,6 +4,8 @@
     "loadingDetails": "Loading portfolio details...",
     "loadError": "Failed to load portfolio details.",
     "tryAgain": "Try Again",
+    "notFoundTitle": "Portfolio not found",
+    "notFoundDescription": "We couldn't find this portfolio. It may have been deleted or you might not have access to it.",
     "backToInvestments": "Back to Investments",
     "subtitle": "Portfolio Overview",
     "actions": {

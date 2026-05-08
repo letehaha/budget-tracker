@@ -2,6 +2,9 @@
   "budgets": {
     "title": "Budgets",
     "description": "Track spending and monitor financial events",
+    "notFound": "Budget not found",
+    "notFoundDescription": "We couldn't find this budget. It may have been deleted or you might not have access to it.",
+    "backToList": "Back to budgets",
     "newBudget": "New Budget",
     "createBudget": "Create budget",
     "creation": {

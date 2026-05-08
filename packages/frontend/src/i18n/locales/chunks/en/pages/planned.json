@@ -4,7 +4,9 @@
       "backToList": "Back to Budgets"
     },
     "reminders": {
-      "backToList": "Back to Reminders",
+      "notFound": "Reminder not found",
+      "notFoundDescription": "We couldn't find this reminder. It may have been deleted or you might not have access to it.",
+      "backToList": "Back to reminders",
       "title": "Payment Reminders",
       "newReminder": "New Reminder",
       "edit": "Edit",
@@ -126,6 +128,8 @@
       }
     },
     "subscriptions": {
+      "notFound": "Subscription not found",
+      "notFoundDescription": "We couldn't find this subscription. It may have been deleted or you might not have access to it.",
       "title": "Subscriptions & Bills",
       "description": "Track recurring payments and bills",
       "addSubscription": "Add Subscription",
