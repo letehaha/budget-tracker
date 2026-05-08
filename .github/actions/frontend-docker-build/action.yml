@@ -46,6 +46,18 @@ inputs:
     description: 'VITE_SENTRY_RELEASE - Release version (git SHA) for Sentry'
     required: false
     default: ''
+  csp-extra-connect:
+    description: 'CSP_EXTRA_CONNECT - Extra hosts for CSP connect-src (defaults to api-base-url at build time)'
+    required: false
+    default: ''
+  csp-extra-form-action:
+    description: 'CSP_EXTRA_FORM_ACTION - Extra hosts for CSP form-action (defaults to api-base-url at build time)'
+    required: false
+    default: ''
+  csp-extra-analytics:
+    description: 'CSP_EXTRA_ANALYTICS - PostHog/Sentry hosts for CSP connect-src (e.g. https://*.i.posthog.com https://*.sentry.io)'
+    required: false
+    default: ''
   docker-hub-username:
     description: 'DOCKER_HUB_USERNAME'
     required: false
@@ -99,3 +111,6 @@ runs:
           SENTRY_AUTH_TOKEN=${{ inputs.sentry-auth-token }}
           SENTRY_ORG=${{ inputs.sentry-org }}
           SENTRY_PROJECT=${{ inputs.sentry-project }}
+          CSP_EXTRA_CONNECT=${{ inputs.csp-extra-connect }}
+          CSP_EXTRA_FORM_ACTION=${{ inputs.csp-extra-form-action }}
+          CSP_EXTRA_ANALYTICS=${{ inputs.csp-extra-analytics }}
