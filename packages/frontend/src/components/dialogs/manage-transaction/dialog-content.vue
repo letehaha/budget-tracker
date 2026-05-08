@@ -62,22 +62,12 @@ const props = withDefaults(defineProps<CreateRecordModalProps>(), {
   oppositeTransaction: undefined,
 });
 
-// Normalize transactions so that `transaction` is always the expense (source) side
-// and `oppositeTransaction` is always the income (destination) side.
-// This ensures consistent form population regardless of how props are passed.
-const shouldSwapTransactions = computed(() => {
-  return (
-    props.transaction &&
-    props.oppositeTransaction &&
-    props.oppositeTransaction.transactionType === TRANSACTION_TYPES.expense
-  );
-});
-
-const transaction = computed(() => (shouldSwapTransactions.value ? props.oppositeTransaction : props.transaction));
-
-const oppositeTransaction = computed(() =>
-  shouldSwapTransactions.value ? props.transaction : props.oppositeTransaction,
-);
+// Keep `transaction` as the user-facing primary tx (set by useManageTransactionDialog
+// — for external transfers, this is always the external side). Form-data mapping
+// (which side is "from"/"to") is handled in prepopulateForm based on transactionType,
+// so we no longer swap the props.
+const transaction = computed(() => props.transaction);
+const oppositeTransaction = computed(() => props.oppositeTransaction);
 
 const emit = defineEmits(['close-modal']);
 const closeModal = () => {
@@ -167,18 +157,21 @@ const isOppositeTxExternal = computed(() => {
   const account = accountsRecord.value[oppositeTransaction.value.accountId];
   return (account && account.type !== ACCOUNT_TYPES.system) ?? false;
 });
-// If record is external, the account field will be disabled, so we need to preselect
-// the account
+// If record is external (and not a transfer), the account field will be disabled,
+// so we need to preselect the account. For transfer cases, prepopulateForm fills
+// form.account based on which side is the source — bypassing this preselection.
 watch(
   () => isRecordExternal.value,
   (value) => {
-    if (value && transaction.value?.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
-      nextTick(() => {
-        if (transaction.value && accountsRecord.value[transaction.value.accountId]) {
-          form.value.account = accountsRecord.value[transaction.value.accountId]!;
-        }
-      });
-    }
+    if (!value) return;
+    if (transaction.value?.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return;
+    if (transaction.value?.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) return;
+
+    nextTick(() => {
+      if (transaction.value && accountsRecord.value[transaction.value.accountId]) {
+        form.value.account = accountsRecord.value[transaction.value.accountId]!;
+      }
+    });
   },
   { immediate: true },
 );
@@ -282,6 +275,12 @@ watch(
 
           if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
             form.value.account = OUT_OF_WALLET_ACCOUNT_MOCK;
+          } else if (oppositeTransaction.value) {
+            // Restore the source (expense) side from the opposite transaction so the
+            // form keeps the previously known source values (e.g. when re-entering
+            // transfer mode after toggling income → transfer for an external income tx).
+            form.value.amount = oppositeTransaction.value.amount;
+            form.value.account = accountsRecord.value[oppositeTransaction.value.accountId] ?? null;
           }
         }
       } else if (prevTxType === FORM_TYPES.transfer) {

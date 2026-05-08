@@ -24,13 +24,16 @@ Spawn the following teammates using the `Agent` tool with `team_name: "review"`.
 
 **Always spawn:**
 
-| Name                    | subagent_type                             | Role                                                                     |
-| ----------------------- | ----------------------------------------- | ------------------------------------------------------------------------ |
-| `code-simplifier`       | `pr-review-toolkit:code-simplifier`       | Reuse opportunities, unnecessary complexity, dead code                   |
-| `code-reviewer`         | `pr-review-toolkit:code-reviewer`         | Project guidelines, style, best practices, naming, architecture          |
-| `test-analyzer`         | `pr-review-toolkit:pr-test-analyzer`      | Test coverage quality, missing tests, edge cases                         |
-| `silent-failure-hunter` | `pr-review-toolkit:silent-failure-hunter` | Silent failures, swallowed errors, bad fallbacks, missing error handling |
-| `type-analyzer`         | `pr-review-toolkit:type-design-analyzer`  | Type design quality, encapsulation, invariant expression                 |
+| Name                    | subagent_type                             | Role                                                                                                                      |
+| ----------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `code-simplifier`       | `pr-review-toolkit:code-simplifier`       | Reuse opportunities, unnecessary complexity, dead code                                                                    |
+| `code-reviewer`         | `pr-review-toolkit:code-reviewer`         | Project guidelines, style, best practices, naming, architecture                                                           |
+| `test-analyzer`         | `pr-review-toolkit:pr-test-analyzer`      | Test coverage quality, missing tests, edge cases                                                                          |
+| `silent-failure-hunter` | `pr-review-toolkit:silent-failure-hunter` | Silent failures, swallowed errors, bad fallbacks, missing error handling                                                  |
+| `type-analyzer`         | `pr-review-toolkit:type-design-analyzer`  | Type design quality, encapsulation, invariant expression                                                                  |
+| `architecture-analyzer` | `general-purpose`                         | Architecture deepening opportunities — invoke the `improve-codebase-architecture` skill and apply it to the changed files |
+
+**Note for `architecture-analyzer`:** its prompt must explicitly instruct it to invoke the `improve-codebase-architecture` skill via the `Skill` tool first, then scope the resulting analysis to the changed files only (not the whole codebase). Findings should focus on architectural deepening opportunities introduced or worsened by the diff.
 
 **Conditionally spawn (only if frontend files changed):**
 
@@ -76,6 +79,7 @@ Once all teammates have reported, compile into a single organized report:
 - **Test Coverage** — from test-analyzer
 - **Silent Failures** — from silent-failure-hunter
 - **Type Design** — from type-analyzer
+- **Architecture** — from architecture-analyzer
 - **Frontend Rules Compliance** — from frontend-checker, or "N/A — no frontend changes"
 
 For each section, list actionable items grouped by file. If a section has no issues, mark it as clean. At the end, add a **Summary** with total issue count per category.

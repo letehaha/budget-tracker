@@ -162,6 +162,68 @@ describe('components/modals/modify-record/helpers', () => {
       });
     });
 
+    it('flips source/destination when transaction is the income side of a transfer', () => {
+      // Mirrors the external income → transfer flow where the user-facing primary
+      // tx is the income side; the form-data layout still expects amount/account
+      // to be the source (expense) side.
+      const incomeAccount = getUahAccount();
+      const expenseAccount = getUah2Account();
+
+      const transaction = buildSystemTransferOppositeTransaction({
+        accountId: incomeAccount.id,
+        amount: 800,
+      });
+      const oppositeTransaction = buildSystemTransferExpenseTransaction({
+        accountId: expenseAccount.id,
+        amount: 800,
+        transferId: transaction.transferId,
+      });
+
+      const result = prepopulateForm({
+        transaction,
+        oppositeTransaction,
+        accounts: accountsRecord,
+        categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
+      });
+
+      expect(result).toMatchObject({
+        type: FORM_TYPES.transfer,
+        amount: oppositeTransaction.amount,
+        account: expenseAccount,
+        toAccount: incomeAccount,
+        targetAmount: transaction.amount,
+      });
+    });
+
+    it('falls back to the income tx itself as source when no opposite is provided', () => {
+      // Edge case: an income transfer rendered before the opposite side is loaded.
+      // The flip in prepopulateForm should not blow up — it should treat the
+      // single tx as the source so the form still has *something* to render.
+      const incomeAccount = getUahAccount();
+
+      const transaction = buildSystemTransferOppositeTransaction({
+        accountId: incomeAccount.id,
+        amount: 500,
+      });
+
+      const result = prepopulateForm({
+        transaction,
+        oppositeTransaction: undefined,
+        accounts: accountsRecord,
+        categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
+      });
+
+      expect(result).toMatchObject({
+        type: FORM_TYPES.transfer,
+        amount: transaction.amount,
+        account: incomeAccount,
+      });
+      expect(result!.toAccount).toBeUndefined();
+      expect(result!.targetAmount).toBeUndefined();
+    });
+
     it('populates form for out-of-wallet income transaction (external → account)', () => {
       const destinationAccount = getUahAccount();
 
