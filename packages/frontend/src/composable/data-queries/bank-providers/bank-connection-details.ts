@@ -9,6 +9,5 @@ export const useBankConnectionDetails = ({ connectionId }: { connectionId: Maybe
     queryFn: () => getConnectionDetails(unref(connectionId)),
     enabled: !!unref(connectionId),
     staleTime: 60 * 10_000,
-    retry: 1,
   });
 };
