@@ -68,23 +68,6 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Make envfile
-      uses: SpicyPizza/create-envfile@v1
-      with:
-        envkey_VITE_APP_API_HTTP: ${{ inputs.api-base-url }}
-        envkey_VITE_APP_API_VER: ${{ inputs.vue-app-api-ver }}
-        envkey_VITE_MCP_BASE_URL: ${{ inputs.mcp-base-url }}
-        envkey_VITE_POSTHOG_KEY: ${{ inputs.posthog-key }}
-        envkey_VITE_POSTHOG_HOST: ${{ inputs.posthog-host }}
-        envkey_VITE_LOGO_DEV_TOKEN: ${{ inputs.logo-dev-token }}
-        envkey_VITE_SENTRY_DSN: ${{ inputs.sentry-dsn }}
-        envkey_SENTRY_AUTH_TOKEN: ${{ inputs.sentry-auth-token }}
-        envkey_SENTRY_ORG: ${{ inputs.sentry-org }}
-        envkey_SENTRY_PROJECT: ${{ inputs.sentry-project }}
-        envkey_VITE_SENTRY_RELEASE: ${{ inputs.sentry-release }}
-        directory: ./
-        file_name: .env.production
-
     - name: Login to Docker Hub
       if: inputs.push == 'true'
       uses: docker/login-action@v3
@@ -104,3 +87,15 @@ runs:
         push: ${{ inputs.push == 'true' }}
         load: ${{ inputs.push != 'true' }}
         tags: ${{ inputs.docker-hub-username }}/budget-tracker-fe:${{ inputs.image-tag }}
+        build-args: |
+          VITE_APP_API_HTTP=${{ inputs.api-base-url }}
+          VITE_APP_API_VER=${{ inputs.vue-app-api-ver }}
+          VITE_MCP_BASE_URL=${{ inputs.mcp-base-url }}
+          VITE_POSTHOG_KEY=${{ inputs.posthog-key }}
+          VITE_POSTHOG_HOST=${{ inputs.posthog-host }}
+          VITE_LOGO_DEV_TOKEN=${{ inputs.logo-dev-token }}
+          VITE_SENTRY_DSN=${{ inputs.sentry-dsn }}
+          VITE_SENTRY_RELEASE=${{ inputs.sentry-release }}
+          SENTRY_AUTH_TOKEN=${{ inputs.sentry-auth-token }}
+          SENTRY_ORG=${{ inputs.sentry-org }}
+          SENTRY_PROJECT=${{ inputs.sentry-project }}

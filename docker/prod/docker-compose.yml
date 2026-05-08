@@ -1,96 +1,197 @@
+# Self-host compose for Budget Tracker.
+#
+# Usage:
+#   1. Place .env.production NEXT TO this compose file's project root (the
+#      repo root is the standard spot). It contains DB password + auth
+#      secrets + frontend build values — DO NOT bake it into images.
+#   2. Point DNS A records for both SELFHOST_FRONTEND_DOMAIN and
+#      SELFHOST_API_DOMAIN at this host's public IP.
+#   3. From the repo root:
+#      docker compose --env-file .env.production \
+#        -f docker/prod/docker-compose.yml up -d --build
+#
+# Traefik is bundled and handles TLS via Let's Encrypt (TLS-ALPN challenge,
+# port 443 must be reachable). For localhost / no-TLS dev, see
+# docker-compose.localhost.yml.
+#
+# Daisy's prod (Dokploy-managed) does NOT use this file — Dokploy provides
+# Traefik externally on `dokploy-network`.
+
+# Pin the compose project name so resources are namespaced consistently
+# regardless of which directory `docker compose` is invoked from. Without
+# this, the project name defaults to the parent directory (`prod`), which
+# silently collides with any other stack the user has named `prod`.
+name: budget-tracker-prod
+
+x-logging: &default-logging
+  driver: 'json-file'
+  options:
+    max-size: '10m'
+    max-file: '3'
+
 services:
+  traefik:
+    image: traefik:v3.2
+    restart: unless-stopped
+    networks: [selfhost]
+    ports:
+      # Defaults are 80/443. Override only if you front Traefik with another
+      # proxy or already use those ports — Let's Encrypt TLS-ALPN-01 still
+      # needs port 443 reachable on the public IP.
+      - '${TRAEFIK_HTTP_PORT:-80}:80'
+      - '${TRAEFIK_HTTPS_PORT:-443}:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.network=selfhost
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      # `:?` syntax: compose-up FAILS if LETSENCRYPT_EMAIL is unset/empty.
+      # Without this, Traefik would boot fine but ACME registration would
+      # silently fail at first HTTPS request.
+      - --certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL is required for Let\'s Encrypt}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+    logging: *default-logging
+
   backend:
     build:
       context: ../../
       dockerfile: docker/prod/backend/Dockerfile
-    container_name: prod-budget-tracker-app
-    # Mount SSL certificates for local HTTPS testing (optional - ignored on VPS where Traefik handles SSL)
-    volumes:
-      - ../../docker/dev/certs:/app/docker/dev/certs:ro
-    # No host port mapping: Traefik reaches the backend over the Docker
-    # network, and `expose` is documentation-only — same-network containers
-    # already resolve `backend:${APPLICATION_PORT}`.
-    expose: ['${APPLICATION_PORT}']
-    depends_on: ['db', 'redis', 'frankfurter', 'currency-rates-api']
+    restart: unless-stopped
+    networks: [selfhost]
+    expose: ['${APPLICATION_PORT:-8081}']
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      frankfurter: { condition: service_healthy }
+      currency-rates-api: { condition: service_healthy }
     env_file: ../../.env.production
-
-  # ❗️ use if need to test image locally
-  # backend:
-  #   image: budget-tracker-test
-  #   depends_on:
-  #     - db
-  #     - redis
-  #   env_file: ../../.env.production
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.backend.rule=Host(`${SELFHOST_API_DOMAIN}`)'
+      - 'traefik.http.routers.backend.entrypoints=websecure'
+      - 'traefik.http.routers.backend.tls=true'
+      - 'traefik.http.routers.backend.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.backend.loadbalancer.server.port=${APPLICATION_PORT:-8081}'
+    logging: *default-logging
 
   frontend:
+    # Frontend image is static nginx — no runtime env_file. All values
+    # needed by the Vue bundle are baked in at build via build args. Keeping
+    # `.env.production` out of the image avoids leaking DB / auth secrets
+    # into pushed image layers.
     build:
       context: ../../
       dockerfile: docker/prod/frontend/Dockerfile
-    container_name: prod-budget-tracker-frontend
-    ports: ['${PORT:-80}:80']
-    depends_on: ['backend']
-    env_file: ../../.env.production
+      args:
+        VITE_APP_API_HTTP: ${VITE_APP_API_HTTP:?VITE_APP_API_HTTP is required (e.g. https://api.example.com)}
+        VITE_APP_API_VER: ${VITE_APP_API_VER:-/api/v1}
+        VITE_MCP_BASE_URL: ${VITE_MCP_BASE_URL:-}
+        VITE_POSTHOG_KEY: ${VITE_POSTHOG_KEY:-}
+        VITE_POSTHOG_HOST: ${VITE_POSTHOG_HOST:-}
+        VITE_LOGO_DEV_TOKEN: ${VITE_LOGO_DEV_TOKEN:-}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_SENTRY_RELEASE: ${VITE_SENTRY_RELEASE:-}
+        SENTRY_AUTH_TOKEN: ${SENTRY_AUTH_TOKEN:-}
+        SENTRY_ORG: ${SENTRY_ORG:-}
+        SENTRY_PROJECT: ${SENTRY_PROJECT:-}
+        CSP_EXTRA_CONNECT: ${CSP_EXTRA_CONNECT:-}
+        CSP_EXTRA_FORM_ACTION: ${CSP_EXTRA_FORM_ACTION:-}
+        CSP_EXTRA_ANALYTICS: ${CSP_EXTRA_ANALYTICS:-}
+    restart: unless-stopped
+    networks: [selfhost]
+    depends_on: [backend]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.frontend.rule=Host(`${SELFHOST_FRONTEND_DOMAIN}`)'
+      - 'traefik.http.routers.frontend.entrypoints=websecure'
+      - 'traefik.http.routers.frontend.tls=true'
+      - 'traefik.http.routers.frontend.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.frontend.loadbalancer.server.port=80'
+    logging: *default-logging
 
   db:
     image: postgres:16
-    restart: always
-    container_name: prod-budget-tracker-db
+    restart: unless-stopped
+    networks: [selfhost]
     volumes: ['db_data:/var/lib/postgresql/data']
+    # Bound to localhost only — admin access via SSH tunnel, never public.
+    # Override DB_HOST_PORT if 5432 is already used on the host.
+    ports: ['127.0.0.1:${DB_HOST_PORT:-5432}:5432']
     environment:
       - POSTGRES_USER=${APPLICATION_DB_USERNAME}
       - POSTGRES_PASSWORD=${APPLICATION_DB_PASSWORD}
       - POSTGRES_DB=${APPLICATION_DB_DATABASE}
-    # Internal-only: backend resolves it as `db:5432`. Don't publish to host —
-    # one firewall misstep shouldn't be a breach.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
-    container_name: prod-budget-tracker-redis
+    restart: unless-stopped
+    networks: [selfhost]
     volumes: ['redis_data:/data']
-    # Internal-only: backend resolves it as `redis:6379`. Don't publish to host.
+    # Bound to localhost only — admin access via SSH tunnel, never public.
+    # Override REDIS_HOST_PORT if 6379 is already used on the host.
+    ports: ['127.0.0.1:${REDIS_HOST_PORT:-6379}:6379']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
-  # Currency Rates API: Custom exchange rate service (primary provider)
-  # Uses ECB + NBU data sources for comprehensive currency coverage
-  # Supports: 38 currencies with historical data from 1999-01-04
-  # API: http://currency-rates-api:8080/{date} or http://currency-rates-api:8080/latest
   currency-rates-api:
     image: letehaha/currency-rates-api:latest
-    container_name: prod-budget-tracker-currency-rates-api
     restart: unless-stopped
-    volumes:
-      - currency_rates_data:/app/data
-    logging:
-      driver: 'json-file'
-      options:
-        max-size: '10m'
-        max-file: '3'
+    networks: [selfhost]
+    volumes: ['currency_rates_data:/app/data']
+    environment:
+      - DATABASE_URL=sqlite:/app/data/currency_rates.db?mode=rwc
+      - HOST=0.0.0.0
+      - PORT=8080
+      - DEFAULT_API_BASE=USD
+      - SEED_ON_STARTUP=true
+      - SYNC_ON_STARTUP=true
+      - 'SYNC_CRON=0 0 8,12,16,20 * * *'
+      - RUST_LOG=currency_rates=info,tower_http=info
     healthcheck:
+      # `--spider` makes a HEAD request; modern wget (incl. BusyBox) returns
+      # non-zero on HTTP errors. Verified against the upstream image.
       test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:8080/health']
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
+    logging: *default-logging
 
-  # Frankfurter: Self-hosted exchange rates service (fallback provider)
-  # Provides historical exchange rates data from 1999-01-04 to present
-  # Used for: Fallback when Currency Rates API is unavailable
-  # Supports: 31 major currencies (AUD, EUR, GBP, USD, etc.)
-  # API: http://frankfurter:8080/v1/latest or http://frankfurter:8080/v1/YYYY-MM-DD
   frankfurter:
     image: lineofflight/frankfurter
-    container_name: prod-budget-tracker-frankfurter
     restart: unless-stopped
-    logging:
-      driver: 'json-file'
-      options:
-        max-size: '10m'
-        max-file: '3'
+    networks: [selfhost]
+    # The image ships ruby, not wget/curl/nc — use ruby for the TCP probe.
+    healthcheck:
+      test: ['CMD', 'ruby', '-rsocket', '-e', 'TCPSocket.new("localhost", 8080).close']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
 
-  # pgAdmin removed from prod compose. If admin DB access is needed, use an
-  # ad-hoc SSH tunnel into the VPS instead of running it 24/7.
+networks:
+  selfhost:
+    name: selfhost
+    driver: bridge
 
 volumes:
   db_data:
   redis_data:
   currency_rates_data:
-  backend_node_modules:
-  frontend_node_modules:
+  traefik_letsencrypt:

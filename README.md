@@ -1,4 +1,4 @@
-# Budget Tracker
+# Budget Tracker (MoneyMatter)
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
@@ -7,6 +7,10 @@ A personal budget tracking application. Track your balances and transactions wit
 ## Local Application setup
 
 To set up the application locally, please refer to the [instructions here](./docs/application-setup.md).
+
+## Self-hosting
+
+To run Budget Tracker (MoneyMatter) on your own server (Docker + Traefik + Let's Encrypt, single VPS, split subdomains for app and API), follow the [self-hosting guide](./docs/self-hosting.md).
 
 ## License
 

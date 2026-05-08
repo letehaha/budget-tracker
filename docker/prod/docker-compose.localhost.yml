@@ -1,0 +1,51 @@
+# Localhost override — disables TLS so you can verify the prod stack on a
+# laptop without a public domain or Let's Encrypt.
+#
+# Usage:
+#   docker compose --env-file .env.production \
+#     -f docker/prod/docker-compose.yml \
+#     -f docker/prod/docker-compose.localhost.yml \
+#     up -d --build
+#
+# Hostnames `app.localhost` and `api.localhost` resolve to 127.0.0.1
+# automatically in Chrome/Firefox/Safari. For curl/wget add to /etc/hosts:
+#   127.0.0.1 app.localhost api.localhost
+#
+# Set in .env.production for this mode:
+#   SELFHOST_FRONTEND_DOMAIN=app.localhost
+#   SELFHOST_API_DOMAIN=api.localhost
+#   VITE_APP_API_HTTP=http://api.localhost
+#   AUTH_ORIGIN=http://app.localhost
+#   BETTER_AUTH_URL=http://api.localhost
+#   LETSENCRYPT_EMAIL=unused@localhost  # required by base compose, value ignored
+
+services:
+  traefik:
+    # Drop TLS + Let's Encrypt; keep HTTP only on :80.
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.network=selfhost
+      - --entrypoints.web.address=:80
+    # `!override` REPLACES the ports list from base. Without it, base's
+    # 443 binding survives but no entrypoint listens — TLS connections to
+    # localhost would silently fail with `connection reset`.
+    ports: !override
+      - '${TRAEFIK_HTTP_PORT:-80}:80'
+
+  backend:
+    # `!override` REPLACES the labels list from the base file. Without it
+    # compose APPENDS, which would leave both `entrypoints=web` and
+    # `entrypoints=websecure` in effect — Traefik picks the first.
+    labels: !override
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.backend.rule=Host(`${SELFHOST_API_DOMAIN}`)'
+      - 'traefik.http.routers.backend.entrypoints=web'
+      - 'traefik.http.services.backend.loadbalancer.server.port=${APPLICATION_PORT:-8081}'
+
+  frontend:
+    labels: !override
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.frontend.rule=Host(`${SELFHOST_FRONTEND_DOMAIN}`)'
+      - 'traefik.http.routers.frontend.entrypoints=web'
+      - 'traefik.http.services.frontend.loadbalancer.server.port=80'
