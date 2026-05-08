@@ -1,19 +1,20 @@
 <template>
   <div class="@container/settings">
-    <div v-if="!isAccountsFetched" class="flex h-[400px] items-center justify-center">
+    <div v-if="!isAccountsFetched" class="flex h-100 items-center justify-center">
       <div class="text-muted-foreground text-sm">{{ t('pages.account.loading') }}</div>
     </div>
 
-    <div v-else-if="!account" class="flex h-[400px] flex-col items-center justify-center gap-4">
-      <div class="text-muted-foreground text-lg">{{ t('pages.account.notFound') }}</div>
-      <p class="text-muted-foreground text-sm">{{ t('pages.account.notFoundDescription') }}</p>
-      <Button variant="outline" @click="$router.push({ name: ROUTES_NAMES.accounts })">{{
-        t('pages.account.goToAccounts')
-      }}</Button>
-    </div>
+    <ResourceNotFound
+      v-else-if="!account"
+      class="m-6"
+      :title="t('pages.account.notFound')"
+      :description="t('pages.account.notFoundDescription')"
+      :link-label="t('pages.account.goToAccounts')"
+      :link-to="{ name: ROUTES_NAMES.accounts }"
+    />
 
     <div v-else class="flex flex-col justify-start gap-4 p-6 @[800px]/settings:flex-row">
-      <Card.Card class="w-full max-w-[600px]">
+      <Card.Card class="w-full max-w-150">
         <Header :account="account" />
 
         <!-- Account re-link warning banner -->
@@ -60,7 +61,7 @@
         </Card.CardContent>
       </Card.Card>
 
-      <Card.Card class="w-full max-w-[600px] pt-6">
+      <Card.Card class="w-full max-w-150 pt-6">
         <Card.CardContent>
           <Tabs.Tabs default-value="records">
             <Tabs.TabsList class="w-full justify-start">
@@ -71,7 +72,7 @@
             </Tabs.TabsList>
             <Tabs.TabsContent value="records">
               <template v-if="isFetched">
-                <ScrollArea :scroll-area-id="SCROLL_AREA_IDS.accountTransactions" class="h-screen max-h-[600px]">
+                <ScrollArea :scroll-area-id="SCROLL_AREA_IDS.accountTransactions" class="h-screen max-h-150">
                   <TransactionsList
                     :hasNextPage="hasNextPage"
                     :transactions="rawTransactionsList"
@@ -92,7 +93,7 @@
 <script setup lang="ts">
 import { loadTransactions } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { Button } from '@/components/lib/ui/button';
+import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import * as Card from '@/components/lib/ui/card';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';

@@ -2,6 +2,14 @@
   <PageWrapper>
     <IntegrationDetailsSkeleton v-if="isLoading" />
 
+    <ResourceNotFound
+      v-else-if="isConnectionNotFound"
+      :title="$t('pages.integrations.details.error.notFoundTitle')"
+      :description="$t('pages.integrations.details.error.notFoundDescription')"
+      :link-label="$t('pages.integrations.details.error.backButton')"
+      :link-to="{ name: ROUTES_NAMES.accountIntegrations }"
+    />
+
     <div
       v-else-if="error"
       class="flex min-h-80 flex-col items-center justify-center rounded-lg border border-dashed p-6 text-center md:p-12"
@@ -10,10 +18,10 @@
         <SearchXIcon class="text-muted-foreground size-8" />
       </div>
       <h2 class="mb-2 text-xl font-semibold tracking-wide">
-        {{ $t('pages.integrations.details.error.notFoundTitle') }}
+        {{ $t('pages.integrations.details.error.unexpectedTitle') }}
       </h2>
       <p class="text-muted-foreground mb-6 max-w-md">
-        {{ $t('pages.integrations.details.error.notFoundDescription') }}
+        {{ $t('pages.integrations.details.error.unexpectedDescription') }}
       </p>
       <UiButton @click="router.push({ name: ROUTES_NAMES.accountIntegrations })">
         <ArrowLeftIcon class="size-4" />
@@ -551,6 +559,7 @@ import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import { getBankInstitutionLogoUrl } from '@/common/utils/find-bank-institution';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import PageWrapper from '@/components/common/page-wrapper.vue';
+import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
@@ -566,7 +575,7 @@ import {
 import * as Popover from '@/components/lib/ui/popover';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useBankConnectionDetails } from '@/composable/data-queries/bank-providers/bank-connection-details';
-import { ApiErrorResponseError } from '@/js/errors';
+import { ApiErrorResponseError, isNotFoundError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
@@ -603,7 +612,13 @@ const isConnectedAccountsOpen = ref(true);
 const isConnectionValidityOpen = ref(false);
 const isReconnectPending = ref(false);
 
-const { data: connectionDetails, isLoading, error } = useBankConnectionDetails({ connectionId: connectionId });
+const {
+  data: connectionDetails,
+  isLoading,
+  error,
+} = useBankConnectionDetails({ connectionId: connectionId, queryOptions: { retry: false } });
+
+const isConnectionNotFound = computed(() => isNotFoundError(error.value));
 
 const { data: bankConnections } = useQuery({
   queryFn: listConnections,

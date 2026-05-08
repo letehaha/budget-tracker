@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { loadBudgetById } from '@/api/budgets';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import { useNotificationCenter } from '@/components/notification-center';
-import { ApiErrorResponseError } from '@/js/errors';
+import { isNotFoundError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { API_ERROR_CODES, BUDGET_TYPES } from '@bt/shared/types';
+import { BUDGET_TYPES } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -32,13 +33,13 @@ const {
   retry: false,
 });
 
+const isNotFound = computed(() => isError.value && isNotFoundError(error.value));
+
 watch(
   isError,
   (errored) => {
-    if (!errored) return;
-    const isNotFound =
-      error.value instanceof ApiErrorResponseError && error.value.data.code === API_ERROR_CODES.notFound;
-    addErrorNotification(isNotFound ? t('budgets.notFound') : t('errors.api.unexpectedError'));
+    if (!errored || isNotFound.value) return;
+    addErrorNotification(t('errors.api.unexpectedError'));
     router.replace({ name: ROUTES_NAMES.plannedBudgets });
   },
   { immediate: true },
@@ -48,7 +49,14 @@ const isCategoryBudget = computed(() => budgetItem.value?.type === BUDGET_TYPES.
 </script>
 
 <template>
-  <BudgetDetailSkeleton v-if="isLoading || isError" />
+  <ResourceNotFound
+    v-if="isNotFound"
+    :title="t('budgets.notFound')"
+    :description="t('budgets.notFoundDescription')"
+    :link-label="t('budgets.backToList')"
+    :link-to="{ name: ROUTES_NAMES.plannedBudgets }"
+  />
+  <BudgetDetailSkeleton v-else-if="isLoading || isError" />
   <CategoryBudgetInfo v-else-if="isCategoryBudget" />
   <ManualBudgetInfo v-else />
 </template>

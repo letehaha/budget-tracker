@@ -15,6 +15,8 @@ const NON_RETRYABLE_API_CODES: ReadonlySet<API_ERROR_CODES> = new Set([
   API_ERROR_CODES.invalidCredentials,
   API_ERROR_CODES.userExists,
   API_ERROR_CODES.categoryHasTransactions,
+  API_ERROR_CODES.locked,
+  API_ERROR_CODES.baseCurrencyChangeInProgress,
 ]);
 
 const DEFAULT_MAX_RETRIES = 3;

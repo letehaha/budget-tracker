@@ -25,6 +25,8 @@ describe('shouldRetryQuery', () => {
     API_ERROR_CODES.invalidCredentials,
     API_ERROR_CODES.userExists,
     API_ERROR_CODES.categoryHasTransactions,
+    API_ERROR_CODES.locked,
+    API_ERROR_CODES.baseCurrencyChangeInProgress,
   ])('does not retry ApiErrorResponseError with non-retryable code %s', (code) => {
     expect(shouldRetryQuery(0, apiError(code))).toBe(false);
   });
@@ -37,9 +39,12 @@ describe('shouldRetryQuery', () => {
     },
   );
 
-  it('stops retrying ApiErrorResponseError once the failure limit is reached', () => {
-    expect(shouldRetryQuery(3, apiError(API_ERROR_CODES.badGateway))).toBe(false);
-  });
+  it.each([API_ERROR_CODES.tooManyRequests, API_ERROR_CODES.badGateway])(
+    'stops retrying retryable code %s once the failure limit is reached',
+    (code) => {
+      expect(shouldRetryQuery(3, apiError(code))).toBe(false);
+    },
+  );
 
   it('retries NetworkError up to the default limit', () => {
     const err = new NetworkError('offline');
@@ -53,4 +58,12 @@ describe('shouldRetryQuery', () => {
     expect(shouldRetryQuery(2, new Error('flaky'))).toBe(true);
     expect(shouldRetryQuery(3, new Error('flaky'))).toBe(false);
   });
+
+  it.each([null, undefined, 'string error', 42])(
+    'retries non-Error values like %s up to the default limit',
+    (value) => {
+      expect(shouldRetryQuery(0, value)).toBe(true);
+      expect(shouldRetryQuery(3, value)).toBe(false);
+    },
+  );
 });
