@@ -2,19 +2,6 @@
   "common": {
     "processAlreadyLocked": "Sync process for \"{{lockKey}}\" is already locked."
   },
-  "auth": {
-    "migration": {
-      "userNotLinked": "User is not linked to auth system",
-      "authUserNotFound": "Auth user not found",
-      "onlyLegacyAccounts": "Only legacy accounts can use this endpoint. Use the standard email change flow.",
-      "emailAlreadyInUse": "Email is already in use",
-      "emailServiceNotConfigured": "Email service not configured",
-      "failedToSendVerification": "Failed to send verification email",
-      "verificationSent": "Verification email sent",
-      "linkExpired": "Verification link has expired",
-      "invalidOrExpiredLink": "Invalid or expired verification link"
-    }
-  },
   "accounts": {
     "groupNotFound": "Group or account not found",
     "accountNotFound": "Account not found!",
@@ -275,16 +262,6 @@
   },
   "middleware": {
     "tooManyRequests": "Too many requests. Please try again later."
-  },
-  "emails": {
-    "legacyEmailMigration": {
-      "subject": "Verify your new {{appName}} email",
-      "heading": "Verify your new email",
-      "body": "You requested to change your email address to this one. Click the button below to confirm:",
-      "buttonText": "Verify Email",
-      "orCopyLink": "Or copy and paste this link:",
-      "expiryNotice": "This link expires in 1 hour. If you didn't request this change, you can safely ignore this email."
-    }
   },
   "defaultCategories": {
     "main": {

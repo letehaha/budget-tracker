@@ -13,10 +13,6 @@
       "loginMethods": {
         "title": "Login Methods",
         "description": "Manage how you sign in to your account",
-        "legacyWarning": {
-          "title": "Legacy account detected",
-          "description": "Your account uses a legacy username-based login. Please add an email address to your account before connecting OAuth providers or passkeys."
-        },
         "oauth": {
           "connectedAs": "Connected as {email}",
           "accountName": "{provider} Account",

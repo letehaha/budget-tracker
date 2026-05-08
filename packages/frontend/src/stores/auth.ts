@@ -99,34 +99,6 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   /**
-   * Legacy login with username (for migrated users from old auth system)
-   * Uses @app.migrated email suffix
-   */
-  const legacyLogin = async ({ password, username }: { password: string; username: string }) => {
-    const email = `${username}@app.migrated`;
-
-    const result = await signIn.email({
-      email,
-      password,
-    });
-
-    if (result.error) {
-      throw new UnexpectedError(result.error.message || 'Login failed');
-    }
-
-    await userStore.loadUser();
-    await loadPostAuthData();
-
-    // Identify user for analytics and error tracking
-    if (userStore.user) {
-      identifyUserForTracking(userStore.user);
-    }
-
-    isLoggedIn.value = true;
-    localStorage.setItem(HAS_EVER_LOGGED_IN_KEY, 'true');
-  };
-
-  /**
    * Login with OAuth provider
    * @param provider - The OAuth provider
    * @param from - The page to redirect back to on error ('signin' or 'signup')
@@ -331,7 +303,6 @@ export const useAuthStore = defineStore('auth', () => {
     setLoggedIn,
     validateSession,
     login,
-    legacyLogin,
     loginWithOAuth,
     loginWithPasskey,
     registerPasskey,

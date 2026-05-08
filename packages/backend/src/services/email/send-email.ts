@@ -24,7 +24,3 @@ export async function sendEmail(payload: SendEmailPayload): Promise<SendEmailRes
   }
   return resend.emails.send(payload);
 }
-
-export function isEmailServiceConfigured(): boolean {
-  return resend !== null;
-}

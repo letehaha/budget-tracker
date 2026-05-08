@@ -47,7 +47,6 @@ export const updateUser = createController(
       firstName: z.string().optional(),
       lastName: z.string().optional(),
       middleName: z.string().optional(),
-      password: z.string().optional(),
       avatar: z.string().optional(),
       totalBalance: z.number().optional(),
     }),

@@ -27,7 +27,6 @@ export const createUser = withTransaction(
     firstName,
     lastName,
     middleName,
-    password,
     avatar,
     totalBalance,
     authUserId,
@@ -37,7 +36,6 @@ export const createUser = withTransaction(
     firstName?: string;
     lastName?: string;
     middleName?: string;
-    password?: string;
     avatar?: string;
     totalBalance?: number;
     authUserId?: string;
@@ -48,7 +46,6 @@ export const createUser = withTransaction(
       firstName,
       lastName,
       middleName,
-      password,
       avatar,
       totalBalance,
       authUserId,
@@ -66,7 +63,6 @@ export const updateUser = withTransaction(
     firstName,
     lastName,
     middleName,
-    password,
     avatar,
     totalBalance,
     defaultCategoryId,
@@ -77,7 +73,6 @@ export const updateUser = withTransaction(
     firstName?: string;
     lastName?: string;
     middleName?: string;
-    password?: string;
     avatar?: string;
     totalBalance?: number;
     defaultCategoryId?: number;
@@ -89,7 +84,6 @@ export const updateUser = withTransaction(
       firstName,
       lastName,
       middleName,
-      password,
       avatar,
       totalBalance,
       defaultCategoryId,
