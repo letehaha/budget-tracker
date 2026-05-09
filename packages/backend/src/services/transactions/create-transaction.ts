@@ -6,13 +6,16 @@ import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
-import Balances from '@models/balances.model';
 import Categories from '@models/categories.model';
 import Tags from '@models/tags.model';
 import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
+import {
+  assertSharedWritePhase1Guards,
+  authorizeAccountWrite,
+} from '@services/sharing/authorize-account-write.service';
 import { v4 as uuidv4 } from 'uuid';
 
 import { withTransaction } from '../common/with-transaction';
@@ -102,15 +105,6 @@ export const calcTransferTransactionRefAmount = async ({
  * 3. Calculate correct refAmount for both base and opposite tx. Logic is described down in the code
  */
 export const createOppositeTransaction = async (params: CreateOppositeTransactionParams) => {
-  logger.info('State before transfer', {
-    accountFrom: {
-      balance: 10,
-      refBalance: 100,
-      balance_in_table: 100,
-    },
-    accountTo: {},
-  });
-
   const [creationParams, baseTransaction] = params;
 
   const { destinationAmount, destinationAccountId, userId, transactionType } = creationParams;
@@ -207,9 +201,23 @@ export const createTransaction = withTransaction(
         });
       }
 
+      // Account-scoped auth: owners pass; recipients need `write`. The returned
+      // `accountOwnerUserId` scopes downstream owner-only lookups (account row, category
+      // set) so a shared-account write resolves correctly. Phase-1 guards block recipient
+      // flows that need their own follow-up slices.
+      const { isOwner, accountOwnerUserId } = await authorizeAccountWrite({
+        userId,
+        accountId,
+      });
+      assertSharedWritePhase1Guards({
+        isOwner,
+        involvesTransfer: transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer,
+        involvesRefund: refundsTxId !== undefined && refundsTxId !== null,
+      });
+
       if (payload.categoryId !== undefined && payload.categoryId !== null) {
         await findOrThrowNotFound({
-          query: Categories.findOne({ where: { id: payload.categoryId, userId } }),
+          query: Categories.findOne({ where: { id: payload.categoryId, userId: accountOwnerUserId } }),
           message: 'Category not found or does not belong to user.',
         });
       }
@@ -220,7 +228,7 @@ export const createTransaction = withTransaction(
       });
 
       const { currency: generalTxCurrency } = await Accounts.getAccountCurrency({
-        userId,
+        userId: accountOwnerUserId,
         id: accountId,
       });
 
@@ -257,17 +265,6 @@ export const createTransaction = withTransaction(
           date: generalTxParams.time,
         });
       }
-
-      await logDataBefore({
-        amount,
-        refAmount: generalTxParams.refAmount,
-        userId,
-        accountId,
-        transferNature,
-        destinationTransactionId,
-        refundsTxId,
-        ...payload,
-      });
 
       const baseTransaction = await Transactions.createTransaction(generalTxParams);
 
@@ -331,6 +328,7 @@ export const createTransaction = withTransaction(
         await manageSplits({
           transactionId: baseTransaction!.id,
           userId,
+          categoryOwnerUserId: accountOwnerUserId,
           splits,
           transactionAmount: amount,
           transactionCurrencyCode: generalTxCurrency.code,
@@ -381,56 +379,3 @@ export const createTransaction = withTransaction(
     }
   },
 );
-
-// {
-//   "accountId": 40,
-//   "amount": 150_000,
-//   "balance": 684_278,
-//   "balanceDetails": 2_056_344,
-//   "level": "info",
-//   "message": "Before",
-//   "refAmount": 1_518_517,
-//   "refBalance": 6_331_767,
-// }
-
-const logDataBefore = async (params: CreateTransactionParams & { refAmount?: Money }) => {
-  try {
-    const { transferNature, destinationTransactionId, userId, accountId, transactionType } = params;
-    const isTransfer = transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
-    const transferWithoutLinking = isTransfer && !destinationTransactionId;
-    const isBasicExpense =
-      transactionType === TRANSACTION_TYPES.expense && transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer;
-
-    const baseAccount = (await Accounts.getAccountById({
-      userId,
-      id: params.accountId,
-    }))!;
-    const baseAccountBalance = (await Balances.findOne({
-      where: { accountId },
-      order: [['date', 'DESC']],
-      attributes: ['amount'],
-    }))!;
-
-    if (isBasicExpense) {
-      logger.info('Create expense transaction');
-      logger.info('Before', {
-        accountId,
-        balance: baseAccount.currentBalance,
-        amount: params.amount,
-        refBalance: baseAccount.refCurrentBalance,
-        refAmount: params.refAmount,
-        balanceDetails: baseAccountBalance.amount,
-      });
-    } else if (transferWithoutLinking) {
-      logger.info(`Details before basic transfer:
-        Account from:
-          accountId: ${accountId}
-          balance: ${baseAccount.currentBalance}
-          refBalance: ${baseAccount.refCurrentBalance}
-          balanceDetails: ${baseAccountBalance.amount}
-        `);
-    }
-  } catch (err) {
-    logger.error(err as Error);
-  }
-};

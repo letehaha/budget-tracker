@@ -187,7 +187,10 @@
       "searchCategoryLabel": "Шукати категорію",
       "clearSearchLabel": "Очистити пошук",
       "clearSelectionLabel": "Очистити вибір",
-      "searchPlaceholder": "Пошук..."
+      "searchPlaceholder": "Пошук...",
+      "sharedOwnerNotice": "Показуємо категорії {owner}",
+      "sharedOwnerNoticeTooltip": "Транзакції на спільному рахунку завжди використовують категорії його власника. Все, що ви тут створите, буде записано в наборі категорій {owner}, щоб ви обидва бачили узгоджені підсумки.",
+      "sharedOwnerCategoriesLoadError": "Не вдалося завантажити категорії спільного рахунку. Спробуйте ще раз."
     },
     "select": {
       "selectOption": "Вибрати опцію",

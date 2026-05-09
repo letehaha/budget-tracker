@@ -14,17 +14,20 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
-defineProps<{
+const props = defineProps<{
   account: AccountModel;
   transactions: TransactionModel[];
 }>();
 
+const isOwner = computed(() => props.account.share?.isOwner ?? true);
+
 const activeTab = ref('details');
-const tabItems = computed(() => [
-  { value: 'details', label: t('pages.account.tabs.details') },
-  { value: 'integrations', label: t('pages.account.tabs.integrations') },
-  { value: 'settings', label: t('pages.account.tabs.settings') },
-]);
+const tabItems = computed(() => {
+  const items = [{ value: 'details', label: t('pages.account.tabs.details') }];
+  if (isOwner.value) items.push({ value: 'integrations', label: t('pages.account.tabs.integrations') });
+  items.push({ value: 'settings', label: t('pages.account.tabs.settings') });
+  return items;
+});
 </script>
 
 <template>
@@ -41,15 +44,17 @@ const tabItems = computed(() => [
 
         <SettingAccountGroup :account="account" />
 
-        <Separator />
+        <template v-if="isOwner">
+          <Separator />
 
-        <AccountArchiveSection :account="account" />
+          <AccountArchiveSection :account="account" />
 
-        <AccountDeletionSection :account="account" :transactions="transactions" />
+          <AccountDeletionSection :account="account" :transactions="transactions" />
+        </template>
       </div>
     </Tabs.TabsContent>
 
-    <Tabs.TabsContent value="integrations">
+    <Tabs.TabsContent v-if="isOwner" value="integrations">
       <div class="grid gap-4 py-6">
         <AccountLinkSection :account="account" />
       </div>

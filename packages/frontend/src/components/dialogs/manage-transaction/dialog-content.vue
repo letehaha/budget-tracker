@@ -11,12 +11,14 @@ import * as Drawer from '@/components/lib/ui/drawer';
 import { useFormValidation } from '@/composable/form-validator';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
-import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore } from '@/stores';
+import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore, useUserStore } from '@/stores';
 import {
   ACCOUNT_TYPES,
   PAYMENT_TYPES,
+  SHARE_PERMISSIONS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  TRANSACTIONS_WRITE_SCOPES,
   type TransactionModel,
 } from '@bt/shared/types';
 import { minValue, required } from '@vuelidate/validators';
@@ -35,6 +37,7 @@ import PortfolioLinkedView from './components/portfolio-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
+import { useAccountCategories } from '@/composable/data-queries/categories';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 
 import {
@@ -85,6 +88,7 @@ watch(() => route.path, closeModal);
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const { accountsRecord, activeSystemAccounts, systemAccountsActiveFirst } = storeToRefs(useAccountsStore());
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
+const { user: currentUser } = storeToRefs(useUserStore());
 const tagsStore = useTagsStore();
 // Load tags when the dialog opens
 tagsStore.loadTags();
@@ -183,7 +187,70 @@ const deleteMutation = useDeleteTransaction({ onSuccess: closeModal });
 const isLoading = computed(
   () => submitMutation.isPending.value || unlinkMutation.isPending.value || deleteMutation.isPending.value,
 );
-const isFormFieldsDisabled = computed(() => isLoading.value || !isInitialRefundsDataLoaded.value);
+
+// Resolve the account whose share state drives auth + category routing. In edit mode
+// it's the tx's parent account (immutable in this dialog); in create mode it's whatever
+// the user has currently picked in the account-field.
+const resolvedAccountId = computed(() => {
+  if (transaction.value) return transaction.value.accountId;
+  return form.value.account?.id ?? null;
+});
+const resolvedAccount = computed(() =>
+  resolvedAccountId.value != null ? accountsRecord.value[resolvedAccountId.value] : undefined,
+);
+const accountShare = computed(() => resolvedAccount.value?.share);
+// True only when the account is shared *with* the caller — owner-side `share` blocks
+// (where `isOwner === true`) shouldn't switch us to the owner-routed category set since
+// the caller IS the owner.
+const isAccountSharedWithCaller = computed(() => !!accountShare.value && !accountShare.value.isOwner);
+
+const sharedAccountCategories = useAccountCategories({
+  accountId: () => resolvedAccountId.value ?? undefined,
+  enabled: isAccountSharedWithCaller,
+});
+
+const effectiveFormattedCategories = computed(() =>
+  isAccountSharedWithCaller.value ? sharedAccountCategories.formatted.value : formattedCategories.value,
+);
+const effectiveCategoriesMap = computed(() =>
+  isAccountSharedWithCaller.value ? sharedAccountCategories.map.value : categoriesMap.value,
+);
+
+// Treat both success and error as terminal so a failed fetch unblocks the form (the
+// composable surfaces the error via toast). Without the `isError` branch, prepopulation
+// would hang and the dialog would render a permanently-blank edit form on transient
+// network failures.
+const isCategoriesReady = computed(
+  () =>
+    !isAccountSharedWithCaller.value ||
+    sharedAccountCategories.isSuccess.value ||
+    sharedAccountCategories.isError.value,
+);
+
+// Auth gates — mirror backend rules so disabled UI matches what the API would accept.
+const canWriteToAccount = computed(() => {
+  const share = accountShare.value;
+  if (!share) return true; // owned, no share row → always writable
+  if (share.isOwner) return true;
+  return share.permission === SHARE_PERMISSIONS.write || share.permission === SHARE_PERMISSIONS.manage;
+});
+const canMutateCurrentTx = computed(() => {
+  if (!canWriteToAccount.value) return false;
+  const share = accountShare.value;
+  if (!share || share.isOwner) return true;
+  // Recipient: enforce transactionsWriteScope on existing transactions only. Creates always
+  // pass (caller becomes the row's userId).
+  if (!transaction.value) return true;
+  const scope = share.policy?.transactionsWriteScope;
+  if (scope === TRANSACTIONS_WRITE_SCOPES.own && transaction.value.userId !== currentUser.value?.id) {
+    return false;
+  }
+  return true;
+});
+
+const isFormFieldsDisabled = computed(
+  () => isLoading.value || !isInitialRefundsDataLoaded.value || !canMutateCurrentTx.value,
+);
 
 const currentTxType = computed(() => form.value.type);
 const isTransferTx = computed(() => currentTxType.value === FORM_TYPES.transfer);
@@ -397,19 +464,43 @@ const previouslyFocusedElement = ref(document.activeElement);
 
 const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
-onMounted(() => {
+// Tx prepopulation has to wait for the right category map. For owner-side / unshared txs
+// the global Pinia map is loaded synchronously on app boot; for shared-with-caller txs
+// we route through `useAccountCategories`, which fires after mount — populate then.
+const hasPrepopulated = ref(false);
+const prepopulateIfReady = () => {
+  if (hasPrepopulated.value) return;
   if (!transaction.value) {
     form.value.account = activeSystemAccounts.value[0] ?? null;
-  } else {
-    const data = prepopulateForm({
-      transaction: transaction.value,
-      oppositeTransaction: oppositeTransaction.value,
-      accounts: accountsRecord.value,
-      categories: categoriesMap.value,
-      formattedCategories: formattedCategories.value,
-    });
-    if (data) form.value = data;
+    hasPrepopulated.value = true;
+    return;
   }
+  if (!isCategoriesReady.value) return;
+  const data = prepopulateForm({
+    transaction: transaction.value,
+    oppositeTransaction: oppositeTransaction.value,
+    accounts: accountsRecord.value,
+    categories: effectiveCategoriesMap.value,
+    formattedCategories: effectiveFormattedCategories.value,
+  });
+  if (data) form.value = data;
+  hasPrepopulated.value = true;
+};
+
+onMounted(prepopulateIfReady);
+watch(isCategoriesReady, prepopulateIfReady);
+
+// In create mode, switching between own and shared accounts swaps the category set —
+// drop a stale selection so the user doesn't submit a categoryId that no longer exists
+// in the active list. Skip while the new list is still loading (empty) — we'd otherwise
+// blank the field momentarily.
+watch(effectiveFormattedCategories, (categories) => {
+  if (!isFormCreation.value) return;
+  const selectedId = form.value.category?.id;
+  if (selectedId == null) return;
+  if (effectiveCategoriesMap.value[selectedId]) return;
+  const fallback = categories[0];
+  if (fallback) form.value.category = fallback;
 });
 
 onUnmounted(() => {
@@ -541,7 +632,9 @@ onUnmounted(() => {
               <category-select-field
                 v-model="form.category"
                 :label="$t('dialogs.manageTransaction.form.categoryLabel')"
-                :values="formattedCategories"
+                :values="effectiveFormattedCategories"
+                :categories-map="isAccountSharedWithCaller ? effectiveCategoriesMap : undefined"
+                :shared-owner-username="isAccountSharedWithCaller ? accountShare?.owner.username : undefined"
                 label-key="name"
                 :disabled="isFormFieldsDisabled"
               />
@@ -596,6 +689,7 @@ onUnmounted(() => {
               :total-amount="form.amount ? Number(form.amount) : null"
               :currency-code="currencyCode"
               :main-category="form.category"
+              :categories="effectiveFormattedCategories"
             />
           </template>
 
@@ -663,7 +757,9 @@ onUnmounted(() => {
 
         <div class="flex items-center justify-between py-6">
           <Button
-            v-if="transaction && accountsRecord[transaction.accountId]?.type === ACCOUNT_TYPES.system"
+            v-if="
+              transaction && accountsRecord[transaction.accountId]?.type === ACCOUNT_TYPES.system && canMutateCurrentTx
+            "
             class="min-w-25"
             :disabled="isFormFieldsDisabled"
             :aria-label="$t('dialogs.manageTransaction.form.deleteAriaLabel')"

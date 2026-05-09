@@ -71,6 +71,16 @@ export const getCategories = async ({ userId }: { userId: number }) => {
   return categories;
 };
 
+export const getCategoriesForUsers = async ({ userIds }: { userIds: number[] }) => {
+  if (userIds.length === 0) return [];
+  const categories = await Categories.findAll({
+    where: { userId: userIds },
+    raw: true,
+  });
+
+  return categories;
+};
+
 export interface CreateCategoryPayload {
   userId: number;
   name?: string;

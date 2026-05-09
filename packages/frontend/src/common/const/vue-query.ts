@@ -143,4 +143,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // sharing
   shareInvitationsSent: ['share', 'invitations-sent'] as const,
   shareInvitationsReceived: ['share', 'invitations-received'] as const,
+
+  // categories
+  categoriesByAccount: ['categories-by-account'] as const,
 });

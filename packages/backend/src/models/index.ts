@@ -1,4 +1,3 @@
-import cls from 'cls-hooked';
 import { Sequelize } from 'sequelize-typescript';
 
 import AccountGroupingModel from './accounts-groups/account-grouping.model';
@@ -11,6 +10,7 @@ import BudgetCategoriesModel from './budget-categories.model';
 import BudgetTransactionsModel from './budget-transactions.model';
 import BudgetModel from './budget.model';
 import CategoriesModel from './categories.model';
+import { connection } from './connection';
 import CurrenciesModel from './currencies.model';
 import ExchangeRatesModel from './exchange-rates.model';
 import HoldingsModel from './investments/holdings.model';
@@ -45,16 +45,6 @@ import UserMerchantCategoryCodesModel from './user-merchant-category-codes.model
 import UserSettingsModel from './user-settings.model';
 import UsersCurrenciesModel from './users-currencies.model';
 import UsersModel from './users.model';
-
-export const namespace = cls.createNamespace('budget-tracker-namespace');
-Sequelize.useCLS(namespace);
-
-const connection: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sequelize?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Sequelize?: any;
-} = {};
 
 const DBConfig: Record<string, unknown> = {
   host: process.env.APPLICATION_DB_HOST,

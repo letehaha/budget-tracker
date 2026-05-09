@@ -102,8 +102,8 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
   <CardHeader>
     <div class="flex flex-col">
       <div class="flex w-full justify-between gap-4">
-        <!-- Account name — click to open rename popover -->
-        <Popover.Popover :open="formEditingPopoverOpen" @update:open="onPopoverOpenChange">
+        <!-- Account name — click to open rename popover (owner only) -->
+        <Popover.Popover v-if="isOwner" :open="formEditingPopoverOpen" @update:open="onPopoverOpenChange">
           <Popover.PopoverTrigger as-child>
             <button class="flex cursor-pointer text-xl transition-opacity hover:opacity-80">
               {{ account.name }}
@@ -125,16 +125,17 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
             </form>
           </Popover.PopoverContent>
         </Popover.Popover>
+        <div v-else class="text-xl">{{ account.name }}</div>
 
         <div class="flex gap-2">
-          <PortfolioTransferDialog :account="account" context="account">
+          <PortfolioTransferDialog v-if="isOwner" :account="account" context="account">
             <Button variant="ghost" size="icon" :title="t('pages.account.header.transferToPortfolio')">
               <ArrowRightLeftIcon :size="20" />
             </Button>
           </PortfolioTransferDialog>
 
-          <!-- Kebab dropdown (separate flex item so floating-ui has a clean reference) -->
-          <DropdownMenu>
+          <!-- Kebab dropdown — recipients have no actions here (rename/adjust/share are owner-only) -->
+          <DropdownMenu v-if="isOwner">
             <DropdownMenuTrigger as-child>
               <Button variant="ghost" size="icon" :title="t('pages.account.header.accountActions')">
                 <MoreVerticalIcon :size="20" />
@@ -167,7 +168,7 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
                 </Tooltip.Tooltip>
               </Tooltip.TooltipProvider>
 
-              <DropdownMenuItem v-if="isOwner" class="gap-2" @click="shareDialogOpen = true">
+              <DropdownMenuItem class="gap-2" @click="shareDialogOpen = true">
                 <Share2Icon class="size-4" />
                 {{ t('pages.account.header.share') }}
               </DropdownMenuItem>
@@ -179,7 +180,7 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
       <!-- Balance -->
       <div class="flex items-center">
         <button
-          v-if="isSystemAccount"
+          v-if="isSystemAccount && isOwner"
           class="flex cursor-pointer flex-wrap items-end justify-start gap-x-2 transition-opacity hover:opacity-75"
           @click="adjustmentDialogOpen = true"
         >

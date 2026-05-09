@@ -1,3 +1,4 @@
+import { SHARE_PERMISSIONS } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -32,14 +33,20 @@ export function registerSplitTransaction(server: McpServer) {
       requireScope({ extra, scope: 'finance:write' });
       trackMcpToolUsed({ userId, tool: 'split_transaction', clientId: extra.authInfo?.clientId });
 
-      const transaction = await getTransactionById({ id: args.transactionId, userId });
-      if (!transaction) {
+      const fetched = await getTransactionById({
+        id: args.transactionId,
+        userId,
+        requiredPermission: SHARE_PERMISSIONS.write,
+      });
+      if (!fetched) {
         throw new Error(`Transaction ${args.transactionId} not found`);
       }
+      const transaction = fetched.tx;
 
       const result = await manageSplits({
         transactionId: args.transactionId,
         userId,
+        categoryOwnerUserId: fetched.access.ownerUserId,
         splits: args.splits.map((s) => ({
           categoryId: s.categoryId,
           amount: Money.fromDecimal(s.amount),

@@ -1,4 +1,4 @@
-import { connection, namespace } from '@models/index';
+import { connection, namespace } from '@models/connection';
 
 const isTransactionActive = () => {
   const transaction = namespace.get('transaction');

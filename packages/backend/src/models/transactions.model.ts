@@ -25,7 +25,7 @@ import TransactionGroups from '@models/transaction-groups.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import TransactionTags from '@models/transaction-tags.model';
 import Users from '@models/users.model';
-import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
+import { updateAccountBalanceForChangedTx } from '@services/accounts/update-balance-for-changed-tx';
 import { Op, Includeable, WhereOptions, literal } from 'sequelize';
 import {
   Table,

@@ -211,7 +211,13 @@ const accountMovement = computed(() => {
   if (transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
     return `${accountFrom.value?.name} ${separator} Out of wallet`;
   }
-  return `${accountFrom.value?.name} ${separator} ${accountTo.value?.name}`;
+  // accountTo can be undefined when the counterpart account is hidden from the caller —
+  // e.g. a recipient viewing a transfer on a shared account whose other side lives in an
+  // unshared private account of the owner. Fall back to a labeled placeholder rather than
+  // rendering the literal string "undefined".
+  const fromName = accountFrom.value?.name ?? t('transactions.transfer.hiddenAccount');
+  const toName = accountTo.value?.name ?? t('transactions.transfer.hiddenAccount');
+  return `${fromName} ${separator} ${toName}`;
 });
 
 const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMM y');

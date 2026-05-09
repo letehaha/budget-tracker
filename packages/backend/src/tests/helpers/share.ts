@@ -1,4 +1,6 @@
 import { ResourceType, SharePermission, SharePolicy } from '@bt/shared/types';
+import { authPool } from '@config/auth';
+import Users from '@models/users.model';
 import type { acceptInvitation as apiAcceptInvitation } from '@services/sharing/accept-invitation.service';
 import type { createInvitation as apiCreateInvitation } from '@services/sharing/create-invitation.service';
 import type { declineInvitation as apiDeclineInvitation } from '@services/sharing/decline-invitation.service';
@@ -129,4 +131,45 @@ export async function declineShareInvitation<R extends boolean | undefined = und
     url: `/share/invitations/${encodeURIComponent(token)}/decline`,
     raw,
   });
+}
+
+/**
+ * Resolve the app-level `Users` row for a given email address. Looks up the
+ * better-auth `ba_user` table first to get the `authUserId`, then finds the
+ * matching `Users` row. Throws if either lookup fails.
+ */
+export async function findAppUserByEmail({ email }: { email: string }) {
+  const baUserRes = await authPool.query<{ id: string }>('SELECT id FROM ba_user WHERE email = $1', [email]);
+  const baUserId = baUserRes.rows[0]?.id;
+  if (!baUserId) throw new Error(`No ba_user for ${email}`);
+  const appUser = await Users.findOne({ where: { authUserId: baUserId } });
+  if (!appUser) throw new Error(`No app user for ${email}`);
+  return appUser;
+}
+
+/**
+ * Sign up a fresh second user and immediately set their base currency via the
+ * API. Defaults to the test suite's `global.BASE_CURRENCY.code` when no
+ * `currencyCode` is supplied, and generates a unique email when none is given.
+ *
+ * Returns the same `SecondUserHandle` as `signUpSecondUser` so callers can
+ * pass `cookies` straight to `asUser`.
+ */
+export async function provisionSecondUserWithBaseCurrency({
+  email,
+  currencyCode,
+}: { email?: string; currencyCode?: string } = {}): Promise<SecondUserHandle> {
+  const handle = await signUpSecondUser({ email });
+  await asUser({
+    cookies: handle.cookies,
+    fn: async () => {
+      const res = await setBaseCurrencyForActiveUser({
+        currencyCode: currencyCode ?? global.BASE_CURRENCY.code,
+      });
+      if (res.statusCode !== 200) {
+        throw new Error(`Failed to set base currency for second user: ${res.statusCode} ${JSON.stringify(res.body)}`);
+      }
+    },
+  });
+  return handle;
 }

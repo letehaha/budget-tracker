@@ -5,12 +5,10 @@ import {
   SHARE_PERMISSIONS,
   SHARING_LIMITS,
 } from '@bt/shared/types';
-import { authPool } from '@config/auth';
 import { describe, expect, it } from '@jest/globals';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import UsersCurrencies from '@models/users-currencies.model';
-import Users from '@models/users.model';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
 import { generateInvitationToken } from '@services/sharing/generate-invitation-token';
@@ -18,15 +16,6 @@ import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
 import { Op } from 'sequelize';
 import request from 'supertest';
-
-async function findAppUserByEmail(email: string) {
-  const baUserRes = await authPool.query<{ id: string }>('SELECT id FROM ba_user WHERE email = $1', [email]);
-  const baUserId = baUserRes.rows[0]?.id;
-  if (!baUserId) throw new Error(`No ba_user for ${email}`);
-  const appUser = await Users.findOne({ where: { authUserId: baUserId } });
-  if (!appUser) throw new Error(`No app user for ${email}`);
-  return appUser;
-}
 
 /**
  * Force-flip a user's base currency by directly mutating UsersCurrencies. The real
@@ -49,25 +38,9 @@ async function forceUserBaseCurrency({ userId, currencyCode }: { userId: number;
   }
 }
 
-async function provisionSecondUserWithBaseCurrency(opts?: { email?: string; currencyCode?: string }) {
-  const handle = await helpers.signUpSecondUser({ email: opts?.email });
-  await helpers.asUser({
-    cookies: handle.cookies,
-    fn: async () => {
-      const res = await helpers.setBaseCurrencyForActiveUser({
-        currencyCode: opts?.currencyCode ?? global.BASE_CURRENCY.code,
-      });
-      if (res.statusCode !== 200) {
-        throw new Error(`Failed to set base currency for second user: ${res.statusCode} ${JSON.stringify(res.body)}`);
-      }
-    },
-  });
-  return handle;
-}
-
 async function setupPendingInvitation({ permission = SHARE_PERMISSIONS.read } = {}) {
   const account = await helpers.createAccount({ raw: true });
-  const recipient = await provisionSecondUserWithBaseCurrency();
+  const recipient = await helpers.provisionSecondUserWithBaseCurrency();
   const invitation = await helpers.createShareInvitation({
     inviteeEmail: recipient.email,
     resourceType: RESOURCE_TYPES.account,
@@ -96,7 +69,7 @@ async function setupUnresolvedInvitationThenSignUp({ permission = SHARE_PERMISSI
   });
   expect(invitation.inviteeUserId).toBeNull();
 
-  const recipient = await provisionSecondUserWithBaseCurrency({ email: futureEmail });
+  const recipient = await helpers.provisionSecondUserWithBaseCurrency({ email: futureEmail });
   return { account, recipient, invitation };
 }
 
@@ -153,14 +126,14 @@ describe('Share invitations: accept', () => {
 
       // Stamped on accept — the invitation now points at the real user.
       const updated = await ShareInvitations.findOne({ where: { id: invitation.id } });
-      const recipientApp = await findAppUserByEmail(recipient.email);
+      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
       expect(updated!.inviteeUserId).toBe(recipientApp.id);
     });
   });
 
   describe('error cases', () => {
     it('returns 404 when the token does not exist', async () => {
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       const res = await helpers.asUser({
         cookies: recipient.cookies,
         // Well-formed but unknown token — exercises the service-level not-found path
@@ -172,7 +145,7 @@ describe('Share invitations: accept', () => {
 
     it('returns 404 when the token belongs to another user (resolved-invitee path)', async () => {
       const { invitation } = await setupPendingInvitation();
-      const otherUser = await provisionSecondUserWithBaseCurrency();
+      const otherUser = await helpers.provisionSecondUserWithBaseCurrency();
       const res = await helpers.asUser({
         cookies: otherUser.cookies,
         fn: () => helpers.acceptShareInvitation({ token: invitation.token }),
@@ -192,7 +165,7 @@ describe('Share invitations: accept', () => {
       });
 
       // Sign up a different user (different email) and try to accept.
-      const wrongUser = await provisionSecondUserWithBaseCurrency();
+      const wrongUser = await helpers.provisionSecondUserWithBaseCurrency();
       const res = await helpers.asUser({
         cookies: wrongUser.cookies,
         fn: () => helpers.acceptShareInvitation({ token: invitation.token }),
@@ -239,8 +212,8 @@ describe('Share invitations: accept', () => {
       const account = await helpers.createAccount({ raw: true });
       expect(SHARING_LIMITS.maxRecipientsPerResource).toBe(2);
 
-      const filler = await provisionSecondUserWithBaseCurrency();
-      const fillerApp = await findAppUserByEmail(filler.email);
+      const filler = await helpers.provisionSecondUserWithBaseCurrency();
+      const fillerApp = await helpers.findAppUserByEmail({ email: filler.email });
       await ResourceShares.create({
         ownerUserId: account.userId,
         sharedWithUserId: fillerApp.id,
@@ -252,12 +225,12 @@ describe('Share invitations: accept', () => {
       });
 
       const [racerA, racerB] = await Promise.all([
-        provisionSecondUserWithBaseCurrency(),
-        provisionSecondUserWithBaseCurrency(),
+        helpers.provisionSecondUserWithBaseCurrency(),
+        helpers.provisionSecondUserWithBaseCurrency(),
       ]);
       const [racerAApp, racerBApp] = await Promise.all([
-        findAppUserByEmail(racerA.email),
-        findAppUserByEmail(racerB.email),
+        helpers.findAppUserByEmail({ email: racerA.email }),
+        helpers.findAppUserByEmail({ email: racerB.email }),
       ]);
 
       const [invitationA, invitationB] = await Promise.all([
@@ -324,8 +297,8 @@ describe('Share invitations: accept', () => {
       expect(SHARING_LIMITS.maxRecipientsPerResource).toBe(2);
 
       for (let i = 0; i < SHARING_LIMITS.maxRecipientsPerResource; i++) {
-        const filler = await provisionSecondUserWithBaseCurrency();
-        const fillerApp = await findAppUserByEmail(filler.email);
+        const filler = await helpers.provisionSecondUserWithBaseCurrency();
+        const fillerApp = await helpers.findAppUserByEmail({ email: filler.email });
         await ResourceShares.create({
           ownerUserId: account.userId,
           sharedWithUserId: fillerApp.id,
@@ -340,8 +313,8 @@ describe('Share invitations: accept', () => {
       // Create a pending invite directly (bypassing the send-time cap check) so we can
       // exercise the accept-time guard in isolation. Real-world this happens when several
       // pending invites were created before any were accepted.
-      const overflow = await provisionSecondUserWithBaseCurrency();
-      const overflowApp = await findAppUserByEmail(overflow.email);
+      const overflow = await helpers.provisionSecondUserWithBaseCurrency();
+      const overflowApp = await helpers.findAppUserByEmail({ email: overflow.email });
       const invitation = await ShareInvitations.create({
         ownerUserId: account.userId,
         inviteeEmail: overflow.email.toLowerCase(),
@@ -368,7 +341,7 @@ describe('Share invitations: accept', () => {
       // base, not to the account's currency. An owner can have e.g. a UAH account while
       // their base currency is USD; a USD-base recipient must still be able to accept.
       const usdAccount = await helpers.createAccountWithNewCurrency({ currency: 'USD' });
-      const recipient = await provisionSecondUserWithBaseCurrency(); // base = global.BASE_CURRENCY (AED)
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency(); // base = global.BASE_CURRENCY (AED)
 
       const invitation = await helpers.createShareInvitation({
         inviteeEmail: recipient.email,
@@ -388,7 +361,7 @@ describe('Share invitations: accept', () => {
 
     it('returns 422 with code SHARE_CURRENCY_MISMATCH and expectedCurrency when base currency does not match', async () => {
       const { recipient, invitation } = await setupPendingInvitation();
-      const recipientApp = await findAppUserByEmail(recipient.email);
+      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
       await forceUserBaseCurrency({ userId: recipientApp.id, currencyCode: 'USD' });
 
       const res = await helpers.asUser({
@@ -433,7 +406,7 @@ describe('Share invitations: decline', () => {
     expect(res.statusCode).toBe(200);
 
     const updated = await ShareInvitations.findOne({ where: { id: invitation.id } });
-    const recipientApp = await findAppUserByEmail(recipient.email);
+    const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
     expect(updated!.inviteeUserId).toBe(recipientApp.id);
     expect(updated!.status).toBe(SHARE_INVITATION_STATUSES.declined);
   });
@@ -454,7 +427,7 @@ describe('Share invitations: decline', () => {
 
   it('returns 404 when the token belongs to someone else', async () => {
     const { invitation } = await setupPendingInvitation();
-    const other = await provisionSecondUserWithBaseCurrency();
+    const other = await helpers.provisionSecondUserWithBaseCurrency();
     const res = await helpers.asUser({
       cookies: other.cookies,
       fn: () => helpers.declineShareInvitation({ token: invitation.token }),

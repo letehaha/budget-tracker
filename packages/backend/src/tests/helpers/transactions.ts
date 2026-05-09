@@ -206,6 +206,22 @@ export function getTransactionsByIds<R extends boolean | undefined = undefined>(
   });
 }
 
+export function getTransactionById<R extends boolean | undefined = undefined>({
+  id,
+  includeSplits,
+  raw,
+}: {
+  id: number;
+  includeSplits?: boolean;
+  raw?: R;
+}) {
+  return makeRequest<TransactionApiResponse | null, R>({
+    method: 'get',
+    url: `/transactions/${id}${includeSplits ? '?includeSplits=true' : ''}`,
+    raw,
+  });
+}
+
 // Bulk update helpers
 interface BulkUpdateTransactionsPayload {
   transactionIds: number[];

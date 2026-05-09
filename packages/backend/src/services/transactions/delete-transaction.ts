@@ -6,22 +6,30 @@ import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import * as Transactions from '@models/transactions.model';
 import { deletePortfolioTransfer } from '@services/investments/portfolios/transfers';
+import { assertSharedWritePhase1Guards } from '@services/sharing/authorize-account-write.service';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
-import { getTransactionById } from './get-by-id';
+import { getWritableTransactionById } from './get-by-id';
 
 export const deleteTransaction = withTransaction(
   async ({ id, userId }: { id: number; userId: number }): Promise<void> => {
     try {
-      const result = await getTransactionById({
-        id,
-        userId,
+      // Single fetch + write-authorization gate. `getWritableTransactionById` throws 404
+      // when the caller has no claim, 401 when scope: 'own' is violated. Returns a
+      // pre-resolved `ctx` so the call site doesn't reassemble auth primitives.
+      const { tx, ctx } = await getWritableTransactionById({ id, userId });
+      const { accountType, transferNature, transferId, refundLinked } = tx;
+
+      // Phase-1 guards block recipient deletes that cross into linking semantics
+      // (transfers, refunds) — owners pass through and use the existing flows.
+      assertSharedWritePhase1Guards({
+        isOwner: ctx.isOwner,
+        involvesTransfer:
+          transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer ||
+          transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+        involvesRefund: Boolean(refundLinked),
       });
-
-      if (!result) return undefined;
-
-      const { accountType, transferNature, transferId, refundLinked } = result;
 
       if (accountType !== ACCOUNT_TYPES.system) {
         throw new ValidationError({
@@ -33,12 +41,17 @@ export const deleteTransaction = withTransaction(
         await unlinkRefundTransaction(id);
       }
 
+      // The model's deleteTransactionById filters by `(id, userId)` — pass the row's
+      // actual creator userId rather than the caller's so a recipient with `'all'`
+      // scope can delete owner-authored rows after the auth gate above.
+      const creatorUserId = tx.userId;
+
       if (
         transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer ||
         // Out of wallet transaction shouldn't have transferId
         (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet && !transferId)
       ) {
-        await Transactions.deleteTransactionById({ id, userId });
+        await Transactions.deleteTransactionById({ id, userId: creatorUserId });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio) {
         // Find linked portfolio transfer via PortfolioTransfers.transactionId
         const linkedTransfer = await PortfolioTransfers.findOne({
@@ -48,10 +61,12 @@ export const deleteTransaction = withTransaction(
         // Delete linked portfolio transfer (reverses portfolio balance) and the
         // account transaction together. Passing deleteLinkedTransaction: true tells
         // deletePortfolioTransfer to also remove the account transaction row.
+        // Portfolio-transfer-on-shared-account is owner-only (recipients are blocked
+        // above), so `userId` here is always both caller and creator.
         if (linkedTransfer) {
           await deletePortfolioTransfer({ userId, transferId: linkedTransfer.id, deleteLinkedTransaction: true });
         } else {
-          await Transactions.deleteTransactionById({ id, userId });
+          await Transactions.deleteTransactionById({ id, userId: creatorUserId });
         }
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
         const transferTransactions = await Transactions.getTransactionsByArrayOfField({
@@ -62,10 +77,10 @@ export const deleteTransaction = withTransaction(
 
         await Promise.all(
           // For the each transaction with the same "transferId" delete transaction
-          transferTransactions.map((tx) =>
+          transferTransactions.map((transferTx) =>
             Transactions.deleteTransactionById({
-              id: tx.id,
-              userId: tx.userId,
+              id: transferTx.id,
+              userId: transferTx.userId,
             }),
           ),
         );

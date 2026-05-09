@@ -254,6 +254,22 @@ async function resolveDefaultCategoryId({ request }: { request: APIRequestContex
   return id;
 }
 
+export async function createCategory({
+  request,
+  name,
+  color,
+}: {
+  request: APIRequestContext;
+  name: string;
+  color?: string;
+}) {
+  return apiPost({
+    request,
+    path: '/api/v1/categories',
+    data: { name, ...(color !== undefined && { color }) },
+  });
+}
+
 // ─── Transactions ────────────────────────────────────────────────────
 
 export async function createTransaction({
@@ -407,6 +423,74 @@ export async function markReminderPeriodPaid({
     path: `/api/v1/payment-reminders/${reminderId}/periods/${periodId}/pay`,
     data: transactionId !== undefined ? { transactionId } : {},
   });
+}
+
+// ─── Sharing ─────────────────────────────────────────────────────────
+
+export async function createShareInvitation({
+  request,
+  inviteeEmail,
+  resourceId,
+  permission,
+  policy,
+}: {
+  request: APIRequestContext;
+  inviteeEmail: string;
+  resourceId: number;
+  permission: 'read' | 'write' | 'manage';
+  policy?: { transactionsWriteScope?: 'all' | 'own' } | null;
+}): Promise<{ token: string }> {
+  const result = await apiPost({
+    request,
+    path: '/api/v1/share/invitations',
+    data: {
+      inviteeEmail,
+      resourceType: 'account',
+      resourceId,
+      permission,
+      ...(policy !== undefined && { policy }),
+    },
+  });
+  const token = result.response?.token ?? result.token;
+  if (!token) {
+    throw new Error(`Invitation create did not return a token: ${JSON.stringify(result).slice(0, 200)}`);
+  }
+  return { token };
+}
+
+export async function acceptShareInvitation({
+  request,
+  token,
+}: {
+  request: APIRequestContext;
+  token: string;
+}): Promise<void> {
+  await apiPost({
+    request,
+    path: `/api/v1/share/invitations/${encodeURIComponent(token)}/accept`,
+    data: {},
+  });
+}
+
+export async function signInViaApi({
+  playwright,
+  email,
+  password,
+}: {
+  playwright: { request: { newContext: (options: Record<string, unknown>) => Promise<APIRequestContext> } };
+  email: string;
+  password: string;
+}): Promise<APIRequestContext> {
+  const request = await playwright.request.newContext({
+    ignoreHTTPSErrors: true,
+    extraHTTPHeaders: { Origin: BASE_URL },
+  });
+  await apiPost({
+    request,
+    path: '/api/v1/auth/sign-in/email',
+    data: { email, password },
+  });
+  return request;
 }
 
 // ─── Holdings ────────────────────────────────────────────────────────

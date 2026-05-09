@@ -129,8 +129,8 @@ const submit = () => {
         v-model="permission"
         :label="$t('dialogs.shareAccountDialog.permissionLabel')"
         :values="permissionOptions"
-        labelKey="label"
-        valueKey="value"
+        label-key="label"
+        value-key="value"
       />
 
       <template v-if="showsWriteScope">
@@ -138,8 +138,8 @@ const submit = () => {
           v-model="writeScope"
           :label="$t('dialogs.shareAccountDialog.writeScopeLabel')"
           :values="writeScopeOptions"
-          labelKey="label"
-          valueKey="value"
+          label-key="label"
+          value-key="value"
         />
       </template>
 

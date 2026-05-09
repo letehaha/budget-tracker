@@ -84,7 +84,13 @@ export const sendInvitationEmail = async ({
     logger.info(`[ShareInvitationEmail] Sent to ${toEmail}, resendId: ${result.data?.id}`);
     return result.data?.id ?? null;
   } catch (error) {
-    logger.error({ message: '[ShareInvitationEmail] Failed to send invitation email', error: error as Error });
+    // Stable `code` lets ops dashboards group/alert on email-delivery failures without
+    // depending on the dynamic message text or error class. logger.error already auto-captures
+    // to Sentry (see logger.ts), so this is enrichment, not double-reporting.
+    logger.error(
+      { message: '[ShareInvitationEmail] Failed to send invitation email', error: error as Error },
+      { code: 'SHARE_INVITATION_EMAIL_FAILED', resourceType, resourceName },
+    );
     return null;
   }
 };

@@ -141,7 +141,6 @@ export const getSharedAccountById = async ({
   // The owner branch is handled separately by the accounts service (it doesn't need a
   // shared-account lookup), so fall through `null` here and let the caller decide.
   if (!access.granted || access.isOwner) return null;
-  if (access.ownerUserId === null || access.effectivePermission === null) return null;
 
   const account = await Accounts.findOne({ where: { id } });
   if (!account) return null;

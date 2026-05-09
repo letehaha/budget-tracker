@@ -14,13 +14,23 @@ import { createNotification } from '@services/notifications';
  */
 
 interface ShareUserSnapshot {
+  /**
+   * Real Users.id, or `0` when the source row no longer exists (e.g. the recipient
+   * deleted their account between accepting and declining). The `0` sentinel is the
+   * "user gone" marker for share-notification payloads only — frontend renders it as
+   * the snapshot username/avatar without dereferencing the id, so a `0` lookup never
+   * happens. Callers that pass a nullable user (notifyInvitationDeclined) log the
+   * missing-row case at the call site so it isn't a silent loss.
+   */
   id: number;
   username: string;
   avatar: string | null;
 }
 
+const SHARE_SNAPSHOT_MISSING_USER_ID = 0;
+
 const snapshotUser = (user: Users | null | undefined): ShareUserSnapshot => ({
-  id: user?.id ?? 0,
+  id: user?.id ?? SHARE_SNAPSHOT_MISSING_USER_ID,
   username: user?.username ?? 'Unknown user',
   avatar: user?.avatar ?? null,
 });

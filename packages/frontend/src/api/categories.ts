@@ -2,7 +2,18 @@ import { api } from '@/api/_api';
 import { CategoryModel, endpointsTypes } from '@bt/shared/types';
 
 export const loadSystemCategories = async (): Promise<CategoryModel[]> => {
-  const result = await api.get('/categories');
+  // `includeAccessible` widens the result to the union of the caller's categories plus
+  // every category referenced by an account they can read. Read-only displays
+  // (transaction lists, widgets) use this to resolve names and icons for txs on
+  // shared accounts without an N+1 lookup. The picker still narrows to the caller's
+  // own set on its render path.
+  const result = await api.get('/categories', { includeAccessible: true });
+
+  return result;
+};
+
+export const loadCategoriesByAccount = async ({ accountId }: { accountId: number }): Promise<CategoryModel[]> => {
+  const result = await api.get('/categories', { accountId });
 
   return result;
 };

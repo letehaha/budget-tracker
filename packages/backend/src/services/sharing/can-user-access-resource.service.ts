@@ -13,24 +13,31 @@ interface CanUserAccessResourceParams {
   requiredPermission: SharePermission;
 }
 
-interface ResourceAccessResult {
-  /** True if the user is allowed to perform an operation at `requiredPermission` on the resource. */
-  granted: boolean;
-  /** True if the user owns the resource (always granted regardless of `requiredPermission`). */
+/**
+ * Discriminated union: `granted: true` guarantees `ownerUserId` is a real number and
+ * `effectivePermission` is non-null, so callers don't need defensive `?? caller` fallbacks.
+ * `granted: false` carries the looked-up `ownerUserId` (or `null` when the resource
+ * doesn't exist) for callers that want to differentiate "no claim at all" from "exists
+ * but not enough permission".
+ */
+export type GrantedAccessResult = {
+  granted: true;
   isOwner: boolean;
-  /**
-   * The permission level the user effectively holds on this resource. `'manage'` for owners,
-   * the share's permission for accepted recipients, `null` if neither owner nor recipient.
-   */
-  effectivePermission: SharePermission | null;
-  /**
-   * Policy attached to the user's share, or `null` for owners or non-recipients. Used by
-   * downstream checks (e.g. `transactionsWriteScope`).
-   */
+  effectivePermission: SharePermission;
+  /** Recipient policy. Always `null` for owners. */
   policy: SharePolicy | null;
-  /** The resource owner's user id, or `null` if the resource was not found. */
+  ownerUserId: number;
+};
+
+type DeniedAccessResult = {
+  granted: false;
+  isOwner: false;
+  effectivePermission: null;
+  policy: null;
   ownerUserId: number | null;
-}
+};
+
+type ResourceAccessResult = GrantedAccessResult | DeniedAccessResult;
 
 /**
  * Looks up the owner of a polymorphic resource by `resourceType`. Returns `null` when the
@@ -86,7 +93,7 @@ export const resolveResourceName = async ({
   return resolver(resourceId);
 };
 
-const denied = (ownerUserId: number | null): ResourceAccessResult => ({
+const denied = (ownerUserId: number | null): DeniedAccessResult => ({
   granted: false,
   isOwner: false,
   effectivePermission: null,
@@ -148,8 +155,15 @@ export const canUserAccessResource = async ({
     return denied(ownerUserId);
   }
 
+  if (!isPermissionAtLeast(share.permission, requiredPermission)) {
+    // Share exists but doesn't meet the required level — collapse to denied. Callers
+    // that need the diagnostic detail (which permission they *do* hold) re-query with
+    // a lower `requiredPermission`. None of the current callers do.
+    return denied(ownerUserId);
+  }
+
   return {
-    granted: isPermissionAtLeast(share.permission, requiredPermission),
+    granted: true,
     isOwner: false,
     effectivePermission: share.permission,
     policy: share.policy,

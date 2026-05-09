@@ -1,8 +1,11 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
-import Categories from '@models/categories.model';
 import * as Transactions from '@models/transactions.model';
+import {
+  AccessibleCategoryInfo,
+  getAccessibleCategoryMap,
+} from '@services/categories/get-accessible-category-map.service';
 import {
   addDays,
   addMonths,
@@ -108,12 +111,7 @@ const findBucketIndex = ({
   return buckets.findIndex((bucket) => txTime >= bucket.periodStart.getTime() && txTime <= bucket.periodEnd.getTime());
 };
 
-interface CategoryInfo {
-  id: number;
-  name: string;
-  color: string;
-  parentId: number | null;
-}
+type CategoryInfo = AccessibleCategoryInfo;
 
 interface CategoryAmounts {
   incomeAmount: number;
@@ -208,23 +206,10 @@ export const getCashFlow = async ({
     periodDataMap.set(index, { income: 0, expenses: 0, categories: new Map() });
   });
 
-  // Fetch ALL user categories to build the hierarchy map
-  const allCategories = await Categories.findAll({
-    where: { userId },
-    attributes: ['id', 'name', 'color', 'parentId'],
-    raw: true,
-  });
-
-  // Build category lookup map
-  const categoryMap: Map<number, CategoryInfo> = new Map();
-  allCategories.forEach((cat) => {
-    categoryMap.set(cat.id, {
-      id: cat.id,
-      name: cat.name,
-      color: cat.color,
-      parentId: cat.parentId,
-    });
-  });
+  // Fetch categories for every owner whose accounts the caller can see (own + shared) so
+  // shared-account transactions — which reference the owner's categoryId — render with
+  // their real name/color instead of falling out of the hierarchy map.
+  const { categories: allCategories, byId: categoryMap } = await getAccessibleCategoryMap({ userId });
 
   // Get root categories (those without a parent)
   const rootCategories = allCategories.filter((cat) => cat.parentId === null);

@@ -1,10 +1,4 @@
-import {
-  ACCOUNT_STATUSES,
-  ACCOUNT_TYPES,
-  AccountExternalData,
-  BANK_PROVIDER_TYPE,
-  TRANSACTION_TYPES,
-} from '@bt/shared/types';
+import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountExternalData, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -275,106 +269,6 @@ export const updateAccount = withTransaction(
     return result;
   },
 );
-
-const calculateNewBalance = (amount: Money, previousAmount: Money, currentBalance: Money): Money => {
-  return currentBalance.add(amount.subtract(previousAmount));
-};
-
-const defineCorrectAmountFromTxType = (amount: Money, transactionType: TRANSACTION_TYPES): Money => {
-  return transactionType === TRANSACTION_TYPES.income ? amount : amount.negate();
-};
-
-// At least one of pair (amount + refAmount) OR (prevAmount + prefRefAmount) should be passed
-// It is NOT allowed to pass 1 or 3 amount-related arguments
-
-/** For **CREATED** transactions. When only (amount + refAmount) passed */
-// export async function updateAccountBalanceForChangedTxImpl(
-//   {
-//     accountId,
-//     userId,
-//     transactionType,
-//     amount,
-//     refAmount,
-//     currencyCode,
-//   }: updateAccountBalanceRequiredFields & { amount: number; refAmount: number },
-// ): Promise<void>;
-
-// /** For **DELETED** transactions. When only (prevAmount + prefRefAmount) passed */
-// export async function updateAccountBalanceForChangedTxImpl({
-//   accountId,
-//   userId,
-//   transactionType,
-//   prevAmount,
-//   prevRefAmount,
-//   currencyCode,
-// }: updateAccountBalanceRequiredFields & {
-//   prevAmount: number;
-//   prevRefAmount: number;
-// }): Promise<void>;
-
-// /** For **UPDATED** transactions. When both pairs passed */
-// export async function updateAccountBalanceForChangedTxImpl({
-//   accountId,
-//   userId,
-//   transactionType,
-//   amount,
-//   prevAmount,
-//   refAmount,
-//   prevRefAmount,
-//   currencyCode,
-//   prevTransactionType,
-// }: updateAccountBalanceRequiredFields & {
-//   amount: number;
-//   prevAmount: number;
-//   refAmount: number;
-//   prevRefAmount: number;
-//   prevTransactionType: TRANSACTION_TYPES;
-// }): Promise<void>;
-
-async function updateAccountBalanceForChangedTxImpl({
-  accountId,
-  userId,
-  transactionType,
-  amount = Money.zero(),
-  prevAmount = Money.zero(),
-  refAmount = Money.zero(),
-  prevRefAmount = Money.zero(),
-  prevTransactionType = transactionType,
-}: {
-  accountId: number;
-  userId: number;
-  transactionType: TRANSACTION_TYPES;
-  amount?: Money;
-  prevAmount?: Money;
-  refAmount?: Money;
-  prevRefAmount?: Money;
-  prevTransactionType?: TRANSACTION_TYPES;
-  currencyCode?: string;
-}): Promise<void> {
-  // Model-level lookup, not the service-level `getAccountById`: balance updates only
-  // run for the account's actual owner (writes by recipients are not supported in
-  // Stage A; S4 will route shared writes through the auth service and update by id).
-  const account = await Accounts.getAccountById({ id: accountId, userId });
-
-  if (!account) return undefined;
-
-  const currentBalance = account.currentBalance;
-  const refCurrentBalance = account.refCurrentBalance;
-
-  const newAmount = defineCorrectAmountFromTxType(amount, transactionType);
-  const oldAmount = defineCorrectAmountFromTxType(prevAmount, prevTransactionType);
-  const newRefAmount = defineCorrectAmountFromTxType(refAmount, transactionType);
-  const oldRefAmount = defineCorrectAmountFromTxType(prevRefAmount, prevTransactionType);
-
-  await Accounts.updateAccountById({
-    id: accountId,
-    userId,
-    currentBalance: calculateNewBalance(newAmount, oldAmount, currentBalance),
-    refCurrentBalance: calculateNewBalance(newRefAmount, oldRefAmount, refCurrentBalance),
-  });
-}
-
-export const updateAccountBalanceForChangedTx = withTransaction(updateAccountBalanceForChangedTxImpl);
 
 export const deleteAccountById = async ({ id, userId }: { id: number; userId: number }) => {
   const affectedRows = await Accounts.deleteAccountById({ id, userId });

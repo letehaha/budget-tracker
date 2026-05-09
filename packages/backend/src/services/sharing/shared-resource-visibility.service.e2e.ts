@@ -4,20 +4,6 @@ import Accounts from '@models/accounts.model';
 import * as helpers from '@tests/helpers';
 import { CustomResponse } from '@tests/helpers/common';
 
-async function provisionSecondUserWithBaseCurrency() {
-  const handle = await helpers.signUpSecondUser();
-  await helpers.asUser({
-    cookies: handle.cookies,
-    fn: async () => {
-      const res = await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
-      if (res.statusCode !== 200) {
-        throw new Error(`Failed to set base currency for second user: ${res.statusCode} ${JSON.stringify(res.body)}`);
-      }
-    },
-  });
-  return handle;
-}
-
 /** Owner shares an account with a recipient and the recipient accepts. */
 async function shareAccountReadOnly({ accountId, recipientEmail }: { accountId: number; recipientEmail: string }) {
   const invitation = await helpers.createShareInvitation({
@@ -48,7 +34,7 @@ describe('Shared resource visibility (S3)', () => {
 
     it("includes accepted-shared accounts in the recipient's account list", async () => {
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       const invitation = await shareAccountReadOnly({ accountId: account.id, recipientEmail: recipient.email });
 
       // Recipient accepts the invitation
@@ -75,7 +61,7 @@ describe('Shared resource visibility (S3)', () => {
 
     it("does not include the account in a non-recipient's list", async () => {
       const account = await helpers.createAccount({ raw: true });
-      const stranger = await provisionSecondUserWithBaseCurrency();
+      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
 
       const accounts = await helpers.asUser({
         cookies: stranger.cookies,
@@ -88,7 +74,7 @@ describe('Shared resource visibility (S3)', () => {
   describe('GET /accounts/:id', () => {
     it('returns the shared account for the recipient with isOwner=false', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       const invitation = await shareAccountReadOnly({ accountId: account.id, recipientEmail: recipient.email });
       await helpers.asUser({
         cookies: recipient.cookies,
@@ -110,7 +96,7 @@ describe('Shared resource visibility (S3)', () => {
 
     it('returns null for a non-recipient', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const stranger = await provisionSecondUserWithBaseCurrency();
+      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
 
       const res = await helpers.asUser({
         cookies: stranger.cookies,
@@ -153,7 +139,7 @@ describe('Shared resource visibility (S3)', () => {
 
     it('redacts externalId, externalData, and bankDataProviderConnectionId on GET /accounts for the recipient', async () => {
       const account = await createAccountWithBankMetadata();
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       const invitation = await shareAccountReadOnly({ accountId: account.id, recipientEmail: recipient.email });
       await helpers.asUser({
         cookies: recipient.cookies,
@@ -176,7 +162,7 @@ describe('Shared resource visibility (S3)', () => {
 
     it('redacts externalId, externalData, and bankDataProviderConnectionId on GET /accounts/:id for the recipient', async () => {
       const account = await createAccountWithBankMetadata();
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       const invitation = await shareAccountReadOnly({ accountId: account.id, recipientEmail: recipient.email });
       await helpers.asUser({
         cookies: recipient.cookies,
@@ -231,7 +217,7 @@ describe('Shared resource visibility (S3)', () => {
         raw: true,
       });
 
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       const invitation = await shareAccountReadOnly({ accountId: account.id, recipientEmail: recipient.email });
       await helpers.asUser({
         cookies: recipient.cookies,
@@ -253,7 +239,7 @@ describe('Shared resource visibility (S3)', () => {
         raw: true,
       });
 
-      const stranger = await provisionSecondUserWithBaseCurrency();
+      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
       const txns = await helpers.asUser({
         cookies: stranger.cookies,
         fn: () => helpers.getTransactions({ raw: true }),
@@ -268,7 +254,7 @@ describe('Shared resource visibility (S3)', () => {
         raw: true,
       });
 
-      const stranger = await provisionSecondUserWithBaseCurrency();
+      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
       const res = await helpers.asUser({
         cookies: stranger.cookies,
         fn: () =>

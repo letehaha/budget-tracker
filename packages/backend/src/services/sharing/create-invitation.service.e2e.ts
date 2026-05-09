@@ -6,47 +6,18 @@ import {
   SHARING_LIMITS,
   TRANSACTIONS_WRITE_SCOPES,
 } from '@bt/shared/types';
-import { authPool } from '@config/auth';
 import { describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
-import Users from '@models/users.model';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
-
-async function findAppUserByEmail(email: string) {
-  const baUserRes = await authPool.query<{ id: string }>('SELECT id FROM ba_user WHERE email = $1', [email]);
-  const baUserId = baUserRes.rows[0]?.id;
-  if (!baUserId) throw new Error(`No ba_user for ${email}`);
-  const appUser = await Users.findOne({ where: { authUserId: baUserId } });
-  if (!appUser) throw new Error(`No app user for ${email}`);
-  return appUser;
-}
-
-/**
- * Sets up a second user that shares the primary user's base currency, returns their
- * email and cookies. Use `helpers.asUser({ cookies, fn })` to make requests as them.
- */
-async function provisionSecondUserWithBaseCurrency() {
-  const handle = await helpers.signUpSecondUser();
-  await helpers.asUser({
-    cookies: handle.cookies,
-    fn: async () => {
-      const res = await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
-      if (res.statusCode !== 200) {
-        throw new Error(`Failed to set base currency for second user: ${res.statusCode} ${JSON.stringify(res.body)}`);
-      }
-    },
-  });
-  return handle;
-}
 
 describe('Share invitations: create + list', () => {
   describe('happy path', () => {
     it('creates a pending invitation, returns it, and surfaces it in sender + recipient lists', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
 
       const res = await helpers.createShareInvitation({
         inviteeEmail: recipient.email,
@@ -79,7 +50,7 @@ describe('Share invitations: create + list', () => {
 
     it('normalizes write permission with default transactionsWriteScope = all', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
 
       const invitation = await helpers.createShareInvitation({
         inviteeEmail: recipient.email,
@@ -95,7 +66,7 @@ describe('Share invitations: create + list', () => {
 
     it('preserves explicit transactionsWriteScope = own when provided', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
 
       const invitation = await helpers.createShareInvitation({
         inviteeEmail: recipient.email,
@@ -111,7 +82,7 @@ describe('Share invitations: create + list', () => {
 
     it('drops policy when permission is read (scope is meaningless)', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
 
       const invitation = await helpers.createShareInvitation({
         inviteeEmail: recipient.email,
@@ -138,7 +109,7 @@ describe('Share invitations: create + list', () => {
   describe('user-enumeration mitigation (PRD D6)', () => {
     it("includes the invitation token in the recipient's in-app notification payload (so the click handler can deep-link)", async () => {
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
 
       const sendRes = await helpers.createShareInvitation({
         inviteeEmail: recipient.email,
@@ -148,7 +119,7 @@ describe('Share invitations: create + list', () => {
       });
       expect(sendRes.statusCode).toBe(201);
 
-      const recipientApp = await findAppUserByEmail(recipient.email);
+      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
       const notifs = await Notifications.findAll({
         where: { type: NOTIFICATION_TYPES.shareInvitationReceived, userId: recipientApp.id },
       });
@@ -192,7 +163,7 @@ describe('Share invitations: create + list', () => {
       // Owner has a USD account (different from base AED). Recipient has base = AED.
       // Pre-fix this would 422 at send; now it 201s and the mismatch surfaces at accept.
       const usdAccount = await helpers.createAccountWithNewCurrency({ currency: 'USD' });
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
 
       const res = await helpers.createShareInvitation({
         inviteeEmail: recipient.email,
@@ -230,7 +201,7 @@ describe('Share invitations: create + list', () => {
 
     it('returns 404 when the resource is not owned by the caller', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const otherUser = await provisionSecondUserWithBaseCurrency();
+      const otherUser = await helpers.provisionSecondUserWithBaseCurrency();
       const yetAnotherUser = await helpers.signUpSecondUser();
 
       const res = await helpers.asUser({
@@ -248,7 +219,7 @@ describe('Share invitations: create + list', () => {
     });
 
     it('returns 404 for a non-existent account id', async () => {
-      const recipient = await provisionSecondUserWithBaseCurrency();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       const res = await helpers.createShareInvitation({
         inviteeEmail: recipient.email,
         resourceType: RESOURCE_TYPES.account,
@@ -265,8 +236,8 @@ describe('Share invitations: create + list', () => {
       // Pending invites are unlimited in dev/test (and capped at 10 in prod). Sending a
       // second invite to a different email while the first is still pending must succeed.
       const account = await helpers.createAccount({ raw: true });
-      const firstRecipient = await provisionSecondUserWithBaseCurrency();
-      const secondRecipient = await provisionSecondUserWithBaseCurrency();
+      const firstRecipient = await helpers.provisionSecondUserWithBaseCurrency();
+      const secondRecipient = await helpers.provisionSecondUserWithBaseCurrency();
 
       const firstRes = await helpers.createShareInvitation({
         inviteeEmail: firstRecipient.email,
@@ -293,13 +264,13 @@ describe('Share invitations: create + list', () => {
 
     it('rejects when the recipient cap is reached (counts accepted shares only)', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const newRecipient = await provisionSecondUserWithBaseCurrency();
+      const newRecipient = await helpers.provisionSecondUserWithBaseCurrency();
 
       // Cap is 2 — pre-create that many accepted shares directly to fill the cap.
       expect(SHARING_LIMITS.maxRecipientsPerResource).toBe(2);
       for (let i = 0; i < SHARING_LIMITS.maxRecipientsPerResource; i++) {
-        const filler = await provisionSecondUserWithBaseCurrency();
-        const fillerApp = await findAppUserByEmail(filler.email);
+        const filler = await helpers.provisionSecondUserWithBaseCurrency();
+        const fillerApp = await helpers.findAppUserByEmail({ email: filler.email });
         await ResourceShares.create({
           ownerUserId: account.userId,
           sharedWithUserId: fillerApp.id,
@@ -329,7 +300,7 @@ describe('Share invitations: create + list', () => {
 
       expect(SHARING_LIMITS.maxPendingInvitationsPerResourceTest).toBe(3);
       for (let i = 0; i < SHARING_LIMITS.maxPendingInvitationsPerResourceTest; i++) {
-        const filler = await provisionSecondUserWithBaseCurrency();
+        const filler = await helpers.provisionSecondUserWithBaseCurrency();
         const fillerRes = await helpers.createShareInvitation({
           inviteeEmail: filler.email,
           resourceType: RESOURCE_TYPES.account,
@@ -339,7 +310,7 @@ describe('Share invitations: create + list', () => {
         expect(fillerRes.statusCode).toBe(201);
       }
 
-      const overflow = await provisionSecondUserWithBaseCurrency();
+      const overflow = await helpers.provisionSecondUserWithBaseCurrency();
       const res = await helpers.createShareInvitation({
         inviteeEmail: overflow.email,
         resourceType: RESOURCE_TYPES.account,

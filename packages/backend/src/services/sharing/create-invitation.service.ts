@@ -188,13 +188,19 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
       });
     } else {
       // Owner row missing for an authenticated owner — data-integrity issue. Skip the
-      // in-app notification but report so it surfaces instead of disappearing.
+      // in-app notification but report so it surfaces instead of disappearing. Stable
+      // `code` for Sentry/dashboard grouping (logger.error auto-captures to Sentry).
       logger.error(
         {
           message: 'Owner not found when emitting invitation-received notification',
           error: new Error(`Users.findByPk returned null for ownerUserId=${ownerUserId}`),
         },
-        { ownerUserId, invitationId: invitation.id, inviteeUserId: invitee.appUser.id },
+        {
+          code: 'SHARE_OWNER_USER_MISSING_FOR_NOTIFICATION',
+          ownerUserId,
+          invitationId: invitation.id,
+          inviteeUserId: invitee.appUser.id,
+        },
       );
     }
   }
@@ -225,12 +231,17 @@ export const createInvitation = async (params: CreateInvitationParams): Promise<
     if (!owner) {
       // Owner row missing for an authenticated owner — data-integrity issue. Continue with
       // a generic display name so the email still goes out, but report for investigation.
+      // Stable `code` for Sentry/dashboard grouping (logger.error auto-captures to Sentry).
       logger.error(
         {
           message: 'Owner not found when sending invitation email',
           error: new Error(`Users.findByPk returned null for ownerUserId=${params.ownerUserId}`),
         },
-        { ownerUserId: params.ownerUserId, invitationId: result.invitation.id },
+        {
+          code: 'SHARE_OWNER_USER_MISSING_FOR_EMAIL',
+          ownerUserId: params.ownerUserId,
+          invitationId: result.invitation.id,
+        },
       );
     }
     const ownerDisplayName = owner?.username ?? 'A MoneyMatter user';
