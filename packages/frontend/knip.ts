@@ -2,7 +2,7 @@ import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
   // TODO: fix because it's wrong ignoring them
-  ignoreBinaries: ['knip', 'vue-tsc', 'vitest', 'storybook', 'playwright', 'oxlint', 'vite'],
+  ignoreBinaries: ['knip', 'vue-tsc', 'vitest', 'playwright', 'oxlint', 'vite'],
   ignore: [
     'wallaby.js',
     'tests/**/**',
@@ -11,16 +11,6 @@ const config: KnipConfig = {
     'src/components/lib/**/**',
   ],
   ignoreDependencies: [
-    // Needed for Storybook
-    'react',
-    'react-dom',
-    // Storybook
-    'storybook',
-    '@storybook/cli',
-    '@storybook/theming',
-    '@storybook/vue3',
-    '@storybook/addon-docs',
-    '@storybook/addon-actions',
     // needed for build
     'vue-tsc',
 
