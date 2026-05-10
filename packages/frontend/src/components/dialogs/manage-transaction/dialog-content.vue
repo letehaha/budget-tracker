@@ -536,7 +536,10 @@ onUnmounted(() => {
         :disabled="isFormFieldsDisabled"
       />
     </FormRow>
-    <template v-if="!isTransferTx">
+    <!-- Refund linking on accounts shared *with* the caller isn't supported by the
+         backend yet — hide the field rather than offering a button that errors on
+         submit. Owner-side shares (`share.isOwner === true`) keep full access. -->
+    <template v-if="!isTransferTx && !isAccountSharedWithCaller">
       <FormRow>
         <MarkAsRefundField
           v-model:refunds="form.refundsTx"
@@ -712,8 +715,11 @@ onUnmounted(() => {
             </form-row>
           </template>
 
+          <!-- Transfer linking on accounts shared *with* the caller isn't supported by
+               the backend yet — hide the linker for recipients rather than letting
+               them trigger a confusing server error. -->
           <LinkTransactionSection
-            v-if="transferDestinationType === 'account'"
+            v-if="transferDestinationType === 'account' && !isAccountSharedWithCaller"
             v-model:linked-transaction="linkedTransaction"
             :is-transfer-tx="isTransferTx"
             :is-form-creation="isFormCreation"

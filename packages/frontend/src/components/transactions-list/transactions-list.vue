@@ -5,9 +5,11 @@ import { useScrollAreaContainer } from '@/composable/scroll-area-container';
 import { useTransactionSelection } from '@/composable/transaction-selection';
 import { useBulkUpdateCategory } from '@/composable/use-bulk-update-category';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
+import { useAccountsStore } from '@/stores';
 import { TransactionModel } from '@bt/shared/types';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { createReusableTemplate } from '@vueuse/core';
+import { storeToRefs } from 'pinia';
 import { computed, defineAsyncComponent, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -88,6 +90,17 @@ watch(listContainerRef, (el) => {
 });
 
 // Bulk edit selection
+const { accountsRecord } = storeToRefs(useAccountsStore());
+
+// Lock out bulk-selection of transactions on accounts shared *with* the caller —
+// the bulk-update endpoint isn't share-aware yet (filters by `userId`), so any
+// inclusion silently no-ops and surfaces a confusing "0 transactions updated"
+// toast. Owner-side shares (`share.isOwner === true`) stay bulk-editable.
+const isBulkSelectable = (tx: TransactionModel) => {
+  const share = accountsRecord.value[tx.accountId]?.share;
+  return !share || share.isOwner;
+};
+
 const {
   selectedCount,
   isAllSelected,
@@ -99,6 +112,7 @@ const {
   getSelectedTransactionIds,
 } = useTransactionSelection({
   getTransactions: () => displayTransactions.value.filter((item): item is TransactionModel => !isGroupRow(item)),
+  isExtraSelectable: isBulkSelectable,
 });
 
 const handleSelectAllToggle = (checked: boolean) => {

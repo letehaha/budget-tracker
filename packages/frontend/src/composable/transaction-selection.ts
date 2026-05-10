@@ -5,9 +5,16 @@ import { useShiftMultiSelect } from './shift-multi-select';
 
 interface UseTransactionSelectionOptions {
   getTransactions: () => TransactionModel[];
+  /**
+   * Optional caller-supplied predicate layered on top of the built-in selectability
+   * rules (e.g., split parents are never selectable). Lets callers lock out rows the
+   * downstream bulk endpoint can't handle, so the toolbar never offers an action
+   * that silently no-ops on submit.
+   */
+  isExtraSelectable?: (tx: TransactionModel) => boolean;
 }
 
-export function useTransactionSelection({ getTransactions }: UseTransactionSelectionOptions) {
+export function useTransactionSelection({ getTransactions, isExtraSelectable }: UseTransactionSelectionOptions) {
   // Use ref with Set for better reactivity tracking
   const selectedIds = ref(new Set<number>());
 
@@ -21,6 +28,9 @@ export function useTransactionSelection({ getTransactions }: UseTransactionSelec
   const isTransactionSelectable = (tx: TransactionModel): boolean => {
     // Split transactions are not selectable
     if (tx.splits && tx.splits.length > 0) {
+      return false;
+    }
+    if (isExtraSelectable && !isExtraSelectable(tx)) {
       return false;
     }
     return true;
