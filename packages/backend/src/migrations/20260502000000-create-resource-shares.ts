@@ -137,6 +137,19 @@ module.exports = {
             type: DataTypes.DATE,
             allowNull: true,
           },
+          resendCount: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+            comment: 'Cumulative resends. Lifetime counter; the 24h rate-limit window is enforced via recentResendsAt',
+          },
+          recentResendsAt: {
+            type: DataTypes.JSONB,
+            allowNull: false,
+            defaultValue: [],
+            comment:
+              'ISO-string timestamps of recent resends within the rolling 24h rate-limit window. Pruned in-app on each resend.',
+          },
           createdAt: {
             type: DataTypes.DATE,
             allowNull: false,

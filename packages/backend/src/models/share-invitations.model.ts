@@ -112,6 +112,24 @@ export default class ShareInvitations extends Model implements ShareInvitationMo
   })
   revokedAt!: Date | null;
 
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  })
+  resendCount!: number;
+
+  /**
+   * ISO timestamp strings for resends within the rolling 24h rate-limit window. Pruned to
+   * the window on every resend so length is naturally bounded by the limit (Phase 1: 3).
+   */
+  @Column({
+    type: DataType.JSONB,
+    allowNull: false,
+    defaultValue: [],
+  })
+  recentResendsAt!: string[];
+
   declare createdAt: Date;
   declare updatedAt: Date;
 

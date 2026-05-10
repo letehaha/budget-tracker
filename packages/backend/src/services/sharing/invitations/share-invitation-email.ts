@@ -38,11 +38,28 @@ interface SendInvitationEmailParams {
 }
 
 /**
+ * Outcome of an inline send. The three cases are deliberately distinct because callers
+ * surface them differently to the user:
+ *
+ *   - `'sent'` — Resend accepted the email. UI shows nothing.
+ *   - `'skipped'` — Resend isn't configured (dev/test). UI shows nothing — the absence is
+ *     expected, not a failure.
+ *   - `'failed'` — Resend was configured but rejected / errored. UI should warn ("we
+ *     updated the invitation but couldn't send the email"). For resend specifically the
+ *     rate-limit slot was already consumed, so silently swallowing this would let the
+ *     user burn their daily budget without ever delivering a message.
+ */
+export type SendInvitationEmailOutcome =
+  | { status: 'sent'; messageId: string | null }
+  | { status: 'skipped' }
+  | { status: 'failed' };
+
+/**
  * Sends an invitation email via Resend. Inline send (no queue) — failures are logged but
  * don't block the API response, since the in-app notification is the secondary fallback.
  *
- * Returns the Resend message id on success, or `null` if Resend isn't configured (dev/test
- * environments without an API key).
+ * Returns a tagged outcome so callers can distinguish "Resend isn't configured" from
+ * "Resend tried and failed".
  */
 export const sendInvitationEmail = async ({
   toEmail,
@@ -53,10 +70,10 @@ export const sendInvitationEmail = async ({
   policy,
   token,
   expiresAt,
-}: SendInvitationEmailParams): Promise<string | null> => {
+}: SendInvitationEmailParams): Promise<SendInvitationEmailOutcome> => {
   if (!resend) {
     logger.warn('[ShareInvitationEmail] Resend not configured; skipping send');
-    return null;
+    return { status: 'skipped' };
   }
 
   // Query-param deep-link — dashboard layout watches for `invitation_token` and pops
@@ -82,7 +99,7 @@ export const sendInvitationEmail = async ({
       html,
     });
     logger.info(`[ShareInvitationEmail] Sent to ${toEmail}, resendId: ${result.data?.id}`);
-    return result.data?.id ?? null;
+    return { status: 'sent', messageId: result.data?.id ?? null };
   } catch (error) {
     // Stable `code` lets ops dashboards group/alert on email-delivery failures without
     // depending on the dynamic message text or error class. logger.error already auto-captures
@@ -91,7 +108,7 @@ export const sendInvitationEmail = async ({
       { message: '[ShareInvitationEmail] Failed to send invitation email', error: error as Error },
       { code: 'SHARE_INVITATION_EMAIL_FAILED', resourceType, resourceName },
     );
-    return null;
+    return { status: 'failed' };
   }
 };
 

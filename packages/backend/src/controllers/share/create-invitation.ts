@@ -21,7 +21,7 @@ const schema = z.object({
 });
 
 export default createController(schema, async ({ user, body }) => {
-  const { invitation } = await createInvitation({
+  const { invitation, emailDelivered } = await createInvitation({
     ownerUserId: user.id,
     inviteeEmail: body.inviteeEmail,
     resourceType: body.resourceType,
@@ -30,5 +30,8 @@ export default createController(schema, async ({ user, body }) => {
     policy: body.policy ?? null,
   });
 
-  return { data: invitation, statusCode: 201 };
+  // `emailDelivered` lets the frontend warn the owner when the row was created but the
+  // email never made it out (Resend down, etc.) — without it, users see "success" and
+  // never learn the invitee never received anything.
+  return { data: { ...invitation, emailDelivered }, statusCode: 201 };
 });

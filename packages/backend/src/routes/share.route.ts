@@ -1,4 +1,5 @@
 import acceptInvitation from '@controllers/share/accept-invitation';
+import cancelInvitation from '@controllers/share/cancel-invitation';
 import createInvitation from '@controllers/share/create-invitation';
 import declineInvitation from '@controllers/share/decline-invitation';
 import leaveShare from '@controllers/share/leave-share';
@@ -6,6 +7,7 @@ import listMembers from '@controllers/share/list-members';
 import listReceivedInvitations from '@controllers/share/list-received-invitations';
 import listSentInvitations from '@controllers/share/list-sent-invitations';
 import listSharedWithMe from '@controllers/share/list-shared-with-me';
+import resendInvitation from '@controllers/share/resend-invitation';
 import revokeMember from '@controllers/share/revoke-member';
 import updateMember from '@controllers/share/update-member';
 import { authenticateSession } from '@middlewares/better-auth';
@@ -38,6 +40,18 @@ router.post(
   authenticateSession,
   validateEndpoint(declineInvitation.schema),
   declineInvitation.handler,
+);
+router.post(
+  '/invitations/:id/resend',
+  authenticateSession,
+  validateEndpoint(resendInvitation.schema),
+  resendInvitation.handler,
+);
+router.delete(
+  '/invitations/:id',
+  authenticateSession,
+  validateEndpoint(cancelInvitation.schema),
+  cancelInvitation.handler,
 );
 
 router.get(

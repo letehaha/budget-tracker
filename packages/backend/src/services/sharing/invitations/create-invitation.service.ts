@@ -35,6 +35,13 @@ interface CreateInvitationParams {
 
 interface CreateInvitationResult {
   invitation: ShareInvitationModel;
+  /**
+   * `false` when the post-commit email send failed (Resend down, network error, etc.) so
+   * the caller can surface a "we created the invitation but couldn't send the email"
+   * hint. `true` when the invitee is unregistered (no email to send), the invitee was
+   * resolved and Resend accepted the message, or Resend isn't configured (dev/test).
+   */
+  emailDelivered: boolean;
 }
 
 interface ResolvedResource {
@@ -89,7 +96,8 @@ const buildCleanPolicy = ({
   return { transactionsWriteScope: scope };
 };
 
-interface CreateInvitationImplResult extends CreateInvitationResult {
+interface CreateInvitationImplResult {
+  invitation: ShareInvitationModel;
   /** Hydrated invitee row when the email resolved to an existing user — used by the
    *  post-commit side-effect step to send the email and in-app notification. `null` for
    *  unresolved emails (Phase 1 keeps those silent; see PRD D6 / F17). */
@@ -225,37 +233,44 @@ export const createInvitation = async (params: CreateInvitationParams): Promise<
   const result = await withTransaction(createInvitationImpl)(params);
 
   // Email send is skipped for unresolved invitees — Phase 1 has no outbound path for them
-  // (Phase 5 will add the "sign up to accept" email; see PRD F17).
-  if (result.resolvedInvitee) {
-    const owner = await Users.findByPk(params.ownerUserId);
-    if (!owner) {
-      // Owner row missing for an authenticated owner — data-integrity issue. Continue with
-      // a generic display name so the email still goes out, but report for investigation.
-      // Stable `code` for Sentry/dashboard grouping (logger.error auto-captures to Sentry).
-      logger.error(
-        {
-          message: 'Owner not found when sending invitation email',
-          error: new Error(`Users.findByPk returned null for ownerUserId=${params.ownerUserId}`),
-        },
-        {
-          code: 'SHARE_OWNER_USER_MISSING_FOR_EMAIL',
-          ownerUserId: params.ownerUserId,
-          invitationId: result.invitation.id,
-        },
-      );
-    }
-    const ownerDisplayName = owner?.username ?? 'A MoneyMatter user';
-    await sendInvitationEmail({
-      toEmail: result.resolvedInvitee.email,
-      ownerDisplayName,
-      resourceType: result.invitation.resourceType,
-      resourceName: result.resourceName,
-      permission: result.invitation.permission,
-      policy: result.invitation.policy,
-      token: result.invitation.token,
-      expiresAt: new Date(result.invitation.expiresAt),
-    });
+  // (Phase 5 will add the "sign up to accept" email; see PRD F17). No invitee, no email
+  // failure mode for the caller to worry about.
+  if (!result.resolvedInvitee) {
+    return { invitation: result.invitation, emailDelivered: true };
   }
 
-  return { invitation: result.invitation };
+  const owner = await Users.findByPk(params.ownerUserId);
+  if (!owner) {
+    // Owner row missing for an authenticated owner — data-integrity issue. Continue with
+    // a generic display name so the email still goes out, but report for investigation.
+    // Stable `code` for Sentry/dashboard grouping (logger.error auto-captures to Sentry).
+    logger.error(
+      {
+        message: 'Owner not found when sending invitation email',
+        error: new Error(`Users.findByPk returned null for ownerUserId=${params.ownerUserId}`),
+      },
+      {
+        code: 'SHARE_OWNER_USER_MISSING_FOR_EMAIL',
+        ownerUserId: params.ownerUserId,
+        invitationId: result.invitation.id,
+      },
+    );
+  }
+  const ownerDisplayName = owner?.username ?? 'A MoneyMatter user';
+  // Surface the email outcome up the call stack so the UI can warn when the row was
+  // created but the email actually failed (Resend down, etc.). `'skipped'` (Resend not
+  // configured in dev/test) counts as delivered for the user-facing flag — there's no
+  // failure for them to see.
+  const outcome = await sendInvitationEmail({
+    toEmail: result.resolvedInvitee.email,
+    ownerDisplayName,
+    resourceType: result.invitation.resourceType,
+    resourceName: result.resourceName,
+    permission: result.invitation.permission,
+    policy: result.invitation.policy,
+    token: result.invitation.token,
+    expiresAt: new Date(result.invitation.expiresAt),
+  });
+
+  return { invitation: result.invitation, emailDelivered: outcome.status !== 'failed' };
 };

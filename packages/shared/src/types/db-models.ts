@@ -581,6 +581,10 @@ export interface ShareInvitationModel {
   acceptedAt: Date | null;
   declinedAt: Date | null;
   revokedAt: Date | null;
+  /** Lifetime resend counter (audit). Bumped on every resend, never reset. */
+  resendCount: number;
+  /** ISO timestamps for resends within the rolling 24h rate-limit window. Pruned in-app on each resend. */
+  recentResendsAt: string[];
   createdAt: Date;
   updatedAt: Date;
 }

@@ -148,6 +148,41 @@ export const notifyInvitationDeclined = async ({
 };
 
 /**
+ * Sent to the owner when a pending invitation is swept up by the daily expiration cron.
+ * The recipient never gets a separate notification — the invitation card simply disappears
+ * from their inbox once they refetch.
+ */
+export const notifyInvitationExpired = async ({
+  ownerUserId,
+  invitee,
+  invitationId,
+  resource,
+  permission,
+}: {
+  ownerUserId: number;
+  invitee: Users | null;
+  invitationId: string;
+  resource: { type: ResourceType; id: string; name: string };
+  permission: SharePermission;
+}) => {
+  const payload: ShareLifecycleNotificationPayload = {
+    invitationId,
+    resourceType: resource.type,
+    resourceId: resource.id,
+    resourceName: resource.name,
+    permission,
+    counterpartUser: snapshotUser(invitee),
+  };
+
+  return createNotification({
+    userId: ownerUserId,
+    type: NOTIFICATION_TYPES.shareExpired,
+    title: `Your invitation to "${resource.name}" expired`,
+    payload,
+  });
+};
+
+/**
  * Sent to a recipient when an owner (or a `manage` co-recipient) revokes their share.
  * Stamps the resource snapshot at the moment of revocation so the recipient still sees a
  * meaningful entry even if the underlying resource is later deleted.

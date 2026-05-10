@@ -77,11 +77,21 @@ export interface CreateInvitationPayload {
   policy?: SharePolicy | null;
 }
 
+/**
+ * Response shape for create / resend endpoints: the invitation fields flattened with the
+ * email-delivery flag. Mirrors what the controllers actually return — the service result
+ * is `{ invitation, emailDelivered }` and the controllers spread `invitation` so callers
+ * can read both shapes from a single object.
+ */
+type InvitationSendResponse = Awaited<ReturnType<typeof apiCreateInvitation>>['invitation'] & {
+  emailDelivered: boolean;
+};
+
 export async function createShareInvitation<R extends boolean | undefined = undefined>({
   raw,
   ...payload
 }: CreateInvitationPayload & { raw?: R }) {
-  return makeRequest<Awaited<ReturnType<typeof apiCreateInvitation>>['invitation'], R>({
+  return makeRequest<InvitationSendResponse, R>({
     method: 'post',
     url: '/share/invitations',
     payload,
@@ -131,6 +141,34 @@ export async function declineShareInvitation<R extends boolean | undefined = und
   return makeRequest<Awaited<ReturnType<typeof apiDeclineInvitation>>, R>({
     method: 'post',
     url: `/share/invitations/${encodeURIComponent(token)}/decline`,
+    raw,
+  });
+}
+
+export async function resendShareInvitation<R extends boolean | undefined = undefined>({
+  invitationId,
+  raw,
+}: {
+  invitationId: string;
+  raw?: R;
+}) {
+  return makeRequest<InvitationSendResponse, R>({
+    method: 'post',
+    url: `/share/invitations/${encodeURIComponent(invitationId)}/resend`,
+    raw,
+  });
+}
+
+export async function cancelShareInvitation<R extends boolean | undefined = undefined>({
+  invitationId,
+  raw,
+}: {
+  invitationId: string;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiCreateInvitation>>['invitation'], R>({
+    method: 'delete',
+    url: `/share/invitations/${encodeURIComponent(invitationId)}`,
     raw,
   });
 }
