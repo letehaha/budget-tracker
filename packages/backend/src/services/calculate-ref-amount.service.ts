@@ -1,5 +1,4 @@
 import { Money } from '@common/types/money';
-import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
@@ -8,6 +7,7 @@ import * as Currencies from '@models/currencies.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 
+import { calculateRefAmountFromParams } from './calculate-ref-amount.utils';
 import { withTransaction } from './common/with-transaction';
 
 const refAmountCache = new CacheClient<string>({
@@ -99,29 +99,7 @@ async function calculateRefAmountImpl(params: Params): Promise<Money> {
   }
 }
 
-export const calculateRefAmountFromParams = ({
-  amount,
-  rate,
-  useFloorAbs = true,
-}: {
-  amount: Money;
-  rate: number;
-  // For example in investments we're using raw float numbers, so it makes no sense to use it
-  useFloorAbs?: boolean;
-}): Money => {
-  const amountCents = amount.toCents();
-  const isNegative = amountCents < 0;
-
-  // Use Banker's Rounding (round half to even) per IEEE 754 and IFRS/GAAP standards.
-  // This minimizes cumulative rounding bias in bidirectional currency conversions (e.g., USD → EUR → USD).
-  // Since amounts are stored as integers (cents * 100), rounding still produces integers
-  // but with better reversibility and compliance with accounting standards.
-  const refAmount =
-    amountCents === 0 ? 0 : useFloorAbs ? roundHalfToEven(Math.abs(amountCents) * rate) : amountCents * rate;
-  const finalAmount = isNegative ? refAmount * -1 : refAmount;
-
-  return Money.fromCents(finalAmount);
-};
+export { calculateRefAmountFromParams } from './calculate-ref-amount.utils';
 
 type Params = {
   amount: Money;
