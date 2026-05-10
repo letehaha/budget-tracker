@@ -28,6 +28,7 @@ export enum API_ERROR_CODES {
 
   // sharing-related
   shareCurrencyMismatch = 'SHARE_CURRENCY_MISMATCH',
+  baseCurrencyLockedByShares = 'BASE_CURRENCY_LOCKED_BY_SHARES',
 
   // crypto/binance
   cryptoBinanceBothAPIKeysDoesNotexist = 10101,

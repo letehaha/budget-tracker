@@ -239,6 +239,7 @@
     "listIsEmpty": "Currencies list is empty",
     "noBaseCurrency": "User does not have a base currency set",
     "alreadyBaseCurrency": "The selected currency is already a base currency",
+    "baseCurrencyLockedByShares": "Cannot change base currency while you have active shared resources. Revoke or leave them first.",
     "cannotFindForRefAmount": "Cannot find currency to calculate ref amount!",
     "cannotCalculateRefAmount": "Cannot calculate ref amount",
     "currencyNotConnected": "Asked currency is not connected",
