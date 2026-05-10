@@ -18,11 +18,11 @@ import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
-import { findUserByEmail } from './find-user-by-email.service';
+import { findUserByEmail } from '../find-user-by-email.service';
+import { getMaxPendingInvitationsPerResource } from '../limits';
+import { notifyInvitationReceived } from '../share-notifications';
 import { generateInvitationToken } from './generate-invitation-token';
-import { getMaxPendingInvitationsPerResource } from './limits';
 import { sendInvitationEmail } from './share-invitation-email';
-import { notifyInvitationReceived } from './share-notifications';
 
 interface CreateInvitationParams {
   ownerUserId: number;

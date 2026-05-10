@@ -1,5 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
-import { listReceivedInvitations } from '@services/sharing/list-invitations.service';
+import { listReceivedInvitations } from '@services/sharing/invitations/list-invitations.service';
 import { z } from 'zod';
 
 const schema = z.object({});

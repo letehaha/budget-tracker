@@ -4,7 +4,7 @@ import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
 import { Op } from 'sequelize';
 
-import { canUserAccessResource } from './can-user-access-resource.service';
+import { canUserAccessResource } from './auth/can-user-access-resource.service';
 
 /**
  * Per-account share context attached to model instances by the accounts service so the

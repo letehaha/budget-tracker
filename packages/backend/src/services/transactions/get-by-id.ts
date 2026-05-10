@@ -4,8 +4,11 @@ import { NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import TransactionsModel, * as Transactions from '@models/transactions.model';
-import { assertOwnScopeOk } from '@services/sharing/authorize-account-write.service';
-import { type GrantedAccessResult, canUserAccessResource } from '@services/sharing/can-user-access-resource.service';
+import { assertOwnScopeOk } from '@services/sharing/auth/authorize-account-write.service';
+import {
+  type GrantedAccessResult,
+  canUserAccessResource,
+} from '@services/sharing/auth/can-user-access-resource.service';
 
 import { withTransaction } from '../common/with-transaction';
 

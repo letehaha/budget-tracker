@@ -1,6 +1,6 @@
 import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
-import { createInvitation } from '@services/sharing/create-invitation.service';
+import { createInvitation } from '@services/sharing/invitations/create-invitation.service';
 import { z } from 'zod';
 
 const schema = z.object({

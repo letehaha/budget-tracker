@@ -1,5 +1,5 @@
 import Categories from '@models/categories.model';
-import { getAccessibleCategoryOwnerIds } from '@services/sharing/get-accessible-category-owner-ids.service';
+import { getAccessibleCategoryOwnerIds } from '@services/sharing/auth/get-accessible-category-owner-ids.service';
 
 /**
  * Minimal category shape used by stats/aggregation paths to build hierarchies and render

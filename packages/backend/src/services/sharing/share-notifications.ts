@@ -146,3 +146,72 @@ export const notifyInvitationDeclined = async ({
     payload,
   });
 };
+
+/**
+ * Sent to a recipient when an owner (or a `manage` co-recipient) revokes their share.
+ * Stamps the resource snapshot at the moment of revocation so the recipient still sees a
+ * meaningful entry even if the underlying resource is later deleted.
+ */
+export const notifyShareRevoked = async ({
+  recipientUserId,
+  owner,
+  shareId,
+  resource,
+  permission,
+}: {
+  recipientUserId: number;
+  owner: Users | null;
+  shareId: string;
+  resource: { type: ResourceType; id: string; name: string };
+  permission: SharePermission;
+}) => {
+  const payload: ShareLifecycleNotificationPayload = {
+    shareId,
+    resourceType: resource.type,
+    resourceId: resource.id,
+    resourceName: resource.name,
+    permission,
+    counterpartUser: snapshotUser(owner),
+  };
+
+  return createNotification({
+    userId: recipientUserId,
+    type: NOTIFICATION_TYPES.shareRevoked,
+    title: `Your access to "${resource.name}" was revoked`,
+    payload,
+  });
+};
+
+/**
+ * Sent to the owner when a recipient voluntarily leaves a share. Symmetric counterpart of
+ * `notifyShareRevoked` — used by the recipient-initiated "leave" flow.
+ */
+export const notifyShareLeft = async ({
+  ownerUserId,
+  recipient,
+  shareId,
+  resource,
+  permission,
+}: {
+  ownerUserId: number;
+  recipient: Users | null;
+  shareId: string;
+  resource: { type: ResourceType; id: string; name: string };
+  permission: SharePermission;
+}) => {
+  const payload: ShareLifecycleNotificationPayload = {
+    shareId,
+    resourceType: resource.type,
+    resourceId: resource.id,
+    resourceName: resource.name,
+    permission,
+    counterpartUser: snapshotUser(recipient),
+  };
+
+  return createNotification({
+    userId: ownerUserId,
+    type: NOTIFICATION_TYPES.shareLeft,
+    title: `${snapshotUser(recipient).username} left "${resource.name}"`,
+    payload,
+  });
+};

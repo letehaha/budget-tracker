@@ -1,5 +1,5 @@
 import * as Transactions from '@models/transactions.model';
-import { getAccessibleAccountIdsForUser } from '@services/sharing/get-accessible-account-ids.service';
+import { getAccessibleAccountIdsForUser } from '@services/sharing/auth/get-accessible-account-ids.service';
 
 type FindWithFiltersParams = Parameters<typeof Transactions.findWithFilters>[0];
 

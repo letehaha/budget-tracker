@@ -3,8 +3,8 @@ import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
 import { Op, WhereOptions } from 'sequelize';
 
-import { resolveResourceName } from './can-user-access-resource.service';
-import { getEmailForUser } from './find-user-by-email.service';
+import { resolveResourceName } from '../auth/can-user-access-resource.service';
+import { getEmailForUser } from '../find-user-by-email.service';
 
 /**
  * Same shape as `ShareInvitationModel` plus a denormalized `resourceName` and `owner` /

@@ -15,7 +15,7 @@ import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import {
   assertSharedWritePhase1Guards,
   authorizeAccountWrite,
-} from '@services/sharing/authorize-account-write.service';
+} from '@services/sharing/auth/authorize-account-write.service';
 import { v4 as uuidv4 } from 'uuid';
 
 import { withTransaction } from '../common/with-transaction';

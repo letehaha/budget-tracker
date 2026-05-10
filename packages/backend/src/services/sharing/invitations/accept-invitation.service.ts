@@ -15,9 +15,9 @@ import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op, QueryTypes } from 'sequelize';
 
-import { resolveResourceName } from './can-user-access-resource.service';
-import { getEmailForUser } from './find-user-by-email.service';
-import { notifyInvitationAccepted } from './share-notifications';
+import { resolveResourceName } from '../auth/can-user-access-resource.service';
+import { getEmailForUser } from '../find-user-by-email.service';
+import { notifyInvitationAccepted } from '../share-notifications';
 
 interface AcceptInvitationResult {
   invitation: ShareInvitationModel;

@@ -5,9 +5,9 @@ import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
 
-import { resolveResourceName } from './can-user-access-resource.service';
-import { getEmailForUser } from './find-user-by-email.service';
-import { notifyInvitationDeclined } from './share-notifications';
+import { resolveResourceName } from '../auth/can-user-access-resource.service';
+import { getEmailForUser } from '../find-user-by-email.service';
+import { notifyInvitationDeclined } from '../share-notifications';
 
 interface DeclineInvitationResult {
   invitation: ShareInvitationModel;

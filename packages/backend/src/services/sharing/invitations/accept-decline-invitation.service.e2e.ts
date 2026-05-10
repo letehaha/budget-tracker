@@ -11,7 +11,7 @@ import ShareInvitations from '@models/share-invitations.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
-import { generateInvitationToken } from '@services/sharing/generate-invitation-token';
+import { generateInvitationToken } from '@services/sharing/invitations/generate-invitation-token';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
 import { Op } from 'sequelize';

@@ -1,13 +1,15 @@
 import { ResourceType, SharePermission, SharePolicy } from '@bt/shared/types';
 import { authPool } from '@config/auth';
 import Users from '@models/users.model';
-import type { acceptInvitation as apiAcceptInvitation } from '@services/sharing/accept-invitation.service';
-import type { createInvitation as apiCreateInvitation } from '@services/sharing/create-invitation.service';
-import type { declineInvitation as apiDeclineInvitation } from '@services/sharing/decline-invitation.service';
+import type { acceptInvitation as apiAcceptInvitation } from '@services/sharing/invitations/accept-invitation.service';
+import type { createInvitation as apiCreateInvitation } from '@services/sharing/invitations/create-invitation.service';
+import type { declineInvitation as apiDeclineInvitation } from '@services/sharing/invitations/decline-invitation.service';
 import type {
   listReceivedInvitations as apiListReceivedInvitations,
   listSentInvitations as apiListSentInvitations,
-} from '@services/sharing/list-invitations.service';
+} from '@services/sharing/invitations/list-invitations.service';
+import type { ListMembersResult } from '@services/sharing/members/list-members.service';
+import type { SharedWithMeItem } from '@services/sharing/members/list-shared-with-me.service';
 
 import { extractCookies, makeAuthRequest, makeRequest } from './common';
 
@@ -145,6 +147,87 @@ export async function findAppUserByEmail({ email }: { email: string }) {
   const appUser = await Users.findOne({ where: { authUserId: baUserId } });
   if (!appUser) throw new Error(`No app user for ${email}`);
   return appUser;
+}
+
+export async function listShareMembers<R extends boolean | undefined = undefined>({
+  resourceType,
+  resourceId,
+  raw,
+}: {
+  resourceType: ResourceType;
+  resourceId: number | string;
+  raw?: R;
+}) {
+  return makeRequest<ListMembersResult, R>({
+    method: 'get',
+    url: `/share/resources/${encodeURIComponent(resourceType)}/${encodeURIComponent(String(resourceId))}/members`,
+    raw,
+  });
+}
+
+export async function updateShareMember<R extends boolean | undefined = undefined>({
+  resourceType,
+  resourceId,
+  memberUserId,
+  permission,
+  policy,
+  raw,
+}: {
+  resourceType: ResourceType;
+  resourceId: number | string;
+  memberUserId: number;
+  permission?: SharePermission;
+  policy?: SharePolicy | null;
+  raw?: R;
+}) {
+  return makeRequest<{ id: string; permission: SharePermission; policy: SharePolicy | null }, R>({
+    method: 'patch',
+    url: `/share/resources/${encodeURIComponent(resourceType)}/${encodeURIComponent(String(resourceId))}/members/${memberUserId}`,
+    payload: { permission, policy },
+    raw,
+  });
+}
+
+export async function revokeShareMember<R extends boolean | undefined = undefined>({
+  resourceType,
+  resourceId,
+  memberUserId,
+  raw,
+}: {
+  resourceType: ResourceType;
+  resourceId: number | string;
+  memberUserId: number;
+  raw?: R;
+}) {
+  return makeRequest<undefined, R>({
+    method: 'delete',
+    url: `/share/resources/${encodeURIComponent(resourceType)}/${encodeURIComponent(String(resourceId))}/members/${memberUserId}`,
+    raw,
+  });
+}
+
+export async function listSharedWithMe<R extends boolean | undefined = undefined>({ raw }: { raw?: R } = {}) {
+  return makeRequest<SharedWithMeItem[], R>({
+    method: 'get',
+    url: '/share/shared-with-me',
+    raw,
+  });
+}
+
+export async function leaveShare<R extends boolean | undefined = undefined>({
+  resourceType,
+  resourceId,
+  raw,
+}: {
+  resourceType: ResourceType;
+  resourceId: number | string;
+  raw?: R;
+}) {
+  return makeRequest<undefined, R>({
+    method: 'post',
+    url: `/share/shared-with-me/${encodeURIComponent(resourceType)}/${encodeURIComponent(String(resourceId))}/leave`,
+    raw,
+  });
 }
 
 /**

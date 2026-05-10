@@ -1,6 +1,6 @@
 import { SHARING_LIMITS } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
-import { declineInvitation } from '@services/sharing/decline-invitation.service';
+import { declineInvitation } from '@services/sharing/invitations/decline-invitation.service';
 import { z } from 'zod';
 
 const schema = z.object({

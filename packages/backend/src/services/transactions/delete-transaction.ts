@@ -6,7 +6,7 @@ import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import * as Transactions from '@models/transactions.model';
 import { deletePortfolioTransfer } from '@services/investments/portfolios/transfers';
-import { assertSharedWritePhase1Guards } from '@services/sharing/authorize-account-write.service';
+import { assertSharedWritePhase1Guards } from '@services/sharing/auth/authorize-account-write.service';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';

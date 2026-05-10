@@ -1,8 +1,8 @@
 import { RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
 import * as Categories from '@models/categories.model';
-import { canUserAccessResource } from '@services/sharing/can-user-access-resource.service';
-import { getAccessibleCategoryOwnerIds } from '@services/sharing/get-accessible-category-owner-ids.service';
+import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
+import { getAccessibleCategoryOwnerIds } from '@services/sharing/auth/get-accessible-category-owner-ids.service';
 
 import { withTransaction } from './common/with-transaction';
 
