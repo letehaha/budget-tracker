@@ -14,6 +14,7 @@ import * as Popover from '@/components/lib/ui/popover';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
+import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
 import { toLocalNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
@@ -39,9 +40,7 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const { t } = useI18n();
 
 const isSystemAccount = computed(() => props.account.type === ACCOUNT_TYPES.system);
-// Treat accounts with no `share` block as owned (legacy / internal callers); otherwise
-// follow the explicit isOwner flag from the API.
-const isOwner = computed(() => props.account.share?.isOwner ?? true);
+const { isOwner, isSharedWithCaller, ownerHandle } = useAccountAccess(toRef(() => props.account));
 
 const accountNameForm = ref({
   name: props.account.name,
@@ -125,7 +124,9 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
             </form>
           </Popover.PopoverContent>
         </Popover.Popover>
-        <div v-else class="text-xl">{{ account.name }}</div>
+        <div v-else class="flex items-center gap-2 text-xl">
+          {{ account.name }}
+        </div>
 
         <div class="flex gap-2">
           <PortfolioTransferDialog v-if="isOwner" :account="account" context="account">
@@ -175,6 +176,10 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      </div>
+
+      <div v-if="isSharedWithCaller && ownerHandle" class="text-muted-foreground mt-1 text-sm">
+        {{ $t('accounts.sharedBy', { handle: `@${ownerHandle}` }) }}
       </div>
 
       <!-- Balance -->

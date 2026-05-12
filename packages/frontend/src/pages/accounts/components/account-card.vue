@@ -31,11 +31,12 @@
 <script setup lang="ts">
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import { useFormatCurrency } from '@/composable';
+import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { AccountModel } from '@bt/shared/types';
 import { UsersIcon } from 'lucide-vue-next';
-import { computed, toRef } from 'vue';
+import { toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -44,5 +45,5 @@ const props = defineProps<{ account: AccountModel }>();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { displayBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
 
-const isSharedWithMe = computed(() => props.account.share?.isOwner === false);
+const { isSharedWithCaller: isSharedWithMe } = useAccountAccess(toRef(() => props.account));
 </script>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAccountAccess } from '@/composable/use-account-access';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
@@ -9,7 +10,7 @@ import SettingAccountGroup from '@/pages/account/components/account-group.vue';
 import AccountLinkSection from '@/pages/account/components/account-link-section.vue';
 import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
 import { AccountModel, TransactionModel } from '@bt/shared/types';
-import { computed, ref } from 'vue';
+import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -19,7 +20,7 @@ const props = defineProps<{
   transactions: TransactionModel[];
 }>();
 
-const isOwner = computed(() => props.account.share?.isOwner ?? true);
+const { isOwner } = useAccountAccess(toRef(() => props.account));
 
 const activeTab = ref('details');
 const tabItems = computed(() => {

@@ -15,10 +15,8 @@ import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore,
 import {
   ACCOUNT_TYPES,
   PAYMENT_TYPES,
-  SHARE_PERMISSIONS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
-  TRANSACTIONS_WRITE_SCOPES,
   type TransactionModel,
 } from '@bt/shared/types';
 import { minValue, required } from '@vuelidate/validators';
@@ -37,6 +35,7 @@ import PortfolioLinkedView from './components/portfolio-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
+import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountCategories } from '@/composable/data-queries/categories';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 
@@ -198,11 +197,11 @@ const resolvedAccountId = computed(() => {
 const resolvedAccount = computed(() =>
   resolvedAccountId.value != null ? accountsRecord.value[resolvedAccountId.value] : undefined,
 );
-const accountShare = computed(() => resolvedAccount.value?.share);
-// True only when the account is shared *with* the caller — owner-side `share` blocks
-// (where `isOwner === true`) shouldn't switch us to the owner-routed category set since
-// the caller IS the owner.
-const isAccountSharedWithCaller = computed(() => !!accountShare.value && !accountShare.value.isOwner);
+const {
+  share: accountShare,
+  isSharedWithCaller: isAccountSharedWithCaller,
+  canMutateTx,
+} = useAccountAccess(resolvedAccount);
 
 const sharedAccountCategories = useAccountCategories({
   accountId: () => resolvedAccountId.value ?? undefined,
@@ -227,26 +226,7 @@ const isCategoriesReady = computed(
     sharedAccountCategories.isError.value,
 );
 
-// Auth gates — mirror backend rules so disabled UI matches what the API would accept.
-const canWriteToAccount = computed(() => {
-  const share = accountShare.value;
-  if (!share) return true; // owned, no share row → always writable
-  if (share.isOwner) return true;
-  return share.permission === SHARE_PERMISSIONS.write || share.permission === SHARE_PERMISSIONS.manage;
-});
-const canMutateCurrentTx = computed(() => {
-  if (!canWriteToAccount.value) return false;
-  const share = accountShare.value;
-  if (!share || share.isOwner) return true;
-  // Recipient: enforce transactionsWriteScope on existing transactions only. Creates always
-  // pass (caller becomes the row's userId).
-  if (!transaction.value) return true;
-  const scope = share.policy?.transactionsWriteScope;
-  if (scope === TRANSACTIONS_WRITE_SCOPES.own && transaction.value.userId !== currentUser.value?.id) {
-    return false;
-  }
-  return true;
-});
+const canMutateCurrentTx = computed(() => canMutateTx(transaction.value, currentUser.value?.id));
 
 const isFormFieldsDisabled = computed(
   () => isLoading.value || !isInitialRefundsDataLoaded.value || !canMutateCurrentTx.value,
