@@ -1,4 +1,4 @@
-import { RESOURCE_TYPES, ResourceType, SHARE_PERMISSIONS, SharePermission, SharePolicy } from '@bt/shared/types';
+import { ResourceType, SHARE_PERMISSIONS, SharePermission, SharePolicy } from '@bt/shared/types';
 import { NotFoundError } from '@js/errors';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
@@ -6,7 +6,7 @@ import { Op } from 'sequelize';
 
 import { canUserAccessResource, resolveResourceName } from '../auth/can-user-access-resource.service';
 
-export type ShareMemberRole = 'owner' | 'recipient';
+type ShareMemberRole = 'owner' | 'recipient';
 
 export interface ShareMemberSnapshot {
   /**
@@ -112,8 +112,3 @@ export const listMembers = async ({
     members: [ownerEntry, ...recipientEntries],
   };
 };
-
-// Centralised list of resource types that the members surface accepts. Wider than the
-// share-creation list intentionally — Phase 1 only ships `account`, but as later phases
-// add resources the set grows here in one place.
-export const SUPPORTED_MEMBER_RESOURCE_TYPES: ResourceType[] = [RESOURCE_TYPES.account];

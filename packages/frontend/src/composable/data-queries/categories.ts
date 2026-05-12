@@ -1,5 +1,6 @@
 import { loadCategoriesByAccount } from '@/api/categories';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { QUERY_CACHE_STALE_TIME } from '@/common/const/vue-query';
 import type { FormattedCategory } from '@/common/types';
 import { useNotificationCenter } from '@/components/notification-center';
 import { buildCategiesObjectGraph } from '@/stores/categories/helpers';
@@ -7,8 +8,6 @@ import type { CategoryModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { type MaybeRefOrGetter, computed, toValue, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-const STALE_TIME_MS = 5 * 60 * 1000;
 
 export const useAccountCategories = ({
   accountId,
@@ -24,7 +23,7 @@ export const useAccountCategories = ({
       const flag = enabled === undefined ? true : toValue(enabled);
       return flag && toValue(accountId) !== undefined;
     }),
-    staleTime: STALE_TIME_MS,
+    staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
   });
 
   // Surface fetch failures to the user. Without this the picker silently shows an empty

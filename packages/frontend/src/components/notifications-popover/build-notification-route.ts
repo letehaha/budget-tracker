@@ -10,10 +10,9 @@ import {
 /**
  * Outcome of resolving a notification click.
  *
- * `spa` keeps the user inside the app — used for share notifications so the globally-mounted
- * accept/decline dialog can pick up the query param without a full reload.
- * `external` falls back to a full navigation (currently only budget alerts, which live on a
- * page that hasn't been wired into the SPA router yet).
+ * `spa` keeps the user inside the app — used for in-app deep-links so globally-mounted
+ * dialogs (e.g. accept/decline) can pick up the query param without a full reload.
+ * `external` falls back to a full navigation for targets that live outside the SPA router.
  * `null` means "not actionable" — changelog/system entries display content but don't deep-link.
  */
 type NotificationRoute =
@@ -52,9 +51,15 @@ export const buildNotificationRoute = (notification: NotificationStruct): Notifi
 
     case NOTIFICATION_TYPES.budgetAlert: {
       const payload = notification.payload as { budgetId?: number } | undefined;
+      if (payload?.budgetId) {
+        return {
+          kind: 'spa',
+          to: { name: ROUTES_NAMES.plannedBudgetDetails, params: { id: payload.budgetId } },
+        };
+      }
       return {
-        kind: 'external',
-        href: payload?.budgetId ? `/budgets/${payload.budgetId}` : '/budgets',
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.plannedBudgets },
       };
     }
 

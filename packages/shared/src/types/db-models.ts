@@ -167,6 +167,19 @@ export interface TransactionSplitModel {
   category?: CategoryModel;
 }
 
+/**
+ * Frozen identity of a transaction's original creator. Populated only when the creator's
+ * Users row is being deleted — at that point we copy the last-known username/avatar before
+ * the FK SET NULL nulls `Transactions.userId`. Lets the frontend render
+ * "alice (deleted)" on shared-account transactions whose creator is gone instead of
+ * an anonymous "Unknown user" placeholder.
+ */
+export interface TransactionCreatorSnapshot {
+  userId: number;
+  username: string;
+  avatar: string | null;
+}
+
 export interface TransactionModel {
   id: number;
   amount: number;
@@ -175,6 +188,10 @@ export interface TransactionModel {
   note: string;
   time: Date;
   userId: number;
+  /** See `TransactionCreatorSnapshot`. NULL on every row except when the creator's
+   *  account is deleted; backfill is intentionally skipped (no historical
+   *  user-deletes are retroactively recoverable). */
+  creatorSnapshot: TransactionCreatorSnapshot | null;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
   accountId: number;

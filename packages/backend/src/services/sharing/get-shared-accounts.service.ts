@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, RESOURCE_TYPES, SHARE_PERMISSIONS, SharePermission, SharePolicy } from '@bt/shared/types';
+import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
@@ -90,6 +91,24 @@ export const getSharedAccountsForUser = async ({
     if (Number.isInteger(numeric) && numeric > 0) {
       accountIds.push(numeric);
       sharesByResourceId.set(share.resourceId, share);
+    } else {
+      // Account-type shares always carry a positive integer string `resourceId` (it's an
+      // FK into Accounts). A non-numeric value here means the row was written through a
+      // path that bypassed the create-share guards — data corruption, not a recoverable
+      // edge case. Drop the row from the response so the user isn't blocked, but log so
+      // ops can investigate.
+      logger.error(
+        {
+          message: 'Account-type share row has non-numeric resourceId',
+          error: new Error(`resourceId=${JSON.stringify(share.resourceId)}`),
+        },
+        {
+          code: 'SHARED_ACCOUNT_INVALID_RESOURCE_ID',
+          shareId: share.id,
+          userId,
+          resourceId: share.resourceId,
+        },
+      );
     }
   }
   if (!accountIds.length) return [];

@@ -3,12 +3,18 @@ import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotFoundError, UnexpectedError } from '@js/errors';
+import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import {
+  cleanupAccountSharesInTx,
+  notifyAccountDeleteRecipients,
+  type AccountShareCleanupResult,
+} from '@services/sharing/cleanup/cleanup-account-shares.service';
 import {
   AccountShareContext,
   buildOwnerShareContext,
@@ -108,6 +114,19 @@ export const getAccounts = withTransaction(
     const ownedWithRelink = addNeedsRelinkFlag(ownedRaw);
 
     const ownerUser = ownedWithRelink.length ? await Users.findByPk(payload.userId) : null;
+    if (ownedWithRelink.length && !ownerUser) {
+      // Authenticated caller owns accounts but has no Users row — should never happen
+      // (auth middleware guarantees it). Without the row we can't stamp _shareContext and
+      // the serializer silently omits the `share` block, which the frontend uses to
+      // distinguish owner vs recipient UI. Surface so this doesn't degrade silently.
+      logger.error(
+        {
+          message: 'Authenticated user not found when building owner share context',
+          error: new Error(`Users.findByPk returned null for userId=${payload.userId}`),
+        },
+        { code: 'ACCOUNTS_OWNER_USER_MISSING', userId: payload.userId },
+      );
+    }
     const ownerContext = ownerUser ? await buildOwnerShareContext({ ownerUser }) : null;
 
     const owned = ownedWithRelink.map((account) =>
@@ -132,6 +151,17 @@ export const getAccountById = withTransaction(
       const ownerUser = await Users.findByPk(payload.userId);
       if (ownerUser) {
         enriched._shareContext = await buildOwnerShareContext({ ownerUser });
+      } else {
+        // Same integrity-violation signal as `getAccounts` — caller owns this account
+        // but has no Users row. Without _shareContext the recipient-vs-owner serializer
+        // branch breaks; log so silent UI degradation is visible to ops.
+        logger.error(
+          {
+            message: 'Authenticated user not found when building owner share context for account by id',
+            error: new Error(`Users.findByPk returned null for userId=${payload.userId}`),
+          },
+          { code: 'ACCOUNTS_OWNER_USER_MISSING', userId: payload.userId, accountId: payload.id },
+        );
       }
       await attachBankProviderTypes([enriched]);
       return enriched;
@@ -173,7 +203,10 @@ export const createAccount = withTransaction(
         refInitialBalance,
       });
     } catch (e) {
-      console.log('account error', e);
+      logger.error(
+        { message: 'Failed to create account', error: e as Error },
+        { code: 'ACCOUNT_CREATE_FAILED', userId: payload.userId, currencyCode: payload.currencyCode },
+      );
       throw e;
     }
   },
@@ -270,14 +303,57 @@ export const updateAccount = withTransaction(
   },
 );
 
-export const deleteAccountById = async ({ id, userId }: { id: number; userId: number }) => {
-  const affectedRows = await Accounts.deleteAccountById({ id, userId });
+interface DeleteAccountByIdInTxResult {
+  affectedRows: number;
+  cleanup: AccountShareCleanupResult;
+  /** Snapshotted before destroy so the post-commit notification copy can still reference
+   *  the account name after the row is gone. */
+  accountSnapshot: { id: number; name: string };
+}
 
-  if (affectedRows === 0) {
-    throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
+const deleteAccountByIdInTx = withTransaction(
+  async ({ id, userId }: { id: number; userId: number }): Promise<DeleteAccountByIdInTxResult> => {
+    const account = await Accounts.default.findOne({ where: { id, userId } });
+    if (!account) {
+      throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
+    }
+
+    // Sharing cleanup runs in the same transaction so a destroy failure rolls back the
+    // share row deletes and invitation revocations atomically.
+    const cleanup = await cleanupAccountSharesInTx({ accountId: id, ownerUserId: userId });
+
+    const affectedRows = await Accounts.deleteAccountById({ id, userId });
+    if (affectedRows === 0) {
+      // Defensive: the findOne above succeeded, so a 0-affectedRows here is a concurrency
+      // anomaly (someone else deleted the row between the two queries). Treat it as a 404
+      // for the caller so the response stays consistent.
+      throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
+    }
+
+    return {
+      affectedRows,
+      cleanup,
+      accountSnapshot: { id: account.id, name: account.name },
+    };
+  },
+);
+
+export const deleteAccountById = async ({ id, userId }: { id: number; userId: number }) => {
+  const result = await deleteAccountByIdInTx({ id, userId });
+
+  // Post-commit fan-out: the durable changes (share rows deleted, invitations revoked,
+  // account row destroyed) committed in the transaction above. Notifications are
+  // best-effort — a transient notify failure must not re-open the deleted account.
+  if (result.cleanup.recipients.length > 0) {
+    const owner = await Users.findByPk(userId);
+    await notifyAccountDeleteRecipients({
+      recipients: result.cleanup.recipients,
+      owner,
+      account: result.accountSnapshot,
+    });
   }
 
-  return affectedRows;
+  return result.affectedRows;
 };
 
 export { unlinkAccountFromBankConnection } from './accounts/unlink-from-bank-connection';

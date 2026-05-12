@@ -7,6 +7,7 @@ import {
   SORT_DIRECTIONS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  TransactionCreatorSnapshot,
   TransactionModel,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
@@ -143,6 +144,9 @@ export default class Transactions extends Model {
   @ForeignKey(() => Users)
   @Column({ type: DataType.INTEGER })
   userId!: number;
+
+  @Column({ type: DataType.JSONB, allowNull: true, defaultValue: null })
+  creatorSnapshot!: TransactionCreatorSnapshot | null;
 
   @BelongsToMany(() => Budgets, {
     through: { model: () => BudgetTransactions, unique: false },
@@ -300,11 +304,10 @@ export default class Transactions extends Model {
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
-    const { accountType, accountId, userId, currencyCode, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
-        userId,
         accountId,
         amount,
         refAmount,
@@ -340,7 +343,6 @@ export default class Transactions extends Model {
       if (isAccountChanged) {
         // Update old tx
         await updateAccountBalanceForChangedTx({
-          userId: prevData.userId,
           accountId: prevData.accountId,
           prevAmount: prevData.amount,
           prevRefAmount: prevData.refAmount,
@@ -350,7 +352,6 @@ export default class Transactions extends Model {
 
         // Update new tx
         await updateAccountBalanceForChangedTx({
-          userId: newData.userId,
           accountId: newData.accountId,
           amount: newData.amount,
           refAmount: newData.refAmount,
@@ -359,7 +360,6 @@ export default class Transactions extends Model {
         });
       } else {
         await updateAccountBalanceForChangedTx({
-          userId: newData.userId,
           accountId: newData.accountId,
           amount: newData.amount,
           prevAmount: prevData.amount,
@@ -389,11 +389,10 @@ export default class Transactions extends Model {
 
   @BeforeDestroy
   static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
-    const { accountType, accountId, userId, currencyCode, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
-        userId,
         accountId,
         prevAmount: amount,
         prevRefAmount: refAmount,

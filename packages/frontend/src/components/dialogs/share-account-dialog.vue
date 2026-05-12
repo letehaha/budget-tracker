@@ -90,10 +90,18 @@ const mutation = useMutation({
       permission: permission.value.value,
       policy: showsWriteScope.value ? { transactionsWriteScope: writeScope.value.value } : null,
     }),
-  onSuccess: () => {
-    // Generic copy on purpose — the response shape is identical whether the email is
-    // registered or not, so we don't reveal that here either (PRD D6).
-    addSuccessNotification(t('dialogs.shareAccountDialog.success'));
+  onSuccess: (data) => {
+    // Generic success copy on purpose — the response shape is identical whether the
+    // email is registered or not, so we don't reveal that here either.
+    if (data.emailDelivered === false) {
+      // Row was created, but the outbound email never made it out (Resend down or
+      // similar transient failure). Surface a warning so the owner doesn't assume the
+      // invitee received anything. The invitation is still valid — owner can use the
+      // Resend action once the UI ships in FC.
+      addErrorNotification(t('dialogs.shareAccountDialog.emailSendFailedWarning'));
+    } else {
+      addSuccessNotification(t('dialogs.shareAccountDialog.success'));
+    }
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent });
     isOpen.value = false;
   },

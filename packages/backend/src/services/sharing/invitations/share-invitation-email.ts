@@ -49,7 +49,7 @@ interface SendInvitationEmailParams {
  *     rate-limit slot was already consumed, so silently swallowing this would let the
  *     user burn their daily budget without ever delivering a message.
  */
-export type SendInvitationEmailOutcome =
+type SendInvitationEmailOutcome =
   | { status: 'sent'; messageId: string | null }
   | { status: 'skipped' }
   | { status: 'failed' };

@@ -205,7 +205,12 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
         message: 'Authenticated user not found when emitting share-accepted notification',
         error: new Error(`Users.findByPk returned null for userId=${userId}`),
       },
-      { userId, invitationId: invitation.id, shareId: share.id },
+      {
+        code: 'SHARE_ACCEPTED_RECIPIENT_USER_MISSING',
+        userId,
+        invitationId: invitation.id,
+        shareId: share.id,
+      },
     );
   }
 

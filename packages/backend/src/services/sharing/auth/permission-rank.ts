@@ -6,5 +6,10 @@ const PERMISSION_RANK: Record<SharePermission, number> = {
   [SHARE_PERMISSIONS.manage]: 3,
 };
 
-export const isPermissionAtLeast = (granted: SharePermission, required: SharePermission): boolean =>
-  PERMISSION_RANK[granted] >= PERMISSION_RANK[required];
+export const isPermissionAtLeast = ({
+  granted,
+  required,
+}: {
+  granted: SharePermission;
+  required: SharePermission;
+}): boolean => PERMISSION_RANK[granted] >= PERMISSION_RANK[required];

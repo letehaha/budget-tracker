@@ -378,7 +378,8 @@
       "cancel": "Cancel",
       "send": "Send invitation",
       "success": "Invitation request submitted. If a user with that address is registered, they'll receive an invitation.",
-      "error": "Could not send invitation. Please try again."
+      "error": "Could not send invitation. Please try again.",
+      "emailSendFailedWarning": "Invitation saved, but the email could not be sent. The recipient may not have received a notification — try again later."
     },
     "shareInvitationDialog": {
       "titlePending": "{owner} wants to share with you",

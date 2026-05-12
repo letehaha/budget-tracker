@@ -5,20 +5,20 @@ import { isPermissionAtLeast } from './permission-rank';
 
 describe('isPermissionAtLeast', () => {
   it('treats equal permissions as satisfied', () => {
-    expect(isPermissionAtLeast(SHARE_PERMISSIONS.read, SHARE_PERMISSIONS.read)).toBe(true);
-    expect(isPermissionAtLeast(SHARE_PERMISSIONS.write, SHARE_PERMISSIONS.write)).toBe(true);
-    expect(isPermissionAtLeast(SHARE_PERMISSIONS.manage, SHARE_PERMISSIONS.manage)).toBe(true);
+    expect(isPermissionAtLeast({ granted: SHARE_PERMISSIONS.read, required: SHARE_PERMISSIONS.read })).toBe(true);
+    expect(isPermissionAtLeast({ granted: SHARE_PERMISSIONS.write, required: SHARE_PERMISSIONS.write })).toBe(true);
+    expect(isPermissionAtLeast({ granted: SHARE_PERMISSIONS.manage, required: SHARE_PERMISSIONS.manage })).toBe(true);
   });
 
   it('treats higher granted permissions as satisfying lower required ones', () => {
-    expect(isPermissionAtLeast(SHARE_PERMISSIONS.write, SHARE_PERMISSIONS.read)).toBe(true);
-    expect(isPermissionAtLeast(SHARE_PERMISSIONS.manage, SHARE_PERMISSIONS.read)).toBe(true);
-    expect(isPermissionAtLeast(SHARE_PERMISSIONS.manage, SHARE_PERMISSIONS.write)).toBe(true);
+    expect(isPermissionAtLeast({ granted: SHARE_PERMISSIONS.write, required: SHARE_PERMISSIONS.read })).toBe(true);
+    expect(isPermissionAtLeast({ granted: SHARE_PERMISSIONS.manage, required: SHARE_PERMISSIONS.read })).toBe(true);
+    expect(isPermissionAtLeast({ granted: SHARE_PERMISSIONS.manage, required: SHARE_PERMISSIONS.write })).toBe(true);
   });
 
   it('treats lower granted permissions as failing higher required ones', () => {
-    expect(isPermissionAtLeast(SHARE_PERMISSIONS.read, SHARE_PERMISSIONS.write)).toBe(false);
-    expect(isPermissionAtLeast(SHARE_PERMISSIONS.read, SHARE_PERMISSIONS.manage)).toBe(false);
-    expect(isPermissionAtLeast(SHARE_PERMISSIONS.write, SHARE_PERMISSIONS.manage)).toBe(false);
+    expect(isPermissionAtLeast({ granted: SHARE_PERMISSIONS.read, required: SHARE_PERMISSIONS.write })).toBe(false);
+    expect(isPermissionAtLeast({ granted: SHARE_PERMISSIONS.read, required: SHARE_PERMISSIONS.manage })).toBe(false);
+    expect(isPermissionAtLeast({ granted: SHARE_PERMISSIONS.write, required: SHARE_PERMISSIONS.manage })).toBe(false);
   });
 });

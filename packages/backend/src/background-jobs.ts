@@ -7,6 +7,7 @@ import { loadCurrencyRatesJob } from './crons/exchange-rates';
 import { paymentRemindersCron } from './crons/payment-reminders-check';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
 import { shareInvitationsExpireCron } from './crons/share-invitations-expire';
+import { shareResourceOrphanCleanupCron } from './crons/share-resource-orphan-cleanup';
 import { subscriptionCandidateDetectionCron } from './crons/subscription-candidate-detection';
 import { tagRemindersCron } from './crons/tag-reminders-check';
 import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
@@ -33,6 +34,7 @@ export function initializeBackgroundJobs() {
       paymentRemindersCron.startCron();
       subscriptionCandidateDetectionCron.startCron();
       shareInvitationsExpireCron.startCron();
+      shareResourceOrphanCleanupCron.startCron();
     }
   }
 }
@@ -44,6 +46,7 @@ export async function shutdownBackgroundJobs() {
   tagRemindersCron.stopCron();
   subscriptionCandidateDetectionCron.stopCron();
   shareInvitationsExpireCron.stopCron();
+  shareResourceOrphanCleanupCron.stopCron();
   loadCurrencyRatesJob.stop();
   // Flush remaining PostHog events before exit
   await shutdownPostHog();

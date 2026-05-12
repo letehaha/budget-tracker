@@ -65,7 +65,11 @@ const declineImpl = async ({ token, userId }: { token: string; userId: number })
         message: 'Authenticated user not found when emitting share-declined notification',
         error: new Error(`Users.findByPk returned null for userId=${userId}`),
       },
-      { userId, invitationId: invitation.id },
+      {
+        code: 'SHARE_DECLINED_RECIPIENT_USER_MISSING',
+        userId,
+        invitationId: invitation.id,
+      },
     );
   }
   const resourceName =

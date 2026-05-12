@@ -11,12 +11,19 @@ import resendInvitation from '@controllers/share/resend-invitation';
 import revokeMember from '@controllers/share/revoke-member';
 import updateMember from '@controllers/share/update-member';
 import { authenticateSession } from '@middlewares/better-auth';
+import { shareInvitationSendRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
 const router = Router({});
 
-router.post('/invitations', authenticateSession, validateEndpoint(createInvitation.schema), createInvitation.handler);
+router.post(
+  '/invitations',
+  authenticateSession,
+  shareInvitationSendRateLimit,
+  validateEndpoint(createInvitation.schema),
+  createInvitation.handler,
+);
 router.get(
   '/invitations/sent',
   authenticateSession,

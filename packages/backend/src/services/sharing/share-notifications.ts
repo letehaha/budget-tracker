@@ -218,6 +218,43 @@ export const notifyShareRevoked = async ({
 };
 
 /**
+ * Sent to a recipient when an owner deletes the underlying resource (e.g. the shared
+ * account). Distinct from `notifyShareRevoked` because the resource itself is gone — there
+ * is nothing to be re-shared and any deep-link to the resource will 404. Stamps the
+ * resource snapshot at the moment of deletion so the recipient still sees a meaningful
+ * entry after the row vanishes.
+ */
+export const notifyShareOwnerAccountDeleted = async ({
+  recipientUserId,
+  owner,
+  shareId,
+  resource,
+  permission,
+}: {
+  recipientUserId: number;
+  owner: Users | null;
+  shareId: string;
+  resource: { type: ResourceType; id: string; name: string };
+  permission: SharePermission;
+}) => {
+  const payload: ShareLifecycleNotificationPayload = {
+    shareId,
+    resourceType: resource.type,
+    resourceId: resource.id,
+    resourceName: resource.name,
+    permission,
+    counterpartUser: snapshotUser(owner),
+  };
+
+  return createNotification({
+    userId: recipientUserId,
+    type: NOTIFICATION_TYPES.shareOwnerAccountDeleted,
+    title: `The shared account "${resource.name}" was deleted`,
+    payload,
+  });
+};
+
+/**
  * Sent to the owner when a recipient voluntarily leaves a share. Symmetric counterpart of
  * `notifyShareRevoked` — used by the recipient-initiated "leave" flow.
  */

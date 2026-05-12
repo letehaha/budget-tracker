@@ -26,7 +26,7 @@ import { sendInvitationEmail } from './share-invitation-email';
  * user. Unresolved emails get the row update and nothing else, same shape as create-invitation.
  */
 
-export const RESEND_ELIGIBLE_STATUSES = [
+const RESEND_ELIGIBLE_STATUSES = [
   SHARE_INVITATION_STATUSES.pending,
   SHARE_INVITATION_STATUSES.declined,
   SHARE_INVITATION_STATUSES.expired,
@@ -53,7 +53,7 @@ interface ResendInvitationImplResult {
   ownerDisplayName: string;
 }
 
-export interface ResendInvitationResult {
+interface ResendInvitationResult {
   invitation: ShareInvitationModel;
   /**
    * `false` when the post-commit email send failed (Resend down, network error, etc.) so

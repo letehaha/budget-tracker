@@ -155,7 +155,7 @@ export const canUserAccessResource = async ({
     return denied(ownerUserId);
   }
 
-  if (!isPermissionAtLeast(share.permission, requiredPermission)) {
+  if (!isPermissionAtLeast({ granted: share.permission, required: requiredPermission })) {
     // Share exists but doesn't meet the required level — collapse to denied. Callers
     // that need the diagnostic detail (which permission they *do* hold) re-query with
     // a lower `requiredPermission`. None of the current callers do.

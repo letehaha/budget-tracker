@@ -116,7 +116,7 @@ describe('buildNotificationRoute', () => {
   });
 
   describe('budget_alert', () => {
-    it('returns external href to /budgets/:id when budgetId present', () => {
+    it('returns SPA route to planned budget details when budgetId present', () => {
       const route = buildNotificationRoute(
         baseNotification({
           type: NOTIFICATION_TYPES.budgetAlert,
@@ -124,10 +124,13 @@ describe('buildNotificationRoute', () => {
         }),
       );
 
-      expect(route).toEqual({ kind: 'external', href: '/budgets/7' });
+      expect(route).toEqual({
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.plannedBudgetDetails, params: { id: 7 } },
+      });
     });
 
-    it('falls back to /budgets when budgetId is missing', () => {
+    it('falls back to planned budgets list when budgetId is missing', () => {
       const route = buildNotificationRoute(
         baseNotification({
           type: NOTIFICATION_TYPES.budgetAlert,
@@ -135,7 +138,10 @@ describe('buildNotificationRoute', () => {
         }),
       );
 
-      expect(route).toEqual({ kind: 'external', href: '/budgets' });
+      expect(route).toEqual({
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.plannedBudgets },
+      });
     });
   });
 

@@ -385,4 +385,11 @@ export const SHARING_LIMITS = {
   // 32 random bytes encoded as base64url → exactly 43 ASCII chars (see generate-invitation-token.ts).
   invitationTokenLength: 43,
   resendPerInviteeRateLimit: { count: 3, windowMs: 24 * 60 * 60 * 1000 },
+  // Owner-wide send cap to mitigate email-bombing across many resources. The per-resource
+  // pending cap and the per-invitee resend rate limit cover the within-resource case; this
+  // closes the cross-resource gap.
+  sendInvitationsPerOwnerPer24h: 30,
+  // Tighter test value so the gate is cheap to exercise in e2e (per-owner counter is
+  // per-test thanks to the Redis truncate in `beforeEach`).
+  sendInvitationsPerOwnerPer24hTest: 5,
 } as const;

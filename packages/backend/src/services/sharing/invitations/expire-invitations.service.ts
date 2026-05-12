@@ -8,7 +8,7 @@ import { Op } from 'sequelize';
 
 import { notifyInvitationExpired } from '../share-notifications';
 
-export interface ExpireOverdueResult {
+interface ExpireOverdueResult {
   /** How many rows transitioned to `expired`. */
   expiredCount: number;
   /** How many `share_expired` notifications were emitted. Equal to `expiredCount` unless
@@ -59,14 +59,21 @@ const notifyExpiredOwners = async (overdue: ShareInvitations[]): Promise<number>
           // FK is `onDelete: SET NULL` on `Users` — when an invitee deletes their account
           // the column nulls automatically. Reaching here means `inviteeUserId` is set
           // but the Users row is gone: a real integrity violation, not the expected
-          // null-invitee path. Surface a stable code so ops can spot drift; we still
-          // proceed with the notification (snapshotUser falls back to "Unknown user")
-          // because the owner deserves the expiration signal regardless.
-          logger.warn('Dangling inviteeUserId on expire sweep', {
-            code: 'SHARE_INVITEE_USER_MISSING_ON_EXPIRE',
-            invitationId: row.id,
-            inviteeUserId: row.inviteeUserId,
-          });
+          // null-invitee path. Surface at `error` level (Sentry-routed) with a stable
+          // code so ops can spot drift; we still proceed with the notification
+          // (snapshotUser falls back to "Unknown user") because the owner deserves the
+          // expiration signal regardless.
+          logger.error(
+            {
+              message: 'Dangling inviteeUserId on expire sweep',
+              error: new Error(`inviteeUserId=${row.inviteeUserId} has no Users row`),
+            },
+            {
+              code: 'SHARE_INVITEE_USER_MISSING_ON_EXPIRE',
+              invitationId: row.id,
+              inviteeUserId: row.inviteeUserId,
+            },
+          );
         }
       }
       await notifyInvitationExpired({

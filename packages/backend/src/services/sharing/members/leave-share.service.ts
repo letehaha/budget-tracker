@@ -1,5 +1,5 @@
 import { ResourceType } from '@bt/shared/types';
-import { NotFoundError } from '@js/errors';
+import { NotFoundError, UnexpectedError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
@@ -46,11 +46,37 @@ const leaveShareImpl = async (params: LeaveShareParams): Promise<LeaveShareImplR
 
   const resourceName = (await resolveResourceName({ resourceType, resourceId: resourceIdStr })) ?? 'Shared resource';
 
-  const [owner, recipient] = await Promise.all([Users.findByPk(share.ownerUserId), Users.findByPk(callerUserId)]);
-
+  // Pre-validate identity rows BEFORE the destroy commits. The recipient is the
+  // authenticated caller — a null here is a data-integrity violation that must abort
+  // the leave with a clean 500 (auth middleware guarantees the row exists). Owner-row
+  // missing is also reported but doesn't abort: the destroy + post-commit fan-out still
+  // need to run so the recipient isn't stuck holding an unleaveable share.
   const sharedShareId = share.id;
   const sharedPermission = share.permission;
   const ownerUserId = share.ownerUserId;
+
+  const [owner, recipient] = await Promise.all([Users.findByPk(ownerUserId), Users.findByPk(callerUserId)]);
+
+  if (!recipient) {
+    logger.error(
+      {
+        message: 'Authenticated caller has no Users row when leaving share',
+        error: new Error(`Users.findByPk returned null for callerUserId=${callerUserId}`),
+      },
+      { code: 'SHARE_LEAVE_RECIPIENT_USER_MISSING', callerUserId, shareId: sharedShareId },
+    );
+    throw new UnexpectedError({ message: 'Unable to leave share' });
+  }
+
+  if (!owner) {
+    logger.error(
+      {
+        message: 'Owner Users row missing when leaving share',
+        error: new Error(`Users.findByPk returned null for ownerUserId=${ownerUserId}`),
+      },
+      { code: 'SHARE_LEAVE_OWNER_USER_MISSING', ownerUserId, shareId: sharedShareId },
+    );
+  }
 
   await share.destroy();
 
@@ -66,26 +92,11 @@ const leaveShareImpl = async (params: LeaveShareParams): Promise<LeaveShareImplR
     permission: sharedPermission,
   });
 
-  if (!owner || !recipient) {
-    logger.error(
-      {
-        message: 'User row missing when leaving share',
-        error: new Error(`Users.findByPk returned null (ownerMissing=${!owner}, recipientMissing=${!recipient})`),
-      },
-      {
-        code: 'SHARE_LEAVE_USER_MISSING',
-        ownerUserId,
-        callerUserId,
-        shareId: sharedShareId,
-      },
-    );
-  }
-
   const ownerEmail = await getEmailForUser({ userId: ownerUserId });
 
   return {
     ownerEmail,
-    recipientDisplayName: recipient?.username ?? 'A MoneyMatter user',
+    recipientDisplayName: recipient.username,
     resourceType,
     resourceName,
   };

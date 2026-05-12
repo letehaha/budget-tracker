@@ -9,6 +9,7 @@ import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
 import { API_ERROR_CODES, RESOURCE_TYPES, SHARE_PERMISSIONS, type SharePermission } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { format } from 'date-fns';
 import { CheckCircleIcon, UsersIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -83,7 +84,7 @@ const permissionLabel = (permission: SharePermission) => {
   return t('dialogs.shareInvitationDialog.permissions.manage');
 };
 
-const formatExpiry = (value: string | Date) => new Date(value).toISOString().slice(0, 10);
+const formatExpiry = (value: string | Date) => format(new Date(value), 'yyyy-MM-dd');
 
 /** Pull the structured error payload from an ApiErrorResponseError. The API client throws
  *  this class with `data: { code, message, details }` — the response is NOT axios-wrapped,
@@ -125,11 +126,13 @@ const acceptMutation = useMutation({
     }
 
     addErrorNotification(apiMessage || t('dialogs.shareInvitationDialog.acceptError'));
-    if (apiMessage && /(expired|accepted|declined|revoked|full|maximum)/i.test(apiMessage)) {
-      stateOverride.value = 'not-found';
-    } else {
-      stateOverride.value = 'error';
-    }
+    // Terminal-state errors (already-accepted, declined, revoked, expired, recipient cap
+    // reached) come back from the backend as 409 Conflict (`API_ERROR_CODES.conflict`).
+    // Collapse those into the `not-found` view so the recipient sees a coherent "this
+    // invitation is no longer actionable" message instead of a generic error screen.
+    // Matching on the code (not on the message wording) keeps this resilient to backend
+    // copy changes and to future locale-aware error messages.
+    stateOverride.value = apiCode === API_ERROR_CODES.conflict ? 'not-found' : 'error';
   },
 });
 

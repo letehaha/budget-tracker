@@ -1,6 +1,6 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import * as Accounts from '@models/accounts.model';
+import Accounts from '@models/accounts.model';
 
 import { withTransaction } from '../common/with-transaction';
 
@@ -38,7 +38,6 @@ const defineCorrectAmountFromTxType = ({
 
 async function updateAccountBalanceForChangedTxImpl({
   accountId,
-  userId,
   transactionType,
   amount = Money.zero(),
   prevAmount = Money.zero(),
@@ -47,7 +46,6 @@ async function updateAccountBalanceForChangedTxImpl({
   prevTransactionType = transactionType,
 }: {
   accountId: number;
-  userId: number;
   transactionType: TRANSACTION_TYPES;
   amount?: Money;
   prevAmount?: Money;
@@ -56,10 +54,12 @@ async function updateAccountBalanceForChangedTxImpl({
   prevTransactionType?: TRANSACTION_TYPES;
   currencyCode?: string;
 }): Promise<void> {
-  // Model-level lookup, not the service-level `getAccountById`: balance updates only
-  // run for the account's actual owner (writes by recipients are not supported in
-  // Stage A; S4 will route shared writes through the auth service and update by id).
-  const account = await Accounts.getAccountById({ id: accountId, userId });
+  // Lookup is account-scoped, not user-scoped: post-S4 the service layer has already
+  // authorized the write (owner or recipient with `write`/`manage`), so balance updates
+  // must run against the account regardless of who created the transaction. Filtering
+  // by `userId` here silently dropped recipient-authored balance updates and let
+  // `Accounts.currentBalance` drift out of sync with the underlying tx ledger.
+  const account = await Accounts.findOne({ where: { id: accountId } });
 
   if (!account) return undefined;
 
@@ -71,16 +71,17 @@ async function updateAccountBalanceForChangedTxImpl({
   const newRefAmount = defineCorrectAmountFromTxType({ amount: refAmount, transactionType });
   const oldRefAmount = defineCorrectAmountFromTxType({ amount: prevRefAmount, transactionType: prevTransactionType });
 
-  await Accounts.updateAccountById({
-    id: accountId,
-    userId,
-    currentBalance: calculateNewBalance({ amount: newAmount, previousAmount: oldAmount, currentBalance }),
-    refCurrentBalance: calculateNewBalance({
-      amount: newRefAmount,
-      previousAmount: oldRefAmount,
-      currentBalance: refCurrentBalance,
-    }),
-  });
+  await Accounts.update(
+    {
+      currentBalance: calculateNewBalance({ amount: newAmount, previousAmount: oldAmount, currentBalance }),
+      refCurrentBalance: calculateNewBalance({
+        amount: newRefAmount,
+        previousAmount: oldRefAmount,
+        currentBalance: refCurrentBalance,
+      }),
+    },
+    { where: { id: accountId } },
+  );
 }
 
 export const updateAccountBalanceForChangedTx = withTransaction(updateAccountBalanceForChangedTxImpl);
