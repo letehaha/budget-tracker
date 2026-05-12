@@ -14,7 +14,10 @@ import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
-import { assertSharedWritePhase1Guards } from '@services/sharing/auth/authorize-account-write.service';
+import {
+  assertSharedWritePhase1Guards,
+  assertTxWriteAccess,
+} from '@services/sharing/auth/authorize-account-write.service';
 import * as refundsService from '@services/tx-refunds';
 import { Op } from 'sequelize';
 
@@ -293,11 +296,13 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 
   const { userId, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } = newData;
 
+  // Fetch the opposite without a userId filter — on a shared-account transfer, the two
+  // sides can belong to different users (recipient links owner-authored tx with their own).
+  // The auth gate immediately below verifies the caller has `write` on the opposite's
+  // parent account before any mutation runs.
   const oppositeTx = (
-    await Transactions.getTransactionsByArrayOfField({
-      fieldValues: [prevData.transferId],
-      fieldName: 'transferId',
-      userId,
+    await Transactions.default.findAll({
+      where: { transferId: prevData.transferId },
     })
   ).find((item) => Number(item.id) !== Number(newData.id));
 
@@ -307,9 +312,18 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     });
   }
 
+  await assertTxWriteAccess({
+    userId,
+    tx: oppositeTx,
+    notFoundKey: 'transactions.oppositeTransactionNotFound',
+  });
+
   let updateOppositeTxParams = removeUndefinedKeys({
     id: oppositeTx.id,
-    userId,
+    // Use the opposite tx's actual creator userId — the underlying model layer scopes its
+    // UPDATE by `(id, userId)`, and for cross-user transfers the caller doesn't own the
+    // opposite row. Auth on this account has already been verified above.
+    userId: oppositeTx.userId,
     amount: destinationAmount !== undefined ? destinationAmount : undefined,
     refAmount: baseTransaction.refAmount,
     transactionType: TRANSACTION_TYPES.income,
@@ -360,15 +374,20 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
   const [newData, prevData, baseTransaction] = params;
 
+  // Cross-user safe fetch — see `updateTransferTransaction` for the rationale.
   const notBaseTransaction = (
-    await Transactions.getTransactionsByArrayOfField({
-      fieldValues: [prevData.transferId],
-      fieldName: 'transferId',
-      userId: newData.userId,
+    await Transactions.default.findAll({
+      where: { transferId: prevData.transferId },
     })
   ).find((item) => Number(item.id) !== Number(newData.id));
 
   if (notBaseTransaction) {
+    await assertTxWriteAccess({
+      userId: newData.userId,
+      tx: notBaseTransaction,
+      notFoundKey: 'transactions.oppositeTransactionNotFound',
+    });
+
     await Transactions.updateTransactionById({
       id: notBaseTransaction.id,
       userId: notBaseTransaction.userId,
@@ -435,11 +454,20 @@ export const updateTransaction = withTransaction(
         isOwner: authCtx.isOwner,
       };
 
+      // PATCH semantics: when `transferNature` is omitted from the payload, the predicates
+      // below interpret that as "keep current state" for the purpose of the recipient gate
+      // (an unspecified field doesn't mean the caller wants to discard the link). Only an
+      // explicit nature change — promoting a non-transfer to a transfer, or explicitly
+      // setting nature to something other than `common_transfer` on a transfer — has its
+      // own broken cross-user opposite-tx handling and stays blocked for recipients.
+      const explicitlyDiscardingTransfer =
+        payload.transferNature !== undefined &&
+        payload.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer &&
+        prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+
       assertSharedWritePhase1Guards({
         isOwner: authCtx.isOwner,
-        involvesTransfer:
-          payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer ||
-          prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer,
+        involvesTransfer: isCreatingTransfer(payload, prevData) || explicitlyDiscardingTransfer,
         involvesRefund: payload.refundedByTxIds !== undefined || payload.refundsTxId !== undefined,
         changesAccountId: payload.accountId !== undefined && payload.accountId !== prevData.accountId,
       });

@@ -22,6 +22,36 @@ interface AuthorizeAccountWriteParams {
   notFoundMessageKey?: 'accounts.accountNotFoundForTransaction' | 'transactions.transactionIdNotExist';
 }
 
+/**
+ * Per-transaction write-access gate. Resolves the caller's `write` access on the parent
+ * account, enforces the `transactionsWriteScope: 'own'` policy against the row's actual
+ * creator, and throws `NotFoundError(notFoundKey)` (404 masks existence) on no-access.
+ *
+ * Used by the linking services (link / unlink) and by the opposite-tx mutations inside
+ * `updateTransaction` — the four call sites previously inlined this same three-step block.
+ */
+export const assertTxWriteAccess = async ({
+  userId,
+  tx,
+  notFoundKey,
+}: {
+  userId: number;
+  tx: { accountId: number; userId: number };
+  notFoundKey: 'transactions.linkCannotFind' | 'transactions.oppositeTransactionNotFound';
+}): Promise<GrantedAccessResult> => {
+  const access = await canUserAccessResource({
+    userId,
+    resourceType: RESOURCE_TYPES.account,
+    resourceId: tx.accountId,
+    requiredPermission: SHARE_PERMISSIONS.write,
+  });
+  if (!access.granted) {
+    throw new NotFoundError({ message: t({ key: notFoundKey }) });
+  }
+  assertOwnScopeOk({ access, callerUserId: userId, txCreatorUserId: tx.userId });
+  return access;
+};
+
 interface AuthorizeAccountWriteResult {
   /** Caller owns the account. */
   isOwner: boolean;
