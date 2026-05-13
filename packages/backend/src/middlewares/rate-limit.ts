@@ -3,6 +3,7 @@ import { t } from '@i18n/index';
 import { TooManyRequests } from '@js/errors';
 import Users from '@models/users.model';
 import { RateLimitService } from '@services/common/rate-limit.service';
+import { getMaxSendInvitationsPerOwnerPer24h } from '@services/sharing/limits';
 import type { NextFunction, Request, Response } from 'express';
 
 interface RateLimitOptions {
@@ -100,5 +101,21 @@ export const csvImportRateLimit = createRateLimit({
   keyGenerator: (req: Request) => {
     const user = req.user as Users;
     return `csv-import:user:${user.id}`;
+  },
+});
+
+/**
+ * Share-invitation send rate limit (per owner, 30 sends per 24h in prod, 5 in test).
+ * Closes the cross-resource email-bombing gap that the per-resource pending cap and the
+ * per-invitee resend rate limit don't cover (see PRD F11). Threshold is resolved at
+ * module load via `getMaxSendInvitationsPerOwnerPer24h` so the test-env override is the
+ * single source of truth.
+ */
+export const shareInvitationSendRateLimit = createRateLimit({
+  windowSeconds: 24 * 60 * 60,
+  maxAttempts: getMaxSendInvitationsPerOwnerPer24h(),
+  keyGenerator: (req: Request) => {
+    const user = req.user as Users;
+    return `share-invitation-send:user:${user.id}`;
   },
 });

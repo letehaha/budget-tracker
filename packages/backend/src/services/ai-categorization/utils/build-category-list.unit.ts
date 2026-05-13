@@ -7,6 +7,7 @@ describe('buildCategoryList', () => {
   const baseCategory = {
     color: '#FF0000',
     icon: null,
+    key: null,
     type: CATEGORY_TYPES.custom,
     userId: 1,
   };

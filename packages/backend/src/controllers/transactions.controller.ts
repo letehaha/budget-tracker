@@ -18,14 +18,14 @@ export const getTransactionById = createController(
     const { id: userId } = user;
     const { includeSplits } = query;
 
-    const transaction = await transactionsService.getTransactionById({
+    const fetched = await transactionsService.getTransactionById({
       id,
       userId,
       includeSplits,
     });
 
     // Serialize: convert cents to decimal for API response
-    return { data: transaction ? serializeTransaction(transaction) : null };
+    return { data: fetched ? serializeTransaction(fetched.tx) : null };
   },
 );
 

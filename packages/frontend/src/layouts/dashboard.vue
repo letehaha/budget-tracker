@@ -30,12 +30,17 @@
       <QuickStartTrigger />
       <QuickStartPanel />
     </template>
+
+    <!-- Share invitation dialog: opens whenever ?invitation_token=… is in the URL.
+         Email links + in-app notifications deep-link via this query param. -->
+    <ShareInvitationDialog :token="invitationToken" @close="clearInvitationToken" />
   </div>
 </template>
 
 <script lang="ts" setup>
 import { useHead } from '@unhead/vue';
 import BottomNavbar from '@/components/bottom-navbar.vue';
+import ShareInvitationDialog from '@/components/dialogs/share-invitation-dialog.vue';
 import { ScrollArea, ScrollBar } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { QuickStartPanel, QuickStartSidebar, QuickStartTrigger } from '@/components/quick-start';
@@ -45,7 +50,7 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useCurrenciesStore, useOnboardingStore, useRootStore } from '@/stores';
 import { storeToRefs } from 'pinia';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 useHead({
@@ -89,6 +94,21 @@ watch(
   },
   { immediate: true },
 );
+
+// Share invitation deep-link binding. The dialog opens whenever the URL carries
+// `?invitation_token=…`. Closing the dialog clears the param so a refresh doesn't
+// reopen it. (Replaces the previous standalone /shared-with-me/invitations/:token page.)
+const invitationToken = computed(() => {
+  const raw = route.query.invitation_token;
+  return typeof raw === 'string' ? raw : '';
+});
+
+const clearInvitationToken = () => {
+  if (!invitationToken.value) return;
+  const { invitation_token: _omit, ...rest } = route.query;
+  void _omit;
+  router.replace({ ...route, query: rest });
+};
 
 // Watch route changes to auto-complete page-visit tasks
 watch(

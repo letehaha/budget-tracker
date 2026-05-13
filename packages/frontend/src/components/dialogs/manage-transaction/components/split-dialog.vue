@@ -5,9 +5,7 @@ import CategorySelectField from '@/components/fields/category-select-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { formatUIAmount } from '@/js/helpers';
-import { useCategoriesStore } from '@/stores';
 import { PlusIcon, SplitIcon, XIcon } from 'lucide-vue-next';
-import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -25,6 +23,13 @@ const props = defineProps<{
   totalAmount: number | null;
   currencyCode: string | undefined;
   mainCategory: FormattedCategory | undefined;
+  /**
+   * Category set the split rows render. The parent dialog routes this through
+   * `useAccountCategories` so a recipient editing splits on a shared account sees the
+   * **owner's** categories — not their own. Passing the wrong set lets the form submit a
+   * categoryId the backend rejects with `SPLIT_INVALID_CATEGORY`.
+   */
+  categories: FormattedCategory[];
 }>();
 
 const emit = defineEmits<{
@@ -32,9 +37,6 @@ const emit = defineEmits<{
 }>();
 
 const isOpen = defineModel<boolean>('open', { default: false });
-
-const { formattedCategories } = storeToRefs(useCategoriesStore());
-const categories = computed(() => formattedCategories.value);
 
 // Local state for editing
 const localSplits = ref<LocalSplit[]>([]);

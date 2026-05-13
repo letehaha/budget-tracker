@@ -56,14 +56,40 @@ export async function editCustomCategory({
   return result;
 }
 
-export const getCategoriesList = async (): Promise<CategoryModel[]> => {
+/**
+ * Strip undefined fields so they don't end up serialized as the literal string "undefined"
+ * in the query string (URLSearchParams happily turns `undefined` into `"undefined"`, which
+ * then trips `z.coerce.boolean()` into truthy and breaks downstream validation).
+ */
+const compactParams = <T extends Record<string, unknown>>(params: T | undefined): Record<string, unknown> | null => {
+  if (!params) return null;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) out[key] = value;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+};
+
+export const getCategoriesList = async (params?: {
+  accountId?: number;
+  includeAccessible?: boolean;
+}): Promise<CategoryModel[]> => {
   const result = await helpers.makeRequest({
     method: 'get',
     url: '/categories',
+    payload: compactParams(params),
     raw: true,
   });
 
   return result;
+};
+
+export const getCategoriesListResponse = async (params?: { accountId?: number; includeAccessible?: boolean }) => {
+  return helpers.makeRequest({
+    method: 'get',
+    url: '/categories',
+    payload: compactParams(params),
+  });
 };
 
 export async function deleteCustomCategory({

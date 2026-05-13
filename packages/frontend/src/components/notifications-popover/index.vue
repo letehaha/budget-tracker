@@ -9,16 +9,19 @@ import {
   useNotifications,
   useUnreadNotificationsCount,
 } from '@/composable/data-queries/notifications';
-import { NOTIFICATION_STATUSES, NOTIFICATION_TYPES } from '@bt/shared/types';
-import { BellIcon, BellOffIcon, Loader2 } from 'lucide-vue-next';
+import { NOTIFICATION_STATUSES } from '@bt/shared/types';
+import { BellIcon, BellOffIcon, Loader2Icon } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 
+import { buildNotificationRoute } from './build-notification-route';
 import NotificationItem from './notification-item.vue';
 
 withDefaults(defineProps<{ sidebar?: boolean }>(), { sidebar: false });
 
 const { t } = useI18n();
+const router = useRouter();
 const isOpen = ref(false);
 
 const { data: notifications, isLoading } = useNotifications();
@@ -28,32 +31,19 @@ const markAsReadMutation = useMarkNotificationAsRead();
 const markAllAsReadMutation = useMarkAllNotificationsAsRead();
 const dismissMutation = useDismissNotification();
 
-/**
- * Build action URL based on notification type and payload.
- * Frontend owns the URL structure, backend only provides data.
- */
-const getActionUrl = (notification: NotificationStruct): string | null => {
-  switch (notification.type) {
-    case NOTIFICATION_TYPES.budgetAlert: {
-      const payload = notification.payload as { budgetId?: number };
-      return payload.budgetId ? `/budgets/${payload.budgetId}` : '/budgets';
-    }
-    case NOTIFICATION_TYPES.changelog:
-    case NOTIFICATION_TYPES.system:
-    default:
-      return null;
-  }
-};
-
 const handleNotificationClick = (notification: NotificationStruct) => {
   if (notification.status === NOTIFICATION_STATUSES.unread) {
     markAsReadMutation.mutate({ id: notification.id });
   }
 
-  const actionUrl = getActionUrl(notification);
-  if (actionUrl) {
-    isOpen.value = false;
-    window.location.href = actionUrl;
+  const route = buildNotificationRoute(notification);
+  if (!route) return;
+
+  isOpen.value = false;
+  if (route.kind === 'spa') {
+    router.push(route.to);
+  } else {
+    window.location.href = route.href;
   }
 };
 
@@ -113,7 +103,7 @@ const handleDismiss = (id: string) => {
       </div>
 
       <div v-if="isLoading" class="flex items-center justify-center py-8">
-        <Loader2 class="text-muted-foreground size-6 animate-spin" />
+        <Loader2Icon class="text-muted-foreground size-6 animate-spin" />
       </div>
 
       <div v-else-if="!notifications?.length" class="py-8 text-center">

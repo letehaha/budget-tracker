@@ -92,8 +92,20 @@ export async function createCategories({ userId }: { userId: number }): Promise<
     name: item.name,
     type: item.type,
     color: item.color,
+    key: item.key,
     userId,
   }));
+
+  // The column allows NULL (user-created custom categories don't have a key), but the
+  // seed path always should guard against future drift in `getTranslatedCategories`
+  // that would silently produce keyless defaults. Log to Sentry in prod and continue;
+  // throw in dev/test so bugs surface loudly during development.
+  const mainMissingKey = defaultCategories.find((c) => !c.key);
+  if (mainMissingKey) {
+    const message = `Seed integrity bug: default category "${mainMissingKey.name}" is missing 'key'`;
+    logger.error(message);
+    if (process.env.NODE_ENV !== 'production') throw new Error(message);
+  }
 
   const categories = await categoriesService.bulkCreate({ data: defaultCategories }, { returning: true });
 
@@ -113,6 +125,7 @@ export async function createCategories({ userId }: { userId: number }): Promise<
     color: string;
     userId: number;
     type: string;
+    key: string;
   }> = [];
 
   translatedCategories.subcategories.forEach((subcat) => {
@@ -127,10 +140,18 @@ export async function createCategories({ userId }: { userId: number }): Promise<
           parentId,
           color: parentCategory.color,
           userId,
+          key: subItem.key,
         });
       });
     }
   });
+
+  const subMissingKey = subcats.find((s) => !s.key);
+  if (subMissingKey) {
+    const message = `Seed integrity bug: default subcategory "${subMissingKey.name}" is missing 'key'`;
+    logger.error(message);
+    if (process.env.NODE_ENV !== 'production') throw new Error(message);
+  }
 
   if (subcats.length > 0) {
     const createdSubcats = await categoriesService.bulkCreate({ data: subcats }, { returning: true });

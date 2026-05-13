@@ -6,14 +6,44 @@ import {
   NOTIFICATION_STATUSES,
   NOTIFICATION_TYPES,
   NotificationType,
+  type ShareInvitationNotificationPayload,
+  type ShareInvitationSendFailedPayload,
+  type ShareLifecycleNotificationPayload,
   TagReminderNotificationPayload,
 } from '@bt/shared/types';
-import { AlertTriangleIcon, InfoIcon, SparklesIcon, TagIcon, WalletIcon, XIcon } from 'lucide-vue-next';
+import {
+  AlertTriangleIcon,
+  ClockIcon,
+  HandshakeIcon,
+  InfoIcon,
+  LogOutIcon,
+  MailIcon,
+  MailWarningIcon,
+  ShieldOffIcon,
+  SparklesIcon,
+  TagIcon,
+  Trash2Icon,
+  UserXIcon,
+  WalletIcon,
+  XIcon,
+} from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 import ChangelogContent from './changelog-content.vue';
 import DefaultContent from './default-content.vue';
+import ShareContent from './share-content.vue';
 import TagReminderContent from './tag-reminder-content.vue';
+
+const SHARE_NOTIFICATION_TYPES: NotificationType[] = [
+  NOTIFICATION_TYPES.shareInvitationReceived,
+  NOTIFICATION_TYPES.shareInvitationSendFailed,
+  NOTIFICATION_TYPES.shareAccepted,
+  NOTIFICATION_TYPES.shareDeclined,
+  NOTIFICATION_TYPES.shareRevoked,
+  NOTIFICATION_TYPES.shareLeft,
+  NOTIFICATION_TYPES.shareExpired,
+  NOTIFICATION_TYPES.shareOwnerAccountDeleted,
+];
 
 const props = defineProps<{
   notification: NotificationStruct;
@@ -37,6 +67,22 @@ const getIcon = (type: NotificationType) => {
       return SparklesIcon;
     case NOTIFICATION_TYPES.tagReminder:
       return TagIcon;
+    case NOTIFICATION_TYPES.shareInvitationReceived:
+      return MailIcon;
+    case NOTIFICATION_TYPES.shareInvitationSendFailed:
+      return MailWarningIcon;
+    case NOTIFICATION_TYPES.shareAccepted:
+      return HandshakeIcon;
+    case NOTIFICATION_TYPES.shareDeclined:
+      return UserXIcon;
+    case NOTIFICATION_TYPES.shareRevoked:
+      return ShieldOffIcon;
+    case NOTIFICATION_TYPES.shareLeft:
+      return LogOutIcon;
+    case NOTIFICATION_TYPES.shareExpired:
+      return ClockIcon;
+    case NOTIFICATION_TYPES.shareOwnerAccountDeleted:
+      return Trash2Icon;
     default:
       return InfoIcon;
   }
@@ -52,10 +98,25 @@ const getIconBg = (type: NotificationType) => {
       return 'bg-purple-500';
     case NOTIFICATION_TYPES.tagReminder:
       return 'bg-amber-500';
+    case NOTIFICATION_TYPES.shareInvitationReceived:
+      return 'bg-violet-500';
+    case NOTIFICATION_TYPES.shareInvitationSendFailed:
+      return 'bg-orange-600';
+    case NOTIFICATION_TYPES.shareAccepted:
+      return 'bg-emerald-500';
+    case NOTIFICATION_TYPES.shareDeclined:
+    case NOTIFICATION_TYPES.shareRevoked:
+    case NOTIFICATION_TYPES.shareOwnerAccountDeleted:
+      return 'bg-rose-500';
+    case NOTIFICATION_TYPES.shareLeft:
+    case NOTIFICATION_TYPES.shareExpired:
+      return 'bg-slate-500';
     default:
       return 'bg-gray-500';
   }
 };
+
+const isShareNotification = (type: NotificationType) => SHARE_NOTIFICATION_TYPES.includes(type);
 
 const getTitle = (notification: NotificationStruct): string => {
   if (notification.type === NOTIFICATION_TYPES.changelog) {
@@ -121,6 +182,17 @@ const handleDismiss = (event: Event) => {
         <TagReminderContent
           v-else-if="notification.type === NOTIFICATION_TYPES.tagReminder"
           :payload="notification.payload as TagReminderNotificationPayload"
+        />
+        <ShareContent
+          v-else-if="isShareNotification(notification.type)"
+          :type="notification.type"
+          :payload="
+            notification.payload as
+              | ShareInvitationNotificationPayload
+              | ShareInvitationSendFailedPayload
+              | ShareLifecycleNotificationPayload
+              | undefined
+          "
         />
         <DefaultContent v-else :message="notification.message" />
 

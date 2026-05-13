@@ -187,7 +187,10 @@
       "searchCategoryLabel": "Search category",
       "clearSearchLabel": "Clear search",
       "clearSelectionLabel": "Clear selection",
-      "searchPlaceholder": "Search..."
+      "searchPlaceholder": "Search...",
+      "sharedOwnerNotice": "Showing {owner}'s categories",
+      "sharedOwnerNoticeTooltip": "Transactions on a shared account always use the owner's categories. Anything you save here will be filed under {owner}'s set so both of you see consistent totals.",
+      "sharedOwnerCategoriesLoadError": "Couldn't load categories for the shared account. Please try again."
     },
     "select": {
       "selectOption": "Select an option",

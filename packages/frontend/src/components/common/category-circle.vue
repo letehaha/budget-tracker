@@ -23,13 +23,23 @@ import { computed } from 'vue';
 const props = defineProps<{
   category?: CategoryModel;
   categoryId?: number;
+  /**
+   * Caller-supplied lookup map for the parent-walk that resolves an inherited icon.
+   * Default is the global Pinia store, which only contains the caller's own categories —
+   * insufficient when rendering a shared-account category whose parent belongs to the
+   * owner's tree (the parent isn't in the recipient's store, so the walk silently fails
+   * and the icon disappears). Pass the owner's map to fix that case.
+   */
+  categoriesMap?: Record<number, CategoryModel>;
 }>();
 
-const { categoriesMap } = storeToRefs(useCategoriesStore());
+const { categoriesMap: storeCategoriesMap } = storeToRefs(useCategoriesStore());
+
+const lookupMap = computed(() => props.categoriesMap ?? storeCategoriesMap.value);
 
 const category = computed(() => {
   if (props.category) return props.category;
-  if (props.categoryId) return categoriesMap.value[props.categoryId];
+  if (props.categoryId) return lookupMap.value[props.categoryId];
   return null;
 });
 
@@ -42,7 +52,7 @@ const effectiveIcon = computed(() => {
   while (current) {
     if (current.icon) return current.icon;
     if (!current.parentId) break;
-    current = categoriesMap.value[current.parentId];
+    current = lookupMap.value[current.parentId];
   }
 
   return null;

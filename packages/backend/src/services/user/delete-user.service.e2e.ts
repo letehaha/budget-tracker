@@ -1,11 +1,14 @@
-import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { NOTIFICATION_TYPES, RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTION_TYPES } from '@bt/shared/types';
 import { API_RESPONSE_STATUS } from '@bt/shared/types/api';
+import { authPool } from '@config/auth';
 import { describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import { connection } from '@models/index';
 import Portfolios from '@models/investments/portfolios.model';
+import Notifications from '@models/notifications.model';
+import ResourceShares from '@models/resource-shares.model';
 import Transactions from '@models/transactions.model';
 import UserSettings from '@models/user-settings.model';
 import UsersCurrencies from '@models/users-currencies.model';
@@ -459,5 +462,150 @@ describe('User deletion (DELETE /user/delete)', () => {
       { replacements: { authUserId } },
     );
     expect((baPasskeyAfter as { id: string }[]).length).toBe(0);
+  });
+});
+
+describe('User deletion: family-sharing cleanup (S8)', () => {
+  it('drops ResourceShares owned by the deleted user via FK CASCADE', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+    const invitation = await helpers.createShareInvitation({
+      inviteeEmail: recipient.email,
+      resourceType: RESOURCE_TYPES.account,
+      resourceId: account.id,
+      permission: SHARE_PERMISSIONS.read,
+      raw: true,
+    });
+    await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: true }),
+    });
+
+    const sharesBefore = await ResourceShares.findAll({
+      where: { resourceType: RESOURCE_TYPES.account, resourceId: String(account.id) },
+    });
+    expect(sharesBefore).toHaveLength(1);
+
+    const deleteRes = await helpers.deleteUserAccount();
+    expect(deleteRes.statusCode).toBe(200);
+    expect(deleteRes.body.status).toBe(API_RESPONSE_STATUS.success);
+
+    const sharesAfter = await ResourceShares.findAll({
+      where: { resourceType: RESOURCE_TYPES.account, resourceId: String(account.id) },
+    });
+    expect(sharesAfter).toHaveLength(0);
+  });
+
+  it('notifies recipients of the deleted user’s shared accounts before destroy', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+    const invitation = await helpers.createShareInvitation({
+      inviteeEmail: recipient.email,
+      resourceType: RESOURCE_TYPES.account,
+      resourceId: account.id,
+      permission: SHARE_PERMISSIONS.read,
+      raw: true,
+    });
+    await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: true }),
+    });
+    const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
+
+    const deleteRes = await helpers.deleteUserAccount();
+    expect(deleteRes.statusCode).toBe(200);
+
+    const notifs = await Notifications.findAll({
+      where: { userId: recipientApp.id, type: NOTIFICATION_TYPES.shareOwnerAccountDeleted },
+    });
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0]!.payload).toMatchObject({
+      resourceType: RESOURCE_TYPES.account,
+      resourceId: String(account.id),
+    });
+  });
+
+  it('stamps creatorSnapshot on tx the user created on others’ shared accounts', async () => {
+    // Capture primary-user identity now — `helpers.deleteUserAccount()` removes the row
+    // we'd otherwise read from. Username is the field the snapshot freezes; we assert
+    // the snapshot still carries it after the delete. Email lives in `ba_user` (the
+    // better-auth table), not on the app `Users` row, which is why we go through the
+    // auth pool for it.
+    const probeAccount = await helpers.createAccount({ raw: true });
+    const primaryUser = await Users.findByPk(probeAccount.userId);
+    expect(primaryUser).not.toBeNull();
+    const primaryUsername = primaryUser!.username;
+    const baUserRow = await authPool.query<{ email: string }>('SELECT email FROM ba_user WHERE id = $1', [
+      primaryUser!.authUserId,
+    ]);
+    const primaryUserEmail = baUserRow.rows[0]?.email;
+    expect(primaryUserEmail).toBeTruthy();
+
+    // Owner-side setup: a separate user creates a shared account and invites primary
+    // with write/all so primary can later create a transaction on it.
+    const owner = await helpers.provisionSecondUserWithBaseCurrency({ email: `s8-owner-${Date.now()}@test.local` });
+    const sharedAccountInfo = await helpers.asUser({
+      cookies: owner.cookies,
+      fn: async () => {
+        const acc = await helpers.createAccount({ raw: true });
+        const invite = await helpers.createShareInvitation({
+          inviteeEmail: primaryUserEmail!,
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: acc.id,
+          permission: SHARE_PERMISSIONS.write,
+          policy: { transactionsWriteScope: 'all' },
+          raw: true,
+        });
+        const categories = await helpers.getCategoriesList();
+        return { id: acc.id, inviteToken: invite.token, ownerCategoryId: categories[0]!.id };
+      },
+    });
+
+    // Primary-side: accept invite and create a transaction. Per S4 the categoryId must
+    // belong to the OWNER's set when writing on a shared account.
+    await helpers.acceptShareInvitation({ token: sharedAccountInfo.inviteToken, raw: true });
+    const [createdTx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: sharedAccountInfo.id,
+        amount: 100,
+        categoryId: sharedAccountInfo.ownerCategoryId,
+      }),
+      raw: true,
+    });
+    expect(createdTx).toBeDefined();
+    const txId = createdTx!.id;
+
+    const deleteRes = await helpers.deleteUserAccount();
+    expect(deleteRes.statusCode).toBe(200);
+
+    // The transaction row survives — it lives on the OWNER's account, not the deleted
+    // user's — and carries a frozen snapshot of the deleted creator's identity.
+    const survivor = await Transactions.findByPk(txId);
+    expect(survivor).not.toBeNull();
+    expect(survivor!.userId).toBeNull();
+    expect(survivor!.creatorSnapshot).not.toBeNull();
+    expect(survivor!.creatorSnapshot).toMatchObject({ username: primaryUsername });
+  });
+
+  it('leaves the deleted user’s OWN tx alone — they cascade away with the user', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const category = await helpers.addCustomCategory({ name: 'Cleanup test', color: '#abc123', raw: true });
+    const [tx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 42,
+        categoryId: category.id,
+      }),
+      raw: true,
+    });
+    expect(tx).toBeDefined();
+    const txId = tx!.id;
+
+    const deleteRes = await helpers.deleteUserAccount();
+    expect(deleteRes.statusCode).toBe(200);
+
+    // Self-owned tx cascade-deleted; creatorSnapshot only matters for survivors on others' accounts.
+    const survivor = await Transactions.findByPk(txId);
+    expect(survivor).toBeNull();
   });
 });

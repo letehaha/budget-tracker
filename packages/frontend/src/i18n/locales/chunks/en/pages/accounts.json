@@ -7,13 +7,15 @@
     "sections": {
       "archived": "Archived",
       "manual": "Manual accounts",
-      "connected": "Connected Accounts"
+      "connected": "Connected Accounts",
+      "sharedWithMe": "Shared with me"
     },
     "empty": {
       "title": "No Accounts Yet",
       "description": "Connect your bank or create a manual account to start tracking your finances, balances, and transactions.",
       "connectBank": "Connect Bank Account",
       "createManual": "Create Manual Account"
-    }
+    },
+    "sharedBy": "Shared by {handle}"
   }
 }

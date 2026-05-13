@@ -1,10 +1,13 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { endpointsTypes } from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
-import * as Categories from '@models/categories.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import Transactions from '@models/transactions.model';
+import {
+  AccessibleCategoryInfo,
+  getAccessibleCategoryMap,
+} from '@services/categories/get-accessible-category-map.service';
 import { Op } from 'sequelize';
 
 import { getExpensesHistory } from '../get-expenses-history';
@@ -76,21 +79,24 @@ export async function getSpendingsByCategories(params: {
     if (refund.splitId) splitIdsToFetch.add(refund.splitId);
   }
 
-  // Fetch splits and categories in parallel
+  // Fetch splits and categories in parallel. Splits are keyed by transactionId only —
+  // tx-level visibility was already established when `getExpensesHistory` filtered by
+  // `userId: caller`. A split-level `userId` filter would silently drop rows authored by
+  // a different user when editing a shared-account tx (e.g. owner-added splits on a
+  // recipient's tx via write/all). Categories cover every owner whose accounts the caller
+  // can see, so transactions on a shared account (which reference the owner's categoryId)
+  // resolve to a real name/color instead of falling through to "Unknown".
   const allSplitTxIds = [...txIds, ...missingTxIds];
-  const [splits, categories] = await Promise.all([
+  const [splits, { categories }] = await Promise.all([
     TransactionSplits.findAll({
       where: {
         [Op.or]: [
-          { transactionId: { [Op.in]: allSplitTxIds }, userId: params.userId },
+          { transactionId: { [Op.in]: allSplitTxIds } },
           ...(splitIdsToFetch.size > 0 ? [{ id: { [Op.in]: [...splitIdsToFetch] } }] : []),
         ],
       },
     }),
-    Categories.default.findAll({
-      where: { userId: params.userId },
-      attributes: ['id', 'parentId', 'name', 'color'],
-    }),
+    getAccessibleCategoryMap({ userId: params.userId }),
   ]);
 
   // Group splits by transactionId and by id (UUID) for easy lookup
@@ -119,14 +125,16 @@ async function processWithoutRefunds({
   userId: number;
   selectedCategoryIds?: number[];
 }) {
-  const [splits, categories] = await Promise.all([
+  // Splits are keyed by transactionId only — tx-level visibility was already established
+  // by `getExpensesHistory`. See the parallel comment in `processWithRefunds`.
+  // Categories cover every owner whose accounts the caller can see (own + shared) so a
+  // shared-account tx — forced to use the owner's categoryId — still resolves to its real
+  // name/color rather than rendering as "Unknown" / black.
+  const [splits, { categories }] = await Promise.all([
     TransactionSplits.findAll({
-      where: { transactionId: { [Op.in]: txIds }, userId },
+      where: { transactionId: { [Op.in]: txIds } },
     }),
-    Categories.default.findAll({
-      where: { userId },
-      attributes: ['id', 'parentId', 'name', 'color'],
-    }),
+    getAccessibleCategoryMap({ userId }),
   ]);
 
   const { splitsByTxId } = groupSplitsByTransactionId({ splits });
@@ -154,7 +162,7 @@ async function processWithoutRefunds({
  * - Each split category gets: split.refAmount
  */
 function groupAndAdjustData(params: {
-  categories: Categories.default[];
+  categories: AccessibleCategoryInfo[];
   transactions: TransactionsParam;
   refunds: RefundTransactions[];
   splitsByTxId: Map<number, TransactionSplits[]>;

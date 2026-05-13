@@ -1,7 +1,7 @@
-import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, API_ERROR_CODES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
-import { ValidationError } from '@js/errors';
+import { ConflictError, ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
@@ -11,12 +11,13 @@ import InvestmentTransaction from '@models/investments/investment-transaction.mo
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
+import ResourceShares from '@models/resource-shares.model';
 import Transactions from '@models/transactions.model';
 import { getBaseCurrency, updateCurrencies } from '@models/users-currencies.model';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { withLock } from '@services/common/lock';
 import * as userExchangeRateService from '@services/user-exchange-rate';
-import { QueryTypes, Transaction as SequelizeTransaction } from 'sequelize';
+import { Op, QueryTypes, Transaction as SequelizeTransaction } from 'sequelize';
 
 /**
  * What is covered:
@@ -92,6 +93,26 @@ interface RecalculateResult {
  */
 async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise<RecalculateResult> {
   const { userId, newCurrencyCode } = params;
+
+  // Refuse the change while the user has any active share — both ends of an
+  // accepted share must agree on a base currency, otherwise the recipient's
+  // aggregated stats mix the owner's `refAmount` with their own under different
+  // ref-currency assumptions and the totals diverge silently. Pending invitations
+  // don't lock; they're handled by the accept-time currency-match check, which
+  // surfaces a clean error instead.
+  const activeShareCount = await ResourceShares.count({
+    where: {
+      [Op.or]: [{ ownerUserId: userId }, { sharedWithUserId: userId }],
+      acceptedAt: { [Op.not]: null },
+    },
+  });
+
+  if (activeShareCount > 0) {
+    throw new ConflictError({
+      code: API_ERROR_CODES.baseCurrencyLockedByShares,
+      message: t({ key: 'currencies.baseCurrencyLockedByShares' }),
+    });
+  }
 
   // Get current base currency
   const oldBaseCurrency = await getBaseCurrency({ userId });

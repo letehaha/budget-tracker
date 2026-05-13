@@ -5,17 +5,19 @@ import BankProviderLogo from '@/components/common/bank-providers/bank-provider-l
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
+import { useAccountAccess } from '@/composable/use-account-access';
 import AccountArchiveSection from '@/pages/account/components/account-archive-section.vue';
 import AccountDeletionSection from '@/pages/account/components/account-deletion-section.vue';
 import AccountDetailsTab from '@/pages/account/components/account-details-tab.vue';
 import SettingAccountGroup from '@/pages/account/components/account-group.vue';
 import AccountUnlinkSection from '@/pages/account/components/account-unlink-section.vue';
 import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
+import SharingPanel from '@/pages/account/components/sharing-panel/sharing-panel.vue';
 import { ROUTES_NAMES } from '@/routes';
-import { AccountModel, TransactionModel } from '@bt/shared/types';
+import { AccountModel, SHARE_PERMISSIONS, TransactionModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { ExternalLinkIcon } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import LoadTransactions from './load-transactions.vue';
@@ -37,12 +39,17 @@ const currentConnection = computed(() =>
   connections.value?.find((c) => c.id === props.account.bankDataProviderConnectionId),
 );
 
+const { isOwner, permission } = useAccountAccess(toRef(() => props.account));
+const canSeeSharingTab = computed(() => isOwner.value || permission.value === SHARE_PERMISSIONS.manage);
+
 const activeTab = ref('details');
-const tabItems = computed(() => [
-  { value: 'details', label: t('pages.account.tabs.details') },
-  { value: 'integrations', label: t('pages.account.tabs.integrations') },
-  { value: 'settings', label: t('pages.account.tabs.settings') },
-]);
+const tabItems = computed(() => {
+  const items = [{ value: 'details', label: t('pages.account.tabs.details') }];
+  if (isOwner.value) items.push({ value: 'integrations', label: t('pages.account.tabs.integrations') });
+  if (canSeeSharingTab.value) items.push({ value: 'sharing', label: t('pages.account.tabs.sharing') });
+  items.push({ value: 'settings', label: t('pages.account.tabs.settings') });
+  return items;
+});
 </script>
 
 <template>
@@ -59,15 +66,17 @@ const tabItems = computed(() => [
 
         <SettingAccountGroup :account="account" />
 
-        <Separator />
+        <template v-if="isOwner">
+          <Separator />
 
-        <AccountArchiveSection :account="account" />
+          <AccountArchiveSection :account="account" />
 
-        <AccountDeletionSection :account="account" :transactions="transactions" />
+          <AccountDeletionSection :account="account" :transactions="transactions" />
+        </template>
       </div>
     </Tabs.TabsContent>
 
-    <Tabs.TabsContent value="integrations">
+    <Tabs.TabsContent v-if="isOwner" value="integrations">
       <div class="grid gap-4 pt-6 text-sm">
         <div class="flex items-center justify-between gap-2">
           <span>{{ t('pages.account.integrations.connectedVia') }}</span>
@@ -94,6 +103,12 @@ const tabItems = computed(() => [
           <p class="text-lg font-medium">{{ t('pages.account.deletion.dangerZone') }}</p>
           <AccountUnlinkSection :account="account" />
         </div>
+      </div>
+    </Tabs.TabsContent>
+
+    <Tabs.TabsContent v-if="canSeeSharingTab" value="sharing">
+      <div class="grid gap-4 pt-6">
+        <SharingPanel :account="account" />
       </div>
     </Tabs.TabsContent>
   </Tabs.Tabs>

@@ -9,7 +9,8 @@
       "preferences": "Preferences",
       "ai": "AI",
       "security": "Security",
-      "admin": "Admin"
+      "admin": "Admin",
+      "sharedWithMe": "Shared with me"
     },
     "backToSettings": "Back to Settings"
   }

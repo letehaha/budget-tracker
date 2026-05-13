@@ -118,11 +118,17 @@ export const deleteSplitsForTransaction = async ({
   userId,
 }: {
   transactionId: number;
-  userId: number;
+  /**
+   * Optional. When omitted (callers that have already authorized via the parent
+   * transaction's account), all splits for the transaction are deleted regardless
+   * of which user authored each row. Required for legacy single-user callsites that
+   * still scope by creator.
+   */
+  userId?: number;
 }) => {
-  return TransactionSplits.destroy({
-    where: { transactionId, userId },
-  });
+  const where: { transactionId: number; userId?: number } = { transactionId };
+  if (userId !== undefined) where.userId = userId;
+  return TransactionSplits.destroy({ where });
 };
 
 export const deleteSplitById = async ({ id, userId }: { id: string; userId: number }) => {

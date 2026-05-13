@@ -358,6 +358,61 @@
     "exchangeCurrency": {
       "title": "Exchange Currency",
       "description": "Exchange cash between different currencies within your portfolio"
+    },
+    "shareAccountDialog": {
+      "title": "Share account",
+      "description": "Invite someone to access {name}.",
+      "emailLabel": "Recipient email",
+      "emailPlaceholder": "name{'@'}example.com",
+      "permissionLabel": "Permission",
+      "permissions": {
+        "read": "Read-only",
+        "write": "Read & add transactions",
+        "manage": "Full access"
+      },
+      "writeScopeLabel": "Transaction edit scope",
+      "writeScope": {
+        "all": "All transactions on the account",
+        "own": "Only transactions they created"
+      },
+      "cancel": "Cancel",
+      "send": "Send invitation",
+      "success": "Invitation request submitted. If a user with that address is registered, they'll receive an invitation.",
+      "error": "Could not send invitation. Please try again.",
+      "emailSendFailedWarning": "Invitation saved, but the email could not be sent. The recipient may not have received a notification — try again later."
+    },
+    "shareInvitationDialog": {
+      "titlePending": "{owner} wants to share with you",
+      "titleAccepted": "Invitation accepted",
+      "titleDeclined": "Invitation declined",
+      "titleCurrencyMismatch": "Base currency doesn't match",
+      "titleLoading": "Loading invitation…",
+      "titleNotFound": "Invitation not available",
+      "pendingMessage": "You've been invited to access {resource}. Review the details below and choose how to respond.",
+      "acceptedBody": "You now have access to this shared resource. Open it to start working together.",
+      "declinedBody": "We've let the sender know.",
+      "currencyMismatch": "Your base currency must be {currency} to accept this invitation. Update your base currency, then try again.",
+      "notFoundBody": "This invitation may have expired, been revoked, or already been actioned. Ask the sender for a new one if you still need access.",
+      "unexpectedError": "Something went wrong. Try again in a moment.",
+      "loading": "Fetching invitation…",
+      "permissionLabel": "Access level",
+      "expiresLabel": "Expires",
+      "permissions": {
+        "read": "Read-only",
+        "write": "Read + write",
+        "manage": "Manage"
+      },
+      "unknownOwner": "A MoneyMatter user",
+      "unknownResource": "a shared resource",
+      "accept": "Accept",
+      "decline": "Decline",
+      "close": "Close",
+      "goToAccount": "Go to account",
+      "updateBaseCurrency": "Update base currency",
+      "acceptSuccess": "You're now part of this shared resource.",
+      "acceptError": "Couldn't accept the invitation. Try again.",
+      "declineSuccess": "Invitation declined.",
+      "declineError": "Couldn't decline the invitation. Try again."
     }
   }
 }

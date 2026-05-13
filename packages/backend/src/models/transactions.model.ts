@@ -7,6 +7,7 @@ import {
   SORT_DIRECTIONS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  TransactionCreatorSnapshot,
   TransactionModel,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
@@ -25,7 +26,7 @@ import TransactionGroups from '@models/transaction-groups.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import TransactionTags from '@models/transaction-tags.model';
 import Users from '@models/users.model';
-import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
+import { updateAccountBalanceForChangedTx } from '@services/accounts/update-balance-for-changed-tx';
 import { Op, Includeable, WhereOptions, literal } from 'sequelize';
 import {
   Table,
@@ -143,6 +144,9 @@ export default class Transactions extends Model {
   @ForeignKey(() => Users)
   @Column({ type: DataType.INTEGER })
   userId!: number;
+
+  @Column({ type: DataType.JSONB, allowNull: true, defaultValue: null })
+  creatorSnapshot!: TransactionCreatorSnapshot | null;
 
   @BelongsToMany(() => Budgets, {
     through: { model: () => BudgetTransactions, unique: false },
@@ -300,11 +304,10 @@ export default class Transactions extends Model {
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
-    const { accountType, accountId, userId, currencyCode, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
-        userId,
         accountId,
         amount,
         refAmount,
@@ -340,7 +343,6 @@ export default class Transactions extends Model {
       if (isAccountChanged) {
         // Update old tx
         await updateAccountBalanceForChangedTx({
-          userId: prevData.userId,
           accountId: prevData.accountId,
           prevAmount: prevData.amount,
           prevRefAmount: prevData.refAmount,
@@ -350,7 +352,6 @@ export default class Transactions extends Model {
 
         // Update new tx
         await updateAccountBalanceForChangedTx({
-          userId: newData.userId,
           accountId: newData.accountId,
           amount: newData.amount,
           refAmount: newData.refAmount,
@@ -359,7 +360,6 @@ export default class Transactions extends Model {
         });
       } else {
         await updateAccountBalanceForChangedTx({
-          userId: newData.userId,
           accountId: newData.accountId,
           amount: newData.amount,
           prevAmount: prevData.amount,
@@ -389,11 +389,10 @@ export default class Transactions extends Model {
 
   @BeforeDestroy
   static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
-    const { accountType, accountId, userId, currencyCode, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
-        userId,
         accountId,
         prevAmount: amount,
         prevRefAmount: refAmount,
@@ -497,7 +496,13 @@ export const findWithFilters = async ({
   excludedBudgetIds?: number[];
   tagIds?: number[];
   excludedTagIds?: number[];
-  userId: number;
+  /**
+   * Creator scope. Optional because the public-facing read-path uses an account-scoped
+   * query (see `services/sharing/get-accessible-account-ids.service.ts`) so it can
+   * surface transactions on shared accounts regardless of who created them. Internal
+   * callers pass `userId` to keep their owner-scoped semantics.
+   */
+  userId?: number;
   order?: SORT_DIRECTIONS;
   includeSplits?: boolean;
   includeTags?: boolean;
@@ -532,7 +537,7 @@ export const findWithFilters = async ({
   const refundCondition = buildRefundCondition(resolvedRefundFilter);
 
   const whereClause: WhereOptions<Transactions> = {
-    userId,
+    ...(userId !== undefined ? { userId } : {}),
     ...removeUndefinedKeys({
       accountType,
       transactionType,
@@ -555,13 +560,15 @@ export const findWithFilters = async ({
   }
 
   if (categoryIds && categoryIds.length > 0) {
-    // Find transactions that have splits with any of the requested category IDs
+    // Find transactions that have splits with any of the requested category IDs.
+    // When `userId` is unset (account-scoped public read-path), we widen the lookup to
+    // any user's splits — the outer accountId filter constrains the final rows to the
+    // caller's accessible accounts, so this stays safe.
+    const splitsWhere: Record<string, unknown> = { categoryId: { [Op.in]: categoryIds } };
+    if (userId !== undefined) splitsWhere.userId = userId;
     const transactionIdsWithMatchingSplits = await TransactionSplits.findAll({
       attributes: ['transactionId'],
-      where: {
-        userId,
-        categoryId: { [Op.in]: categoryIds },
-      },
+      where: splitsWhere,
       raw: true,
     }).then((results) => [...new Set(results.map((r) => r.transactionId))]);
 

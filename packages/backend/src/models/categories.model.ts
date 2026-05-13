@@ -25,6 +25,15 @@ export default class Categories extends Model {
   @Column({ allowNull: false, type: DataType.STRING })
   name!: string;
 
+  /**
+   * Stable, locale-independent identifier for seeded default categories (kebab-case).
+   * Null for user-created custom categories. Survives renames and locale changes — used
+   * by stats/sharing features to merge equivalent categories across users. The canonical
+   * set of values lives in `default-categories.ts`.
+   */
+  @Column({ allowNull: true, type: DataType.STRING(100) })
+  key!: string | null;
+
   // Lucide-icons icon name
   @Column({ allowNull: true, type: DataType.STRING(50) })
   icon!: string | null;
@@ -56,6 +65,16 @@ export default class Categories extends Model {
 export const getCategories = async ({ userId }: { userId: number }) => {
   const categories = await Categories.findAll({
     where: { userId },
+    raw: true,
+  });
+
+  return categories;
+};
+
+export const getCategoriesForUsers = async ({ userIds }: { userIds: number[] }) => {
+  if (userIds.length === 0) return [];
+  const categories = await Categories.findAll({
+    where: { userId: userIds },
     raw: true,
   });
 

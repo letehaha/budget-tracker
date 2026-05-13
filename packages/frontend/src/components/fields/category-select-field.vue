@@ -23,7 +23,7 @@
           :aria-selected="selectedValue?.id === item.id"
           @mousedown.prevent="selectItem(item)"
         >
-          <CategoryCircle :category="item" class="shrink-0" />
+          <CategoryCircle :category="item" :categories-map="categoriesMap" class="shrink-0" />
           <span class="min-w-0 grow truncate">{{ item.name }}</span>
         </button>
       </template>
@@ -62,7 +62,12 @@
               :aria-label="$t('fields.categorySelect.selectCategoryLabel')"
               :title="selectedValue?.name || $t('fields.categorySelect.selectCategoryLabel')"
             >
-              <CategoryCircle v-if="selectedValue" :category="selectedValue" class="shrink-0" />
+              <CategoryCircle
+                v-if="selectedValue"
+                :category="selectedValue"
+                :categories-map="categoriesMap"
+                class="shrink-0"
+              />
               <span
                 class="text-muted-foreground min-w-0 flex-1 truncate text-left"
                 :class="{ 'text-foreground': selectedValue }"
@@ -91,6 +96,20 @@
             class="w-(--reka-popover-trigger-width) max-w-(--reka-popover-trigger-width) min-w-(--reka-popover-trigger-width) p-0"
             @open-auto-focus.prevent="$nextTick(() => inputRef?.focus())"
           >
+            <div
+              v-if="sharedOwnerHandle"
+              class="bg-muted/40 text-foreground flex items-center gap-2 border-b px-3 py-2 text-xs"
+              role="note"
+            >
+              <span>{{ $t('fields.categorySelect.sharedOwnerNotice', { owner: sharedOwnerHandle }) }}</span>
+              <ResponsiveTooltip
+                :content="$t('fields.categorySelect.sharedOwnerNoticeTooltip', { owner: sharedOwnerHandle })"
+                content-class-name="max-w-64"
+                :delay-duration="100"
+              >
+                <InfoIcon class="text-muted-foreground size-3.5 shrink-0 cursor-help" />
+              </ResponsiveTooltip>
+            </div>
             <!-- Search input -->
             <input
               ref="inputRef"
@@ -125,7 +144,12 @@
           :title="selectedValue?.name || $t('fields.categorySelect.selectCategoryLabel')"
           @click="openDropdown"
         >
-          <CategoryCircle v-if="selectedValue" :category="selectedValue" class="shrink-0" />
+          <CategoryCircle
+            v-if="selectedValue"
+            :category="selectedValue"
+            :categories-map="categoriesMap"
+            class="shrink-0"
+          />
           <span
             class="text-muted-foreground min-w-0 flex-1 truncate text-left"
             :class="{ 'text-foreground': selectedValue }"
@@ -157,6 +181,21 @@
         <Drawer.DrawerHeader class="px-0 pb-2">
           <Drawer.DrawerTitle>{{ $t('fields.categorySelect.selectCategoryLabel') }}</Drawer.DrawerTitle>
         </Drawer.DrawerHeader>
+
+        <div
+          v-if="sharedOwnerHandle"
+          class="bg-muted/40 text-foreground mb-3 flex items-center justify-between gap-2 rounded-md px-3 py-2 text-xs"
+          role="note"
+        >
+          <span>{{ $t('fields.categorySelect.sharedOwnerNotice', { owner: sharedOwnerHandle }) }}</span>
+          <ResponsiveTooltip
+            :content="$t('fields.categorySelect.sharedOwnerNoticeTooltip', { owner: sharedOwnerHandle })"
+            content-class-name="max-w-64"
+            :delay-duration="100"
+          >
+            <InfoIcon class="text-muted-foreground size-3.5 shrink-0 cursor-help" />
+          </ResponsiveTooltip>
+        </div>
 
         <!-- Search input in drawer -->
         <div
@@ -193,15 +232,17 @@
 
 <script setup lang="ts">
 import { type FormattedCategory } from '@/common/types';
+import { truncateOwnerUsername } from '@/common/utils/account-display';
 import CategoryCircle from '@/components/common/category-circle.vue';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { FieldError, FieldLabel } from '@/components/fields';
 import * as Drawer from '@/components/lib/ui/drawer';
 import * as Popover from '@/components/lib/ui/popover';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { cn } from '@/lib/utils';
-import { CATEGORY_TYPES } from '@bt/shared/types';
+import { CATEGORY_TYPES, type CategoryModel } from '@bt/shared/types';
 import { createReusableTemplate } from '@vueuse/core';
-import { ChevronDownIcon, XIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, InfoIcon, XIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 defineOptions({ inheritAttrs: false });
@@ -223,6 +264,14 @@ const props = withDefaults(
     placeholder?: string;
     errorMessage?: string;
     disabled?: boolean;
+    /** Forwarded to inner CategoryCircle so icon inheritance walks the right tree. */
+    categoriesMap?: Record<number, CategoryModel>;
+    /**
+     * When set, surfaces a "Showing @{owner}'s categories" notice atop the dropdown so
+     * recipients on a shared account aren't confused by suddenly seeing a different
+     * category set than the global Pinia store would render.
+     */
+    sharedOwnerUsername?: string;
   }>(),
   {
     label: undefined,
@@ -230,7 +279,13 @@ const props = withDefaults(
     placeholder: undefined,
     errorMessage: undefined,
     labelKey: 'label',
+    categoriesMap: undefined,
+    sharedOwnerUsername: undefined,
   },
+);
+
+const sharedOwnerHandle = computed(() =>
+  props.sharedOwnerUsername ? `@${truncateOwnerUsername(props.sharedOwnerUsername)}` : null,
 );
 
 const emit = defineEmits<{

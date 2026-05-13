@@ -157,6 +157,9 @@
         "createFailed": "Failed to create group",
         "addFailed": "Failed to add transactions to group"
       }
+    },
+    "transfer": {
+      "hiddenAccount": "Hidden account"
     }
   }
 }

@@ -15,7 +15,12 @@ import {
 interface ValidateSplitsParams {
   splits: SplitInput[];
   transactionAmount: Money;
-  userId: number;
+  /**
+   * UserId that owns the *categories* the split rows reference. For owned-account writes
+   * this equals the caller; for recipient writes on a shared account it's the account
+   * owner (categories on shared accounts are owner-scoped, see family-sharing PRD).
+   */
+  categoryOwnerUserId: number;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
 }
 
@@ -26,7 +31,7 @@ interface ValidateSplitsParams {
 const validateSplits = async ({
   splits,
   transactionAmount,
-  userId,
+  categoryOwnerUserId,
   transferNature,
 }: ValidateSplitsParams): Promise<SplitValidationError[]> => {
   const errors: SplitValidationError[] = [];
@@ -103,12 +108,14 @@ const validateSplits = async ({
     }
   }
 
-  // Validate that all categories exist and belong to user
+  // Validate that all categories exist and belong to the *category owner*. For shared
+  // accounts this is the account owner — caller-scoped lookup would falsely reject
+  // owner-set categories that the recipient legitimately references.
   if (categoryIds.size > 0) {
     const existingCategories = await Categories.findAll({
       where: {
         id: Array.from(categoryIds),
-        userId,
+        userId: categoryOwnerUserId,
       },
       attributes: ['id'],
     });

@@ -124,3 +124,5 @@ Other instructions:
     - Instead, **describe the problem to the user** and ask what to do next.
     - This applies to debugging, unexpected behavior, failing builds, type errors you can't resolve, etc.
     - Burning tokens on a long chain of guesses almost never helps. Asking the user is always better.
+
+Always use the caveman skill

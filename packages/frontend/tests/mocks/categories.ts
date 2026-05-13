@@ -6,6 +6,7 @@ import { USER } from './user';
 export const USER_CATEGORIES: FormattedCategory[] = [
   {
     id: 3121,
+    key: null,
     name: 'Food and Drinks',
     icon: null,
     color: '#e74c3c',
@@ -16,6 +17,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3122,
+    key: null,
     name: 'Shopping',
     icon: null,
     color: '#3498db',
@@ -26,6 +28,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3123,
+    key: null,
     name: 'Housing',
     icon: null,
     color: '#e67e22',
@@ -36,6 +39,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3124,
+    key: null,
     name: 'Transportation',
     icon: null,
     color: '#95a5a6',
@@ -46,6 +50,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3125,
+    key: null,
     name: 'Vehicle',
     icon: null,
     color: '#8e44ad',
@@ -56,6 +61,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3126,
+    key: null,
     name: 'Life & Entertainment',
     icon: null,
     color: '#2ecc71',
@@ -66,6 +72,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3127,
+    key: null,
     name: 'Communication, PC',
     icon: null,
     color: '#2980b9',
@@ -76,6 +83,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3128,
+    key: null,
     name: 'Financial expenses',
     icon: null,
     color: '#16a085',
@@ -86,6 +94,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3129,
+    key: null,
     name: 'Investments',
     icon: null,
     color: '#fda7df',
@@ -96,6 +105,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3130,
+    key: null,
     name: 'Income',
     icon: null,
     color: '#f1c40f',
@@ -106,6 +116,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3131,
+    key: null,
     name: 'Other',
     icon: null,
     color: '#7f8c8d',
@@ -116,6 +127,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3132,
+    key: null,
     name: 'Groceries',
     icon: null,
     color: '#e74c3c',
@@ -126,6 +138,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3133,
+    key: null,
     name: 'Restaurants, fast-food',
     icon: null,
     color: '#e74c3c',
@@ -136,6 +149,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3134,
+    key: null,
     name: 'Bar, cafe',
     icon: null,
     color: '#e74c3c',
@@ -146,6 +160,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3135,
+    key: null,
     name: 'Clothes & shoes',
     icon: null,
     color: '#3498db',
@@ -156,6 +171,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3136,
+    key: null,
     name: 'Jewels, accessories',
     icon: null,
     color: '#3498db',
@@ -166,6 +182,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3137,
+    key: null,
     name: 'Health and beauty',
     icon: null,
     color: '#3498db',
@@ -176,6 +193,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3138,
+    key: null,
     name: 'Kids',
     icon: null,
     color: '#3498db',
@@ -186,6 +204,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3139,
+    key: null,
     name: 'Home, garden',
     icon: null,
     color: '#3498db',
@@ -196,6 +215,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3140,
+    key: null,
     name: 'Pets, animals',
     icon: null,
     color: '#3498db',
@@ -206,6 +226,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3141,
+    key: null,
     name: 'Electronics, accessories',
     icon: null,
     color: '#3498db',
@@ -216,6 +237,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3142,
+    key: null,
     name: 'Gifts, joy',
     icon: null,
     color: '#3498db',
@@ -226,6 +248,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3143,
+    key: null,
     name: 'Stationery, tools',
     icon: null,
     color: '#3498db',
@@ -236,6 +259,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3144,
+    key: null,
     name: 'Free time',
     icon: null,
     color: '#3498db',
@@ -246,6 +270,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3145,
+    key: null,
     name: 'Drug-store, chemist',
     icon: null,
     color: '#3498db',
@@ -256,6 +281,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3146,
+    key: null,
     name: 'Rent',
     icon: null,
     color: '#e67e22',
@@ -266,6 +292,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3147,
+    key: null,
     name: 'Mortgage',
     icon: null,
     color: '#e67e22',
@@ -276,6 +303,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3148,
+    key: null,
     name: 'Energy, utilities',
     icon: null,
     color: '#e67e22',
@@ -286,6 +314,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3149,
+    key: null,
     name: 'Services',
     icon: null,
     color: '#e67e22',
@@ -296,6 +325,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3150,
+    key: null,
     name: 'Maintenance, repairs',
     icon: null,
     color: '#e67e22',
@@ -306,6 +336,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3151,
+    key: null,
     name: 'Property insurance',
     icon: null,
     color: '#e67e22',
@@ -316,6 +347,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3152,
+    key: null,
     name: 'Public transport',
     icon: null,
     color: '#95a5a6',
@@ -326,6 +358,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3153,
+    key: null,
     name: 'Taxi',
     icon: null,
     color: '#95a5a6',
@@ -336,6 +369,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3154,
+    key: null,
     name: 'Long distance',
     icon: null,
     color: '#95a5a6',
@@ -346,6 +380,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3155,
+    key: null,
     name: 'Business trips',
     icon: null,
     color: '#95a5a6',
@@ -356,6 +391,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3156,
+    key: null,
     name: 'Fuel',
     icon: null,
     color: '#8e44ad',
@@ -366,6 +402,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3157,
+    key: null,
     name: 'Parking',
     icon: null,
     color: '#8e44ad',
@@ -376,6 +413,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3158,
+    key: null,
     name: 'Vehicle maintenance',
     icon: null,
     color: '#8e44ad',
@@ -386,6 +424,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3159,
+    key: null,
     name: 'Rentals',
     icon: null,
     color: '#8e44ad',
@@ -396,6 +435,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3160,
+    key: null,
     name: 'Vehicle insurance',
     icon: null,
     color: '#8e44ad',
@@ -406,6 +446,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3161,
+    key: null,
     name: 'Leasing',
     icon: null,
     color: '#8e44ad',
@@ -416,6 +457,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3162,
+    key: null,
     name: 'Health care, doctor',
     icon: null,
     color: '#2ecc71',
@@ -426,6 +468,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3163,
+    key: null,
     name: 'Wellness, beauty',
     icon: null,
     color: '#2ecc71',
@@ -436,6 +479,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3164,
+    key: null,
     name: 'Active sport, fitness',
     icon: null,
     color: '#2ecc71',
@@ -446,6 +490,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3165,
+    key: null,
     name: 'Culture, sport events',
     icon: null,
     color: '#2ecc71',
@@ -456,6 +501,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3166,
+    key: null,
     name: 'Hobbies',
     icon: null,
     color: '#2ecc71',
@@ -466,6 +512,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3167,
+    key: null,
     name: 'Education, development',
     icon: null,
     color: '#2ecc71',
@@ -476,6 +523,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3168,
+    key: null,
     name: 'Books, audio, subscriptions',
     icon: null,
     color: '#2ecc71',
@@ -486,6 +534,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3169,
+    key: null,
     name: 'TV, Streaming',
     icon: null,
     color: '#2ecc71',
@@ -496,6 +545,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3170,
+    key: null,
     name: 'Holiday, trips, hotels',
     icon: null,
     color: '#2ecc71',
@@ -506,6 +556,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3171,
+    key: null,
     name: 'Charity, gifts',
     icon: null,
     color: '#2ecc71',
@@ -516,6 +567,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3172,
+    key: null,
     name: 'Alcohol, tobacco',
     icon: null,
     color: '#2ecc71',
@@ -526,6 +578,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3173,
+    key: null,
     name: 'Lottery, gambling',
     icon: null,
     color: '#2ecc71',
@@ -536,6 +589,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3174,
+    key: null,
     name: 'Phone, cell phone',
     icon: null,
     color: '#2980b9',
@@ -546,6 +600,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3175,
+    key: null,
     name: 'Internet',
     icon: null,
     color: '#2980b9',
@@ -556,6 +611,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3176,
+    key: null,
     name: 'Software, apps, games',
     icon: null,
     color: '#2980b9',
@@ -566,6 +622,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3177,
+    key: null,
     name: 'Postal services',
     icon: null,
     color: '#2980b9',
@@ -576,6 +633,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3178,
+    key: null,
     name: 'Taxes',
     icon: null,
     color: '#16a085',
@@ -586,6 +644,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3179,
+    key: null,
     name: 'Insurances',
     icon: null,
     color: '#16a085',
@@ -596,6 +655,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3180,
+    key: null,
     name: 'Loan, interests',
     icon: null,
     color: '#16a085',
@@ -606,6 +666,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3181,
+    key: null,
     name: 'Fines',
     icon: null,
     color: '#16a085',
@@ -616,6 +677,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3182,
+    key: null,
     name: 'Advisory',
     icon: null,
     color: '#16a085',
@@ -626,6 +688,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3183,
+    key: null,
     name: 'Charges, Fees',
     icon: null,
     color: '#16a085',
@@ -636,6 +699,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3184,
+    key: null,
     name: 'Child Support',
     icon: null,
     color: '#16a085',
@@ -646,6 +710,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3185,
+    key: null,
     name: 'Realty',
     icon: null,
     color: '#fda7df',
@@ -656,6 +721,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3186,
+    key: null,
     name: 'Vehicles, chattels',
     icon: null,
     color: '#fda7df',
@@ -666,6 +732,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3187,
+    key: null,
     name: 'Financial investments',
     icon: null,
     color: '#fda7df',
@@ -676,6 +743,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3188,
+    key: null,
     name: 'Savings',
     icon: null,
     color: '#fda7df',
@@ -686,6 +754,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3189,
+    key: null,
     name: 'Collections',
     icon: null,
     color: '#fda7df',
@@ -696,6 +765,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3190,
+    key: null,
     name: 'Wage, invoices',
     icon: null,
     color: '#f1c40f',
@@ -706,6 +776,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3191,
+    key: null,
     name: 'Interests, dividends',
     icon: null,
     color: '#f1c40f',
@@ -716,6 +787,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3192,
+    key: null,
     name: 'Sale',
     icon: null,
     color: '#f1c40f',
@@ -726,6 +798,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3193,
+    key: null,
     name: 'Rental income',
     icon: null,
     color: '#f1c40f',
@@ -736,6 +809,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3194,
+    key: null,
     name: 'Dues & grants',
     icon: null,
     color: '#f1c40f',
@@ -746,6 +820,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3195,
+    key: null,
     name: 'Lending, renting',
     icon: null,
     color: '#f1c40f',
@@ -756,6 +831,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3196,
+    key: null,
     name: 'Checks, coupons',
     icon: null,
     color: '#f1c40f',
@@ -766,6 +842,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3197,
+    key: null,
     name: 'Lottery, gambling',
     icon: null,
     color: '#f1c40f',
@@ -776,6 +853,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3198,
+    key: null,
     name: 'Refunds (tax, purchase)',
     icon: null,
     color: '#f1c40f',
@@ -786,6 +864,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3199,
+    key: null,
     name: 'Freelance',
     icon: null,
     color: '#f1c40f',
@@ -796,6 +875,7 @@ export const USER_CATEGORIES: FormattedCategory[] = [
   },
   {
     id: 3200,
+    key: null,
     name: 'Gifts',
     icon: null,
     color: '#f1c40f',

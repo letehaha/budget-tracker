@@ -27,6 +27,10 @@
     "notFound": "Transaction not found",
     "missingRequiredFields": "One of required fields are missing: destinationAmount, destinationAccountId.",
     "refundAndTransferNotAllowed": "It is not allowed to create a transaction that is a refund and a transfer at the same time",
+    "notOwnTransaction": "You can only edit or delete transactions you created on this shared account.",
+    "sharedAccountChangeNotSupported": "Moving a transaction to a different account is only allowed for the account owner.",
+    "sharedTransfersNotSupported": "Transfers on a shared account are not supported yet.",
+    "sharedRefundsNotSupported": "Refund linking on a shared account is not supported yet.",
     "cannotCreateWithParams": "Cannot create transaction with provided params",
     "idCannotBeChanged": "id cannot be changed",
     "editReadonlyFields": "Attempt to edit readonly fields of the external account",
@@ -235,6 +239,7 @@
     "listIsEmpty": "Currencies list is empty",
     "noBaseCurrency": "User does not have a base currency set",
     "alreadyBaseCurrency": "The selected currency is already a base currency",
+    "baseCurrencyLockedByShares": "Cannot change base currency while you have active shared resources. Revoke or leave them first.",
     "cannotFindForRefAmount": "Cannot find currency to calculate ref amount!",
     "cannotCalculateRefAmount": "Cannot calculate ref amount",
     "currencyNotConnected": "Asked currency is not connected",
@@ -272,7 +277,7 @@
       "vehicle": "Vehicle",
       "life": "Life & Entertainment",
       "communication": "Communication, PC",
-      "financialExpenses": "Financial expenses",
+      "financial-expenses": "Financial expenses",
       "investments": "Investments",
       "income": "Income",
       "other": "Other"
@@ -281,88 +286,88 @@
       "food": {
         "groceries": "Groceries",
         "restaurant": "Restaurant, fast-food",
-        "barCafe": "Bar, cafe"
+        "bar-cafe": "Bar, cafe"
       },
       "shopping": {
-        "clothesShoes": "Clothes & shoes",
-        "jewelsAccessories": "Jewels, accessories",
-        "healthBeauty": "Health and beauty",
+        "clothes-shoes": "Clothes & shoes",
+        "jewels-accessories": "Jewels, accessories",
+        "health-beauty": "Health and beauty",
         "kids": "Kids",
-        "homeGarden": "Home, garden",
-        "petsAnimals": "Pets, animals",
-        "electronicsAccessories": "Electronics, accessories",
-        "giftsJoy": "Gifts, joy",
-        "stationeryTools": "Stationery, tools",
-        "freeTime": "Free time",
-        "drugstoreChemist": "Drug-store, chemist"
+        "home-garden": "Home, garden",
+        "pets-animals": "Pets, animals",
+        "electronics-accessories": "Electronics, accessories",
+        "gifts-joy": "Gifts, joy",
+        "stationery-tools": "Stationery, tools",
+        "free-time": "Free time",
+        "drugstore-chemist": "Drug-store, chemist"
       },
       "housing": {
         "rent": "Rent",
         "mortgage": "Mortgage",
-        "energyUtilities": "Energy, utilities",
+        "energy-utilities": "Energy, utilities",
         "services": "Services",
-        "maintenanceRepairs": "Maintenance, repairs",
-        "propertyInsurance": "Property insurance"
+        "maintenance-repairs": "Maintenance, repairs",
+        "property-insurance": "Property insurance"
       },
       "transportation": {
-        "publicTransport": "Public transport",
+        "public-transport": "Public transport",
         "taxi": "Taxi",
-        "longDistance": "Long distance",
-        "businessTrips": "Business trips"
+        "long-distance": "Long distance",
+        "business-trips": "Business trips"
       },
       "vehicle": {
         "fuel": "Fuel",
         "parking": "Parking",
-        "vehicleMaintenance": "Vehicle maintenance",
+        "vehicle-maintenance": "Vehicle maintenance",
         "rentals": "Rentals",
-        "vehicleInsurance": "Vehicle insurance",
+        "vehicle-insurance": "Vehicle insurance",
         "leasing": "Leasing"
       },
       "life": {
-        "healthCareDoctor": "Health care, doctor",
-        "wellnessBeauty": "Wellness, beauty",
-        "activeSportFitness": "Active sport, fitness",
-        "cultureSportEvents": "Culture, sport events",
+        "health-care-doctor": "Health care, doctor",
+        "wellness-beauty": "Wellness, beauty",
+        "active-sport-fitness": "Active sport, fitness",
+        "culture-sport-events": "Culture, sport events",
         "hobbies": "Hobbies",
-        "educationDevelopment": "Education, development",
-        "booksAudioSubscriptions": "Books, audio, subscriptions",
-        "tvStreaming": "TV, Streaming",
-        "holidayTripsHotels": "Holiday, trips, hotels",
-        "charityGifts": "Charity, gifts",
-        "alcoholTobacco": "Alcohol, tobacco",
-        "lotteryGambling": "Lottery, gambling"
+        "education-development": "Education, development",
+        "books-audio-subscriptions": "Books, audio, subscriptions",
+        "tv-streaming": "TV, Streaming",
+        "holiday-trips-hotels": "Holiday, trips, hotels",
+        "charity-gifts": "Charity, gifts",
+        "alcohol-tobacco": "Alcohol, tobacco",
+        "lottery-gambling": "Lottery, gambling"
       },
       "communication": {
-        "phoneCellPhone": "Phone, cell phone",
+        "phone-cell-phone": "Phone, cell phone",
         "internet": "Internet",
-        "softwareAppsGames": "Software, apps, games",
-        "postalServices": "Postal services"
+        "software-apps-games": "Software, apps, games",
+        "postal-services": "Postal services"
       },
-      "financialExpenses": {
+      "financial-expenses": {
         "taxes": "Taxes",
         "insurances": "Insurances",
-        "loanInterests": "Loan, interests",
+        "loan-interests": "Loan, interests",
         "fines": "Fines",
         "advisory": "Advisory",
-        "chargesFees": "Charges, Fees",
-        "childSupport": "Child Support"
+        "charges-fees": "Charges, Fees",
+        "child-support": "Child Support"
       },
       "investments": {
         "realty": "Realty",
-        "vehiclesChattels": "Vehicles, chattels",
-        "financialInvestments": "Financial investments",
+        "vehicles-chattels": "Vehicles, chattels",
+        "financial-investments": "Financial investments",
         "savings": "Savings",
         "collections": "Collections"
       },
       "income": {
-        "wageInvoices": "Wage, invoices",
-        "interestsDividends": "Interests, dividends",
+        "wage-invoices": "Wage, invoices",
+        "interests-dividends": "Interests, dividends",
         "sale": "Sale",
-        "rentalIncome": "Rental income",
-        "duesGrants": "Dues & grants",
-        "lendingRenting": "Lending, renting",
-        "checksCoupons": "Checks, coupons",
-        "lotteryGambling": "Lottery, gambling",
+        "rental-income": "Rental income",
+        "dues-grants": "Dues & grants",
+        "lending-renting": "Lending, renting",
+        "checks-coupons": "Checks, coupons",
+        "lottery-gambling": "Lottery, gambling",
         "refunds": "Refunds (tax, purchase)",
         "freelance": "Freelance",
         "gifts": "Gifts"

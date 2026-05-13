@@ -2,6 +2,7 @@ import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
+  BANK_PROVIDER_TYPE,
   BUDGET_TYPES,
   CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
@@ -11,6 +12,9 @@ import {
   PAYMENT_TYPES,
   PaymentReminderStatus,
   RemindBeforePreset,
+  ResourceType,
+  SharePermission,
+  ShareInvitationStatus,
   SUBSCRIPTION_CANDIDATE_STATUS,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_LINK_STATUS,
@@ -20,6 +24,7 @@ import {
   TRANSACTION_TYPES,
   TagReminderFrequency,
   TagReminderType,
+  TransactionsWriteScope,
   UserRole,
 } from './enums';
 
@@ -44,6 +49,11 @@ export interface CategoryModel {
   color: string;
   id: number;
   icon: null | string;
+  /**
+   * Stable, locale-independent identifier for seeded default categories (kebab-case).
+   * Null for user-created categories.
+   */
+  key: null | string;
   name: string;
   parentId: null | number;
   type: CATEGORY_TYPES;
@@ -70,6 +80,22 @@ export interface AccountExternalData {
   [key: string]: unknown;
 }
 
+/**
+ * Account share block (PRD F14). Present on every user-facing list/detail account
+ * response — describes whether the requester owns the account or accesses it via an
+ * accepted share, plus the owner's display info.
+ */
+export interface AccountShareInfo {
+  isOwner: boolean;
+  owner: {
+    id: number;
+    username: string;
+    avatar: string | null;
+  };
+  permission: SharePermission;
+  policy: SharePolicy | null;
+}
+
 export interface AccountModel {
   type: ACCOUNT_TYPES;
   id: number;
@@ -88,6 +114,14 @@ export interface AccountModel {
   status: ACCOUNT_STATUSES;
   excludeFromStats: boolean;
   bankDataProviderConnectionId?: number;
+  /**
+   * Provider type denormalized from the connection so the account list / card can render
+   * the bank logo without a per-account `GET /connections/:id` round-trip. Safe to expose
+   * to share recipients (who can't reach the owner-scoped connection-details endpoint).
+   */
+  bankProviderType?: BANK_PROVIDER_TYPE | null;
+  /** Present on user-facing list/detail responses; absent on internal serializations. */
+  share?: AccountShareInfo;
 }
 
 /**
@@ -133,6 +167,19 @@ export interface TransactionSplitModel {
   category?: CategoryModel;
 }
 
+/**
+ * Frozen identity of a transaction's original creator. Populated only when the creator's
+ * Users row is being deleted — at that point we copy the last-known username/avatar before
+ * the FK SET NULL nulls `Transactions.userId`. Lets the frontend render
+ * "alice (deleted)" on shared-account transactions whose creator is gone instead of
+ * an anonymous "Unknown user" placeholder.
+ */
+export interface TransactionCreatorSnapshot {
+  userId: number;
+  username: string;
+  avatar: string | null;
+}
+
 export interface TransactionModel {
   id: number;
   amount: number;
@@ -141,6 +188,10 @@ export interface TransactionModel {
   note: string;
   time: Date;
   userId: number;
+  /** See `TransactionCreatorSnapshot`. NULL on every row except when the creator's
+   *  account is deleted; backfill is intentionally skipped (no historical
+   *  user-deletes are retroactively recoverable). */
+  creatorSnapshot: TransactionCreatorSnapshot | null;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
   accountId: number;
@@ -317,11 +368,75 @@ export interface TagReminderNotificationPayload {
   transactionIds?: number[];
 }
 
+/**
+ * Common metadata about a share-related notification's owner / recipient pair.
+ * The recipient's perspective uses `owner` fields; the owner's perspective uses `recipient` fields.
+ */
+export interface ShareInvitationNotificationPayload {
+  invitationId: string;
+  /** Single-use token used to deep-link to the accept/decline page (`/shared-with-me/invitations/:token`).
+   * Required so the frontend notification handler can navigate without an extra lookup. */
+  token: string;
+  /** Reusable across notification types: 'account', 'budget', etc. */
+  resourceType: ResourceType;
+  /** String-encoded resource id, matches `ResourceShares.resourceId` shape. */
+  resourceId: string;
+  /** Resource display label captured at notification time (e.g., account name). */
+  resourceName: string;
+  permission: SharePermission;
+  /** Sender's display info, denormalized so notification list doesn't N+1. */
+  owner: {
+    id: number;
+    username: string;
+    avatar: string | null;
+  };
+  /** ISO timestamp when the invitation expires (only for `share_invitation_received`). */
+  expiresAt?: string;
+}
+
+export interface ShareLifecycleNotificationPayload {
+  shareId?: string;
+  invitationId?: string;
+  resourceType: ResourceType;
+  resourceId: string;
+  resourceName: string;
+  permission?: SharePermission;
+  /** The other party in the share — recipient (for owner-side notifications) or owner (for recipient-side). */
+  counterpartUser: {
+    id: number;
+    username: string;
+    avatar: string | null;
+  };
+}
+
+/**
+ * Owner-side notification fired when the inline Resend email for an invitation rejected
+ * or errored after the DB row was already committed. The invitation stays in `pending` —
+ * this surfaces the delivery failure as a durable record so the owner can resend from the
+ * UI without having to remember the API response.
+ */
+export interface ShareInvitationSendFailedPayload {
+  invitationId: string;
+  resourceType: ResourceType;
+  resourceId: string;
+  resourceName: string;
+  inviteeEmail: string;
+  /** Present when the invitee resolved to a registered user. `null` otherwise. */
+  inviteeSnapshot: {
+    id: number;
+    username: string;
+    avatar: string | null;
+  } | null;
+}
+
 export type NotificationPayload =
   | BudgetAlertPayload
   | SystemNotificationPayload
   | ChangelogNotificationPayload
   | TagReminderNotificationPayload
+  | ShareInvitationNotificationPayload
+  | ShareLifecycleNotificationPayload
+  | ShareInvitationSendFailedPayload
   | Record<string, unknown>;
 
 export interface NotificationModel {
@@ -447,4 +562,67 @@ export interface PaymentReminderNotificationModel {
   sentAt: Date;
   emailSent: boolean;
   emailError: string | null;
+}
+
+/**
+ * Granular policy overrides on top of a `permission` for a `ResourceShare`.
+ * Stored as JSONB. All fields optional; missing fields fall back to defaults.
+ *
+ * Phase 1 supports:
+ * - `transactionsWriteScope` (only meaningful when permission is write/manage and
+ *   resourceType is 'account'; default is 'all').
+ */
+export interface SharePolicy {
+  transactionsWriteScope?: TransactionsWriteScope;
+}
+
+/**
+ * Active access grant: user X may use resource Y at a given permission level.
+ * Inactive (acceptedAt IS NULL) until the recipient accepts the invitation.
+ */
+export interface ResourceShareModel {
+  id: string;
+  ownerUserId: number;
+  sharedWithUserId: number;
+  resourceType: ResourceType;
+  /** String-encoded resource id (handles INTEGER and UUID-keyed resources uniformly). */
+  resourceId: string;
+  permission: SharePermission;
+  policy: SharePolicy | null;
+  acceptedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Pending offer to share a resource. Distinct from `ResourceShareModel` because
+ * invitations may expire, be declined, or be revoked before acceptance, and we
+ * want a separate audit trail.
+ */
+export interface ShareInvitationModel {
+  id: string;
+  ownerUserId: number;
+  inviteeEmail: string;
+  /**
+   * Resolved at invitation creation time when the email matches a registered user.
+   * Kept nullable for Phase 5 forward-compatibility (auto-signup-from-invite).
+   */
+  inviteeUserId: number | null;
+  resourceType: ResourceType;
+  resourceId: string;
+  permission: SharePermission;
+  policy: SharePolicy | null;
+  /** URL-safe random token used in accept/decline links. */
+  token: string;
+  status: ShareInvitationStatus;
+  expiresAt: Date;
+  acceptedAt: Date | null;
+  declinedAt: Date | null;
+  revokedAt: Date | null;
+  /** Lifetime resend counter (audit). Bumped on every resend, never reset. */
+  resendCount: number;
+  /** ISO timestamps for resends within the rolling 24h rate-limit window. Pruned in-app on each resend. */
+  recentResendsAt: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }

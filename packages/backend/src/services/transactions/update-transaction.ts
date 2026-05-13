@@ -14,15 +14,33 @@ import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
+import {
+  assertSharedWritePhase1Guards,
+  assertTxWriteAccess,
+} from '@services/sharing/auth/authorize-account-write.service';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import * as refundsService from '@services/tx-refunds';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { calcTransferTransactionRefAmount, createOppositeTransaction } from './create-transaction';
-import { getTransactionById } from './get-by-id';
+import { getWritableTransactionById } from './get-by-id';
 import { manageSplits } from './splits';
 import { linkTransactions } from './transactions-linking';
 import { type UpdateTransactionParams } from './types';
+
+/**
+ * Resolved auth context computed once at the top of `updateTransaction`. Threaded into
+ * helpers so that account/category lookups go against the *owner* and DB writes filter
+ * by the *creator* (`prevData.userId`) — not the caller — when a recipient is editing
+ * a shared-account transaction.
+ */
+interface UpdateAuthContext {
+  callerUserId: number;
+  accountOwnerUserId: number;
+  txCreatorUserId: number;
+  isOwner: boolean;
+}
 
 export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = ['amount', 'time', 'transactionType', 'accountId'];
 
@@ -30,15 +48,21 @@ export const EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS = ['amount', 'time', 't
  * 1. Do not allow editing specified fields
  * 2. Do now allow editing non-source transaction (TODO: except it's an external one)
  */
-const validateTransaction = async (newData: UpdateTransactionParams, prevData: Transactions.default) => {
+const validateTransaction = async (
+  newData: UpdateTransactionParams,
+  prevData: Transactions.default,
+  ctx: UpdateAuthContext,
+) => {
   if (+newData.id !== +prevData.id)
     throw new ValidationError({ message: t({ key: 'transactions.idCannotBeChanged' }) });
 
   // Check the account type, not the transaction type
-  // A system transaction in a monobank account should be treated as external
+  // A system transaction in a monobank account should be treated as external.
+  // Auth has already been gated by the parent `updateTransaction`, so we look up the
+  // account against the *owner's* userId (which equals the caller for owned txs).
   const account = await findOrThrowNotFound({
     query: Accounts.getAccountById({
-      userId: newData.userId,
+      userId: ctx.accountOwnerUserId,
       id: prevData.accountId,
     }),
     message: t({ key: 'accounts.accountNotFoundForTransaction' }),
@@ -90,15 +114,19 @@ const validateTransaction = async (newData: UpdateTransactionParams, prevData: T
   // }
 };
 
-const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevData: Transactions.default) => {
+const makeBasicBaseTxUpdation = async (
+  newData: UpdateTransactionParams,
+  prevData: Transactions.default,
+  ctx: UpdateAuthContext,
+) => {
   const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency({
-    userId: newData.userId,
+    userId: ctx.callerUserId,
     isDefaultCurrency: true,
   });
 
   // Check the account type, not the transaction type
   const account = await Accounts.getAccountById({
-    userId: newData.userId,
+    userId: ctx.accountOwnerUserId,
     id: prevData.accountId,
   });
 
@@ -118,7 +146,10 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
     refAmount: newData.amount !== undefined ? newData.amount : prevData.refAmount,
     note: newData.note,
     time: newData.time ?? prevData.time,
-    userId: newData.userId,
+    // The where-clause filter on Transactions.update needs the *creator's* userId
+    // (the row's actual `userId`), not the caller. They differ when a recipient
+    // edits an owner-created transaction with `transactionsWriteScope: 'all'`.
+    userId: ctx.txCreatorUserId,
     transactionType,
     paymentType: newData.paymentType,
     accountId: newData.accountId,
@@ -131,9 +162,11 @@ const makeBasicBaseTxUpdation = async (newData: UpdateTransactionParams, prevDat
   const isBaseTxAccountChanged = newData.accountId && newData.accountId !== prevData.accountId;
 
   if (isBaseTxAccountChanged) {
-    // Since accountId is changed, we need to change currency too
+    // Since accountId is changed, we need to change currency too. The destination
+    // account's owner equals the caller in the owner case (the only case where
+    // changing accountId is allowed in Phase 1; recipients are blocked at the entry).
     const { currency: baseTxCurrency } = await Accounts.getAccountCurrency({
-      userId: newData.userId,
+      userId: ctx.callerUserId,
       id: Number(newData.accountId),
     });
 
@@ -264,11 +297,13 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 
   const { userId, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } = newData;
 
+  // Fetch the opposite without a userId filter — on a shared-account transfer, the two
+  // sides can belong to different users (recipient links owner-authored tx with their own).
+  // The auth gate immediately below verifies the caller has `write` on the opposite's
+  // parent account before any mutation runs.
   const oppositeTx = (
-    await Transactions.getTransactionsByArrayOfField({
-      fieldValues: [prevData.transferId],
-      fieldName: 'transferId',
-      userId,
+    await Transactions.default.findAll({
+      where: { transferId: prevData.transferId },
     })
   ).find((item) => Number(item.id) !== Number(newData.id));
 
@@ -278,9 +313,18 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     });
   }
 
+  await assertTxWriteAccess({
+    userId,
+    tx: oppositeTx,
+    notFoundKey: 'transactions.oppositeTransactionNotFound',
+  });
+
   let updateOppositeTxParams = removeUndefinedKeys({
     id: oppositeTx.id,
-    userId,
+    // Use the opposite tx's actual creator userId — the underlying model layer scopes its
+    // UPDATE by `(id, userId)`, and for cross-user transfers the caller doesn't own the
+    // opposite row. Auth on this account has already been verified above.
+    userId: oppositeTx.userId,
     amount: destinationAmount !== undefined ? destinationAmount : undefined,
     refAmount: baseTransaction.refAmount,
     transactionType: TRANSACTION_TYPES.income,
@@ -331,15 +375,20 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
   const [newData, prevData, baseTransaction] = params;
 
+  // Cross-user safe fetch — see `updateTransferTransaction` for the rationale.
   const notBaseTransaction = (
-    await Transactions.getTransactionsByArrayOfField({
-      fieldValues: [prevData.transferId],
-      fieldName: 'transferId',
-      userId: newData.userId,
+    await Transactions.default.findAll({
+      where: { transferId: prevData.transferId },
     })
   ).find((item) => Number(item.id) !== Number(newData.id));
 
   if (notBaseTransaction) {
+    await assertTxWriteAccess({
+      userId: newData.userId,
+      tx: notBaseTransaction,
+      notFoundKey: 'transactions.oppositeTransactionNotFound',
+    });
+
     await Transactions.updateTransactionById({
       id: notBaseTransaction.id,
       userId: notBaseTransaction.userId,
@@ -391,27 +440,70 @@ export const updateTransaction = withTransaction(
     payload: UpdateTransactionParams,
   ): Promise<[baseTx: Transactions.default, oppositeTx?: Transactions.default]> => {
     try {
-      const prevData = await findOrThrowNotFound({
-        query: getTransactionById({
-          id: payload.id,
-          userId: payload.userId,
-        }),
-        message: t({ key: 'transactions.transactionIdNotExist' }),
+      // Single fetch + write-authorization gate. `getWritableTransactionById` throws 404
+      // when the caller has no claim, 401 when scope: 'own' is violated. Returns a
+      // pre-resolved `authCtx` so this service doesn't reassemble auth primitives.
+      const { tx: prevData, ctx: authCtx } = await getWritableTransactionById({
+        id: payload.id,
+        userId: payload.userId,
       });
 
+      const ctx: UpdateAuthContext = {
+        callerUserId: payload.userId,
+        accountOwnerUserId: authCtx.accountOwnerUserId,
+        txCreatorUserId: prevData.userId,
+        isOwner: authCtx.isOwner,
+      };
+
+      // PATCH semantics: when `transferNature` is omitted from the payload, the predicates
+      // below interpret that as "keep current state" for the purpose of the recipient gate
+      // (an unspecified field doesn't mean the caller wants to discard the link). Only an
+      // explicit nature change — promoting a non-transfer to a transfer, or explicitly
+      // setting nature to something other than `common_transfer` on a transfer — has its
+      // own broken cross-user opposite-tx handling and stays blocked for recipients.
+      const explicitlyDiscardingTransfer =
+        payload.transferNature !== undefined &&
+        payload.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer &&
+        prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+
+      assertSharedWritePhase1Guards({
+        isOwner: authCtx.isOwner,
+        involvesTransfer: isCreatingTransfer(payload, prevData) || explicitlyDiscardingTransfer,
+        involvesRefund: payload.refundedByTxIds !== undefined || payload.refundsTxId !== undefined,
+        changesAccountId: payload.accountId !== undefined && payload.accountId !== prevData.accountId,
+      });
+
+      // Recipients editing a shared-account tx whose currency they haven't connected
+      // would otherwise trip `currencyNotConnected` inside the ref-amount lookup.
+      // Auto-connect so the guard stays internal and not user-facing.
+      if (!authCtx.isOwner) {
+        const { currency: callerDefaultCurrency } = await UsersCurrencies.getCurrency({
+          userId: ctx.callerUserId,
+          isDefaultCurrency: true,
+        });
+        if (prevData.currencyCode !== callerDefaultCurrency.code) {
+          await ensureUserCurrencyConnected({
+            userId: ctx.callerUserId,
+            currencyCode: prevData.currencyCode,
+          });
+        }
+      }
+
       // Validate that passed parameters are not breaking anything
-      await validateTransaction(payload, prevData);
+      await validateTransaction(payload, prevData, ctx);
 
       if (payload.categoryId !== undefined && payload.categoryId !== null) {
         await findOrThrowNotFound({
-          query: Categories.findOne({ where: { id: payload.categoryId, userId: payload.userId } }),
+          query: Categories.findOne({
+            where: { id: payload.categoryId, userId: ctx.accountOwnerUserId },
+          }),
           message: 'Category not found or does not belong to user.',
         });
       }
 
       // Make basic updation to the base transaction. "Transfer" transactions
       // handled down in the code
-      const baseTransaction = await makeBasicBaseTxUpdation(payload, prevData);
+      const baseTransaction = await makeBasicBaseTxUpdation(payload, prevData, ctx);
 
       let updatedTransactions: [Transactions.default, Transactions.default?] = [baseTransaction];
 
@@ -461,22 +553,23 @@ export const updateTransaction = withTransaction(
 
       if (payload.splits !== undefined) {
         if (isTransfer) {
-          // If transaction is or becomes a transfer, delete any existing splits
-          await deleteSplitsForTransaction({
-            transactionId: baseTransaction.id,
-            userId: payload.userId,
-          });
+          // If transaction is or becomes a transfer, delete any existing splits.
+          // Auth on the parent transaction has already passed, so split deletion is
+          // keyed by transactionId only — recipient writers can clear owner-authored
+          // splits when permitted by `transactionsWriteScope`.
+          await deleteSplitsForTransaction({ transactionId: baseTransaction.id });
         } else if (payload.splits === null || payload.splits.length === 0) {
           // Explicitly clearing splits
-          await deleteSplitsForTransaction({
-            transactionId: baseTransaction.id,
-            userId: payload.userId,
-          });
+          await deleteSplitsForTransaction({ transactionId: baseTransaction.id });
         } else {
-          // Update splits
+          // Update splits. `userId` here is creator metadata stamped on newly
+          // inserted split rows — internal lookups inside `manageSplits` are keyed
+          // by `transactionId` only. `categoryOwnerUserId` scopes the category-existence
+          // check so recipients on shared accounts validate against the owner's set.
           await manageSplits({
             transactionId: baseTransaction.id,
-            userId: payload.userId,
+            userId: ctx.callerUserId,
+            categoryOwnerUserId: ctx.accountOwnerUserId,
             splits: payload.splits,
             transactionAmount: baseTransaction.amount,
             transactionCurrencyCode: baseTransaction.currencyCode,
@@ -486,10 +579,7 @@ export const updateTransaction = withTransaction(
         }
       } else if (isCreatingTransfer(payload, prevData)) {
         // If transaction is becoming a transfer, clear any existing splits
-        await deleteSplitsForTransaction({
-          transactionId: baseTransaction.id,
-          userId: payload.userId,
-        });
+        await deleteSplitsForTransaction({ transactionId: baseTransaction.id });
       }
 
       // Handle tags

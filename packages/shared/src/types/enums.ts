@@ -186,6 +186,14 @@ export const NOTIFICATION_TYPES = {
   changelog: 'changelog',
   tagReminder: 'tag_reminder',
   paymentReminder: 'payment_reminder',
+  shareInvitationReceived: 'share_invitation_received',
+  shareInvitationSendFailed: 'share_invitation_send_failed',
+  shareAccepted: 'share_accepted',
+  shareDeclined: 'share_declined',
+  shareRevoked: 'share_revoked',
+  shareLeft: 'share_left',
+  shareExpired: 'share_expired',
+  shareOwnerAccountDeleted: 'share_owner_account_deleted',
 } as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES] | string;
@@ -304,3 +312,85 @@ export const MAX_REMIND_BEFORE_PRESETS = 3;
 /** Allowed hour slots for reminder notification time */
 export const PREFERRED_TIME_SLOTS = [0, 4, 8, 12, 16, 20] as const;
 export type PreferredTimeSlot = (typeof PREFERRED_TIME_SLOTS)[number];
+
+/**
+ * Resource types that can be shared with other users.
+ * Phase 1 supports only `account`. New types are added in later phases.
+ */
+export const RESOURCE_TYPES = {
+  account: 'account',
+} as const;
+
+export type ResourceType = (typeof RESOURCE_TYPES)[keyof typeof RESOURCE_TYPES];
+
+/**
+ * Permission levels granted on a shared resource.
+ * - read: view the resource and its child entities
+ * - write: read + create/update/delete child entities (subject to policy)
+ * - manage: write + manage other recipients of the same resource (cannot delete the resource itself)
+ */
+export const SHARE_PERMISSIONS = {
+  read: 'read',
+  write: 'write',
+  manage: 'manage',
+} as const;
+
+export type SharePermission = (typeof SHARE_PERMISSIONS)[keyof typeof SHARE_PERMISSIONS];
+
+/**
+ * Status of a share invitation.
+ */
+export const SHARE_INVITATION_STATUSES = {
+  pending: 'pending',
+  accepted: 'accepted',
+  declined: 'declined',
+  revoked: 'revoked',
+  expired: 'expired',
+} as const;
+
+export type ShareInvitationStatus = (typeof SHARE_INVITATION_STATUSES)[keyof typeof SHARE_INVITATION_STATUSES];
+
+/**
+ * Scope of write access for transactions on a shared account.
+ * - all: can edit/delete any transaction on the shared account
+ * - own: can edit/delete only transactions the recipient created
+ *
+ * Stored on `ResourceShares.policy.transactionsWriteScope` when `resourceType = 'account'`.
+ */
+export const TRANSACTIONS_WRITE_SCOPES = {
+  all: 'all',
+  own: 'own',
+} as const;
+
+export type TransactionsWriteScope = (typeof TRANSACTIONS_WRITE_SCOPES)[keyof typeof TRANSACTIONS_WRITE_SCOPES];
+
+/**
+ * Hardcoded sharing-related limits. Bumping these is a code-only change.
+ *
+ * `maxRecipientsPerResource` is the cap for Phase 1 free tier; lifts to 50 once a
+ * paid tier exists. Counts only accepted shares (recipients), not pending invitations.
+ *
+ * `maxPendingInvitationsPerResource` caps how many concurrent pending invitations a
+ * single owner can have for one resource. The smaller test value keeps the relevant
+ * boundary cheap to exercise in e2e tests; the dev/prod value is the real abuse-prevention
+ * limit (per-recipient resend rate-limiting in S6 is the dedicated spam guard).
+ *
+ * Backend reads this via `getMaxPendingInvitationsPerResource()` in
+ * `services/sharing/limits.ts` so the test override is centralized.
+ */
+export const SHARING_LIMITS = {
+  maxRecipientsPerResource: 2,
+  maxPendingInvitationsPerResource: 10,
+  maxPendingInvitationsPerResourceTest: 3,
+  invitationExpirationDays: 7,
+  // 32 random bytes encoded as base64url → exactly 43 ASCII chars (see generate-invitation-token.ts).
+  invitationTokenLength: 43,
+  resendPerInviteeRateLimit: { count: 3, windowMs: 24 * 60 * 60 * 1000 },
+  // Owner-wide send cap to mitigate email-bombing across many resources. The per-resource
+  // pending cap and the per-invitee resend rate limit cover the within-resource case; this
+  // closes the cross-resource gap.
+  sendInvitationsPerOwnerPer24h: 30,
+  // Tighter test value so the gate is cheap to exercise in e2e (per-owner counter is
+  // per-test thanks to the Redis truncate in `beforeEach`).
+  sendInvitationsPerOwnerPer24hTest: 5,
+} as const;

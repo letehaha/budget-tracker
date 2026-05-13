@@ -73,6 +73,7 @@ import {
   TagIcon,
   TagsIcon,
   UploadIcon,
+  UsersIcon,
 } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { type Component, computed, ref, watch } from 'vue';
@@ -171,6 +172,12 @@ const baseTabs = computed<Tab[]>(() => [
     label: t('settings.navigation.security'),
     to: { name: ROUTES_NAMES.settingsSecurity },
     icon: KeyRoundIcon,
+  },
+  {
+    name: 'shared-with-me',
+    label: t('settings.navigation.sharedWithMe'),
+    to: { name: ROUTES_NAMES.settingsSharedWithMe },
+    icon: UsersIcon,
   },
 ]);
 
