@@ -363,7 +363,7 @@
       "title": "Share account",
       "description": "Invite someone to access {name}.",
       "emailLabel": "Recipient email",
-      "emailPlaceholder": "name@example.com",
+      "emailPlaceholder": "name{'@'}example.com",
       "permissionLabel": "Permission",
       "permissions": {
         "read": "Read-only",

@@ -363,7 +363,7 @@
       "title": "Поділитися рахунком",
       "description": "Запросіть когось отримати доступ до {name}.",
       "emailLabel": "Електронна адреса одержувача",
-      "emailPlaceholder": "name@example.com",
+      "emailPlaceholder": "name{'@'}example.com",
       "permissionLabel": "Дозвіл",
       "permissions": {
         "read": "Тільки читання",
