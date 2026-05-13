@@ -187,6 +187,7 @@ export const NOTIFICATION_TYPES = {
   tagReminder: 'tag_reminder',
   paymentReminder: 'payment_reminder',
   shareInvitationReceived: 'share_invitation_received',
+  shareInvitationSendFailed: 'share_invitation_send_failed',
   shareAccepted: 'share_accepted',
   shareDeclined: 'share_declined',
   shareRevoked: 'share_revoked',

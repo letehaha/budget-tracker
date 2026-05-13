@@ -2,6 +2,7 @@ import {
   NOTIFICATION_TYPES,
   ResourceType,
   ShareInvitationNotificationPayload,
+  ShareInvitationSendFailedPayload,
   ShareLifecycleNotificationPayload,
   SharePermission,
 } from '@bt/shared/types';
@@ -238,6 +239,44 @@ export const notifyShareOwnerAccountDeleted = async ({
     userId: recipientUserId,
     type: NOTIFICATION_TYPES.shareOwnerAccountDeleted,
     title: `The shared account "${resource.name}" was deleted`,
+    payload,
+  });
+};
+
+/**
+ * Sent to the owner when the inline Resend send for an invitation email rejected or errored
+ * after the DB row was already committed. The invitation row itself stays in `pending` so
+ * the owner can resend from the UI; this notification is the durable surface for the
+ * failure (the synchronous API response carries `emailDelivered: false` but a toast on a
+ * single page load is easy to miss).
+ */
+export const notifyInvitationSendFailed = async ({
+  ownerUserId,
+  invitee,
+  inviteeEmail,
+  invitationId,
+  resource,
+}: {
+  ownerUserId: number;
+  invitee: Users | null;
+  inviteeEmail: string;
+  invitationId: string;
+  resource: { type: ResourceType; id: string; name: string };
+}) => {
+  const payload: ShareInvitationSendFailedPayload = {
+    invitationId,
+    resourceType: resource.type,
+    resourceId: resource.id,
+    resourceName: resource.name,
+    inviteeEmail,
+    inviteeSnapshot: invitee ? snapshotUser(invitee) : null,
+  };
+
+  return createNotification({
+    userId: ownerUserId,
+    type: NOTIFICATION_TYPES.shareInvitationSendFailed,
+    title: `Couldn't deliver your invitation email for "${resource.name}"`,
+    message: `We saved the invitation but the email to ${inviteeEmail} didn't go through. You can resend it from the sharing panel.`,
     payload,
   });
 };

@@ -6,7 +6,7 @@ import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { resolveResourceName } from '@services/sharing/auth/can-user-access-resource.service';
 
-import { notifyInvitationReceived } from '../share-notifications';
+import { notifyInvitationReceived, notifyInvitationSendFailed } from '../share-notifications';
 import { FALLBACK_OWNER_DISPLAY_NAME } from '../share-user-snapshot';
 import { generateInvitationToken } from './generate-invitation-token';
 import { sendInvitationEmail } from './share-invitation-email';
@@ -199,6 +199,25 @@ export const resendInvitation = async (params: ResendInvitationParams): Promise<
     token: result.invitation.token,
     expiresAt: new Date(result.invitation.expiresAt),
   });
+
+  if (outcome.status === 'failed') {
+    // Drop a durable owner notification so the failed delivery is visible from the
+    // notification center, not just the in-flight API response toast. The rate-limit slot
+    // was already burned in `resendInvitationImpl`, so silently swallowing this would let
+    // owners exhaust their daily budget without realising no emails went out.
+    const invitee = await Users.findByPk(result.inviteeUserId);
+    await notifyInvitationSendFailed({
+      ownerUserId: params.ownerUserId,
+      invitee,
+      inviteeEmail: result.inviteeEmail,
+      invitationId: result.invitation.id,
+      resource: {
+        type: result.invitation.resourceType,
+        id: String(result.invitation.resourceId),
+        name: result.resourceName,
+      },
+    });
+  }
 
   return { invitation: result.invitation, emailDelivered: outcome.status !== 'failed' };
 };

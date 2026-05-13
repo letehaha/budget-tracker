@@ -20,7 +20,7 @@ import { Op } from 'sequelize';
 
 import { findUserByEmail } from '../find-user-by-email.service';
 import { getMaxPendingInvitationsPerResource } from '../limits';
-import { notifyInvitationReceived } from '../share-notifications';
+import { notifyInvitationReceived, notifyInvitationSendFailed } from '../share-notifications';
 import { FALLBACK_OWNER_DISPLAY_NAME } from '../share-user-snapshot';
 import { generateInvitationToken } from './generate-invitation-token';
 import { sendInvitationEmail } from './share-invitation-email';
@@ -272,6 +272,24 @@ export const createInvitation = async (params: CreateInvitationParams): Promise<
     token: result.invitation.token,
     expiresAt: new Date(result.invitation.expiresAt),
   });
+
+  if (outcome.status === 'failed') {
+    // The API response already carries `emailDelivered: false`, but a single in-flight toast
+    // is easy to miss. Drop a durable owner notification so the failed delivery surfaces in
+    // the notification center even if the page is dismissed before the toast renders.
+    const invitee = await Users.findByPk(result.resolvedInvitee.userId);
+    await notifyInvitationSendFailed({
+      ownerUserId: params.ownerUserId,
+      invitee,
+      inviteeEmail: result.resolvedInvitee.email,
+      invitationId: result.invitation.id,
+      resource: {
+        type: result.invitation.resourceType,
+        id: String(result.invitation.resourceId),
+        name: result.resourceName,
+      },
+    });
+  }
 
   return { invitation: result.invitation, emailDelivered: outcome.status !== 'failed' };
 };

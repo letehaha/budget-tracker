@@ -143,6 +143,9 @@
     "tagReminder": {
       "thresholdMessage": "витрачено {amount} (поріг: {threshold})",
       "existenceMessage": "{count} транзакція | {count} транзакції | {count} транзакцій"
+    },
+    "share": {
+      "sendFailedHint": "Відкрийте панель спільного доступу, щоб надіслати повторно."
     }
   },
   "currencyNames": {

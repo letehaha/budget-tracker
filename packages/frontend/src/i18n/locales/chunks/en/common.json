@@ -143,6 +143,9 @@
     "tagReminder": {
       "thresholdMessage": "spent {amount} (threshold: {threshold})",
       "existenceMessage": "{count} transaction | {count} transactions"
+    },
+    "share": {
+      "sendFailedHint": "Open the sharing panel to resend."
     }
   },
   "currencyNames": {

@@ -4,6 +4,7 @@ import {
   NOTIFICATION_TYPES,
   RESOURCE_TYPES,
   type ShareInvitationNotificationPayload,
+  type ShareInvitationSendFailedPayload,
   type ShareLifecycleNotificationPayload,
 } from '@bt/shared/types';
 
@@ -40,6 +41,20 @@ export const buildNotificationRoute = (notification: NotificationStruct): Notifi
 
     case NOTIFICATION_TYPES.shareAccepted: {
       const payload = notification.payload as ShareLifecycleNotificationPayload | undefined;
+      if (payload?.resourceType !== RESOURCE_TYPES.account) return null;
+      const accountId = Number(payload.resourceId);
+      if (!Number.isInteger(accountId)) return null;
+      return {
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.account, params: { id: accountId } },
+      };
+    }
+
+    case NOTIFICATION_TYPES.shareInvitationSendFailed: {
+      // Drop the owner on the resource so they can hit "Resend" on the pending row in the
+      // sharing panel without having to navigate. Currently only accounts are shareable;
+      // when more resource types ship, branch the route per `resourceType`.
+      const payload = notification.payload as ShareInvitationSendFailedPayload | undefined;
       if (payload?.resourceType !== RESOURCE_TYPES.account) return null;
       const accountId = Number(payload.resourceId);
       if (!Number.isInteger(accountId)) return null;

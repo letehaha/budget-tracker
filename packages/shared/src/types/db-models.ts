@@ -409,6 +409,26 @@ export interface ShareLifecycleNotificationPayload {
   };
 }
 
+/**
+ * Owner-side notification fired when the inline Resend email for an invitation rejected
+ * or errored after the DB row was already committed. The invitation stays in `pending` —
+ * this surfaces the delivery failure as a durable record so the owner can resend from the
+ * UI without having to remember the API response.
+ */
+export interface ShareInvitationSendFailedPayload {
+  invitationId: string;
+  resourceType: ResourceType;
+  resourceId: string;
+  resourceName: string;
+  inviteeEmail: string;
+  /** Present when the invitee resolved to a registered user. `null` otherwise. */
+  inviteeSnapshot: {
+    id: number;
+    username: string;
+    avatar: string | null;
+  } | null;
+}
+
 export type NotificationPayload =
   | BudgetAlertPayload
   | SystemNotificationPayload
@@ -416,6 +436,7 @@ export type NotificationPayload =
   | TagReminderNotificationPayload
   | ShareInvitationNotificationPayload
   | ShareLifecycleNotificationPayload
+  | ShareInvitationSendFailedPayload
   | Record<string, unknown>;
 
 export interface NotificationModel {
