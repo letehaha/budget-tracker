@@ -19,7 +19,7 @@ import { useAccountDisplayBalance } from '@/composable/use-account-display-balan
 import { toLocalNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
-import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
+import { ACCOUNT_TYPES, AccountModel, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
 import { ArrowRightLeftIcon, MoreVerticalIcon, PencilIcon, ScaleIcon, Share2Icon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, toRef, watch } from 'vue';
@@ -40,7 +40,20 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const { t } = useI18n();
 
 const isSystemAccount = computed(() => props.account.type === ACCOUNT_TYPES.system);
-const { isOwner, isSharedWithCaller, ownerHandle } = useAccountAccess(toRef(() => props.account));
+const { isOwner, isSharedWithCaller, ownerHandle, permission, writeScope } = useAccountAccess(
+  toRef(() => props.account),
+);
+
+const permissionBadgeLabel = computed(() => {
+  if (!isSharedWithCaller.value) return null;
+  if (permission.value === SHARE_PERMISSIONS.manage) return t('pages.account.header.shareBadge.manage');
+  if (permission.value === SHARE_PERMISSIONS.write) {
+    return writeScope.value === TRANSACTIONS_WRITE_SCOPES.own
+      ? t('pages.account.header.shareBadge.writeOwn')
+      : t('pages.account.header.shareBadge.writeAll');
+  }
+  return t('pages.account.header.shareBadge.read');
+});
 
 const accountNameForm = ref({
   name: props.account.name,
@@ -178,8 +191,17 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
         </div>
       </div>
 
-      <div v-if="isSharedWithCaller && ownerHandle" class="text-muted-foreground mt-1 text-sm">
-        {{ $t('accounts.sharedBy', { handle: `@${ownerHandle}` }) }}
+      <div
+        v-if="isSharedWithCaller && ownerHandle"
+        class="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm"
+      >
+        <span>{{ $t('accounts.sharedBy', { handle: `@${ownerHandle}` }) }}</span>
+        <span
+          v-if="permissionBadgeLabel"
+          class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium"
+        >
+          {{ permissionBadgeLabel }}
+        </span>
       </div>
 
       <!-- Balance -->

@@ -17,7 +17,13 @@
         "renameAccount": "Rename account",
         "adjustBalance": "Adjust balance",
         "adjustBalanceTooltip": "Only available for manually-managed accounts",
-        "share": "Share account"
+        "share": "Share account",
+        "shareBadge": {
+          "read": "View only",
+          "writeOwn": "Can edit own transactions",
+          "writeAll": "Can edit transactions",
+          "manage": "Manager"
+        }
       },
       "balanceAdjustmentDialog": {
         "title": "Adjust Balance",
