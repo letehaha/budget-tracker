@@ -166,7 +166,8 @@
       },
       "excludeFromStats": {
         "label": "Exclude from statistics",
-        "tooltip": "When enabled, this account won't be included in balance totals, cash flow charts, or other statistics"
+        "tooltip": "When enabled, this account won't be included in balance totals, cash flow charts, or other statistics",
+        "recipientTooltip": "Set by the account owner. A per-recipient setting is planned for a later release."
       },
       "loadTransactions": {
         "title": "Load transactions for selected period",
