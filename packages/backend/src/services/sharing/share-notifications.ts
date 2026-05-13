@@ -8,32 +8,20 @@ import {
 import Users from '@models/users.model';
 import { createNotification } from '@services/notifications';
 
+import { SHARE_SNAPSHOT_MISSING_USER_ID, snapshotShareUser } from './share-user-snapshot';
+
 /**
  * Helpers that wrap `createNotification` for share-related notification types so callers
  * don't need to remember the exact `type` constants and payload shape.
+ *
+ * Notification payloads use `SHARE_SNAPSHOT_MISSING_USER_ID` (0) as the fallback when the
+ * source user row is missing — the frontend renders the embedded `username`/`avatar`
+ * snapshot without dereferencing the id, so a `0` lookup never happens. Callers that pass
+ * a nullable user (e.g. `notifyInvitationDeclined`) log the missing-row case so it isn't
+ * a silent loss.
  */
 
-interface ShareUserSnapshot {
-  /**
-   * Real Users.id, or `0` when the source row no longer exists (e.g. the recipient
-   * deleted their account between accepting and declining). The `0` sentinel is the
-   * "user gone" marker for share-notification payloads only — frontend renders it as
-   * the snapshot username/avatar without dereferencing the id, so a `0` lookup never
-   * happens. Callers that pass a nullable user (notifyInvitationDeclined) log the
-   * missing-row case at the call site so it isn't a silent loss.
-   */
-  id: number;
-  username: string;
-  avatar: string | null;
-}
-
-const SHARE_SNAPSHOT_MISSING_USER_ID = 0;
-
-const snapshotUser = (user: Users | null | undefined): ShareUserSnapshot => ({
-  id: user?.id ?? SHARE_SNAPSHOT_MISSING_USER_ID,
-  username: user?.username ?? 'Unknown user',
-  avatar: user?.avatar ?? null,
-});
+const snapshotUser = (user: Users | null | undefined) => snapshotShareUser(user, SHARE_SNAPSHOT_MISSING_USER_ID);
 
 interface InvitationContext {
   invitationId: string;

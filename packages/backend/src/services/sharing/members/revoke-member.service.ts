@@ -9,6 +9,7 @@ import { Op } from 'sequelize';
 import { canUserAccessResource, resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';
 import { notifyShareRevoked } from '../share-notifications';
+import { FALLBACK_OWNER_DISPLAY_NAME } from '../share-user-snapshot';
 import { sendShareRevokedEmail } from './share-membership-emails';
 
 interface RevokeMemberParams {
@@ -113,7 +114,7 @@ const revokeMemberImpl = async (params: RevokeMemberParams): Promise<RevokeMembe
 
   return {
     recipientEmail,
-    ownerDisplayName: owner?.username ?? 'A MoneyMatter user',
+    ownerDisplayName: owner?.username ?? FALLBACK_OWNER_DISPLAY_NAME,
     resourceType,
     resourceName,
   };

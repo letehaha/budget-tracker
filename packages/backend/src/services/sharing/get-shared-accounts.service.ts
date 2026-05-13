@@ -6,6 +6,7 @@ import Users from '@models/users.model';
 import { Op } from 'sequelize';
 
 import { canUserAccessResource } from './auth/can-user-access-resource.service';
+import { ShareUserSnapshot, snapshotShareUser } from './share-user-snapshot';
 
 /**
  * Per-account share context attached to model instances by the accounts service so the
@@ -13,20 +14,10 @@ import { canUserAccessResource } from './auth/can-user-access-resource.service';
  */
 export interface AccountShareContext {
   isOwner: boolean;
-  owner: {
-    id: number;
-    username: string;
-    avatar: string | null;
-  };
+  owner: ShareUserSnapshot;
   permission: SharePermission;
   policy: SharePolicy | null;
 }
-
-const userSnapshot = (user: Users | null | undefined, fallbackId: number): AccountShareContext['owner'] => ({
-  id: user?.id ?? fallbackId,
-  username: user?.username ?? 'Unknown user',
-  avatar: user?.avatar ?? null,
-});
 
 /**
  * Build the share context for an account the requesting user owns. Permission is
@@ -34,7 +25,7 @@ const userSnapshot = (user: Users | null | undefined, fallbackId: number): Accou
  */
 export const buildOwnerShareContext = async ({ ownerUser }: { ownerUser: Users }): Promise<AccountShareContext> => ({
   isOwner: true,
-  owner: userSnapshot(ownerUser, ownerUser.id),
+  owner: snapshotShareUser(ownerUser, ownerUser.id),
   permission: SHARE_PERMISSIONS.manage,
   policy: null,
 });
@@ -55,7 +46,7 @@ const buildRecipientShareContext = ({
   policy: SharePolicy | null;
 }): AccountShareContext => ({
   isOwner: false,
-  owner: userSnapshot(ownerUser, ownerUserId),
+  owner: snapshotShareUser(ownerUser, ownerUserId),
   permission,
   policy,
 });

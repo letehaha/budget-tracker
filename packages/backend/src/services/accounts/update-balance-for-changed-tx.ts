@@ -1,5 +1,6 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 
 import { withTransaction } from '../common/with-transaction';
@@ -61,7 +62,21 @@ async function updateAccountBalanceForChangedTxImpl({
   // `Accounts.currentBalance` drift out of sync with the underlying tx ledger.
   const account = await Accounts.findOne({ where: { id: accountId } });
 
-  if (!account) return undefined;
+  if (!account) {
+    // Hook runs after the tx row already committed. A missing account here means the
+    // balance silently drifts — fire-and-forget no-op would hide it, so report instead.
+    logger.error(
+      {
+        message: 'Account missing when applying balance update for changed transaction',
+        error: new Error(`Accounts.findOne returned null for accountId=${accountId}`),
+      },
+      {
+        code: 'ACCOUNT_BALANCE_UPDATE_MISSING_ACCOUNT',
+        accountId,
+      },
+    );
+    return undefined;
+  }
 
   const currentBalance = account.currentBalance;
   const refCurrentBalance = account.refCurrentBalance;

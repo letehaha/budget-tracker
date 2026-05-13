@@ -1,4 +1,5 @@
 import { RESOURCE_TYPES, ResourceType, SHARE_PERMISSIONS, SharePermission, SharePolicy } from '@bt/shared/types';
+import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import ResourceShares from '@models/resource-shares.model';
 import { Op } from 'sequelize';
@@ -121,6 +122,21 @@ export const canUserAccessResource = async ({
 }: CanUserAccessResourceParams): Promise<ResourceAccessResult> => {
   const resolver = RESOURCE_OWNER_RESOLVERS[resourceType];
   if (!resolver) {
+    // A `ResourceType` reached here without a registered owner resolver — programmer
+    // error (resource type added to the union but not to the map). Indistinguishable
+    // from "resource not found" to the caller, which is exactly what makes it silent.
+    logger.error(
+      {
+        message: 'No owner resolver registered for resource type — check RESOURCE_OWNER_RESOLVERS',
+        error: new Error(`Unsupported resourceType=${resourceType}`),
+      },
+      {
+        code: 'SHARE_ACCESS_RESOLVER_MISSING',
+        resourceType,
+        resourceId: String(resourceId),
+        userId,
+      },
+    );
     return denied(null);
   }
 

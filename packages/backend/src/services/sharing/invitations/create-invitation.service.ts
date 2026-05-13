@@ -21,6 +21,7 @@ import { Op } from 'sequelize';
 import { findUserByEmail } from '../find-user-by-email.service';
 import { getMaxPendingInvitationsPerResource } from '../limits';
 import { notifyInvitationReceived } from '../share-notifications';
+import { FALLBACK_OWNER_DISPLAY_NAME } from '../share-user-snapshot';
 import { generateInvitationToken } from './generate-invitation-token';
 import { sendInvitationEmail } from './share-invitation-email';
 
@@ -256,7 +257,7 @@ export const createInvitation = async (params: CreateInvitationParams): Promise<
       },
     );
   }
-  const ownerDisplayName = owner?.username ?? 'A MoneyMatter user';
+  const ownerDisplayName = owner?.username ?? FALLBACK_OWNER_DISPLAY_NAME;
   // Surface the email outcome up the call stack so the UI can warn when the row was
   // created but the email actually failed (Resend down, etc.). `'skipped'` (Resend not
   // configured in dev/test) counts as delivered for the user-facing flag — there's no

@@ -922,4 +922,143 @@ describe('Shared account writes — S4', () => {
       expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
+
+  describe('Recipient account currency auto-connect', () => {
+    it("auto-connects the shared account's currency to the recipient on create", async () => {
+      // Owner connects UAH (so the account can be created in UAH) and creates a UAH account.
+      await helpers.addUserCurrencies({ currencyCodes: ['UAH'] });
+      const account = await helpers.createAccount({
+        payload: { ...helpers.buildAccountPayload(), currencyCode: 'UAH' },
+        raw: true,
+      });
+      const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
+
+      const recipient = await provisionRecipient();
+      await shareAccount({
+        accountId: account.id,
+        recipient,
+        permission: SHARE_PERMISSIONS.write,
+        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
+      });
+
+      // Recipient has only their base currency at this point.
+      const beforeCurrencies = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getUserCurrencies(),
+      });
+      expect(beforeCurrencies.find((c) => c.currencyCode === 'UAH')).toBeUndefined();
+
+      const res = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 1000,
+              transactionType: TRANSACTION_TYPES.expense,
+              categoryId: ownerCategory.id,
+            }),
+          }),
+      });
+
+      expect(res.statusCode).toBe(200);
+
+      // UAH was auto-connected under the hood — no user-facing `currencyNotConnected` error.
+      const afterCurrencies = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getUserCurrencies(),
+      });
+      expect(afterCurrencies.find((c) => c.currencyCode === 'UAH')).toBeDefined();
+    });
+
+    it("auto-connects the shared account's currency to the recipient on update", async () => {
+      await helpers.addUserCurrencies({ currencyCodes: ['UAH'] });
+      const account = await helpers.createAccount({
+        payload: { ...helpers.buildAccountPayload(), currencyCode: 'UAH' },
+        raw: true,
+      });
+      const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
+      const [ownerTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1000,
+          transactionType: TRANSACTION_TYPES.expense,
+          categoryId: ownerCategory.id,
+        }),
+        raw: true,
+      });
+
+      const recipient = await provisionRecipient();
+      await shareAccount({
+        accountId: account.id,
+        recipient,
+        permission: SHARE_PERMISSIONS.write,
+        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
+      });
+
+      const beforeCurrencies = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getUserCurrencies(),
+      });
+      expect(beforeCurrencies.find((c) => c.currencyCode === 'UAH')).toBeUndefined();
+
+      const res = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.updateTransaction({
+            id: ownerTx!.id,
+            payload: { amount: 2000 },
+          }),
+      });
+
+      expect(res.statusCode).toBe(200);
+
+      const afterCurrencies = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getUserCurrencies(),
+      });
+      expect(afterCurrencies.find((c) => c.currencyCode === 'UAH')).toBeDefined();
+    });
+
+    it('is a no-op when the shared account currency matches the recipient base currency', async () => {
+      // Account in recipient's base currency — no auto-connect needed, and creation succeeds.
+      const account = await helpers.createAccount({ raw: true });
+      const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
+      const recipient = await provisionRecipient();
+      await shareAccount({
+        accountId: account.id,
+        recipient,
+        permission: SHARE_PERMISSIONS.write,
+        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
+      });
+
+      const beforeCurrencies = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getUserCurrencies(),
+      });
+      const beforeCount = beforeCurrencies.length;
+
+      const res = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 100,
+              transactionType: TRANSACTION_TYPES.expense,
+              categoryId: ownerCategory.id,
+            }),
+          }),
+      });
+
+      expect(res.statusCode).toBe(200);
+
+      const afterCurrencies = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getUserCurrencies(),
+      });
+      // No additional currency rows added when account currency == recipient base.
+      expect(afterCurrencies.length).toBe(beforeCount);
+    });
+  });
 });

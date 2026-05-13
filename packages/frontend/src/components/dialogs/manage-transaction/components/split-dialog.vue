@@ -27,7 +27,7 @@ const props = defineProps<{
    * Category set the split rows render. The parent dialog routes this through
    * `useAccountCategories` so a recipient editing splits on a shared account sees the
    * **owner's** categories — not their own. Passing the wrong set lets the form submit a
-   * categoryId the backend rejects with `SPLIT_INVALID_CATEGORY` (per S4 family-sharing).
+   * categoryId the backend rejects with `SPLIT_INVALID_CATEGORY`.
    */
   categories: FormattedCategory[];
 }>();

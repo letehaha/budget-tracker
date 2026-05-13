@@ -7,6 +7,7 @@ import { withTransaction } from '@services/common/with-transaction';
 import { resolveResourceName } from '@services/sharing/auth/can-user-access-resource.service';
 
 import { notifyInvitationReceived } from '../share-notifications';
+import { FALLBACK_OWNER_DISPLAY_NAME } from '../share-user-snapshot';
 import { generateInvitationToken } from './generate-invitation-token';
 import { sendInvitationEmail } from './share-invitation-email';
 
@@ -31,8 +32,6 @@ const RESEND_ELIGIBLE_STATUSES = [
   SHARE_INVITATION_STATUSES.declined,
   SHARE_INVITATION_STATUSES.expired,
 ] as const;
-
-const FALLBACK_OWNER_DISPLAY_NAME = 'A MoneyMatter user';
 
 interface ResendInvitationParams {
   invitationId: string;

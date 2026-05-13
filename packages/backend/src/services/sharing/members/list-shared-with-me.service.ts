@@ -4,6 +4,7 @@ import Users from '@models/users.model';
 import { Op } from 'sequelize';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
+import { ShareUserSnapshot, snapshotShareUser } from '../share-user-snapshot';
 
 export interface SharedWithMeItem {
   shareId: string;
@@ -14,14 +15,8 @@ export interface SharedWithMeItem {
   permission: SharePermission;
   policy: SharePolicy | null;
   acceptedAt: Date;
-  owner: { id: number; username: string; avatar: string | null };
+  owner: ShareUserSnapshot;
 }
-
-const userSnapshot = (user: Users | null | undefined, fallbackId: number): SharedWithMeItem['owner'] => ({
-  id: user?.id ?? fallbackId,
-  username: user?.username ?? 'Unknown user',
-  avatar: user?.avatar ?? null,
-});
 
 /**
  * Lists every accepted share where the caller is the recipient. Each row carries enough
@@ -68,7 +63,7 @@ export const listSharedWithMe = async ({ userId }: { userId: number }): Promise<
       // The DB column is non-null in this query (filtered by `acceptedAt: not null`); the
       // model type still allows null so we narrow with `!`.
       acceptedAt: share.acceptedAt!,
-      owner: userSnapshot(ownersById.get(share.ownerUserId), share.ownerUserId),
+      owner: snapshotShareUser(ownersById.get(share.ownerUserId), share.ownerUserId),
     });
   }
 

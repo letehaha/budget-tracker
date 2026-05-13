@@ -5,15 +5,16 @@ import Users from '@models/users.model';
 import { Op } from 'sequelize';
 
 import { canUserAccessResource, resolveResourceName } from '../auth/can-user-access-resource.service';
+import { ShareUserSnapshot, snapshotShareUser } from '../share-user-snapshot';
 
 type ShareMemberRole = 'owner' | 'recipient';
 
 export interface ShareMemberSnapshot {
   /**
-   * `null` only when the underlying user row is gone (deleted account between accept and
-   * list); the rest of the snapshot still renders thanks to the Unknown-user fallback.
+   * `id` falls back to the membership id (owner userId / recipient userId) when the
+   * underlying user row is missing; `username` falls back to "Unknown user".
    */
-  user: { id: number; username: string; avatar: string | null };
+  user: ShareUserSnapshot;
   role: ShareMemberRole;
   /** Owner's effective permission is reported as `manage` to mirror `canUserAccessResource`. */
   permission: SharePermission;
@@ -30,12 +31,6 @@ export interface ListMembersResult {
   resourceName: string;
   members: ShareMemberSnapshot[];
 }
-
-const userSnapshot = (user: Users | null | undefined, fallbackId: number): ShareMemberSnapshot['user'] => ({
-  id: user?.id ?? fallbackId,
-  username: user?.username ?? 'Unknown user',
-  avatar: user?.avatar ?? null,
-});
 
 /**
  * Returns the active membership of a shared resource: the owner (always present) plus
@@ -88,7 +83,7 @@ export const listMembers = async ({
   const usersById = new Map(users.map((u) => [u.id, u]));
 
   const ownerEntry: ShareMemberSnapshot = {
-    user: userSnapshot(usersById.get(access.ownerUserId), access.ownerUserId),
+    user: snapshotShareUser(usersById.get(access.ownerUserId), access.ownerUserId),
     role: 'owner',
     permission: SHARE_PERMISSIONS.manage,
     policy: null,
@@ -97,7 +92,7 @@ export const listMembers = async ({
   };
 
   const recipientEntries: ShareMemberSnapshot[] = shares.map((share) => ({
-    user: userSnapshot(usersById.get(share.sharedWithUserId), share.sharedWithUserId),
+    user: snapshotShareUser(usersById.get(share.sharedWithUserId), share.sharedWithUserId),
     role: 'recipient',
     permission: share.permission,
     policy: share.policy,

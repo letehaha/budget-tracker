@@ -18,6 +18,7 @@ import {
   assertSharedWritePhase1Guards,
   assertTxWriteAccess,
 } from '@services/sharing/auth/authorize-account-write.service';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import * as refundsService from '@services/tx-refunds';
 import { Op } from 'sequelize';
 
@@ -471,6 +472,22 @@ export const updateTransaction = withTransaction(
         involvesRefund: payload.refundedByTxIds !== undefined || payload.refundsTxId !== undefined,
         changesAccountId: payload.accountId !== undefined && payload.accountId !== prevData.accountId,
       });
+
+      // Recipients editing a shared-account tx whose currency they haven't connected
+      // would otherwise trip `currencyNotConnected` inside the ref-amount lookup.
+      // Auto-connect so the guard stays internal and not user-facing.
+      if (!authCtx.isOwner) {
+        const { currency: callerDefaultCurrency } = await UsersCurrencies.getCurrency({
+          userId: ctx.callerUserId,
+          isDefaultCurrency: true,
+        });
+        if (prevData.currencyCode !== callerDefaultCurrency.code) {
+          await ensureUserCurrencyConnected({
+            userId: ctx.callerUserId,
+            currencyCode: prevData.currencyCode,
+          });
+        }
+      }
 
       // Validate that passed parameters are not breaking anything
       await validateTransaction(payload, prevData, ctx);

@@ -130,7 +130,8 @@
       "tabs": {
         "details": "Details",
         "settings": "Settings",
-        "integrations": "Data Connection"
+        "integrations": "Data Connection",
+        "sharing": "Sharing"
       },
       "details": {
         "creditLimit": "Credit Limit:",
@@ -198,6 +199,50 @@
       },
       "integrations": {
         "connectedVia": "Connected via"
+      },
+      "sharing": {
+        "title": "Sharing",
+        "description": "Manage who can see and edit this account.",
+        "inviteAnother": "Invite another",
+        "membersHeading": "Members",
+        "pendingHeading": "Pending invitations",
+        "loadError": "Failed to load sharing details.",
+        "permissions": {
+          "read": "Read",
+          "write": "Write",
+          "manage": "Manage"
+        },
+        "writeScope": {
+          "all": "All transactions",
+          "own": "Own transactions only"
+        },
+        "member": {
+          "you": "you",
+          "roleOwner": "Owner",
+          "roleRecipient": "Recipient",
+          "ownerHint": "Full control",
+          "revoke": "Remove access",
+          "revokeTitle": "Remove access?",
+          "revokeDescription": "{user} will lose access to {account}. They won't be notified.",
+          "revokeConfirm": "Remove",
+          "updateSuccess": "Member updated.",
+          "updateError": "Could not update member.",
+          "revokeSuccess": "Access removed.",
+          "revokeError": "Could not remove access."
+        },
+        "pending": {
+          "empty": "No pending invitations.",
+          "resend": "Resend",
+          "cancel": "Cancel invitation",
+          "cancelTitle": "Cancel invitation?",
+          "cancelDescription": "The invitation sent to {email} will be revoked.",
+          "cancelConfirm": "Cancel invitation",
+          "resendSuccess": "Invitation resent.",
+          "resendDeliveryFailed": "Invitation updated but the email could not be delivered.",
+          "resendError": "Could not resend invitation.",
+          "cancelSuccess": "Invitation cancelled.",
+          "cancelError": "Could not cancel invitation."
+        }
       }
     }
   }

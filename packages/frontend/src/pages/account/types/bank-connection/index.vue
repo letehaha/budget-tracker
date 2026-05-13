@@ -12,8 +12,9 @@ import AccountDetailsTab from '@/pages/account/components/account-details-tab.vu
 import SettingAccountGroup from '@/pages/account/components/account-group.vue';
 import AccountUnlinkSection from '@/pages/account/components/account-unlink-section.vue';
 import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
+import SharingPanel from '@/pages/account/components/sharing-panel/sharing-panel.vue';
 import { ROUTES_NAMES } from '@/routes';
-import { AccountModel, TransactionModel } from '@bt/shared/types';
+import { AccountModel, SHARE_PERMISSIONS, TransactionModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { ExternalLinkIcon } from 'lucide-vue-next';
 import { computed, ref, toRef } from 'vue';
@@ -38,12 +39,14 @@ const currentConnection = computed(() =>
   connections.value?.find((c) => c.id === props.account.bankDataProviderConnectionId),
 );
 
-const { isOwner } = useAccountAccess(toRef(() => props.account));
+const { isOwner, permission } = useAccountAccess(toRef(() => props.account));
+const canSeeSharingTab = computed(() => isOwner.value || permission.value === SHARE_PERMISSIONS.manage);
 
 const activeTab = ref('details');
 const tabItems = computed(() => {
   const items = [{ value: 'details', label: t('pages.account.tabs.details') }];
   if (isOwner.value) items.push({ value: 'integrations', label: t('pages.account.tabs.integrations') });
+  if (canSeeSharingTab.value) items.push({ value: 'sharing', label: t('pages.account.tabs.sharing') });
   items.push({ value: 'settings', label: t('pages.account.tabs.settings') });
   return items;
 });
@@ -100,6 +103,12 @@ const tabItems = computed(() => {
           <p class="text-lg font-medium">{{ t('pages.account.deletion.dangerZone') }}</p>
           <AccountUnlinkSection :account="account" />
         </div>
+      </div>
+    </Tabs.TabsContent>
+
+    <Tabs.TabsContent v-if="canSeeSharingTab" value="sharing">
+      <div class="grid gap-4 pt-6">
+        <SharingPanel :account="account" />
       </div>
     </Tabs.TabsContent>
   </Tabs.Tabs>

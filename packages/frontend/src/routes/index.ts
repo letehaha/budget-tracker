@@ -206,6 +206,7 @@ const routes: RouteRecordRaw[] = [
             'settings/ai',
             'settings/security',
             'settings/admin',
+            'pages/shared-with-me',
           ] as I18nChunkName[],
         },
         children: [
@@ -281,6 +282,12 @@ const routes: RouteRecordRaw[] = [
             name: ROUTES_NAMES.settingsAiIntegrations,
             component: () => import('@/pages/settings/subpages/ai-integrations/index.vue'),
             meta: { i18nChunks: ['settings/ai-integrations'] as I18nChunkName[] },
+          },
+          {
+            path: 'shared-with-me',
+            name: ROUTES_NAMES.settingsSharedWithMe,
+            component: () => import('@/pages/shared-with-me/shared-with-me.vue'),
+            meta: { i18nChunks: ['pages/shared-with-me'] as I18nChunkName[] },
           },
         ],
       },

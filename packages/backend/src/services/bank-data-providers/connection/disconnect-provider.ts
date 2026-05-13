@@ -1,6 +1,7 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
+import { logger } from '@js/utils/logger';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
@@ -121,13 +122,31 @@ export const disconnectProvider = async (params: {
 
   // Single owner fetch for the whole batch — every cleanup belongs to the same user.
   const owner = await Users.findByPk(params.userId);
-  await Promise.all(
-    result.cleanups.map((entry) =>
-      notifyAccountDeleteRecipients({
-        recipients: entry.recipients,
-        owner,
-        account: entry.account,
-      }),
-    ),
-  );
+  // Notification failures must not bubble up as a 500: the accounts are already destroyed
+  // and the connection is unwound. Each `notifyAccountDeleteRecipients` already wraps its
+  // per-recipient loop in try/catch, but a top-level throw (e.g. before the loop starts)
+  // would otherwise reject the whole `Promise.all` and surface to the user.
+  try {
+    await Promise.all(
+      result.cleanups.map((entry) =>
+        notifyAccountDeleteRecipients({
+          recipients: entry.recipients,
+          owner,
+          account: entry.account,
+        }),
+      ),
+    );
+  } catch (error) {
+    logger.error(
+      {
+        message: 'Failed to fan out share-recipient notifications after provider disconnect',
+        error: error as Error,
+      },
+      {
+        code: 'DISCONNECT_PROVIDER_NOTIFY_FAILED',
+        userId: params.userId,
+        cleanupCount: result.cleanups.length,
+      },
+    );
+  }
 };
