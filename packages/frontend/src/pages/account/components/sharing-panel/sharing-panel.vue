@@ -322,21 +322,24 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
       <template v-else>
         <template v-for="invitation in pendingInvitationsForAccount" :key="invitation.id">
           <div
-            class="border-border bg-card flex flex-col gap-3 rounded-lg border p-3 @xl/sharing-panel:flex-row @xl/sharing-panel:items-center"
+            class="border-border bg-card flex flex-col gap-3 rounded-lg border p-3 @sm/sharing-panel:flex-row @sm/sharing-panel:items-center"
           >
             <div class="flex min-w-0 items-center gap-3">
               <div class="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-full">
                 <MailIcon class="size-4" />
               </div>
               <div class="min-w-0">
-                <p class="truncate text-sm font-medium">{{ invitation.inviteeEmail }}</p>
+                <DesktopOnlyTooltip :content="invitation.inviteeEmail">
+                  <p class="block max-w-55 truncate text-sm font-medium">{{ invitation.inviteeEmail }}</p>
+                </DesktopOnlyTooltip>
+
                 <p class="text-muted-foreground text-xs">
                   {{ $t(`pages.account.sharing.permissions.${invitation.permission}`) }}
                 </p>
               </div>
             </div>
 
-            <div class="flex items-center gap-2 @xl/sharing-panel:ml-auto">
+            <div class="flex items-center gap-2 @sm/sharing-panel:ml-auto">
               <DesktopOnlyTooltip :content="$t('pages.account.sharing.pending.resend')">
                 <Button
                   variant="ghost"
