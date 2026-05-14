@@ -14,8 +14,12 @@ const PERMISSION_LABELS: Record<SharePermission, string> = {
   [SHARE_PERMISSIONS.manage]: 'Can manage',
 };
 
+// Household invitations have their own email template — this map is only hit
+// for per-resource invitations. Keep the household entry for type
+// exhaustiveness; if it ever appears in copy, the wording is reasonable.
 const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   account: 'account',
+  household: 'household',
 };
 
 const policySummary = ({ permission, policy }: { permission: SharePermission; policy: SharePolicy | null }) => {

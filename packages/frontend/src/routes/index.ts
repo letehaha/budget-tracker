@@ -289,6 +289,12 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/pages/shared-with-me/shared-with-me.vue'),
             meta: { i18nChunks: ['pages/shared-with-me'] as I18nChunkName[] },
           },
+          {
+            path: 'household',
+            name: ROUTES_NAMES.settingsHousehold,
+            component: () => import('@/pages/settings/subpages/household/index.vue'),
+            meta: { i18nChunks: ['pages/household'] as I18nChunkName[] },
+          },
         ],
       },
     ],

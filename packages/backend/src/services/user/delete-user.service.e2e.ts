@@ -465,7 +465,7 @@ describe('User deletion (DELETE /user/delete)', () => {
   });
 });
 
-describe('User deletion: family-sharing cleanup (S8)', () => {
+describe('User deletion: family-sharing cleanup', () => {
   it('drops ResourceShares owned by the deleted user via FK CASCADE', async () => {
     const account = await helpers.createAccount({ raw: true });
     const recipient = await helpers.provisionSecondUserWithBaseCurrency();
@@ -607,5 +607,71 @@ describe('User deletion: family-sharing cleanup (S8)', () => {
     // Self-owned tx cascade-deleted; creatorSnapshot only matters for survivors on others' accounts.
     const survivor = await Transactions.findByPk(txId);
     expect(survivor).toBeNull();
+  });
+
+  it('notifies household members when the household owner deletes their account', async () => {
+    // Seed an accepted household membership: primary user is the owner, second user is
+    // a member. Direct seeding sidesteps the invite flow (covered separately) so this
+    // test isolates the user-delete cascade path.
+    const ownerAccount = await helpers.createAccount({ raw: true });
+    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+    const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
+
+    await ResourceShares.create({
+      ownerUserId: ownerAccount.userId,
+      sharedWithUserId: recipientApp.id,
+      resourceType: RESOURCE_TYPES.household,
+      resourceId: String(ownerAccount.userId),
+      permission: SHARE_PERMISSIONS.write,
+      acceptedAt: new Date(),
+    });
+
+    const deleteRes = await helpers.deleteUserAccount();
+    expect(deleteRes.statusCode).toBe(200);
+
+    const notifs = await Notifications.findAll({
+      where: { userId: recipientApp.id, type: NOTIFICATION_TYPES.householdRevoked },
+    });
+    expect(notifs).toHaveLength(1);
+    // Cascade dropped the household row.
+    const sharesAfter = await ResourceShares.findAll({
+      where: { resourceType: RESOURCE_TYPES.household, resourceId: String(ownerAccount.userId) },
+    });
+    expect(sharesAfter).toHaveLength(0);
+  });
+
+  it('notifies the household owner when a member deletes their account', async () => {
+    // Primary user is the MEMBER here; second user is the household owner. Primary
+    // deletes their account → owner receives `householdMemberAccountDeleted`. This
+    // is distinct from `householdLeft` (voluntary `POST /household/leave`).
+    const owner = await helpers.provisionSecondUserWithBaseCurrency();
+    const ownerApp = await helpers.findAppUserByEmail({ email: owner.email });
+    const memberAccount = await helpers.createAccount({ raw: true });
+
+    await ResourceShares.create({
+      ownerUserId: ownerApp.id,
+      sharedWithUserId: memberAccount.userId,
+      resourceType: RESOURCE_TYPES.household,
+      resourceId: String(ownerApp.id),
+      permission: SHARE_PERMISSIONS.write,
+      acceptedAt: new Date(),
+    });
+
+    const deleteRes = await helpers.deleteUserAccount();
+    expect(deleteRes.statusCode).toBe(200);
+
+    const notifs = await Notifications.findAll({
+      where: { userId: ownerApp.id, type: NOTIFICATION_TYPES.householdMemberAccountDeleted },
+    });
+    expect(notifs).toHaveLength(1);
+    // Cascade dropped the household row from the member side.
+    const sharesAfter = await ResourceShares.findAll({
+      where: {
+        ownerUserId: ownerApp.id,
+        sharedWithUserId: memberAccount.userId,
+        resourceType: RESOURCE_TYPES.household,
+      },
+    });
+    expect(sharesAfter).toHaveLength(0);
   });
 });

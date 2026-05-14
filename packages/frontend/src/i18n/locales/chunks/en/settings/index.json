@@ -10,7 +10,8 @@
       "ai": "AI",
       "security": "Security",
       "admin": "Admin",
-      "sharedWithMe": "Shared with me"
+      "sharedWithMe": "Shared with me",
+      "household": "Household"
     },
     "backToSettings": "Back to Settings"
   }

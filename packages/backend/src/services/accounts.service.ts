@@ -344,10 +344,11 @@ export const deleteAccountById = async ({ id, userId }: { id: number; userId: nu
   // Post-commit fan-out: the durable changes (share rows deleted, invitations revoked,
   // account row destroyed) committed in the transaction above. Notifications are
   // best-effort — a transient notify failure must not re-open the deleted account.
-  if (result.cleanup.recipients.length > 0) {
+  if (result.cleanup.recipients.length > 0 || result.cleanup.householdRecipients.length > 0) {
     const owner = await Users.findByPk(userId);
     await notifyAccountDeleteRecipients({
       recipients: result.cleanup.recipients,
+      householdRecipients: result.cleanup.householdRecipients,
       owner,
       account: result.accountSnapshot,
     });

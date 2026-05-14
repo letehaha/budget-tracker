@@ -7,7 +7,7 @@ import { withTransaction } from '@services/common/with-transaction';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';
-import { notifyInvitationDeclined } from '../share-notifications';
+import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 
 interface DeclineInvitationResult {
   invitation: ShareInvitationModel;
@@ -78,7 +78,8 @@ const declineImpl = async ({ token, userId }: { token: string; userId: number })
       resourceId: invitation.resourceId,
     })) ?? 'Shared resource';
 
-  await notifyInvitationDeclined({
+  const notify = LIFECYCLE_NOTIFIERS.invitationDeclined[invitation.resourceType];
+  await notify({
     ownerUserId: invitation.ownerUserId,
     recipient,
     invitationId: invitation.id,

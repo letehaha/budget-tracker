@@ -1,4 +1,9 @@
-import { RESOURCE_TYPES, SharePermission, TransactionCreatorSnapshot } from '@bt/shared/types';
+import {
+  HouseholdSharePermission,
+  RESOURCE_TYPES,
+  SharePermission,
+  TransactionCreatorSnapshot,
+} from '@bt/shared/types';
 import { authPool } from '@config/auth';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
@@ -11,7 +16,13 @@ import { Op } from 'sequelize';
 import { transactionSyncQueue } from '../bank-data-providers/monobank/transaction-sync-queue';
 import { REDIS_KEYS as SYNC_REDIS_KEYS, clearAccountSyncStatus } from '../bank-data-providers/sync/sync-status-tracker';
 import { withTransaction } from '../common/with-transaction';
-import { notifyShareOwnerAccountDeleted } from '../sharing/share-notifications';
+import { fanOutNotifications } from '../sharing/fan-out-notifications';
+import {
+  notifyHouseholdMemberAccountDeleted,
+  notifyHouseholdRevoked,
+  notifyShareOwnerAccountDeleted,
+} from '../sharing/share-notifications';
+import { formatHouseholdLabel, toPositiveInt } from '../sharing/sharing-utils';
 
 /**
  * Snapshotted ahead of the destroy so post-commit notifications have everything they need
@@ -26,9 +37,33 @@ interface AccountDeleteNotificationTarget {
   permission: SharePermission;
 }
 
+interface HouseholdRevokedTarget {
+  /** Member who loses access (recipient of the household share). */
+  recipientUserId: number;
+  shareId: string;
+  permission: HouseholdSharePermission;
+}
+
+interface HouseholdOwnerNotifyTarget {
+  /** Owner who gets notified that one of their household members is gone. */
+  ownerUserId: number;
+  shareId: string;
+}
+
 interface DeleteUserInTxResult {
   /** Targets to notify after commit. Empty array when the user had no shared accounts. */
   notificationTargets: AccountDeleteNotificationTarget[];
+  /**
+   * Households the deleting user OWNED. After the user row destroys, FK cascades will
+   * drop the household ResourceShares rows — these members lose access. Captured in
+   * advance so the post-commit step can still address them.
+   */
+  householdRevokedTargets: HouseholdRevokedTarget[];
+  /**
+   * Households the deleting user was a MEMBER of. The household keeps existing for the
+   * remaining members; we notify the owner that this specific member is now gone.
+   */
+  householdOwnerNotifyTargets: HouseholdOwnerNotifyTarget[];
   /** Captured before destroy so the post-commit step can build the `owner` snapshot
    *  without the Users row that the destroy is about to remove. */
   ownerSnapshot: { id: number; username: string; avatar: string | null } | null;
@@ -38,10 +73,20 @@ interface DeleteUserInTxResult {
 const deleteUserInTx = withTransaction(async ({ userId }: { userId: number }): Promise<DeleteUserInTxResult> => {
   const user = await Users.default.findByPk(userId);
   if (!user) {
-    return { notificationTargets: [], ownerSnapshot: null, authUserId: null };
+    return {
+      notificationTargets: [],
+      householdRevokedTargets: [],
+      householdOwnerNotifyTargets: [],
+      ownerSnapshot: null,
+      authUserId: null,
+    };
   }
 
-  const notificationTargets = await collectAccountDeleteNotificationTargets({ deletingUser: user });
+  const [notificationTargets, householdRevokedTargets, householdOwnerNotifyTargets] = await Promise.all([
+    collectAccountDeleteNotificationTargets({ deletingUser: user }),
+    collectHouseholdRevokedTargets({ deletingUser: user }),
+    collectHouseholdOwnerNotifyTargets({ deletingUser: user }),
+  ]);
   await stampCreatorSnapshotForOutboundTransactions({ deletingUser: user });
 
   // Snapshot owner identity BEFORE the destroy — the row is gone after this line.
@@ -54,7 +99,13 @@ const deleteUserInTx = withTransaction(async ({ userId }: { userId: number }): P
 
   await Users.default.destroy({ where: { id: userId } });
 
-  return { notificationTargets, ownerSnapshot, authUserId };
+  return {
+    notificationTargets,
+    householdRevokedTargets,
+    householdOwnerNotifyTargets,
+    ownerSnapshot,
+    authUserId,
+  };
 });
 
 export const deleteUser = async ({ userId }: { userId: number }) => {
@@ -65,9 +116,11 @@ export const deleteUser = async ({ userId }: { userId: number }) => {
     const userJobs = pendingJobs.filter((job) => job.data.userId === userId);
     await Promise.all(
       userJobs.map((job) =>
-        job.remove().catch(() => {
-          // Job may have become active between getJobs and remove - ignore lock errors
-          logger.warn(`Could not remove job during user deletion. jobId: ${job.id}`);
+        job.remove().catch((error) => {
+          // Job may have become active between getJobs and remove - ignore lock errors,
+          // but log the actual error so we can spot non-lock failures (Redis disconnect,
+          // etc.) instead of misattributing every miss to a transient lock race.
+          logger.warn(`Could not remove job during user deletion. jobId: ${job.id}`, { error: error as Error });
         }),
       ),
     );
@@ -95,7 +148,8 @@ export const deleteUser = async ({ userId }: { userId: number }) => {
     //    would either roll back the user-delete on a transient notification failure or,
     //    worse, leave the tx in an aborted state where the next statement throws
     //    "current transaction is aborted, commands ignored until end of transaction block".
-    const { notificationTargets, ownerSnapshot, authUserId } = await deleteUserInTx({ userId });
+    const { notificationTargets, householdRevokedTargets, householdOwnerNotifyTargets, ownerSnapshot, authUserId } =
+      await deleteUserInTx({ userId });
 
     // 4. Delete user from better-auth tables (ba_user cascades to ba_session, ba_account,
     //    ba_passkey, etc.). Separate connection pool — does not roll back the app DB.
@@ -115,6 +169,15 @@ export const deleteUser = async ({ userId }: { userId: number }) => {
     //    committed, so a failed notification is a recoverable best-effort signal.
     if (notificationTargets.length > 0 && ownerSnapshot) {
       await fanOutAccountDeleteNotifications({ targets: notificationTargets, ownerSnapshot });
+    }
+    if (householdRevokedTargets.length > 0 && ownerSnapshot) {
+      await fanOutHouseholdRevokedNotifications({ targets: householdRevokedTargets, ownerSnapshot });
+    }
+    if (householdOwnerNotifyTargets.length > 0 && ownerSnapshot) {
+      await fanOutHouseholdMemberDeletedNotifications({
+        targets: householdOwnerNotifyTargets,
+        memberSnapshot: ownerSnapshot,
+      });
     }
   } catch (e) {
     logger.error({ message: 'User deletion failed', error: e as Error }, { code: 'USER_DELETE_FAILED', userId });
@@ -141,7 +204,9 @@ async function collectAccountDeleteNotificationTargets({
 
   if (shares.length === 0) return [];
 
-  const accountIds = [...new Set(shares.map((s) => Number(s.resourceId)).filter(Number.isInteger))];
+  const accountIds = [
+    ...new Set(shares.map((s) => toPositiveInt(s.resourceId)).filter((n): n is number => n !== null)),
+  ];
   const accountRows = (await Accounts.default.findAll({
     where: { id: { [Op.in]: accountIds } },
     attributes: ['id', 'name'],
@@ -153,7 +218,7 @@ async function collectAccountDeleteNotificationTargets({
     recipientUserId: share.sharedWithUserId,
     shareId: share.id,
     resourceId: share.resourceId,
-    resourceName: namesById.get(Number(share.resourceId)) ?? 'Shared account',
+    resourceName: namesById.get(toPositiveInt(share.resourceId) ?? -1) ?? 'Shared account',
     permission: share.permission,
   }));
 }
@@ -174,31 +239,142 @@ async function fanOutAccountDeleteNotifications({
   // the row is already gone post-destroy. Wrap the snapshot in the minimal shape the
   // notification helper reads — only `id`, `username`, `avatar` are touched.
   const ownerLike = ownerSnapshot as unknown as Users.default;
-
-  for (const target of targets) {
-    try {
-      await notifyShareOwnerAccountDeleted({
+  await fanOutNotifications({
+    targets,
+    notify: (target) =>
+      notifyShareOwnerAccountDeleted({
         recipientUserId: target.recipientUserId,
         owner: ownerLike,
         shareId: target.shareId,
         resource: { type: RESOURCE_TYPES.account, id: target.resourceId, name: target.resourceName },
         permission: target.permission,
-      });
-    } catch (error) {
-      logger.error(
-        {
-          message: 'Failed to emit share_owner_account_deleted notification during user-delete cascade',
-          error: error as Error,
+      }),
+    errorCode: 'SHARE_OWNER_ACCOUNT_DELETED_NOTIFY_FAILED_USER_CASCADE',
+    errorMessage: 'Failed to emit share_owner_account_deleted notification during user-delete cascade',
+    buildLogContext: (target) => ({
+      shareId: target.shareId,
+      recipientUserId: target.recipientUserId,
+      ownerUserId: ownerSnapshot.id,
+    }),
+  });
+}
+
+/**
+ * Pulls household memberships where the deleting user is the OWNER. Each accepted row
+ * means a member who is about to lose household-derived access when the FK cascade drops
+ * the row. Snapshot in advance because we won't be able to read the rows post-commit.
+ */
+async function collectHouseholdRevokedTargets({
+  deletingUser,
+}: {
+  deletingUser: Users.default;
+}): Promise<HouseholdRevokedTarget[]> {
+  const rows = (await ResourceShares.findAll({
+    where: {
+      ownerUserId: deletingUser.id,
+      resourceType: RESOURCE_TYPES.household,
+      acceptedAt: { [Op.not]: null },
+    },
+    attributes: ['id', 'sharedWithUserId', 'permission'],
+    raw: true,
+  })) as Array<{ id: string; sharedWithUserId: number; permission: HouseholdSharePermission }>;
+
+  return rows.map((row) => ({
+    recipientUserId: row.sharedWithUserId,
+    shareId: row.id,
+    permission: row.permission,
+  }));
+}
+
+/**
+ * Pulls household memberships where the deleting user is the MEMBER (sharedWithUserId).
+ * The household keeps existing for the rest; the owner gets notified that this specific
+ * member is no longer in their household.
+ */
+async function collectHouseholdOwnerNotifyTargets({
+  deletingUser,
+}: {
+  deletingUser: Users.default;
+}): Promise<HouseholdOwnerNotifyTarget[]> {
+  const rows = (await ResourceShares.findAll({
+    where: {
+      sharedWithUserId: deletingUser.id,
+      resourceType: RESOURCE_TYPES.household,
+      acceptedAt: { [Op.not]: null },
+    },
+    attributes: ['id', 'ownerUserId'],
+    raw: true,
+  })) as Array<{ id: string; ownerUserId: number }>;
+
+  return rows.map((row) => ({
+    ownerUserId: row.ownerUserId,
+    shareId: row.id,
+  }));
+}
+
+/** Fan-out for owner-deleted households. */
+async function fanOutHouseholdRevokedNotifications({
+  targets,
+  ownerSnapshot,
+}: {
+  targets: HouseholdRevokedTarget[];
+  ownerSnapshot: { id: number; username: string; avatar: string | null };
+}) {
+  const ownerLike = ownerSnapshot as unknown as Users.default;
+  const resource = {
+    type: RESOURCE_TYPES.household,
+    id: String(ownerSnapshot.id),
+    name: formatHouseholdLabel(ownerSnapshot.username),
+  } as const;
+  await fanOutNotifications({
+    targets,
+    notify: (target) =>
+      notifyHouseholdRevoked({
+        recipientUserId: target.recipientUserId,
+        owner: ownerLike,
+        shareId: target.shareId,
+        resource,
+        permission: target.permission,
+      }),
+    errorCode: 'HOUSEHOLD_REVOKED_NOTIFY_FAILED_USER_CASCADE',
+    errorMessage: 'Failed to emit household_revoked notification during owner-delete cascade',
+    buildLogContext: (target) => ({
+      shareId: target.shareId,
+      recipientUserId: target.recipientUserId,
+      ownerUserId: ownerSnapshot.id,
+    }),
+  });
+}
+
+/** Fan-out for member-deleted households (the owner side). */
+async function fanOutHouseholdMemberDeletedNotifications({
+  targets,
+  memberSnapshot,
+}: {
+  targets: HouseholdOwnerNotifyTarget[];
+  memberSnapshot: { id: number; username: string; avatar: string | null };
+}) {
+  await fanOutNotifications({
+    targets,
+    notify: (target) =>
+      notifyHouseholdMemberAccountDeleted({
+        ownerUserId: target.ownerUserId,
+        memberSnapshot,
+        shareId: target.shareId,
+        resource: {
+          type: RESOURCE_TYPES.household,
+          id: String(target.ownerUserId),
+          name: 'your household',
         },
-        {
-          code: 'SHARE_OWNER_ACCOUNT_DELETED_NOTIFY_FAILED_USER_CASCADE',
-          shareId: target.shareId,
-          recipientUserId: target.recipientUserId,
-          ownerUserId: ownerSnapshot.id,
-        },
-      );
-    }
-  }
+      }),
+    errorCode: 'HOUSEHOLD_MEMBER_ACCOUNT_DELETED_NOTIFY_FAILED_USER_CASCADE',
+    errorMessage: 'Failed to emit household_member_account_deleted notification during member-delete cascade',
+    buildLogContext: (target) => ({
+      shareId: target.shareId,
+      ownerUserId: target.ownerUserId,
+      memberUserId: memberSnapshot.id,
+    }),
+  });
 }
 
 /**
@@ -212,17 +388,47 @@ async function fanOutAccountDeleteNotifications({
  * set, instead of scanning the global Accounts table.
  */
 async function stampCreatorSnapshotForOutboundTransactions({ deletingUser }: { deletingUser: Users.default }) {
-  const sharedAccountRows = (await ResourceShares.findAll({
-    where: { sharedWithUserId: deletingUser.id, resourceType: RESOURCE_TYPES.account },
-    attributes: ['resourceId'],
-    raw: true,
-  })) as Array<{ resourceId: string }>;
+  // Two paths into someone else's account:
+  //   1. Per-resource share — `ResourceShares{type:account, resourceId:<accountId>}`
+  //   2. Household membership — `ResourceShares{type:household, resourceId:<ownerUserId>}`
+  //      grants write access to every account the granting user owns.
+  // Both must contribute or household-derived txns end up anonymous after the destroy.
+  const [perResourceRows, householdRows] = await Promise.all([
+    ResourceShares.findAll({
+      where: { sharedWithUserId: deletingUser.id, resourceType: RESOURCE_TYPES.account },
+      attributes: ['resourceId'],
+      raw: true,
+    }) as unknown as Promise<Array<{ resourceId: string }>>,
+    ResourceShares.findAll({
+      where: {
+        sharedWithUserId: deletingUser.id,
+        resourceType: RESOURCE_TYPES.household,
+        acceptedAt: { [Op.not]: null },
+      },
+      attributes: ['resourceId'],
+      raw: true,
+    }) as unknown as Promise<Array<{ resourceId: string }>>,
+  ]);
 
-  const accessibleAccountIds = sharedAccountRows
-    .map((s) => Number(s.resourceId))
-    .filter((id) => Number.isInteger(id) && id > 0);
+  const accessibleAccountIds = new Set<number>();
+  for (const row of perResourceRows) {
+    const id = toPositiveInt(row.resourceId);
+    if (id !== null) accessibleAccountIds.add(id);
+  }
 
-  if (accessibleAccountIds.length === 0) return;
+  const householdGrantorIds = householdRows
+    .map((row) => toPositiveInt(row.resourceId))
+    .filter((id): id is number => id !== null);
+  if (householdGrantorIds.length > 0) {
+    const grantorAccounts = (await Accounts.default.findAll({
+      where: { userId: { [Op.in]: householdGrantorIds } },
+      attributes: ['id'],
+      raw: true,
+    })) as Array<{ id: number }>;
+    for (const account of grantorAccounts) accessibleAccountIds.add(account.id);
+  }
+
+  if (accessibleAccountIds.size === 0) return;
 
   const snapshot: TransactionCreatorSnapshot = {
     userId: deletingUser.id,
@@ -235,7 +441,7 @@ async function stampCreatorSnapshotForOutboundTransactions({ deletingUser }: { d
     {
       where: {
         userId: deletingUser.id,
-        accountId: { [Op.in]: accessibleAccountIds },
+        accountId: { [Op.in]: Array.from(accessibleAccountIds) },
       },
     },
   );

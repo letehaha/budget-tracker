@@ -2,8 +2,12 @@ import { ResourceType } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { appName, appUrl, buildEmailShell, escapeHtml, fromEmail, resend } from '@services/email';
 
+// Household revocation has its own email template — this map is only hit for
+// per-resource revokes. Keep the household entry for type exhaustiveness; if it
+// ever appears in copy, the wording is reasonable.
 const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   account: 'account',
+  household: 'household',
 };
 
 interface SendShareRevokedEmailParams {

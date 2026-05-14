@@ -8,7 +8,8 @@
         "description": "When someone shares an account with you, it'll show up here."
       },
       "sections": {
-        "account": "Accounts"
+        "account": "Accounts",
+        "household": "Households"
       },
       "sharedBy": "Shared by {handle}",
       "unnamedResource": "Untitled",

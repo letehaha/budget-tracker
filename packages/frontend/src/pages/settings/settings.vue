@@ -64,6 +64,7 @@ import { useElementSize } from '@vueuse/core';
 import {
   ChevronRightIcon,
   CircleDollarSignIcon,
+  HomeIcon,
   KeyRoundIcon,
   LayersIcon,
   PlugIcon,
@@ -178,6 +179,13 @@ const baseTabs = computed<Tab[]>(() => [
     label: t('settings.navigation.sharedWithMe'),
     to: { name: ROUTES_NAMES.settingsSharedWithMe },
     icon: UsersIcon,
+  },
+  {
+    name: 'household',
+    label: t('settings.navigation.household'),
+    to: { name: ROUTES_NAMES.settingsHousehold },
+    icon: HomeIcon,
+    badgeSince: '2026-05-14',
   },
 ]);
 

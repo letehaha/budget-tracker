@@ -14,14 +14,16 @@ import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
+import { getBaseCurrency } from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
 import { findUserByEmail } from '../find-user-by-email.service';
 import { getMaxPendingInvitationsPerResource } from '../limits';
-import { notifyInvitationReceived, notifyInvitationSendFailed } from '../share-notifications';
+import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 import { FALLBACK_OWNER_DISPLAY_NAME } from '../share-user-snapshot';
+import { formatHouseholdLabel, toPositiveInt } from '../sharing-utils';
 import { generateInvitationToken } from './generate-invitation-token';
 import { sendInvitationEmail } from './share-invitation-email';
 
@@ -61,8 +63,8 @@ const resolveOwnedResource = async ({
   resourceId: string;
 }): Promise<ResolvedResource> => {
   if (resourceType === RESOURCE_TYPES.account) {
-    const numericId = Number(resourceId);
-    if (!Number.isInteger(numericId) || numericId <= 0) {
+    const numericId = toPositiveInt(resourceId);
+    if (numericId === null) {
       throw new NotFoundError({ message: 'Account not found' });
     }
     const account = await Accounts.findOne({ where: { id: numericId } });
@@ -77,6 +79,37 @@ const resolveOwnedResource = async ({
       ownerUserId: account.userId,
       ownerCurrencyCode: account.currencyCode,
       resourceName: account.name,
+    };
+  }
+  if (resourceType === RESOURCE_TYPES.household) {
+    // A household is identified by its owner — the inviter can only invite people to
+    // their own household, so `resourceId` must match `ownerUserId` exactly. Anything
+    // else is a client bug or a cross-household attempt.
+    const numericResourceId = toPositiveInt(resourceId);
+    if (numericResourceId === null || numericResourceId !== ownerUserId) {
+      throw new ValidationError({ message: 'A household invitation must target your own household.' });
+    }
+    const ownerUser = await Users.findByPk(ownerUserId);
+    if (!ownerUser) {
+      // Authenticated owner with no Users row — DB integrity violation. Log so it
+      // surfaces, then surface a 404 (don't leak the integrity issue to the caller).
+      logger.error(
+        {
+          message: 'Owner Users row missing when resolving household resource',
+          error: new Error(`Users.findByPk returned null for ownerUserId=${ownerUserId}`),
+        },
+        { code: 'SHARE_OWNER_USER_MISSING_FOR_RESOURCE_RESOLVE', ownerUserId },
+      );
+      throw new NotFoundError({ message: 'Owner not found' });
+    }
+    const ownerBaseCurrency = await getBaseCurrency({ userId: ownerUserId });
+    if (!ownerBaseCurrency) {
+      throw new ValidationError({ message: 'Set your base currency before inviting people to your household.' });
+    }
+    return {
+      ownerUserId,
+      ownerCurrencyCode: ownerBaseCurrency.currencyCode,
+      resourceName: formatHouseholdLabel(ownerUser.username),
     };
   }
   // Defensive — controller-level zod validation already restricts resourceType.
@@ -111,12 +144,20 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
   const resourceIdStr = String(resourceId);
   const normalizedEmail = inviteeEmail.trim().toLowerCase();
 
+  // Household memberships never grant `manage` — DB CHECK constraints enforce this, but
+  // surface a friendly error before the constraint trips.
+  if (resourceType === RESOURCE_TYPES.household && permission === SHARE_PERMISSIONS.manage) {
+    throw new ValidationError({ message: 'Household members cannot receive manage permission.' });
+  }
+
   // Owner-side validation only (per D6). Anything that would distinguish "registered" from
   // "unregistered" emails is moved to the accept endpoint to avoid user enumeration.
   const resource = await resolveOwnedResource({ ownerUserId, resourceType, resourceId: resourceIdStr });
 
   // Recipient cap counts accepted shares only — not pending, and not affected by
-  // unresolved invitations. Owner-side check, no leak.
+  // unresolved invitations. Owner-side check, no leak. Household has its own cap because
+  // a household grant carries broader reach (every account the owner has) than a single
+  // per-resource share.
   const acceptedShareCount = await ResourceShares.count({
     where: {
       resourceType,
@@ -124,9 +165,14 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
       acceptedAt: { [Op.not]: null },
     },
   });
-  if (acceptedShareCount >= SHARING_LIMITS.maxRecipientsPerResource) {
+  const acceptedCap =
+    resourceType === RESOURCE_TYPES.household
+      ? SHARING_LIMITS.maxHouseholdMembers
+      : SHARING_LIMITS.maxRecipientsPerResource;
+  if (acceptedShareCount >= acceptedCap) {
+    const target = resourceType === RESOURCE_TYPES.household ? 'household member(s)' : 'recipient(s)';
     throw new ConflictError({
-      message: `This resource has reached the maximum of ${SHARING_LIMITS.maxRecipientsPerResource} recipient(s).`,
+      message: `This resource has reached the maximum of ${acceptedCap} ${target}.`,
     });
   }
 
@@ -182,7 +228,8 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
   if (invitee) {
     const owner = await Users.findByPk(ownerUserId);
     if (owner) {
-      await notifyInvitationReceived({
+      const notify = LIFECYCLE_NOTIFIERS.invitationReceived[resourceType];
+      await notify({
         inviteeUserId: invitee.appUser.id,
         owner,
         invitation: {
@@ -278,7 +325,8 @@ export const createInvitation = async (params: CreateInvitationParams): Promise<
     // is easy to miss. Drop a durable owner notification so the failed delivery surfaces in
     // the notification center even if the page is dismissed before the toast renders.
     const invitee = await Users.findByPk(result.resolvedInvitee.userId);
-    await notifyInvitationSendFailed({
+    const notify = LIFECYCLE_NOTIFIERS.invitationSendFailed[result.invitation.resourceType];
+    await notify({
       ownerUserId: params.ownerUserId,
       invitee,
       inviteeEmail: result.resolvedInvitee.email,

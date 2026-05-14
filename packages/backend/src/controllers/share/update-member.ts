@@ -1,11 +1,13 @@
-import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
+import { SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { updateMember } from '@services/sharing/members/update-member.service';
 import { z } from 'zod';
 
+import { shareableResourceTypeEnum } from './_zod';
+
 const schema = z.object({
   params: z.object({
-    resourceType: z.enum([RESOURCE_TYPES.account] as const),
+    resourceType: shareableResourceTypeEnum,
     resourceId: z.string().min(1).max(255),
     userId: z.coerce.number().int().positive(),
   }),

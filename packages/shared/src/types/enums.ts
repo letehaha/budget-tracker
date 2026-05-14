@@ -194,9 +194,23 @@ export const NOTIFICATION_TYPES = {
   shareLeft: 'share_left',
   shareExpired: 'share_expired',
   shareOwnerAccountDeleted: 'share_owner_account_deleted',
+  // Household membership lifecycle. Mirrors the per-resource set except for
+  // the deleted-resource analog (a household has no single resource to delete)
+  // and adds `householdMemberAccountDeleted` to distinguish system cascades
+  // from voluntary `householdLeft`.
+  householdInvitationReceived: 'household_invitation_received',
+  householdInvitationSendFailed: 'household_invitation_send_failed',
+  householdAccepted: 'household_accepted',
+  householdDeclined: 'household_declined',
+  householdPermissionChanged: 'household_permission_changed',
+  householdRevoked: 'household_revoked',
+  householdLeft: 'household_left',
+  householdExpired: 'household_expired',
+  householdOwnerAccountDeleted: 'household_owner_account_deleted',
+  householdMemberAccountDeleted: 'household_member_account_deleted',
 } as const;
 
-export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES] | string;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];
 
 /**
  * Notification status
@@ -207,7 +221,7 @@ export const NOTIFICATION_STATUSES = {
   dismissed: 'dismissed',
 } as const;
 
-export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[keyof typeof NOTIFICATION_STATUSES] | string;
+export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[keyof typeof NOTIFICATION_STATUSES];
 
 /**
  * Notification priority levels
@@ -219,7 +233,7 @@ export const NOTIFICATION_PRIORITIES = {
   urgent: 'urgent',
 } as const;
 
-export type NotificationPriority = (typeof NOTIFICATION_PRIORITIES)[keyof typeof NOTIFICATION_PRIORITIES] | string;
+export type NotificationPriority = (typeof NOTIFICATION_PRIORITIES)[keyof typeof NOTIFICATION_PRIORITIES];
 
 /**
  * Subscription types
@@ -315,19 +329,54 @@ export type PreferredTimeSlot = (typeof PREFERRED_TIME_SLOTS)[number];
 
 /**
  * Resource types that can be shared with other users.
- * Phase 1 supports only `account`. New types are added in later phases.
+ *
+ * - `account`: a single account is shared.
+ * - `household`: the recipient gains access to every account owned by the
+ *   grantor. A household row is stored on `ResourceShares` with
+ *   `resourceId = ownerUserId::text`; the per-row CHECK constraint enforces
+ *   that shape so service-layer bugs cannot poison the table.
  */
 export const RESOURCE_TYPES = {
   account: 'account',
+  household: 'household',
 } as const;
 
 export type ResourceType = (typeof RESOURCE_TYPES)[keyof typeof RESOURCE_TYPES];
+
+/**
+ * How the caller can access a shared resource. Surfaced on the per-resource
+ * `share` block so the frontend can render the right label and route the user
+ * to the right management UI.
+ *
+ * - `owner`: the caller owns the resource.
+ * - `share`: a per-resource `ResourceShares` row grants access directly.
+ * - `household`: access derives from a household-membership row (the grantor
+ *   shared every account they own with the caller).
+ */
+export const ACCESS_SOURCES = {
+  owner: 'owner',
+  share: 'share',
+  household: 'household',
+} as const;
+
+export type AccessSource = (typeof ACCESS_SOURCES)[keyof typeof ACCESS_SOURCES];
+
+/**
+ * AccessSource narrowed to the values that can appear on a row in the shared-with-me list
+ * (i.e. the caller is a recipient, never the owner). Used by the backend list service +
+ * frontend API typing so a future regression can't accidentally feed `'owner'` through.
+ */
+export type SharedWithMeAccessSource = Exclude<AccessSource, typeof ACCESS_SOURCES.owner>;
 
 /**
  * Permission levels granted on a shared resource.
  * - read: view the resource and its child entities
  * - write: read + create/update/delete child entities (subject to policy)
  * - manage: write + manage other recipients of the same resource (cannot delete the resource itself)
+ *
+ * Household rows (`resourceType = 'household'`) reject `manage` at the DB
+ * level — owner-only operations remain owner-only regardless of household
+ * membership.
  */
 export const SHARE_PERMISSIONS = {
   read: 'read',
@@ -336,6 +385,14 @@ export const SHARE_PERMISSIONS = {
 } as const;
 
 export type SharePermission = (typeof SHARE_PERMISSIONS)[keyof typeof SHARE_PERMISSIONS];
+
+/**
+ * Permission levels valid for household membership. Household rows reject
+ * `'manage'` at the DB level (the CHECK constraint on `ResourceShares` forbids
+ * it), so this narrowed type prevents callers from constructing or comparing
+ * against a value that can never appear in storage.
+ */
+export type HouseholdSharePermission = Exclude<SharePermission, 'manage'>;
 
 /**
  * Status of a share invitation.
@@ -367,19 +424,23 @@ export type TransactionsWriteScope = (typeof TRANSACTIONS_WRITE_SCOPES)[keyof ty
 /**
  * Hardcoded sharing-related limits. Bumping these is a code-only change.
  *
- * `maxRecipientsPerResource` is the cap for Phase 1 free tier; lifts to 50 once a
- * paid tier exists. Counts only accepted shares (recipients), not pending invitations.
+ * `maxRecipientsPerResource` is the free-tier cap; lifts to 50 once a paid
+ * tier exists. Counts only accepted shares (recipients), not pending invitations.
  *
  * `maxPendingInvitationsPerResource` caps how many concurrent pending invitations a
  * single owner can have for one resource. The smaller test value keeps the relevant
  * boundary cheap to exercise in e2e tests; the dev/prod value is the real abuse-prevention
- * limit (per-recipient resend rate-limiting in S6 is the dedicated spam guard).
+ * limit (per-recipient resend rate-limiting is the dedicated spam guard).
  *
  * Backend reads this via `getMaxPendingInvitationsPerResource()` in
  * `services/sharing/limits.ts` so the test override is centralized.
  */
 export const SHARING_LIMITS = {
   maxRecipientsPerResource: 2,
+  // Household membership cap (free tier). One household = one grantor and up to
+  // this many recipients with access to every account the grantor owns. Lifts
+  // alongside `maxRecipientsPerResource` in the paid tier.
+  maxHouseholdMembers: 2,
   maxPendingInvitationsPerResource: 10,
   maxPendingInvitationsPerResourceTest: 3,
   invitationExpirationDays: 7,

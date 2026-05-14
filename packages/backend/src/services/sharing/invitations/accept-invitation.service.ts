@@ -1,5 +1,6 @@
 import {
   API_ERROR_CODES,
+  RESOURCE_TYPES,
   ResourceShareModel,
   SHARE_INVITATION_STATUSES,
   SHARING_LIMITS,
@@ -17,7 +18,7 @@ import { Op, QueryTypes } from 'sequelize';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';
-import { notifyInvitationAccepted } from '../share-notifications';
+import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 
 interface AcceptInvitationResult {
   invitation: ShareInvitationModel;
@@ -153,9 +154,14 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
         acceptedAt: { [Op.not]: null },
       },
     });
-    if (acceptedCount >= SHARING_LIMITS.maxRecipientsPerResource) {
+    const acceptedCap =
+      invitation.resourceType === RESOURCE_TYPES.household
+        ? SHARING_LIMITS.maxHouseholdMembers
+        : SHARING_LIMITS.maxRecipientsPerResource;
+    if (acceptedCount >= acceptedCap) {
+      const target = invitation.resourceType === RESOURCE_TYPES.household ? 'household member(s)' : 'recipient(s)';
       throw new ConflictError({
-        message: `This resource is full — the owner has reached the maximum of ${SHARING_LIMITS.maxRecipientsPerResource} active recipient(s).`,
+        message: `This resource is full — the owner has reached the maximum of ${acceptedCap} active ${target}.`,
       });
     }
   }
@@ -173,6 +179,37 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
       acceptedAt,
     }));
 
+  // Auto-merge prior per-resource grants when the recipient accepts a household
+  // invitation from the same owner: the broader household grant supersedes them,
+  // and keeping ghost per-resource rows around means revoking household later
+  // leaves the recipient with surprise access to whatever was shared per-resource
+  // before. The merge runs inside the same transaction as the household row's
+  // creation, so an accept either fully merges or fully rolls back.
+  //
+  // No revoke notifications fire for merged rows — the recipient initiated this,
+  // they're not being revoked by someone else.
+  if (invitation.resourceType === RESOURCE_TYPES.household && !existingShare) {
+    await ResourceShares.destroy({
+      where: {
+        ownerUserId: invitation.ownerUserId,
+        sharedWithUserId: userId,
+        resourceType: { [Op.ne]: RESOURCE_TYPES.household },
+        acceptedAt: { [Op.not]: null },
+      },
+    });
+    await ShareInvitations.update(
+      { status: SHARE_INVITATION_STATUSES.revoked },
+      {
+        where: {
+          ownerUserId: invitation.ownerUserId,
+          inviteeUserId: userId,
+          resourceType: { [Op.ne]: RESOURCE_TYPES.household },
+          status: SHARE_INVITATION_STATUSES.pending,
+        },
+      },
+    );
+  }
+
   invitation.status = SHARE_INVITATION_STATUSES.accepted;
   invitation.acceptedAt = acceptedAt;
   if (shouldBindUserId) {
@@ -184,7 +221,8 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
   // user and the owner is the receiver of the notification.
   const recipient = await Users.findByPk(userId);
   if (recipient) {
-    await notifyInvitationAccepted({
+    const notify = LIFECYCLE_NOTIFIERS.invitationAccepted[invitation.resourceType];
+    await notify({
       ownerUserId: invitation.ownerUserId,
       recipient,
       shareId: share.id,

@@ -8,7 +8,7 @@ import { Op } from 'sequelize';
 
 import { canUserAccessResource, resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';
-import { notifyShareRevoked } from '../share-notifications';
+import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 import { FALLBACK_OWNER_DISPLAY_NAME } from '../share-user-snapshot';
 import { sendShareRevokedEmail } from './share-membership-emails';
 
@@ -81,7 +81,8 @@ const revokeMemberImpl = async (params: RevokeMemberParams): Promise<RevokeMembe
 
   // In-app notification is in-transaction so it's atomic with the share deletion. Email is
   // deferred to after commit (returned to the wrapper) — same pattern as create-invitation.
-  await notifyShareRevoked({
+  const notify = LIFECYCLE_NOTIFIERS.shareRevoked[resourceType];
+  await notify({
     recipientUserId: memberUserId,
     owner,
     shareId: sharedShareId,

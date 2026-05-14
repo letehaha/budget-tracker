@@ -8,7 +8,7 @@ import { Op } from 'sequelize';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';
-import { notifyShareLeft } from '../share-notifications';
+import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 import { sendShareLeftEmail } from './share-membership-emails';
 
 interface LeaveShareParams {
@@ -80,7 +80,8 @@ const leaveShareImpl = async (params: LeaveShareParams): Promise<LeaveShareImplR
 
   await share.destroy();
 
-  await notifyShareLeft({
+  const notify = LIFECYCLE_NOTIFIERS.shareLeft[resourceType];
+  await notify({
     ownerUserId,
     recipient,
     shareId: sharedShareId,

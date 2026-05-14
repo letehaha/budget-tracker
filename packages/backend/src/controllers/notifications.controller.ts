@@ -3,25 +3,17 @@ import { createController } from '@controllers/helpers/controller-factory';
 import * as notificationsService from '@services/notifications';
 import { z } from 'zod';
 
-const notificationTypeSchema = z
-  .string()
-  .refine(
-    (val) =>
-      Object.values(NOTIFICATION_TYPES).includes(val as (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES]),
-    { message: 'Invalid notification type' },
-  )
-  .optional();
+const notificationTypeValues = Object.values(NOTIFICATION_TYPES) as [
+  (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES],
+  ...(typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES][],
+];
+const notificationStatusValues = Object.values(NOTIFICATION_STATUSES) as [
+  (typeof NOTIFICATION_STATUSES)[keyof typeof NOTIFICATION_STATUSES],
+  ...(typeof NOTIFICATION_STATUSES)[keyof typeof NOTIFICATION_STATUSES][],
+];
 
-const notificationStatusSchema = z
-  .string()
-  .refine(
-    (val) =>
-      Object.values(NOTIFICATION_STATUSES).includes(
-        val as (typeof NOTIFICATION_STATUSES)[keyof typeof NOTIFICATION_STATUSES],
-      ),
-    { message: 'Invalid notification status' },
-  )
-  .optional();
+const notificationTypeSchema = z.enum(notificationTypeValues).optional();
+const notificationStatusSchema = z.enum(notificationStatusValues).optional();
 
 export const getNotifications = createController(
   z.object({
@@ -112,7 +104,7 @@ export const dismissNotification = createController(
 export const createNotification = createController(
   z.object({
     body: z.object({
-      type: z.string(),
+      type: z.enum(notificationTypeValues),
       title: z.string().max(200),
       message: z.string().optional(),
       payload: z.record(z.string(), z.unknown()).optional(),

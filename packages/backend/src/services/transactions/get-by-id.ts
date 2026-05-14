@@ -1,4 +1,4 @@
-import { RESOURCE_TYPES, SHARE_PERMISSIONS, SharePermission } from '@bt/shared/types';
+import { ACCESS_SOURCES, RESOURCE_TYPES, SHARE_PERMISSIONS, SharePermission } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
@@ -71,6 +71,7 @@ export const getTransactionById = withTransaction(
             effectivePermission: SHARE_PERMISSIONS.manage,
             policy: null,
             ownerUserId: userId,
+            accessSource: ACCESS_SOURCES.owner,
           },
         };
       }

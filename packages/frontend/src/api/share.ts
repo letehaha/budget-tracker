@@ -5,6 +5,7 @@ import {
   ShareInvitationModel,
   SharePermission,
   SharePolicy,
+  type SharedWithMeAccessSource,
 } from '@bt/shared/types';
 
 /** Hydrated invitation row used by the received-list endpoint. */
@@ -130,6 +131,13 @@ export interface SharedWithMeRow {
   policy: SharePolicy | null;
   acceptedAt: string;
   owner: { id: number; username: string; avatar: string | null };
+  /**
+   * `'share'` for per-resource shares, `'household'` for household memberships.
+   * `'owner'` never appears — this list is recipient-only. The frontend routes
+   * management actions accordingly: household rows link to Settings → Household;
+   * per-resource rows open the resource's share dialog.
+   */
+  accessSource: SharedWithMeAccessSource;
 }
 
 export const listSharedWithMe = (): Promise<SharedWithMeRow[]> => api.get('/share/shared-with-me');

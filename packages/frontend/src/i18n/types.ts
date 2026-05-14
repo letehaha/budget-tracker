@@ -33,6 +33,7 @@ const I18N_CHUNKS = [
   'pages/planned',
   'pages/optimizations',
   'pages/shared-with-me',
+  'pages/household',
   // Settings subpages
   'settings/index',
   'settings/categories',

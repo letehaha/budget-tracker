@@ -17,8 +17,15 @@
       </div>
 
       <div v-if="isSharedWithMe" class="text-muted-foreground inline-flex items-center gap-1 truncate text-xs">
-        <UsersIcon class="size-3 shrink-0" />
-        <span class="truncate">{{ $t('accounts.sharedBy', { handle: `@${account.share!.owner.username}` }) }}</span>
+        <component :is="isHouseholdGranted ? HomeIcon : UsersIcon" class="size-3 shrink-0" />
+        <span class="truncate">
+          <template v-if="isHouseholdGranted">
+            {{ $t('accounts.viaHousehold', { handle: `@${account.share!.owner.username}` }) }}
+          </template>
+          <template v-else>
+            {{ $t('accounts.sharedBy', { handle: `@${account.share!.owner.username}` }) }}
+          </template>
+        </span>
       </div>
     </div>
 
@@ -34,9 +41,9 @@ import { useFormatCurrency } from '@/composable';
 import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { AccountModel } from '@bt/shared/types';
-import { UsersIcon } from 'lucide-vue-next';
-import { toRef } from 'vue';
+import { ACCESS_SOURCES, AccountModel } from '@bt/shared/types';
+import { HomeIcon, UsersIcon } from 'lucide-vue-next';
+import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -46,4 +53,5 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { displayBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
 
 const { isSharedWithCaller: isSharedWithMe } = useAccountAccess(toRef(() => props.account));
+const isHouseholdGranted = computed(() => props.account.share?.accessSource === ACCESS_SOURCES.household);
 </script>

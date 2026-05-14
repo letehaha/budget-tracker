@@ -1,4 +1,11 @@
-import { ResourceType, SharePermission, SharePolicy } from '@bt/shared/types';
+import {
+  ACCESS_SOURCES,
+  RESOURCE_TYPES,
+  ResourceType,
+  SharePermission,
+  SharePolicy,
+  SharedWithMeAccessSource,
+} from '@bt/shared/types';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
 import { Op } from 'sequelize';
@@ -16,6 +23,14 @@ export interface SharedWithMeItem {
   policy: SharePolicy | null;
   acceptedAt: Date;
   owner: ShareUserSnapshot;
+  /**
+   * Discriminates per-resource shares (`'share'`) from household memberships
+   * (`'household'`). The frontend uses this to route management actions —
+   * household rows go to Settings → Household, per-resource rows go to the
+   * resource's share dialog. `'owner'` never appears here because this list
+   * filters to recipient rows only.
+   */
+  accessSource: SharedWithMeAccessSource;
 }
 
 /**
@@ -64,6 +79,7 @@ export const listSharedWithMe = async ({ userId }: { userId: number }): Promise<
       // model type still allows null so we narrow with `!`.
       acceptedAt: share.acceptedAt!,
       owner: snapshotShareUser(ownersById.get(share.ownerUserId), share.ownerUserId),
+      accessSource: share.resourceType === RESOURCE_TYPES.household ? ACCESS_SOURCES.household : ACCESS_SOURCES.share,
     });
   }
 

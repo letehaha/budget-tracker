@@ -1,11 +1,12 @@
-import { RESOURCE_TYPES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { leaveShare } from '@services/sharing/members/leave-share.service';
 import { z } from 'zod';
 
+import { shareableResourceTypeEnum } from './_zod';
+
 const schema = z.object({
   params: z.object({
-    resourceType: z.enum([RESOURCE_TYPES.account] as const),
+    resourceType: shareableResourceTypeEnum,
     resourceId: z.string().min(1).max(255),
   }),
 });

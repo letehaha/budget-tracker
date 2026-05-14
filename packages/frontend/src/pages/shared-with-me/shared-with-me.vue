@@ -8,7 +8,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { RESOURCE_TYPES, type ResourceType, SHARE_INVITATION_STATUSES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { LandmarkIcon, LogOutIcon, MailIcon, UsersIcon } from 'lucide-vue-next';
+import { HomeIcon, LandmarkIcon, LogOutIcon, MailIcon, UsersIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -47,12 +47,17 @@ const reviewInvitation = (token: string) => {
   });
 };
 
+// `route` is derived alongside the row to avoid recomputing it three times per render
+// (template binds to `:is`, `:to`, and `:class`).
+type DisplayableRow = SharedWithMeRow & { route: ReturnType<typeof routeForRow> };
+
 const groupedShares = computed(() => {
-  const groups: Record<ResourceType, SharedWithMeRow[]> = {
+  const groups: Record<ResourceType, DisplayableRow[]> = {
     [RESOURCE_TYPES.account]: [],
+    [RESOURCE_TYPES.household]: [],
   };
   for (const row of sharesQuery.data.value ?? []) {
-    (groups[row.resourceType] ??= []).push(row);
+    (groups[row.resourceType] ??= []).push({ ...row, route: routeForRow(row) });
   }
   return groups;
 });
@@ -92,6 +97,12 @@ const routeForRow = (row: SharedWithMeRow) => {
   if (row.resourceType === RESOURCE_TYPES.account) {
     return { name: ROUTES_NAMES.account, params: { id: row.resourceId } };
   }
+  if (row.resourceType === RESOURCE_TYPES.household) {
+    // Household rows route to Settings → Household where the member can review their
+    // membership and leave from a single place. The shared-with-me page itself still
+    // offers a Leave action inline, so the link is purely an entry to the manage UI.
+    return { name: ROUTES_NAMES.settingsHousehold };
+  }
   return null;
 };
 
@@ -110,7 +121,7 @@ const isEverythingEmpty = computed(() => !pendingReceivedInvitations.value.lengt
       </div>
     </template>
 
-    <template v-else-if="sharesQuery.isError.value">
+    <template v-else-if="sharesQuery.isError.value || receivedInvitationsQuery.isError.value">
       <p class="text-destructive-text text-sm">{{ $t('pages.sharedWithMe.loadError') }}</p>
     </template>
 
@@ -173,15 +184,18 @@ const isEverythingEmpty = computed(() => !pendingReceivedInvitations.value.lengt
                 class="border-border bg-card flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center"
               >
                 <component
-                  :is="routeForRow(row) ? 'router-link' : 'div'"
-                  :to="routeForRow(row) ?? undefined"
+                  :is="row.route ? 'router-link' : 'div'"
+                  :to="row.route ?? undefined"
                   class="flex min-w-0 flex-1 items-center gap-3"
-                  :class="routeForRow(row) ? 'hover:opacity-80' : ''"
+                  :class="row.route ? 'hover:opacity-80' : ''"
                 >
                   <div
                     class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full"
                   >
-                    <LandmarkIcon class="size-5" />
+                    <component
+                      :is="row.resourceType === RESOURCE_TYPES.household ? HomeIcon : LandmarkIcon"
+                      class="size-5"
+                    />
                   </div>
                   <div class="min-w-0">
                     <p class="truncate text-sm font-medium">

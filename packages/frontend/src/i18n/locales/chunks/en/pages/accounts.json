@@ -16,6 +16,7 @@
       "connectBank": "Connect Bank Account",
       "createManual": "Create Manual Account"
     },
-    "sharedBy": "Shared by {handle}"
+    "sharedBy": "Shared by {handle}",
+    "viaHousehold": "Shared via {handle}'s household"
   }
 }

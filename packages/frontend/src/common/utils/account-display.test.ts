@@ -1,4 +1,5 @@
 import {
+  ACCESS_SOURCES,
   ACCOUNT_CATEGORIES,
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
@@ -46,6 +47,7 @@ describe('getAccountDisplayLabel', () => {
         owner: { id: 1, username: 'me', avatar: null },
         permission: SHARE_PERMISSIONS.manage,
         policy: null,
+        accessSource: ACCESS_SOURCES.owner,
       },
     });
     expect(getAccountDisplayLabel(account)).toBe('Wallet');
@@ -59,6 +61,7 @@ describe('getAccountDisplayLabel', () => {
         owner: { id: 2, username: 'alice', avatar: null },
         permission: SHARE_PERMISSIONS.write,
         policy: null,
+        accessSource: ACCESS_SOURCES.share,
       },
     });
     expect(getAccountDisplayLabel(account)).toBe('Family Wallet (shared by @alice)');
@@ -72,6 +75,7 @@ describe('getAccountDisplayLabel', () => {
         owner: { id: 2, username: 'verylongusername123', avatar: null },
         permission: SHARE_PERMISSIONS.write,
         policy: null,
+        accessSource: ACCESS_SOURCES.share,
       },
     });
     expect(getAccountDisplayLabel(account)).toBe('Family Wallet (shared by @verylonguser…)');
@@ -85,6 +89,7 @@ describe('getAccountDisplayLabel', () => {
         owner: { id: 2, username: 'twelvechars1', avatar: null },
         permission: SHARE_PERMISSIONS.write,
         policy: null,
+        accessSource: ACCESS_SOURCES.share,
       },
     });
     expect(getAccountDisplayLabel(account)).toBe('Family Wallet (shared by @twelvechars1)');
@@ -99,6 +104,7 @@ describe('getAccountDisplayLabel', () => {
         owner: { id: 2, username: 'bob', avatar: null },
         permission: SHARE_PERMISSIONS.read,
         policy: null,
+        accessSource: ACCESS_SOURCES.share,
       },
     });
     expect(getAccountDisplayLabel(account)).toBe('Vault (archived) (shared by @bob)');

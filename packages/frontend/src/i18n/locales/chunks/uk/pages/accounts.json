@@ -16,6 +16,7 @@
       "connectBank": "Підключити банківський рахунок",
       "createManual": "Створити ручний рахунок"
     },
-    "sharedBy": "Поділено з {handle}"
+    "sharedBy": "Поділено з {handle}",
+    "viaHousehold": "Через сім'ю {handle}"
   }
 }

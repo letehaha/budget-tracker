@@ -18,12 +18,13 @@ import {
 import { bankProviderRegistry } from '../registry';
 
 interface DisconnectProviderInTxResult {
-  /** One entry per destroyed account that had shares — fed to the post-commit fan-out so
-   *  recipients learn about the cascade. Empty when `removeAssociatedAccounts === false`
-   *  or none of the destroyed accounts were shared. */
+  /** One entry per destroyed account that had shares (per-resource or household) — fed
+   *  to the post-commit fan-out so recipients learn about the cascade. Empty when
+   *  `removeAssociatedAccounts === false` or none of the destroyed accounts were shared. */
   cleanups: Array<{
     account: { id: number; name: string };
     recipients: AccountShareCleanupResult['recipients'];
+    householdRecipients: AccountShareCleanupResult['householdRecipients'];
   }>;
 }
 
@@ -64,10 +65,11 @@ const disconnectProviderInTx = withTransaction(
       // treatment as a direct `DELETE /accounts/:id`.
       for (const account of linkedAccounts) {
         const cleanup = await cleanupAccountSharesInTx({ accountId: account.id, ownerUserId: userId });
-        if (cleanup.recipients.length > 0) {
+        if (cleanup.recipients.length > 0 || cleanup.householdRecipients.length > 0) {
           cleanups.push({
             account: { id: account.id, name: account.name },
             recipients: cleanup.recipients,
+            householdRecipients: cleanup.householdRecipients,
           });
         }
       }
@@ -131,6 +133,7 @@ export const disconnectProvider = async (params: {
       result.cleanups.map((entry) =>
         notifyAccountDeleteRecipients({
           recipients: entry.recipients,
+          householdRecipients: entry.householdRecipients,
           owner,
           account: entry.account,
         }),
