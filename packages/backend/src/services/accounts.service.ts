@@ -21,6 +21,7 @@ import {
   getSharedAccountById,
   getSharedAccountsForUser,
 } from '@services/sharing/get-shared-accounts.service';
+import { convertCrossUserTransfersForAccountIds } from '@services/sharing/household/convert-cross-user-transfers.service';
 import { Op } from 'sequelize';
 
 import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
@@ -321,6 +322,12 @@ const deleteAccountByIdInTx = withTransaction(
     // Sharing cleanup runs in the same transaction so a destroy failure rolls back the
     // share row deletes and invitation revocations atomically.
     const cleanup = await cleanupAccountSharesInTx({ accountId: id, ownerUserId: userId });
+
+    // Convert cross-user transfer pairs BEFORE the destroy so the partner leg (on the
+    // OTHER user's account) isn't left orphaned with a `transferId` pointing at the
+    // about-to-be-cascaded leg on this account. Same transaction as the destroy, so a
+    // failure rolls everything back together.
+    await convertCrossUserTransfersForAccountIds({ accountIds: [id], ownerUserId: userId });
 
     const affectedRows = await Accounts.deleteAccountById({ id, userId });
     if (affectedRows === 0) {

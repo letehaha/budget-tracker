@@ -17,6 +17,7 @@ import { transactionSyncQueue } from '../bank-data-providers/monobank/transactio
 import { REDIS_KEYS as SYNC_REDIS_KEYS, clearAccountSyncStatus } from '../bank-data-providers/sync/sync-status-tracker';
 import { withTransaction } from '../common/with-transaction';
 import { fanOutNotifications } from '../sharing/fan-out-notifications';
+import { convertCrossUserTransfersForAccountIds } from '../sharing/household/convert-cross-user-transfers.service';
 import {
   notifyHouseholdMemberAccountDeleted,
   notifyHouseholdRevoked,
@@ -88,6 +89,21 @@ const deleteUserInTx = withTransaction(async ({ userId }: { userId: number }): P
     collectHouseholdOwnerNotifyTargets({ deletingUser: user }),
   ]);
   await stampCreatorSnapshotForOutboundTransactions({ deletingUser: user });
+
+  // Convert cross-user transfer pairs BEFORE the destroy. Without this, the deleting
+  // user's accounts cascade-delete their legs, while the partner leg on someone else's
+  // account survives with `transferId` pointing at the now-gone partner — orphan
+  // half-transfer that the UI can't render coherently. Loaded inside the transaction
+  // so the leg/account reads see the soon-to-be-destroyed rows.
+  const userOwnedAccountRows = (await Accounts.default.findAll({
+    where: { userId },
+    attributes: ['id'],
+    raw: true,
+  })) as Array<{ id: number }>;
+  await convertCrossUserTransfersForAccountIds({
+    accountIds: userOwnedAccountRows.map((row) => row.id),
+    ownerUserId: userId,
+  });
 
   // Snapshot owner identity BEFORE the destroy — the row is gone after this line.
   const ownerSnapshot = {

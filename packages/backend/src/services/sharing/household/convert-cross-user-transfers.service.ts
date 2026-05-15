@@ -5,18 +5,79 @@ import * as Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
 import { Op } from 'sequelize';
 
+interface AccountInfo {
+  id: number;
+  userId: number;
+  name: string;
+}
+
+/**
+ * Flips both legs of a `common_transfer` pair to `transfer_out_wallet`. Both legs lose
+ * their `transferId`; each leg's `note` gains a one-line suffix describing the partner
+ * (`Transfer to/from @{username} • {accountName}`) so the user keeps a paper trail of
+ * where the funds went after the link is severed. Balances are unaffected — amount /
+ * account / time / type stay put.
+ *
+ * Throws on any update failure so the surrounding cleanup transaction rolls back rather
+ * than half-converting a pair.
+ */
+const convertPairLegs = async ({
+  legs,
+  accountById,
+  usernameByUserId,
+  errorContext,
+}: {
+  legs: [Transactions.default, Transactions.default];
+  accountById: Map<number, AccountInfo>;
+  usernameByUserId: Map<number, string | null>;
+  errorContext: { code: string; trigger: string };
+}) => {
+  const [first, second] = legs;
+  const firstAccount = accountById.get(first.accountId);
+  const secondAccount = accountById.get(second.accountId);
+  if (!firstAccount || !secondAccount) return false;
+
+  for (const leg of legs) {
+    const otherAccount = leg === first ? secondAccount : firstAccount;
+    const otherUsername = usernameByUserId.get(otherAccount.userId);
+    // expense leg = "money went out → to other"; income leg = "money came in → from other"
+    const direction = leg.transactionType === TRANSACTION_TYPES.expense ? 'to' : 'from';
+    const counterpartLabel = otherUsername ? `@${otherUsername} • ${otherAccount.name}` : otherAccount.name;
+    const suffix = `Transfer ${direction} ${counterpartLabel}`;
+    const newNote = leg.note ? `${leg.note}\n${suffix}` : suffix;
+
+    try {
+      await Transactions.updateTransactionById({
+        id: leg.id,
+        userId: leg.userId,
+        transferId: null,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+        note: newNote,
+      });
+    } catch (err) {
+      logger.error(
+        {
+          message: `Failed to convert cross-user transfer leg on ${errorContext.trigger}`,
+          error: err as Error,
+        },
+        {
+          code: errorContext.code,
+          transferId: leg.transferId,
+          txId: leg.id,
+          accountId: leg.accountId,
+        },
+      );
+      throw err;
+    }
+  }
+  return true;
+};
+
 /**
  * Converts any `common_transfer` pairs that span the two given users into independent
  * `transfer_out_wallet` rows. Triggered when a household membership between them ends
  * (leave / revoke), so a transfer that previously crossed the household boundary stops
  * advertising a partner the recipient can no longer see or touch.
- *
- * Behaviour per pair:
- *   - Both legs flip to `transfer_out_wallet` and have `transferId` cleared.
- *   - Each leg's `note` gains a one-line suffix describing the other side
- *     (`Transfer to/from @{username} • {accountName}`) so the user keeps a paper trail
- *     of where the funds went after the link is severed.
- *   - Balances are unaffected — amount/account/time/type stay put.
  *
  * Same-user transfers on each side are untouched, even when the loop loads them as
  * candidates. The pair filter checks that the two legs' account owners are exactly
@@ -35,9 +96,9 @@ export const convertCrossUserTransfersToOutOfWallet = async ({
     where: { userId: { [Op.in]: [userIdA, userIdB] } },
     attributes: ['id', 'userId', 'name'],
     raw: true,
-  })) as unknown as Array<{ id: number; userId: number; name: string }>;
+  })) as unknown as AccountInfo[];
 
-  const accountById = new Map<number, { id: number; userId: number; name: string }>();
+  const accountById = new Map<number, AccountInfo>();
   const accountIds: number[] = [];
   for (const account of accounts) {
     accountById.set(account.id, account);
@@ -83,46 +144,129 @@ export const convertCrossUserTransfersToOutOfWallet = async ({
     const isAcrossThisPair = ownerPair.has(userIdA) && ownerPair.has(userIdB);
     if (!isAcrossThisPair) continue;
 
-    for (const leg of legs) {
-      const myAccount = leg === first ? firstAccount : secondAccount;
-      const otherAccount = leg === first ? secondAccount : firstAccount;
-      const otherUsername = usernameByUserId.get(otherAccount.userId);
-      // expense leg = "money went out → to other"; income leg = "money came in → from other"
-      const direction = leg.transactionType === TRANSACTION_TYPES.expense ? 'to' : 'from';
-      const counterpartLabel = otherUsername ? `@${otherUsername} • ${otherAccount.name}` : otherAccount.name;
-      const suffix = `Transfer ${direction} ${counterpartLabel}`;
-      const newNote = leg.note ? `${leg.note}\n${suffix}` : suffix;
+    const ok = await convertPairLegs({
+      legs: [first, second],
+      accountById,
+      usernameByUserId,
+      errorContext: {
+        code: 'CROSS_USER_TRANSFER_CONVERT_FAILED',
+        trigger: 'share break',
+      },
+    });
+    if (ok) convertedPairCount += 1;
+  }
 
-      try {
-        await Transactions.updateTransactionById({
-          id: leg.id,
-          userId: leg.userId,
-          transferId: null,
-          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
-          note: newNote,
-        });
-      } catch (err) {
-        // Conversion runs inside the parent share-break transaction; surface the
-        // failure so the break itself rolls back rather than half-converting a pair.
-        logger.error(
-          {
-            message: 'Failed to convert cross-user transfer leg on share break',
-            error: err as Error,
-          },
-          {
-            code: 'CROSS_USER_TRANSFER_CONVERT_FAILED',
-            transferId: leg.transferId,
-            txId: leg.id,
-            accountId: leg.accountId,
-            myUserId: myAccount.userId,
-            otherUserId: otherAccount.userId,
-          },
-        );
-        throw err;
-      }
-    }
+  return { convertedPairCount };
+};
 
-    convertedPairCount += 1;
+/**
+ * Converts cross-user `common_transfer` pairs to out-of-wallet when one or more accounts
+ * are about to be hard-deleted (account-delete or user-delete cascade). Without this,
+ * the leg on the OTHER user's account would survive the FK CASCADE on `Transactions.accountId`
+ * with a `transferId` pointing at a now-deleted partner — orphan half-transfer the UI can't
+ * render coherently.
+ *
+ * Same-user pairs (both legs on the trigger accounts' owner) are intentionally left alone
+ * — for account-delete the partner leg cascades naturally with the surviving same-user
+ * account, and for user-delete both legs cascade away with the user's accounts. Only the
+ * cross-user case needs explicit conversion to preserve the surviving leg's coherence.
+ *
+ * Caller is responsible for invoking this BEFORE the parent destroy commits, so the
+ * `updateTransactionById` calls still see live account / user rows.
+ */
+export const convertCrossUserTransfersForAccountIds = async ({
+  accountIds,
+  ownerUserId,
+}: {
+  accountIds: number[];
+  ownerUserId: number;
+}): Promise<{ convertedPairCount: number }> => {
+  if (accountIds.length === 0) return { convertedPairCount: 0 };
+
+  // Step 1: discover candidate transferIds — common_transfer rows on the trigger
+  // accounts. Using `attributes` to keep the payload light; the full leg rows are
+  // re-loaded in step 2 alongside the partners.
+  const triggerLegStubs = (await Transactions.default.findAll({
+    where: {
+      transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+      transferId: { [Op.not]: null },
+      accountId: { [Op.in]: accountIds },
+    },
+    attributes: ['transferId'],
+    raw: true,
+  })) as unknown as Array<{ transferId: string | null }>;
+
+  const transferIds = Array.from(
+    new Set(triggerLegStubs.map((row) => row.transferId).filter((id): id is string => Boolean(id))),
+  );
+  if (transferIds.length === 0) return { convertedPairCount: 0 };
+
+  // Step 2: load every leg of those transfers (both the trigger-side leg and the partner
+  // leg, which lives outside `accountIds`). This is what lets us identify the partner
+  // user without an extra round-trip per pair.
+  const allLegs = await Transactions.default.findAll({
+    where: {
+      transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+      transferId: { [Op.in]: transferIds },
+    },
+  });
+
+  // Step 3: resolve the involved accounts + their owners' usernames so the per-pair
+  // conversion can stamp the note suffix without an N-query.
+  const involvedAccountIds = Array.from(new Set(allLegs.map((leg) => leg.accountId)));
+  const accounts = (await Accounts.findAll({
+    where: { id: { [Op.in]: involvedAccountIds } },
+    attributes: ['id', 'userId', 'name'],
+    raw: true,
+  })) as unknown as AccountInfo[];
+  const accountById = new Map(accounts.map((a) => [a.id, a]));
+
+  const involvedUserIds = Array.from(new Set(accounts.map((a) => a.userId)));
+  const users = (await Users.findAll({
+    where: { id: { [Op.in]: involvedUserIds } },
+    attributes: ['id', 'username'],
+    raw: true,
+  })) as unknown as Array<{ id: number; username: string | null }>;
+  const usernameByUserId = new Map<number, string | null>(users.map((u) => [u.id, u.username ?? null]));
+
+  // Step 4: group by transferId, convert each cross-user pair.
+  const byTransferId = new Map<string, Transactions.default[]>();
+  for (const leg of allLegs) {
+    if (!leg.transferId) continue;
+    const arr = byTransferId.get(leg.transferId) ?? [];
+    arr.push(leg);
+    byTransferId.set(leg.transferId, arr);
+  }
+
+  let convertedPairCount = 0;
+
+  for (const [, legs] of byTransferId) {
+    if (legs.length !== 2) continue;
+    const [first, second] = legs as [Transactions.default, Transactions.default];
+    const firstAccount = accountById.get(first.accountId);
+    const secondAccount = accountById.get(second.accountId);
+    if (!firstAccount || !secondAccount) continue;
+
+    // Same-user pairs cascade-delete naturally (both legs go with the user's accounts
+    // for user-delete; the partner leg goes with the surviving same-user account for
+    // account-delete). No conversion needed.
+    if (firstAccount.userId === secondAccount.userId) continue;
+
+    // Defensive: the candidate query restricts the trigger side to `accountIds`, so at
+    // least one leg must already be on `ownerUserId`'s account. This guard is belt-and-
+    // suspenders against future query changes that might widen the candidate set.
+    if (firstAccount.userId !== ownerUserId && secondAccount.userId !== ownerUserId) continue;
+
+    const ok = await convertPairLegs({
+      legs: [first, second],
+      accountById,
+      usernameByUserId,
+      errorContext: {
+        code: 'CROSS_USER_TRANSFER_CONVERT_FAILED_ON_DELETE',
+        trigger: 'account/user delete',
+      },
+    });
+    if (ok) convertedPairCount += 1;
   }
 
   return { convertedPairCount };

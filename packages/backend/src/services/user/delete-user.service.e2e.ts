@@ -1,4 +1,10 @@
-import { NOTIFICATION_TYPES, RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  NOTIFICATION_TYPES,
+  RESOURCE_TYPES,
+  SHARE_PERMISSIONS,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { API_RESPONSE_STATUS } from '@bt/shared/types/api';
 import { authPool } from '@config/auth';
 import { describe, expect, it } from '@jest/globals';
@@ -673,5 +679,82 @@ describe('User deletion: family-sharing cleanup', () => {
       },
     });
     expect(sharesAfter).toHaveLength(0);
+  });
+
+  it('converts cross-user transfer legs to out_of_wallet when a household member deletes themselves', async () => {
+    // Secondary joins primary's household, creates a cross-user transfer using the
+    // household write access, then deletes their own account. Without the cleanup,
+    // primary's leg would survive the FK cascade with a `transferId` pointing at the
+    // cascade-deleted partner — orphan half-transfer the UI can't render.
+    const primaryAccount = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ name: 'Primary A', initialBalance: 10000 }),
+      raw: true,
+    });
+    const primaryUser = await helpers.findAppUserByEmail({ email: 'test1@test.local' });
+
+    const secondary = await helpers.provisionSecondUserWithBaseCurrency();
+
+    // Provision the secondary side: their own account + a category id owned by them
+    // (default categoryId=1 belongs to primary user, so the base leg of the cross-user
+    // transfer would 404 without this).
+    const { secondaryAccount, secondaryCategoryId } = await helpers.asUser({
+      cookies: secondary.cookies,
+      fn: async () => {
+        const acc = await helpers.createAccount({
+          payload: helpers.buildAccountPayload({ name: 'Secondary B', initialBalance: 2000 }),
+          raw: true,
+        });
+        const categories = await helpers.getCategoriesList();
+        return { secondaryAccount: acc, secondaryCategoryId: categories[0]!.id };
+      },
+    });
+
+    const householdInvite = await helpers.createHouseholdInvitation({
+      ownerUserId: primaryUser.id,
+      inviteeEmail: secondary.email,
+    });
+    await helpers.asUser({
+      cookies: secondary.cookies,
+      fn: () => helpers.acceptShareInvitation({ token: householdInvite.token, raw: true }),
+    });
+
+    const [secondaryLeg, primaryLeg] = await helpers.asUser({
+      cookies: secondary.cookies,
+      fn: () =>
+        helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({
+              accountId: secondaryAccount.id,
+              amount: 5000,
+              transactionType: TRANSACTION_TYPES.expense,
+              categoryId: secondaryCategoryId,
+            }),
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            destinationAmount: 5000,
+            destinationAccountId: primaryAccount.id,
+          },
+          raw: true,
+        }),
+    });
+    expect(secondaryLeg!.transferId).toBeTruthy();
+    expect(secondaryLeg!.transferId).toBe(primaryLeg!.transferId);
+
+    // Secondary deletes their own account. Cleanup must run BEFORE the cascade so the
+    // partner leg on primary's account converts to out_of_wallet rather than orphans.
+    const deleteRes = await helpers.asUser({
+      cookies: secondary.cookies,
+      fn: () => helpers.deleteUserAccount(),
+    });
+    expect(deleteRes.statusCode).toBe(200);
+
+    const secondaryLegAfter = await Transactions.findByPk(secondaryLeg!.id);
+    expect(secondaryLegAfter).toBeNull();
+
+    const primaryLegAfter = await Transactions.findByPk(primaryLeg!.id);
+    expect(primaryLegAfter).not.toBeNull();
+    expect(primaryLegAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
+    expect(primaryLegAfter!.transferId).toBeNull();
+    // Note suffix preserves a paper trail of where the funds went (counterpart account name).
+    expect(primaryLegAfter!.note).toContain('Secondary B');
   });
 });
