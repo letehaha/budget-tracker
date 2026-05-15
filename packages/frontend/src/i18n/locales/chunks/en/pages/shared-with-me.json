@@ -12,6 +12,7 @@
         "household": "Households"
       },
       "sharedBy": "Shared by {handle}",
+      "viaHousehold": "Via {handle} household",
       "unnamedResource": "Untitled",
       "permissions": {
         "read": "Read",

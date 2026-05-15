@@ -15,10 +15,12 @@ import {
   AlertTriangleIcon,
   ClockIcon,
   HandshakeIcon,
+  HomeIcon,
   InfoIcon,
   LogOutIcon,
   MailIcon,
   MailWarningIcon,
+  ShieldCheckIcon,
   ShieldOffIcon,
   SparklesIcon,
   TagIcon,
@@ -43,6 +45,16 @@ const SHARE_NOTIFICATION_TYPES: NotificationType[] = [
   NOTIFICATION_TYPES.shareLeft,
   NOTIFICATION_TYPES.shareExpired,
   NOTIFICATION_TYPES.shareOwnerAccountDeleted,
+  NOTIFICATION_TYPES.householdInvitationReceived,
+  NOTIFICATION_TYPES.householdInvitationSendFailed,
+  NOTIFICATION_TYPES.householdAccepted,
+  NOTIFICATION_TYPES.householdDeclined,
+  NOTIFICATION_TYPES.householdPermissionChanged,
+  NOTIFICATION_TYPES.householdRevoked,
+  NOTIFICATION_TYPES.householdLeft,
+  NOTIFICATION_TYPES.householdExpired,
+  NOTIFICATION_TYPES.householdOwnerAccountDeleted,
+  NOTIFICATION_TYPES.householdMemberAccountDeleted,
 ];
 
 const props = defineProps<{
@@ -68,20 +80,32 @@ const getIcon = (type: NotificationType) => {
     case NOTIFICATION_TYPES.tagReminder:
       return TagIcon;
     case NOTIFICATION_TYPES.shareInvitationReceived:
+    case NOTIFICATION_TYPES.householdInvitationReceived:
       return MailIcon;
     case NOTIFICATION_TYPES.shareInvitationSendFailed:
+    case NOTIFICATION_TYPES.householdInvitationSendFailed:
       return MailWarningIcon;
     case NOTIFICATION_TYPES.shareAccepted:
       return HandshakeIcon;
+    case NOTIFICATION_TYPES.householdAccepted:
+      return HomeIcon;
     case NOTIFICATION_TYPES.shareDeclined:
+    case NOTIFICATION_TYPES.householdDeclined:
       return UserXIcon;
+    case NOTIFICATION_TYPES.householdPermissionChanged:
+      return ShieldCheckIcon;
     case NOTIFICATION_TYPES.shareRevoked:
+    case NOTIFICATION_TYPES.householdRevoked:
       return ShieldOffIcon;
     case NOTIFICATION_TYPES.shareLeft:
+    case NOTIFICATION_TYPES.householdLeft:
       return LogOutIcon;
     case NOTIFICATION_TYPES.shareExpired:
+    case NOTIFICATION_TYPES.householdExpired:
       return ClockIcon;
     case NOTIFICATION_TYPES.shareOwnerAccountDeleted:
+    case NOTIFICATION_TYPES.householdOwnerAccountDeleted:
+    case NOTIFICATION_TYPES.householdMemberAccountDeleted:
       return Trash2Icon;
     default:
       return InfoIcon;
@@ -99,17 +123,28 @@ const getIconBg = (type: NotificationType) => {
     case NOTIFICATION_TYPES.tagReminder:
       return 'bg-amber-500';
     case NOTIFICATION_TYPES.shareInvitationReceived:
+    case NOTIFICATION_TYPES.householdInvitationReceived:
       return 'bg-violet-500';
     case NOTIFICATION_TYPES.shareInvitationSendFailed:
+    case NOTIFICATION_TYPES.householdInvitationSendFailed:
       return 'bg-orange-600';
     case NOTIFICATION_TYPES.shareAccepted:
+    case NOTIFICATION_TYPES.householdAccepted:
       return 'bg-emerald-500';
+    case NOTIFICATION_TYPES.householdPermissionChanged:
+      return 'bg-sky-500';
     case NOTIFICATION_TYPES.shareDeclined:
     case NOTIFICATION_TYPES.shareRevoked:
     case NOTIFICATION_TYPES.shareOwnerAccountDeleted:
+    case NOTIFICATION_TYPES.householdDeclined:
+    case NOTIFICATION_TYPES.householdRevoked:
+    case NOTIFICATION_TYPES.householdOwnerAccountDeleted:
+    case NOTIFICATION_TYPES.householdMemberAccountDeleted:
       return 'bg-rose-500';
     case NOTIFICATION_TYPES.shareLeft:
     case NOTIFICATION_TYPES.shareExpired:
+    case NOTIFICATION_TYPES.householdLeft:
+    case NOTIFICATION_TYPES.householdExpired:
       return 'bg-slate-500';
     default:
       return 'bg-gray-500';

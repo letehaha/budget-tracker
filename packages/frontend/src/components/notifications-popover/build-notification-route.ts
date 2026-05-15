@@ -43,7 +43,9 @@ export const buildNotificationRoute = (notification: NotificationStruct): Notifi
       const payload = notification.payload as ShareLifecycleNotificationPayload | undefined;
       if (payload?.resourceType !== RESOURCE_TYPES.account) return null;
       const accountId = Number(payload.resourceId);
-      if (!Number.isInteger(accountId)) return null;
+      // Account ids are positive integers — reject zero/negative so an empty-string or
+      // legacy "0" resourceId doesn't deep-link to a non-existent account page.
+      if (!Number.isInteger(accountId) || accountId <= 0) return null;
       return {
         kind: 'spa',
         to: { name: ROUTES_NAMES.account, params: { id: accountId } },
@@ -57,12 +59,42 @@ export const buildNotificationRoute = (notification: NotificationStruct): Notifi
       const payload = notification.payload as ShareInvitationSendFailedPayload | undefined;
       if (payload?.resourceType !== RESOURCE_TYPES.account) return null;
       const accountId = Number(payload.resourceId);
-      if (!Number.isInteger(accountId)) return null;
+      if (!Number.isInteger(accountId) || accountId <= 0) return null;
       return {
         kind: 'spa',
         to: { name: ROUTES_NAMES.account, params: { id: accountId } },
       };
     }
+
+    case NOTIFICATION_TYPES.householdInvitationReceived: {
+      const payload = notification.payload as ShareInvitationNotificationPayload | undefined;
+      if (!payload?.token) return null;
+      return {
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.settingsSharedWithMe, query: { invitation_token: payload.token } },
+      };
+    }
+
+    case NOTIFICATION_TYPES.householdInvitationSendFailed:
+    case NOTIFICATION_TYPES.householdAccepted:
+    case NOTIFICATION_TYPES.householdDeclined:
+    case NOTIFICATION_TYPES.householdExpired:
+    case NOTIFICATION_TYPES.householdLeft:
+    case NOTIFICATION_TYPES.householdMemberAccountDeleted:
+      return {
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.settingsHousehold },
+      };
+
+    case NOTIFICATION_TYPES.householdPermissionChanged:
+    case NOTIFICATION_TYPES.householdRevoked:
+    case NOTIFICATION_TYPES.householdOwnerAccountDeleted:
+      // Recipient-side notifications — land on /shared-with-me where the recipient
+      // sees the household row (or its absence after revoke/owner-delete).
+      return {
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.settingsSharedWithMe },
+      };
 
     case NOTIFICATION_TYPES.budgetAlert: {
       const payload = notification.payload as { budgetId?: number } | undefined;

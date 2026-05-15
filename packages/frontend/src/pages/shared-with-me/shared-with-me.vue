@@ -202,7 +202,12 @@ const isEverythingEmpty = computed(() => !pendingReceivedInvitations.value.lengt
                       {{ row.resourceName ?? $t('pages.sharedWithMe.unnamedResource') }}
                     </p>
                     <p class="text-muted-foreground truncate text-xs">
-                      {{ $t('pages.sharedWithMe.sharedBy', { handle: `@${row.owner.username}` }) }}
+                      <template v-if="row.resourceType === RESOURCE_TYPES.household">
+                        {{ $t('pages.sharedWithMe.viaHousehold', { handle: `@${row.owner.username}` }) }}
+                      </template>
+                      <template v-else>
+                        {{ $t('pages.sharedWithMe.sharedBy', { handle: `@${row.owner.username}` }) }}
+                      </template>
                       ·
                       {{ $t(`pages.sharedWithMe.permissions.${row.permission}`) }}
                     </p>

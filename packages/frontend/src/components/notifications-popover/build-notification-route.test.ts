@@ -93,6 +93,22 @@ describe('buildNotificationRoute', () => {
       expect(route).toBeNull();
     });
 
+    it.each(['0', ''])('returns null when resourceId coerces to 0 (input %j)', (resourceId) => {
+      const route = buildNotificationRoute(
+        baseNotification({
+          type: NOTIFICATION_TYPES.shareAccepted,
+          payload: {
+            resourceType: RESOURCE_TYPES.account,
+            resourceId,
+            resourceName: 'Joint',
+            counterpartUser: { id: 2, username: 'bob', avatar: null },
+          },
+        }),
+      );
+
+      expect(route).toBeNull();
+    });
+
     it('returns null when resourceType is not account (no router target yet)', () => {
       // Phase 1 only ships RESOURCE_TYPES.account; later phases add budget/portfolio/etc.
       // Use a string cast so this test stays meaningful as soon as a second resource type
@@ -159,6 +175,73 @@ describe('buildNotificationRoute', () => {
     ])('returns null for type "%s"', (type) => {
       const route = buildNotificationRoute(baseNotification({ type, payload: {} }));
       expect(route).toBeNull();
+    });
+  });
+
+  describe('household_invitation_received', () => {
+    it('returns SPA route to shared-with-me with invitation_token query when token present', () => {
+      const route = buildNotificationRoute(
+        baseNotification({
+          type: NOTIFICATION_TYPES.householdInvitationReceived,
+          payload: {
+            invitationId: 'inv-1',
+            token: 'tok-xyz',
+            resourceType: RESOURCE_TYPES.household,
+            resourceId: '7',
+            resourceName: "alice's household",
+            permission: 'read',
+            owner: { id: 1, username: 'alice', avatar: null },
+          },
+        }),
+      );
+
+      expect(route).toEqual({
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.settingsSharedWithMe, query: { invitation_token: 'tok-xyz' } },
+      });
+    });
+
+    it('returns null when token missing', () => {
+      const route = buildNotificationRoute(
+        baseNotification({
+          type: NOTIFICATION_TYPES.householdInvitationReceived,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          payload: { invitationId: 'inv-1' } as any,
+        }),
+      );
+
+      expect(route).toBeNull();
+    });
+  });
+
+  describe('household owner-side lifecycle', () => {
+    it.each([
+      NOTIFICATION_TYPES.householdInvitationSendFailed,
+      NOTIFICATION_TYPES.householdAccepted,
+      NOTIFICATION_TYPES.householdDeclined,
+      NOTIFICATION_TYPES.householdExpired,
+      NOTIFICATION_TYPES.householdLeft,
+      NOTIFICATION_TYPES.householdMemberAccountDeleted,
+    ])('returns SPA route to settings → household for type "%s"', (type) => {
+      const route = buildNotificationRoute(baseNotification({ type, payload: {} }));
+      expect(route).toEqual({
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.settingsHousehold },
+      });
+    });
+  });
+
+  describe('household recipient-side lifecycle', () => {
+    it.each([
+      NOTIFICATION_TYPES.householdPermissionChanged,
+      NOTIFICATION_TYPES.householdRevoked,
+      NOTIFICATION_TYPES.householdOwnerAccountDeleted,
+    ])('returns SPA route to /shared-with-me for type "%s"', (type) => {
+      const route = buildNotificationRoute(baseNotification({ type, payload: {} }));
+      expect(route).toEqual({
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.settingsSharedWithMe },
+      });
     });
   });
 });

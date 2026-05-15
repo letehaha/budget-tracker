@@ -41,15 +41,14 @@ import { useFormatCurrency } from '@/composable';
 import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { ACCESS_SOURCES, AccountModel } from '@bt/shared/types';
+import { AccountModel } from '@bt/shared/types';
 import { HomeIcon, UsersIcon } from 'lucide-vue-next';
-import { computed, toRef } from 'vue';
+import { toRef } from 'vue';
 
 const props = defineProps<{ account: AccountModel }>();
 
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { displayBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
 
-const { isSharedWithCaller: isSharedWithMe } = useAccountAccess(toRef(() => props.account));
-const isHouseholdGranted = computed(() => props.account.share?.accessSource === ACCESS_SOURCES.household);
+const { isSharedWithCaller: isSharedWithMe, isHouseholdGranted } = useAccountAccess(toRef(() => props.account));
 </script>

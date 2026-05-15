@@ -99,7 +99,8 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import * as Collapsible from '@/components/lib/ui/collapsible';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useChangeBaseCurrency } from '@/composable/data-queries/currencies';
-import { API_ERROR_CODES } from '@bt/shared/types';
+import { ApiErrorResponseError } from '@/js/errors';
+import { API_ERROR_CODES, type BaseCurrencyBlocker } from '@bt/shared/types';
 import { ChevronDownIcon, InfoIcon, TriangleAlertIcon } from 'lucide-vue-next';
 import { reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -154,6 +155,15 @@ watch(
   },
 );
 
+const buildLockedMessage = ({ blockers }: { blockers: BaseCurrencyBlocker[] }) => {
+  const segments = blockers.map((b) =>
+    b.type === 'household'
+      ? t('settings.currencies.setBase.errors.lockedHousehold', { count: b.count }, b.count)
+      : t('settings.currencies.setBase.errors.lockedShares', { count: b.count }, b.count),
+  );
+  return segments.join(' ');
+};
+
 const makeBaseCurrency = async () => {
   try {
     emit('trigger-disabled', true);
@@ -161,14 +171,30 @@ const makeBaseCurrency = async () => {
 
     addSuccessNotification(t('settings.currencies.setBase.successMessage'));
 
-    emit('trigger-disabled', false);
     emit('submit');
   } catch (e: unknown) {
-    if ((e as any)?.data?.code === API_ERROR_CODES.validationError) {
-      addErrorNotification((e as any).data.message);
-      return;
+    if (e instanceof ApiErrorResponseError) {
+      const { code, details, message } = e.data ?? {};
+      if (
+        code === API_ERROR_CODES.baseCurrencyLockedByHousehold ||
+        code === API_ERROR_CODES.baseCurrencyLockedByShares
+      ) {
+        const blockers = (details?.blockers as BaseCurrencyBlocker[] | undefined) ?? [];
+        addErrorNotification(
+          blockers.length
+            ? buildLockedMessage({ blockers })
+            : message || t('settings.currencies.setBase.errors.changeFailed'),
+        );
+        return;
+      }
+      if (code === API_ERROR_CODES.validationError && message) {
+        addErrorNotification(message);
+        return;
+      }
     }
     addErrorNotification(t('settings.currencies.setBase.errors.changeFailed'));
+  } finally {
+    emit('trigger-disabled', false);
   }
 };
 </script>

@@ -12,6 +12,7 @@
         "household": "Сім'ї"
       },
       "sharedBy": "Надав доступ {handle}",
+      "viaHousehold": "Через домогосподарство {handle}",
       "unnamedResource": "Без назви",
       "permissions": {
         "read": "Перегляд",

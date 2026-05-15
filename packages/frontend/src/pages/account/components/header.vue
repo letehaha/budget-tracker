@@ -40,7 +40,7 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const { t } = useI18n();
 
 const isSystemAccount = computed(() => props.account.type === ACCOUNT_TYPES.system);
-const { isOwner, isSharedWithCaller, ownerHandle, permission, writeScope } = useAccountAccess(
+const { isOwner, isSharedWithCaller, ownerHandle, permission, writeScope, isHouseholdGranted } = useAccountAccess(
   toRef(() => props.account),
 );
 
@@ -195,7 +195,8 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
         v-if="isSharedWithCaller && ownerHandle"
         class="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm"
       >
-        <span>{{ $t('accounts.sharedBy', { handle: `@${ownerHandle}` }) }}</span>
+        <span v-if="isHouseholdGranted">{{ $t('accounts.viaHousehold', { handle: `@${ownerHandle}` }) }}</span>
+        <span v-else>{{ $t('accounts.sharedBy', { handle: `@${ownerHandle}` }) }}</span>
         <span
           v-if="permissionBadgeLabel"
           class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium"
