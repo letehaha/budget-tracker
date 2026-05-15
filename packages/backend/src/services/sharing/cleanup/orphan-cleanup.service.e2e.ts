@@ -7,14 +7,14 @@ import { cleanupOrphanShares } from '@services/sharing/cleanup/cleanup-orphan-sh
 import * as helpers from '@tests/helpers';
 
 /**
- * S8 — Orphan-cleanup safety net. Runs the daily sweep directly (per the `tag-reminders` /
+ * Orphan-cleanup safety net. Runs the daily sweep directly (per the `tag-reminders` /
  * `share-invitations-expire` test precedent — crons have no HTTP surface) against a mix
  * of orphaned and live rows, and asserts only the orphans are pruned.
  */
 
 const NONEXISTENT_ACCOUNT_ID = '999999999';
 
-describe('Share resource orphan cleanup (S8 cron)', () => {
+describe('Share resource orphan cleanup', () => {
   describe('cleanupOrphanShares — direct call', () => {
     it('drops ResourceShares rows whose resourceId points to a nonexistent account', async () => {
       const recipient = await helpers.provisionSecondUserWithBaseCurrency();
@@ -88,6 +88,33 @@ describe('Share resource orphan cleanup (S8 cron)', () => {
       expect(liveAfter).not.toBeNull();
       const orphanAfter = await ShareInvitations.findByPk(orphanInvite.id);
       expect(orphanAfter).toBeNull();
+    });
+
+    it('leaves live household rows alone (sweep extension does not produce false positives)', async () => {
+      // Defensive coverage: a true household orphan can't be created through the ORM
+      // because the CHECK constraint forces `resourceId = ownerUserId::text` and the
+      // FK on `ownerUserId` cascades on user delete. The sweep is there for partial
+      // cascade failures and out-of-band DB ops; we can't reproduce those in this
+      // test harness without superuser privileges. What we *can* assert: extending
+      // the sweep to include `resourceType = 'household'` doesn't accidentally
+      // prune live household rows.
+      const account = await helpers.createAccount({ raw: true });
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
+
+      const liveHousehold = await ResourceShares.create({
+        ownerUserId: account.userId,
+        sharedWithUserId: recipientApp.id,
+        resourceType: RESOURCE_TYPES.household,
+        resourceId: String(account.userId),
+        permission: SHARE_PERMISSIONS.read,
+        acceptedAt: new Date(),
+      });
+
+      await cleanupOrphanShares();
+
+      const after = await ResourceShares.findByPk(liveHousehold.id);
+      expect(after).not.toBeNull();
     });
 
     it('is a no-op when there are no orphans', async () => {

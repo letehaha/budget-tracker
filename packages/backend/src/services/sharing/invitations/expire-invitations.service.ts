@@ -6,7 +6,7 @@ import { withTransaction } from '@services/common/with-transaction';
 import { resolveResourceName } from '@services/sharing/auth/can-user-access-resource.service';
 import { Op } from 'sequelize';
 
-import { notifyInvitationExpired } from '../share-notifications';
+import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 
 interface ExpireOverdueResult {
   /** How many rows transitioned to `expired`. */
@@ -76,7 +76,8 @@ const notifyExpiredOwners = async (overdue: ShareInvitations[]): Promise<number>
           );
         }
       }
-      await notifyInvitationExpired({
+      const notify = LIFECYCLE_NOTIFIERS.invitationExpired[row.resourceType];
+      await notify({
         ownerUserId: row.ownerUserId,
         invitee,
         invitationId: row.id,

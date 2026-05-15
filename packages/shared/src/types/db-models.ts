@@ -2,6 +2,7 @@ import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
+  AccessSource,
   BANK_PROVIDER_TYPE,
   BUDGET_TYPES,
   CATEGORIZATION_SOURCE,
@@ -84,6 +85,11 @@ export interface AccountExternalData {
  * Account share block (PRD F14). Present on every user-facing list/detail account
  * response — describes whether the requester owns the account or accesses it via an
  * accepted share, plus the owner's display info.
+ *
+ * `accessSource` tells the frontend which kind of grant is in effect so it can
+ * pick the right label and management entry point: per-resource shares keep the
+ * existing "Shared by X" affordances, while household membership routes users
+ * into Settings → Household for management.
  */
 export interface AccountShareInfo {
   isOwner: boolean;
@@ -94,6 +100,7 @@ export interface AccountShareInfo {
   };
   permission: SharePermission;
   policy: SharePolicy | null;
+  accessSource: AccessSource;
 }
 
 export interface AccountModel {
@@ -401,6 +408,8 @@ export interface ShareLifecycleNotificationPayload {
   resourceId: string;
   resourceName: string;
   permission?: SharePermission;
+  /** Present on permission-change notifications so the recipient's UI can render the active write scope. */
+  policy?: SharePolicy | null;
   /** The other party in the share — recipient (for owner-side notifications) or owner (for recipient-side). */
   counterpartUser: {
     id: number;
@@ -568,9 +577,12 @@ export interface PaymentReminderNotificationModel {
  * Granular policy overrides on top of a `permission` for a `ResourceShare`.
  * Stored as JSONB. All fields optional; missing fields fall back to defaults.
  *
- * Phase 1 supports:
- * - `transactionsWriteScope` (only meaningful when permission is write/manage and
- *   resourceType is 'account'; default is 'all').
+ * - `transactionsWriteScope`: applies whenever a transaction mutation runs
+ *   against an account the caller does not own. Default is `'all'`. Meaningful
+ *   on both `account` rows (write/manage scope on that one account) and
+ *   `household` rows (write scope across every account the grantor owns).
+ *   Household rows never store `'manage'` permission (enforced by a DB CHECK
+ *   constraint), so the field is read alongside `permission = 'write'`.
  */
 export interface SharePolicy {
   transactionsWriteScope?: TransactionsWriteScope;
@@ -604,8 +616,8 @@ export interface ShareInvitationModel {
   ownerUserId: number;
   inviteeEmail: string;
   /**
-   * Resolved at invitation creation time when the email matches a registered user.
-   * Kept nullable for Phase 5 forward-compatibility (auto-signup-from-invite).
+   * Resolved at invitation creation time when the email matches a registered
+   * user. Kept nullable for forward-compatibility with auto-signup-from-invite.
    */
   inviteeUserId: number | null;
   resourceType: ResourceType;

@@ -788,9 +788,16 @@ export const getTransactionById = ({
   });
 };
 
-export const getTransactionsByTransferId = ({ transferId, userId }: { transferId: string; userId: number }) => {
+export const getTransactionsByTransferId = ({
+  transferId,
+  accountIds,
+}: {
+  transferId: string;
+  accountIds: number[];
+}) => {
+  if (accountIds.length === 0) return Promise.resolve([] as Transactions[]);
   return Transactions.findAll({
-    where: { transferId, userId },
+    where: { transferId, accountId: { [Op.in]: accountIds } },
   });
 };
 

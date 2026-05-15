@@ -1,20 +1,25 @@
 <script setup lang="ts">
-import { createShareInvitation } from '@/api/share';
+import { createShareInvitation, listSentShareInvitations } from '@/api/share';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import DemoRestricted from '@/components/demo/demo-restricted.vue';
 import { InputField, SelectField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
 import { ApiErrorResponseError } from '@/js/errors';
+import { useUserStore } from '@/stores';
+import { useOnboardingStore } from '@/stores/onboarding';
 import {
   type AccountModel,
   RESOURCE_TYPES,
+  SHARE_INVITATION_STATUSES,
   SHARE_PERMISSIONS,
   type SharePermission,
   TRANSACTIONS_WRITE_SCOPES,
   type TransactionsWriteScope,
 } from '@bt/shared/types';
-import { useMutation, useQueryClient } from '@tanstack/vue-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -30,6 +35,8 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
+const { isDemo } = storeToRefs(useUserStore());
+const onboardingStore = useOnboardingStore();
 
 const isOpen = computed({
   get: () => props.open ?? internalOpen.value,
@@ -81,6 +88,52 @@ watch(isOpen, (open) => {
 const isEmailValid = computed(() => /.+@.+\..+/.test(email.value.trim()));
 const canSubmit = computed(() => isEmailValid.value && !mutation.isPending.value);
 
+// Inverse-invite hint: surface a non-blocking note when the typed email belongs to a
+// user already in the owner's household. The per-resource share simply overrides the
+// household grant on this account (per-resource access wins over household-level), so
+// we inform rather than block. Hooks the sent-invitations cache the owner already
+// loads in Settings → Household so it's usually warm by the time this dialog opens.
+//
+// `isError` matters: when the lookup fails we can't tell whether the typed email
+// belongs to a household member or not. The hint is non-blocking, so silently hiding
+// it would be a regression — `sentInvitationsLookupFailed` lets the template render an
+// inline "couldn't check household membership" line so the owner isn't caught by
+// surprise once the per-resource share takes effect.
+const { data: sentInvitations, isError: isSentInvitationsError } = useQuery({
+  queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent,
+  queryFn: listSentShareInvitations,
+  enabled: computed(() => isOpen.value),
+});
+
+const sentInvitationsLookupFailed = computed(() => isSentInvitationsError.value);
+
+const householdMembers = computed(() =>
+  (sentInvitations.value ?? []).filter(
+    (invitation) =>
+      invitation.resourceType === RESOURCE_TYPES.household && invitation.status === SHARE_INVITATION_STATUSES.accepted,
+  ),
+);
+
+const matchingHouseholdMember = computed(() => {
+  const typed = email.value.trim().toLowerCase();
+  if (!typed) return null;
+  return householdMembers.value.find((m) => m.inviteeEmail.toLowerCase() === typed) ?? null;
+});
+
+const matchingMemberLabel = computed(() => {
+  const member = matchingHouseholdMember.value;
+  if (!member) return '';
+  return member.invitee?.username || member.inviteeEmail.split('@')[0] || '';
+});
+
+const matchingMemberPermissionLabel = computed(() => {
+  const member = matchingHouseholdMember.value;
+  if (!member) return '';
+  if (member.permission === SHARE_PERMISSIONS.read) return t('dialogs.shareAccountDialog.permissions.read');
+  if (member.permission === SHARE_PERMISSIONS.write) return t('dialogs.shareAccountDialog.permissions.write');
+  return t('dialogs.shareAccountDialog.permissions.manage');
+});
+
 const mutation = useMutation({
   mutationFn: () =>
     createShareInvitation({
@@ -96,13 +149,13 @@ const mutation = useMutation({
     if (data.emailDelivered === false) {
       // Row was created, but the outbound email never made it out (Resend down or
       // similar transient failure). Surface a warning so the owner doesn't assume the
-      // invitee received anything. The invitation is still valid — owner can use the
-      // Resend action once the UI ships in FC.
+      // invitee received anything. The invitation is still valid — owner can resend.
       addErrorNotification(t('dialogs.shareAccountDialog.emailSendFailedWarning'));
     } else {
       addSuccessNotification(t('dialogs.shareAccountDialog.success'));
     }
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent });
+    onboardingStore.completeTask('share-account');
     isOpen.value = false;
   },
   onError: (err: unknown) => {
@@ -133,6 +186,25 @@ const submit = () => {
         autocomplete="email"
       />
 
+      <p v-if="matchingHouseholdMember" class="text-muted-foreground -mt-2 text-xs" data-testid="inverse-invite-hint">
+        <i18n-t keypath="dialogs.shareAccountDialog.householdOverrideHint" tag="span">
+          <template #invitee>
+            <strong class="text-foreground">@{{ matchingMemberLabel }}</strong>
+          </template>
+          <template #permission>
+            <strong class="text-foreground">{{ matchingMemberPermissionLabel }}</strong>
+          </template>
+        </i18n-t>
+      </p>
+
+      <p
+        v-else-if="sentInvitationsLookupFailed && isEmailValid"
+        class="text-muted-foreground -mt-2 text-xs"
+        data-testid="inverse-invite-lookup-failed"
+      >
+        {{ $t('dialogs.shareAccountDialog.householdLookupFailed') }}
+      </p>
+
       <SelectField
         v-model="permission"
         :label="$t('dialogs.shareAccountDialog.permissionLabel')"
@@ -155,9 +227,11 @@ const submit = () => {
         <Button type="button" variant="outline" :disabled="mutation.isPending.value" @click="isOpen = false">
           {{ $t('dialogs.shareAccountDialog.cancel') }}
         </Button>
-        <Button type="submit" :disabled="!canSubmit" :loading="mutation.isPending.value">
-          {{ $t('dialogs.shareAccountDialog.send') }}
-        </Button>
+        <DemoRestricted>
+          <Button type="submit" :disabled="!canSubmit || isDemo" :loading="mutation.isPending.value">
+            {{ $t('dialogs.shareAccountDialog.send') }}
+          </Button>
+        </DemoRestricted>
       </div>
     </form>
   </ResponsiveDialog>

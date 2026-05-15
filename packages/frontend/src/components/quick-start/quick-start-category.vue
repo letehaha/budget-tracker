@@ -11,6 +11,7 @@ import {
   Link2Icon,
   RocketIcon,
   SparklesIcon,
+  UsersIcon,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -42,6 +43,7 @@ const iconConfig = computed(() => {
     link: { icon: Link2Icon, color: 'text-cyan-500' },
     chart: { icon: BarChart3Icon, color: 'text-green-500' },
     sparkles: { icon: SparklesIcon, color: 'text-yellow-500' },
+    users: { icon: UsersIcon, color: 'text-pink-500' },
   };
   return configs[props.category.icon] || { icon: RocketIcon, color: 'text-orange-500' };
 });

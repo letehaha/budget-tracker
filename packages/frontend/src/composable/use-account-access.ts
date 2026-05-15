@@ -1,4 +1,5 @@
 import {
+  ACCESS_SOURCES,
   type AccountModel,
   SHARE_PERMISSIONS,
   type TransactionModel,
@@ -24,6 +25,7 @@ export const useAccountAccess = (account: MaybeRefOrGetter<AccountModel | undefi
   const permission = computed(() => share.value?.permission ?? null);
   const writeScope = computed(() => share.value?.policy?.transactionsWriteScope ?? null);
   const ownerHandle = computed(() => (isSharedWithCaller.value ? share.value!.owner.username : null));
+  const isHouseholdGranted = computed(() => share.value?.accessSource === ACCESS_SOURCES.household);
 
   const canWriteToAccount = computed(() => {
     if (isOwner.value) return true;
@@ -52,6 +54,7 @@ export const useAccountAccess = (account: MaybeRefOrGetter<AccountModel | undefi
     permission,
     writeScope,
     ownerHandle,
+    isHouseholdGranted,
     canWriteToAccount,
     canMutateTx,
   };

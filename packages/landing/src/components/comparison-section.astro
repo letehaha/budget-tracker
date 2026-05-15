@@ -10,6 +10,7 @@ import LightbulbIcon from './icons/lightbulb-icon.astro';
 import TagIcon from './icons/tag-icon.astro';
 import DownloadIcon from './icons/download-icon.astro';
 import BotIcon from './icons/bot-icon.astro';
+import UsersIcon from './icons/users-icon.astro';
 ---
 
 <section class="relative z-10 py-16 sm:py-24">
@@ -129,6 +130,17 @@ import BotIcon from './icons/bot-icon.astro';
             <td class="text-muted-foreground px-6 py-3 text-center">Limited</td>
             <td class="px-6 py-3 text-center"><CheckIcon class="text-primary mx-auto" /></td>
             <td class="bg-primary/5 px-6 py-3 text-center"><CheckIcon class="text-primary mx-auto" /></td>
+          </tr>
+          <tr>
+            <td class="px-6 py-3">
+              <div class="flex items-center gap-2">
+                <UsersIcon class="text-muted-foreground shrink-0" />
+                <span class="font-medium">Family Sharing</span>
+              </div>
+            </td>
+            <td class="px-6 py-3 text-center"><XIcon class="text-destructive-text mx-auto" /></td>
+            <td class="text-muted-foreground px-6 py-3 text-center">All-or-nothing</td>
+            <td class="bg-primary/5 px-6 py-3 text-center font-medium">Per-account or household</td>
           </tr>
         </tbody>
       </table>
@@ -330,6 +342,28 @@ import BotIcon from './icons/bot-icon.astro';
           <div class="bg-primary/10 -mx-4 flex items-center justify-between rounded-lg px-4 py-2">
             <span class="text-primary font-medium">MoneyMatter</span>
             <CheckIcon class="text-primary" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Family Sharing -->
+      <div class="border-border/50 bg-card rounded-xl border p-4">
+        <div class="mb-3 flex items-center gap-2">
+          <UsersIcon class="opacity-70" />
+          <span class="font-semibold">Family Sharing</span>
+        </div>
+        <div class="space-y-2 text-sm">
+          <div class="flex items-center justify-between">
+            <span>Mint & others</span>
+            <XIcon class="text-destructive-text" />
+          </div>
+          <div class="flex items-center justify-between">
+            <span>YNAB</span>
+            <span class="opacity-70">All-or-nothing</span>
+          </div>
+          <div class="bg-primary/10 -mx-4 flex items-center justify-between rounded-lg px-4 py-2">
+            <span class="text-primary font-medium">MoneyMatter</span>
+            <span class="font-semibold">Per-account or household</span>
           </div>
         </div>
       </div>

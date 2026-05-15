@@ -29,9 +29,17 @@ export enum API_ERROR_CODES {
   // sharing-related
   shareCurrencyMismatch = 'SHARE_CURRENCY_MISMATCH',
   baseCurrencyLockedByShares = 'BASE_CURRENCY_LOCKED_BY_SHARES',
+  baseCurrencyLockedByHousehold = 'BASE_CURRENCY_LOCKED_BY_HOUSEHOLD',
 
   // crypto/binance
   cryptoBinanceBothAPIKeysDoesNotexist = 10101,
   cryptoBinancePublicAPIKeyNotDefined = 10102,
   cryptoBinanceSecretAPIKeyNotDefined = 10103,
 }
+
+/**
+ * Per-relationship-kind blocker entry surfaced in `change-base-currency`'s `details`
+ * payload. Discriminated by `type` so the frontend renders the right copy and routing for
+ * each blocker without re-deriving the shape from the error code.
+ */
+export type BaseCurrencyBlocker = { type: 'household' | 'share'; count: number };

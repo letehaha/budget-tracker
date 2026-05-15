@@ -180,7 +180,15 @@ export const prepareTxUpdationParams = ({
       editionParams.splits = null;
     }
   } else {
-    editionParams.categoryId = category.id;
+    // `category` can legitimately be null when the user is editing a transfer that was
+    // persisted without a categoryId (transfers are created with `categoryId: null` —
+    // see `prepare-tx-creation-params.ts`) and hasn't picked one before submitting the
+    // expense/income conversion. Skip the field rather than dereferencing — the backend
+    // leaves the existing column untouched, and the picker keeps its `formattedCategories[0]`
+    // fallback from `prepopulateForm` so the typical path still sends a valid id.
+    if (category) {
+      editionParams.categoryId = category.id;
+    }
 
     // Handle splits for non-transfer transactions
     const originalHadSplits = Boolean(transaction.splits && transaction.splits.length > 0);

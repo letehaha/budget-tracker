@@ -3,7 +3,9 @@
   "effortLevel": "high",
   "alwaysThinkingEnabled": true,
   "includeCoAuthoredBy": false,
-  "env": {},
+  "env": {
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "400000"
+  },
   "hooks": {
     "PostToolUse": [
       {

@@ -30,12 +30,18 @@ const { t } = useI18n();
 const counterpartLabel = computed(() => {
   if (!props.payload) return null;
 
-  if (props.type === NOTIFICATION_TYPES.shareInvitationReceived) {
+  if (
+    props.type === NOTIFICATION_TYPES.shareInvitationReceived ||
+    props.type === NOTIFICATION_TYPES.householdInvitationReceived
+  ) {
     const payload = props.payload as ShareInvitationNotificationPayload;
     return payload.owner?.username ? `@${payload.owner.username}` : null;
   }
 
-  if (props.type === NOTIFICATION_TYPES.shareInvitationSendFailed) {
+  if (
+    props.type === NOTIFICATION_TYPES.shareInvitationSendFailed ||
+    props.type === NOTIFICATION_TYPES.householdInvitationSendFailed
+  ) {
     const payload = props.payload as ShareInvitationSendFailedPayload;
     if (payload.inviteeSnapshot?.username) return `@${payload.inviteeSnapshot.username}`;
     return payload.inviteeEmail ?? null;
@@ -51,7 +57,10 @@ const resourceName = computed(() => {
 });
 
 const summary = computed(() => {
-  if (props.type === NOTIFICATION_TYPES.shareInvitationSendFailed) {
+  if (
+    props.type === NOTIFICATION_TYPES.shareInvitationSendFailed ||
+    props.type === NOTIFICATION_TYPES.householdInvitationSendFailed
+  ) {
     return t('notifications.share.sendFailedHint');
   }
   return null;

@@ -91,6 +91,7 @@ export function serializeAccount(
       owner: account._shareContext.owner,
       permission: account._shareContext.permission,
       policy: account._shareContext.policy,
+      accessSource: account._shareContext.accessSource,
     };
   }
 

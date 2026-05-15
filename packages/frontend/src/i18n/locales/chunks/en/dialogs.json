@@ -375,6 +375,8 @@
         "all": "All transactions on the account",
         "own": "Only transactions they created"
       },
+      "householdOverrideHint": "{invitee} is already in your household with {permission} access. This share will override the household grant for this specific account.",
+      "householdLookupFailed": "Couldn't check household membership — proceeding without the override hint.",
       "cancel": "Cancel",
       "send": "Send invitation",
       "success": "Invitation request submitted. If a user with that address is registered, they'll receive an invitation.",
@@ -387,14 +389,20 @@
       "titleDeclined": "Invitation declined",
       "titleCurrencyMismatch": "Base currency doesn't match",
       "titleLoading": "Loading invitation…",
+      "titleLoadError": "Couldn't load invitation",
       "titleNotFound": "Invitation not available",
+      "loadErrorBody": "Something went wrong while fetching this invitation. Check your connection and try again.",
+      "retry": "Try again",
       "pendingMessage": "You've been invited to access {resource}. Review the details below and choose how to respond.",
       "acceptedBody": "You now have access to this shared resource. Open it to start working together.",
       "declinedBody": "We've let the sender know.",
       "currencyMismatch": "Your base currency must be {currency} to accept this invitation. Update your base currency, then try again.",
+      "currencyMismatchUnknown": "Your base currency must match the inviter's to accept this invitation.",
+      "acceptDataRefreshFailed": "Invitation accepted, but refreshing your accounts failed. Reload the page if anything looks stale.",
       "notFoundBody": "This invitation may have expired, been revoked, or already been actioned. Ask the sender for a new one if you still need access.",
       "unexpectedError": "Something went wrong. Try again in a moment.",
       "loading": "Fetching invitation…",
+      "householdResourceLabel": "all your accounts and shared transactions",
       "permissionLabel": "Access level",
       "expiresLabel": "Expires",
       "permissions": {
@@ -412,7 +420,28 @@
       "acceptSuccess": "You're now part of this shared resource.",
       "acceptError": "Couldn't accept the invitation. Try again.",
       "declineSuccess": "Invitation declined.",
-      "declineError": "Couldn't decline the invitation. Try again."
+      "declineError": "Couldn't decline the invitation. Try again.",
+      "backInvite": {
+        "prompt": "Want to share your household with {owner} as well? They'll be able to see and act on your accounts.",
+        "permissionLabel": "Their permission",
+        "writeScopeLabel": "Write scope",
+        "permissions": {
+          "read": "Read only",
+          "write": "Write"
+        },
+        "writeScope": {
+          "all": "Any account",
+          "own": "Only transactions they create"
+        },
+        "send": "Share back",
+        "notNow": "Not now",
+        "done": "Done",
+        "sentTitle": "Invitation sent",
+        "sentBody": "We sent an invitation to {owner}. They'll get access once they accept.",
+        "success": "Invitation sent.",
+        "deliveryFailed": "Invitation created, but the email could not be sent. Try again later.",
+        "error": "Failed to send the invitation."
+      }
     }
   }
 }

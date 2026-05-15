@@ -1,12 +1,14 @@
-import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
+import { SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { createInvitation } from '@services/sharing/invitations/create-invitation.service';
 import { z } from 'zod';
 
+import { shareableResourceTypeEnum } from './_zod';
+
 const schema = z.object({
   body: z.object({
     inviteeEmail: z.string().email().max(320).trim(),
-    resourceType: z.enum([RESOURCE_TYPES.account] as const),
+    resourceType: shareableResourceTypeEnum,
     resourceId: z.union([z.number().int().positive(), z.string().min(1).max(255)]),
     permission: z.enum([SHARE_PERMISSIONS.read, SHARE_PERMISSIONS.write, SHARE_PERMISSIONS.manage] as const),
     policy: z

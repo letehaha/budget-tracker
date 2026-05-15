@@ -1,4 +1,10 @@
-import { ACCOUNT_TYPES, API_ERROR_CODES, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  API_ERROR_CODES,
+  type BaseCurrencyBlocker,
+  RESOURCE_TYPES,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ConflictError, ValidationError } from '@js/errors';
@@ -100,17 +106,48 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
   // ref-currency assumptions and the totals diverge silently. Pending invitations
   // don't lock; they're handled by the accept-time currency-match check, which
   // surfaces a clean error instead.
-  const activeShareCount = await ResourceShares.count({
-    where: {
-      [Op.or]: [{ ownerUserId: userId }, { sharedWithUserId: userId }],
-      acceptedAt: { [Op.not]: null },
-    },
-  });
+  //
+  // Two parallel counts so the response can tell the user precisely which kind
+  // of relationship is blocking — household memberships are user-scoped (one
+  // revoke covers many accounts), per-resource shares are resource-scoped (each
+  // must be revoked individually). The frontend renders multi-step guidance off
+  // the `blockers` array.
+  const [householdBlockingCount, perResourceBlockingCount] = await Promise.all([
+    ResourceShares.count({
+      where: {
+        [Op.or]: [{ ownerUserId: userId }, { sharedWithUserId: userId }],
+        resourceType: RESOURCE_TYPES.household,
+        acceptedAt: { [Op.not]: null },
+      },
+    }),
+    ResourceShares.count({
+      where: {
+        [Op.or]: [{ ownerUserId: userId }, { sharedWithUserId: userId }],
+        resourceType: RESOURCE_TYPES.account,
+        acceptedAt: { [Op.not]: null },
+      },
+    }),
+  ]);
 
-  if (activeShareCount > 0) {
+  if (householdBlockingCount > 0 || perResourceBlockingCount > 0) {
+    const blockers: BaseCurrencyBlocker[] = [];
+    if (householdBlockingCount > 0) blockers.push({ type: 'household', count: householdBlockingCount });
+    if (perResourceBlockingCount > 0) blockers.push({ type: 'share', count: perResourceBlockingCount });
+
+    // Household takes the primary code when both block — revoking household is the
+    // higher-impact action, so surface it first; the `blockers` array still tells
+    // the user there's a per-resource step waiting after.
+    if (householdBlockingCount > 0) {
+      throw new ConflictError({
+        code: API_ERROR_CODES.baseCurrencyLockedByHousehold,
+        message: t({ key: 'currencies.baseCurrencyLockedByHousehold' }),
+        details: { blockers },
+      });
+    }
     throw new ConflictError({
       code: API_ERROR_CODES.baseCurrencyLockedByShares,
       message: t({ key: 'currencies.baseCurrencyLockedByShares' }),
+      details: { blockers },
     });
   }
 

@@ -1,9 +1,15 @@
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  RESOURCE_TYPES,
+  SHARE_PERMISSIONS,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { UnexpectedError, ValidationError } from '@js/errors';
+import { NotFoundError, UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
@@ -16,6 +22,7 @@ import {
   assertSharedWritePhase1Guards,
   authorizeAccountWrite,
 } from '@services/sharing/auth/authorize-account-write.service';
+import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -116,6 +123,22 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     });
   }
 
+  // Dest may belong to another user when the caller has a household membership (or per-resource
+  // write share) on it. Auth + resolve owner here so opposite-tx fields can be scoped to the
+  // *dest owner* — userId on the row, ref-currency, category — instead of leaking source-user
+  // context onto someone else's account.
+  const destAccess = await canUserAccessResource({
+    userId,
+    resourceType: RESOURCE_TYPES.account,
+    resourceId: destinationAccountId,
+    requiredPermission: SHARE_PERMISSIONS.write,
+  });
+  if (!destAccess.granted) {
+    throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
+  }
+  const destOwnerUserId = destAccess.ownerUserId;
+  const isCrossUser = destOwnerUserId !== baseTransaction.userId;
+
   const transferId = uuidv4();
 
   let baseTx = await Transactions.updateTransactionById({
@@ -126,25 +149,54 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   });
 
   const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
-    userId,
+    userId: destOwnerUserId,
     id: destinationAccountId,
   });
 
-  const defaultUserCurrency = await UsersCurrencies.getBaseCurrency({ userId });
+  const sourceUserBaseCurrency = await UsersCurrencies.getBaseCurrency({ userId });
+  const destOwnerBaseCurrency = isCrossUser
+    ? await UsersCurrencies.getBaseCurrency({ userId: destOwnerUserId })
+    : sourceUserBaseCurrency;
 
-  const { oppositeRefAmount, baseTransaction: updatedBaseTransaction } = await calcTransferTransactionRefAmount({
-    userId,
-    baseTransaction: baseTx,
-    destinationAmount,
-    oppositeTxCurrencyCode: oppositeTxCurrency.code,
-    baseCurrency: defaultUserCurrency,
-    date: new Date(baseTransaction.time),
-  });
+  let oppositeRefAmount: Money;
 
-  baseTx = updatedBaseTransaction;
+  if (isCrossUser) {
+    // Cross-user pairs deliberately *don't* share a refAmount: each leg's refAmount is in
+    // its own owner's base currency. The same-user `calcTransferTransactionRefAmount` would
+    // pull one of the two refs back into the other's base currency and corrupt accounting
+    // on whichever side it overwrote. Calculate the opposite leg independently using the
+    // dest owner's userId so their exchange-rate config drives the conversion.
+    if (destOwnerBaseCurrency.currency.code === oppositeTxCurrency.code) {
+      oppositeRefAmount = destinationAmount;
+    } else {
+      oppositeRefAmount = await calculateRefAmount({
+        userId: destOwnerUserId,
+        amount: destinationAmount,
+        baseCode: oppositeTxCurrency.code,
+        quoteCode: destOwnerBaseCurrency.currency.code,
+        date: new Date(baseTransaction.time),
+      });
+    }
+  } else {
+    const result = await calcTransferTransactionRefAmount({
+      userId,
+      baseTransaction: baseTx,
+      destinationAmount,
+      oppositeTxCurrencyCode: oppositeTxCurrency.code,
+      baseCurrency: sourceUserBaseCurrency,
+      date: new Date(baseTransaction.time),
+    });
+    oppositeRefAmount = result.oppositeRefAmount;
+    baseTx = result.baseTransaction;
+  }
+
+  // Categories are per-user — copying the source-side category id onto a row owned by a
+  // different user would point at a category the dest owner doesn't own. Drop it on
+  // cross-user pairs; same-user transfers keep the existing copy-through behavior.
+  const oppositeCategoryId = isCrossUser ? undefined : baseTransaction.categoryId;
 
   const oppositeTx = await Transactions.createTransaction({
-    userId: baseTransaction.userId,
+    userId: destOwnerUserId,
     amount: destinationAmount,
     refAmount: oppositeRefAmount,
     note: baseTransaction.note,
@@ -153,10 +205,10 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
       transactionType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
     paymentType: baseTransaction.paymentType,
     accountId: destinationAccountId,
-    categoryId: baseTransaction.categoryId,
+    categoryId: oppositeCategoryId,
     accountType: ACCOUNT_TYPES.system,
     currencyCode: oppositeTxCurrency.code,
-    refCurrencyCode: defaultUserCurrency.currency.code,
+    refCurrencyCode: destOwnerBaseCurrency.currency.code,
     transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
     transferId,
   });

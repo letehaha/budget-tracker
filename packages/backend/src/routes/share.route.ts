@@ -1,4 +1,5 @@
 import acceptInvitation from '@controllers/share/accept-invitation';
+import backInviteFromInvitation from '@controllers/share/back-invite-from-invitation';
 import cancelInvitation from '@controllers/share/cancel-invitation';
 import createInvitation from '@controllers/share/create-invitation';
 import declineInvitation from '@controllers/share/decline-invitation';
@@ -11,6 +12,7 @@ import resendInvitation from '@controllers/share/resend-invitation';
 import revokeMember from '@controllers/share/revoke-member';
 import updateMember from '@controllers/share/update-member';
 import { authenticateSession } from '@middlewares/better-auth';
+import { blockDemoUsers } from '@middlewares/block-demo-users';
 import { shareInvitationSendRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
@@ -20,6 +22,7 @@ const router = Router({});
 router.post(
   '/invitations',
   authenticateSession,
+  blockDemoUsers,
   shareInvitationSendRateLimit,
   validateEndpoint(createInvitation.schema),
   createInvitation.handler,
@@ -39,26 +42,38 @@ router.get(
 router.post(
   '/invitations/:token/accept',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(acceptInvitation.schema),
   acceptInvitation.handler,
 );
 router.post(
   '/invitations/:token/decline',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(declineInvitation.schema),
   declineInvitation.handler,
 );
 router.post(
   '/invitations/:id/resend',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(resendInvitation.schema),
   resendInvitation.handler,
 );
 router.delete(
   '/invitations/:id',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(cancelInvitation.schema),
   cancelInvitation.handler,
+);
+router.post(
+  '/invitations/:id/back-invite',
+  authenticateSession,
+  blockDemoUsers,
+  shareInvitationSendRateLimit,
+  validateEndpoint(backInviteFromInvitation.schema),
+  backInviteFromInvitation.handler,
 );
 
 router.get(
@@ -70,12 +85,14 @@ router.get(
 router.patch(
   '/resources/:resourceType/:resourceId/members/:userId',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(updateMember.schema),
   updateMember.handler,
 );
 router.delete(
   '/resources/:resourceType/:resourceId/members/:userId',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(revokeMember.schema),
   revokeMember.handler,
 );
@@ -84,6 +101,7 @@ router.get('/shared-with-me', authenticateSession, validateEndpoint(listSharedWi
 router.post(
   '/shared-with-me/:resourceType/:resourceId/leave',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(leaveShare.schema),
   leaveShare.handler,
 );

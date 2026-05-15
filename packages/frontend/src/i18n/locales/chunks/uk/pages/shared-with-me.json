@@ -8,9 +8,11 @@
         "description": "Коли хтось надасть вам доступ до рахунку, він з'явиться тут."
       },
       "sections": {
-        "account": "Рахунки"
+        "account": "Рахунки",
+        "household": "Сім'ї"
       },
       "sharedBy": "Надав доступ {handle}",
+      "viaHousehold": "Через домогосподарство {handle}",
       "unnamedResource": "Без назви",
       "permissions": {
         "read": "Перегляд",

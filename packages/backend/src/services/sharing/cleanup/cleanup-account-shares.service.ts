@@ -1,19 +1,30 @@
 import { RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SharePermission } from '@bt/shared/types';
-import { logger } from '@js/utils/logger';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { Op } from 'sequelize';
 
-import { notifyShareOwnerAccountDeleted } from '../share-notifications';
+import { fanOutNotifications } from '../fan-out-notifications';
+import { notifyHouseholdOwnerAccountDeleted, notifyShareOwnerAccountDeleted } from '../share-notifications';
 
 export interface AccountShareCleanupResult {
-  /** Recipients to notify post-commit. Captured before the share rows are deleted because
-   *  the post-commit step has nothing to read otherwise. */
+  /** Per-resource share recipients to notify post-commit. Captured before the share rows
+   *  are deleted because the post-commit step has nothing to read otherwise. */
   recipients: Array<{
     sharedWithUserId: number;
     shareId: string;
     permission: SharePermission;
+  }>;
+  /**
+   * Household-membership recipients of the same owner. The household rows themselves
+   * survive (the membership still grants access to the owner's *other* accounts) — we
+   * only fan out a "this specific account was deleted" notification so each member can
+   * drop their cached state for the gone resource.
+   */
+  householdRecipients: Array<{
+    sharedWithUserId: number;
+    shareId: string;
   }>;
   /** How many pending invitations were flipped to `revoked`. */
   revokedInvitationCount: number;
@@ -41,16 +52,36 @@ export const cleanupAccountSharesInTx = withTransaction(
   }): Promise<AccountShareCleanupResult> => {
     const resourceId = String(accountId);
 
-    const shares = (await ResourceShares.findAll({
-      where: { ownerUserId, resourceType: RESOURCE_TYPES.account, resourceId },
-      attributes: ['id', 'sharedWithUserId', 'permission'],
-      raw: true,
-    })) as Array<{ id: string; sharedWithUserId: number; permission: SharePermission }>;
+    const [shares, householdShares] = await Promise.all([
+      ResourceShares.findAll({
+        where: { ownerUserId, resourceType: RESOURCE_TYPES.account, resourceId },
+        attributes: ['id', 'sharedWithUserId', 'permission'],
+        raw: true,
+      }) as unknown as Promise<Array<{ id: string; sharedWithUserId: number; permission: SharePermission }>>,
+      // Household memberships of the same owner survive the account delete — pull the
+      // accepted ones so we can notify those members that one of the household-shared
+      // accounts is gone.
+      ResourceShares.findAll({
+        where: {
+          ownerUserId,
+          resourceType: RESOURCE_TYPES.household,
+          resourceId: String(ownerUserId),
+          acceptedAt: { [Op.not]: null },
+        },
+        attributes: ['id', 'sharedWithUserId'],
+        raw: true,
+      }) as unknown as Promise<Array<{ id: string; sharedWithUserId: number }>>,
+    ]);
 
     const recipients = shares.map((s) => ({
       sharedWithUserId: s.sharedWithUserId,
       shareId: s.id,
       permission: s.permission,
+    }));
+
+    const householdRecipients = householdShares.map((s) => ({
+      sharedWithUserId: s.sharedWithUserId,
+      shareId: s.id,
     }));
 
     const deletedShareCount = await ResourceShares.destroy({
@@ -69,7 +100,7 @@ export const cleanupAccountSharesInTx = withTransaction(
       },
     );
 
-    return { recipients, revokedInvitationCount, deletedShareCount };
+    return { recipients, householdRecipients, revokedInvitationCount, deletedShareCount };
   },
 );
 
@@ -80,39 +111,50 @@ export const cleanupAccountSharesInTx = withTransaction(
  */
 export const notifyAccountDeleteRecipients = async ({
   recipients,
+  householdRecipients,
   owner,
   account,
 }: {
   recipients: AccountShareCleanupResult['recipients'];
+  householdRecipients: AccountShareCleanupResult['householdRecipients'];
   owner: Users | null;
   account: { id: number; name: string };
 }): Promise<number> => {
-  let notifiedCount = 0;
-  for (const r of recipients) {
-    try {
-      await notifyShareOwnerAccountDeleted({
+  const resource = { type: RESOURCE_TYPES.account, id: String(account.id), name: account.name } as const;
+  const perResourceNotified = await fanOutNotifications({
+    targets: recipients,
+    notify: (r) =>
+      notifyShareOwnerAccountDeleted({
         recipientUserId: r.sharedWithUserId,
         owner,
         shareId: r.shareId,
-        resource: { type: RESOURCE_TYPES.account, id: String(account.id), name: account.name },
+        resource,
         permission: r.permission,
-      });
-      notifiedCount += 1;
-    } catch (error) {
-      // Stable code so ops dashboards group these without depending on the dynamic msg.
-      logger.error(
-        {
-          message: 'Failed to emit share_owner_account_deleted notification',
-          error: error as Error,
-        },
-        {
-          code: 'SHARE_OWNER_ACCOUNT_DELETED_NOTIFY_FAILED',
-          shareId: r.shareId,
-          recipientUserId: r.sharedWithUserId,
-          accountId: account.id,
-        },
-      );
-    }
-  }
-  return notifiedCount;
+      }),
+    errorCode: 'SHARE_OWNER_ACCOUNT_DELETED_NOTIFY_FAILED',
+    errorMessage: 'Failed to emit share_owner_account_deleted notification',
+    buildLogContext: (r) => ({
+      shareId: r.shareId,
+      recipientUserId: r.sharedWithUserId,
+      accountId: account.id,
+    }),
+  });
+  const householdNotified = await fanOutNotifications({
+    targets: householdRecipients,
+    notify: (r) =>
+      notifyHouseholdOwnerAccountDeleted({
+        recipientUserId: r.sharedWithUserId,
+        owner,
+        shareId: r.shareId,
+        resource,
+      }),
+    errorCode: 'HOUSEHOLD_OWNER_ACCOUNT_DELETED_NOTIFY_FAILED',
+    errorMessage: 'Failed to emit household_owner_account_deleted notification',
+    buildLogContext: (r) => ({
+      shareId: r.shareId,
+      recipientUserId: r.sharedWithUserId,
+      accountId: account.id,
+    }),
+  });
+  return perResourceNotified + householdNotified;
 };

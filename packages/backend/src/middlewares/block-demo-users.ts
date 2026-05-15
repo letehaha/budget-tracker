@@ -1,5 +1,6 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS, USER_ROLES } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
+import { logger } from '@js/utils';
 import Users from '@models/users.model';
 import type { NextFunction, Request, Response } from 'express';
 
@@ -18,6 +19,13 @@ export const blockDemoUsers = (req: Request, res: Response, next: NextFunction) 
   const user = req.user as Users;
 
   if (!user) {
+    // Reaching this branch means `authenticateSession` is missing upstream on the route —
+    // `req.user` should always be populated by the time we get here. Log loudly so the gap
+    // is caught in development/staging rather than silently returning 401 in prod.
+    logger.error(
+      { message: 'blockDemoUsers: req.user missing — authenticateSession likely not mounted on this route' },
+      { path: req.path, method: req.method },
+    );
     return res.status(ERROR_CODES.Unauthorized).json({
       status: API_RESPONSE_STATUS.error,
       response: {

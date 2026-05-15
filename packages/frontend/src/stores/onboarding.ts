@@ -94,6 +94,14 @@ const RAW_CATEGORIES: RawCategory[] = [
       { id: 'configure-ai', route: ROUTES_NAMES.settingsAiKeys },
     ],
   },
+  {
+    id: 'sharing',
+    icon: 'users',
+    tasks: [
+      { id: 'invite-household-member', route: ROUTES_NAMES.settingsHousehold },
+      { id: 'share-account', route: ROUTES_NAMES.accounts },
+    ],
+  },
 ];
 
 // Helper to get translated category (with optional demo filtering)

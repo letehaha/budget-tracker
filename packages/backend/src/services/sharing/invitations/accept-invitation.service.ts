@@ -1,5 +1,6 @@
 import {
   API_ERROR_CODES,
+  RESOURCE_TYPES,
   ResourceShareModel,
   SHARE_INVITATION_STATUSES,
   SHARING_LIMITS,
@@ -17,11 +18,18 @@ import { Op, QueryTypes } from 'sequelize';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';
-import { notifyInvitationAccepted } from '../share-notifications';
+import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 
 interface AcceptInvitationResult {
   invitation: ShareInvitationModel;
   share: ResourceShareModel;
+  /**
+   * `true` only for accepted household invitations where the recipient does NOT already
+   * share their own household back with the inviter. Lets the UI decide whether to prompt
+   * for a reciprocal "share back" — false stops the second leg of an A↔B↔A loop where
+   * both households are already mutually shared.
+   */
+  canBackInvite: boolean;
 }
 
 /**
@@ -80,9 +88,9 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
   }
 
   if (invitation.expiresAt.getTime() <= Date.now()) {
-    // Status stays `pending` in the DB until the daily expiration cron sweeps it (per PRD
-    // F5 — cron is the canonical source for expiration). We can't update it here because
-    // the surrounding transaction rolls back when we throw.
+    // Status stays `pending` in the DB until the daily expiration cron sweeps it — the
+    // cron is the canonical source for the `expired` status. We can't update it here
+    // because the surrounding transaction rolls back when we throw.
     throw new ConflictError({ message: 'This invitation has expired.' });
   }
 
@@ -96,9 +104,8 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
 
   // Currency check compares the recipient's base to the *owner's* base — not the
   // account's currency. The account's currency is unrelated; what matters is that both
-  // users' refAmount aggregates line up (per PRD F10). An owner can have a USD account
-  // even if their base currency is AED — the share is fine as long as the recipient's
-  // base is also AED.
+  // users' refAmount aggregates line up. An owner can have a USD account even if their
+  // base currency is AED — the share is fine as long as the recipient's base is also AED.
   const [ownerBaseCurrency, inviteeBaseCurrency] = await Promise.all([
     getBaseCurrency({ userId: invitation.ownerUserId }),
     getBaseCurrency({ userId }),
@@ -129,9 +136,9 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
   });
 
   // Recipient cap is also re-checked here, not just at send-time. Multiple pending
-  // invitations are allowed per resource (see F11), so without an accept-side cap two
-  // recipients racing to accept could both win and exceed the cap. Existing-share path
-  // skips this check — the recipient already has a slot, accepting again is idempotent.
+  // invitations are allowed per resource, so without an accept-side cap two recipients
+  // racing to accept could both win and exceed the cap. Existing-share path skips this
+  // check — the recipient already has a slot, accepting again is idempotent.
   if (!existingShare) {
     // Serialize accept on (resourceType, resourceId) so concurrent recipients can't both
     // pass the count check below. The unique constraint only blocks same-recipient
@@ -153,9 +160,14 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
         acceptedAt: { [Op.not]: null },
       },
     });
-    if (acceptedCount >= SHARING_LIMITS.maxRecipientsPerResource) {
+    const acceptedCap =
+      invitation.resourceType === RESOURCE_TYPES.household
+        ? SHARING_LIMITS.maxHouseholdMembers
+        : SHARING_LIMITS.maxRecipientsPerResource;
+    if (acceptedCount >= acceptedCap) {
+      const target = invitation.resourceType === RESOURCE_TYPES.household ? 'household member(s)' : 'recipient(s)';
       throw new ConflictError({
-        message: `This resource is full — the owner has reached the maximum of ${SHARING_LIMITS.maxRecipientsPerResource} active recipient(s).`,
+        message: `This resource is full — the owner has reached the maximum of ${acceptedCap} active ${target}.`,
       });
     }
   }
@@ -173,6 +185,37 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
       acceptedAt,
     }));
 
+  // Auto-merge prior per-resource grants when the recipient accepts a household
+  // invitation from the same owner: the broader household grant supersedes them,
+  // and keeping ghost per-resource rows around means revoking household later
+  // leaves the recipient with surprise access to whatever was shared per-resource
+  // before. The merge runs inside the same transaction as the household row's
+  // creation, so an accept either fully merges or fully rolls back.
+  //
+  // No revoke notifications fire for merged rows — the recipient initiated this,
+  // they're not being revoked by someone else.
+  if (invitation.resourceType === RESOURCE_TYPES.household && !existingShare) {
+    await ResourceShares.destroy({
+      where: {
+        ownerUserId: invitation.ownerUserId,
+        sharedWithUserId: userId,
+        resourceType: { [Op.ne]: RESOURCE_TYPES.household },
+        acceptedAt: { [Op.not]: null },
+      },
+    });
+    await ShareInvitations.update(
+      { status: SHARE_INVITATION_STATUSES.revoked },
+      {
+        where: {
+          ownerUserId: invitation.ownerUserId,
+          inviteeUserId: userId,
+          resourceType: { [Op.ne]: RESOURCE_TYPES.household },
+          status: SHARE_INVITATION_STATUSES.pending,
+        },
+      },
+    );
+  }
+
   invitation.status = SHARE_INVITATION_STATUSES.accepted;
   invitation.acceptedAt = acceptedAt;
   if (shouldBindUserId) {
@@ -184,7 +227,8 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
   // user and the owner is the receiver of the notification.
   const recipient = await Users.findByPk(userId);
   if (recipient) {
-    await notifyInvitationAccepted({
+    const notify = LIFECYCLE_NOTIFIERS.invitationAccepted[invitation.resourceType];
+    await notify({
       ownerUserId: invitation.ownerUserId,
       recipient,
       shareId: share.id,
@@ -214,9 +258,39 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
     );
   }
 
+  // Compute the back-invite prompt gate so the dialog can decide on the spot, without
+  // a second round-trip. Only meaningful for household accepts; per-resource shares
+  // don't have a back-invite flow.
+  let canBackInvite = false;
+  if (invitation.resourceType === RESOURCE_TYPES.household) {
+    const [reciprocalShare, reciprocalPendingInvitation] = await Promise.all([
+      ResourceShares.findOne({
+        where: {
+          ownerUserId: userId,
+          sharedWithUserId: invitation.ownerUserId,
+          resourceType: RESOURCE_TYPES.household,
+          acceptedAt: { [Op.not]: null },
+        },
+      }),
+      // A pending back-invite already in flight means the recipient previously clicked
+      // "share back" but the inviter hasn't accepted yet. Don't prompt again — the
+      // back-invite endpoint blocks the duplicate, and the dialog should match.
+      ShareInvitations.findOne({
+        where: {
+          ownerUserId: userId,
+          inviteeUserId: invitation.ownerUserId,
+          resourceType: RESOURCE_TYPES.household,
+          status: SHARE_INVITATION_STATUSES.pending,
+        },
+      }),
+    ]);
+    canBackInvite = !reciprocalShare && !reciprocalPendingInvitation;
+  }
+
   return {
     invitation: invitation.toJSON() as ShareInvitationModel,
     share: share.toJSON() as ResourceShareModel,
+    canBackInvite,
   };
 };
 

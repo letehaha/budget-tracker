@@ -392,6 +392,41 @@ describe('prepareTxUpdationParams', () => {
       });
     });
 
+    it('does not crash when converting common_transfer → expense with a null form.category', () => {
+      // Pre-existing FE issue surfaced by the cross-user transfer flow: transfers are
+      // persisted with `categoryId: null` and if the user toggles to expense before
+      // picking a category, dereferencing `category.id` would throw a TypeError. The
+      // dialog should still submit; the backend keeps the existing column.
+      const transferTx = buildSystemTransferExpenseTransaction({
+        categoryId: null as unknown as number,
+      });
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(transferTx),
+        type: FORM_TYPES.expense,
+        account: sourceAccount as AccountModel,
+        amount: 1500,
+        // category intentionally left as the buildBaseFormMock default (null).
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: transferTx,
+        linkedTransaction: null,
+        isTransferTx: false,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result).not.toHaveProperty('categoryId');
+      expect(result).toMatchObject({
+        txId: transferTx.id,
+        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        transactionType: TRANSACTION_TYPES.expense,
+        accountId: formMock.account!.id,
+      });
+    });
+
     it('handles "transfer_out_wallet -> expense" updation', () => {
       const outOfWalletTx = buildOutOfWalletTransaction();
       const formMock: UI_FORM_STRUCT = {
