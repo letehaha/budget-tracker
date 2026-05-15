@@ -1,4 +1,4 @@
-import { ResourceType, SHARE_PERMISSIONS } from '@bt/shared/types';
+import { RESOURCE_TYPES, ResourceType, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import ResourceShares from '@models/resource-shares.model';
@@ -8,6 +8,7 @@ import { Op } from 'sequelize';
 
 import { canUserAccessResource, resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';
+import { convertCrossUserTransfersToOutOfWallet } from '../household/convert-cross-user-transfers.service';
 import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 import { FALLBACK_OWNER_DISPLAY_NAME } from '../share-user-snapshot';
 import { sendShareRevokedEmail } from './share-membership-emails';
@@ -78,6 +79,17 @@ const revokeMemberImpl = async (params: RevokeMemberParams): Promise<RevokeMembe
   const sharedPermission = share.permission;
 
   await share.destroy();
+
+  // Household revoke severs the broad write-grant between owner and recipient —
+  // any cross-user transfer pair between them must unlink so neither side keeps
+  // pointing at the other's now-inaccessible account. Conversion is in-transaction
+  // with the share destroy so partial-state can't survive a failure mid-batch.
+  if (resourceType === RESOURCE_TYPES.household) {
+    await convertCrossUserTransfersToOutOfWallet({
+      userIdA: access.ownerUserId,
+      userIdB: memberUserId,
+    });
+  }
 
   // In-app notification is in-transaction so it's atomic with the share deletion. Email is
   // deferred to after commit (returned to the wrapper) — same pattern as create-invitation.

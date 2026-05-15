@@ -196,6 +196,28 @@ describe('components/modals/modify-record/helpers', () => {
       });
     });
 
+    it('falls back to first formatted category when transaction.categoryId is null', () => {
+      // Transfers are created with `categoryId: null` (see `prepare-tx-creation-params.ts`),
+      // so prepopulating a transfer-mode edit without a fallback would leave form.category
+      // null and crash `prepareTxUpdationParams` on the way back out. Verify the picker
+      // starts with a sensible default — same behavior any freshly-created expense gets.
+      const sourceAccount = getUahAccount();
+      const transaction = buildSystemTransferExpenseTransaction({
+        accountId: sourceAccount.id,
+        categoryId: null as unknown as number,
+      });
+
+      const result = prepopulateForm({
+        transaction,
+        oppositeTransaction: undefined,
+        accounts: accountsRecord,
+        categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
+      });
+
+      expect(result?.category).toEqual(USER_CATEGORIES[0]);
+    });
+
     it('falls back to the income tx itself as source when no opposite is provided', () => {
       // Edge case: an income transfer rendered before the opposite side is loaded.
       // The flip in prepopulateForm should not blow up — it should treat the

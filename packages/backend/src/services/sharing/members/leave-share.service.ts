@@ -1,4 +1,4 @@
-import { ResourceType } from '@bt/shared/types';
+import { RESOURCE_TYPES, ResourceType } from '@bt/shared/types';
 import { NotFoundError, UnexpectedError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import ResourceShares from '@models/resource-shares.model';
@@ -8,6 +8,7 @@ import { Op } from 'sequelize';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';
+import { convertCrossUserTransfersToOutOfWallet } from '../household/convert-cross-user-transfers.service';
 import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 import { sendShareLeftEmail } from './share-membership-emails';
 
@@ -79,6 +80,17 @@ const leaveShareImpl = async (params: LeaveShareParams): Promise<LeaveShareImplR
   }
 
   await share.destroy();
+
+  // Household leave severs the broad write-grant between the two users — any
+  // transfer pair that crossed the boundary must stop pointing at a partner the
+  // leaving member can no longer reach. Conversion runs inside this withTransaction
+  // so a failure rolls the whole leave back rather than leaving a half-broken pair.
+  if (resourceType === RESOURCE_TYPES.household) {
+    await convertCrossUserTransfersToOutOfWallet({
+      userIdA: ownerUserId,
+      userIdB: callerUserId,
+    });
+  }
 
   const notify = LIFECYCLE_NOTIFIERS.shareLeft[resourceType];
   await notify({
