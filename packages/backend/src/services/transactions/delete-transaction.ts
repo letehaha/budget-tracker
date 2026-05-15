@@ -69,14 +69,16 @@ export const deleteTransaction = withTransaction(
           await Transactions.deleteTransactionById({ id, userId: creatorUserId });
         }
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
-        const transferTransactions = await Transactions.getTransactionsByArrayOfField({
-          fieldValues: [transferId],
-          fieldName: 'transferId',
-          userId,
+        // Find both legs of the pair by transferId only. Cross-user transfers (created
+        // through a household share) have legs that live under different `userId`s, so a
+        // userId-scoped lookup would silently orphan the partner row. The caller's
+        // authorization is already gated above by `getWritableTransactionById` —
+        // touching the linked twin is implicit transfer semantics.
+        const transferTransactions = await Transactions.default.findAll({
+          where: { transferId },
         });
 
         await Promise.all(
-          // For the each transaction with the same "transferId" delete transaction
           transferTransactions.map((transferTx) =>
             Transactions.deleteTransactionById({
               id: transferTx.id,

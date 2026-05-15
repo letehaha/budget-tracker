@@ -1,6 +1,7 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
 import type { FormattedCategory } from '@/common/types';
 import {
+  ACCOUNT_TYPES,
   AccountModel,
   CategoryModel,
   TRANSACTION_TRANSFER_NATURE,
@@ -69,6 +70,29 @@ export const getTxTypeFromFormType = (formType: FORM_TYPES): TRANSACTION_TYPES =
 };
 
 export const isOutOfWalletAccount = (account: typeof OUT_OF_WALLET_ACCOUNT_MOCK) => account._isOutOfWallet;
+
+// The backend cascades a transfer delete across both legs, so an external-bank
+// partner (which can't be removed) would orphan the call — hide the button instead.
+export const canDeleteTransaction = ({
+  transaction,
+  oppositeTransaction,
+  accounts,
+  canMutate,
+}: {
+  transaction: TransactionModel | undefined | null;
+  oppositeTransaction: TransactionModel | undefined | null;
+  accounts: Record<number, AccountModel>;
+  canMutate: boolean;
+}): boolean => {
+  if (!transaction || !canMutate) return false;
+  const primaryAccount = accounts[transaction.accountId];
+  if (!primaryAccount || primaryAccount.type !== ACCOUNT_TYPES.system) return false;
+  if (oppositeTransaction) {
+    const oppositeAccount = accounts[oppositeTransaction.accountId];
+    if (!oppositeAccount || oppositeAccount.type !== ACCOUNT_TYPES.system) return false;
+  }
+  return true;
+};
 
 /**
  * Builds a flat map of category id -> FormattedCategory from the nested structure

@@ -47,7 +47,7 @@ import {
   useUnlinkTransactions,
 } from './composables';
 import type { TransferDestinationType } from './composables/transfer-form';
-import { prepopulateForm } from './helpers';
+import { canDeleteTransaction, prepopulateForm } from './helpers';
 import { FORM_TYPES, UI_FORM_STRUCT } from './types';
 
 defineOptions({
@@ -424,11 +424,17 @@ const unlinkTransactions = () => {
   });
 };
 
-const deleteTransactionHandler = () => {
-  // Check the account type, not the transaction type
-  const account = accountsRecord.value[transaction.value!.accountId];
-  if (account && account.type !== ACCOUNT_TYPES.system) return;
+const canDelete = computed(() =>
+  canDeleteTransaction({
+    transaction: transaction.value,
+    oppositeTransaction: oppositeTransaction.value,
+    accounts: accountsRecord.value,
+    canMutate: canMutateCurrentTx.value,
+  }),
+);
 
+const deleteTransactionHandler = () => {
+  if (!canDelete.value) return;
   deleteMutation.mutate({
     transactionId: transaction.value!.id,
   });
@@ -743,9 +749,7 @@ onUnmounted(() => {
 
         <div class="flex items-center justify-between py-6">
           <Button
-            v-if="
-              transaction && accountsRecord[transaction.accountId]?.type === ACCOUNT_TYPES.system && canMutateCurrentTx
-            "
+            v-if="canDelete"
             class="min-w-25"
             :disabled="isFormFieldsDisabled"
             :aria-label="$t('dialogs.manageTransaction.form.deleteAriaLabel')"

@@ -281,4 +281,102 @@ describe('Cross-user transfer (household membership)', () => {
       expect(recipientTxList.some((tx) => tx.id === ctx.oppositeTx.id)).toBe(true);
     });
   });
+
+  describe('deletion', () => {
+    // Cross-user transfer deletion has to remove *both* legs — the household share is the
+    // only reason the opposite leg has a different `userId`, but the pair is still a single
+    // transfer semantically. The legacy delete query filtered the partner lookup by the
+    // caller's userId, so the opposite leg used to survive as an orphaned income on the
+    // counterpart's wallet (transferId set but no twin row).
+    const setupCrossUserTransfer = async () => {
+      const sourceAccount = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'A Account', initialBalance: 10000 }),
+        raw: true,
+      });
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+      const recipientUser = await helpers.findAppUserByEmail({ email: recipient.email });
+
+      const destAccount = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createAccount({
+            payload: helpers.buildAccountPayload({ name: 'B Account', initialBalance: 2000 }),
+            raw: true,
+          }),
+      });
+
+      const invitation = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createHouseholdInvitation({ ownerUserId: recipientUser.id, inviteeEmail: 'test1@test.local' }),
+      });
+      await helpers.acceptShareInvitation({ token: invitation.token, raw: true });
+
+      const [baseTx, oppositeTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAmount: 5000,
+          destinationAccountId: destAccount.id,
+        },
+        raw: true,
+      });
+
+      return { sourceAccount, destAccount, recipient, recipientUser, baseTx, oppositeTx: oppositeTx! };
+    };
+
+    it('removes both legs when the source-side caller deletes the transfer', async () => {
+      const ctx = await setupCrossUserTransfer();
+
+      const res = await helpers.deleteTransaction({ id: ctx.baseTx.id });
+      expect(res.statusCode).toBe(200);
+
+      // The get-by-id endpoint resolves a missing row as `data: null` rather than 404,
+      // so `raw: true` is what tells us the partner is truly gone.
+      const baseAfter = await helpers.getTransactionById({ id: ctx.baseTx.id, raw: true });
+      expect(baseAfter).toBeNull();
+
+      // Cross-recipient lookup must also confirm the partner row is gone — without the
+      // fix this came back as a live income tx with a dangling transferId.
+      const oppositeAfter = await helpers.asUser({
+        cookies: ctx.recipient.cookies,
+        fn: () => helpers.getTransactionById({ id: ctx.oppositeTx.id, raw: true }),
+      });
+      expect(oppositeAfter).toBeNull();
+
+      const sourceAfter = await helpers.getAccount({ id: ctx.sourceAccount.id, raw: true });
+      expect(sourceAfter.currentBalance).toBe(Number(ctx.sourceAccount.currentBalance));
+
+      const destAfter = await helpers.asUser({
+        cookies: ctx.recipient.cookies,
+        fn: () => helpers.getAccount({ id: ctx.destAccount.id, raw: true }),
+      });
+      expect(destAfter.currentBalance).toBe(Number(ctx.destAccount.currentBalance));
+    });
+
+    it('removes both legs when the dest-side owner deletes the opposite leg', async () => {
+      // Mirror scenario — recipient (owner of the destination wallet) initiates the delete
+      // from the income side. Same expectation: both rows go away, neither balance moves.
+      const ctx = await setupCrossUserTransfer();
+
+      const res = await helpers.asUser({
+        cookies: ctx.recipient.cookies,
+        fn: () => helpers.deleteTransaction({ id: ctx.oppositeTx.id }),
+      });
+      expect(res.statusCode).toBe(200);
+
+      const baseAfter = await helpers.getTransactionById({ id: ctx.baseTx.id, raw: true });
+      expect(baseAfter).toBeNull();
+
+      const oppositeAfter = await helpers.asUser({
+        cookies: ctx.recipient.cookies,
+        fn: () => helpers.getTransactionById({ id: ctx.oppositeTx.id, raw: true }),
+      });
+      expect(oppositeAfter).toBeNull();
+    });
+  });
 });
