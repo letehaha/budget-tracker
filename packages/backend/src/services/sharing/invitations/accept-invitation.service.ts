@@ -23,6 +23,13 @@ import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 interface AcceptInvitationResult {
   invitation: ShareInvitationModel;
   share: ResourceShareModel;
+  /**
+   * `true` only for accepted household invitations where the recipient does NOT already
+   * share their own household back with the inviter. Lets the UI decide whether to prompt
+   * for a reciprocal "share back" — false stops the second leg of an A↔B↔A loop where
+   * both households are already mutually shared.
+   */
+  canBackInvite: boolean;
 }
 
 /**
@@ -252,9 +259,39 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
     );
   }
 
+  // Compute the back-invite prompt gate so the dialog can decide on the spot, without
+  // a second round-trip. Only meaningful for household accepts; per-resource shares
+  // don't have a back-invite flow.
+  let canBackInvite = false;
+  if (invitation.resourceType === RESOURCE_TYPES.household) {
+    const [reciprocalShare, reciprocalPendingInvitation] = await Promise.all([
+      ResourceShares.findOne({
+        where: {
+          ownerUserId: userId,
+          sharedWithUserId: invitation.ownerUserId,
+          resourceType: RESOURCE_TYPES.household,
+          acceptedAt: { [Op.not]: null },
+        },
+      }),
+      // A pending back-invite already in flight means the recipient previously clicked
+      // "share back" but the inviter hasn't accepted yet. Don't prompt again — the
+      // back-invite endpoint blocks the duplicate, and the dialog should match.
+      ShareInvitations.findOne({
+        where: {
+          ownerUserId: userId,
+          inviteeUserId: invitation.ownerUserId,
+          resourceType: RESOURCE_TYPES.household,
+          status: SHARE_INVITATION_STATUSES.pending,
+        },
+      }),
+    ]);
+    canBackInvite = !reciprocalShare && !reciprocalPendingInvitation;
+  }
+
   return {
     invitation: invitation.toJSON() as ShareInvitationModel,
     share: share.toJSON() as ResourceShareModel,
+    canBackInvite,
   };
 };
 

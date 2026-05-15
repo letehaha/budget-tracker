@@ -412,7 +412,28 @@
       "acceptSuccess": "You're now part of this shared resource.",
       "acceptError": "Couldn't accept the invitation. Try again.",
       "declineSuccess": "Invitation declined.",
-      "declineError": "Couldn't decline the invitation. Try again."
+      "declineError": "Couldn't decline the invitation. Try again.",
+      "backInvite": {
+        "prompt": "Want to share your household with {owner} as well? They'll be able to see and act on your accounts.",
+        "permissionLabel": "Their permission",
+        "writeScopeLabel": "Write scope",
+        "permissions": {
+          "read": "Read only",
+          "write": "Write"
+        },
+        "writeScope": {
+          "all": "Any account",
+          "own": "Only transactions they create"
+        },
+        "send": "Share back",
+        "notNow": "Not now",
+        "done": "Done",
+        "sentTitle": "Invitation sent",
+        "sentBody": "We sent an invitation to {owner}. They'll get access once they accept.",
+        "success": "Invitation sent.",
+        "deliveryFailed": "Invitation created, but the email could not be sent. Try again later.",
+        "error": "Failed to send the invitation."
+      }
     }
   }
 }

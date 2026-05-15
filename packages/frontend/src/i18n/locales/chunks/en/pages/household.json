@@ -57,6 +57,19 @@
         "confirm": "Leave",
         "success": "You left the household.",
         "error": "Couldn't leave the household."
+      },
+      "pending": {
+        "badge": "Pending",
+        "resend": "Resend",
+        "cancel": "Cancel",
+        "cancelTitle": "Cancel invitation?",
+        "cancelDescription": "Cancel the pending invitation sent to {email}? They will no longer be able to accept it.",
+        "cancelConfirm": "Cancel invitation",
+        "cancelSuccess": "Invitation cancelled.",
+        "cancelError": "Failed to cancel invitation.",
+        "resendSuccess": "Invitation resent.",
+        "resendError": "Failed to resend invitation.",
+        "resendDeliveryFailed": "Invitation updated, but the email could not be sent. Try again later."
       }
     }
   }

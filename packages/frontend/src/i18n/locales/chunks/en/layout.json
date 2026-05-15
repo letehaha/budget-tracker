@@ -25,7 +25,9 @@
       "title": "Accounts",
       "newAccount": "New account",
       "newAccountsGroup": "New accounts group",
-      "collapseNavigation": "Collapse navigation"
+      "collapseNavigation": "Collapse navigation",
+      "viaHousehold": "Shared via {handle}'s household",
+      "sharedBy": "Shared by {handle}"
     }
   },
   "header": {

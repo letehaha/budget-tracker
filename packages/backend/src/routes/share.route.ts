@@ -1,4 +1,5 @@
 import acceptInvitation from '@controllers/share/accept-invitation';
+import backInviteFromInvitation from '@controllers/share/back-invite-from-invitation';
 import cancelInvitation from '@controllers/share/cancel-invitation';
 import createInvitation from '@controllers/share/create-invitation';
 import declineInvitation from '@controllers/share/decline-invitation';
@@ -59,6 +60,13 @@ router.delete(
   authenticateSession,
   validateEndpoint(cancelInvitation.schema),
   cancelInvitation.handler,
+);
+router.post(
+  '/invitations/:id/back-invite',
+  authenticateSession,
+  shareInvitationSendRateLimit,
+  validateEndpoint(backInviteFromInvitation.schema),
+  backInviteFromInvitation.handler,
 );
 
 router.get(

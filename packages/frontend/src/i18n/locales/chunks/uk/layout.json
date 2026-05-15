@@ -25,7 +25,9 @@
       "title": "Рахунки",
       "newAccount": "Новий рахунок",
       "newAccountsGroup": "Нова група рахунків",
-      "collapseNavigation": "Згорнути навігацію"
+      "collapseNavigation": "Згорнути навігацію",
+      "viaHousehold": "Через сім'ю {handle}",
+      "sharedBy": "Поділено з {handle}"
     }
   },
   "header": {

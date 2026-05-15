@@ -1,5 +1,6 @@
 import { api } from '@/api/_api';
 import {
+  type HouseholdSharePermission,
   type ResourceShareModel,
   ResourceType,
   ShareInvitationModel,
@@ -50,6 +51,12 @@ interface AcceptInvitationResponse {
     policy: SharePolicy | null;
     acceptedAt: string;
   };
+  /**
+   * `true` only on household accepts where the recipient does not already share their own
+   * household back with the inviter. Drives the "share back" prompt; `false` suppresses
+   * it (e.g., when both households are already reciprocally shared).
+   */
+  canBackInvite: boolean;
 }
 
 export const acceptShareInvitation = (token: string): Promise<AcceptInvitationResponse> =>
@@ -116,11 +123,22 @@ export const revokeShareMember = ({
 
 export const listSentShareInvitations = (): Promise<InvitationListItem[]> => api.get('/share/invitations/sent');
 
-export const resendShareInvitation = (id: string): Promise<ShareInvitationModel & { emailDelivered: boolean }> =>
+export const resendShareInvitation = (id: string): Promise<CreateInvitationResponse> =>
   api.post(`/share/invitations/${encodeURIComponent(id)}/resend`);
 
 export const cancelShareInvitation = (id: string): Promise<ShareInvitationModel> =>
   api.delete(`/share/invitations/${encodeURIComponent(id)}`);
+
+export const backInviteFromShareInvitation = ({
+  sourceInvitationId,
+  permission,
+  policy,
+}: {
+  sourceInvitationId: string;
+  permission: HouseholdSharePermission;
+  policy?: SharePolicy | null;
+}): Promise<CreateInvitationResponse> =>
+  api.post(`/share/invitations/${encodeURIComponent(sourceInvitationId)}/back-invite`, { permission, policy });
 
 export interface SharedWithMeRow {
   shareId: string;

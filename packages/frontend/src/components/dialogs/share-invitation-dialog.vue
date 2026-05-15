@@ -1,13 +1,27 @@
 <script setup lang="ts">
-import { acceptShareInvitation, declineShareInvitation, listReceivedShareInvitations } from '@/api/share';
+import {
+  acceptShareInvitation,
+  backInviteFromShareInvitation,
+  declineShareInvitation,
+  listReceivedShareInvitations,
+} from '@/api/share';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import { SelectField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { useAccountsStore } from '@/stores';
-import { API_ERROR_CODES, RESOURCE_TYPES, SHARE_PERMISSIONS, type SharePermission } from '@bt/shared/types';
+import { useAccountsStore, useCategoriesStore } from '@/stores';
+import {
+  API_ERROR_CODES,
+  type HouseholdSharePermission,
+  RESOURCE_TYPES,
+  SHARE_PERMISSIONS,
+  type SharePermission,
+  TRANSACTIONS_WRITE_SCOPES,
+  type TransactionsWriteScope,
+} from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { format } from 'date-fns';
 import { CheckCircleIcon, UsersIcon } from 'lucide-vue-next';
@@ -35,6 +49,7 @@ const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
 const accountsStore = useAccountsStore();
+const categoriesStore = useCategoriesStore();
 
 const isOpen = computed({
   get: () => props.token.length > 0,
@@ -43,11 +58,61 @@ const isOpen = computed({
   },
 });
 
-type ViewState = 'loading' | 'pending' | 'accepted' | 'declined' | 'not-found' | 'currency-mismatch' | 'error';
+type ViewState =
+  | 'loading'
+  | 'pending'
+  | 'accepted'
+  | 'back-invite-sent'
+  | 'declined'
+  | 'not-found'
+  | 'currency-mismatch'
+  | 'error';
 
 const stateOverride = ref<ViewState | null>(null);
 const acceptedAccountId = ref<number | null>(null);
 const expectedCurrency = ref<string | null>(null);
+
+interface BackInviteContext {
+  sourceInvitationId: string;
+  ownerUsername: string;
+}
+// Captured at accept time for household invitations so the "share back" prompt survives
+// the received-invitations cache invalidation that happens immediately after accept.
+const backInviteContext = ref<BackInviteContext | null>(null);
+
+interface PermissionOption {
+  label: string;
+  value: HouseholdSharePermission;
+}
+interface WriteScopeOption {
+  label: string;
+  value: TransactionsWriteScope;
+}
+const backInvitePermissionOptions = computed<PermissionOption[]>(() => [
+  { label: t('dialogs.shareInvitationDialog.backInvite.permissions.read'), value: SHARE_PERMISSIONS.read },
+  { label: t('dialogs.shareInvitationDialog.backInvite.permissions.write'), value: SHARE_PERMISSIONS.write },
+]);
+const backInviteWriteScopeOptions = computed<WriteScopeOption[]>(() => [
+  { label: t('dialogs.shareInvitationDialog.backInvite.writeScope.all'), value: TRANSACTIONS_WRITE_SCOPES.all },
+  { label: t('dialogs.shareInvitationDialog.backInvite.writeScope.own'), value: TRANSACTIONS_WRITE_SCOPES.own },
+]);
+// Defaults are looked up by value (write / all) so reordering the option array later
+// can't silently flip the default. Bang-asserts are safe — both values are in the list above.
+const findPermissionOption = (value: HouseholdSharePermission) =>
+  backInvitePermissionOptions.value.find((o) => o.value === value)!;
+const findWriteScopeOption = (value: TransactionsWriteScope) =>
+  backInviteWriteScopeOptions.value.find((o) => o.value === value)!;
+const backInvitePermission = ref<PermissionOption>(findPermissionOption(SHARE_PERMISSIONS.write));
+const backInviteWriteScope = ref<WriteScopeOption>(findWriteScopeOption(TRANSACTIONS_WRITE_SCOPES.all));
+const showBackInviteWriteScope = computed(() => backInvitePermission.value.value !== SHARE_PERMISSIONS.read);
+
+// Keep refs aligned with the locale labels if i18n swaps under us.
+watch(backInvitePermissionOptions, () => {
+  backInvitePermission.value = findPermissionOption(backInvitePermission.value.value);
+});
+watch(backInviteWriteScopeOptions, () => {
+  backInviteWriteScope.value = findWriteScopeOption(backInviteWriteScope.value.value);
+});
 
 // Reset transient state every time a new token is opened so a stale "accepted" view
 // from a previous invitation doesn't persist.
@@ -58,6 +123,9 @@ watch(
       stateOverride.value = null;
       acceptedAccountId.value = null;
       expectedCurrency.value = null;
+      backInviteContext.value = null;
+      backInvitePermission.value = findPermissionOption(SHARE_PERMISSIONS.write);
+      backInviteWriteScope.value = findWriteScopeOption(TRANSACTIONS_WRITE_SCOPES.all);
     }
   },
 );
@@ -104,6 +172,18 @@ const extractApiError = (err: unknown) => {
 const acceptMutation = useMutation({
   mutationFn: () => acceptShareInvitation(props.token),
   onSuccess: async (data) => {
+    // Snapshot the bits we need post-accept *before* invalidating the received list,
+    // because the matchingPending lookup goes stale the moment the cache clears. Only
+    // surface the back-invite prompt when the backend says the reciprocal direction is
+    // not already shared (otherwise prompting would loop: A invites B, B accepts and
+    // back-invites A, A accepts and the prompt would ask A to "share back" with B who
+    // already has A's household).
+    if (data.share.resourceType === RESOURCE_TYPES.household && data.canBackInvite && matchingPending.value) {
+      backInviteContext.value = {
+        sourceInvitationId: matchingPending.value.id,
+        ownerUsername: matchingPending.value.owner?.username || t('dialogs.shareInvitationDialog.unknownOwner'),
+      };
+    }
     stateOverride.value = 'accepted';
     if (data.share.resourceType === RESOURCE_TYPES.account) {
       const numeric = Number(data.share.resourceId);
@@ -112,7 +192,11 @@ const acceptMutation = useMutation({
     addSuccessNotification(t('dialogs.shareInvitationDialog.acceptSuccess'));
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsReceived });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts });
-    await accountsStore.refetchAccounts();
+    // Refetch accounts and reload categories in parallel — the newly accessible accounts
+    // carry transactions whose categoryId points at the owner's category tree, which the
+    // categories store only pulls in on (re)load. Without this, tx rows render with broken
+    // category chips until a page reload.
+    await Promise.all([accountsStore.refetchAccounts(), categoriesStore.loadCategories()]);
   },
   onError: (err: unknown) => {
     const { code: apiCode, message: apiMessage, details } = extractApiError(err);
@@ -167,6 +251,47 @@ const goToCurrencySettings = () => {
 };
 
 const closeDialog = () => emit('close');
+
+const backInviteMutation = useMutation({
+  mutationFn: () => {
+    // The button is gated by `v-if="backInviteContext"` so this should never fire in
+    // normal flow. If a race ever does call mutate() with no context, surface the localized
+    // error toast (apiMessage stays undefined → falls back to backInvite.error) rather than
+    // exposing the dev-only string to the user.
+    if (!backInviteContext.value) {
+      throw new Error('Missing back-invite context');
+    }
+    return backInviteFromShareInvitation({
+      sourceInvitationId: backInviteContext.value.sourceInvitationId,
+      permission: backInvitePermission.value.value,
+      policy: showBackInviteWriteScope.value ? { transactionsWriteScope: backInviteWriteScope.value.value } : null,
+    });
+  },
+  onSuccess: (data) => {
+    if (data.emailDelivered === false) {
+      addErrorNotification(t('dialogs.shareInvitationDialog.backInvite.deliveryFailed'));
+    } else {
+      addSuccessNotification(t('dialogs.shareInvitationDialog.backInvite.success'));
+    }
+    stateOverride.value = 'back-invite-sent';
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsReceived });
+  },
+  onError: (err: unknown) => {
+    const { code: apiCode, message: apiMessage } = extractApiError(err);
+    // 409 covers both "you already share with this user" and "you already sent a back-invite"
+    // — in either case the recipient's intent ("share back") is already realized, so collapse
+    // to the success view rather than leaving them on the form clicking again. Match on the
+    // code (not the message) to stay resilient to backend copy changes.
+    if (apiCode === API_ERROR_CODES.conflict) {
+      stateOverride.value = 'back-invite-sent';
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsReceived });
+      return;
+    }
+    addErrorNotification(apiMessage || t('dialogs.shareInvitationDialog.backInvite.error'));
+  },
+});
 </script>
 
 <template>
@@ -189,6 +314,9 @@ const closeDialog = () => emit('close');
           </template>
           <template v-else-if="viewState === 'accepted'">
             {{ $t('dialogs.shareInvitationDialog.titleAccepted') }}
+          </template>
+          <template v-else-if="viewState === 'back-invite-sent'">
+            {{ $t('dialogs.shareInvitationDialog.backInvite.sentTitle') }}
           </template>
           <template v-else-if="viewState === 'declined'">
             {{ $t('dialogs.shareInvitationDialog.titleDeclined') }}
@@ -235,9 +363,49 @@ const closeDialog = () => emit('close');
       </template>
 
       <template v-else-if="viewState === 'accepted'">
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-col items-center gap-3 text-center">
+            <CheckCircleIcon class="text-app-income-color size-6" />
+            <p class="text-muted-foreground text-sm">{{ $t('dialogs.shareInvitationDialog.acceptedBody') }}</p>
+          </div>
+
+          <div v-if="backInviteContext" class="bg-muted/40 flex flex-col gap-3 rounded-md border p-4">
+            <p class="text-sm">
+              <i18n-t keypath="dialogs.shareInvitationDialog.backInvite.prompt" tag="span">
+                <template #owner>
+                  <strong class="text-foreground">@{{ backInviteContext.ownerUsername }}</strong>
+                </template>
+              </i18n-t>
+            </p>
+            <SelectField
+              v-model="backInvitePermission"
+              :values="backInvitePermissionOptions"
+              :label="$t('dialogs.shareInvitationDialog.backInvite.permissionLabel')"
+              label-key="label"
+              value-key="value"
+            />
+            <SelectField
+              v-if="showBackInviteWriteScope"
+              v-model="backInviteWriteScope"
+              :values="backInviteWriteScopeOptions"
+              :label="$t('dialogs.shareInvitationDialog.backInvite.writeScopeLabel')"
+              label-key="label"
+              value-key="value"
+            />
+          </div>
+        </div>
+      </template>
+
+      <template v-else-if="viewState === 'back-invite-sent'">
         <div class="flex flex-col items-center gap-3 text-center">
           <CheckCircleIcon class="text-app-income-color size-6" />
-          <p class="text-muted-foreground text-sm">{{ $t('dialogs.shareInvitationDialog.acceptedBody') }}</p>
+          <p class="text-muted-foreground text-sm">
+            <i18n-t keypath="dialogs.shareInvitationDialog.backInvite.sentBody" tag="span">
+              <template #owner>
+                <strong class="text-foreground">@{{ backInviteContext?.ownerUsername ?? '' }}</strong>
+              </template>
+            </i18n-t>
+          </p>
         </div>
       </template>
 
@@ -288,8 +456,27 @@ const closeDialog = () => emit('close');
       </template>
 
       <template v-else-if="viewState === 'accepted'">
-        <Button class="w-full" @click="goToAccount">
+        <template v-if="backInviteContext">
+          <Button variant="outline" class="flex-1" :disabled="backInviteMutation.isPending.value" @click="closeDialog">
+            {{ $t('dialogs.shareInvitationDialog.backInvite.notNow') }}
+          </Button>
+          <Button
+            class="flex-1"
+            :loading="backInviteMutation.isPending.value"
+            :disabled="backInviteMutation.isPending.value"
+            @click="backInviteMutation.mutate()"
+          >
+            {{ $t('dialogs.shareInvitationDialog.backInvite.send') }}
+          </Button>
+        </template>
+        <Button v-else class="w-full" @click="goToAccount">
           {{ $t('dialogs.shareInvitationDialog.goToAccount') }}
+        </Button>
+      </template>
+
+      <template v-else-if="viewState === 'back-invite-sent'">
+        <Button class="w-full" @click="closeDialog">
+          {{ $t('dialogs.shareInvitationDialog.backInvite.done') }}
         </Button>
       </template>
 

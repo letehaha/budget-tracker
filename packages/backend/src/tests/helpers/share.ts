@@ -1,4 +1,4 @@
-import { ResourceType, SharePermission, SharePolicy } from '@bt/shared/types';
+import { RESOURCE_TYPES, ResourceType, SHARE_PERMISSIONS, SharePermission, SharePolicy } from '@bt/shared/types';
 import { authPool } from '@config/auth';
 import Users from '@models/users.model';
 import type { acceptInvitation as apiAcceptInvitation } from '@services/sharing/invitations/accept-invitation.service';
@@ -99,6 +99,30 @@ export async function createShareInvitation<R extends boolean | undefined = unde
   });
 }
 
+/**
+ * Convenience wrapper for the most common test fixture: a household invitation owned by
+ * `ownerUserId` to `inviteeEmail`. Defaults to `write` permission (matches what tests have
+ * historically assumed). Always returns the raw invitation row — wrap with `raw: false` at
+ * call sites that need the response envelope instead.
+ */
+export async function createHouseholdInvitation({
+  ownerUserId,
+  inviteeEmail,
+  permission = SHARE_PERMISSIONS.write,
+}: {
+  ownerUserId: number;
+  inviteeEmail: string;
+  permission?: SharePermission;
+}) {
+  return createShareInvitation({
+    inviteeEmail,
+    resourceType: RESOURCE_TYPES.household,
+    resourceId: ownerUserId,
+    permission,
+    raw: true,
+  });
+}
+
 export async function listSentShareInvitations<R extends boolean | undefined = undefined>({ raw }: { raw?: R } = {}) {
   return makeRequest<Awaited<ReturnType<typeof apiListSentInvitations>>, R>({
     method: 'get',
@@ -169,6 +193,25 @@ export async function cancelShareInvitation<R extends boolean | undefined = unde
   return makeRequest<Awaited<ReturnType<typeof apiCreateInvitation>>['invitation'], R>({
     method: 'delete',
     url: `/share/invitations/${encodeURIComponent(invitationId)}`,
+    raw,
+  });
+}
+
+export async function backInviteFromShareInvitation<R extends boolean | undefined = undefined>({
+  sourceInvitationId,
+  permission,
+  policy,
+  raw,
+}: {
+  sourceInvitationId: string;
+  permission: SharePermission;
+  policy?: SharePolicy | null;
+  raw?: R;
+}) {
+  return makeRequest<InvitationSendResponse, R>({
+    method: 'post',
+    url: `/share/invitations/${encodeURIComponent(sourceInvitationId)}/back-invite`,
+    payload: { permission, policy },
     raw,
   });
 }

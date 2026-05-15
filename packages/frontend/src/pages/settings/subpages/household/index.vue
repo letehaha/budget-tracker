@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import {
   type ShareMemberRow,
+  cancelShareInvitation,
   createShareInvitation,
   leaveShare,
   listShareMembers,
+  listSentShareInvitations,
   listSharedWithMe,
+  resendShareInvitation,
   revokeShareMember,
   updateShareMember,
 } from '@/api/share';
@@ -19,13 +22,15 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { useUserStore } from '@/stores';
 import {
   RESOURCE_TYPES,
+  SHARE_INVITATION_STATUSES,
   SHARE_PERMISSIONS,
   type SharePermission,
+  type ShareInvitationModel,
   TRANSACTIONS_WRITE_SCOPES,
   type TransactionsWriteScope,
 } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { LogOutIcon, MailIcon, UserMinusIcon } from 'lucide-vue-next';
+import { LogOutIcon, MailIcon, RotateCwIcon, UserMinusIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -34,6 +39,13 @@ const { t } = useI18n();
 const { user } = storeToRefs(useUserStore());
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
+
+// Single source for unwrapping ApiErrorResponseError messages — the API client throws
+// this class with `data: { code, message, details }`, so the common reflex of reading
+// `err.response.data.response.message` silently returns undefined. Centralizing the
+// extraction keeps every mutation handler consistent.
+const extractApiErrorMessage = (err: unknown): string | undefined =>
+  err instanceof ApiErrorResponseError ? err.data?.message : undefined;
 
 // "My household" = the household I own. Identified by my own userId in the resource shape.
 const myHouseholdId = computed(() => user.value?.id ?? null);
@@ -93,6 +105,25 @@ const householdsImIn = computed(() =>
 const recipientMembers = computed(() => (membersQuery.data.value?.members ?? []).filter((m) => m.role === 'recipient'));
 const ownerMember = computed(() => (membersQuery.data.value?.members ?? []).find((m) => m.role === 'owner') ?? null);
 
+const sentInvitationsQuery = useQuery({
+  queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent,
+  queryFn: listSentShareInvitations,
+  enabled: computed(() => myHouseholdId.value !== null),
+});
+
+// Pending household invites the caller has sent. The list-sent endpoint already scopes
+// to the caller as owner, so we only need to narrow by resource shape + status.
+const pendingInvitations = computed(() => {
+  if (!sentInvitationsQuery.data.value || myHouseholdId.value === null) return [];
+  const householdResourceId = String(myHouseholdId.value);
+  return sentInvitationsQuery.data.value.filter(
+    (inv) =>
+      inv.resourceType === RESOURCE_TYPES.household &&
+      String(inv.resourceId) === householdResourceId &&
+      inv.status === SHARE_INVITATION_STATUSES.pending,
+  );
+});
+
 // ─── Invite form ─────────────────────────────────────────────────────────
 const inviteEmail = ref('');
 const invitePermission = ref<PermissionOption>(permissionOptions.value[1]!); // default write
@@ -120,8 +151,7 @@ const inviteMutation = useMutation({
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent });
   },
   onError: (err) => {
-    const message = err instanceof ApiErrorResponseError ? err.data?.message : undefined;
-    addErrorNotification(message || t('pages.household.invite.error'));
+    addErrorNotification(extractApiErrorMessage(err) || t('pages.household.invite.error'));
   },
 });
 
@@ -157,14 +187,51 @@ const revokeMutation = useMutation({
     revokeTarget.value = null;
   },
   onError: (err) => {
-    const message = err instanceof ApiErrorResponseError ? err.data?.message : undefined;
-    addErrorNotification(message || t('pages.household.revoke.error'));
+    addErrorNotification(extractApiErrorMessage(err) || t('pages.household.revoke.error'));
   },
 });
 const confirmRevoke = () => {
   if (!revokeTarget.value) return;
   revokeMutation.mutate();
 };
+
+// ─── Pending invites (resend / cancel) ────────────────────────────────────
+const cancelInviteTarget = ref<ShareInvitationModel | null>(null);
+const cancelInviteOpen = ref(false);
+const openCancelInvite = (invitation: ShareInvitationModel) => {
+  cancelInviteTarget.value = invitation;
+  cancelInviteOpen.value = true;
+};
+const cancelInviteMutation = useMutation({
+  mutationFn: (id: string) => cancelShareInvitation(id),
+  onSuccess: () => {
+    addSuccessNotification(t('pages.household.pending.cancelSuccess'));
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent });
+    cancelInviteOpen.value = false;
+    cancelInviteTarget.value = null;
+  },
+  onError: (err) => {
+    addErrorNotification(extractApiErrorMessage(err) || t('pages.household.pending.cancelError'));
+  },
+});
+const confirmCancelInvite = () => {
+  if (!cancelInviteTarget.value) return;
+  cancelInviteMutation.mutate(cancelInviteTarget.value.id);
+};
+const resendInviteMutation = useMutation({
+  mutationFn: (id: string) => resendShareInvitation(id),
+  onSuccess: (data) => {
+    if (data.emailDelivered === false) {
+      addErrorNotification(t('pages.household.pending.resendDeliveryFailed'));
+    } else {
+      addSuccessNotification(t('pages.household.pending.resendSuccess'));
+    }
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent });
+  },
+  onError: (err) => {
+    addErrorNotification(extractApiErrorMessage(err) || t('pages.household.pending.resendError'));
+  },
+});
 
 // ─── Permission change ────────────────────────────────────────────────────
 const changePermissionMutation = useMutation({
@@ -184,8 +251,7 @@ const changePermissionMutation = useMutation({
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareMembers });
   },
   onError: (err) => {
-    const message = err instanceof ApiErrorResponseError ? err.data?.message : undefined;
-    addErrorNotification(message || t('pages.household.permissionChange.error'));
+    addErrorNotification(extractApiErrorMessage(err) || t('pages.household.permissionChange.error'));
   },
 });
 
@@ -210,8 +276,7 @@ const leaveMutation = useMutation({
     leaveTarget.value = null;
   },
   onError: (err) => {
-    const message = err instanceof ApiErrorResponseError ? err.data?.message : undefined;
-    addErrorNotification(message || t('pages.household.leave.error'));
+    addErrorNotification(extractApiErrorMessage(err) || t('pages.household.leave.error'));
   },
 });
 const confirmLeave = () => {
@@ -292,13 +357,16 @@ watch(permissionOptions, (next) => {
               </div>
             </div>
 
-            <div v-if="!recipientMembers.length" class="text-muted-foreground py-4 text-sm">
+            <div
+              v-if="!recipientMembers.length && !pendingInvitations.length"
+              class="text-muted-foreground py-4 text-sm"
+            >
               {{ $t('pages.household.noMembers') }}
             </div>
             <ul v-else class="grid gap-2">
               <li
                 v-for="member in recipientMembers"
-                :key="member.shareId ?? member.user.id"
+                :key="`member-${member.shareId ?? member.user.id}`"
                 class="border-border bg-card flex flex-col gap-3 rounded-md border p-3 @sm/household:flex-row @sm/household:items-center"
               >
                 <div class="flex min-w-0 flex-1 items-center gap-3">
@@ -343,6 +411,51 @@ watch(permissionOptions, (next) => {
                   >
                     <UserMinusIcon class="mr-2 size-4" />
                     {{ $t('pages.household.revoke.action') }}
+                  </Button>
+                </div>
+              </li>
+              <li
+                v-for="invitation in pendingInvitations"
+                :key="`invite-${invitation.id}`"
+                class="border-border bg-card flex flex-col gap-3 rounded-md border p-3 @sm/household:flex-row @sm/household:items-center"
+              >
+                <div class="flex min-w-0 flex-1 items-center gap-3">
+                  <div
+                    class="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-full"
+                  >
+                    <MailIcon class="size-4" />
+                  </div>
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-medium">{{ invitation.inviteeEmail }}</p>
+                    <p class="text-muted-foreground text-xs">
+                      <span>{{ permissionLabel(invitation.permission) }}</span>
+                      <span
+                        class="bg-muted text-muted-foreground ml-2 rounded-full px-2 py-0.5 text-[10px] tracking-wide uppercase"
+                      >
+                        {{ $t('pages.household.pending.badge') }}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    :loading="resendInviteMutation.isPending.value"
+                    :disabled="resendInviteMutation.isPending.value"
+                    @click="resendInviteMutation.mutate(invitation.id)"
+                  >
+                    <RotateCwIcon class="mr-2 size-4" />
+                    {{ $t('pages.household.pending.resend') }}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="soft-destructive"
+                    :disabled="cancelInviteMutation.isPending.value"
+                    @click="openCancelInvite(invitation)"
+                  >
+                    <XIcon class="mr-2 size-4" />
+                    {{ $t('pages.household.pending.cancel') }}
                   </Button>
                 </div>
               </li>
@@ -427,6 +540,19 @@ watch(permissionOptions, (next) => {
       <template #title>{{ $t('pages.household.leave.title') }}</template>
       <template #description>
         {{ $t('pages.household.leave.description', { owner: leaveTarget?.ownerName ?? '' }) }}
+      </template>
+    </ResponsiveAlertDialog>
+
+    <ResponsiveAlertDialog
+      v-model:open="cancelInviteOpen"
+      :confirm-label="$t('pages.household.pending.cancelConfirm')"
+      confirm-variant="destructive"
+      :confirm-disabled="cancelInviteMutation.isPending.value"
+      @confirm="confirmCancelInvite"
+    >
+      <template #title>{{ $t('pages.household.pending.cancelTitle') }}</template>
+      <template #description>
+        {{ $t('pages.household.pending.cancelDescription', { email: cancelInviteTarget?.inviteeEmail ?? '' }) }}
       </template>
     </ResponsiveAlertDialog>
   </div>
